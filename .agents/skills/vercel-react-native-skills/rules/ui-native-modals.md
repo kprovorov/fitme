@@ -7,10 +7,7 @@ tags: modals, bottom-sheet, native, react-navigation
 
 ## Use Native Modals Over JS-Based Bottom Sheets
 
-Use native `<Modal>` with `presentationStyle="formSheet"` or React Navigation
-v7's native form sheet instead of JS-based bottom sheet libraries. Native modals
-have built-in gestures, accessibility, and better performance. Rely on native UI
-for low-level primitives.
+Use native `<Modal>` with `presentationStyle="formSheet"` or React Navigation v7's native form sheet instead of JS-based bottom sheet libraries. Native modals have built-in gestures, accessibility, and better performance. Rely on native UI for low-level primitives.
 
 **Incorrect (JS-based bottom sheet):**
 
@@ -73,5 +70,4 @@ function MyScreen() {
 />
 ```
 
-Native modals provide swipe-to-dismiss, proper keyboard avoidance, and
-accessibility out of the box.
+Native modals provide swipe-to-dismiss, proper keyboard avoidance, and accessibility out of the box.

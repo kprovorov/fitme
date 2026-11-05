@@ -14,6 +14,8 @@ import {
 } from "@jest/globals";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { render, screen, within } from "@testing-library/react-native";
+import { it, afterEach, describe, expect, beforeEach } from "vitest";
+
 import ModelPickerSheet from "~/app/(tabs)/arnold/model-picker";
 import { useAppLanguageSync } from "~/lib/i18n";
 import { storage } from "~/lib/mmkv";
@@ -26,17 +28,28 @@ import { createTestQueryClient, settle } from "~/test-utils/query-client";
 
 const MODELS_ROUTE = "GET /v1/arnold/models";
 
-jest.mock("expo-router", () => ({ useRouter: () => ({ back: jest.fn() }) }));
-jest.mock("react-native-safe-area-context", () => ({
-  useSafeAreaInsets: () => ({ bottom: 0, left: 0, right: 0, top: 0 }),
+jest.mock<typeof import("expo-router")>(import("expo-router"), () => ({
+  useRouter: () => ({ back: jest.fn() }),
 }));
-jest.mock("@/components/symbol-image", () => ({ SymbolImage: () => null }));
+
+jest.mock<typeof import("react-native-safe-area-context")>(
+  import("react-native-safe-area-context"),
+  () => ({
+    useSafeAreaInsets: () => ({ bottom: 0, left: 0, right: 0, top: 0 }),
+  })
+);
+
+jest.mock<typeof import("@/components/symbol-image")>(
+  import("@/components/symbol-image"),
+  () => ({ SymbolImage: () => null })
+);
 
 const { EXPO_PUBLIC_API_URL } = process.env;
 
 /** The sheet under the root layout's language sync. */
 function Sheet() {
   useAppLanguageSync();
+
   return <ModelPickerSheet />;
 }
 
@@ -45,6 +58,7 @@ const expectDefaultSelected = () => {
   const defaultModel = arnoldModels.find(
     ({ id }) => id === defaultArnoldModelId
   );
+
   const selected = screen.getByRole("radio", { selected: true });
   expect(within(selected).getByText(defaultModel?.label ?? "")).toBeTruthy();
 };
@@ -56,9 +70,11 @@ const renderPicker = async ({ wait = true } = {}) => {
       <Sheet />
     </QueryClientProvider>
   );
+
   if (wait) {
     await settle(client);
   }
+
   return client;
 };
 
@@ -71,7 +87,7 @@ afterEach(() => {
   process.env.EXPO_PUBLIC_API_URL = EXPO_PUBLIC_API_URL;
 });
 
-describe("Model picker", () => {
+describe("model picker", () => {
   it("lists the served models in English, the default one selected", async () => {
     await renderPicker();
 
@@ -91,7 +107,7 @@ describe("Model picker", () => {
   });
 });
 
-describe("Model picker in Ukrainian", () => {
+describe("model picker in Ukrainian", () => {
   beforeEach(() => {
     setDeviceLanguages(["uk-UA"]);
   });
@@ -100,10 +116,12 @@ describe("Model picker in Ukrainian", () => {
     await renderPicker();
 
     expect(screen.getByText("Діє з наступного повідомлення")).toBeTruthy();
+
     for (const { description, label } of arnoldModels) {
       expect(screen.getByText(label)).toBeTruthy();
       expect(screen.getByText(description)).toBeTruthy();
     }
+
     expectDefaultSelected();
   });
 

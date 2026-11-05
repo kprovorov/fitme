@@ -21,16 +21,15 @@
  * and call `resetStubRouter()` before each test.
  */
 import {
-  type ComponentType,
   cloneElement,
   createContext,
-  type ReactElement,
-  type Ref,
   useContext,
   useSyncExternalStore,
 } from "react";
+import type { ComponentType, ReactElement, Ref } from "react";
 import { Pressable, Text } from "react-native";
 import type { SearchBarCommands, SearchBarProps } from "react-native-screens";
+
 import { SearchBar } from "~/test-utils/stack-screen-stub";
 
 type Params = Record<string, string>;
@@ -51,6 +50,7 @@ let nextKey = 0;
 
 const setRoutes = (next: PushedRoute[]) => {
   routes = next;
+
   for (const listener of listeners) {
     listener();
   }
@@ -58,15 +58,19 @@ const setRoutes = (next: PushedRoute[]) => {
 
 const toRoute = (href: Href): PushedRoute => {
   nextKey += 1;
+
   if (typeof href === "string") {
     return { key: nextKey, params: {}, pathname: href };
   }
+
   const params: Params = {};
+
   for (const [name, value] of Object.entries(href.params ?? {})) {
     if (value !== undefined) {
       params[name] = value;
     }
   }
+
   return { key: nextKey, params, pathname: href.pathname };
 };
 
@@ -86,6 +90,7 @@ export const resetStubRouter = () => setRoutes([]);
 
 const subscribe = (listener: () => void) => {
   listeners.add(listener);
+
   return () => {
     listeners.delete(listener);
   };
@@ -119,8 +124,10 @@ export function PushedRoutes({
   screens: Record<string, ComponentType>;
 }) {
   const pushed = useSyncExternalStore(subscribe, pushedRoutes);
+
   return pushed.map((route) => {
     const Screen = screens[route.pathname];
+
     return Screen ? (
       <RouteParams.Provider key={route.key} value={route.params}>
         <Screen />

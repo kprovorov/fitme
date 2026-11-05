@@ -1,8 +1,9 @@
 import { reportMissingEnv } from "@fitme/observability/node";
 import { describe, expect, it, vi } from "vitest";
+
 import { REQUIRED_ENV } from "../required-env";
 
-describe("REQUIRED_ENV", () => {
+describe(REQUIRED_ENV, () => {
   it("reports one error per variable on a production instance missing them all", async () => {
     const report = vi.fn((_error: unknown, _tags?: Record<string, string>) =>
       Promise.resolve()

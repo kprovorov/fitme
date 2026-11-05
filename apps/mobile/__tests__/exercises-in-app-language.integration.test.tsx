@@ -1,3 +1,4 @@
+import { LibraryUnavailableError } from "@fitme/library-sdk";
 /**
  * Exercises in the App language (FIT-406): in Ukrainian, Plans, Workout
  * Sessions, the Exercise detail screen and its guide show each Exercise's
@@ -9,8 +10,6 @@
  * language sync; the device language comes from the mocked
  * `expo-localization` (`test-utils/device-locales.ts`).
  */
-
-import { LibraryUnavailableError } from "@fitme/library-sdk";
 import type { FakeLibrary } from "@fitme/library-sdk/fake";
 import {
   afterEach,
@@ -20,9 +19,12 @@ import {
   it,
   jest,
 } from "@jest/globals";
-import { type QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { QueryClientProvider } from "@tanstack/react-query";
+import type { QueryClient } from "@tanstack/react-query";
 import { act, fireEvent, render, screen } from "@testing-library/react-native";
 import type { ReactNode } from "react";
+import { it, afterEach, describe, expect, beforeEach } from "vitest";
+
 import LibraryScreen from "~/app/(tabs)/library/index";
 import ExerciseGuideScreen from "~/app/exercises/[exerciseSlug]/guide";
 import ExerciseScreen from "~/app/exercises/[exerciseSlug]/index";
@@ -44,17 +46,20 @@ const mockParams: { current: Record<string, string> } = { current: {} };
 
 // The real Clerk SDK (reached through the Workout Session's writes) opens a
 // MessagePort at import that keeps Jest alive.
-jest.mock("~/lib/clerk", () => ({
+jest.mock<typeof import("~/lib/clerk")>(import("~/lib/clerk"), () => ({
   getCurrentUserId: jest.requireActual<
     typeof import("~/test-utils/signed-in-user")
   >("~/test-utils/signed-in-user").getCurrentUserId,
 }));
-jest.mock("expo-router", () => {
+
+jest.mock<typeof import("expo-router")>(import("expo-router"), () => {
   const { Text, View } =
     jest.requireActual<typeof import("react-native")>("react-native");
+
   const { SearchBar } = jest.requireActual<
     typeof import("~/test-utils/stack-screen-stub")
   >("~/test-utils/stack-screen-stub");
+
   return {
     Link: ({ children, href }: { children: ReactNode; href: string }) => (
       <View testID={`link:${href}`}>{children}</View>
@@ -91,63 +96,108 @@ jest.mock("expo-router", () => {
   };
 });
 
-jest.mock(
-  "~/lib/library",
+jest.mock<typeof import("~/lib/library")>(
+  import("~/lib/library"),
   () =>
     jest.requireActual<typeof import("~/test-utils/fake-library")>(
       "~/test-utils/fake-library"
     ).libraryModule
 );
-jest.mock("~/hooks/queries/profiles", () => ({
-  useProfileQuery: () => ({ data: { measurement_system: "metric" } }),
-}));
-jest.mock("@sentry/react-native", () => ({ captureException: jest.fn() }));
-jest.mock("~/lib/segment", () => ({ segmentClient: { track: jest.fn() } }));
-jest.mock("react-native-safe-area-context", () => ({
-  useSafeAreaInsets: () => ({ bottom: 0, left: 0, right: 0, top: 0 }),
-}));
-jest.mock("react-native-keyboard-controller", () => {
-  const { ScrollView } =
-    jest.requireActual<typeof import("react-native")>("react-native");
-  return { KeyboardAwareScrollView: ScrollView };
-});
-// A thumbnail shows as a view naming its image, or `none`.
-jest.mock("~/components/exercises/exercise-image", () => {
-  const { View } =
-    jest.requireActual<typeof import("react-native")>("react-native");
-  return ({ exercise }: { exercise: { thumbnail_url: string | null } }) => (
-    <View testID={`thumbnail:${exercise.thumbnail_url ?? "none"}`} />
-  );
-});
-jest.mock("~/components/symbol-image", () => ({ SymbolImage: () => null }));
-jest.mock("~/components/workout-sessions/rest-timer", () => () => null);
-jest.mock("~/components/ui/button", () =>
-  jest.requireActual("~/test-utils/button-stub")
-);
-jest.mock("~/components/ui/dialog", () =>
-  jest.requireActual("~/test-utils/dialog-stub")
-);
-jest.mock("~/components/ui/dropdown-menu", () => {
-  const { Pressable } =
-    jest.requireActual<typeof import("react-native")>("react-native");
-  return {
-    DropdownMenu: ({
-      items,
-    }: {
-      items: Array<{ label: string; onPress?: () => void }>;
-    }) =>
-      items.map((item) => (
-        <Pressable
-          accessibilityLabel={item.label}
-          accessibilityRole="menuitem"
-          key={item.label}
-          onPress={item.onPress}
-        />
-      )),
-  };
-});
 
-jest.mock("~/components/exercises/exercise-video", () => () => null);
+jest.mock<typeof import("~/hooks/queries/profiles")>(
+  import("~/hooks/queries/profiles"),
+  () => ({
+    useProfileQuery: () => ({ data: { measurement_system: "metric" } }),
+  })
+);
+
+jest.mock<typeof import("@sentry/react-native")>(
+  import("@sentry/react-native"),
+  () => ({ captureException: jest.fn() })
+);
+
+jest.mock<typeof import("~/lib/segment")>(import("~/lib/segment"), () => ({
+  segmentClient: { track: jest.fn() },
+}));
+
+jest.mock<typeof import("react-native-safe-area-context")>(
+  import("react-native-safe-area-context"),
+  () => ({
+    useSafeAreaInsets: () => ({ bottom: 0, left: 0, right: 0, top: 0 }),
+  })
+);
+
+jest.mock<typeof import("react-native-keyboard-controller")>(
+  import("react-native-keyboard-controller"),
+  () => {
+    const { ScrollView } =
+      jest.requireActual<typeof import("react-native")>("react-native");
+
+    return { KeyboardAwareScrollView: ScrollView };
+  }
+);
+
+// A thumbnail shows as a view naming its image, or `none`.
+jest.mock<typeof import("~/components/exercises/exercise-image")>(
+  import("~/components/exercises/exercise-image"),
+  () => {
+    const { View } =
+      jest.requireActual<typeof import("react-native")>("react-native");
+
+    return ({ exercise }: { exercise: { thumbnail_url: string | null } }) => (
+      <View testID={`thumbnail:${exercise.thumbnail_url ?? "none"}`} />
+    );
+  }
+);
+
+jest.mock<typeof import("~/components/symbol-image")>(
+  import("~/components/symbol-image"),
+  () => ({ SymbolImage: () => null })
+);
+
+jest.mock<typeof import("~/components/workout-sessions/rest-timer")>(
+  import("~/components/workout-sessions/rest-timer"),
+  () => () => null
+);
+
+jest.mock<typeof import("~/components/ui/button")>(
+  import("~/components/ui/button"),
+  () => jest.requireActual("~/test-utils/button-stub")
+);
+
+jest.mock<typeof import("~/components/ui/dialog")>(
+  import("~/components/ui/dialog"),
+  () => jest.requireActual("~/test-utils/dialog-stub")
+);
+
+jest.mock<typeof import("~/components/ui/dropdown-menu")>(
+  import("~/components/ui/dropdown-menu"),
+  () => {
+    const { Pressable } =
+      jest.requireActual<typeof import("react-native")>("react-native");
+
+    return {
+      DropdownMenu: ({
+        items,
+      }: {
+        items: { label: string; onPress?: () => void }[];
+      }) =>
+        items.map((item) => (
+          <Pressable
+            accessibilityLabel={item.label}
+            accessibilityRole="menuitem"
+            key={item.label}
+            onPress={item.onPress}
+          />
+        )),
+    };
+  }
+);
+
+jest.mock<typeof import("~/components/exercises/exercise-video")>(
+  import("~/components/exercises/exercise-video"),
+  () => () => null
+);
 
 /** Translated into Ukrainian. */
 const SQUAT = libraryExercise("squat", {
@@ -162,6 +212,7 @@ const SQUAT = libraryExercise("squat", {
     },
   },
 });
+
 /** English only. */
 const LUNGE = libraryExercise("lunge", {
   description: "About the lunge.",
@@ -174,6 +225,7 @@ let fake: FakeLibrary;
 
 function InAppLanguage({ children }: { children: ReactNode }) {
   useAppLanguageSync();
+
   return children;
 }
 
@@ -241,23 +293,23 @@ describe("a Plan's Workout", () => {
   it("names its Exercises in Ukrainian, an untranslated one in English", async () => {
     await renderScreen(WorkoutScreen, { planId: "plan-1", workoutId: "w1" });
 
-    expect(await screen.findByText("Присідання")).toBeTruthy();
+    await expect(screen.findByText("Присідання")).resolves.toBeTruthy();
     expect(screen.getByText("Lunge")).toBeTruthy();
     expect(screen.queryByText("Squat")).toBeNull();
   });
 
   it("renames them when the App language changes", async () => {
     await renderScreen(WorkoutScreen, { planId: "plan-1", workoutId: "w1" });
-    expect(await screen.findByText("Присідання")).toBeTruthy();
+    await expect(screen.findByText("Присідання")).resolves.toBeTruthy();
 
     await switchDeviceTo("en-US");
 
-    expect(await screen.findByText("Squat")).toBeTruthy();
+    await expect(screen.findByText("Squat")).resolves.toBeTruthy();
     expect(screen.queryByText("Присідання")).toBeNull();
 
     await switchDeviceTo("uk-UA");
 
-    expect(await screen.findByText("Присідання")).toBeTruthy();
+    await expect(screen.findByText("Присідання")).resolves.toBeTruthy();
     expect(screen.queryByText("Squat")).toBeNull();
   });
 });
@@ -273,7 +325,7 @@ describe("a Workout Session", () => {
     });
     await renderScreen(HistorySessionScreen, { workoutSessionId: "s1" });
 
-    expect(await screen.findByText("Присідання")).toBeTruthy();
+    await expect(screen.findByText("Присідання")).resolves.toBeTruthy();
     expect(screen.getByText("Lunge")).toBeTruthy();
     expect(screen.queryByText("Squat")).toBeNull();
   });
@@ -283,7 +335,7 @@ describe("an Exercise's detail screen", () => {
   it("shows its Ukrainian name, description and instructions", async () => {
     await renderScreen(ExerciseScreen, { exerciseSlug: "squat" });
 
-    expect(await screen.findByText("Про присідання.")).toBeTruthy();
+    await expect(screen.findByText("Про присідання.")).resolves.toBeTruthy();
     expect(screen.getByTestId("title")).toHaveTextContent("Присідання");
     expect(screen.getByText("- Станьте.\n- Присядьте.")).toBeTruthy();
   });
@@ -291,18 +343,18 @@ describe("an Exercise's detail screen", () => {
   it("shows an untranslated Exercise wholly in English", async () => {
     await renderScreen(ExerciseScreen, { exerciseSlug: "lunge" });
 
-    expect(await screen.findByText("About the lunge.")).toBeTruthy();
+    await expect(screen.findByText("About the lunge.")).resolves.toBeTruthy();
     expect(screen.getByTestId("title")).toHaveTextContent("Lunge");
     expect(screen.getByText("- Step forward.")).toBeTruthy();
   });
 
   it("follows the App language when it changes", async () => {
     await renderScreen(ExerciseScreen, { exerciseSlug: "squat" });
-    expect(await screen.findByText("Про присідання.")).toBeTruthy();
+    await expect(screen.findByText("Про присідання.")).resolves.toBeTruthy();
 
     await switchDeviceTo("en-US");
 
-    expect(await screen.findByText("About the squat.")).toBeTruthy();
+    await expect(screen.findByText("About the squat.")).resolves.toBeTruthy();
     expect(screen.getByTestId("title")).toHaveTextContent("Squat");
   });
 });
@@ -311,7 +363,7 @@ describe("an Exercise's guide", () => {
   it("shows its Ukrainian name, description and steps", async () => {
     await renderScreen(ExerciseGuideScreen, { exerciseSlug: "squat" });
 
-    expect(await screen.findByText("Про присідання.")).toBeTruthy();
+    await expect(screen.findByText("Про присідання.")).resolves.toBeTruthy();
     expect(screen.getByTestId("title")).toHaveTextContent("Присідання");
     expect(screen.getByText("Станьте.")).toBeTruthy();
     expect(screen.getByText("Присядьте.")).toBeTruthy();
@@ -320,7 +372,7 @@ describe("an Exercise's guide", () => {
   it("shows an untranslated Exercise wholly in English", async () => {
     await renderScreen(ExerciseGuideScreen, { exerciseSlug: "lunge" });
 
-    expect(await screen.findByText("About the lunge.")).toBeTruthy();
+    await expect(screen.findByText("About the lunge.")).resolves.toBeTruthy();
     expect(screen.getByText("Step forward.")).toBeTruthy();
   });
 });
@@ -349,9 +401,11 @@ describe("searching the Library", () => {
     expect(screen.getByTestId("title")).toHaveTextContent("Додати вправу");
 
     await search("прис");
+
     const [addFirst, ...others] = await screen.findAllByRole("button", {
       name: ADD_ROW,
     });
+
     expect(others).toHaveLength(0);
     await act(async () => {
       await fireEvent.press(addFirst as NonNullable<typeof addFirst>);

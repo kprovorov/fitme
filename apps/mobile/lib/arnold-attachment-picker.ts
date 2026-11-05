@@ -40,7 +40,9 @@ export async function shrinkToJpeg(uri: string): Promise<PickedImage> {
     maxHeight: MAX_ATTACHMENT_EDGE,
     maxWidth: MAX_ATTACHMENT_EDGE,
   });
+
   const decoded = await context.renderAsync();
+
   const resized =
     Math.max(decoded.width, decoded.height) > MAX_ATTACHMENT_EDGE
       ? // Only when the decode bounds left it larger than asked: resizing an
@@ -53,10 +55,12 @@ export async function shrinkToJpeg(uri: string): Promise<PickedImage> {
           )
           .renderAsync()
       : decoded;
+
   const saved = await resized.saveAsync({
     compress: JPEG_QUALITY,
     format: SaveFormat.JPEG,
   });
+
   return { height: saved.height, uri: saved.uri, width: saved.width };
 }
 
@@ -89,11 +93,14 @@ export async function pickLibraryPhotos(
     orderedSelection: true,
     selectionLimit: limit,
   });
+
   if (result.canceled) {
     return null;
   }
+
   const images: PickedImage[] = [];
   let failed = 0;
+
   // One at a time, never `Promise.all`: four full-resolution photos decoded
   // at once can run a phone out of memory.
   for (const asset of result.assets) {
@@ -107,5 +114,6 @@ export async function pickLibraryPhotos(
       captureException(error);
     }
   }
+
   return { failed, images };
 }

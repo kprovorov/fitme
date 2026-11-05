@@ -23,16 +23,19 @@ export const deleteArnoldConversations =
   async (userId: string): Promise<void> => {
     const sessionIds = await listSessionIds(userId);
     const failures: unknown[] = [];
+
     for (let start = 0; start < sessionIds.length; start += RESET_BATCH_SIZE) {
       const batch = sessionIds.slice(start, start + RESET_BATCH_SIZE);
       // biome-ignore lint/performance/noAwaitInLoops: batches of five so a User with many sessions doesn't flood Arnold
       const results = await Promise.allSettled(batch.map(resetSession));
+
       for (const result of results) {
         if (result.status === "rejected") {
           failures.push(result.reason);
         }
       }
     }
+
     if (failures.length > 0) {
       throw new AggregateError(
         failures,
@@ -73,10 +76,13 @@ const isResetDone = (body: unknown, sessionId: string): boolean => {
   if (!body || typeof body !== "object") {
     return false;
   }
+
   const answer = body as Record<string, unknown>;
+
   if (answer.ok !== true) {
     return false;
   }
+
   return answer.status === "reset"
     ? answer.previousSessionId === sessionId
     : answer.status === "no_active_session";
@@ -98,13 +104,16 @@ export const arnoldSessionResetter =
     if (!arnoldUrl) {
       throw new Error("Missing ARNOLD_URL environment variable");
     }
+
     if (!secret) {
       throw new Error("Missing ARNOLD_RESET_SECRET environment variable");
     }
+
     const url = new URL(
       `eve/v1/session/${encodeURIComponent(sessionId)}/reset`,
       arnoldUrl.endsWith("/") ? arnoldUrl : `${arnoldUrl}/`
     );
+
     const response = await fetch(url, {
       body: JSON.stringify({ reason: "Account deleted" }),
       headers: {
@@ -114,7 +123,9 @@ export const arnoldSessionResetter =
       method: "POST",
       signal: AbortSignal.timeout(RESET_TIMEOUT_MS),
     });
+
     const body: unknown = await response.json().catch(() => null);
+
     if (!(response.ok && isResetDone(body, sessionId))) {
       throw new Error(
         `Arnold session ${sessionId} reset failed: HTTP ${response.status} ${JSON.stringify(body)}`

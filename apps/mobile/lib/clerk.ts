@@ -1,5 +1,6 @@
 import { getClerkInstance, isClerkAPIResponseError } from "@clerk/expo";
 import { tokenCache } from "@clerk/expo/token-cache";
+
 import { i18n } from "~/lib/i18n";
 
 export const clerkPublishableKey =
@@ -14,9 +15,11 @@ export const getClerk = () =>
 /** The signed-in User's Clerk id; throws when nobody is signed in. */
 export const getCurrentUserId = (): string => {
   const userId = getClerk().user?.id;
+
   if (!userId) {
     throw new Error("Not authenticated");
   }
+
   return userId;
 };
 
@@ -27,9 +30,11 @@ export const getCurrentUserId = (): string => {
 export const getClerkErrorMessage = (error: unknown): string => {
   if (isClerkAPIResponseError(error)) {
     const [first] = error.errors;
+
     return (
       first?.longMessage ?? first?.message ?? i18n.t("common.genericError")
     );
   }
+
   return i18n.t("common.genericError");
 };

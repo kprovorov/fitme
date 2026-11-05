@@ -1,8 +1,11 @@
 import { randomUUID } from "node:crypto";
+
 import { eq, inArray, sql } from "drizzle-orm";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
+
 import { closeConnection, getConnection } from "../src/client";
-import { asUser, profiles, type Transaction, withService } from "../src/index";
+import { asUser, profiles, withService } from "../src/index";
+import type { Transaction } from "../src/index";
 
 /**
  * asUser / withService against a local Supabase stack through the Supavisor
@@ -14,10 +17,12 @@ const runId = randomUUID().replaceAll("-", "").slice(0, 12);
 const userA = `user_dbA${runId}`;
 const userB = `user_dbB${runId}`;
 const writer = `user_dbW${runId}`;
+
 const concurrentUsers = Array.from(
   { length: 20 },
   (_, index) => `user_dbC${index}x${runId}`
 );
+
 const everyUser = [userA, userB, writer, ...concurrentUsers];
 
 const CONCURRENT_TRANSACTIONS = 300;
@@ -35,6 +40,7 @@ const identity = async (tx: Transaction) => {
   }>(
     sql`select public.current_user_id() as user_id, current_user as role, session_user as login`
   );
+
   return rows[0];
 };
 
@@ -42,6 +48,7 @@ const profileOwners = async (tx: Transaction, userIds: string[]) => {
   const { rows } = await tx.execute<{ user_id: string }>(
     sql`select user_id from public.profiles where user_id in ${userIds} order by user_id`
   );
+
   return rows.map((row) => row.user_id);
 };
 
@@ -64,9 +71,9 @@ afterAll(async () => {
   await closeConnection();
 });
 
-describe("asUser", () => {
+describe(asUser, () => {
   it("runs as the User through the pooler", async () => {
-    expect(await asUser(userA, identity)).toEqual({
+    await expect(asUser(userA, identity)).resolves.toEqual({
       login: "fitme",
       role: "authenticated",
       user_id: userA,
@@ -74,24 +81,26 @@ describe("asUser", () => {
   });
 
   it("limits reads to the User's rows", async () => {
-    expect(
-      await asUser(userA, (tx) => profileOwners(tx, [userA, userB]))
-    ).toEqual([userA]);
+    await expect(
+      asUser(userA, async (tx) => profileOwners(tx, [userA, userB]))
+    ).resolves.toEqual([userA]);
   });
 
   it("lets the User write their own rows", async () => {
     const updated = await asUser(writer, async (tx) => {
       await insertProfile(tx, writer);
+
       const update = await tx.execute(
         sql`update public.profiles set weight = 81 where user_id = ${writer}`
       );
+
       return update.rowCount;
     });
 
     expect(updated).toBe(1);
-    expect(await withService((tx) => profileOwners(tx, [writer]))).toEqual([
-      writer,
-    ]);
+    await expect(
+      withService(async (tx) => profileOwners(tx, [writer]))
+    ).resolves.toEqual([writer]);
   });
 
   it("refuses writes to another User's rows", async () => {
@@ -106,16 +115,18 @@ describe("asUser", () => {
       const updated = await tx.execute(
         sql`update public.profiles set updated_at = now() where user_id = ${userB}`
       );
+
       const deleted = await tx.execute(
         sql`delete from public.profiles where user_id = ${userB}`
       );
+
       return [updated.rowCount, deleted.rowCount];
     });
 
     expect(changed).toEqual([0, 0]);
-    expect(await withService((tx) => profileOwners(tx, [userB]))).toEqual([
-      userB,
-    ]);
+    await expect(
+      withService(async (tx) => profileOwners(tx, [userB]))
+    ).resolves.toEqual([userB]);
   });
 
   it("rolls back when the callback throws", async () => {
@@ -128,9 +139,9 @@ describe("asUser", () => {
       })
     ).rejects.toThrow("abort");
 
-    expect(await withService((tx) => profileOwners(tx, [rolledBack]))).toEqual(
-      []
-    );
+    await expect(
+      withService(async (tx) => profileOwners(tx, [rolledBack]))
+    ).resolves.toEqual([]);
   });
 
   it("rejects an empty User id", async () => {
@@ -140,9 +151,9 @@ describe("asUser", () => {
   });
 });
 
-describe("withService", () => {
+describe(withService, () => {
   it("runs as service_role, with no User", async () => {
-    expect(await withService(identity)).toEqual({
+    await expect(withService(identity)).resolves.toEqual({
       login: "fitme",
       role: "service_role",
       user_id: null,
@@ -150,7 +161,9 @@ describe("withService", () => {
   });
 
   it("sees every User's rows", async () => {
-    const owners = await withService((tx) => profileOwners(tx, [userA, userB]));
+    const owners = await withService(async (tx) =>
+      profileOwners(tx, [userA, userB])
+    );
 
     expect(new Set(owners)).toEqual(new Set([userA, userB]));
   });
@@ -186,8 +199,9 @@ describe("on the pooler", () => {
     const mismatches: string[] = [];
 
     const results = await Promise.allSettled(
-      Array.from({ length: CONCURRENT_TRANSACTIONS }, (_, index) => {
+      Array.from({ length: CONCURRENT_TRANSACTIONS }, async (_, index) => {
         const userId = concurrentUsers[index % concurrentUsers.length];
+
         return asUser(userId, async (tx) => {
           const { rows } = await tx.execute<{
             after: string | null;
@@ -196,23 +210,29 @@ describe("on the pooler", () => {
           }>(
             sql`select public.current_user_id() as before, pg_sleep(random() * 0.02), public.current_user_id() as after, pg_backend_pid() as pid`
           );
+
           const { after, before, pid } = rows[0];
           backendPids.add(pid);
+
           if (before !== userId || after !== userId) {
             mismatches.push(`${userId} saw ${before} / ${after}`);
           }
+
           if (index % THROW_EVERY === 0) {
             throw new Error("thrown");
           }
+
           if (index % SQL_ERROR_EVERY === 0) {
             await tx.execute(sql`select 1 / 0`);
           }
+
           return userId;
         });
       })
     );
 
     const rejected = results.filter((result) => result.status === "rejected");
+
     const expectedFailures = Array.from(
       { length: CONCURRENT_TRANSACTIONS },
       (_, index) => index
@@ -238,6 +258,7 @@ describe("on the pooler", () => {
         }>(
           "select current_user as role, current_setting('request.jwt.claims', true) as claims, pg_backend_pid() as pid"
         );
+
         return row;
       })
     );
@@ -246,6 +267,7 @@ describe("on the pooler", () => {
       expect(row.role).toBe("fitme");
       expect(row.claims ?? "").toBe("");
     }
+
     // The bare queries ran on server connections the transactions used
     expect(rows.some((row) => backendPids.has(row.pid))).toBe(true);
   });

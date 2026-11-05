@@ -1,12 +1,15 @@
 import { useRouter } from "expo-router";
 import { useTranslation } from "react-i18next";
+
 import { Card } from "~/components/ui/card";
 import { DropdownMenu } from "~/components/ui/dropdown-menu";
-import { type ShownExercise, shownExercise } from "~/hooks/queries/library";
+import { shownExercise } from "~/hooks/queries/library";
+import type { ShownExercise } from "~/hooks/queries/library";
 import type {
   WorkoutSession,
   WorkoutSessionExercise,
 } from "~/hooks/queries/workout-sessions";
+
 import ExerciseCardHeader, { OpenChevron } from "./exercise-card-header";
 import WorkoutSessionExerciseSetsTableView from "./workout-session-exercise-sets-table-view";
 
@@ -42,8 +45,10 @@ export default function WorkoutSessionExerciseCard({
 }: WorkoutSessionExerciseCardProps) {
   const { t } = useTranslation();
   const router = useRouter();
+
   const exercise =
     resolved ?? shownExercise(workoutSessionExercise.exercise_slug, null);
+
   // The exercise screen lives under the session's plan and workout.
   const canOpen = !!(planId && workoutId);
 

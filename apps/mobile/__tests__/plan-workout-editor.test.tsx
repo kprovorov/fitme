@@ -15,7 +15,8 @@ import {
 import { LibraryUnavailableError } from "@fitme/library-sdk";
 import type { FakeLibrary } from "@fitme/library-sdk/fake";
 import { beforeEach, describe, expect, it, jest } from "@jest/globals";
-import { type QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { QueryClientProvider } from "@tanstack/react-query";
+import type { QueryClient } from "@tanstack/react-query";
 import {
   act,
   fireEvent,
@@ -25,6 +26,8 @@ import {
 } from "@testing-library/react-native";
 import type { ReactNode } from "react";
 import { Alert } from "react-native";
+import { it, describe, expect, beforeEach } from "vitest";
+
 import MusclesSheet from "~/app/muscles";
 import PlanExercisePickerScreen from "~/app/plans/[planId]/edit/exercise-picker";
 import PlanEditorScreen from "~/app/plans/[planId]/edit/index";
@@ -39,9 +42,9 @@ import {
   FAKE_USER_ID,
   fakePublicApi,
   libraryExerciseNamed,
-  type SeedPlan,
   slugOf,
 } from "~/test-utils/fake-public-api";
+import type { SeedPlan } from "~/test-utils/fake-public-api";
 import { InAppLanguage } from "~/test-utils/in-app-language";
 import {
   createTestQueryClient,
@@ -61,10 +64,11 @@ const mockParams: { current: Record<string, string> } = {
 
 const isEditorFocused = { current: true };
 
-jest.mock("expo-router", () => {
+jest.mock<typeof import("expo-router")>(import("expo-router"), () => {
   const stub = jest.requireActual<typeof import("~/test-utils/router-stub")>(
     "~/test-utils/router-stub"
   );
+
   return {
     Link: ({ children }: { children: ReactNode }) => children,
     router: stub.stubRouter,
@@ -75,38 +79,63 @@ jest.mock("expo-router", () => {
     useNavigation: () => ({ isFocused: () => isEditorFocused.current }),
     // The guard blocks the swipe away, which Jest can't make; Cancel asks
     // through `Alert` either way.
-    usePreventRemove: () => () => undefined,
+    usePreventRemove: () => () => {},
     useRouter: () => ({ ...stub.stubRouter, canGoBack: () => true }),
   };
 });
 
-jest.mock("react-native-safe-area-context", () => ({
-  useSafeAreaInsets: () => ({ bottom: 0, left: 0, right: 0, top: 0 }),
-}));
-jest.mock("react-native-keyboard-controller", () => ({
-  KeyboardAwareScrollView:
-    jest.requireActual<typeof import("react-native")>("react-native")
-      .ScrollView,
-}));
+jest.mock<typeof import("react-native-safe-area-context")>(
+  import("react-native-safe-area-context"),
+  () => ({
+    useSafeAreaInsets: () => ({ bottom: 0, left: 0, right: 0, top: 0 }),
+  })
+);
+
+jest.mock<typeof import("react-native-keyboard-controller")>(
+  import("react-native-keyboard-controller"),
+  () => ({
+    KeyboardAwareScrollView:
+      jest.requireActual<typeof import("react-native")>("react-native")
+        .ScrollView,
+  })
+);
+
 // The real Clerk SDK opens a MessagePort at import, which keeps Jest alive.
-jest.mock("~/lib/clerk", () => ({
+jest.mock<typeof import("~/lib/clerk")>(import("~/lib/clerk"), () => ({
   getCurrentUserId: () =>
     jest.requireActual<typeof import("~/test-utils/fake-public-api")>(
       "~/test-utils/fake-public-api"
     ).FAKE_USER_ID,
 }));
-jest.mock("~/components/symbol-image", () => ({ SymbolImage: () => null }));
-jest.mock("~/components/exercises/exercise-image", () => () => null);
-jest.mock("~/components/ui/button", () =>
-  jest.requireActual("~/test-utils/button-stub")
+
+jest.mock<typeof import("~/components/symbol-image")>(
+  import("~/components/symbol-image"),
+  () => ({ SymbolImage: () => null })
 );
-jest.mock("~/components/ui/dropdown-menu", () =>
-  jest.requireActual("~/test-utils/dropdown-menu-stub")
+
+jest.mock<typeof import("~/components/exercises/exercise-image")>(
+  import("~/components/exercises/exercise-image"),
+  () => () => null
 );
-jest.mock("~/components/ui/select", () =>
-  jest.requireActual("~/test-utils/select-stub")
+
+jest.mock<typeof import("~/components/ui/button")>(
+  import("~/components/ui/button"),
+  () => jest.requireActual("~/test-utils/button-stub")
 );
-jest.mock("~/lib/segment", () => ({ segmentClient: { track: jest.fn() } }));
+
+jest.mock<typeof import("~/components/ui/dropdown-menu")>(
+  import("~/components/ui/dropdown-menu"),
+  () => jest.requireActual("~/test-utils/dropdown-menu-stub")
+);
+
+jest.mock<typeof import("~/components/ui/select")>(
+  import("~/components/ui/select"),
+  () => jest.requireActual("~/test-utils/select-stub")
+);
+
+jest.mock<typeof import("~/lib/segment")>(import("~/lib/segment"), () => ({
+  segmentClient: { track: jest.fn() },
+}));
 
 const EDITOR_ROUTES = {
   "/muscles": MusclesSheet,
@@ -276,19 +305,22 @@ const exerciseAction = async (exercise: string, action: string) => {
 
 const savedPlan = () => backend.plans[0];
 const savedWorkout = (index: number) => savedPlan().workouts[index];
+
 const savedExercises = (index: number) =>
   savedWorkout(index).exercises.map((exercise) => exercise.slug);
+
 /** A saved Workout Exercise's sets, which a save writes as rows. */
 const savedSets = (workout: number, exercise: number) => {
   const { sets } = savedWorkout(workout).exercises[exercise];
+
   return typeof sets === "number" ? [] : sets;
 };
 
-const alerts = () => (Alert.alert as jest.Mock).mock.calls;
+const alerts = () => jest.mocked(Alert.alert).mock.calls;
 
 beforeEach(() => {
   jest.clearAllMocks();
-  jest.spyOn(Alert, "alert").mockImplementation(() => undefined);
+  jest.spyOn(Alert, "alert").mockReturnValue(undefined);
   backend.reset();
   backend.seedPlan(structuredClone(PLAN));
   library = serveLibrary(LIBRARY);
@@ -690,7 +722,7 @@ describe("adding a Workout", () => {
   });
 });
 
-describe("Edit Workout on the Workout screen", () => {
+describe("edit Workout on the Workout screen", () => {
   it("opens the Plan editor with that Workout's editor pushed", async () => {
     await openWorkoutScreen();
 
@@ -733,9 +765,11 @@ describe("saving twice with the editor still open", () => {
 
     const added = savedWorkout(3);
     expect(added.name).toBe("Workout D");
+
     const setIds = (
       typeof added.exercises[0].sets === "number" ? [] : added.exercises[0].sets
     ).map((set) => set.id);
+
     expect(setIds).toHaveLength(NEW_EXERCISE_SET_COUNT);
 
     // A second Save must keep that Workout, its Cover and its ids: sending

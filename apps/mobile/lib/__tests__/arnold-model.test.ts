@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it } from "@jest/globals";
+import { it, describe, expect, beforeEach } from "vitest";
+
 import {
-  type ArnoldModelList,
   getSelectedArnoldModelId,
   MODELS_KEY,
   readCachedArnoldModels,
@@ -8,6 +9,7 @@ import {
   SELECTED_MODEL_KEY,
   writeCachedArnoldModels,
 } from "../arnold-model";
+import type { ArnoldModelList } from "../arnold-model";
 import { storage } from "../mmkv";
 
 const list: ArnoldModelList = {
@@ -26,7 +28,7 @@ const list: ArnoldModelList = {
   ],
 };
 
-describe("resolveArnoldModel", () => {
+describe(resolveArnoldModel, () => {
   it("keeps a saved pick that is in the list", () => {
     expect(resolveArnoldModel("anthropic/claude-haiku-4.5", list)?.label).toBe(
       "Claude Haiku 4.5"
@@ -94,7 +96,7 @@ describe("arnold.models cache", () => {
   });
 });
 
-describe("getSelectedArnoldModelId", () => {
+describe(getSelectedArnoldModelId, () => {
   beforeEach(() => {
     storage.clearAll();
   });

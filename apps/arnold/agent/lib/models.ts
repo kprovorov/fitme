@@ -1,10 +1,8 @@
-import {
-  type ArnoldModelId,
-  arnoldModels,
-  defaultArnoldModelId,
-} from "@fitme/core";
+import { arnoldModels, defaultArnoldModelId } from "@fitme/core";
+import type { ArnoldModelId } from "@fitme/core";
 import type { ModelMessage } from "ai";
 import type { AgentModelOptionsDefinition } from "eve";
+
 import { latestClientContext } from "./client-context";
 
 /** The turn asked for a model that isn't in `arnoldModels`. */
@@ -50,9 +48,11 @@ export const arnoldModelSelection = (
 ): { model: ArnoldModelId; modelOptions: AgentModelOptionsDefinition } => {
   const requested = requestedModel(messages) ?? defaultArnoldModelId;
   const arnoldModel = arnoldModels.find(({ id }) => id === requested);
+
   if (!arnoldModel) {
     throw new UnsupportedArnoldModelError(requested);
   }
+
   return {
     model: arnoldModel.id,
     modelOptions: {

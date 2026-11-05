@@ -6,6 +6,7 @@ import type {
 import { LibraryUnavailableError } from "@fitme/library-sdk";
 import { DrizzleQueryError } from "drizzle-orm";
 import { describe, expect, it, vi } from "vitest";
+
 import { ToolError } from "../tools/helpers.js";
 import {
   BENCH,
@@ -37,19 +38,23 @@ const drill = (n: number): Exercise => ({
 const spiedLibrary = (exercises: Exercise[]) => {
   const library = fakeLibrary(exercises);
   const lists: ListExercisesParams[] = [];
+
   const spied: Library = {
     ...library,
     list: (params = {}) => {
       lists.push(params);
+
       return library.list(params);
     },
   };
+
   return { library: spied, lists };
 };
 
 const downLibrary = () => {
   const library = fakeLibrary();
   library.failWith(new LibraryUnavailableError({ status: 503 }));
+
   return library;
 };
 
@@ -64,11 +69,13 @@ const queryFailure = (message: string) =>
 describe("list_exercises", () => {
   it("searches the library with the trimmed search, muscle group and page", async () => {
     const press = { ...BENCH, name: "Overhead Press", slug: "overhead-press" };
+
     const incline = {
       ...BENCH,
       name: "Incline Bench Press",
       slug: "incline-bench-press",
     };
+
     const { library, lists } = spiedLibrary([BENCH, SQUAT, press, incline]);
     const client = await connectWithServices({}, undefined, library);
 
@@ -128,9 +135,11 @@ describe("list_exercises", () => {
       offset: 5,
       total: 120,
     });
+
     const slugs = (result.json.exercises as { slug: string }[]).map(
       (e) => e.slug
     );
+
     expect(slugs).toHaveLength(100);
     expect(slugs[0]).toBe("drill-005");
     expect(slugs.at(-1)).toBe("drill-104");
@@ -138,6 +147,7 @@ describe("list_exercises", () => {
 
   it("answers the last page when it ends inside the first part", async () => {
     const drills = Array.from({ length: 30 }, (_, i) => drill(i));
+
     const client = await connectWithServices(
       {},
       undefined,
@@ -203,6 +213,7 @@ describe("list_exercises", () => {
 
   it("says so, unreported, when the library isn't configured", async () => {
     const { reportError, reported } = recordingReporter();
+
     const client = await connect({
       ...contextFor(fakeServices({}), reportError),
       getLibrary: () => {
@@ -333,6 +344,7 @@ describe("get_exercise_history", () => {
     const getExerciseHistory = vi
       .fn()
       .mockResolvedValue({ entries: [entry], total: 1 });
+
     const client = await connectWithServices({ getExerciseHistory });
 
     const result = await call(client, "get_exercise_history", {
@@ -357,6 +369,7 @@ describe("get_exercise_history", () => {
     const getExerciseHistory = vi
       .fn()
       .mockResolvedValue({ entries: [bodyweightEntry, entry], total: 2 });
+
     const client = await connectWithServices({ getExerciseHistory });
 
     const result = await call(client, "get_exercise_history", {
@@ -375,6 +388,7 @@ describe("get_exercise_history", () => {
     const getExerciseHistory = vi
       .fn()
       .mockResolvedValue({ entries: [], total: 0 });
+
     const client = await connectWithServices({ getExerciseHistory });
 
     expect(
@@ -391,6 +405,7 @@ describe("get_exercise_history", () => {
       exerciseSlug: BENCH.slug,
       limit: 51,
     });
+
     expect(tooMany.isError).toBe(true);
     expect(getExerciseHistory).toHaveBeenCalledOnce();
   });

@@ -45,9 +45,11 @@ export interface LibraryOptions {
  */
 const withoutTrailingSlashes = (url: string) => {
   let end = url.length;
+
   while (end > 0 && url[end - 1] === "/") {
     end -= 1;
   }
+
   return url.slice(0, end);
 };
 
@@ -66,6 +68,7 @@ const queryString = (params: QueryParams) => {
       ? []
       : `${encodeURIComponent(key)}=${encodeURIComponent(value)}`
   );
+
   return pairs.length > 0 ? `?${pairs.join("&")}` : "";
 };
 
@@ -79,7 +82,9 @@ const errorMessage = async (response: Response) => {
   const body = (await response.json().catch(() => null)) as {
     error?: { message?: unknown };
   } | null;
+
   const message = body?.error?.message;
+
   return typeof message === "string" ? message : undefined;
 };
 
@@ -138,18 +143,22 @@ const NOT_FOUND = 404;
 /** The typed error for an answer that isn't a 2xx. */
 const failure = async (response: Response) => {
   switch (response.status) {
-    case 400:
+    case 400: {
       return new LibraryInvalidRequestError(
         (await errorMessage(response)) ?? "Invalid Library request"
       );
-    case 401:
+    }
+    case 401: {
       return new LibraryUnauthorizedError({ status: 401 });
-    case 429:
+    }
+    case 429: {
       return new LibraryRateLimitedError(
         retryAfterSeconds(response.headers.get("retry-after"))
       );
-    default:
+    }
+    default: {
       return new LibraryUnavailableError({ status: response.status });
+    }
   }
 };
 
@@ -172,12 +181,14 @@ export const createLibrary = ({
     // through a promise chain, so a getter that throws synchronously is caught too
     const value = await Promise.resolve()
       .then(token)
-      .catch((cause: unknown) => {
-        throw new LibraryUnavailableError({ cause });
+      .catch((error: unknown) => {
+        throw new LibraryUnavailableError({ error });
       });
+
     if (!value) {
       throw new LibraryUnauthorizedError();
     }
+
     return value;
   };
 
@@ -190,20 +201,26 @@ export const createLibrary = ({
   ): Promise<T | null> => {
     const authorization = `Bearer ${await bearer()}`;
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), timeoutMs);
+    const timeout = setTimeout(() => {
+      controller.abort();
+    }, timeoutMs);
     let response: Response;
     let body: unknown;
+
     try {
       response = await fetch(`${base}${path}${queryString(params)}`, {
         headers: { accept: "application/json", authorization },
         signal: controller.signal,
       });
+
       if (allowNotFound && response.status === NOT_FOUND) {
         return null;
       }
+
       if (!response.ok) {
         throw await failure(response);
       }
+
       body = await response.json();
     } catch (error) {
       throw error instanceof LibraryError
@@ -212,9 +229,11 @@ export const createLibrary = ({
     } finally {
       clearTimeout(timeout);
     }
+
     if (!isAnswer(body)) {
       throw new LibraryUnavailableError({ status: response.status });
     }
+
     return body;
   };
 
@@ -229,10 +248,11 @@ export const createLibrary = ({
       const list = (await request("/covers", {}, isCoverList)) as {
         data: Cover[];
       };
+
       return list.data;
     },
 
-    get: (slug, { language } = {}) =>
+    get: async (slug, { language } = {}) =>
       slug === ""
         ? Promise.resolve(null)
         : request(
@@ -242,7 +262,7 @@ export const createLibrary = ({
             { allowNotFound: true }
           ),
 
-    list: ({
+    list: async ({
       equipment,
       language,
       limit,
@@ -269,14 +289,17 @@ export const createLibrary = ({
     lookup: async (slugs, { language } = {}) => {
       const unique = [...new Set(slugs)];
       const asked = unique.filter((slug) => !isUnaskable(slug));
+
       const batches = await Promise.all(
-        chunk(asked, MAX_LOOKUP_SLUGS).map((batch) =>
+        chunk(asked, MAX_LOOKUP_SLUGS).map(async (batch) =>
           getExercises({ language, slugs: batch.join(",") }, isBatch)
         )
       );
+
       const found = new Map(
         batches.flatMap((batch) => batch.data.map((e) => [e.slug, e] as const))
       );
+
       return {
         data: unique.flatMap((slug) => found.get(slug) ?? []),
         missing: unique.filter((slug) => !found.has(slug)),

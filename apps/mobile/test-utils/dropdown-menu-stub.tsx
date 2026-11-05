@@ -7,6 +7,7 @@
  */
 import { useCallback, useState } from "react";
 import { Pressable, View } from "react-native";
+
 import type {
   DropdownMenuItem,
   DropdownMenuProps,
@@ -23,6 +24,7 @@ const MenuItem = ({
     onClose();
     item.onPress?.();
   }, [item, onClose]);
+
   return (
     <Pressable
       accessibilityLabel={item.label}
@@ -42,6 +44,7 @@ export const DropdownMenu = ({
   const [open, setOpen] = useState(false);
   const openMenu = useCallback(() => setOpen(true), []);
   const closeMenu = useCallback(() => setOpen(false), []);
+
   return (
     <View>
       <Pressable

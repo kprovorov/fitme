@@ -1,4 +1,5 @@
 import { createRoute, OpenAPIHono } from "@hono/zod-openapi";
+
 import { CoverList } from "../schemas";
 import type { ServedLibrary } from "../served-library";
 import { rateLimited, security, unauthorized } from "./shared";
@@ -22,5 +23,6 @@ const listCovers = createRoute({
 export const coverRoutes = (library: ServedLibrary) => {
   // parsing strips every field Cover doesn't define
   const body = CoverList.parse({ data: library.covers });
+
   return new OpenAPIHono().openapi(listCovers, (c) => c.json(body, 200));
 };

@@ -5,9 +5,11 @@
  * the view on its own; a screen test renders the screen's real header instead
  * (`stack-screen-stub`, `router-stub`).
  */
-import { type ComponentProps, useState } from "react";
+import { useState } from "react";
+import type { ComponentProps } from "react";
 import { useTranslation } from "react-i18next";
 import { TextInput } from "react-native";
+
 import ExercisesView from "~/components/views/exercises-view";
 
 export function SearchedExercisesView(
@@ -15,6 +17,7 @@ export function SearchedExercisesView(
 ) {
   const { t } = useTranslation();
   const [search, setSearch] = useState("");
+
   return (
     <>
       <TextInput

@@ -1,5 +1,6 @@
 import { rateLimitedFor } from "@fitme/api-client";
-import { formatCount, formatDate, type Translator } from "@fitme/i18n";
+import { formatCount, formatDate } from "@fitme/i18n";
+import type { Translator } from "@fitme/i18n";
 import { LegendList } from "@legendapp/list/react-native";
 import { useCalendars } from "expo-localization";
 import { Stack } from "expo-router";
@@ -8,6 +9,7 @@ import { useTranslation } from "react-i18next";
 import { ActivityIndicator, RefreshControl, View } from "react-native";
 import Purchases from "react-native-purchases";
 import { useResolveClassNames } from "uniwind";
+
 import { EmptyHistoryCard } from "~/components/history/empty-history-card";
 import { Button } from "~/components/ui/button";
 import { Card } from "~/components/ui/card";
@@ -21,8 +23,10 @@ import { useWeeklyGoalsQuery } from "~/hooks/queries/weekly-goals";
 import {
   useOpenWorkoutSessionQuery,
   useWorkoutSessionHistoryQuery,
-  type WorkoutSessionHistory,
-  type WorkoutSessionHistoryEntry,
+} from "~/hooks/queries/workout-sessions";
+import type {
+  WorkoutSessionHistory,
+  WorkoutSessionHistoryEntry,
 } from "~/hooks/queries/workout-sessions";
 import { useStackedLayout } from "~/hooks/stacked-layout";
 import { useI18n } from "~/lib/i18n";
@@ -43,10 +47,12 @@ function groupByMonth(
   translator: Translator
 ): Month[] {
   const months: Month[] = [];
+
   for (const entry of sessions) {
     const startedAt = new Date(entry.started_at);
     const key = `${startedAt.getFullYear()}-${startedAt.getMonth() + 1}`;
     const last = months.at(-1);
+
     if (last?.key === key) {
       last.entries.push(entry);
     } else {
@@ -58,6 +64,7 @@ function groupByMonth(
       });
     }
   }
+
   return months;
 }
 
@@ -74,6 +81,7 @@ const renderMonth = ({ item }: { item: Month }) => (
 function MonthSection({ month }: { month: Month }) {
   const i18n = useI18n();
   const stacked = useStackedLayout();
+
   return (
     <View className="gap-xs pb-lg">
       <View
@@ -106,14 +114,17 @@ function MonthSection({ month }: { month: Month }) {
  * was refused for its rate limit, the wait it gave; `null` when none failed.
  */
 const failedRead = (
-  reads: Array<{ error: unknown; failed: boolean }>
+  reads: { error: unknown; failed: boolean }[]
 ): { waitSeconds: number | null } | null => {
   const failed = reads.filter((read) => read.failed);
+
   if (failed.length === 0) {
     return null;
   }
+
   // A Public API read refused for its rate limit gives the wait.
   const waits = failed.map((read) => rateLimitedFor(read.error));
+
   return { waitSeconds: waits.find((wait) => wait !== null) ?? null };
 };
 
@@ -129,6 +140,7 @@ export default function HistoryScreen() {
     isError,
     refetch: refetchWorkoutSessions,
   } = useWorkoutSessionHistoryQuery();
+
   // What the empty History offers to do next: read alongside it, so the card
   // never shows an action guessed from a read that hasn't answered.
   const {
@@ -137,6 +149,7 @@ export default function HistoryScreen() {
     isError: isOpenSessionError,
     refetch: refetchOpenSession,
   } = useOpenWorkoutSessionQuery();
+
   // The active Plan, whose next Workout the empty card starts (`null` with
   // none, which the card answers with Create a Plan).
   const {
@@ -145,9 +158,11 @@ export default function HistoryScreen() {
     isError: isActivePlanError,
     refetch: refetchActivePlan,
   } = useActivePlanQuery();
+
   // A failed read only hides the Weekly goal; the list still shows.
   const calendars = useCalendars();
   const timeZone = calendars[0]?.timeZone ?? "UTC";
+
   const { data: weeklyGoals, refetch: refetchWeeklyGoals } =
     useWeeklyGoalsQuery({ refetchInterval: 60_000, variables: { timeZone } });
 
@@ -179,6 +194,7 @@ export default function HistoryScreen() {
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
+
     try {
       await Purchases.invalidateCustomerInfoCache();
       await refetchAll();
@@ -202,11 +218,13 @@ export default function HistoryScreen() {
         failed: isActivePlanError && activePlan === undefined,
       },
     ]);
+
     if (failure) {
       const { waitSeconds } = failure;
+
       return (
-        <View className="items-center gap-sm px-md pt-lg">
-          <Text className="text-center text-muted-foreground">
+        <View className="gap-sm px-md pt-lg items-center">
+          <Text className="text-muted-foreground text-center">
             {waitSeconds === null
               ? t("history.loadError")
               : t("common.rateLimited", { seconds: waitSeconds })}
@@ -220,13 +238,15 @@ export default function HistoryScreen() {
         </View>
       );
     }
+
     if (!history || openSession === undefined || activePlan === undefined) {
       return (
-        <View className="items-center pt-lg">
+        <View className="pt-lg items-center">
           <ActivityIndicator colorClassName="accent-foreground" />
         </View>
       );
     }
+
     return (
       <EmptyHistoryCard activePlan={activePlan} openSession={openSession} />
     );

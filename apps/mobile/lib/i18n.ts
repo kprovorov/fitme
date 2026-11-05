@@ -11,24 +11,20 @@ import "@formatjs/intl-pluralrules/locale-data/uk.js";
 import "@formatjs/intl-pluralrules/locale-data/es.js";
 import "@formatjs/intl-pluralrules/locale-data/ca.js";
 import {
-  type AppLanguage,
   defaultAppLanguage,
   isAppLanguage,
   resolveAppLanguage,
 } from "@fitme/core";
+import type { AppLanguage } from "@fitme/core";
+import { createI18n, setDeviceConventions } from "@fitme/i18n";
+import type { DeviceConventions } from "@fitme/i18n";
 import {
-  createI18n,
-  type DeviceConventions,
-  setDeviceConventions,
-} from "@fitme/i18n";
-import {
-  type Calendar,
   getCalendars,
   getLocales,
-  type Locale,
   useCalendars,
   useLocales,
 } from "expo-localization";
+import type { Calendar, Locale } from "expo-localization";
 import { useEffect, useMemo } from "react";
 import { setI18n, useTranslation } from "react-i18next";
 
@@ -51,6 +47,7 @@ const conventionsOf = (
 export const i18n = createI18n(appLanguageOf(getLocales()));
 
 let deviceConventions = conventionsOf(getLocales(), getCalendars());
+
 setDeviceConventions(i18n, deviceConventions);
 
 // `useTranslation()` reads this instance, with no provider needed.
@@ -72,8 +69,10 @@ export function useAppLanguageSync(): void {
     const conventionsChanged =
       region !== deviceConventions.region ||
       uses24hourClock !== deviceConventions.uses24hourClock;
+
     deviceConventions = { region, uses24hourClock };
     setDeviceConventions(i18n, deviceConventions);
+
     if (i18n.language !== language) {
       i18n.changeLanguage(language);
     } else if (conventionsChanged) {
@@ -90,6 +89,7 @@ export function useAppLanguageSync(): void {
  */
 export function useAppLanguage(): AppLanguage {
   const { language } = useTranslation().i18n;
+
   return isAppLanguage(language) ? language : defaultAppLanguage;
 }
 
@@ -102,6 +102,7 @@ export function useAppLanguage(): AppLanguage {
  */
 export function useI18n(): typeof i18n {
   const { i18n: instance, t } = useTranslation();
+
   // The React Compiler keeps what a component formatted until the object it
   // formatted with changes, and react-i18next hands out the same one while
   // the language stays. A region or clock change only brings a new `t`, so

@@ -1,10 +1,9 @@
+import type { Cover } from "@fitme/library-sdk";
 /**
  * The Workout tab's Plans, read through the Public API: the real tab screen
  * with the client's `fetch` swapped for the fake Public API and the Library
  * for its fake (both from `test-utils/`).
  */
-
-import type { Cover } from "@fitme/library-sdk";
 import { beforeEach, describe, expect, it, jest } from "@jest/globals";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import {
@@ -14,6 +13,8 @@ import {
   screen,
   within,
 } from "@testing-library/react-native";
+import { it, describe, expect, beforeEach } from "vitest";
+
 import HomeScreen from "~/app/(tabs)/(home)/index";
 import { PLANS_QUERY_KEY } from "~/hooks/queries/plans";
 import { invalidateWeighedQueries } from "~/hooks/queries/settings";
@@ -23,8 +24,8 @@ import {
   backend,
   FAKE_USER_ID,
   fakePublicApi,
-  type SeedPlan,
 } from "~/test-utils/fake-public-api";
+import type { SeedPlan } from "~/test-utils/fake-public-api";
 import {
   createTestQueryClient,
   settle,
@@ -33,7 +34,7 @@ import {
 
 const mockPush = jest.fn();
 
-jest.mock("expo-router", () => ({
+jest.mock<typeof import("expo-router")>(import("expo-router"), () => ({
   Link: ({ children }: { children: unknown }) => children,
   Stack: { Screen: () => null },
   useNavigation: () => ({}),
@@ -46,31 +47,44 @@ jest.mock("expo-router", () => ({
   }),
 }));
 
-jest.mock("@clerk/expo", () => ({
+jest.mock<typeof import("@clerk/expo")>(import("@clerk/expo"), () => ({
   useUser: () => ({ isLoaded: true, user: { id: "user-1" } }),
 }));
 
-jest.mock("react-native-purchases", () => ({
-  __esModule: true,
-  default: { invalidateCustomerInfoCache: () => Promise.resolve() },
-}));
+jest.mock<typeof import("react-native-purchases")>(
+  import("react-native-purchases"),
+  () => ({
+    __esModule: true,
+    default: { invalidateCustomerInfoCache: () => Promise.resolve() },
+  })
+);
 
 // The real Clerk SDK (reached through the Workout cards) opens a MessagePort
 // at import that keeps Jest alive.
-jest.mock("~/lib/clerk", () => ({
+jest.mock<typeof import("~/lib/clerk")>(import("~/lib/clerk"), () => ({
   getCurrentUserId: () =>
     jest.requireActual<typeof import("~/test-utils/fake-public-api")>(
       "~/test-utils/fake-public-api"
     ).FAKE_USER_ID,
 }));
 
-jest.mock("~/lib/segment", () => ({ segmentClient: { track: jest.fn() } }));
-jest.mock("~/components/symbol-image", () => ({ SymbolImage: () => null }));
-jest.mock("~/components/ui/dropdown-menu", () =>
-  jest.requireActual("~/test-utils/dropdown-menu-stub")
+jest.mock<typeof import("~/lib/segment")>(import("~/lib/segment"), () => ({
+  segmentClient: { track: jest.fn() },
+}));
+
+jest.mock<typeof import("~/components/symbol-image")>(
+  import("~/components/symbol-image"),
+  () => ({ SymbolImage: () => null })
 );
-jest.mock("~/components/ui/button", () =>
-  jest.requireActual("~/test-utils/button-stub")
+
+jest.mock<typeof import("~/components/ui/dropdown-menu")>(
+  import("~/components/ui/dropdown-menu"),
+  () => jest.requireActual("~/test-utils/dropdown-menu-stub")
+);
+
+jest.mock<typeof import("~/components/ui/button")>(
+  import("~/components/ui/button"),
+  () => jest.requireActual("~/test-utils/button-stub")
 );
 
 const ACTIVE_PLAN = "GET /v1/plans/active";
@@ -180,7 +194,7 @@ beforeEach(() => {
   );
 });
 
-describe("The Workout tab's Plans", () => {
+describe("the Workout tab's Plans", () => {
   it("shows the active Plan's Workouts from the API", async () => {
     backend.seedPlan(STRENGTH);
     await mount();
@@ -368,6 +382,7 @@ describe("The Workout tab's Plans", () => {
     await mount();
     // Deactivated elsewhere; every Plan write invalidates the Plan reads.
     const [plan] = backend.plans;
+
     if (plan) {
       plan.is_active = false;
     }
@@ -395,7 +410,7 @@ describe("The Workout tab's Plans", () => {
   });
 });
 
-describe("The Workout tab's Plans, with the app's retries", () => {
+describe("the Workout tab's Plans, with the app's retries", () => {
   // Longer than react-query's first retry delay (a second).
   const RETRY_DELAY_PASSED_MS = 1500;
 

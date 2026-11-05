@@ -2,7 +2,9 @@ import type { MuscleGroup } from "@fitme/core/models";
 import type { Cover, ExerciseSummary } from "@fitme/library-sdk";
 import { createFakeLibrary } from "@fitme/library-sdk/fake";
 import { memoryRateLimiter } from "@fitme/rate-limit";
-import { type AppDeps, createApp } from "../create-app.js";
+
+import { createApp } from "../create-app.js";
+import type { AppDeps } from "../create-app.js";
 import type { RateLimiter } from "../rate-limit.js";
 import type { UserServices } from "../services.js";
 import { clerkInstance, clerkToken } from "./clerk.js";
@@ -81,18 +83,23 @@ export const testApp = (
     options.exercises ?? KNOWN_SLUGS.map((slug) => libraryExercise(slug)),
     { covers: options.covers }
   );
+
   const clerkJwtKey =
     "clerkJwtKey" in options ? options.clerkJwtKey : clerk.jwtKey;
+
   const services =
     options.services === undefined ? fakeServices({}) : options.services;
+
   const reported: unknown[] = [];
   const identified: string[] = [];
   const servicesFor: string[] = [];
+
   const deps: AppDeps = {
     clerkJwtKey,
     createLibrary: () => (options.library === null ? null : library),
     createServices: (userId) => {
       servicesFor.push(userId);
+
       return services;
     },
     identifyUser: (userId) => {
@@ -103,8 +110,10 @@ export const testApp = (
       memoryRateLimiter({ limit: Number.MAX_SAFE_INTEGER, windowMs: 60_000 }),
     reportError: (error) => {
       reported.push(error);
+
       return Promise.resolve();
     },
   };
+
   return { app: createApp(deps), identified, library, reported, servicesFor };
 };

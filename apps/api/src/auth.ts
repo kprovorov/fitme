@@ -3,6 +3,7 @@ import { TokenVerificationError } from "@clerk/backend/errors";
 import type { Library } from "@fitme/library-sdk";
 import type { z } from "@hono/zod-openapi";
 import { createMiddleware } from "hono/factory";
+
 import type { ErrorResponse } from "./schemas.js";
 import type { ServicesFactory, UserServices } from "./services.js";
 
@@ -51,16 +52,19 @@ const verifySessionToken = async (token: string, jwtKey: string) => {
   try {
     // Networkless: checks the signature, `exp`, `nbf` and `iat`, and requires a `sub`.
     const { sid, sub } = await verifyToken(token, { jwtKey });
+
     // Only a session token carries its session (`sid`): a JWT template's
     // token doesn't, and stays valid after the session ends.
     if (typeof sid !== "string") {
       return "no-session";
     }
+
     return { userId: sub };
   } catch (error) {
     if (error instanceof TokenVerificationError) {
       return error.reason;
     }
+
     throw error;
   }
 };
@@ -83,25 +87,33 @@ export const requireCaller = ({
     if (!clerkJwtKey) {
       throw new Error("Missing CLERK_JWT_KEY environment variable");
     }
+
     const token = c.req.header("authorization")?.match(BEARER)?.[1];
+
     if (!token) {
       return c.json(unauthorized, 401);
     }
+
     const result = await verifySessionToken(token, clerkJwtKey);
+
     if (typeof result === "string") {
       // A wrong CLERK_JWT_KEY fails every token the same way a forged one
       // does, so log why: a burst of these points at the key.
       console.warn(`Rejected Clerk token: ${result}`);
+
       return c.json(unauthorized, 401);
     }
+
     const caller: Caller = { kind: "session", userId: result.userId };
     c.set("caller", caller);
     let services: UserServices | undefined;
     c.set("getServices", () => {
       services ??= createServices(caller.userId) ?? undefined;
+
       if (!services) {
         throw new Error("Missing FITME_DATABASE_URL environment variable");
       }
+
       return services;
     });
     await next();
@@ -124,5 +136,6 @@ export const requires = (permission: Permission) =>
     if (!allows(c.get("caller"), permission)) {
       throw new Error(`Caller lacks the ${permission} permission`);
     }
+
     await next();
   });

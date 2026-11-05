@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+
 import { fakeServices, signedInAs, testApp } from "../test/harness.js";
 
 const profile = {
@@ -10,7 +11,7 @@ const profile = {
   weight: 60.25,
 };
 
-describe("GET /v1/profile", () => {
+describe("gET /v1/profile", () => {
   it("answers the signed-in User's Profile with its units", async () => {
     const { app, servicesFor } = testApp({
       services: fakeServices({ getProfile: () => Promise.resolve(profile) }),
@@ -21,7 +22,7 @@ describe("GET /v1/profile", () => {
     });
 
     expect(response.status).toBe(200);
-    expect(await response.json()).toEqual({ data: profile });
+    await expect(response.json()).resolves.toEqual({ data: profile });
     expect(servicesFor).toEqual(["user_alice"]);
   });
 
@@ -35,7 +36,7 @@ describe("GET /v1/profile", () => {
     });
 
     expect(response.status).toBe(200);
-    expect(await response.json()).toEqual({ data: null });
+    await expect(response.json()).resolves.toEqual({ data: null });
     expect(reported).toEqual([]);
   });
 
@@ -55,7 +56,7 @@ describe("GET /v1/profile", () => {
       headers: signedInAs("user_alice"),
     });
 
-    expect(await response.json()).toEqual({ data: profile });
+    await expect(response.json()).resolves.toEqual({ data: profile });
   });
 });
 
@@ -71,13 +72,15 @@ const patchProfile = (
     method: "PATCH",
   });
 
-describe("PATCH /v1/profile", () => {
+describe("pATCH /v1/profile", () => {
   it("changes only the given field and answers the updated Profile", async () => {
     const changes: unknown[] = [];
+
     const { app, reported, servicesFor } = testApp({
       services: fakeServices({
         updateProfile: (given) => {
           changes.push(given);
+
           return Promise.resolve({ ...profile, age: 31 });
         },
       }),
@@ -86,7 +89,9 @@ describe("PATCH /v1/profile", () => {
     const response = await patchProfile(app, { age: 31 });
 
     expect(response.status).toBe(200);
-    expect(await response.json()).toEqual({ data: { ...profile, age: 31 } });
+    await expect(response.json()).resolves.toEqual({
+      data: { ...profile, age: 31 },
+    });
     expect(changes).toEqual([{ age: 31 }]);
     expect(servicesFor).toEqual(["user_alice"]);
     expect(reported).toEqual([]);
@@ -94,6 +99,7 @@ describe("PATCH /v1/profile", () => {
 
   it("answers a new measurement system with the converted values and its units", async () => {
     const changes: unknown[] = [];
+
     const converted = {
       ...profile,
       height: 67.13,
@@ -101,10 +107,12 @@ describe("PATCH /v1/profile", () => {
       units: { height: "in", weight: "lbs" },
       weight: 132.83,
     };
+
     const { app } = testApp({
       services: fakeServices({
         updateProfile: (given) => {
           changes.push(given);
+
           return Promise.resolve(converted);
         },
       }),
@@ -113,20 +121,23 @@ describe("PATCH /v1/profile", () => {
     const response = await patchProfile(app, { measurement_system: "us" });
 
     expect(response.status).toBe(200);
-    expect(await response.json()).toEqual({ data: converted });
+    await expect(response.json()).resolves.toEqual({ data: converted });
     expect(changes).toEqual([{ measurement_system: "us" }]);
   });
 
   it("passes every field it accepts", async () => {
     const changes: unknown[] = [];
+
     const { app } = testApp({
       services: fakeServices({
         updateProfile: (given) => {
           changes.push(given);
+
           return Promise.resolve(profile);
         },
       }),
     });
+
     const every = {
       age: 30,
       gender: "female",
@@ -149,7 +160,7 @@ describe("PATCH /v1/profile", () => {
     const response = await patchProfile(app, { age: 31 });
 
     expect(response.status).toBe(404);
-    expect(await response.json()).toEqual({
+    await expect(response.json()).resolves.toEqual({
       error: { code: "profile_not_found", message: expect.any(String) },
     });
     expect(reported).toEqual([]);
@@ -165,7 +176,7 @@ describe("PATCH /v1/profile", () => {
 
     const response = await patchProfile(app, { age: 30 });
 
-    expect(await response.json()).toEqual({ data: profile });
+    await expect(response.json()).resolves.toEqual({ data: profile });
   });
 
   it.each([
@@ -192,7 +203,7 @@ describe("PATCH /v1/profile", () => {
     const response = await patchProfile(app, body);
 
     expect(response.status).toBe(400);
-    expect(await response.json()).toEqual({
+    await expect(response.json()).resolves.toEqual({
       error: { code: "invalid_request", message: expect.any(String) },
     });
     expect(reported).toEqual([]);
@@ -211,7 +222,7 @@ describe("PATCH /v1/profile", () => {
     });
 
     expect(response.status).toBe(415);
-    expect(await response.json()).toEqual({
+    await expect(response.json()).resolves.toEqual({
       error: { code: "http_error", message: "Unsupported Media Type" },
     });
     expect(reported).toEqual([]);
@@ -226,7 +237,7 @@ describe("PATCH /v1/profile", () => {
     });
 
     expect(response.status).toBe(400);
-    expect(await response.json()).toEqual({
+    await expect(response.json()).resolves.toEqual({
       error: { code: "invalid_request", message: expect.any(String) },
     });
     expect(reported).toEqual([]);
@@ -264,13 +275,15 @@ const wholeProfile = {
   weight: 60.25,
 };
 
-describe("PUT /v1/profile", () => {
+describe("pUT /v1/profile", () => {
   it("answers 201 with the Profile it created", async () => {
     const given: unknown[] = [];
+
     const { app, reported, servicesFor } = testApp({
       services: fakeServices({
         replaceProfile: (whole) => {
           given.push(whole);
+
           return Promise.resolve({ created: true, profile });
         },
       }),
@@ -279,7 +292,7 @@ describe("PUT /v1/profile", () => {
     const response = await putProfile(app, wholeProfile);
 
     expect(response.status).toBe(201);
-    expect(await response.json()).toEqual({ data: profile });
+    await expect(response.json()).resolves.toEqual({ data: profile });
     expect(given).toEqual([wholeProfile]);
     expect(servicesFor).toEqual(["user_alice"]);
     expect(reported).toEqual([]);
@@ -294,6 +307,7 @@ describe("PUT /v1/profile", () => {
       units: { height: "in", weight: "lbs" },
       weight: 140,
     };
+
     const { app } = testApp({
       services: fakeServices({
         replaceProfile: () =>
@@ -310,7 +324,7 @@ describe("PUT /v1/profile", () => {
     });
 
     expect(response.status).toBe(200);
-    expect(await response.json()).toEqual({ data: converted });
+    await expect(response.json()).resolves.toEqual({ data: converted });
   });
 
   it("never shows fields beyond the contract", async () => {
@@ -326,7 +340,7 @@ describe("PUT /v1/profile", () => {
 
     const response = await putProfile(app, wholeProfile);
 
-    expect(await response.json()).toEqual({ data: profile });
+    await expect(response.json()).resolves.toEqual({ data: profile });
   });
 
   const { age: _age, ...withoutAge } = wholeProfile;
@@ -357,7 +371,7 @@ describe("PUT /v1/profile", () => {
     const response = await putProfile(app, body);
 
     expect(response.status).toBe(400);
-    expect(await response.json()).toEqual({
+    await expect(response.json()).resolves.toEqual({
       error: { code: "invalid_request", message: expect.any(String) },
     });
     expect(reported).toEqual([]);

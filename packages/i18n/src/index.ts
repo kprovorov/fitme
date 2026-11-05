@@ -1,5 +1,8 @@
-import { type AppLanguage, defaultAppLanguage } from "@fitme/core";
-import i18next, { type i18n } from "i18next";
+import { defaultAppLanguage } from "@fitme/core";
+import type { AppLanguage } from "@fitme/core";
+import i18next from "i18next";
+import type { i18n } from "i18next";
+
 import ca from "./catalogs/ca.json";
 import en from "./catalogs/en.json";
 import es from "./catalogs/es.json";
@@ -101,5 +104,6 @@ export function createI18n(language: AppLanguage): i18n {
       numberFormatOptions(options)
     ).format(value)
   );
+
   return instance;
 }

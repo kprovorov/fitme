@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+
 import {
   createLibrary,
   LibraryError,
@@ -10,17 +11,19 @@ import {
 import { cover, exercise, stubApi } from "./stub-api";
 
 const URL = "https://exercises.test";
-const token = () => Promise.resolve("secret-token");
+const token = async () => Promise.resolve("secret-token");
 
 describe("lookup", () => {
   it("asks for 85 slugs in 3 requests of at most 40, in asked order, missing merged", async () => {
     const known = Array.from({ length: 80 }, (_, i) => exercise(`ex-${i}`));
     const api = stubApi(known);
+
     const library = createLibrary({
       fetch: api.fetch,
       token,
       url: URL,
     });
+
     // 80 known in reverse, 5 unknown spread across the chunks
     const slugs = known.map((e) => e.slug).reverse();
     slugs.splice(10, 0, "nope-a");
@@ -31,9 +34,11 @@ describe("lookup", () => {
     const result = await library.lookup(slugs);
 
     expect(api.requests).toHaveLength(3);
+
     for (const request of api.requests) {
       expect(request.slugs?.length).toBeLessThanOrEqual(40);
     }
+
     expect(result.data.map((e) => e.slug)).toEqual(
       slugs.filter((slug) => !slug.startsWith("nope"))
     );
@@ -48,6 +53,7 @@ describe("lookup", () => {
 
   it("fetches a repeated slug once and answers it once", async () => {
     const api = stubApi([exercise("squat"), exercise("bench-press")]);
+
     const library = createLibrary({
       fetch: api.fetch,
       token,
@@ -70,18 +76,23 @@ describe("lookup", () => {
 
   it("answers no slugs without a request", async () => {
     const api = stubApi([exercise("squat")]);
+
     const library = createLibrary({
       fetch: api.fetch,
       token,
       url: URL,
     });
 
-    expect(await library.lookup([])).toEqual({ data: [], missing: [] });
+    await expect(library.lookup([])).resolves.toEqual({
+      data: [],
+      missing: [],
+    });
     expect(api.requests).toHaveLength(0);
   });
 
   it("answers a slug that can't be sent (empty, or with a comma) as missing", async () => {
     const api = stubApi([exercise("squat")]);
+
     const library = createLibrary({
       fetch: api.fetch,
       token,
@@ -105,6 +116,7 @@ describe("list", () => {
       exercise("bench-dip", { muscle_groups: ["triceps"] }),
       exercise("squat", { muscle_groups: ["quadriceps"] }),
     ]);
+
     const library = createLibrary({
       fetch: api.fetch,
       token,
@@ -135,6 +147,7 @@ describe("list", () => {
 
   it("sends no parameter it wasn't given, so the API's defaults apply", async () => {
     const api = stubApi([exercise("squat")]);
+
     const library = createLibrary({
       fetch: api.fetch,
       token,
@@ -164,8 +177,10 @@ describe("list by several muscle groups", () => {
       },
     }),
   ];
+
   const libraryOver = () => {
     const api = stubApi(exercises);
+
     return {
       api,
       library: createLibrary({ fetch: api.fetch, token, url: URL }),
@@ -241,7 +256,7 @@ describe("list by several muscle groups", () => {
 
     const error = await library
       .list({ muscleGroup: "back", muscleGroups: ["chest"] })
-      .catch((e: unknown) => e);
+      .catch((error_: unknown) => error_);
 
     expect(error).toBeInstanceOf(LibraryInvalidRequestError);
     expect(error).toMatchObject({
@@ -265,8 +280,10 @@ describe("equipment", () => {
       muscle_groups: ["back"],
     }),
   ];
+
   const libraryOver = (over: typeof exercises = exercises) => {
     const api = stubApi(over);
+
     return {
       api,
       library: createLibrary({ fetch: api.fetch, token, url: URL }),
@@ -297,9 +314,10 @@ describe("equipment", () => {
     const fresh = exercise("kettlebell-swing", {
       equipment: ["kettlebell" as "barbell"],
     });
+
     const { library } = libraryOver([fresh]);
 
-    expect(await library.get("kettlebell-swing")).toEqual(fresh);
+    await expect(library.get("kettlebell-swing")).resolves.toEqual(fresh);
     expect((await library.list()).data[0]?.equipment).toEqual(["kettlebell"]);
   });
 
@@ -350,7 +368,7 @@ describe("equipment", () => {
 
     const error = await library
       .list({ equipment: ["kettlebell" as "barbell"] })
-      .catch((e: unknown) => e);
+      .catch((error_: unknown) => error_);
 
     expect(error).toBeInstanceOf(LibraryInvalidRequestError);
     expect(error).toMatchObject({ message: "equipment: invalid equipment" });
@@ -361,54 +379,59 @@ describe("get", () => {
   it("answers one Exercise in full, description and instructions included", async () => {
     const squat = exercise("barbell-back-squat");
     const api = stubApi([squat, exercise("bench-press")]);
+
     const library = createLibrary({
       fetch: api.fetch,
       token,
       url: URL,
     });
 
-    expect(await library.get("barbell-back-squat")).toEqual(squat);
+    await expect(library.get("barbell-back-squat")).resolves.toEqual(squat);
     expect(api.requests[0]?.url.pathname).toBe("/exercises/barbell-back-squat");
     expect(api.requests[0]?.authorization).toBe("Bearer secret-token");
   });
 
   it("answers null for a slug no Exercise has (404)", async () => {
     const api = stubApi([exercise("squat")]);
+
     const library = createLibrary({
       fetch: api.fetch,
       token,
       url: URL,
     });
 
-    expect(await library.get("nope")).toBeNull();
+    await expect(library.get("nope")).resolves.toBeNull();
   });
 
   it("escapes the slug into one path segment", async () => {
     const api = stubApi([exercise("squat")]);
+
     const library = createLibrary({
       fetch: api.fetch,
       token,
       url: URL,
     });
 
-    expect(await library.get("../health?x=1")).toBeNull();
+    await expect(library.get("../health?x=1")).resolves.toBeNull();
     expect(api.requests[0]?.exerciseSlug).toBe("../health?x=1");
   });
 
   it("answers null for an empty slug without a request", async () => {
     const api = stubApi([exercise("squat")]);
+
     const library = createLibrary({
       fetch: api.fetch,
       token,
       url: URL,
     });
 
-    expect(await library.get("")).toBeNull();
+    await expect(library.get("")).resolves.toBeNull();
     expect(api.requests).toHaveLength(0);
   });
 
   it("maps an answer without description or instructions to unavailable", async () => {
     const { description: _, ...withoutDescription } = exercise("squat");
+
     const library = createLibrary({
       fetch: stubApi([], () => Response.json(withoutDescription)).fetch,
       token,
@@ -422,6 +445,7 @@ describe("get", () => {
 
   it("maps an answer without equipment to unavailable", async () => {
     const { equipment: _, ...withoutEquipment } = exercise("squat");
+
     const library = createLibrary({
       fetch: stubApi([], () => Response.json(withoutEquipment)).fetch,
       token,
@@ -456,8 +480,10 @@ describe("language", () => {
       },
     },
   });
+
   const translatedLibrary = (exercises = [squat]) => {
     const api = stubApi(exercises);
+
     return {
       api,
       library: createLibrary({ fetch: api.fetch, token, url: URL }),
@@ -510,9 +536,11 @@ describe("language", () => {
     const batch = await library.lookup(["squat"]);
 
     expect(api.requests).toHaveLength(3);
+
     for (const request of api.requests) {
       expect(request.url.searchParams.has("language")).toBe(false);
     }
+
     expect(found?.name).toBe("Squat");
     expect(page.data[0]?.name).toBe("Squat");
     expect(batch.data[0]?.name).toBe("Squat");
@@ -525,12 +553,16 @@ const errorBody = (code: string) =>
 describe("auth", () => {
   it("sends the bearer from token() on every request, asking for it each time", async () => {
     let calls = 0;
-    const rotating = () => {
+
+    const rotating = async () => {
       calls += 1;
+
       return Promise.resolve(`token-${calls}`);
     };
+
     const slugs = Array.from({ length: 85 }, (_, i) => `ex-${i}`);
     const api = stubApi(slugs.map((slug) => exercise(slug)));
+
     const library = createLibrary({
       fetch: api.fetch,
       token: rotating,
@@ -550,9 +582,10 @@ describe("auth", () => {
 
   it("fails unauthorized without a request when there's no token", async () => {
     const api = stubApi([exercise("squat")]);
+
     const library = createLibrary({
       fetch: api.fetch,
-      token: () => Promise.resolve(null),
+      token: async () => Promise.resolve(null),
       url: URL,
     });
 
@@ -565,9 +598,10 @@ describe("auth", () => {
   it("fails unavailable when token() throws", async () => {
     const cause = new Error("offline");
     const api = stubApi([exercise("squat")]);
+
     const library = createLibrary({
       fetch: api.fetch,
-      token: () => Promise.reject(cause),
+      token: async () => Promise.reject(cause),
       url: URL,
     });
 
@@ -576,8 +610,10 @@ describe("auth", () => {
       code: "unavailable",
     });
   });
+
   it("fails unavailable when token() throws before returning a promise", async () => {
     const cause = new Error("not loaded");
+
     const library = createLibrary({
       fetch: stubApi([exercise("squat")]).fetch,
       token: () => {
@@ -595,6 +631,7 @@ describe("auth", () => {
 
 describe("errors", () => {
   const { equipment: _equipment, ...withoutEquipment } = exercise("squat");
+
   const failing = (respond: () => Response | Promise<Response>) =>
     createLibrary({
       fetch: stubApi([], respond).fetch,
@@ -607,7 +644,7 @@ describe("errors", () => {
       Response.json(errorBody("unauthorized"), { status: 401 })
     );
 
-    const error = await library.list().catch((e: unknown) => e);
+    const error = await library.list().catch((error_: unknown) => error_);
 
     expect(error).toBeInstanceOf(LibraryUnauthorizedError);
     expect(error).toBeInstanceOf(LibraryError);
@@ -622,7 +659,9 @@ describe("errors", () => {
       })
     );
 
-    const error = await library.lookup(["squat"]).catch((e: unknown) => e);
+    const error = await library
+      .lookup(["squat"])
+      .catch((error_: unknown) => error_);
 
     expect(error).toBeInstanceOf(LibraryRateLimitedError);
     expect(error).toMatchObject({
@@ -644,7 +683,7 @@ describe("errors", () => {
   it.each([500, 502, 503, 504])("maps %i to unavailable", async (status) => {
     const library = failing(() => new Response("oops", { status }));
 
-    const error = await library.list().catch((e: unknown) => e);
+    const error = await library.list().catch((error_: unknown) => error_);
 
     expect(error).toBeInstanceOf(LibraryUnavailableError);
     expect(error).toMatchObject({ code: "unavailable", status });
@@ -652,7 +691,7 @@ describe("errors", () => {
 
   it("maps a network failure to unavailable, keeping the cause", async () => {
     const cause = new TypeError("Network request failed");
-    const library = failing(() => Promise.reject(cause));
+    const library = failing(async () => Promise.reject(cause));
 
     await expect(library.lookup(["squat"])).rejects.toMatchObject({
       cause,
@@ -661,12 +700,13 @@ describe("errors", () => {
   });
 
   it("maps a timeout to unavailable", async () => {
-    const hanging = (_input: RequestInfo | URL, init?: RequestInit) =>
+    const hanging = async (_input: RequestInfo | URL, init?: RequestInit) =>
       new Promise<Response>((_resolve, reject) => {
-        init?.signal?.addEventListener("abort", () =>
-          reject(new DOMException("aborted", "AbortError"))
-        );
+        init?.signal?.addEventListener("abort", () => {
+          reject(new DOMException("aborted", "AbortError"));
+        });
       });
+
     const library = createLibrary({
       fetch: hanging,
       timeoutMs: 5,
@@ -747,7 +787,9 @@ describe("errors", () => {
       )
     );
 
-    const error = await library.list({ limit: 51 }).catch((e: unknown) => e);
+    const error = await library
+      .list({ limit: 51 })
+      .catch((error_: unknown) => error_);
 
     expect(error).toBeInstanceOf(LibraryInvalidRequestError);
     expect(error).toMatchObject({
@@ -759,8 +801,10 @@ describe("errors", () => {
 
   it("fails a whole lookup when any chunk fails", async () => {
     let calls = 0;
+
     const library = failing(() => {
       calls += 1;
+
       return calls === 2
         ? Response.json(errorBody("rate_limited"), {
             headers: { "Retry-After": "5" },
@@ -768,6 +812,7 @@ describe("errors", () => {
           })
         : Response.json({ data: [], missing: [] });
     });
+
     const slugs = Array.from({ length: 85 }, (_, i) => `ex-${i}`);
 
     await expect(library.lookup(slugs)).rejects.toBeInstanceOf(
@@ -787,6 +832,7 @@ describe("covers", () => {
     ]
   ) => {
     const api = stubApi([], respond, covers);
+
     return {
       api,
       covers,
@@ -797,7 +843,7 @@ describe("covers", () => {
   it("answers every Cover from GET /covers, in the API's order, with the bearer", async () => {
     const { api, covers, library } = coversLibrary();
 
-    expect(await library.covers()).toEqual(covers);
+    await expect(library.covers()).resolves.toEqual(covers);
     expect(api.requests).toHaveLength(1);
     expect(api.requests[0]?.path).toBe("/covers");
     expect(api.requests[0]?.url.search).toBe("");
@@ -807,16 +853,17 @@ describe("covers", () => {
   it("answers an empty list for a Library without Covers", async () => {
     const { library } = coversLibrary(undefined, []);
 
-    expect(await library.covers()).toEqual([]);
+    await expect(library.covers()).resolves.toEqual([]);
   });
 
   it("takes a muscle group it doesn't know, so a new one never breaks it", async () => {
     const fresh = cover("0a1b2c3d-4e5f-6a7b-8c9d-0e1f2a3b4c5d", {
       muscle_groups: ["neck" as "chest"],
     });
+
     const { library } = coversLibrary(undefined, [fresh]);
 
-    expect(await library.covers()).toEqual([fresh]);
+    await expect(library.covers()).resolves.toEqual([fresh]);
   });
 
   it("maps 401 to unauthorized", async () => {
@@ -837,7 +884,7 @@ describe("covers", () => {
       })
     );
 
-    const error = await library.covers().catch((e: unknown) => e);
+    const error = await library.covers().catch((error_: unknown) => error_);
 
     expect(error).toBeInstanceOf(LibraryRateLimitedError);
     expect(error).toMatchObject({ retryAfterSeconds: 9 });
@@ -856,7 +903,7 @@ describe("covers", () => {
 
   it("maps a network failure to unavailable, keeping the cause", async () => {
     const cause = new TypeError("Network request failed");
-    const { library } = coversLibrary(() => Promise.reject(cause));
+    const { library } = coversLibrary(async () => Promise.reject(cause));
 
     await expect(library.covers()).rejects.toMatchObject({
       cause,
@@ -865,12 +912,13 @@ describe("covers", () => {
   });
 
   it("maps a timeout to unavailable", async () => {
-    const hanging = (_input: RequestInfo | URL, init?: RequestInit) =>
+    const hanging = async (_input: RequestInfo | URL, init?: RequestInit) =>
       new Promise<Response>((_resolve, reject) => {
-        init?.signal?.addEventListener("abort", () =>
-          reject(new DOMException("aborted", "AbortError"))
-        );
+        init?.signal?.addEventListener("abort", () => {
+          reject(new DOMException("aborted", "AbortError"));
+        });
       });
+
     const library = createLibrary({
       fetch: hanging,
       timeoutMs: 5,
@@ -885,9 +933,10 @@ describe("covers", () => {
 
   it("fails unauthorized without a request when there's no token", async () => {
     const api = stubApi([]);
+
     const library = createLibrary({
       fetch: api.fetch,
-      token: () => Promise.resolve(null),
+      token: async () => Promise.resolve(null),
       url: URL,
     });
 
@@ -938,6 +987,7 @@ describe("covers", () => {
 describe("url", () => {
   it("drops the trailing slashes of the API's origin", async () => {
     const api = stubApi([exercise("squat")]);
+
     const library = createLibrary({
       fetch: api.fetch,
       token,

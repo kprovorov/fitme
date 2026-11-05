@@ -1,10 +1,12 @@
 import { isLiquidGlassAvailable } from "expo-glass-effect";
 import type React from "react";
 import { useCallback, useState } from "react";
-import { TouchableWithoutFeedback, type ViewProps } from "react-native";
+import { TouchableWithoutFeedback } from "react-native";
+import type { ViewProps } from "react-native";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import Animated from "react-native-reanimated";
 import { scheduleOnRN } from "react-native-worklets";
+
 import { BlurViewRawBackdrop } from "./blur-raw";
 import { AppleGlassView } from "./tw";
 
@@ -81,16 +83,20 @@ function TouchableGlassFallback({
     animatedProps,
     ...viewProps
   } = rest as Record<string, unknown>;
+
   const safeViewProps = viewProps as ViewOnlyProps;
   const [pressed, setPressed] = useState(false);
+
   const onTouchBegin = useCallback(() => {
     setPressed(true);
     onPressIn?.();
   }, [onPressIn]);
+
   const onTouchEnd = useCallback(() => {
     setPressed(false);
     onPressOut?.();
   }, [onPressOut]);
+
   const onTouchEndSuccess = useCallback(() => {
     setPressed(false);
     onPress?.();

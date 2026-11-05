@@ -2,6 +2,9 @@ import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
 import { describe, test } from "node:test";
 import { fileURLToPath } from "node:url";
+
+import { describe, test } from "vitest";
+
 import { findShellRuleViolations } from "./shell-rules.mjs";
 
 const REASON = /^AGENTS\.md Shell: /;
@@ -167,10 +170,12 @@ describe("text that isn't a command", () => {
     const violations = findShellRuleViolations(
       "cd apps/mobile && timeout 90 pnpm test"
     );
+
     assert.deepEqual(
       violations.map((violation) => violation.rule),
       ["cd", "timeout"]
     );
+
     for (const { reason } of violations) {
       assert.match(reason, REASON);
     }
@@ -183,7 +188,7 @@ describe("the PreToolUse hook", () => {
       process.execPath,
       [fileURLToPath(new URL("check-shell-command.mjs", import.meta.url))],
       {
-        encoding: "utf8",
+        encoding: "utf-8",
         env: { ...process.env, ...env },
         input: JSON.stringify(input),
       }
@@ -194,6 +199,7 @@ describe("the PreToolUse hook", () => {
       tool_input: { command: "timeout 90 pnpm test" },
       tool_name: "Bash",
     });
+
     assert.equal(result.status, 2);
     assert.match(result.stderr, TIMEOUT_REASON);
   });
@@ -203,6 +209,7 @@ describe("the PreToolUse hook", () => {
       tool_input: { command: "pnpm test" },
       tool_name: "Bash",
     });
+
     assert.equal(result.status, 0);
     assert.equal(result.stderr, "");
   });
@@ -212,6 +219,7 @@ describe("the PreToolUse hook", () => {
       tool_input: { command: "sleep 60", run_in_background: true },
       tool_name: "Bash",
     });
+
     assert.equal(result.status, 0);
   });
 
@@ -221,6 +229,7 @@ describe("the PreToolUse hook", () => {
         { tool_input: { command }, tool_name: "Bash" },
         { CLAUDE_PROJECT_DIR: "/Users/me/fitme" }
       ).status;
+
     assert.equal(scan("gitleaks dir /Users/me/fitme --redact"), 2);
     assert.equal(scan("gitleaks dir /Users/me/fitme/apps/mobile --redact"), 0);
   });
@@ -706,6 +715,7 @@ describe("gitleaks scanning a whole worktree or printing secrets", () => {
   // The hook knows the project directory, so an absolute path covering it is
   // the whole checkout under another name.
   const PROJECT_DIR = "/Users/me/fitme";
+
   for (const [command, rules] of [
     ["gitleaks dir /Users/me/fitme --redact", ["gitleaks"]],
     ["gitleaks dir /Users/me/fitme/ --redact", ["gitleaks"]],

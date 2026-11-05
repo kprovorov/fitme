@@ -1,5 +1,6 @@
 import { auth } from "@clerk/nextjs/server";
 import * as Sentry from "@sentry/nextjs";
+
 import { DashboardView } from "~/components/dashboard/dashboard-view";
 import { isUnexpectedFailure, loadDashboard } from "~/lib/dashboard";
 
@@ -13,11 +14,13 @@ export default async function DashboardPage() {
   if (result.ok) {
     return <DashboardView data={result.data} />;
   }
+
   // The error state replaces the throw the page used to do, so `onRequestError`
   // never sees these: report the ones nothing else would (an unset
   // PUBLIC_API_URL, a network failure, a refused or broken answer).
   if (isUnexpectedFailure(result.error)) {
     Sentry.captureException(result.error);
   }
+
   return <DashboardView error={result.error} />;
 }

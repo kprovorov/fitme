@@ -2,9 +2,10 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 const sentry = vi.hoisted(() => ({
   captureException: vi.fn(),
-  flush: vi.fn(() => Promise.resolve(true)),
+  flush: vi.fn(async () => Promise.resolve(true)),
 }));
-vi.mock("@sentry/node", () => sentry);
+
+vi.mock<typeof import("@sentry/node")>(import("@sentry/node"), () => sentry);
 
 const { reportError } = await import("../node");
 
@@ -30,13 +31,13 @@ afterEach(() => {
 
 describe("reportError", () => {
   it("logs and captures a query failure without its SQL, params or Postgres message", async () => {
-    const log = vi.spyOn(console, "error").mockImplementation(() => undefined);
+    const log = vi.spyOn(console, "error").mockReturnValue(undefined);
 
     await reportError(new Error("cleanup failed", { cause: queryError() }), {
       route: "clerk",
     });
 
-    expect(sentry.captureException).toHaveBeenCalledTimes(1);
+    expect(sentry.captureException).toHaveBeenCalledOnce();
     const [captured, hint] = sentry.captureException.mock.calls[0] ?? [];
     expect(captured).toBeInstanceOf(Error);
     expect(captured.name).toBe("DatabaseQueryError");
@@ -46,16 +47,18 @@ describe("reportError", () => {
 
     const logged = log.mock.calls.flat();
     expect(logged).toEqual([captured]);
+
     for (const text of [captured.stack, String(captured)]) {
       for (const leak of [SQL, USER_ID, "invalid input syntax"]) {
         expect(text).not.toContain(leak);
       }
     }
-    expect(sentry.flush).toHaveBeenCalled();
+
+    expect(sentry.flush).toHaveBeenCalledWith();
   });
 
   it("logs and captures any other error as it is", async () => {
-    const log = vi.spyOn(console, "error").mockImplementation(() => undefined);
+    const log = vi.spyOn(console, "error").mockReturnValue(undefined);
     const error = new Error("database unreachable");
 
     await reportError(error);

@@ -2,22 +2,28 @@ import { reportError } from "@fitme/observability/node";
 import { DrizzleQueryError } from "drizzle-orm";
 import { Webhook } from "standardwebhooks";
 import { afterEach, describe, expect, it, vi } from "vitest";
+
 import {
   arnoldResetConfig,
   arnoldSessionResetter,
   deleteArnoldConversations,
 } from "../arnold.js";
-import { type AppDeps, createApp } from "../create-app.js";
+import { createApp } from "../create-app.js";
+import type { AppDeps } from "../create-app.js";
 
 // Only what reportError sends; the rest (Hono request spans) stays real
 const sentry = vi.hoisted(() => ({
   captureException: vi.fn(),
   flush: vi.fn(() => Promise.resolve(true)),
 }));
-vi.mock("@sentry/node", async (importOriginal) => ({
-  ...(await importOriginal<typeof import("@sentry/node")>()),
-  ...sentry,
-}));
+
+vi.mock<typeof import("@sentry/node")>(
+  import("@sentry/node"),
+  async (importOriginal) => ({
+    ...(await importOriginal<typeof import("@sentry/node")>()),
+    ...sentry,
+  })
+);
 
 // A Standard Webhooks secret, as Clerk issues them: "whsec_" + base64
 const SIGNING_SECRET = "whsec_MfKQ9r8GKYqrTwjUPD8ILPZIo2LaLaSw";
@@ -40,6 +46,7 @@ const signedRequest = (
 ): Request => {
   const body = JSON.stringify(event);
   const timestamp = new Date();
+
   return new Request(CLERK_URL, {
     body,
     headers: {
@@ -57,15 +64,18 @@ const setup = (overrides: Partial<AppDeps["clerk"]> = {}) => {
   const reported: unknown[] = [];
   // Every cleanup step, in the order it ran
   const steps: string[] = [];
+
   const app = createApp({
     clerk: {
       deleteArnoldConversations: (userId) => {
         steps.push(`conversations:${userId}`);
+
         return Promise.resolve();
       },
       deleteUserData: (userId) => {
         deleted.push(userId);
         steps.push(`data:${userId}`);
+
         return Promise.resolve();
       },
       signingSecret: SIGNING_SECRET,
@@ -73,22 +83,24 @@ const setup = (overrides: Partial<AppDeps["clerk"]> = {}) => {
     },
     reportError: (error) => {
       reported.push(error);
+
       return Promise.resolve();
     },
   });
+
   return { app, deleted, reported, steps };
 };
 
 /** Captures the route's rejection log so expected rejections print nothing. */
 const spyOnRejectionLog = () =>
-  vi.spyOn(console, "warn").mockImplementation(() => undefined);
+  vi.spyOn(console, "warn").mockReturnValue(undefined);
 
 afterEach(() => {
   vi.clearAllMocks();
   vi.restoreAllMocks();
 });
 
-describe("POST /clerk", () => {
+describe("pOST /clerk", () => {
   it("rejects an unsigned request without deleting anything", async () => {
     const { app, deleted } = setup();
     const warn = spyOnRejectionLog();
@@ -138,6 +150,7 @@ describe("POST /clerk", () => {
 
   it("reports a failed Conversation wipe and answers 500 so Clerk retries", async () => {
     const failure = new Error("Arnold unreachable");
+
     const { app, reported } = setup({
       deleteArnoldConversations: () => Promise.reject(failure),
     });
@@ -145,7 +158,7 @@ describe("POST /clerk", () => {
     const response = await app.request(signedRequest(userDeleted()));
 
     expect(response.status).toBe(500);
-    expect(await response.json()).toEqual({
+    await expect(response.json()).resolves.toEqual({
       error: { code: "cleanup_failed", message: "User data cleanup failed" },
     });
     expect(reported).toEqual([failure]);
@@ -188,6 +201,7 @@ describe("POST /clerk", () => {
 
   it("reports a failed cleanup once and answers 500 so Clerk retries", async () => {
     const failure = new Error("database unreachable");
+
     const { app, reported } = setup({
       deleteUserData: () => Promise.reject(failure),
     });
@@ -195,14 +209,15 @@ describe("POST /clerk", () => {
     const response = await app.request(signedRequest(userDeleted()));
 
     expect(response.status).toBe(500);
-    expect(await response.json()).toEqual({
+    await expect(response.json()).resolves.toEqual({
       error: { code: "cleanup_failed", message: "User data cleanup failed" },
     });
     expect(reported).toEqual([failure]);
   });
 
   it("reports a failed deletion query without the deleted User's id", async () => {
-    const log = vi.spyOn(console, "error").mockImplementation(() => undefined);
+    const log = vi.spyOn(console, "error").mockReturnValue(undefined);
+
     const failure = new DrizzleQueryError(
       'delete from "profiles" where "user_id" = $1',
       [USER_ID],
@@ -210,6 +225,7 @@ describe("POST /clerk", () => {
         code: "55P03",
       })
     );
+
     // The app's own reporter (@fitme/observability/node), Sentry faked
     const app = createApp({
       clerk: {
@@ -223,7 +239,7 @@ describe("POST /clerk", () => {
     const response = await app.request(signedRequest(userDeleted()));
 
     expect(response.status).toBe(500);
-    expect(sentry.captureException).toHaveBeenCalledTimes(1);
+    expect(sentry.captureException).toHaveBeenCalledOnce();
     const [sent, hint] = sentry.captureException.mock.calls[0] ?? [];
     expect(sent).toBeInstanceOf(Error);
     expect((sent as Error).message).toBe(
@@ -233,6 +249,7 @@ describe("POST /clerk", () => {
     expect(hint).toEqual({ tags: { sqlstate: "55P03" } });
     const logged = log.mock.calls.flat();
     expect(logged).toEqual([sent]);
+
     for (const leak of [USER_ID, "delete from", "lock timeout"]) {
       expect((sent as Error).stack).not.toContain(leak);
     }
@@ -265,7 +282,7 @@ describe("POST /clerk", () => {
   });
 });
 
-describe("POST /clerk without a signing secret", () => {
+describe("pOST /clerk without a signing secret", () => {
   it("reports the misconfiguration and answers 500 so Clerk retries", async () => {
     const { app, deleted, reported } = setup({ signingSecret: undefined });
 
@@ -277,17 +294,19 @@ describe("POST /clerk without a signing secret", () => {
   });
 });
 
-describe("POST /clerk resetting Arnold sessions from the environment", () => {
+describe("pOST /clerk resetting Arnold sessions from the environment", () => {
   const ARNOLD_URL = "https://arnold.test";
   const RESET_SECRET = "reset-secret-0123456789abcdef0123456789abcdef";
 
   /** The real cleanup over `env`, with two recorded sessions and Arnold faked. */
   const setupFromEnv = (env: Record<string, string | undefined>) => {
     const requests: Request[] = [];
+
     const fetch: typeof globalThis.fetch = (input, init) => {
       const request = new Request(input, init);
       requests.push(request);
       const sessionId = request.url.split("/").at(-2);
+
       return Promise.resolve(
         Response.json({
           ok: true,
@@ -296,7 +315,9 @@ describe("POST /clerk resetting Arnold sessions from the environment", () => {
         })
       );
     };
+
     const reported: unknown[] = [];
+
     const app = createApp({
       clerk: {
         deleteArnoldConversations: deleteArnoldConversations({
@@ -311,9 +332,11 @@ describe("POST /clerk resetting Arnold sessions from the environment", () => {
       },
       reportError: (error) => {
         reported.push(error);
+
         return Promise.resolve();
       },
     });
+
     return { app, reported, requests };
   };
 
@@ -330,6 +353,7 @@ describe("POST /clerk resetting Arnold sessions from the environment", () => {
       `${ARNOLD_URL}/eve/v1/session/wrun_a/reset`,
       `${ARNOLD_URL}/eve/v1/session/wrun_b/reset`,
     ]);
+
     for (const request of requests) {
       expect(request.headers.get("authorization")).toBe(
         `Bearer ${RESET_SECRET}`

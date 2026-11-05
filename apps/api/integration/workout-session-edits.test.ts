@@ -1,7 +1,9 @@
 import { randomBytes } from "node:crypto";
+
 import { createFakeLibrary } from "@fitme/library-sdk/fake";
 import { deleteTestUsers } from "@fitme/services/delete-test-users";
 import { afterAll, beforeEach, describe, expect, it } from "vitest";
+
 import { createApp } from "../src/create-app.js";
 import { createServicesFromEnv } from "../src/services.js";
 import { clerk, libraryExercise, signedInAs } from "../src/test/harness.js";
@@ -15,11 +17,12 @@ const library = createFakeLibrary(
     libraryExercise(slug)
   )
 );
+
 const app = createApp({
   clerkJwtKey: clerk.jwtKey,
   createLibrary: () => library,
   createServices: createServicesFromEnv,
-  identifyUser: () => undefined,
+  identifyUser: () => {},
   reportError: () => Promise.resolve(),
 });
 
@@ -34,6 +37,7 @@ const testUserId = (label: string) =>
 const users: string[] = [];
 let owner = "";
 let intruder = "";
+
 beforeEach(() => {
   owner = testUserId("sessionEditOwner");
   intruder = testUserId("sessionEditIntruder");
@@ -92,7 +96,9 @@ const request = async (
     },
     method,
   });
+
   const text = await response.text();
+
   return {
     body: text ? JSON.parse(text) : null,
     status: response.status,
@@ -102,15 +108,19 @@ const request = async (
 /** A Workout Session started through the API on a new Plan's Workout: 2 Exercises. */
 const startSession = async (userId: string) => {
   const created = await request(userId, "POST", "/v1/plans", onePlan);
+
   if (created.status !== 201) {
     throw new Error(`Creating a Plan answered ${created.status}`);
   }
+
   const started = await request(userId, "POST", "/v1/workout-sessions", {
     workout_id: created.body.data.workouts[0].id,
   });
+
   if (started.status !== 201) {
     throw new Error(`Starting a Workout Session answered ${started.status}`);
   }
+
   return started.body.data.id as string;
 };
 
@@ -125,6 +135,7 @@ const exerciseOrders = async (sessionId: string) => {
     "GET",
     `/v1/workout-sessions/${sessionId}`
   );
+
   return body.data.exercises.map(
     ({ exercise_slug, order }: { exercise_slug: string; order: number }) => ({
       exercise_slug,
@@ -137,7 +148,7 @@ afterAll(async () => {
   await deleteTestUsers(users);
 });
 
-describe("POST /v1/workout-sessions/:id/exercises", () => {
+describe("pOST /v1/workout-sessions/:id/exercises", () => {
   it("appends the Exercise with no sets and answers it with the weight unit", async () => {
     const sessionId = await startSession(owner);
 
@@ -153,7 +164,7 @@ describe("POST /v1/workout-sessions/:id/exercises", () => {
         weight_unit: "kg",
       },
     });
-    expect(await exerciseOrders(sessionId)).toEqual([
+    await expect(exerciseOrders(sessionId)).resolves.toEqual([
       { exercise_slug: "barbell-back-squat", order: 1 },
       { exercise_slug: "barbell-deadlift", order: 2 },
       { exercise_slug: "walking-lunge", order: 3 },
@@ -186,7 +197,7 @@ describe("POST /v1/workout-sessions/:id/exercises", () => {
 
     expect(refused.status).toBe(409);
     expect(refused.body.error.code).toBe("session_finished");
-    expect(await exerciseOrders(sessionId)).toHaveLength(2);
+    await expect(exerciseOrders(sessionId)).resolves.toHaveLength(2);
   });
 
   it("answers 404 for another User's Workout Session, writing nothing", async () => {
@@ -195,7 +206,7 @@ describe("POST /v1/workout-sessions/:id/exercises", () => {
     const refused = await addLunge(intruder, sessionId);
 
     expect(refused.status).toBe(404);
-    expect(await exerciseOrders(sessionId)).toHaveLength(2);
+    await expect(exerciseOrders(sessionId)).resolves.toHaveLength(2);
   });
 });
 
@@ -206,15 +217,16 @@ const exercisesOf = async (sessionId: string) => {
     "GET",
     `/v1/workout-sessions/${sessionId}`
   );
-  return body.data.exercises as Array<{
+
+  return body.data.exercises as {
     exercise_slug: string;
     id: string;
     order: number;
     sets: Record<string, unknown>[];
-  }>;
+  }[];
 };
 
-describe("DELETE /v1/workout-session-exercises/:id", () => {
+describe("dELETE /v1/workout-session-exercises/:id", () => {
   it("removes the Exercise and its sets, leaving a gap that a later add keeps", async () => {
     const sessionId = await startSession(owner);
     const [squat] = await exercisesOf(sessionId);
@@ -226,11 +238,11 @@ describe("DELETE /v1/workout-session-exercises/:id", () => {
     );
 
     expect(removed.status).toBe(204);
-    expect(await exerciseOrders(sessionId)).toEqual([
+    await expect(exerciseOrders(sessionId)).resolves.toEqual([
       { exercise_slug: "barbell-deadlift", order: 2 },
     ]);
     await addLunge(owner, sessionId);
-    expect(await exerciseOrders(sessionId)).toEqual([
+    await expect(exerciseOrders(sessionId)).resolves.toEqual([
       { exercise_slug: "barbell-deadlift", order: 2 },
       { exercise_slug: "walking-lunge", order: 3 },
     ]);
@@ -243,6 +255,7 @@ describe("DELETE /v1/workout-session-exercises/:id", () => {
     await request(owner, "DELETE", path);
 
     const repeat = await request(owner, "DELETE", path);
+
     const intruding = await request(
       intruder,
       "DELETE",
@@ -251,7 +264,7 @@ describe("DELETE /v1/workout-session-exercises/:id", () => {
 
     expect(repeat.status).toBe(204);
     expect(intruding.status).toBe(204);
-    expect(await exerciseOrders(sessionId)).toEqual([
+    await expect(exerciseOrders(sessionId)).resolves.toEqual([
       { exercise_slug: "barbell-deadlift", order: 2 },
     ]);
   });
@@ -269,11 +282,11 @@ describe("DELETE /v1/workout-session-exercises/:id", () => {
 
     expect(refused.status).toBe(409);
     expect(refused.body.error.code).toBe("session_finished");
-    expect(await exerciseOrders(sessionId)).toHaveLength(2);
+    await expect(exerciseOrders(sessionId)).resolves.toHaveLength(2);
   });
 });
 
-describe("PUT /v1/workout-session-exercises/:id", () => {
+describe("pUT /v1/workout-session-exercises/:id", () => {
   it("swaps the slug and zeroes every set's targets in place, keeping the logged values", async () => {
     const sessionId = await startSession(owner);
     const [squat] = await exercisesOf(sessionId);
@@ -340,6 +353,7 @@ describe("PUT /v1/workout-session-exercises/:id", () => {
     const intruding = await request(intruder, "PUT", path, {
       exercise_slug: "walking-lunge",
     });
+
     const unknown = await request(owner, "PUT", path, {
       exercise_slug: "made-up-press",
     });
@@ -351,7 +365,7 @@ describe("PUT /v1/workout-session-exercises/:id", () => {
   });
 });
 
-describe("POST /v1/workout-session-exercises/:id/sets", () => {
+describe("pOST /v1/workout-session-exercises/:id/sets", () => {
   const addSet = (userId: string, sessionExerciseId: string, body?: unknown) =>
     request(
       userId,
@@ -420,10 +434,12 @@ describe("POST /v1/workout-session-exercises/:id/sets", () => {
     const id = squat?.id as string;
 
     const intruding = await addSet(intruder, id);
+
     const outOfBounds = await addSet(owner, id, {
       reps_completed: 6,
       weight_completed: 102.555,
     });
+
     const unknownField = await addSet(owner, id, {
       reps_completed: 6,
       reps_recommended: 6,

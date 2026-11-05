@@ -18,6 +18,8 @@ import {
   waitFor,
 } from "@testing-library/react-native";
 import type { ReactNode } from "react";
+import { it, describe, expect, beforeEach } from "vitest";
+
 import AddToChatSheet from "~/app/(tabs)/arnold/attachments";
 import ArnoldScreen from "~/app/(tabs)/arnold/index";
 import { clearArnoldAttachments } from "~/hooks/arnold-attachments";
@@ -43,92 +45,119 @@ const PHOTOS = /^(Photos|Фото)$/;
 const REMOVE_PHOTO = /^(Remove photo|Видалити фото) \d+ (of|з) \d+$/;
 const THUMBNAIL = /^(Photo \d+ of \d+|Фото \d+ з \d+)$/;
 
-jest.mock("react-native-keyboard-controller", () =>
-  jest.requireActual("react-native-keyboard-controller/jest")
+jest.mock<typeof import("react-native-keyboard-controller")>(
+  import("react-native-keyboard-controller"),
+  () => jest.requireActual("react-native-keyboard-controller/jest")
 );
 
 // Animations as plain views and values: the screen's layout isn't under test.
-jest.mock("react-native-reanimated", () => {
-  const { View } =
-    jest.requireActual<typeof import("react-native")>("react-native");
-  const transition = { duration: () => transition };
-  return {
-    __esModule: true,
-    default: {
-      createAnimatedComponent: <T,>(component: T) => component,
-      View,
-    },
-    FadeIn: transition,
-    FadeOut: transition,
-    runOnJS: <T,>(fn: T) => fn,
-    useAnimatedProps: () => ({}),
-    useAnimatedStyle: () => ({}),
-    useDerivedValue: (fn: () => unknown) => ({ value: fn() }),
-    useSharedValue: <T,>(value: T) => ({ value }),
-    withTiming: <T,>(value: T) => value,
-  };
-});
+jest.mock<typeof import("react-native-reanimated")>(
+  import("react-native-reanimated"),
+  () => {
+    const { View } =
+      jest.requireActual<typeof import("react-native")>("react-native");
+
+    const transition = { duration: () => transition };
+
+    return {
+      __esModule: true,
+      default: {
+        createAnimatedComponent: <T,>(component: T) => component,
+        View,
+      },
+      FadeIn: transition,
+      FadeOut: transition,
+      runOnJS: <T,>(fn: T) => fn,
+      useAnimatedProps: () => ({}),
+      useAnimatedStyle: () => ({}),
+      useDerivedValue: (fn: () => unknown) => ({ value: fn() }),
+      useSharedValue: <T,>(value: T) => ({ value }),
+      withTiming: <T,>(value: T) => value,
+    };
+  }
+);
 
 // The list renders its rows and footer (the empty state) without layout.
-jest.mock("@legendapp/list/react-native", () => {
-  const { View } =
-    jest.requireActual<typeof import("react-native")>("react-native");
-  return {
-    LegendList: <T,>({
-      data,
-      keyExtractor,
-      ListFooterComponent,
-      renderItem,
-    }: {
-      data: readonly T[];
-      keyExtractor: (item: T) => string;
-      ListFooterComponent: ReactNode;
-      renderItem: (info: { item: T }) => ReactNode;
-    }) => (
-      <View>
-        {data.map((item) => (
-          <View key={keyExtractor(item)}>{renderItem({ item })}</View>
-        ))}
-        {ListFooterComponent}
-      </View>
-    ),
-  };
-});
+jest.mock<typeof import("@legendapp/list/react-native")>(
+  import("@legendapp/list/react-native"),
+  () => {
+    const { View } =
+      jest.requireActual<typeof import("react-native")>("react-native");
 
-jest.mock("react-native-safe-area-context", () => ({
-  useSafeAreaInsets: () => ({ bottom: 0, left: 0, right: 0, top: 0 }),
-}));
+    return {
+      LegendList: <T,>({
+        data,
+        keyExtractor,
+        ListFooterComponent,
+        renderItem,
+      }: {
+        data: readonly T[];
+        keyExtractor: (item: T) => string;
+        ListFooterComponent: ReactNode;
+        renderItem: (info: { item: T }) => ReactNode;
+      }) => (
+        <View>
+          {data.map((item) => (
+            <View key={keyExtractor(item)}>{renderItem({ item })}</View>
+          ))}
+          {ListFooterComponent}
+        </View>
+      ),
+    };
+  }
+);
 
-jest.mock("@/components/touchable-glass", () => {
-  const { Pressable } =
-    jest.requireActual<typeof import("react-native")>("react-native");
-  return { TouchableGlass: Pressable };
-});
+jest.mock<typeof import("react-native-safe-area-context")>(
+  import("react-native-safe-area-context"),
+  () => ({
+    useSafeAreaInsets: () => ({ bottom: 0, left: 0, right: 0, top: 0 }),
+  })
+);
+
+jest.mock<typeof import("@/components/touchable-glass")>(
+  import("@/components/touchable-glass"),
+  () => {
+    const { Pressable } =
+      jest.requireActual<typeof import("react-native")>("react-native");
+
+    return { TouchableGlass: Pressable };
+  }
+);
 
 // The plan card has its own tests, its text in Ukrainian included.
-jest.mock("@/components/chat/workout-plan-card", () => ({
-  WorkoutPlanCard: () => null,
-}));
+jest.mock<typeof import("@/components/chat/workout-plan-card")>(
+  import("@/components/chat/workout-plan-card"),
+  () => ({
+    WorkoutPlanCard: () => null,
+  })
+);
 
 // Markdown has its own tests; here an answer is read as the text it is.
-jest.mock("@/components/markdown", () => {
-  const { Text } =
-    jest.requireActual<typeof import("react-native")>("react-native");
-  return {
-    ChatMarkdown: ({ children }: { children: string }) => (
-      <Text>{children}</Text>
-    ),
-  };
-});
+jest.mock<typeof import("@/components/markdown")>(
+  import("@/components/markdown"),
+  () => {
+    const { Text } =
+      jest.requireActual<typeof import("react-native")>("react-native");
 
-jest.mock("@/components/symbol-image", () => ({ SymbolImage: () => null }));
+    return {
+      ChatMarkdown: ({ children }: { children: string }) => (
+        <Text>{children}</Text>
+      ),
+    };
+  }
+);
 
-jest.mock("@clerk/expo", () => ({
+jest.mock<typeof import("@/components/symbol-image")>(
+  import("@/components/symbol-image"),
+  () => ({ SymbolImage: () => null })
+);
+
+jest.mock<typeof import("@clerk/expo")>(import("@clerk/expo"), () => ({
   useUser: () => ({ user: { id: "user_arnold_screen" } }),
 }));
 
 // The bearer every eve request carries, resolved per request in the app.
-jest.mock("~/lib/clerk", () => ({
+jest.mock<typeof import("~/lib/clerk")>(import("~/lib/clerk"), () => ({
   getClerk: () => ({
     session: { getToken: () => Promise.resolve("fake-arnold-token") },
   }),
@@ -141,38 +170,55 @@ const mockPickLibraryPhotos =
 // The one module importing `expo-image-picker` and `expo-image-manipulator`
 // (its own test covers what they are asked for), so no native picker and no
 // re-encoding under Jest: a picked photo is a file uri the composer shows.
-jest.mock("~/lib/arnold-attachment-picker", () => ({
-  pickLibraryPhotos: (limit: number) => mockPickLibraryPhotos(limit),
-}));
+jest.mock<typeof import("~/lib/arnold-attachment-picker")>(
+  import("~/lib/arnold-attachment-picker"),
+  () => ({
+    pickLibraryPhotos: (limit: number) => mockPickLibraryPhotos(limit),
+  })
+);
 
-jest.mock("expo-router/react-navigation", () => ({ useHeaderHeight: () => 0 }));
+jest.mock<typeof import("expo-router/react-navigation")>(
+  import("expo-router/react-navigation"),
+  () => ({ useHeaderHeight: () => 0 })
+);
 
 let mockAttachmentsEnabled = false;
 
 // Attachments are off, as they ship, unless a test turns them on. A getter
 // defined in place (a spread would copy the flag's value once, when the
 // factory runs).
-jest.mock("~/lib/arnold-attachments", () =>
-  Object.defineProperties(
-    {},
-    { ATTACHMENTS_ENABLED: { get: () => mockAttachmentsEnabled } }
-  )
+jest.mock<typeof import("~/lib/arnold-attachments")>(
+  import("~/lib/arnold-attachments"),
+  () =>
+    Object.defineProperties(
+      {},
+      { ATTACHMENTS_ENABLED: { get: () => mockAttachmentsEnabled } }
+    )
 );
 
-jest.mock("~/hooks/revenueCat", () => ({
-  useIsProQuery: () => ({ data: true, isPending: false }),
-}));
+jest.mock<typeof import("~/hooks/revenueCat")>(
+  import("~/hooks/revenueCat"),
+  () => ({
+    useIsProQuery: () => ({ data: true, isPending: false }),
+  })
+);
 
-jest.mock("~/hooks/arnold-model", () => ({
-  useSelectedArnoldModel: () => ({ model: undefined }),
-}));
+jest.mock<typeof import("~/hooks/arnold-model")>(
+  import("~/hooks/arnold-model"),
+  () => ({
+    useSelectedArnoldModel: () => ({ model: undefined }),
+  })
+);
 
-jest.mock("react-native-purchases-ui", () => ({
-  __esModule: true,
-  default: { presentPaywall: () => mockPresentPaywall() },
-}));
+jest.mock<typeof import("react-native-purchases-ui")>(
+  import("react-native-purchases-ui"),
+  () => ({
+    __esModule: true,
+    default: { presentPaywall: () => mockPresentPaywall() },
+  })
+);
 
-jest.mock("expo-haptics", () => ({
+jest.mock<typeof import("expo-haptics")>(import("expo-haptics"), () => ({
   ImpactFeedbackStyle: { Light: "light" },
   impactAsync: jest.fn(),
 }));
@@ -182,12 +228,14 @@ interface HeaderItem {
   label: string;
 }
 
-jest.mock("expo-router", () => {
+jest.mock<typeof import("expo-router")>(import("expo-router"), () => {
   const { Text: RNText, View } =
     jest.requireActual<typeof import("react-native")>("react-native");
+
   const stub = jest.requireActual<typeof import("~/test-utils/router-stub")>(
     "~/test-utils/router-stub"
   );
+
   return {
     Link: stub.LinkStub,
     Stack: {
@@ -218,6 +266,7 @@ const ARNOLD_ROUTES = { "/arnold/attachments": AddToChatSheet };
 /** The screen under the root layout's language sync, with its stack. */
 function App() {
   useAppLanguageSync();
+
   return (
     <>
       <ArnoldScreen />
@@ -250,7 +299,7 @@ beforeEach(() => {
   process.env.EXPO_PUBLIC_ARNOLD_URL = fakeArnold.baseUrl;
 });
 
-describe("Arnold screen", () => {
+describe("arnold screen", () => {
   it("is in English on an English device", async () => {
     await renderArnold();
 
@@ -366,7 +415,7 @@ describe("Arnold screen", () => {
       await renderArnold();
       await send("Привіт");
 
-      await waitFor(() => expect(mockPresentPaywall).toHaveBeenCalledTimes(1));
+      await waitFor(() => expect(mockPresentPaywall).toHaveBeenCalledOnce());
       expect(screen.queryByText(SERVER_MESSAGE)).toBeNull();
       expect(
         screen.queryByText("Щось пішло не так. Спробуйте ще раз.")
@@ -408,7 +457,7 @@ describe("Arnold screen", () => {
     });
   });
 
-  describe("Attachments", () => {
+  describe("attachments", () => {
     /** A re-encoded JPEG on this device, as the picker answers one. */
     const photo = (name: string): PickedImage => ({
       height: 1200,
@@ -475,6 +524,7 @@ describe("Arnold screen", () => {
 
       expect(screen.getByLabelText("Photo 1 of 2")).toBeTruthy();
       expect(screen.getByLabelText("Photo 2 of 2")).toBeTruthy();
+
       // Each thumbnail is a stop of its own for VoiceOver: expo-image is
       // not one without `accessible`, label or no label.
       for (const thumbnail of screen.getAllByLabelText(THUMBNAIL)) {
@@ -482,6 +532,7 @@ describe("Arnold screen", () => {
           true
         );
       }
+
       expect(thumbnails()).toEqual([
         "file:///photos/gym.jpg",
         "file:///photos/plan.jpg",

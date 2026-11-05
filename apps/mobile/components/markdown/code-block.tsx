@@ -1,28 +1,15 @@
-import transform, { type StyleTuple } from "css-to-react-native";
-import {
-  type CSSProperties,
-  memo,
-  type ReactNode,
-  useCallback,
-  useMemo,
-} from "react";
-import {
-  ScrollView,
-  StyleSheet,
-  Text,
-  type TextStyle,
-  View,
-} from "react-native";
+import transform from "css-to-react-native";
+import type { StyleTuple } from "css-to-react-native";
+import { memo, useCallback, useMemo } from "react";
+import type { CSSProperties, ReactNode } from "react";
+import { ScrollView, StyleSheet, Text, View } from "react-native";
+import type { TextStyle } from "react-native";
 import SyntaxHighlighter from "react-syntax-highlighter";
 import { irBlack } from "react-syntax-highlighter/dist/esm/styles/hljs";
 import { useCSSVariable } from "uniwind";
 
-interface HighlighterStyleSheet {
-  [key: string]: TextStyle;
-}
-interface ReactStyle {
-  [key: string]: CSSProperties;
-}
+type HighlighterStyleSheet = Record<string, TextStyle>;
+type ReactStyle = Record<string, CSSProperties>;
 
 interface RendererNode {
   children?: RendererNode[];
@@ -45,6 +32,7 @@ const cleanStyle = (style: CSSProperties) => {
   const styles = Object.entries(style)
     .filter(([key]) => ALLOWED_STYLE_PROPERTIES[key])
     .map<StyleTuple>(([key, value]) => [key, String(value)]);
+
   return transform(styles);
 };
 
@@ -61,15 +49,18 @@ const getRNStylesFromHljsStyle = (
 function trimNewlines(string: string): string {
   let start = 0;
   let end = string.length;
+
   while (start < end && (string[start] === "\r" || string[start] === "\n")) {
     start += 1;
   }
+
   while (
     end > start &&
     (string[end - 1] === "\r" || string[end - 1] === "\n")
   ) {
     end -= 1;
   }
+
   return start > 0 || end < string.length ? string.slice(start, end) : string;
 }
 
@@ -99,6 +90,7 @@ function CodeBlockBase({ code, language }: CodeBlockProps) {
 
   const getStylesForNode = useCallback((node: RendererNode): TextStyle[] => {
     const classes: string[] = node.properties?.className ?? [];
+
     return classes
       .map((c: string) => stylesheet[c])
       .filter((c) => !!c) as TextStyle[];
@@ -108,6 +100,7 @@ function CodeBlockBase({ code, language }: CodeBlockProps) {
     (nodes: RendererNode[], keyPrefix = "row"): ReactNode[] =>
       nodes.reduce<ReactNode[]>((acc, node, index) => {
         const keyPrefixWithIndex = `${keyPrefix}_${index}`;
+
         if (node.children) {
           const nodeStyles = getStylesForNode(node);
           const textStyles = nodeStyles.length > 0 ? nodeStyles : undefined;
@@ -117,9 +110,11 @@ function CodeBlockBase({ code, language }: CodeBlockProps) {
             </Text>
           );
         }
+
         if (node.value) {
           acc.push(trimNewlines(String(node.value)));
         }
+
         return acc;
       }, []),
     [getStylesForNode]
@@ -129,6 +124,7 @@ function CodeBlockBase({ code, language }: CodeBlockProps) {
     // biome-ignore lint/suspicious/noExplicitAny: react-syntax-highlighter renderer props have no exported type
     (props: any) => {
       const { rows } = props;
+
       return (
         <ScrollView
           contentContainerStyle={styles.scrollContent}

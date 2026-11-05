@@ -1,7 +1,10 @@
 import { describe, expect, it } from "@jest/globals";
 import { render, screen } from "@testing-library/react-native";
 import type * as React from "react";
-import { Text, TextClassContext, type TextVariant } from "../text";
+import { describe, expect, it } from "vitest";
+
+import { Text, TextClassContext } from "../text";
+import type { TextVariant } from "../text";
 import {
   BlockQuote,
   Code,
@@ -43,7 +46,7 @@ const HEADINGS = [
   ["h4", H4, 4],
 ] as const;
 
-describe("Text", () => {
+describe(Text, () => {
   it.each(VARIANTS)("renders its children as %s", async (variant) => {
     await render(<Text variant={variant}>{`Copy ${variant}`}</Text>);
 
@@ -83,7 +86,7 @@ describe("Text", () => {
   });
 });
 
-describe("Typography", () => {
+describe("typography", () => {
   it.each(HEADINGS)(
     "renders %s's component as a heading of level %i",
     async (_variant, Heading, level) => {

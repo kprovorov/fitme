@@ -2,9 +2,11 @@
 export const splitFullName = (name: string) => {
   const trimmed = name.trim();
   const separator = trimmed.indexOf(" ");
+
   if (separator === -1) {
     return { firstName: trimmed, lastName: "" };
   }
+
   return {
     firstName: trimmed.slice(0, separator),
     lastName: trimmed.slice(separator + 1).trim(),
@@ -27,11 +29,14 @@ export const getProfileHeader = ({
   fullName?: string | null;
 }): ProfileHeader => {
   const name = fullName?.trim() ?? "";
+
   if (!name) {
     // Most migrated Users have no name in Clerk until they add one.
     const title = email ?? "";
+
     return { initial: title.charAt(0).toUpperCase(), title };
   }
+
   return {
     initial: name.charAt(0).toUpperCase(),
     subtitle: email ?? undefined,

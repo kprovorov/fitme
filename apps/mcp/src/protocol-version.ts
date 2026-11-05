@@ -18,14 +18,19 @@ import type { MiddlewareHandler } from "hono";
 const isForTransport = async (request: Request): Promise<boolean> => {
   try {
     const read = await readRequestBody(request.clone());
+
     if (read.tooLarge) {
       return true;
     }
+
     const body: unknown = JSON.parse(read.text);
+
     if (Array.isArray(body) && body.length > MAX_BATCH_SIZE) {
       return true;
     }
+
     const messages = Array.isArray(body) ? body : [body];
+
     return messages.some((message) => isInitializeRequest(message));
   } catch {
     return true;
@@ -46,16 +51,21 @@ export const answerUnsupportedProtocolVersion: MiddlewareHandler = async (
   next
 ) => {
   const version = c.req.header("mcp-protocol-version");
+
   const unsupported =
     version !== undefined && !SUPPORTED_PROTOCOL_VERSIONS.includes(version);
+
   if (
     !unsupported ||
     (c.req.method === "POST" && (await isForTransport(c.req.raw)))
   ) {
     await next();
+
     return;
   }
+
   const message = `Bad Request: Unsupported protocol version: ${version} (supported versions: ${SUPPORTED_PROTOCOL_VERSIONS.join(", ")})`;
+
   return c.json(
     { error: { code: -32_000, message }, id: null, jsonrpc: "2.0" },
     400

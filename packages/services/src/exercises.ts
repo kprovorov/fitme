@@ -1,22 +1,14 @@
 import {
   plans,
-  type Transaction,
   workoutSessionExerciseSets,
   workoutSessionExercises,
   workoutSessions,
   workouts,
 } from "@fitme/db";
-import {
-  and,
-  asc,
-  count,
-  desc,
-  eq,
-  exists,
-  isNotNull,
-  type SQL,
-  sql,
-} from "drizzle-orm";
+import type { Transaction } from "@fitme/db";
+import { and, asc, count, desc, eq, exists, isNotNull, sql } from "drizzle-orm";
+import type { SQL } from "drizzle-orm";
+
 import { jsonTimestamp } from "./json-timestamp";
 
 export interface ExerciseHistorySet {
@@ -76,6 +68,7 @@ const countEntries = async (tx: Transaction, where: SQL | undefined) => {
       eq(workoutSessions.id, workoutSessionExercises.workoutSessionId)
     )
     .where(where);
+
   return total;
 };
 
@@ -110,6 +103,7 @@ export const getExerciseHistory = async (
         )
     )
   );
+
   // Newest Workout Session first; an Exercise added to one session twice
   // keeps its place in it.
   const newest = [
@@ -118,6 +112,7 @@ export const getExerciseHistory = async (
     asc(workoutSessionExercises.order),
     asc(workoutSessionExercises.id),
   ] as const;
+
   const page = tx
     .select({
       id: workoutSessionExercises.id,
@@ -181,6 +176,7 @@ export const getExerciseHistory = async (
     );
 
   const entries = new Map<string, ExerciseHistoryEntry>();
+
   for (const { entry, plan, set, workout } of rows) {
     const current = entries.get(entry.session_exercise_id) ?? {
       ...entry,
@@ -188,6 +184,7 @@ export const getExerciseHistory = async (
       sets: [],
       workout,
     };
+
     current.sets.push({
       ...set,
       weight_completed: asNumber(set.weight_completed),
@@ -195,7 +192,9 @@ export const getExerciseHistory = async (
     });
     entries.set(entry.session_exercise_id, current);
   }
+
   const [first] = rows;
+
   return {
     entries: [...entries.values()],
     // An empty page has no row to carry the total: count on its own (no rows

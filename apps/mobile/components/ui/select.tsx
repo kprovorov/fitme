@@ -1,4 +1,5 @@
-import { Picker, type PickerProps, type PickerValue } from "./picker";
+import { Picker } from "./picker";
+import type { PickerProps, PickerValue } from "./picker";
 
 type SelectProps<TValue extends PickerValue> = Omit<
   PickerProps<TValue>,
@@ -17,4 +18,5 @@ const Select = <TValue extends PickerValue>(props: SelectProps<TValue>) => (
 Select.displayName = "Select";
 
 export type { SelectProps };
+
 export { Select };

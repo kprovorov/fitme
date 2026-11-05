@@ -8,16 +8,17 @@ import { createRoute, OpenAPIHono, z } from "@hono/zod-openapi";
 import { cors } from "hono/cors";
 import { HTTPException } from "hono/http-exception";
 import { logger } from "hono/logger";
-import { type ApiEnv, BEARER_AUTH, requireCaller } from "./auth.js";
-import { createLibraryFromEnv, type LibraryFactory } from "./library.js";
-import {
-  type RateLimiter,
-  rateLimitCallers,
-  rateLimiterFromEnv,
-} from "./rate-limit.js";
+
+import { BEARER_AUTH, requireCaller } from "./auth.js";
+import type { ApiEnv } from "./auth.js";
+import { createLibraryFromEnv } from "./library.js";
+import type { LibraryFactory } from "./library.js";
+import { rateLimitCallers, rateLimiterFromEnv } from "./rate-limit.js";
+import type { RateLimiter } from "./rate-limit.js";
 import { publicV1, userV1 } from "./routes/v1.js";
 import { invalidRequest } from "./schemas.js";
-import { createServicesFromEnv, type ServicesFactory } from "./services.js";
+import { createServicesFromEnv } from "./services.js";
+import type { ServicesFactory } from "./services.js";
 
 export interface AppDeps {
   /** The Clerk instance's PEM public key session tokens are verified against. */
@@ -69,6 +70,7 @@ export const createApp = (deps: Partial<AppDeps> = {}) => {
     identifyUser: identify,
     reportError: report,
   } = { ...defaultDeps(), ...deps };
+
   const rateLimiter = deps.rateLimiter ?? rateLimiterFromEnv(process.env);
 
   // Invalid input on any route answers 400 invalid_request unless the route
@@ -100,6 +102,7 @@ export const createApp = (deps: Partial<AppDeps> = {}) => {
       if (library === undefined) {
         library = createLibrary();
       }
+
       return library;
     });
     c.set("reportError", report);
@@ -125,7 +128,9 @@ export const createApp = (deps: Partial<AppDeps> = {}) => {
         error.status
       );
     }
+
     await report(error);
+
     return c.json(
       { error: { code: "internal_error", message: "Internal server error" } },
       500

@@ -1,4 +1,5 @@
 import { randomBytes } from "node:crypto";
+
 import { plans, profiles, withService, workouts } from "@fitme/db";
 import {
   deleteTestUsers,
@@ -6,6 +7,7 @@ import {
 } from "@fitme/services/delete-test-users";
 import { eq, sql } from "drizzle-orm";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
+
 import { createApp } from "../src/create-app.js";
 import { createServicesFromEnv } from "../src/services.js";
 import { clerk, signedInAs } from "../src/test/harness.js";
@@ -19,7 +21,7 @@ import { clerk, signedInAs } from "../src/test/harness.js";
 const app = createApp({
   clerkJwtKey: clerk.jwtKey,
   createServices: createServicesFromEnv,
-  identifyUser: () => undefined,
+  identifyUser: () => {},
   reportError: (error) => Promise.reject(error),
 });
 
@@ -32,16 +34,20 @@ let workoutId: string;
 /** Resolves once some backend waits on a lock it hasn't been granted. */
 const lockWaitSeen = async () => {
   const deadline = Date.now() + WAIT_LIMIT_MS;
+
   while (Date.now() < deadline) {
     // biome-ignore lint/performance/noAwaitInLoops: polling one at a time
     const { rows } = await withService((tx) =>
       tx.execute(sql`select 1 from pg_locks where not granted limit 1`)
     );
+
     if (rows.length > 0) {
       return;
     }
+
     await new Promise((resolve) => setTimeout(resolve, POLL_MS));
   }
+
   throw new Error("The request never waited on a lock");
 };
 
@@ -55,6 +61,7 @@ beforeAll(async () => {
       userId: user,
       weight: "80",
     });
+
     const [plan] = await tx
       .insert(plans)
       .values({
@@ -65,10 +72,12 @@ beforeAll(async () => {
         userId: user,
       })
       .returning({ id: plans.id });
+
     const [workout] = await tx
       .insert(workouts)
       .values({ description: "A", name: "Day A", order: 1, planId: plan.id })
       .returning({ id: workouts.id });
+
     workoutId = workout.id;
   });
 });
@@ -98,6 +107,7 @@ describe("a write racing an account deletion against the local stack", () => {
     if (!started) {
       throw new Error("The request was never sent");
     }
+
     const response = await started;
     // The Profile is gone by then: the Workout Session starts in kg.
     expect(response.status).toBe(201);

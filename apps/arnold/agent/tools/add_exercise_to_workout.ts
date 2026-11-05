@@ -5,6 +5,7 @@ import {
 } from "@fitme/services/workout-edits";
 import { defineTool } from "eve/tools";
 import { z } from "zod";
+
 import { checkExerciseSlugs, exerciseSlugSchema } from "../lib/exercises";
 import { requireConversationOwner } from "../lib/owner";
 import { requestKey } from "../lib/request-key";
@@ -17,11 +18,13 @@ export default defineTool({
     const userId = requireConversationOwner(ctx.session.auth);
     const { exercise_slug, sets, workout_id } = input;
     const refused = await checkExerciseSlugs([exercise_slug]);
+
     if (refused) {
       return refused;
     }
+
     return await reportingEditErrors(async () => {
-      const added = await asUser(userId, (tx) =>
+      const added = await asUser(userId, async (tx) =>
         addExerciseToWorkout(tx, userId, {
           exerciseSlug: exercise_slug,
           requestKey: requestKey(ctx, input),
@@ -29,6 +32,7 @@ export default defineTool({
           workoutId: workout_id,
         })
       );
+
       return added
         ? {
             sets_added: added.setsAdded,

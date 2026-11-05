@@ -35,12 +35,12 @@ function HowItWorks() {
         <ol className="grid gap-4 md:grid-cols-3">
           {steps.map((step, index) => (
             <li
-              className="flex flex-col gap-3 rounded-2xl border bg-secondary p-6"
+              className="bg-secondary flex flex-col gap-3 rounded-2xl border p-6"
               key={step.title}
             >
               <span
                 aria-hidden="true"
-                className="flex size-9 items-center justify-center rounded-full border border-primary/40 text-body-emphasized text-primary"
+                className="border-primary/40 text-body-emphasized text-primary flex size-9 items-center justify-center rounded-full border"
               >
                 {index + 1}
               </span>

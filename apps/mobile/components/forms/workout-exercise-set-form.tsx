@@ -1,21 +1,22 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import type { ReactNode } from "react";
 import { useCallback } from "react";
-import {
-  Controller,
-  type ControllerFieldState,
-  type ControllerRenderProps,
-  useForm,
+import { Controller, useForm } from "react-hook-form";
+import type {
+  ControllerFieldState,
+  ControllerRenderProps,
 } from "react-hook-form";
 import { useTranslation } from "react-i18next";
 import { Pressable, View } from "react-native";
 import { z } from "zod";
+
 import {
   formatSetWeight,
   setRepsField,
   setWeightField,
 } from "~/lib/set-inputs";
 import { cn } from "~/lib/utils";
+
 import { Button } from "../ui/button";
 import { ErrorMessage } from "../ui/error-message";
 import { Input } from "../ui/input";
@@ -57,6 +58,7 @@ const formSchema = z.object({
 
 /** What the fields hold. */
 type WorkoutSessionExerciseSetFormInput = z.input<typeof formSchema>;
+
 /** The parsed set: `null` for an empty field (the placeholder's value). */
 export type WorkoutSessionExerciseSetFormValues = z.output<typeof formSchema>;
 
@@ -130,7 +132,7 @@ function LoggedValue({ value }: { value?: string }) {
     <View
       className={cn(
         CELL_CLASS,
-        "items-center justify-center rounded-lg border border-continuous border-transparent opacity-50"
+        "border-continuous items-center justify-center rounded-lg border border-transparent opacity-50"
       )}
     >
       <Text
@@ -164,6 +166,7 @@ export default function WorkoutSessionExerciseSetForm({
   setIndex,
 }: WorkoutSessionExerciseSetFormProps) {
   const { t } = useTranslation();
+
   const form = useForm<
     WorkoutSessionExerciseSetFormInput,
     unknown,
@@ -186,9 +189,11 @@ export default function WorkoutSessionExerciseSetForm({
     if (values.weight !== null) {
       form.setValue("weight", formatSetWeight(values.weight));
     }
+
     if (values.reps !== null) {
       form.setValue("reps", values.reps.toString());
     }
+
     return onSubmit(values);
   });
 
@@ -264,7 +269,7 @@ export default function WorkoutSessionExerciseSetForm({
 
   return (
     <View className="gap-1">
-      <View className="flex-row items-center gap-sm">
+      <View className="gap-sm flex-row items-center">
         {leading}
         {showsLoggedValues ? (
           <LoggedValue value={recommendedValues?.reps} />

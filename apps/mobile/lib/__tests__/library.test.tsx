@@ -2,6 +2,8 @@ import { afterEach, beforeEach, expect, it, jest } from "@jest/globals";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { renderHook } from "@testing-library/react-native";
 import type { ReactNode } from "react";
+import { it, afterEach, expect, beforeEach } from "vitest";
+
 import { useExercises } from "~/hooks/queries/library";
 import { createTestQueryClient, settle } from "~/test-utils/query-client";
 
@@ -9,9 +11,13 @@ import { createTestQueryClient, settle } from "~/test-utils/query-client";
 // import is stubbed: the real `@clerk/expo` opens a MessagePort that keeps
 // Jest from exiting, and an unconfigured Library never asks for a token.
 jest.unmock("~/lib/library");
-jest.mock("~/lib/clerk", () => ({ getClerk: () => ({ session: null }) }));
+
+jest.mock<typeof import("~/lib/clerk")>(import("~/lib/clerk"), () => ({
+  getClerk: () => ({ session: null }),
+}));
 
 const client = createTestQueryClient();
+
 const wrapper = ({ children }: { children: ReactNode }) => (
   <QueryClientProvider client={client}>{children}</QueryClientProvider>
 );
@@ -31,11 +37,12 @@ afterEach(() => {
   globalThis.fetch = realFetch;
 });
 
-it("shows every Exercise under its slug's name, with no request, while EXPO_PUBLIC_LIBRARY_URL is unset", async () => {
+test("shows every Exercise under its slug's name, with no request, while EXPO_PUBLIC_LIBRARY_URL is unset", async () => {
   const { result } = await renderHook(
     () => useExercises(["barbell-back-squat"]),
     { wrapper }
   );
+
   await settle(client);
 
   expect(result.current["barbell-back-squat"]).toMatchObject({

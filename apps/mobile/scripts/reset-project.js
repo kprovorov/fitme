@@ -49,6 +49,7 @@ const moveDirectories = async () => {
     for (const dir of oldDirs) {
       const oldDirPath = path.join(root, dir);
       const targetDirPath = path.join(root, newDir, dir);
+
       if (fs.existsSync(oldDirPath)) {
         // biome-ignore lint/performance/noAwaitInLoops: moves run one at a time so each log line follows its own move and a failure stops the rest
         await fs.promises.rename(oldDirPath, targetDirPath);

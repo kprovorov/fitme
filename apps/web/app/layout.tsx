@@ -2,9 +2,11 @@ import { ClerkProvider } from "@clerk/nextjs";
 import type { Metadata, Viewport } from "next";
 import { IBM_Plex_Mono, Nunito_Sans } from "next/font/google";
 import type { ReactNode } from "react";
+
 import { Providers } from "~/components/providers";
 import { clerkAppearance } from "~/lib/clerk-appearance";
 import { DASHBOARD_PATH, SIGN_IN_PATH } from "~/lib/routes";
+
 import "./globals.css";
 
 const nunitoSans = Nunito_Sans({

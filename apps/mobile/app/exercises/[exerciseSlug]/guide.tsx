@@ -2,6 +2,7 @@ import { Stack, useLocalSearchParams } from "expo-router";
 import { useCallback } from "react";
 import { useTranslation } from "react-i18next";
 import { ActivityIndicator, ScrollView, View } from "react-native";
+
 import ExerciseVideo from "~/components/exercises/exercise-video";
 import { Button } from "~/components/ui/button";
 import { Text } from "~/components/ui/text";
@@ -27,8 +28,10 @@ export default function ExerciseGuideScreen() {
     isError,
     refetch,
   } = useExerciseDetailQuery(exerciseSlug);
+
   // The name rows already show, while the Exercise in full loads.
   const { name } = useExercise(exerciseSlug);
+
   const retry = useCallback(() => {
     refetch();
   }, [refetch]);
@@ -38,11 +41,12 @@ export default function ExerciseGuideScreen() {
       const steps = exercise.instructions
         ? instructionSteps(exercise.instructions)
         : [];
+
       return (
         <>
           <H4>{exercise.name}</H4>
           {exercise.video_url ? (
-            <View className="w-full overflow-hidden rounded-2xl border-continuous">
+            <View className="border-continuous w-full overflow-hidden rounded-2xl">
               <ExerciseVideo url={exercise.video_url} />
             </View>
           ) : null}
@@ -51,26 +55,28 @@ export default function ExerciseGuideScreen() {
           ) : null}
           {steps.map((step, index) => (
             <View className="flex-row gap-3" key={step}>
-              <Text className="w-6 text-mono-body-semibold text-primary">
+              <Text className="text-mono-body-semibold text-primary w-6">
                 {index + 1}
               </Text>
-              <Text className="flex-1 text-body">{step}</Text>
+              <Text className="text-body flex-1">{step}</Text>
             </View>
           ))}
         </>
       );
     }
+
     if (exercise === null) {
       return (
-        <Text className="pt-lg text-center text-muted-foreground">
+        <Text className="pt-lg text-muted-foreground text-center">
           {t("exercise.gone")}
         </Text>
       );
     }
+
     if (isError) {
       return (
-        <View className="items-center gap-sm pt-lg">
-          <Text className="text-center text-muted-foreground">
+        <View className="gap-sm pt-lg items-center">
+          <Text className="text-muted-foreground text-center">
             {t("exercise.loadError")}
           </Text>
           <Button
@@ -82,8 +88,9 @@ export default function ExerciseGuideScreen() {
         </View>
       );
     }
+
     return (
-      <View className="items-center pt-lg">
+      <View className="pt-lg items-center">
         <ActivityIndicator colorClassName="accent-foreground" />
       </View>
     );

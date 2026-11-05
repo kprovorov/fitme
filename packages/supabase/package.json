@@ -4,12 +4,12 @@
   "private": true,
   "description": "Supabase project (config, migrations, pgTAP tests) plus generated database types.",
   "type": "module",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
   "exports": {
     ".": "./src/index.ts",
     "./database.types": "./src/database.types.ts"
   },
-  "main": "./src/index.ts",
-  "types": "./src/index.ts",
   "scripts": {
     "clerk:check": "tsx scripts/check-clerk-trust.ts",
     "clerk:jwt-key": "tsx scripts/clerk-jwt-key.ts",

@@ -40,6 +40,7 @@ export const reportingEditErrors = async <T>(
     if (error instanceof TooManySetsError) {
       return { error: error.message };
     }
+
     throw error;
   }
 };

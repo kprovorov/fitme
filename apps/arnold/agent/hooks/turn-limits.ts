@@ -1,12 +1,13 @@
 import { reportError } from "@fitme/observability/node";
 import { defineState } from "eve/context";
 import { defineHook } from "eve/hooks";
+
 import {
   addStepCost,
   missingCostError,
-  type TurnSpend,
   turnLimitReached,
 } from "../lib/turn-limits";
+import type { TurnSpend } from "../lib/turn-limits";
 
 const turnSpend = defineState<TurnSpend | null>(
   "fitme-arnold.turn-spend",
@@ -20,6 +21,7 @@ export default defineHook({
       const { stepIndex, turnId, usage } = event.data;
       turnSpend.update((spend) => addStepCost(spend, turnId, usage));
       const error = missingCostError(event.data);
+
       if (error) {
         await reportError(error, {
           sessionId: ctx.session.id,
@@ -30,6 +32,7 @@ export default defineHook({
     },
     "step.started"(event, ctx) {
       const reached = turnLimitReached(event.data, turnSpend.get());
+
       if (reached) {
         console.warn(`Arnold turn hit its ${reached} limit`, {
           sessionId: ctx.session.id,

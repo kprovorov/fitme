@@ -1,10 +1,16 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+
 import { contextFor, inputSchemaOf, userIdFields } from "./tool-context";
 
 const db = vi.hoisted(() => ({ asUser: vi.fn() }));
 const services = vi.hoisted(() => ({ activatePlan: vi.fn() }));
-vi.mock("@fitme/db", () => db);
-vi.mock("@fitme/services/plans", () => services);
+
+vi.mock<typeof import("@fitme/db")>(import("@fitme/db"), () => db);
+
+vi.mock<typeof import("@fitme/services/plans")>(
+  import("@fitme/services/plans"),
+  () => services
+);
 
 const { default: activatePlan } = await import("../agent/tools/activate_plan");
 
@@ -56,9 +62,9 @@ describe("activate_plan", () => {
   it("tells the model when the User has no such Plan", async () => {
     services.activatePlan.mockResolvedValue(null);
 
-    expect(
-      await activatePlan.execute({ plan_id: planId }, contextFor("user_alice"))
-    ).toEqual({ error: "Plan not found" });
+    await expect(
+      activatePlan.execute({ plan_id: planId }, contextFor("user_alice"))
+    ).resolves.toEqual({ error: "Plan not found" });
   });
 
   it("acts as the session's owner, never the turn's caller", async () => {

@@ -14,6 +14,7 @@ export default function ExerciseVideo({ url }: ExerciseVideoProps) {
   // The clips are shot on white, so the space they load into is near-white
   // too rather than flashing dark first
   const placeholder = useCSSVariable("--color-foreground") as string;
+
   const player = useVideoPlayer(url, (videoPlayer) => {
     videoPlayer.loop = true;
     videoPlayer.play();

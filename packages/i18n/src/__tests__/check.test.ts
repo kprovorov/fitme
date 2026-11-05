@@ -1,10 +1,12 @@
 import { describe, expect, it } from "vitest";
+
 import { checkCatalogs, pluralForms } from "../check";
 
 const en = {
   counts: { sets_one: "{{count}} set", sets_other: "{{count}} sets" },
   tabs: { home: "Home" },
 };
+
 const uk = {
   counts: {
     sets_few: "{{count}} підходи",
@@ -15,7 +17,7 @@ const uk = {
   tabs: { home: "Головна" },
 };
 
-describe("checkCatalogs", () => {
+describe(checkCatalogs, () => {
   it("passes matching catalogs", () => {
     expect(checkCatalogs({ en, uk })).toEqual([]);
   });
@@ -146,11 +148,12 @@ describe("checkCatalogs", () => {
   });
 });
 
-describe("pluralForms", () => {
+describe(pluralForms, () => {
   it("matches each language's plural categories", () => {
     for (const [language, forms] of Object.entries(pluralForms)) {
       const categories = new Intl.PluralRules(language).resolvedOptions()
         .pluralCategories;
+
       expect([...forms].sort()).toEqual([...categories].sort());
     }
   });

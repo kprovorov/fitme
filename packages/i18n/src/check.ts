@@ -1,4 +1,5 @@
-import { type AppLanguage, defaultAppLanguage } from "@fitme/core";
+import { defaultAppLanguage } from "@fitme/core";
+import type { AppLanguage } from "@fitme/core";
 
 /** A catalog as read from its JSON file: nested objects, strings at the leaves. */
 export type Catalog = Readonly<Record<string, unknown>>;
@@ -32,13 +33,16 @@ interface Entry {
 function flatten(catalog: Catalog, prefix = ""): Entry[] {
   return Object.entries(catalog).flatMap(([name, value]): Entry[] => {
     const key = prefix ? `${prefix}.${name}` : name;
+
     if (name.includes(".")) {
       // i18next splits keys on ".", so it would never find this one.
       return [{ key, problem: `has a "." in a name`, value }];
     }
+
     if (value === null || typeof value !== "object" || Array.isArray(value)) {
       return [{ key, value }];
     }
+
     return Object.keys(value).length > 0
       ? flatten(value as Catalog, key)
       : [{ key, problem: "is an empty section", value }];
@@ -50,9 +54,11 @@ function valueProblems(language: AppLanguage, entries: Entry[]): string[] {
     if (problem) {
       return [`${language}: "${key}" ${problem}`];
     }
+
     if (typeof value !== "string") {
       return [`${language}: "${key}" is not a string`];
     }
+
     return value.trim() === "" ? [`${language}: "${key}" is empty`] : [];
   });
 }
@@ -78,31 +84,39 @@ function keysOf(
   problems: string[]
 ): Map<string, Key> {
   const keys = new Map<string, Key>();
+
   for (const { key: name, value, problem } of entries) {
     if (problem) {
       continue;
     }
+
     const match = PLURAL_SUFFIX.exec(name);
     const key = match ? name.slice(0, match.index) : name;
     const kind = match ? "a plural" : "a string";
     const existing = keys.get(key);
+
     if (existing && existing.kind !== kind) {
       problems.push(`${language}: "${key}" is both a string and a plural`);
     }
+
     const entry = existing ?? {
       forms: new Set(),
       kind,
       placeholders: new Set(),
     };
+
     if (match) {
       entry.kind = "a plural";
       entry.forms.add(match[1]);
     }
+
     for (const placeholder of placeholdersOf(value)) {
       entry.placeholders.add(placeholder);
     }
+
     keys.set(key, entry);
   }
+
   return keys;
 }
 
@@ -112,6 +126,7 @@ function pluralProblems(
 ): string[] {
   const needed: readonly string[] = pluralForms[language];
   const allowed = new Set([...needed, "zero"]);
+
   return [...keys]
     .filter(([, { kind }]) => kind === "a plural")
     .flatMap(([key, { forms }]) => [
@@ -140,13 +155,17 @@ function sharedKeyProblems(
 ): string[] {
   const languages = [...keys.keys()];
   const of = (language: AppLanguage) => keys.get(language)?.get(key);
+
   if (new Set(languages.map((language) => of(language)?.kind)).size > 1) {
     const each = languages
       .map((language) => `${of(language)?.kind} in ${language}`)
       .join(", ");
+
     return [`"${key}" is ${each}`];
   }
+
   const source = list(of(defaultAppLanguage)?.placeholders);
+
   return languages
     .filter((language) => list(of(language)?.placeholders) !== source)
     .map(
@@ -157,13 +176,16 @@ function sharedKeyProblems(
 
 function sameKeyProblems(keys: Map<AppLanguage, Map<string, Key>>): string[] {
   const languages = [...keys.keys()];
+
   const allKeys = new Set(
     [...keys.values()].flatMap((each) => [...each.keys()])
   );
+
   return [...allKeys].sort().flatMap((key) => {
     const missingFrom = languages.filter(
       (language) => !keys.get(language)?.has(key)
     );
+
     return missingFrom.length > 0
       ? [`"${key}" is missing from ${missingFrom.join(", ")}`]
       : sharedKeyProblems(key, keys);
@@ -183,6 +205,7 @@ export function checkCatalogs(
 ): string[] {
   const problems: string[] = [];
   const keys = new Map<AppLanguage, Map<string, Key>>();
+
   for (const [name, catalog] of Object.entries(catalogs)) {
     const language = name as AppLanguage;
     const entries = flatten(catalog);
@@ -191,6 +214,8 @@ export function checkCatalogs(
     problems.push(...pluralProblems(language, languageKeys));
     keys.set(language, languageKeys);
   }
+
   problems.push(...sameKeyProblems(keys));
+
   return problems;
 }

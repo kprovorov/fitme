@@ -6,13 +6,13 @@ Always prefer NativeTabs from 'expo-router/unstable-native-tabs' for the best iO
 
 ## SDK Compatibility
 
-| Aspect        | SDK 54                                                  | SDK 55+                                                     |
-| ------------- | ------------------------------------------------------- | ----------------------------------------------------------- |
-| Import        | `import { NativeTabs, Icon, Label, Badge, VectorIcon }` | `import { NativeTabs }` only                                |
-| Icon          | `<Icon sf="house.fill" />`                              | `<NativeTabs.Trigger.Icon sf="house.fill" />`               |
-| Label         | `<Label>Home</Label>`                                   | `<NativeTabs.Trigger.Label>Home</NativeTabs.Trigger.Label>` |
-| Badge         | `<Badge>9+</Badge>`                                     | `<NativeTabs.Trigger.Badge>9+</NativeTabs.Trigger.Badge>`   |
-| Android icons | `drawable` prop                                         | `md` prop (Material Symbols)                                |
+| Aspect | SDK 54 | SDK 55+ |
+| --- | --- | --- |
+| Import | `import { NativeTabs, Icon, Label, Badge, VectorIcon }` | `import { NativeTabs }` only |
+| Icon | `<Icon sf="house.fill" />` | `<NativeTabs.Trigger.Icon sf="house.fill" />` |
+| Label | `<Label>Home</Label>` | `<NativeTabs.Trigger.Label>Home</NativeTabs.Trigger.Label>` |
+| Badge | `<Badge>9+</Badge>` | `<NativeTabs.Trigger.Badge>9+</NativeTabs.Trigger.Badge>` |
+| Android icons | `drawable` prop | `md` prop (Material Symbols) |
 
 All examples below use SDK 55 syntax. For SDK 54, replace `NativeTabs.Trigger.Icon/Label/Badge` with standalone `Icon`, `Label`, `Badge` imports.
 
@@ -262,8 +262,8 @@ export default function HomeScreen() {
 If you must use @expo/vector-icons instead of SF Symbols:
 
 ```tsx
-import { NativeTabs } from "expo-router/unstable-native-tabs";
 import Ionicons from "@expo/vector-icons/Ionicons";
+import { NativeTabs } from "expo-router/unstable-native-tabs";
 
 <NativeTabs.Trigger name="home">
   <NativeTabs.Trigger.VectorIcon vector={Ionicons} name="home" />
@@ -404,8 +404,8 @@ import {
   DarkTheme,
   DefaultTheme,
 } from "@react-navigation/native";
-import { useColorScheme } from "react-native";
 import { Stack } from "expo-router";
+import { useColorScheme } from "react-native";
 
 export default function Layout() {
   const colorScheme = useColorScheme();

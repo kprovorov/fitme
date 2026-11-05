@@ -5,6 +5,7 @@ import {
   isAppLanguage,
 } from "@fitme/core";
 import type { ClientSessionState, MessageStreamEvent } from "eve/client";
+
 import { getSelectedArnoldModelId } from "~/lib/arnold-model";
 import { i18n } from "~/lib/i18n";
 import { storage } from "~/lib/mmkv";
@@ -26,9 +27,11 @@ export const getArnoldUrl = () => process.env.EXPO_PUBLIC_ARNOLD_URL || "";
  */
 export function arnoldRunConfig() {
   const model = getSelectedArnoldModelId();
+
   const language = isAppLanguage(i18n.language)
     ? i18n.language
     : defaultAppLanguage;
+
   return { custom: model ? { language, model } : { language } };
 }
 
@@ -68,13 +71,17 @@ export function arnoldErrorAction(error: unknown): ArnoldErrorAction {
   if (!error) {
     return "none";
   }
+
   const code = errorCode(error);
+
   if (code === arnoldErrorCodes.proRequired) {
     return "paywall";
   }
+
   if (code && endedSessionCodes.has(code)) {
     return "new-conversation";
   }
+
   return "show";
 }
 
@@ -92,6 +99,7 @@ export function arnoldErrorKind(error: unknown): ArnoldErrorKind {
   if (errorCode(error) === arnoldErrorCodes.proCheckUnavailable) {
     return "pro-check-unavailable";
   }
+
   if (
     error instanceof Error &&
     (error.message.startsWith("fetch failed:") ||
@@ -99,6 +107,7 @@ export function arnoldErrorKind(error: unknown): ArnoldErrorKind {
   ) {
     return "network";
   }
+
   return "generic";
 }
 
@@ -125,16 +134,20 @@ const eventsKey = (userId: string) => `arnold.conversation.${userId}.events`;
 
 function readJson<T>(key: string): T | undefined {
   const raw = storage.getString(key);
+
   if (!raw) {
     return;
   }
+
   let value: T | undefined;
+
   try {
     value = JSON.parse(raw) as T;
   } catch {
     // An unreadable value counts as nothing saved.
     value = undefined;
   }
+
   return value;
 }
 
@@ -142,10 +155,13 @@ export function loadSavedArnoldConversation(
   userId: string
 ): SavedArnoldConversation {
   const session = readJson<ClientSessionState>(sessionKey(userId));
+
   if (!session) {
     return {};
   }
+
   const events = readJson<MessageStreamEvent[]>(eventsKey(userId));
+
   return events ? { events, session } : { session };
 }
 
@@ -155,9 +171,12 @@ export function saveArnoldConversation(
 ) {
   if (!session) {
     clearSavedArnoldConversation(userId);
+
     return;
   }
+
   storage.set(sessionKey(userId), JSON.stringify(session));
+
   if (events) {
     storage.set(eventsKey(userId), JSON.stringify(events));
   } else {
@@ -176,12 +195,16 @@ export function saveArnoldSession(
 ) {
   if (!session) {
     clearSavedArnoldConversation(userId);
+
     return;
   }
+
   const saved = readJson<ClientSessionState>(sessionKey(userId));
+
   if (saved?.sessionId !== session.sessionId) {
     storage.remove(eventsKey(userId));
   }
+
   storage.set(sessionKey(userId), JSON.stringify(session));
 }
 

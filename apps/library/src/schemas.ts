@@ -95,10 +95,15 @@ export const CoverList = z
   .openapi("CoverList");
 
 export type ExerciseSummary = z.infer<typeof ExerciseSummary>;
+
 export type Exercise = z.infer<typeof Exercise>;
+
 export type ExercisePage = z.infer<typeof ExercisePage>;
+
 export type ExerciseBatch = z.infer<typeof ExerciseBatch>;
+
 export type Cover = z.infer<typeof Cover>;
+
 export type CoverList = z.infer<typeof CoverList>;
 
 export const ErrorResponse = z

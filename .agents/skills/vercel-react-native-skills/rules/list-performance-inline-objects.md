@@ -7,9 +7,7 @@ tags: lists, performance, flatlist, virtualization, memo
 
 ## Avoid Inline Objects in renderItem
 
-Don't create new objects inside `renderItem` to pass as props. Inline objects
-create new references on every render, breaking memoization. Pass primitive
-values directly from `item` instead.
+Don't create new objects inside `renderItem` to pass as props. Inline objects create new references on every render, breaking memoization. Pass primitive values directly from `item` instead.
 
 **Incorrect (inline object breaks memoization):**
 
@@ -90,8 +88,6 @@ renderItem={({ item }) => (
 )}
 ```
 
-Passing primitives or stable references allows `memo()` to skip re-renders when
-the actual values haven't changed.
+Passing primitives or stable references allows `memo()` to skip re-renders when the actual values haven't changed.
 
-**Note:** If you have the React Compiler enabled, it handles memoization
-automatically and these manual optimizations become less critical.
+**Note:** If you have the React Compiler enabled, it handles memoization automatically and these manual optimizations become less critical.

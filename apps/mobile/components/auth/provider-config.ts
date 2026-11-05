@@ -5,6 +5,7 @@ export interface NativeAuthConfig {
   googleIosUrlScheme: string;
   googleWebClientId: string;
 }
+
 export function nativeAuthConfig(): NativeAuthConfig {
   return {
     appleEnabled: process.env.EXPO_PUBLIC_AUTH_APPLE_ENABLED === "true",

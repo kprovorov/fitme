@@ -45,11 +45,14 @@ const rankedResults = (sets: readonly RecordSet[]) => {
     ({ reps_completed: reps, weight_completed: weight }) =>
       reps !== null && reps > 0 && weight !== null ? [{ reps, weight }] : []
   );
+
   const highestWeight = usable.reduce(
     (highest, result) => Math.max(highest, result.weight),
     0
   );
+
   let best: RecordResult | null = null;
+
   for (const result of usable) {
     if (
       sameWeight(result.weight, highestWeight) &&
@@ -60,6 +63,7 @@ const rankedResults = (sets: readonly RecordSet[]) => {
       best = result;
     }
   }
+
   return { best, highestWeight };
 };
 
@@ -68,6 +72,7 @@ export const recordResult = (
   sets: readonly RecordSet[]
 ): RecordResult | null => {
   const { best, highestWeight } = rankedResults(sets);
+
   return best ? { reps: best.reps, weight: highestWeight } : null;
 };
 
@@ -86,6 +91,7 @@ export const personalRecordFor = (
   if (earlier === null) {
     return null;
   }
+
   const { best } = rankedResults(
     sets.filter(
       ({ reps_completed: reps, weight_completed: weight }) =>
@@ -95,9 +101,11 @@ export const personalRecordFor = (
         beats({ reps, weight }, earlier)
     )
   );
+
   if (best === null) {
     return null;
   }
+
   return {
     ...best,
     kind: sameWeight(best.weight, earlier.weight) ? "reps" : "weight",

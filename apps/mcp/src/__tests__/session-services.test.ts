@@ -4,6 +4,7 @@ import type {
   WorkoutSessionSet,
 } from "@fitme/services/workout-sessions";
 import { describe, expect, it, vi } from "vitest";
+
 import {
   BENCH,
   call,
@@ -92,6 +93,7 @@ describe("get_workout_session", () => {
     const library = fakeLibrary();
     library.failWith(new LibraryUnavailableError());
     const { reportError, reported } = recordingReporter();
+
     const client = await connectWithServices(
       { getWorkoutSession: () => Promise.resolve(sessionDetail) },
       reportError,
@@ -160,6 +162,7 @@ describe("list_workout_sessions", () => {
     const listWorkoutSessions = vi.fn(() =>
       Promise.resolve({ sessions: [summary], total: 21 })
     );
+
     const client = await connectWithServices({ listWorkoutSessions });
 
     const result = await call(client, "list_workout_sessions");
@@ -182,6 +185,7 @@ describe("list_workout_sessions", () => {
     const listWorkoutSessions = vi.fn(() =>
       Promise.resolve({ sessions: [summary], total: 6 })
     );
+
     const client = await connectWithServices({ listWorkoutSessions });
 
     const result = await call(client, "list_workout_sessions", {
@@ -237,6 +241,7 @@ describe("log_set", () => {
     const logSet = vi.fn(() =>
       Promise.resolve({ set: loggedSet, status: "logged" as const })
     );
+
     const client = await connectWithServices({ logSet });
 
     const result = await call(client, "log_set", args);
@@ -361,6 +366,7 @@ describe("start_workout_session", () => {
         status: "started" as const,
       })
     );
+
     const client = await connectWithServices({ startWorkoutSession });
 
     const result = await call(client, "start_workout_session", {
@@ -407,6 +413,7 @@ describe("start_workout_session", () => {
 
   it("refuses while another workout's session is open, naming it, unreported", async () => {
     const { reportError, reported } = recordingReporter();
+
     const client = await connectWithServices(
       {
         startWorkoutSession: () =>

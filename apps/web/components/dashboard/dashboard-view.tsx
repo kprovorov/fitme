@@ -1,13 +1,13 @@
-import { type ApiError, rateLimitedFor } from "@fitme/api-client";
+import { rateLimitedFor } from "@fitme/api-client";
+import type { ApiError } from "@fitme/api-client";
 import {
-  type ExperienceLevel,
-  type Goal,
   getExperienceLevelLabel,
   getGoalLabel,
   getPlaceLabel,
-  type Place,
 } from "@fitme/core";
+import type { ExperienceLevel, Goal, Place } from "@fitme/core";
 import { formatDistanceToNow } from "date-fns";
+
 import { LocalDate } from "~/components/local-date";
 import {
   Card,
@@ -31,7 +31,7 @@ function PlanCard({ plan }: { plan: DashboardPlan }) {
             {plan.name ?? "Untitled plan"}
           </CardTitle>
           {plan.is_active ? (
-            <span className="rounded-full bg-primary px-2 py-0.5 text-caption-1-emphasized text-primary-foreground">
+            <span className="bg-primary text-caption-1-emphasized text-primary-foreground rounded-full px-2 py-0.5">
               Active
             </span>
           ) : null}
@@ -43,7 +43,7 @@ function PlanCard({ plan }: { plan: DashboardPlan }) {
         ) : null}
       </CardHeader>
       <CardContent>
-        <dl className="grid grid-cols-2 gap-x-6 gap-y-2 text-subhead sm:grid-cols-4">
+        <dl className="text-subhead grid grid-cols-2 gap-x-6 gap-y-2 sm:grid-cols-4">
           <div>
             <dt className="text-muted-foreground">Goal</dt>
             <dd className="text-subhead-emphasized">
@@ -72,7 +72,7 @@ function PlanCard({ plan }: { plan: DashboardPlan }) {
           </div>
         </dl>
         {plan.created_at ? (
-          <p className="mt-4 text-caption-1 text-muted-foreground">
+          <p className="text-caption-1 text-muted-foreground mt-4">
             Created{" "}
             {formatDistanceToNow(new Date(plan.created_at), {
               addSuffix: true,
@@ -97,7 +97,7 @@ function SessionRow({ session }: { session: DashboardSession }) {
           </span>
         ) : null}
       </div>
-      <div className="flex flex-col items-end text-subhead">
+      <div className="text-subhead flex flex-col items-end">
         <LocalDate value={session.started_at} />
         <span className="text-caption-1 text-muted-foreground">
           {session.finished_at ? "Finished" : "In progress"}
@@ -113,9 +113,11 @@ function SessionRow({ session }: { session: DashboardSession }) {
  */
 function errorMessage(error: ApiError): string {
   const retryAfterSeconds = rateLimitedFor(error);
+
   if (retryAfterSeconds === null) {
     return "Something went wrong while loading your plans and workouts. Reload the page to try again.";
   }
+
   return `You've made too many requests. Try again in ${retryAfterSeconds} seconds.`;
 }
 

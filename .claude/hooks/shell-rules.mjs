@@ -8,14 +8,17 @@
 
 // `NAME=…`, `NAME+=…` or `NAME[i]=…`.
 const ASSIGNMENT = /^[A-Za-z_][A-Za-z0-9_]*(\[[^\]]*\])?\+?=/;
+
 // `2>…` or `{fd}>…`: the descriptor a redirection opens, no command word.
 const FD_NUMBER = /^(\d+|\{[A-Za-z_][A-Za-z0-9_]*\})$/;
 const LEADING_TABS = /^\t+/;
 const WHITESPACE = new Set([" ", "\t"]);
 const QUOTES = new Set(["'", '"', "`"]);
 const AND_OR_PIPE = new Set(["&&", "||", "|"]);
+
 // Characters after which a `#` starts a comment inside a substitution.
 const COMMENT_AFTER = new Set([" ", "\t", "\n", ";"]);
+
 const DELIMITER_END = new Set([
   " ",
   "\t",
@@ -38,6 +41,7 @@ const unterminated = () => {
 // The index just past the `'…'` opened at `start`.
 const skipSingleQuoted = (source, start) => {
   const end = source.indexOf("'", start + 1);
+
   return end === -1 ? unterminated() : end + 1;
 };
 
@@ -46,12 +50,15 @@ const skipSingleQuoted = (source, start) => {
 const skipEscaped = (source, start) => {
   const close = source[start];
   let index = start + 1;
+
   while (index < source.length) {
     if (source[index] === close) {
       return index + 1;
     }
+
     index += source[index] === "\\" ? 2 : 1;
   }
+
   return unterminated();
 };
 
@@ -59,11 +66,14 @@ const skipEscaped = (source, start) => {
 // `` `…` `` inside it is skipped whole, so its own quotes don't end the string.
 const skipDoubleQuoted = (source, start) => {
   let index = start + 1;
+
   while (index < source.length) {
     const char = source[index];
+
     if (char === '"') {
       return index + 1;
     }
+
     if (char === "\\") {
       index += 2;
     } else if (char === "$" && "({".includes(source[index + 1])) {
@@ -74,6 +84,7 @@ const skipDoubleQuoted = (source, start) => {
       index += 1;
     }
   }
+
   return unterminated();
 };
 
@@ -82,20 +93,26 @@ const skipDoubleQuoted = (source, start) => {
 const substitutionAt = (raw, index, inDouble) => {
   const char = raw[index];
   const following = raw[index + 1];
+
   if (char === "`") {
     const end = skipEscaped(raw, index);
+
     return { body: raw.slice(index + 1, end - 1), end };
   }
+
   if (inDouble) {
     // In double quotes `'` is text, and only `$(…)` substitutes.
     return char === "$" && following === "(" ? groupAt(raw, index) : null;
   }
+
   if (char === "'") {
     return { end: skipSingleQuoted(raw, index) };
   }
+
   if (char === "$" && following === "'") {
     return { end: skipEscaped(raw, index + 1) };
   }
+
   return "$<>".includes(char) && following === "(" ? groupAt(raw, index) : null;
 };
 
@@ -103,6 +120,7 @@ const substitutionAt = (raw, index, inDouble) => {
 // commands.
 const groupAt = (raw, index) => {
   const end = skipGroup(raw, index + 1);
+
   return raw[index + 2] === "("
     ? { end }
     : { body: raw.slice(index + 2, end - 1), end };
@@ -115,8 +133,10 @@ const substitutionsIn = (raw) => {
   const bodies = [];
   let inDouble = false;
   let index = 0;
+
   while (index < raw.length) {
     const found = substitutionAt(raw, index, inDouble);
+
     if (found === null) {
       inDouble = raw[index] === '"' ? !inDouble : inDouble;
       index += raw[index] === "\\" ? 2 : 1;
@@ -124,9 +144,11 @@ const substitutionsIn = (raw) => {
       if (found.body !== undefined) {
         bodies.push(found.body);
       }
+
       index = found.end;
     }
   }
+
   return bodies;
 };
 
@@ -134,6 +156,7 @@ const skipQuote = (source, start) => {
   if (source[start] === "'") {
     return skipSingleQuoted(source, start);
   }
+
   return source[start] === '"'
     ? skipDoubleQuoted(source, start)
     : skipEscaped(source, start);
@@ -143,15 +166,18 @@ const skipQuote = (source, start) => {
 // to its delimiter included.
 const skipHeredocBody = (source, start, { delimiter, stripTabs }) => {
   let index = start;
+
   while (index < source.length) {
     const end = source.indexOf("\n", index);
     const lineEnd = end === -1 ? source.length : end;
     const line = source.slice(index, lineEnd);
     index = Math.min(lineEnd + 1, source.length);
+
     if ((stripTabs ? line.replace(LEADING_TABS, "") : line) === delimiter) {
       break;
     }
   }
+
   return index;
 };
 
@@ -160,10 +186,13 @@ const readHeredoc = (source, start) => {
   let index = start + 2;
   const stripTabs = source[index] === "-";
   index += stripTabs ? 1 : 0;
+
   while (WHITESPACE.has(source[index])) {
     index += 1;
   }
+
   let delimiter = "";
+
   while (index < source.length && !DELIMITER_END.has(source[index])) {
     if (QUOTES.has(source[index])) {
       const end = skipQuote(source, index);
@@ -178,6 +207,7 @@ const readHeredoc = (source, start) => {
       index += 1;
     }
   }
+
   return { end: index, heredoc: { delimiter, stripTabs } };
 };
 
@@ -186,33 +216,44 @@ const readHeredoc = (source, start) => {
 // character. `comments` and `heredocs` (null: none) come from the group.
 const skipInGroup = (source, index, { comments, heredocs }) => {
   const char = source[index];
+
   if (char === "\\") {
     return index + 2;
   }
+
   if (comments && char === "#" && COMMENT_AFTER.has(source[index - 1])) {
     // A comment runs to the end of its line, quotes and all.
     const end = source.indexOf("\n", index);
+
     return end === -1 ? source.length : end;
   }
+
   if (QUOTES.has(char)) {
     return skipQuote(source, index);
   }
+
   const opensHeredoc =
     heredocs !== null &&
     source.startsWith("<<", index) &&
     source[index + 2] !== "<";
+
   if (opensHeredoc) {
     const { end, heredoc } = readHeredoc(source, index);
     heredocs.push(heredoc);
+
     return end;
   }
+
   if (char === "\n") {
     let next = index + 1;
+
     for (const heredoc of heredocs?.splice(0) ?? []) {
       next = skipHeredocBody(source, next, heredoc);
     }
+
     return next;
   }
+
   return -1;
 };
 
@@ -222,6 +263,7 @@ const skipGroup = (source, start) => {
   const open = source[start];
   const close = open === "(" ? ")" : "}";
   const arithmetic = open === "(" && source[start + 1] === "(";
+
   const context = {
     // Only commands, in `$(…)` or `(…)`, have comments: in `${…}` and
     // arithmetic a `#` is text.
@@ -230,14 +272,18 @@ const skipGroup = (source, start) => {
     // a shift.
     heredocs: open === "(" && !arithmetic ? [] : null,
   };
+
   let depth = 0;
   let index = start;
+
   while (index < source.length) {
     const skipped = skipInGroup(source, index, context);
+
     if (skipped === -1) {
       const char = source[index];
       depth += (char === open ? 1 : 0) - (char === close ? 1 : 0);
       index += 1;
+
       if (depth === 0) {
         return index;
       }
@@ -245,6 +291,7 @@ const skipGroup = (source, start) => {
       index = skipped;
     }
   }
+
   return unterminated();
 };
 
@@ -253,10 +300,12 @@ const EXPRESSION_START = new Set([" ", "\t", "\n"]);
 // The index just past the `[[ … ]]` opened at `start`, quotes inside skipped.
 const skipConditional = (source, start) => {
   let index = start + 2;
+
   while (index < source.length) {
     if (source.startsWith("]]", index)) {
       return index + 2;
     }
+
     if (source[index] === "\\") {
       index += 2;
     } else if (QUOTES.has(source[index])) {
@@ -265,6 +314,7 @@ const skipConditional = (source, start) => {
       index += 1;
     }
   }
+
   return unterminated();
 };
 
@@ -295,7 +345,9 @@ class Lexer {
     while (this.index < this.source.length) {
       this.step(this.source[this.index], this.source[this.index + 1]);
     }
+
     this.flush();
+
     return this.tokens;
   }
 
@@ -332,6 +384,7 @@ class Lexer {
     if (char === "(") {
       return following === "(";
     }
+
     return (
       char === "[" &&
       following === "[" &&
@@ -344,6 +397,7 @@ class Lexer {
       char === "("
         ? skipGroup(this.source, this.index)
         : skipConditional(this.source, this.index);
+
     this.append(this.source.slice(this.index, end));
     this.index = end;
   }
@@ -363,6 +417,7 @@ class Lexer {
     if (this.word === null) {
       this.wordStart = this.index;
     }
+
     this.word = (this.word ?? "") + text;
   }
 
@@ -370,9 +425,11 @@ class Lexer {
     if (this.word !== null) {
       // `raw`: the word as written, quotes and all (`"$x"` vs `$x`).
       const raw = this.source.slice(this.wordStart, this.index);
+
       if (this.next !== NEXT.heredoc && this.next !== NEXT.heredocTabs) {
         this.substitutions.push(...substitutionsIn(raw));
       }
+
       if (this.next === NEXT.word) {
         this.tokens.push({ raw, type: "word", value: this.word });
       } else if (this.next !== NEXT.skip) {
@@ -381,8 +438,10 @@ class Lexer {
           stripTabs: this.next === NEXT.heredocTabs,
         });
       }
+
       this.next = NEXT.word;
     }
+
     this.word = null;
   }
 
@@ -396,16 +455,19 @@ class Lexer {
     if (following !== "\n") {
       this.append(following ?? "");
     }
+
     this.index += 2;
   }
 
   quote(char) {
     // `$'…'` (ANSI-C quoting) takes backslash escapes, like a backquote.
     const start = char === "$" ? this.index + 1 : this.index;
+
     const end =
       char === "$"
         ? skipEscaped(this.source, start)
         : skipQuote(this.source, start);
+
     this.append(
       char === "`"
         ? this.source.slice(start, end)
@@ -418,8 +480,10 @@ class Lexer {
     if (char !== "$" && following === "{") {
       // `<{` / `>{` is a redirection followed by a word, not a substitution.
       this.redirection();
+
       return;
     }
+
     const end = skipGroup(this.source, this.index + 1);
     this.append(this.source.slice(this.index, end));
     this.index = end;
@@ -433,12 +497,14 @@ class Lexer {
   newline() {
     this.flush();
     const last = this.tokens.at(-1);
+
     if (last?.type === "operator" && AND_OR_PIPE.has(last.value)) {
       // A newline after `&&`, `||` or `|` continues the list.
       this.index += 1;
     } else {
       this.operator("\n", 1);
     }
+
     for (const heredoc of this.heredocs.splice(0)) {
       this.index = skipHeredocBody(this.source, this.index, heredoc);
     }
@@ -448,8 +514,10 @@ class Lexer {
     if (this.word !== null && FD_NUMBER.test(this.word)) {
       this.word = null;
     }
+
     this.flush();
     const rest = this.source.slice(this.index, this.index + 3);
+
     if (rest.startsWith("<<<")) {
       this.index += 3;
       this.next = NEXT.skip;
@@ -491,7 +559,9 @@ const OPENERS = new Map([
   ["while", "done"],
   ["{", "}"],
 ]);
+
 const LOOP_HEADERS = new Set(["for", "select"]);
+
 // Reserved words and prefixes after which the next word is still a command.
 const COMMAND_PREFIXES = new Set(["!", "do", "elif", "else", "then"]);
 
@@ -546,10 +616,13 @@ class Parser {
         this.operator(token.value, tokens[position + 1]);
       }
     }
+
     this.end(null);
+
     while (this.frames.length > 1) {
       this.close();
     }
+
     return {
       assignments: this.assignments,
       commands: this.top.commands,
@@ -562,6 +635,7 @@ class Parser {
     const { value } = token;
     const { timed } = this;
     this.timed = false;
+
     if (this.skipsWord) {
       this.skipsWord = false;
     } else if (this.top.inLoopHeader) {
@@ -612,26 +686,34 @@ class Parser {
     if (this.top.inLoopHeader) {
       return;
     }
+
     if (this.inCaseHeader) {
       if (value === ")" && this.top.casePart === "pattern") {
         this.top.casePart = "body";
       }
+
       return;
     }
+
     if (value === ";;" && this.top.casePart === "body") {
       this.top.casePart = "pattern";
     }
+
     if (value === "(") {
       this.parenthesis(following);
+
       return;
     }
+
     this.end(value);
+
     if (value === ")" && this.top.closer === ")") {
       this.close();
     } else if (value === "&") {
       for (const command of this.top.list) {
         command.background = true;
       }
+
       this.top.list = [];
     } else if (!AND_OR_PIPE.has(value)) {
       this.top.list = [];
@@ -640,13 +722,16 @@ class Parser {
 
   parenthesis(following) {
     const named = this.words.length === 1 || this.definesFunction;
+
     if (named && following?.value === ")") {
       // `name() …`: a function definition, its `)` skipped.
       this.words = [];
       this.definesFunction = true;
       this.skipsOperator = true;
+
       return;
     }
+
     this.end("(");
     this.open(")");
   }
@@ -659,6 +744,7 @@ class Parser {
   close() {
     this.end(null);
     const frame = this.frames.pop();
+
     if (!frame.definition) {
       this.top.commands.push(...frame.commands);
       this.top.list.push(...frame.commands);
@@ -669,6 +755,7 @@ class Parser {
     if (this.words.length === 0 || this.definesFunction) {
       return;
     }
+
     const command = { background: false, operator, words: this.words };
     this.top.commands.push(command);
     this.top.list.push(command);
@@ -722,6 +809,7 @@ const commandName = (word) => word.split("/").at(-1);
 // The words of the command a simple command runs, past its wrappers.
 const unwrap = (words) => {
   let index = 0;
+
   while (index < words.length && WRAPPERS.has(commandName(words[index]))) {
     if (
       commandName(words[index]) === "command" &&
@@ -730,8 +818,10 @@ const unwrap = (words) => {
       // `command -v timeout` describes the command, never runs it.
       return [];
     }
+
     const valueOptions = WRAPPERS.get(commandName(words[index]));
     index += 1;
+
     while (
       index < words.length &&
       (words[index].startsWith("-") || ASSIGNMENT.test(words[index]))
@@ -739,6 +829,7 @@ const unwrap = (words) => {
       index += valueOptions.has(words[index]) ? 2 : 1;
     }
   }
+
   return words.slice(index);
 };
 
@@ -751,6 +842,7 @@ const cdTarget = (words) =>
   words.slice(1).find((word) => !word.startsWith("-"));
 
 const PROCESS_MATCHERS = new Set(["pkill", "pgrep"]);
+
 // Short options of pkill / pgrep (macOS and procps) that take a value.
 const VALUE_OPTIONS = new Set([
   "F",
@@ -765,6 +857,7 @@ const VALUE_OPTIONS = new Set([
   "t",
   "u",
 ]);
+
 const VALUE_LONG_OPTIONS = new Set([
   "--cgroup",
   "--delimiter",
@@ -783,10 +876,12 @@ const VALUE_LONG_OPTIONS = new Set([
   "--terminal",
   "--uid",
 ]);
+
 // `-9`, `-KILL`, `-SIGTERM`: pkill's signal, not an option.
 const SIGNAL = /^-(\d+|[A-Z]{2,}[A-Z0-9+-]*)$/;
 
 const POSIX_CLASS = /\[:([a-z]+):\]/g;
+
 const POSIX_CLASSES = {
   alnum: "A-Za-z0-9",
   alpha: "A-Za-z",
@@ -808,10 +903,11 @@ const POSIX_CLASSES = {
 // doesn't. POSIX classes (`[:alpha:]`) are read as JavaScript ranges first;
 // a pattern JavaScript still can't read counts as matching, since pkill might.
 const matchesItself = (pattern, line) => {
-  const translated = pattern.replace(
+  const translated = pattern.replaceAll(
     POSIX_CLASS,
     (match, name) => POSIX_CLASSES[name] ?? match
   );
+
   try {
     return new RegExp(translated).test(line);
   } catch {
@@ -828,15 +924,19 @@ const readOption = (word) => {
       valueWords: VALUE_LONG_OPTIONS.has(word) ? 1 : 0,
     };
   }
+
   let full = false;
-  const letters = [...word.slice(1)];
+  const letters = word.slice(1);
+
   for (const [position, letter] of letters.entries()) {
     if (VALUE_OPTIONS.has(letter)) {
       // `-u me` takes the next word, `-ume` holds its own value.
       return { full, valueWords: position === letters.length - 1 ? 1 : 0 };
     }
+
     full ||= letter === "f";
   }
+
   return { full, valueWords: 0 };
 };
 
@@ -847,17 +947,22 @@ const isOption = (word) =>
 const processMatch = (words) => {
   let full = false;
   let index = 1;
+
   while (index < words.length && words[index] !== "--") {
     const word = words[index];
+
     if (!(isOption(word) || SIGNAL.test(word))) {
       return { full, pattern: word };
     }
+
     const option = isOption(word)
       ? readOption(word)
       : { full: false, valueWords: 0 };
+
     full ||= option.full;
     index += 1 + option.valueWords;
   }
+
   return { full, pattern: words[index + 1] };
 };
 
@@ -870,15 +975,19 @@ const SLEEP_FOREVER = new Set(["inf", "infinity"]);
 // any it can't read (`$DELAY`).
 const sleepSeconds = (words) => {
   let seconds = 0;
+
   for (const word of words.slice(1)) {
     if (SLEEP_FOREVER.has(word)) {
       return Number.POSITIVE_INFINITY;
     }
+
     const match = SLEEP_DURATION.exec(word);
+
     if (match) {
       seconds += Number(match[1]) * SLEEP_UNITS[match[2]];
     }
   }
+
   return seconds;
 };
 
@@ -888,6 +997,7 @@ const BARE_VARIABLE = /^\$([A-Za-z_][A-Za-z0-9_]*|\{[A-Za-z_][A-Za-z0-9_]*\})$/;
 // `for name in $var`: the whole word list one bare, unquoted variable.
 const loopsOverBareVariable = (header) => {
   const [, keyword, ...list] = header;
+
   return (
     keyword?.value === "in" &&
     list.length === 1 &&
@@ -898,6 +1008,7 @@ const loopsOverBareVariable = (header) => {
 // zsh ties the lowercase array `path` to `PATH`: setting it replaces the
 // command search path. `path+=(dir)` only appends, so it's left alone.
 const PATH_ASSIGNMENT = /^path(\[[^\]]*\])?=/;
+
 // Builtins whose operands name the variables they set (`local path=x`,
 // `typeset -a path`, `read -r path`).
 const VARIABLE_SETTERS = new Set([
@@ -911,6 +1022,7 @@ const VARIABLE_SETTERS = new Set([
   "readonly",
   "typeset",
 ]);
+
 const isPathVariable = (word) => word === "path" || PATH_ASSIGNMENT.test(word);
 
 // Whether anything sets zsh's `path`: a `path=…` assignment, a builtin
@@ -937,15 +1049,19 @@ const toolArguments = (name, words, tool) => {
   if (name === tool) {
     return words.slice(1);
   }
+
   if (name === "pnpm" && words[1] === TOOL_ALIASES.get(tool)) {
     return words.slice(2);
   }
+
   const index = RUNNERS.has(name) ? words.indexOf(tool) : -1;
+
   return index > 0 ? words.slice(index + 1) : null;
 };
 
 const beforeDoubleDash = (words) => {
   const end = words.indexOf("--");
+
   return end === -1 ? words : words.slice(0, end);
 };
 
@@ -956,9 +1072,11 @@ const isLegacyOutputFlag = (word) =>
   (word.startsWith("-o") && !word.startsWith("--"));
 
 const PROD_ENVIRONMENT = /^prod(uction)?$/;
+
 // Splits `--env=prod` into the flag and its value.
 const FIRST_EQUALS = /[=](.*)/s;
 const ENV_FLAGS = new Set(["--env", "-e"]);
+
 // Infisical options taking the next word as their value.
 const INFISICAL_VALUE_OPTIONS = new Set([
   "--domain",
@@ -971,6 +1089,7 @@ const INFISICAL_VALUE_OPTIONS = new Set([
   "-e",
   "-t",
 ]);
+
 // `infisical secrets <these>` handle no value; anything else (listing, `get`,
 // `set`) prints one or takes one on the command line.
 const INFISICAL_VALUELESS = new Set([
@@ -985,23 +1104,29 @@ const readsProdSecrets = (args) => {
   const words = beforeDoubleDash(args);
   let prod = false;
   const positionals = [];
+
   for (let index = 0; index < words.length; index += 1) {
     const word = words[index];
     const [flag, value] = word.split(FIRST_EQUALS);
+
     if (ENV_FLAGS.has(flag)) {
       prod ||= PROD_ENVIRONMENT.test(value ?? words[index + 1] ?? "");
     }
+
     if (word.startsWith("-")) {
       index += INFISICAL_VALUE_OPTIONS.has(word) ? 1 : 0;
     } else {
       positionals.push(word);
     }
   }
+
   const [command, subcommand] = positionals;
+
   const reads =
     command === "export" ||
     command === "run" ||
     (command === "secrets" && !INFISICAL_VALUELESS.has(subcommand));
+
   return prod && reads;
 };
 
@@ -1024,6 +1149,7 @@ const GITLEAKS_BOOLEAN_FLAGS = new Set([
   "--verbose",
   "--version",
 ]);
+
 const GITLEAKS_VALUE_FLAGS = new Set([
   "--baseline-path",
   "--config",
@@ -1044,10 +1170,12 @@ const GITLEAKS_VALUE_FLAGS = new Set([
   "--source",
   "--timeout",
 ]);
+
 const GITLEAKS_BOOLEAN_SHORTHANDS = new Map([
   ["-h", "--help"],
   ["-v", "--verbose"],
 ]);
+
 const GITLEAKS_VALUE_SHORTHANDS = new Map([
   ["-b", "--baseline-path"],
   ["-c", "--config"],
@@ -1057,10 +1185,13 @@ const GITLEAKS_VALUE_SHORTHANDS = new Map([
   ["-r", "--report-path"],
   ["-s", "--source"],
 ]);
+
 // Subcommands that scan nothing, so they print no secret.
 const GITLEAKS_HARMLESS = new Set(["completion", "help", "version"]);
+
 // The subcommands that walk a directory, gitignored files included.
 const GITLEAKS_DIR_SUBCOMMANDS = new Set(["dir", "directory", "file"]);
+
 // The ones that read git history, which holds no gitignored file. `detect`
 // only does so without `--no-git`.
 const GITLEAKS_HISTORY_SUBCOMMANDS = new Set(["detect", "git", "stdin"]);
@@ -1070,29 +1201,40 @@ const GITLEAKS_HISTORY_SUBCOMMANDS = new Set(["detect", "git", "stdin"]);
 // rule won't read.
 const readGitleaksFlag = (word, next) => {
   const [name, value] = word.split(FIRST_EQUALS);
+
   // pflag reads `--redact`'s value with Go's `ParseUint(s, 0, 64)`, so the
   // base comes from the prefix and `--redact=0100` is octal 64, masking 64%
   // and printing the rest. Only its two unambiguous full forms count.
   if (name === "--redact") {
     const full = value === undefined || value === "100";
+
     return full ? { name, taken: 0, value: true } : null;
   }
+
   if (GITLEAKS_BOOLEAN_FLAGS.has(name)) {
     return value === undefined ? { name, taken: 0, value: true } : null;
   }
+
   const booleanShorthand = GITLEAKS_BOOLEAN_SHORTHANDS.get(word);
+
   if (booleanShorthand !== undefined) {
     return { name: booleanShorthand, taken: 0, value: true };
   }
+
   const valueShorthand = GITLEAKS_VALUE_SHORTHANDS.get(word);
+
   if (valueShorthand === undefined && !GITLEAKS_VALUE_FLAGS.has(name)) {
     return null;
   }
+
   const given = value ?? next;
+
   if (given === undefined) {
     return null;
   }
+
   const taken = value === undefined ? 1 : 0;
+
   return { name: valueShorthand ?? name, taken, value: given };
 };
 
@@ -1104,21 +1246,26 @@ const readGitleaks = (args) => {
   const flags = new Map();
   const positionals = [];
   let flagsEnded = false;
+
   for (let index = 0; index < args.length; index += 1) {
     const word = args[index];
+
     if (word === "--" && !flagsEnded) {
       flagsEnded = true;
     } else if (flagsEnded || !word.startsWith("-")) {
       positionals.push(word);
     } else {
       const flag = readGitleaksFlag(word, args[index + 1]);
+
       if (flag === null) {
         return null;
       }
+
       flags.set(flag.name, flag.value);
       index += flag.taken;
     }
   }
+
   return { flags, positionals };
 };
 
@@ -1133,17 +1280,21 @@ const pathComponents = (path) => {
   if (!PLAIN_PATH.test(path)) {
     return null;
   }
+
   const components = [];
+
   for (const segment of path.split("/")) {
     if (segment === "" || segment === ".") {
       continue;
     }
+
     if (segment !== "..") {
       components.push(segment);
     } else if (components.pop() === undefined) {
       return null;
     }
   }
+
   return components;
 };
 
@@ -1154,8 +1305,10 @@ const holdsProjectDir = (path, projectDir) => {
   if (projectDir === undefined || !path.startsWith("/")) {
     return false;
   }
+
   const target = pathComponents(path);
   const project = pathComponents(projectDir);
+
   return (
     target !== null &&
     project !== null &&
@@ -1169,6 +1322,7 @@ const holdsProjectDir = (path, projectDir) => {
 // all resolve to no component at all, so each is the whole checkout.
 const namesOnePlace = (path, projectDir) => {
   const components = pathComponents(path);
+
   return (
     components !== null &&
     components.length > 0 &&
@@ -1184,30 +1338,40 @@ const namesOnePlace = (path, projectDir) => {
 // worth listing.
 const leaksLocalSecrets = (args, projectDir) => {
   const read = readGitleaks(args);
+
   if (read === null) {
     return true;
   }
+
   const { flags, positionals } = read;
   const [subcommand, ...paths] = positionals;
+
   if (subcommand === undefined || GITLEAKS_HARMLESS.has(subcommand)) {
     return false;
   }
+
   if (flags.has("--help") || flags.has("--version")) {
     return false;
   }
+
   if (!flags.has("--redact")) {
     return true;
   }
+
   if (GITLEAKS_DIR_SUBCOMMANDS.has(subcommand)) {
     return paths.length !== 1 || !namesOnePlace(paths[0], projectDir);
   }
+
   if (!GITLEAKS_HISTORY_SUBCOMMANDS.has(subcommand)) {
     return true;
   }
+
   if (subcommand === "detect" && flags.has("--no-git")) {
     const source = flags.get("--source");
+
     return source === undefined || !namesOnePlace(source, projectDir);
   }
+
   return false;
 };
 
@@ -1231,9 +1395,12 @@ const FILE_READERS = new Set([
   "sed",
   "tail",
 ]);
+
 const GREPS = new Set(["egrep", "fgrep", "grep", "rg"]);
+
 // grep options after which no matched line is printed.
 const QUIET_GREP_LETTERS = /^-[A-Za-z]*[cLlq]/;
+
 const QUIET_GREP_OPTIONS = new Set([
   "--count",
   "--files-with-matches",
@@ -1241,17 +1408,21 @@ const QUIET_GREP_OPTIONS = new Set([
   "--quiet",
   "--silent",
 ]);
+
 // `cut -d= -f1`, `cut -d '=' -f 1`, `cut --delimiter== --fields=1`.
 const CUT_EQUALS_DELIMITER = /(^| )(-d ?|--delimiter[= ])=( |$)/;
 const CUT_FIRST_FIELD = /(^| )(-f ?|--fields[= ])1( |$)/;
+
 // `awk -F= '{print $1}'`, `awk -F '=' '{ print $1 }'`.
 const AWK_EQUALS_SEPARATOR = /(^| )-F ?=( |$)/;
 const AWK_FIRST_FIELD = /^\{ ?print \$1;? ?\}$/;
+
 // `s/=.*/…/`: a sed script dropping everything from the first `=`.
 const STRIPPING_SED_SCRIPT = /^s(.)=\.\*\1/;
 
 const printsLines = ({ name, words }) => {
   const options = words.slice(1).filter((word) => word.startsWith("-"));
+
   if (GREPS.has(name)) {
     return !options.some(
       (word) =>
@@ -1259,6 +1430,7 @@ const printsLines = ({ name, words }) => {
         (!word.startsWith("--") && QUIET_GREP_LETTERS.test(word))
     );
   }
+
   // `sed -i` edits the file in place and prints nothing.
   return (
     name !== "sed" ||
@@ -1277,16 +1449,20 @@ const stripsValues = ({ name, words }) => {
   if (name === "sed") {
     return words.some((word) => STRIPPING_SED_SCRIPT.test(word));
   }
+
   if (name === "awk") {
     return (
       AWK_EQUALS_SEPARATOR.test(words.slice(1).join(" ")) &&
       words.some((word) => AWK_FIRST_FIELD.test(word))
     );
   }
+
   if (name !== "cut") {
     return false;
   }
+
   const joined = words.slice(1).join(" ");
+
   return CUT_EQUALS_DELIMITER.test(joined) && CUT_FIRST_FIELD.test(joined);
 };
 
@@ -1294,16 +1470,20 @@ const stripsValues = ({ name, words }) => {
 const pipelines = (commands) => {
   const groups = [];
   let current = [];
+
   for (const command of commands) {
     current.push(command);
+
     if (command.operator !== "|") {
       groups.push(current);
       current = [];
     }
   }
+
   if (current.length > 0) {
     groups.push(current);
   }
+
   return groups;
 };
 
@@ -1329,7 +1509,9 @@ const CHECKS = [
       if (name !== "cd" || !CD_CHAINS.has(operator)) {
         return false;
       }
+
       const target = cdTarget(words);
+
       return target !== undefined && !NOT_RELATIVE.test(target);
     },
     reason:
@@ -1341,7 +1523,9 @@ const CHECKS = [
       if (!PROCESS_MATCHERS.has(name)) {
         return false;
       }
+
       const { full, pattern } = processMatch(words);
+
       return full && pattern !== undefined && matchesItself(pattern, line);
     },
     reason:
@@ -1413,6 +1597,7 @@ const parse = (command) => {
   try {
     const lexer = new Lexer(command.trimEnd());
     const parsed = new Parser().run(lexer.run());
+
     return { ...parsed, substitutions: lexer.substitutions };
   } catch (error) {
     if (error instanceof UnterminatedError) {
@@ -1424,6 +1609,7 @@ const parse = (command) => {
         substitutions: [],
       };
     }
+
     throw error;
   }
 };
@@ -1432,8 +1618,10 @@ const parse = (command) => {
 // included.
 const brokenRules = (command, options) => {
   const parsed = parse(command);
+
   const commands = parsed.commands.flatMap((simple) => {
     const words = unwrap(simple.words);
+
     return words.length === 0
       ? []
       : [
@@ -1447,22 +1635,26 @@ const brokenRules = (command, options) => {
           },
         ];
   });
+
   const scopes = {
     command: commands,
     loop: parsed.loops,
     parsed: [parsed],
     pipeline: pipelines(commands),
   };
+
   const rules = new Set(
     CHECKS.filter(({ breaks, scope = "command" }) =>
       scopes[scope].some(breaks)
     ).map(({ rule }) => rule)
   );
+
   for (const body of parsed.substitutions) {
     for (const rule of brokenRules(body, options)) {
       rules.add(rule);
     }
   }
+
   return rules;
 };
 
@@ -1481,6 +1673,7 @@ const brokenRules = (command, options) => {
  */
 export const findShellRuleViolations = (command, options = {}) => {
   const rules = brokenRules(command, options);
+
   return CHECKS.filter(({ rule }) => rules.has(rule)).map(
     ({ reason, rule }) => ({ reason, rule })
   );

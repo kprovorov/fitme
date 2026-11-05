@@ -1,11 +1,8 @@
 import type { Node, Parent } from "mdast";
 import type { Extension } from "mdast-util-from-markdown";
-import {
-  Platform,
-  StyleSheet,
-  type TextStyle,
-  type ViewStyle,
-} from "react-native";
+import { Platform, StyleSheet } from "react-native";
+import type { TextStyle, ViewStyle } from "react-native";
+
 import type { StyleMap } from "./types";
 
 // Layout only: colors come from the tokens, in the renderer's styles
@@ -161,10 +158,13 @@ function removeTextStyleProps<T extends ViewStyle | TextStyle>(
     "fontVariant",
     "writingDirection",
   ];
+
   const result = { ...style };
+
   for (const key of textOnlyKeys) {
     delete (result as Record<string, unknown>)[key];
   }
+
   return result as ViewStyle;
 }
 
@@ -203,9 +203,11 @@ export function getMergedStyles(
 // Generate unique keys for nodes based on position
 function getKey(node: Node): string {
   const { start, end } = node.position ?? {};
+
   if (start && end) {
     return `${node.type}-${start.line}:${start.column}-${end.line}:${end.column}`;
   }
+
   return `${node.type}-${Math.random().toString(16).slice(2, 8)}`;
 }
 
@@ -213,6 +215,7 @@ function addKeysRecursively(node: Node): void {
   if (node.position) {
     node.key = getKey(node);
   }
+
   if ("children" in node && Array.isArray((node as Parent).children)) {
     for (const child of (node as Parent).children) {
       addKeysRecursively(child);
@@ -243,6 +246,7 @@ const transform = (
 ): void => {
   if (node.type === "linkReference" || node.type === "imageReference") {
     const def = definitions.get(normalizeIdentifier(node.identifier));
+
     if (!def) {
       return;
     }

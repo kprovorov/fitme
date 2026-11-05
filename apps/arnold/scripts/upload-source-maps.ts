@@ -22,6 +22,7 @@ import {
 } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join, relative, sep } from "node:path";
+
 import { SentryCli } from "@sentry/cli";
 
 // Vercel's build output when building there, eve's own otherwise.
@@ -40,18 +41,23 @@ export type SentryCliRunner = (args: string[]) => void;
  */
 const findMappedScripts = (dir: string, base = dir): string[] => {
   const entries = readdirSync(dir, { withFileTypes: true });
+
   const files = new Set(
     entries.filter((entry) => entry.isFile()).map((entry) => entry.name)
   );
+
   return entries.flatMap((entry) => {
     const path = join(dir, entry.name);
+
     if (entry.isDirectory()) {
       return entry.name === "node_modules" ? [] : findMappedScripts(path, base);
     }
+
     const mapped =
       entry.isFile() &&
       SCRIPT.test(entry.name) &&
       files.has(`${entry.name}.map`);
+
     return mapped ? [relative(base, path)] : [];
   });
 };
@@ -74,27 +80,36 @@ const upload = (
   sentryCli: SentryCliRunner
 ): void => {
   const scripts = findMappedScripts(outputDir);
+
   if (scripts.length === 0) {
     console.warn("No source maps in the build output: nothing to upload");
+
     return;
   }
+
   const maps = scripts.map((script) => `${script}.map`);
   const staged = new Set([...scripts, ...maps].map(stagedPath));
+
   if (staged.size !== scripts.length + maps.length) {
     throw new Error("Two build output files would be staged at the same path");
   }
+
   const staging = mkdtempSync(join(tmpdir(), "arnold-source-maps-"));
   const inOutput = (file: string) => join(outputDir, file);
   const inStaging = (file: string) => join(staging, stagedPath(file));
+
   try {
     for (const file of [...scripts, ...maps]) {
       copy(inOutput(file), inStaging(file));
     }
+
     sentryCli(["sourcemaps", "inject", staging]);
+
     // The deployed scripts carry the debug ids the uploaded maps are found by.
     for (const script of scripts) {
       copy(inStaging(script), inOutput(script));
     }
+
     sentryCli([
       "sourcemaps",
       "upload",
@@ -104,6 +119,7 @@ const upload = (
   } finally {
     rmSync(staging, { force: true, recursive: true });
   }
+
   // Uploaded: the maps don't ship with the function.
   for (const map of maps) {
     rmSync(inOutput(map), { force: true });
@@ -121,12 +137,16 @@ export const uploadSourceMaps = ({
 }) => {
   if (!env.SENTRY_AUTH_TOKEN) {
     console.log("No SENTRY_AUTH_TOKEN: skipping the source map upload");
+
     return;
   }
+
   if (!outputDir) {
     console.warn("No source maps in the build output: nothing to upload");
+
     return;
   }
+
   try {
     upload(outputDir, env.VERCEL_GIT_COMMIT_SHA, sentryCli);
   } catch (error) {

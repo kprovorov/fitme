@@ -1,6 +1,8 @@
-import { type Href, router } from "expo-router";
+import { router } from "expo-router";
+import type { Href } from "expo-router";
 import { useTranslation } from "react-i18next";
 import { Pressable, View } from "react-native";
+
 import { Text } from "~/components/ui/text";
 import {
   openWebPage,
@@ -10,11 +12,13 @@ import {
 
 const openTerms = () => openWebPage(TERMS_URL);
 const openPrivacy = () => openWebPage(PRIVACY_POLICY_URL);
+
 export function AuthLegal({ disabled }: { disabled?: boolean }) {
   const { t } = useTranslation();
+
   return (
     <View className="min-h-11 flex-row flex-wrap content-center items-center justify-center gap-x-1 py-1">
-      <Text className="text-center text-footnote text-muted-foreground">
+      <Text className="text-footnote text-muted-foreground text-center">
         {t("auth.legal.prefix")}
       </Text>
       <Pressable
@@ -43,6 +47,7 @@ export function AuthLegal({ disabled }: { disabled?: boolean }) {
     </View>
   );
 }
+
 export function AuthSwitch({
   prompt,
   label,

@@ -1,5 +1,6 @@
 import { randomUUID } from "node:crypto";
 import type { AddressInfo } from "node:net";
+
 import { serve } from "@hono/node-server";
 import type { OAuthClientProvider } from "@modelcontextprotocol/sdk/client/auth.js";
 import type {
@@ -7,6 +8,7 @@ import type {
   OAuthClientMetadata,
   OAuthTokens,
 } from "@modelcontextprotocol/sdk/shared/auth.js";
+
 import { createApp } from "../src/create-app.js";
 import { integrationLibrary } from "./setup.js";
 
@@ -18,6 +20,7 @@ import { integrationLibrary } from "./setup.js";
  */
 
 const CLERK_API_URL = "https://api.clerk.com/v1";
+
 /** How many redirects the headless consent may follow before giving up. */
 const MAX_REDIRECTS = 10;
 const TRAILING_SLASHES = /\/+$/;
@@ -57,11 +60,13 @@ export function clerkDev(secretKey: string) {
       },
       method,
     });
+
     if (!response.ok) {
       throw new Error(
         `Clerk ${method} ${path} failed with ${response.status}: ${await response.text()}`
       );
     }
+
     return (await response.json()) as T;
   }
 
@@ -70,6 +75,7 @@ export function clerkDev(secretKey: string) {
   /** The instance's Frontend API, e.g. https://foo-bar-1.clerk.accounts.dev. */
   function frontendApiUrl(): Promise<string> {
     frontendApi ??= lookUpFrontendApiUrl();
+
     return frontendApi;
   }
 
@@ -77,10 +83,13 @@ export function clerkDev(secretKey: string) {
     const { data } = await backend<{
       data: { frontend_api_url: string; is_satellite: boolean }[];
     }>("GET", "/domains");
+
     const primary = data.find((domain) => !domain.is_satellite);
+
     if (!primary) {
       throw new Error("The Clerk instance has no primary domain.");
     }
+
     return primary.frontend_api_url.replace(TRAILING_SLASHES, "");
   }
 
@@ -97,20 +106,26 @@ export function clerkDev(secretKey: string) {
       redirectUri: string
     ): Promise<URL> {
       const fapi = new URL(await frontendApiUrl());
+
       // A development instance keeps its client in a dev browser token,
       // passed as `__clerk_db_jwt`, instead of a first-party cookie.
       const devBrowser = await frontend<{ id?: string; token?: string }>(
         new URL("/v1/dev_browser", fapi)
       );
+
       const devBrowserToken = devBrowser.token ?? devBrowser.id;
+
       if (!devBrowserToken) {
         throw new Error("Clerk returned no dev browser token.");
       }
+
       const withDevBrowser = (target: URL) => {
         const next = new URL(target);
+
         if (next.origin === fapi.origin) {
           next.searchParams.set("__clerk_db_jwt", devBrowserToken);
         }
+
         return next;
       };
 
@@ -124,12 +139,16 @@ export function clerkDev(secretKey: string) {
         // Clerk answers 415 to a POST without a JSON body.
         backend<{ token: string }>("POST", "/testing_tokens", {}),
       ]);
+
       const signInUrl = withDevBrowser(new URL("/v1/client/sign_ins", fapi));
       signInUrl.searchParams.set("__clerk_testing_token", testingToken);
+
       const signIn = await frontend<{
         response: { created_session_id: string | null; status: string };
       }>(signInUrl, new URLSearchParams({ strategy: "ticket", ticket }));
+
       const sessionId = signIn.response.created_session_id;
+
       if (!(signIn.response.status === "complete" && sessionId)) {
         throw new Error(
           `Clerk sign-in did not complete: ${JSON.stringify(signIn.response)}`
@@ -138,6 +157,7 @@ export function clerkDev(secretKey: string) {
 
       // The flow must pass the consent screen, not skip it.
       let consented = false;
+
       return await follow(withDevBrowser(authorizationUrl), MAX_REDIRECTS);
 
       /** Follows Clerk's redirects, consenting on the way, to the client. */
@@ -146,11 +166,14 @@ export function clerkDev(secretKey: string) {
           if (!consented) {
             throw new Error("Clerk redirected back without asking consent.");
           }
+
           return url;
         }
+
         if (hopsLeft === 0) {
           throw new Error(`Clerk authorization did not reach ${redirectUri}.`);
         }
+
         return await follow(await nextPage(url), hopsLeft - 1);
       }
 
@@ -158,12 +181,15 @@ export function clerkDev(secretKey: string) {
         if (url.origin === fapi.origin) {
           return await redirectOf(url);
         }
+
         // Clerk's Account Portal (hosted pages). Its sign-in page sends a
         // signed-in User straight on to `redirect_url` (the consent page).
         const afterSignIn = url.searchParams.get("redirect_url");
+
         if (url.pathname === "/sign-in" && afterSignIn) {
           return withDevBrowser(new URL(afterSignIn));
         }
+
         return await consent(url, String(sessionId));
       }
 
@@ -174,18 +200,23 @@ export function clerkDev(secretKey: string) {
       async function consent(page: URL, session: string) {
         const params = new URLSearchParams(page.search);
         const clientId = params.get("client_id");
+
         if (!clientId) {
           throw new Error(
             `Unexpected page in the OAuth flow: ${redact(page).href}`
           );
         }
+
         params.delete("__clerk_db_jwt");
         params.set("consented", "true");
         consented = true;
+
         const action = withDevBrowser(
           new URL(`/v1/me/oauth/consent/${encodeURIComponent(clientId)}`, fapi)
         );
+
         action.searchParams.set("_clerk_session_id", session);
+
         return await redirectOf(action, params);
       }
 
@@ -196,12 +227,15 @@ export function clerkDev(secretKey: string) {
           method: form ? "POST" : "GET",
           redirect: "manual",
         });
+
         const location = response.headers.get("location");
+
         if (!location) {
           throw new Error(
             `Expected a redirect from ${redact(target).href}, got ${response.status}: ${await response.text()}`
           );
         }
+
         return withDevBrowser(new URL(location, target));
       }
     },
@@ -218,16 +252,19 @@ export function clerkDev(secretKey: string) {
           scopes: "openid profile email",
         }
       );
+
       return { clientId: app.client_id, id: app.id, redirectUri };
     },
 
     async createUser(label: string): Promise<ClerkTestUser> {
       const email = `mcp-oauth-${label}-${randomUUID()}+clerk_test@fitmeproject.com`;
+
       const user = await backend<{ id: string }>("POST", "/users", {
         email_address: [email],
         password: randomUUID(),
         skip_password_checks: true,
       });
+
       return { email, id: user.id };
     },
 
@@ -241,6 +278,7 @@ export function clerkDev(secretKey: string) {
     /** The development publishable key: `pk_test_` + base64("<fapi host>$"). */
     async publishableKey() {
       const { host } = new URL(await frontendApiUrl());
+
       return `pk_test_${Buffer.from(`${host}$`).toString("base64")}`;
     },
   };
@@ -250,16 +288,19 @@ export function clerkDev(secretKey: string) {
 function redact(url: URL) {
   const safe = new URL(url);
   safe.searchParams.delete("__clerk_db_jwt");
+
   return safe;
 }
 
 async function frontend<T>(url: URL, form?: URLSearchParams): Promise<T> {
   const response = await fetch(url, { body: form, method: "POST" });
+
   if (!response.ok) {
     throw new Error(
       `Clerk Frontend API POST ${url.pathname} failed with ${response.status}: ${await response.text()}`
     );
   }
+
   return (await response.json()) as T;
 }
 
@@ -314,15 +355,18 @@ export class HeadlessOAuthProvider implements OAuthClientProvider {
     this.authorizationUrl = authorizationUrl;
     const callback = await this.#approve(authorizationUrl);
     const code = callback.searchParams.get("code");
+
     if (!code) {
       throw new Error(`Clerk redirected without a code: ${callback.search}`);
     }
+
     if (
       callback.searchParams.get("state") !==
       authorizationUrl.searchParams.get("state")
     ) {
       throw new Error("Clerk returned a different OAuth state.");
     }
+
     this.code = code;
   }
 
@@ -334,6 +378,7 @@ export class HeadlessOAuthProvider implements OAuthClientProvider {
     if (!this.#codeVerifier) {
       throw new Error("No PKCE code verifier saved.");
     }
+
     return this.#codeVerifier;
   }
 
@@ -350,14 +395,17 @@ export async function startMcpServer() {
       logRequests: false,
       reportError: (error) => {
         console.error(error);
+
         return Promise.resolve();
       },
     }).fetch,
     hostname: "127.0.0.1",
     port: 0,
   });
+
   await new Promise<void>((resolve) => server.once("listening", resolve));
   const { port } = server.address() as AddressInfo;
+
   return {
     close: () =>
       new Promise<void>((resolve, reject) =>

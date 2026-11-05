@@ -1,5 +1,6 @@
 import { ApiError } from "@fitme/api-client";
 import { createMutation } from "react-query-kit";
+
 import type { FullPlan } from "~/hooks/queries/plans";
 import { invalidateWeighedQueries } from "~/hooks/queries/settings";
 import { WEEKLY_GOALS_QUERY_KEY } from "~/hooks/queries/weekly-goals";
@@ -31,12 +32,15 @@ export const useSavePlanMutation = createMutation<FullPlan, SavePlanVariables>({
       body,
       params: { path: { id } },
     });
+
     if (!data) {
       throw new ApiError("Public API answered no Plan");
     }
+
     if (!IS_E2E) {
       segmentClient.track("Plan Edited", { plan_id: id });
     }
+
     return data.data;
   },
   // On settlement, not only on success: a failed call doesn't prove nothing

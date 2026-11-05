@@ -1,7 +1,6 @@
 import { MAX_SETS_PER_EXERCISE } from "@fitme/core/limits";
 import {
   plans,
-  type Transaction,
   workoutExerciseSets,
   workoutExercises,
   workoutSessionExerciseSets,
@@ -9,8 +8,11 @@ import {
   workoutSessions,
   workouts,
 } from "@fitme/db";
+import type { Transaction } from "@fitme/db";
 import { and, asc, eq, inArray, isNull, max, sql } from "drizzle-orm";
-import { lockProfileUnits, type ProfileUnits } from "./profile";
+
+import { lockProfileUnits } from "./profile";
+import type { ProfileUnits } from "./profile";
 
 /**
  * The Plan Update: the structural changes a finished Workout Session made to
@@ -26,8 +28,10 @@ import { lockProfileUnits, type ProfileUnits } from "./profile";
 
 /** No Plan Update past this many Exercises on either side. */
 const MAX_EXERCISES = 50;
+
 /** No Plan Update past this many sets on any one Exercise, on either side. */
 const MAX_INPUT_SETS = 100;
+
 /** The rest of a set with no Plan set to take it from. */
 const DEFAULT_REST = 90;
 
@@ -156,6 +160,7 @@ const isUnmatchable = async (
       )
     ) as unmatchable
   `);
+
   return Boolean(result?.unmatchable);
 };
 
@@ -190,6 +195,7 @@ const loadSlots = async (
       asc(workoutSessionExerciseSets.order),
       asc(workoutSessionExerciseSets.id)
     );
+
   const planRows = await tx
     .select({
       id: workoutExercises.id,
@@ -213,17 +219,22 @@ const loadSlots = async (
 
   // Orders are unique on each side here (isUnmatchable), so one per slot
   const slots = new Map<number, Slot>();
+
   const slotAt = (order: number) => {
     let slot = slots.get(order);
+
     if (!slot) {
       slot = {};
       slots.set(order, slot);
     }
+
     return slot;
   };
+
   for (const row of sessionRows) {
     const slot = slotAt(row.order);
     slot.sessionExercise ??= { sets: [], slug: row.slug };
+
     if (row.setId) {
       slot.sessionExercise.sets.push({
         repsCompleted: row.repsCompleted,
@@ -232,13 +243,16 @@ const loadSlots = async (
       });
     }
   }
+
   for (const row of planRows) {
     const slot = slotAt(row.order);
     slot.planExercise ??= { id: row.id, rests: [], slug: row.slug };
+
     if (row.rest !== null) {
       slot.planExercise.rests.push(row.rest);
     }
   }
+
   return [...slots.entries()].sort(([a], [b]) => a - b).map(([, slot]) => slot);
 };
 
@@ -259,6 +273,7 @@ const addedSets = (sets: SessionSet[]): RestedSet[] | null => {
       rest: DEFAULT_REST,
       weight: weightOf(set),
     }));
+
   return logged.length > 0 ? logged : null;
 };
 
@@ -273,12 +288,16 @@ const replacementSets = (
   planRests: number[]
 ): RestedSet[] | null => {
   const lastLogged = sets.filter(isLogged).at(-1);
+
   if (!lastLogged) {
     return null;
   }
+
   const lastRest = planRests.at(-1);
+
   return sets.slice(0, MAX_SETS_PER_EXERCISE).map((set, index) => {
     const logged = set.repsCompleted === null ? lastLogged : set;
+
     return {
       reps: logged.repsCompleted as number,
       rest: planRests[index] ?? lastRest ?? DEFAULT_REST,
@@ -301,6 +320,7 @@ const extraSets = (
 ): RestedSet[] | null => {
   const planSetCount = planRests.length;
   const rest = planRests.at(-1) ?? DEFAULT_REST;
+
   const extra = sets
     .filter(
       (set, index) => set.repsRecommended === null || index + 1 > planSetCount
@@ -312,6 +332,7 @@ const extraSets = (
       rest,
       weight: weightOf(set),
     }));
+
   return extra.length > 0 ? extra : null;
 };
 
@@ -326,8 +347,10 @@ const planChange = ({
       workoutExerciseId: planExercise.id,
     };
   }
+
   if (sessionExercise && !planExercise) {
     const sets = addedSets(sessionExercise.sets);
+
     return (
       sets && {
         exerciseSlug: sessionExercise.slug,
@@ -336,11 +359,14 @@ const planChange = ({
       }
     );
   }
+
   if (!(planExercise && sessionExercise)) {
     return null;
   }
+
   if (sessionExercise.slug !== planExercise.slug) {
     const sets = replacementSets(sessionExercise.sets, planExercise.rests);
+
     return (
       sets && {
         exerciseSlug: sessionExercise.slug,
@@ -351,7 +377,9 @@ const planChange = ({
       }
     );
   }
+
   const sets = extraSets(sessionExercise.sets, planExercise.rests);
+
   return (
     sets && {
       exerciseSlug: planExercise.slug,
@@ -409,6 +437,7 @@ const applyChanges = async (
         .where(
           eq(workoutExerciseSets.workoutExerciseId, change.workoutExerciseId)
         );
+
       await insertSets(
         tx,
         change.workoutExerciseId,
@@ -421,11 +450,13 @@ const applyChanges = async (
   const removed = changes.flatMap((change) =>
     change.kind === "remove_exercise" ? [change.workoutExerciseId] : []
   );
+
   if (removed.length > 0) {
     await tx
       .delete(workoutExercises)
       .where(inArray(workoutExercises.id, removed));
   }
+
   await tx.execute(sql`
     with ranked as (
       select
@@ -447,11 +478,13 @@ const applyChanges = async (
     if (change.kind !== "add_exercise") {
       continue;
     }
+
     // biome-ignore lint/performance/noAwaitInLoops: each appends after the last
     const [last] = await tx
       .select({ order: max(workoutExercises.order) })
       .from(workoutExercises)
       .where(eq(workoutExercises.workoutId, workoutId));
+
     const [added] = await tx
       .insert(workoutExercises)
       .values({
@@ -460,6 +493,7 @@ const applyChanges = async (
         workoutId,
       })
       .returning({ id: workoutExercises.id });
+
     await insertSets(tx, added.id, 1, change.sets);
   }
 
@@ -473,22 +507,26 @@ const applyChanges = async (
 const toAnswer = (change: PlannedChange): PlanUpdateChange => {
   const sets = (rested: RestedSet[]) =>
     rested.map(({ reps, weight }) => ({ reps, weight }));
+
   switch (change.kind) {
-    case "replace_exercise":
+    case "replace_exercise": {
       return {
         exercise_slug: change.exerciseSlug,
         kind: change.kind,
         replaced_exercise_slug: change.replacedExerciseSlug,
         sets: sets(change.sets),
       };
-    case "remove_exercise":
+    }
+    case "remove_exercise": {
       return { exercise_slug: change.exerciseSlug, kind: change.kind };
-    default:
+    }
+    default: {
       return {
         exercise_slug: change.exerciseSlug,
         kind: change.kind,
         sets: sets(change.sets),
       };
+    }
   }
 };
 
@@ -517,6 +555,7 @@ const planUpdate = async (
   `);
   const units = await lockProfileUnits(tx, userId);
   const weightUnit = units?.weight ?? "kg";
+
   const ofUser = and(
     eq(workoutSessions.id, sessionId),
     eq(workoutSessions.userId, userId)
@@ -526,6 +565,7 @@ const planUpdate = async (
     .select({ workoutId: workoutSessions.workoutId })
     .from(workoutSessions)
     .where(ofUser);
+
   if (!sessionWorkout) {
     return null;
   }
@@ -539,6 +579,7 @@ const planUpdate = async (
         planName: string | null;
       }
     | undefined;
+
   if (sessionWorkout.workoutId) {
     await tx
       .select({ id: plans.id })
@@ -574,6 +615,7 @@ const planUpdate = async (
         )
       )
       .for("no key update", { of: workouts });
+
     if (workout) {
       await tx
         .select({ id: workoutExercises.id })
@@ -593,6 +635,7 @@ const planUpdate = async (
     .from(workoutSessions)
     .where(ofUser)
     .for("no key update");
+
   if (!session) {
     return null;
   }
@@ -604,6 +647,7 @@ const planUpdate = async (
   }
 
   let changes: PlannedChange[] = [];
+
   if (
     session.finishedAt !== null &&
     session.appliedAt === null &&
@@ -611,6 +655,7 @@ const planUpdate = async (
   ) {
     const slots = await loadSlots(tx, sessionId, workout.id);
     changes = slots.flatMap((slot) => planChange(slot) ?? []);
+
     if (apply) {
       await applyChanges(tx, sessionId, workout.id, changes);
     }
@@ -628,7 +673,7 @@ const planUpdate = async (
  * The Plan Update of one of the User's Workout Sessions, without writing
  * anything; `null` when the User has no such Workout Session.
  */
-export const previewPlanUpdate = (
+export const previewPlanUpdate = async (
   tx: Transaction,
   userId: string,
   sessionId: string
@@ -639,7 +684,7 @@ export const previewPlanUpdate = (
  * what it applied; `null` when the User has no such Workout Session. Once
  * applied, both modes answer no changes, so a repeat writes nothing.
  */
-export const applyPlanUpdate = (
+export const applyPlanUpdate = async (
   tx: Transaction,
   userId: string,
   sessionId: string

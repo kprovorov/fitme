@@ -33,14 +33,14 @@ CI runs the suite on every pull request (`.github/workflows/integration-tests.ym
 
 See `.env.example`. The variables are read from the process environment (Vercel project settings in production); `.env` files are not loaded automatically.
 
-| Variable            | Purpose                                                                 |
-| ------------------- | ----------------------------------------------------------------------- |
-| `PORT`              | Port for `pnpm dev` / `pnpm start` (default 3002).                      |
-| `CLERK_SECRET_KEY`  | Secret key of the Clerk instance that issues OAuth access tokens.       |
-| `CLERK_PUBLISHABLE_KEY` | Its publishable key; names the instance in the OAuth metadata.      |
+| Variable | Purpose |
+| --- | --- |
+| `PORT` | Port for `pnpm dev` / `pnpm start` (default 3002). |
+| `CLERK_SECRET_KEY` | Secret key of the Clerk instance that issues OAuth access tokens. |
+| `CLERK_PUBLISHABLE_KEY` | Its publishable key; names the instance in the OAuth metadata. |
 | `FITME_DATABASE_URL` | The `fitme` login's Supavisor transaction-pooler URL with `?application_name=mcp`; the user tools run through it (`asUser`). Service-role strength. |
-| `MCP_PUBLIC_URL`    | Public URL advertised as the OAuth resource; set it in production.     |
-| `LIBRARY_URL`     | The Library API (`apps/library`; `http://localhost:3006` locally, `https://library.fitmeproject.com` deployed). |
+| `MCP_PUBLIC_URL` | Public URL advertised as the OAuth resource; set it in production. |
+| `LIBRARY_URL` | The Library API (`apps/library`; `http://localhost:3006` locally, `https://library.fitmeproject.com` deployed). |
 | `LIBRARY_MCP_SECRET` | The MCP server's bearer for the Library API; the same value as the Library API's MCP secret (`LIBRARY_MCP_SECRET` in `apps/library`). Production's never leaves Vercel. |
 
 The MCP endpoint fails closed: without `CLERK_SECRET_KEY`, `CLERK_PUBLISHABLE_KEY` or `FITME_DATABASE_URL` it answers **HTTP 500** to every request instead of serving without auth. Production uses the production Clerk instance; every other environment uses the development instance.
@@ -66,29 +66,29 @@ Inside a request that passed the check:
 
 Weights are stored and returned in the user's unit (kg for the `metric` measurement system, lbs for `us`/`uk`) and are never converted. Heights are cm or inches.
 
-| Tool                     | Description                                                                                      |
-| ------------------------ | ------------------------------------------------------------------------------------------------ |
-| `ping`                   | Server name and version.                                                                         |
-| `list_muscle_groups`     | Muscle group ids and names.                                                                      |
-| `list_equipment`         | Equipment ids and names (`bodyweight` means an Exercise needs no gear).                          |
-| `list_plan_options`      | Valid goals, places and experience levels.                                                       |
-| `describe_muscle_group`  | Display name for a muscle group id.                                                              |
-| `get_profile`            | Gender, age, height, weight, measurement system and units.                                       |
-| `list_exercises`         | Search the Library by name / muscle group (paginated); each row's `slug` is the `exercise_slug` plans take. |
-| `get_exercise`           | Full Exercise details by slug (description, instructions, media, `equipment` ids).               |
-| `get_exercise_history`   | The user's logged sets for an Exercise slug, one entry per session-exercise row.                 |
-| `list_plans`             | The user's plans with a workout summary.                                                         |
-| `get_plan`               | Full plan: workouts → exercises → sets, in order.                                                |
-| `create_plan`            | Create a plan (in one transaction); it becomes the active plan.                                  |
-| `update_plan`            | Update metadata in place, or replace all workouts (in one transaction; workout ids change).       |
-| `delete_plan`            | Soft delete (`deleted_at`) and deactivate; repeating it is a no-op (`alreadyDeleted`).           |
-| `activate_plan`          | Make a plan the active one (in one transaction); returns the plan summary.                       |
-| `start_workout_session`  | Start a session from a plan workout, or resume its open session (`resumed: true`).               |
-| `get_workout_session`    | Session with exercises and sets; set ids feed `log_set`.                                         |
-| `list_workout_sessions`  | Sessions filtered by `all` / `in_progress` / `finished`.                                          |
-| `log_set`                | Record reps and weight for a session set.                                                        |
-| `finish_workout_session` | Finish a session and rotate its workout (`rotated`); no-op if already finished.                  |
-| `delete_workout_session` | Permanently delete a session and its sets (errors if nothing was deleted).                       |
+| Tool | Description |
+| --- | --- |
+| `ping` | Server name and version. |
+| `list_muscle_groups` | Muscle group ids and names. |
+| `list_equipment` | Equipment ids and names (`bodyweight` means an Exercise needs no gear). |
+| `list_plan_options` | Valid goals, places and experience levels. |
+| `describe_muscle_group` | Display name for a muscle group id. |
+| `get_profile` | Gender, age, height, weight, measurement system and units. |
+| `list_exercises` | Search the Library by name / muscle group (paginated); each row's `slug` is the `exercise_slug` plans take. |
+| `get_exercise` | Full Exercise details by slug (description, instructions, media, `equipment` ids). |
+| `get_exercise_history` | The user's logged sets for an Exercise slug, one entry per session-exercise row. |
+| `list_plans` | The user's plans with a workout summary. |
+| `get_plan` | Full plan: workouts → exercises → sets, in order. |
+| `create_plan` | Create a plan (in one transaction); it becomes the active plan. |
+| `update_plan` | Update metadata in place, or replace all workouts (in one transaction; workout ids change). |
+| `delete_plan` | Soft delete (`deleted_at`) and deactivate; repeating it is a no-op (`alreadyDeleted`). |
+| `activate_plan` | Make a plan the active one (in one transaction); returns the plan summary. |
+| `start_workout_session` | Start a session from a plan workout, or resume its open session (`resumed: true`). |
+| `get_workout_session` | Session with exercises and sets; set ids feed `log_set`. |
+| `list_workout_sessions` | Sessions filtered by `all` / `in_progress` / `finished`. |
+| `log_set` | Record reps and weight for a session set. |
+| `finish_workout_session` | Finish a session and rotate its workout (`rotated`); no-op if already finished. |
+| `delete_workout_session` | Permanently delete a session and its sets (errors if nothing was deleted). |
 
 ## Connecting
 

@@ -10,6 +10,7 @@ interface Failure {
 const failureError = (type: string, { code, message }: Failure): Error => {
   const error = new Error(`${type} ${code}: ${message}`);
   error.name = `Arnold ${type}`;
+
   return error;
 };
 

@@ -1,8 +1,11 @@
 import { describe, expect, it } from "@jest/globals";
 import { render, screen } from "@testing-library/react-native";
+import { describe, expect, it } from "vitest";
+
 import type { FullPlan } from "~/hooks/queries/plans";
 import { setDeviceLanguages } from "~/test-utils/device-locales";
 import { InAppLanguage } from "~/test-utils/in-app-language";
+
 import PlanHeader from "../plan-header";
 
 const plan = {
@@ -21,7 +24,7 @@ const renderHeader = () =>
     </InAppLanguage>
   );
 
-describe("PlanHeader", () => {
+describe(PlanHeader, () => {
   it("shows the Plan's name, its frequency, goal and place badges, and its description", async () => {
     await renderHeader();
 

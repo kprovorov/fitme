@@ -8,7 +8,8 @@
  * `ref` answers `clearText` / `setText` like the native bar. Use it as
  * `Stack.Screen` in a `jest.mock("expo-router", …)` factory through `jest.requireActual("~/test-utils/stack-screen-stub")`.
  */
-import { type Ref, useImperativeHandle, useState } from "react";
+import { useImperativeHandle, useState } from "react";
+import type { Ref } from "react";
 import { Pressable, Text, TextInput } from "react-native";
 import type { SearchBarCommands, SearchBarProps } from "react-native-screens";
 
@@ -22,26 +23,30 @@ export const SearchBar = ({
   options: SearchBarProps & { ref?: Ref<SearchBarCommands> };
 }) => {
   const [text, setText] = useState("");
+
   const change = (next: string) => {
     setText(next);
     options.onChangeText?.({ nativeEvent: { text: next } } as Parameters<
       NonNullable<SearchBarProps["onChangeText"]>
     >[0]);
   };
+
   useImperativeHandle(options.ref, () => ({
-    blur: () => undefined,
+    blur: () => {},
     cancelSearch: () => setText(""),
     clearText: () => setText(""),
-    focus: () => undefined,
+    focus: () => {},
     setText,
-    toggleCancelButton: () => undefined,
+    toggleCancelButton: () => {},
   }));
+
   const cancel = () => {
     setText("");
     options.onCancelButtonPress?.(
       {} as Parameters<NonNullable<SearchBarProps["onCancelButtonPress"]>>[0]
     );
   };
+
   return (
     <>
       <TextInput

@@ -3,6 +3,7 @@ import { router } from "expo-router";
 import { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { ActivityIndicator, AppState, Pressable, View } from "react-native";
+
 import { AuthHeader } from "~/components/auth/auth-header";
 import { AuthSwitch } from "~/components/auth/auth-links";
 import { AuthScreen } from "~/components/auth/auth-screen";
@@ -20,6 +21,7 @@ import { IS_E2E } from "~/lib/constants";
 import { segmentClient } from "~/lib/segment";
 
 const RESEND_DELAY = 60_000;
+
 interface CodeVerification {
   available: boolean;
   email: string | null;
@@ -30,9 +32,11 @@ interface CodeVerification {
   }>;
   verify: (code: string, current: () => boolean) => Promise<string | undefined>;
 }
+
 function useSignUpVerification(): CodeVerification {
   const { signUp } = useSignUp();
   const { t } = useTranslation();
+
   return {
     available:
       !!signUp.id &&
@@ -44,33 +48,42 @@ function useSignUpVerification(): CodeVerification {
     id: signUp.id ?? null,
     resend: async () => {
       const { error } = await signUp.verifications.sendEmailCode();
+
       return error ? getAuthErrorMessage(error) : undefined;
     },
     reset: () => signUp.reset(),
     verify: async (code, current) => {
       const { error } = await signUp.verifications.verifyEmailCode({ code });
+
       if (!current()) {
         return;
       }
+
       if (error) {
         return getAuthErrorMessage(error);
       }
+
       if (signUp.status !== "complete") {
         return t("verifyCode.errors.signUpIncomplete");
       }
+
       const { error: finalizeError } = await signUp.finalize();
+
       if (finalizeError) {
         return getAuthErrorMessage(finalizeError);
       }
+
       if (!IS_E2E) {
         segmentClient.track("User Registered");
       }
     },
   };
 }
+
 function useResetPasswordVerification(): CodeVerification {
   const { signIn } = useSignIn();
   const { t } = useTranslation();
+
   return {
     available:
       !!signIn.id &&
@@ -84,6 +97,7 @@ function useResetPasswordVerification(): CodeVerification {
     id: signIn.id ?? null,
     resend: async () => {
       const { error } = await signIn.resetPasswordEmailCode.sendCode();
+
       return error ? getAuthErrorMessage(error) : undefined;
     },
     reset: () => signIn.reset(),
@@ -91,22 +105,28 @@ function useResetPasswordVerification(): CodeVerification {
       const { error } = await signIn.resetPasswordEmailCode.verifyCode({
         code,
       });
+
       if (!current()) {
         return;
       }
+
       if (error) {
         return getAuthErrorMessage(error);
       }
+
       if (signIn.status !== "needs_new_password") {
         return t("verifyCode.errors.resetIncomplete");
       }
+
       router.replace("/auth/reset-password");
     },
   };
 }
+
 function useSignInVerification(source: VerificationSource): CodeVerification {
   const { signIn } = useSignIn();
   const { t } = useTranslation();
+
   return {
     available:
       !!signIn.id &&
@@ -121,30 +141,38 @@ function useSignInVerification(source: VerificationSource): CodeVerification {
     id: signIn.id ?? null,
     resend: async () => {
       const { error } = await signIn.mfa.sendEmailCode();
+
       return error ? getAuthErrorMessage(error) : undefined;
     },
     reset: () => signIn.reset(),
     verify: async (code, current) => {
       const { error } = await signIn.mfa.verifyEmailCode({ code });
+
       if (!current()) {
         return;
       }
+
       if (error) {
         return getAuthErrorMessage(error);
       }
+
       if (signIn.status !== "complete") {
         return t("verifyCode.errors.signInIncomplete");
       }
+
       const { error: finalizeError } = await signIn.finalize();
+
       if (finalizeError) {
         return getAuthErrorMessage(finalizeError);
       }
+
       if (source !== "reset-password" && !IS_E2E) {
         segmentClient.track("User Logged In");
       }
     },
   };
 }
+
 export default function VerifyCodeView({
   purpose,
   source = "reset-password",
@@ -158,7 +186,9 @@ export default function VerifyCodeView({
     "sign-in": useSignInVerification(source),
     "sign-up": useSignUpVerification(),
   };
+
   const flow = verifications[purpose];
+
   return (
     <CodeVerificationContent
       flow={flow}
@@ -187,42 +217,52 @@ function CodeVerificationContent({
     if (!(flow.available && coolingDown)) {
       return;
     }
+
     const update = () => setNow(Date.now());
     const timer = setInterval(update, 1000);
     const subscription = AppState.addEventListener("change", update);
+
     return () => {
       clearInterval(timer);
       subscription.remove();
     };
   }, [flow.available, coolingDown]);
+
   const restartHref =
     purpose === "sign-up"
       ? "/auth/register"
       : purpose === "sign-in"
         ? "/auth/login"
         : "/auth/forgot-password";
+
   const restart = useCallback(
     () =>
       operation.run("restart", async (current) => {
         const { error } = await flow.reset();
+
         if (!current()) {
           return;
         }
+
         if (error) {
           return getAuthErrorMessage(error);
         }
+
         router.replace(restartHref);
       }),
     [flow, operation, restartHref]
   );
+
   const handleVerify = useCallback(
     () =>
       operation.run("verify", (current) => {
         setNotice(undefined);
+
         return flow.verify(code, current);
       }),
     [code, flow, operation]
   );
+
   const changeCode = useCallback(
     (value: string) => {
       setCode(value);
@@ -231,17 +271,21 @@ function CodeVerificationContent({
     },
     [operation]
   );
+
   const resendCode = useCallback(
     () =>
       operation.run("resend", async (current) => {
         setNotice(undefined);
         const error = await flow.resend();
+
         if (!current()) {
           return;
         }
+
         if (error) {
           return error;
         }
+
         setCode("");
         setResendAt(Date.now() + RESEND_DELAY);
         setNow(Date.now());
@@ -249,6 +293,7 @@ function CodeVerificationContent({
       }),
     [flow, operation, t]
   );
+
   if (!flow.available) {
     return (
       <AuthScreen
@@ -273,14 +318,17 @@ function CodeVerificationContent({
       </AuthScreen>
     );
   }
+
   const resending = operation.pending === "resend";
   const resendDisabled = remaining > 0 || operation.pending !== null;
+
   const resendLabel =
     remaining > 0
       ? t("verifyCode.resendIn", {
           time: `${Math.floor(remaining / 60)}:${String(remaining % 60).padStart(2, "0")}`,
         })
       : t("verifyCode.resendButton");
+
   return (
     <AuthScreen
       action={

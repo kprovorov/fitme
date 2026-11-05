@@ -3,6 +3,7 @@ import * as Sentry from "@sentry/react-native";
 import { useQueryClient } from "@tanstack/react-query";
 import { useEffect, useRef } from "react";
 import Purchases from "react-native-purchases";
+
 import { clearArnoldAttachments } from "~/hooks/arnold-attachments";
 import { IS_E2E } from "~/lib/constants";
 import { segmentClient } from "~/lib/segment";
@@ -34,10 +35,12 @@ export default function AuthSync() {
         // Photos picked but never sent are a draft of theirs, like the
         // query cache: whoever signs in next never meets them.
         clearArnoldAttachments();
+
         if (!IS_E2E) {
           Purchases.logOut().catch(Sentry.captureException);
         }
       }
+
       return;
     }
 
@@ -62,12 +65,16 @@ export default function AuthSync() {
         await Purchases.logIn(userId);
         await queryClient.invalidateQueries({ queryKey: ["rc-is-pro"] });
       }
+
       await Purchases.setEmail(email);
+
       if (name) {
         await Purchases.setDisplayName(name);
       }
+
       await segmentClient.identify(userId, { email, name });
     };
+
     identify().catch(Sentry.captureException);
   }, [email, isLoaded, name, queryClient, userId]);
 
@@ -75,9 +82,12 @@ export default function AuthSync() {
     if (IS_E2E) {
       return;
     }
+
     const listener = () =>
       queryClient.invalidateQueries({ queryKey: ["rc-is-pro"] });
+
     Purchases.addCustomerInfoUpdateListener(listener);
+
     return () => {
       Purchases.removeCustomerInfoUpdateListener(listener);
     };

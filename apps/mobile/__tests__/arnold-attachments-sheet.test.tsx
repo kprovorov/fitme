@@ -5,24 +5,38 @@
  */
 import { describe, expect, it, jest } from "@jest/globals";
 import { render, screen } from "@testing-library/react-native";
+import { describe, expect, it } from "vitest";
+
 import AddToChatSheet from "~/app/(tabs)/arnold/attachments";
 import { setDeviceLanguages } from "~/test-utils/device-locales";
 import { InAppLanguage } from "~/test-utils/in-app-language";
 
-jest.mock("@/components/symbol-image", () => ({ SymbolImage: () => null }));
-jest.mock("expo-router/react-navigation", () => ({ useHeaderHeight: () => 0 }));
+jest.mock<typeof import("@/components/symbol-image")>(
+  import("@/components/symbol-image"),
+  () => ({ SymbolImage: () => null })
+);
+
+jest.mock<typeof import("expo-router/react-navigation")>(
+  import("expo-router/react-navigation"),
+  () => ({ useHeaderHeight: () => 0 })
+);
 
 // expo-router's own module can't load under Jest (an ESM dependency), and
 // the sheet only needs the pop that follows a pick.
-jest.mock("expo-router", () => {
+jest.mock<typeof import("expo-router")>(import("expo-router"), () => {
   const stub = jest.requireActual<typeof import("~/test-utils/router-stub")>(
     "~/test-utils/router-stub"
   );
+
   return { useRouter: () => stub.stubRouter };
 });
-jest.mock("react-native-safe-area-context", () => ({
-  useSafeAreaInsets: () => ({ bottom: 0, left: 0, right: 0, top: 0 }),
-}));
+
+jest.mock<typeof import("react-native-safe-area-context")>(
+  import("react-native-safe-area-context"),
+  () => ({
+    useSafeAreaInsets: () => ({ bottom: 0, left: 0, right: 0, top: 0 }),
+  })
+);
 
 /** The mockup's controls, as it worded them before the catalogs dropped them. */
 const DROPPED = {
@@ -52,13 +66,14 @@ const renderSheet = async () => {
   );
 };
 
-describe("Arnold's attachments sheet", () => {
+describe("arnold's attachments sheet", () => {
   it("offers only Camera and Photos on an English device", async () => {
     await renderSheet();
 
     // Buttons, not labelled slabs: VoiceOver has to offer them as actions.
     expect(screen.getByRole("button", { name: "Camera" })).toBeTruthy();
     expect(screen.getByRole("button", { name: "Photos" })).toBeTruthy();
+
     for (const dropped of DROPPED.en) {
       expect(screen.queryByText(dropped)).toBeNull();
     }
@@ -71,6 +86,7 @@ describe("Arnold's attachments sheet", () => {
     expect(screen.getByRole("button", { name: "Камера" })).toBeTruthy();
     expect(screen.getByRole("button", { name: "Фото" })).toBeTruthy();
     expect(screen.queryByText("Camera")).toBeNull();
+
     for (const dropped of DROPPED.uk) {
       expect(screen.queryByText(dropped)).toBeNull();
     }

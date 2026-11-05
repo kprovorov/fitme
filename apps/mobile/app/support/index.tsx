@@ -2,6 +2,7 @@ import { Stack } from "expo-router";
 import { useTranslation } from "react-i18next";
 import { ScrollView, View } from "react-native";
 import { useCSSVariable } from "uniwind";
+
 import Instagram from "~/components/icons/social/instagram";
 import Threads from "~/components/icons/social/threads";
 import X from "~/components/icons/social/x";
@@ -23,8 +24,10 @@ const SUPPORT_EMAIL = "support@fitmeproject.com";
 
 const openSupportEmail = () => openUrl(`mailto:${SUPPORT_EMAIL}`);
 const openX = () => openUrl("https://x.com/fitmeproject");
+
 const openInstagram = () =>
   openUrl("https://www.instagram.com/fitmeprojectcom");
+
 const openThreads = () => openUrl("https://www.threads.net/@fitmeprojectcom");
 
 export default function SupportScreen() {

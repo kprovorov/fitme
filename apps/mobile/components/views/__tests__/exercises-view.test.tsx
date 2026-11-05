@@ -1,3 +1,4 @@
+import type { MuscleGroup } from "@fitme/core";
 /**
  * The Library tab and the Exercise picker search the Library API
  * (FIT-242): search waits 300 ms after the last keystroke, the muscle group
@@ -11,13 +12,11 @@
  * as the Muscles sheet confirms it (`setMuscleChoice`); the sheet itself is
  * `__tests__/muscles-sheet.test.tsx`'s.
  */
-
-import type { MuscleGroup } from "@fitme/core";
 import {
-  type ExerciseSummary,
   LibraryRateLimitedError,
   LibraryUnavailableError,
 } from "@fitme/library-sdk";
+import type { ExerciseSummary } from "@fitme/library-sdk";
 import type { FakeLibrary } from "@fitme/library-sdk/fake";
 import {
   afterEach,
@@ -27,7 +26,8 @@ import {
   it,
   jest,
 } from "@jest/globals";
-import { type QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { QueryClientProvider } from "@tanstack/react-query";
+import type { QueryClient } from "@tanstack/react-query";
 import {
   act,
   fireEvent,
@@ -37,6 +37,8 @@ import {
 } from "@testing-library/react-native";
 import type { ReactNode } from "react";
 import { Text } from "react-native";
+import { it, afterEach, describe, expect, beforeEach } from "vitest";
+
 import { getMuscleChoice, setMuscleChoice } from "~/hooks/muscle-choice";
 import { i18n, useAppLanguageSync } from "~/lib/i18n";
 import { readCachedSummary } from "~/lib/library-cache";
@@ -46,21 +48,35 @@ import { libraryExercise, serveLibrary } from "~/test-utils/fake-library";
 import { createTestQueryClient } from "~/test-utils/query-client";
 import { SearchedExercisesView } from "~/test-utils/searched-exercises-view";
 
-jest.mock(
-  "~/lib/library",
+jest.mock<typeof import("~/lib/library")>(
+  import("~/lib/library"),
   () =>
     jest.requireActual<typeof import("~/test-utils/fake-library")>(
       "~/test-utils/fake-library"
     ).libraryModule
 );
-jest.mock("~/components/ui/button", () =>
-  jest.requireActual("~/test-utils/button-stub")
+
+jest.mock<typeof import("~/components/ui/button")>(
+  import("~/components/ui/button"),
+  () => jest.requireActual("~/test-utils/button-stub")
 );
+
 const mockPush = jest.fn();
-jest.mock("expo-router", () => ({ useRouter: () => ({ push: mockPush }) }));
+
+jest.mock<typeof import("expo-router")>(import("expo-router"), () => ({
+  useRouter: () => ({ push: mockPush }),
+}));
+
 // A thumbnail shows as nothing.
-jest.mock("~/components/exercises/exercise-image", () => () => null);
-jest.mock("~/components/symbol-image", () => ({ SymbolImage: () => null }));
+jest.mock<typeof import("~/components/exercises/exercise-image")>(
+  import("~/components/exercises/exercise-image"),
+  () => () => null
+);
+
+jest.mock<typeof import("~/components/symbol-image")>(
+  import("~/components/symbol-image"),
+  () => ({ SymbolImage: () => null })
+);
 
 /** 25 bench presses (two pages of 20) and a squat. */
 const EXERCISES = [
@@ -72,8 +88,10 @@ const EXERCISES = [
 
 const COULD_NOT_LOAD = /Couldn't load/;
 const LOAD_MORE = /load more$/i;
+
 const LOAD_MORE_ERROR =
   "Couldn't load more exercises. Check your connection and try again.";
+
 /** Any row's subtitle: Muscle groups, one or joined with ", ". */
 const MUSCLE_GROUP_SUBTITLE = /, |^(Triceps|Chest)$/;
 
@@ -152,6 +170,7 @@ const reachEnd = async () => {
 const type = async (text: string) => {
   // Labelled in the App language.
   const input = screen.getByLabelText(i18n.t("library.search"));
+
   for (const end of text.split("").keys()) {
     // biome-ignore lint/performance/noAwaitInLoops: keystrokes come one after another
     await fireEvent.changeText(input, text.slice(0, end + 1));
@@ -175,7 +194,7 @@ describe("searching the Library", () => {
   it("lists the first page of every Exercise at once", async () => {
     await renderView();
 
-    expect(list).toHaveBeenCalledTimes(1);
+    expect(list).toHaveBeenCalledOnce();
     expect(list).toHaveBeenLastCalledWith({ limit: 20, offset: 0 });
     expect(screen.getByText("Bench Press 01")).toBeTruthy();
     expect(screen.queryByText("Bench Press 21")).toBeNull();
@@ -191,7 +210,7 @@ describe("searching the Library", () => {
     expect(list).not.toHaveBeenCalled();
 
     await advance(50);
-    expect(list).toHaveBeenCalledTimes(1);
+    expect(list).toHaveBeenCalledOnce();
     expect(list).toHaveBeenLastCalledWith({
       limit: 20,
       offset: 0,
@@ -307,7 +326,7 @@ describe("filtering and paging", () => {
     await fireEvent.press(screen.getByRole("button", { name: "Remove Chest" }));
     await advance(0);
 
-    expect(list).toHaveBeenCalledTimes(1);
+    expect(list).toHaveBeenCalledOnce();
     expect(list).toHaveBeenLastCalledWith({
       limit: 20,
       muscleGroups: ["quadriceps"],
@@ -333,7 +352,7 @@ describe("filtering and paging", () => {
     await chooseMuscleGroups("quadriceps");
     await advance(0);
 
-    expect(list).toHaveBeenCalledTimes(1);
+    expect(list).toHaveBeenCalledOnce();
     expect(list).toHaveBeenLastCalledWith({
       limit: 20,
       muscleGroups: ["quadriceps"],
@@ -422,7 +441,7 @@ describe("filtering and paging", () => {
     await chooseMuscleGroups("quadriceps");
     await advance(0);
 
-    expect(list).toHaveBeenCalledTimes(1);
+    expect(list).toHaveBeenCalledOnce();
     expect(list).toHaveBeenLastCalledWith({
       limit: 20,
       muscleGroups: ["quadriceps"],
@@ -451,7 +470,7 @@ describe("filtering and paging", () => {
     await reachEnd();
     await advance(0);
 
-    expect(list).toHaveBeenCalledTimes(1);
+    expect(list).toHaveBeenCalledOnce();
     expect(list).toHaveBeenLastCalledWith({
       limit: 20,
       offset: 20,
@@ -461,7 +480,7 @@ describe("filtering and paging", () => {
 
     await reachEnd();
     await advance(0);
-    expect(list).toHaveBeenCalledTimes(1);
+    expect(list).toHaveBeenCalledOnce();
   });
 
   it("has no Load More button", async () => {
@@ -503,7 +522,7 @@ describe("filtering and paging", () => {
     await reachEnd();
     await advance(30_000);
 
-    expect(list).toHaveBeenCalledTimes(1);
+    expect(list).toHaveBeenCalledOnce();
     expect(list).toHaveBeenLastCalledWith({ limit: 20, offset: 20 });
   });
 });
@@ -733,6 +752,7 @@ const TRANSLATED = [
 
 function InAppLanguage({ children }: { children: ReactNode }) {
   useAppLanguageSync();
+
   return children;
 }
 
@@ -842,7 +862,7 @@ describe("in Ukrainian", () => {
     });
     await advance(0);
 
-    expect(list).toHaveBeenCalledTimes(1);
+    expect(list).toHaveBeenCalledOnce();
     expect(list).toHaveBeenLastCalledWith({
       limit: 20,
       offset: 0,

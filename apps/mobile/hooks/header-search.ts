@@ -27,6 +27,7 @@ export function useHeaderSearch({
 
   const onSearchChange = useCallback((text: string) => {
     setSearch(text);
+
     if (text === "") {
       searchBar.current?.clearText();
     }

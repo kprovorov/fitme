@@ -1,10 +1,10 @@
 import {
-  type AppLanguage,
   appLanguages,
   defaultAppLanguage,
   equipment,
   muscleGroups,
 } from "@fitme/core/models";
+import type { AppLanguage } from "@fitme/core/models";
 import { z } from "zod";
 
 /**
@@ -19,8 +19,10 @@ export const BUNDLE_VERSION = 1;
 
 /** The permanent Exercise identifier, e.g. `bench-press`. */
 const SLUG = /^[a-z0-9]+(-[a-z0-9]+)*$/;
+
 /** A Git LFS object id: the sha256 of the file's content. */
 const OID = /^[0-9a-f]{64}$/;
+
 /** The permanent Cover identifier: a lowercase uuid. */
 const COVER_ID =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
@@ -69,9 +71,10 @@ const Locales = z.strictObject(
     ...Object.fromEntries(
       translatedLanguages.map((language) => [language, ExerciseText.optional()])
     ),
-  } as { en: typeof ExerciseText } & {
-    [Language in TranslatedLanguage]: z.ZodOptional<typeof ExerciseText>;
-  },
+  } as { en: typeof ExerciseText } & Record<
+    TranslatedLanguage,
+    z.ZodOptional<typeof ExerciseText>
+  >,
   {
     error: (issue) =>
       issue.code === "unrecognized_keys"
@@ -134,6 +137,7 @@ const unique =
   ) =>
   (items: Item[], ctx: z.RefinementCtx) => {
     const seen = new Set<Item[Field]>();
+
     for (const [index, item] of items.entries()) {
       if (seen.has(item[field])) {
         ctx.addIssue({
@@ -142,6 +146,7 @@ const unique =
           path: [index, field],
         });
       }
+
       seen.add(item[field]);
     }
   };
@@ -163,8 +168,11 @@ export const LibraryBundle = z.strictObject({
 });
 
 export type BundleCover = z.infer<typeof BundleCover>;
+
 export type BundleExercise = z.infer<typeof BundleExercise>;
+
 export type LibraryBundle = z.infer<typeof LibraryBundle>;
+
 export type BundleMedia =
   | BundleExercise["thumbnail" | "video"]
   | BundleCover["image"];

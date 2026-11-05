@@ -9,6 +9,7 @@ import {
 } from "@fitme/i18n";
 import { Fragment, useMemo } from "react";
 import { useTranslation } from "react-i18next";
+
 import { Button } from "~/components/ui/button";
 import { HStack } from "~/components/ui/hstack";
 import { Separator } from "~/components/ui/separator";
@@ -17,6 +18,7 @@ import { VStack } from "~/components/ui/vstack";
 import { useExercises } from "~/hooks/queries/library";
 import type { WorkoutSession } from "~/hooks/queries/workout-sessions";
 import { useI18n } from "~/lib/i18n";
+
 import {
   WorkoutSessionSummaryBodyBack,
   WorkoutSessionSummaryBodyFront,
@@ -50,6 +52,7 @@ export default function WorkoutSessionSummaryView({
   const shownBySlug = useExercises(
     exercises.map(({ exercise_slug }) => exercise_slug)
   );
+
   const muscleGroups = new Set<MuscleGroup>(
     exercises.flatMap(
       ({ exercise_slug }) => shownBySlug[exercise_slug]?.muscle_groups ?? []
@@ -74,12 +77,12 @@ export default function WorkoutSessionSummaryView({
   );
 
   return (
-    <VStack className="w-full items-stretch gap-md">
-      <Text className="text-center text-primary text-title-1-emphasized">
+    <VStack className="gap-md w-full items-stretch">
+      <Text className="text-primary text-title-1-emphasized text-center">
         {t("workoutSummary.title")}
       </Text>
 
-      <HStack className="items-start justify-between px-md">
+      <HStack className="px-md items-start justify-between">
         <VStack className="items-start gap-4">
           <WorkoutSessionSummaryStat
             icon="clock"
@@ -122,7 +125,7 @@ export default function WorkoutSessionSummaryView({
 
       <Separator />
 
-      <VStack className="w-full items-stretch gap-md">
+      <VStack className="gap-md w-full items-stretch">
         {exercises.map((exercise, index) => (
           <Fragment key={exercise.id}>
             {index > 0 && <Separator />}
@@ -139,7 +142,7 @@ export default function WorkoutSessionSummaryView({
 
       <Separator />
 
-      <VStack className="w-full px-md">
+      <VStack className="px-md w-full">
         <Button
           className="w-full"
           icon="arrow.right"

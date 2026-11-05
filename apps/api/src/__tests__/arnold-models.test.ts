@@ -1,5 +1,6 @@
 import { arnoldModels, defaultArnoldModelId } from "@fitme/core";
 import { describe, expect, it } from "vitest";
+
 import { createApp } from "../create-app.js";
 import { signedInAs, testApp } from "../test/harness.js";
 
@@ -7,10 +8,11 @@ const app = createApp();
 
 const getModels = async (path: string) => {
   const response = await app.request(path);
+
   return { body: await response.json(), response };
 };
 
-describe("GET /v1/arnold/models", () => {
+describe("gET /v1/arnold/models", () => {
   const path = "/v1/arnold/models";
 
   it("answers without a token", async () => {
@@ -53,14 +55,14 @@ describe("GET /v1/arnold/models", () => {
 
 // The pre-rename route, removed once the minimum version gate (2.2.0) cut off
 // the builds that read it
-describe("GET /v1/coach/models", () => {
+describe("gET /v1/coach/models", () => {
   it("is gone", async () => {
     const response = await testApp().app.request("/v1/coach/models", {
       headers: signedInAs("user_alice"),
     });
 
     expect(response.status).toBe(404);
-    expect(await response.json()).toMatchObject({
+    await expect(response.json()).resolves.toMatchObject({
       error: { code: "not_found" },
     });
   });

@@ -1,7 +1,10 @@
-import "~/test-utils/auth-ui";
 import { beforeEach, describe, expect, it, jest } from "@jest/globals";
+
+import "~/test-utils/auth-ui";
 import { fireEvent, render, screen } from "@testing-library/react-native";
 import { router } from "expo-router";
+import { it, describe, expect, beforeEach } from "vitest";
+
 import ResetPasswordView from "../reset-password-view";
 
 const NEW_PASSWORD = "eight888";
@@ -34,7 +37,9 @@ const mockSignIn = {
           ),
         });
       }
+
       mockSignIn.status = mockStatusAfterReset;
+
       return Promise.resolve({ error: null });
     }),
   },
@@ -42,18 +47,25 @@ const mockSignIn = {
   supportedSecondFactors: [{ strategy: "email_code" }],
 };
 
-jest.mock("@clerk/expo", () => ({
+jest.mock<typeof import("@clerk/expo")>(import("@clerk/expo"), () => ({
   isClerkAPIResponseError: (error: { isClerkApiError?: boolean }) =>
     error.isClerkApiError === true,
   useAuth: () => ({ isSignedIn: false }),
   useSignIn: () => ({ fetchStatus: "idle", signIn: mockSignIn }),
 }));
-jest.mock("@clerk/expo/token-cache", () => ({ tokenCache: {} }));
-jest.mock("expo-router", () => ({
+
+jest.mock<typeof import("@clerk/expo/token-cache")>(
+  import("@clerk/expo/token-cache"),
+  () => ({ tokenCache: {} })
+);
+
+jest.mock<typeof import("expo-router")>(import("expo-router"), () => ({
   router: { push: jest.fn(), replace: jest.fn() },
 }));
-jest.mock("~/components/ui/button", () =>
-  jest.requireActual("~/test-utils/button-stub")
+
+jest.mock<typeof import("~/components/ui/button")>(
+  import("~/components/ui/button"),
+  () => jest.requireActual("~/test-utils/button-stub")
 );
 
 const submitNewPassword = async (password: string) => {
@@ -76,7 +88,7 @@ beforeEach(() => {
   mockStatusAfterReset = "complete";
 });
 
-describe("ResetPasswordView", () => {
+describe(ResetPasswordView, () => {
   it("sets the new password and signs the User in", async () => {
     await render(<ResetPasswordView />);
 
@@ -85,7 +97,7 @@ describe("ResetPasswordView", () => {
     expect(
       mockSignIn.resetPasswordEmailCode.submitPassword
     ).toHaveBeenCalledWith({ password: NEW_PASSWORD });
-    expect(mockSignIn.finalize).toHaveBeenCalledTimes(1);
+    expect(mockSignIn.finalize).toHaveBeenCalledOnce();
   });
 
   it("rejects a password shorter than Clerk's minimum before calling Clerk", async () => {
@@ -116,18 +128,18 @@ describe("ResetPasswordView", () => {
     expect(
       screen.queryByText("Password has been found in an online data breach.")
     ).toBeNull();
-    expect(mockSignIn.finalize).toHaveBeenCalledTimes(1);
+    expect(mockSignIn.finalize).toHaveBeenCalledOnce();
   });
 });
 
-describe("ResetPasswordView on a device Clerk doesn't trust yet", () => {
+describe("resetPasswordView on a device Clerk doesn't trust yet", () => {
   it("emails a sign-in code and opens the code screen", async () => {
     mockStatusAfterReset = "needs_client_trust";
     await render(<ResetPasswordView />);
 
     await submitNewPassword(NEW_PASSWORD);
 
-    expect(mockSignIn.mfa.sendEmailCode).toHaveBeenCalledTimes(1);
+    expect(mockSignIn.mfa.sendEmailCode).toHaveBeenCalledOnce();
     expect(mockSignIn.finalize).not.toHaveBeenCalled();
     expect(router.push).toHaveBeenCalledWith({
       params: { purpose: "sign-in", source: "reset-password" },

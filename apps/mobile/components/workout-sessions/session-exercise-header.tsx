@@ -1,6 +1,7 @@
 import { Image } from "expo-image";
 import { useTranslation } from "react-i18next";
 import { Pressable, StyleSheet, useWindowDimensions, View } from "react-native";
+
 import ExerciseVideo, {
   CLIP_ASPECT_RATIO,
 } from "~/components/exercises/exercise-video";
@@ -31,6 +32,7 @@ interface SessionExerciseHeaderProps {
  */
 function Thumbnail({ url }: { url: string }) {
   const { width } = useWindowDimensions();
+
   return (
     <Image
       contentFit="cover"
@@ -49,8 +51,9 @@ function Thumbnail({ url }: { url: string }) {
 /** The muscle groups, as badges that wrap. */
 function MuscleGroups({ exercise }: { exercise: ShownExercise }) {
   const labels = useChoiceLabels();
+
   return (
-    <View className="flex-row flex-wrap gap-xs" pointerEvents="none">
+    <View className="gap-xs flex-row flex-wrap" pointerEvents="none">
       {exercise.muscle_groups.map((muscleGroup) => (
         <Badge key={muscleGroup} variant="secondary">
           <Text>{labels.muscleGroup(muscleGroup)}</Text>
@@ -71,8 +74,10 @@ export default function SessionExerciseHeader({
 }: SessionExerciseHeaderProps) {
   const { t } = useTranslation();
   const { fontScale } = useWindowDimensions();
+
   const hasMedia =
     exercise.isResolved || !!exercise.video_url || !!exercise.thumbnail_url;
+
   const hasMuscleGroups = exercise.muscle_groups.length > 0;
   const badgesBelow = fontScale > BADGES_BELOW_FONT_SCALE;
 
@@ -96,7 +101,7 @@ export default function SessionExerciseHeader({
         </Text>
       ) : null}
       {hasMedia ? (
-        <View className="overflow-hidden rounded-card border-continuous bg-secondary">
+        <View className="rounded-card border-continuous bg-secondary overflow-hidden">
           {exercise.video_url ? (
             <ExerciseVideo url={exercise.video_url} />
           ) : (
@@ -107,7 +112,7 @@ export default function SessionExerciseHeader({
             </View>
           )}
           <View
-            className="absolute inset-0 justify-between gap-xs p-sm"
+            className="gap-xs p-sm absolute inset-0 justify-between"
             pointerEvents="box-none"
           >
             <View className="flex-row justify-end" pointerEvents="box-none">

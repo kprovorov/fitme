@@ -1,4 +1,5 @@
 import { randomUUID } from "node:crypto";
+
 import {
   asUser,
   plans,
@@ -12,6 +13,7 @@ import {
 } from "@fitme/db";
 import { and, asc, eq, inArray, isNull } from "drizzle-orm";
 import { afterAll, beforeEach, describe, expect, it } from "vitest";
+
 import {
   finishWorkoutSession,
   startWorkoutSession,
@@ -24,24 +26,28 @@ import { deleteTestUsers } from "./delete-test-users";
  */
 
 const runId = randomUUID().replaceAll("-", "").slice(0, 12);
+
 /**
  * A fresh owner per test: a User has at most one open Workout Session, so a
  * test's leftover open session would refuse the next test's start.
  */
 const owners: string[] = [];
 let owner = "";
+
 beforeEach(() => {
   owner = `user_svcLifeOwner${runId}${owners.length}`;
   owners.push(owner);
 });
+
 const intruder = `user_svcLifeIntruder${runId}`;
+
 /** Another id, as after a rekey that committed while a start was running. */
 const elsewhere = `user_svcLifeElsewhere${runId}`;
 
 let templates = 0;
 
 /** A Plan of the owner with Workouts in the given orders, by name. */
-const seedPlan = (
+const seedPlan = async (
   orders: Record<string, number>,
   { deleted = false, userId = owner } = {}
 ) =>
@@ -57,6 +63,7 @@ const seedPlan = (
         userId,
       })
       .returning({ id: plans.id });
+
     const rows = await tx
       .insert(workouts)
       .values(
@@ -68,18 +75,21 @@ const seedPlan = (
         }))
       )
       .returning({ id: workouts.id, name: workouts.name });
+
     const workoutIds = Object.fromEntries(
       rows.map((row) => [row.name, row.id])
     );
+
     return { planId: plan.id, workoutIds };
   });
 
 /** Gives a Workout two exercises: squat with 2 sets, press with 1. */
-const seedTemplate = (workoutId: string) =>
+const seedTemplate = async (workoutId: string) =>
   withService(async (tx) => {
     templates += 1;
     const squatSlug = `test-life-squat-${runId}-${templates}`;
     const pressSlug = `test-life-press-${runId}-${templates}`;
+
     const [squatEntry, pressEntry] = await tx
       .insert(workoutExercises)
       .values([
@@ -87,6 +97,7 @@ const seedTemplate = (workoutId: string) =>
         { exerciseSlug: pressSlug, order: 2, workoutId },
       ])
       .returning({ id: workoutExercises.id });
+
     await tx.insert(workoutExerciseSets).values([
       {
         order: 1,
@@ -110,10 +121,11 @@ const seedTemplate = (workoutId: string) =>
         workoutExerciseId: pressEntry.id,
       },
     ]);
+
     return { pressSlug, squatSlug };
   });
 
-const sessionsOf = (workoutId: string) =>
+const sessionsOf = async (workoutId: string) =>
   withService((tx) =>
     tx
       .select({
@@ -125,18 +137,20 @@ const sessionsOf = (workoutId: string) =>
       .where(eq(workoutSessions.workoutId, workoutId))
   );
 
-const start = (workoutId: string, userId = owner) =>
-  asUser(userId, (tx) => startWorkoutSession(tx, workoutId));
+const start = async (workoutId: string, userId = owner) =>
+  asUser(userId, async (tx) => startWorkoutSession(tx, workoutId));
 
 const startedSessionId = async (workoutId: string, userId = owner) => {
   const result = await start(workoutId, userId);
+
   if (result.status !== "started") {
     throw new Error(`Expected a session, got ${result.status}`);
   }
+
   return result.session.id;
 };
 
-const closeDirectly = (sessionId: string) =>
+const closeDirectly = async (sessionId: string) =>
   withService((tx) =>
     tx
       .update(workoutSessions)
@@ -148,7 +162,7 @@ afterAll(async () => {
   await deleteTestUsers([...owners, intruder, elsewhere]);
 });
 
-describe("startWorkoutSession", () => {
+describe(startWorkoutSession, () => {
   it("copies the Workout's exercises and sets into a new open session", async () => {
     const { planId, workoutIds } = await seedPlan({ "Day A": 1 });
     const workoutId = workoutIds["Day A"];
@@ -166,9 +180,11 @@ describe("startWorkoutSession", () => {
       },
       status: "started",
     });
+
     if (result.status !== "started") {
       return;
     }
+
     expect(
       result.session.exercises.map(({ exercise_slug, order, sets }) => ({
         exerciseSlug: exercise_slug,
@@ -213,7 +229,7 @@ describe("startWorkoutSession", () => {
         ],
       },
     ]);
-    expect(await sessionsOf(workoutId)).toEqual([
+    await expect(sessionsOf(workoutId)).resolves.toEqual([
       { finishedAt: null, id: result.session.id, userId: owner },
     ]);
   });
@@ -228,7 +244,8 @@ describe("startWorkoutSession", () => {
 
     expect(first).toMatchObject({ resumed: false, status: "started" });
     expect(second).toEqual({ ...first, resumed: true });
-    expect(await sessionsOf(workoutId)).toHaveLength(1);
+    await expect(sessionsOf(workoutId)).resolves.toHaveLength(1);
+
     const sessionExercises = await withService((tx) =>
       tx
         .select({ id: workoutSessionExercises.id })
@@ -239,7 +256,9 @@ describe("startWorkoutSession", () => {
         )
         .where(eq(workoutSessions.workoutId, workoutId))
     );
+
     expect(sessionExercises).toHaveLength(2);
+
     const sessionSets = await withService((tx) =>
       tx
         .select({ id: workoutSessionExerciseSets.id })
@@ -251,6 +270,7 @@ describe("startWorkoutSession", () => {
           )
         )
     );
+
     expect(sessionSets).toHaveLength(3);
   });
 
@@ -270,13 +290,15 @@ describe("startWorkoutSession", () => {
         result.status === "started" ? result.session.id : result.status
       )
     );
+
     expect(ids.size).toBe(1);
     expect(
       results.filter((result) => "resumed" in result && !result.resumed)
     ).toHaveLength(1);
     const [only] = await sessionsOf(workoutId);
     expect(ids.has(only.id)).toBe(true);
-    expect(await sessionsOf(workoutId)).toHaveLength(1);
+    await expect(sessionsOf(workoutId)).resolves.toHaveLength(1);
+
     // every start returns the copied exercises, not a half-built session
     for (const result of results) {
       expect(
@@ -298,11 +320,14 @@ describe("startWorkoutSession", () => {
 
     expect(second).not.toBe(first);
     expect(third).toMatchObject({ resumed: false, status: "started" });
+
     if (third.status !== "started") {
       return;
     }
+
     expect([first, second]).not.toContain(third.session.id);
     expect(third.session.exercises).toHaveLength(2);
+
     const open = await withService((tx) =>
       tx
         .select({ id: workoutSessions.id })
@@ -314,6 +339,7 @@ describe("startWorkoutSession", () => {
           )
         )
     );
+
     expect(open).toEqual([{ id: third.session.id }]);
   });
 
@@ -321,20 +347,22 @@ describe("startWorkoutSession", () => {
     const { workoutIds } = await seedPlan({ "Day A": 1 }, { deleted: true });
     const workoutId = workoutIds["Day A"];
 
-    expect(await start(workoutId)).toEqual({ status: "not_found" });
-    expect(await sessionsOf(workoutId)).toEqual([]);
+    await expect(start(workoutId)).resolves.toEqual({ status: "not_found" });
+    await expect(sessionsOf(workoutId)).resolves.toEqual([]);
   });
 
   it("refuses another User's Workout", async () => {
     const { workoutIds } = await seedPlan({ "Day A": 1 });
     const workoutId = workoutIds["Day A"];
 
-    expect(await start(workoutId, intruder)).toEqual({ status: "not_found" });
-    expect(await sessionsOf(workoutId)).toEqual([]);
+    await expect(start(workoutId, intruder)).resolves.toEqual({
+      status: "not_found",
+    });
+    await expect(sessionsOf(workoutId)).resolves.toEqual([]);
   });
 
   it("refuses an unknown Workout", async () => {
-    expect(await start(randomUUID())).toEqual({ status: "not_found" });
+    await expect(start(randomUUID())).resolves.toEqual({ status: "not_found" });
   });
 
   it("starts its own session next to an open session owned by another id", async () => {
@@ -352,7 +380,7 @@ describe("startWorkoutSession", () => {
     const result = await start(workoutId);
 
     expect(result).toMatchObject({ resumed: false, status: "started" });
-    expect(await sessionsOf(workoutId)).toEqual(
+    await expect(sessionsOf(workoutId)).resolves.toEqual(
       expect.arrayContaining([
         { finishedAt: null, id: expect.any(String), userId: elsewhere },
         {
@@ -365,7 +393,7 @@ describe("startWorkoutSession", () => {
   });
 });
 
-const openSessionsOf = (userId: string) =>
+const openSessionsOf = async (userId: string) =>
   withService((tx) =>
     tx
       .select({ id: workoutSessions.id, workoutId: workoutSessions.workoutId })
@@ -384,13 +412,13 @@ describe("startWorkoutSession, one open Workout Session per User", () => {
     await seedTemplate(workoutIds["Day B"]);
     const openId = await startedSessionId(workoutIds["Day A"]);
 
-    expect(await start(workoutIds["Day B"])).toEqual({
+    await expect(start(workoutIds["Day B"])).resolves.toEqual({
       sessionId: openId,
       status: "session_in_progress",
       workoutName: "Day A",
     });
-    expect(await sessionsOf(workoutIds["Day B"])).toEqual([]);
-    expect(await openSessionsOf(owner)).toEqual([
+    await expect(sessionsOf(workoutIds["Day B"])).resolves.toEqual([]);
+    await expect(openSessionsOf(owner)).resolves.toEqual([
       { id: openId, workoutId: workoutIds["Day A"] },
     ]);
   });
@@ -400,7 +428,7 @@ describe("startWorkoutSession, one open Workout Session per User", () => {
     const openId = await startedSessionId(workoutIds["Day A"]);
     await start(workoutIds["Day B"]);
 
-    expect(await start(workoutIds["Day A"])).toMatchObject({
+    await expect(start(workoutIds["Day A"])).resolves.toMatchObject({
       resumed: true,
       session: { id: openId },
       status: "started",
@@ -410,7 +438,7 @@ describe("startWorkoutSession, one open Workout Session per User", () => {
   it("starts another Workout once the open one is finished", async () => {
     const { workoutIds } = await seedPlan({ "Day A": 1, "Day B": 2 });
     const first = await startedSessionId(workoutIds["Day A"]);
-    await asUser(owner, (tx) => finishWorkoutSession(tx, first));
+    await asUser(owner, async (tx) => finishWorkoutSession(tx, first));
 
     const result = await start(workoutIds["Day B"]);
 
@@ -425,7 +453,7 @@ describe("startWorkoutSession, one open Workout Session per User", () => {
     const { planId, workoutIds } = await seedPlan({ "Day A": 1 });
     const orphanId = await seedOpenSession(planId, null);
 
-    expect(await start(workoutIds["Day A"])).toEqual({
+    await expect(start(workoutIds["Day A"])).resolves.toEqual({
       sessionId: orphanId,
       status: "session_in_progress",
       workoutName: null,
@@ -434,18 +462,20 @@ describe("startWorkoutSession, one open Workout Session per User", () => {
 
   it("leaves exactly one open session for concurrent starts of different Workouts", async () => {
     const names = ["Day A", "Day B", "Day C"];
+
     const { workoutIds } = await seedPlan({
       "Day A": 1,
       "Day B": 2,
       "Day C": 3,
     });
+
     for (const name of names) {
       // biome-ignore lint/performance/noAwaitInLoops: seeded one at a time, like the other fixtures
       await seedTemplate(workoutIds[name]);
     }
 
     const results = await Promise.all(
-      names.map((name) => start(workoutIds[name]))
+      names.map(async (name) => start(workoutIds[name]))
     );
 
     const open = await openSessionsOf(owner);
@@ -457,9 +487,11 @@ describe("startWorkoutSession, one open Workout Session per User", () => {
       resumed: false,
       session: { id: winner.id },
     });
+
     const winnerName = names.find(
       (name) => workoutIds[name] === winner.workoutId
     );
+
     for (const result of results.filter((each) => each.status !== "started")) {
       expect(result).toEqual({
         sessionId: winner.id,
@@ -467,10 +499,12 @@ describe("startWorkoutSession, one open Workout Session per User", () => {
         workoutName: winnerName,
       });
     }
+
     // the winner's copy is complete, and the losers wrote nothing
     expect(
       started[0].status === "started" && started[0].session.exercises
     ).toHaveLength(2);
+
     const sessionExercises = await withService((tx) =>
       tx
         .select({ id: workoutSessionExercises.id })
@@ -481,6 +515,7 @@ describe("startWorkoutSession, one open Workout Session per User", () => {
         )
         .where(eq(workoutSessions.userId, owner))
     );
+
     expect(sessionExercises).toHaveLength(2);
   });
 
@@ -489,30 +524,32 @@ describe("startWorkoutSession, one open Workout Session per User", () => {
       { "Day A": 1 },
       { userId: intruder }
     );
+
     await startedSessionId(theirs["Day A"], intruder);
     const { workoutIds } = await seedPlan({ "Day A": 1 });
 
-    expect(await start(workoutIds["Day A"])).toMatchObject({
+    await expect(start(workoutIds["Day A"])).resolves.toMatchObject({
       resumed: false,
       status: "started",
     });
   });
 });
 
-const finish = (sessionId: string, userId = owner) =>
-  asUser(userId, (tx) => finishWorkoutSession(tx, sessionId));
+const finish = async (sessionId: string, userId = owner) =>
+  asUser(userId, async (tx) => finishWorkoutSession(tx, sessionId));
 
-const workoutOrders = (planId: string) =>
+const workoutOrders = async (planId: string) =>
   withService(async (tx) => {
     const rows = await tx
       .select({ name: workouts.name, order: workouts.order })
       .from(workouts)
       .where(eq(workouts.planId, planId))
       .orderBy(asc(workouts.order));
+
     return rows.map(({ name, order }) => [name, order]);
   });
 
-const sessionTimes = (sessionId: string) =>
+const sessionTimes = async (sessionId: string) =>
   withService(async (tx) => {
     const [row] = await tx
       .select({
@@ -521,11 +558,12 @@ const sessionTimes = (sessionId: string) =>
       })
       .from(workoutSessions)
       .where(eq(workoutSessions.id, sessionId));
+
     return row;
   });
 
 /** An open session of the owner on `workoutId` (or none), started an hour ago. */
-const seedOpenSession = (planId: string, workoutId: string | null) =>
+const seedOpenSession = async (planId: string, workoutId: string | null) =>
   withService(async (tx) => {
     const [session] = await tx
       .insert(workoutSessions)
@@ -538,12 +576,13 @@ const seedOpenSession = (planId: string, workoutId: string | null) =>
         workoutId,
       })
       .returning({ id: workoutSessions.id });
+
     return session.id;
   });
 
 const THREE_DAYS = { W1: 1, W2: 2, W3: 3 };
 
-describe("finishWorkoutSession", () => {
+describe(finishWorkoutSession, () => {
   it("finishes an open session and moves its Workout to the end of the Plan", async () => {
     const { planId, workoutIds } = await seedPlan(THREE_DAYS);
     const sessionId = await seedOpenSession(planId, workoutIds.W1);
@@ -559,7 +598,7 @@ describe("finishWorkoutSession", () => {
     const times = await sessionTimes(sessionId);
     expect(times.finishedAt).not.toBeNull();
     expect(times.updatedAt).toBe(times.finishedAt);
-    expect(await workoutOrders(planId)).toEqual([
+    await expect(workoutOrders(planId)).resolves.toEqual([
       ["W2", 1],
       ["W3", 2],
       ["W1", 3],
@@ -590,8 +629,8 @@ describe("finishWorkoutSession", () => {
       session: { id: sessionId, status: "finished" },
       status: "finished",
     });
-    expect(await sessionTimes(sessionId)).toEqual(before);
-    expect(await workoutOrders(planId)).toEqual([
+    await expect(sessionTimes(sessionId)).resolves.toEqual(before);
+    await expect(workoutOrders(planId)).resolves.toEqual([
       ["W1", 1],
       ["W2", 2],
       ["W3", 3],
@@ -614,7 +653,7 @@ describe("finishWorkoutSession", () => {
       session: { id: sessionId, status: "finished", workout: null },
       status: "finished",
     });
-    expect(await workoutOrders(planId)).toEqual([
+    await expect(workoutOrders(planId)).resolves.toEqual([
       ["W2", 2],
       ["W3", 3],
     ]);
@@ -624,13 +663,13 @@ describe("finishWorkoutSession", () => {
     const { planId } = await seedPlan(THREE_DAYS);
     const sessionId = await seedOpenSession(planId, null);
 
-    expect(await finish(sessionId)).toMatchObject({
+    await expect(finish(sessionId)).resolves.toMatchObject({
       alreadyFinished: false,
       rotated: false,
       status: "finished",
     });
     expect((await sessionTimes(sessionId)).finishedAt).not.toBeNull();
-    expect(await workoutOrders(planId)).toEqual([
+    await expect(workoutOrders(planId)).resolves.toEqual([
       ["W1", 1],
       ["W2", 2],
       ["W3", 3],
@@ -641,9 +680,11 @@ describe("finishWorkoutSession", () => {
     const { planId, workoutIds } = await seedPlan(THREE_DAYS);
     const sessionId = await seedOpenSession(planId, workoutIds.W2);
 
-    expect(await finish(sessionId, intruder)).toEqual({ status: "not_found" });
+    await expect(finish(sessionId, intruder)).resolves.toEqual({
+      status: "not_found",
+    });
     expect((await sessionTimes(sessionId)).finishedAt).toBeNull();
-    expect(await workoutOrders(planId)).toEqual([
+    await expect(workoutOrders(planId)).resolves.toEqual([
       ["W1", 1],
       ["W2", 2],
       ["W3", 3],
@@ -651,15 +692,17 @@ describe("finishWorkoutSession", () => {
   });
 
   it("refuses an unknown session", async () => {
-    expect(await finish(randomUUID())).toEqual({ status: "not_found" });
+    await expect(finish(randomUUID())).resolves.toEqual({
+      status: "not_found",
+    });
   });
 
   it("renumbers a Plan with gaps in its Workout order from 1", async () => {
     const { planId, workoutIds } = await seedPlan({ X1: 1, X2: 5, X3: 9 });
     const sessionId = await seedOpenSession(planId, workoutIds.X2);
 
-    expect(await finish(sessionId)).toMatchObject({ rotated: true });
-    expect(await workoutOrders(planId)).toEqual([
+    await expect(finish(sessionId)).resolves.toMatchObject({ rotated: true });
+    await expect(workoutOrders(planId)).resolves.toEqual([
       ["X1", 1],
       ["X3", 2],
       ["X2", 3],
@@ -672,7 +715,7 @@ describe("finishWorkoutSession", () => {
     await seedTemplate(workoutId);
     const first = await startedSessionId(workoutId);
 
-    expect(await finish(first)).toMatchObject({ rotated: true });
+    await expect(finish(first)).resolves.toMatchObject({ rotated: true });
     const second = await start(workoutId);
 
     expect(second).toMatchObject({ resumed: false, status: "started" });
@@ -688,7 +731,7 @@ describe("finishWorkoutSession", () => {
     expect(
       results.map((result) => "rotated" in result && result.rotated).sort()
     ).toEqual([false, true]);
-    expect(await workoutOrders(planId)).toEqual([
+    await expect(workoutOrders(planId)).resolves.toEqual([
       ["W2", 1],
       ["W3", 2],
       ["W1", 3],

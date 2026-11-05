@@ -7,10 +7,7 @@ tags: animation, gestures, press, reanimated
 
 ## Use GestureDetector for Animated Press States
 
-For animated press states (scale, opacity on press), use `GestureDetector` with
-`Gesture.Tap()` and shared values instead of Pressable's
-`onPressIn`/`onPressOut`. Gesture callbacks run on the UI thread as worklets—no
-JS thread round-trip for press animations.
+For animated press states (scale, opacity on press), use `GestureDetector` with `Gesture.Tap()` and shared values instead of Pressable's `onPressIn`/`onPressOut`. Gesture callbacks run on the UI thread as worklets—no JS thread round-trip for press animations.
 
 **Incorrect (Pressable with JS thread callbacks):**
 
@@ -87,9 +84,6 @@ function AnimatedButton({ onPress }: { onPress: () => void }) {
 }
 ```
 
-Store the press **state** (0 or 1), then derive the scale via `interpolate`.
-This keeps the shared value as ground truth. Use `runOnJS` to call JS functions
-from worklets. Use `.set()` and `.get()` for React Compiler compatibility.
+Store the press **state** (0 or 1), then derive the scale via `interpolate`. This keeps the shared value as ground truth. Use `runOnJS` to call JS functions from worklets. Use `.set()` and `.get()` for React Compiler compatibility.
 
-Reference:
-[Gesture Handler Tap Gesture](https://docs.swmansion.com/react-native-gesture-handler/docs/gestures/tap-gesture)
+Reference: [Gesture Handler Tap Gesture](https://docs.swmansion.com/react-native-gesture-handler/docs/gestures/tap-gesture)

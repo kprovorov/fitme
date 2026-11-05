@@ -1,9 +1,5 @@
-import {
-  type Gender,
-  genders,
-  type MeasurementSystem,
-  measurementSystems,
-} from "@fitme/core";
+import { genders, measurementSystems } from "@fitme/core";
+import type { Gender, MeasurementSystem } from "@fitme/core";
 
 /**
  * The fields of a Profile from `GET /v1/profile` (or a write's answer) that

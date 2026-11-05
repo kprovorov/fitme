@@ -3,6 +3,7 @@ import type React from "react";
 import { useCallback } from "react";
 import { View } from "react-native";
 import type { SFSymbol } from "sf-symbols-typescript";
+
 import ExerciseImage from "~/components/exercises/exercise-image";
 import { SymbolImage } from "~/components/symbol-image";
 import { MenuListItem } from "~/components/ui/menu-list";
@@ -18,7 +19,7 @@ import { cn } from "~/lib/utils";
 export function ExerciseRowSymbol({ name }: { name: SFSymbol }) {
   return (
     <SymbolImage
-      className="shrink-0 text-body-emphasized text-primary"
+      className="text-body-emphasized text-primary shrink-0"
       name={name}
     />
   );
@@ -35,7 +36,7 @@ export function ExerciseRowChevron() {
  */
 export function ExerciseRowSeparator() {
   return (
-    <View className="border-border border-x bg-card">
+    <View className="border-border bg-card border-x">
       <Separator className="mx-sm w-auto" />
     </View>
   );
@@ -67,6 +68,7 @@ export function ExerciseRow({
   trailing,
 }: ExerciseRowProps) {
   const labels = useChoiceLabels();
+
   // The press never waits on what picking does (the picker's save).
   const handlePress = useCallback(() => {
     onExercisePress(exercise);
@@ -75,7 +77,7 @@ export function ExerciseRow({
   return (
     <View
       className={cn(
-        "overflow-hidden border-border border-continuous border-x bg-card",
+        "border-border border-continuous bg-card overflow-hidden border-x",
         isFirst && "rounded-t-card border-t",
         isLast && "rounded-b-card border-b"
       )}

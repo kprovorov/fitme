@@ -4,42 +4,56 @@
  */
 import { existsSync } from "node:fs";
 import { resolve } from "node:path";
+
 import { beforeEach, describe, expect, it, jest } from "@jest/globals";
 import { fireEvent, render, screen } from "@testing-library/react-native";
 import { router } from "expo-router";
+import { it, describe, expect, beforeEach } from "vitest";
+
 import PlannerScreen from "~/app/planner";
 import { useAppLanguageSync } from "~/lib/i18n";
 import { getTabTitle } from "~/lib/tabs";
 import { setDeviceLanguages } from "~/test-utils/device-locales";
 
-jest.mock("expo-router", () => ({
+jest.mock<typeof import("expo-router")>(import("expo-router"), () => ({
   router: { dismissTo: jest.fn() },
   Stack: { Screen: () => null },
 }));
 
-jest.mock("react-native-safe-area-context", () => ({
-  useSafeAreaInsets: () => ({ bottom: 0, left: 0, right: 0, top: 0 }),
-}));
+jest.mock<typeof import("react-native-safe-area-context")>(
+  import("react-native-safe-area-context"),
+  () => ({
+    useSafeAreaInsets: () => ({ bottom: 0, left: 0, right: 0, top: 0 }),
+  })
+);
 
-jest.mock("react-native-keyboard-controller", () => ({
-  KeyboardAwareScrollView:
-    jest.requireActual<typeof import("react-native")>("react-native").View,
-}));
+jest.mock<typeof import("react-native-keyboard-controller")>(
+  import("react-native-keyboard-controller"),
+  () => ({
+    KeyboardAwareScrollView:
+      jest.requireActual<typeof import("react-native")>("react-native").View,
+  })
+);
 
-jest.mock("~/components/ui/button", () =>
-  jest.requireActual("~/test-utils/button-stub")
+jest.mock<typeof import("~/components/ui/button")>(
+  import("~/components/ui/button"),
+  () => jest.requireActual("~/test-utils/button-stub")
 );
 
 // The SwiftUI slider can't mount under Jest; the duration keeps its default.
-jest.mock("~/components/ui/slider", () => ({ Slider: () => null }));
+jest.mock<typeof import("~/components/ui/slider")>(
+  import("~/components/ui/slider"),
+  () => ({ Slider: () => null })
+);
 
 // The root layout's language sync, which follows the device's languages.
 function Planner() {
   useAppLanguageSync();
+
   return <PlannerScreen />;
 }
 
-describe("PlannerScreen", () => {
+describe(PlannerScreen, () => {
   beforeEach(() => {
     jest.mocked(router.dismissTo).mockClear();
   });
@@ -52,10 +66,12 @@ describe("PlannerScreen", () => {
     await fireEvent.press(screen.getByTestId("frequency-3"));
     await fireEvent.press(screen.getByText("Get my plan!"));
 
-    expect(router.dismissTo).toHaveBeenCalledTimes(1);
+    expect(router.dismissTo).toHaveBeenCalledOnce();
+
     const [target] = jest.mocked(router.dismissTo).mock.calls[0] as [
       { params: { initialMessage: string }; pathname: string },
     ];
+
     expect(target.pathname).toBe("/(tabs)/arnold");
     expect(target.params.initialMessage).toContain("- Frequency: 3 days");
 
@@ -75,6 +91,7 @@ describe("PlannerScreen", () => {
     // Goal
     expect(screen.getByText("Ціль")).toBeTruthy();
     expect(screen.getByText("Яка ваша ціль?")).toBeTruthy();
+
     for (const goal of ["Скинути вагу", "Набрати м’язи", "Тримати форму"]) {
       expect(screen.getByText(goal)).toBeTruthy();
     }
@@ -82,6 +99,7 @@ describe("PlannerScreen", () => {
     // Experience
     expect(screen.getByText("Досвід")).toBeTruthy();
     expect(screen.getByText("Який у вас досвід тренувань?")).toBeTruthy();
+
     for (const [level, description] of [
       ["Початківець", "0–6 міс. досвіду"],
       ["Середній рівень", "6 міс. – 3 роки досвіду"],
@@ -124,7 +142,7 @@ describe("PlannerScreen", () => {
     await fireEvent.press(screen.getByText("Отримати мій план!"));
 
     // Goal, experience and frequency have no default.
-    expect(await screen.findAllByText("Обов’язково")).toHaveLength(3);
+    await expect(screen.findAllByText("Обов’язково")).resolves.toHaveLength(3);
     expect(screen.queryByText("Required")).toBeNull();
     expect(router.dismissTo).not.toHaveBeenCalled();
   });
@@ -145,6 +163,7 @@ describe("PlannerScreen", () => {
     const [target] = jest.mocked(router.dismissTo).mock.calls[0] as [
       { params: { initialMessage: string }; pathname: string },
     ];
+
     expect(target.params.initialMessage).toBe(
       [
         "Будь ласка, створи для мене план тренувань із такими параметрами:",

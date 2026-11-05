@@ -1,15 +1,16 @@
+import { LibraryUnavailableError } from "@fitme/library-sdk";
 /**
  * Arnold's plan card on the mounted-screen seam: the real card, hooks and
  * Public API client, with the client's `fetch` swapped for the fake Public
  * API (`test-utils/`). A Plan list next to the card reads the Plans back through
  * the fake Public API, as the app's lists do.
  */
-
-import { LibraryUnavailableError } from "@fitme/library-sdk";
 import { beforeEach, describe, expect, it, jest } from "@jest/globals";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { fireEvent, render, screen } from "@testing-library/react-native";
 import { Text } from "react-native";
+import { it, describe, expect, beforeEach } from "vitest";
+
 import { usePlanQuery, usePlanSummariesQuery } from "~/hooks/queries/plans";
 import { useAppLanguageSync } from "~/lib/i18n";
 import { storage } from "~/lib/mmkv";
@@ -18,35 +19,53 @@ import { setDeviceLanguages } from "~/test-utils/device-locales";
 import { libraryExercise, serveLibrary } from "~/test-utils/fake-library";
 import { backend, fakePublicApi } from "~/test-utils/fake-public-api";
 import { createTestQueryClient, settle } from "~/test-utils/query-client";
-import { type WorkoutPlan, WorkoutPlanCard } from "../workout-plan-card";
+
+import { WorkoutPlanCard } from "../workout-plan-card";
+import type { WorkoutPlan } from "../workout-plan-card";
 
 const mockPush = jest.fn();
 
-jest.mock("expo-router", () => ({
+jest.mock<typeof import("expo-router")>(import("expo-router"), () => ({
   router: { push: (path: string) => mockPush(path) },
 }));
-jest.mock("~/lib/segment", () => ({ segmentClient: { track: jest.fn() } }));
+
+jest.mock<typeof import("~/lib/segment")>(import("~/lib/segment"), () => ({
+  segmentClient: { track: jest.fn() },
+}));
+
 // The User the save is made for (the real Clerk SDK keeps Jest alive).
-jest.mock("~/lib/clerk", () => ({
+jest.mock<typeof import("~/lib/clerk")>(import("~/lib/clerk"), () => ({
   getCurrentUserId: jest.requireActual<
     typeof import("~/test-utils/signed-in-user")
   >("~/test-utils/signed-in-user").getCurrentUserId,
 }));
-jest.mock("react-native-reanimated", () => {
-  const { View } =
-    jest.requireActual<typeof import("react-native")>("react-native");
-  return {
-    __esModule: true,
-    default: { View },
-    FadeIn: { duration: () => undefined },
-  };
-});
-jest.mock("@/components/symbol-image", () => ({ SymbolImage: () => null }));
-jest.mock("@/components/ui/button", () =>
-  jest.requireActual("~/test-utils/button-stub")
+
+jest.mock<typeof import("react-native-reanimated")>(
+  import("react-native-reanimated"),
+  () => {
+    const { View } =
+      jest.requireActual<typeof import("react-native")>("react-native");
+
+    return {
+      __esModule: true,
+      default: { View },
+      FadeIn: { duration: () => {} },
+    };
+  }
+);
+
+jest.mock<typeof import("@/components/symbol-image")>(
+  import("@/components/symbol-image"),
+  () => ({ SymbolImage: () => null })
+);
+
+jest.mock<typeof import("@/components/ui/button")>(
+  import("@/components/ui/button"),
+  () => jest.requireActual("~/test-utils/button-stub")
 );
 
 const PLAN_ROUTE = "POST /v1/plans";
+
 const UNKNOWN_EXERCISES =
   "This plan has exercises we don't know, so it can't be saved. Ask Arnold for another plan.";
 
@@ -82,12 +101,14 @@ const plan: WorkoutPlan = {
 /** The root layout's language sync, following the device's languages. */
 function LanguageSync() {
   useAppLanguageSync();
+
   return null;
 }
 
 /** The Plans as the app's lists read them, through `GET /v1/plans`. */
 function PlanList() {
   const { data: plans } = usePlanSummariesQuery();
+
   return (
     <>
       {plans?.map((saved) => (
@@ -109,6 +130,7 @@ const renderCard = async (card: WorkoutPlan = plan) => {
     </QueryClientProvider>
   );
   await settle(client);
+
   return client;
 };
 
@@ -132,7 +154,7 @@ beforeEach(() => {
   ]);
 });
 
-describe("WorkoutPlanCard", () => {
+describe(WorkoutPlanCard, () => {
   it("names each Exercise from the library and links it by slug", async () => {
     await renderCard();
 
@@ -263,6 +285,7 @@ describe("WorkoutPlanCard", () => {
         { dayLabel: "Day 2", exercises: [], name: "Rest day" },
       ],
     };
+
     const client = await renderCard(loose);
 
     await save(client);
@@ -270,11 +293,12 @@ describe("WorkoutPlanCard", () => {
     const body = planRequests()[0]?.body as {
       frequency: number;
       workout_duration: number;
-      workouts: Array<{
+      workouts: {
         exercises: Array<{ sets: unknown[] }>;
         name: string;
-      }>;
+      }[];
     };
+
     expect(body.frequency).toBe(7);
     expect(body.workout_duration).toBe(600);
     expect(body.workouts.map(({ name }) => name)).toEqual(["Push"]);
@@ -305,9 +329,11 @@ describe("WorkoutPlanCard", () => {
 
   it("won't save a card from before Exercise slugs", async () => {
     const legacy = structuredClone(plan);
+
     for (const exercise of legacy.workouts[0]?.exercises ?? []) {
       exercise.exercise_slug = undefined;
     }
+
     await renderCard(legacy);
 
     expect(screen.getByText("Save Plan")).toBeDisabled();
@@ -339,6 +365,7 @@ describe("WorkoutPlanCard", () => {
       libraryExercise("bench-press", { name: "Bench Press" }),
       libraryExercise("mystery-move"),
     ]);
+
     const client = await renderCard();
     library.failWith(new LibraryUnavailableError());
 
@@ -395,7 +422,7 @@ describe("WorkoutPlanCard", () => {
   });
 });
 
-describe("WorkoutPlanCard in Ukrainian", () => {
+describe("workoutPlanCard in Ukrainian", () => {
   const saveInUkrainian = async (
     client: ReturnType<typeof createTestQueryClient>
   ) => {
@@ -439,9 +466,11 @@ describe("WorkoutPlanCard in Ukrainian", () => {
 
   it("says a card from before Exercise slugs can't be saved", async () => {
     const legacy = structuredClone(plan);
+
     for (const exercise of legacy.workouts[0]?.exercises ?? []) {
       exercise.exercise_slug = undefined;
     }
+
     await renderCard(legacy);
 
     expect(
@@ -471,6 +500,7 @@ describe("WorkoutPlanCard in Ukrainian", () => {
       libraryExercise("bench-press", { name: "Bench Press" }),
       libraryExercise("mystery-move"),
     ]);
+
     const client = await renderCard();
     library.failWith(new LibraryUnavailableError());
 

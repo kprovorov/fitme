@@ -1,5 +1,7 @@
 import { parseArgs } from "node:util";
+
 import { sanitizeError } from "@fitme/observability";
+
 import { backfillCovers } from "../src/backfill-covers.js";
 import { createLibraryFromEnv } from "../src/library.js";
 
@@ -22,26 +24,35 @@ const run = async () => {
       plan: { multiple: true, type: "string" },
     },
   });
+
   const badPlan = values.plan?.find((id) => !UUID.test(id));
+
   if (badPlan !== undefined) {
     console.error(`--plan ${badPlan} is not a Plan id (a uuid)`);
+
     return 1;
   }
+
   const library = createLibraryFromEnv();
+
   if (!library) {
     console.error("Set LIBRARY_URL and LIBRARY_PUBLIC_API_SECRET");
+
     return 1;
   }
+
   try {
     await backfillCovers({
       dryRun: values["dry-run"],
       library,
       planIds: values.plan,
     });
+
     return 0;
   } catch (error) {
     // No SQL, parameters or Postgres message: they could echo User data
     console.error(sanitizeError(error));
+
     return 1;
   }
 };

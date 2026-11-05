@@ -10,6 +10,7 @@ import type {
  */
 export const arnoldTracePolicy: TraceCapturePolicy = ({ environment }) => {
   const local = environment === "development";
+
   return { emit: true, recordInputs: local, recordOutputs: local };
 };
 
@@ -111,10 +112,13 @@ export const sentryOtlpExport = ({
   if (!(SENTRY_OTLP_TRACES_URL && SENTRY_DSN && URL.canParse(SENTRY_DSN))) {
     return null;
   }
+
   const publicKey = new URL(SENTRY_DSN).username;
+
   if (!publicKey) {
     return null;
   }
+
   return {
     headers: { "x-sentry-auth": `sentry sentry_key=${publicKey}` },
     url: SENTRY_OTLP_TRACES_URL,

@@ -3,6 +3,7 @@ import {
   muscleGroupToName,
 } from "@fitme/core";
 import { createRoute, OpenAPIHono, z } from "@hono/zod-openapi";
+
 import { ErrorResponse, invalidRequest, MuscleGroup } from "../schemas.js";
 
 const MuscleGroupItem = z
@@ -63,6 +64,7 @@ export const muscleGroups = new OpenAPIHono({ defaultHook: invalidRequest })
     getMuscleGroup,
     (c) => {
       const { muscleGroup } = c.req.valid("param");
+
       return c.json(
         { data: { id: muscleGroup, name: muscleGroupToName(muscleGroup) } },
         200

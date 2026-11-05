@@ -1,5 +1,6 @@
 import * as AvatarPrimitive from "@rn-primitives/avatar";
 import type * as React from "react";
+
 import { TextClassContext } from "~/components/ui/text";
 import { cn } from "~/lib/utils";
 
@@ -19,6 +20,7 @@ const Avatar = ({
     {...props}
   />
 );
+
 Avatar.displayName = AvatarPrimitive.Root.displayName;
 
 const AvatarImage = ({
@@ -34,6 +36,7 @@ const AvatarImage = ({
     {...props}
   />
 );
+
 AvatarImage.displayName = AvatarPrimitive.Image.displayName;
 
 /**
@@ -50,7 +53,7 @@ const AvatarFallback = ({
   <TextClassContext.Provider value="text-headline text-muted-foreground">
     <AvatarPrimitive.Fallback
       className={cn(
-        "flex size-full items-center justify-center rounded-full bg-muted",
+        "bg-muted flex size-full items-center justify-center rounded-full",
         className
       )}
       ref={ref}
@@ -58,6 +61,7 @@ const AvatarFallback = ({
     />
   </TextClassContext.Provider>
 );
+
 AvatarFallback.displayName = AvatarPrimitive.Fallback.displayName;
 
 export { Avatar, AvatarFallback, AvatarImage };

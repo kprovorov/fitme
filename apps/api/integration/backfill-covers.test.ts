@@ -1,4 +1,5 @@
 import { randomBytes } from "node:crypto";
+
 import type { MuscleGroup } from "@fitme/core";
 import { asUser } from "@fitme/db";
 import type { Cover, ExerciseSummary, Library } from "@fitme/library-sdk";
@@ -8,6 +9,7 @@ import { deleteTestUsers } from "@fitme/services/delete-test-users";
 import { createPlan, deletePlan, getPlan } from "@fitme/services/plans";
 import { addExerciseToWorkout } from "@fitme/services/workout-edits";
 import { afterAll, describe, expect, it } from "vitest";
+
 import { backfillCovers, NoCoversError } from "../src/backfill-covers.js";
 
 /**
@@ -21,6 +23,7 @@ const testUserId = (label: string) =>
   `user_${label}${randomBytes(16).toString("hex")}`;
 
 const owner = testUserId("backfill");
+
 afterAll(() => deleteTestUsers([owner]));
 
 const exercise = (
@@ -93,17 +96,19 @@ const seedPlan = async (workouts: ReturnType<typeof workout>[]) => {
       { activate: false }
     )
   );
+
   return plan.id;
 };
 
 const coversOf = async (planId: string) => {
   const plan = await asUser(owner, (tx) => getPlan(tx, owner, planId));
+
   return plan?.workouts.map((w) => w.cover) ?? [];
 };
 
-const silent = () => undefined;
+const silent = () => {};
 
-describe("backfillCovers", () => {
+describe(backfillCovers, () => {
   it("covers every Workout of a Plan with distinct Covers matching its top muscle group", async () => {
     const planId = await seedPlan([
       workout("barbell-back-squat"),
@@ -118,11 +123,12 @@ describe("backfillCovers", () => {
     });
 
     expect(report).toEqual({ plans: [{ covered: 3, planId }], written: 3 });
-    expect(await coversOf(planId)).toEqual([LEGS, CHEST, BACK]);
+    await expect(coversOf(planId)).resolves.toEqual([LEGS, CHEST, BACK]);
   });
 
   it("keeps existing Covers and counts them as used", async () => {
     const kept = LEGS;
+
     const planId = await seedPlan([
       workout("barbell-back-squat", kept),
       workout("barbell-back-squat"),
@@ -147,12 +153,14 @@ describe("backfillCovers", () => {
     });
 
     expect(report).toEqual({ plans: [], written: 0 });
+
     const covers = await asUser(owner, (tx) =>
       tx.query.workouts.findMany({
         columns: { cover: true },
         where: (w, { eq }) => eq(w.planId, planId),
       })
     );
+
     expect(covers).toEqual([{ cover: null }]);
   });
 
@@ -161,6 +169,7 @@ describe("backfillCovers", () => {
       workout("barbell-back-squat"),
       workout("barbell-bench-press"),
     ]);
+
     await backfillCovers({ library, log: silent, planIds: [planId] });
     const first = await coversOf(planId);
 
@@ -171,7 +180,7 @@ describe("backfillCovers", () => {
     });
 
     expect(report).toEqual({ plans: [], written: 0 });
-    expect(await coversOf(planId)).toEqual(first);
+    await expect(coversOf(planId)).resolves.toEqual(first);
   });
 
   it("writes nothing on a dry run and logs counts by Plan id only", async () => {
@@ -179,6 +188,7 @@ describe("backfillCovers", () => {
       workout("barbell-back-squat"),
       workout("barbell-bench-press"),
     ]);
+
     const lines: string[] = [];
 
     const report = await backfillCovers({
@@ -189,7 +199,7 @@ describe("backfillCovers", () => {
     });
 
     expect(report).toEqual({ plans: [{ covered: 2, planId }], written: 0 });
-    expect(await coversOf(planId)).toEqual([null, null]);
+    await expect(coversOf(planId)).resolves.toEqual([null, null]);
     expect(lines.join("\n")).toContain(planId);
     expect(lines.join("\n")).not.toContain(owner);
     expect(lines.join("\n")).not.toContain("barbell");
@@ -209,12 +219,14 @@ describe("backfillCovers", () => {
     const planId = await seedPlan([workout("barbell-back-squat")]);
     const plan = await asUser(owner, (tx) => getPlan(tx, owner, planId));
     const workoutId = plan?.workouts[0]?.id ?? "";
+
     // Two chest Exercises arrive between the listing and the Plan's
     // transaction: chest becomes the Workout's most-trained muscle group
     const changing: Library = {
       ...library,
       lookup: async (slugs, options) => {
         const answer = await library.lookup(slugs, options);
+
         if (!slugs.includes("barbell-bench-press")) {
           for (const _ of [1, 2]) {
             // biome-ignore lint/performance/noAwaitInLoops: one after the other, on purpose
@@ -233,13 +245,14 @@ describe("backfillCovers", () => {
             );
           }
         }
+
         return answer;
       },
     };
 
     await backfillCovers({ library: changing, log: silent, planIds: [planId] });
 
-    expect(await coversOf(planId)).toEqual([CHEST]);
+    await expect(coversOf(planId)).resolves.toEqual([CHEST]);
   });
 
   it("refuses to run when the Library has no Covers", async () => {
@@ -252,7 +265,7 @@ describe("backfillCovers", () => {
         planIds: [planId],
       })
     ).rejects.toBeInstanceOf(NoCoversError);
-    expect(await coversOf(planId)).toEqual([null]);
+    await expect(coversOf(planId)).resolves.toEqual([null]);
   });
 
   it("writes nothing when the Library fails", async () => {
@@ -263,6 +276,6 @@ describe("backfillCovers", () => {
     await expect(
       backfillCovers({ library: failing, log: silent, planIds: [planId] })
     ).rejects.toBeInstanceOf(LibraryUnavailableError);
-    expect(await coversOf(planId)).toEqual([null]);
+    await expect(coversOf(planId)).resolves.toEqual([null]);
   });
 });

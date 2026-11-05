@@ -1,4 +1,5 @@
-import { arnoldSessions, type Transaction } from "@fitme/db";
+import { arnoldSessions } from "@fitme/db";
+import type { Transaction } from "@fitme/db";
 import { eq } from "drizzle-orm";
 
 /**
@@ -32,6 +33,7 @@ export const getArnoldSessionOwner = async (
     .select({ userId: arnoldSessions.userId })
     .from(arnoldSessions)
     .where(eq(arnoldSessions.sessionId, sessionId));
+
   return row?.userId ?? null;
 };
 
@@ -47,5 +49,6 @@ export const listArnoldSessionIds = async (
     .select({ sessionId: arnoldSessions.sessionId })
     .from(arnoldSessions)
     .where(eq(arnoldSessions.userId, userId));
+
   return rows.map((row) => row.sessionId);
 };

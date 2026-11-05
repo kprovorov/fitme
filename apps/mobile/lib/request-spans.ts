@@ -29,7 +29,7 @@ const EXERCISE_SLUG = /\/exercises\/[^/?#\s]+/g;
 const EVE_SESSION = /\/session\/[^/?#\s]+/g;
 
 /** The span attributes that carry the request URL, query string and all. */
-const URL_ATTRIBUTES = ["http.url", "url", "url.full"];
+const URL_ATTRIBUTES = new Set(["http.url", "url", "url.full"]);
 
 /**
  * The attributes that are only a query string or a fragment: dropped whole,
@@ -72,13 +72,14 @@ const templateRequestSpan = (span: RequestSpan) => {
       return [
         [
           name,
-          URL_ATTRIBUTES.includes(name) && typeof value === "string"
+          URL_ATTRIBUTES.has(name) && typeof value === "string"
             ? templated(value.replace(QUERY_AND_FRAGMENT, ""))
             : value,
         ],
       ];
     })
   );
+
   return {
     ...span,
     data,

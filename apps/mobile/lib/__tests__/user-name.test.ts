@@ -1,7 +1,9 @@
 import { describe, expect, it } from "@jest/globals";
+import { describe, expect, it } from "vitest";
+
 import { getProfileHeader, splitFullName } from "../user-name";
 
-describe("splitFullName", () => {
+describe(splitFullName, () => {
   it("makes a single word the first name", () => {
     expect(splitFullName("Pepper")).toEqual({
       firstName: "Pepper",
@@ -17,7 +19,7 @@ describe("splitFullName", () => {
   });
 });
 
-describe("getProfileHeader", () => {
+describe(getProfileHeader, () => {
   it("shows the name with the email beneath it", () => {
     expect(
       getProfileHeader({

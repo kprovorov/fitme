@@ -2,6 +2,7 @@ import { BottomSheet, Group, RNHostView } from "@expo/ui/swift-ui";
 import { interactiveDismissDisabled, tint } from "@expo/ui/swift-ui/modifiers";
 import type * as React from "react";
 import { useWindowDimensions, View } from "react-native";
+
 import { SwiftUIHost, useSwiftUITheme } from "~/components/ui/swift-ui";
 import { cn } from "~/lib/utils";
 
@@ -66,4 +67,5 @@ const Dialog = ({
 Dialog.displayName = "Dialog";
 
 export type { DialogProps };
+
 export { Dialog };

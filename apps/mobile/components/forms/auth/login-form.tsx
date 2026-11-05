@@ -1,10 +1,13 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import type { TFunction } from "i18next";
-import { type ElementRef, useCallback, useMemo, useRef } from "react";
-import { type FieldErrors, useController, useForm } from "react-hook-form";
+import { useCallback, useMemo, useRef } from "react";
+import type { ElementRef } from "react";
+import { useController, useForm } from "react-hook-form";
+import type { FieldErrors } from "react-hook-form";
 import { useTranslation } from "react-i18next";
 import type { TextInput } from "react-native";
 import { z } from "zod";
+
 import type { AuthFormLayout } from "~/components/auth/auth-screen";
 import { PasswordInput } from "~/components/auth/password-input";
 import { Button } from "~/components/ui/button";
@@ -18,12 +21,14 @@ const loginFormSchema = (t: TFunction) =>
       .string()
       .min(1, { error: t("auth.validation.passwordRequired") }),
   });
+
 export type LoginFormValues = z.infer<ReturnType<typeof loginFormSchema>>;
 
 interface LoginFormProps extends AuthFormLayout {
   errors?: FieldErrors<LoginFormValues>;
   onSubmit: (values: LoginFormValues) => Promise<void>;
 }
+
 export default function LoginForm({
   children,
   disabled,
@@ -33,20 +38,25 @@ export default function LoginForm({
 }: LoginFormProps) {
   const { t } = useTranslation();
   const schema = useMemo(() => loginFormSchema(t), [t]);
+
   const { control, handleSubmit, formState } = useForm<LoginFormValues>({
     defaultValues: { email: "", password: "" },
     errors,
     resolver: zodResolver(schema),
   });
+
   const busy = !!disabled || formState.isSubmitting;
+
   const submit = useCallback(
     () => handleSubmit(onSubmit)(),
     [handleSubmit, onSubmit]
   );
+
   const { field: email, fieldState: emailState } = useController({
     control,
     name: "email",
   });
+
   const changeEmail = useCallback(
     (value: string) => {
       email.onChange(value);
@@ -54,11 +64,14 @@ export default function LoginForm({
     },
     [email, onEdit]
   );
+
   const focusPassword = useCallback(() => passwordRef.current?.focus(), []);
+
   const { field: password, fieldState: passwordState } = useController({
     control,
     name: "password",
   });
+
   const changePassword = useCallback(
     (value: string) => {
       password.onChange(value);
@@ -66,7 +79,9 @@ export default function LoginForm({
     },
     [password, onEdit]
   );
+
   const passwordRef = useRef<ElementRef<typeof TextInput>>(null);
+
   return children({
     action: (
       <Button
@@ -82,7 +97,7 @@ export default function LoginForm({
       />
     ),
     fields: (
-      <VStack className="items-stretch gap-sm">
+      <VStack className="gap-sm items-stretch">
         <Input
           accessibilityLabel={t("auth.fields.email")}
           autoCapitalize="none"

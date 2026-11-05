@@ -1,22 +1,20 @@
 import { rateLimitedFor } from "@fitme/api-client";
 import { formatCount, formatDate, formatNumber, unitName } from "@fitme/i18n";
 import { isThisYear } from "date-fns";
-import {
-  type ReactNode,
-  type Ref,
-  useCallback,
-  useImperativeHandle,
-} from "react";
+import { useCallback, useImperativeHandle } from "react";
+import type { ReactNode, Ref } from "react";
 import { useTranslation } from "react-i18next";
 import { ActivityIndicator, View } from "react-native";
-import {
-  type ExerciseHistoryEntry,
-  type ExerciseHistorySet,
-  useExerciseHistoryQuery,
+
+import { useExerciseHistoryQuery } from "~/hooks/queries/exercises";
+import type {
+  ExerciseHistoryEntry,
+  ExerciseHistorySet,
 } from "~/hooks/queries/exercises";
 import { useI18n } from "~/lib/i18n";
 import { formatSetTarget, formatSetWeight } from "~/lib/set-inputs";
 import { cn } from "~/lib/utils";
+
 import {
   SET_CHECK_COLUMN_CLASS,
   SET_NUMBER_COLUMN_CLASS,
@@ -98,7 +96,7 @@ function Row({
     <View
       accessibilityLabel={accessibilityLabel}
       accessible={!!accessibilityLabel}
-      className="h-10 flex-row items-center gap-sm"
+      className="gap-sm h-10 flex-row items-center"
     >
       {children}
       <View className={SET_CHECK_COLUMN_CLASS} />
@@ -118,6 +116,7 @@ function SessionTable({
   const i18n = useI18n();
   const logged = [...entry.sets].sort((a, b) => a.order - b.order);
   const date = new Date(entry.session.started_at);
+
   return (
     <View>
       <Text className="text-muted-foreground text-subhead">
@@ -146,11 +145,13 @@ function SessionTable({
         </View>
         {logged.map((set: ExerciseHistorySet) => {
           const target = formatSetTarget(set, weightLabel);
+
           // Bodyweight sets log no weight.
           const weight =
             set.weight_completed === null
               ? null
               : formatSetWeight(set.weight_completed);
+
           const loggedText = [
             formatCount(i18n, "reps", set.reps_completed),
             // Spoken in the App language's decimals: "50.5" / "50,5".
@@ -160,6 +161,7 @@ function SessionTable({
           ]
             .filter(Boolean)
             .join(", ");
+
           return (
             <Row
               accessibilityLabel={[
@@ -210,6 +212,7 @@ export default function ExerciseHistoryView({
     isFetchingNextPage,
     refetch,
   } = useExerciseHistoryQuery({ variables: { exerciseSlug } });
+
   const { t } = useTranslation();
   const i18n = useI18n();
 
@@ -226,16 +229,19 @@ export default function ExerciseHistoryView({
         // A request in flight is never sent again.
         return;
       }
+
       if (loadMoreFailed) {
         // Only the User's own gesture asks again, and a rate-limited one not
         // before `Retry-After` has passed.
         const waited =
           waitSeconds === null ||
           Date.now() >= errorUpdatedAt + waitSeconds * MS_PER_SECOND;
+
         if (trigger !== "drag-end" || !waited) {
           return;
         }
       }
+
       fetchNextPage({ cancelRefetch: false });
     },
     [
@@ -276,6 +282,7 @@ export default function ExerciseHistoryView({
       </Card>
     ) : null;
   }
+
   if (entries.length === 0) {
     return null;
   }

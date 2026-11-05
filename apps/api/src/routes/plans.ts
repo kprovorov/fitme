@@ -14,7 +14,9 @@ import {
 } from "@fitme/core/limits";
 import type { PlanDetail } from "@fitme/services/plans";
 import { createRoute, OpenAPIHono, z } from "@hono/zod-openapi";
-import { type ApiEnv, bearerSecurity, requires } from "../auth.js";
+
+import { bearerSecurity, requires } from "../auth.js";
+import type { ApiEnv } from "../auth.js";
 import {
   checkSlugsAndPickCovers,
   checkSlugsForCovers,
@@ -588,7 +590,7 @@ const deletePlanRoute = createRoute({
 /** The sent Workouts, each with the Cover picked for it (same order). */
 const withCovers = (
   workouts: z.infer<typeof NewPlanWorkout>[],
-  covers: Array<string | null>
+  covers: (string | null)[]
 ) => workouts.map((workout, index) => ({ ...workout, cover: covers[index] }));
 
 export const plans = new OpenAPIHono<ApiEnv>({
@@ -596,31 +598,38 @@ export const plans = new OpenAPIHono<ApiEnv>({
 })
   .openapi(listPlans, async (c) => {
     const found = await c.var.getServices().listPlans();
+
     // Parsed through the contract, so fields beyond it never go out.
     return c.json(PlanListResponse.parse({ data: found }), 200);
   })
   .openapi(createPlanRoute, async (c) => {
     const { activate, ...plan } = c.req.valid("json");
+
     const check = await checkSlugsAndPickCovers({
       library: c.var.getLibrary(),
       reportError: c.var.reportError,
       workouts: plan.workouts,
     });
+
     if (check.status !== "known") {
       const refusal = refusalOf(check);
+
       return c.json(refusal.body, refusal.status);
     }
+
     const created = await c.var
       .getServices()
       .createPlan(
         { ...plan, workouts: withCovers(plan.workouts, check.covers) },
         { activate }
       );
+
     return c.json(PlanResponse.parse({ data: planData(created) }), 201);
   })
   // Before `/{id}`, which would otherwise answer "active" as a malformed id.
   .openapi(getActivePlan, async (c) => {
     const found = await c.var.getServices().getActivePlan();
+
     return c.json(
       ActivePlanResponse.parse({ data: found && planData(found) }),
       200
@@ -628,36 +637,45 @@ export const plans = new OpenAPIHono<ApiEnv>({
   })
   .openapi(getPlan, async (c) => {
     const found = await c.var.getServices().getPlan(c.req.valid("param").id);
+
     if (!found) {
       return c.json(PLAN_NOT_FOUND, 404);
     }
+
     return c.json(PlanResponse.parse({ data: planData(found) }), 200);
   })
   .openapi(replaceWorkoutsRoute, async (c) => {
     const { workouts } = c.req.valid("json");
+
     // Every Workout is replaced, so none of the Plan's Covers stays in use.
     const check = await checkSlugsAndPickCovers({
       library: c.var.getLibrary(),
       reportError: c.var.reportError,
       workouts,
     });
+
     if (check.status !== "known") {
       const refusal = refusalOf(check);
+
       return c.json(refusal.body, refusal.status);
     }
+
     const replaced = await c.var
       .getServices()
       .replaceWorkouts(
         c.req.valid("param").id,
         withCovers(workouts, check.covers)
       );
+
     if (!replaced) {
       return c.json(PLAN_NOT_FOUND, 404);
     }
+
     return c.json(PlanResponse.parse({ data: planData(replaced) }), 200);
   })
   .openapi(savePlanRoute, async (c) => {
     const plan = c.req.valid("json");
+
     const check = await checkSlugsForCovers({
       library: c.var.getLibrary(),
       // Only a new Workout needs a Cover
@@ -665,20 +683,25 @@ export const plans = new OpenAPIHono<ApiEnv>({
       reportError: c.var.reportError,
       workouts: plan.workouts,
     });
+
     if (check.status !== "known") {
       const refusal = refusalOf(check);
+
       return c.json(refusal.body, refusal.status);
     }
+
     const { value, weightUnit } = await c.var
       .getServices()
       .savePlan(c.req.valid("param").id, plan, {
         // In the save's transaction, given the Covers the kept Workouts hold
         coverNewWorkouts: check.pickCovers,
       });
+
     switch (value.status) {
-      case "not_found":
+      case "not_found": {
         return c.json(PLAN_NOT_FOUND, 404);
-      case "invalid_ids":
+      }
+      case "invalid_ids": {
         return c.json(
           {
             error: {
@@ -688,40 +711,48 @@ export const plans = new OpenAPIHono<ApiEnv>({
           },
           400
         );
-      default:
+      }
+      default: {
         return c.json(
           PlanResponse.parse({
             data: planData({ value: value.plan, weightUnit }),
           }),
           200
         );
+      }
     }
   })
   .openapi(updatePlanRoute, async (c) => {
     const updated = await c.var
       .getServices()
       .updatePlan(c.req.valid("param").id, c.req.valid("json"));
+
     if (!updated) {
       return c.json(PLAN_NOT_FOUND, 404);
     }
+
     return c.json(PlanResponse.parse({ data: planData(updated) }), 200);
   })
   .openapi(activatePlanRoute, async (c) => {
     const activated = await c.var
       .getServices()
       .activatePlan(c.req.valid("param").id);
+
     if (!activated) {
       return c.json(PLAN_NOT_FOUND, 404);
     }
+
     return c.json(PlanResponse.parse({ data: planData(activated) }), 200);
   })
   .openapi(deletePlanRoute, async (c) => {
     const result = await c.var
       .getServices()
       .deletePlan(c.req.valid("param").id);
+
     // Already deleted answers 204 too; only a Plan the User never had is a 404
     if (!result) {
       return c.json(PLAN_NOT_FOUND, 404);
     }
+
     return c.body(null, 204);
   });

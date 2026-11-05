@@ -1,13 +1,16 @@
 import { unitName } from "@fitme/i18n";
-import { type ReactNode, useState } from "react";
+import { useState } from "react";
+import type { ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { View } from "react-native";
+
 import type { SavedWorkoutSessionExerciseSet } from "~/hooks/queries/workout-session-exercise-sets";
 import type {
   WorkoutSession,
   WorkoutSessionSet,
 } from "~/hooks/queries/workout-sessions";
 import { cn } from "~/lib/utils";
+
 import {
   SET_CHECK_COLUMN_CLASS,
   SET_NUMBER_COLUMN_CLASS,
@@ -51,7 +54,7 @@ function ColumnLabel({
   return (
     <Text
       adjustsFontSizeToFit
-      className={cn("text-center text-mono-body text-primary", className)}
+      className={cn("text-mono-body text-primary text-center", className)}
       maxFontSizeMultiplier={SET_TABLE_MAX_FONT_SCALE}
       numberOfLines={1}
     >
@@ -79,10 +82,12 @@ export default function WorkoutSessionExerciseSetsTableView({
 
   const handleAddSet = () => {
     const newOrder = maxOrder + localSets.length + 1;
+
     const newLocalSet: LocalSet = {
       id: `local-${Date.now()}-${newOrder}`,
       order: newOrder,
     };
+
     setLocalSets([...localSets, newLocalSet]);
   };
 
@@ -95,6 +100,7 @@ export default function WorkoutSessionExerciseSetsTableView({
         .filter((local) => local.order !== set.order)
         .map((local) => local.order),
     ];
+
     onSetLogged?.(
       set,
       pendingOrders.length > 0 ? Math.min(...pendingOrders) : null
@@ -105,14 +111,15 @@ export default function WorkoutSessionExerciseSetsTableView({
     if (!localId) {
       return;
     }
+
     setLocalSets(localSets.filter((set) => set.id !== localId));
   };
 
   return (
-    <VStack className="items-stretch gap-sm">
+    <VStack className="gap-sm items-stretch">
       <View
         accessibilityElementsHidden
-        className="flex-row items-center gap-sm"
+        className="gap-sm flex-row items-center"
         importantForAccessibility="no-hide-descendants"
       >
         <ColumnLabel className={SET_NUMBER_COLUMN_CLASS}>#</ColumnLabel>
@@ -130,6 +137,7 @@ export default function WorkoutSessionExerciseSetsTableView({
           const locked = sorted
             .slice(0, index)
             .some((s) => s.reps_completed === null);
+
           return (
             <WorkoutSessionExerciseSetRowView
               exerciseId={exerciseId}
@@ -148,7 +156,9 @@ export default function WorkoutSessionExerciseSetsTableView({
           const allExistingDone = workoutSessionExerciseSets.every(
             (s) => s.reps_completed !== null
           );
+
           const locked = !allExistingDone || index > 0;
+
           return (
             <WorkoutSessionExerciseSetRowView
               exerciseId={exerciseId}

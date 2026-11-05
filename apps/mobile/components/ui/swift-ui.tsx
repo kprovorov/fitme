@@ -1,6 +1,7 @@
 import { Host } from "@expo/ui/swift-ui";
 import { isLiquidGlassAvailable } from "expo-glass-effect";
-import { Children, isValidElement, type ReactNode } from "react";
+import { Children, isValidElement } from "react";
+import type { ReactNode } from "react";
 import { Platform } from "react-native";
 import { useResolveClassNames, withUniwind } from "uniwind";
 
@@ -82,6 +83,7 @@ export function useClassColor(className: string | undefined) {
   const resolved = useResolveClassNames(className ?? "").color as
     | string
     | undefined;
+
   return className ? resolved : undefined;
 }
 
@@ -107,21 +109,28 @@ export function childrenToLabel(children: ReactNode): string | null {
     if (node === null || node === undefined || typeof node === "boolean") {
       return true;
     }
+
     if (typeof node === "string" || typeof node === "number") {
       parts.push(String(node));
+
       return true;
     }
+
     if (Array.isArray(node)) {
       return node.every((child) => walk(child));
     }
+
     if (isValidElement<{ children?: ReactNode }>(node)) {
       const nested = node.props.children;
+
       // A childless element (an icon, an image) can't be spelled as a string.
       if (nested === undefined || nested === null) {
         return false;
       }
+
       return Children.toArray(nested).every((child) => walk(child));
     }
+
     return false;
   };
 

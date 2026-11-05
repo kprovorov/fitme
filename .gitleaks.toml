@@ -15,7 +15,9 @@ paths = ['''^\.agents/skills/''']
 [[allowlists]]
 description = "The Supabase CLI's well-known local demo JWTs (iss supabase-demo), e.g. the E2E build's local anon key"
 regexTarget = "match"
-regexes = ['''eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9\.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIi[A-Za-z0-9_-]*\.[A-Za-z0-9_-]+''']
+regexes = [
+  '''eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9\.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIi[A-Za-z0-9_-]*\.[A-Za-z0-9_-]+''',
+]
 
 [[allowlists]]
 description = "Made-up secrets in unit tests"
@@ -57,4 +59,8 @@ regexes = ['''not-a-bcrypt-digest''']
 # A reference, not a value: Supabase config's `env(NAME)`, a shell `$NAME`, a
 # template literal's `${…}`.
 [[rules.allowlists]]
-regexes = ['''^env\([A-Z0-9_]+\)$''', '''^\$[A-Za-z_][A-Za-z0-9_]*$''', '''\$\{''']
+regexes = [
+  '''^env\([A-Z0-9_]+\)$''',
+  '''^\$[A-Za-z_][A-Za-z0-9_]*$''',
+  '''\$\{''',
+]

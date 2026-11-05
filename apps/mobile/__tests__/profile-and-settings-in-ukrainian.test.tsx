@@ -9,6 +9,8 @@ import { QueryClientProvider } from "@tanstack/react-query";
 import { fireEvent, render, screen } from "@testing-library/react-native";
 import type { ReactNode } from "react";
 import { Alert, Pressable, Text, View } from "react-native";
+import { it, describe, expect, beforeEach } from "vitest";
+
 import LegalScreen from "~/app/legal";
 import SettingsScreen from "~/app/settings";
 import SupportScreen from "~/app/support";
@@ -23,9 +25,10 @@ import { InAppLanguage } from "~/test-utils/in-app-language";
 import { createTestQueryClient, settle } from "~/test-utils/query-client";
 
 // Each Screen's title, as the native header shows it.
-jest.mock("expo-router", () => {
+jest.mock<typeof import("expo-router")>(import("expo-router"), () => {
   const { Text: MockText } =
     jest.requireActual<typeof import("react-native")>("react-native");
+
   return {
     Link: ({ children }: { children: ReactNode }) => children,
     router: { replace: jest.fn() },
@@ -44,12 +47,12 @@ const mockUser = {
   primaryEmailAddress: { emailAddress: "taras@example.com" },
 };
 
-jest.mock("@clerk/expo", () => ({
+jest.mock<typeof import("@clerk/expo")>(import("@clerk/expo"), () => ({
   isClerkAPIResponseError: () => false,
   useUser: () => ({ isLoaded: true, user: mockUser }),
 }));
 
-jest.mock("~/lib/clerk", () => ({
+jest.mock<typeof import("~/lib/clerk")>(import("~/lib/clerk"), () => ({
   ...jest.requireActual<typeof import("~/lib/clerk")>("~/lib/clerk"),
   getClerk: () => ({ signOut: jest.fn(), user: mockUser }),
   getCurrentUserId: () =>
@@ -58,22 +61,29 @@ jest.mock("~/lib/clerk", () => ({
     ).FAKE_USER_ID,
 }));
 
-jest.mock("~/lib/segment", () => ({
+jest.mock<typeof import("~/lib/segment")>(import("~/lib/segment"), () => ({
   segmentClient: { reset: jest.fn(), track: jest.fn() },
 }));
 
-jest.mock("react-native-purchases-ui", () => ({
-  __esModule: true,
-  default: { presentPaywall: jest.fn() },
-}));
+jest.mock<typeof import("react-native-purchases-ui")>(
+  import("react-native-purchases-ui"),
+  () => ({
+    __esModule: true,
+    default: { presentPaywall: jest.fn() },
+  })
+);
 
-jest.mock("~/hooks/revenueCat", () => ({
-  useCustomerInfoQuery: () => ({ data: undefined }),
-  useIsProQuery: () => ({ data: false }),
-}));
+jest.mock<typeof import("~/hooks/revenueCat")>(
+  import("~/hooks/revenueCat"),
+  () => ({
+    useCustomerInfoQuery: () => ({ data: undefined }),
+    useIsProQuery: () => ({ data: false }),
+  })
+);
 
-jest.mock("~/components/ui/button", () =>
-  jest.requireActual("~/test-utils/button-stub")
+jest.mock<typeof import("~/components/ui/button")>(
+  import("~/components/ui/button"),
+  () => jest.requireActual("~/test-utils/button-stub")
 );
 
 // The native alert stand-in: its trigger, then its title, message and
@@ -108,11 +118,14 @@ const MockAlertDialog = ({
   </View>
 );
 
-jest.mock("~/components/ui/alert-dialog", () => ({
-  AlertDialog: (props: Parameters<typeof MockAlertDialog>[0]) => (
-    <MockAlertDialog {...props} />
-  ),
-}));
+jest.mock<typeof import("~/components/ui/alert-dialog")>(
+  import("~/components/ui/alert-dialog"),
+  () => ({
+    AlertDialog: (props: Parameters<typeof MockAlertDialog>[0]) => (
+      <MockAlertDialog {...props} />
+    ),
+  })
+);
 
 const mount = async (element: ReactNode) => {
   const client = createTestQueryClient();
@@ -122,10 +135,11 @@ const mount = async (element: ReactNode) => {
     </QueryClientProvider>
   );
   await settle(client);
+
   return client;
 };
 
-describe("Profile and Settings on a Ukrainian device", () => {
+describe("profile and Settings on a Ukrainian device", () => {
   beforeEach(() => {
     setDeviceLanguages(["uk-UA"]);
     jest.clearAllMocks();
@@ -138,6 +152,7 @@ describe("Profile and Settings on a Ukrainian device", () => {
     expect(screen.getByText("Тарас Шевченко")).toBeTruthy();
     expect(screen.getByText("У вас безкоштовний план")).toBeTruthy();
     expect(screen.getByText("Перейти на Pro")).toBeTruthy();
+
     for (const item of [
       "Редагувати профіль",
       "Налаштування",
@@ -149,6 +164,7 @@ describe("Profile and Settings on a Ukrainian device", () => {
     ]) {
       expect(screen.getByText(item)).toBeTruthy();
     }
+
     expect(screen.queryByText("Settings")).toBeNull();
   });
 
@@ -176,12 +192,13 @@ describe("Profile and Settings on a Ukrainian device", () => {
     const alert = jest.spyOn(Alert, "alert").mockImplementation(() => {
       // The native alert isn't shown under Jest.
     });
+
     const client = await mount(<SettingsScreen />);
 
     await fireEvent.press(screen.getByText("Видалити"));
     await settle(client);
 
-    expect(mockUser.delete).toHaveBeenCalledTimes(1);
+    expect(mockUser.delete).toHaveBeenCalledOnce();
     expect(alert).toHaveBeenCalledWith(
       "Не вдалося видалити акаунт",
       "Щось пішло не так. Спробуйте пізніше."
@@ -214,6 +231,7 @@ describe("Profile and Settings on a Ukrainian device", () => {
       screen.getByText("Пишіть нам будь-коли, якщо маєте запитання чи відгуки")
     ).toBeTruthy();
     expect(screen.getByText("support@fitmeproject.com")).toBeTruthy();
+
     for (const label of ["Fitme в X", "Fitme в Instagram", "Fitme в Threads"]) {
       expect(screen.getByLabelText(label)).toBeTruthy();
     }

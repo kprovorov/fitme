@@ -3,6 +3,7 @@ import {
   getArnoldSessionOwner,
   recordArnoldSession,
 } from "@fitme/services/arnold-sessions";
+
 import type { ClaimSession } from "./clerk-auth";
 
 /**
@@ -11,6 +12,9 @@ import type { ClaimSession } from "./clerk-auth";
  * it isn't theirs, RLS would hide the row).
  */
 export const claimSession: ClaimSession = async (sessionId, userId) => {
-  await asUser(userId, (tx) => recordArnoldSession(tx, userId, sessionId));
-  return await withService((tx) => getArnoldSessionOwner(tx, sessionId));
+  await asUser(userId, async (tx) =>
+    recordArnoldSession(tx, userId, sessionId)
+  );
+
+  return await withService(async (tx) => getArnoldSessionOwner(tx, sessionId));
 };

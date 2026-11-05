@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+
 import { createI18n } from "..";
 import {
   formatDate,
@@ -16,6 +17,7 @@ const on = (
 ) => {
   const instance = createI18n(language);
   setDeviceConventions(instance, { region, uses24hourClock });
+
   return instance;
 };
 
@@ -25,7 +27,7 @@ const SIX_OH_FIVE_12_HOUR = /^6:05\s/;
 // 2026-10-21 18:05, local time.
 const evening = new Date(2026, 9, 21, 18, 5);
 
-describe("formatLocale", () => {
+describe(formatLocale, () => {
   it("is the App language plus the device region", () => {
     expect(formatLocale(on("uk", "UA"))).toBe("uk-UA");
     expect(formatLocale(on("en", "GB"))).toBe("en-GB");
@@ -55,7 +57,7 @@ describe("formatLocale", () => {
   });
 });
 
-describe("formatDate", () => {
+describe(formatDate, () => {
   it("writes a Ukrainian date with a Ukrainian month, day before month", () => {
     const uk = on("uk", "UA");
     expect(formatDate(uk, evening, "dayMonth")).toBe("21 жовтня");
@@ -85,7 +87,7 @@ describe("formatDate", () => {
   });
 });
 
-describe("formatTime", () => {
+describe(formatTime, () => {
   it("follows the device's 24-hour setting, whatever the language", () => {
     expect(formatTime(on("en", "US", true), evening)).toBe("18:05");
     expect(formatTime(on("en", "US", false), evening)).toBe("6:05 PM");
@@ -99,6 +101,7 @@ describe("formatTime", () => {
     const zone = process.env.TZ;
     const instance = on("en", "GB", true);
     const noonUtc = new Date(Date.UTC(2026, 9, 21, 12, 0));
+
     try {
       process.env.TZ = "UTC";
       expect(formatTime(instance, noonUtc)).toBe("12:00");

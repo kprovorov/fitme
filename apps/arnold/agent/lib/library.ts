@@ -1,15 +1,12 @@
-import {
-  createLibrary,
-  type Library,
-  LibraryUnavailableError,
-} from "@fitme/library-sdk";
+import { createLibrary, LibraryUnavailableError } from "@fitme/library-sdk";
+import type { Library } from "@fitme/library-sdk";
 
 /** Answers every call unavailable: `LIBRARY_URL` isn't set. */
 const unconfigured: Library = {
-  covers: () => Promise.reject(notConfigured()),
-  get: () => Promise.reject(notConfigured()),
-  list: () => Promise.reject(notConfigured()),
-  lookup: () => Promise.reject(notConfigured()),
+  covers: async () => Promise.reject(notConfigured()),
+  get: async () => Promise.reject(notConfigured()),
+  list: async () => Promise.reject(notConfigured()),
+  lookup: async () => Promise.reject(notConfigured()),
 };
 
 const notConfigured = () =>
@@ -29,10 +26,11 @@ export const getLibrary = (): Library => {
     const url = process.env.LIBRARY_URL;
     library = url
       ? createLibrary({
-          token: () => Promise.resolve(process.env.LIBRARY_ARNOLD_SECRET),
+          token: async () => Promise.resolve(process.env.LIBRARY_ARNOLD_SECRET),
           url,
         })
       : unconfigured;
   }
+
   return library;
 };

@@ -1,23 +1,35 @@
 import { beforeEach, describe, expect, it, jest } from "@jest/globals";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { fireEvent, render, screen } from "@testing-library/react-native";
+import { it, describe, expect, beforeEach } from "vitest";
+
 import type { PlanWorkout } from "~/hooks/queries/plans";
 import { backend, fakePublicApi } from "~/test-utils/fake-public-api";
 import { createTestQueryClient, settle } from "~/test-utils/query-client";
+
 import WorkoutCard from "../workout-card";
 
 const mockPush = jest.fn();
 
-jest.mock("expo-router", () => ({
+jest.mock<typeof import("expo-router")>(import("expo-router"), () => ({
   Link: ({ children }: { children: unknown }) => children,
   useRouter: () => ({ push: mockPush }),
 }));
 
 // The real Clerk SDK opens a MessagePort at import that keeps Jest alive.
-jest.mock("~/lib/clerk", () => ({ getCurrentUserId: () => "user_test" }));
+jest.mock<typeof import("~/lib/clerk")>(import("~/lib/clerk"), () => ({
+  getCurrentUserId: () => "user_test",
+}));
 
-jest.mock("~/components/exercises/exercise-image", () => () => null);
-jest.mock("~/components/symbol-image", () => ({ SymbolImage: () => null }));
+jest.mock<typeof import("~/components/exercises/exercise-image")>(
+  import("~/components/exercises/exercise-image"),
+  () => () => null
+);
+
+jest.mock<typeof import("~/components/symbol-image")>(
+  import("~/components/symbol-image"),
+  () => ({ SymbolImage: () => null })
+);
 
 const SET = {
   reps_recommended: 10,
@@ -74,7 +86,7 @@ const renderCard = async (shown: PlanWorkout) => {
   await settle(client);
 };
 
-describe("A Plan screen's WorkoutCard", () => {
+describe("a Plan screen's WorkoutCard", () => {
   beforeEach(() => {
     jest.clearAllMocks();
     backend.reset();
@@ -116,9 +128,9 @@ describe("A Plan screen's WorkoutCard", () => {
     seedOpenSession("workout-1", HOUR_MS + 2 * 60_000);
     await renderCard(pushDay);
 
-    expect(
-      await screen.findByText(ELAPSED, {}, { timeout: 3000 })
-    ).toBeTruthy();
+    await expect(
+      screen.findByText(ELAPSED, {}, { timeout: 3000 })
+    ).resolves.toBeTruthy();
   });
 
   it("opens its Workout screen while another Workout's session is open", async () => {

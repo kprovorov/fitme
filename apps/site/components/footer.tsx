@@ -2,6 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 
 import { socialLinks } from "@/lib/site";
+
 import { AppStoreBadge } from "./app-store-badge";
 import { Container } from "./ui/container";
 
@@ -40,7 +41,7 @@ function Footer() {
             <Link href="/">
               <Image alt="Fitme" height={30} src="/logo.svg" width={100} />
             </Link>
-            <p className="max-w-80 text-muted-foreground">
+            <p className="text-muted-foreground max-w-80">
               The AI workout tracker and fitness coach for iPhone. Plan, train
               and see your progress in one app.
             </p>
@@ -59,7 +60,7 @@ function Footer() {
                   {column.links.map((link) => (
                     <li key={link.href}>
                       <Link
-                        className="inline-flex min-h-11 items-center text-muted-foreground text-subhead transition-colors hover:text-foreground"
+                        className="text-muted-foreground text-subhead hover:text-foreground inline-flex min-h-11 items-center transition-colors"
                         href={link.href}
                       >
                         {link.title}
@@ -71,14 +72,14 @@ function Footer() {
             ))}
           </nav>
         </div>
-        <div className="flex flex-col-reverse items-start justify-between gap-6 border-t pt-8 text-footnote text-muted-foreground sm:flex-row sm:items-center">
+        <div className="text-footnote text-muted-foreground flex flex-col-reverse items-start justify-between gap-6 border-t pt-8 sm:flex-row sm:items-center">
           <p>© {new Date().getFullYear()} Kyrylo Provorov. Made in Europe.</p>
           <ul className="flex items-center gap-2">
             {socialLinks.map((link) => (
               <li key={link.id}>
                 <a
                   aria-label={link.label}
-                  className="group flex size-11 items-center justify-center rounded-full border transition-colors hover:border-muted-foreground"
+                  className="group hover:border-muted-foreground flex size-11 items-center justify-center rounded-full border transition-colors"
                   href={link.href}
                   rel="noopener"
                   target="_blank"

@@ -18,109 +18,140 @@ import {
 } from "@testing-library/react-native";
 import type * as React from "react";
 import { Alert } from "react-native";
+import { it, afterEach, describe, expect, beforeEach } from "vitest";
+
 import { PlanUpdateSheetHost } from "~/components/workout-sessions/plan-update-sheet";
 import { closePlanUpdatePrompt } from "~/hooks/plan-update-prompt";
 import { i18n } from "~/lib/i18n";
 import { setDeviceLanguages } from "~/test-utils/device-locales";
 import { libraryExercise, serveLibrary } from "~/test-utils/fake-library";
 import { createTestQueryClient } from "~/test-utils/query-client";
+
 import { useFinishWorkoutSession } from "../finish-workout-session";
 
 const mockReplace = jest.fn();
 const mockDismiss = jest.fn();
+
 const mockNavigationState: {
   index: number;
-  routes: Array<{ params?: object }>;
+  routes: { params?: object }[];
 } = { index: 0, routes: [{}] };
+
 const mockFinishRpc =
   jest.fn<(variables: { sessionId: string }) => Promise<unknown>>();
+
 const mockFetchSession = jest.fn<() => Promise<unknown>>();
+
 const mockPlanUpdate =
   jest.fn<
     (sessionId: string, options: { apply: boolean }) => Promise<unknown>
   >();
+
 const mockTrack = jest.fn();
 
-jest.mock("expo-router", () => ({
+jest.mock<typeof import("expo-router")>(import("expo-router"), () => ({
   useNavigation: () => ({ getState: () => mockNavigationState }),
   useRouter: () => ({ dismiss: mockDismiss, replace: mockReplace }),
 }));
 
-jest.mock("@sentry/react-native", () => ({ captureException: jest.fn() }));
-jest.mock("~/lib/segment", () => ({
+jest.mock<typeof import("@sentry/react-native")>(
+  import("@sentry/react-native"),
+  () => ({ captureException: jest.fn() })
+);
+
+jest.mock<typeof import("~/lib/segment")>(import("~/lib/segment"), () => ({
   segmentClient: { track: (...args: unknown[]) => mockTrack(...args) },
 }));
-jest.mock("~/components/ui/dialog", () =>
-  jest.requireActual("~/test-utils/dialog-stub")
+
+jest.mock<typeof import("~/components/ui/dialog")>(
+  import("~/components/ui/dialog"),
+  () => jest.requireActual("~/test-utils/dialog-stub")
 );
-jest.mock("~/components/ui/button", () =>
-  jest.requireActual("~/test-utils/button-stub")
+
+jest.mock<typeof import("~/components/ui/button")>(
+  import("~/components/ui/button"),
+  () => jest.requireActual("~/test-utils/button-stub")
 );
-jest.mock("~/components/symbol-image", () => ({ SymbolImage: () => null }));
+
+jest.mock<typeof import("~/components/symbol-image")>(
+  import("~/components/symbol-image"),
+  () => ({ SymbolImage: () => null })
+);
+
 // Who started a finish: the fake Public API's User unless a test signs
 // someone else in.
-jest.mock("~/lib/clerk", () => ({
+jest.mock<typeof import("~/lib/clerk")>(import("~/lib/clerk"), () => ({
   getCurrentUserId: jest.requireActual<
     typeof import("~/test-utils/signed-in-user")
   >("~/test-utils/signed-in-user").getCurrentUserId,
 }));
+
 // Keeps the real mutation key, react-query wiring and seeding, swapping only
 // the network call.
-jest.mock("~/hooks/queries/workout-sessions", () => {
-  const { createMutation, createQuery } =
-    jest.requireActual<typeof import("react-query-kit")>("react-query-kit");
-  const { rememberWriteStarter, seedWriteAnswer } = jest.requireActual<
-    typeof import("~/lib/write-answers")
-  >("~/lib/write-answers");
-  const FINISH_WORKOUT_SESSION_MUTATION_KEY = ["finish-workout-session"];
-  return {
-    FINISH_WORKOUT_SESSION_MUTATION_KEY,
-    fetchPlanUpdate: (sessionId: string) =>
-      mockPlanUpdate(sessionId, { apply: false }),
-    OPEN_WORKOUT_SESSION_QUERY_KEY: ["open-workout-session"],
-    seedWorkoutSession: (
-      client: import("@tanstack/react-query").QueryClient,
-      starter: import("~/lib/write-answers").WriteStarter | undefined,
-      session: { id: string },
-      alsoInvalidate: import("@tanstack/react-query").InvalidateQueryFilters[]
-    ) =>
-      seedWriteAnswer(client, starter, {
-        alsoInvalidate,
-        answer: session,
-        queryKey: ["workout-session", { sessionId: session.id }],
+jest.mock<typeof import("~/hooks/queries/workout-sessions")>(
+  import("~/hooks/queries/workout-sessions"),
+  () => {
+    const { createMutation, createQuery } =
+      jest.requireActual<typeof import("react-query-kit")>("react-query-kit");
+
+    const { rememberWriteStarter, seedWriteAnswer } = jest.requireActual<
+      typeof import("~/lib/write-answers")
+    >("~/lib/write-answers");
+
+    const FINISH_WORKOUT_SESSION_MUTATION_KEY = ["finish-workout-session"];
+
+    return {
+      FINISH_WORKOUT_SESSION_MUTATION_KEY,
+      fetchPlanUpdate: (sessionId: string) =>
+        mockPlanUpdate(sessionId, { apply: false }),
+      OPEN_WORKOUT_SESSION_QUERY_KEY: ["open-workout-session"],
+      seedWorkoutSession: (
+        client: import("@tanstack/react-query").QueryClient,
+        starter: import("~/lib/write-answers").WriteStarter | undefined,
+        session: { id: string },
+        alsoInvalidate: import("@tanstack/react-query").InvalidateQueryFilters[]
+      ) =>
+        seedWriteAnswer(client, starter, {
+          alsoInvalidate,
+          answer: session,
+          queryKey: ["workout-session", { sessionId: session.id }],
+        }),
+      useApplyPlanUpdateMutation: createMutation({
+        mutationFn: ({ sessionId }: { sessionId: string }) =>
+          mockPlanUpdate(sessionId, { apply: true }),
       }),
-    useApplyPlanUpdateMutation: createMutation({
-      mutationFn: ({ sessionId }: { sessionId: string }) =>
-        mockPlanUpdate(sessionId, { apply: true }),
-    }),
-    useFinishWorkoutSessionMutation: createMutation({
-      mutationFn: (variables: { sessionId: string }) =>
-        mockFinishRpc(variables),
-      mutationKey: FINISH_WORKOUT_SESSION_MUTATION_KEY,
-      onMutate: (
-        { sessionId }: { sessionId: string },
-        { client }: { client: import("@tanstack/react-query").QueryClient }
-      ) => rememberWriteStarter(client, [["workout-session", { sessionId }]]),
-    }),
-    useWorkoutSessionQuery: createQuery({
-      fetcher: () => mockFetchSession(),
-      queryKey: ["workout-session"],
-    }),
-  };
-});
+      useFinishWorkoutSessionMutation: createMutation({
+        mutationFn: (variables: { sessionId: string }) =>
+          mockFinishRpc(variables),
+        mutationKey: FINISH_WORKOUT_SESSION_MUTATION_KEY,
+        onMutate: (
+          { sessionId }: { sessionId: string },
+          { client }: { client: import("@tanstack/react-query").QueryClient }
+        ) => rememberWriteStarter(client, [["workout-session", { sessionId }]]),
+      }),
+      useWorkoutSessionQuery: createQuery({
+        fetcher: () => mockFetchSession(),
+        queryKey: ["workout-session"],
+      }),
+    };
+  }
+);
 
 const deferred = () => {
   let resolve!: (value: unknown) => void;
   let reject!: (error: unknown) => void;
+
   const promise = new Promise<unknown>((res, rej) => {
     resolve = res;
     reject = rej;
   });
+
   return { promise, reject, resolve };
 };
 
 const setup = async (screensAboveSession = 0) => {
   const queryClient = createTestQueryClient();
+
   // The sheet's host sits in the root layout, next to every screen.
   const wrapper = ({ children }: { children: React.ReactNode }) => (
     <QueryClientProvider client={queryClient}>
@@ -128,6 +159,7 @@ const setup = async (screensAboveSession = 0) => {
       <PlanUpdateSheetHost />
     </QueryClientProvider>
   );
+
   // Two screens of the same session, e.g. the session and an exercise.
   const { result } = await renderHook(
     () => ({
@@ -136,6 +168,7 @@ const setup = async (screensAboveSession = 0) => {
     }),
     { wrapper }
   );
+
   // Waits until no finish is running, then lets react-query's last
   // notification (a 0 ms timer) re-render the hooks inside act.
   const settled = async () => {
@@ -146,6 +179,7 @@ const setup = async (screensAboveSession = 0) => {
       result.current.exercise.isFinishing,
     ]).toEqual([false, false]);
   };
+
   return { queryClient, result, settled };
 };
 
@@ -201,13 +235,13 @@ const UPDATE = { name: "Update plan" } as const;
 const RETRY = { name: "Retry" } as const;
 const KEEP = { name: "Keep plan as is" } as const;
 
-describe("useFinishWorkoutSession", () => {
+describe(useFinishWorkoutSession, () => {
   beforeEach(() => {
     jest.clearAllMocks();
     Object.assign(mockNavigationState, { index: 0, routes: [{}] });
     serveLibrary(LIBRARY);
     mockPlanUpdate.mockResolvedValue(NO_CHANGES);
-    jest.spyOn(Alert, "alert").mockImplementation(() => undefined);
+    jest.spyOn(Alert, "alert").mockReturnValue(undefined);
   });
 
   // A question left open would show in the next test's sheet.
@@ -237,7 +271,7 @@ describe("useFinishWorkoutSession", () => {
 
     await act(() => result.current.session.finish());
 
-    await waitFor(() => expect(mockReplace).toHaveBeenCalled());
+    await waitFor(() => expect(mockReplace).toHaveBeenCalledWith());
     await settled();
     expect(
       queryClient.getQueryData(["workout-session", { sessionId: "session-1" }])
@@ -254,7 +288,7 @@ describe("useFinishWorkoutSession", () => {
 
     await act(() => result.current.exercise.finish());
 
-    await waitFor(() => expect(mockReplace).toHaveBeenCalled());
+    await waitFor(() => expect(mockReplace).toHaveBeenCalledWith());
     await settled();
     expect(mockDismiss).toHaveBeenCalledWith(1);
     expect(mockDismiss.mock.invocationCallOrder[0]).toBeLessThan(
@@ -293,7 +327,7 @@ describe("useFinishWorkoutSession", () => {
     await waitFor(() => expect(result.current.exercise.isFinishing).toBe(true));
     await act(() => result.current.exercise.finish());
 
-    expect(mockFinishRpc).toHaveBeenCalledTimes(1);
+    expect(mockFinishRpc).toHaveBeenCalledOnce();
     expect(result.current.session.isFinishing).toBe(true);
 
     await act(async () => {
@@ -309,7 +343,7 @@ describe("useFinishWorkoutSession", () => {
 
     await act(() => result.current.session.finish());
 
-    await waitFor(() => expect(Alert.alert).toHaveBeenCalledTimes(1));
+    await waitFor(() => expect(Alert.alert).toHaveBeenCalledOnce());
     await settled();
     expect(result.current.session.isFinishing).toBe(false);
     expect(mockReplace).not.toHaveBeenCalled();
@@ -317,7 +351,7 @@ describe("useFinishWorkoutSession", () => {
     mockFinishRpc.mockResolvedValueOnce({});
     await act(() => result.current.session.finish());
 
-    await waitFor(() => expect(mockReplace).toHaveBeenCalledTimes(1));
+    await waitFor(() => expect(mockReplace).toHaveBeenCalledOnce());
     await settled();
     expect(mockFinishRpc).toHaveBeenCalledTimes(2);
   });
@@ -330,20 +364,25 @@ describe("useFinishWorkoutSession", () => {
       ],
       id: "session-1",
     };
+
     type AlertButtons = Parameters<typeof Alert.alert>[2];
+
     const pressAlertButton = async (text: string, call = 0) => {
       const buttons = jest.mocked(Alert.alert).mock.calls[call]?.[2] as
         | AlertButtons
         | undefined;
+
       const button = buttons?.find((candidate) => candidate.text === text);
       await act(() => button?.onPress?.());
     };
+
     const setupWith = async (session: unknown) => {
       const setupResult = await setup();
       setupResult.queryClient.setQueryData(
         ["workout-session", { sessionId: "session-1" }],
         session
       );
+
       return setupResult;
     };
 
@@ -371,14 +410,14 @@ describe("useFinishWorkoutSession", () => {
         )
       );
       await settled();
-      expect(mockFinishRpc).toHaveBeenCalledTimes(1);
+      expect(mockFinishRpc).toHaveBeenCalledOnce();
     });
 
     it("keeps the session going when cancelled", async () => {
       const { result } = await setupWith(partlyLogged);
 
       await act(() => result.current.session.confirmFinish());
-      await waitFor(() => expect(Alert.alert).toHaveBeenCalled());
+      await waitFor(() => expect(Alert.alert).toHaveBeenCalledWith());
       await pressAlertButton("Cancel");
 
       expect(mockFinishRpc).not.toHaveBeenCalled();
@@ -406,6 +445,7 @@ describe("useFinishWorkoutSession", () => {
 
     it("finishes without asking when every set is logged", async () => {
       mockFinishRpc.mockResolvedValue({});
+
       const { result, settled } = await setupWith({
         exercises: [{ sets: [{ reps_completed: 0 }] }],
         id: "session-1",
@@ -413,7 +453,7 @@ describe("useFinishWorkoutSession", () => {
 
       await act(() => result.current.session.confirmFinish());
 
-      await waitFor(() => expect(mockReplace).toHaveBeenCalled());
+      await waitFor(() => expect(mockReplace).toHaveBeenCalledWith());
       await settled();
       expect(Alert.alert).not.toHaveBeenCalled();
     });
@@ -426,14 +466,14 @@ describe("useFinishWorkoutSession", () => {
         result.current.session.confirmFinish();
         result.current.exercise.confirmFinish();
       });
-      await waitFor(() => expect(Alert.alert).toHaveBeenCalled());
+      await waitFor(() => expect(Alert.alert).toHaveBeenCalledWith());
       await act(() => new Promise((resolve) => setTimeout(resolve, 0)));
-      expect(Alert.alert).toHaveBeenCalledTimes(1);
+      expect(Alert.alert).toHaveBeenCalledOnce();
 
       await pressAlertButton("Finish");
-      await waitFor(() => expect(mockReplace).toHaveBeenCalled());
+      await waitFor(() => expect(mockReplace).toHaveBeenCalledWith());
       await settled();
-      expect(mockFinishRpc).toHaveBeenCalledTimes(1);
+      expect(mockFinishRpc).toHaveBeenCalledOnce();
     });
 
     it("doesn't finish when the session can't be read", async () => {
@@ -457,13 +497,13 @@ describe("useFinishWorkoutSession", () => {
 
       await act(() => result.current.session.finish());
 
-      await waitFor(() => expect(mockReplace).toHaveBeenCalled());
+      await waitFor(() => expect(mockReplace).toHaveBeenCalledWith());
       await settled();
       expect(Alert.alert).not.toHaveBeenCalled();
     });
   });
 
-  describe("Update your plan?", () => {
+  describe("update your plan?", () => {
     const finishWithChanges = async (
       how: "confirmFinish" | "finish" = "finish"
     ) => {
@@ -476,6 +516,7 @@ describe("useFinishWorkoutSession", () => {
       );
       await act(() => setupResult.result.current.session[how]());
       await screen.findByText("Update your plan?");
+
       return setupResult;
     };
 
@@ -506,6 +547,7 @@ describe("useFinishWorkoutSession", () => {
       ).toBeTruthy();
       // The names resolve in one Library lookup.
       await screen.findByText("Add 1 set to Back Squat · 5×100 kg");
+
       for (const line of [
         "Replace Bench Press with Dumbbell Press · 8×30, 8×30, 6×30 kg",
         "Add 1 set to Back Squat · 5×100 kg",
@@ -515,6 +557,7 @@ describe("useFinishWorkoutSession", () => {
       ]) {
         expect(screen.getByText(line)).toBeTruthy();
       }
+
       expect(screen.getByRole("button", UPDATE)).toBeTruthy();
       expect(screen.getByRole("button", KEEP)).toBeTruthy();
       expect(mockReplace).not.toHaveBeenCalled();
@@ -534,9 +577,9 @@ describe("useFinishWorkoutSession", () => {
 
       await act(() => result.current.session.finish());
 
-      expect(
-        await screen.findByText("Add 1 set to Back Squat · 5×100 lbs")
-      ).toBeTruthy();
+      await expect(
+        screen.findByText("Add 1 set to Back Squat · 5×100 lbs")
+      ).resolves.toBeTruthy();
     });
 
     it("reports how many changes of each kind it suggested", async () => {
@@ -559,16 +602,16 @@ describe("useFinishWorkoutSession", () => {
       expect(
         screen.getByRole("heading", { name: "Update your plan?" })
       ).toBeTruthy();
-      expect(
-        await screen.findByLabelText(
+      await expect(
+        screen.findByLabelText(
           "Replace Bench Press with Dumbbell Press: 8 reps at 30 kilograms, 8 reps at 30 kilograms, 6 reps at 30 kilograms"
         )
-      ).toBeTruthy();
-      expect(
-        await screen.findByLabelText(
+      ).resolves.toBeTruthy();
+      await expect(
+        screen.findByLabelText(
           "Add 1 set to Back Squat: 5 reps at 100 kilograms"
         )
-      ).toBeTruthy();
+      ).resolves.toBeTruthy();
       expect(screen.getByLabelText("Remove Dips")).toBeTruthy();
       expect(screen.getByTestId("plan-update-accept")).toHaveProp(
         "accessibilityHint",
@@ -616,7 +659,7 @@ describe("useFinishWorkoutSession", () => {
       await fireEvent.press(screen.getByRole("button", KEEP));
 
       expect(mockReplace).toHaveBeenCalledWith(SUMMARY);
-      expect(mockPlanUpdate).toHaveBeenCalledTimes(1);
+      expect(mockPlanUpdate).toHaveBeenCalledOnce();
       expect(mockTrack).toHaveBeenCalledWith("Plan Update Declined", {
         plan_id: "plan-1",
         workout_id: "workout-1",
@@ -634,12 +677,12 @@ describe("useFinishWorkoutSession", () => {
 
       await fireEvent.press(screen.getByRole("button", UPDATE));
 
-      expect(
-        await screen.findByText(
+      await expect(
+        screen.findByText(
           "Couldn't update your plan. Check your connection and try again."
         )
-      ).toBeTruthy();
-      expect(Sentry.captureException).toHaveBeenCalled();
+      ).resolves.toBeTruthy();
+      expect(Sentry.captureException).toHaveBeenCalledWith();
       expect(mockReplace).not.toHaveBeenCalled();
       expect(mockTrack).not.toHaveBeenCalledWith(
         "Plan Update Accepted",
@@ -689,7 +732,7 @@ describe("useFinishWorkoutSession", () => {
       );
 
       await act(() => result.current.session.confirmFinish());
-      await waitFor(() => expect(Alert.alert).toHaveBeenCalled());
+      await waitFor(() => expect(Alert.alert).toHaveBeenCalledWith());
       expect(mockPlanUpdate).not.toHaveBeenCalled();
       expect(screen.queryByText("Update your plan?")).toBeNull();
 
@@ -698,7 +741,9 @@ describe("useFinishWorkoutSession", () => {
         buttons?.find((button) => button.text === "Finish")?.onPress?.()
       );
 
-      expect(await screen.findByText("Update your plan?")).toBeTruthy();
+      await expect(
+        screen.findByText("Update your plan?")
+      ).resolves.toBeTruthy();
       await fireEvent.press(screen.getByRole("button", KEEP));
       expect(mockReplace).toHaveBeenCalledWith(SUMMARY);
     });
@@ -739,6 +784,7 @@ describe("useFinishWorkoutSession", () => {
       }),
       libraryExercise("cable-fly", { name: "Cable Fly" }),
     ];
+
     const UK_UPDATE = { name: "Оновити план" } as const;
     const UK_RETRY = { name: "Повторити" } as const;
 
@@ -832,6 +878,7 @@ describe("useFinishWorkoutSession", () => {
       await screen.findByText(
         "Додати 1 підхід до «Присідання зі штангою» · 5×100 кг"
       );
+
       for (const line of [
         "Замінити «Жим лежачи» на «Жим гантелей» · 8×30, 8×30, 6×30 кг",
         // Unknown to the Library: the slug's name.
@@ -841,6 +888,7 @@ describe("useFinishWorkoutSession", () => {
       ]) {
         expect(screen.getByText(line)).toBeTruthy();
       }
+
       expect(
         screen.getByLabelText(
           "Додати 1 підхід до «Присідання зі штангою»: 5 повторень по 100 кілограмів"
@@ -864,11 +912,11 @@ describe("useFinishWorkoutSession", () => {
 
       await fireEvent.press(await screen.findByRole("button", UK_UPDATE));
 
-      expect(
-        await screen.findByText(
+      await expect(
+        screen.findByText(
           "Не вдалося оновити план. Перевірте з’єднання і спробуйте ще раз."
         )
-      ).toBeTruthy();
+      ).resolves.toBeTruthy();
       mockPlanUpdate.mockResolvedValueOnce(NO_CHANGES);
       await fireEvent.press(screen.getByRole("button", UK_RETRY));
 
@@ -890,11 +938,9 @@ describe("useFinishWorkoutSession", () => {
 
       await fireEvent.press(await screen.findByRole("button", UK_UPDATE));
 
-      expect(
-        await screen.findByText(
-          "Забагато запитів. Спробуйте ще раз через 12 с."
-        )
-      ).toBeTruthy();
+      await expect(
+        screen.findByText("Забагато запитів. Спробуйте ще раз через 12 с.")
+      ).resolves.toBeTruthy();
       expect(screen.getByRole("button", UK_RETRY)).toBeTruthy();
     });
   });

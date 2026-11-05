@@ -3,11 +3,13 @@ import { useCallback } from "react";
 import { useTranslation } from "react-i18next";
 import { ScrollView, View } from "react-native";
 import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
+
 import WorkoutEditorView from "~/components/plans/workout-editor-view";
 import { Button } from "~/components/ui/button";
 import { Text } from "~/components/ui/text";
 import { updatePlanDraft, usePlanDraft } from "~/hooks/plan-draft";
-import { draftWorkoutByKey, type PlanDraft } from "~/lib/plan-draft";
+import { draftWorkoutByKey } from "~/lib/plan-draft";
+import type { PlanDraft } from "~/lib/plan-draft";
 
 /**
  * The Workout editor, pushed over the Plan editor inside the same modal and
@@ -28,6 +30,7 @@ export default function WorkoutEditorScreen() {
     planId: string;
     workoutKey: string;
   }>();
+
   const router = useRouter();
   const { t } = useTranslation();
 
@@ -50,6 +53,7 @@ export default function WorkoutEditorScreen() {
     },
     [draftKey, planId, router, workoutKey]
   );
+
   const addExercise = useCallback(() => openPicker(), [openPicker]);
   const goBack = useCallback(() => router.back(), [router]);
 
@@ -69,11 +73,11 @@ export default function WorkoutEditorScreen() {
       <>
         {screen}
         <ScrollView
-          className="flex-1 p-md"
+          className="p-md flex-1"
           contentInsetAdjustmentBehavior="automatic"
         >
-          <View className="items-center gap-sm pt-lg">
-            <Text className="text-center text-muted-foreground">
+          <View className="gap-sm pt-lg items-center">
+            <Text className="text-muted-foreground text-center">
               {t("plannedWorkout.gone")}
             </Text>
             <Button

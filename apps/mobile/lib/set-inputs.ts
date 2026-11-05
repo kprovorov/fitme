@@ -1,6 +1,8 @@
 import { MAX_REPS, MAX_WEIGHT, MAX_WEIGHT_DECIMALS } from "@fitme/core/limits";
-import { formatCount, formatNumber, type Translator } from "@fitme/i18n";
+import { formatCount, formatNumber } from "@fitme/i18n";
+import type { Translator } from "@fitme/i18n";
 import { z } from "zod";
+
 import { i18n } from "~/lib/i18n";
 
 // A plain decimal, `,` or `.` as the separator; nothing else is a number here
@@ -31,16 +33,22 @@ const setNumberField = (
 ) =>
   z.string().transform((input, ctx): number | null => {
     const text = input.trim();
+
     if (!text) {
       return null;
     }
+
     const value = Number(text.replace(",", "."));
+
     const issue =
       rangeIssue(messages, max, text, value) ?? precisionIssue(value, text);
+
     if (issue) {
       ctx.addIssue({ code: "custom", message: issue });
+
       return z.NEVER;
     }
+
     return value;
   });
 
@@ -53,12 +61,15 @@ const rangeIssue = (
   if (!DECIMAL_NUMBER.test(text)) {
     return messages.notNumber();
   }
+
   if (value < 0) {
     return messages.negative();
   }
+
   if (value > max) {
     return messages.tooHigh(max);
   }
+
   return null;
 };
 
@@ -109,13 +120,17 @@ export const planTargetValue = (
   { decimals = 0, max, min }: { decimals?: number; max: number; min: number }
 ): number | null => {
   const trimmed = text.trim();
+
   if (!DECIMAL_NUMBER.test(trimmed) || decimalsOf(trimmed) > decimals) {
     return null;
   }
+
   const value = Number(trimmed.replace(",", "."));
+
   if (!Number.isFinite(value) || value < min || value > max) {
     return null;
   }
+
   return decimals === 0 && !Number.isInteger(value) ? null : value;
 };
 
@@ -138,9 +153,11 @@ export const formatSetTarget = (
   const weightText = weight
     ? `${formatSetWeight(weight)}${weightLabel ?? ""}`
     : null;
+
   if (reps && weightText) {
     return `${reps}×${weightText}`;
   }
+
   return reps ? `${reps}` : (weightText ?? "–");
 };
 
@@ -158,15 +175,18 @@ export const describeSetTarget = (
   translator: Translator = i18n
 ) => {
   const repsText = reps ? formatCount(translator, "reps", reps) : null;
+
   // A spoken decimal takes the language's separator: "50.5" / "50,5".
   const weightText = weight
     ? [formatNumber(translator, weight), weightLabel].filter(Boolean).join(" ")
     : null;
+
   if (repsText && weightText) {
     return translator.t("sets.repsAtWeight", {
       reps: repsText,
       weight: weightText,
     });
   }
+
   return repsText ?? weightText ?? translator.t("sets.noTarget");
 };

@@ -1,5 +1,6 @@
 import { IconMail } from "@tabler/icons-react";
 import type { Metadata } from "next";
+
 import { Button } from "@/components/ui/button";
 import { VStack } from "@/components/ui/vstack";
 

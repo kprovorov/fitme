@@ -26,17 +26,17 @@ export default async function ProfilePage() {
 ## Revalidate After Updates
 
 ```typescript
-'use server';
-import { revalidateTag } from 'next/cache';
-import { auth } from '@clerk/nextjs/server';
+"use server";
+import { auth } from "@clerk/nextjs/server";
+import { revalidateTag } from "next/cache";
 
 export async function updateProfile(formData: FormData) {
   const { userId } = await auth();
-  if (!userId) throw new Error('Unauthorized');
+  if (!userId) throw new Error("Unauthorized");
 
   await db.users.update({
     where: { id: userId },
-    data: { name: formData.get('name') as string },
+    data: { name: formData.get("name") as string },
   });
   revalidateTag(`user-${userId}`);
 }

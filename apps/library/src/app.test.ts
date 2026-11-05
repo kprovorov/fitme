@@ -1,19 +1,20 @@
 import { readFileSync } from "node:fs";
+
 import { appLanguages, equipment, muscleGroups } from "@fitme/core/models";
 import { describe, expect, it, vi } from "vitest";
+
 import { serverSecretsFromEnv } from "./auth";
-import {
-  LibraryBundle,
-  type BundleExercise as LibraryExercise,
-} from "./bundle";
-import { type AppDeps, createApp } from "./create-app";
+import { LibraryBundle } from "./bundle";
+import type { BundleExercise as LibraryExercise } from "./bundle";
+import { createApp } from "./create-app";
+import type { AppDeps } from "./create-app";
 import {
   memoryRateLimiter,
-  type RateLimiter,
   rateLimiterFromEnv,
   USER_LIMIT,
   USER_REQUESTS_PER_WINDOW,
 } from "./rate-limit";
+import type { RateLimiter } from "./rate-limit";
 import type { CoverList, ExerciseBatch, ExercisePage } from "./schemas";
 import { serveLibrary } from "./served-library";
 import { clerkInstance, clerkToken } from "./test/clerk";
@@ -28,8 +29,10 @@ const SUPABASE_URL = "https://project.supabase.co";
 
 /** An invalid request message naming the `language` field. */
 const LANGUAGE_PROBLEM = /^language: /;
+
 /** An invalid request message naming the `muscle_groups` field (or one of its items). */
 const MUSCLE_GROUPS_PROBLEM = /^muscle_groups[.:]/;
+
 /** An invalid request message naming the `equipment` field (or one of its items). */
 const EQUIPMENT_PROBLEM = /^equipment[.:]/;
 
@@ -66,7 +69,7 @@ const unlimited: RateLimiter = {
 /** The deps every test app shares: no limits, no one identified, errors dropped. */
 const base = {
   auth,
-  identifyUser: () => undefined,
+  identifyUser: () => {},
   rateLimiter: unlimited,
   reportError: () => Promise.resolve(),
 };
@@ -120,9 +123,11 @@ const currentEtag = async () => {
   const etag = (
     await app.request("/exercises/bench-press", asUser)
   ).headers.get("ETag");
+
   if (!etag) {
     throw new Error("no ETag");
   }
+
   return etag;
 };
 
@@ -147,6 +152,7 @@ const list = async (query = "") => {
   const response = await listApp.request(`/exercises${query}`, asUser);
   // an error body (400) is asserted with toEqual, which takes any shape
   const body = (await response.json()) as ExercisePage;
+
   return { body, status: response.status };
 };
 
@@ -158,7 +164,7 @@ describe("auth", () => {
     const response = await app.request("/exercises/bench-press");
 
     expect(response.status).toBe(401);
-    expect(await response.json()).toEqual(unauthorized);
+    await expect(response.json()).resolves.toEqual(unauthorized);
   });
 
   it("checks the token before answering 304", async () => {
@@ -176,7 +182,7 @@ describe("auth", () => {
     const response = await callerApp().request("/caller", asUser);
 
     expect(response.status).toBe(200);
-    expect(await response.json()).toEqual({
+    await expect(response.json()).resolves.toEqual({
       type: "user",
       userId: "user_alice",
     });
@@ -189,7 +195,10 @@ describe("auth", () => {
     );
 
     expect(response.status).toBe(200);
-    expect(await response.json()).toEqual({ type: "user", userId: "user_bob" });
+    await expect(response.json()).resolves.toEqual({
+      type: "user",
+      userId: "user_bob",
+    });
   });
 
   it.each([
@@ -226,7 +235,7 @@ describe("auth", () => {
     const response = await app.request("/exercises/bench-press", { headers });
 
     expect(response.status).toBe(401);
-    expect(await response.json()).toEqual(unauthorized);
+    await expect(response.json()).resolves.toEqual(unauthorized);
   });
 
   it.each(SERVER_SECRETS)(
@@ -235,12 +244,13 @@ describe("auth", () => {
       const response = await callerApp().request("/caller", bearer(secret));
 
       expect(response.status).toBe(200);
-      expect(await response.json()).toEqual({ name, type: "server" });
+      await expect(response.json()).resolves.toEqual({ name, type: "server" });
     }
   );
 
   it("accepts nothing with a secret under 32 characters", async () => {
     const short = "s".repeat(31);
+
     const response = await callerApp({
       auth: {
         ...auth,
@@ -275,7 +285,10 @@ describe("auth", () => {
       for (const [name, secret] of SERVER_SECRETS) {
         // biome-ignore lint/performance/noAwaitInLoops: one caller at a time keeps the failure readable
         const response = await configured.request("/caller", bearer(secret));
-        expect(await response.json()).toEqual({ name, type: "server" });
+        await expect(response.json()).resolves.toEqual({
+          name,
+          type: "server",
+        });
       }
     });
 
@@ -325,19 +338,24 @@ describe("auth", () => {
           serverSecrets: { ...auth.serverSecrets, [name]: configured },
         },
       });
+
       const statusFor = async (request: ReturnType<typeof bearer>) =>
         (await configuredApp.request("/caller", request)).status;
+
       const otherSecrets = SERVER_SECRETS.filter(([other]) => other !== name);
 
-      expect(await statusFor(bearer(secret))).toBe(401);
+      await expect(statusFor(bearer(secret))).resolves.toBe(401);
+
       if (configured) {
-        expect(await statusFor(bearer(configured))).toBe(401);
+        await expect(statusFor(bearer(configured))).resolves.toBe(401);
       }
+
       const stillAccepted = await Promise.all(
         [...otherSecrets.map(([, other]) => bearer(other)), asUser].map(
           statusFor
         )
       );
+
       expect(stillAccepted.every((status) => status === 200)).toBe(true);
     }
   );
@@ -355,11 +373,13 @@ describe("error reporting identity", () => {
   /** An app recording every User it identifies to error reporting. */
   const identifyingApp = () => {
     const identified: string[] = [];
+
     const identifying = callerApp({
       identifyUser: (userId) => {
         identified.push(userId);
       },
     });
+
     return { identified, identifying };
   };
 
@@ -394,7 +414,7 @@ describe("error reporting identity", () => {
   });
 });
 
-describe("OpenAPI spec", () => {
+describe("openAPI spec", () => {
   it("declares bearer auth on every content route, not on /health", () => {
     const spec = app.getOpenAPIDocument({
       info: { title: "test", version: "0" },
@@ -415,7 +435,7 @@ describe("OpenAPI spec", () => {
   });
 });
 
-describe("GET /exercises", () => {
+describe("gET /exercises", () => {
   it("lists every Exercise alphabetically by name, as summaries", async () => {
     const { body, status } = await list();
 
@@ -441,7 +461,7 @@ describe("GET /exercises", () => {
   });
 });
 
-describe("GET /exercises search", () => {
+describe("gET /exercises search", () => {
   it("matches the name case-insensitively, anywhere in it", async () => {
     const { body } = await list("?search=SQU");
 
@@ -470,6 +490,7 @@ describe("GET /exercises search", () => {
         SUPABASE_URL
       ),
     });
+
     const search = async (term: string) =>
       names(
         (await (
@@ -480,10 +501,10 @@ describe("GET /exercises search", () => {
         ).json()) as ExercisePage
       );
 
-    expect(await search("%")).toEqual(["100% Effort"]);
-    expect(await search("_")).toEqual(["Snake_Walk"]);
-    expect(await search("e_w")).toEqual(["Snake_Walk"]);
-    expect(await search("b%s")).toEqual([]);
+    await expect(search("%")).resolves.toEqual(["100% Effort"]);
+    await expect(search("_")).resolves.toEqual(["Snake_Walk"]);
+    await expect(search("e_w")).resolves.toEqual(["Snake_Walk"]);
+    await expect(search("b%s")).resolves.toEqual([]);
   });
 
   it("ignores surrounding whitespace, and lists everything for a blank search", async () => {
@@ -508,7 +529,7 @@ describe("GET /exercises search", () => {
   });
 });
 
-describe("GET /exercises muscle group filter", () => {
+describe("gET /exercises muscle group filter", () => {
   it("lists only Exercises with that muscle group", async () => {
     const { body } = await list("?muscle_group=quadriceps");
 
@@ -544,6 +565,7 @@ describe("GET /exercises muscle group filter", () => {
       info: { title: "Library API", version: "1" },
       openapi: "3.1.0",
     });
+
     const parameter = document.paths["/exercises"]?.get?.parameters?.find(
       (p) => "name" in p && p.name === "muscle_group"
     );
@@ -559,7 +581,7 @@ describe("GET /exercises muscle group filter", () => {
   });
 });
 
-describe("GET /exercises several muscle groups", () => {
+describe("gET /exercises several muscle groups", () => {
   it("lists only Exercises with that muscle group, given one", async () => {
     const { body } = await list("?muscle_groups=quadriceps");
 
@@ -590,6 +612,7 @@ describe("GET /exercises several muscle groups", () => {
 
   it("pages with limit and offset, with total and hasMore across pages", async () => {
     const first = await list("?muscle_groups=chest,quadriceps&limit=2");
+
     const second = await list(
       "?muscle_groups=chest,quadriceps&limit=2&offset=2"
     );
@@ -638,6 +661,7 @@ describe("GET /exercises several muscle groups", () => {
       info: { title: "Library API", version: "1" },
       openapi: "3.1.0",
     });
+
     const parameter = document.paths["/exercises"]?.get?.parameters?.find(
       (p) => "name" in p && p.name === "muscle_groups"
     );
@@ -687,10 +711,11 @@ const tagged = async (query = "") => {
   const response = await taggedApp.request(`/exercises${query}`, asUser);
   // an error body (400) is asserted with toEqual, which takes any shape
   const body = (await response.json()) as ExercisePage;
+
   return { body, status: response.status };
 };
 
-describe("GET /exercises Equipment filter", () => {
+describe("gET /exercises Equipment filter", () => {
   it("lists only Exercises with that Equipment", async () => {
     const { body } = await tagged("?equipment=barbell");
 
@@ -801,6 +826,7 @@ describe("GET /exercises Equipment filter", () => {
       info: { title: "Library API", version: "1" },
       openapi: "3.1.0",
     });
+
     const parameter = document.paths["/exercises"]?.get?.parameters?.find(
       (p) => "name" in p && p.name === "equipment"
     );
@@ -813,7 +839,7 @@ describe("GET /exercises Equipment filter", () => {
   });
 });
 
-describe("GET /exercises pagination", () => {
+describe("gET /exercises pagination", () => {
   it("pages with limit and offset, with total and hasMore across pages", async () => {
     const first = await list("?limit=2");
     const middle = await list("?limit=2&offset=2");
@@ -839,6 +865,7 @@ describe("GET /exercises pagination", () => {
       { length: 21 },
       (_, i) => `exercise-${String(i).padStart(2, "0")}`
     );
+
     const big = createApp({
       ...base,
       library: serveLibrary(
@@ -875,10 +902,11 @@ describe("GET /exercises pagination", () => {
 
 const batch = async (slugs: string, rest = "") => {
   const { body, status } = await list(`?slugs=${slugs}${rest}`);
+
   return { body: body as unknown as ExerciseBatch, status };
 };
 
-describe("GET /exercises?slugs (batch lookup)", () => {
+describe("gET /exercises?slugs (batch lookup)", () => {
   it("answers known Exercise slugs in request order, as summaries, and lists unknown ones as missing", async () => {
     const { body, status } = await batch("squat,nope,bench-press,gone");
 
@@ -962,10 +990,13 @@ describe("GET /exercises?slugs (batch lookup)", () => {
       info: { title: "Library API", version: "1" },
       openapi: "3.1.0",
     });
+
     const get = document.paths["/exercises"]?.get;
+
     const parameter = get?.parameters?.find(
       (p) => "name" in p && p.name === "slugs"
     );
+
     const ok = get?.responses?.["200"];
 
     expect(parameter).toMatchObject({
@@ -995,12 +1026,12 @@ describe("GET /exercises?slugs (batch lookup)", () => {
   });
 });
 
-describe("GET /exercises/:slug", () => {
+describe("gET /exercises/:slug", () => {
   it("answers the full Exercise", async () => {
     const response = await app.request("/exercises/bench-press", asUser);
 
     expect(response.status).toBe(200);
-    expect(await response.json()).toEqual({
+    await expect(response.json()).resolves.toEqual({
       description: "Bench Press is a compound pushing movement.\n",
       // untagged in the bundle, so no Equipment
       equipment: [],
@@ -1017,13 +1048,13 @@ describe("GET /exercises/:slug", () => {
     const response = await app.request("/exercises/deadlift", asUser);
 
     expect(response.status).toBe(404);
-    expect(await response.json()).toEqual({
+    await expect(response.json()).resolves.toEqual({
       error: { code: "not_found", message: "Exercise not found" },
     });
   });
 });
 
-describe("Exercise Equipment", () => {
+describe("exercise Equipment", () => {
   const equippedApp = createApp({
     ...base,
     library: serveLibrary(
@@ -1050,13 +1081,14 @@ describe("Exercise Equipment", () => {
   const equipmentBySlug = async (path: string) => {
     const response = await equippedApp.request(path, asUser);
     const body = (await response.json()) as ExercisePage | ExerciseBatch;
+
     return Object.fromEntries(
       body.data.map((exercise) => [exercise.slug, exercise.equipment])
     );
   };
 
   it("lists it in core's order, and none for an untagged Exercise", async () => {
-    expect(await equipmentBySlug("/exercises")).toEqual({
+    await expect(equipmentBySlug("/exercises")).resolves.toEqual({
       "bench-press": ["barbell", "bench"],
       "pull-up": ["pull_up_bar"],
       "sit-up": [],
@@ -1064,9 +1096,9 @@ describe("Exercise Equipment", () => {
   });
 
   it("answers it on a batch lookup", async () => {
-    expect(
-      await equipmentBySlug("/exercises?slugs=sit-up,bench-press")
-    ).toEqual({
+    await expect(
+      equipmentBySlug("/exercises?slugs=sit-up,bench-press")
+    ).resolves.toEqual({
       "bench-press": ["barbell", "bench"],
       "sit-up": [],
     });
@@ -1081,7 +1113,7 @@ describe("Exercise Equipment", () => {
       );
 
       expect(response.status).toBe(200);
-      expect(await response.json()).toMatchObject({
+      await expect(response.json()).resolves.toMatchObject({
         equipment: ["barbell", "bench"],
         name: language === "uk" ? "Жим лежачи" : "Bench Press",
       });
@@ -1089,7 +1121,9 @@ describe("Exercise Equipment", () => {
   );
 
   it.each(appLanguages)("lists it in %s", async (language) => {
-    expect(await equipmentBySlug(`/exercises?language=${language}`)).toEqual({
+    await expect(
+      equipmentBySlug(`/exercises?language=${language}`)
+    ).resolves.toEqual({
       "bench-press": ["barbell", "bench"],
       "pull-up": ["pull_up_bar"],
       "sit-up": [],
@@ -1146,7 +1180,7 @@ describe("a Library with Ukrainian content, without a language", () => {
     const english = await app.request(path, asUser);
 
     expect(translated.status).toBe(200);
-    expect(await translated.text()).toBe(await english.text());
+    await expect(translated.text()).resolves.toBe(await english.text());
   });
 
   it.each([
@@ -1155,14 +1189,16 @@ describe("a Library with Ukrainian content, without a language", () => {
     "/exercises?slugs=bench-press,squat",
   ])("answers %s with language=en exactly as without it", async (path) => {
     const separator = path.includes("?") ? "&" : "?";
+
     const english = await translatedApp.request(
       `${path}${separator}language=en`,
       asUser
     );
+
     const unasked = await translatedApp.request(path, asUser);
 
     expect(english.status).toBe(200);
-    expect(await english.text()).toBe(await unasked.text());
+    await expect(english.text()).resolves.toBe(await unasked.text());
   });
 
   it("doesn't find an Exercise by its Ukrainian name", async () => {
@@ -1171,7 +1207,7 @@ describe("a Library with Ukrainian content, without a language", () => {
       asUser
     );
 
-    expect(await response.json()).toEqual({
+    await expect(response.json()).resolves.toEqual({
       data: [],
       hasMore: false,
       total: 0,
@@ -1189,7 +1225,7 @@ describe("language=uk", () => {
         JSON.parse(
           readFileSync(
             new URL("../fixtures/library.json", import.meta.url),
-            "utf8"
+            "utf-8"
           )
         )
       ),
@@ -1199,6 +1235,7 @@ describe("language=uk", () => {
 
   const request = async (path: string, init = asUser) => {
     const response = await fixtureApp.request(path, init);
+
     return { body: await response.json(), response };
   };
 
@@ -1251,13 +1288,14 @@ describe("language=uk", () => {
       "/exercises/example-squat?language=uk",
       asUser
     );
+
     const english = await fixtureApp.request(
       "/exercises/example-squat",
       asUser
     );
 
     expect(ukrainian.status).toBe(200);
-    expect(await ukrainian.text()).toBe(await english.text());
+    await expect(ukrainian.text()).resolves.toBe(await english.text());
   });
 
   it.each([
@@ -1294,6 +1332,7 @@ describe("language=uk", () => {
     const first = await request(
       "/exercises?language=uk&muscle_groups=back,chest&limit=1"
     );
+
     const second = await request(
       "/exercises?language=uk&muscle_groups=back,chest&limit=1&offset=1"
     );
@@ -1371,7 +1410,7 @@ describe("language=uk", () => {
     expect(etag).toMatch(LIBRARY_ETAG);
     expect(response.headers.get("Cache-Control")).toBe("private, max-age=3600");
     expect(revalidated.status).toBe(304);
-    expect(await revalidated.text()).toBe("");
+    await expect(revalidated.text()).resolves.toBe("");
   });
 
   it("is an optional enum of the App languages on both routes in the OpenAPI definition", () => {
@@ -1391,6 +1430,7 @@ describe("language=uk", () => {
         schema: { $ref: "#/components/schemas/Language" },
       });
     }
+
     expect(document.components?.schemas?.Language).toEqual({
       enum: [...appLanguages],
       type: "string",
@@ -1415,7 +1455,7 @@ describe("device caching", () => {
     });
 
     expect(response.status).toBe(304);
-    expect(await response.text()).toBe("");
+    await expect(response.text()).resolves.toBe("");
     expect(response.headers.get("ETag")).toBe(etag);
     expect(response.headers.get("Cache-Control")).toBe("private, max-age=3600");
   });
@@ -1424,6 +1464,7 @@ describe("device caching", () => {
     // a path no real route takes, under the content routes
     const withVary = emptyApp().get("/exercises/test/vary", (c) => {
       c.header("Vary", "Authorization");
+
       return c.json({ data: [] });
     });
 
@@ -1456,7 +1497,7 @@ describe("device caching", () => {
     });
 
     expect(response.status).toBe(200);
-    expect(await response.json()).toMatchObject({ slug: "squat" });
+    await expect(response.json()).resolves.toMatchObject({ slug: "squat" });
   });
 
   it("applies to every content route, including ones added later", async () => {
@@ -1473,9 +1514,11 @@ describe("device caching", () => {
 
   it("keeps errors uncacheable, even with a matching If-None-Match", async () => {
     const etag = await currentEtag();
+
     const failing = emptyApp().get("/exercises/boom/now", () => {
       throw new Error("boom");
     });
+
     const responses = [
       await app.request("/exercises/deadlift", {
         headers: { ...asUser.headers, "If-None-Match": etag },
@@ -1487,6 +1530,7 @@ describe("device caching", () => {
     expect(responses.map((response) => response.status)).toEqual([
       404, 404, 500,
     ]);
+
     for (const response of responses) {
       expect(response.headers.get("ETag")).toBeNull();
       expect(response.headers.get("Cache-Control")).toBeNull();
@@ -1545,6 +1589,7 @@ describe("device caching", () => {
     ],
   ])("changes the ETag when %s changes", async (_, change) => {
     const etag = await currentEtag();
+
     const changed = createApp({
       ...base,
       library: serveLibrary(
@@ -1568,7 +1613,7 @@ describe("device caching", () => {
   });
 });
 
-describe("CORS", () => {
+describe("cORS", () => {
   const origin = "https://app.fitmeproject.com";
 
   it("answers a preflight before auth, allowing the Authorization header", async () => {
@@ -1602,18 +1647,19 @@ describe("CORS", () => {
     ];
 
     expect(responses.map((response) => response.status)).toEqual([200, 401]);
+
     for (const response of responses) {
       expect(response.headers.get("Access-Control-Allow-Origin")).toBe("*");
     }
   });
 });
 
-describe("GET /health", () => {
+describe("gET /health", () => {
   it("is public", async () => {
     const response = await app.request("/health");
 
     expect(response.status).toBe(200);
-    expect(await response.json()).toEqual({ ok: true });
+    await expect(response.json()).resolves.toEqual({ ok: true });
   });
 });
 
@@ -1622,7 +1668,7 @@ describe("errors", () => {
     const response = await app.request("/nope", asUser);
 
     expect(response.status).toBe(404);
-    expect(await response.json()).toEqual({
+    await expect(response.json()).resolves.toEqual({
       error: { code: "not_found", message: "Route not found" },
     });
   });
@@ -1630,11 +1676,13 @@ describe("errors", () => {
   it("reports a thrown error and answers a JSON 500", async () => {
     const reported: unknown[] = [];
     const boom = new Error("boom");
+
     const failing = createApp({
       ...base,
       library: serveLibrary({ exercises: [] }, SUPABASE_URL),
       reportError: (error) => {
         reported.push(error);
+
         return Promise.resolve();
       },
     }).get("/boom", () => {
@@ -1644,7 +1692,7 @@ describe("errors", () => {
     const response = await failing.request("/boom", asUser);
 
     expect(response.status).toBe(500);
-    expect(await response.json()).toEqual({
+    await expect(response.json()).resolves.toEqual({
       error: { code: "internal_error", message: "Internal server error" },
     });
     expect(reported).toEqual([boom]);
@@ -1656,6 +1704,7 @@ const MINUTE_MS = 60_000;
 /** An app serving one Exercise, limited by `rateLimiter`, recording what it reports. */
 const limitedApp = (rateLimiter: RateLimiter) => {
   const reported: unknown[] = [];
+
   const limited = createApp({
     ...base,
     library: serveLibrary(
@@ -1665,15 +1714,18 @@ const limitedApp = (rateLimiter: RateLimiter) => {
     rateLimiter,
     reportError: (error) => {
       reported.push(error);
+
       return Promise.resolve();
     },
   });
+
   return { limited, reported };
 };
 
 /** A clock tests move by hand. */
 const fakeClock = (start = Date.UTC(2026, 9, 18)) => {
   let time = start;
+
   return {
     advance: (ms: number) => {
       time += ms;
@@ -1688,10 +1740,12 @@ const requestTimes = async (
   init: RequestInit = asUser
 ) => {
   const statuses: number[] = [];
+
   for (let i = 0; i < times; i += 1) {
     // biome-ignore lint/performance/noAwaitInLoops: one at a time, so the statuses come back in the order they were counted
     statuses.push((await target.request("/exercises/squat", init)).status);
   }
+
   return statuses;
 };
 
@@ -1701,9 +1755,11 @@ const TEST_LIMIT = 3;
 /** An app limited to `TEST_LIMIT` requests a minute, on a clock the test moves. */
 const smallLimitApp = () => {
   const clock = fakeClock();
+
   const { limited } = limitedApp(
     memoryRateLimiter({ limit: TEST_LIMIT, now: clock.now })
   );
+
   return { clock, limited };
 };
 
@@ -1712,6 +1768,7 @@ describe("rate limiting", () => {
     const clock = fakeClock();
     const limiter = memoryRateLimiter({ now: clock.now });
     const { limited } = limitedApp(limiter);
+
     for (let i = 0; i < USER_REQUESTS_PER_WINDOW; i += 1) {
       // biome-ignore lint/performance/noAwaitInLoops: counts the window up without sending 120 requests through the app
       await limiter.limit("user_alice");
@@ -1738,7 +1795,7 @@ describe("rate limiting", () => {
     expect(response.status).toBe(429);
     expect(response.headers.get("Retry-After")).toBe("15");
     expect(response.headers.get("ETag")).toBeNull();
-    expect(await response.json()).toEqual({
+    await expect(response.json()).resolves.toEqual({
       error: {
         code: "rate_limited",
         message:
@@ -1750,13 +1807,13 @@ describe("rate limiting", () => {
   it("resets the window after a minute", async () => {
     const { clock, limited } = smallLimitApp();
 
-    expect(await requestTimes(limited, TEST_LIMIT + 1)).toEqual([
+    await expect(requestTimes(limited, TEST_LIMIT + 1)).resolves.toEqual([
       ...new Array(TEST_LIMIT).fill(200),
       429,
     ]);
     clock.advance(MINUTE_MS);
 
-    expect(await requestTimes(limited, TEST_LIMIT + 1)).toEqual([
+    await expect(requestTimes(limited, TEST_LIMIT + 1)).resolves.toEqual([
       ...new Array(TEST_LIMIT).fill(200),
       429,
     ]);
@@ -1766,6 +1823,7 @@ describe("rate limiting", () => {
     const { limited } = smallLimitApp();
 
     await requestTimes(limited, TEST_LIMIT + 1);
+
     const response = await limited.request(
       "/exercises/squat",
       bearer(clerkToken(production.privateKey, { sub: "user_bob" }))
@@ -1776,6 +1834,7 @@ describe("rate limiting", () => {
 
   it("counts a 304 too", async () => {
     const { limited } = smallLimitApp();
+
     const etag = (
       await limited.request("/exercises/squat", asUser)
     ).headers.get("ETag");
@@ -1795,11 +1854,12 @@ describe("rate limiting", () => {
     const limiter = vi.fn<RateLimiter["limit"]>(() =>
       Promise.resolve({ allowed: false, retryAfterSeconds: 60 })
     );
+
     const { limited } = limitedApp({ limit: limiter });
 
     // More than any limit a test sets, all served.
     const times = TEST_LIMIT + 2;
-    expect(await requestTimes(limited, times, bearer(secret))).toEqual(
+    await expect(requestTimes(limited, times, bearer(secret))).resolves.toEqual(
       new Array(times).fill(200)
     );
     expect(limiter).not.toHaveBeenCalled();
@@ -1809,6 +1869,7 @@ describe("rate limiting", () => {
     const limiter = vi.fn<RateLimiter["limit"]>(() =>
       Promise.resolve({ allowed: true })
     );
+
     const { limited } = limitedApp({ limit: limiter });
 
     const response = await limited.request("/exercises/squat");
@@ -1819,6 +1880,7 @@ describe("rate limiting", () => {
 
   it("serves the request and reports when the limiter throws", async () => {
     const outage = new Error("Upstash is down");
+
     const { limited, reported } = limitedApp({
       limit: () => Promise.reject(outage),
     });
@@ -1832,21 +1894,25 @@ describe("rate limiting", () => {
 
   it("serves the request and reports when the limiter times out", async () => {
     vi.useFakeTimers();
+
     const { limited, reported } = limitedApp({
-      limit: () => new Promise(() => undefined),
+      limit: () => new Promise(() => {}),
     });
 
     let settled = false;
+
     const pending = Promise.resolve(
       limited.request("/exercises/squat", asUser)
     ).finally(() => {
       settled = true;
     });
+
     // Token verification is async, so the limiter's timer starts some ticks in.
     while (!settled) {
       // biome-ignore lint/performance/noAwaitInLoops: each step lets the request reach its next timer
       await vi.advanceTimersByTimeAsync(100);
     }
+
     const response = await pending;
     vi.useRealTimers();
 
@@ -1858,7 +1924,7 @@ describe("rate limiting", () => {
   });
 });
 
-describe("rateLimiterFromEnv", () => {
+describe(rateLimiterFromEnv, () => {
   it("refuses to start in production without Upstash", () => {
     expect(() => rateLimiterFromEnv({ NODE_ENV: "production" })).toThrow(
       "UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN are required in production"
@@ -1874,7 +1940,9 @@ describe("rateLimiterFromEnv", () => {
   it("uses the in-memory limiter outside production without Upstash", async () => {
     const limiter = rateLimiterFromEnv({ NODE_ENV: "development" });
 
-    expect(await limiter.limit("user_alice")).toEqual({ allowed: true });
+    await expect(limiter.limit("user_alice")).resolves.toEqual({
+      allowed: true,
+    });
   });
 
   it("uses Upstash in production when it's configured", () => {
@@ -1911,7 +1979,7 @@ const coversApp = (rateLimiter: RateLimiter = unlimited) =>
     rateLimiter,
   });
 
-describe("GET /covers", () => {
+describe("gET /covers", () => {
   it("answers every Cover in bundle order, its image on the render endpoint", async () => {
     const response = await coversApp().request("/covers", asUser);
 
@@ -1934,6 +2002,7 @@ describe("GET /covers", () => {
 
   it("serves any id the bundle accepts, not only RFC uuids", async () => {
     const id = "12345678-1234-1234-1234-123456789abc";
+
     const served = createApp({
       ...base,
       library: serveLibrary(
@@ -1945,14 +2014,14 @@ describe("GET /covers", () => {
     const response = await served.request("/covers", asUser);
 
     expect(response.status).toBe(200);
-    expect(await response.json()).toMatchObject({ data: [{ id }] });
+    await expect(response.json()).resolves.toMatchObject({ data: [{ id }] });
   });
 
   it("answers an empty list for a Library without Covers", async () => {
     const response = await app.request("/covers", asUser);
 
     expect(response.status).toBe(200);
-    expect(await response.json()).toEqual({ data: [] });
+    await expect(response.json()).resolves.toEqual({ data: [] });
   });
 
   it("answers the same whatever language is asked", async () => {
@@ -1960,14 +2029,14 @@ describe("GET /covers", () => {
     const ukrainian = await coversApp().request("/covers?language=uk", asUser);
 
     expect(ukrainian.status).toBe(200);
-    expect(await ukrainian.json()).toEqual(await english.json());
+    await expect(ukrainian.json()).resolves.toEqual(await english.json());
   });
 
   it("answers without a token with 401", async () => {
     const response = await coversApp().request("/covers");
 
     expect(response.status).toBe(401);
-    expect(await response.json()).toEqual(unauthorized);
+    await expect(response.json()).resolves.toEqual(unauthorized);
   });
 
   it.each(SERVER_SECRETS)("serves the %s server caller", async (_, secret) => {
@@ -1978,10 +2047,13 @@ describe("GET /covers", () => {
 
   it("counts a User's requests, answering 429 past the limit", async () => {
     const clock = fakeClock();
+
     const limited = coversApp(
       memoryRateLimiter({ limit: TEST_LIMIT, now: clock.now })
     );
+
     const statuses: number[] = [];
+
     for (let i = 0; i <= TEST_LIMIT; i += 1) {
       // biome-ignore lint/performance/noAwaitInLoops: one at a time, so the statuses come back in the order they were counted
       statuses.push((await limited.request("/covers", asUser)).status);
@@ -2009,7 +2081,7 @@ describe("GET /covers", () => {
     });
 
     expect(response.status).toBe(304);
-    expect(await response.text()).toBe("");
+    await expect(response.text()).resolves.toBe("");
     expect(response.headers.get("ETag")).toBe(etag);
   });
 
@@ -2033,6 +2105,6 @@ describe("GET /covers", () => {
         }).request("/covers", asUser)
       ).headers.get("ETag");
 
-    expect(await etagOf(["chest"])).not.toBe(await etagOf(["back"]));
+    await expect(etagOf(["chest"])).resolves.not.toBe(await etagOf(["back"]));
   });
 });

@@ -14,7 +14,7 @@ import { fileURLToPath } from "node:url";
 
 const readState = (file) => {
   try {
-    return JSON.parse(fs.readFileSync(file, "utf8"));
+    return JSON.parse(fs.readFileSync(file, "utf-8"));
   } catch {
     return null;
   }
@@ -31,7 +31,9 @@ export const staleV2Stacks = (
   if (!fs.existsSync(stateRoot)) {
     return [];
   }
+
   const own = checkout && path.join(checkout, "packages/supabase");
+
   return fs
     .readdirSync(stateRoot)
     .sort()
@@ -53,17 +55,20 @@ const main = ([stateRoot, checkout]) => {
     console.error(
       "Usage: node scripts/v2-stacks.mjs <stacks state root> [checkout]"
     );
+
     return 2;
   }
+
   for (const stack of staleV2Stacks(stateRoot, { checkout })) {
     console.error(
       `Destroying ${stack.id.slice(0, 8)} (${stack.projectRoot}, left by Supabase CLI v2)`
     );
     console.log(stack.id);
   }
+
   return 0;
 };
 
-if (process.argv[1] === fileURLToPath(import.meta.url)) {
+if (process.argv[1] === import.meta.filename) {
   process.exitCode = main(process.argv.slice(2));
 }

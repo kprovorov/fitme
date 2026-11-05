@@ -1,8 +1,11 @@
 import { readdirSync, readFileSync } from "node:fs";
 import { join, relative, sep } from "node:path";
 import { fileURLToPath } from "node:url";
+
 import ts from "typescript";
-import { readTokens, type Token } from "./index.ts";
+
+import { readTokens } from "./index.ts";
+import type { Token } from "./index.ts";
 
 /**
  * The literal check (FIT-202): no `.tsx` file in mobile, web or site
@@ -69,20 +72,26 @@ const SKIPPED_DIRECTORIES = new Set([
   "ios",
   "node_modules",
 ]);
+
 const TEST_FILE = /\.(?:test|spec)\.tsx$/;
 
 const HEX =
   /(?<![\w&#/?=.%-])#(?:[0-9a-f]{8}|[0-9a-f]{6}|[0-9a-f]{3,4})(?![\w-])/gi;
+
 const COLOR_FUNCTION = /(?<![\w-])(?:rgba?|hsla?)\([^)]*\)?/gi;
+
 const ARBITRARY_CLASS =
   /(?<![\w-])-?(text|leading|rounded(?:-(?:[trblse]|tl|tr|br|bl|ss|se|es|ee))?|[pm][xytrblse]?|gap(?:-[xy])?|space-[xy])-\[([^\]\s]*)\]/g;
+
 // A whole `var(--name)` or `--name`, nothing else: a fallback is a value
 const TOKEN_REFERENCE = /^(?:var\(--[\w-]+\)|--[\w-]+)$/;
+
 // Attributes whose value is an anchor or an id, never a color
 const ID_ATTRIBUTES = new Set(["href", "id", "nativeID", "testID"]);
 
 const expandHex = (hex: string) => {
   const digits = hex.slice(1).toLowerCase();
+
   return digits.length <= 4
     ? `#${[...digits].map((digit) => digit + digit).join("")}`
     : `#${digits}`;
@@ -91,6 +100,7 @@ const expandHex = (hex: string) => {
 /** Normalizes a color token value to 8-digit hex, so `#fff` meets `#ffffffff`. */
 const opaqueHex = (hex: string) => {
   const expanded = expandHex(hex);
+
   return expanded.length === 7 ? `${expanded}ff` : expanded;
 };
 
@@ -99,6 +109,7 @@ const hexHint = (literal: string, tokens: readonly Token[]) => {
     (token) =>
       token.kind === "color" && opaqueHex(token.value) === opaqueHex(literal)
   );
+
   return match
     ? `hex color: use the ${match.variable} token`
     : "hex color: use a color token";
@@ -116,17 +127,22 @@ const classHint = (
         !token.name.includes("--") &&
         token.value === value
     );
+
     if (size) {
       return `arbitrary size: use the text-${size.name} text style`;
     }
+
     return "arbitrary text value: use a text style or a color token";
   }
+
   if (utility === "leading") {
     return "arbitrary line height: the text style sets it";
   }
+
   if (utility.startsWith("rounded")) {
     return "arbitrary radius: use a radius token (rounded-lg, rounded-card, …)";
   }
+
   return "arbitrary spacing: use a spacing token or a numeric step (px-md, gap-2)";
 };
 
@@ -150,9 +166,11 @@ const isValuePart = (node: ts.Node) =>
 /** Whether the literal is (part of) the value of an anchor or id attribute. */
 const isIdAttributeValue = (node: ts.Node) => {
   let { parent } = node;
+
   while (isValuePart(parent)) {
     ({ parent } = parent);
   }
+
   return ts.isJsxAttribute(parent) && ID_ATTRIBUTES.has(parent.name.getText());
 };
 
@@ -179,6 +197,7 @@ export function checkSource(
     true,
     ts.ScriptKind.TSX
   );
+
   const findings: Finding[] = [];
 
   const report = (position: number, literal: string, hint: string) => {
@@ -200,6 +219,7 @@ export function checkSource(
     ) {
       return;
     }
+
     const start = node.getStart(file);
     // The literal as written, quotes and `${` included, so offsets map back
     // to the file
@@ -208,6 +228,7 @@ export function checkSource(
     for (const match of text.matchAll(HEX)) {
       report(start + match.index, match[0], hexHint(match[0], tokens));
     }
+
     for (const match of text.matchAll(COLOR_FUNCTION)) {
       report(
         start + match.index,
@@ -215,8 +236,10 @@ export function checkSource(
         "color function: use a color token"
       );
     }
+
     for (const match of text.matchAll(ARBITRARY_CLASS)) {
       const [literal, utility = "", value = ""] = match;
+
       if (!TOKEN_REFERENCE.test(value)) {
         report(start + match.index, literal, classHint(utility, value, tokens));
       }
@@ -227,8 +250,10 @@ export function checkSource(
     if (isStringLike(node)) {
       checkLiteral(node);
     }
+
     ts.forEachChild(node, visit);
   };
+
   visit(file);
 
   return findings.sort((a, b) => a.line - b.line || a.column - b.column);
@@ -237,8 +262,10 @@ export function checkSource(
 /** Every checked `.tsx` file under `directory`, absolute, sorted. */
 export function collectFiles(directory: string): string[] {
   const files: string[] = [];
+
   for (const entry of readdirSync(directory, { withFileTypes: true })) {
     const path = join(directory, entry.name);
+
     if (entry.isDirectory()) {
       if (!SKIPPED_DIRECTORIES.has(entry.name)) {
         files.push(...collectFiles(path));
@@ -247,6 +274,7 @@ export function collectFiles(directory: string): string[] {
       files.push(path);
     }
   }
+
   return files.sort();
 }
 
@@ -269,8 +297,10 @@ export function checkFiles(
   const allowed = new Set(allowlist.map((entry) => entry.path));
   const used = new Set<string>();
   const findings: Finding[] = [];
+
   for (const [path, source] of files) {
     const fileFindings = checkSource(path, source, tokens);
+
     if (allowed.has(path)) {
       if (fileFindings.length > 0) {
         used.add(path);
@@ -279,6 +309,7 @@ export function checkFiles(
       findings.push(...fileFindings);
     }
   }
+
   return {
     findings,
     staleEntries: allowlist.filter((entry) => !used.has(entry.path)),
@@ -290,11 +321,13 @@ const toPosix = (path: string) => path.split(sep).join("/");
 /** Reads every checked file of the repo at `root`. */
 export function readCheckedFiles(root: string): Map<string, string> {
   const files = new Map<string, string>();
+
   for (const app of CHECKED_APPS) {
     for (const path of collectFiles(join(root, app))) {
-      files.set(toPosix(relative(root, path)), readFileSync(path, "utf8"));
+      files.set(toPosix(relative(root, path)), readFileSync(path, "utf-8"));
     }
   }
+
   return files;
 }
 
@@ -304,11 +337,13 @@ export function formatResult({ findings, staleEntries }: CheckResult): string {
     ({ column, file, hint, line, literal }) =>
       `${file}:${line}:${column}  ${literal}  ${hint}`
   );
+
   for (const entry of staleEntries) {
     lines.push(
       `${entry.path}  allowlist entry has no literal left: remove it from ALLOWLIST in packages/design-tokens/src/literal-check.ts`
     );
   }
+
   return lines.join("\n");
 }
 
@@ -316,6 +351,7 @@ if (import.meta.main) {
   const root = fileURLToPath(new URL("../../..", import.meta.url));
   const files = readCheckedFiles(root);
   const result = checkFiles(files);
+
   if (result.findings.length > 0 || result.staleEntries.length > 0) {
     console.error(formatResult(result));
     console.error(
@@ -323,6 +359,7 @@ if (import.meta.main) {
     );
     process.exit(1);
   }
+
   console.log(
     `No color literals or arbitrary sizes in ${files.size} .tsx files (${CHECKED_APPS.join(", ")}).`
   );

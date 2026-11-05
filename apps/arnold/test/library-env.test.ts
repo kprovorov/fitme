@@ -5,6 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 const freshGetLibrary = async () => {
   vi.resetModules();
   const { getLibrary } = await import("../agent/lib/library");
+
   return getLibrary;
 };
 
@@ -26,6 +27,7 @@ describe("getLibrary", () => {
     const failure = await getLibrary()
       .lookup(["bench-press"])
       .catch((error: unknown) => error);
+
     // by shape: the fresh module graph has its own copy of the error classes
     expect(failure).toMatchObject({
       code: "unavailable",
@@ -39,9 +41,11 @@ describe("getLibrary", () => {
   it("calls LIBRARY_URL with LIBRARY_ARNOLD_SECRET as the bearer", async () => {
     vi.stubEnv("LIBRARY_URL", "https://library.test");
     vi.stubEnv("LIBRARY_ARNOLD_SECRET", "arnold-secret");
+
     const fetch = vi.fn(async () =>
       Response.json({ data: [], missing: ["bench-press"] })
     );
+
     vi.stubGlobal("fetch", fetch);
     const getLibrary = await freshGetLibrary();
 

@@ -1,9 +1,11 @@
 import { describe, expect, it, jest } from "@jest/globals";
 import { fireEvent, render, screen } from "@testing-library/react-native";
+import { describe, expect, it } from "vitest";
+
 import { Input } from "../input";
 import { Textarea } from "../textarea";
 
-describe("Input", () => {
+describe(Input, () => {
   it("shows its error under the field and reads it as the field's hint", async () => {
     await render(<Input error="Invalid email" placeholder="Email" />);
 
@@ -67,6 +69,7 @@ describe("Input", () => {
     const { rerender } = await render(
       <Input placeholder="Reps" variant="ghost" />
     );
+
     const field = screen.getByPlaceholderText("Reps");
     expect(field.props.className).toContain("border-transparent");
     expect(field.props.className).not.toContain("border-input");
@@ -92,12 +95,12 @@ describe("Input", () => {
     await fireEvent(screen.getByPlaceholderText("Email"), "focus");
     await fireEvent(screen.getByPlaceholderText("Email"), "blur");
 
-    expect(onFocus).toHaveBeenCalledTimes(1);
-    expect(onBlur).toHaveBeenCalledTimes(1);
+    expect(onFocus).toHaveBeenCalledOnce();
+    expect(onBlur).toHaveBeenCalledOnce();
   });
 });
 
-describe("Textarea", () => {
+describe(Textarea, () => {
   it("shows its error like Input", async () => {
     await render(
       <Textarea error="Keep it under 500 characters." placeholder="Note" />

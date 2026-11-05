@@ -7,11 +7,11 @@ import { useTranslation } from "react-i18next";
 import {
   ActivityIndicator,
   FlatList,
-  type NativeScrollEvent,
-  type NativeSyntheticEvent,
   RefreshControl,
   View,
 } from "react-native";
+import type { NativeScrollEvent, NativeSyntheticEvent } from "react-native";
+
 import {
   ExerciseRow,
   ExerciseRowSeparator,
@@ -112,8 +112,10 @@ const ExercisesView = ({
   const onScrollEndDrag = useCallback(
     ({ nativeEvent }: NativeSyntheticEvent<NativeScrollEvent>) => {
       const { contentOffset, contentSize, layoutMeasurement } = nativeEvent;
+
       const fromEnd =
         contentSize.height - contentOffset.y - layoutMeasurement.height;
+
       if (
         canLoadMore &&
         isLoadMoreError &&
@@ -177,9 +179,9 @@ const ExercisesView = ({
   const renderEmpty = () => {
     if (isError) {
       return (
-        <VStack className="items-center gap-sm pt-lg">
+        <VStack className="gap-sm pt-lg items-center">
           <H3 className="text-center">{t("library.loadErrorTitle")}</H3>
-          <Text className="text-center text-muted-foreground">
+          <Text className="text-muted-foreground text-center">
             {t("library.loadError")}
           </Text>
           <Button
@@ -191,19 +193,21 @@ const ExercisesView = ({
         </VStack>
       );
     }
+
     if (exercises) {
       return (
-        <VStack className="items-center gap-sm pt-lg">
+        <VStack className="gap-sm pt-lg items-center">
           <H3 className="text-center">{t("library.emptyTitle")}</H3>
-          <Text className="text-center text-muted-foreground">
+          <Text className="text-muted-foreground text-center">
             {t("library.empty")}
           </Text>
           <Button fill={false} label={t("library.showAll")} onPress={showAll} />
         </VStack>
       );
     }
+
     return (
-      <View className="items-center pt-lg">
+      <View className="pt-lg items-center">
         <ActivityIndicator colorClassName="accent-foreground" />
       </View>
     );
@@ -212,11 +216,12 @@ const ExercisesView = ({
   const renderFooter = () => {
     if (isLoadingMore) {
       return (
-        <View className="items-center pt-md" testID="exercises-loading-more">
+        <View className="pt-md items-center" testID="exercises-loading-more">
           <ActivityIndicator colorClassName="accent-foreground" />
         </View>
       );
     }
+
     if (isLoadMoreError) {
       return (
         <ErrorMessage className="pt-md text-center">
@@ -224,6 +229,7 @@ const ExercisesView = ({
         </ErrorMessage>
       );
     }
+
     return null;
   };
 
@@ -239,7 +245,7 @@ const ExercisesView = ({
       ListEmptyComponent={renderEmpty()}
       ListFooterComponent={renderFooter() ?? undefined}
       ListHeaderComponent={
-        <VStack className="items-stretch pb-sm">
+        <VStack className="pb-sm items-stretch">
           <Button
             className="self-start"
             disabled={musclesDisabled}
@@ -271,6 +277,7 @@ const ExercisesView = ({
     />
   );
 };
+
 ExercisesView.displayName = "ExercisesView";
 
 export default ExercisesView;

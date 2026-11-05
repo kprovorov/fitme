@@ -19,18 +19,18 @@ function Arnold() {
       id="arnold"
     >
       <Container>
-        <div className="grid items-center gap-10 overflow-hidden rounded-3xl border bg-secondary px-6 pt-10 md:grid-cols-2 md:gap-16 md:px-12 md:pt-12">
+        <div className="bg-secondary grid items-center gap-10 overflow-hidden rounded-3xl border px-6 pt-10 md:grid-cols-2 md:gap-16 md:px-12 md:pt-12">
           <div className="flex flex-col items-start gap-5 md:pb-12">
-            <p className="rounded-full border border-primary/40 px-3 py-1 text-footnote-emphasized text-primary">
+            <p className="border-primary/40 text-footnote-emphasized text-primary rounded-full border px-3 py-1">
               Fitme Pro
             </p>
             <h2
-              className="text-balance font-bold text-display-2 tracking-tight sm:text-display-1"
+              className="text-display-2 sm:text-display-1 font-bold tracking-tight text-balance"
               id="arnold-heading"
             >
               Meet Arnold, your AI fitness coach
             </h2>
-            <p className="text-pretty text-body text-muted-foreground">
+            <p className="text-body text-muted-foreground text-pretty">
               Arnold is Fitme's AI. It reads your plan and history, and changes
               them for you when you ask. You pick the model that answers, from
               GPT to Claude: a quick one for short questions, a thorough one for
@@ -41,7 +41,7 @@ function Arnold() {
                 <li className="flex items-start gap-3" key={point}>
                   <IconCheck
                     aria-hidden="true"
-                    className="mt-0.5 size-5 shrink-0 text-primary"
+                    className="text-primary mt-0.5 size-5 shrink-0"
                   />
                   <span>{point}</span>
                 </li>

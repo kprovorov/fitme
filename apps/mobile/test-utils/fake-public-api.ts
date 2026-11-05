@@ -32,9 +32,7 @@ import type { PublicApiFetch } from "@fitme/api-client";
 import {
   arnoldModels,
   defaultArnoldModelId,
-  type ExperienceLevel,
   experienceLevels,
-  type Goal,
   genders,
   goals,
   MAX_AGE,
@@ -51,15 +49,20 @@ import {
   MAX_WEIGHT,
   MAX_WORKOUT_DURATION_MINUTES,
   MAX_WORKOUTS_PER_PLAN,
-  type MeasurementSystem,
   MIN_AGE,
   MIN_FREQUENCY,
   measurementSystems,
-  type Place,
   personalRecordFor,
   places,
   recordResult,
 } from "@fitme/core";
+import type {
+  ExperienceLevel,
+  Goal,
+  MeasurementSystem,
+  Place,
+} from "@fitme/core";
+
 import { library, libraryExercise } from "./fake-library";
 
 /*
@@ -126,7 +129,7 @@ export interface SetRow {
  */
 export interface SeedExercise {
   name: string;
-  sets: Array<number | null>;
+  sets: (number | null)[];
   slug?: string;
 }
 
@@ -166,7 +169,7 @@ export interface SeedPlan {
   user_id?: string;
   /** Its Workout duration in minutes; 60 unless given, `null` for unset. */
   workout_duration?: number | null;
-  workouts: Array<{
+  workouts: {
     /** Its Library Cover's id; `null` (the default) without one. */
     cover?: string | null;
     /** A number of sets at 10 reps, 90 s rest and no weight, or each set. */
@@ -180,7 +183,7 @@ export interface SeedPlan {
     name: string;
     /** Its place in the rotation; its position in `workouts` (from 1) unless given. */
     order?: number;
-  }>;
+  }[];
 }
 
 const DEFAULT_PLAN_SET: SeedPlanSet = {
@@ -224,7 +227,7 @@ class FakeRows {
    * answers them: seeded by the test (the fake's Plan writes don't record
    * them; the services do, and their integration tests cover it).
    */
-  weeklyGoalChanges: Array<{ recorded_at: string; target: number | null }> = [];
+  weeklyGoalChanges: { recorded_at: string; target: number | null }[] = [];
   personalRecords: PersonalRecordRow[] = [];
   /** Server-calculated result; the real calculation is covered at the service seam. */
   weeklyStreak = 0;
@@ -245,6 +248,7 @@ class FakeRows {
   id(prefix: string) {
     const id = `${prefix}-${this.nextId}`;
     this.nextId += 1;
+
     return id;
   }
 
@@ -352,6 +356,7 @@ class FakeRows {
         exercises: workout.exercises.map((exercise, exerciseIndex) => {
           const exerciseId =
             exercise.id ?? `${workout.id}-e${exerciseIndex + 1}`;
+
           return {
             exercise_slug: exercise.slug,
             id: exerciseId,
@@ -429,8 +434,9 @@ export interface ReceivedRequest {
 }
 
 // `updateProfile`'s factors and rounding (`packages/services/src/profile.ts`).
-const HEIGHT_FACTOR = 0.393_701;
-const WEIGHT_FACTOR = 2.204_62;
+const HEIGHT_FACTOR = 0.393701;
+const WEIGHT_FACTOR = 2.20462;
+
 const PROFILE_FIELDS = new Set([
   "age",
   "gender",
@@ -465,6 +471,7 @@ const error = (
 
 const profileBody = (profile: ProfileRow) => {
   const { user_id: _userId, ...fields } = profile;
+
   return { ...fields, units: unitsOf(profile.measurement_system) };
 };
 
@@ -477,6 +484,7 @@ const convertPlanSets = (factor: number) => {
           // The shorthand's sets have no weight to convert.
           continue;
         }
+
         for (const set of exercise.sets) {
           set.weight_recommended = round2(set.weight_recommended * factor);
         }
@@ -490,27 +498,33 @@ const convert = (profile: ProfileRow, to: MeasurementSystem) => {
   if (isImperial(profile.measurement_system) === isImperial(to)) {
     return;
   }
+
   const toImperial = isImperial(to);
   const height = toImperial ? HEIGHT_FACTOR : 1 / HEIGHT_FACTOR;
   const weight = toImperial ? WEIGHT_FACTOR : 1 / WEIGHT_FACTOR;
   profile.height = round2(profile.height * height);
   profile.weight = round2(profile.weight * weight);
+
   for (const set of backend.sets) {
     if (set.weight_completed !== null) {
       set.weight_completed = round2(set.weight_completed * weight);
     }
+
     if (set.weight_recommended !== null) {
       set.weight_recommended = round2(set.weight_recommended * weight);
     }
   }
+
   for (const record of backend.personalRecords) {
     record.weight = round2(record.weight * weight);
   }
+
   convertPlanSets(weight);
 };
 
 const hasAtMostBodyDecimals = (value: number) => {
   const scaled = value * 10 ** MAX_BODY_DECIMALS;
+
   return Math.abs(scaled - Math.round(scaled)) < 1e-9;
 };
 
@@ -525,40 +539,48 @@ const invalidProfileField = (changes: Partial<ProfileRow>) => {
   if (changes.age !== undefined && !isInteger(changes.age, MIN_AGE, MAX_AGE)) {
     return "age";
   }
+
   if (
     changes.gender !== undefined &&
     !(genders as readonly string[]).includes(changes.gender)
   ) {
     return "gender";
   }
+
   if (
     changes.height !== undefined &&
     !isBodyValue(changes.height, MAX_BODY_HEIGHT)
   ) {
     return "height";
   }
+
   if (
     changes.weight !== undefined &&
     !isBodyValue(changes.weight, MAX_BODY_WEIGHT)
   ) {
     return "weight";
   }
+
   return null;
 };
 
 /** The 400 for Profile fields out of `PATCH /v1/profile`'s bounds, if any. */
 const profileFieldsError = (changes: Partial<ProfileRow>) => {
   const invalid = invalidProfileField(changes);
+
   if (invalid) {
     return error(400, "invalid_request", `${invalid}: out of bounds`);
   }
+
   const system = changes.measurement_system;
+
   if (
     system !== undefined &&
     !measurementSystems.includes(system as MeasurementSystem)
   ) {
     return error(400, "invalid_request", "measurement_system: Invalid option");
   }
+
   return null;
 };
 
@@ -570,12 +592,14 @@ const applyProfileChanges = (
   if (changes.measurement_system !== undefined) {
     convert(profile, changes.measurement_system as MeasurementSystem);
   }
+
   Object.assign(profile, changes);
 };
 
 /** `GET /v1/profile`: the Profile, or `{ data: null }` before onboarding. */
 const getProfile = (): Response => {
   const profile = backend.profile(FAKE_USER_ID);
+
   return json(200, { data: profile ? profileBody(profile) : null });
 };
 
@@ -588,16 +612,22 @@ const patchProfile = (body: unknown): Response => {
   ) {
     return error(400, "invalid_request", "Invalid profile changes");
   }
+
   const changes = body as Partial<ProfileRow>;
   const invalid = profileFieldsError(changes);
+
   if (invalid) {
     return invalid;
   }
+
   const profile = backend.profile(FAKE_USER_ID);
+
   if (!profile) {
     return error(404, "profile_not_found", "Profile not found");
   }
+
   applyProfileChanges(profile, changes);
+
   return json(200, { data: profileBody(profile) });
 };
 
@@ -613,18 +643,25 @@ const putProfile = (body: unknown): Response => {
   ) {
     return error(400, "invalid_request", "Invalid profile");
   }
+
   const whole = body as unknown as Omit<ProfileRow, "user_id">;
   const invalid = profileFieldsError(whole);
+
   if (invalid) {
     return invalid;
   }
+
   const existing = backend.profile(FAKE_USER_ID);
+
   if (existing) {
     applyProfileChanges(existing, whole);
+
     return json(200, { data: profileBody(existing) });
   }
+
   const created = { ...whole, user_id: FAKE_USER_ID };
   backend.profiles.push(created);
+
   return json(201, { data: profileBody(created) });
 };
 
@@ -819,6 +856,7 @@ const planBody = (plan: SeedPlan) => {
     workouts,
     ...fields
   } = backend.nestedPlan(plan);
+
   return {
     ...fields,
     created_at: PLAN_CREATED_AT,
@@ -840,6 +878,7 @@ const planBody = (plan: SeedPlan) => {
 /** A Plan as `GET /v1/plans` lists it: its Workouts summarised, no unit. */
 const planSummaryBody = (plan: SeedPlan) => {
   const { weight_unit: _unit, workouts, ...fields } = planBody(plan);
+
   return {
     ...fields,
     workouts: workouts.map(({ cover, exercises, id, name, order }) => ({
@@ -870,15 +909,18 @@ const getActivePlan = (): Response => {
     (candidate) =>
       isOwn(candidate) && !candidate.deleted_at && candidate.is_active
   );
+
   return json(200, { data: plan ? planBody(plan) : null });
 };
 
 /** A live Plan of the User's in full; 404 for a missing, deleted or another User's. */
 const getPlan = (_body: unknown, planId: string): Response => {
   const plan = ownPlan(planId);
+
   if (!plan || plan.deleted_at) {
     return notFound("Plan");
   }
+
   return json(200, { data: planBody(plan) });
 };
 
@@ -891,10 +933,13 @@ const createPlan = async (body: unknown): Promise<Response> => {
   if (!isNewPlan(body)) {
     return error(400, "invalid_request", "Invalid plan");
   }
+
   const slugs = body.workouts.flatMap((workout) =>
     workout.exercises.map((exercise) => exercise.exercise_slug)
   );
+
   let missing: string[];
+
   try {
     ({ missing } = await library.current.lookup(slugs));
   } catch {
@@ -904,6 +949,7 @@ const createPlan = async (body: unknown): Promise<Response> => {
       "The Library is unavailable, try again"
     );
   }
+
   if (missing.length > 0) {
     return error(
       400,
@@ -911,12 +957,15 @@ const createPlan = async (body: unknown): Promise<Response> => {
       `Unknown Exercises: ${missing.join(", ")}`
     );
   }
+
   const activate = body.activate ?? true;
+
   if (activate) {
     for (const plan of backend.plans) {
       plan.is_active = false;
     }
   }
+
   const plan = {
     id: backend.id("plan"),
     is_active: activate,
@@ -930,7 +979,9 @@ const createPlan = async (body: unknown): Promise<Response> => {
       name: workout.name,
     })),
   };
+
   backend.seedPlan(plan);
+
   return json(201, { data: planBody(plan) });
 };
 
@@ -941,6 +992,7 @@ const createPlan = async (body: unknown): Promise<Response> => {
  */
 const invalidPlanIds = (plan: SeedPlan, workouts: SavedPlanWorkout[]) => {
   const tree = backend.nestedPlan(plan).workouts;
+
   const parentOf = new Map<string, string | null>([
     ...tree.map((workout) => [workout.id, null] as const),
     ...tree.flatMap((workout) =>
@@ -950,26 +1002,34 @@ const invalidPlanIds = (plan: SeedPlan, workouts: SavedPlanWorkout[]) => {
       ])
     ),
   ]);
+
   const seen = new Set<string>();
   const invalid = new Set<string>();
+
   const check = (id: string | undefined, parent: string | null | undefined) => {
     if (id === undefined) {
       return;
     }
+
     if (seen.has(id) || !parentOf.has(id) || parentOf.get(id) !== parent) {
       invalid.add(id);
     }
+
     seen.add(id);
   };
+
   for (const workout of workouts) {
     check(workout.id, null);
+
     for (const exercise of workout.exercises) {
       check(exercise.id, workout.id);
+
       for (const set of exercise.sets) {
         check(set.id, exercise.id);
       }
     }
   }
+
   return [...invalid];
 };
 
@@ -984,10 +1044,13 @@ const savePlan = async (body: unknown, planId: string): Promise<Response> => {
   if (!isSavedPlan(body)) {
     return error(400, "invalid_request", "Invalid plan");
   }
+
   const slugs = body.workouts.flatMap((workout) =>
     workout.exercises.map((exercise) => exercise.exercise_slug)
   );
+
   let missing: string[];
+
   try {
     ({ missing } = await library.current.lookup(slugs));
   } catch {
@@ -997,6 +1060,7 @@ const savePlan = async (body: unknown, planId: string): Promise<Response> => {
       "The Library is unavailable, try again"
     );
   }
+
   if (missing.length > 0) {
     return error(
       400,
@@ -1004,11 +1068,15 @@ const savePlan = async (body: unknown, planId: string): Promise<Response> => {
       `Unknown Exercises: ${missing.join(", ")}`
     );
   }
+
   const plan = ownPlan(planId);
+
   if (!plan || plan.deleted_at) {
     return notFound("Plan");
   }
+
   const invalid = invalidPlanIds(plan, body.workouts);
+
   if (invalid.length > 0) {
     return error(
       400,
@@ -1016,9 +1084,11 @@ const savePlan = async (body: unknown, planId: string): Promise<Response> => {
       `Not this Plan's, or not under the parent sent: ${invalid.join(", ")}`
     );
   }
+
   const covers = new Map(
     plan.workouts.map((workout) => [workout.id, workout.cover ?? null])
   );
+
   Object.assign(plan, {
     description: body.description ?? null,
     experience_level: body.experience_level,
@@ -1029,6 +1099,7 @@ const savePlan = async (body: unknown, planId: string): Promise<Response> => {
     workout_duration: body.workout_duration,
     workouts: body.workouts.map((workout, index) => {
       const workoutId = workout.id ?? backend.id("workout");
+
       return {
         cover: covers.get(workoutId) ?? null,
         exercises: workout.exercises.map((exercise) => ({
@@ -1045,29 +1116,36 @@ const savePlan = async (body: unknown, planId: string): Promise<Response> => {
       };
     }),
   });
+
   return json(200, { data: planBody(plan) });
 };
 
 /** The Plan becomes active, every other one of the User inactive. */
 const activatePlan = (_body: unknown, planId: string): Response => {
   const plan = ownPlan(planId);
+
   if (!plan || plan.deleted_at) {
     return error(404, "not_found", "Plan not found");
   }
+
   for (const other of backend.plans.filter(isOwn)) {
     other.is_active = other === plan;
   }
+
   return json(200, { data: planBody(plan) });
 };
 
 /** A soft delete; a Plan already deleted answers 204 again. */
 const deletePlan = (_body: unknown, planId: string): Response => {
   const plan = ownPlan(planId);
+
   if (!plan) {
     return error(404, "not_found", "Plan not found");
   }
+
   plan.deleted_at ??= "2026-10-24T12:00:00.000Z";
   plan.is_active = false;
+
   return new Response(null, { status: 204 });
 };
 
@@ -1080,6 +1158,7 @@ const notFound = (what: string) => error(404, "not_found", `${what} not found`);
 /** The User's Workout Session with that id; never another User's. */
 const ownSession = (sessionId: string) => {
   const session = backend.session(sessionId);
+
   return session && (session.user_id ?? FAKE_USER_ID) === FAKE_USER_ID
     ? session
     : undefined;
@@ -1094,6 +1173,7 @@ const setBody = ({ workout_session_exercise_id: _exercise, ...set }: SetRow) =>
 /** A Workout Session in full, as `GET /v1/workout-sessions/{id}` shows it. */
 const sessionBody = (session: SessionRow) => {
   const plan = backend.plans.find(({ id }) => id === session.plan_id);
+
   return {
     exercises: backend.exercises
       .filter((exercise) => exercise.workout_session_id === session.id)
@@ -1138,6 +1218,7 @@ const listSessions = (
   const limit = Number(query.get("limit") ?? SUMMARY_LIMITS.default);
   const offset = Number(query.get("offset") ?? 0);
   const status = query.get("status") ?? "all";
+
   if (
     !Number.isInteger(limit) ||
     limit < 1 ||
@@ -1148,6 +1229,7 @@ const listSessions = (
   ) {
     return error(400, "invalid_request", "limit, offset or status: Invalid");
   }
+
   const matching = backend.sessions
     .filter(
       (session) =>
@@ -1158,10 +1240,12 @@ const listSessions = (
       (a, b) =>
         b.started_at.localeCompare(a.started_at) || a.id.localeCompare(b.id)
     );
+
   const page = matching.slice(offset, offset + limit).map((session) => {
     const { exercises, ...body } = sessionBody(session);
     const sets = exercises.flatMap((exercise) => exercise.sets);
     const { weight_unit: _unit, ...summary } = body;
+
     return {
       ...summary,
       completed_rep_count: sets.reduce(
@@ -1184,6 +1268,7 @@ const listSessions = (
       ),
     };
   });
+
   return json(200, {
     data: page,
     hasMore: offset + page.length < matching.length,
@@ -1198,6 +1283,7 @@ const listSessions = (
  */
 const getSession = (_body: unknown, sessionId: string): Response => {
   const session = ownSession(sessionId);
+
   return session
     ? json(200, { data: sessionBody(session) })
     : notFound("Workout Session");
@@ -1206,10 +1292,12 @@ const getSession = (_body: unknown, sessionId: string): Response => {
 const findWorkout = (workoutId: string) => {
   for (const plan of backend.plans) {
     const workout = plan.workouts.find(({ id }) => id === workoutId);
+
     if (workout) {
       return { plan, workout };
     }
   }
+
   return null;
 };
 
@@ -1221,22 +1309,29 @@ const findWorkout = (workoutId: string) => {
  */
 const startSession = (body: unknown): Response => {
   const workoutId = (body as { workout_id?: unknown } | undefined)?.workout_id;
+
   if (
     typeof workoutId !== "string" ||
     Object.keys(body as object).length !== 1
   ) {
     return error(400, "invalid_request", "workout_id: Required");
   }
+
   const found = findWorkout(workoutId);
+
   if (!found) {
     return notFound("Workout");
   }
+
   const open = backend.sessions.find((other) => other.finished_at === null);
+
   if (open?.workout_id === workoutId) {
     return json(200, { data: sessionBody(open) });
   }
+
   if (open) {
     const openWorkout = open.workout_id ? findWorkout(open.workout_id) : null;
+
     return error(
       409,
       "session_in_progress",
@@ -1245,7 +1340,9 @@ const startSession = (body: unknown): Response => {
         : `Workout Session ${open.id} is in progress; finish it before starting another`
     );
   }
+
   const { plan, workout } = found;
+
   const session: SessionRow = {
     finished_at: null,
     id: backend.id("started-session"),
@@ -1254,10 +1351,13 @@ const startSession = (body: unknown): Response => {
     workout_id: workout.id,
     workoutName: workout.name,
   };
+
   backend.sessions.push(session);
+
   const planned = backend
     .nestedPlan(plan)
     .workouts.find(({ id }) => id === workout.id);
+
   for (const exercise of planned?.exercises ?? []) {
     const exerciseId = backend.id("started-exercise");
     backend.exercises.push({
@@ -1266,6 +1366,7 @@ const startSession = (body: unknown): Response => {
       order: exercise.order,
       workout_session_id: session.id,
     });
+
     for (const set of exercise.sets) {
       backend.sets.push({
         id: backend.id("started-set"),
@@ -1280,16 +1381,19 @@ const startSession = (body: unknown): Response => {
       });
     }
   }
+
   return json(201, { data: sessionBody(session) });
 };
 
 /** The logged sets of a Workout Session's Exercises, by Exercise slug. */
 const setsBySlug = (sessionId: string) => {
   const bySlug = new Map<string, SetRow[]>();
+
   for (const exercise of backend.exercises) {
     if (exercise.workout_session_id !== sessionId) {
       continue;
     }
+
     bySlug.set(exercise.exercise_slug, [
       ...(bySlug.get(exercise.exercise_slug) ?? []),
       ...backend.sets.filter(
@@ -1297,6 +1401,7 @@ const setsBySlug = (sessionId: string) => {
       ),
     ]);
   }
+
   return bySlug;
 };
 
@@ -1308,6 +1413,7 @@ const awardPersonalRecords = (sessionId: string) => {
   const earlier = backend.sessions.filter(
     (other) => other.id !== sessionId && other.finished_at !== null
   );
+
   for (const [slug, sets] of setsBySlug(sessionId)) {
     const record = personalRecordFor(
       recordResult(
@@ -1315,6 +1421,7 @@ const awardPersonalRecords = (sessionId: string) => {
       ),
       sets
     );
+
     if (record) {
       backend.personalRecords.push({
         ...record,
@@ -1332,15 +1439,19 @@ const awardPersonalRecords = (sessionId: string) => {
  */
 const finishSession = (_body: unknown, sessionId: string): Response => {
   const session = backend.session(sessionId);
+
   if (!session) {
     return notFound("Workout Session");
   }
+
   if (session.finished_at !== null) {
     return json(200, { already_finished: true, data: sessionBody(session) });
   }
+
   awardPersonalRecords(sessionId);
   session.finished_at = FINISHED_AT;
   const found = session.workout_id ? findWorkout(session.workout_id) : null;
+
   if (found) {
     const { plan, workout } = found;
     plan.workouts = [
@@ -1348,6 +1459,7 @@ const finishSession = (_body: unknown, sessionId: string): Response => {
       workout,
     ];
   }
+
   return json(200, { already_finished: false, data: sessionBody(session) });
 };
 
@@ -1357,6 +1469,7 @@ const logSet = (body: unknown, setId: string): Response => {
     reps_completed?: unknown;
     weight_completed?: unknown;
   };
+
   if (
     !Number.isInteger(reps_completed) ||
     typeof weight_completed !== "number" ||
@@ -1364,14 +1477,19 @@ const logSet = (body: unknown, setId: string): Response => {
   ) {
     return error(400, "invalid_request", "Invalid set");
   }
+
   const set = backend.sets.find(({ id }) => id === setId);
+
   const exercise = backend.exercises.find(
     ({ id }) => id === set?.workout_session_exercise_id
   );
+
   const session = exercise && backend.session(exercise.workout_session_id);
+
   if (!(set && session)) {
     return notFound("Workout Session set");
   }
+
   if (session.finished_at !== null) {
     return error(
       409,
@@ -1379,17 +1497,20 @@ const logSet = (body: unknown, setId: string): Response => {
       `Workout Session ${session.id} is finished`
     );
   }
+
   Object.assign(set, {
     logged_at: LOGGED_AT,
     reps_completed,
     weight_completed,
   });
+
   return json(200, { data: { ...setBody(set), weight_unit: weightUnit() } });
 };
 
 /** Checks one slug against the fake Library, as `checkExerciseSlugs` does. */
 const refuseUnknownSlug = async (slug: string) => {
   let missing: string[];
+
   try {
     ({ missing } = await library.current.lookup([slug]));
   } catch {
@@ -1399,6 +1520,7 @@ const refuseUnknownSlug = async (slug: string) => {
       "The Library is unavailable, try again"
     );
   }
+
   return missing.length > 0
     ? error(400, "unknown_exercises", `Unknown exercise_slug(s): ${slug}`)
     : null;
@@ -1429,32 +1551,42 @@ const addSessionExercise = async (
   ) {
     return error(400, "invalid_request", "exercise_slug: Required");
   }
+
   const refusal = await refuseUnknownSlug(body.exercise_slug);
+
   if (refusal) {
     return refusal;
   }
+
   const session = backend.session(sessionId);
+
   if (!session) {
     return notFound("Workout Session");
   }
+
   const notOpen = refuseFinished(session);
+
   if (notOpen) {
     return notOpen;
   }
+
   const last = Math.max(
     0,
     ...backend.exercises
       .filter((other) => other.workout_session_id === sessionId)
       .map(({ order }) => order)
   );
+
   const exercise = {
     exercise_slug: body.exercise_slug,
     id: backend.id("added-exercise"),
     order: last + 1,
     workout_session_id: sessionId,
   };
+
   backend.exercises.push(exercise);
   const { workout_session_id: _session, ...shown } = exercise;
+
   return json(201, {
     data: { ...shown, sets: [], weight_unit: weightUnit() },
   });
@@ -1508,11 +1640,13 @@ const planUpdateChanges = (session: SessionRow, workout: PlannedWorkout) => {
         .sort((a, b) => a.order - b.order),
       slug: exercise.exercise_slug,
     }));
+
   const planExercises = workout.exercises.map((exercise) => ({
     order: exercise.order,
     rests: exercise.sets.map((set) => set.rest_recommended),
     slug: exercise.exercise_slug,
   }));
+
   if (
     hasRepeat(sessionExercises.map(({ order }) => order)) ||
     hasRepeat(planExercises.map(({ order }) => order)) ||
@@ -1523,39 +1657,50 @@ const planUpdateChanges = (session: SessionRow, workout: PlannedWorkout) => {
   ) {
     return [];
   }
+
   const orders = [
     ...new Set([...sessionExercises, ...planExercises].map((e) => e.order)),
   ].sort((a, b) => a - b);
+
   const logged = (sets: SetRow[]) =>
     sets.filter((set) => set.reps_completed !== null);
+
   const toSet = (set: SetRow, rest: number): PlanUpdateSet => ({
     reps: set.reps_completed as number,
     rest,
     weight: set.weight_completed ?? 0,
   });
+
   return orders.flatMap((order): IndexedChange[] => {
     const played = sessionExercises.find((e) => e.order === order);
     const planned = planExercises.find((e) => e.order === order);
     const index = planExercises.findIndex((e) => e.order === order);
+
     if (planned && !played) {
       return [{ exercise_slug: planned.slug, index, kind: "remove_exercise" }];
     }
+
     if (!played) {
       return [];
     }
+
     if (!planned) {
       const sets = logged(played.sets)
         .slice(0, MAX_SETS_PER_EXERCISE)
         .map((set) => toSet(set, DEFAULT_REST));
+
       return sets.length > 0
         ? [{ exercise_slug: played.slug, index, kind: "add_exercise", sets }]
         : [];
     }
+
     if (played.slug !== planned.slug) {
       const last = logged(played.sets).at(-1);
+
       if (!last) {
         return [];
       }
+
       const sets = played.sets
         .slice(0, MAX_SETS_PER_EXERCISE)
         .map((set, setIndex) =>
@@ -1564,6 +1709,7 @@ const planUpdateChanges = (session: SessionRow, workout: PlannedWorkout) => {
             planned.rests[setIndex] ?? planned.rests.at(-1) ?? DEFAULT_REST
           )
         );
+
       return [
         {
           exercise_slug: played.slug,
@@ -1574,6 +1720,7 @@ const planUpdateChanges = (session: SessionRow, workout: PlannedWorkout) => {
         },
       ];
     }
+
     const sets = logged(
       played.sets.filter(
         (set, setIndex) =>
@@ -1582,6 +1729,7 @@ const planUpdateChanges = (session: SessionRow, workout: PlannedWorkout) => {
     )
       .slice(0, Math.max(MAX_SETS_PER_EXERCISE - planned.rests.length, 0))
       .map((set) => toSet(set, planned.rests.at(-1) ?? DEFAULT_REST));
+
     return sets.length > 0
       ? [{ exercise_slug: played.slug, index, kind: "add_sets", sets }]
       : [];
@@ -1614,8 +1762,10 @@ const applyPlanUpdateChanges = (
     ),
     slug: exercise.exercise_slug,
   }));
+
   for (const change of changes) {
     const exercise = exercises[change.index];
+
     if (change.kind === "replace_exercise" && exercise) {
       exercise.slug = change.exercise_slug;
       exercise.sets = change.sets.map(planSet);
@@ -1623,11 +1773,13 @@ const applyPlanUpdateChanges = (
       exercise.sets.push(...change.sets.map(planSet));
     }
   }
+
   const removed = new Set(
     changes.flatMap((change) =>
       change.kind === "remove_exercise" ? [change.index] : []
     )
   );
+
   workout.exercises = [
     ...exercises.filter((_, index) => !removed.has(index)),
     ...changes.flatMap((change) =>
@@ -1647,10 +1799,13 @@ const planUpdate =
   (apply: boolean) =>
   (_body: unknown, sessionId: string): Response => {
     const session = backend.session(sessionId);
+
     if (!session) {
       return notFound("Workout Session");
     }
+
     const found = session.workout_id ? findWorkout(session.workout_id) : null;
+
     if (!found || found.plan.deleted_at) {
       return json(200, {
         data: {
@@ -1661,20 +1816,25 @@ const planUpdate =
         },
       });
     }
+
     const { plan, workout } = found;
+
     const planned = backend
       .nestedPlan(plan)
       .workouts.find(({ id }) => id === workout.id);
+
     const changes =
       planned &&
       session.finished_at !== null &&
       !appliedPlanUpdates.has(session.id)
         ? planUpdateChanges(session, planned)
         : [];
+
     if (apply && planned && changes.length > 0) {
       applyPlanUpdateChanges(workout, planned, changes);
       appliedPlanUpdates.add(session.id);
     }
+
     return json(200, {
       data: {
         changes: changes.map(({ index: _index, ...change }) =>
@@ -1715,9 +1875,11 @@ const listExerciseHistory = (
   const exerciseSlug = query.get("exercise_slug");
   const limit = Number(query.get("limit") ?? HISTORY_LIMITS.default);
   const offset = Number(query.get("offset") ?? 0);
+
   if (!exerciseSlug) {
     return error(400, "invalid_request", "exercise_slug: Required");
   }
+
   if (
     !Number.isInteger(limit) ||
     limit < 1 ||
@@ -1727,10 +1889,12 @@ const listExerciseHistory = (
   ) {
     return error(400, "invalid_request", "limit or offset: Invalid");
   }
+
   const matching = backend.exercises
     .filter((exercise) => exercise.exercise_slug === exerciseSlug)
     .flatMap((exercise) => {
       const session = ownSession(exercise.workout_session_id);
+
       const sets = backend.sets
         .filter(
           (set) =>
@@ -1738,6 +1902,7 @@ const listExerciseHistory = (
             set.reps_completed !== null
         )
         .sort((a, b) => a.order - b.order || a.id.localeCompare(b.id));
+
       // An entry with no logged set never shows, nor counts in `total`.
       return session && sets.length > 0 ? [{ exercise, session, sets }] : [];
     })
@@ -1748,6 +1913,7 @@ const listExerciseHistory = (
         a.exercise.order - b.exercise.order ||
         a.exercise.id.localeCompare(b.exercise.id)
     );
+
   const page = matching
     .slice(offset, offset + limit)
     .map(({ exercise, session, sets }) => ({
@@ -1766,6 +1932,7 @@ const listExerciseHistory = (
         weight_recommended: set.weight_recommended,
       })),
     }));
+
   return json(200, {
     data: page,
     hasMore: offset + page.length < matching.length,
@@ -1781,17 +1948,22 @@ const listExerciseHistory = (
 const removeSessionExercise = (_body: unknown, exerciseId: string) => {
   const exercise = backend.exercises.find(({ id }) => id === exerciseId);
   const session = exercise && backend.session(exercise.workout_session_id);
+
   if (!session) {
     return new Response(null, { status: 204 });
   }
+
   const notOpen = refuseFinished(session);
+
   if (notOpen) {
     return notOpen;
   }
+
   backend.sets = backend.sets.filter(
     (set) => set.workout_session_exercise_id !== exerciseId
   );
   backend.exercises = backend.exercises.filter(({ id }) => id !== exerciseId);
+
   return new Response(null, { status: 204 });
 };
 
@@ -1810,27 +1982,38 @@ const replaceSessionExercise = async (
   ) {
     return error(400, "invalid_request", "exercise_slug: Required");
   }
+
   const refusal = await refuseUnknownSlug(body.exercise_slug);
+
   if (refusal) {
     return refusal;
   }
+
   const exercise = backend.exercises.find(({ id }) => id === exerciseId);
   const session = exercise && backend.session(exercise.workout_session_id);
+
   if (!(exercise && session)) {
     return notFound("Workout Session Exercise");
   }
+
   const notOpen = refuseFinished(session);
+
   if (notOpen) {
     return notOpen;
   }
+
   exercise.exercise_slug = body.exercise_slug;
+
   const sets = backend.sets
     .filter((set) => set.workout_session_exercise_id === exerciseId)
     .sort((a, b) => a.order - b.order);
+
   for (const set of sets) {
     Object.assign(set, { reps_recommended: 0, weight_recommended: 0 });
   }
+
   const { workout_session_id: _session, ...shown } = exercise;
+
   return json(200, {
     data: { ...shown, sets: sets.map(setBody), weight_unit: weightUnit() },
   });
@@ -1844,7 +2027,9 @@ const addSessionSet = (body: unknown, exerciseId: string): Response => {
   if (!isObject(body)) {
     return error(400, "invalid_request", "Invalid set");
   }
+
   const { reps_completed, weight_completed } = body;
+
   if (
     typeof reps_completed !== "number" ||
     !Number.isInteger(reps_completed) ||
@@ -1853,21 +2038,27 @@ const addSessionSet = (body: unknown, exerciseId: string): Response => {
   ) {
     return error(400, "invalid_request", "Invalid set");
   }
+
   const exercise = backend.exercises.find(({ id }) => id === exerciseId);
   const session = exercise && backend.session(exercise.workout_session_id);
+
   if (!session) {
     return notFound("Workout Session Exercise");
   }
+
   const notOpen = refuseFinished(session);
+
   if (notOpen) {
     return notOpen;
   }
+
   const last = Math.max(
     0,
     ...backend.sets
       .filter((set) => set.workout_session_exercise_id === exerciseId)
       .map(({ order }) => order)
   );
+
   const added: SetRow = {
     id: backend.id("added-set"),
     logged_at: LOGGED_AT,
@@ -1879,7 +2070,9 @@ const addSessionSet = (body: unknown, exerciseId: string): Response => {
     weight_recommended: null,
     workout_session_exercise_id: exerciseId,
   };
+
   backend.sets.push(added);
+
   return json(201, { data: { ...setBody(added), weight_unit: weightUnit() } });
 };
 
@@ -1907,13 +2100,13 @@ type Handler = (
 ) => Promise<Response> | Response;
 
 /** Every route the fake answers, each path parameter as `(?<id>…)`. */
-const ROUTES: Array<{
+const ROUTES: {
   handler: Handler;
   path: RegExp;
   /** Answered without a bearer, like the API's global routes. */
   isPublic?: boolean;
   route: Route;
-}> = [
+}[] = [
   {
     handler: listArnoldModels,
     isPublic: true,
@@ -2041,6 +2234,7 @@ const ROUTES: Array<{
 const match = (method: string, path: string) => {
   for (const candidate of ROUTES) {
     const params = path.match(candidate.path);
+
     if (params && candidate.route.startsWith(`${method} `)) {
       return {
         handler: candidate.handler,
@@ -2050,6 +2244,7 @@ const match = (method: string, path: string) => {
       };
     }
   }
+
   return {
     handler: null,
     id: "",
@@ -2067,16 +2262,16 @@ class FakePublicApi {
   unhandled: string[] = [];
   /** Requests sent and not yet answered (or failed). */
   inFlight = 0;
-  private failures: Array<{
+  private failures: {
     failure: Failure;
     query?: QueryMatch;
     route: string;
-  }> = [];
-  private pauses: Array<{
+  }[] = [];
+  private pauses: {
     query?: QueryMatch;
     resumed: Promise<void>;
     route: string;
-  }> = [];
+  }[] = [];
 
   reset() {
     appliedPlanUpdates.clear();
@@ -2094,11 +2289,14 @@ class FakePublicApi {
    */
   pause(route: Route, query?: QueryMatch) {
     let resume!: () => void;
+
     const resumed = new Promise<void>((resolve) => {
       resume = resolve;
     });
+
     const pause = { query, resumed, route };
     this.pauses.push(pause);
+
     return () => {
       this.pauses = this.pauses.filter((other) => other !== pause);
       resume();
@@ -2119,6 +2317,7 @@ class FakePublicApi {
 
   fetch: PublicApiFetch = async (url, init) => {
     this.inFlight += 1;
+
     try {
       return await this.respond(url, init);
     } finally {
@@ -2131,12 +2330,15 @@ class FakePublicApi {
     const matched = match(init.method ?? "GET", pathname);
     const { route } = matched;
     const authorization = new Headers(init.headers).get("Authorization");
+
     const body =
       typeof init.body === "string" && init.body !== ""
         ? (JSON.parse(init.body) as unknown)
         : undefined;
+
     const query = Object.fromEntries(searchParams);
     this.requests.push({ authorization, body, path: pathname, query, route });
+
     const matches = (held: { query?: QueryMatch; route: string }) =>
       held.route === route && matchesQuery(query, held.query);
 
@@ -2145,20 +2347,26 @@ class FakePublicApi {
     await this.pauses.find(matches)?.resumed;
 
     const queued = this.failures.find(matches);
+
     if (queued) {
       this.failures = this.failures.filter((other) => other !== queued);
       const { failure } = queued;
+
       if (failure === "pass") {
         return this.answer(matched, authorization, body, searchParams);
       }
+
       if (failure === "lost") {
         await this.answer(matched, authorization, body, searchParams);
         throw new TypeError("Network request failed");
       }
+
       if (failure === "network") {
         throw new TypeError("Network request failed");
       }
+
       const retryAfterSeconds = failure.retryAfterSeconds ?? 30;
+
       return failure.status === 429
         ? error(429, failure.code ?? "rate_limited", "Too many requests", {
             "Retry-After": String(retryAfterSeconds),
@@ -2181,11 +2389,14 @@ class FakePublicApi {
   ) {
     if (!handler) {
       this.unhandled.push(route);
+
       return error(501, "not_implemented", `Fake Public API: no ${route}`);
     }
+
     if (!isPublic && authorization !== `Bearer ${FAKE_SESSION_TOKEN}`) {
       return error(401, "unauthorized", "Unauthorized");
     }
+
     return handler(body, id, query);
   }
 }

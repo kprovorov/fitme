@@ -23,9 +23,7 @@ export interface paths {
       responses: {
         /** @description The API is up */
         200: {
-          headers: {
-            [name: string]: unknown;
-          };
+          headers: Record<string, unknown>;
           content: {
             "application/json": {
               ok: boolean;
@@ -135,9 +133,7 @@ export interface paths {
       responses: {
         /** @description Every muscle group */
         200: {
-          headers: {
-            [name: string]: unknown;
-          };
+          headers: Record<string, unknown>;
           content: {
             "application/json": {
               data: components["schemas"]["MuscleGroupItem"][];
@@ -175,9 +171,7 @@ export interface paths {
       responses: {
         /** @description The muscle group */
         200: {
-          headers: {
-            [name: string]: unknown;
-          };
+          headers: Record<string, unknown>;
           content: {
             "application/json": {
               data: components["schemas"]["MuscleGroupItem"];
@@ -186,9 +180,7 @@ export interface paths {
         };
         /** @description No such muscle group */
         404: {
-          headers: {
-            [name: string]: unknown;
-          };
+          headers: Record<string, unknown>;
           content: {
             "application/json": components["schemas"]["Error"];
           };
@@ -222,9 +214,7 @@ export interface paths {
       responses: {
         /** @description Every Plan of the User, newest first (not paged) */
         200: {
-          headers: {
-            [name: string]: unknown;
-          };
+          headers: Record<string, unknown>;
           content: {
             "application/json": {
               /** @description The User's Plans, newest first */
@@ -234,9 +224,7 @@ export interface paths {
         };
         /** @description No valid Clerk session token */
         401: {
-          headers: {
-            [name: string]: unknown;
-          };
+          headers: Record<string, unknown>;
           content: {
             "application/json": components["schemas"]["Error"];
           };
@@ -274,9 +262,7 @@ export interface paths {
       responses: {
         /** @description The created Plan in full */
         201: {
-          headers: {
-            [name: string]: unknown;
-          };
+          headers: Record<string, unknown>;
           content: {
             "application/json": {
               data: components["schemas"]["Plan"];
@@ -285,27 +271,21 @@ export interface paths {
         };
         /** @description `invalid_request`: the Plan isn't valid; `unknown_exercises`: the Library has no Exercise for the slugs the message names. Nothing was saved */
         400: {
-          headers: {
-            [name: string]: unknown;
-          };
+          headers: Record<string, unknown>;
           content: {
             "application/json": components["schemas"]["Error"];
           };
         };
         /** @description No valid Clerk session token */
         401: {
-          headers: {
-            [name: string]: unknown;
-          };
+          headers: Record<string, unknown>;
           content: {
             "application/json": components["schemas"]["Error"];
           };
         };
         /** @description The body isn't `application/json` */
         415: {
-          headers: {
-            [name: string]: unknown;
-          };
+          headers: Record<string, unknown>;
           content: {
             "application/json": components["schemas"]["Error"];
           };
@@ -323,9 +303,7 @@ export interface paths {
         };
         /** @description `library_unavailable`: the Exercise slugs couldn't be checked or the Covers couldn't be read; nothing was saved, try again */
         503: {
-          headers: {
-            [name: string]: unknown;
-          };
+          headers: Record<string, unknown>;
           content: {
             "application/json": components["schemas"]["Error"];
           };
@@ -359,9 +337,7 @@ export interface paths {
       responses: {
         /** @description The Plan in full: its Workouts, their Exercises and sets, each in order */
         200: {
-          headers: {
-            [name: string]: unknown;
-          };
+          headers: Record<string, unknown>;
           content: {
             "application/json": {
               data: components["schemas"]["Plan"];
@@ -370,27 +346,21 @@ export interface paths {
         };
         /** @description `invalid_request`: the id isn't a uuid */
         400: {
-          headers: {
-            [name: string]: unknown;
-          };
+          headers: Record<string, unknown>;
           content: {
             "application/json": components["schemas"]["Error"];
           };
         };
         /** @description No valid Clerk session token */
         401: {
-          headers: {
-            [name: string]: unknown;
-          };
+          headers: Record<string, unknown>;
           content: {
             "application/json": components["schemas"]["Error"];
           };
         };
         /** @description `not_found`: no such Plan, it was deleted, or it isn't the User's */
         404: {
-          headers: {
-            [name: string]: unknown;
-          };
+          headers: Record<string, unknown>;
           content: {
             "application/json": components["schemas"]["Error"];
           };
@@ -429,9 +399,7 @@ export interface paths {
       responses: {
         /** @description The saved Plan in full */
         200: {
-          headers: {
-            [name: string]: unknown;
-          };
+          headers: Record<string, unknown>;
           content: {
             "application/json": {
               data: components["schemas"]["Plan"];
@@ -440,36 +408,28 @@ export interface paths {
         };
         /** @description `invalid_request`: the id isn't a uuid, the Plan isn't valid, or an `id` isn't one of this Plan's rows under the parent it's sent under (or is sent twice); `unknown_exercises`: the Library has no Exercise for the slugs the message names. Nothing was changed */
         400: {
-          headers: {
-            [name: string]: unknown;
-          };
+          headers: Record<string, unknown>;
           content: {
             "application/json": components["schemas"]["Error"];
           };
         };
         /** @description No valid Clerk session token */
         401: {
-          headers: {
-            [name: string]: unknown;
-          };
+          headers: Record<string, unknown>;
           content: {
             "application/json": components["schemas"]["Error"];
           };
         };
         /** @description `not_found`: no such Plan, it was deleted, or it isn't the User's */
         404: {
-          headers: {
-            [name: string]: unknown;
-          };
+          headers: Record<string, unknown>;
           content: {
             "application/json": components["schemas"]["Error"];
           };
         };
         /** @description The body isn't `application/json` */
         415: {
-          headers: {
-            [name: string]: unknown;
-          };
+          headers: Record<string, unknown>;
           content: {
             "application/json": components["schemas"]["Error"];
           };
@@ -487,9 +447,7 @@ export interface paths {
         };
         /** @description `library_unavailable`: the Exercise slugs couldn't be checked or the Covers couldn't be read; nothing was changed, try again */
         503: {
-          headers: {
-            [name: string]: unknown;
-          };
+          headers: Record<string, unknown>;
           content: {
             "application/json": components["schemas"]["Error"];
           };
@@ -514,34 +472,26 @@ export interface paths {
       responses: {
         /** @description Deleted, now or before */
         204: {
-          headers: {
-            [name: string]: unknown;
-          };
+          headers: Record<string, unknown>;
           content?: never;
         };
         /** @description `invalid_request`: the id isn't a uuid */
         400: {
-          headers: {
-            [name: string]: unknown;
-          };
+          headers: Record<string, unknown>;
           content: {
             "application/json": components["schemas"]["Error"];
           };
         };
         /** @description No valid Clerk session token */
         401: {
-          headers: {
-            [name: string]: unknown;
-          };
+          headers: Record<string, unknown>;
           content: {
             "application/json": components["schemas"]["Error"];
           };
         };
         /** @description `not_found`: the User never had such a Plan (it's missing or another User's); nothing was changed */
         404: {
-          headers: {
-            [name: string]: unknown;
-          };
+          headers: Record<string, unknown>;
           content: {
             "application/json": components["schemas"]["Error"];
           };
@@ -582,9 +532,7 @@ export interface paths {
       responses: {
         /** @description The changed Plan in full */
         200: {
-          headers: {
-            [name: string]: unknown;
-          };
+          headers: Record<string, unknown>;
           content: {
             "application/json": {
               data: components["schemas"]["Plan"];
@@ -593,36 +541,28 @@ export interface paths {
         };
         /** @description `invalid_request`: the id isn't a uuid, or the changes aren't valid (no field, an unknown one such as `workouts`, or a bad value); nothing was changed */
         400: {
-          headers: {
-            [name: string]: unknown;
-          };
+          headers: Record<string, unknown>;
           content: {
             "application/json": components["schemas"]["Error"];
           };
         };
         /** @description No valid Clerk session token */
         401: {
-          headers: {
-            [name: string]: unknown;
-          };
+          headers: Record<string, unknown>;
           content: {
             "application/json": components["schemas"]["Error"];
           };
         };
         /** @description `not_found`: no such Plan, it was deleted, or it isn't the User's */
         404: {
-          headers: {
-            [name: string]: unknown;
-          };
+          headers: Record<string, unknown>;
           content: {
             "application/json": components["schemas"]["Error"];
           };
         };
         /** @description The body isn't `application/json` */
         415: {
-          headers: {
-            [name: string]: unknown;
-          };
+          headers: Record<string, unknown>;
           content: {
             "application/json": components["schemas"]["Error"];
           };
@@ -668,9 +608,7 @@ export interface paths {
       responses: {
         /** @description The activated Plan in full */
         200: {
-          headers: {
-            [name: string]: unknown;
-          };
+          headers: Record<string, unknown>;
           content: {
             "application/json": {
               data: components["schemas"]["Plan"];
@@ -679,27 +617,21 @@ export interface paths {
         };
         /** @description `invalid_request`: the id isn't a uuid */
         400: {
-          headers: {
-            [name: string]: unknown;
-          };
+          headers: Record<string, unknown>;
           content: {
             "application/json": components["schemas"]["Error"];
           };
         };
         /** @description No valid Clerk session token */
         401: {
-          headers: {
-            [name: string]: unknown;
-          };
+          headers: Record<string, unknown>;
           content: {
             "application/json": components["schemas"]["Error"];
           };
         };
         /** @description `not_found`: no such Plan, it was deleted, or it isn't the User's */
         404: {
-          headers: {
-            [name: string]: unknown;
-          };
+          headers: Record<string, unknown>;
           content: {
             "application/json": components["schemas"]["Error"];
           };
@@ -752,9 +684,7 @@ export interface paths {
       responses: {
         /** @description The Plan in full, with its new Workouts */
         200: {
-          headers: {
-            [name: string]: unknown;
-          };
+          headers: Record<string, unknown>;
           content: {
             "application/json": {
               data: components["schemas"]["Plan"];
@@ -763,36 +693,28 @@ export interface paths {
         };
         /** @description `invalid_request`: the id isn't a uuid or the Workouts aren't valid; `unknown_exercises`: the Library has no Exercise for the slugs the message names. Nothing was changed */
         400: {
-          headers: {
-            [name: string]: unknown;
-          };
+          headers: Record<string, unknown>;
           content: {
             "application/json": components["schemas"]["Error"];
           };
         };
         /** @description No valid Clerk session token */
         401: {
-          headers: {
-            [name: string]: unknown;
-          };
+          headers: Record<string, unknown>;
           content: {
             "application/json": components["schemas"]["Error"];
           };
         };
         /** @description `not_found`: no such Plan, it was deleted, or it isn't the User's */
         404: {
-          headers: {
-            [name: string]: unknown;
-          };
+          headers: Record<string, unknown>;
           content: {
             "application/json": components["schemas"]["Error"];
           };
         };
         /** @description The body isn't `application/json` */
         415: {
-          headers: {
-            [name: string]: unknown;
-          };
+          headers: Record<string, unknown>;
           content: {
             "application/json": components["schemas"]["Error"];
           };
@@ -810,9 +732,7 @@ export interface paths {
         };
         /** @description `library_unavailable`: the Exercise slugs couldn't be checked or the Covers couldn't be read; nothing was changed, try again */
         503: {
-          headers: {
-            [name: string]: unknown;
-          };
+          headers: Record<string, unknown>;
           content: {
             "application/json": components["schemas"]["Error"];
           };
@@ -845,9 +765,7 @@ export interface paths {
       responses: {
         /** @description The User's active Plan in full, or `null` without one */
         200: {
-          headers: {
-            [name: string]: unknown;
-          };
+          headers: Record<string, unknown>;
           content: {
             "application/json": {
               /** @description The User's active Plan, `null` without one */
@@ -902,9 +820,7 @@ export interface paths {
         };
         /** @description No valid Clerk session token */
         401: {
-          headers: {
-            [name: string]: unknown;
-          };
+          headers: Record<string, unknown>;
           content: {
             "application/json": components["schemas"]["Error"];
           };
@@ -949,9 +865,7 @@ export interface paths {
       responses: {
         /** @description The User's Profile, or `null` without one */
         200: {
-          headers: {
-            [name: string]: unknown;
-          };
+          headers: Record<string, unknown>;
           content: {
             "application/json": {
               /** @description The User's Profile, `null` until they finish onboarding */
@@ -994,9 +908,7 @@ export interface paths {
         };
         /** @description No valid Clerk session token */
         401: {
-          headers: {
-            [name: string]: unknown;
-          };
+          headers: Record<string, unknown>;
           content: {
             "application/json": components["schemas"]["Error"];
           };
@@ -1033,9 +945,7 @@ export interface paths {
       responses: {
         /** @description The replaced Profile */
         200: {
-          headers: {
-            [name: string]: unknown;
-          };
+          headers: Record<string, unknown>;
           content: {
             "application/json": {
               data: {
@@ -1077,9 +987,7 @@ export interface paths {
         };
         /** @description The created Profile */
         201: {
-          headers: {
-            [name: string]: unknown;
-          };
+          headers: Record<string, unknown>;
           content: {
             "application/json": {
               data: {
@@ -1121,27 +1029,21 @@ export interface paths {
         };
         /** @description `invalid_request`: a field is missing, unknown or out of bounds; nothing was written */
         400: {
-          headers: {
-            [name: string]: unknown;
-          };
+          headers: Record<string, unknown>;
           content: {
             "application/json": components["schemas"]["Error"];
           };
         };
         /** @description No valid Clerk session token */
         401: {
-          headers: {
-            [name: string]: unknown;
-          };
+          headers: Record<string, unknown>;
           content: {
             "application/json": components["schemas"]["Error"];
           };
         };
         /** @description The body isn't `application/json` */
         415: {
-          headers: {
-            [name: string]: unknown;
-          };
+          headers: Record<string, unknown>;
           content: {
             "application/json": components["schemas"]["Error"];
           };
@@ -1182,9 +1084,7 @@ export interface paths {
       responses: {
         /** @description The updated Profile */
         200: {
-          headers: {
-            [name: string]: unknown;
-          };
+          headers: Record<string, unknown>;
           content: {
             "application/json": {
               data: {
@@ -1226,36 +1126,28 @@ export interface paths {
         };
         /** @description `invalid_request`: the changes aren't valid */
         400: {
-          headers: {
-            [name: string]: unknown;
-          };
+          headers: Record<string, unknown>;
           content: {
             "application/json": components["schemas"]["Error"];
           };
         };
         /** @description No valid Clerk session token */
         401: {
-          headers: {
-            [name: string]: unknown;
-          };
+          headers: Record<string, unknown>;
           content: {
             "application/json": components["schemas"]["Error"];
           };
         };
         /** @description `profile_not_found`: the User has no Profile yet; nothing was changed */
         404: {
-          headers: {
-            [name: string]: unknown;
-          };
+          headers: Record<string, unknown>;
           content: {
             "application/json": components["schemas"]["Error"];
           };
         };
         /** @description The body isn't `application/json` */
         415: {
-          headers: {
-            [name: string]: unknown;
-          };
+          headers: Record<string, unknown>;
           content: {
             "application/json": components["schemas"]["Error"];
           };
@@ -1304,9 +1196,7 @@ export interface paths {
       responses: {
         /** @description The User's Weekly goal changes */
         200: {
-          headers: {
-            [name: string]: unknown;
-          };
+          headers: Record<string, unknown>;
           content: {
             "application/json": {
               /** @description Every change, oldest first; empty before tracking started */
@@ -1321,18 +1211,14 @@ export interface paths {
         };
         /** @description `invalid_request`: the input fails its schema */
         400: {
-          headers: {
-            [name: string]: unknown;
-          };
+          headers: Record<string, unknown>;
           content: {
             "application/json": components["schemas"]["Error"];
           };
         };
         /** @description No valid Clerk session token */
         401: {
-          headers: {
-            [name: string]: unknown;
-          };
+          headers: Record<string, unknown>;
           content: {
             "application/json": components["schemas"]["Error"];
           };
@@ -1387,27 +1273,21 @@ export interface paths {
       responses: {
         /** @description A page of the User's history for the Exercise; an offset past the end is an empty page */
         200: {
-          headers: {
-            [name: string]: unknown;
-          };
+          headers: Record<string, unknown>;
           content: {
             "application/json": components["schemas"]["ExerciseHistoryPage"];
           };
         };
         /** @description `invalid_request`: the input fails its schema */
         400: {
-          headers: {
-            [name: string]: unknown;
-          };
+          headers: Record<string, unknown>;
           content: {
             "application/json": components["schemas"]["Error"];
           };
         };
         /** @description No valid Clerk session token */
         401: {
-          headers: {
-            [name: string]: unknown;
-          };
+          headers: Record<string, unknown>;
           content: {
             "application/json": components["schemas"]["Error"];
           };
@@ -1462,9 +1342,7 @@ export interface paths {
       responses: {
         /** @description The replaced Workout Session Exercise, with its sets */
         200: {
-          headers: {
-            [name: string]: unknown;
-          };
+          headers: Record<string, unknown>;
           content: {
             "application/json": {
               data: components["schemas"]["WorkoutSessionExercise"] & {
@@ -1475,45 +1353,35 @@ export interface paths {
         };
         /** @description `invalid_request`: the id isn't a uuid or the body isn't valid; `unknown_exercises`: the Library has no Exercise for the slug the message names. Nothing was changed */
         400: {
-          headers: {
-            [name: string]: unknown;
-          };
+          headers: Record<string, unknown>;
           content: {
             "application/json": components["schemas"]["Error"];
           };
         };
         /** @description No valid Clerk session token */
         401: {
-          headers: {
-            [name: string]: unknown;
-          };
+          headers: Record<string, unknown>;
           content: {
             "application/json": components["schemas"]["Error"];
           };
         };
         /** @description `not_found`: the User has no Workout Session Exercise with this id */
         404: {
-          headers: {
-            [name: string]: unknown;
-          };
+          headers: Record<string, unknown>;
           content: {
             "application/json": components["schemas"]["Error"];
           };
         };
         /** @description `session_finished`: the Workout Session is finished; nothing was written */
         409: {
-          headers: {
-            [name: string]: unknown;
-          };
+          headers: Record<string, unknown>;
           content: {
             "application/json": components["schemas"]["Error"];
           };
         };
         /** @description The body isn't `application/json` */
         415: {
-          headers: {
-            [name: string]: unknown;
-          };
+          headers: Record<string, unknown>;
           content: {
             "application/json": components["schemas"]["Error"];
           };
@@ -1531,9 +1399,7 @@ export interface paths {
         };
         /** @description `library_unavailable`: the Exercise slug couldn't be checked; nothing was changed, try again */
         503: {
-          headers: {
-            [name: string]: unknown;
-          };
+          headers: Record<string, unknown>;
           content: {
             "application/json": components["schemas"]["Error"];
           };
@@ -1558,34 +1424,26 @@ export interface paths {
       responses: {
         /** @description The User has no Workout Session Exercise with this id now */
         204: {
-          headers: {
-            [name: string]: unknown;
-          };
+          headers: Record<string, unknown>;
           content?: never;
         };
         /** @description `invalid_request`: the input fails its schema */
         400: {
-          headers: {
-            [name: string]: unknown;
-          };
+          headers: Record<string, unknown>;
           content: {
             "application/json": components["schemas"]["Error"];
           };
         };
         /** @description No valid Clerk session token */
         401: {
-          headers: {
-            [name: string]: unknown;
-          };
+          headers: Record<string, unknown>;
           content: {
             "application/json": components["schemas"]["Error"];
           };
         };
         /** @description `session_finished`: the Workout Session is finished; nothing was written */
         409: {
-          headers: {
-            [name: string]: unknown;
-          };
+          headers: Record<string, unknown>;
           content: {
             "application/json": components["schemas"]["Error"];
           };
@@ -1638,9 +1496,7 @@ export interface paths {
       responses: {
         /** @description The added set */
         201: {
-          headers: {
-            [name: string]: unknown;
-          };
+          headers: Record<string, unknown>;
           content: {
             "application/json": {
               data: components["schemas"]["WorkoutSessionSet"] & {
@@ -1651,45 +1507,35 @@ export interface paths {
         };
         /** @description `invalid_request`: the input fails its schema */
         400: {
-          headers: {
-            [name: string]: unknown;
-          };
+          headers: Record<string, unknown>;
           content: {
             "application/json": components["schemas"]["Error"];
           };
         };
         /** @description No valid Clerk session token */
         401: {
-          headers: {
-            [name: string]: unknown;
-          };
+          headers: Record<string, unknown>;
           content: {
             "application/json": components["schemas"]["Error"];
           };
         };
         /** @description `not_found`: the User has no Workout Session Exercise with this id */
         404: {
-          headers: {
-            [name: string]: unknown;
-          };
+          headers: Record<string, unknown>;
           content: {
             "application/json": components["schemas"]["Error"];
           };
         };
         /** @description `session_finished`: the Workout Session is finished; nothing was written */
         409: {
-          headers: {
-            [name: string]: unknown;
-          };
+          headers: Record<string, unknown>;
           content: {
             "application/json": components["schemas"]["Error"];
           };
         };
         /** @description The body isn't `application/json` */
         415: {
-          headers: {
-            [name: string]: unknown;
-          };
+          headers: Record<string, unknown>;
           content: {
             "application/json": components["schemas"]["Error"];
           };
@@ -1747,9 +1593,7 @@ export interface paths {
       responses: {
         /** @description The logged set */
         200: {
-          headers: {
-            [name: string]: unknown;
-          };
+          headers: Record<string, unknown>;
           content: {
             "application/json": {
               data: components["schemas"]["WorkoutSessionSet"] & {
@@ -1760,45 +1604,35 @@ export interface paths {
         };
         /** @description `invalid_request`: the input fails its schema */
         400: {
-          headers: {
-            [name: string]: unknown;
-          };
+          headers: Record<string, unknown>;
           content: {
             "application/json": components["schemas"]["Error"];
           };
         };
         /** @description No valid Clerk session token */
         401: {
-          headers: {
-            [name: string]: unknown;
-          };
+          headers: Record<string, unknown>;
           content: {
             "application/json": components["schemas"]["Error"];
           };
         };
         /** @description `not_found`: no set of the User's Workout Sessions has this id */
         404: {
-          headers: {
-            [name: string]: unknown;
-          };
+          headers: Record<string, unknown>;
           content: {
             "application/json": components["schemas"]["Error"];
           };
         };
         /** @description `session_finished`: the set's Workout Session is finished; nothing was written */
         409: {
-          headers: {
-            [name: string]: unknown;
-          };
+          headers: Record<string, unknown>;
           content: {
             "application/json": components["schemas"]["Error"];
           };
         };
         /** @description The body isn't `application/json` */
         415: {
-          headers: {
-            [name: string]: unknown;
-          };
+          headers: Record<string, unknown>;
           content: {
             "application/json": components["schemas"]["Error"];
           };
@@ -1844,27 +1678,21 @@ export interface paths {
       responses: {
         /** @description A page of the User's Workout Sessions; an offset past the end is an empty page */
         200: {
-          headers: {
-            [name: string]: unknown;
-          };
+          headers: Record<string, unknown>;
           content: {
             "application/json": components["schemas"]["WorkoutSessionPage"];
           };
         };
         /** @description `invalid_request`: the input fails its schema */
         400: {
-          headers: {
-            [name: string]: unknown;
-          };
+          headers: Record<string, unknown>;
           content: {
             "application/json": components["schemas"]["Error"];
           };
         };
         /** @description No valid Clerk session token */
         401: {
-          headers: {
-            [name: string]: unknown;
-          };
+          headers: Record<string, unknown>;
           content: {
             "application/json": components["schemas"]["Error"];
           };
@@ -1902,9 +1730,7 @@ export interface paths {
       responses: {
         /** @description Resumed: the Workout Session already open for this Workout, in full */
         200: {
-          headers: {
-            [name: string]: unknown;
-          };
+          headers: Record<string, unknown>;
           content: {
             "application/json": {
               data: components["schemas"]["WorkoutSession"];
@@ -1913,9 +1739,7 @@ export interface paths {
         };
         /** @description Started: the new Workout Session, in full */
         201: {
-          headers: {
-            [name: string]: unknown;
-          };
+          headers: Record<string, unknown>;
           content: {
             "application/json": {
               data: components["schemas"]["WorkoutSession"];
@@ -1924,45 +1748,35 @@ export interface paths {
         };
         /** @description `invalid_request`: the input fails its schema */
         400: {
-          headers: {
-            [name: string]: unknown;
-          };
+          headers: Record<string, unknown>;
           content: {
             "application/json": components["schemas"]["Error"];
           };
         };
         /** @description No valid Clerk session token */
         401: {
-          headers: {
-            [name: string]: unknown;
-          };
+          headers: Record<string, unknown>;
           content: {
             "application/json": components["schemas"]["Error"];
           };
         };
         /** @description `not_found`: the User has no such Workout, or its Plan is deleted */
         404: {
-          headers: {
-            [name: string]: unknown;
-          };
+          headers: Record<string, unknown>;
           content: {
             "application/json": components["schemas"]["Error"];
           };
         };
         /** @description `session_in_progress`: another Workout's Workout Session is open, named in the message; nothing was written */
         409: {
-          headers: {
-            [name: string]: unknown;
-          };
+          headers: Record<string, unknown>;
           content: {
             "application/json": components["schemas"]["Error"];
           };
         };
         /** @description The body isn't `application/json` */
         415: {
-          headers: {
-            [name: string]: unknown;
-          };
+          headers: Record<string, unknown>;
           content: {
             "application/json": components["schemas"]["Error"];
           };
@@ -2007,9 +1821,7 @@ export interface paths {
       responses: {
         /** @description The Workout Session, its Exercises and sets in order */
         200: {
-          headers: {
-            [name: string]: unknown;
-          };
+          headers: Record<string, unknown>;
           content: {
             "application/json": {
               data: components["schemas"]["WorkoutSession"];
@@ -2018,27 +1830,21 @@ export interface paths {
         };
         /** @description `invalid_request`: the input fails its schema */
         400: {
-          headers: {
-            [name: string]: unknown;
-          };
+          headers: Record<string, unknown>;
           content: {
             "application/json": components["schemas"]["Error"];
           };
         };
         /** @description No valid Clerk session token */
         401: {
-          headers: {
-            [name: string]: unknown;
-          };
+          headers: Record<string, unknown>;
           content: {
             "application/json": components["schemas"]["Error"];
           };
         };
         /** @description `not_found`: the User has no Workout Session with this id */
         404: {
-          headers: {
-            [name: string]: unknown;
-          };
+          headers: Record<string, unknown>;
           content: {
             "application/json": components["schemas"]["Error"];
           };
@@ -2075,25 +1881,19 @@ export interface paths {
       responses: {
         /** @description The User has no Workout Session with this id now */
         204: {
-          headers: {
-            [name: string]: unknown;
-          };
+          headers: Record<string, unknown>;
           content?: never;
         };
         /** @description `invalid_request`: the input fails its schema */
         400: {
-          headers: {
-            [name: string]: unknown;
-          };
+          headers: Record<string, unknown>;
           content: {
             "application/json": components["schemas"]["Error"];
           };
         };
         /** @description No valid Clerk session token */
         401: {
-          headers: {
-            [name: string]: unknown;
-          };
+          headers: Record<string, unknown>;
           content: {
             "application/json": components["schemas"]["Error"];
           };
@@ -2146,9 +1946,7 @@ export interface paths {
       responses: {
         /** @description The added Workout Session Exercise, with its sets (none) */
         201: {
-          headers: {
-            [name: string]: unknown;
-          };
+          headers: Record<string, unknown>;
           content: {
             "application/json": {
               data: components["schemas"]["WorkoutSessionExercise"] & {
@@ -2159,45 +1957,35 @@ export interface paths {
         };
         /** @description `invalid_request`: the id isn't a uuid or the body isn't valid; `unknown_exercises`: the Library has no Exercise for the slug the message names. Nothing was written */
         400: {
-          headers: {
-            [name: string]: unknown;
-          };
+          headers: Record<string, unknown>;
           content: {
             "application/json": components["schemas"]["Error"];
           };
         };
         /** @description No valid Clerk session token */
         401: {
-          headers: {
-            [name: string]: unknown;
-          };
+          headers: Record<string, unknown>;
           content: {
             "application/json": components["schemas"]["Error"];
           };
         };
         /** @description `not_found`: the User has no Workout Session with this id */
         404: {
-          headers: {
-            [name: string]: unknown;
-          };
+          headers: Record<string, unknown>;
           content: {
             "application/json": components["schemas"]["Error"];
           };
         };
         /** @description `session_finished`: the Workout Session is finished; nothing was written */
         409: {
-          headers: {
-            [name: string]: unknown;
-          };
+          headers: Record<string, unknown>;
           content: {
             "application/json": components["schemas"]["Error"];
           };
         };
         /** @description The body isn't `application/json` */
         415: {
-          headers: {
-            [name: string]: unknown;
-          };
+          headers: Record<string, unknown>;
           content: {
             "application/json": components["schemas"]["Error"];
           };
@@ -2215,9 +2003,7 @@ export interface paths {
         };
         /** @description `library_unavailable`: the Exercise slug couldn't be checked; nothing was written, try again */
         503: {
-          headers: {
-            [name: string]: unknown;
-          };
+          headers: Record<string, unknown>;
           content: {
             "application/json": components["schemas"]["Error"];
           };
@@ -2256,9 +2042,7 @@ export interface paths {
       responses: {
         /** @description The finished Workout Session, in full */
         200: {
-          headers: {
-            [name: string]: unknown;
-          };
+          headers: Record<string, unknown>;
           content: {
             "application/json": {
               /** @description `true` when it was finished before this request, which then changed nothing */
@@ -2269,27 +2053,21 @@ export interface paths {
         };
         /** @description `invalid_request`: the input fails its schema */
         400: {
-          headers: {
-            [name: string]: unknown;
-          };
+          headers: Record<string, unknown>;
           content: {
             "application/json": components["schemas"]["Error"];
           };
         };
         /** @description No valid Clerk session token */
         401: {
-          headers: {
-            [name: string]: unknown;
-          };
+          headers: Record<string, unknown>;
           content: {
             "application/json": components["schemas"]["Error"];
           };
         };
         /** @description `not_found`: the User has no Workout Session with this id */
         404: {
-          headers: {
-            [name: string]: unknown;
-          };
+          headers: Record<string, unknown>;
           content: {
             "application/json": components["schemas"]["Error"];
           };
@@ -2337,9 +2115,7 @@ export interface paths {
       responses: {
         /** @description The Plan Update, possibly without changes */
         200: {
-          headers: {
-            [name: string]: unknown;
-          };
+          headers: Record<string, unknown>;
           content: {
             "application/json": {
               data: components["schemas"]["PlanUpdate"];
@@ -2348,27 +2124,21 @@ export interface paths {
         };
         /** @description `invalid_request`: the input fails its schema */
         400: {
-          headers: {
-            [name: string]: unknown;
-          };
+          headers: Record<string, unknown>;
           content: {
             "application/json": components["schemas"]["Error"];
           };
         };
         /** @description No valid Clerk session token */
         401: {
-          headers: {
-            [name: string]: unknown;
-          };
+          headers: Record<string, unknown>;
           content: {
             "application/json": components["schemas"]["Error"];
           };
         };
         /** @description `not_found`: the User has no Workout Session with this id */
         404: {
-          headers: {
-            [name: string]: unknown;
-          };
+          headers: Record<string, unknown>;
           content: {
             "application/json": components["schemas"]["Error"];
           };
@@ -2404,9 +2174,7 @@ export interface paths {
       responses: {
         /** @description What was applied, possibly nothing */
         200: {
-          headers: {
-            [name: string]: unknown;
-          };
+          headers: Record<string, unknown>;
           content: {
             "application/json": {
               data: components["schemas"]["PlanUpdate"];
@@ -2415,27 +2183,21 @@ export interface paths {
         };
         /** @description `invalid_request`: the input fails its schema */
         400: {
-          headers: {
-            [name: string]: unknown;
-          };
+          headers: Record<string, unknown>;
           content: {
             "application/json": components["schemas"]["Error"];
           };
         };
         /** @description No valid Clerk session token */
         401: {
-          headers: {
-            [name: string]: unknown;
-          };
+          headers: Record<string, unknown>;
           content: {
             "application/json": components["schemas"]["Error"];
           };
         };
         /** @description `not_found`: the User has no Workout Session with this id */
         404: {
-          headers: {
-            [name: string]: unknown;
-          };
+          headers: Record<string, unknown>;
           content: {
             "application/json": components["schemas"]["Error"];
           };
@@ -2460,7 +2222,9 @@ export interface paths {
     trace?: never;
   };
 }
+
 export type webhooks = Record<string, never>;
+
 export interface components {
   headers: never;
   parameters: never;
@@ -3318,5 +3082,7 @@ export interface components {
     };
   };
 }
+
 export type $defs = Record<string, never>;
+
 export type operations = Record<string, never>;

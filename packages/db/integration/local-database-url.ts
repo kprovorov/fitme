@@ -8,6 +8,7 @@ import { execFileSync } from "node:child_process";
 /** The fitme login on the pooler; the password is from supabase/roles.sql. */
 const LOCAL_POOLER_USER = "fitme.pooler-dev";
 const LOCAL_PASSWORD = "fitme-local-only";
+
 /** The local stack's superuser, for schema introspection only. */
 const LOCAL_ADMIN_USER = "postgres";
 const LOCAL_ADMIN_PASSWORD = "postgres";
@@ -30,15 +31,17 @@ const readStatus = (): StackStatus =>
         "--output-format",
         "json",
       ],
-      { encoding: "utf8" }
+      { encoding: "utf-8" }
     )
   );
 
 const endpointHost = (name: string, missing: string): string => {
   const endpoint = readStatus().endpoints?.[name];
+
   if (!endpoint) {
     throw new Error(missing);
   }
+
   return `${endpoint.address}:${endpoint.port}`;
 };
 
@@ -48,6 +51,7 @@ export const localDatabaseUrl = (applicationName: string): string => {
     "pooler.sql",
     "No pooler in `supabase status`; start the local stack (`pnpm db start`) with [db.pooler] enabled."
   );
+
   return `postgresql://${LOCAL_POOLER_USER}:${LOCAL_PASSWORD}@${host}/postgres?application_name=${applicationName}`;
 };
 
@@ -60,5 +64,6 @@ export const localAdminDatabaseUrl = (): string => {
     "database.sql",
     "No database in `supabase status`; start the local stack (`pnpm db start`)."
   );
+
   return `postgresql://${LOCAL_ADMIN_USER}:${LOCAL_ADMIN_PASSWORD}@${host}/postgres`;
 };

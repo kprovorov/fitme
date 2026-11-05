@@ -1,5 +1,6 @@
 import { HTTPException } from "hono/http-exception";
 import { describe, expect, it } from "vitest";
+
 import { clerkInstance, clerkToken } from "../test/clerk.js";
 import { fakeServices, signedInAs, testApp } from "../test/harness.js";
 
@@ -22,6 +23,7 @@ const failingApp = () => {
   test.app.get("/test/teapot", () => {
     throw new HTTPException(418, { message: "I'm a teapot" });
   });
+
   return { ...test, crash };
 };
 
@@ -41,7 +43,7 @@ describe("app", () => {
     const response = await app.request("/health");
 
     expect(response.status).toBe(200);
-    expect(await response.json()).toEqual({ ok: true });
+    await expect(response.json()).resolves.toEqual({ ok: true });
   });
 
   it("answers the global routes without a token", async () => {
@@ -58,7 +60,7 @@ describe("app", () => {
     const response = await app.request("/nope");
 
     expect(response.status).toBe(401);
-    expect(await response.json()).toEqual(unauthorized);
+    await expect(response.json()).resolves.toEqual(unauthorized);
     expect(reported).toEqual([]);
   });
 
@@ -70,7 +72,7 @@ describe("app", () => {
     });
 
     expect(response.status).toBe(404);
-    expect(await response.json()).toEqual({
+    await expect(response.json()).resolves.toEqual({
       error: { code: "not_found", message: "Route not found" },
     });
     expect(reported).toEqual([]);
@@ -111,7 +113,7 @@ describe("app", () => {
     });
 
     expect(response.status).toBe(500);
-    expect(await response.json()).toEqual({
+    await expect(response.json()).resolves.toEqual({
       error: { code: "internal_error", message: "Internal server error" },
     });
     expect(reported).toEqual([crash]);
@@ -125,7 +127,7 @@ describe("app", () => {
     });
 
     expect(response.status).toBe(418);
-    expect(await response.json()).toEqual({
+    await expect(response.json()).resolves.toEqual({
       error: { code: "http_error", message: "I'm a teapot" },
     });
     expect(reported).toEqual([]);
@@ -169,7 +171,7 @@ describe("auth", () => {
       const response = await app.request("/v1/profile", { headers });
 
       expect(response.status).toBe(401);
-      expect(await response.json()).toEqual(unauthorized);
+      await expect(response.json()).resolves.toEqual(unauthorized);
       expect(reported).toEqual([]);
       expect(servicesFor).toEqual([]);
     }

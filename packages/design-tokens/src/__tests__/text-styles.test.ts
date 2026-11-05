@@ -1,8 +1,10 @@
 import { readFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import { dirname } from "node:path";
+
 import { compile } from "tailwindcss";
 import { describe, expect, it } from "vitest";
+
 import {
   parseUtilities,
   readTokens,
@@ -45,9 +47,11 @@ interface Expected {
 
 const sizeOf = (style: string) => {
   const row = HIG.find(([name]) => name === style);
+
   if (!row) {
     throw new Error(`No HIG style ${style}`);
   }
+
   return { lineHeight: row[3], size: row[2] };
 };
 
@@ -92,6 +96,7 @@ const VAR = /^var\((--[a-z0-9-]+)\)$/;
 // The token a `var(--…)` declaration points at, as written in @theme
 const resolve = (value: string | undefined) => {
   const variable = value?.match(VAR)?.[1];
+
   return tokens.find((token) => token.variable === variable)?.value;
 };
 
@@ -125,7 +130,7 @@ describe("text style utilities", () => {
   );
 });
 
-describe("parseUtilities", () => {
+describe(parseUtilities, () => {
   it("reads each block's declarations and ignores comments", () => {
     const css = `
       @theme { --text-body: 17px; }
@@ -135,6 +140,7 @@ describe("parseUtilities", () => {
         letter-spacing: 0
       }
     `;
+
     expect(parseUtilities(css)).toEqual([
       {
         declarations: {
@@ -173,7 +179,7 @@ async function build(classes: string[]) {
      @theme { --font-nunito-sans-semibold: "App-SemiBold"; }`,
     {
       base: dirname(TOKENS_CSS_PATH.pathname),
-      loadStylesheet: (id, base) => {
+      loadStylesheet: async (id, base) => {
         const path =
           id === "./tokens.css"
             ? TOKENS_CSS_PATH.pathname
@@ -183,20 +189,23 @@ async function build(classes: string[]) {
                   paths: [base],
                 }
               );
+
         return Promise.resolve({
           base: dirname(path),
-          content: readFileSync(path, "utf8"),
+          content: readFileSync(path, "utf-8"),
           path,
         });
       },
     }
   );
+
   return compiler.build(classes);
 }
 
 describe("in Tailwind", () => {
   it("compiles every text style to a class", async () => {
     const css = await build(Object.keys(EXPECTED));
+
     for (const name of Object.keys(EXPECTED)) {
       expect(css).toContain(`.${name} {`);
     }
@@ -207,10 +216,11 @@ describe("in Tailwind", () => {
     expect(css).toContain('--font-nunito-sans-semibold: "App-SemiBold";');
     expect(css).toContain("--text-body: 17px;");
     expect(css).toContain("--text-body--line-height: 22px;");
-    const rule = css
-      .match(RULE_BODY)?.[1]
+
+    const rule = RULE_BODY.exec(css)?.[1]
       ?.split(";")
       .map((d) => d.trim());
+
     expect(rule?.filter(Boolean).sort()).toEqual([
       "font-family: var(--font-nunito-sans-semibold)",
       "font-size: var(--text-body)",
@@ -223,7 +233,7 @@ describe("in Tailwind", () => {
   it("resolves rounded-full through the radius-full token", async () => {
     const css = await build(["rounded-full"]);
     expect(css).toContain("--radius-full: 9999px;");
-    expect(css.match(ROUNDED_FULL_BODY)?.[1]?.trim()).toBe(
+    expect(ROUNDED_FULL_BODY.exec(css)?.[1]?.trim()).toBe(
       "border-radius: var(--radius-full);"
     );
   });

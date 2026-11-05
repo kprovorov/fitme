@@ -1,25 +1,29 @@
 import { Slot, Slottable } from "@radix-ui/react-slot";
 import { cva } from "class-variance-authority";
-import {
-  type ComponentProps,
-  type ComponentType,
-  createElement,
-  isValidElement,
-  type ReactElement,
-  type ReactNode,
-  type SVGProps,
+import { createElement, isValidElement } from "react";
+import type {
+  ComponentProps,
+  ComponentType,
+  ReactElement,
+  ReactNode,
+  SVGProps,
 } from "react";
+
 import { cn } from "~/lib/utils";
 
 type ButtonVariant = "default" | "secondary" | "destructive" | "ghost";
+
 type ButtonSize = "sm" | "default" | "lg";
+
 type ButtonShape = "pill" | "circle";
+
 type ButtonIconPosition = "leading" | "trailing";
+
 // Pass a Tabler component or an already made icon.
 type ButtonIcon = ComponentType<SVGProps<SVGSVGElement>> | ReactElement;
 
 const buttonVariants = cva(
-  "inline-flex shrink-0 items-center justify-center gap-2 whitespace-nowrap rounded-full transition-colors focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:pointer-events-none disabled:opacity-50",
+  "focus-visible:ring-ring focus-visible:ring-offset-background inline-flex shrink-0 items-center justify-center gap-2 rounded-full whitespace-nowrap transition-colors focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-hidden disabled:pointer-events-none disabled:opacity-50",
   {
     compoundVariants: [
       {
@@ -64,7 +68,7 @@ const buttonVariants = cva(
       variant: {
         default: "bg-primary text-primary-foreground",
         destructive: "bg-secondary text-destructive",
-        ghost: "bg-transparent text-foreground hover:bg-muted",
+        ghost: "text-foreground hover:bg-muted bg-transparent",
         secondary: "bg-secondary text-secondary-foreground",
       },
     },
@@ -118,6 +122,7 @@ function Button({
   ...props
 }: ButtonProps) {
   const Comp = asChild ? Slot : "button";
+
   const iconView = icon ? (
     <span
       aria-hidden="true"
@@ -154,4 +159,5 @@ export type {
   CircleButtonProps,
   PillButtonProps,
 };
+
 export { Button };

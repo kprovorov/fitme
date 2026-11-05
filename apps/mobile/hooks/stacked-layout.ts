@@ -9,5 +9,6 @@ const STACKED_FONT_SCALE = 1.4;
  */
 export function useStackedLayout(): boolean {
   const { fontScale } = useWindowDimensions();
+
   return fontScale > STACKED_FONT_SCALE;
 }

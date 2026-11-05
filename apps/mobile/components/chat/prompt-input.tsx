@@ -4,26 +4,32 @@ import {
   GlassView,
   isLiquidGlassAvailable,
 } from "expo-glass-effect";
-import { type ReactNode, useCallback, useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef } from "react";
+import type { ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import {
   ActivityIndicator,
   Pressable,
-  type PressableStateCallbackType,
-  type StyleProp,
   Text,
   TextInput,
-  type TextInputInstance,
   View,
-  type ViewStyle,
+} from "react-native";
+import type {
+  PressableStateCallbackType,
+  StyleProp,
+  TextInputInstance,
+  ViewStyle,
 } from "react-native";
 import Animated, { FadeIn, FadeOut } from "react-native-reanimated";
 import { useCSSVariable } from "uniwind";
+
 import { SymbolImage } from "@/components/symbol-image";
 import { TouchableGlass } from "@/components/touchable-glass";
 import { Image } from "@/components/tw";
 import { cn } from "~/lib/utils";
-import { type ChatAttachment, useChatContext } from "./chat-context";
+
+import { useChatContext } from "./chat-context";
+import type { ChatAttachment } from "./chat-context";
 import { useConversationContext } from "./conversation";
 
 const AnimatedGlassContainer = Animated.createAnimatedComponent(GlassContainer);
@@ -64,12 +70,12 @@ function PromptInputError({ message }: { message: string }) {
   return (
     <Animated.View className="px-3 pb-2" entering={FadeIn.duration(200)}>
       <View
-        className="flex-row items-center gap-2 rounded-xl bg-card px-3 py-2.5"
+        className="bg-card flex-row items-center gap-2 rounded-xl px-3 py-2.5"
         style={{ borderCurve: "continuous" }}
       >
-        <View className="h-2 w-2 rounded-full bg-destructive" />
+        <View className="bg-destructive h-2 w-2 rounded-full" />
         <Text
-          className="flex-1 text-footnote text-muted-foreground"
+          className="text-footnote text-muted-foreground flex-1"
           numberOfLines={2}
         >
           {message}
@@ -96,6 +102,7 @@ function PickedAttachment({
   total: number;
 }) {
   const { t } = useTranslation();
+
   const remove = useCallback(
     () => onRemove?.(attachment.id),
     [attachment.id, onRemove]
@@ -112,7 +119,7 @@ function PickedAttachment({
         // at: expo-image's `isAccessibilityElement` is `accessible ?? false`,
         // which would leave the User only the × buttons.
         accessible
-        className="h-16 w-16 rounded-xl border-continuous bg-secondary"
+        className="border-continuous bg-secondary h-16 w-16 rounded-xl"
         contentFit="cover"
         source={{ uri: attachment.uri }}
       />
@@ -127,7 +134,7 @@ function PickedAttachment({
         // `secondary` with a hairline, not `background`: the badge has to
         // read both on a photo and on the Conversation behind the composer,
         // which is black.
-        className="absolute top-1 right-1 h-6 w-6 items-center justify-center rounded-full border border-border bg-secondary active:opacity-70"
+        className="border-border bg-secondary absolute top-1 right-1 h-6 w-6 items-center justify-center rounded-full border active:opacity-70"
         hitSlop={10}
         onPress={remove}
       >
@@ -190,6 +197,7 @@ const attachmentTrayStyle = {
  */
 export function PromptInputAttachments() {
   const { attachments, onRemoveAttachment } = useChatContext();
+
   if (!attachments?.length) {
     return null;
   }
@@ -284,7 +292,7 @@ export function PromptInputTextarea({
 
   return (
     <TextInput
-      className="max-h-25 flex-1 py-3 pr-2 pl-4 text-callout text-foreground dark:text-foreground"
+      className="text-callout text-foreground dark:text-foreground max-h-25 flex-1 py-3 pr-2 pl-4"
       cursorColor={foreground}
       maxLength={maxLength}
       multiline

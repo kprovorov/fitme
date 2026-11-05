@@ -1,15 +1,16 @@
+import type { Cover } from "@fitme/library-sdk";
 /**
  * The Workout cards' Covers on the mounted-screen seam: the real Workout tab
  * with the Public API swapped for its fake and the Library for its fake,
  * which serves Covers (both from `test-utils/`).
  */
-
-import type { Cover } from "@fitme/library-sdk";
 import { LibraryUnavailableError } from "@fitme/library-sdk";
 import { beforeEach, describe, expect, it, jest } from "@jest/globals";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { act, fireEvent, render, screen } from "@testing-library/react-native";
 import { Dimensions, PixelRatio } from "react-native";
+import { it, describe, expect, beforeEach } from "vitest";
+
 import HomeScreen from "~/app/(tabs)/(home)/index";
 import { writeCachedCovers } from "~/lib/library-cache";
 import { storage } from "~/lib/mmkv";
@@ -25,7 +26,7 @@ import {
   until,
 } from "~/test-utils/query-client";
 
-jest.mock("expo-router", () => ({
+jest.mock<typeof import("expo-router")>(import("expo-router"), () => ({
   Link: ({ children }: { children: unknown }) => children,
   Stack: { Screen: () => null },
   useNavigation: () => ({}),
@@ -38,31 +39,44 @@ jest.mock("expo-router", () => ({
   }),
 }));
 
-jest.mock("@clerk/expo", () => ({
+jest.mock<typeof import("@clerk/expo")>(import("@clerk/expo"), () => ({
   useUser: () => ({ isLoaded: true, user: { id: "user-1" } }),
 }));
 
-jest.mock("react-native-purchases", () => ({
-  __esModule: true,
-  default: { invalidateCustomerInfoCache: () => Promise.resolve() },
-}));
+jest.mock<typeof import("react-native-purchases")>(
+  import("react-native-purchases"),
+  () => ({
+    __esModule: true,
+    default: { invalidateCustomerInfoCache: () => Promise.resolve() },
+  })
+);
 
 // The real Clerk SDK (reached through the Workout cards) opens a MessagePort
 // at import that keeps Jest alive.
-jest.mock("~/lib/clerk", () => ({
+jest.mock<typeof import("~/lib/clerk")>(import("~/lib/clerk"), () => ({
   getCurrentUserId: () =>
     jest.requireActual<typeof import("~/test-utils/fake-public-api")>(
       "~/test-utils/fake-public-api"
     ).FAKE_USER_ID,
 }));
 
-jest.mock("~/lib/segment", () => ({ segmentClient: { track: jest.fn() } }));
-jest.mock("~/components/symbol-image", () => ({ SymbolImage: () => null }));
-jest.mock("~/components/ui/dropdown-menu", () =>
-  jest.requireActual("~/test-utils/dropdown-menu-stub")
+jest.mock<typeof import("~/lib/segment")>(import("~/lib/segment"), () => ({
+  segmentClient: { track: jest.fn() },
+}));
+
+jest.mock<typeof import("~/components/symbol-image")>(
+  import("~/components/symbol-image"),
+  () => ({ SymbolImage: () => null })
 );
-jest.mock("~/components/ui/button", () =>
-  jest.requireActual("~/test-utils/button-stub")
+
+jest.mock<typeof import("~/components/ui/dropdown-menu")>(
+  import("~/components/ui/dropdown-menu"),
+  () => jest.requireActual("~/test-utils/dropdown-menu-stub")
+);
+
+jest.mock<typeof import("~/components/ui/button")>(
+  import("~/components/ui/button"),
+  () => jest.requireActual("~/test-utils/button-stub")
 );
 
 const RENDER_URL = "https://media.test/storage/v1/render/image/public/";
@@ -105,7 +119,7 @@ const coverOf = (workoutId: string) =>
 
 // expo-image's native view gets its source as a list.
 const coverUri = (workoutId: string) =>
-  (coverOf(workoutId)?.props.source as Array<{ uri?: string }> | undefined)?.[0]
+  (coverOf(workoutId)?.props.source as { uri?: string }[] | undefined)?.[0]
     ?.uri;
 
 beforeEach(() => {
@@ -147,7 +161,7 @@ beforeEach(() => {
   });
 });
 
-describe("The Workout cards' Covers", () => {
+describe("the Workout cards' Covers", () => {
   it("shows a known Cover behind its card, sized for the card in device pixels", async () => {
     await mount();
 
@@ -223,10 +237,12 @@ describe("The Workout cards' Covers", () => {
   });
 
   it("shows the cards before the Covers arrive", async () => {
-    let answer: (covers: Cover[]) => void = () => undefined;
+    let answer: (covers: Cover[]) => void = () => {};
+
     const fake = serveLibrary([
       libraryExercise("squat", { muscle_groups: ["quadriceps"] }),
     ]);
+
     library.current = {
       ...fake,
       covers: () =>

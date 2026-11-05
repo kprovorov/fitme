@@ -1,15 +1,19 @@
 import { randomBytes } from "node:crypto";
+
 import { asUser } from "@fitme/db";
 import { LibraryUnavailableError } from "@fitme/library-sdk";
-import { createFakeLibrary, type FakeLibrary } from "@fitme/library-sdk/fake";
+import { createFakeLibrary } from "@fitme/library-sdk/fake";
+import type { FakeLibrary } from "@fitme/library-sdk/fake";
 import { deleteTestUsers } from "@fitme/services/delete-test-users";
-import { createPlan, getPlan, type PlanDetail } from "@fitme/services/plans";
+import { createPlan, getPlan } from "@fitme/services/plans";
+import type { PlanDetail } from "@fitme/services/plans";
 import {
   finishWorkoutSession,
   logSet,
   startWorkoutSession,
 } from "@fitme/services/workout-sessions";
 import { afterAll, beforeEach, describe, expect, it } from "vitest";
+
 import { createApp } from "../src/create-app.js";
 import { createServicesFromEnv } from "../src/services.js";
 import {
@@ -41,14 +45,17 @@ const library: FakeLibrary = createFakeLibrary(
     ],
   }
 );
+
 const reported: unknown[] = [];
+
 const app = createApp({
   clerkJwtKey: clerk.jwtKey,
   createLibrary: () => library,
   createServices: createServicesFromEnv,
-  identifyUser: () => undefined,
+  identifyUser: () => {},
   reportError: (error) => {
     reported.push(error);
+
     return Promise.resolve();
   },
 });
@@ -68,10 +75,7 @@ const set = (weight: number, reps = 8) => ({
 });
 
 /** A Plan with two Workouts, the first with two Exercises, as the services create it. */
-const newPlan = (
-  name: string,
-  covers: Array<string | null> = [null, null]
-) => ({
+const newPlan = (name: string, covers: (string | null)[] = [null, null]) => ({
   description: `${name} description`,
   experience_level: "intermediate",
   frequency: 3,
@@ -137,6 +141,7 @@ const put = async (userId: string, planId: string, payload: unknown) => {
     headers: { ...signedInAs(userId), "content-type": "application/json" },
     method: "PUT",
   });
+
   return { body: await response.json(), status: response.status };
 };
 
@@ -150,6 +155,7 @@ const request = async (
     headers: { ...signedInAs(userId), "content-type": "application/json" },
     method: init.method ?? "GET",
   });
+
   return {
     body: response.status === 204 ? null : await response.json(),
     status: response.status,
@@ -166,7 +172,7 @@ const created = (
   {
     activate = false,
     covers,
-  }: { activate?: boolean; covers?: Array<string | null> } = {}
+  }: { activate?: boolean; covers?: (string | null)[] } = {}
 ) =>
   asUser(userId, (tx) =>
     createPlan(tx, userId, newPlan(name, covers), { activate })
@@ -176,17 +182,21 @@ const created = (
 const sessionOf = (workoutId: string, { open = false } = {}) =>
   asUser(owner, async (tx) => {
     const started = await startWorkoutSession(tx, workoutId);
+
     if (started.status !== "started") {
       throw new Error("The Workout Session didn't start");
     }
+
     await logSet(tx, {
       repsCompleted: 7,
       setId: started.session.exercises[0].sets[0].id,
       weightCompleted: 82.5,
     });
+
     if (!open) {
       await finishWorkoutSession(tx, started.session.id);
     }
+
     return started.session.id;
   });
 
@@ -199,7 +209,7 @@ afterAll(async () => {
   await deleteTestUsers(users);
 });
 
-describe("PUT /v1/plans/{id} against the local stack", () => {
+describe("pUT /v1/plans/{id} against the local stack", () => {
   it("keeps the rows sent with their ids, creates the ones sent without, deletes the ones left out and orders them as sent", async () => {
     const plan = await created(owner, "Edited");
     const [dayA, dayB] = plan.workouts;
@@ -322,7 +332,7 @@ describe("PUT /v1/plans/{id} against the local stack", () => {
     expect(keptIds).not.toContain(dayC.id);
     expect(JSON.stringify(body.data)).not.toContain(bench.id);
     expect(JSON.stringify(body.data)).not.toContain(squat.sets[0].id);
-    expect(await request(`/v1/plans/${plan.id}`, owner)).toEqual({
+    await expect(request(`/v1/plans/${plan.id}`, owner)).resolves.toEqual({
       body,
       status: 200,
     });
@@ -354,10 +364,12 @@ describe("PUT /v1/plans/{id} against the local stack", () => {
     });
 
     expect(status).toBe(200);
+
     const [readA, readB] = await Promise.all([
       request(`/v1/workout-sessions/${sessionA}`, owner),
       request(`/v1/workout-sessions/${sessionB}`, owner),
     ]);
+
     expect(readA.body.data).toMatchObject({
       id: sessionA,
       plan: { id: plan.id },
@@ -384,6 +396,7 @@ describe("PUT /v1/plans/{id} against the local stack", () => {
       ...saved,
       workouts: [saved.workouts[1]],
     });
+
     expect(status).toBe(200);
 
     const open = await request(`/v1/workout-sessions/${sessionId}`, owner);
@@ -392,16 +405,20 @@ describe("PUT /v1/plans/{id} against the local stack", () => {
       workout: null,
     });
     const setId = open.body.data.exercises[0].sets[1].id;
+
     const logged = await request(`/v1/workout-session-sets/${setId}`, owner, {
       body: { reps_completed: 6, weight_completed: 85 },
       method: "PATCH",
     });
+
     expect(logged.status).toBe(200);
+
     const finished = await request(
       `/v1/workout-sessions/${sessionId}/finish`,
       owner,
       { method: "POST" }
     );
+
     expect(finished.status).toBe(200);
     expect(finished.body.data.status).toBe("finished");
   });
@@ -410,6 +427,7 @@ describe("PUT /v1/plans/{id} against the local stack", () => {
     const plan = await created(owner, "Covered", {
       covers: [LEGS_COVER, null],
     });
+
     const saved = unchanged(plan);
 
     const { body, status } = await put(owner, plan.id, {
@@ -435,10 +453,12 @@ describe("PUT /v1/plans/{id} against the local stack", () => {
 
     const before = await request("/v1/weekly-goals", owner);
     expect(before.body.data.at(-1).target).toBe(3);
+
     const { status } = await put(owner, plan.id, {
       ...unchanged(plan),
       frequency: 5,
     });
+
     const after = await request("/v1/weekly-goals", owner);
 
     expect(status).toBe(200);
@@ -456,6 +476,7 @@ describe("PUT /v1/plans/{id} against the local stack", () => {
       ...saved,
       workouts: [{ ...saved.workouts[0], id }, saved.workouts[1]],
     });
+
     // Day A's squat sent under Day B
     const moved = {
       ...saved,
@@ -470,6 +491,7 @@ describe("PUT /v1/plans/{id} against the local stack", () => {
         },
       ],
     };
+
     // A kept set sent under a new Exercise
     const underNew = {
       ...saved,
@@ -486,6 +508,7 @@ describe("PUT /v1/plans/{id} against the local stack", () => {
         saved.workouts[1],
       ],
     };
+
     // The same Workout twice
     const repeated = {
       ...saved,
@@ -506,10 +529,11 @@ describe("PUT /v1/plans/{id} against the local stack", () => {
       expect(answer.status).toBe(400);
       expect(answer.body.error.code).toBe("invalid_request");
     }
+
     expect(answers[0].body.error.message).toContain(foreign.workouts[0].id);
-    expect(await planOf(owner, plan.id)).toEqual(plan);
-    expect(await planOf(intruder, foreign.id)).toEqual(foreign);
-    expect(await planOf(owner, other.id)).toEqual(other);
+    await expect(planOf(owner, plan.id)).resolves.toEqual(plan);
+    await expect(planOf(intruder, foreign.id)).resolves.toEqual(foreign);
+    await expect(planOf(owner, other.id)).resolves.toEqual(other);
     expect(reported).toEqual([]);
   });
 
@@ -520,7 +544,7 @@ describe("PUT /v1/plans/{id} against the local stack", () => {
 
     expect(status).toBe(404);
     expect(body.error.code).toBe("not_found");
-    expect(await planOf(owner, plan.id)).toEqual(plan);
+    await expect(planOf(owner, plan.id)).resolves.toEqual(plan);
   });
 
   it("answers 404 not_found for a deleted Plan", async () => {
@@ -545,7 +569,7 @@ describe("PUT /v1/plans/{id} against the local stack", () => {
       code: "unknown_exercises",
       message: "Unknown exercise_slug(s): made-up-press",
     });
-    expect(await planOf(owner, plan.id)).toEqual(plan);
+    await expect(planOf(owner, plan.id)).resolves.toEqual(plan);
     expect(reported).toEqual([]);
   });
 
@@ -558,7 +582,7 @@ describe("PUT /v1/plans/{id} against the local stack", () => {
 
     expect(status).toBe(503);
     expect(body.error.code).toBe("library_unavailable");
-    expect(await planOf(owner, plan.id)).toEqual(plan);
+    await expect(planOf(owner, plan.id)).resolves.toEqual(plan);
     expect(reported).toEqual([outage]);
   });
 });

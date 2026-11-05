@@ -8,10 +8,11 @@ import { router, Stack } from "expo-router";
 import { useCallback } from "react";
 import { useTranslation } from "react-i18next";
 import { ActivityIndicator, View } from "react-native";
+
 import ProfileForm, {
-  type ProfileFormValues,
   profileSaveErrorMessage,
 } from "~/components/forms/profile-form";
+import type { ProfileFormValues } from "~/components/forms/profile-form";
 import { Button } from "~/components/ui/button";
 import { ErrorMessage } from "~/components/ui/error-message";
 import { VStack } from "~/components/ui/vstack";
@@ -25,6 +26,7 @@ export default function EditProfileScreen() {
   const { t } = useTranslation(undefined, { i18n });
 
   const { isLoaded: isUserLoaded, user } = useUser();
+
   const {
     data: profile,
     error: profileError,
@@ -43,8 +45,10 @@ export default function EditProfileScreen() {
   // Stored values are in the profile's system; the device locale only matters
   // when there is no profile yet.
   const locales = useLocales();
+
   const deviceMeasurementSystem = (locales[0]?.measurementSystem ??
     "metric") as MeasurementSystem;
+
   const measurementSystem: MeasurementSystem = profile
     ? measurementSystemOf(profile)
     : deviceMeasurementSystem;
@@ -63,6 +67,7 @@ export default function EditProfileScreen() {
       if (rateLimitedFor(e) === null) {
         Sentry.captureException(e);
       }
+
       queryClient.invalidateQueries({ queryKey: useProfileQuery.getKey() });
     },
   });
@@ -77,6 +82,7 @@ export default function EditProfileScreen() {
       if (!user) {
         return;
       }
+
       // On the call, not the hook: a hook-level `onSuccess` would replace the
       // mutation's own, which shows the saved Profile.
       updateProfile(

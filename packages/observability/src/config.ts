@@ -33,6 +33,7 @@ export const resolveObservabilityConfig = ({
 }): ObservabilityConfig => {
   const environment = env.VERCEL_ENV || "development";
   const release = env.VERCEL_GIT_COMMIT_SHA || undefined;
+
   if (!dsn) {
     return {
       dsn: undefined,
@@ -42,6 +43,7 @@ export const resolveObservabilityConfig = ({
       tracesSampleRate: 0,
     };
   }
+
   return {
     dsn,
     enabled: true,

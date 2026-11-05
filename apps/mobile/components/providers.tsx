@@ -12,6 +12,7 @@ import {
   SafeAreaProvider,
 } from "react-native-safe-area-context";
 import { useSyncQueriesExternal } from "react-query-external-sync";
+
 import AuthSync from "@/components/auth-sync";
 import { useNavigationTheme } from "~/hooks/navigation-theme";
 import { clerkPublishableKey, tokenCache } from "~/lib/clerk";

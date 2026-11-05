@@ -1,10 +1,12 @@
 import { describe, expect, it } from "@jest/globals";
 import { render, screen } from "@testing-library/react-native";
 import { Text } from "react-native";
+import { describe, expect, it } from "vitest";
+
 import { Card, CardContent, CardDescription, CardTitle } from "../card";
 import { Text as UIText } from "../text";
 
-describe("Card", () => {
+describe(Card, () => {
   it("renders its children with no styling props", async () => {
     await render(
       <Card>
@@ -42,6 +44,7 @@ describe("Card", () => {
 
     const classes = screen.getByTestId("card").props.className.split(" ");
     expect(classes).toEqual(expect.arrayContaining([...expected, "p-sm"]));
+
     if (variant === "primary") {
       expect(classes).not.toContain("border-border");
     }
@@ -115,7 +118,7 @@ describe("Card", () => {
   it("drops a caller's border on primary", async () => {
     await render(
       <Card
-        className="border-2 border-destructive"
+        className="border-destructive border-2"
         testID="card"
         variant="primary"
       >
@@ -147,7 +150,7 @@ describe("Card", () => {
   it("keeps its own surface when a caller passes surface classes", async () => {
     await render(
       <Card
-        className="gap-3 rounded-none border-0 bg-destructive p-0"
+        className="bg-destructive gap-3 rounded-none border-0 p-0"
         testID="card"
       >
         <Text>Day A</Text>
@@ -165,6 +168,7 @@ describe("Card", () => {
         "p-sm",
       ])
     );
+
     for (const dropped of [
       "bg-destructive",
       "border-0",

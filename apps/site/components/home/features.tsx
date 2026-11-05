@@ -6,8 +6,8 @@ import {
   IconRuler,
   IconShieldCheck,
   IconTrophy,
-  type TablerIcon,
 } from "@tabler/icons-react";
+import type { TablerIcon } from "@tabler/icons-react";
 import type { StaticImageData } from "next/image";
 
 import { PhoneShot } from "@/components/phone-shot";
@@ -146,10 +146,10 @@ function FeatureRow({
         <p className="text-footnote-emphasized text-muted-foreground uppercase">
           {feature.eyebrow}
         </p>
-        <h3 className="text-balance text-foreground text-title-2-emphasized">
+        <h3 className="text-foreground text-title-2-emphasized text-balance">
           {feature.title}
         </h3>
-        <p className="text-pretty text-body text-muted-foreground">
+        <p className="text-body text-muted-foreground text-pretty">
           {feature.description}
         </p>
         <ul className="flex flex-col gap-3">
@@ -157,14 +157,14 @@ function FeatureRow({
             <li className="flex items-start gap-3" key={point}>
               <IconCheck
                 aria-hidden="true"
-                className="mt-0.5 size-5 shrink-0 text-primary"
+                className="text-primary mt-0.5 size-5 shrink-0"
               />
               <span>{point}</span>
             </li>
           ))}
         </ul>
       </div>
-      <div className="flex h-96 justify-center overflow-hidden rounded-3xl border bg-secondary px-6 pt-10 sm:h-112 md:px-10">
+      <div className="bg-secondary flex h-96 justify-center overflow-hidden rounded-3xl border px-6 pt-10 sm:h-112 md:px-10">
         <div className="w-60 lg:w-72">
           <PhoneShot
             alt={feature.alt}
@@ -198,13 +198,13 @@ function Features() {
             reversed={index % 2 === 1}
           />
         ))}
-        <ul className="grid gap-px overflow-hidden rounded-3xl border bg-border sm:grid-cols-2 lg:grid-cols-3">
+        <ul className="bg-border grid gap-px overflow-hidden rounded-3xl border sm:grid-cols-2 lg:grid-cols-3">
           {extras.map((extra) => (
             <li
-              className="flex flex-col gap-3 bg-secondary p-6"
+              className="bg-secondary flex flex-col gap-3 p-6"
               key={extra.title}
             >
-              <extra.icon aria-hidden="true" className="size-6 text-primary" />
+              <extra.icon aria-hidden="true" className="text-primary size-6" />
               <h3 className="text-foreground text-title-3-emphasized">
                 {extra.title}
               </h3>

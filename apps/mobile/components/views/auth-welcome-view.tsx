@@ -1,6 +1,7 @@
 import { router } from "expo-router";
 import { useTranslation } from "react-i18next";
 import { Pressable, View } from "react-native";
+
 import { AuthHeader } from "~/components/auth/auth-header";
 import { AuthLegal, AuthSwitch } from "~/components/auth/auth-links";
 import { AuthScreen } from "~/components/auth/auth-screen";
@@ -17,6 +18,7 @@ const FEATURES = [
   { icon: "checkmark", key: "auth.intro.logging" },
   { icon: "play.circle.fill", key: "auth.intro.guides" },
 ] as const;
+
 export default function AuthWelcomeView() {
   const goToLogin = () => router.push("/auth/login");
   const continueWithEmail = () => router.push("/auth/register");
@@ -25,6 +27,7 @@ export default function AuthWelcomeView() {
   const busy = operation.pending !== null;
   const providers = useAvailableSocialProviders();
   const hasSocial = providers.length > 0;
+
   return (
     <AuthScreen
       action={
@@ -81,14 +84,14 @@ export default function AuthWelcomeView() {
       />
       <View className="gap-sm">
         {FEATURES.map((feature) => (
-          <View className="flex-row items-center gap-sm" key={feature.key}>
-            <View className="size-11 items-center justify-center rounded-full bg-secondary">
+          <View className="gap-sm flex-row items-center" key={feature.key}>
+            <View className="bg-secondary size-11 items-center justify-center rounded-full">
               <SymbolImage
                 className="text-body text-primary"
                 name={feature.icon}
               />
             </View>
-            <Text className="flex-1 text-body-emphasized">
+            <Text className="text-body-emphasized flex-1">
               {t(feature.key)}
             </Text>
           </View>

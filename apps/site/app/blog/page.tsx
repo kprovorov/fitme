@@ -1,6 +1,7 @@
 import moment from "moment";
 import Image from "next/image";
 import Link from "next/link";
+
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -11,6 +12,7 @@ import {
 import { Container } from "@/components/ui/container";
 import { HStack } from "@/components/ui/hstack";
 import { VStack } from "@/components/ui/vstack";
+
 import { getBlogPosts } from "./utils";
 
 function Page() {
@@ -38,7 +40,7 @@ function Page() {
         <VStack className="gap-20">
           {posts.map((post) => (
             <VStack className="w-full items-start" key={post.slug}>
-              <HStack className="w-full justify-between text-subhead">
+              <HStack className="text-subhead w-full justify-between">
                 <HStack className="justify-start gap-2">
                   <Image
                     alt="Kirill Provorov"

@@ -1,5 +1,6 @@
 import type { Node, Root } from "mdast";
 import type { ReactElement, ReactNode } from "react";
+
 import defaultRenderRules from "./render-rules";
 import type {
   ASTRendererOptions,
@@ -32,7 +33,7 @@ export default class ASTRenderer {
   }: ASTRendererOptions) {
     this._renderRules = {
       ...defaultRenderRules,
-      ...(renderRules || {}),
+      ...renderRules,
     };
     this._styles = getMergedStyles(styles, mergeStyle);
     this._listBulletStyle = listBulletStyle;
@@ -43,12 +44,15 @@ export default class ASTRenderer {
 
   private get getListBulletCharacter(): string {
     switch (this._listBulletStyle) {
-      case "disc":
+      case "disc": {
         return "\u2022";
-      case "dash":
+      }
+      case "dash": {
         return "-";
-      default:
+      }
+      default: {
         return "\u2022";
+      }
     }
   }
 
@@ -60,10 +64,13 @@ export default class ASTRenderer {
 
   private getRenderFunction(type: keyof RenderRules): RenderFunction {
     const fn = this._renderRules[type];
+
     if (!fn) {
       console.warn(`Missing render rule for node type: ${type}`);
+
       return (this._renderRules.unknown ?? (() => null)) as RenderFunction;
     }
+
     return fn as RenderFunction;
   }
 
@@ -77,6 +84,7 @@ export default class ASTRenderer {
     const type = node.type as ValidNodeKey;
 
     let currentExtras = extras;
+
     if (type === "link" && this._onLinkPress) {
       currentExtras = {
         ...currentExtras,
@@ -92,6 +100,7 @@ export default class ASTRenderer {
 
         for (let i = 0; i < listNode.children.length; i += 1) {
           const listItemNode = listNode.children[i];
+
           const listStyleType = ordered
             ? `${start + i}.`
             : this.getListBulletCharacter;
@@ -114,8 +123,10 @@ export default class ASTRenderer {
       } else if (type === "table") {
         // Handle table with header row detection
         const tableNode = node as import("mdast").Table;
+
         for (let i = 0; i < tableNode.children.length; i += 1) {
           const rowNode = tableNode.children[i];
+
           if (rowNode) {
             children.push(
               this.renderNode(rowNode, [node, ...parentStack], {
@@ -128,8 +139,10 @@ export default class ASTRenderer {
       } else if (type === "tableRow") {
         // Handle table row with cell rendering
         const tableRowNode = node as import("mdast").TableRow;
+
         for (let i = 0; i < tableRowNode.children.length; i += 1) {
           const cellNode = tableRowNode.children[i];
+
           if (cellNode) {
             children.push(
               this.renderNode(cellNode, [node, ...parentStack], {

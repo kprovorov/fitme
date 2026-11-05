@@ -1,5 +1,6 @@
 import { reportError } from "@fitme/observability/node";
 import { defineHook } from "eve/hooks";
+
 import { claimSession } from "../lib/claim-session";
 import { admitTurn } from "../lib/conversation";
 import { isLocalEvalRun } from "../lib/eval-runner";
@@ -16,6 +17,7 @@ export default defineHook({
         { auth: ctx.session.auth, sessionId: ctx.session.id },
         { claim: claimSession, isEvalRun: isLocalEvalRun, report: reportError }
       );
+
       if (!admitted) {
         ctx.cancel();
       }

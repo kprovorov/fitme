@@ -12,6 +12,7 @@ import {
   View,
 } from "react-native";
 import Purchases from "react-native-purchases";
+
 import Logo from "~/components/brand/logo";
 import { Button } from "~/components/ui/button";
 import { Text } from "~/components/ui/text";
@@ -47,12 +48,14 @@ export default function HomeScreen() {
     isError: isActivePlanError,
     refetch: refetchActivePlan,
   } = useActivePlanQuery({ refetchInterval: REFRESH_INTERVAL_MS });
+
   const {
     data: plans,
     error: plansError,
     isError: isPlansError,
     refetch: refetchPlans,
   } = usePlanSummariesQuery({ refetchInterval: REFRESH_INTERVAL_MS });
+
   // Read alongside the Plans, so the Next card's Start shows blocked from the
   // first frame while another Workout is in progress.
   const { refetch: refetchOpenSession } = useOpenWorkoutSessionQuery();
@@ -64,10 +67,12 @@ export default function HomeScreen() {
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
+
     try {
       if (!IS_E2E) {
         await Purchases.invalidateCustomerInfoCache();
       }
+
       await Promise.all([refetchPlanReads(), refetchOpenSession()]);
     } finally {
       setRefreshing(false);
@@ -81,6 +86,7 @@ export default function HomeScreen() {
     // has not loaded (or failed), so do not send the User to onboarding yet.
     if (user && profile === null) {
       const hasSeen = storage.getBoolean(`onboarding.seen.${user.id}`) ?? false;
+
       if (!hasSeen) {
         router.push("/onboarding");
       }
@@ -90,6 +96,7 @@ export default function HomeScreen() {
   const handleCreatePlan = useCallback(() => router.push("/planner"), [router]);
   const handleManagePlans = useCallback(() => router.push("/plans"), [router]);
   const openProfile = useCallback(() => router.push("/profile"), [router]);
+
   const retryPlans = useCallback(() => {
     refetchPlanReads();
   }, [refetchPlanReads]);
@@ -99,6 +106,7 @@ export default function HomeScreen() {
   // empty state needs the summaries too, to say whether any Plan exists.
   const activePlanFailed = isActivePlanError && activePlan === undefined;
   const plansFailed = activePlan === null && isPlansError && !plans;
+
   // A Public API read refused for its rate limit gives the wait.
   const waitSeconds =
     (activePlanFailed ? rateLimitedFor(activePlanError) : null) ??
@@ -108,9 +116,10 @@ export default function HomeScreen() {
     if (activePlan) {
       return <HomeView plan={activePlan} />;
     }
+
     if (activePlanFailed || plansFailed) {
       return (
-        <VStack className="flex-1 py-md">
+        <VStack className="py-md flex-1">
           <H1 className="text-center">{t("home.loadError.title")}</H1>
           <Text className="text-center">
             {waitSeconds === null
@@ -125,6 +134,7 @@ export default function HomeScreen() {
         </VStack>
       );
     }
+
     if (activePlan === undefined || !plans) {
       return (
         <View
@@ -135,8 +145,9 @@ export default function HomeScreen() {
         </View>
       );
     }
+
     return (
-      <VStack className="flex-1 py-md">
+      <VStack className="py-md flex-1">
         <H1 className="text-center">{t("home.empty.title")}</H1>
         <Text className="text-center">
           {plans.length > 0

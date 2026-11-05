@@ -10,6 +10,8 @@ import {
   MIN_FREQUENCY,
 } from "@fitme/core";
 import { describe, expect, it } from "@jest/globals";
+import { describe, expect, it } from "vitest";
+
 import type { FullPlan } from "~/hooks/queries/plans";
 import {
   isSavablePlanDraft,
@@ -86,7 +88,7 @@ const plan = (overrides: Partial<FullPlan> = {}): FullPlan =>
     ...overrides,
   }) as FullPlan;
 
-describe("planDraftFrom", () => {
+describe(planDraftFrom, () => {
   it("loads the Plan's details, its note and its Workouts in rotation order", () => {
     const draft = planDraftFrom(plan());
     expect(draft).toEqual({
@@ -120,6 +122,7 @@ describe("planDraftFrom", () => {
         workout_duration: null,
       })
     );
+
     expect(draft.name).toBe("");
     expect(draft.description).toBe("");
     expect(draft.note).toBeNull();
@@ -130,12 +133,14 @@ describe("planDraftFrom", () => {
   });
 });
 
-describe("savePlanBody", () => {
+describe(savePlanBody, () => {
   it("sends every id it loaded, and no field the write doesn't take", () => {
     const draft = planDraftFrom(plan());
+
     if (!isSavablePlanDraft(draft)) {
       throw new Error("the loaded Plan should be savable");
     }
+
     expect(savePlanBody(draft)).toEqual({
       description: "Three full-body days",
       experience_level: "intermediate",
@@ -193,16 +198,18 @@ describe("savePlanBody", () => {
       description: "   ",
       name: "  Push pull  ",
     };
+
     if (!isSavablePlanDraft(draft)) {
       throw new Error("the draft should be savable");
     }
+
     const body = savePlanBody(draft);
     expect(body.name).toBe("Push pull");
     expect("description" in body).toBe(false);
   });
 });
 
-describe("isSavablePlanDraft", () => {
+describe(isSavablePlanDraft, () => {
   const draft = () => planDraftFrom(plan());
 
   it("allows the Plan as it was loaded", () => {
@@ -295,7 +302,7 @@ describe("the Workout rows", () => {
   });
 });
 
-describe("planDraftChanged", () => {
+describe(planDraftChanged, () => {
   it("is false for the draft as it was loaded, whatever was read", () => {
     const loaded = planDraftFrom(plan());
     expect(planDraftChanged(loaded, planDraftFrom(plan()))).toBe(false);

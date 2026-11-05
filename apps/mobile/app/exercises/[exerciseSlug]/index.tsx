@@ -2,6 +2,7 @@ import { Stack, useLocalSearchParams } from "expo-router";
 import { useCallback } from "react";
 import { useTranslation } from "react-i18next";
 import { ActivityIndicator, ScrollView, View } from "react-native";
+
 import ExerciseVideo from "~/components/exercises/exercise-video";
 import { Button } from "~/components/ui/button";
 import { Text } from "~/components/ui/text";
@@ -18,8 +19,10 @@ export default function ExerciseScreen() {
     isError,
     refetch,
   } = useExerciseDetailQuery(exerciseSlug);
+
   // The name rows already show, while the Exercise in full loads.
   const { name } = useExercise(exerciseSlug);
+
   const retry = useCallback(() => {
     refetch();
   }, [refetch]);
@@ -38,17 +41,19 @@ export default function ExerciseScreen() {
         </VStack>
       );
     }
+
     if (exercise === null) {
       return (
-        <Text className="pt-lg text-center text-muted-foreground">
+        <Text className="pt-lg text-muted-foreground text-center">
           {t("exercise.gone")}
         </Text>
       );
     }
+
     if (isError) {
       return (
-        <View className="items-center gap-sm pt-lg">
-          <Text className="text-center text-muted-foreground">
+        <View className="gap-sm pt-lg items-center">
+          <Text className="text-muted-foreground text-center">
             {t("exercise.loadError")}
           </Text>
           <Button
@@ -60,8 +65,9 @@ export default function ExerciseScreen() {
         </View>
       );
     }
+
     return (
-      <View className="items-center pt-lg">
+      <View className="pt-lg items-center">
         <ActivityIndicator colorClassName="accent-foreground" />
       </View>
     );

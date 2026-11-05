@@ -272,6 +272,7 @@ app/
 ```tsx
 // app/_layout.tsx
 import { NativeTabs, Icon, Label } from "expo-router/unstable-native-tabs";
+
 import { Theme } from "../components/theme";
 
 export default function Layout() {

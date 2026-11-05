@@ -1,12 +1,10 @@
 import { MAX_FREQUENCY, MIN_FREQUENCY } from "@fitme/core/limits";
 import { calendarOffsetMinutes } from "@fitme/core/weekly-goals";
-import {
-  plans,
-  type Transaction,
-  weeklyGoalChanges,
-  workoutSessionProgress,
-} from "@fitme/db";
-import { asc, eq, type SQL, sql } from "drizzle-orm";
+import { plans, weeklyGoalChanges, workoutSessionProgress } from "@fitme/db";
+import type { Transaction } from "@fitme/db";
+import { asc, eq, sql } from "drizzle-orm";
+import type { SQL } from "drizzle-orm";
+
 import { jsonTimestamp } from "./json-timestamp";
 
 // The Weekly goal log was introduced by migration 20261031120000. No
@@ -89,7 +87,7 @@ export const recordWeeklyGoal = async (
  * `asUser`). The first one started tracking; weeks before it have no known
  * goal. Unpaged: a change is a Plan activation or a frequency edit.
  */
-export const listWeeklyGoalChanges = (
+export const listWeeklyGoalChanges = async (
   tx: Transaction,
   userId: string
 ): Promise<WeeklyGoalChange[]> =>
@@ -128,16 +126,20 @@ export async function getWeeklyGoals(
   trackingStartedAt = new Date(TRACKING_RELEASED_AT)
 ): Promise<WeeklyGoals> {
   const changes = await listWeeklyGoalChanges(tx, userId);
+
   if ((changes.at(-1)?.target ?? null) === null) {
     return { changes, streak: 0 };
   }
+
   const offset = calendarOffsetMinutes(timeZone);
+
   // A numeric interval keeps Expo's ISO sign; PostgreSQL timezone strings
   // such as GMT+1 instead use POSIX's reversed sign. IANA zones retain DST.
   const zone =
     offset === null
       ? sql`${timeZone}::text`
       : sql`make_interval(mins => ${offset}::int)`;
+
   const weekHit = (start: SQL) => sql`(
     -- Keep timezone functions outside the RLS-protected range predicates:
     -- plain bound values let PostgreSQL use the (User, start) index.
@@ -171,6 +173,7 @@ export async function getWeeklyGoals(
       ) as previous on true
     ) as goal
   )`;
+
   const result = await tx.execute<{ streak: number }>(sql`
     with recursive first_goal as (
       select recorded_at at time zone ${zone} as at, ${knownTarget} as target
@@ -193,5 +196,6 @@ export async function getWeeklyGoals(
     )
     select count(*) filter (where hit)::int as streak from walk
   `);
+
   return { changes, streak: result.rows[0]?.streak ?? 0 };
 }

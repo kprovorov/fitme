@@ -2,11 +2,12 @@
 // command that breaks the AGENTS.md Shell rules. Exit 2 blocks the call and
 // shows stderr to the agent; anything unreadable is let through.
 import { readFileSync } from "node:fs";
+
 import { findShellRuleViolations } from "./shell-rules.mjs";
 
 const readInput = () => {
   try {
-    return JSON.parse(readFileSync(0, "utf8"));
+    return JSON.parse(readFileSync(0, "utf-8"));
   } catch {
     return null;
   }
@@ -20,6 +21,7 @@ if (input?.tool_name === "Bash" && typeof command === "string") {
     background: input.tool_input.run_in_background === true,
     projectDir: process.env.CLAUDE_PROJECT_DIR,
   });
+
   if (violations.length > 0) {
     process.stderr.write(
       `${violations.map((violation) => violation.reason).join("\n")}\n`

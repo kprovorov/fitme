@@ -1,11 +1,7 @@
 import { pickCovers } from "@fitme/core/covers";
 import type { MuscleGroup } from "@fitme/core/models";
-import {
-  type Cover,
-  createLibrary,
-  type ExerciseSummary,
-  type Library,
-} from "@fitme/library-sdk";
+import { createLibrary } from "@fitme/library-sdk";
+import type { Cover, ExerciseSummary, Library } from "@fitme/library-sdk";
 
 /**
  * Builds the Library client writes check their Exercise slugs with,
@@ -20,9 +16,11 @@ export type LibraryFactory = () => Library | null;
 export const createLibraryFromEnv: LibraryFactory = () => {
   const url = process.env.LIBRARY_URL;
   const secret = process.env.LIBRARY_PUBLIC_API_SECRET;
+
   if (!(url && secret)) {
     return null;
   }
+
   return createLibrary({ token: () => Promise.resolve(secret), url });
 };
 
@@ -54,15 +52,19 @@ export const checkExerciseSlugs = async ({
         "Missing LIBRARY_URL or LIBRARY_PUBLIC_API_SECRET environment variable"
       )
     );
+
     return { status: "unavailable" };
   }
+
   try {
     const { data, missing } = await library.lookup(slugs);
+
     return missing.length > 0
       ? { slugs: missing, status: "unknown" }
       : { exercises: data, status: "known" };
   } catch (error) {
     await reportError(error);
+
     return { status: "unavailable" };
   }
 };
@@ -75,11 +77,11 @@ type RefusedCheck =
 /** What a Plan write's Workouts need from the Library: their slugs checked, then a Cover each. */
 export type CoveredCheck =
   | RefusedCheck
-  | { covers: Array<string | null>; status: "known" };
+  | { covers: (string | null)[]; status: "known" };
 
 /** A Workout as a Plan write sends it, as far as its Cover goes. */
 interface WorkoutToCover {
-  exercises: ReadonlyArray<{ exercise_slug: string }>;
+  exercises: readonly { exercise_slug: string }[];
 }
 
 /**
@@ -89,7 +91,7 @@ interface WorkoutToCover {
 export type CoverPicker = (
   workouts: readonly WorkoutToCover[],
   usedCoverIds: readonly string[]
-) => Array<string | null>;
+) => (string | null)[];
 
 /** What a Plan write needs from the Library: its slugs checked, then the Covers to pick from. */
 export type CoverPickerCheck =
@@ -128,22 +130,28 @@ export const checkSlugsForCovers = async ({
       ),
     ],
   });
+
   if (check.status !== "known") {
     return check;
   }
+
   let covers: Cover[] = [];
+
   if (readCovers) {
     try {
       // A known check had a library to look the slugs up in.
       covers = await (library as Library).covers();
     } catch (error) {
       await reportError(error);
+
       return { status: "covers_unavailable" };
     }
   }
+
   const muscleGroups = new Map<string, readonly MuscleGroup[]>(
     check.exercises.map((exercise) => [exercise.slug, exercise.muscle_groups])
   );
+
   return {
     pickCovers: (toCover, usedCoverIds) =>
       pickCovers({
@@ -172,6 +180,7 @@ export const checkSlugsAndPickCovers = async (
   options: Parameters<typeof checkSlugsForCovers>[0]
 ): Promise<CoveredCheck> => {
   const check = await checkSlugsForCovers(options);
+
   return check.status === "known"
     ? { covers: check.pickCovers(options.workouts, []), status: "known" }
     : check;
@@ -186,15 +195,17 @@ const libraryUnavailable = (message: string) => ({
 /** The error a write answers when the Library refused it or couldn't be read. */
 export const refusalOf = (check: RefusedCheck) => {
   switch (check.status) {
-    case "unavailable":
+    case "unavailable": {
       return libraryUnavailable(
         "The Library is unavailable, so the Exercises couldn't be checked; try again"
       );
-    case "covers_unavailable":
+    }
+    case "covers_unavailable": {
       return libraryUnavailable(
         "The Library is unavailable, so the Workouts' Covers couldn't be picked; try again"
       );
-    default:
+    }
+    default: {
       return {
         body: {
           error: {
@@ -204,6 +215,7 @@ export const refusalOf = (check: RefusedCheck) => {
         },
         status: 400 as const,
       };
+    }
   }
 };
 

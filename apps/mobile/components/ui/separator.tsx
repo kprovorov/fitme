@@ -1,5 +1,6 @@
 import * as SeparatorPrimitive from "@rn-primitives/separator";
 import type * as React from "react";
+
 import { cn } from "~/lib/utils";
 
 /** A one-point `border` line between rows or groups. */
@@ -14,7 +15,7 @@ const Separator = ({
 }) => (
   <SeparatorPrimitive.Root
     className={cn(
-      "shrink-0 bg-border",
+      "bg-border shrink-0",
       orientation === "horizontal" ? "h-px w-full" : "h-full w-px",
       className
     )}
@@ -24,6 +25,7 @@ const Separator = ({
     {...props}
   />
 );
+
 Separator.displayName = SeparatorPrimitive.Root.displayName;
 
 export { Separator };

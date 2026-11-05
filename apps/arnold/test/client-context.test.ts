@@ -1,5 +1,6 @@
 import type { ModelMessage } from "ai";
 import { describe, expect, it } from "vitest";
+
 import {
   appLanguage,
   latestClientContext,
@@ -18,7 +19,7 @@ const clientContext = (value: unknown): ModelMessage =>
 const userSays = (text: string): ModelMessage =>
   ({ content: text, kind: "user", role: "user" }) as ModelMessage;
 
-describe("latestClientContext", () => {
+describe(latestClientContext, () => {
   it("reads the latest client context object", () => {
     expect(
       latestClientContext([
@@ -39,7 +40,7 @@ describe("latestClientContext", () => {
   });
 });
 
-describe("appLanguage", () => {
+describe(appLanguage, () => {
   it("is the client context's App language", () => {
     expect(
       appLanguage([clientContext({ language: "uk" }), userSays("hi")])
@@ -60,7 +61,7 @@ describe("appLanguage", () => {
   });
 });
 
-describe("Library language", () => {
+describe("library language", () => {
   it.each(["es", "ca"])("passes %s to the Library", (language) => {
     expect(libraryLanguage([clientContext({ language })])).toBe(language);
   });

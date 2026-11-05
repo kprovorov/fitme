@@ -1,4 +1,5 @@
-import { generateKeyPairSync, type KeyObject, sign } from "node:crypto";
+import { generateKeyPairSync, sign } from "node:crypto";
+import type { KeyObject } from "node:crypto";
 
 /**
  * A stand-in for a Clerk instance's signing key: the API only ever sees its
@@ -8,6 +9,7 @@ export const clerkInstance = () => {
   const { privateKey, publicKey } = generateKeyPairSync("rsa", {
     modulusLength: 2048,
   });
+
   return {
     jwtKey: publicKey.export({ format: "pem", type: "spki" }).toString(),
     privateKey,
@@ -34,6 +36,8 @@ export const clerkToken = (
       ...claims,
     }
   )}`;
+
   const signature = sign("RSA-SHA256", Buffer.from(unsigned), privateKey);
+
   return `${unsigned}.${signature.toString("base64url")}`;
 };

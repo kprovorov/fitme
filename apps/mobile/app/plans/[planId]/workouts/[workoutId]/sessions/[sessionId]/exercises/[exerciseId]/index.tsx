@@ -1,22 +1,24 @@
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 import { useCallback, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import {
-  ActivityIndicator,
-  type LayoutChangeEvent,
-  type NativeScrollEvent,
-  type NativeSyntheticEvent,
-  View,
+import { ActivityIndicator, View } from "react-native";
+import type {
+  LayoutChangeEvent,
+  NativeScrollEvent,
+  NativeSyntheticEvent,
 } from "react-native";
 import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+
 import { Card } from "~/components/ui/card";
-import ExerciseHistoryView, {
-  type ExerciseHistoryHandle,
-  type ExerciseHistoryTrigger,
+import ExerciseHistoryView from "~/components/views/exercise-history-view";
+import type {
+  ExerciseHistoryHandle,
+  ExerciseHistoryTrigger,
 } from "~/components/views/exercise-history-view";
 import WorkoutSessionExerciseSetsTableView from "~/components/views/workout-session-exercise-sets-table-view";
-import RestTimer, { type Rest } from "~/components/workout-sessions/rest-timer";
+import RestTimer from "~/components/workout-sessions/rest-timer";
+import type { Rest } from "~/components/workout-sessions/rest-timer";
 import SessionExerciseHeader from "~/components/workout-sessions/session-exercise-header";
 import SessionLoadError from "~/components/workout-sessions/session-load-error";
 import { WorkoutSessionFinishSuggestion } from "~/components/workout-sessions/workout-session-finish-suggestion";
@@ -59,6 +61,7 @@ export default function WorkoutSessionExerciseScreen() {
   } = useWorkoutSessionQuery({
     variables: { sessionId: sessionId as string },
   });
+
   const workoutSessionExercise = workoutSession?.exercises.find(
     ({ id }) => id === exerciseId
   );
@@ -67,11 +70,13 @@ export default function WorkoutSessionExerciseScreen() {
   const [rest, setRest] = useState<Rest | null>(null);
   const [restTimerHeight, setRestTimerHeight] = useState(0);
   const exercise = useExercise(workoutSessionExercise?.exercise_slug);
+
   // The description is only in the Exercise in full; the rest shows from the
   // summary meanwhile.
   const { data: exerciseDetail } = useExerciseDetailQuery(
     workoutSessionExercise?.exercise_slug ?? ""
   );
+
   // The guide reads the Exercise from the Library: none for one it
   // doesn't know (or that hasn't resolved yet).
   const hasGuide = !!workoutSessionExercise && exercise.isResolved;
@@ -86,8 +91,10 @@ export default function WorkoutSessionExerciseScreen() {
     (set: SavedWorkoutSessionExerciseSet, nextSetOrder: number | null) => {
       if (isFinished || !set.rest_recommended || nextSetOrder === null) {
         setRest(null);
+
         return;
       }
+
       setRest({
         duration: set.rest_recommended,
         endsAt: Date.now() + set.rest_recommended * 1000,
@@ -124,25 +131,30 @@ export default function WorkoutSessionExerciseScreen() {
   // A drag ending there is told apart, since after a failed page only the
   // User's own gesture asks again (see `ExerciseHistoryHandle`).
   const history = useRef<ExerciseHistoryHandle | null>(null);
+
   const askForHistory = useCallback(
     (
       { nativeEvent }: NativeSyntheticEvent<NativeScrollEvent>,
       trigger: ExerciseHistoryTrigger
     ) => {
       const { contentOffset, contentSize, layoutMeasurement } = nativeEvent;
+
       const fromEnd =
         contentSize.height - contentOffset.y - layoutMeasurement.height;
+
       if (fromEnd <= HISTORY_NEAR_END_THRESHOLD * layoutMeasurement.height) {
         history.current?.loadMore(trigger);
       }
     },
     []
   );
+
   const onScroll = useCallback(
     (event: NativeSyntheticEvent<NativeScrollEvent>) =>
       askForHistory(event, "scroll"),
     [askForHistory]
   );
+
   const onScrollEndDrag = useCallback(
     (event: NativeSyntheticEvent<NativeScrollEvent>) =>
       askForHistory(event, "drag-end"),
@@ -176,6 +188,7 @@ export default function WorkoutSessionExerciseScreen() {
         </>
       );
     }
+
     if (isError || workoutSession) {
       return (
         <SessionLoadError
@@ -185,8 +198,9 @@ export default function WorkoutSessionExerciseScreen() {
         />
       );
     }
+
     return (
-      <View className="items-center pt-lg">
+      <View className="pt-lg items-center">
         <ActivityIndicator colorClassName="accent-foreground" />
       </View>
     );

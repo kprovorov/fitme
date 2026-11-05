@@ -1,13 +1,14 @@
 import { describe, expect, it } from "vitest";
+
 import {
   countUnloggedSets,
   isWorkoutFullyTracked,
   loggedExercises,
-  type TrackableWorkoutSession,
 } from "../workout-sessions";
+import type { TrackableWorkoutSession } from "../workout-sessions";
 
 const session = (
-  exercises: Array<Array<number | null>>,
+  exercises: Array<number | null>[],
   finished_at: string | null = null
 ): TrackableWorkoutSession => ({
   exercises: exercises.map((reps) => ({
@@ -16,7 +17,7 @@ const session = (
   finished_at,
 });
 
-describe("isWorkoutFullyTracked", () => {
+describe(isWorkoutFullyTracked, () => {
   it("returns true when every set of every exercise has reps", () => {
     expect(isWorkoutFullyTracked(session([[10, 8], [12]]))).toBe(true);
   });
@@ -60,12 +61,13 @@ describe("isWorkoutFullyTracked", () => {
   });
 });
 
-describe("loggedExercises", () => {
+describe(loggedExercises, () => {
   it("keeps only exercises with at least one logged set", () => {
     const squat = {
       name: "squat",
       sets: [{ reps_completed: 8 }, { reps_completed: null }],
     };
+
     const bench = { name: "bench", sets: [{ reps_completed: null }] };
     const plank = { name: "plank", sets: [] };
 
@@ -79,7 +81,7 @@ describe("loggedExercises", () => {
   });
 });
 
-describe("countUnloggedSets", () => {
+describe(countUnloggedSets, () => {
   it("counts every set without reps across exercises", () => {
     expect(
       countUnloggedSets(

@@ -1,9 +1,11 @@
 import type { ReactNode } from "react";
 import { Pressable, useWindowDimensions, View } from "react-native";
+
 import { SymbolImage } from "~/components/symbol-image";
 import { Text } from "~/components/ui/text";
 import type { ShownExercise } from "~/hooks/queries/library";
 import { useChoiceLabels } from "~/lib/choices";
+
 import ExerciseImage from "../exercises/exercise-image";
 
 /** Past this text scale the thumbnail goes above the name instead of beside it. */
@@ -38,8 +40,8 @@ export default function ExerciseCardHeader({
         accessibilityRole={onPress ? "button" : undefined}
         className={
           stacked
-            ? "flex-1 gap-sm active:opacity-80"
-            : "flex-1 flex-row items-center gap-sm active:opacity-80"
+            ? "gap-sm flex-1 active:opacity-80"
+            : "gap-sm flex-1 flex-row items-center active:opacity-80"
         }
         disabled={!onPress}
         onPress={onPress}

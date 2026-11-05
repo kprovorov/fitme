@@ -1,8 +1,10 @@
 import { z } from "zod";
+
 import { storage } from "~/lib/mmkv";
 
 /** The User's model pick, a model id; kept even once it leaves the list. */
 export const SELECTED_MODEL_KEY = "arnold.model";
+
 /** The last list `GET /v1/arnold/models` answered, the same for every User. */
 export const MODELS_KEY = "arnold.models";
 
@@ -21,6 +23,7 @@ export const arnoldModelListSchema = z
   .refine(({ defaultId, models }) => models.some(({ id }) => id === defaultId));
 
 export type ArnoldModelOption = z.infer<typeof arnoldModelSchema>;
+
 export type ArnoldModelList = z.infer<typeof arnoldModelListSchema>;
 
 /**
@@ -34,6 +37,7 @@ export function resolveArnoldModel(
   if (!list) {
     return;
   }
+
   return (
     list.models.find(({ id }) => id === savedId) ??
     list.models.find(({ id }) => id === list.defaultId)
@@ -43,16 +47,21 @@ export function resolveArnoldModel(
 /** The cached list; an unreadable or malformed value counts as none. */
 export function readCachedArnoldModels(): ArnoldModelList | undefined {
   const raw = storage.getString(MODELS_KEY);
+
   if (!raw) {
     return;
   }
+
   let value: unknown;
+
   try {
     value = JSON.parse(raw);
   } catch {
     return;
   }
+
   const parsed = arnoldModelListSchema.safeParse(value);
+
   return parsed.success ? parsed.data : undefined;
 }
 

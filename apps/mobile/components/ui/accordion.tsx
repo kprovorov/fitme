@@ -12,6 +12,7 @@ import Animated, {
   useDerivedValue,
   withTiming,
 } from "react-native-reanimated";
+
 import { SymbolImage } from "~/components/symbol-image";
 import { TextClassContext } from "~/components/ui/text";
 import { cn } from "~/lib/utils";
@@ -63,6 +64,7 @@ const AccordionItem = ({
     />
   </Animated.View>
 );
+
 AccordionItem.displayName = AccordionPrimitive.Item.displayName;
 
 const Trigger = Platform.OS === "web" ? View : Pressable;
@@ -84,6 +86,7 @@ const AccordionTrigger = ({
       ? withTiming(1, { duration: 250 })
       : withTiming(0, { duration: 200 })
   );
+
   const chevronStyle = useAnimatedStyle(() => ({
     opacity: interpolate(progress.get(), [0, 1], [1, 0.8], Extrapolation.CLAMP),
     transform: [{ rotate: `${progress.get() * 180}deg` }],
@@ -102,7 +105,7 @@ const AccordionTrigger = ({
             {children}
             <Animated.View style={chevronStyle}>
               <SymbolImage
-                className="shrink-0 text-muted-foreground"
+                className="text-muted-foreground shrink-0"
                 name="chevron.down"
                 size={16}
               />
@@ -113,6 +116,7 @@ const AccordionTrigger = ({
     </TextClassContext.Provider>
   );
 };
+
 AccordionTrigger.displayName = AccordionPrimitive.Trigger.displayName;
 
 const AccordionContent = ({
@@ -124,6 +128,7 @@ const AccordionContent = ({
   ref?: React.RefObject<AccordionPrimitive.ContentRef | null>;
 }) => {
   const { isExpanded } = AccordionPrimitive.useItemContext();
+
   return (
     <TextClassContext.Provider value="text-body text-muted-foreground">
       <AccordionPrimitive.Content
@@ -150,6 +155,7 @@ function InnerContent({
   if (Platform.OS === "web") {
     return <View className={cn("pb-3", className)}>{children}</View>;
   }
+
   return (
     <Animated.View
       className={cn("pb-3", className)}

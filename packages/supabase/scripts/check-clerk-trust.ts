@@ -13,6 +13,7 @@ import { randomUUID } from "node:crypto";
 import { setTimeout as sleep } from "node:timers/promises";
 
 const CLERK_API_URL = "https://api.clerk.com/v1";
+
 // The API's first database query can fail while the pooler picks up a
 // password set moments before, so it gets a few tries.
 const API_ATTEMPTS = 5;
@@ -21,9 +22,11 @@ const API_TIMEOUT_MS = 10_000;
 
 function requireEnv(name: string): string {
   const value = process.env[name];
+
   if (!value) {
     throw new Error(`Missing ${name} environment variable`);
   }
+
   return value;
 }
 
@@ -41,24 +44,29 @@ async function clerkRequest<T>(
     },
     method,
   });
+
   if (!response.ok) {
     throw new Error(
       `Clerk ${method} ${path} failed with ${response.status}: ${await response.text()}`
     );
   }
+
   return (await response.json()) as T;
 }
 
 function decodeJwtPayload(jwt: string): Record<string, unknown> {
   const [, payload] = jwt.split(".");
+
   if (!payload) {
     throw new Error("Clerk returned a malformed session token");
   }
+
   return JSON.parse(Buffer.from(payload, "base64url").toString("utf-8"));
 }
 
 async function checkApi(apiUrl: string, jwt: string) {
   let failure = "";
+
   for (let attempt = 1; attempt <= API_ATTEMPTS; attempt += 1) {
     // A new User has no Profile yet, so the API answers { data: null }.
     // biome-ignore lint/performance/noAwaitInLoops: retries, one at a time
@@ -66,12 +74,15 @@ async function checkApi(apiUrl: string, jwt: string) {
       headers: { Authorization: `Bearer ${jwt}` },
       signal: AbortSignal.timeout(API_TIMEOUT_MS),
     }).catch((error: unknown) => error);
+
     if (response instanceof Response && response.ok) {
       console.log(
         `The Public API at ${apiUrl} accepts Clerk development session tokens and reads the User's data.`
       );
+
       return;
     }
+
     failure =
       response instanceof Response
         ? `${response.status}: ${await response.text()}`
@@ -79,10 +90,12 @@ async function checkApi(apiUrl: string, jwt: string) {
     console.error(
       `GET /v1/profile failed with ${failure} (attempt ${attempt}/${API_ATTEMPTS})`
     );
+
     if (attempt < API_ATTEMPTS) {
       await sleep(API_RETRY_DELAY_MS);
     }
   }
+
   throw new Error(
     `The Public API at ${apiUrl} never answered GET /v1/profile with 200 (last: ${failure})`
   );
@@ -113,6 +126,7 @@ async function main() {
       "/sessions",
       { user_id: user.id }
     );
+
     const { jwt } = await clerkRequest<{ jwt: string }>(
       secretKey,
       "POST",
@@ -122,6 +136,7 @@ async function main() {
     );
 
     const { role } = decodeJwtPayload(jwt);
+
     if (role !== "authenticated") {
       throw new Error(
         `Clerk session token has role ${JSON.stringify(role)}, expected "authenticated". Is the Supabase integration activated on the Clerk instance?`
@@ -135,6 +150,7 @@ async function main() {
       `${supabaseUrl}/rest/v1/plans?select=id&limit=1`,
       { headers: { Authorization: `Bearer ${jwt}`, apikey: anonKey } }
     );
+
     if (!response.ok) {
       throw new Error(
         `Supabase rejected the Clerk session token with ${response.status}: ${await response.text()}`
@@ -150,13 +166,15 @@ async function main() {
     }
   } finally {
     // A failed cleanup must not mask the outcome of the check.
-    await clerkRequest(secretKey, "DELETE", `/users/${user.id}`).catch((err) =>
-      console.error(`Failed to delete Clerk user ${user.id}:`, err)
+    await clerkRequest(secretKey, "DELETE", `/users/${user.id}`).catch(
+      (error) => {
+        console.error(`Failed to delete Clerk user ${user.id}:`, error);
+      }
     );
   }
 }
 
-main().catch((err) => {
-  console.error(err);
+main().catch((error) => {
+  console.error(error);
   process.exit(1);
 });

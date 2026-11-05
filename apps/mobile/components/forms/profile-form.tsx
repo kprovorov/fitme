@@ -7,41 +7,25 @@ import {
   MAX_BODY_DECIMALS,
   MAX_BODY_HEIGHT,
   MAX_BODY_WEIGHT,
-  type MeasurementSystem,
   MIN_AGE,
   range,
 } from "@fitme/core";
-import {
-  formatHeight,
-  formatUnit,
-  formatWeight,
-  type Translator,
-} from "@fitme/i18n";
+import type { MeasurementSystem } from "@fitme/core";
+import { formatHeight, formatUnit, formatWeight } from "@fitme/i18n";
+import type { Translator } from "@fitme/i18n";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Stack } from "expo-router";
-import {
-  type ReactNode,
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from "react";
-import {
-  type Control,
-  Controller,
-  type ControllerFieldState,
-  type ControllerRenderProps,
-  useController,
-  useForm,
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import type { ReactNode } from "react";
+import { Controller, useController, useForm } from "react-hook-form";
+import type {
+  Control,
+  ControllerFieldState,
+  ControllerRenderProps,
 } from "react-hook-form";
 import { useTranslation } from "react-i18next";
-import {
-  Keyboard,
-  Pressable,
-  ScrollView,
-  type ScrollViewInstance,
-} from "react-native";
+import { Keyboard, Pressable, ScrollView } from "react-native";
+import type { ScrollViewInstance } from "react-native";
 import Animated, {
   useAnimatedStyle,
   useSharedValue,
@@ -50,6 +34,7 @@ import Animated, {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import type { SFSymbol } from "sf-symbols-typescript";
 import { z } from "zod";
+
 import { Button } from "~/components/ui/button";
 import { ErrorMessage } from "~/components/ui/error-message";
 import { GenderSwitch } from "~/components/ui/gender-switch";
@@ -69,6 +54,7 @@ import { i18n as appI18n, useI18n } from "~/lib/i18n";
  */
 export const profileSaveErrorMessage = (t: Translator["t"], error: unknown) => {
   const seconds = rateLimitedFor(error);
+
   return seconds === null
     ? t("profileForm.errors.saveFailed")
     : t("profileForm.errors.saveRateLimited", { seconds });
@@ -86,6 +72,7 @@ const DEFAULT_AGE = 25;
 const DEFAULT_WEIGHT_KG = 80;
 const DEFAULT_WEIGHT_LBS = 176;
 const DEFAULT_HEIGHT_CM = 176;
+
 /** 5 ft. */
 const DEFAULT_HEIGHT_INCHES = 60;
 
@@ -131,6 +118,7 @@ const orSaved = (
           if (value === saved) {
             return;
           }
+
           for (const issue of schema.safeParse(value).error?.issues ?? []) {
             ctx.addIssue({ code: "custom", message: issue.message });
           }
@@ -248,6 +236,7 @@ export default function ProfileForm({
   const toggleField = useCallback(
     (field: ProfileField) => {
       Keyboard.dismiss();
+
       if (fieldFocused === field) {
         toggleWheel(false);
         setFieldFocused(null);
@@ -262,6 +251,7 @@ export default function ProfileForm({
 
   const handleBackgroundPress = useCallback(() => {
     Keyboard.dismiss();
+
     if (fieldFocused) {
       toggleWheel(false);
       setFieldFocused(null);
@@ -388,7 +378,7 @@ export default function ProfileForm({
                 ))}
               </VStack>
 
-              <VStack className="items-stretch gap-0 rounded-lg bg-card">
+              <VStack className="bg-card items-stretch gap-0 rounded-lg">
                 <ParameterRow
                   field="age"
                   hasError={!!form.formState.errors.age}
@@ -498,6 +488,7 @@ function ParameterRow({
   const handlePress = useCallback(() => onPress(field), [field, onPress]);
 
   let valueClassName = "text-muted-foreground";
+
   if (isFocused) {
     valueClassName = "text-primary";
   } else if (hasError) {
@@ -616,6 +607,7 @@ function AgeWheel({
 function WeightWheel({ control, measurementSystem, onChange }: WheelProps) {
   const i18n = useI18n();
   const isMetric = measurementSystem === "metric";
+
   const [value, setWeight] = useWheelValue(
     control,
     "weight",
@@ -626,6 +618,7 @@ function WeightWheel({ control, measurementSystem, onChange }: WheelProps) {
   // Up to 1000 labels, each through the catalog: built once per language
   // and system, not on every value change.
   const { language } = i18n;
+
   // biome-ignore lint/correctness/useExhaustiveDependencies: `language` stands for the instance's state, which `i18n` itself doesn't change with
   const options = useMemo(
     () =>
@@ -650,6 +643,7 @@ function HeightWheel({ control, measurementSystem, onChange }: WheelProps) {
   const i18n = useI18n();
   const { t } = useTranslation();
   const isMetric = measurementSystem === "metric";
+
   const [value, setHeight] = useWheelValue(
     control,
     "height",

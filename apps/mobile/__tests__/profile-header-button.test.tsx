@@ -12,6 +12,8 @@ import { QueryClientProvider } from "@tanstack/react-query";
 import { fireEvent, render, screen } from "@testing-library/react-native";
 import type { ReactNode } from "react";
 import { Platform, Pressable, Text } from "react-native";
+import { it, describe, expect, beforeEach } from "vitest";
+
 import HomeScreen from "~/app/(tabs)/(home)/index";
 import ProfileScreen from "~/app/profile";
 import { setDeviceLanguages } from "~/test-utils/device-locales";
@@ -71,7 +73,7 @@ const MockHeader = ({ options }: { options: MockHeaderOptions }) => (
 
 const mockPush = jest.fn();
 
-jest.mock("expo-router", () => ({
+jest.mock<typeof import("expo-router")>(import("expo-router"), () => ({
   Link: ({ children }: { children: ReactNode }) => children,
   router: { replace: jest.fn() },
   Stack: {
@@ -96,22 +98,28 @@ const mockUser = {
   reload: () => Promise.resolve(),
 };
 
-jest.mock("@clerk/expo", () => ({
+jest.mock<typeof import("@clerk/expo")>(import("@clerk/expo"), () => ({
   useUser: () => ({ isLoaded: true, user: mockUser }),
 }));
 
-jest.mock("react-native-purchases", () => ({
-  __esModule: true,
-  default: { invalidateCustomerInfoCache: () => Promise.resolve() },
-}));
+jest.mock<typeof import("react-native-purchases")>(
+  import("react-native-purchases"),
+  () => ({
+    __esModule: true,
+    default: { invalidateCustomerInfoCache: () => Promise.resolve() },
+  })
+);
 
-jest.mock("react-native-purchases-ui", () => ({
-  __esModule: true,
-  default: { presentPaywall: jest.fn() },
-}));
+jest.mock<typeof import("react-native-purchases-ui")>(
+  import("react-native-purchases-ui"),
+  () => ({
+    __esModule: true,
+    default: { presentPaywall: jest.fn() },
+  })
+);
 
 // The real Clerk SDK opens a MessagePort at import that keeps Jest alive.
-jest.mock("~/lib/clerk", () => ({
+jest.mock<typeof import("~/lib/clerk")>(import("~/lib/clerk"), () => ({
   getClerk: () => ({ signOut: jest.fn(), user: mockUser }),
   getCurrentUserId: () =>
     jest.requireActual<typeof import("~/test-utils/fake-public-api")>(
@@ -119,20 +127,36 @@ jest.mock("~/lib/clerk", () => ({
     ).FAKE_USER_ID,
 }));
 
-jest.mock("~/lib/segment", () => ({
+jest.mock<typeof import("~/lib/segment")>(import("~/lib/segment"), () => ({
   segmentClient: { reset: jest.fn(), track: jest.fn() },
 }));
-jest.mock("~/hooks/revenueCat", () => ({
-  useCustomerInfoQuery: () => ({ data: undefined }),
-  useIsProQuery: () => ({ data: false }),
-}));
-jest.mock("~/components/exercises/exercise-image", () => () => null);
-jest.mock("~/components/symbol-image", () => ({ SymbolImage: () => null }));
-jest.mock("~/components/ui/button", () =>
-  jest.requireActual("~/test-utils/button-stub")
+
+jest.mock<typeof import("~/hooks/revenueCat")>(
+  import("~/hooks/revenueCat"),
+  () => ({
+    useCustomerInfoQuery: () => ({ data: undefined }),
+    useIsProQuery: () => ({ data: false }),
+  })
 );
-jest.mock("~/components/ui/dropdown-menu", () =>
-  jest.requireActual("~/test-utils/dropdown-menu-stub")
+
+jest.mock<typeof import("~/components/exercises/exercise-image")>(
+  import("~/components/exercises/exercise-image"),
+  () => () => null
+);
+
+jest.mock<typeof import("~/components/symbol-image")>(
+  import("~/components/symbol-image"),
+  () => ({ SymbolImage: () => null })
+);
+
+jest.mock<typeof import("~/components/ui/button")>(
+  import("~/components/ui/button"),
+  () => jest.requireActual("~/test-utils/button-stub")
+);
+
+jest.mock<typeof import("~/components/ui/dropdown-menu")>(
+  import("~/components/ui/dropdown-menu"),
+  () => jest.requireActual("~/test-utils/dropdown-menu-stub")
 );
 
 const mount = async (element: ReactNode) => {
@@ -157,7 +181,7 @@ beforeEach(() => {
   });
 });
 
-describe("Profile from the first tab's header", () => {
+describe("profile from the first tab's header", () => {
   it("pushes Profile from a person button in the header", async () => {
     await mount(<HomeScreen />);
 
@@ -172,14 +196,17 @@ describe("Profile from the first tab's header", () => {
   it("offers a Profile text button on Android, which has no header items", async () => {
     const os = Platform.OS;
     Platform.OS = "android";
+
     try {
       await mount(<HomeScreen />);
 
       const buttons = screen.getAllByRole("button", { name: "Profile" });
+
       // The text button, beside the iOS-only item the stand-in also draws.
       const textButton = buttons.find(
         (button) => button.props.testID !== "header-person.fill"
       );
+
       expect(textButton).toBeDefined();
       fireEvent.press(textButton as NonNullable<typeof textButton>);
       expect(mockPush).toHaveBeenCalledWith("/profile");
@@ -208,7 +235,7 @@ describe("Profile from the first tab's header", () => {
   });
 });
 
-describe("The first tab's header and Plan menu", () => {
+describe("the first tab's header and Plan menu", () => {
   it("shows the Fitme logo as the title, with a spoken label", async () => {
     await mount(<HomeScreen />);
 

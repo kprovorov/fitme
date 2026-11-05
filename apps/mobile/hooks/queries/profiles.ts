@@ -1,5 +1,7 @@
-import { ApiError, type paths } from "@fitme/api-client";
+import { ApiError } from "@fitme/api-client";
+import type { paths } from "@fitme/api-client";
 import { createQuery } from "react-query-kit";
+
 import { publicApi } from "~/lib/public-api";
 
 /**
@@ -21,9 +23,11 @@ export type Profile = NonNullable<
 export const useProfileQuery = createQuery<Profile | null>({
   fetcher: async (): Promise<Profile | null> => {
     const { data } = await publicApi().GET("/v1/profile");
+
     if (!data) {
       throw new ApiError("Public API answered no Profile");
     }
+
     return data.data;
   },
   queryKey: ["profile"],

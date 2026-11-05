@@ -1,5 +1,6 @@
 import { writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
+
 import { createApp } from "./create-app.js";
 
 /**
@@ -8,6 +9,7 @@ import { createApp } from "./create-app.js";
  * breaking change against the base branch.
  */
 const out = resolve(import.meta.dirname, "../openapi.json");
+
 const document = createApp({
   reportError: () => Promise.resolve(),
 }).getOpenAPIDocument({
@@ -17,4 +19,5 @@ const document = createApp({
 });
 
 await writeFile(out, `${JSON.stringify(document, null, 2)}\n`);
+
 console.log(`generated ${out}`);

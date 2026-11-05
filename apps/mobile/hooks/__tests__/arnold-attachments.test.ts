@@ -4,6 +4,8 @@
  * never inherits a draft's photos (ADR 0018).
  */
 import { beforeEach, describe, expect, it } from "@jest/globals";
+import { it, describe, expect, beforeEach } from "vitest";
+
 import {
   addArnoldAttachments,
   arnoldAttachmentsOwner,

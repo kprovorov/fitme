@@ -5,10 +5,12 @@ import type { ImageStyle, StyleProp, TextStyle, ViewStyle } from "react-native";
 
 // Style types
 type NamedStyle = StyleProp<ViewStyle | TextStyle | ImageStyle>;
+
 export type StyleMap = Record<string, NamedStyle>;
 
 // Utility types
 type ExpandUnion<T> = T extends infer U ? U : never;
+
 type Prettify<T> = { [K in keyof T]: T[K] } & {};
 
 // Node types

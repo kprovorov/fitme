@@ -1,4 +1,5 @@
 import { randomBytes } from "node:crypto";
+
 import {
   plans,
   profiles,
@@ -10,6 +11,7 @@ import {
 } from "@fitme/db";
 import { deleteTestUsers } from "@fitme/services/delete-test-users";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
+
 import { createApp } from "../src/create-app.js";
 import { createServicesFromEnv } from "../src/services.js";
 import { clerk, signedInAs } from "../src/test/harness.js";
@@ -22,7 +24,7 @@ import { clerk, signedInAs } from "../src/test/harness.js";
 const app = createApp({
   clerkJwtKey: clerk.jwtKey,
   createServices: createServicesFromEnv,
-  identifyUser: () => undefined,
+  identifyUser: () => {},
   reportError: (error) => Promise.reject(error),
 });
 
@@ -56,6 +58,7 @@ const seed = (): Promise<Seeded> =>
       userId: owner,
       weight: "180",
     });
+
     const [plan] = await tx
       .insert(plans)
       .values({
@@ -66,10 +69,12 @@ const seed = (): Promise<Seeded> =>
         userId: owner,
       })
       .returning({ id: plans.id });
+
     const [workout] = await tx
       .insert(workouts)
       .values({ description: "A", name: "Day A", order: 1, planId: plan.id })
       .returning({ id: workouts.id });
+
     const [finished, open, intruderSession] = await tx
       .insert(workoutSessions)
       .values([
@@ -89,6 +94,7 @@ const seed = (): Promise<Seeded> =>
         { startedAt: "2026-10-03T10:00:00Z", userId: intruder },
       ])
       .returning({ id: workoutSessions.id });
+
     // Inserted out of order, so the read must sort by `order`.
     const [openSquat, openBench, finishedBench, intruderBench] = await tx
       .insert(workoutSessionExercises)
@@ -103,6 +109,7 @@ const seed = (): Promise<Seeded> =>
         },
       ])
       .returning({ id: workoutSessionExercises.id });
+
     await tx.insert(workoutSessionExerciseSets).values([
       {
         order: 1,
@@ -143,6 +150,7 @@ const seed = (): Promise<Seeded> =>
         workoutSessionExerciseId: intruderBench.id,
       },
     ]);
+
     return {
       finishedId: finished.id,
       intruderId: intruderSession.id,
@@ -155,6 +163,7 @@ const seed = (): Promise<Seeded> =>
 /** The status and body of a GET as `userId`. */
 const getAs = async (userId: string, path: string) => {
   const response = await app.request(path, { headers: signedInAs(userId) });
+
   return { body: await response.json(), status: response.status };
 };
 
@@ -166,7 +175,7 @@ afterAll(async () => {
   await deleteTestUsers([owner, intruder]);
 });
 
-describe("GET /v1/workout-sessions against the local stack", () => {
+describe("gET /v1/workout-sessions against the local stack", () => {
   const openSummary = () => ({
     completed_rep_count: 8,
     exercise_count: 2,
@@ -181,6 +190,7 @@ describe("GET /v1/workout-sessions against the local stack", () => {
     volume: 1084,
     workout: { id: seeded.workoutId, name: "Day A" },
   });
+
   const finishedSummary = () => ({
     completed_rep_count: 8,
     exercise_count: 1,
@@ -197,7 +207,7 @@ describe("GET /v1/workout-sessions against the local stack", () => {
   });
 
   it("lists only the User's Workout Sessions, newest first, with counts", async () => {
-    expect(await getAs(owner, "/v1/workout-sessions")).toEqual({
+    await expect(getAs(owner, "/v1/workout-sessions")).resolves.toEqual({
       body: {
         data: [openSummary(), finishedSummary()],
         hasMore: false,
@@ -213,6 +223,7 @@ describe("GET /v1/workout-sessions against the local stack", () => {
       owner,
       "/v1/workout-sessions?status=in_progress"
     );
+
     const finished = await getAs(owner, "/v1/workout-sessions?status=finished");
 
     expect(inProgress.body).toEqual({
@@ -253,7 +264,7 @@ describe("GET /v1/workout-sessions against the local stack", () => {
   });
 });
 
-describe("GET /v1/workout-sessions/:id against the local stack", () => {
+describe("gET /v1/workout-sessions/:id against the local stack", () => {
   it("reads the Workout Session in full, Exercises by slug, weights in the User's unit", async () => {
     const { body, status } = await getAs(
       owner,
@@ -333,7 +344,9 @@ describe("GET /v1/workout-sessions/:id against the local stack", () => {
   });
 
   it("answers 404 not_found for a missing id", async () => {
-    expect(await getAs(owner, `/v1/workout-sessions/${MISSING_ID}`)).toEqual({
+    await expect(
+      getAs(owner, `/v1/workout-sessions/${MISSING_ID}`)
+    ).resolves.toEqual({
       body: {
         error: { code: "not_found", message: "Workout Session not found" },
       },
@@ -342,7 +355,7 @@ describe("GET /v1/workout-sessions/:id against the local stack", () => {
   });
 });
 
-describe("Workout Session reads across Users", () => {
+describe("workout Session reads across Users", () => {
   it("answers 404 for another User's Workout Session, either way round", async () => {
     // Each request is its own asUser transaction, so they may run together.
     const answers = await Promise.all([
@@ -366,13 +379,14 @@ describe("Workout Session reads across Users", () => {
   });
 });
 
-describe("Personal records through the API against the local stack", () => {
+describe("personal records through the API against the local stack", () => {
   it("finishing awards the records the session earned, listed in the User's unit and never to another User", async () => {
     // The open session benched 135.5 lbs × 8 after 130 lbs × 8 last time
     const finished = await app.request(
       `/v1/workout-sessions/${seeded.openId}/finish`,
       { headers: signedInAs(owner), method: "POST" }
     );
+
     expect(finished.status).toBe(200);
     // A repeat awards nothing more
     await app.request(`/v1/workout-sessions/${seeded.openId}/finish`, {

@@ -1,11 +1,10 @@
 import Constants from "expo-constants";
 import { useEffect } from "react";
 import { AppState, Platform } from "react-native";
+
 import UpdateRequiredView from "~/components/views/update-required-view";
-import {
-  type ClientConfig,
-  useClientConfigQuery,
-} from "~/hooks/queries/client-config";
+import { useClientConfigQuery } from "~/hooks/queries/client-config";
+import type { ClientConfig } from "~/hooks/queries/client-config";
 import { isBelowMinimumVersion } from "~/lib/app-version";
 import { getApiUrl } from "~/lib/constants";
 
@@ -13,6 +12,7 @@ const minimumVersionForPlatform = (config: ClientConfig | undefined) => {
   if (Platform.OS === "ios" || Platform.OS === "android") {
     return config?.minimumVersion[Platform.OS] ?? null;
   }
+
   return null;
 };
 
@@ -34,11 +34,13 @@ export default function MinimumVersionGate({
     if (!hasApi) {
       return;
     }
+
     const subscription = AppState.addEventListener("change", (state) => {
       if (state === "active") {
         refetch();
       }
     });
+
     return () => subscription.remove();
   }, [hasApi, refetch]);
 

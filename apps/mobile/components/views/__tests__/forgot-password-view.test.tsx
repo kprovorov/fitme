@@ -1,7 +1,10 @@
-import "~/test-utils/auth-ui";
 import { beforeEach, describe, expect, it, jest } from "@jest/globals";
+
+import "~/test-utils/auth-ui";
 import { fireEvent, render, screen } from "@testing-library/react-native";
 import { router } from "expo-router";
+import { it, describe, expect, beforeEach } from "vitest";
+
 import ForgotPasswordView from "../forgot-password-view";
 
 const KNOWN_EMAIL = "known@example.com";
@@ -27,18 +30,25 @@ const mockSignIn = {
   },
 };
 
-jest.mock("@clerk/expo", () => ({
+jest.mock<typeof import("@clerk/expo")>(import("@clerk/expo"), () => ({
   isClerkAPIResponseError: (error: { isClerkApiError?: boolean }) =>
     error.isClerkApiError === true,
   useSignIn: () => ({ fetchStatus: "idle", signIn: mockSignIn }),
 }));
-jest.mock("@clerk/expo/token-cache", () => ({ tokenCache: {} }));
-jest.mock("expo-router", () => ({
+
+jest.mock<typeof import("@clerk/expo/token-cache")>(
+  import("@clerk/expo/token-cache"),
+  () => ({ tokenCache: {} })
+);
+
+jest.mock<typeof import("expo-router")>(import("expo-router"), () => ({
   Link: ({ children }: { children: unknown }) => children,
   router: { push: jest.fn() },
 }));
-jest.mock("~/components/ui/button", () =>
-  jest.requireActual("~/test-utils/button-stub")
+
+jest.mock<typeof import("~/components/ui/button")>(
+  import("~/components/ui/button"),
+  () => jest.requireActual("~/test-utils/button-stub")
 );
 
 const requestReset = async (email: string) => {
@@ -50,7 +60,7 @@ beforeEach(() => {
   jest.clearAllMocks();
 });
 
-describe("ForgotPasswordView", () => {
+describe(ForgotPasswordView, () => {
   it("emails a reset code and opens the code screen", async () => {
     await render(<ForgotPasswordView />);
 
@@ -59,7 +69,7 @@ describe("ForgotPasswordView", () => {
     expect(mockSignIn.create).toHaveBeenCalledWith({
       identifier: KNOWN_EMAIL,
     });
-    expect(mockSignIn.resetPasswordEmailCode.sendCode).toHaveBeenCalledTimes(1);
+    expect(mockSignIn.resetPasswordEmailCode.sendCode).toHaveBeenCalledOnce();
     expect(router.push).toHaveBeenCalledWith({
       params: { purpose: "reset-password" },
       pathname: "/auth/verify-code",

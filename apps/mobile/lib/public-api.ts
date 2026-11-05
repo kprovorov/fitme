@@ -1,4 +1,5 @@
 import { createPublicApi } from "@fitme/api-client";
+
 import { getClerk } from "~/lib/clerk";
 import { getApiUrl } from "~/lib/constants";
 
@@ -23,33 +24,42 @@ const clerkLoaded = (clerk: Clerk): Promise<void> => {
   if (clerk.loaded) {
     return Promise.resolve();
   }
+
   if (clerkLoading) {
     return clerkLoading;
   }
+
   const loading = new Promise<void>((resolve, reject) => {
     const settle = (done: () => void) => {
       clearTimeout(timer);
       queueMicrotask(() => clerk.off("status", onStatus));
       done();
     };
+
     const onStatus = (status: Clerk["status"]) => {
       if (status === "ready" || status === "degraded") {
         settle(resolve);
       }
     };
+
     const timer = setTimeout(
       () => settle(() => reject(new Error("Clerk didn't load"))),
       CLERK_LOAD_TIMEOUT_MS
     );
+
     clerk.on("status", onStatus, { notify: true });
   });
+
   clerkLoading = loading;
+
   const forget = () => {
     if (clerkLoading === loading) {
       clerkLoading = null;
     }
   };
+
   loading.then(forget, forget);
+
   return loading;
 };
 
@@ -64,9 +74,11 @@ export const sessionToken = async (): Promise<string> => {
   const clerk = getClerk();
   await clerkLoaded(clerk);
   const token = await clerk.session?.getToken();
+
   if (!token) {
     throw new Error("Not signed in");
   }
+
   return token;
 };
 

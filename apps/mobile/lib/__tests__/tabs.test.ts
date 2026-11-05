@@ -1,7 +1,9 @@
 import { describe, expect, it } from "@jest/globals";
+import { describe, expect, it } from "vitest";
+
 import { getTabSymbol, getTabTitle } from "../tabs";
 
-describe("getTabTitle", () => {
+describe(getTabTitle, () => {
   it("names the focused tab", () => {
     expect(getTabTitle("history")).toBe("History");
     expect(getTabTitle("(home)")).toBe("Workout");
@@ -16,7 +18,7 @@ describe("getTabTitle", () => {
   });
 });
 
-describe("getTabSymbol", () => {
+describe(getTabSymbol, () => {
   it("is Figma's symbol on an iOS that has every one", () => {
     expect(getTabSymbol("(home)", 26)).toBe("dumbbell.fill");
     expect(getTabSymbol("history", 26)).toBe("book.pages");

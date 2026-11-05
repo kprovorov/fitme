@@ -2,6 +2,7 @@ import type { MuscleGroup } from "@fitme/core";
 import { useCallback } from "react";
 import { useTranslation } from "react-i18next";
 import { Pressable, View } from "react-native";
+
 import { Badge } from "~/components/ui/badge";
 import { Text } from "~/components/ui/text";
 import { useChoiceLabels } from "~/lib/choices";
@@ -56,13 +57,14 @@ export function MuscleGroupChips({
   onRemove: (group: MuscleGroup) => void;
 }) {
   const labels = useChoiceLabels();
+
   if (groups.length === 0) {
     return null;
   }
 
   return (
     <View
-      className="w-full flex-row flex-wrap items-center gap-xs"
+      className="gap-xs w-full flex-row flex-wrap items-center"
       testID="muscle-group-chips"
     >
       {groups.map((group) => (

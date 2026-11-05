@@ -11,6 +11,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { ActivityIndicator, Alert, ScrollView, View } from "react-native";
 import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
+
 import PlanEditorView from "~/components/plans/plan-editor-view";
 import { Button } from "~/components/ui/button";
 import { Text } from "~/components/ui/text";
@@ -31,12 +32,12 @@ import {
   canAddDraftWorkout,
   isSavablePlanDraft,
   nextWorkoutName,
-  type PlanDraft,
   planDraftChanged,
   planDraftFrom,
   planUnitsChanged,
   savePlanBody,
 } from "~/lib/plan-draft";
+import type { PlanDraft } from "~/lib/plan-draft";
 
 /**
  * What a failed save shows, in the App language: a Plan that's gone says so
@@ -45,19 +46,25 @@ import {
  */
 const saveFailureMessage = (t: TFunction, error: unknown) => {
   const code = error instanceof ApiError ? error.code : null;
+
   if (code === "not_found") {
     return t("plans.errors.notFound");
   }
+
   const seconds = rateLimitedFor(error);
+
   if (seconds !== null) {
     return t("planEditor.errors.saveRateLimited", { seconds });
   }
+
   if (code === "unknown_exercises") {
     return t("planEditor.errors.unknownExercises");
   }
+
   if (code === "library_unavailable") {
     return t("planEditor.errors.libraryUnavailable");
   }
+
   return t("planEditor.errors.saveFailed");
 };
 
@@ -83,6 +90,7 @@ export default function PlanEditorScreen() {
     /** A Workout to open at once: "Edit Workout" on the Workout screen. */
     workoutId?: string;
   }>();
+
   const router = useRouter();
   const navigation = useNavigation();
   const { t } = useTranslation();
@@ -107,6 +115,7 @@ export default function PlanEditorScreen() {
   }, [draftKey, plan]);
 
   const entry = usePlanDraft(draftKey);
+
   const change = useCallback(
     (update: (draft: PlanDraft) => PlanDraft) =>
       updatePlanDraft(draftKey, update),
@@ -125,15 +134,18 @@ export default function PlanEditorScreen() {
 
   const addWorkout = useCallback(() => {
     const current = getPlanDraft(draftKey)?.draft;
+
     if (!(current && canAddDraftWorkout(current))) {
       return;
     }
+
     const added = addDraftWorkout(
       current,
       nextWorkoutName(current.workouts, (letter) =>
         t("planEditor.newWorkoutName", { letter })
       )
     );
+
     updatePlanDraft(draftKey, () => added.draft);
     openWorkout(added.key);
   }, [draftKey, openWorkout, t]);
@@ -145,8 +157,10 @@ export default function PlanEditorScreen() {
     if (openedWorkout.current || !(entry && workoutId)) {
       return;
     }
+
     openedWorkout.current = true;
     const workout = entry.draft.workouts.find(({ id }) => id === workoutId);
+
     if (workout) {
       openWorkout(workout.key);
     }
@@ -158,6 +172,7 @@ export default function PlanEditorScreen() {
   const hasChanges = entry
     ? planDraftChanged(entry.loaded, entry.draft)
     : false;
+
   // Set before leaving, so the unsaved-changes guard lets the Screen go.
   const [isLeaving, setIsLeaving] = useState(false);
 
@@ -186,6 +201,7 @@ export default function PlanEditorScreen() {
   const close = useCallback(() => {
     setIsLeaving(true);
     disablePrevention();
+
     if (router.canGoBack()) {
       router.back();
     } else {
@@ -196,8 +212,10 @@ export default function PlanEditorScreen() {
   const cancel = useCallback(() => {
     if (!hasChanges) {
       close();
+
       return;
     }
+
     Alert.alert(
       t("planEditor.discard.title"),
       t("planEditor.discard.message"),
@@ -213,12 +231,14 @@ export default function PlanEditorScreen() {
   }, [close, hasChanges, t]);
 
   const draft = entry?.draft;
+
   // The User's measurement system was switched somewhere else while the
   // editor was open, so the API converted every stored weight and the
   // draft's targets are in the unit before it. Saving them would write
   // 60 kg as 60 lbs, so Save is off until the editor is reopened.
   const staleUnits =
     draft !== undefined && plan && planUnitsChanged(draft, plan);
+
   const isSavable =
     draft !== undefined && !staleUnits && isSavablePlanDraft(draft);
 
@@ -226,6 +246,7 @@ export default function PlanEditorScreen() {
     if (!(draft && !staleUnits && isSavablePlanDraft(draft))) {
       return;
     }
+
     setSaveError(null);
     // The draft as it was sent. Only Save is disabled while the call is in
     // flight, so the User can keep editing; what they typed meanwhile is
@@ -243,6 +264,7 @@ export default function PlanEditorScreen() {
           // Screen would take the modal out from under the User, so the
           // editor stays open and they close it themselves.
           const movedOn = current && planDraftChanged(sent, current);
+
           if (movedOn || !navigation.isFocused()) {
             // The rows this save created now have ids: the draft takes them
             // on, so saving again updates those rows instead of replacing
@@ -252,8 +274,10 @@ export default function PlanEditorScreen() {
               adoptSavedIds(held, sent, saved)
             );
             rebasePlanDraft(draftKey, adoptSavedIds(sent, sent, saved));
+
             return;
           }
+
           close();
         },
       }
@@ -273,6 +297,7 @@ export default function PlanEditorScreen() {
       variant: "prominent" as const,
     },
   ];
+
   const cancelItems = () => [
     {
       label: t("common.cancel"),
@@ -322,7 +347,9 @@ export default function PlanEditorScreen() {
     if (plan === null) {
       return t("plans.errors.notFound");
     }
+
     const seconds = rateLimitedFor(readError);
+
     return seconds === null
       ? t("plans.loadError")
       : t("common.rateLimited", { seconds });
@@ -332,12 +359,12 @@ export default function PlanEditorScreen() {
     <>
       {screen}
       <ScrollView
-        className="flex-1 p-md"
+        className="p-md flex-1"
         contentInsetAdjustmentBehavior="automatic"
       >
         {plan === null || isError ? (
-          <View className="items-center gap-sm pt-lg">
-            <Text className="text-center text-muted-foreground">
+          <View className="gap-sm pt-lg items-center">
+            <Text className="text-muted-foreground text-center">
               {message()}
             </Text>
             <Button
@@ -348,7 +375,7 @@ export default function PlanEditorScreen() {
             />
           </View>
         ) : (
-          <View className="items-center pt-lg" testID="plan-editor-loading">
+          <View className="pt-lg items-center" testID="plan-editor-loading">
             <ActivityIndicator colorClassName="accent-foreground" />
           </View>
         )}

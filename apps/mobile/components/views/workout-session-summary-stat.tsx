@@ -1,5 +1,6 @@
 import { useTranslation } from "react-i18next";
 import type { SFSymbol } from "sf-symbols-typescript";
+
 import { SymbolImage } from "~/components/symbol-image";
 import { HStack } from "~/components/ui/hstack";
 import { Text } from "~/components/ui/text";
@@ -20,6 +21,7 @@ export default function WorkoutSessionSummaryStat({
   value,
 }: WorkoutSessionSummaryStatProps) {
   const { t } = useTranslation();
+
   return (
     <VStack
       accessibilityLabel={t("workoutSummary.statLabel", {

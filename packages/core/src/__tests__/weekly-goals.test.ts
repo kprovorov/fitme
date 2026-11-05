@@ -1,14 +1,14 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
+
 import type { ProgressSession } from "../training-progress";
 import {
   calendarOffsetMinutes,
-  type GoalWeek,
   startOfGoalWeek,
-  type WeeklyGoalChange,
   weeklyGoalOverview,
 } from "../weekly-goals";
+import type { GoalWeek, WeeklyGoalChange } from "../weekly-goals";
 
-describe("Calendar fixed offsets", () => {
+describe("calendar fixed offsets", () => {
   it.each([
     ["GMT+1", 60],
     ["GMT+05:30", 330],
@@ -29,9 +29,11 @@ describe("Calendar fixed offsets", () => {
 // Kyiv moves its clocks back on Sunday 25 October 2026 (04:00 → 03:00): the
 // week of 19 October is 169 hours long. Node reads TZ again when it changes.
 const originalTimeZone = process.env.TZ;
+
 beforeAll(() => {
   process.env.TZ = "Europe/Kyiv";
 });
+
 afterAll(() => {
   if (originalTimeZone === undefined) {
     delete process.env.TZ;
@@ -72,9 +74,11 @@ const overview = (
   sessions: ProgressSession[] = []
 ) => {
   const result = weeklyGoalOverview(changes, sessions, NOW);
+
   if (!result) {
     throw new Error("Expected a Weekly goal overview");
   }
+
   return result;
 };
 
@@ -85,7 +89,7 @@ const goals = (weeks: GoalWeek[]) =>
       `${week.start.getDate()}.${week.start.getMonth() + 1} ${week.kind} ${week.goal}`
   );
 
-describe("startOfGoalWeek", () => {
+describe(startOfGoalWeek, () => {
   it("is the Monday 00:00 the date falls in, Sunday included", () => {
     expect(startOfGoalWeek(new Date(at("2026-10-25T23:59"))).getTime()).toBe(
       new Date(at("2026-10-19T00:00")).getTime()
@@ -96,7 +100,7 @@ describe("startOfGoalWeek", () => {
   });
 });
 
-describe("weeklyGoalOverview", () => {
+describe(weeklyGoalOverview, () => {
   it("fully tracks the first week when tracking starts exactly Monday midnight", () => {
     const result = overview(
       [change("2026-10-19T00:00", 3)],
@@ -247,6 +251,7 @@ describe("weeklyGoalOverview", () => {
       workout("2026-10-26T19:00"),
       workout("2026-10-27T19:00"),
     ];
+
     const result = overview([change("2026-10-07T18:00", 2)], sessions);
 
     expect(

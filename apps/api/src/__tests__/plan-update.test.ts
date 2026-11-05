@@ -1,5 +1,6 @@
 import type { PlanUpdate } from "@fitme/services/plan-update";
 import { describe, expect, it } from "vitest";
+
 import type { UserServices } from "../services.js";
 import { fakeServices, signedInAs, testApp } from "../test/harness.js";
 
@@ -55,12 +56,15 @@ type PlanUpdateMethod = "applyPlanUpdate" | "previewPlanUpdate";
 /** A facade whose `method` answers `result`; the other one fails the request. */
 const answering = (method: PlanUpdateMethod, result: PlanUpdate | null) => {
   const calls: string[] = [];
+
   const faked: Partial<UserServices> = {
     [method]: (sessionId: string) => {
       calls.push(sessionId);
+
       return Promise.resolve(result);
     },
   };
+
   return { calls, services: fakeServices(faked) };
 };
 
@@ -77,7 +81,7 @@ describe.each([
       const response = await send(app, method);
 
       expect(response.status).toBe(200);
-      expect(await response.json()).toEqual({ data: planUpdate });
+      await expect(response.json()).resolves.toEqual({ data: planUpdate });
       expect(calls).toEqual([SESSION_ID]);
       expect(servicesFor).toEqual(["user_alice"]);
     });
@@ -89,7 +93,7 @@ describe.each([
       const response = await send(app, method);
 
       expect(response.status).toBe(200);
-      expect(await response.json()).toEqual({ data: noPlanUpdate });
+      await expect(response.json()).resolves.toEqual({ data: noPlanUpdate });
     });
 
     it("answers 200 with no changes once applied, its Plan and Workout still named", async () => {
@@ -99,7 +103,7 @@ describe.each([
 
       const response = await send(app, method);
 
-      expect(await response.json()).toEqual({ data: applied });
+      await expect(response.json()).resolves.toEqual({ data: applied });
     });
 
     it("answers 404 not_found for a Workout Session that's missing or another User's, unreported", async () => {
@@ -109,7 +113,7 @@ describe.each([
       const response = await send(app, method);
 
       expect(response.status).toBe(404);
-      expect(await response.json()).toEqual({
+      await expect(response.json()).resolves.toEqual({
         error: { code: "not_found", message: "Workout Session not found" },
       });
       expect(reported).toEqual([]);
@@ -130,6 +134,7 @@ describe.each([
           user_id: "user_alice",
         } as PlanUpdate["plan"],
       });
+
       const { app } = testApp({ services });
 
       const { data } = await (await send(app, method)).json();

@@ -6,22 +6,28 @@
  */
 import { describe, expect, it, jest } from "@jest/globals";
 import { act, render, screen, within } from "@testing-library/react-native";
+import { describe, expect, it } from "vitest";
+
 import TabLayout from "~/app/(tabs)/_layout";
 import { useAppLanguageSync } from "~/lib/i18n";
 import { setDeviceLanguages } from "~/test-utils/device-locales";
 
-jest.mock("@clerk/expo", () => ({
+jest.mock<typeof import("@clerk/expo")>(import("@clerk/expo"), () => ({
   useAuth: () => ({ isLoaded: true, isSignedIn: true }),
 }));
 
-jest.mock("expo-router", () => ({ Redirect: () => null }));
+jest.mock<typeof import("expo-router")>(import("expo-router"), () => ({
+  Redirect: () => null,
+}));
 
-jest.mock("expo-router/native-tabs", () =>
-  jest.requireActual("~/test-utils/native-tabs-stub")
+jest.mock<typeof import("expo-router/native-tabs")>(
+  import("expo-router/native-tabs"),
+  () => jest.requireActual("~/test-utils/native-tabs-stub")
 );
 
 function App() {
   useAppLanguageSync();
+
   return <TabLayout />;
 }
 

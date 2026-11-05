@@ -31,6 +31,7 @@ export async function openWebPage(url: string): Promise<void> {
   if (process.env.EXPO_OS === "web") {
     return openUrl(url);
   }
+
   try {
     await WebBrowser.openBrowserAsync(url, {
       presentationStyle: WebBrowser.WebBrowserPresentationStyle.AUTOMATIC,

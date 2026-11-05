@@ -2,6 +2,7 @@ import type { Exercise, Library } from "@fitme/library-sdk";
 import { createFakeLibrary } from "@fitme/library-sdk/fake";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
+
 import type { ToolContext } from "../context.js";
 import { createMcpServer } from "../server.js";
 import type { UserServices } from "../services.js";
@@ -22,6 +23,7 @@ export const BENCH: Exercise = {
   thumbnail_url: "https://media.test/bench-press.jpg",
   video_url: "https://media.test/bench-press.mp4",
 };
+
 export const SQUAT: Exercise = {
   description: "A squat with the bar on the upper back.",
   equipment: [],
@@ -62,10 +64,13 @@ export const fakeServices = (faked: Partial<UserServices>): UserServices => ({
 /** A reporter recording every error it is handed. */
 export const recordingReporter = () => {
   const reported: unknown[] = [];
+
   const reportError: ToolContext["reportError"] = (error) => {
     reported.push(error);
+
     return Promise.resolve();
   };
+
   return { reportError, reported };
 };
 
@@ -96,13 +101,16 @@ const NO_USER: ToolContext = {
 
 export async function connect(context: ToolContext = NO_USER) {
   const server = createMcpServer({ context });
+
   const [clientTransport, serverTransport] =
     InMemoryTransport.createLinkedPair();
+
   const client = new Client({ name: "test-client", version: "0.0.0" });
   await Promise.all([
     server.connect(serverTransport),
     client.connect(clientTransport),
   ]);
+
   return client;
 }
 
@@ -133,5 +141,6 @@ export async function call(
   const [first] = content;
   const text = first?.type === "text" ? String(first.text) : "";
   const isError = result.isError === true;
+
   return { isError, json: isError ? {} : JSON.parse(text), text };
 }

@@ -2,6 +2,7 @@ import { asUser } from "@fitme/db";
 import { listWorkoutHistory } from "@fitme/services/workout-sessions";
 import { defineTool } from "eve/tools";
 import { z } from "zod";
+
 import { libraryLanguage } from "../lib/client-context";
 import { withExerciseDetails } from "../lib/exercises";
 import { requireConversationOwner } from "../lib/owner";
@@ -11,13 +12,16 @@ export default defineTool({
     "Get the user's recent completed workout sessions with exercises and actual sets performed. Use this to analyze progress, spot patterns, or give personalized advice.",
   async execute({ limit }, ctx) {
     const userId = requireConversationOwner(ctx.session.auth);
-    const history = await asUser(userId, (tx) =>
+
+    const history = await asUser(userId, async (tx) =>
       listWorkoutHistory(tx, { limit })
     );
+
     const named = await withExerciseDetails(
       history.map(({ exercises }) => exercises),
       libraryLanguage(ctx.messages)
     );
+
     return history.map((session, index) => ({
       ...session,
       exercises: named[index],

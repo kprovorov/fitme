@@ -1,12 +1,12 @@
 import {
   checkRateLimit,
   LIMITER_TIMEOUT_MS,
-  type RateLimit,
-  type RateLimiter,
   rateLimiterFromEnv as sharedRateLimiterFromEnv,
 } from "@fitme/rate-limit";
+import type { RateLimit, RateLimiter } from "@fitme/rate-limit";
 import type { z } from "@hono/zod-openapi";
 import { createMiddleware } from "hono/factory";
+
 import type { ApiEnv, Caller } from "./auth.js";
 import type { ErrorResponse } from "./schemas.js";
 
@@ -25,12 +25,15 @@ const positiveInteger = (
   fallback: number
 ) => {
   const value = env[name]?.trim();
+
   if (!value) {
     return fallback;
   }
+
   if (!POSITIVE_INTEGER.test(value)) {
     throw new Error(`${name} must be a positive integer, got "${value}"`);
   }
+
   return Number(value);
 };
 
@@ -98,9 +101,12 @@ export const rateLimitCallers = ({
       reportError,
       timeoutMs,
     });
+
     if (!result.allowed) {
       c.header("Retry-After", String(result.retryAfterSeconds));
+
       return c.json(tooManyRequests, 429);
     }
+
     await next();
   });

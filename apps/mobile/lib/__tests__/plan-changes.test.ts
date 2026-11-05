@@ -1,11 +1,13 @@
 import { createI18n } from "@fitme/i18n";
 import { describe, expect, it } from "@jest/globals";
+import { describe, expect, it } from "vitest";
+
 import {
   countPlanChanges,
   formatPlanChange,
-  type PlanUpdateChange,
   planUpdateSlugs,
 } from "../plan-changes";
+import type { PlanUpdateChange } from "../plan-changes";
 
 const NAMES: Record<string, string> = {
   "bench-press": "Bench Press",
@@ -17,7 +19,7 @@ const nameOf = (slug: string) => NAMES[slug] ?? `<${slug}>`;
 
 const i18n = createI18n("en");
 
-describe("formatPlanChange", () => {
+describe(formatPlanChange, () => {
   it("lists a replacement's sets in kilograms, each Exercise by name", () => {
     expect(
       formatPlanChange(
@@ -65,6 +67,7 @@ describe("formatPlanChange", () => {
       kind: "add_sets",
       sets: Array.from({ length: count }, () => ({ reps: 5, weight: 100 })),
     });
+
     expect(formatPlanChange(addSets(1), "kg", nameOf, i18n).text).toBe(
       "Add 1 set to Squat · 5×100 kg"
     );
@@ -176,6 +179,7 @@ describe("formatPlanChange in Ukrainian", () => {
       nameOf,
       uk
     );
+
     expect(line.text).toBe(
       `${change} · ${Array.from({ length: count }, () => "5×62,5").join(", ")} кг`
     );
@@ -185,7 +189,7 @@ describe("formatPlanChange in Ukrainian", () => {
   });
 });
 
-describe("planUpdateSlugs", () => {
+describe(planUpdateSlugs, () => {
   it("lists every Exercise the changes name, a replacement's both", () => {
     expect(
       planUpdateSlugs([
@@ -201,7 +205,7 @@ describe("planUpdateSlugs", () => {
   });
 });
 
-describe("countPlanChanges", () => {
+describe(countPlanChanges, () => {
   it("counts each kind, zero included", () => {
     expect(
       countPlanChanges([

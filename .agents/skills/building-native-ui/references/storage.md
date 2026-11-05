@@ -18,11 +18,11 @@ const user = JSON.parse(localStorage.getItem("user") ?? "{}");
 
 ## When to Use What
 
-| Use Case                                             | Solution                |
-| ---------------------------------------------------- | ----------------------- |
+| Use Case | Solution |
+| --- | --- |
 | Simple key-value (settings, preferences, small data) | `localStorage` polyfill |
-| Large datasets, complex queries, relational data     | Full `expo-sqlite`      |
-| Sensitive data (tokens, passwords)                   | `expo-secure-store`     |
+| Large datasets, complex queries, relational data | Full `expo-sqlite` |
+| Sensitive data (tokens, passwords) | `expo-secure-store` |
 
 ## Storage with React State
 
@@ -59,15 +59,16 @@ export const storage = {
 ```tsx
 // hooks/use-storage.ts
 import { useSyncExternalStore } from "react";
+
 import { storage } from "@/utils/storage";
 
 export function useStorage<T>(
   key: string,
-  defaultValue: T,
+  defaultValue: T
 ): [T, (value: T) => void] {
   const value = useSyncExternalStore(
     (cb) => storage.subscribe(key, cb),
-    () => storage.get(key, defaultValue),
+    () => storage.get(key, defaultValue)
   );
 
   return [value, (newValue: T) => storage.set(key, newValue)];

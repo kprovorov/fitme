@@ -1,5 +1,6 @@
 import { routeAuth } from "eve/channels/auth";
 import { afterEach, describe, expect, it, vi } from "vitest";
+
 import { accountDeletionReset } from "../agent/lib/reset-auth";
 
 const SECRET = "reset-secret-0123456789abcdef0123456789abcdef";
@@ -16,7 +17,7 @@ const request = (
 
 const auth = accountDeletionReset({ secret: () => SECRET });
 
-describe("accountDeletionReset", () => {
+describe(accountDeletionReset, () => {
   it("lets the reset secret reset a session as a service principal", async () => {
     const result = await routeAuth(
       request(`Bearer ${SECRET}`, "/eve/v1/session/wrun_alice/reset"),
@@ -56,7 +57,7 @@ describe("accountDeletionReset", () => {
   });
 
   it("accepts nothing when the secret is unset", async () => {
-    const unconfigured = accountDeletionReset({ secret: () => undefined });
+    const unconfigured = accountDeletionReset({ secret: () => {} });
 
     const result = await routeAuth(
       request(`Bearer ${SECRET}`, "/eve/v1/session/wrun_alice/reset"),
@@ -83,7 +84,7 @@ describe("accountDeletionReset's secret from the environment", () => {
     vi.unstubAllEnvs();
   });
 
-  const resetWith = (secret: string) =>
+  const resetWith = async (secret: string) =>
     routeAuth(
       request(`Bearer ${secret}`, "/eve/v1/session/wrun_alice/reset"),
       accountDeletionReset()
@@ -93,7 +94,7 @@ describe("accountDeletionReset's secret from the environment", () => {
     vi.stubEnv("ARNOLD_RESET_SECRET", SECRET);
     vi.stubEnv("COACH_RESET_SECRET", `old-${SECRET}`);
 
-    expect(await resetWith(SECRET)).toMatchObject({
+    await expect(resetWith(SECRET)).resolves.toMatchObject({
       principalId: "account-deletion",
     });
     expect(((await resetWith(`old-${SECRET}`)) as Response).status).toBe(401);

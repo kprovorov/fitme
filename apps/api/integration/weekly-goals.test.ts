@@ -1,4 +1,5 @@
 import { randomBytes } from "node:crypto";
+
 import {
   asUser,
   withService,
@@ -7,8 +8,10 @@ import {
   workoutSessions,
 } from "@fitme/db";
 import { deleteTestUsers } from "@fitme/services/delete-test-users";
-import { createPlan, type NewPlan } from "@fitme/services/plans";
+import { createPlan } from "@fitme/services/plans";
+import type { NewPlan } from "@fitme/services/plans";
 import { afterAll, describe, expect, it } from "vitest";
+
 import { createApp } from "../src/create-app.js";
 import { createServicesFromEnv } from "../src/services.js";
 import { clerk, signedInAs } from "../src/test/harness.js";
@@ -21,7 +24,7 @@ import { clerk, signedInAs } from "../src/test/harness.js";
 const app = createApp({
   clerkJwtKey: clerk.jwtKey,
   createServices: createServicesFromEnv,
-  identifyUser: () => undefined,
+  identifyUser: () => {},
   reportError: (error) => Promise.reject(error),
 });
 
@@ -83,6 +86,7 @@ const send = async (
           },
         }),
   });
+
   return {
     body: response.status === 204 ? null : await response.json(),
     status: response.status,
@@ -92,6 +96,7 @@ const send = async (
 /** The answer's status and the targets in it, oldest first. */
 const targets = async (userId: string) => {
   const { body, status } = await send(userId, "GET", "/v1/weekly-goals");
+
   return {
     status,
     targets: (body as { data: { target: number | null }[] }).data.map(
@@ -100,13 +105,15 @@ const targets = async (userId: string) => {
   };
 };
 
-describe("GET /v1/weekly-goals", () => {
+describe("gET /v1/weekly-goals", () => {
   it("reads a current-week streak through the real facade and keeps it User-owned", async () => {
     const created = await asUser(streakOwner, (tx) =>
       createPlan(tx, streakOwner, newPlan(1))
     );
+
     await withService(async (tx) => {
       const completedAt = new Date().toISOString();
+
       const [session] = await tx
         .insert(workoutSessions)
         .values({
@@ -116,6 +123,7 @@ describe("GET /v1/weekly-goals", () => {
           userId: streakOwner,
         })
         .returning();
+
       const [exercise] = await tx
         .insert(workoutSessionExercises)
         .values({
@@ -124,12 +132,14 @@ describe("GET /v1/weekly-goals", () => {
           workoutSessionId: session.id,
         })
         .returning();
+
       await tx.insert(workoutSessionExerciseSets).values({
         order: 1,
         repsCompleted: 8,
         workoutSessionExerciseId: exercise.id,
       });
     });
+
     for (const zone of [
       "Europe/Kyiv",
       "GMT+1",
@@ -143,9 +153,11 @@ describe("GET /v1/weekly-goals", () => {
         "GET",
         `/v1/weekly-goals?time_zone=${encodeURIComponent(zone)}`
       );
+
       expect(status).toBe(200);
       expect(body).toMatchObject({ data: [{ target: 1 }], streak: 1 });
     }
+
     expect(
       (await send(intruder, "GET", "/v1/weekly-goals?time_zone=Europe%2FKyiv"))
         .body
@@ -153,15 +165,20 @@ describe("GET /v1/weekly-goals", () => {
   });
 
   it("follows the Plan writes the API serves, for their own User only", async () => {
-    expect(await targets(owner)).toEqual({ status: 200, targets: [] });
+    await expect(targets(owner)).resolves.toEqual({ status: 200, targets: [] });
 
     const first = await asUser(owner, (tx) =>
       createPlan(tx, owner, newPlan(3))
     );
+
     const second = await asUser(owner, (tx) =>
       createPlan(tx, owner, newPlan(5), { activate: false })
     );
-    expect(await targets(owner)).toEqual({ status: 200, targets: [3] });
+
+    await expect(targets(owner)).resolves.toEqual({
+      status: 200,
+      targets: [3],
+    });
 
     expect(
       (await send(owner, "POST", `/v1/plans/${second.id}/activate`)).status
@@ -177,10 +194,13 @@ describe("GET /v1/weekly-goals", () => {
       (await send(owner, "POST", `/v1/plans/${first.id}/activate`)).status
     ).toBe(200);
 
-    expect(await targets(owner)).toEqual({
+    await expect(targets(owner)).resolves.toEqual({
       status: 200,
       targets: [3, 5, 2, null, 3],
     });
-    expect(await targets(intruder)).toEqual({ status: 200, targets: [] });
+    await expect(targets(intruder)).resolves.toEqual({
+      status: 200,
+      targets: [],
+    });
   });
 });

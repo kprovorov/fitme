@@ -3,7 +3,6 @@ import {
   personalRecords,
   plans,
   profiles,
-  type Transaction,
   weeklyGoalChanges,
   workoutExerciseSets,
   workoutExercises,
@@ -12,72 +11,80 @@ import {
   workoutSessions,
   workouts,
 } from "@fitme/db";
-import {
-  type ExerciseHistoryPage,
-  type ExerciseHistoryQuery,
-  getExerciseHistory,
+import type { Transaction } from "@fitme/db";
+import { getExerciseHistory } from "@fitme/services/exercises";
+import type {
+  ExerciseHistoryPage,
+  ExerciseHistoryQuery,
 } from "@fitme/services/exercises";
 import {
   applyPlanUpdate,
-  type PlanUpdate,
   previewPlanUpdate,
 } from "@fitme/services/plan-update";
+import type { PlanUpdate } from "@fitme/services/plan-update";
 import {
   activatePlan,
-  type CreatePlanOptions,
   createPlan,
-  type DeletedPlan,
   deletePlan,
   getActivePlan,
   getPlan,
   listPlans,
-  type NewPlan,
-  type PlanDetail,
-  type PlanMetadata,
-  type PlanSummary,
-  type PlanWorkoutInput,
-  type SavedPlan,
-  type SavePlanOptions,
-  type SavePlanResult,
   savePlan,
   updatePlan,
+} from "@fitme/services/plans";
+import type {
+  CreatePlanOptions,
+  DeletedPlan,
+  NewPlan,
+  PlanDetail,
+  PlanMetadata,
+  PlanSummary,
+  PlanWorkoutInput,
+  SavedPlan,
+  SavePlanOptions,
+  SavePlanResult,
 } from "@fitme/services/plans";
 import {
   getProfile,
   lockProfileUnits,
-  type ProfileChanges,
-  type ProfileUnits,
-  type ProfileWithUnits,
   replaceProfile,
   updateProfile,
-  type WholeProfile,
 } from "@fitme/services/profile";
-import { getWeeklyGoals, type WeeklyGoals } from "@fitme/services/weekly-goals";
+import type {
+  ProfileChanges,
+  ProfileUnits,
+  ProfileWithUnits,
+  WholeProfile,
+} from "@fitme/services/profile";
+import { getWeeklyGoals } from "@fitme/services/weekly-goals";
+import type { WeeklyGoals } from "@fitme/services/weekly-goals";
 import {
-  type AddExerciseToWorkoutSessionInput,
-  type AddExerciseToWorkoutSessionResult,
-  type AddSetToWorkoutSessionExerciseInput,
-  type AddSetToWorkoutSessionExerciseResult,
   addExerciseToWorkoutSession,
   addSetToWorkoutSessionExercise,
   deleteWorkoutSession,
-  type FinishWorkoutSessionResult,
   finishWorkoutSession,
   getWorkoutSession,
-  type ListWorkoutSessionsOptions,
-  type LogSetInput,
-  type LogSetResult,
   listWorkoutSessions,
   logSet,
-  type RemoveExerciseFromWorkoutSessionResult,
-  type ReplaceExerciseInWorkoutSessionInput,
-  type ReplaceExerciseInWorkoutSessionResult,
   removeExerciseFromWorkoutSession,
   replaceExerciseInWorkoutSession,
-  type StartWorkoutSessionResult,
   startWorkoutSession,
-  type WorkoutSessionDetail,
-  type WorkoutSessionPage,
+} from "@fitme/services/workout-sessions";
+import type {
+  AddExerciseToWorkoutSessionInput,
+  AddExerciseToWorkoutSessionResult,
+  AddSetToWorkoutSessionExerciseInput,
+  AddSetToWorkoutSessionExerciseResult,
+  FinishWorkoutSessionResult,
+  ListWorkoutSessionsOptions,
+  LogSetInput,
+  LogSetResult,
+  RemoveExerciseFromWorkoutSessionResult,
+  ReplaceExerciseInWorkoutSessionInput,
+  ReplaceExerciseInWorkoutSessionResult,
+  StartWorkoutSessionResult,
+  WorkoutSessionDetail,
+  WorkoutSessionPage,
 } from "@fitme/services/workout-sessions";
 import { sql } from "drizzle-orm";
 
@@ -283,6 +290,7 @@ export const createServicesFromEnv: ServicesFactory = (userId) => {
     asUser(userId, async (tx): Promise<Weighed<T>> => {
       await before?.(tx);
       const units = await lockProfileUnits(tx, userId);
+
       return { value: await run(tx), weightUnit: units?.weight ?? "kg" };
     });
 
@@ -302,6 +310,7 @@ export const createServicesFromEnv: ServicesFactory = (userId) => {
     options?: typeof write
   ) => {
     const { value, weightUnit } = await inUnits(read, options);
+
     return value === null ? null : { value, weightUnit };
   };
 
@@ -349,6 +358,7 @@ export const createServicesFromEnv: ServicesFactory = (userId) => {
     removeExerciseFromWorkoutSession: (sessionExerciseId) =>
       asUser(userId, async (tx) => {
         await write.before(tx);
+
         return removeExerciseFromWorkoutSession(tx, userId, sessionExerciseId);
       }),
     replaceExerciseInWorkoutSession: (input) =>

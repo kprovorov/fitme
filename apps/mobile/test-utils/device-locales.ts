@@ -21,6 +21,7 @@ const ENGLISH_DEVICE = ["en-US"];
 /** A `Locale` as the device reports it, for a language tag like `uk-UA`. */
 const toLocale = (languageTag: string): Locale => {
   const [languageCode = null, regionCode = null] = languageTag.split("-");
+
   return {
     currencyCode: null,
     currencySymbol: null,
@@ -41,13 +42,16 @@ const toLocale = (languageTag: string): Locale => {
 
 let locales: Locale[] = ENGLISH_DEVICE.map(toLocale);
 let uses24hourClock = false;
+
 let calendars: [Calendar, ...Calendar[]] = [
   { calendar: null, firstWeekday: 1, timeZone: "UTC", uses24hourClock },
 ];
+
 const listeners = new Set<() => void>();
 
 const subscribe = (listener: () => void) => {
   listeners.add(listener);
+
   return () => {
     listeners.delete(listener);
   };
@@ -60,6 +64,7 @@ const subscribe = (listener: () => void) => {
  */
 export function setDeviceLanguages(languageTags: readonly string[]): void {
   locales = languageTags.map(toLocale);
+
   for (const listener of listeners) {
     listener();
   }
@@ -72,6 +77,7 @@ export function setDeviceLanguages(languageTags: readonly string[]): void {
 export function setDevice24HourClock(enabled: boolean): void {
   uses24hourClock = enabled;
   calendars = [{ ...calendars[0], uses24hourClock }];
+
   for (const listener of listeners) {
     listener();
   }

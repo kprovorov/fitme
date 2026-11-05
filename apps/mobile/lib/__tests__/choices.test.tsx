@@ -1,16 +1,19 @@
 import type { MuscleGroup } from "@fitme/core";
 import { describe, expect, it } from "@jest/globals";
 import { act, renderHook } from "@testing-library/react-native";
+import { describe, expect, it } from "vitest";
+
 import { useChoiceLabels } from "~/lib/choices";
 import { useAppLanguageSync } from "~/lib/i18n";
 import { setDeviceLanguages } from "~/test-utils/device-locales";
 
 const useLabels = () => {
   useAppLanguageSync();
+
   return useChoiceLabels();
 };
 
-describe("useChoiceLabels", () => {
+describe(useChoiceLabels, () => {
   it("labels each fixed choice in English on an English device", async () => {
     const { result } = await renderHook(useLabels);
 

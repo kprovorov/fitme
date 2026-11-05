@@ -25,7 +25,7 @@ const EVAL_RUNNER = {
  * else it admits nobody, and the channel stays Clerk-only.
  */
 export const evalRunner =
-  (env: () => Env = () => process.env): AuthFn<Request> =>
+  (env: () => Env = () => process.env): AuthFn =>
   () =>
     isLocalEvalRun(env()) ? { ...EVAL_RUNNER, allowToolStubs: true } : null;
 

@@ -1,4 +1,5 @@
 import { useSyncExternalStore } from "react";
+
 import type { PlanUpdate } from "~/lib/plan-changes";
 
 /**
@@ -23,6 +24,7 @@ const emit = () => {
 
 const subscribe = (listener: () => void) => {
   listeners.add(listener);
+
   return () => {
     listeners.delete(listener);
   };
@@ -45,6 +47,7 @@ export function closePlanUpdatePrompt(sessionId: string): void {
   if (current?.sessionId !== sessionId) {
     return;
   }
+
   current = null;
   emit();
 }

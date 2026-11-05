@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+
 import { fakeServices, signedInAs, testApp } from "../test/harness.js";
 
 const planId = "6f0c1d7e-3b1a-4d7e-9a43-2f6b0c1e5a10";
@@ -40,7 +41,7 @@ const summary = {
   ],
 };
 
-describe("GET /v1/plans", () => {
+describe("gET /v1/plans", () => {
   it("answers the signed-in User's Plans as the services list them", async () => {
     const older = {
       ...planColumns,
@@ -49,6 +50,7 @@ describe("GET /v1/plans", () => {
       is_active: false,
       workouts: [],
     };
+
     const { app, servicesFor } = testApp({
       services: fakeServices({
         listPlans: () => Promise.resolve([summary, older]),
@@ -60,7 +62,7 @@ describe("GET /v1/plans", () => {
     });
 
     expect(response.status).toBe(200);
-    expect(await response.json()).toEqual({ data: [summary, older] });
+    await expect(response.json()).resolves.toEqual({ data: [summary, older] });
     expect(servicesFor).toEqual(["user_alice"]);
   });
 
@@ -74,7 +76,7 @@ describe("GET /v1/plans", () => {
     });
 
     expect(response.status).toBe(200);
-    expect(await response.json()).toEqual({ data: [] });
+    await expect(response.json()).resolves.toEqual({ data: [] });
   });
 
   it("never shows fields beyond the contract", async () => {
@@ -99,7 +101,7 @@ describe("GET /v1/plans", () => {
       headers: signedInAs("user_alice"),
     });
 
-    expect(await response.json()).toEqual({ data: [summary] });
+    await expect(response.json()).resolves.toEqual({ data: [summary] });
   });
 
   it("answers 401 without a session token", async () => {
@@ -168,13 +170,15 @@ const weighed = (weightUnit: string) => ({
   weightUnit,
 });
 
-describe("GET /v1/plans/{id}", () => {
+describe("gET /v1/plans/{id}", () => {
   it("answers the Plan in full, Exercises by slug only, with its weight unit", async () => {
     const asked: string[] = [];
+
     const { app, reported } = testApp({
       services: fakeServices({
         getPlan: (id) => {
           asked.push(id);
+
           return Promise.resolve(weighed("kg"));
         },
       }),
@@ -185,7 +189,7 @@ describe("GET /v1/plans/{id}", () => {
     });
 
     expect(response.status).toBe(200);
-    expect(await response.json()).toEqual({
+    await expect(response.json()).resolves.toEqual({
       data: { ...detail, weight_unit: "kg" },
     });
     expect(asked).toEqual([planId]);
@@ -223,7 +227,7 @@ describe("GET /v1/plans/{id}", () => {
     });
 
     expect(response.status).toBe(404);
-    expect(await response.json()).toEqual({
+    await expect(response.json()).resolves.toEqual({
       error: { code: "not_found", message: "Plan not found" },
     });
     expect(reported).toEqual([]);
@@ -244,7 +248,7 @@ describe("GET /v1/plans/{id}", () => {
   });
 });
 
-describe("GET /v1/plans/active", () => {
+describe("gET /v1/plans/active", () => {
   it("answers the active Plan in full with its weight unit", async () => {
     const { app } = testApp({
       services: fakeServices({
@@ -257,7 +261,7 @@ describe("GET /v1/plans/active", () => {
     });
 
     expect(response.status).toBe(200);
-    expect(await response.json()).toEqual({
+    await expect(response.json()).resolves.toEqual({
       data: { ...detail, weight_unit: "lbs" },
     });
   });
@@ -272,7 +276,7 @@ describe("GET /v1/plans/active", () => {
     });
 
     expect(response.status).toBe(200);
-    expect(await response.json()).toEqual({ data: null });
+    await expect(response.json()).resolves.toEqual({ data: null });
     expect(reported).toEqual([]);
   });
 });

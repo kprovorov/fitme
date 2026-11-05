@@ -5,20 +5,26 @@ import os from "node:os";
 import path from "node:path";
 import { after, describe, test } from "node:test";
 import { fileURLToPath } from "node:url";
+
+import { describe, test } from "vitest";
+
 import { parseStackOutput, rewriteEnvText } from "./rewrite-env.mjs";
 
 const NO_JSON = /no JSON/;
 const POINTED_MOBILE = /Pointed apps\/mobile\/\.env at the local stack/;
 const USAGE = /Usage/;
 
-const SCRIPT = fileURLToPath(new URL("./rewrite-env.mjs", import.meta.url));
+const SCRIPT = fileURLToPath(new URL("rewrite-env.mjs", import.meta.url));
 
 const tempDirs = [];
+
 const tempDir = (prefix) => {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), prefix));
   tempDirs.push(dir);
+
   return dir;
 };
+
 after(() => {
   for (const dir of tempDirs) {
     fs.rmSync(dir, { force: true, recursive: true });
@@ -58,6 +64,7 @@ describe("rewriteEnvText", () => {
   test("leaves the Data API's URL and key alone", () => {
     const before =
       "EXPO_PUBLIC_SUPABASE_URL=http://127.0.0.1:54321\nEXPO_PUBLIC_SUPABASE_ANON_KEY=old\nOTHER=1\n";
+
     assert.equal(rewriteEnvText(before, stack), before);
   });
 
@@ -74,6 +81,7 @@ describe("rewriteEnvText", () => {
   test("leaves a remote pooler URL alone", () => {
     const before =
       "FITME_DATABASE_URL=postgresql://fitme.ref:pw@aws-0.pooler.supabase.com:6543/postgres\n";
+
     assert.equal(rewriteEnvText(before, stack), before);
   });
 });
@@ -81,10 +89,12 @@ describe("rewriteEnvText", () => {
 describe("the CLI", () => {
   const checkout = () => {
     const root = tempDir("rewrite-env-");
+
     const write = (rel, text) => {
       fs.mkdirSync(path.dirname(path.join(root, rel)), { recursive: true });
       fs.writeFileSync(path.join(root, rel), text);
     };
+
     write("apps/mobile/package.json", "{}");
     write(
       "apps/mobile/.env",
@@ -104,15 +114,17 @@ describe("the CLI", () => {
       "apps/retired/.env",
       "FITME_DATABASE_URL=postgresql://u:p@127.0.0.1:54329/postgres\n"
     );
+
     return root;
   };
 
-  const read = (root, rel) => fs.readFileSync(path.join(root, rel), "utf8");
+  const read = (root, rel) => fs.readFileSync(path.join(root, rel), "utf-8");
 
   test("rewrites every app's and package's env files and prints the MCP URL", () => {
     const root = checkout();
+
     const run = spawnSync(process.execPath, [SCRIPT, root, stackOutput()], {
-      encoding: "utf8",
+      encoding: "utf-8",
     });
 
     assert.equal(run.status, 0, run.stderr);
@@ -137,15 +149,16 @@ describe("the CLI", () => {
   });
 
   test("fails without its arguments", () => {
-    const run = spawnSync(process.execPath, [SCRIPT], { encoding: "utf8" });
+    const run = spawnSync(process.execPath, [SCRIPT], { encoding: "utf-8" });
     assert.notEqual(run.status, 0);
     assert.match(run.stderr, USAGE);
   });
 
   test("fails on output with no JSON, printing nothing to stdout", () => {
     const run = spawnSync(process.execPath, [SCRIPT, checkout(), "oops"], {
-      encoding: "utf8",
+      encoding: "utf-8",
     });
+
     assert.notEqual(run.status, 0);
     assert.equal(run.stdout, "");
   });

@@ -1,5 +1,6 @@
 import { useTranslation } from "react-i18next";
 import { View } from "react-native";
+
 import { Button } from "~/components/ui/button";
 import { Text } from "~/components/ui/text";
 import type { OpenWorkoutSession } from "~/hooks/queries/workout-sessions";
@@ -31,6 +32,7 @@ export function BlockedStart({
 }: BlockedStartProps) {
   const { t } = useTranslation();
   const name = blockedBy.workout?.name;
+
   return (
     <View className="gap-xs">
       <Button
@@ -39,7 +41,7 @@ export function BlockedStart({
         size={size}
         testID="start-workout-button"
       />
-      <Text className="text-center text-footnote text-muted-foreground">
+      <Text className="text-footnote text-muted-foreground text-center">
         {name
           ? t("startWorkout.finishFirstNamed", { name })
           : t("startWorkout.finishFirst")}

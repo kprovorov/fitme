@@ -1,6 +1,7 @@
 import { rateLimitedFor } from "@fitme/api-client";
 import { useTranslation } from "react-i18next";
 import { View } from "react-native";
+
 import { Button } from "~/components/ui/button";
 import { Text } from "~/components/ui/text";
 
@@ -23,9 +24,10 @@ export default function SessionLoadError({
 }: SessionLoadErrorProps) {
   const { t } = useTranslation();
   const waitSeconds = rateLimitedFor(error);
+
   return (
-    <View className="items-center gap-sm pt-lg">
-      <Text className="text-center text-muted-foreground">
+    <View className="gap-sm pt-lg items-center">
+      <Text className="text-muted-foreground text-center">
         {waitSeconds === null
           ? message
           : t("common.rateLimited", { seconds: waitSeconds })}

@@ -3,15 +3,15 @@ import { useRouter } from "expo-router";
 import { useCallback } from "react";
 import { useTranslation } from "react-i18next";
 import { Alert } from "react-native";
+
 import { useExercises } from "~/hooks/queries/library";
 import { useDeleteWorkoutSessionExerciseMutation } from "~/hooks/queries/workout-session-exercises";
-import {
-  WORKOUT_SESSION_QUERY_KEY,
-  type WorkoutSession,
-} from "~/hooks/queries/workout-sessions";
+import { WORKOUT_SESSION_QUERY_KEY } from "~/hooks/queries/workout-sessions";
+import type { WorkoutSession } from "~/hooks/queries/workout-sessions";
 import { IS_E2E } from "~/lib/constants";
 import { segmentClient } from "~/lib/segment";
 import { sessionEditFailureMessage } from "~/lib/session-edit-failure";
+
 import { Button } from "../ui/button";
 import { VStack } from "../ui/vstack";
 import WorkoutSessionExerciseCard from "./workout-session-exercise-card";
@@ -27,9 +27,11 @@ export default function WorkoutSessionView({
 }: WorkoutSessionViewProps) {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
+
   const shownBySlug = useExercises(
     workoutSession.exercises.map(({ exercise_slug }) => exercise_slug)
   );
+
   const router = useRouter();
 
   // A failed edit may still have been saved (a lost answer): read again
@@ -60,8 +62,10 @@ export default function WorkoutSessionView({
         t("workoutSession.editFailed.deleteTitle"),
         sessionEditFailureMessage(t, error)
       );
+
       return;
     }
+
     if (!IS_E2E) {
       segmentClient.track("Exercise Deleted", {
         exercise_id: exerciseId,
@@ -72,9 +76,11 @@ export default function WorkoutSessionView({
 
   const handleReplaceExercise = (exerciseId: string) => {
     const exercise = workoutSession.exercises.find((e) => e.id === exerciseId);
+
     const muscleGroup = exercise
       ? shownBySlug[exercise.exercise_slug]?.muscle_groups[0]
       : undefined;
+
     router.push({
       params: {
         replaceExerciseId: exerciseId,
@@ -86,7 +92,7 @@ export default function WorkoutSessionView({
   };
 
   return (
-    <VStack className="items-stretch justify-stretch gap-sm">
+    <VStack className="gap-sm items-stretch justify-stretch">
       {[...workoutSession.exercises]
         .sort((a, b) => a.order - b.order)
         .map((exercise) => (

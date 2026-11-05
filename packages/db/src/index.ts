@@ -1,5 +1,7 @@
 import { sql } from "drizzle-orm";
-import { type Database, getConnection } from "./client";
+
+import { getConnection } from "./client";
+import type { Database } from "./client";
 
 // The generated tables (pnpm --filter @fitme/db schema:generate)
 export * from "./schema";
@@ -26,17 +28,19 @@ interface Claims {
   sub?: string;
 }
 
-const inRoleTransaction = <T>(
+const inRoleTransaction = async <T>(
   claims: Claims,
   fn: (tx: Transaction) => Promise<T>
 ): Promise<T> => {
   const { applicationName, db } = getConnection();
+
   return db.transaction(async (tx) => {
     // role is one of two constants, never input
     await tx.execute(sql.raw(`set local role ${claims.role}`));
     await tx.execute(
       sql`select set_config('request.jwt.claims', ${JSON.stringify(claims)}, true), set_config('application_name', ${applicationName}, true)`
     );
+
     return await fn(tx);
   });
 };
@@ -53,6 +57,7 @@ export const asUser = async <T>(
   if (!userId) {
     throw new Error("asUser needs a User id");
   }
+
   return await inRoleTransaction({ role: "authenticated", sub: userId }, fn);
 };
 

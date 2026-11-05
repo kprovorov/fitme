@@ -1,5 +1,6 @@
 import { Image } from "expo-image";
 import { View } from "react-native";
+
 import { sizedThumbnailUrl } from "~/lib/exercise-media";
 
 interface ExerciseImageProps {
@@ -16,9 +17,11 @@ export default function ExerciseImage({
   size = 48,
 }: ExerciseImageProps) {
   const style = { aspectRatio: 1 / 1, borderRadius: radius, height: size };
+
   if (!exercise.thumbnail_url) {
     return <View className="bg-secondary" style={style} />;
   }
+
   return (
     <Image
       contentFit="cover"

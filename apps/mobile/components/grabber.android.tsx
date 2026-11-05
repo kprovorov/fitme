@@ -4,7 +4,7 @@ import { View } from "react-native";
 export function AndroidGrabber() {
   return (
     <View className="items-center pt-2 pb-1">
-      <View className="h-1 w-9 rounded-full bg-muted-foreground" />
+      <View className="bg-muted-foreground h-1 w-9 rounded-full" />
     </View>
   );
 }

@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next";
 import { ActivityIndicator, useWindowDimensions, View } from "react-native";
 import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+
 import { Button } from "~/components/ui/button";
 import { Card } from "~/components/ui/card";
 import { H4 } from "~/components/ui/typography";
@@ -37,6 +38,7 @@ export default function WorkoutSessionScreen({
   const insets = useSafeAreaInsets();
   const { fontScale } = useWindowDimensions();
   const stacked = fontScale > STACKED_FONT_SCALE;
+
   // A failed refresh keeps the session on screen; with none read yet it's
   // the load error.
   const {
@@ -49,9 +51,11 @@ export default function WorkoutSessionScreen({
   });
 
   const { confirmFinish, isFinishing } = useFinishWorkoutSession(sessionId);
+
   const retry = useCallback(() => {
     refetch();
   }, [refetch]);
+
   const canFinish = !!workoutSession && !workoutSession.finished_at;
 
   const renderContent = () => {
@@ -61,7 +65,7 @@ export default function WorkoutSessionScreen({
           <Card className="gap-sm" variant="ghost">
             <View
               className={
-                stacked ? "items-start gap-sm" : "flex-row items-center gap-sm"
+                stacked ? "gap-sm items-start" : "gap-sm flex-row items-center"
               }
             >
               <H4 className={cn("text-primary", !stacked && "flex-1")}>
@@ -87,6 +91,7 @@ export default function WorkoutSessionScreen({
         </>
       );
     }
+
     if (isError) {
       return (
         <SessionLoadError
@@ -96,8 +101,9 @@ export default function WorkoutSessionScreen({
         />
       );
     }
+
     return (
-      <View className="items-center pt-lg">
+      <View className="pt-lg items-center">
         <ActivityIndicator colorClassName="accent-foreground" />
       </View>
     );

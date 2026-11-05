@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+
 import { personalRecordFor, recordResult } from "../personal-records";
 
 const set = (weight: number | null, reps: number | null) => ({
@@ -6,7 +7,7 @@ const set = (weight: number | null, reps: number | null) => ({
   weight_completed: weight,
 });
 
-describe("personalRecordFor", () => {
+describe(personalRecordFor, () => {
   it("earns none for the first Workout Session with usable results: it's the baseline", () => {
     expect(personalRecordFor(null, [set(100, 5), set(110, 3)])).toBeNull();
   });
@@ -40,9 +41,9 @@ describe("personalRecordFor", () => {
   });
 
   it("earns none for an exact tie", () => {
-    expect(personalRecordFor({ reps: 5, weight: 100 }, [set(100, 5)])).toBe(
-      null
-    );
+    expect(
+      personalRecordFor({ reps: 5, weight: 100 }, [set(100, 5)])
+    ).toBeNull();
   });
 
   it("earns rep records at an explicit zero weight while the highest weight is zero", () => {
@@ -76,7 +77,7 @@ describe("personalRecordFor", () => {
   });
 });
 
-describe("recordResult", () => {
+describe(recordResult, () => {
   it("is the highest usable weight with the most reps at it", () => {
     expect(
       recordResult([set(100, 5), set(100, 7), set(90, 20), set(null, 30)])

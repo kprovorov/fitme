@@ -1,4 +1,5 @@
 import * as Sentry from "@sentry/node";
+
 import { resolveObservabilityConfig } from "./config";
 import { sanitizeError } from "./sanitize";
 import { sdkOptions } from "./sdk-options";
@@ -32,9 +33,11 @@ export const initObservability = ({
       VERCEL_GIT_COMMIT_SHA: process.env.VERCEL_GIT_COMMIT_SHA,
     },
   });
+
   if (!config.enabled) {
     return;
   }
+
   Sentry.init({
     ...sdkOptions(config),
     initialScope: { tags: { service } },
@@ -116,19 +119,23 @@ export const reportMissingEnv = async (
   if (env.VERCEL_ENV !== "production") {
     return [];
   }
+
   const missing = required
     .map((entry) => (typeof entry === "string" ? ([entry] as const) : entry))
     .filter((names) => !names.some((name) => env[name]));
+
   await Promise.all(
-    missing.map(([name, ...fallbacks]) => {
+    missing.map(async ([name, ...fallbacks]) => {
       const label = fallbacks.length
         ? `${name} (or ${fallbacks.join(", ")})`
         : name;
+
       return report(
         new MissingEnvError(`Missing ${label} environment variable`),
         { env_var: name }
       );
     })
   );
+
   return missing.map(([name]) => name);
 };

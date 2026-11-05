@@ -5,6 +5,8 @@
  * side (ADR 0018), whatever size and format it had.
  */
 import { beforeEach, describe, expect, it, jest } from "@jest/globals";
+import { it, describe, expect, beforeEach } from "vitest";
+
 import {
   MAX_ATTACHMENT_EDGE,
   pickLibraryPhotos,
@@ -27,6 +29,7 @@ interface Size {
  * module factory to reach.
  */
 const mockDecoded = new Map<string, { height: number; width: number }>();
+
 /** The sources the stood-in decoder refuses, as a RAW or a broken file. */
 const mockFailFor = new Set<string>();
 const mockManipulated: { options: unknown; uri: string }[] = [];
@@ -37,6 +40,7 @@ const mockRender = (uri: string, size: { height: number; width: number }) => ({
   height: size.height,
   saveAsync: (options: SaveOptions = {}) => {
     mockSaves.push(options);
+
     return Promise.resolve({
       height: size.height,
       uri: `${uri}.jpg`,
@@ -46,52 +50,66 @@ const mockRender = (uri: string, size: { height: number; width: number }) => ({
   width: size.width,
 });
 
-jest.mock("expo-image-manipulator", () => ({
-  ImageManipulator: {
-    manipulate: (uri: string, options: unknown) => {
-      mockManipulated.push({ options, uri });
-      if (mockFailFor.has(uri)) {
-        throw new Error("Could not decode the image");
-      }
-      const size = mockDecoded.get(uri) ?? { height: 1200, width: 1600 };
-      return {
-        renderAsync: () => Promise.resolve(mockRender(uri, size)),
-        resize: (next: Size) => {
-          mockResizes.push(next);
-          // As the native one does: the side left null follows the ratio.
-          const scale =
-            next.width === null
-              ? (next.height ?? 0) / size.height
-              : next.width / size.width;
-          return {
-            renderAsync: () =>
-              Promise.resolve(
-                mockRender(uri, {
-                  height: Math.round(size.height * scale),
-                  width: Math.round(size.width * scale),
-                })
-              ),
-          };
-        },
-      };
+jest.mock<typeof import("expo-image-manipulator")>(
+  import("expo-image-manipulator"),
+  () => ({
+    ImageManipulator: {
+      manipulate: (uri: string, options: unknown) => {
+        mockManipulated.push({ options, uri });
+
+        if (mockFailFor.has(uri)) {
+          throw new Error("Could not decode the image");
+        }
+
+        const size = mockDecoded.get(uri) ?? { height: 1200, width: 1600 };
+
+        return {
+          renderAsync: () => Promise.resolve(mockRender(uri, size)),
+          resize: (next: Size) => {
+            mockResizes.push(next);
+
+            // As the native one does: the side left null follows the ratio.
+            const scale =
+              next.width === null
+                ? (next.height ?? 0) / size.height
+                : next.width / size.width;
+
+            return {
+              renderAsync: () =>
+                Promise.resolve(
+                  mockRender(uri, {
+                    height: Math.round(size.height * scale),
+                    width: Math.round(size.width * scale),
+                  })
+                ),
+            };
+          },
+        };
+      },
     },
-  },
-  SaveFormat: { JPEG: "jpeg", PNG: "png", WEBP: "webp" },
-}));
+    SaveFormat: { JPEG: "jpeg", PNG: "png", WEBP: "webp" },
+  })
+);
 
 const mockLaunchImageLibrary =
   jest.fn<(options: unknown) => Promise<unknown>>();
 
 const mockCaptureException = jest.fn();
 
-jest.mock("@sentry/react-native", () => ({
-  captureException: (error: unknown) => mockCaptureException(error),
-}));
+jest.mock<typeof import("@sentry/react-native")>(
+  import("@sentry/react-native"),
+  () => ({
+    captureException: (error: unknown) => mockCaptureException(error),
+  })
+);
 
-jest.mock("expo-image-picker", () => ({
-  launchImageLibraryAsync: (options: unknown) =>
-    mockLaunchImageLibrary(options),
-}));
+jest.mock<typeof import("expo-image-picker")>(
+  import("expo-image-picker"),
+  () => ({
+    launchImageLibraryAsync: (options: unknown) =>
+      mockLaunchImageLibrary(options),
+  })
+);
 
 /** What the picker answers for images the User picked. */
 const picks = (...uris: string[]) => ({
@@ -115,7 +133,7 @@ beforeEach(() => {
   mockLaunchImageLibrary.mockReset();
 });
 
-describe("pickLibraryPhotos", () => {
+describe(pickLibraryPhotos, () => {
   it("asks the system picker for images only, up to the slots left", async () => {
     mockLaunchImageLibrary.mockResolvedValue(picks("file:///a.heic"));
 
@@ -157,7 +175,7 @@ describe("pickLibraryPhotos", () => {
   it("answers nothing, and re-encodes nothing, when the User cancels", async () => {
     mockLaunchImageLibrary.mockResolvedValue({ assets: null, canceled: true });
 
-    expect(await pickLibraryPhotos(4)).toBeNull();
+    await expect(pickLibraryPhotos(4)).resolves.toBeNull();
     expect(mockManipulated).toEqual([]);
   });
 
@@ -176,11 +194,11 @@ describe("pickLibraryPhotos", () => {
     expect(picked?.failed).toBe(1);
     // Reported, so a format that always fails shows up rather than being
     // silently dropped.
-    expect(mockCaptureException).toHaveBeenCalledTimes(1);
+    expect(mockCaptureException).toHaveBeenCalledOnce();
   });
 });
 
-describe("shrinkToJpeg", () => {
+describe(shrinkToJpeg, () => {
   it("leaves an image the decode bounds already fit at its size", async () => {
     mockDecoded.set("file:///small.jpg", { height: 900, width: 1200 });
 

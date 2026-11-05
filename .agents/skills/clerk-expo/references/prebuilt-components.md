@@ -2,10 +2,10 @@
 
 The default "add auth" path. `AuthView`, `UserButton`, and `UserProfileView` render Clerk's native UI — SwiftUI on iOS, Jetpack Compose on Android — and handle every enabled auth strategy (password, OTP, social, MFA) with no flow code.
 
-> Canonical docs (fetch to re-verify if the installed SDK is newer than 3.6.x):
-> https://clerk.com/docs/reference/expo/native-components/overview — plus `auth-view`, `user-button`, `user-profile-view`, `theming` pages alongside it
+> Canonical docs (fetch to re-verify if the installed SDK is newer than 3.6.x): https://clerk.com/docs/reference/expo/native-components/overview — plus `auth-view`, `user-button`, `user-profile-view`, `theming` pages alongside it
 
 **Status and requirements — tell the developer up front:**
+
 - Beta. Works well, but flag it before a production rollout decision.
 - Requires a development build (`npx expo run:ios` / `run:android`). Not Expo Go, not web.
 - Requires the `@clerk/expo` config plugin and a prebuild (see setup.md).
@@ -15,7 +15,7 @@ The default "add auth" path. `AuthView`, `UserButton`, and `UserProfileView` ren
 Import from `@clerk/expo/native`:
 
 | Component | Renders | Props |
-|-----------|---------|-------|
+| --- | --- | --- |
 | `AuthView` | Sign-in/sign-up UI, inline (fills parent) | `mode?: 'signInOrUp' \| 'signIn' \| 'signUp'` (default `signInOrUp`), `isDismissible?: boolean` (default true), `onDismiss?: () => void` |
 | `UserButton` | Avatar button that opens the native user profile | — |
 | `UserProfileView` | Profile/account management, inline | `isDismissible?`, `onDismiss?`, `style?` |
@@ -28,20 +28,24 @@ The components render inline; the app owns presentation. The docs pattern presen
 
 ```tsx
 // src/app/index.tsx
-import { useAuth } from '@clerk/expo'
-import { AuthView, UserButton } from '@clerk/expo/native'
-import { useState } from 'react'
-import { View, ActivityIndicator, Button, Modal } from 'react-native'
+import { useAuth } from "@clerk/expo";
+import { AuthView, UserButton } from "@clerk/expo/native";
+import { useState } from "react";
+import { View, ActivityIndicator, Button, Modal } from "react-native";
 
 export default function MainScreen() {
-  const { isSignedIn, isLoaded } = useAuth({ treatPendingAsSignedOut: false })
-  const [isAuthOpen, setIsAuthOpen] = useState(false)
+  const { isSignedIn, isLoaded } = useAuth({ treatPendingAsSignedOut: false });
+  const [isAuthOpen, setIsAuthOpen] = useState(false);
 
-  if (!isLoaded) return <ActivityIndicator size="large" />
+  if (!isLoaded) return <ActivityIndicator size="large" />;
 
   return (
-    <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-      {isSignedIn ? <UserButton /> : <Button title="Sign in" onPress={() => setIsAuthOpen(true)} />}
+    <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
+      {isSignedIn ? (
+        <UserButton />
+      ) : (
+        <Button title="Sign in" onPress={() => setIsAuthOpen(true)} />
+      )}
       <Modal
         animationType="slide"
         visible={isAuthOpen}
@@ -51,7 +55,7 @@ export default function MainScreen() {
         <AuthView onDismiss={() => setIsAuthOpen(false)} />
       </Modal>
     </View>
-  )
+  );
 }
 ```
 

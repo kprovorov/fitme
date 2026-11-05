@@ -15,6 +15,7 @@ import {
 } from "@expo/ui/swift-ui/modifiers";
 import type * as React from "react";
 import type { SFSymbol } from "sf-symbols-typescript";
+
 import {
   SwiftUIHost,
   useClassColor,
@@ -81,6 +82,7 @@ const DropdownMenu = ({
         <RNHostView matchContents>{children as React.ReactElement}</RNHostView>
       );
     }
+
     if (label) {
       return (
         <SwiftUILabel
@@ -90,6 +92,7 @@ const DropdownMenu = ({
         />
       );
     }
+
     return (
       <SwiftUIImage
         color={iconColor ?? theme.foreground}
@@ -134,4 +137,5 @@ const DropdownMenu = ({
 DropdownMenu.displayName = "DropdownMenu";
 
 export type { DropdownMenuItem, DropdownMenuProps };
+
 export { DropdownMenu };

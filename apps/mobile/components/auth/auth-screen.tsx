@@ -17,6 +17,7 @@ export interface AuthFormParts {
   action: ReactElement;
   fields: ReactNode;
 }
+
 export interface AuthFormLayout {
   children: (parts: AuthFormParts) => ReactNode;
   disabled?: boolean;
@@ -54,8 +55,9 @@ export function AuthScreen({
   const { height } = useWindowDimensions();
   const keyboard = useKeyboardState();
   const sticky = keyboard.isVisible === true;
+
   return (
-    <View className="flex-1 bg-background">
+    <View className="bg-background flex-1">
       <KeyboardAwareScrollView
         bottomOffset={82}
         className="flex-1"

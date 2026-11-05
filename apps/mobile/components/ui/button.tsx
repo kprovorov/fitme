@@ -1,5 +1,4 @@
 import {
-  type ButtonRole,
   Group,
   HStack,
   ProgressView,
@@ -9,6 +8,7 @@ import {
   Text as SwiftUIText,
   ZStack,
 } from "@expo/ui/swift-ui";
+import type { ButtonRole } from "@expo/ui/swift-ui";
 import {
   accessibilityHint as accessibilityHintModifier,
   accessibilityLabel as accessibilityLabelModifier,
@@ -26,12 +26,13 @@ import {
   padding,
   shapes,
   tint,
-  type ViewModifier,
 } from "@expo/ui/swift-ui/modifiers";
+import type { ViewModifier } from "@expo/ui/swift-ui/modifiers";
 import type * as React from "react";
 import { View } from "react-native";
 import type { SFSymbol } from "sf-symbols-typescript";
 import { useResolveClassNames } from "uniwind";
+
 import {
   childrenToLabel,
   FILL,
@@ -224,6 +225,7 @@ function useContentColor(
   // A Button can drop its color class (a set row's muted pencil turning into
   // its ✓), so this answers nothing once it has none.
   const override = useClassColor(colorClassName);
+
   return (
     override ??
     {
@@ -256,10 +258,12 @@ function buttonModifiers({
   variant: ButtonVariant;
 }): ViewModifier[] {
   const styles = GLASS_ENABLED ? GLASS_BUTTON_STYLE : SOLID_BUTTON_STYLE;
+
   // A painted circle draws its own fill, so the button itself stays plain.
   const style = paintsCircle
     ? buttonStyle("plain")
     : buttonStyle(styles[variant]);
+
   return [
     style,
     ...(paintsCircle
@@ -308,18 +312,23 @@ function frameModifiers({
   if (tokenHeight === undefined) {
     return [];
   }
+
   const hasNativeStyle = !(paintsCircle || variant === "ghost");
+
   if (hasNativeStyle) {
     if (hasText) {
       return [padding({ vertical: -LABEL_OVERHANG[size] })];
     }
+
     const content = tokenHeight - NATIVE_PADDING[size];
+
     return [
       frame(
         isCircle ? { height: content, width: content } : { height: content }
       ),
     ];
   }
+
   return isCircle
     ? [
         frame({ height: tokenHeight, width: tokenHeight }),
@@ -348,14 +357,17 @@ const Button = (props: ButtonProps) => {
     testID,
     variant = "default",
   } = props;
+
   const isCircle = shape === "circle";
   const paintsCircle = isCircle && !NATIVE_CIRCLE_ENABLED;
 
   const theme = useSwiftUITheme();
   const labelFont = useSwiftUIFont(LABEL_FONT_CLASS[size]);
+
   const tokenHeight = useResolveClassNames(SIZE_CLASS[shape][size]).height as
     | number
     | undefined;
+
   const contentColor = useContentColor(variant, contentColorClassName);
 
   // Circles and ghost buttons sit inline; everything else fills, as the
@@ -540,4 +552,5 @@ export type {
   CircleButtonProps,
   PillButtonProps,
 };
+
 export { Button };

@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+
 import {
   appLanguages,
   defaultAppLanguage,
@@ -6,14 +7,14 @@ import {
   resolveAppLanguage,
 } from "../models";
 
-describe("appLanguages", () => {
+describe(appLanguages, () => {
   it("lists every supported language, English the default", () => {
     expect(appLanguages).toEqual(["en", "uk", "es", "ca"]);
     expect(defaultAppLanguage).toBe("en");
   });
 });
 
-describe("isAppLanguage", () => {
+describe(isAppLanguage, () => {
   it("accepts an App language", () => {
     expect(isAppLanguage("en")).toBe(true);
     expect(isAppLanguage("uk")).toBe(true);
@@ -29,7 +30,7 @@ describe("isAppLanguage", () => {
   });
 });
 
-describe("resolveAppLanguage", () => {
+describe(resolveAppLanguage, () => {
   it("picks Ukrainian with or without a region", () => {
     expect(resolveAppLanguage(["uk"])).toBe("uk");
     expect(resolveAppLanguage(["uk-UA"])).toBe("uk");

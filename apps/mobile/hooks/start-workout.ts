@@ -1,13 +1,14 @@
 import { ApiError, rateLimitedFor } from "@fitme/api-client";
 import { useQueryClient } from "@tanstack/react-query";
 import { Alert } from "react-native";
+
 import {
   OPEN_WORKOUT_SESSION_QUERY_KEY,
-  type OpenWorkoutSession,
   seedWorkoutSession,
   useCreateWorkoutSessionMutation,
   useOpenWorkoutSessionQuery,
 } from "~/hooks/queries/workout-sessions";
+import type { OpenWorkoutSession } from "~/hooks/queries/workout-sessions";
 import { i18n } from "~/lib/i18n";
 import { isStillWriteStarter } from "~/lib/write-answers";
 
@@ -101,6 +102,7 @@ export function useStartWorkout(
 ) {
   const queryClient = useQueryClient();
   const { data: openSession } = useOpenWorkoutSessionQuery();
+
   const { mutate, isPending } = useCreateWorkoutSessionMutation({
     // Signed out (or another User signed in) before the answer: it's the
     // previous User's, so it neither shows, nor reads, nor opens anything.
@@ -108,25 +110,31 @@ export function useStartWorkout(
       if (!isStillWriteStarter(starter)) {
         return;
       }
+
       if (isSessionInProgress(error)) {
         await queryClient.invalidateQueries({
           queryKey: OPEN_WORKOUT_SESSION_QUERY_KEY,
         });
+
         if (!isStillWriteStarter(starter)) {
           return;
         }
+
         const open = queryClient.getQueryData<OpenWorkoutSession | null>(
           OPEN_WORKOUT_SESSION_QUERY_KEY
         );
+
         // The blocked state shows it; otherwise (finished meanwhile, or the
         // re-read failed) the press still gets an answer.
         if (open && open.workout?.id !== workoutId) {
           if (onContinueBlocking) {
             alertFinishFirst(open, onContinueBlocking);
           }
+
           return;
         }
       }
+
       alertStartFailed(rateLimitedFor(error));
     },
     onSuccess: async (workoutSession, _variables, starter) => {
@@ -138,15 +146,18 @@ export function useStartWorkout(
         workoutSession,
         [{ queryKey: OPEN_WORKOUT_SESSION_QUERY_KEY }]
       );
+
       if (seeded === "signed-out") {
         return;
       }
+
       onStarted(workoutSession.id);
     },
   });
 
   const blockedBy =
     openSession && openSession.workout?.id !== workoutId ? openSession : null;
+
   return {
     blockedBy,
     isStarting: isPending,

@@ -44,8 +44,10 @@ export function monthlyTotals(
   let elapsedMs = 0;
   let volume = 0;
   let workouts = 0;
+
   for (const session of sessions) {
     const startedAt = new Date(session.started_at);
+
     // `finished_at` again only for the type: a qualifying session has one.
     if (
       session.finished_at === null ||
@@ -54,6 +56,7 @@ export function monthlyTotals(
     ) {
       continue;
     }
+
     workouts += 1;
     elapsedMs += Math.max(
       0,
@@ -61,5 +64,6 @@ export function monthlyTotals(
     );
     volume += session.volume;
   }
+
   return { elapsedMs, volume: Math.round(volume * 100) / 100, workouts };
 }

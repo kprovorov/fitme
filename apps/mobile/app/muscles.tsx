@@ -3,6 +3,7 @@ import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 import { useCallback, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Pressable, ScrollView, View } from "react-native";
+
 import { SymbolImage } from "~/components/symbol-image";
 import { Separator } from "~/components/ui/separator";
 import { Text } from "~/components/ui/text";
@@ -33,7 +34,7 @@ function MuscleGroupRow({
       accessibilityLabel={label}
       accessibilityRole="checkbox"
       accessibilityState={{ checked }}
-      className="flex-row items-center gap-3 py-3 active:bg-muted"
+      className="active:bg-muted flex-row items-center gap-3 py-3"
       onPress={handlePress}
     >
       <SymbolImage
@@ -44,7 +45,7 @@ function MuscleGroupRow({
         }
         name={checked ? "checkmark.circle.fill" : "circle"}
       />
-      <Text className="flex-1 text-body">{label}</Text>
+      <Text className="text-body flex-1">{label}</Text>
     </Pressable>
   );
 }
@@ -61,6 +62,7 @@ export default function MusclesSheet() {
   const labels = useChoiceLabels();
   const router = useRouter();
   const { choice } = useLocalSearchParams<{ choice: string }>();
+
   const [draft, setDraft] = useState<readonly MuscleGroup[]>(() =>
     getMuscleChoice(choice)
   );

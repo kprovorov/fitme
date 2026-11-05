@@ -9,6 +9,7 @@ import {
   places,
 } from "@fitme/core";
 import { describe, expect, it } from "vitest";
+
 import { catalogs } from "..";
 
 // Every fixed choice the app shows, by its `choices` section: each section

@@ -15,6 +15,7 @@ export function SentryUser() {
     if (!isLoaded) {
       return;
     }
+
     Sentry.setUser(userId ? { id: userId } : null);
   }, [isLoaded, userId]);
 

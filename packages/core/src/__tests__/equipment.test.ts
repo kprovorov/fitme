@@ -1,8 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { type Equipment, equipment, isEquipment } from "../models";
+
+import { equipment, isEquipment } from "../models";
+import type { Equipment } from "../models";
 import { equipmentToName } from "../utils";
 
-describe("equipment", () => {
+describe(equipment, () => {
   it("lists every Equipment in order", () => {
     expect(equipment).toEqual([
       "barbell",
@@ -18,7 +20,7 @@ describe("equipment", () => {
   });
 });
 
-describe("isEquipment", () => {
+describe(isEquipment, () => {
   it.each(equipment)("accepts %s", (value) => {
     expect(isEquipment(value)).toBe(true);
   });
@@ -39,7 +41,7 @@ describe("isEquipment", () => {
   });
 });
 
-describe("equipmentToName", () => {
+describe(equipmentToName, () => {
   const names: Record<Equipment, string> = {
     barbell: "Barbell",
     bench: "Bench",

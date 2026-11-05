@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
-import { parseTokens, readTokens, type TokenKind } from "../index";
+
+import { parseTokens, readTokens } from "../index";
+import type { TokenKind } from "../index";
 
 const tokens = readTokens();
 
@@ -66,8 +68,10 @@ type RGB = [number, number, number];
 /** A color token as its [r, g, b] channels (0–255) and its alpha (0–1). */
 const channels = (name: string): { alpha: number; rgb: RGB } => {
   const hex = tokenValue("color", name)?.slice(1) ?? "";
+
   const channel = (index: number) =>
     Number.parseInt(hex.slice(index, index + 2), 16);
+
   return {
     alpha: hex.length === 8 ? channel(6) / 255 : 1,
     rgb: [channel(0), channel(2), channel(4)],
@@ -77,9 +81,11 @@ const channels = (name: string): { alpha: number; rgb: RGB } => {
 /** An opaque color token: something else is drawn on it. */
 const solid = (name: string): RGB => {
   const { alpha, rgb } = channels(name);
+
   if (alpha !== 1) {
     throw new Error(`${name} isn't opaque, so it can't be a surface`);
   }
+
   return rgb;
 };
 
@@ -87,6 +93,7 @@ const solid = (name: string): RGB => {
 const drawnOn = (name: string, surface: string): RGB => {
   const { alpha, rgb } = channels(name);
   const under = solid(surface);
+
   return rgb.map(
     (value, index) => value * alpha + under[index] * (1 - alpha)
   ) as RGB;
@@ -96,18 +103,22 @@ const drawnOn = (name: string, surface: string): RGB => {
 const luminance = (rgb: RGB) => {
   const [r, g, b] = rgb.map((value) => {
     const c = value / 255;
-    return c <= 0.040_45 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4;
+
+    return c <= 0.04045 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4;
   });
+
   return 0.2126 * r + 0.7152 * g + 0.0722 * b;
 };
 
 const contrast = (a: RGB, b: RGB) => {
   const [lighter, darker] = [luminance(a), luminance(b)].sort((x, y) => y - x);
+
   return (lighter + 0.05) / (darker + 0.05);
 };
 
 // WCAG 1.4.11: a UI component's boundary (a field stroke, a focus ring)
 const COMPONENT_BOUNDARY = 3;
+
 // WCAG 1.4.3, AA: body-size text
 const TEXT_AA = 4.5;
 
@@ -206,7 +217,7 @@ describe("size", () => {
   });
 });
 
-describe("parseTokens", () => {
+describe(parseTokens, () => {
   it("ignores comments and anything outside @theme", () => {
     const css = `
       :root { --color-stray: #000000; }
@@ -215,6 +226,7 @@ describe("parseTokens", () => {
         --color-primary: #c0ff38;
       }
     `;
+
     expect(parseTokens(css)).toEqual([
       {
         kind: "color",
@@ -252,6 +264,7 @@ describe("parseTokens", () => {
       --color-primary: #c0ff38;
       --Color-background: #1f1d20;
     }`;
+
     expect(() => parseTokens(css)).toThrow(
       "Malformed token name --Color-background"
     );

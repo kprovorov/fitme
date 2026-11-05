@@ -62,7 +62,7 @@
     @apply bg-background text-body text-foreground;
   }
   h1 {
-    @apply font-bold text-display-1 text-primary;
+    @apply text-display-1 text-primary font-bold;
   }
   h2 {
     @apply text-title-1-emphasized;

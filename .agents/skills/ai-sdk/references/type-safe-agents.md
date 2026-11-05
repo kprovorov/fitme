@@ -41,8 +41,9 @@ export const weatherTool = tool({
 ```ts
 // lib/agents/my-agent.ts
 import { ToolLoopAgent, InferAgentUIMessage } from "ai";
-import { weatherTool } from "../tools/weather-tool";
+
 import { calculatorTool } from "../tools/calculator-tool";
+import { weatherTool } from "../tools/weather-tool";
 
 export const myAgent = new ToolLoopAgent({
   model: "anthropic/claude-sonnet-4",
@@ -78,6 +79,7 @@ export type MyAgentUIMessage = InferAgentUIMessage<typeof myAgent, MyMetadata>;
 ```tsx
 // app/chat.tsx
 import { useChat } from "@ai-sdk/react";
+
 import type { MyAgentUIMessage } from "@/lib/agents/my-agent";
 
 export function Chat() {

@@ -1,54 +1,66 @@
 import { beforeEach, describe, expect, it, jest } from "@jest/globals";
 import { fireEvent, render, screen } from "@testing-library/react-native";
+import { it, describe, expect, beforeEach } from "vitest";
+
 import { WorkoutSessionFinishSuggestion } from "../workout-session-finish-suggestion";
 
 const mockDismiss = jest.fn();
 const mockFinish = jest.fn();
 const mockState = { isFinishing: false, isFocused: true, isSuggested: true };
 
-jest.mock("expo-router", () => ({
+jest.mock<typeof import("expo-router")>(import("expo-router"), () => ({
   useIsFocused: () => mockState.isFocused,
 }));
 
-jest.mock("~/hooks/finish-workout-suggestion", () => ({
-  useFinishWorkoutSuggestion: () => ({
-    dismiss: mockDismiss,
-    isSuggested: mockState.isSuggested,
-  }),
-}));
+jest.mock<typeof import("~/hooks/finish-workout-suggestion")>(
+  import("~/hooks/finish-workout-suggestion"),
+  () => ({
+    useFinishWorkoutSuggestion: () => ({
+      dismiss: mockDismiss,
+      isSuggested: mockState.isSuggested,
+    }),
+  })
+);
 
-jest.mock("~/hooks/finish-workout-session", () => ({
-  useFinishWorkoutSession: () => ({
-    finish: mockFinish,
-    isFinishing: mockState.isFinishing,
-  }),
-}));
+jest.mock<typeof import("~/hooks/finish-workout-session")>(
+  import("~/hooks/finish-workout-session"),
+  () => ({
+    useFinishWorkoutSession: () => ({
+      finish: mockFinish,
+      isFinishing: mockState.isFinishing,
+    }),
+  })
+);
 
 // Exposes the props the dialog was given; its own behavior has its own tests.
-jest.mock("../finish-workout-suggestion-dialog", () => {
-  const { Pressable, Text } =
-    jest.requireActual<typeof import("react-native")>("react-native");
-  return {
-    FinishWorkoutSuggestionDialog: ({
-      isFinishing,
-      onFinish,
-      onKeepTraining,
-      open,
-    }: {
-      isFinishing: boolean;
-      onFinish: () => void;
-      onKeepTraining: () => void;
-      open: boolean;
-    }) =>
-      open ? (
-        <>
-          <Text testID="finishing">{String(isFinishing)}</Text>
-          <Pressable onPress={onFinish} testID="finish" />
-          <Pressable onPress={onKeepTraining} testID="keep-training" />
-        </>
-      ) : null,
-  };
-});
+jest.mock<typeof import("../finish-workout-suggestion-dialog")>(
+  import("../finish-workout-suggestion-dialog"),
+  () => {
+    const { Pressable, Text } =
+      jest.requireActual<typeof import("react-native")>("react-native");
+
+    return {
+      FinishWorkoutSuggestionDialog: ({
+        isFinishing,
+        onFinish,
+        onKeepTraining,
+        open,
+      }: {
+        isFinishing: boolean;
+        onFinish: () => void;
+        onKeepTraining: () => void;
+        open: boolean;
+      }) =>
+        open ? (
+          <>
+            <Text testID="finishing">{String(isFinishing)}</Text>
+            <Pressable onPress={onFinish} testID="finish" />
+            <Pressable onPress={onKeepTraining} testID="keep-training" />
+          </>
+        ) : null,
+    };
+  }
+);
 
 const renderSuggestion = (isFinished = false) =>
   render(
@@ -58,7 +70,7 @@ const renderSuggestion = (isFinished = false) =>
     />
   );
 
-describe("WorkoutSessionFinishSuggestion", () => {
+describe(WorkoutSessionFinishSuggestion, () => {
   beforeEach(() => {
     jest.clearAllMocks();
     Object.assign(mockState, {
@@ -93,7 +105,7 @@ describe("WorkoutSessionFinishSuggestion", () => {
     await renderSuggestion(true);
 
     expect(screen.queryByTestId("finish")).toBeNull();
-    expect(mockDismiss).toHaveBeenCalledTimes(1);
+    expect(mockDismiss).toHaveBeenCalledOnce();
   });
 
   it("finishes through the shared finish", async () => {
@@ -102,7 +114,7 @@ describe("WorkoutSessionFinishSuggestion", () => {
 
     fireEvent.press(screen.getByTestId("finish"));
 
-    expect(mockFinish).toHaveBeenCalledTimes(1);
+    expect(mockFinish).toHaveBeenCalledOnce();
     expect(mockDismiss).not.toHaveBeenCalled();
     expect(screen.getByTestId("finishing").props.children).toBe("true");
   });
@@ -112,7 +124,7 @@ describe("WorkoutSessionFinishSuggestion", () => {
 
     fireEvent.press(screen.getByTestId("keep-training"));
 
-    expect(mockDismiss).toHaveBeenCalledTimes(1);
+    expect(mockDismiss).toHaveBeenCalledOnce();
     expect(mockFinish).not.toHaveBeenCalled();
   });
 });

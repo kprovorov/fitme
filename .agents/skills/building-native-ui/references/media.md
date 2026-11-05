@@ -10,15 +10,15 @@
 - Lazily request media library permission
 
 ```tsx
+import { CameraView, CameraType, useCameraPermissions } from "expo-camera";
+import { GlassView } from "expo-glass-effect";
+import * as Haptics from "expo-haptics";
+import * as ImagePicker from "expo-image-picker";
+import * as MediaLibrary from "expo-media-library";
+import { SymbolView } from "expo-symbols";
 import React, { useRef, useState } from "react";
 import { View, TouchableOpacity, Text, Alert } from "react-native";
-import { CameraView, CameraType, useCameraPermissions } from "expo-camera";
-import * as MediaLibrary from "expo-media-library";
-import * as ImagePicker from "expo-image-picker";
-import * as Haptics from "expo-haptics";
-import { SymbolView } from "expo-symbols";
 import { PlatformColor } from "react-native";
-import { GlassView } from "expo-glass-effect";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 function Camera({ onPicture }: { onPicture: (uri: string) => Promise<void> }) {
@@ -181,8 +181,8 @@ function App() {
 Use `expo-video` not `expo-av`:
 
 ```tsx
-import { useVideoPlayer, VideoView } from "expo-video";
 import { useEvent } from "expo";
+import { useVideoPlayer, VideoView } from "expo-video";
 
 const videoSource = "https://example.com/video.mp4";
 

@@ -1,12 +1,10 @@
 import { pickCovers } from "@fitme/core/covers";
-import {
-  type ExerciseSummary,
-  exerciseNameFromSlug,
-  type Library,
-} from "@fitme/library-sdk";
+import { exerciseNameFromSlug } from "@fitme/library-sdk";
+import type { ExerciseSummary, Library } from "@fitme/library-sdk";
 import type { PlanDetail } from "@fitme/services/plans";
 import type { WorkoutSessionDetail } from "@fitme/services/workout-sessions";
 import { z } from "zod";
+
 import type { ToolContext } from "../context.js";
 import { ToolError } from "./helpers.js";
 
@@ -36,6 +34,7 @@ export async function fromLibrary<T>(
   call: (library: Library) => Promise<T>
 ): Promise<T> {
   const library = ctx.getLibrary();
+
   try {
     return await call(library);
   } catch (error) {
@@ -59,11 +58,13 @@ export async function requireKnownSlugs(
   const { data, missing } = await fromLibrary(ctx, (library) =>
     library.lookup(slugs)
   );
+
   if (missing.length > 0) {
     throw new ToolError(
       `Unknown exercise_slug(s): ${missing.join(", ")}. Use list_exercises to look up valid Exercise slugs.`
     );
   }
+
   return bySlug(data);
 }
 
@@ -79,8 +80,9 @@ export async function withCovers<W extends { exercises: WithSlug[] }>(
   ctx: ToolContext,
   workouts: W[],
   known: KnownExercises
-): Promise<Array<W & { cover: string | null }>> {
+): Promise<(W & { cover: string | null })[]> {
   const covers = await fromLibrary(ctx, (library) => library.covers());
+
   const picked = pickCovers({
     covers: covers.map((cover) => ({
       id: cover.id,
@@ -92,6 +94,7 @@ export async function withCovers<W extends { exercises: WithSlug[] }>(
       })),
     })),
   });
+
   return workouts.map((workout, index) => ({
     ...workout,
     cover: picked[index] ?? null,
@@ -113,6 +116,7 @@ export async function lookupForRead(
     if (!(error instanceof ToolError)) {
       await ctx.reportError(error);
     }
+
     return new Map();
   }
 }
@@ -120,6 +124,7 @@ export async function lookupForRead(
 /** An Exercise as the tools show it: its slug, name and muscle groups. */
 const exerciseRef = (slug: string, known: KnownExercises) => {
   const exercise = known.get(slug);
+
   return {
     exercise_slug: slug,
     muscle_groups: exercise?.muscle_groups ?? [],

@@ -8,6 +8,7 @@ import { formatNumber, formatUnit } from "@fitme/i18n";
 import { useIsFocused } from "expo-router";
 import { useTranslation } from "react-i18next";
 import { useWindowDimensions, View } from "react-native";
+
 import { Text } from "~/components/ui/text";
 import type { WorkoutSession } from "~/hooks/queries/workout-sessions";
 import { useNow } from "~/hooks/use-now";
@@ -58,10 +59,11 @@ function Stat({
 export function StatRow({
   stats,
 }: {
-  stats: Array<{ label: string; value: string }>;
+  stats: { label: string; value: string }[];
 }) {
   const { fontScale } = useWindowDimensions();
   const stacked = fontScale > STACKED_FONT_SCALE;
+
   return (
     <View className={stacked ? "gap-3" : "flex-row gap-2"}>
       {stats.map(({ label, value }) => (
@@ -86,13 +88,16 @@ export default function WorkoutSessionStats({
   const now = useNow(!isFinished && isFocused);
 
   const startedAt = new Date(workoutSession.started_at).getTime();
+
   const endedAt = workoutSession.finished_at
     ? new Date(workoutSession.finished_at).getTime()
     : now;
+
   const totalSets = workoutSession.exercises.reduce(
     (total, exercise) => total + exercise.sets.length,
     0
   );
+
   const volume = sessionVolume(workoutSession.exercises);
 
   const progress = [...workoutSession.exercises]
@@ -101,6 +106,7 @@ export default function WorkoutSessionStats({
       id: exercise.id,
       state: exerciseProgress(exercise.sets).state,
     }));
+
   const doneCount = progress.filter(({ state }) => state === "done").length;
 
   return (

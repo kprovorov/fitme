@@ -1,22 +1,26 @@
-import { type MuscleGroup, muscleGroups } from "@fitme/core";
+import { muscleGroups } from "@fitme/core";
+import type { MuscleGroup } from "@fitme/core";
 import { asUser, profiles } from "@fitme/db";
 import type { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { beforeAll, describe, expect, it } from "vitest";
+
 import {
   callError,
   callOk,
   connectAs,
   createTestUser,
-  type ExercisePage,
-  type ExerciseRow,
   INTEGRATION_COVERS,
-  type PlanDetail,
-  type PlanSummary,
   pickExercises,
   planInput,
-  type SessionDetail,
-  type SessionPage,
-  type TestUser,
+} from "./setup.js";
+import type {
+  ExercisePage,
+  ExerciseRow,
+  PlanDetail,
+  PlanSummary,
+  SessionDetail,
+  SessionPage,
+  TestUser,
 } from "./setup.js";
 
 const isMuscleGroup = (value: string): value is MuscleGroup =>
@@ -36,9 +40,11 @@ describe("plan and workout flow against the local stack", () => {
 
   const workoutNamed = (detail: PlanDetail, name: string) => {
     const workout = detail.workouts.find((item) => item.name === name);
+
     if (!workout) {
       throw new Error(`Workout ${name} not in plan ${detail.id}`);
     }
+
     return workout;
   };
 
@@ -65,6 +71,7 @@ describe("plan and workout flow against the local stack", () => {
       client,
       "get_profile"
     );
+
     expect(profile).toMatchObject({
       measurement_system: "us",
       units: { height: "in", weight: "lbs" },
@@ -74,15 +81,18 @@ describe("plan and workout flow against the local stack", () => {
   it("searches the exercise library and pages past the end", async () => {
     const [first] = exercises;
     const muscleGroup = first.muscle_groups.find(isMuscleGroup);
+
     const found = await callOk<ExercisePage>(client, "list_exercises", {
       search: first.name,
       ...(muscleGroup ? { muscleGroup } : {}),
     });
+
     expect(found.exercises.map((row) => row.slug)).toContain(first.slug);
 
     const all = await callOk<ExercisePage>(client, "list_exercises", {
       limit: 1,
     });
+
     expect(all.total).toBeGreaterThanOrEqual(2);
     expect(all.hasMore).toBe(true);
 
@@ -90,6 +100,7 @@ describe("plan and workout flow against the local stack", () => {
     const pastEnd = await callOk<ExercisePage>(client, "list_exercises", {
       offset: all.total + 10,
     });
+
     expect(pastEnd).toMatchObject({
       exercises: [],
       hasMore: false,
@@ -101,6 +112,7 @@ describe("plan and workout flow against the local stack", () => {
       "get_exercise",
       { exerciseSlug: first.slug }
     );
+
     expect(detail.slug).toBe(first.slug);
     expect(detail.instructions).toBeTruthy();
   });
@@ -140,6 +152,7 @@ describe("plan and workout flow against the local stack", () => {
     const stored = await callOk<PlanDetail>(client, "get_plan", {
       planId: plan.id,
     });
+
     expect(stored.workouts.map(({ cover, name }) => ({ cover, name }))).toEqual(
       [
         { cover: INTEGRATION_COVERS.quadriceps.id, name: "Day A" },
@@ -152,6 +165,7 @@ describe("plan and workout flow against the local stack", () => {
     const input = planInput(exercises, "Broken plan");
     const unknownSlug = "not-in-the-library";
     const [dayA] = input.workouts;
+
     const message = await callError(client, "create_plan", {
       ...input,
       workouts: [
@@ -161,6 +175,7 @@ describe("plan and workout flow against the local stack", () => {
         },
       ],
     });
+
     expect(message).toContain(unknownSlug);
   });
 
@@ -168,6 +183,7 @@ describe("plan and workout flow against the local stack", () => {
     const fetched = await callOk<PlanDetail>(client, "get_plan", {
       planId: plan.id,
     });
+
     expect(fetched).toEqual(plan);
   });
 
@@ -211,6 +227,7 @@ describe("plan and workout flow against the local stack", () => {
       "activate_plan",
       { planId: plan.id }
     );
+
     expect(summary).toMatchObject({ id: plan.id, is_active: true });
 
     const plans = await callOk<PlanSummary[]>(client, "list_plans");
@@ -221,6 +238,7 @@ describe("plan and workout flow against the local stack", () => {
 
   it("starts a session from a workout and resumes it", async () => {
     const dayA = workoutNamed(plan, "Day A");
+
     const started = await callOk<{ resumed: boolean; session: SessionDetail }>(
       client,
       "start_workout_session",
@@ -262,6 +280,7 @@ describe("plan and workout flow against the local stack", () => {
       "start_workout_session",
       { workoutId: dayA.id }
     );
+
     expect(resumed).toEqual({ resumed: true, session });
   });
 
@@ -272,11 +291,13 @@ describe("plan and workout flow against the local stack", () => {
       setId,
       weightCompleted: 50,
     });
+
     const logged = await callOk<Record<string, unknown>>(client, "log_set", {
       repsCompleted: 7,
       setId,
       weightCompleted: 62.5,
     });
+
     expect(logged).toMatchObject({
       id: setId,
       reps_completed: 7,
@@ -296,6 +317,7 @@ describe("plan and workout flow against the local stack", () => {
     const open = await callOk<SessionPage>(client, "list_workout_sessions", {
       status: "in_progress",
     });
+
     expect(open.sessions).toEqual([
       expect.objectContaining({
         id: session.id,
@@ -312,6 +334,7 @@ describe("plan and workout flow against the local stack", () => {
       rotated: boolean;
       session: SessionDetail;
     }>(client, "finish_workout_session", { sessionId: session.id });
+
     expect(finished).toMatchObject({
       alreadyFinished: false,
       rotated: true,
@@ -321,6 +344,7 @@ describe("plan and workout flow against the local stack", () => {
     const rotated = await callOk<PlanDetail>(client, "get_plan", {
       planId: plan.id,
     });
+
     expect(rotated.workouts.map((workout) => workout.name)).toEqual([
       "Day B",
       "Day A",
@@ -331,6 +355,7 @@ describe("plan and workout flow against the local stack", () => {
       "finish_workout_session",
       { sessionId: session.id }
     );
+
     expect(again).toMatchObject({ alreadyFinished: true, rotated: false });
 
     const message = await callError(client, "log_set", {
@@ -338,6 +363,7 @@ describe("plan and workout flow against the local stack", () => {
       setId: session.exercises[0]?.sets[1]?.id,
       weightCompleted: 1,
     });
+
     expect(message).toContain("finished");
   });
 
@@ -349,21 +375,25 @@ describe("plan and workout flow against the local stack", () => {
         status: "finished",
       }
     );
+
     expect(finished.sessions.map((item) => item.id)).toEqual([session.id]);
 
     const open = await callOk<SessionPage>(client, "list_workout_sessions", {
       status: "in_progress",
     });
+
     expect(open).toMatchObject({ sessions: [], total: 0 });
 
     const pastEnd = await callOk<SessionPage>(client, "list_workout_sessions", {
       offset: 5,
     });
+
     expect(pastEnd).toMatchObject({ hasMore: false, sessions: [], total: 1 });
   });
 
   it("returns the logged set in the exercise history", async () => {
     const [first] = exercises;
+
     const history = await callOk<{
       entries: { session_id: string; sets: Record<string, unknown>[] }[];
     }>(client, "get_exercise_history", { exerciseSlug: first.slug });
@@ -384,6 +414,7 @@ describe("plan and workout flow against the local stack", () => {
 
   it("replaces workouts and keeps past sessions' logged sets", async () => {
     const input = planInput(exercises);
+
     const replaced = await callOk<PlanDetail>(client, "update_plan", {
       planId: plan.id,
       workouts: [...input.workouts].reverse(),
@@ -395,12 +426,15 @@ describe("plan and workout flow against the local stack", () => {
       "Day A",
     ]);
     const oldIds = new Set(plan.workouts.map((workout) => workout.id));
+
     for (const workout of replaced.workouts) {
       expect(oldIds.has(workout.id)).toBe(false);
     }
+
     const stored = await callOk<PlanDetail>(client, "get_plan", {
       planId: plan.id,
     });
+
     expect(stored.workouts.map(({ cover, name }) => ({ cover, name }))).toEqual(
       [
         { cover: INTEGRATION_COVERS.back.id, name: "Day B" },
@@ -412,6 +446,7 @@ describe("plan and workout flow against the local stack", () => {
     const past = await callOk<SessionDetail>(client, "get_workout_session", {
       sessionId: session.id,
     });
+
     expect(past).toMatchObject({
       plan: { id: plan.id },
       status: "finished",
@@ -440,6 +475,7 @@ describe("plan and workout flow against the local stack", () => {
       rotated: boolean;
       session: SessionDetail;
     }>(client, "finish_workout_session", { sessionId: open.id });
+
     expect(finished).toMatchObject({
       alreadyFinished: false,
       rotated: false,
@@ -449,6 +485,7 @@ describe("plan and workout flow against the local stack", () => {
     const deleted = await callOk(client, "delete_workout_session", {
       sessionId: open.id,
     });
+
     expect(deleted).toEqual({ deleted: true, sessionId: open.id });
     await callError(client, "get_workout_session", { sessionId: open.id });
     await callError(client, "delete_workout_session", { sessionId: open.id });
@@ -458,6 +495,7 @@ describe("plan and workout flow against the local stack", () => {
     const deleted = await callOk(client, "delete_plan", {
       planId: otherPlan.id,
     });
+
     expect(deleted).toEqual({
       alreadyDeleted: false,
       deleted: true,
@@ -467,6 +505,7 @@ describe("plan and workout flow against the local stack", () => {
     const again = await callOk(client, "delete_plan", {
       planId: otherPlan.id,
     });
+
     expect(again).toMatchObject({ alreadyDeleted: true, deleted: true });
 
     await callError(client, "get_plan", { planId: otherPlan.id });

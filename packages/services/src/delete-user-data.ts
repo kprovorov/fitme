@@ -5,7 +5,6 @@ import {
   plans,
   profiles,
   retiredUserIdsInPrivate,
-  type Transaction,
   weeklyGoalChanges,
   workoutExerciseSets,
   workoutExercises,
@@ -14,6 +13,7 @@ import {
   workoutSessions,
   workouts,
 } from "@fitme/db";
+import type { Transaction } from "@fitme/db";
 import { and, eq, isNotNull, sql } from "drizzle-orm";
 
 /**
@@ -98,6 +98,7 @@ export const deleteUserData = async (
         isNotNull(retiredUserIdsInPrivate.rekeyedTo)
       )
     );
+
   if (rekeyed) {
     throw new UserRekeyedError(userId);
   }

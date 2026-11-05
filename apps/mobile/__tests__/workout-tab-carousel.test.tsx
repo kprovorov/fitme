@@ -1,10 +1,9 @@
+import type { MuscleGroup } from "@fitme/core";
 /**
  * The Workout tab's carousel on the mounted-screen seam: the real tab screen
  * with the Public API swapped for its fake and the Library for its fake
  * (both from `test-utils/`).
  */
-
-import type { MuscleGroup } from "@fitme/core";
 import { beforeEach, describe, expect, it, jest } from "@jest/globals";
 import { QueryClientProvider } from "@tanstack/react-query";
 import {
@@ -15,6 +14,8 @@ import {
   within,
 } from "@testing-library/react-native";
 import { Alert, ScrollView } from "react-native";
+import { it, describe, expect, beforeEach } from "vitest";
+
 import HomeScreen from "~/app/(tabs)/(home)/index";
 import { libraryExercise, serveLibrary } from "~/test-utils/fake-library";
 import {
@@ -26,7 +27,7 @@ import { createTestQueryClient, settle } from "~/test-utils/query-client";
 
 const mockPush = jest.fn();
 
-jest.mock("expo-router", () => ({
+jest.mock<typeof import("expo-router")>(import("expo-router"), () => ({
   Link: ({ children }: { children: unknown }) => children,
   Stack: { Screen: () => null },
   useNavigation: () => ({}),
@@ -39,31 +40,44 @@ jest.mock("expo-router", () => ({
   }),
 }));
 
-jest.mock("@clerk/expo", () => ({
+jest.mock<typeof import("@clerk/expo")>(import("@clerk/expo"), () => ({
   useUser: () => ({ isLoaded: true, user: { id: "user-1" } }),
 }));
 
-jest.mock("react-native-purchases", () => ({
-  __esModule: true,
-  default: { invalidateCustomerInfoCache: () => Promise.resolve() },
-}));
+jest.mock<typeof import("react-native-purchases")>(
+  import("react-native-purchases"),
+  () => ({
+    __esModule: true,
+    default: { invalidateCustomerInfoCache: () => Promise.resolve() },
+  })
+);
 
 // The real Clerk SDK (reached through the Workout cards) opens a MessagePort
 // at import that keeps Jest alive.
-jest.mock("~/lib/clerk", () => ({
+jest.mock<typeof import("~/lib/clerk")>(import("~/lib/clerk"), () => ({
   getCurrentUserId: () =>
     jest.requireActual<typeof import("~/test-utils/fake-public-api")>(
       "~/test-utils/fake-public-api"
     ).FAKE_USER_ID,
 }));
 
-jest.mock("~/lib/segment", () => ({ segmentClient: { track: jest.fn() } }));
-jest.mock("~/components/symbol-image", () => ({ SymbolImage: () => null }));
-jest.mock("~/components/ui/dropdown-menu", () =>
-  jest.requireActual("~/test-utils/dropdown-menu-stub")
+jest.mock<typeof import("~/lib/segment")>(import("~/lib/segment"), () => ({
+  segmentClient: { track: jest.fn() },
+}));
+
+jest.mock<typeof import("~/components/symbol-image")>(
+  import("~/components/symbol-image"),
+  () => ({ SymbolImage: () => null })
 );
-jest.mock("~/components/ui/button", () =>
-  jest.requireActual("~/test-utils/button-stub")
+
+jest.mock<typeof import("~/components/ui/dropdown-menu")>(
+  import("~/components/ui/dropdown-menu"),
+  () => jest.requireActual("~/test-utils/dropdown-menu-stub")
+);
+
+jest.mock<typeof import("~/components/ui/button")>(
+  import("~/components/ui/button"),
+  () => jest.requireActual("~/test-utils/button-stub")
 );
 
 const START = "POST /v1/workout-sessions";
@@ -82,10 +96,12 @@ const LEGS_SESSION_PATH =
 let queryClient = createTestQueryClient();
 
 type AlertButtons = Parameters<typeof Alert.alert>[2];
+
 const pressAlertButton = async (text: string) => {
   const buttons = jest.mocked(Alert.alert).mock.calls.at(-1)?.[2] as
     | AlertButtons
     | undefined;
+
   const button = buttons?.find((candidate) => candidate.text === text);
   await act(() => button?.onPress?.());
 };
@@ -113,6 +129,7 @@ const cardNames = () =>
 const openSessionOf = (workoutId: string, workoutName: string) => {
   backend.seed({ exercises: [], id: "s1" });
   const session = backend.sessions.find(({ id }) => id === "s1");
+
   if (session) {
     session.workout_id = workoutId;
     session.workoutName = workoutName;
@@ -124,7 +141,7 @@ const cardOf = (workoutId: string) =>
 
 beforeEach(() => {
   jest.clearAllMocks();
-  jest.spyOn(Alert, "alert").mockImplementation(() => undefined);
+  jest.spyOn(Alert, "alert").mockReturnValue(undefined);
   backend.reset();
   backend.seedProfile(FAKE_USER_ID);
   serveLibrary([
@@ -170,7 +187,7 @@ beforeEach(() => {
   });
 });
 
-describe("The Workout tab's carousel", () => {
+describe("the Workout tab's carousel", () => {
   it("shows the Next Workout first, then the rest in rotation order", async () => {
     await mount();
 

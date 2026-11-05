@@ -1,6 +1,7 @@
 import Constants from "expo-constants";
 import { useTranslation } from "react-i18next";
 import { Platform } from "react-native";
+
 import { Button } from "~/components/ui/button";
 import { Text } from "~/components/ui/text";
 import { H3 } from "~/components/ui/typography";
@@ -10,9 +11,11 @@ import { openUrl } from "~/lib/external-links";
 /** The app's App Store or Play Store listing, if the platform has one. */
 const getStoreUrl = () => {
   const { expoConfig } = Constants;
+
   if (Platform.OS === "ios") {
     return expoConfig?.ios?.appStoreUrl;
   }
+
   if (Platform.OS === "android" && expoConfig?.android?.package) {
     return `https://play.google.com/store/apps/details?id=${expoConfig.android.package}`;
   }
@@ -29,10 +32,11 @@ const openStore = () => {
 /** Blocking screen for a build older than the minimum supported version. */
 export default function UpdateRequiredView() {
   const { t } = useTranslation();
+
   return (
-    <VStack className="flex-1 items-center justify-center gap-4 bg-background p-lg">
+    <VStack className="bg-background p-lg flex-1 items-center justify-center gap-4">
       <H3 className="text-center">{t("updateRequired.title")}</H3>
-      <Text className="text-center text-body-emphasized text-muted-foreground">
+      <Text className="text-body-emphasized text-muted-foreground text-center">
         {t("updateRequired.description")}
       </Text>
       {STORE_URL ? (

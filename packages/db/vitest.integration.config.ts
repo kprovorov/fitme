@@ -1,4 +1,5 @@
 import { defineConfig } from "vitest/config";
+
 import { localDatabaseUrl } from "./integration/local-database-url";
 
 /**

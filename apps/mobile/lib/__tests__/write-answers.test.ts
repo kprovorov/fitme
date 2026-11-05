@@ -5,12 +5,14 @@
  */
 import { afterEach, describe, expect, it, jest } from "@jest/globals";
 import { QueryObserver } from "@tanstack/react-query";
+import { afterEach, describe, expect, it } from "vitest";
+
 import { rememberWriteStarter, seedWriteAnswer } from "~/lib/write-answers";
 import { FAKE_USER_ID } from "~/test-utils/fake-public-api";
 import { createTestQueryClient } from "~/test-utils/query-client";
 import { signInAs } from "~/test-utils/signed-in-user";
 
-jest.mock("~/lib/clerk", () => ({
+jest.mock<typeof import("~/lib/clerk")>(import("~/lib/clerk"), () => ({
   getCurrentUserId: jest.requireActual<
     typeof import("~/test-utils/signed-in-user")
   >("~/test-utils/signed-in-user").getCurrentUserId,
@@ -26,20 +28,25 @@ const watched = (
   answer: () => Promise<unknown>
 ) => {
   const counter = { reads: 0 };
+
   const observer = new QueryObserver(client, {
     queryFn: () => {
       counter.reads += 1;
+
       return answer();
     },
     queryKey,
   });
-  const unsubscribe = observer.subscribe(() => undefined);
+
+  const unsubscribe = observer.subscribe(() => {});
+
   return { counter, unsubscribe };
 };
 
 const flush = () => new Promise((resolve) => setTimeout(resolve, 0));
 
-const unsubscribers: Array<() => void> = [];
+const unsubscribers: (() => void)[] = [];
+
 afterEach(() => {
   for (const unsubscribe of unsubscribers.splice(0)) {
     unsubscribe();
@@ -53,14 +60,16 @@ const setUp = async (seededAnswer: () => Promise<unknown>) => {
   const other = watched(client, OTHER, () => Promise.resolve("other"));
   unsubscribers.push(seeded.unsubscribe, other.unsubscribe);
   await flush();
+
   return { client, other: other.counter, seeded: seeded.counter };
 };
 
-describe("seedWriteAnswer", () => {
+describe(seedWriteAnswer, () => {
   it("shows the answer without reading the query again, then invalidates the rest", async () => {
     const { client, other, seeded } = await setUp(() =>
       Promise.resolve("before")
     );
+
     const starter = rememberWriteStarter(client, [SEEDED]);
 
     const result = await seedWriteAnswer(client, starter, {
@@ -77,6 +86,7 @@ describe("seedWriteAnswer", () => {
 
   it("reads the query again when a read landed after the write started, in the same millisecond", async () => {
     const clock = jest.spyOn(Date, "now").mockReturnValue(1_000_000);
+
     try {
       let value = "before";
       const { client, seeded } = await setUp(() => Promise.resolve(value));
@@ -118,6 +128,7 @@ describe("seedWriteAnswer", () => {
     const { client, seeded } = await setUp(() =>
       Promise.resolve({ system: "metric" })
     );
+
     const starter = rememberWriteStarter(client, [SEEDED]);
     await client.resetQueries({ queryKey: SEEDED });
     await flush();
@@ -139,9 +150,11 @@ describe("seedWriteAnswer", () => {
     client.clear();
     signInAs(null);
     signInAs(FAKE_USER_ID);
+
     const again = watched(client, SEEDED, () =>
       Promise.resolve({ weight: 65 })
     );
+
     unsubscribers.push(again.unsubscribe);
     await flush();
 
@@ -159,6 +172,7 @@ describe("seedWriteAnswer", () => {
     const { client, other, seeded } = await setUp(() =>
       Promise.resolve("before")
     );
+
     const starter = rememberWriteStarter(client, [SEEDED]);
     signInAs("user_next");
 
@@ -177,6 +191,7 @@ describe("seedWriteAnswer", () => {
   it("invalidates nothing else when the User signs out while the query is read again", async () => {
     let releaseRead = () => undefined as unknown;
     let value = "before";
+
     const { client, other } = await setUp(() =>
       value === "held"
         ? new Promise<string>((resolve) => {
@@ -184,6 +199,7 @@ describe("seedWriteAnswer", () => {
           })
         : Promise.resolve(value)
     );
+
     const starter = rememberWriteStarter(client, [SEEDED]);
     value = "newer";
     await client.refetchQueries({ queryKey: SEEDED });
@@ -194,6 +210,7 @@ describe("seedWriteAnswer", () => {
       answer: "older answer",
       queryKey: SEEDED,
     });
+
     await flush();
     // Signed out while the query is read again, and another User signs in.
     signInAs("user_next");

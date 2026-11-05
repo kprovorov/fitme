@@ -33,13 +33,13 @@ function SectionHeading({
         </p>
       ) : null}
       <h2
-        className="text-balance font-bold text-display-2 tracking-tight sm:text-display-1"
+        className="text-display-2 sm:text-display-1 font-bold tracking-tight text-balance"
         id={id}
       >
         {title}
       </h2>
       {description ? (
-        <p className="text-pretty text-body text-muted-foreground">
+        <p className="text-body text-muted-foreground text-pretty">
           {description}
         </p>
       ) : null}

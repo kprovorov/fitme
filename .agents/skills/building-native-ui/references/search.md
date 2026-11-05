@@ -58,8 +58,8 @@ headerSearchBarOptions: {
 Reusable hook for search state management:
 
 ```tsx
-import { useEffect, useState } from "react";
 import { useNavigation } from "expo-router";
+import { useEffect, useState } from "react";
 
 export function useSearch(options: any = {}) {
   const [search, setSearch] = useState("");
@@ -97,7 +97,7 @@ function SearchScreen() {
   const search = useSearch({ placeholder: "Search items..." });
 
   const filteredItems = items.filter((item) =>
-    item.name.toLowerCase().includes(search.toLowerCase()),
+    item.name.toLowerCase().includes(search.toLowerCase())
   );
 
   return (
@@ -115,7 +115,7 @@ function SearchScreen() {
 
 ```tsx
 const filtered = items.filter((item) =>
-  item.name.toLowerCase().includes(search.toLowerCase()),
+  item.name.toLowerCase().includes(search.toLowerCase())
 );
 ```
 
@@ -157,9 +157,9 @@ function SearchScreen() {
   const filteredItems = useMemo(
     () =>
       items.filter((item) =>
-        item.name.toLowerCase().includes(debouncedSearch.toLowerCase()),
+        item.name.toLowerCase().includes(debouncedSearch.toLowerCase())
       ),
-    [debouncedSearch],
+    [debouncedSearch]
   );
 
   return <FlatList data={filteredItems} />;

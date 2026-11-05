@@ -55,9 +55,7 @@ const isFailedQuery = (text: unknown) =>
  * Every exception value of an event with a failed query: the others are its
  * cause chain (linked errors), whose Postgres message can echo input.
  */
-const scrubException = (
-  exception: NonNullable<ScrubbableEvent["exception"]>
-) =>
+const scrubException = (exception: NonNullable<ScrubbableEvent["exception"]>) =>
   exception.values?.some(({ value }) => isFailedQuery(value))
     ? {
         ...exception,
@@ -75,7 +73,9 @@ const scrubBreadcrumbs = (
     if (!isFailedQuery(breadcrumb.message)) {
       return breadcrumb;
     }
+
     const { data: _data, ...rest } = breadcrumb;
+
     return { ...rest, message: QUERY_FAILED_MESSAGE };
   });
 
@@ -91,6 +91,7 @@ const scrubBreadcrumbs = (
 export const scrubEvent = <T extends object>(event: T): T => {
   const { breadcrumbs, exception, request, user, ...rest }: ScrubbableEvent =
     event;
+
   return {
     ...rest,
     ...(breadcrumbs && { breadcrumbs: scrubBreadcrumbs(breadcrumbs) }),

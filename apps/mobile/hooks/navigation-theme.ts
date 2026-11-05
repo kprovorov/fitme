@@ -1,4 +1,5 @@
-import { DarkTheme, type Theme } from "expo-router/react-navigation";
+import { DarkTheme } from "expo-router/react-navigation";
+import type { Theme } from "expo-router/react-navigation";
 import { useMemo } from "react";
 import { useCSSVariable } from "uniwind";
 

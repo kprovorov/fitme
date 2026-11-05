@@ -1,26 +1,29 @@
 import {
   asUser,
   plans,
-  type Transaction,
   workoutSessionExerciseSets,
   workoutSessions,
 } from "@fitme/db";
+import type { Transaction } from "@fitme/db";
 import type { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { eq } from "drizzle-orm";
 import { beforeAll, describe, expect, it } from "vitest";
+
 import {
   callError,
   callOk,
   connectAs,
   createTestUser,
-  type ExerciseRow,
-  type PlanDetail,
-  type PlanSummary,
   pickExercises,
   planInput,
-  type SessionDetail,
-  type SessionPage,
-  type TestUser,
+} from "./setup.js";
+import type {
+  ExerciseRow,
+  PlanDetail,
+  PlanSummary,
+  SessionDetail,
+  SessionPage,
+  TestUser,
 } from "./setup.js";
 
 /**
@@ -62,15 +65,17 @@ describe("cross-user isolation against the local stack", () => {
   });
 
   it("does not let another user see the owner's data", async () => {
-    expect(await callOk<PlanSummary[]>(intruder, "list_plans")).toEqual([]);
-    expect(
-      await callOk<SessionPage>(intruder, "list_workout_sessions")
-    ).toMatchObject({ sessions: [], total: 0 });
-    expect(
-      await callOk(intruder, "get_exercise_history", {
+    await expect(
+      callOk<PlanSummary[]>(intruder, "list_plans")
+    ).resolves.toEqual([]);
+    await expect(
+      callOk<SessionPage>(intruder, "list_workout_sessions")
+    ).resolves.toMatchObject({ sessions: [], total: 0 });
+    await expect(
+      callOk(intruder, "get_exercise_history", {
         exerciseSlug: exercises[0].slug,
       })
-    ).toMatchObject({ entries: [] });
+    ).resolves.toMatchObject({ entries: [] });
 
     await callError(intruder, "get_plan", { planId: plan.id });
     await callError(intruder, "get_workout_session", {
@@ -113,6 +118,7 @@ describe("cross-user isolation against the local stack", () => {
   it("refuses the owner's ids in table writes", async () => {
     const asIntruder = <T>(fn: (tx: Transaction) => Promise<T>) =>
       asUser(intruderUser.userId, fn);
+
     const workoutId = plan.workouts[1]?.id ?? "";
 
     const updatedPlans = await asIntruder((tx) =>
@@ -122,6 +128,7 @@ describe("cross-user isolation against the local stack", () => {
         .where(eq(plans.id, plan.id))
         .returning({ id: plans.id })
     );
+
     expect(updatedPlans).toEqual([]);
 
     const updatedSets = await asIntruder((tx) =>
@@ -131,6 +138,7 @@ describe("cross-user isolation against the local stack", () => {
         .where(eq(workoutSessionExerciseSets.id, ownerSetId() ?? ""))
         .returning({ id: workoutSessionExerciseSets.id })
     );
+
     expect(updatedSets).toEqual([]);
 
     const deletedSessions = await asIntruder((tx) =>
@@ -139,6 +147,7 @@ describe("cross-user isolation against the local stack", () => {
         .where(eq(workoutSessions.id, session.id))
         .returning({ id: workoutSessions.id })
     );
+
     expect(deletedSessions).toEqual([]);
 
     // A session of the intruder's own that points at the owner's workout.
@@ -150,9 +159,10 @@ describe("cross-user isolation against the local stack", () => {
         workoutId,
       })
     ).then(
-      () => undefined,
+      () => {},
       (error: unknown) => error
     );
+
     // 42501: rejected by the policy's WITH CHECK, not by anything else.
     expect(inserted).toMatchObject({ cause: { code: "42501" } });
   });
@@ -163,6 +173,7 @@ describe("cross-user isolation against the local stack", () => {
       "create_plan",
       planInput(exercises, "Intruder plan")
     );
+
     expect(intruderPlan.is_active).toBe(true);
 
     const ownerPlans = await callOk<PlanSummary[]>(owner, "list_plans");
@@ -173,11 +184,14 @@ describe("cross-user isolation against the local stack", () => {
   });
 
   it("leaves the owner's plan and session untouched", async () => {
-    expect(await callOk(owner, "get_plan", { planId: plan.id })).toEqual(plan);
+    await expect(
+      callOk(owner, "get_plan", { planId: plan.id })
+    ).resolves.toEqual(plan);
 
     const current = await callOk<SessionDetail>(owner, "get_workout_session", {
       sessionId: session.id,
     });
+
     expect(current).toMatchObject({
       finished_at: null,
       status: "in_progress",

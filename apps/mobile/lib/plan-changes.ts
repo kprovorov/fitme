@@ -1,11 +1,6 @@
 import type { components } from "@fitme/api-client";
-import {
-  formatCount,
-  formatNumber,
-  spokenUnit,
-  type Translator,
-  unitName,
-} from "@fitme/i18n";
+import { formatCount, formatNumber, spokenUnit, unitName } from "@fitme/i18n";
+import type { Translator } from "@fitme/i18n";
 
 /**
  * The Public API's Plan Update (`GET /v1/workout-sessions/{id}/plan-update`):
@@ -14,9 +9,13 @@ import {
  * unit of their weights.
  */
 export type PlanUpdate = components["schemas"]["PlanUpdate"];
+
 export type PlanUpdateChange = components["schemas"]["PlanUpdateChange"];
+
 export type PlanUpdateChangeKind = PlanUpdateChange["kind"];
+
 type PlanUpdateSet = components["schemas"]["PlanUpdateSet"];
+
 type WeightUnit = PlanUpdate["weight_unit"];
 
 export interface PlanChangeLine {
@@ -74,31 +73,38 @@ export function formatPlanChange(
 ): PlanChangeLine {
   const exercise = nameOf(change.exercise_slug);
   let title: string;
+
   switch (change.kind) {
-    case "replace_exercise":
+    case "replace_exercise": {
       title = translator.t("planUpdate.changes.replace", {
         exercise,
         replaced: nameOf(change.replaced_exercise_slug),
       });
       break;
-    case "add_exercise":
+    }
+    case "add_exercise": {
       title = translator.t("planUpdate.changes.add", { exercise });
       break;
+    }
     case "remove_exercise": {
       const text = translator.t("planUpdate.changes.remove", { exercise });
+
       return { accessibilityLabel: text, text };
     }
-    case "add_sets":
+
+    case "add_sets": {
       title = translator.t("planUpdate.changes.addSets", {
         count: change.sets.length,
         exercise,
       });
       break;
+    }
     default: {
       const unknown: never = change;
       throw new Error(`Unknown plan change ${JSON.stringify(unknown)}`);
     }
   }
+
   return {
     accessibilityLabel: translator.t("planUpdate.changes.spokenLine", {
       change: title,
@@ -121,9 +127,11 @@ export function countPlanChanges(
     remove_exercise: 0,
     replace_exercise: 0,
   };
+
   for (const change of changes) {
     counts[change.kind] += 1;
   }
+
   return counts;
 }
 

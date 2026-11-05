@@ -1,13 +1,25 @@
 export * from "./covers";
+
 export * from "./finish-suggestion";
+
 export * from "./formatters";
+
 export * from "./labels";
+
 export * from "./limits";
+
 export * from "./models";
+
 export * from "./names";
+
 export * from "./personal-records";
+
 export * from "./training-progress";
-export * from "./types";
+
+export type * from "./types";
+
 export * from "./utils";
+
 export * from "./weekly-goals";
+
 export * from "./workout-sessions";

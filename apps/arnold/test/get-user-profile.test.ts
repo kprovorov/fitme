@@ -1,14 +1,19 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+
 import { contextFor, inputSchemaOf, userIdFields } from "./tool-context";
 
 const db = vi.hoisted(() => ({ asUser: vi.fn() }));
 const services = vi.hoisted(() => ({ getProfile: vi.fn() }));
-vi.mock("@fitme/db", () => db);
-vi.mock("@fitme/services/profile", () => services);
 
-const { default: getUserProfile } = await import(
-  "../agent/tools/get_user_profile"
+vi.mock<typeof import("@fitme/db")>(import("@fitme/db"), () => db);
+
+vi.mock<typeof import("@fitme/services/profile")>(
+  import("@fitme/services/profile"),
+  () => services
 );
+
+const { default: getUserProfile } =
+  await import("../agent/tools/get_user_profile");
 
 const tx = { fake: "transaction" };
 
@@ -52,7 +57,9 @@ describe("get_user_profile", () => {
   it("tells the model when the User has no Profile yet", async () => {
     services.getProfile.mockResolvedValue(null);
 
-    expect(await getUserProfile.execute({}, contextFor("user_alice"))).toEqual({
+    await expect(
+      getUserProfile.execute({}, contextFor("user_alice"))
+    ).resolves.toEqual({
       error: "Profile not found",
     });
   });

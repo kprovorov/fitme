@@ -1,5 +1,7 @@
-import { type AppLanguage, appLanguages } from "@fitme/core";
+import { appLanguages } from "@fitme/core";
+import type { AppLanguage } from "@fitme/core";
 import type { Cover, Exercise, ExerciseSummary } from "@fitme/library-sdk";
+
 import { storage } from "~/lib/mmkv";
 
 // The Exercises the app has resolved, kept in MMKV so they show offline and
@@ -12,8 +14,10 @@ import { storage } from "~/lib/mmkv";
 
 const summaryStorageKey = (language: AppLanguage, slug: string) =>
   `library.${language}.exercise-summary.${slug}`;
+
 const exerciseStorageKey = (language: AppLanguage, slug: string) =>
   `library.${language}.exercise.${slug}`;
+
 const COVERS_STORAGE_KEY = "library.covers";
 
 // Builds before the App language kept English copies under
@@ -26,11 +30,13 @@ const sweepLegacyKeys = () => {
   if (storage.getBoolean(LEGACY_SWEPT_KEY)) {
     return;
   }
+
   for (const key of storage.getAllKeys()) {
     if (LEGACY_PREFIXES.some((prefix) => key.startsWith(prefix))) {
       storage.remove(key);
     }
   }
+
   storage.set(LEGACY_SWEPT_KEY, true);
 };
 
@@ -74,15 +80,19 @@ const read = <T>(
 ): CachedEntry<T> | undefined => {
   sweepLegacyKeys();
   const raw = storage.getString(key);
+
   if (!raw) {
     return;
   }
+
   let entry: unknown;
+
   try {
     entry = JSON.parse(raw);
   } catch {
     return;
   }
+
   if (
     isRecord(entry) &&
     typeof entry.savedAt === "number" &&

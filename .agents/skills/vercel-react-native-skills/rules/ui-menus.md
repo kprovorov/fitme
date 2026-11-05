@@ -7,9 +7,7 @@ tags: user-interface, menus, context-menus, zeego, accessibility
 
 ## Use Native Menus for Dropdowns and Context Menus
 
-Use native platform menus instead of custom JS implementations. Native menus
-provide built-in accessibility, consistent platform UX, and better performance.
-Use [zeego](https://zeego.dev) for cross-platform native menus.
+Use native platform menus instead of custom JS implementations. Native menus provide built-in accessibility, consistent platform UX, and better performance. Use [zeego](https://zeego.dev) for cross-platform native menus.
 
 **Incorrect (custom JS menu):**
 

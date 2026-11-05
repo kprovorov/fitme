@@ -2,6 +2,7 @@ import { fromMarkdown } from "mdast-util-from-markdown";
 import { gfmTableFromMarkdown } from "mdast-util-gfm-table";
 import { gfmTable } from "micromark-extension-gfm-table";
 import { memo } from "react";
+
 import ASTRenderer from "./ast-renderer";
 import type { MarkdownProps } from "./types";
 import { getKeyFromMarkdown, resolveReference } from "./utils";
@@ -43,4 +44,5 @@ const Markdown = memo(
 );
 
 Markdown.displayName = "Markdown";
+
 export default Markdown;

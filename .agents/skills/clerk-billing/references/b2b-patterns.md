@@ -34,6 +34,7 @@ export default async function TeamDashboard() {
 Clerk Billing's B2B model is **seat-limit plans**: each organization plan has a fixed price and an optional membership cap; Clerk enforces the cap at invite/join time. To charge larger orgs more, create tiered plans (e.g. `starter` capped at 5, `team` at 10, `enterprise` unlimited) with increasing fixed prices.
 
 Key invariants:
+
 - **Fixed price per plan**, not auto-scaling per member. Adding members does not increment the org's billing amount on the active plan.
 - **One `active` SubscriptionItem per payer per Plan.** Do not derive seat count from `items.length`.
 - **Seat limit is a Plan property.** Set it when creating the plan (Dashboard → Billing → Plans → Organization Plans tab, or `clerk config patch`); it cannot be changed later.
@@ -46,10 +47,10 @@ No custom seat-counting code is needed. Read the active plan with `has({ plan: '
 Use `<OrganizationProfile />` for the org account billing UI. It renders the active org plan, members, invitations, and the upgrade / cancellation flow scoped to the active organization, with admin-only access to billing actions enforced by Clerk:
 
 ```tsx
-import { OrganizationProfile } from '@clerk/nextjs'
+import { OrganizationProfile } from "@clerk/nextjs";
 
 export default function OrgAccountPage() {
-	return <OrganizationProfile />
+  return <OrganizationProfile />;
 }
 ```
 
@@ -58,32 +59,32 @@ Organization Plans configured in Dashboard → Billing → Plans automatically a
 ## Webhook: Org Subscription Events
 
 ```typescript
-if (evt.type === 'subscription.created') {
-	const { id, payer, items, status } = evt.data
-	if (payer.organization_id) {
-		const plan = items[0]?.plan?.slug
-		await db.orgSubscriptions.upsert({
-			where: { orgId: payer.organization_id },
-			create: {
-				orgId: payer.organization_id,
-				plan,
-				subscriptionId: id,
-				status,
-			},
-			update: { plan, subscriptionId: id, status },
-		})
-	}
+if (evt.type === "subscription.created") {
+  const { id, payer, items, status } = evt.data;
+  if (payer.organization_id) {
+    const plan = items[0]?.plan?.slug;
+    await db.orgSubscriptions.upsert({
+      where: { orgId: payer.organization_id },
+      create: {
+        orgId: payer.organization_id,
+        plan,
+        subscriptionId: id,
+        status,
+      },
+      update: { plan, subscriptionId: id, status },
+    });
+  }
 }
 
-if (evt.type === 'subscription.updated') {
-	const { id, payer, items, status } = evt.data
-	if (payer.organization_id) {
-		const plan = items[0]?.plan?.slug
-		await db.orgSubscriptions.update({
-			where: { orgId: payer.organization_id },
-			data: { plan, status },
-		})
-	}
+if (evt.type === "subscription.updated") {
+  const { id, payer, items, status } = evt.data;
+  if (payer.organization_id) {
+    const plan = items[0]?.plan?.slug;
+    await db.orgSubscriptions.update({
+      where: { orgId: payer.organization_id },
+      data: { plan, status },
+    });
+  }
 }
 ```
 
@@ -94,7 +95,7 @@ Use `payer.organization_id` (nested under `payer`, not a top-level `org_id`) whe
 Tier plans by seat cap so bigger orgs pay more:
 
 | Plan | Slug | Seat cap |
-|------|------|-------|
+| --- | --- | --- |
 | Startup | `org:starter` | 5 |
 | Team | `org:team` | 10 |
 | Business | `org:business` | 25 |
@@ -106,11 +107,11 @@ Define these via Dashboard → Billing → Plans → **Organization Plans** tab 
 
 ```typescript
 // WRONG, user has no active org, has() checks user subscription
-const { has } = await auth()
-if (!has({ plan: 'org:team' })) redirect('/billing')
+const { has } = await auth();
+if (!has({ plan: "org:team" })) redirect("/billing");
 
 // CORRECT, check orgId first
-const { orgId, has } = await auth()
-if (!orgId) redirect('/sign-in')
-if (!has({ plan: 'org:team' })) redirect('/billing')
+const { orgId, has } = await auth();
+if (!orgId) redirect("/sign-in");
+if (!has({ plan: "org:team" })) redirect("/billing");
 ```

@@ -1,6 +1,7 @@
 import { OTLPHttpProtoTraceExporter } from "@vercel/otel";
 import { disableInstrumentation } from "eve/instrumentation";
 import { otelIntegration } from "eve/instrumentation/otel";
+
 import { sentryExportPolicy, sentryOtlpExport } from "../lib/trace-export";
 
 // Turns, steps and tool calls to the fitme-arnold Sentry project over OTLP,

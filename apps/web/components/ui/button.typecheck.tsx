@@ -1,4 +1,5 @@
 import { IconArrowRight } from "@tabler/icons-react";
+
 import { Button } from "./button";
 
 // Compiled by the app's normal tsc/Next build, never imported at runtime.
@@ -90,5 +91,6 @@ export function buttonTypecheckCases() {
     // @ts-expect-error An icon-only pill must be a circle.
     <Button icon={IconArrowRight} key="invalid-13" />,
   ];
+
   return { invalid, valid };
 }

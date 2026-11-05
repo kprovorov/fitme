@@ -1,5 +1,6 @@
 import { writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
+
 import { createApp } from "./create-app";
 import { memoryRateLimiter } from "./rate-limit";
 import { PLACEHOLDER_SUPABASE_URL, serveLibrary } from "./served-library";
@@ -12,9 +13,10 @@ import { PLACEHOLDER_SUPABASE_URL, serveLibrary } from "./served-library";
  */
 const out = resolve(import.meta.dirname, "../openapi.json");
 const library = serveLibrary({ exercises: [] }, PLACEHOLDER_SUPABASE_URL);
+
 const spec = createApp({
   auth: { clerkJwtKeys: {}, serverSecrets: {} },
-  identifyUser: () => undefined,
+  identifyUser: () => {},
   library,
   rateLimiter: memoryRateLimiter(),
   reportError: () => Promise.resolve(),
@@ -25,4 +27,5 @@ const spec = createApp({
 });
 
 await writeFile(out, `${JSON.stringify(spec, null, 2)}\n`);
+
 console.log(`generated ${out}`);

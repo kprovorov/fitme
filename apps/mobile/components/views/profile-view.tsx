@@ -3,6 +3,7 @@ import { Link, router } from "expo-router";
 import { useCallback } from "react";
 import { useTranslation } from "react-i18next";
 import RevenueCatUI from "react-native-purchases-ui";
+
 import { SymbolImage } from "~/components/symbol-image";
 import { Button } from "~/components/ui/button";
 import { Text } from "~/components/ui/text";
@@ -11,6 +12,7 @@ import { useCustomerInfoQuery, useIsProQuery } from "~/hooks/revenueCat";
 import { openUrl } from "~/lib/external-links";
 import { i18n } from "~/lib/i18n";
 import { getProfileHeader } from "~/lib/user-name";
+
 import { Avatar, AvatarFallback } from "../ui/avatar";
 import { Card, CardContent } from "../ui/card";
 import { HStack } from "../ui/hstack";
@@ -29,6 +31,7 @@ const openAppStoreReview = () => openUrl(APP_STORE_REVIEW_URL);
 export default function ProfileView() {
   const { user } = useUser();
   const { t } = useTranslation(undefined, { i18n });
+
   const { initial, subtitle, title } = getProfileHeader({
     email: user?.primaryEmailAddress?.emailAddress,
     fullName: user?.fullName,

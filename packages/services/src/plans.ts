@@ -1,10 +1,10 @@
 import {
   plans,
-  type Transaction,
   workoutExerciseSets as workoutExerciseSetsTable,
   workoutExercises as workoutExercisesTable,
   workouts as workoutsTable,
 } from "@fitme/db";
+import type { Transaction } from "@fitme/db";
 import {
   and,
   eq,
@@ -13,9 +13,10 @@ import {
   isNull,
   notInArray,
   or,
-  type SQL,
   sql,
 } from "drizzle-orm";
+import type { SQL } from "drizzle-orm";
+
 import { jsonTimestamp } from "./json-timestamp";
 import { recordWeeklyGoal } from "./weekly-goals";
 
@@ -166,6 +167,7 @@ const findPlanSummaries = async (
       },
     },
   });
+
   return rows.map(({ workouts, ...plan }) => ({
     ...toPlanRow(plan),
     workouts: workouts.map(({ workoutExercises, ...workout }) => ({
@@ -181,7 +183,7 @@ const findPlanSummaries = async (
  * snapshot: a concurrent update never mixes old and new rows. Runs in `tx`
  * from `asUser`; RLS hides every other User's Plans as well.
  */
-export const listPlans = (
+export const listPlans = async (
   tx: Transaction,
   userId: string
 ): Promise<PlanSummary[]> => findPlanSummaries(tx, userId);
@@ -228,10 +230,13 @@ const findPlanDetail = async (
       },
     },
   });
+
   if (!row) {
     return null;
   }
+
   const { workouts, ...plan } = row;
+
   return {
     ...toPlanRow(plan),
     workouts: workouts.map(({ workoutExercises, ...workout }) => ({
@@ -259,7 +264,7 @@ const findPlanDetail = async (
  * soft-deleted or belongs to another User. One statement, so one snapshot.
  * Runs in `tx` from `asUser`.
  */
-export const getPlan = (
+export const getPlan = async (
   tx: Transaction,
   userId: string,
   planId: string
@@ -271,7 +276,7 @@ export const getPlan = (
  * filtered out too. One statement, so one snapshot. Runs in `tx` from
  * `asUser`; RLS hides every other User's Plans as well.
  */
-export const getActivePlan = (
+export const getActivePlan = async (
   tx: Transaction,
   userId: string
 ): Promise<PlanDetail | null> =>
@@ -301,11 +306,14 @@ export const deletePlan = async (
     .set({ deletedAt: sql`now()`, updatedAt: sql`now()` })
     .where(livePlanOf(userId, planId))
     .returning({ id: plans.id, name: plans.name });
+
   if (deleted) {
     // The active Plan gone, the Weekly goal is too
     await recordWeeklyGoal(tx, userId);
+
     return { alreadyDeleted: false, deleted: true, plan: deleted };
   }
+
   const [existing] = await tx
     .select({ id: plans.id, name: plans.name })
     .from(plans)
@@ -316,6 +324,7 @@ export const deletePlan = async (
         isNotNull(plans.deletedAt)
       )
     );
+
   return existing
     ? { alreadyDeleted: true, deleted: true, plan: existing }
     : null;
@@ -357,13 +366,16 @@ export const activatePlan = async (
           .for("update")
       )
     );
+
   const [target] = await tx
     .select({ id: plans.id })
     .from(plans)
     .where(livePlanOf(userId, planId));
+
   if (!target) {
     return null;
   }
+
   await tx
     .update(plans)
     .set({ isActive: sql`(${plans.id} = ${planId})` })
@@ -375,6 +387,7 @@ export const activatePlan = async (
     );
   await recordWeeklyGoal(tx, userId);
   const [activated] = await findPlanSummaries(tx, userId, planId);
+
   return activated ?? null;
 };
 
@@ -456,9 +469,11 @@ const metadataColumns = <M extends Partial<PlanMetadata>>(
 /** A row id the statement before just returned, by its key. */
 const insertedId = <K>(ids: Map<K, string>, key: K) => {
   const id = ids.get(key);
+
   if (id === undefined) {
     throw new Error(`No inserted row for ${String(key)}`);
   }
+
   return id;
 };
 
@@ -479,6 +494,7 @@ const insertWorkouts = async (
   if (planWorkouts.length === 0) {
     return;
   }
+
   const insertedWorkouts = await tx
     .insert(workoutsTable)
     .values(
@@ -491,9 +507,11 @@ const insertWorkouts = async (
       }))
     )
     .returning({ id: workoutsTable.id, order: workoutsTable.order });
+
   const workoutIds = new Map(
     insertedWorkouts.map((workout) => [workout.order, workout.id])
   );
+
   const exerciseRows = planWorkouts.flatMap((workout, workoutIndex) =>
     workout.exercises.map((exercise, index) => ({
       exerciseSlug: exercise.exercise_slug,
@@ -501,9 +519,11 @@ const insertWorkouts = async (
       workoutId: insertedId(workoutIds, workoutIndex + 1),
     }))
   );
+
   if (exerciseRows.length === 0) {
     return;
   }
+
   const insertedExercises = await tx
     .insert(workoutExercisesTable)
     .values(exerciseRows)
@@ -512,18 +532,21 @@ const insertWorkouts = async (
       order: workoutExercisesTable.order,
       workoutId: workoutExercisesTable.workoutId,
     });
+
   const exerciseIds = new Map(
     insertedExercises.map((exercise) => [
       exerciseKey(exercise.workoutId, exercise.order),
       exercise.id,
     ])
   );
+
   const setRows = planWorkouts.flatMap((workout, workoutIndex) =>
     workout.exercises.flatMap((exercise, exerciseIndex) => {
       const workoutExerciseId = insertedId(
         exerciseIds,
         exerciseKey(insertedId(workoutIds, workoutIndex + 1), exerciseIndex + 1)
       );
+
       return exercise.sets.map((set, index) => ({
         order: index + 1,
         repsRecommended: set.reps_recommended,
@@ -533,6 +556,7 @@ const insertWorkouts = async (
       }));
     })
   );
+
   if (setRows.length > 0) {
     await tx.insert(workoutExerciseSetsTable).values(setRows);
   }
@@ -565,14 +589,19 @@ export const createPlan = async (
     .insert(plans)
     .values({ ...metadataColumns(plan), userId })
     .returning({ id: plans.id });
+
   await insertWorkouts(tx, created.id, plan.workouts);
+
   if (activate) {
     await activatePlan(tx, userId, created.id);
   }
+
   const detail = await getPlan(tx, userId, created.id);
+
   if (!detail) {
     throw new Error(`Plan ${created.id} vanished after it was created`);
   }
+
   return detail;
 };
 
@@ -610,18 +639,22 @@ export const updatePlan = async (
     .set({ ...metadataColumns(metadata), updatedAt: sql`now()` })
     .where(livePlanOf(userId, planId))
     .returning({ id: plans.id });
+
   if (!updated) {
     return null;
   }
+
   if (metadata.frequency !== undefined) {
     // A no-op unless it's the active Plan's frequency that changed
     await recordWeeklyGoal(tx, userId);
   }
+
   if (newWorkouts) {
     await tx.delete(workoutsTable).where(eq(workoutsTable.planId, planId));
     await insertWorkouts(tx, planId, newWorkouts);
   }
-  return getPlan(tx, userId, planId);
+
+  return await getPlan(tx, userId, planId);
 };
 
 /** A set as a whole-Plan save takes it: with its id when it's kept. */
@@ -668,7 +701,7 @@ export interface SavePlanOptions {
   coverNewWorkouts?: (
     newWorkouts: SavedPlanWorkout[],
     usedCoverIds: string[]
-  ) => Array<string | null>;
+  ) => (string | null)[];
 }
 
 export type SavePlanResult =
@@ -702,7 +735,9 @@ const lockPlanTree = async (
     .where(eq(workoutsTable.planId, planId))
     .orderBy(workoutsTable.id)
     .for("no key update");
+
   const workoutIds = workoutRows.map((workout) => workout.id);
+
   const exerciseRows =
     workoutIds.length === 0
       ? []
@@ -715,7 +750,9 @@ const lockPlanTree = async (
           .where(inArray(workoutExercisesTable.workoutId, workoutIds))
           .orderBy(workoutExercisesTable.id)
           .for("no key update");
+
   const exerciseIds = exerciseRows.map((exercise) => exercise.id);
+
   const setRows =
     exerciseIds.length === 0
       ? []
@@ -728,6 +765,7 @@ const lockPlanTree = async (
           .where(
             inArray(workoutExerciseSetsTable.workoutExerciseId, exerciseIds)
           );
+
   return {
     exerciseWorkout: new Map(
       exerciseRows.map((exercise) => [exercise.id, exercise.workoutId])
@@ -747,17 +785,21 @@ const lockPlanTree = async (
 const invalidIds = (tree: PlanTree, workouts: SavedPlanWorkout[]) => {
   const seen = new Set<string>();
   const invalid = new Set<string>();
+
   /** Accepts `id` when it's new to the body and `belongs`. */
   const check = (id: string, belongs: boolean) => {
     if (seen.has(id) || !belongs) {
       invalid.add(id);
     }
+
     seen.add(id);
   };
+
   for (const workout of workouts) {
     if (workout.id !== undefined) {
       check(workout.id, tree.workoutCover.has(workout.id));
     }
+
     for (const exercise of workout.exercises) {
       if (exercise.id !== undefined) {
         check(
@@ -766,6 +808,7 @@ const invalidIds = (tree: PlanTree, workouts: SavedPlanWorkout[]) => {
             tree.exerciseWorkout.get(exercise.id) === workout.id
         );
       }
+
       for (const set of exercise.sets) {
         if (set.id !== undefined) {
           check(
@@ -777,6 +820,7 @@ const invalidIds = (tree: PlanTree, workouts: SavedPlanWorkout[]) => {
       }
     }
   }
+
   return [...invalid];
 };
 
@@ -795,7 +839,7 @@ const withLowercaseIds = (workouts: SavedPlanWorkout[]) =>
   }));
 
 /** The ids of the rows a list sends with one. */
-const keptIds = (rows: ReadonlyArray<{ id?: string }>) =>
+const keptIds = (rows: readonly { id?: string }[]) =>
   rows.flatMap((row) => (row.id === undefined ? [] : [row.id]));
 
 /**
@@ -861,6 +905,7 @@ const saveWorkouts = async (
           sql`(${workout.id}::uuid, ${index + 1}::integer, ${workout.name}::text, ${workout.description ?? ""}::text)`,
         ]
   );
+
   if (kept.length > 0) {
     await tx.execute(sql`
       update ${workoutsTable} set
@@ -869,6 +914,7 @@ const saveWorkouts = async (
       from (values ${valuesList(kept)}) as v(id, position, name, description)
       where ${workoutsTable.id} = v.id`);
   }
+
   const added = savedWorkouts.flatMap((workout, index) =>
     workout.id === undefined
       ? [
@@ -882,6 +928,7 @@ const saveWorkouts = async (
         ]
       : []
   );
+
   const inserted =
     added.length === 0
       ? []
@@ -889,7 +936,9 @@ const saveWorkouts = async (
           .insert(workoutsTable)
           .values(added)
           .returning({ id: workoutsTable.id, order: workoutsTable.order });
+
   const insertedIds = new Map(inserted.map((row) => [row.order, row.id]));
+
   return savedWorkouts.map(
     (workout, index) => workout.id ?? insertedId(insertedIds, index + 1)
   );
@@ -912,6 +961,7 @@ const saveExercises = async (
       workoutId: workoutIds[workoutIndex],
     }))
   );
+
   const kept = rows.flatMap(({ exercise, order }) =>
     exercise.id === undefined
       ? []
@@ -919,6 +969,7 @@ const saveExercises = async (
           sql`(${exercise.id}::uuid, ${order}::integer, ${exercise.exercise_slug}::text)`,
         ]
   );
+
   if (kept.length > 0) {
     await tx.execute(sql`
       update ${workoutExercisesTable} set
@@ -926,11 +977,13 @@ const saveExercises = async (
       from (values ${valuesList(kept)}) as v(id, position, slug)
       where ${workoutExercisesTable.id} = v.id`);
   }
+
   const added = rows.flatMap(({ exercise, order, workoutId }) =>
     exercise.id === undefined
       ? [{ exerciseSlug: exercise.exercise_slug, order, workoutId }]
       : []
   );
+
   const inserted =
     added.length === 0
       ? []
@@ -939,9 +992,11 @@ const saveExercises = async (
           order: workoutExercisesTable.order,
           workoutId: workoutExercisesTable.workoutId,
         });
+
   const insertedIds = new Map(
     inserted.map((row) => [exerciseKey(row.workoutId, row.order), row.id])
   );
+
   return rows.map(
     ({ exercise, order, workoutId }) =>
       exercise.id ?? insertedId(insertedIds, exerciseKey(workoutId, order))
@@ -964,6 +1019,7 @@ const saveSets = async (
       workoutExerciseId: exerciseIds[exerciseIndex],
     }))
   );
+
   const kept = rows.flatMap(({ order, set }) =>
     set.id === undefined
       ? []
@@ -971,6 +1027,7 @@ const saveSets = async (
           sql`(${set.id}::uuid, ${order}::integer, ${set.reps_recommended}::integer, ${set.rest_recommended}::integer, ${String(set.weight_recommended)}::numeric)`,
         ]
   );
+
   if (kept.length > 0) {
     await tx.execute(sql`
       update ${workoutExerciseSetsTable} set
@@ -980,6 +1037,7 @@ const saveSets = async (
       from (values ${valuesList(kept)}) as v(id, position, reps, rest, weight)
       where ${workoutExerciseSetsTable.id} = v.id`);
   }
+
   const added = rows.flatMap(({ order, set, workoutExerciseId }) =>
     set.id === undefined
       ? [
@@ -993,6 +1051,7 @@ const saveSets = async (
         ]
       : []
   );
+
   if (added.length > 0) {
     await tx.insert(workoutExerciseSetsTable).values(added);
   }
@@ -1029,12 +1088,15 @@ export const savePlan = async (
     .from(plans)
     .where(livePlanOf(userId, planId))
     .for("no key update");
+
   if (!locked) {
     return { status: "not_found" };
   }
+
   const tree = await lockPlanTree(tx, planId);
   const savedWorkouts = withLowercaseIds(sentWorkouts);
   const invalid = invalidIds(tree, savedWorkouts);
+
   if (invalid.length > 0) {
     return { ids: invalid, status: "invalid_ids" };
   }
@@ -1054,20 +1116,24 @@ export const savePlan = async (
   await deleteLeftOut(tx, planId, savedWorkouts);
 
   const newWorkouts = savedWorkouts.filter((w) => w.id === undefined);
+
   const covers =
     coverNewWorkouts?.(
       newWorkouts,
       keptWorkoutIds.flatMap((id) => {
         const cover = tree.workoutCover.get(id);
+
         return cover ? [cover] : [];
       })
     ) ?? [];
+
   const workoutIds = await saveWorkouts(
     tx,
     planId,
     savedWorkouts,
     new Map(newWorkouts.map((workout, i) => [workout, covers[i] ?? null]))
   );
+
   const exerciseIds = await saveExercises(tx, savedWorkouts, workoutIds);
   await saveSets(
     tx,
@@ -1077,8 +1143,10 @@ export const savePlan = async (
 
   await recordWeeklyGoal(tx, userId);
   const plan = await getPlan(tx, userId, planId);
+
   if (!plan) {
     throw new Error(`Plan ${planId} vanished while it was saved`);
   }
+
   return { plan, status: "saved" };
 };

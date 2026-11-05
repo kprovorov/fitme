@@ -1,5 +1,6 @@
 import { createRoute, z } from "@hono/zod-openapi";
 import { describe, expect, it } from "vitest";
+
 import { signedInAs, testApp } from "../test/harness.js";
 
 const { app, reported } = testApp();
@@ -25,7 +26,7 @@ describe("invalid input", () => {
     });
 
     expect(response.status).toBe(400);
-    expect(await response.json()).toEqual({
+    await expect(response.json()).resolves.toEqual({
       error: {
         code: "invalid_request",
         message: "limit: Too small: expected number to be >=1",
@@ -40,6 +41,6 @@ describe("invalid input", () => {
     });
 
     expect(response.status).toBe(200);
-    expect(await response.json()).toEqual({ data: { limit: 20 } });
+    await expect(response.json()).resolves.toEqual({ data: { limit: 20 } });
   });
 });

@@ -9,18 +9,20 @@
 import { beforeEach, describe, expect, it, jest } from "@jest/globals";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { act, fireEvent, render, screen } from "@testing-library/react-native";
-import { type ReactNode, useCallback } from "react";
+import { useCallback } from "react";
+import type { ReactNode } from "react";
 import { Alert, Pressable } from "react-native";
+import { it, describe, expect, beforeEach } from "vitest";
+
 import HistoryScreen from "~/app/(tabs)/history/index";
 import WorkoutScreen from "~/app/plans/[planId]/workouts/[workoutId]/index";
 import MeasurementSystemScreen from "~/app/settings/measurement-system";
 import {
   backend,
   FAKE_USER_ID,
-  type Failure,
   fakePublicApi,
-  type SeedPlan,
 } from "~/test-utils/fake-public-api";
+import type { Failure, SeedPlan } from "~/test-utils/fake-public-api";
 import {
   createTestQueryClient,
   settle,
@@ -28,7 +30,7 @@ import {
 } from "~/test-utils/query-client";
 import { signInAs } from "~/test-utils/signed-in-user";
 
-jest.mock("expo-router", () => ({
+jest.mock<typeof import("expo-router")>(import("expo-router"), () => ({
   Link: ({ children }: { children: ReactNode }) => children,
   Stack: { Screen: () => null },
   useLocalSearchParams: () => ({ planId: "plan-1", workoutId: "workout-1" }),
@@ -43,58 +45,87 @@ jest.mock("expo-router", () => ({
 
 // LegendList lays its items out on measure, which Jest never does: render
 // the header and every item in a plain view instead.
-jest.mock("@legendapp/list/react-native", () => ({
-  LegendList: <T,>({
-    data,
-    keyExtractor,
-    ListEmptyComponent,
-    ListHeaderComponent,
-    renderItem,
-  }: {
-    data: T[];
-    keyExtractor: (item: T) => string;
-    ListEmptyComponent: ReactNode;
-    ListHeaderComponent: ReactNode;
-    renderItem: (info: { item: T }) => ReactNode;
-  }) => {
-    const { Fragment } = jest.requireActual<typeof import("react")>("react");
-    return (
-      <>
-        {ListHeaderComponent}
-        {data.length === 0
-          ? ListEmptyComponent
-          : data.map((item) => (
-              <Fragment key={keyExtractor(item)}>
-                {renderItem({ item })}
-              </Fragment>
-            ))}
-      </>
-    );
-  },
-}));
+jest.mock<typeof import("@legendapp/list/react-native")>(
+  import("@legendapp/list/react-native"),
+  () => ({
+    LegendList: <T,>({
+      data,
+      keyExtractor,
+      ListEmptyComponent,
+      ListHeaderComponent,
+      renderItem,
+    }: {
+      data: T[];
+      keyExtractor: (item: T) => string;
+      ListEmptyComponent: ReactNode;
+      ListHeaderComponent: ReactNode;
+      renderItem: (info: { item: T }) => ReactNode;
+    }) => {
+      const { Fragment } = jest.requireActual<typeof import("react")>("react");
+
+      return (
+        <>
+          {ListHeaderComponent}
+          {data.length === 0
+            ? ListEmptyComponent
+            : data.map((item) => (
+                <Fragment key={keyExtractor(item)}>
+                  {renderItem({ item })}
+                </Fragment>
+              ))}
+        </>
+      );
+    },
+  })
+);
 
 // The real Clerk SDK (reached through the writes' signed-in User check) opens
 // a MessagePort at import that keeps Jest alive.
-jest.mock("~/lib/clerk", () => ({
+jest.mock<typeof import("~/lib/clerk")>(import("~/lib/clerk"), () => ({
   getCurrentUserId: jest.requireActual<
     typeof import("~/test-utils/signed-in-user")
   >("~/test-utils/signed-in-user").getCurrentUserId,
 }));
 
-jest.mock("@sentry/react-native", () => ({ captureException: jest.fn() }));
-jest.mock("~/lib/segment", () => ({ segmentClient: { track: jest.fn() } }));
-jest.mock("react-native-purchases", () => ({
-  __esModule: true,
-  default: { invalidateCustomerInfoCache: jest.fn() },
-}));
-jest.mock("react-native-safe-area-context", () => ({
-  useSafeAreaInsets: () => ({ bottom: 0, left: 0, right: 0, top: 0 }),
-}));
-jest.mock("~/components/exercises/exercise-image", () => () => null);
-jest.mock("~/components/symbol-image", () => ({ SymbolImage: () => null }));
-jest.mock("~/components/ui/button", () =>
-  jest.requireActual("~/test-utils/button-stub")
+jest.mock<typeof import("@sentry/react-native")>(
+  import("@sentry/react-native"),
+  () => ({ captureException: jest.fn() })
 );
+
+jest.mock<typeof import("~/lib/segment")>(import("~/lib/segment"), () => ({
+  segmentClient: { track: jest.fn() },
+}));
+
+jest.mock<typeof import("react-native-purchases")>(
+  import("react-native-purchases"),
+  () => ({
+    __esModule: true,
+    default: { invalidateCustomerInfoCache: jest.fn() },
+  })
+);
+
+jest.mock<typeof import("react-native-safe-area-context")>(
+  import("react-native-safe-area-context"),
+  () => ({
+    useSafeAreaInsets: () => ({ bottom: 0, left: 0, right: 0, top: 0 }),
+  })
+);
+
+jest.mock<typeof import("~/components/exercises/exercise-image")>(
+  import("~/components/exercises/exercise-image"),
+  () => () => null
+);
+
+jest.mock<typeof import("~/components/symbol-image")>(
+  import("~/components/symbol-image"),
+  () => ({ SymbolImage: () => null })
+);
+
+jest.mock<typeof import("~/components/ui/button")>(
+  import("~/components/ui/button"),
+  () => jest.requireActual("~/test-utils/button-stub")
+);
+
 // Buttons of the stand-ins below. Top-level (and `mock`-prefixed, so the
 // factories may use them) because the React Compiler rewrites components
 // declared inside a `jest.mock` factory into code the factory can't reach.
@@ -109,6 +140,7 @@ const MockOption = ({
     () => onValueChange(value),
     [onValueChange, value]
   );
+
   return <Pressable onPress={handlePress} testID={`option-${value}`} />;
 };
 
@@ -126,67 +158,78 @@ const MockAction = ({
     onPress?.();
     onIsPresentedChange(false);
   }, [onIsPresentedChange, onPress]);
+
   return <Pressable onPress={handlePress} testID={`dialog-${label}`} />;
 };
 
 // The real primitives render native SwiftUI views that can't mount under
 // Jest. The picker stand-in exposes the `value` it's given, which is what the
 // native picker shows.
-jest.mock("~/components/ui/radio-group", () => {
-  const { Text: MockText, View: MockView } =
-    jest.requireActual<typeof import("react-native")>("react-native");
-  return {
-    RadioGroup: ({
-      onValueChange,
-      options,
-      value,
-    }: {
-      onValueChange: (value: string) => void;
-      options: { label: string; value: string }[];
-      value: string;
-    }) => (
-      <MockView>
-        <MockText testID="picker-value">{value}</MockText>
-        {options.map((option) => (
-          <MockOption
-            key={option.value}
-            onValueChange={onValueChange}
-            value={option.value}
-          />
-        ))}
-      </MockView>
-    ),
-  };
-});
-jest.mock("~/components/ui/alert-dialog", () => {
-  const { View: MockView } =
-    jest.requireActual<typeof import("react-native")>("react-native");
-  return {
-    AlertDialog: ({
-      actions,
-      isPresented,
-      onIsPresentedChange,
-    }: {
-      actions: { label: string; onPress?: () => void }[];
-      isPresented: boolean;
-      onIsPresentedChange: (isPresented: boolean) => void;
-    }) =>
-      isPresented ? (
+jest.mock<typeof import("~/components/ui/radio-group")>(
+  import("~/components/ui/radio-group"),
+  () => {
+    const { Text: MockText, View: MockView } =
+      jest.requireActual<typeof import("react-native")>("react-native");
+
+    return {
+      RadioGroup: ({
+        onValueChange,
+        options,
+        value,
+      }: {
+        onValueChange: (value: string) => void;
+        options: { label: string; value: string }[];
+        value: string;
+      }) => (
         <MockView>
-          {actions.map((action) => (
-            <MockAction
-              key={action.label}
-              label={action.label}
-              onIsPresentedChange={onIsPresentedChange}
-              onPress={action.onPress}
+          <MockText testID="picker-value">{value}</MockText>
+          {options.map((option) => (
+            <MockOption
+              key={option.value}
+              onValueChange={onValueChange}
+              value={option.value}
             />
           ))}
         </MockView>
-      ) : null,
-  };
-});
+      ),
+    };
+  }
+);
+
+jest.mock<typeof import("~/components/ui/alert-dialog")>(
+  import("~/components/ui/alert-dialog"),
+  () => {
+    const { View: MockView } =
+      jest.requireActual<typeof import("react-native")>("react-native");
+
+    return {
+      AlertDialog: ({
+        actions,
+        isPresented,
+        onIsPresentedChange,
+      }: {
+        actions: { label: string; onPress?: () => void }[];
+        isPresented: boolean;
+        onIsPresentedChange: (isPresented: boolean) => void;
+      }) =>
+        isPresented ? (
+          <MockView>
+            {actions.map((action) => (
+              <MockAction
+                key={action.label}
+                label={action.label}
+                onIsPresentedChange={onIsPresentedChange}
+                onPress={action.onPress}
+              />
+            ))}
+          </MockView>
+        ) : null,
+    };
+  }
+);
 
 const PROFILE_PATCH = "PATCH /v1/profile";
+
 /** History's volume once converted to pounds. */
 const CONVERTED_VOLUME = /440\.92/;
 const MINUTE_MS = 60_000;
@@ -284,14 +327,14 @@ const plannedSet = (weight: string) =>
 
 beforeEach(() => {
   jest.clearAllMocks();
-  jest.spyOn(Alert, "alert").mockImplementation(() => undefined);
+  jest.spyOn(Alert, "alert").mockReturnValue(undefined);
   backend.reset();
   backend.seedProfile(FAKE_USER_ID, { height: 180, weight: 80 });
   backend.seedPlan(structuredClone(PLAN));
   seedFinishedSession();
 });
 
-describe("Switching the measurement system", () => {
+describe("switching the measurement system", () => {
   it("refreshes History and the Workout's planned weights, with no restart", async () => {
     await mount();
     expect(historyRow("200 kg")).toBeTruthy();
@@ -380,17 +423,21 @@ describe("Switching the measurement system", () => {
     // A refresh of the Profile lands while the switch waits for its answer,
     // so the answer can't be shown as is; then every read of it is refused.
     const profile = backend.profile(FAKE_USER_ID);
+
     if (profile) {
       // Another device changed the age.
       profile.age = 41;
     }
+
     await act(() => queryClient.refetchQueries({ queryKey: ["profile"] }));
+
     for (let read = 0; read < 4; read += 1) {
       fakePublicApi.failNext("GET /v1/profile", {
         retryAfterSeconds: 42,
         status: 429,
       });
     }
+
     const weighedReads = fakePublicApi.count("GET /v1/workout-sessions");
 
     resumeSwitch();
@@ -418,10 +465,12 @@ describe("Switching the measurement system", () => {
     // so the answer can't be shown as is and the Profile is read again. That
     // read succeeds; any further one would be refused.
     const profile = backend.profile(FAKE_USER_ID);
+
     if (profile) {
       // Another device changed the age.
       profile.age = 41;
     }
+
     await act(() => queryClient.refetchQueries({ queryKey: ["profile"] }));
     fakePublicApi.failNext("GET /v1/profile", "pass");
     fakePublicApi.failNext("GET /v1/profile", {

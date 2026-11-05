@@ -1,14 +1,18 @@
 import { generateKeyPairSync, sign } from "node:crypto";
+
 import { routeAuth } from "eve/channels/auth";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+
 import { clerkSession } from "../agent/lib/clerk-auth";
 
 // A stand-in for the Clerk instance's signing key: the channel only ever sees
 // its PEM public half, like CLERK_JWT_KEY.
 const signer = generateKeyPairSync("rsa", { modulusLength: 2048 });
+
 const jwtKey = signer.publicKey
   .export({ format: "pem", type: "spki" })
   .toString();
+
 const stranger = generateKeyPairSync("rsa", { modulusLength: 2048 });
 
 const base64url = (value: object) =>
@@ -29,7 +33,9 @@ const clerkToken = (
       ...claims,
     }
   )}`;
+
   const signature = sign("RSA-SHA256", Buffer.from(unsigned), privateKey);
+
   return `${unsigned}.${signature.toString("base64url")}`;
 };
 
@@ -42,31 +48,34 @@ const request = (authorization?: string, path = "/eve/v1/session") =>
 /** A fake claim: first claimant owns a session; wrun_alice is Alice's. */
 const fakeOwners = () => {
   const owners = new Map([["wrun_alice", "user_alice"]]);
-  return vi.fn((sessionId: string, userId: string) => {
+
+  return vi.fn(async (sessionId: string, userId: string) => {
     if (!owners.has(sessionId)) {
       owners.set(sessionId, userId);
     }
+
     return Promise.resolve(owners.get(sessionId) ?? null);
   });
 };
 
 let claimSession = fakeOwners();
-let checkPro = vi.fn((_userId: string) => Promise.resolve(true));
-let report = vi.fn((_error: unknown, _tags: object) => Promise.resolve());
+let checkPro = vi.fn(async (_userId: string) => Promise.resolve(true));
+let report = vi.fn(async (_error: unknown, _tags: object) => Promise.resolve());
+
 const auth = clerkSession({
-  checkPro: (userId) => checkPro(userId),
-  claimSession: (sessionId, userId) => claimSession(sessionId, userId),
+  checkPro: async (userId) => checkPro(userId),
+  claimSession: async (sessionId, userId) => claimSession(sessionId, userId),
   jwtKey: () => jwtKey,
-  report: (error, tags) => report(error, tags),
+  report: async (error, tags) => report(error, tags),
 });
 
 beforeEach(() => {
   claimSession = fakeOwners();
-  checkPro = vi.fn((_userId: string) => Promise.resolve(true));
-  report = vi.fn((_error: unknown, _tags: object) => Promise.resolve());
+  checkPro = vi.fn(async (_userId: string) => Promise.resolve(true));
+  report = vi.fn(async (_error: unknown, _tags: object) => Promise.resolve());
 });
 
-describe("clerkSession", () => {
+describe(clerkSession, () => {
   it("makes the verified Clerk User the principal", async () => {
     const result = await routeAuth(
       request(`Bearer ${clerkToken({ sub: "user_alice" })}`),
@@ -92,7 +101,7 @@ describe("clerkSession", () => {
   });
 
   it("answers 401 for a token signed by someone else", async () => {
-    vi.spyOn(console, "warn").mockImplementation(() => undefined);
+    vi.spyOn(console, "warn").mockReturnValue(undefined);
     const forged = clerkToken({ sub: "user_alice" }, stranger.privateKey);
 
     const result = await routeAuth(request(`Bearer ${forged}`), auth);
@@ -101,7 +110,8 @@ describe("clerkSession", () => {
   });
 
   it("answers 401 for an expired token", async () => {
-    vi.spyOn(console, "warn").mockImplementation(() => undefined);
+    vi.spyOn(console, "warn").mockReturnValue(undefined);
+
     const expired = clerkToken({
       exp: now() - 120,
       iat: now() - 300,
@@ -115,7 +125,7 @@ describe("clerkSession", () => {
   });
 
   it("answers 401 for something that isn't a JWT", async () => {
-    vi.spyOn(console, "warn").mockImplementation(() => undefined);
+    vi.spyOn(console, "warn").mockReturnValue(undefined);
 
     const result = await routeAuth(request("Bearer not-a-jwt"), auth);
 
@@ -126,7 +136,7 @@ describe("clerkSession", () => {
     const unconfigured = clerkSession({
       checkPro,
       claimSession,
-      jwtKey: () => undefined,
+      jwtKey: () => {},
       report,
     });
 
@@ -142,10 +152,11 @@ describe("clerkSession", () => {
     const unconfigured = clerkSession({
       checkPro,
       claimSession,
-      jwtKey: () => undefined,
+      jwtKey: () => {},
       report,
     });
-    const send = () =>
+
+    const send = async () =>
       routeAuth(
         request(`Bearer ${clerkToken({ sub: "user_alice" })}`),
         unconfigured
@@ -154,7 +165,7 @@ describe("clerkSession", () => {
     await expect(send()).rejects.toThrow("CLERK_JWT_KEY");
     await expect(send()).rejects.toThrow("CLERK_JWT_KEY");
 
-    expect(report).toHaveBeenCalledTimes(1);
+    expect(report).toHaveBeenCalledOnce();
     expect(report).toHaveBeenCalledWith(
       expect.objectContaining({
         message: "Missing CLERK_JWT_KEY environment variable",
@@ -212,6 +223,7 @@ describe("clerkSession", () => {
       ),
       auth
     );
+
     const mallory = await routeAuth(
       request(
         `Bearer ${clerkToken({ sub: "user_mallory" })}`,
@@ -266,7 +278,7 @@ describe("clerkSession Pro check", () => {
 
       expect(result).toBeInstanceOf(Response);
       expect(result.status).toBe(403);
-      expect(await result.json()).toMatchObject({
+      await expect(result.json()).resolves.toMatchObject({
         code: "arnold_pro_required",
         ok: false,
       });
@@ -285,7 +297,7 @@ describe("clerkSession Pro check", () => {
 
     expect(result).toBeInstanceOf(Response);
     expect(result.status).toBe(503);
-    expect(await result.json()).toMatchObject({
+    await expect(result.json()).resolves.toMatchObject({
       code: "arnold_pro_check_unavailable",
       ok: false,
     });

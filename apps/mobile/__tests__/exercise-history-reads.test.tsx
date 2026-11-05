@@ -10,9 +10,12 @@
  * stand-ins.
  */
 import { beforeEach, describe, expect, it, jest } from "@jest/globals";
-import { type QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { QueryClientProvider } from "@tanstack/react-query";
+import type { QueryClient } from "@tanstack/react-query";
 import { fireEvent, render, screen } from "@testing-library/react-native";
 import type { ReactNode } from "react";
+import { it, describe, expect, beforeEach } from "vitest";
+
 import WorkoutSessionExerciseScreen from "~/app/plans/[planId]/workouts/[workoutId]/sessions/[sessionId]/exercises/[exerciseId]/index";
 import { storage } from "~/lib/mmkv";
 import { libraryExercise, serveLibrary } from "~/test-utils/fake-library";
@@ -26,10 +29,11 @@ import { resetStubRouter } from "~/test-utils/router-stub";
 
 const mockParams: { current: Record<string, string> } = { current: {} };
 
-jest.mock("expo-router", () => {
+jest.mock<typeof import("expo-router")>(import("expo-router"), () => {
   const stub = jest.requireActual<typeof import("~/test-utils/router-stub")>(
     "~/test-utils/router-stub"
   );
+
   return {
     Stack: { Screen: stub.StackScreenStub },
     useIsFocused: () => true,
@@ -38,35 +42,67 @@ jest.mock("expo-router", () => {
     useRouter: () => ({ ...stub.stubRouter, canGoBack: () => true }),
   };
 });
+
 // The real Clerk SDK opens a MessagePort at import that keeps Jest alive.
-jest.mock("~/lib/clerk", () => ({
+jest.mock<typeof import("~/lib/clerk")>(import("~/lib/clerk"), () => ({
   getCurrentUserId: jest.requireActual<
     typeof import("~/test-utils/signed-in-user")
   >("~/test-utils/signed-in-user").getCurrentUserId,
 }));
-jest.mock("@sentry/react-native", () => ({ captureException: jest.fn() }));
-jest.mock("~/lib/segment", () => ({ segmentClient: { track: jest.fn() } }));
-jest.mock("react-native-safe-area-context", () => ({
-  useSafeAreaInsets: () => ({ bottom: 0, left: 0, right: 0, top: 0 }),
+
+jest.mock<typeof import("@sentry/react-native")>(
+  import("@sentry/react-native"),
+  () => ({ captureException: jest.fn() })
+);
+
+jest.mock<typeof import("~/lib/segment")>(import("~/lib/segment"), () => ({
+  segmentClient: { track: jest.fn() },
 }));
-jest.mock("react-native-keyboard-controller", () => {
-  const { ScrollView } =
-    jest.requireActual<typeof import("react-native")>("react-native");
-  return { KeyboardAwareScrollView: ScrollView };
-});
-jest.mock("~/components/exercises/exercise-image", () => () => null);
-jest.mock("~/components/workout-sessions/rest-timer", () => () => null);
-jest.mock(
-  "~/components/workout-sessions/workout-session-finish-suggestion",
+
+jest.mock<typeof import("react-native-safe-area-context")>(
+  import("react-native-safe-area-context"),
+  () => ({
+    useSafeAreaInsets: () => ({ bottom: 0, left: 0, right: 0, top: 0 }),
+  })
+);
+
+jest.mock<typeof import("react-native-keyboard-controller")>(
+  import("react-native-keyboard-controller"),
+  () => {
+    const { ScrollView } =
+      jest.requireActual<typeof import("react-native")>("react-native");
+
+    return { KeyboardAwareScrollView: ScrollView };
+  }
+);
+
+jest.mock<typeof import("~/components/exercises/exercise-image")>(
+  import("~/components/exercises/exercise-image"),
+  () => () => null
+);
+
+jest.mock<typeof import("~/components/workout-sessions/rest-timer")>(
+  import("~/components/workout-sessions/rest-timer"),
+  () => () => null
+);
+
+jest.mock<
+  typeof import("~/components/workout-sessions/workout-session-finish-suggestion")
+>(
+  import("~/components/workout-sessions/workout-session-finish-suggestion"),
   () => ({ WorkoutSessionFinishSuggestion: () => null })
 );
-jest.mock("~/components/ui/button", () =>
-  jest.requireActual("~/test-utils/button-stub")
+
+jest.mock<typeof import("~/components/ui/button")>(
+  import("~/components/ui/button"),
+  () => jest.requireActual("~/test-utils/button-stub")
 );
 
 const HISTORY = "GET /v1/workout-session-exercises";
+
 const HISTORY_LOAD_ERROR =
   "Couldn't load this exercise's history. Check your connection and try again.";
+
 const RATE_LIMITED = "Too many requests: please try again in 12 s.";
 
 // A session's date in the card, this year, so without it; an American device
@@ -96,6 +132,7 @@ const mountExerciseScreen = () => {
     sessionId: "now",
     workoutId: "workout-1",
   };
+
   return mount(<WorkoutSessionExerciseScreen />);
 };
 
@@ -110,14 +147,16 @@ const setSet = (
   }
 ) => {
   const set = backend.sets.find((candidate) => candidate.id === id);
+
   if (!set) {
     throw new Error(`No seeded set ${id}`);
   }
+
   Object.assign(set, values);
 };
 
 /** A past Workout Session of one Squat with `sets` logged reps. */
-const seedPast = (id: string, startedAt: string, sets: Array<number | null>) =>
+const seedPast = (id: string, startedAt: string, sets: (number | null)[]) =>
   backend.seed({
     exercises: [{ name: "Squat", sets }],
     finished: true,
@@ -164,7 +203,7 @@ beforeEach(() => {
   });
 });
 
-describe("The Exercise history card", () => {
+describe("the Exercise history card", () => {
   beforeEach(() => {
     // Two past sessions: one with a weight and a target, one bodyweight.
     seedPast("past-1", "2026-02-03T10:00:00.000Z", [8, 10]);
@@ -227,7 +266,7 @@ describe("The Exercise history card", () => {
   });
 });
 
-describe("The Exercise history card's pages", () => {
+describe("the Exercise history card's pages", () => {
   beforeEach(() => {
     // 21 past sessions: a first page of 20, then one more. Each set carries a
     // weight target, so its own entry's unit shows inline (`10×95kg`).
@@ -325,7 +364,7 @@ describe("The Exercise history card's pages", () => {
   });
 });
 
-describe("The Exercise history card's failures", () => {
+describe("the Exercise history card's failures", () => {
   beforeEach(() => {
     seedPast("past-1", "2026-02-03T10:00:00.000Z", [8]);
   });

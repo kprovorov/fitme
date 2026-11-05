@@ -1,14 +1,19 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+
 import { contextFor, inputSchemaOf, userIdFields } from "./tool-context";
 
 const db = vi.hoisted(() => ({ asUser: vi.fn() }));
 const services = vi.hoisted(() => ({ updateProfile: vi.fn() }));
-vi.mock("@fitme/db", () => db);
-vi.mock("@fitme/services/profile", () => services);
 
-const { default: updateUserProfile } = await import(
-  "../agent/tools/update_user_profile"
+vi.mock<typeof import("@fitme/db")>(import("@fitme/db"), () => db);
+
+vi.mock<typeof import("@fitme/services/profile")>(
+  import("@fitme/services/profile"),
+  () => services
 );
+
+const { default: updateUserProfile } =
+  await import("../agent/tools/update_user_profile");
 
 const tx = { fake: "transaction" };
 
@@ -76,6 +81,7 @@ describe("update_user_profile", () => {
       measurement_system: "uk",
       weight: 80,
     });
+
     for (const invalid of [
       { age: 9 },
       { age: 30.5 },
@@ -93,9 +99,9 @@ describe("update_user_profile", () => {
   it("tells the model when the User has no Profile yet", async () => {
     services.updateProfile.mockResolvedValue(null);
 
-    expect(
-      await updateUserProfile.execute({ age: 31 }, contextFor("user_alice"))
-    ).toEqual({ error: "Profile not found" });
+    await expect(
+      updateUserProfile.execute({ age: 31 }, contextFor("user_alice"))
+    ).resolves.toEqual({ error: "Profile not found" });
   });
 
   it("acts as the session's owner, never the turn's caller", async () => {

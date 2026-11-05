@@ -1,5 +1,6 @@
 import * as TablePrimitive from "@rn-primitives/table";
 import type * as React from "react";
+
 import { TextClassContext } from "~/components/ui/text";
 import { cn } from "~/lib/utils";
 
@@ -56,7 +57,7 @@ function TableRow({
 }) {
   return (
     <TablePrimitive.Row
-      className={cn("flex-row border-border border-b", className)}
+      className={cn("border-border flex-row border-b", className)}
       {...props}
     />
   );

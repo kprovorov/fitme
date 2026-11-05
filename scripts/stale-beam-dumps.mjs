@@ -14,6 +14,7 @@ const DUMP = /^(?:perf-(\d+)\.map|jit-(\d+)\.dump)$/;
 export const isAlive = (pid) => {
   try {
     process.kill(pid, 0);
+
     return true;
   } catch (error) {
     // EPERM: alive, just another user's.
@@ -27,18 +28,24 @@ export const removeStaleBeamDumps = ({
   unlink = fs.unlinkSync,
 } = {}) => {
   let names;
+
   try {
     names = fs.readdirSync(dir);
   } catch {
     return [];
   }
+
   const removed = [];
+
   for (const name of names) {
     const match = DUMP.exec(name);
+
     if (!match || alive(Number(match[1] ?? match[2]))) {
       continue;
     }
+
     const file = path.join(dir, name);
+
     try {
       unlink(file);
       removed.push(file);
@@ -46,6 +53,7 @@ export const removeStaleBeamDumps = ({
       // Another user's file under /tmp's sticky bit, or already gone.
     }
   }
+
   return removed;
 };
 
@@ -56,9 +64,10 @@ const main = ([dir]) => {
       ? "No stale BEAM perf/jit dumps"
       : `Removed ${removed.length} BEAM perf/jit dump(s) of dead processes`
   );
+
   return 0;
 };
 
-if (process.argv[1] === fileURLToPath(import.meta.url)) {
+if (process.argv[1] === import.meta.filename) {
   process.exitCode = main(process.argv.slice(2));
 }

@@ -1,3 +1,4 @@
+import { appLanguages } from "@fitme/core";
 /**
  * The device's per-app language Settings (iOS Settings → Fitme → Language,
  * Android 13+ per-app language) offer exactly the App languages: the
@@ -5,9 +6,9 @@
  * writes at prebuild (iOS `CFBundleLocalizations`, Android's locales config)
  * comes from that list.
  */
-
-import { appLanguages } from "@fitme/core";
 import { describe, expect, it } from "@jest/globals";
+import { describe, expect, it } from "vitest";
+
 import appJson from "~/app.json";
 
 const isLocalization = (plugin: unknown) =>

@@ -1,6 +1,7 @@
 import { LibraryUnavailableError } from "@fitme/library-sdk";
 import type { CreatePlanOptions, NewPlan } from "@fitme/services/plans";
 import { describe, expect, it } from "vitest";
+
 import {
   fakeServices,
   libraryCover,
@@ -138,12 +139,15 @@ const servicesCreated = {
 /** Services whose `createPlan` records what it was asked and answers `servicesCreated`. */
 const recordingServices = (weightUnit: "kg" | "lbs" = "kg") => {
   const calls: { options: CreatePlanOptions; plan: NewPlan }[] = [];
+
   const services = fakeServices({
     createPlan: (plan, options) => {
       calls.push({ options, plan });
+
       return Promise.resolve({ value: servicesCreated, weightUnit });
     },
   });
+
   return { calls, services };
 };
 
@@ -158,7 +162,7 @@ const post = (
     method: "POST",
   });
 
-describe("POST /v1/plans", () => {
+describe("pOST /v1/plans", () => {
   it("creates the Plan, active by default, with no Covers from a Library without any, and answers it in full with its weight unit", async () => {
     const { calls, services } = recordingServices();
     const { app, reported, servicesFor } = testApp({ services });
@@ -166,7 +170,7 @@ describe("POST /v1/plans", () => {
     const response = await post(app, body());
 
     expect(response.status).toBe(201);
-    expect(await response.json()).toEqual({
+    await expect(response.json()).resolves.toEqual({
       data: { ...created, weight_unit: "kg" },
     });
     const { workouts, ...metadata } = body();
@@ -186,6 +190,7 @@ describe("POST /v1/plans", () => {
 
   it("gives each Workout the Cover of the muscle group it trains most", async () => {
     const { calls, services } = recordingServices();
+
     const { app, reported } = testApp({
       covers: [
         libraryCover(CHEST_COVER, ["chest"]),
@@ -209,6 +214,7 @@ describe("POST /v1/plans", () => {
 
   it("gives no two Workouts the same Cover while the Library has enough", async () => {
     const { calls, services } = recordingServices();
+
     const { app } = testApp({
       covers: [
         libraryCover(LEGS_COVER, ["quadriceps"]),
@@ -217,6 +223,7 @@ describe("POST /v1/plans", () => {
       exercises,
       services,
     });
+
     const payload = body();
     // Both Workouts train quadriceps most, and only one Cover suits them.
     payload.workouts[1].exercises[0].exercise_slug = "barbell-back-squat";
@@ -237,7 +244,7 @@ describe("POST /v1/plans", () => {
     const response = await post(app, body());
 
     expect(response.status).toBe(503);
-    expect(await response.json()).toEqual({
+    await expect(response.json()).resolves.toEqual({
       error: {
         code: "library_unavailable",
         message:
@@ -301,7 +308,7 @@ describe("POST /v1/plans", () => {
     const response = await post(app, payload);
 
     expect(response.status).toBe(400);
-    expect(await response.json()).toEqual({
+    await expect(response.json()).resolves.toEqual({
       error: {
         code: "unknown_exercises",
         message: "Unknown exercise_slug(s): made-up-press, made-up-row",
@@ -318,7 +325,7 @@ describe("POST /v1/plans", () => {
     const response = await post(app, body());
 
     expect(response.status).toBe(503);
-    expect(await response.json()).toEqual({
+    await expect(response.json()).resolves.toEqual({
       error: {
         code: "library_unavailable",
         message:
@@ -360,6 +367,7 @@ describe("POST /v1/plans", () => {
   const invalid = (edit: (payload: ReturnType<typeof body>) => void) => {
     const payload = body();
     edit(payload);
+
     return payload;
   };
 

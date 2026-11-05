@@ -1,14 +1,12 @@
 import { randomBytes, randomUUID } from "node:crypto";
+
 import { asUser, profiles, withService } from "@fitme/db";
 import { deleteTestUsers } from "@fitme/services/delete-test-users";
-import {
-  createPlan,
-  deletePlan,
-  type NewPlan,
-  type PlanDetail,
-} from "@fitme/services/plans";
+import { createPlan, deletePlan } from "@fitme/services/plans";
+import type { NewPlan, PlanDetail } from "@fitme/services/plans";
 import { updateProfile } from "@fitme/services/profile";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
+
 import { createApp } from "../src/create-app.js";
 import { createServicesFromEnv } from "../src/services.js";
 import { clerk, signedInAs } from "../src/test/harness.js";
@@ -22,7 +20,7 @@ import { clerk, signedInAs } from "../src/test/harness.js";
 const app = createApp({
   clerkJwtKey: clerk.jwtKey,
   createServices: createServicesFromEnv,
-  identifyUser: () => undefined,
+  identifyUser: () => {},
   reportError: (error) => Promise.reject(error),
 });
 
@@ -114,6 +112,7 @@ const LEGACY_OR_INTERNAL_FIELD =
 /** The status and body of a GET as `userId`. */
 const get = async (path: string, userId: string) => {
   const response = await app.request(path, { headers: signedInAs(userId) });
+
   return { body: await response.json(), status: response.status };
 };
 
@@ -182,7 +181,7 @@ const expected = (plan: PlanDetail, weightUnit: "kg" | "lbs") => ({
   })),
 });
 
-describe("GET /v1/plans against the local stack", () => {
+describe("gET /v1/plans against the local stack", () => {
   it("lists the User's live Plans newest first with Workout summaries", async () => {
     const { body, status } = await get("/v1/plans", metric);
 
@@ -215,14 +214,14 @@ describe("GET /v1/plans against the local stack", () => {
   });
 
   it("answers an empty list for a User without Plans", async () => {
-    expect(await get("/v1/plans", noPlans)).toEqual({
+    await expect(get("/v1/plans", noPlans)).resolves.toEqual({
       body: { data: [] },
       status: 200,
     });
   });
 });
 
-describe("GET /v1/plans/{id} against the local stack", () => {
+describe("gET /v1/plans/{id} against the local stack", () => {
   it("reads a Plan in full, in order, Exercises by slug only, in kg for metric", async () => {
     const { body, status } = await get(`/v1/plans/${older.id}`, metric);
 
@@ -264,6 +263,7 @@ describe("GET /v1/plans/{id} against the local stack", () => {
     const reads = await Promise.all(
       [deleted.id, randomUUID()].map((id) => get(`/v1/plans/${id}`, metric))
     );
+
     for (const { body, status } of reads) {
       expect(status).toBe(404);
       expect(body.error.code).toBe("not_found");
@@ -277,23 +277,23 @@ describe("GET /v1/plans/{id} against the local stack", () => {
   });
 });
 
-describe("GET /v1/plans/active against the local stack", () => {
+describe("gET /v1/plans/active against the local stack", () => {
   it("reads the active Plan in full", async () => {
-    expect(await get("/v1/plans/active", metric)).toEqual({
+    await expect(get("/v1/plans/active", metric)).resolves.toEqual({
       body: { data: expected(active, "kg") },
       status: 200,
     });
   });
 
   it("answers { data: null } without an active Plan", async () => {
-    expect(await get("/v1/plans/active", noPlans)).toEqual({
+    await expect(get("/v1/plans/active", noPlans)).resolves.toEqual({
       body: { data: null },
       status: 200,
     });
   });
 });
 
-describe("Plans across Users", () => {
+describe("plans across Users", () => {
   it("never shows another User's Plan, by id, in the list or as active", async () => {
     const byId = await get(`/v1/plans/${active.id}`, imperial);
     expect(byId.status).toBe(404);
@@ -313,7 +313,7 @@ describe("Plans across Users", () => {
   });
 });
 
-describe("A Plan read during a measurement-system conversion", () => {
+describe("a Plan read during a measurement-system conversion", () => {
   it("waits for the conversion, then answers its weights in the new unit", async () => {
     let read: ReturnType<typeof get> | undefined;
     let answered = false;

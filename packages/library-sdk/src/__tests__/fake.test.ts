@@ -1,13 +1,14 @@
 import type { AppLanguage, Equipment } from "@fitme/core/models";
 import { describe, expect, it } from "vitest";
+
 import {
   createLibrary,
   LibraryInvalidRequestError,
   LibraryRateLimitedError,
   LibraryUnauthorizedError,
   LibraryUnavailableError,
-  type ListExercisesParams,
 } from "..";
+import type { ListExercisesParams } from "..";
 import { createFakeLibrary } from "../fake";
 import { cover, exercise, stubApi } from "./stub-api";
 
@@ -105,9 +106,10 @@ const covers = [
 
 const real = createLibrary({
   fetch: stubApi(exercises, undefined, covers).fetch,
-  token: () => Promise.resolve("secret"),
+  token: async () => Promise.resolve("secret"),
   url: "https://exercises.test",
 });
+
 const fake = createFakeLibrary(exercises, { covers });
 
 describe.each<[string, AppLanguage | undefined]>([
@@ -183,7 +185,7 @@ describe.each<[string, AppLanguage | undefined]>([
   ])("list with %s", async (_, params) => {
     const asked = language ? { ...params, language } : params;
 
-    expect(await fake.list(asked)).toEqual(await real.list(asked));
+    await expect(fake.list(asked)).resolves.toEqual(await real.list(asked));
   });
 
   it.each<[string, ListExercisesParams]>([
@@ -203,10 +205,12 @@ describe.each<[string, AppLanguage | undefined]>([
     ],
   ])("list refusing %s", async (_, params) => {
     const asked = language ? { ...params, language } : params;
-    const fakeError = await fake.list(asked).catch((e: unknown) => e);
+    const fakeError = await fake.list(asked).catch((error: unknown) => error);
 
     expect(fakeError).toBeInstanceOf(LibraryInvalidRequestError);
-    expect(fakeError).toEqual(await real.list(asked).catch((e: unknown) => e));
+    expect(fakeError).toEqual(
+      await real.list(asked).catch((error: unknown) => error)
+    );
   });
 
   it("lookup across chunks, with repeats and missing slugs", async () => {
@@ -226,7 +230,7 @@ describe.each<[string, AppLanguage | undefined]>([
   });
 
   it.each(["squat", "100-percent_curl", "nope", ""])("get %j", async (slug) => {
-    expect(await fake.get(slug, { language })).toEqual(
+    await expect(fake.get(slug, { language })).resolves.toEqual(
       await real.get(slug, { language })
     );
   });
@@ -256,14 +260,14 @@ describe("covers", () => {
   it("answers an empty list like the real client without Covers", async () => {
     const empty = createLibrary({
       fetch: stubApi(exercises).fetch,
-      token: () => Promise.resolve("secret"),
+      token: async () => Promise.resolve("secret"),
       url: "https://exercises.test",
     });
 
-    expect(await createFakeLibrary(exercises).covers()).toEqual(
+    await expect(createFakeLibrary(exercises).covers()).resolves.toEqual(
       await empty.covers()
     );
-    expect(await createFakeLibrary(exercises).covers()).toEqual([]);
+    await expect(createFakeLibrary(exercises).covers()).resolves.toEqual([]);
   });
 
   it("answers copies, so a caller changing one leaves the fake alone", async () => {
@@ -271,11 +275,11 @@ describe("covers", () => {
     const [first] = await library.covers();
     first?.muscle_groups.push("abs");
 
-    expect(await library.covers()).toEqual(covers);
+    await expect(library.covers()).resolves.toEqual(covers);
   });
 });
 
-describe("Equipment", () => {
+describe("equipment", () => {
   // the API answers Equipment in core's order whatever order the bundle wrote
   // it in, so the fake does too
   const outOfOrder = createFakeLibrary([
@@ -289,10 +293,14 @@ describe("Equipment", () => {
     const { equipment: _, ...untagged } = exercise("sit-up");
     const library = createFakeLibrary([untagged]);
 
-    expect(await library.get("sit-up")).toMatchObject({ equipment: [] });
+    await expect(library.get("sit-up")).resolves.toMatchObject({
+      equipment: [],
+    });
     expect((await library.lookup(["sit-up"])).data[0]?.equipment).toEqual([]);
     expect((await library.list()).data[0]?.equipment).toEqual([]);
-    expect(await library.list({ equipment: ["bodyweight"] })).toMatchObject({
+    await expect(
+      library.list({ equipment: ["bodyweight"] })
+    ).resolves.toMatchObject({
       total: 0,
     });
   });
@@ -317,12 +325,12 @@ describe("Equipment", () => {
 
 describe("language", () => {
   it("answers a translated Exercise in the language, an untranslated one wholly in English", async () => {
-    expect(await fake.get("squat", { language: "uk" })).toMatchObject({
+    await expect(fake.get("squat", { language: "uk" })).resolves.toMatchObject({
       description: "Про Присід.",
       instructions: "Виконуй Присід.",
       name: "Присід",
     });
-    expect(await fake.get("row-a", { language: "uk" })).toEqual(
+    await expect(fake.get("row-a", { language: "uk" })).resolves.toEqual(
       await fake.get("row-a")
     );
   });
@@ -360,13 +368,13 @@ describe("failing", () => {
     library.failWith(null);
 
     expect((await library.lookup(["squat"])).data).toHaveLength(1);
-    expect(await library.covers()).toEqual(covers);
+    await expect(library.covers()).resolves.toEqual(covers);
   });
 
   it("answers get with empty texts for an Exercise given as a summary", async () => {
     const { description: _, instructions: __, ...squat } = exercise("squat");
 
-    expect(await createFakeLibrary([squat]).get("squat")).toEqual({
+    await expect(createFakeLibrary([squat]).get("squat")).resolves.toEqual({
       ...squat,
       description: "",
       instructions: "",

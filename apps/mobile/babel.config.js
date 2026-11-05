@@ -7,6 +7,7 @@ module.exports = (api) => {
   // what it changes on a device (such as a hook it memoizes away).
   const isJest = api.caller((caller) => caller?.bundler === "jest");
   api.cache(true);
+
   return {
     overrides: isJest
       ? [

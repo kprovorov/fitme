@@ -2,47 +2,69 @@ import { beforeEach, describe, expect, it, jest } from "@jest/globals";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { fireEvent, render, screen } from "@testing-library/react-native";
 import type { ReactElement } from "react";
+import { it, describe, expect, beforeEach } from "vitest";
+
 import type { ShownExercise } from "~/hooks/queries/library";
 import type {
   WorkoutSessionExercise,
   WorkoutSessionSet,
 } from "~/hooks/queries/workout-sessions";
 import { createTestQueryClient } from "~/test-utils/query-client";
+
 import WorkoutSessionExerciseCard from "../workout-session-exercise-card";
 
 const mockPush = jest.fn();
 
-jest.mock("expo-router", () => ({
+jest.mock<typeof import("expo-router")>(import("expo-router"), () => ({
   useRouter: () => ({ push: mockPush }),
 }));
+
 // The real Clerk SDK (reached through the set rows' saves) opens a
 // MessagePort at import that keeps Jest alive.
-jest.mock("~/lib/clerk", () => ({
+jest.mock<typeof import("~/lib/clerk")>(import("~/lib/clerk"), () => ({
   getCurrentUserId: jest.requireActual<
     typeof import("~/test-utils/signed-in-user")
   >("~/test-utils/signed-in-user").getCurrentUserId,
 }));
-jest.mock("~/lib/segment", () => ({ segmentClient: { track: jest.fn() } }));
-jest.mock("~/components/exercises/exercise-image", () => () => null);
-jest.mock("~/components/symbol-image", () => ({ SymbolImage: () => null }));
-jest.mock("~/components/ui/button", () =>
-  jest.requireActual("~/test-utils/button-stub")
-);
-jest.mock("~/components/ui/dropdown-menu", () => ({
-  DropdownMenu: ({
-    accessibilityLabel,
-    items,
-  }: {
-    accessibilityLabel: string;
-    items: { label: string }[];
-  }) => {
-    const { Text } =
-      jest.requireActual<typeof import("react-native")>("react-native");
-    return (
-      <Text>{`${accessibilityLabel}: ${items.map((item) => item.label).join(", ")}`}</Text>
-    );
-  },
+
+jest.mock<typeof import("~/lib/segment")>(import("~/lib/segment"), () => ({
+  segmentClient: { track: jest.fn() },
 }));
+
+jest.mock<typeof import("~/components/exercises/exercise-image")>(
+  import("~/components/exercises/exercise-image"),
+  () => () => null
+);
+
+jest.mock<typeof import("~/components/symbol-image")>(
+  import("~/components/symbol-image"),
+  () => ({ SymbolImage: () => null })
+);
+
+jest.mock<typeof import("~/components/ui/button")>(
+  import("~/components/ui/button"),
+  () => jest.requireActual("~/test-utils/button-stub")
+);
+
+jest.mock<typeof import("~/components/ui/dropdown-menu")>(
+  import("~/components/ui/dropdown-menu"),
+  () => ({
+    DropdownMenu: ({
+      accessibilityLabel,
+      items,
+    }: {
+      accessibilityLabel: string;
+      items: { label: string }[];
+    }) => {
+      const { Text } =
+        jest.requireActual<typeof import("react-native")>("react-native");
+
+      return (
+        <Text>{`${accessibilityLabel}: ${items.map((item) => item.label).join(", ")}`}</Text>
+      );
+    },
+  })
+);
 
 const BENCH: ShownExercise = {
   isResolved: true,
@@ -86,7 +108,7 @@ beforeEach(() => {
   mockPush.mockClear();
 });
 
-describe("WorkoutSessionExerciseCard", () => {
+describe(WorkoutSessionExerciseCard, () => {
   it("opens the Exercise of an open session, with its menu and Add Set", async () => {
     await renderCard(
       <WorkoutSessionExerciseCard

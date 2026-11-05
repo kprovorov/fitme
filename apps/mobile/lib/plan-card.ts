@@ -1,7 +1,5 @@
 import type { components } from "@fitme/api-client";
 import {
-  type ExperienceLevel,
-  type Goal,
   MAX_EXERCISES_PER_WORKOUT,
   MAX_FREQUENCY,
   MAX_PLAN_NAME_LENGTH,
@@ -13,6 +11,7 @@ import {
   MAX_WORKOUTS_PER_PLAN,
   MIN_FREQUENCY,
 } from "@fitme/core";
+import type { ExperienceLevel, Goal } from "@fitme/core";
 
 /**
  * An Exercise of `display_workout_plan`'s result, by Exercise slug. A card
@@ -89,6 +88,7 @@ const fitInteger = (
 /** The first number of Arnold's reps ("8-10" → 8). */
 const repsOf = (reps: unknown) => {
   const match = typeof reps === "string" ? reps.match(REPS_RE) : null;
+
   return fitInteger(
     match ? Number.parseInt(match[0], 10) : DEFAULT_REPS,
     1,
@@ -99,6 +99,7 @@ const repsOf = (reps: unknown) => {
 
 const nameOf = (name: unknown, fallback: string) => {
   const trimmed = typeof name === "string" ? name.trim() : "";
+
   return (trimmed || fallback).slice(0, MAX_PLAN_NAME_LENGTH);
 };
 
@@ -131,6 +132,7 @@ export const planCardBody = (plan: WorkoutPlan): NewPlan | null => {
   if (!canSavePlanCard(plan)) {
     return null;
   }
+
   const workouts = plan.workouts
     .filter((workout) => workout.exercises.length > 0)
     .slice(0, MAX_WORKOUTS_PER_PLAN)
@@ -149,6 +151,7 @@ export const planCardBody = (plan: WorkoutPlan): NewPlan | null => {
             ),
             weight_recommended: 0,
           };
+
           return {
             // Never empty: `canSavePlanCard` refuses a card without slugs.
             exercise_slug: exercise.exercise_slug ?? "",

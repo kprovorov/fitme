@@ -1,7 +1,9 @@
 import { describe, expect, it } from "@jest/globals";
+import { describe, expect, it } from "vitest";
+
 import { cn, TEXT_STYLES } from "../utils";
 
-describe("cn", () => {
+describe(cn, () => {
   it("keeps border-circular next to a border color, and a later color wins", () => {
     expect(cn("border-circular border-input", "border-destructive")).toBe(
       "border-circular border-destructive"
@@ -38,7 +40,7 @@ describe("cn", () => {
     expect(cn("text-sm", "text-caption-1")).toBe("text-caption-1");
     expect(
       cn(
-        "font-nunito-sans-bold font-semibold leading-none tracking-tight",
+        "font-nunito-sans-bold leading-none font-semibold tracking-tight",
         "text-body-emphasized"
       )
     ).toBe("text-body-emphasized");
@@ -50,7 +52,7 @@ describe("cn", () => {
 
   it("merges spacing and radius tokens next to a text style", () => {
     expect(
-      cn("rounded-none p-0 text-body", "rounded-card p-sm text-body-emphasized")
+      cn("text-body rounded-none p-0", "rounded-card p-sm text-body-emphasized")
     ).toBe("rounded-card p-sm text-body-emphasized");
   });
 
@@ -61,10 +63,10 @@ describe("cn", () => {
   });
 
   it("keeps a border color next to border-continuous, in either order", () => {
-    expect(cn("border border-border border-continuous")).toBe(
+    expect(cn("border-border border-continuous border")).toBe(
       "border border-border border-continuous"
     );
-    expect(cn("border-continuous", "border border-border")).toBe(
+    expect(cn("border-continuous", "border-border border")).toBe(
       "border-continuous border border-border"
     );
   });

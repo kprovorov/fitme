@@ -7,9 +7,12 @@ import {
   it,
   jest,
 } from "@jest/globals";
-import { type QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { QueryClientProvider } from "@tanstack/react-query";
+import type { QueryClient } from "@tanstack/react-query";
 import { act, render, screen } from "@testing-library/react-native";
 import type { ReactNode } from "react";
+import { it, afterEach, describe, expect, beforeEach } from "vitest";
+
 import { i18n } from "~/lib/i18n";
 import { storage } from "~/lib/mmkv";
 import {
@@ -19,22 +22,26 @@ import {
 import { backend, FAKE_USER_ID } from "~/test-utils/fake-public-api";
 import { InAppLanguage } from "~/test-utils/in-app-language";
 import { createTestQueryClient, settle } from "~/test-utils/query-client";
+
 import ExerciseHistoryView from "../exercise-history-view";
 
 // A row's set number cell, and a session's date.
 const SET_NUMBER = /^#\d$/;
+
 // A date shows its year once it is not this one. An American device puts the
 // month first.
 const SESSION_DATE = /^October \d+(, \d{4})?$/;
 
 // The real Clerk SDK opens a MessagePort at import that keeps Jest alive.
-jest.mock("~/lib/clerk", () => ({
+jest.mock<typeof import("~/lib/clerk")>(import("~/lib/clerk"), () => ({
   getCurrentUserId: jest.requireActual<
     typeof import("~/test-utils/signed-in-user")
   >("~/test-utils/signed-in-user").getCurrentUserId,
 }));
-jest.mock("~/components/ui/button", () =>
-  jest.requireActual("~/test-utils/button-stub")
+
+jest.mock<typeof import("~/components/ui/button")>(
+  import("~/components/ui/button"),
+  () => jest.requireActual("~/test-utils/button-stub")
 );
 
 let queryClient: QueryClient;
@@ -55,7 +62,7 @@ const mount = async (children: ReactNode) => {
 const seedSession = (
   id: string,
   startedAt: string,
-  sets: Array<{ reps: number; weight?: number | null }>
+  sets: { reps: number; weight?: number | null }[]
 ) => {
   backend.seed({
     exercises: [{ name: "Shoulder Press", sets: sets.map(({ reps }) => reps) }],
@@ -67,6 +74,7 @@ const seedSession = (
     const set = backend.sets.find(
       (candidate) => candidate.id === `${id}-e1-s${index + 1}`
     );
+
     Object.assign(set ?? {}, {
       reps_recommended: 12,
       weight_completed: weight,
@@ -87,7 +95,7 @@ afterEach(async () => {
   setDeviceConventions(i18n, { region: "US", uses24hourClock: false });
 });
 
-describe("ExerciseHistoryView", () => {
+describe(ExerciseHistoryView, () => {
   it("shows each past session as a table of its sets under Progress", async () => {
     seedSession("e1", "2026-10-21T10:00:00.000Z", [
       { reps: 12 },
@@ -98,12 +106,14 @@ describe("ExerciseHistoryView", () => {
     expect(screen.getByRole("heading", { name: "Progress" })).toBeTruthy();
     expect(screen.queryByText("History")).toBeNull();
     expect(screen.getByText(SESSION_DATE)).toBeTruthy();
+
     for (const header of ["#", "target", "reps", "kg"]) {
       // VoiceOver skips the header: each row reads as one sentence.
       expect(
         screen.getByText(header, { includeHiddenElements: true })
       ).toBeTruthy();
     }
+
     // Rows in set order: number, target, then what was logged.
     expect(
       screen.getAllByText(SET_NUMBER).map((cell) => cell.props.children)
@@ -152,11 +162,13 @@ describe("ExerciseHistoryView", () => {
 
     expect(screen.getByRole("heading", { name: "Прогрес" })).toBeTruthy();
     expect(screen.getByText("2 березня 2020 р.")).toBeTruthy();
+
     for (const header of ["ціль", "повтори", "кг"]) {
       expect(
         screen.getAllByText(header, { includeHiddenElements: true }).length
       ).toBeGreaterThan(0);
     }
+
     expect(screen.getAllByText("12×45кг").length).toBeGreaterThan(0);
     expect(
       screen.getByLabelText("Підхід 2: 10 повторень, 50 кг. Ціль 12×45кг")

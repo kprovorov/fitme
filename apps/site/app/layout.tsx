@@ -1,9 +1,11 @@
-import type { Metadata, Viewport } from "next";
-import "./globals.css";
 import { GoogleTagManager } from "@next/third-parties/google";
+
+import "./globals.css";
 import { Analytics } from "@vercel/analytics/next";
 import { SpeedInsights } from "@vercel/speed-insights/next";
+import type { Metadata, Viewport } from "next";
 import { Nunito_Sans } from "next/font/google";
+
 import Footer from "@/components/footer";
 import Header from "@/components/header";
 import { MainBox } from "@/components/mainbox";

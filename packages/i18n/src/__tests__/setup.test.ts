@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+
 import {
   createI18n,
   formatDate,
@@ -8,7 +9,7 @@ import {
   spokenUnit,
 } from "..";
 
-describe("createI18n", () => {
+describe(createI18n, () => {
   it("translates in English", () => {
     const i18n = createI18n("en");
     expect(i18n.language).toBe("en");
@@ -75,7 +76,7 @@ describe("createI18n", () => {
   it("falls back to English for a key missing in Ukrainian, never the raw key", () => {
     const i18n = createI18n("uk");
     i18n.addResource("en", "translation", "onlyInEnglish", "Only in English");
-    expect(i18n.t("onlyInEnglish" as "tabs.workout")).toBe("Only in English");
+    expect(i18n.t("onlyInEnglish")).toBe("Only in English");
   });
 
   it("keeps each instance's language its own", () => {

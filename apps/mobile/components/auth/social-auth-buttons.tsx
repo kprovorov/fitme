@@ -6,17 +6,18 @@ import {
 import { useCallback } from "react";
 import { useTranslation } from "react-i18next";
 import { useWindowDimensions, View } from "react-native";
+
 import { Image } from "~/components/tw";
 import { Button } from "~/components/ui/button";
 import { Separator } from "~/components/ui/separator";
 import { Text } from "~/components/ui/text";
-import {
-  type SocialProvider,
-  useNativeSocialAuth,
-} from "~/hooks/native-social-auth";
+import { useNativeSocialAuth } from "~/hooks/native-social-auth";
+import type { SocialProvider } from "~/hooks/native-social-auth";
+
 import type { useAuthOperation } from "./operation";
 
 type Operation = ReturnType<typeof useAuthOperation>;
+
 export function SocialAuthButtons(props: {
   operation: Operation;
   divider?: boolean;
@@ -24,6 +25,7 @@ export function SocialAuthButtons(props: {
 }) {
   return props.providers.length ? <AvailableSocialButtons {...props} /> : null;
 }
+
 function AvailableSocialButtons({
   operation,
   providers,
@@ -36,20 +38,25 @@ function AvailableSocialButtons({
   const { t } = useTranslation();
   const start = useNativeSocialAuth();
   const { fontScale } = useWindowDimensions();
+
   const signInWithApple = useCallback(() => {
     if (!operation.pending) {
       operation.run("apple", (current) => start("apple", current));
     }
   }, [operation, start]);
+
   const signInWithGoogle = useCallback(
     () => operation.run("google", (current) => start("google", current)),
     [operation, start]
   );
+
   const apple = providers.includes("apple");
   const google = providers.includes("google");
+
   if (!(apple || google)) {
     return null;
   }
+
   return (
     <View className="gap-xs">
       {apple ? (
@@ -98,7 +105,7 @@ function AvailableSocialButtons({
         </Button>
       ) : null}
       {divider ? (
-        <View className="mt-xs flex-row items-center gap-sm">
+        <View className="mt-xs gap-sm flex-row items-center">
           <Separator className="flex-1" />
           <Text className="text-footnote text-muted-foreground">
             {t("auth.or")}

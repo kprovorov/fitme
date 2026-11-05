@@ -1,6 +1,7 @@
 import { LibraryUnavailableError } from "@fitme/library-sdk";
 import type { PlanWorkoutInput } from "@fitme/services/plans";
 import { describe, expect, it } from "vitest";
+
 import {
   fakeServices,
   libraryCover,
@@ -130,14 +131,17 @@ const recordingServices = ({
   weightUnit?: "kg" | "lbs";
 } = {}) => {
   const calls: { planId: string; workouts: PlanWorkoutInput[] }[] = [];
+
   const services = fakeServices({
     replaceWorkouts: (id, workouts) => {
       calls.push({ planId: id, workouts });
+
       return Promise.resolve(
         found ? { value: servicesReplaced, weightUnit } : null
       );
     },
   });
+
   return { calls, services };
 };
 
@@ -155,7 +159,7 @@ const put = (
     method: "PUT",
   });
 
-describe("PUT /v1/plans/{id}/workouts", () => {
+describe("pUT /v1/plans/{id}/workouts", () => {
   it("replaces the Plan's Workouts with the sent ones, with no Covers from a Library without any, and answers the Plan in full with its weight unit", async () => {
     const { calls, services } = recordingServices();
     const { app, reported, servicesFor } = testApp({ services });
@@ -163,7 +167,7 @@ describe("PUT /v1/plans/{id}/workouts", () => {
     const response = await put(app, body());
 
     expect(response.status).toBe(200);
-    expect(await response.json()).toEqual({
+    await expect(response.json()).resolves.toEqual({
       data: { ...replaced, weight_unit: "kg" },
     });
     // The Library has no Covers, so no Workout gets one.
@@ -182,6 +186,7 @@ describe("PUT /v1/plans/{id}/workouts", () => {
 
   it("gives each new Workout a fresh Cover for the muscle group it trains most, no two the same", async () => {
     const { calls, services } = recordingServices();
+
     const { app, reported } = testApp({
       covers: [
         libraryCover(CHEST_COVER, ["chest"]),
@@ -210,7 +215,7 @@ describe("PUT /v1/plans/{id}/workouts", () => {
     const response = await put(app, body());
 
     expect(response.status).toBe(503);
-    expect(await response.json()).toEqual({
+    await expect(response.json()).resolves.toEqual({
       error: {
         code: "library_unavailable",
         message:
@@ -236,7 +241,7 @@ describe("PUT /v1/plans/{id}/workouts", () => {
     const response = await put(app, body());
 
     expect(response.status).toBe(404);
-    expect(await response.json()).toEqual({
+    await expect(response.json()).resolves.toEqual({
       error: { code: "not_found", message: "Plan not found" },
     });
     expect(reported).toEqual([]);
@@ -265,7 +270,7 @@ describe("PUT /v1/plans/{id}/workouts", () => {
     const response = await put(app, payload);
 
     expect(response.status).toBe(400);
-    expect(await response.json()).toEqual({
+    await expect(response.json()).resolves.toEqual({
       error: {
         code: "unknown_exercises",
         message: "Unknown exercise_slug(s): made-up-press, made-up-row",
@@ -282,7 +287,7 @@ describe("PUT /v1/plans/{id}/workouts", () => {
     const response = await put(app, body());
 
     expect(response.status).toBe(503);
-    expect(await response.json()).toEqual({
+    await expect(response.json()).resolves.toEqual({
       error: {
         code: "library_unavailable",
         message:
@@ -324,6 +329,7 @@ describe("PUT /v1/plans/{id}/workouts", () => {
   const invalid = (edit: (payload: ReturnType<typeof body>) => void) => {
     const payload = body();
     edit(payload);
+
     return payload;
   };
 

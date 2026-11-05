@@ -1,10 +1,8 @@
 import { createHash } from "node:crypto";
-import {
-  type AppLanguage,
-  appLanguages,
-  equipment,
-  type MuscleGroup,
-} from "@fitme/core/models";
+
+import { appLanguages, equipment } from "@fitme/core/models";
+import type { AppLanguage, MuscleGroup } from "@fitme/core/models";
+
 import type { BundleExercise, BundleMedia, LibraryBundle } from "./bundle";
 import type { Exercise } from "./schemas";
 
@@ -91,14 +89,19 @@ export const serveLibrary = (
   supabaseUrl: string
 ): ServedLibrary => {
   const storage = `${supabaseUrl.replace(TRAILING_SLASHES, "")}/storage/v1`;
+
   const serveIn = (language: AppLanguage): ServedLanguage => {
     const collator = new Intl.Collator(language);
+
     const served = bundle.exercises.map((exercise) => {
       const english = exercise.locales.en;
+
       // an untranslated Exercise is served wholly in English, never field by field
       const { name, description, instructions } =
         exercise.locales[language] ?? english;
+
       const names = [name.toLowerCase(), english.name.toLowerCase()];
+
       return {
         exercise: {
           description,
@@ -113,26 +116,29 @@ export const serveLibrary = (
         searchNames: [...new Set(names)],
       };
     });
+
     const sorted = served.toSorted(
       (a, b) =>
         collator.compare(a.exercise.name, b.exercise.name) ||
         collator.compare(a.exercise.slug, b.exercise.slug)
     );
+
     return {
       exercises: sorted.map(({ exercise }) => exercise),
       searchNames: sorted.map(({ searchNames }) => searchNames),
     };
   };
+
   const languages = Object.fromEntries(
     appLanguages.map((language) => [language, serveIn(language)])
   ) as ServedLibrary["languages"];
-  const covers = (bundle.covers ?? []).map(
-    (cover): ServedCover => ({
-      id: cover.id,
-      image_url: `${storage}/render/image/public/${MEDIA_BUCKET}/${coverObjectPath(cover.id, cover.image)}`,
-      muscle_groups: cover.muscle_groups,
-    })
-  );
+
+  const covers = (bundle.covers ?? []).map((cover): ServedCover => ({
+    id: cover.id,
+    image_url: `${storage}/render/image/public/${MEDIA_BUCKET}/${coverObjectPath(cover.id, cover.image)}`,
+    muscle_groups: cover.muscle_groups,
+  }));
+
   return {
     covers,
     hash: createHash("sha256")

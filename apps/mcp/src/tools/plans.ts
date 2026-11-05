@@ -1,5 +1,6 @@
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
+
 import type { ToolContext } from "../context.js";
 import {
   asJson,
@@ -87,6 +88,7 @@ function registerPlanWriteTools(server: McpServer, ctx: ToolContext) {
     withServices(ctx, async (plan, services) => {
       const known = await requireKnownSlugs(ctx, workoutSlugs(plan.workouts));
       const workouts = await withCovers(ctx, plan.workouts, known);
+
       return asJson(
         namePlan(await services.createPlan({ ...plan, workouts }), known)
       );
@@ -122,26 +124,32 @@ function registerPlanWriteTools(server: McpServer, ctx: ToolContext) {
     },
     withServices(ctx, async ({ planId, workouts, ...fields }, services) => {
       const metadata = pickDefined(fields);
+
       if (!workouts && Object.keys(metadata).length === 0) {
         throw new ToolError(
           "Nothing to update: pass at least one plan field or `workouts`."
         );
       }
+
       const checked = workouts
         ? await requireKnownSlugs(ctx, workoutSlugs(workouts))
         : undefined;
+
       // without workouts, the Workouts and their Covers stay as they are
       const changes =
         workouts && checked
           ? { ...metadata, workouts: await withCovers(ctx, workouts, checked) }
           : metadata;
+
       const updated = requireFound(
         await services.updatePlan(planId, changes),
         planNotFound(planId)
       );
+
       // without workouts, the Plan keeps Exercises nothing has looked up yet
       const known =
         checked ?? (await lookupForRead(ctx, workoutSlugs(updated.workouts)));
+
       return asJson(namePlan(updated, known));
     })
   );

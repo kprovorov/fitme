@@ -1,9 +1,8 @@
-import {
-  createFinishSuggestionController,
-  type SetTrackedEvent,
-} from "@fitme/core";
+import { createFinishSuggestionController } from "@fitme/core";
+import type { SetTrackedEvent } from "@fitme/core";
 import * as Sentry from "@sentry/react-native";
 import { useCallback, useEffect, useSyncExternalStore } from "react";
+
 import { fetchWorkoutSession } from "~/hooks/queries/workout-sessions";
 import { storage } from "~/lib/mmkv";
 
@@ -51,6 +50,7 @@ export function useFinishWorkoutSuggestion(sessionId: string): {
     controller.subscribe,
     controller.getSuggestedSessionIds
   );
+
   const dismiss = useCallback(() => controller.dismiss(sessionId), [sessionId]);
 
   useEffect(() => controller.watch(sessionId), [sessionId]);

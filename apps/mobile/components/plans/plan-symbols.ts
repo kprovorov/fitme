@@ -6,9 +6,11 @@ export function goalSymbol(goal: Goal): SFSymbol {
   if (goal === "muscle-gain") {
     return "figure.strengthtraining.traditional";
   }
+
   if (goal === "fat-loss") {
     return "flame";
   }
+
   return "waveform.path.ecg";
 }
 

@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+
 import { Button } from "~/components/ui/button";
 import { Dialog } from "~/components/ui/dialog";
 import { HStack } from "~/components/ui/hstack";
@@ -77,6 +78,7 @@ const FinishWorkoutSuggestionDialog = ({
     if (choiceMadeRef.current) {
       return;
     }
+
     choiceMadeRef.current = true;
     // Bridges the gap until the caller's `isFinishing` turns `true`.
     setIsFinishPending(true);
@@ -89,6 +91,7 @@ const FinishWorkoutSuggestionDialog = ({
     };
 
     let result: unknown;
+
     try {
       result = onFinish();
     } catch (error) {
@@ -107,6 +110,7 @@ const FinishWorkoutSuggestionDialog = ({
     if (choiceMadeRef.current) {
       return;
     }
+
     choiceMadeRef.current = true;
     onKeepTraining();
   }, [onKeepTraining]);
@@ -149,7 +153,7 @@ const FinishWorkoutSuggestionDialog = ({
         <H3 className="text-center">
           {i18n.t("finishWorkout.suggestion.title")}
         </H3>
-        <Text className="text-center text-muted-foreground">
+        <Text className="text-muted-foreground text-center">
           {i18n.t("finishWorkout.suggestion.description")}
         </Text>
       </VStack>
@@ -181,4 +185,5 @@ const FinishWorkoutSuggestionDialog = ({
 FinishWorkoutSuggestionDialog.displayName = "FinishWorkoutSuggestionDialog";
 
 export type { FinishWorkoutSuggestionDialogProps };
+
 export { FinishWorkoutSuggestionDialog };

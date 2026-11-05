@@ -2,6 +2,7 @@ import type { AppLanguage, MuscleGroup } from "@fitme/core/models";
 import { LibraryError } from "@fitme/library-sdk";
 import { reportError } from "@fitme/observability/node";
 import { z } from "zod";
+
 import { getLibrary } from "./library";
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -21,7 +22,8 @@ export interface ExerciseDetails {
 
 /** A readable name made from a slug, for one the library doesn't know: `bench-press` → `Bench press`. */
 export const nameFromSlug = (slug: string): string => {
-  const words = slug.replace(SLUG_SEPARATORS, " ").trim();
+  const words = slug.replaceAll(SLUG_SEPARATORS, " ").trim();
+
   return words.charAt(0).toUpperCase() + words.slice(1);
 };
 
@@ -42,7 +44,9 @@ export const onLibraryFailure = async <T>(
   if (!(error instanceof LibraryError)) {
     throw error;
   }
+
   await reportError(error, { exercise_library: step });
+
   return fallback;
 };
 
@@ -57,13 +61,16 @@ export const checkExerciseSlugs = async (
   slugs: readonly string[]
 ): Promise<{ error: string } | null> => {
   const uuids = slugs.filter((slug) => UUID.test(slug));
+
   if (uuids.length > 0) {
     return {
       error: `Exercises are referred to by exercise_slug now, not by id (${uuids.join(", ")}). Use search_exercises with the exercise's name to find its exercise_slug; nothing was saved.`,
     };
   }
+
   try {
     const { missing } = await getLibrary().lookup(slugs);
+
     return missing.length > 0
       ? {
           error: `Unknown exercise_slug(s): ${missing.join(", ")}. Use search_exercises to find a valid exercise_slug; nothing was saved.`,
@@ -101,10 +108,13 @@ export const withExerciseDetails = async <Set>(
   const slugs = groups.flatMap((group) =>
     group.map(({ exercise_slug }) => exercise_slug)
   );
+
   const known = new Map<string, ExerciseDetails>();
+
   if (slugs.length > 0) {
     try {
       const { data } = await getLibrary().lookup(slugs, { language });
+
       for (const { muscle_groups, name, slug } of data) {
         known.set(slug, { muscle_groups, name });
       }
@@ -112,6 +122,7 @@ export const withExerciseDetails = async <Set>(
       await onLibraryFailure(error, "describe", undefined);
     }
   }
+
   return groups.map((group) =>
     group.map(({ exercise_slug, id, order, sets }) => ({
       exercise_slug,

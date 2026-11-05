@@ -8,16 +8,19 @@ export interface StreamingStore {
 export function createStreamingStore(): StreamingStore {
   let text = "";
   const listeners = new Set<() => void>();
+
   return {
     get: () => text,
     set: (value: string) => {
       text = value;
+
       for (const l of listeners) {
         l();
       }
     },
     subscribe: (listener: () => void) => {
       listeners.add(listener);
+
       return () => listeners.delete(listener);
     },
   };

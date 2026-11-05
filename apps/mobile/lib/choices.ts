@@ -9,6 +9,7 @@ import type {
 import type { TFunction } from "i18next";
 import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
+
 import { i18n } from "~/lib/i18n";
 
 /**
@@ -60,5 +61,6 @@ export const choiceLabels = (t: TFunction): ChoiceLabels => {
 export function useChoiceLabels(): ChoiceLabels {
   // The app's instance, named so it's started wherever this is rendered.
   const { t } = useTranslation(undefined, { i18n });
+
   return useMemo(() => choiceLabels(t), [t]);
 }

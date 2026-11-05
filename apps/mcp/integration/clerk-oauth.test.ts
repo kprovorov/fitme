@@ -3,22 +3,11 @@ import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
 import { decodeJwt } from "jose";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import {
-  type ClerkDev,
-  type ClerkOAuthApp,
-  type ClerkTestUser,
-  clerkDev,
-  HeadlessOAuthProvider,
-  startMcpServer,
-} from "./clerk.js";
-import {
-  callError,
-  callOk,
-  type PlanDetail,
-  type PlanSummary,
-  pickExercises,
-  planInput,
-} from "./setup.js";
+
+import { clerkDev, HeadlessOAuthProvider, startMcpServer } from "./clerk.js";
+import type { ClerkDev, ClerkOAuthApp, ClerkTestUser } from "./clerk.js";
+import { callError, callOk, pickExercises, planInput } from "./setup.js";
+import type { PlanDetail, PlanSummary } from "./setup.js";
 
 const secretKey = process.env.CLERK_DEV_SECRET_KEY;
 const RESOURCE_METADATA = /resource_metadata="([^"]+)"/;
@@ -30,7 +19,7 @@ const RESOURCE_METADATA = /resource_metadata="([^"]+)"/;
  * PKCE for a Clerk access token, and the user tools run as that User through
  * `asUser`, past RLS. Skipped without CLERK_DEV_SECRET_KEY.
  */
-describe.skipIf(!secretKey)("Clerk OAuth flow end to end", () => {
+describe.skipIf(!secretKey)("clerk OAuth flow end to end", () => {
   let clerk: ClerkDev;
   let server: Awaited<ReturnType<typeof startMcpServer>>;
   let app: ClerkOAuthApp | undefined;
@@ -42,7 +31,9 @@ describe.skipIf(!secretKey)("Clerk OAuth flow end to end", () => {
     if (!app) {
       throw new Error("No OAuth application.");
     }
+
     const { redirectUri } = app;
+
     const provider = new HeadlessOAuthProvider(app, (url) =>
       clerk.authorize(url, user, redirectUri)
     );
@@ -51,20 +42,24 @@ describe.skipIf(!secretKey)("Clerk OAuth flow end to end", () => {
     const transport = new StreamableHTTPClientTransport(server.url, {
       authProvider: provider,
     });
+
     const error = await new Client({ name: "integration", version: "0.0.0" })
       .connect(transport)
       .then(
-        () => undefined,
-        (reason: unknown) => reason
+        () => {},
+        (error_: unknown) => error_
       );
+
     if (!(error instanceof UnauthorizedError)) {
-      throw new Error("The first connect did not start OAuth.", {
+      throw new TypeError("The first connect did not start OAuth.", {
         cause: error,
       });
     }
+
     if (!provider.code) {
       throw new Error("The OAuth flow returned no code.");
     }
+
     await transport.finishAuth(provider.code);
 
     const client = new Client({ name: "integration", version: "0.0.0" });
@@ -72,6 +67,7 @@ describe.skipIf(!secretKey)("Clerk OAuth flow end to end", () => {
       new StreamableHTTPClientTransport(server.url, { authProvider: provider })
     );
     clients.push(client);
+
     return { client, provider };
   }
 
@@ -87,19 +83,24 @@ describe.skipIf(!secretKey)("Clerk OAuth flow end to end", () => {
     );
     // One at a time, each tracked as soon as it exists, so afterAll deletes
     // it even when the next one fails.
-    users.push(await clerk.createUser("owner"));
-    users.push(await clerk.createUser("other"));
+    users.push(
+      await clerk.createUser("owner"),
+      await clerk.createUser("other")
+    );
   });
 
   afterAll(async () => {
     await Promise.allSettled(clients.map((client) => client.close()));
+
     // Clean up every Clerk object, even when one deletion fails.
     const cleanup = await Promise.allSettled([
       ...users.map((user) => clerk.deleteUser(user)),
       ...(app ? [clerk.deleteOAuthApp(app)] : []),
     ]);
+
     await server?.close();
     const failed = cleanup.filter((result) => result.status === "rejected");
+
     if (failed.length > 0) {
       throw new AggregateError(
         failed.map((result) => result.reason),
@@ -117,11 +118,13 @@ describe.skipIf(!secretKey)("Clerk OAuth flow end to end", () => {
       },
       method: "POST",
     });
+
     expect(response.status).toBe(401);
 
     const metadataUrl = response.headers
       .get("WWW-Authenticate")
       ?.match(RESOURCE_METADATA)?.[1];
+
     expect(metadataUrl).toBe(
       new URL("/.well-known/oauth-protected-resource", server.url).href
     );
@@ -146,18 +149,24 @@ describe.skipIf(!secretKey)("Clerk OAuth flow end to end", () => {
     expect(accessToken).toBeTruthy();
     expect(decodeJwt(String(accessToken)).sub).toBe(owner.id);
 
-    expect(await callOk<PlanSummary[]>(client, "list_plans")).toEqual([]);
+    await expect(callOk<PlanSummary[]>(client, "list_plans")).resolves.toEqual(
+      []
+    );
+
     const plan = await callOk<PlanDetail>(
       client,
       "create_plan",
       planInput(await pickExercises(client), "OAuth plan")
     );
+
     expect(
       (await callOk<PlanSummary[]>(client, "list_plans")).map(({ id }) => id)
     ).toEqual([plan.id]);
 
     const { client: otherClient } = await signIn(other);
-    expect(await callOk<PlanSummary[]>(otherClient, "list_plans")).toEqual([]);
+    await expect(
+      callOk<PlanSummary[]>(otherClient, "list_plans")
+    ).resolves.toEqual([]);
     await callError(otherClient, "get_plan", { planId: plan.id });
   });
 });

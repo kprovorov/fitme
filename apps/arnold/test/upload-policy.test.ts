@@ -2,6 +2,7 @@ import type { RouteHandlerArgs } from "eve/channels";
 import { none } from "eve/channels/auth";
 import { eveChannel } from "eve/channels/eve";
 import { beforeEach, describe, expect, it } from "vitest";
+
 import arnoldChannel from "../agent/channels/eve";
 import { attachmentUploadPolicy } from "../agent/lib/upload-policy";
 
@@ -40,6 +41,7 @@ const sendMessage = async (message: unknown) => {
   if (sessionMessageRoute?.transport !== "http") {
     throw new Error("the eve channel has no session-message route");
   }
+
   const request = new Request(
     `http://arnold.test/eve/v1/session/${SESSION_ID}`,
     {
@@ -48,10 +50,12 @@ const sendMessage = async (message: unknown) => {
       method: "POST",
     }
   );
+
   const args = {
     attachSession: () => ({
-      send: (payload: unknown) => {
+      send: async (payload: unknown) => {
         sent.push(payload);
+
         return Promise.resolve({
           deliveryId: "del_1",
           sessionId: SESSION_ID,
@@ -61,6 +65,7 @@ const sendMessage = async (message: unknown) => {
     }),
     params: { sessionId: SESSION_ID },
   } as unknown as RouteHandlerArgs;
+
   return await sessionMessageRoute.handler(request, args);
 };
 
@@ -68,7 +73,7 @@ beforeEach(() => {
   sent = [];
 });
 
-describe("Arnold's eve channel", () => {
+describe("arnold's eve channel", () => {
   it("declares the Attachment upload policy", () => {
     expect(
       (arnoldChannel as { adapter?: { uploadPolicy?: unknown } }).adapter
@@ -113,7 +118,7 @@ describe("a message with Attachments", () => {
     ]);
 
     expect(response.status).toBe(413);
-    expect(await response.json()).toMatchObject({
+    await expect(response.json()).resolves.toMatchObject({
       ok: false,
       violations: [{ kind: "too-large", limit: MAX_BYTES }],
     });
@@ -126,7 +131,7 @@ describe("a message with Attachments", () => {
       const response = await sendMessage([imagePart(mediaType)]);
 
       expect(response.status).toBe(415);
-      expect(await response.json()).toMatchObject({
+      await expect(response.json()).resolves.toMatchObject({
         ok: false,
         violations: [
           {

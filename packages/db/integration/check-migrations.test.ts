@@ -1,7 +1,9 @@
 import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+
 import { afterAll, describe, expect, it } from "vitest";
+
 import {
   APPLY_MIGRATIONS_COMMAND,
   migrationsError,
@@ -10,7 +12,10 @@ import {
 } from "./check-migrations";
 
 const dir = mkdtempSync(join(tmpdir(), "fitme-migrations-"));
-afterAll(() => rmSync(dir, { force: true, recursive: true }));
+
+afterAll(() => {
+  rmSync(dir, { force: true, recursive: true });
+});
 
 describe("migration check", () => {
   it("reads the versions of the migration files, oldest first", () => {

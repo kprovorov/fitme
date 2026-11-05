@@ -1,11 +1,14 @@
 import { randomBytes } from "node:crypto";
+
 import { asUser, plans, profiles, withService } from "@fitme/db";
 import { LibraryUnavailableError } from "@fitme/library-sdk";
-import { createFakeLibrary, type FakeLibrary } from "@fitme/library-sdk/fake";
+import { createFakeLibrary } from "@fitme/library-sdk/fake";
+import type { FakeLibrary } from "@fitme/library-sdk/fake";
 import { deleteTestUsers } from "@fitme/services/delete-test-users";
 import { createPlan } from "@fitme/services/plans";
 import { eq } from "drizzle-orm";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
+
 import { createApp } from "../src/create-app.js";
 import { createServicesFromEnv } from "../src/services.js";
 import {
@@ -35,14 +38,17 @@ const library: FakeLibrary = createFakeLibrary(
     ],
   }
 );
+
 const reported: unknown[] = [];
+
 const app = createApp({
   clerkJwtKey: clerk.jwtKey,
   createLibrary: () => library,
   createServices: createServicesFromEnv,
-  identifyUser: () => undefined,
+  identifyUser: () => {},
   reportError: (error) => {
     reported.push(error);
+
     return Promise.resolve();
   },
 });
@@ -122,11 +128,13 @@ const post = async (userId: string, payload: unknown) => {
     headers: { ...signedInAs(userId), "content-type": "application/json" },
     method: "POST",
   });
+
   return { body: await response.json(), status: response.status };
 };
 
 const get = async (path: string, userId: string) => {
   const response = await app.request(path, { headers: signedInAs(userId) });
+
   return { body: await response.json(), status: response.status };
 };
 
@@ -162,7 +170,7 @@ afterAll(async () => {
   await deleteTestUsers(users);
 });
 
-describe("POST /v1/plans against the local stack", () => {
+describe("pOST /v1/plans against the local stack", () => {
   it("creates the Plan in full, active, in the User's weight unit, with a Cover per Workout, and reads it back the same", async () => {
     const { body, status } = await post(creator, newPlan("Created"));
 
@@ -218,11 +226,11 @@ describe("POST /v1/plans against the local stack", () => {
         (workout: { cover: string | null }) => workout.cover
       )
     ).toEqual([LEGS_COVER, HINGE_COVER]);
-    expect(await get(`/v1/plans/${body.data.id}`, creator)).toEqual({
+    await expect(get(`/v1/plans/${body.data.id}`, creator)).resolves.toEqual({
       body,
       status: 200,
     });
-    expect(await get("/v1/plans/active", creator)).toEqual({
+    await expect(get("/v1/plans/active", creator)).resolves.toEqual({
       body,
       status: 200,
     });
@@ -244,7 +252,7 @@ describe("POST /v1/plans against the local stack", () => {
     expect((await get("/v1/plans/active", keeper)).body.data.id).toBe(
       active.id
     );
-    expect(await plansOf(keeper)).toEqual([
+    await expect(plansOf(keeper)).resolves.toEqual([
       { id: active.id, isActive: true, name: "Active" },
       { id: created.data.id, isActive: false, name: "Kept aside" },
     ]);
@@ -261,7 +269,7 @@ describe("POST /v1/plans against the local stack", () => {
       code: "unknown_exercises",
       message: "Unknown exercise_slug(s): made-up-press",
     });
-    expect(await plansOf(refused)).toEqual([]);
+    await expect(plansOf(refused)).resolves.toEqual([]);
     expect(reported).toEqual([]);
   });
 
@@ -273,7 +281,7 @@ describe("POST /v1/plans against the local stack", () => {
 
     expect(status).toBe(503);
     expect(answer.error.code).toBe("library_unavailable");
-    expect(await plansOf(refused)).toEqual([]);
+    await expect(plansOf(refused)).resolves.toEqual([]);
     expect(reported).toEqual([outage]);
   });
 });

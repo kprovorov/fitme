@@ -1,10 +1,7 @@
 import type { Equipment, MuscleGroup } from "@fitme/core";
 import type { Cover, Exercise, Library } from "@fitme/library-sdk";
-import {
-  createFakeLibrary,
-  type FakeExercise,
-  type FakeLibrary,
-} from "@fitme/library-sdk/fake";
+import { createFakeLibrary } from "@fitme/library-sdk/fake";
+import type { FakeExercise, FakeLibrary } from "@fitme/library-sdk/fake";
 
 /**
  * A made-up Exercise of the Library, named in title case, in English unless
@@ -54,5 +51,6 @@ export const serveLibrary = (
 ): FakeLibrary => {
   const fake = createFakeLibrary(exercises, options);
   library.current = fake;
+
   return fake;
 };

@@ -8,9 +8,11 @@ export function splitName(name: string): {
 } {
   const trimmed = name.trim();
   const separator = trimmed.indexOf(" ");
+
   if (separator === -1) {
     return { firstName: trimmed, lastName: "" };
   }
+
   return {
     firstName: trimmed.slice(0, separator),
     lastName: trimmed.slice(separator + 1).trim(),

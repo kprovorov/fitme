@@ -1,9 +1,10 @@
 import moment from "moment";
 import type { Metadata } from "next";
+import { MDXRemote } from "next-mdx-remote-client/rsc";
 import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { MDXRemote } from "next-mdx-remote-client/rsc";
+
 import { ProseArticle } from "@/components/prose";
 import {
   Breadcrumb,
@@ -16,6 +17,7 @@ import {
 import { Container } from "@/components/ui/container";
 import { HStack } from "@/components/ui/hstack";
 import { VStack } from "@/components/ui/vstack";
+
 import { getBlogPosts } from "../utils";
 
 const baseUrl = "https://fitmeproject.com";
@@ -115,16 +117,16 @@ export default async function Blog({ params }: Props) {
         </div>
         <HStack className="justify-start gap-2">
           <Image
-            alt={"Kirill Provorov"}
+            alt="Kirill Provorov"
             className="rounded-full"
             height={50}
-            src={"https://github.com/kprovorov.png"}
+            src="https://github.com/kprovorov.png"
             width={50}
           />
 
           <VStack className="items-start gap-0">
             <span className="text-body-emphasized">Kirill Provorov</span>
-            <a className="text-subhead" href={"https://x.com/kprovorov"}>
+            <a className="text-subhead" href="https://x.com/kprovorov">
               @kprovorov
             </a>
           </VStack>

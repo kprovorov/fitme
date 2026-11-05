@@ -1,7 +1,8 @@
 import { describe, expect, it } from "vitest";
+
 import { scrubEvent } from "../index";
 
-describe("scrubEvent", () => {
+describe(scrubEvent, () => {
   it("removes auth and cookie headers, cookies, the body and non-id user fields", () => {
     const event = {
       message: "boom",

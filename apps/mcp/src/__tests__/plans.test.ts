@@ -1,7 +1,9 @@
-import { type Cover, LibraryUnavailableError } from "@fitme/library-sdk";
+import { LibraryUnavailableError } from "@fitme/library-sdk";
+import type { Cover } from "@fitme/library-sdk";
 import { createFakeLibrary } from "@fitme/library-sdk/fake";
 import type { NewPlan } from "@fitme/services/plans";
 import { describe, expect, it, vi } from "vitest";
+
 import {
   BENCH,
   call,
@@ -22,6 +24,7 @@ const UNAVAILABLE = "Library unavailable, try again.";
 const downLibrary = () => {
   const library = fakeLibrary();
   library.failWith(new LibraryUnavailableError({ status: 503 }));
+
   return library;
 };
 
@@ -127,11 +130,13 @@ const toolPlanWith = (exercise: {
 });
 
 const servicePlan = servicePlanWith(BENCH.slug);
+
 const toolPlan = toolPlanWith({
   exercise_slug: BENCH.slug,
   muscle_groups: BENCH.muscle_groups,
   name: BENCH.name,
 });
+
 const unknownToolPlan = toolPlanWith({
   exercise_slug: "cable-fly-legacy",
   muscle_groups: [],
@@ -160,6 +165,7 @@ describe("list_plans", () => {
     const client = await connectWithServices({
       listPlans: () => Promise.resolve([]),
     });
+
     expect(JSON.parse((await call(client, "list_plans")).text)).toEqual([]);
   });
 
@@ -200,6 +206,7 @@ describe("get_plan", () => {
 
   it("still answers, with slug-derived names, when the library fails, and reports it", async () => {
     const { reportError, reported } = recordingReporter();
+
     const client = await connectWithServices(
       { getPlan: () => Promise.resolve(servicePlan) },
       reportError,
@@ -223,6 +230,7 @@ describe("get_plan", () => {
     const client = await connectWithServices({
       getPlan: () => Promise.resolve(null),
     });
+
     const result = await call(client, "get_plan", { planId: PLAN_ID });
     expect(result.isError).toBe(true);
     expect(result.text).toBe(
@@ -298,6 +306,7 @@ describe("create_plan", () => {
   it("fails when the library is unavailable, reports it and writes nothing", async () => {
     const createPlan = vi.fn(() => Promise.resolve(servicePlan));
     const { reportError, reported } = recordingReporter();
+
     const client = await connectWithServices(
       { createPlan },
       reportError,
@@ -374,6 +383,7 @@ describe("update_plan", () => {
 
   it("updates metadata, with slug-derived names, when the library fails", async () => {
     const updatePlan = vi.fn(() => Promise.resolve(servicePlan));
+
     const client = await connectWithServices(
       { updatePlan },
       ignoreReports,
@@ -386,7 +396,7 @@ describe("update_plan", () => {
     });
 
     expect(result.isError).toBe(false);
-    expect(updatePlan).toHaveBeenCalled();
+    expect(updatePlan).toHaveBeenCalledWith();
     expect(result.json).toMatchObject({
       workouts: [{ exercises: [{ name: "Bench press" }] }],
     });
@@ -413,6 +423,7 @@ describe("update_plan", () => {
   it("fails replacing workouts when the library is unavailable, writing nothing", async () => {
     const updatePlan = vi.fn(() => Promise.resolve(servicePlan));
     const { reportError, reported } = recordingReporter();
+
     const client = await connectWithServices(
       { updatePlan },
       reportError,
@@ -448,6 +459,7 @@ describe("update_plan", () => {
 
   it("rejects unknown Exercise slugs before calling the service", async () => {
     const updatePlan = vi.fn(() => Promise.resolve(servicePlan));
+
     const client = await connectWithServices(
       { updatePlan },
       ignoreReports,
@@ -501,6 +513,7 @@ describe("delete_plan", () => {
         plan: { id: PLAN_ID, name: "My plan" },
       })
     );
+
     const client = await connectWithServices({ deletePlan });
 
     const result = await call(client, "delete_plan", { planId: PLAN_ID });
@@ -537,6 +550,7 @@ describe("delete_plan", () => {
     const client = await connectWithServices({
       deletePlan: () => Promise.resolve(null),
     });
+
     const result = await call(client, "delete_plan", { planId: PLAN_ID });
     expect(result.isError).toBe(true);
     expect(result.text).toContain(`Plan ${PLAN_ID} not found`);
@@ -559,6 +573,7 @@ describe("activate_plan", () => {
     const activatePlan = vi.fn(() =>
       Promise.resolve({ ...planSummary, is_active: true })
     );
+
     const client = await connectWithServices({ activatePlan });
 
     const result = await call(client, "activate_plan", { planId: PLAN_ID });
@@ -606,7 +621,7 @@ describe("activate_plan", () => {
   });
 });
 
-describe("Workout covers", () => {
+describe("workout covers", () => {
   const COVER = "0b3c9a52-6e4f-4f1d-9a7e-2c8d5b1e7f40";
 
   /** One Workout with a Cover, the other still without one. */
@@ -704,14 +719,16 @@ describe("Workout covers", () => {
   });
 });
 
-describe("Cover assignment", () => {
+describe("cover assignment", () => {
   const cover = (id: string, muscleGroups: Cover["muscle_groups"]): Cover => ({
     id,
     image_url: `https://media.test/covers/${id}.jpg`,
     muscle_groups: muscleGroups,
   });
+
   const CHEST_A = cover("c0000000-0000-4000-8000-00000000000a", ["chest"]);
   const CHEST_B = cover("c0000000-0000-4000-8000-00000000000b", ["chest"]);
+
   const LEGS = cover("c0000000-0000-4000-8000-00000000000c", [
     "quadriceps",
     "glutes",
@@ -727,6 +744,7 @@ describe("Cover assignment", () => {
 
   it("create_plan gives each Workout a Cover of its most-trained muscle group", async () => {
     const createPlan = vi.fn(() => Promise.resolve(servicePlan));
+
     const client = await connectWithServices(
       { createPlan },
       ignoreReports,
@@ -750,10 +768,13 @@ describe("Cover assignment", () => {
 
   it("create_plan keeps the Covers distinct within the Plan", async () => {
     const passed: unknown[] = [];
+
     const createPlan = vi.fn((plan: NewPlan) => {
       passed.push(...plan.workouts.map((workout) => workout.cover));
+
       return Promise.resolve(servicePlan);
     });
+
     const client = await connectWithServices(
       { createPlan },
       ignoreReports,
@@ -770,6 +791,7 @@ describe("Cover assignment", () => {
 
   it("update_plan with workouts gives each new Workout a Cover", async () => {
     const updatePlan = vi.fn(() => Promise.resolve(servicePlan));
+
     const client = await connectWithServices(
       { updatePlan },
       ignoreReports,
@@ -794,6 +816,7 @@ describe("Cover assignment", () => {
     const updatePlan = vi.fn(() => Promise.resolve(servicePlan));
     const library = libraryWith([CHEST_A]);
     const covers = vi.spyOn(library, "covers");
+
     const client = await connectWithServices(
       { updatePlan },
       ignoreReports,
@@ -813,6 +836,7 @@ describe("Cover assignment", () => {
     const library = libraryWith([CHEST_A]);
     vi.spyOn(library, "covers").mockRejectedValue(failure);
     const { reportError, reported } = recordingReporter();
+
     const client = await connectWithServices(
       { createPlan, updatePlan },
       reportError,
@@ -823,6 +847,7 @@ describe("Cover assignment", () => {
       ...metadata,
       workouts: [chestDay],
     });
+
     const updated = await call(client, "update_plan", {
       planId: PLAN_ID,
       workouts: [chestDay],
@@ -832,6 +857,7 @@ describe("Cover assignment", () => {
       expect(result.isError).toBe(true);
       expect(result.text).toBe(UNAVAILABLE);
     }
+
     expect(createPlan).not.toHaveBeenCalled();
     expect(updatePlan).not.toHaveBeenCalled();
     expect(reported).toEqual([failure, failure]);

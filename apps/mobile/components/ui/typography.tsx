@@ -2,12 +2,9 @@ import * as Slot from "@rn-primitives/slot";
 import type { SlottableTextProps, TextRef } from "@rn-primitives/types";
 import type * as React from "react";
 import { Text as RNText } from "react-native";
-import {
-  ARIA_LEVEL,
-  ROLE,
-  TEXT_VARIANTS,
-  type TextVariant,
-} from "~/components/ui/text";
+
+import { ARIA_LEVEL, ROLE, TEXT_VARIANTS } from "~/components/ui/text";
+import type { TextVariant } from "~/components/ui/text";
 import { cn } from "~/lib/utils";
 
 type TypographyProps = SlottableTextProps & {
@@ -29,6 +26,7 @@ function typography(variant: TextVariant, displayName: string) {
     ...props
   }: TypographyProps) => {
     const Root = asChild ? Slot.Text : RNText;
+
     return (
       <Root
         aria-level={ARIA_LEVEL[variant]}
@@ -39,7 +37,9 @@ function typography(variant: TextVariant, displayName: string) {
       />
     );
   };
+
   Component.displayName = displayName;
+
   return Component;
 }
 

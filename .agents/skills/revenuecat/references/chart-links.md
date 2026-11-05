@@ -106,12 +106,12 @@ To generate a dashboard link:
 
 When translating from API parameters to dashboard URLs:
 
-| API Parameter             | Dashboard Parameter                                    |
-| ------------------------- | ------------------------------------------------------ |
+| API Parameter | Dashboard Parameter |
+| --- | --- |
 | `start_date` + `end_date` | `range=Custom%3A{start}%3A{end}` (use `Custom` preset) |
-| `segment`                 | `segment_by`                                           |
-| `filters` (JSON array)    | Individual query params                                |
-| `selectors` (JSON object) | Individual query params                                |
+| `segment` | `segment_by` |
+| `filters` (JSON array) | Individual query params |
+| `selectors` (JSON object) | Individual query params |
 
 **Note**: Do NOT pass `resolution` as a numeric value. The resolution is typically implied by the range preset or omitted.
 

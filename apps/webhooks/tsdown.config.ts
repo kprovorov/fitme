@@ -1,5 +1,6 @@
 import { sentryRollupPlugin } from "@sentry/node/rollup";
-import { defineConfig, type UserConfig } from "tsdown";
+import { defineConfig } from "tsdown";
+import type { UserConfig } from "tsdown";
 
 const shared: UserConfig = {
   deps: {

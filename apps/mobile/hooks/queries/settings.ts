@@ -1,15 +1,14 @@
 import { ApiError } from "@fitme/api-client";
 import type { MeasurementSystem } from "@fitme/core";
-import {
-  hashKey,
-  type QueryClient,
-  type QueryKey,
-} from "@tanstack/react-query";
+import { hashKey } from "@tanstack/react-query";
+import type { QueryClient, QueryKey } from "@tanstack/react-query";
 import { createMutation } from "react-query-kit";
+
 import { rememberProfileWrite } from "~/hooks/mutations/profiles";
 import { EXERCISE_HISTORY_QUERY_KEY } from "~/hooks/queries/exercises";
 import { PLANS_QUERY_KEY, usePlanQuery } from "~/hooks/queries/plans";
-import { type Profile, useProfileQuery } from "~/hooks/queries/profiles";
+import { useProfileQuery } from "~/hooks/queries/profiles";
+import type { Profile } from "~/hooks/queries/profiles";
 import {
   OPEN_WORKOUT_SESSION_QUERY_KEY,
   useWorkoutSessionHistoryQuery,
@@ -17,7 +16,8 @@ import {
 } from "~/hooks/queries/workout-sessions";
 import { measurementSystemOf } from "~/lib/profile";
 import { publicApi } from "~/lib/public-api";
-import { isStillWriteStarter, type WriteStarter } from "~/lib/write-answers";
+import { isStillWriteStarter } from "~/lib/write-answers";
+import type { WriteStarter } from "~/lib/write-answers";
 
 /**
  * Every query whose answer carries a weight. Switching the measurement system
@@ -81,9 +81,11 @@ const pendingWeighedRefreshes = new WeakMap<
 /** Drops the pending refresh, with the subscription it was watching through. */
 const forgetPendingWeighedRefresh = (client: QueryClient): void => {
   const kept = pendingWeighedRefreshes.get(client);
+
   if (!kept) {
     return;
   }
+
   pendingWeighedRefreshes.delete(client);
   kept.unsubscribe();
 };
@@ -101,14 +103,18 @@ const consumePendingWeighedRefresh = (
   profile: Profile | null
 ): void => {
   const kept = pendingWeighedRefreshes.get(client);
+
   if (!kept) {
     return;
   }
+
   const { starter, system } = kept.pending;
   forgetPendingWeighedRefresh(client);
+
   if (!isStillWriteStarter(starter)) {
     return;
   }
+
   if (measurementSystemOf(profile) === system) {
     invalidateWeighedQueries(client);
   }
@@ -139,14 +145,18 @@ export const rememberPendingWeighedRefresh = (
 ): void => {
   forgetPendingWeighedRefresh(client);
   const profileHash = hashKey(useProfileQuery.getKey());
+
   const unsubscribe = client.getQueryCache().subscribe((event) => {
     if (event.query.queryHash !== profileHash) {
       return;
     }
+
     if (event.type === "removed") {
       forgetPendingWeighedRefresh(client);
+
       return;
     }
+
     // A read that landed, or a write's answer seeded into it: either is the
     // server's own view of the saved system. An invalidation or a reset is
     // not (`invalidate` / `setState`), and neither is a failed read.
@@ -157,6 +167,7 @@ export const rememberPendingWeighedRefresh = (
       );
     }
   });
+
   pendingWeighedRefreshes.set(client, {
     pending: { starter, system },
     unsubscribe,
@@ -181,9 +192,11 @@ export const useUpdateMeasurementSystemMutation = createMutation<
     const { data } = await publicApi().PATCH("/v1/profile", {
       body: { measurement_system: measurementSystem },
     });
+
     if (!data) {
       throw new ApiError("Public API answered no Profile");
     }
+
     return data.data;
   },
   onMutate: rememberProfileWrite,

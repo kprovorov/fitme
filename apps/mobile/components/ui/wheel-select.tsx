@@ -1,15 +1,15 @@
 import { useCallback, useState } from "react";
-import {
-  type GestureResponderEvent,
-  TouchableWithoutFeedback,
-} from "react-native";
+import { TouchableWithoutFeedback } from "react-native";
+import type { GestureResponderEvent } from "react-native";
 import Animated, {
   useAnimatedStyle,
   useSharedValue,
   withTiming,
 } from "react-native-reanimated";
+
 import { HStack } from "~/components/ui/hstack";
-import { Picker, type PickerOption } from "~/components/ui/picker";
+import { Picker } from "~/components/ui/picker";
+import type { PickerOption } from "~/components/ui/picker";
 import { Text } from "~/components/ui/text";
 import { VStack } from "~/components/ui/vstack";
 
@@ -51,16 +51,16 @@ const WheelSelect = ({ label, wheels, value }: WheelSelectProps) => {
   );
 
   return (
-    <VStack className="flex-1 items-stretch gap-0 bg-card p-0">
+    <VStack className="bg-card flex-1 items-stretch gap-0 p-0">
       <TouchableWithoutFeedback onPress={handlePress}>
         <HStack className="h-12 flex-1 justify-between px-3">
           <Text>{label}</Text>
-          <Text className="text-right text-primary">{value}</Text>
+          <Text className="text-primary text-right">{value}</Text>
         </HStack>
       </TouchableWithoutFeedback>
 
       <Animated.View className="overflow-hidden" style={[animatedStyle]}>
-        <HStack className="gap-0 border-border border-t">
+        <HStack className="border-border gap-0 border-t">
           {wheels.map((wheel) => (
             <Picker
               className="h-full flex-1"
@@ -80,4 +80,5 @@ const WheelSelect = ({ label, wheels, value }: WheelSelectProps) => {
 WheelSelect.displayName = "WheelSelect";
 
 export type { Wheel, WheelSelectProps };
+
 export { WheelSelect };

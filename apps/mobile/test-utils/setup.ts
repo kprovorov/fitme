@@ -40,12 +40,15 @@ jest.mock(
       "~/test-utils/fake-library"
     ).libraryModule
 );
+
 jest.mock("~/lib/public-api", () => {
   const { createPublicApi } =
     jest.requireActual<typeof import("@fitme/api-client")>("@fitme/api-client");
+
   const { FAKE_SESSION_TOKEN, fakePublicApi } = jest.requireActual<
     typeof import("~/test-utils/fake-public-api")
   >("~/test-utils/fake-public-api");
+
   return {
     globalApi: createPublicApi({
       baseUrl: () => fakePublicApi.baseUrl,
@@ -59,6 +62,7 @@ jest.mock("~/lib/public-api", () => {
     }),
   };
 });
+
 jest.mock(
   "expo-localization",
   () =>
@@ -66,6 +70,7 @@ jest.mock(
       "~/test-utils/device-locales"
     ).localizationModule
 );
+
 jest.mock("@sentry/react-native", () => ({
   captureException: jest.fn(),
   setUser: jest.fn(),

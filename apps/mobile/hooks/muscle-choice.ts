@@ -1,4 +1,5 @@
-import { type MuscleGroup, muscleGroups } from "@fitme/core";
+import { muscleGroups } from "@fitme/core";
+import type { MuscleGroup } from "@fitme/core";
 import { useEffect, useSyncExternalStore } from "react";
 
 /**
@@ -35,6 +36,7 @@ const emit = () => {
 
 const subscribe = (listener: () => void) => {
   listeners.add(listener);
+
   return () => {
     listeners.delete(listener);
   };
@@ -72,6 +74,7 @@ let pickers = 0;
  */
 export function newMuscleChoiceKey(): string {
   pickers += 1;
+
   return `picker-${pickers}`;
 }
 
@@ -88,11 +91,13 @@ export function useMuscleChoiceOpening(
     // Before the first render reads it, so the first search is the seeded one.
     choices.set(key, inCoreOrder(initial));
   }
+
   // biome-ignore lint/correctness/useExhaustiveDependencies: seeded once per key; `initial` is only the opening's start
   useEffect(() => {
     if (!choices.has(key)) {
       setMuscleChoice(key, initial);
     }
+
     return () => forgetMuscleChoice(key);
   }, [key]);
 }

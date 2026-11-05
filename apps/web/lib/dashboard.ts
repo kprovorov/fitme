@@ -1,5 +1,8 @@
-import { ApiError, type components } from "@fitme/api-client";
-import { type PublicApiForOptions, publicApi } from "~/lib/public-api";
+import { ApiError } from "@fitme/api-client";
+import type { components } from "@fitme/api-client";
+
+import { publicApi } from "~/lib/public-api";
+import type { PublicApiForOptions } from "~/lib/public-api";
 
 /** A Plan as `GET /v1/plans` lists it: its Workouts summarised. */
 export type DashboardPlan = components["schemas"]["PlanSummary"];
@@ -26,6 +29,7 @@ const listOf = <T>(value: T[] | undefined, what: string): T[] => {
   if (!Array.isArray(value)) {
     throw new ApiError(`The Public API answered without ${what}`);
   }
+
   return value;
 };
 
@@ -66,12 +70,14 @@ export const loadDashboard = async ({
 }: LoadDashboardOptions): Promise<DashboardResult> => {
   try {
     const api = publicApi({ apiUrl, fetch, getToken });
+
     const [plans, sessions] = await Promise.all([
       api.GET("/v1/plans"),
       api.GET("/v1/workout-sessions", {
         params: { query: { limit: RECENT_SESSIONS_LIMIT } },
       }),
     ]);
+
     return {
       data: {
         plans: activeFirst(listOf(plans.data?.data, "Plans")),
@@ -83,6 +89,7 @@ export const loadDashboard = async ({
     if (error instanceof ApiError) {
       return { error, ok: false };
     }
+
     // openapi-fetch parses the body itself, so a 200 that isn't the API's JSON
     // (a sign-in page from a misconfigured `PUBLIC_API_URL`) surfaces here.
     if (error instanceof SyntaxError) {
@@ -93,6 +100,7 @@ export const loadDashboard = async ({
         ok: false,
       };
     }
+
     throw error;
   }
 };

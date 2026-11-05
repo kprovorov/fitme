@@ -1,4 +1,5 @@
 import { randomUUID } from "node:crypto";
+
 import {
   asUser,
   withService,
@@ -8,6 +9,7 @@ import {
 } from "@fitme/db";
 import { asc, eq } from "drizzle-orm";
 import { afterAll, beforeEach, describe, expect, it } from "vitest";
+
 import {
   addExerciseToWorkoutSession,
   addSetToWorkoutSessionExercise,
@@ -23,6 +25,7 @@ import { deleteTestUsers } from "./delete-test-users";
  */
 
 const runId = randomUUID().replaceAll("-", "").slice(0, 12);
+
 /**
  * A fresh owner and intruder per test: a User has at most one open Workout
  * Session, so a test's open session would collide with the next test's.
@@ -30,6 +33,7 @@ const runId = randomUUID().replaceAll("-", "").slice(0, 12);
 const users: string[] = [];
 let owner = "";
 let intruder = "";
+
 beforeEach(() => {
   owner = `user_svcSessEditOwner${runId}${users.length}`;
   intruder = `user_svcSessEditIntruder${runId}${users.length}`;
@@ -43,7 +47,7 @@ const lungeSlug = `test-edit-lunge-${runId}`;
 /** How PostgREST rendered timestamps, e.g. 2026-10-01T10:00:00.123+00:00. */
 const POSTGREST_TIMESTAMP = /^\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d(\.\d+)?\+00:00$/;
 
-const insertSession = (
+const insertSession = async (
   userId: string,
   { finished = false }: { finished?: boolean } = {}
 ) =>
@@ -56,11 +60,12 @@ const insertSession = (
         userId,
       })
       .returning({ id: workoutSessions.id });
+
     return session.id;
   });
 
 /** Exercises at 1 and 3: a remove left a gap at 2. Their ids, in order. */
-const insertExercises = (sessionId: string) =>
+const insertExercises = async (sessionId: string) =>
   withService(async (tx) => {
     const inserted = await tx
       .insert(workoutSessionExercises)
@@ -69,11 +74,12 @@ const insertExercises = (sessionId: string) =>
         { exerciseSlug: squatSlug, order: 3, workoutSessionId: sessionId },
       ])
       .returning({ id: workoutSessionExercises.id });
+
     return inserted.map(({ id }) => id);
   });
 
 /** Two sets with targets on a Workout Session Exercise, the first one logged. */
-const insertSets = (sessionExerciseId: string) =>
+const insertSets = async (sessionExerciseId: string) =>
   withService((tx) =>
     tx.insert(workoutSessionExerciseSets).values([
       {
@@ -96,7 +102,7 @@ const insertSets = (sessionExerciseId: string) =>
     ])
   );
 
-const setsOf = (sessionExerciseId: string) =>
+const setsOf = async (sessionExerciseId: string) =>
   withService((tx) =>
     tx
       .select({
@@ -117,7 +123,7 @@ const setsOf = (sessionExerciseId: string) =>
       .orderBy(asc(workoutSessionExerciseSets.order))
   );
 
-const exercisesOf = (sessionId: string) =>
+const exercisesOf = async (sessionId: string) =>
   withService((tx) =>
     tx
       .select({
@@ -133,12 +139,12 @@ afterAll(async () => {
   await deleteTestUsers(users);
 });
 
-describe("addExerciseToWorkoutSession", () => {
+describe(addExerciseToWorkoutSession, () => {
   it("appends the Exercise after the open Workout Session's last one, with no sets", async () => {
     const sessionId = await insertSession(owner);
     await insertExercises(sessionId);
 
-    const result = await asUser(owner, (tx) =>
+    const result = await asUser(owner, async (tx) =>
       addExerciseToWorkoutSession(tx, owner, {
         exerciseSlug: lungeSlug,
         sessionId,
@@ -154,7 +160,7 @@ describe("addExerciseToWorkoutSession", () => {
       },
       status: "added",
     });
-    expect(await exercisesOf(sessionId)).toEqual([
+    await expect(exercisesOf(sessionId)).resolves.toEqual([
       { exerciseSlug: benchSlug, order: 1 },
       { exerciseSlug: squatSlug, order: 3 },
       { exerciseSlug: lungeSlug, order: 4 },
@@ -164,7 +170,7 @@ describe("addExerciseToWorkoutSession", () => {
   it("starts at 1 in a Workout Session without Exercises", async () => {
     const sessionId = await insertSession(owner);
 
-    const result = await asUser(owner, (tx) =>
+    const result = await asUser(owner, async (tx) =>
       addExerciseToWorkoutSession(tx, owner, {
         exerciseSlug: lungeSlug,
         sessionId,
@@ -178,7 +184,7 @@ describe("addExerciseToWorkoutSession", () => {
     const sessionId = await insertSession(owner, { finished: true });
     await insertExercises(sessionId);
 
-    const result = await asUser(owner, (tx) =>
+    const result = await asUser(owner, async (tx) =>
       addExerciseToWorkoutSession(tx, owner, {
         exerciseSlug: lungeSlug,
         sessionId,
@@ -189,7 +195,7 @@ describe("addExerciseToWorkoutSession", () => {
       finishedAt: expect.stringMatching(POSTGREST_TIMESTAMP),
       status: "session_finished",
     });
-    expect(await exercisesOf(sessionId)).toEqual([
+    await expect(exercisesOf(sessionId)).resolves.toEqual([
       { exerciseSlug: benchSlug, order: 1 },
       { exerciseSlug: squatSlug, order: 3 },
     ]);
@@ -197,9 +203,10 @@ describe("addExerciseToWorkoutSession", () => {
 
   it("finds no Workout Session of another User's, or an unknown id, and writes nothing", async () => {
     const intruderSessionId = await insertSession(intruder);
+
     const results = await Promise.all(
-      [intruderSessionId, randomUUID()].map((sessionId) =>
-        asUser(owner, (tx) =>
+      [intruderSessionId, randomUUID()].map(async (sessionId) =>
+        asUser(owner, async (tx) =>
           addExerciseToWorkoutSession(tx, owner, {
             exerciseSlug: lungeSlug,
             sessionId,
@@ -209,7 +216,7 @@ describe("addExerciseToWorkoutSession", () => {
     );
 
     expect(results).toEqual([{ status: "not_found" }, { status: "not_found" }]);
-    expect(await exercisesOf(intruderSessionId)).toEqual([]);
+    await expect(exercisesOf(intruderSessionId)).resolves.toEqual([]);
   });
 
   it("gives concurrent adds to one Workout Session distinct, consecutive orders", async () => {
@@ -217,8 +224,8 @@ describe("addExerciseToWorkoutSession", () => {
     await insertExercises(sessionId);
 
     const results = await Promise.all(
-      Array.from({ length: 5 }, () =>
-        asUser(owner, (tx) =>
+      Array.from({ length: 5 }, async () =>
+        asUser(owner, async (tx) =>
           addExerciseToWorkoutSession(tx, owner, {
             exerciseSlug: lungeSlug,
             sessionId,
@@ -230,36 +237,37 @@ describe("addExerciseToWorkoutSession", () => {
     const orders = results.map((result) =>
       result.status === "added" ? result.exercise.order : null
     );
+
     expect(orders.sort((a, b) => (a ?? 0) - (b ?? 0))).toEqual([4, 5, 6, 7, 8]);
   });
 });
 
-describe("removeExerciseFromWorkoutSession", () => {
+describe(removeExerciseFromWorkoutSession, () => {
   it("deletes the Exercise and its sets, leaving the others' order and the gap", async () => {
     const sessionId = await insertSession(owner);
     const [benchId, squatId] = await insertExercises(sessionId);
-    await insertSets(benchId as string);
-    await insertSets(squatId as string);
+    await insertSets(benchId);
+    await insertSets(squatId);
 
-    const result = await asUser(owner, (tx) =>
-      removeExerciseFromWorkoutSession(tx, owner, benchId as string)
+    const result = await asUser(owner, async (tx) =>
+      removeExerciseFromWorkoutSession(tx, owner, benchId)
     );
 
     expect(result).toEqual({ status: "removed" });
-    expect(await exercisesOf(sessionId)).toEqual([
+    await expect(exercisesOf(sessionId)).resolves.toEqual([
       { exerciseSlug: squatSlug, order: 3 },
     ]);
-    expect(await setsOf(benchId as string)).toEqual([]);
-    expect(await setsOf(squatId as string)).toHaveLength(2);
+    await expect(setsOf(benchId)).resolves.toEqual([]);
+    await expect(setsOf(squatId)).resolves.toHaveLength(2);
 
     // Adding after the remove appends after the highest order: the gap stays.
-    await asUser(owner, (tx) =>
+    await asUser(owner, async (tx) =>
       addExerciseToWorkoutSession(tx, owner, {
         exerciseSlug: lungeSlug,
         sessionId,
       })
     );
-    expect(await exercisesOf(sessionId)).toEqual([
+    await expect(exercisesOf(sessionId)).resolves.toEqual([
       { exerciseSlug: squatSlug, order: 3 },
       { exerciseSlug: lungeSlug, order: 4 },
     ]);
@@ -268,12 +276,12 @@ describe("removeExerciseFromWorkoutSession", () => {
   it("finds nothing on a repeat", async () => {
     const sessionId = await insertSession(owner);
     const [benchId] = await insertExercises(sessionId);
-    await asUser(owner, (tx) =>
-      removeExerciseFromWorkoutSession(tx, owner, benchId as string)
+    await asUser(owner, async (tx) =>
+      removeExerciseFromWorkoutSession(tx, owner, benchId)
     );
 
-    const repeat = await asUser(owner, (tx) =>
-      removeExerciseFromWorkoutSession(tx, owner, benchId as string)
+    const repeat = await asUser(owner, async (tx) =>
+      removeExerciseFromWorkoutSession(tx, owner, benchId)
     );
 
     expect(repeat).toEqual({ status: "not_found" });
@@ -283,8 +291,8 @@ describe("removeExerciseFromWorkoutSession", () => {
     const sessionId = await insertSession(owner, { finished: true });
     const [benchId] = await insertExercises(sessionId);
 
-    const result = await asUser(owner, (tx) =>
-      removeExerciseFromWorkoutSession(tx, owner, benchId as string)
+    const result = await asUser(owner, async (tx) =>
+      removeExerciseFromWorkoutSession(tx, owner, benchId)
     );
 
     expect(result).toEqual({
@@ -292,7 +300,7 @@ describe("removeExerciseFromWorkoutSession", () => {
       sessionId,
       status: "session_finished",
     });
-    expect(await exercisesOf(sessionId)).toHaveLength(2);
+    await expect(exercisesOf(sessionId)).resolves.toHaveLength(2);
   });
 
   it("finds no Exercise of another User's, or an unknown id, and deletes nothing", async () => {
@@ -300,26 +308,28 @@ describe("removeExerciseFromWorkoutSession", () => {
     const [benchId] = await insertExercises(sessionId);
 
     const results = await Promise.all(
-      [benchId as string, randomUUID()].map((id) =>
-        asUser(owner, (tx) => removeExerciseFromWorkoutSession(tx, owner, id))
+      [benchId, randomUUID()].map(async (id) =>
+        asUser(owner, async (tx) =>
+          removeExerciseFromWorkoutSession(tx, owner, id)
+        )
       )
     );
 
     expect(results).toEqual([{ status: "not_found" }, { status: "not_found" }]);
-    expect(await exercisesOf(sessionId)).toHaveLength(2);
+    await expect(exercisesOf(sessionId)).resolves.toHaveLength(2);
   });
 });
 
-describe("replaceExerciseInWorkoutSession", () => {
+describe(replaceExerciseInWorkoutSession, () => {
   it("swaps the slug and zeroes every set's targets, keeping the row, its place and the logged values", async () => {
     const sessionId = await insertSession(owner);
     const [benchId] = await insertExercises(sessionId);
-    await insertSets(benchId as string);
+    await insertSets(benchId);
 
-    const result = await asUser(owner, (tx) =>
+    const result = await asUser(owner, async (tx) =>
       replaceExerciseInWorkoutSession(tx, owner, {
         exerciseSlug: lungeSlug,
-        sessionExerciseId: benchId as string,
+        sessionExerciseId: benchId,
       })
     );
 
@@ -353,11 +363,11 @@ describe("replaceExerciseInWorkoutSession", () => {
       },
       status: "replaced",
     });
-    expect(await exercisesOf(sessionId)).toEqual([
+    await expect(exercisesOf(sessionId)).resolves.toEqual([
       { exerciseSlug: lungeSlug, order: 1 },
       { exerciseSlug: squatSlug, order: 3 },
     ]);
-    expect(await setsOf(benchId as string)).toEqual([
+    await expect(setsOf(benchId)).resolves.toEqual([
       {
         order: 1,
         repsCompleted: 9,
@@ -380,24 +390,22 @@ describe("replaceExerciseInWorkoutSession", () => {
   it("changes nothing of a finished Workout Session", async () => {
     const sessionId = await insertSession(owner, { finished: true });
     const [benchId] = await insertExercises(sessionId);
-    await insertSets(benchId as string);
+    await insertSets(benchId);
 
-    const result = await asUser(owner, (tx) =>
+    const result = await asUser(owner, async (tx) =>
       replaceExerciseInWorkoutSession(tx, owner, {
         exerciseSlug: lungeSlug,
-        sessionExerciseId: benchId as string,
+        sessionExerciseId: benchId,
       })
     );
 
     expect(result).toMatchObject({ sessionId, status: "session_finished" });
-    expect(await exercisesOf(sessionId)).toEqual([
+    await expect(exercisesOf(sessionId)).resolves.toEqual([
       { exerciseSlug: benchSlug, order: 1 },
       { exerciseSlug: squatSlug, order: 3 },
     ]);
     expect(
-      (await setsOf(benchId as string)).map(
-        ({ repsRecommended }) => repsRecommended
-      )
+      (await setsOf(benchId)).map(({ repsRecommended }) => repsRecommended)
     ).toEqual([10, 8]);
   });
 
@@ -406,8 +414,8 @@ describe("replaceExerciseInWorkoutSession", () => {
     const [benchId] = await insertExercises(sessionId);
 
     const results = await Promise.all(
-      [benchId as string, randomUUID()].map((sessionExerciseId) =>
-        asUser(owner, (tx) =>
+      [benchId, randomUUID()].map(async (sessionExerciseId) =>
+        asUser(owner, async (tx) =>
           replaceExerciseInWorkoutSession(tx, owner, {
             exerciseSlug: lungeSlug,
             sessionExerciseId,
@@ -417,25 +425,25 @@ describe("replaceExerciseInWorkoutSession", () => {
     );
 
     expect(results).toEqual([{ status: "not_found" }, { status: "not_found" }]);
-    expect(await exercisesOf(sessionId)).toEqual([
+    await expect(exercisesOf(sessionId)).resolves.toEqual([
       { exerciseSlug: benchSlug, order: 1 },
       { exerciseSlug: squatSlug, order: 3 },
     ]);
   });
 });
 
-describe("addSetToWorkoutSessionExercise", () => {
+describe(addSetToWorkoutSessionExercise, () => {
   const logged = { repsCompleted: 7, weightCompleted: 72.5 };
 
   it("appends a logged set with the server's time and no targets", async () => {
     const sessionId = await insertSession(owner);
     const [benchId] = await insertExercises(sessionId);
-    await insertSets(benchId as string);
+    await insertSets(benchId);
 
-    const result = await asUser(owner, (tx) =>
+    const result = await asUser(owner, async (tx) =>
       addSetToWorkoutSessionExercise(tx, owner, {
         ...logged,
-        sessionExerciseId: benchId as string,
+        sessionExerciseId: benchId,
       })
     );
 
@@ -452,7 +460,7 @@ describe("addSetToWorkoutSessionExercise", () => {
       },
       status: "added",
     });
-    expect((await setsOf(benchId as string)).at(-1)).toEqual({
+    expect((await setsOf(benchId)).at(-1)).toEqual({
       order: 3,
       repsCompleted: 7,
       repsRecommended: null,
@@ -466,10 +474,10 @@ describe("addSetToWorkoutSessionExercise", () => {
     const sessionId = await insertSession(owner);
     const [benchId] = await insertExercises(sessionId);
 
-    const result = await asUser(owner, (tx) =>
+    const result = await asUser(owner, async (tx) =>
       addSetToWorkoutSessionExercise(tx, owner, {
         ...logged,
-        sessionExerciseId: benchId as string,
+        sessionExerciseId: benchId,
       })
     );
 
@@ -479,12 +487,12 @@ describe("addSetToWorkoutSessionExercise", () => {
   it("writes nothing to a finished Workout Session", async () => {
     const sessionId = await insertSession(owner, { finished: true });
     const [benchId] = await insertExercises(sessionId);
-    await insertSets(benchId as string);
+    await insertSets(benchId);
 
-    const result = await asUser(owner, (tx) =>
+    const result = await asUser(owner, async (tx) =>
       addSetToWorkoutSessionExercise(tx, owner, {
         ...logged,
-        sessionExerciseId: benchId as string,
+        sessionExerciseId: benchId,
       })
     );
 
@@ -493,7 +501,7 @@ describe("addSetToWorkoutSessionExercise", () => {
       sessionId,
       status: "session_finished",
     });
-    expect(await setsOf(benchId as string)).toHaveLength(2);
+    await expect(setsOf(benchId)).resolves.toHaveLength(2);
   });
 
   it("finds no Exercise of another User's, or an unknown id, and writes nothing", async () => {
@@ -501,8 +509,8 @@ describe("addSetToWorkoutSessionExercise", () => {
     const [benchId] = await insertExercises(sessionId);
 
     const results = await Promise.all(
-      [benchId as string, randomUUID()].map((sessionExerciseId) =>
-        asUser(owner, (tx) =>
+      [benchId, randomUUID()].map(async (sessionExerciseId) =>
+        asUser(owner, async (tx) =>
           addSetToWorkoutSessionExercise(tx, owner, {
             ...logged,
             sessionExerciseId,
@@ -512,20 +520,20 @@ describe("addSetToWorkoutSessionExercise", () => {
     );
 
     expect(results).toEqual([{ status: "not_found" }, { status: "not_found" }]);
-    expect(await setsOf(benchId as string)).toEqual([]);
+    await expect(setsOf(benchId)).resolves.toEqual([]);
   });
 
   it("gives concurrent adds to one Workout Session Exercise distinct, consecutive orders", async () => {
     const sessionId = await insertSession(owner);
     const [benchId] = await insertExercises(sessionId);
-    await insertSets(benchId as string);
+    await insertSets(benchId);
 
     const results = await Promise.all(
-      Array.from({ length: 5 }, () =>
-        asUser(owner, (tx) =>
+      Array.from({ length: 5 }, async () =>
+        asUser(owner, async (tx) =>
           addSetToWorkoutSessionExercise(tx, owner, {
             ...logged,
-            sessionExerciseId: benchId as string,
+            sessionExerciseId: benchId,
           })
         )
       )
@@ -534,6 +542,7 @@ describe("addSetToWorkoutSessionExercise", () => {
     const orders = results.map((result) =>
       result.status === "added" ? result.set.order : null
     );
+
     expect(orders.sort((a, b) => (a ?? 0) - (b ?? 0))).toEqual([3, 4, 5, 6, 7]);
   });
 });

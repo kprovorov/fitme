@@ -1,19 +1,7 @@
 ---
 name: uniwind
 description: >
-  Uniwind — Tailwind CSS v4 styling for React Native. Use when adding, building,
-  or styling components in a React Native project that uses Tailwind with className.
-  Triggers on: className on RN components, Tailwind classes in RN, global.css with
-  @import 'uniwind', withUniwindConfig, withUniwind, metro.config.js with Uniwind,
-  useResolveClassNames, useCSSVariable, getCSSVariable, useUniwind, dark:/light: theming, platform
-  selectors (ios:/android:/native:/web:/tv:), data-[prop=value], responsive breakpoints
-  (sm:/md:/lg:), important utilities (!bg-red-500), tailwind-variants, tv() variants, ScopedTheme, Uniwind.setTheme,
-  Uniwind.updateCSSVariables, @theme, @utility, @variant, CSS variables in RN,
-  colorClassName, tintColorClassName, contentContainerClassName, Uniwind Pro
-  (animations, transitions, shadow tree, native insets), safe area utilities,
-  gradients, hairlineWidth(), fontScale(), pixelRatio(), light-dark(), OKLCH,
-  cn, tailwind-merge, HeroUI Native, react-native-reusables, Gluestack.
-  Does NOT handle migration — use migrate-nativewind-to-uniwind skill.
+  Uniwind — Tailwind CSS v4 styling for React Native. Use when adding, building, or styling components in a React Native project that uses Tailwind with className. Triggers on: className on RN components, Tailwind classes in RN, global.css with @import 'uniwind', withUniwindConfig, withUniwind, metro.config.js with Uniwind, useResolveClassNames, useCSSVariable, getCSSVariable, useUniwind, dark:/light: theming, platform selectors (ios:/android:/native:/web:/tv:), data-[prop=value], responsive breakpoints (sm:/md:/lg:), important utilities (!bg-red-500), tailwind-variants, tv() variants, ScopedTheme, Uniwind.setTheme, Uniwind.updateCSSVariables, @theme, @utility, @variant, CSS variables in RN, colorClassName, tintColorClassName, contentContainerClassName, Uniwind Pro (animations, transitions, shadow tree, native insets), safe area utilities, gradients, hairlineWidth(), fontScale(), pixelRatio(), light-dark(), OKLCH, cn, tailwind-merge, HeroUI Native, react-native-reusables, Gluestack. Does NOT handle migration — use migrate-nativewind-to-uniwind skill.
 ---
 
 # Uniwind — Complete Reference
@@ -57,15 +45,15 @@ Requires **Tailwind CSS v4+**.
 Create a CSS entry file:
 
 ```css
-@import 'tailwindcss';
-@import 'uniwind';
+@import "tailwindcss";
+@import "uniwind";
 ```
 
 Import in your **App component** (e.g., `App.tsx` or `app/_layout.tsx`), **NOT** in `index.ts`/`index.js` — importing there breaks hot reload:
 
 ```tsx
 // app/_layout.tsx or App.tsx
-import './global.css';
+import "./global.css";
 ```
 
 The directory containing `global.css` is the app root — Tailwind scans for classNames starting from this directory.
@@ -73,20 +61,20 @@ The directory containing `global.css` is the app root — Tailwind scans for cla
 ### Metro Configuration
 
 ```js
-const { getDefaultConfig } = require('expo/metro-config');
+const { getDefaultConfig } = require("expo/metro-config");
 // Bare RN: const { getDefaultConfig } = require('@react-native/metro-config');
-const { withUniwindConfig } = require('uniwind/metro');
+const { withUniwindConfig } = require("uniwind/metro");
 
 const config = getDefaultConfig(__dirname);
 
 // withUniwindConfig MUST be the OUTERMOST wrapper
 module.exports = withUniwindConfig(config, {
-  cssEntryFile: './global.css',           // Required — relative path from project root
-  polyfills: { rem: 16 },                // Optional — base rem value (default 16)
-  extraThemes: ['ocean', 'sunset'],       // Optional — custom themes beyond light/dark
-  dtsFile: './uniwind-types.d.ts',        // Optional — TypeScript types output path
-  debug: true,                            // Optional — log unsupported CSS in dev
-  isTV: false,                            // Optional — enable TV platform support
+  cssEntryFile: "./global.css", // Required — relative path from project root
+  polyfills: { rem: 16 }, // Optional — base rem value (default 16)
+  extraThemes: ["ocean", "sunset"], // Optional — custom themes beyond light/dark
+  dtsFile: "./uniwind-types.d.ts", // Optional — TypeScript types output path
+  debug: true, // Optional — log unsupported CSS in dev
+  isTV: false, // Optional — enable TV platform support
 });
 ```
 
@@ -96,10 +84,15 @@ Wrapper order — Uniwind must wrap everything else:
 
 ```js
 // CORRECT
-module.exports = withUniwindConfig(withOtherConfig(config, opts), { cssEntryFile: './global.css' });
+module.exports = withUniwindConfig(withOtherConfig(config, opts), {
+  cssEntryFile: "./global.css",
+});
 
 // WRONG — Uniwind is NOT outermost
-module.exports = withOtherConfig(withUniwindConfig(config, { cssEntryFile: './global.css' }), opts);
+module.exports = withOtherConfig(
+  withUniwindConfig(config, { cssEntryFile: "./global.css" }),
+  opts
+);
 ```
 
 ### Vite Configuration (v1.2.0+)
@@ -107,16 +100,16 @@ module.exports = withOtherConfig(withUniwindConfig(config, { cssEntryFile: './gl
 If user has storybook setup, add extra vite config:
 
 ```ts
-import tailwindcss from '@tailwindcss/vite';
-import { uniwind } from 'uniwind/vite';
-import { defineConfig } from 'vite';
+import tailwindcss from "@tailwindcss/vite";
+import { uniwind } from "uniwind/vite";
+import { defineConfig } from "vite";
 
 export default defineConfig({
   plugins: [
     tailwindcss(),
     uniwind({
-      cssEntryFile: './src/global.css',
-      dtsFile: './src/uniwind-types.d.ts',
+      cssEntryFile: "./src/global.css",
+      dtsFile: "./src/uniwind-types.d.ts",
     }),
   ],
 });
@@ -145,8 +138,8 @@ project/
 If `global.css` is in `app/` dir, add `@source` for sibling directories:
 
 ```css
-@import 'tailwindcss';
-@import 'uniwind';
+@import "tailwindcss";
+@import "uniwind";
 @source '../components';
 ```
 
@@ -155,19 +148,34 @@ If `global.css` is in `app/` dir, add `@source` for sibling directories:
 ```json
 {
   "tailwindCSS.classAttributes": [
-    "class", "className", "headerClassName",
-    "contentContainerClassName", "columnWrapperClassName",
-    "endFillColorClassName", "imageClassName", "tintColorClassName",
-    "ios_backgroundColorClassName", "thumbColorClassName",
-    "trackColorOnClassName", "trackColorOffClassName",
-    "selectionColorClassName", "cursorColorClassName",
-    "underlineColorAndroidClassName", "placeholderTextColorClassName",
-    "selectionHandleColorClassName", "colorsClassName",
-    "progressBackgroundColorClassName", "titleColorClassName",
-    "underlayColorClassName", "colorClassName",
-    "backdropColorClassName", "backgroundColorClassName",
-    "statusBarBackgroundColorClassName", "drawerBackgroundColorClassName",
-    "ListFooterComponentClassName", "ListHeaderComponentClassName"
+    "class",
+    "className",
+    "headerClassName",
+    "contentContainerClassName",
+    "columnWrapperClassName",
+    "endFillColorClassName",
+    "imageClassName",
+    "tintColorClassName",
+    "ios_backgroundColorClassName",
+    "thumbColorClassName",
+    "trackColorOnClassName",
+    "trackColorOffClassName",
+    "selectionColorClassName",
+    "cursorColorClassName",
+    "underlineColorAndroidClassName",
+    "placeholderTextColorClassName",
+    "selectionHandleColorClassName",
+    "colorsClassName",
+    "progressBackgroundColorClassName",
+    "titleColorClassName",
+    "underlayColorClassName",
+    "colorClassName",
+    "backdropColorClassName",
+    "backgroundColorClassName",
+    "statusBarBackgroundColorClassName",
+    "drawerBackgroundColorClassName",
+    "ListFooterComponentClassName",
+    "ListHeaderComponentClassName"
   ],
   "tailwindCSS.classFunctions": ["useResolveClassNames"]
 }
@@ -178,8 +186,8 @@ If `global.css` is in `app/` dir, add `@source` for sibling directories:
 Add `@source` directives in `global.css` for packages outside the CSS entry file's directory:
 
 ```css
-@import 'tailwindcss';
-@import 'uniwind';
+@import "tailwindcss";
+@import "uniwind";
 @source "../../packages/ui/src";
 @source "../../packages/shared/src";
 ```
@@ -196,36 +204,36 @@ All core React Native components support `className` out of the box. Some have a
 
 #### View
 
-| Prop | Maps to | Prefix |
-|------|---------|--------|
-| `className` | `style` | — |
+| Prop        | Maps to | Prefix |
+| ----------- | ------- | ------ |
+| `className` | `style` | —      |
 
 #### Text
 
-| Prop | Maps to | Prefix |
-|------|---------|--------|
-| `className` | `style` | — |
+| Prop                      | Maps to          | Prefix       |
+| ------------------------- | ---------------- | ------------ |
+| `className`               | `style`          | —            |
 | `selectionColorClassName` | `selectionColor` | ⚡ `accent-` |
 
 #### Pressable
 
-| Prop | Maps to | Prefix |
-|------|---------|--------|
-| `className` | `style` | — |
+| Prop        | Maps to | Prefix |
+| ----------- | ------- | ------ |
+| `className` | `style` | —      |
 
 Supports `active:`, `disabled:`, `focus:` state selectors.
 
 #### Image
 
-| Prop | Maps to | Prefix |
-|------|---------|--------|
-| `className` | `style` | — |
+| Prop                 | Maps to     | Prefix       |
+| -------------------- | ----------- | ------------ |
+| `className`          | `style`     | —            |
 | `tintColorClassName` | `tintColor` | ⚡ `accent-` |
 
 #### TextInput
 
 | Prop | Maps to | Prefix |
-|------|---------|--------|
+| --- | --- | --- |
 | `className` | `style` | — |
 | `cursorColorClassName` | `cursorColor` | ⚡ `accent-` |
 | `selectionColorClassName` | `selectionColor` | ⚡ `accent-` |
@@ -237,80 +245,80 @@ Supports `focus:`, `active:`, `disabled:` state selectors.
 
 #### ScrollView
 
-| Prop | Maps to | Prefix |
-|------|---------|--------|
-| `className` | `style` | — |
-| `contentContainerClassName` | `contentContainerStyle` | — |
-| `endFillColorClassName` | `endFillColor` | ⚡ `accent-` |
+| Prop                        | Maps to                 | Prefix       |
+| --------------------------- | ----------------------- | ------------ |
+| `className`                 | `style`                 | —            |
+| `contentContainerClassName` | `contentContainerStyle` | —            |
+| `endFillColorClassName`     | `endFillColor`          | ⚡ `accent-` |
 
 #### FlatList
 
-| Prop | Maps to | Prefix |
-|------|---------|--------|
-| `className` | `style` | — |
-| `contentContainerClassName` | `contentContainerStyle` | — |
-| `columnWrapperClassName` | `columnWrapperStyle` | — |
-| `ListHeaderComponentClassName` | `ListHeaderComponentStyle` | — |
-| `ListFooterComponentClassName` | `ListFooterComponentStyle` | — |
-| `endFillColorClassName` | `endFillColor` | ⚡ `accent-` |
+| Prop                           | Maps to                    | Prefix       |
+| ------------------------------ | -------------------------- | ------------ |
+| `className`                    | `style`                    | —            |
+| `contentContainerClassName`    | `contentContainerStyle`    | —            |
+| `columnWrapperClassName`       | `columnWrapperStyle`       | —            |
+| `ListHeaderComponentClassName` | `ListHeaderComponentStyle` | —            |
+| `ListFooterComponentClassName` | `ListFooterComponentStyle` | —            |
+| `endFillColorClassName`        | `endFillColor`             | ⚡ `accent-` |
 
 #### SectionList
 
-| Prop | Maps to | Prefix |
-|------|---------|--------|
-| `className` | `style` | — |
-| `contentContainerClassName` | `contentContainerStyle` | — |
-| `ListHeaderComponentClassName` | `ListHeaderComponentStyle` | — |
-| `ListFooterComponentClassName` | `ListFooterComponentStyle` | — |
-| `endFillColorClassName` | `endFillColor` | ⚡ `accent-` |
+| Prop                           | Maps to                    | Prefix       |
+| ------------------------------ | -------------------------- | ------------ |
+| `className`                    | `style`                    | —            |
+| `contentContainerClassName`    | `contentContainerStyle`    | —            |
+| `ListHeaderComponentClassName` | `ListHeaderComponentStyle` | —            |
+| `ListFooterComponentClassName` | `ListFooterComponentStyle` | —            |
+| `endFillColorClassName`        | `endFillColor`             | ⚡ `accent-` |
 
 #### VirtualizedList
 
-| Prop | Maps to | Prefix |
-|------|---------|--------|
-| `className` | `style` | — |
-| `contentContainerClassName` | `contentContainerStyle` | — |
-| `ListHeaderComponentClassName` | `ListHeaderComponentStyle` | — |
-| `ListFooterComponentClassName` | `ListFooterComponentStyle` | — |
-| `endFillColorClassName` | `endFillColor` | ⚡ `accent-` |
+| Prop                           | Maps to                    | Prefix       |
+| ------------------------------ | -------------------------- | ------------ |
+| `className`                    | `style`                    | —            |
+| `contentContainerClassName`    | `contentContainerStyle`    | —            |
+| `ListHeaderComponentClassName` | `ListHeaderComponentStyle` | —            |
+| `ListFooterComponentClassName` | `ListFooterComponentStyle` | —            |
+| `endFillColorClassName`        | `endFillColor`             | ⚡ `accent-` |
 
 #### Switch
 
-| Prop | Maps to | Prefix |
-|------|---------|--------|
-| `thumbColorClassName` | `thumbColor` | ⚡ `accent-` |
-| `trackColorOnClassName` | `trackColor.true` (on) | ⚡ `accent-` |
-| `trackColorOffClassName` | `trackColor.false` (off) | ⚡ `accent-` |
+| Prop                           | Maps to                     | Prefix       |
+| ------------------------------ | --------------------------- | ------------ |
+| `thumbColorClassName`          | `thumbColor`                | ⚡ `accent-` |
+| `trackColorOnClassName`        | `trackColor.true` (on)      | ⚡ `accent-` |
+| `trackColorOffClassName`       | `trackColor.false` (off)    | ⚡ `accent-` |
 | `ios_backgroundColorClassName` | `ios_backgroundColor` (iOS) | ⚡ `accent-` |
 
 Note: Switch does NOT support `className` (`className?: never` in types). Use only the color-specific className props above. Supports `disabled:` state selector.
 
 #### ActivityIndicator
 
-| Prop | Maps to | Prefix |
-|------|---------|--------|
-| `className` | `style` | — |
+| Prop             | Maps to | Prefix       |
+| ---------------- | ------- | ------------ |
+| `className`      | `style` | —            |
 | `colorClassName` | `color` | ⚡ `accent-` |
 
 #### Button
 
-| Prop | Maps to | Prefix |
-|------|---------|--------|
+| Prop             | Maps to | Prefix       |
+| ---------------- | ------- | ------------ |
 | `colorClassName` | `color` | ⚡ `accent-` |
 
 Note: Button does not support `className` (no `style` prop on RN Button).
 
 #### Modal
 
-| Prop | Maps to | Prefix |
-|------|---------|--------|
-| `className` | `style` | — |
+| Prop                     | Maps to         | Prefix       |
+| ------------------------ | --------------- | ------------ |
+| `className`              | `style`         | —            |
 | `backdropColorClassName` | `backdropColor` | ⚡ `accent-` |
 
 #### RefreshControl
 
 | Prop | Maps to | Prefix |
-|------|---------|--------|
+| --- | --- | --- |
 | `className` | `style` | — |
 | `colorsClassName` | `colors` (Android) | ⚡ `accent-` |
 | `tintColorClassName` | `tintColor` (iOS) | ⚡ `accent-` |
@@ -319,62 +327,62 @@ Note: Button does not support `className` (no `style` prop on RN Button).
 
 #### ImageBackground
 
-| Prop | Maps to | Prefix |
-|------|---------|--------|
-| `className` | `style` | — |
-| `imageClassName` | `imageStyle` | — |
-| `tintColorClassName` | `tintColor` | ⚡ `accent-` |
+| Prop                 | Maps to      | Prefix       |
+| -------------------- | ------------ | ------------ |
+| `className`          | `style`      | —            |
+| `imageClassName`     | `imageStyle` | —            |
+| `tintColorClassName` | `tintColor`  | ⚡ `accent-` |
 
 #### SafeAreaView
 
-| Prop | Maps to | Prefix |
-|------|---------|--------|
-| `className` | `style` | — |
+| Prop        | Maps to | Prefix |
+| ----------- | ------- | ------ |
+| `className` | `style` | —      |
 
 #### KeyboardAvoidingView
 
-| Prop | Maps to | Prefix |
-|------|---------|--------|
-| `className` | `style` | — |
-| `contentContainerClassName` | `contentContainerStyle` | — |
+| Prop                        | Maps to                 | Prefix |
+| --------------------------- | ----------------------- | ------ |
+| `className`                 | `style`                 | —      |
+| `contentContainerClassName` | `contentContainerStyle` | —      |
 
 #### InputAccessoryView
 
-| Prop | Maps to | Prefix |
-|------|---------|--------|
-| `className` | `style` | — |
+| Prop                       | Maps to           | Prefix       |
+| -------------------------- | ----------------- | ------------ |
+| `className`                | `style`           | —            |
 | `backgroundColorClassName` | `backgroundColor` | ⚡ `accent-` |
 
 #### TouchableHighlight
 
-| Prop | Maps to | Prefix |
-|------|---------|--------|
-| `className` | `style` | — |
+| Prop                     | Maps to         | Prefix       |
+| ------------------------ | --------------- | ------------ |
+| `className`              | `style`         | —            |
 | `underlayColorClassName` | `underlayColor` | ⚡ `accent-` |
 
 Supports `active:`, `disabled:` state selectors.
 
 #### TouchableOpacity
 
-| Prop | Maps to | Prefix |
-|------|---------|--------|
-| `className` | `style` | — |
+| Prop        | Maps to | Prefix |
+| ----------- | ------- | ------ |
+| `className` | `style` | —      |
 
 Supports `active:`, `disabled:` state selectors.
 
 #### TouchableNativeFeedback
 
-| Prop | Maps to | Prefix |
-|------|---------|--------|
-| `className` | `style` | — |
+| Prop        | Maps to | Prefix |
+| ----------- | ------- | ------ |
+| `className` | `style` | —      |
 
 Supports `active:`, `disabled:` state selectors.
 
 #### TouchableWithoutFeedback
 
-| Prop | Maps to | Prefix |
-|------|---------|--------|
-| `className` | `style` | — |
+| Prop        | Maps to | Prefix |
+| ----------- | ------- | ------ |
+| `className` | `style` | —      |
 
 Supports `active:`, `disabled:` state selectors.
 
@@ -532,10 +540,10 @@ React Native components have props like `color`, `tintColor`, `thumbColor` that 
 Wrap once at module level, use with `className` everywhere:
 
 ```tsx
-import { withUniwind } from 'uniwind';
-import { Image as ExpoImage } from 'expo-image';
-import { BlurView as RNBlurView } from 'expo-blur';
-import { LinearGradient as RNLinearGradient } from 'expo-linear-gradient';
+import { BlurView as RNBlurView } from "expo-blur";
+import { Image as ExpoImage } from "expo-image";
+import { LinearGradient as RNLinearGradient } from "expo-linear-gradient";
+import { withUniwind } from "uniwind";
 
 // Module-level wrapping (NEVER inside render functions)
 export const Image = withUniwind(ExpoImage);
@@ -544,6 +552,7 @@ export const LinearGradient = withUniwind(RNLinearGradient);
 ```
 
 `withUniwind` automatically maps:
+
 - `style` → `className`
 - `{name}Style` → `{name}ClassName`
 - `{name}Color` → `{name}ColorClassName` (with accent- prefix)
@@ -553,8 +562,8 @@ For custom prop mappings:
 ```tsx
 const StyledProgressBar = withUniwind(ProgressBar, {
   width: {
-    fromClassName: 'widthClassName',
-    styleProperty: 'width',
+    fromClassName: "widthClassName",
+    styleProperty: "width",
   },
 });
 ```
@@ -565,13 +574,13 @@ const StyledProgressBar = withUniwind(ProgressBar, {
 - **Used across multiple files** — wrap once in a shared module (e.g., `components/styled.ts`) and re-export
 
 ```tsx
+import { Image as ExpoImage } from "expo-image";
 // components/styled.ts
-import { withUniwind } from 'uniwind';
-import { Image as ExpoImage } from 'expo-image';
+import { withUniwind } from "uniwind";
 export const Image = withUniwind(ExpoImage);
 
 // Then import everywhere:
-import { Image } from '@/components/styled';
+import { Image } from "@/components/styled";
 ```
 
 **NEVER** call `withUniwind` on the same component in multiple files.
@@ -580,14 +589,14 @@ import { Image } from '@/components/styled';
 
 ```tsx
 // WRONG — View already supports className natively
-const StyledView = withUniwind(View);        // DO NOT DO THIS
-const StyledText = withUniwind(Text);        // DO NOT DO THIS
+const StyledView = withUniwind(View); // DO NOT DO THIS
+const StyledText = withUniwind(Text); // DO NOT DO THIS
 const StyledAnimatedView = withUniwind(Animated.View); // DO NOT DO THIS
 
 // CORRECT — only wrap third-party components
-const StyledExpoImage = withUniwind(ExpoImage);     // expo-image
-const StyledBlurView = withUniwind(BlurView);        // expo-blur
-const StyledMotiView = withUniwind(MotiView);        // moti
+const StyledExpoImage = withUniwind(ExpoImage); // expo-image
+const StyledBlurView = withUniwind(BlurView); // expo-blur
+const StyledMotiView = withUniwind(MotiView); // moti
 ```
 
 ### useResolveClassNames
@@ -595,23 +604,25 @@ const StyledMotiView = withUniwind(MotiView);        // moti
 Converts Tailwind class strings to React Native style objects. Use for one-off cases or components that only accept `style`:
 
 ```tsx
-import { useResolveClassNames } from 'uniwind';
+import { useResolveClassNames } from "uniwind";
 
-const headerStyle = useResolveClassNames('bg-primary p-4');
-const cardStyle = useResolveClassNames('bg-card dark:bg-card rounded-lg shadow-sm');
+const headerStyle = useResolveClassNames("bg-primary p-4");
+const cardStyle = useResolveClassNames(
+  "bg-card dark:bg-card rounded-lg shadow-sm"
+);
 
 // React Navigation screen options
-<Stack.Navigator screenOptions={{ headerStyle, cardStyle }} />
+<Stack.Navigator screenOptions={{ headerStyle, cardStyle }} />;
 ```
 
 ### Comparison
 
-| Feature | withUniwind | useResolveClassNames |
-|---------|-------------|----------------------|
-| Setup | Once per component | Per usage |
-| Performance | Optimized | Slightly slower |
-| Best for | Reusable components | One-off, navigation config |
-| Syntax | `className="..."` | `style={...}` |
+| Feature     | withUniwind         | useResolveClassNames       |
+| ----------- | ------------------- | -------------------------- |
+| Setup       | Once per component  | Per usage                  |
+| Performance | Optimized           | Slightly slower            |
+| Best for    | Reusable components | One-off, navigation config |
+| Syntax      | `className="..."`   | `style={...}`              |
 
 ## Dynamic ClassNames
 
@@ -650,35 +661,33 @@ const colorMap = {
 For complex component styling with variants and compound variants:
 
 ```tsx
-import { tv } from 'tailwind-variants';
+import { tv } from "tailwind-variants";
 
 const button = tv({
-  base: 'font-semibold rounded-lg px-4 py-2 items-center justify-center',
+  base: "items-center justify-center rounded-lg px-4 py-2 font-semibold",
   variants: {
     color: {
-      primary: 'bg-blue-500 text-white',
-      secondary: 'bg-gray-500 text-white',
-      danger: 'bg-red-500 text-white',
-      ghost: 'bg-transparent text-foreground border border-border',
+      primary: "bg-blue-500 text-white",
+      secondary: "bg-gray-500 text-white",
+      danger: "bg-red-500 text-white",
+      ghost: "text-foreground border-border border bg-transparent",
     },
     size: {
-      sm: 'text-sm px-3 py-1.5',
-      md: 'text-base px-4 py-2',
-      lg: 'text-lg px-6 py-3',
+      sm: "px-3 py-1.5 text-sm",
+      md: "px-4 py-2 text-base",
+      lg: "px-6 py-3 text-lg",
     },
     disabled: {
-      true: 'opacity-50',
+      true: "opacity-50",
     },
   },
-  compoundVariants: [
-    { color: 'primary', size: 'lg', class: 'bg-blue-600' },
-  ],
-  defaultVariants: { color: 'primary', size: 'md' },
+  compoundVariants: [{ color: "primary", size: "lg", class: "bg-blue-600" }],
+  defaultVariants: { color: "primary", size: "md" },
 });
 
-<Pressable className={button({ color: 'primary', size: 'lg' })}>
-  <Text className="text-white font-semibold">Click</Text>
-</Pressable>
+<Pressable className={button({ color: "primary", size: "lg" })}>
+  <Text className="font-semibold text-white">Click</Text>
+</Pressable>;
 ```
 
 ## cn Utility — Class Deduplication
@@ -693,8 +702,8 @@ npm install tailwind-merge clsx
 
 ```ts
 // lib/cn.ts
-import { type ClassValue, clsx } from 'clsx';
-import { twMerge } from 'tailwind-merge';
+import { type ClassValue, clsx } from "clsx";
+import { twMerge } from "tailwind-merge";
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
@@ -734,7 +743,7 @@ import { cn } from '@/lib/cn';
 3. **tv() output combined with extra classes** — tv already handles its own variants, but if you add more classes on top:
 
 ```tsx
-<Pressable className={cn(button({ color: 'primary' }), props.className)} />
+<Pressable className={cn(button({ color: "primary" }), props.className)} />
 ```
 
 ### When cn Is NOT Needed
@@ -747,17 +756,18 @@ import { cn } from '@/lib/cn';
 Uniwind supports Tailwind's important modifier (`!`) for utilities that must override another utility for the same style property.
 
 ```tsx
-import { View, Pressable } from 'react-native';
+import { View, Pressable } from "react-native";
 
 // !bg-red-500 has higher priority than bg-blue-500
-<View className="bg-blue-500 !bg-red-500" />;
+<View className="!bg-red-500 bg-blue-500" />;
 
 // Important utilities work with state and platform variants
 <Pressable className="bg-blue-500 active:!bg-red-500" />;
-<View className="pt-4 ios:!pt-12 android:!pt-8" />;
+<View className="ios:!pt-12 android:!pt-8 pt-4" />;
 ```
 
 Priority rules:
+
 - Important utility (`!bg-red-500`) overrides non-important utility (`bg-blue-500`) for the same property.
 - Important variants work normally: `active:!bg-red-500`, `ios:!pt-12`, `dark:!text-white`.
 - Inline `style` always wins, even over important className utilities: `<View className="!bg-red-500" style={{ backgroundColor: 'blue' }} />` renders blue.
@@ -812,7 +822,7 @@ Define in `global.css`, use everywhere without `dark:` prefix:
 
 ```tsx
 // Auto-adapts to current theme — no dark: prefix needed
-<View className="bg-card border border-border p-4 rounded-lg">
+<View className="bg-card border-border rounded-lg border p-4">
   <Text className="text-foreground text-lg font-bold">Title</Text>
   <Text className="text-muted mt-2">Subtitle</Text>
 </View>
@@ -829,8 +839,12 @@ Variable naming: `--color-background` → `bg-background`, `text-background`.
 ```css
 @layer theme {
   :root {
-    @variant light { /* ... */ }
-    @variant dark { /* ... */ }
+    @variant light {
+      /* ... */
+    }
+    @variant dark {
+      /* ... */
+    }
     @variant ocean {
       --color-background: #0c4a6e;
       --color-foreground: #e0f2fe;
@@ -847,8 +861,8 @@ Variable naming: `--color-background` → `bg-background`, `text-background`.
 
 ```js
 module.exports = withUniwindConfig(config, {
-  cssEntryFile: './global.css',
-  extraThemes: ['ocean'],
+  cssEntryFile: "./global.css",
+  extraThemes: ["ocean"],
 });
 ```
 
@@ -857,21 +871,21 @@ Restart Metro after adding themes.
 **Step 3** — Use:
 
 ```tsx
-Uniwind.setTheme('ocean');
+Uniwind.setTheme("ocean");
 ```
 
 ### Theme API
 
 ```tsx
-import { Uniwind, useUniwind } from 'uniwind';
+import { Uniwind, useUniwind } from "uniwind";
 
 // Imperative (no re-render)
-Uniwind.setTheme('dark');          // Force dark
-Uniwind.setTheme('light');         // Force light
-Uniwind.setTheme('system');        // Follow device (re-enables adaptive themes)
-Uniwind.setTheme('ocean');         // Custom theme (must be in extraThemes)
-Uniwind.currentTheme;              // Current theme name
-Uniwind.hasAdaptiveThemes;         // true if following system
+Uniwind.setTheme("dark"); // Force dark
+Uniwind.setTheme("light"); // Force light
+Uniwind.setTheme("system"); // Follow device (re-enables adaptive themes)
+Uniwind.setTheme("ocean"); // Custom theme (must be in extraThemes)
+Uniwind.currentTheme; // Current theme name
+Uniwind.hasAdaptiveThemes; // true if following system
 
 // Reactive hook (re-renders on change)
 const { theme, hasAdaptiveThemes } = useUniwind();
@@ -879,23 +893,22 @@ const { theme, hasAdaptiveThemes } = useUniwind();
 
 `Uniwind.setTheme('light')` / `setTheme('dark')` also calls `Appearance.setColorScheme` to sync native components (Alert, Modal, system dialogs).
 
-By default Uniwind uses "system" theme - follows device color scheme. If user wants to override it, just
-call Uniwind.setTheme with desired theme. It can be done above the React component to avoid theme switching at runtime.
+By default Uniwind uses "system" theme - follows device color scheme. If user wants to override it, just call Uniwind.setTheme with desired theme. It can be done above the React component to avoid theme switching at runtime.
 
 ### Theme Switcher Example
 
 ```tsx
-import { View, Pressable, Text, ScrollView } from 'react-native';
-import { Uniwind, useUniwind } from 'uniwind';
+import { View, Pressable, Text, ScrollView } from "react-native";
+import { Uniwind, useUniwind } from "uniwind";
 
 export const ThemeSwitcher = () => {
   const { theme, hasAdaptiveThemes } = useUniwind();
-  const activeTheme = hasAdaptiveThemes ? 'system' : theme;
+  const activeTheme = hasAdaptiveThemes ? "system" : theme;
 
   const themes = [
-    { name: 'light', label: 'Light' },
-    { name: 'dark', label: 'Dark' },
-    { name: 'system', label: 'System' },
+    { name: "light", label: "Light" },
+    { name: "dark", label: "Dark" },
+    { name: "system", label: "System" },
   ];
 
   return (
@@ -905,13 +918,17 @@ export const ThemeSwitcher = () => {
           <Pressable
             key={t.name}
             onPress={() => Uniwind.setTheme(t.name)}
-            className={`px-4 py-3 rounded-lg items-center ${
-              activeTheme === t.name ? 'bg-primary' : 'bg-card border border-border'
+            className={`items-center rounded-lg px-4 py-3 ${
+              activeTheme === t.name
+                ? "bg-primary"
+                : "bg-card border-border border"
             }`}
           >
-            <Text className={`text-sm ${
-              activeTheme === t.name ? 'text-white' : 'text-foreground'
-            }`}>
+            <Text
+              className={`text-sm ${
+                activeTheme === t.name ? "text-white" : "text-foreground"
+              }`}
+            >
               {t.label}
             </Text>
           </Pressable>
@@ -927,19 +944,19 @@ export const ThemeSwitcher = () => {
 Apply a different theme to a subtree without changing the global theme:
 
 ```tsx
-import { ScopedTheme } from 'uniwind';
+import { ScopedTheme } from "uniwind";
 
 <View className="gap-3">
   <PreviewCard />
 
   <ScopedTheme theme="dark">
-    <PreviewCard />  {/* Renders with dark theme */}
+    <PreviewCard /> {/* Renders with dark theme */}
   </ScopedTheme>
 
   <ScopedTheme theme="ocean">
-    <PreviewCard />  {/* Renders with ocean theme */}
+    <PreviewCard /> {/* Renders with ocean theme */}
   </ScopedTheme>
-</View>
+</View>;
 ```
 
 - Nearest `ScopedTheme` wins (nested scopes supported)
@@ -952,29 +969,34 @@ import { ScopedTheme } from 'uniwind';
 Access CSS variable values in JavaScript:
 
 ```tsx
-import { useCSSVariable } from 'uniwind';
+import { useCSSVariable } from "uniwind";
 
-const primaryColor = useCSSVariable('--color-primary');
-const spacing = useCSSVariable('--spacing-4');
+const primaryColor = useCSSVariable("--color-primary");
+const spacing = useCSSVariable("--spacing-4");
 
 // Multiple variables at once
-const [bg, fg] = useCSSVariable(['--color-background', '--color-foreground']) as [string, string]
+const [bg, fg] = useCSSVariable([
+  "--color-background",
+  "--color-foreground",
+]) as [string, string];
 ```
 
 Use for: animations, chart libraries, third-party component configs, calculations with design tokens.
 
-It's required to cast the result of `useCSSVariable` as it can return: string | number | undefined.
-Uniwind doesn't know if given variable exist and what type it is, so it returns union type.
+It's required to cast the result of `useCSSVariable` as it can return: string | number | undefined. Uniwind doesn't know if given variable exist and what type it is, so it returns union type.
 
 ### getCSSVariable
 
 Read CSS variable values outside of React (event handlers, async callbacks, utility modules, worklets). Available in Uniwind 1.6.4+.
 
 ```ts
-import { Uniwind } from 'uniwind';
+import { Uniwind } from "uniwind";
 
-const primary = Uniwind.getCSSVariable('--color-primary');
-const [bg, fg] = Uniwind.getCSSVariable(['--color-background', '--color-foreground']) as [string, string];
+const primary = Uniwind.getCSSVariable("--color-primary");
+const [bg, fg] = Uniwind.getCSSVariable([
+  "--color-background",
+  "--color-foreground",
+]) as [string, string];
 ```
 
 Same value rules as `useCSSVariable` (variable must be used in a `className` or declared in `@theme static`). Same return type: `string | number | undefined`. Cast as needed.
@@ -986,9 +1008,9 @@ Not reactive — value is read once. For reactive values inside components use `
 Update theme variables at runtime (e.g., user-selected brand colors or API-driven themes):
 
 ```tsx
-Uniwind.updateCSSVariables('light', {
-  '--color-primary': '#ff6600',
-  '--color-background': '#fafafa',
+Uniwind.updateCSSVariables("light", {
+  "--color-primary": "#ff6600",
+  "--color-background": "#fafafa",
 });
 ```
 
@@ -1069,9 +1091,15 @@ Platform variants in `@layer theme` for global values (use `@variant`, not `@med
 ```css
 @layer theme {
   :root {
-    @variant ios { --font-sans: 'SF Pro Text'; }
-    @variant android { --font-sans: 'Roboto-Regular'; }
-    @variant web { --font-sans: 'Inter'; }
+    @variant ios {
+      --font-sans: "SF Pro Text";
+    }
+    @variant android {
+      --font-sans: "Roboto-Regular";
+    }
+    @variant web {
+      --font-sans: "Inter";
+    }
   }
 }
 ```
@@ -1114,6 +1142,7 @@ Style based on prop values using `data-[prop=value]:utility`:
 ```
 
 **Rules**:
+
 - Only equality selectors supported (`data-[prop=value]`)
 - No presence-only selectors (`data-[prop]` — not supported)
 - No `has-data-*` parent selectors (not supported in React Native)
@@ -1146,6 +1175,7 @@ Style based on prop values using `data-[prop=value]:utility`:
 ```
 
 Components with state support:
+
 - **Pressable**: `active:`, `disabled:`, `focus:`
 - **TextInput**: `active:`, `disabled:`, `focus:`
 - **Switch**: `disabled:`
@@ -1156,14 +1186,14 @@ Components with state support:
 
 Mobile-first — unprefixed styles apply to all sizes, prefixed styles apply at that breakpoint and above:
 
-| Prefix | Min Width | Typical Device |
-|--------|-----------|----------------|
-| (none) | 0px | All (mobile) |
-| `sm:` | 640px | Large phones |
-| `md:` | 768px | Tablets |
-| `lg:` | 1024px | Landscape tablets |
-| `xl:` | 1280px | Desktops |
-| `2xl:` | 1536px | Large desktops |
+| Prefix | Min Width | Typical Device    |
+| ------ | --------- | ----------------- |
+| (none) | 0px       | All (mobile)      |
+| `sm:`  | 640px     | Large phones      |
+| `md:`  | 768px     | Tablets           |
+| `lg:`  | 1024px    | Landscape tablets |
+| `xl:`  | 1280px    | Desktops          |
+| `2xl:` | 1536px    | Large desktops    |
 
 ```tsx
 // Responsive padding and typography
@@ -1213,24 +1243,24 @@ Usage: `xs:p-2 tablet:p-4 3xl:p-8`
 
 ### Padding
 
-| Class | Description |
-|-------|-------------|
-| `p-safe` | All sides |
-| `pt-safe` / `pb-safe` / `pl-safe` / `pr-safe` | Individual sides |
-| `px-safe` / `py-safe` | Horizontal / vertical |
+| Class                                         | Description           |
+| --------------------------------------------- | --------------------- |
+| `p-safe`                                      | All sides             |
+| `pt-safe` / `pb-safe` / `pl-safe` / `pr-safe` | Individual sides      |
+| `px-safe` / `py-safe`                         | Horizontal / vertical |
 
 ### Margin
 
-| Class | Description |
-|-------|-------------|
-| `m-safe` | All sides |
-| `mt-safe` / `mb-safe` / `ml-safe` / `mr-safe` | Individual sides |
-| `mx-safe` / `my-safe` | Horizontal / vertical |
+| Class                                         | Description           |
+| --------------------------------------------- | --------------------- |
+| `m-safe`                                      | All sides             |
+| `mt-safe` / `mb-safe` / `ml-safe` / `mr-safe` | Individual sides      |
+| `mx-safe` / `my-safe`                         | Horizontal / vertical |
 
 ### Positioning
 
 | Class | Description |
-|-------|-------------|
+| --- | --- |
 | `inset-safe` | All sides |
 | `top-safe` / `bottom-safe` / `left-safe` / `right-safe` | Individual sides |
 | `x-safe` / `y-safe` | Horizontal / vertical inset |
@@ -1238,18 +1268,20 @@ Usage: `xs:p-2 tablet:p-4 3xl:p-8`
 ### Compound Variants
 
 | Pattern | Behavior | Example |
-|---------|----------|---------|
+| --- | --- | --- |
 | `{prop}-safe-or-{value}` | `Math.max(inset, value)` — ensures minimum spacing | `pt-safe-or-4` |
 | `{prop}-safe-offset-{value}` | `inset + value` — adds extra spacing on top of inset | `pb-safe-offset-4` |
 
 ### Setup
 
-**Uniwind Free (default)** — requires `react-native-safe-area-context` to update insets.
-Wrap your App component in `SafeAreaProvider` and `SafeAreaListener` and call `Uniwind.updateInsets(insets)` in the `onChange` callback:
+**Uniwind Free (default)** — requires `react-native-safe-area-context` to update insets. Wrap your App component in `SafeAreaProvider` and `SafeAreaListener` and call `Uniwind.updateInsets(insets)` in the `onChange` callback:
 
 ```tsx
-import { SafeAreaProvider, SafeAreaListener } from 'react-native-safe-area-context';
-import { Uniwind } from 'uniwind';
+import {
+  SafeAreaProvider,
+  SafeAreaListener,
+} from "react-native-safe-area-context";
+import { Uniwind } from "uniwind";
 
 export default function App() {
   return (
@@ -1277,9 +1309,15 @@ Uniwind provides CSS functions for device-aware and theme-aware styling. These c
 Returns the thinnest line width displayable on the device. Use for subtle borders and dividers.
 
 ```css
-@utility h-hairline { height: hairlineWidth(); }
-@utility border-hairline { border-width: hairlineWidth(); }
-@utility w-hairline { width: calc(hairlineWidth() * 10); }
+@utility h-hairline {
+  height: hairlineWidth();
+}
+@utility border-hairline {
+  border-width: hairlineWidth();
+}
+@utility w-hairline {
+  width: calc(hairlineWidth() * 10);
+}
 ```
 
 ```tsx
@@ -1296,9 +1334,15 @@ Multiplies a base value by the device's font scale accessibility setting. Ensure
 - **`fontScale(1.2)`** — larger scale
 
 ```css
-@utility text-sm-scaled { font-size: fontScale(0.9); }
-@utility text-base-scaled { font-size: fontScale(); }
-@utility text-lg-scaled { font-size: fontScale(1.2); }
+@utility text-sm-scaled {
+  font-size: fontScale(0.9);
+}
+@utility text-base-scaled {
+  font-size: fontScale();
+}
+@utility text-lg-scaled {
+  font-size: fontScale(1.2);
+}
 ```
 
 ```tsx
@@ -1314,12 +1358,16 @@ Multiplies a value by the device's pixel ratio. Creates pixel-perfect designs th
 - **`pixelRatio(2)`** — double the pixel ratio
 
 ```css
-@utility w-icon { width: pixelRatio(); }
-@utility w-avatar { width: pixelRatio(2); }
+@utility w-icon {
+  width: pixelRatio();
+}
+@utility w-avatar {
+  width: pixelRatio(2);
+}
 ```
 
 ```tsx
-<Image source={{ uri: 'avatar.png' }} className="w-avatar rounded-full" />
+<Image source={{ uri: "avatar.png" }} className="w-avatar rounded-full" />
 ```
 
 ### light-dark(lightValue, darkValue)
@@ -1330,13 +1378,19 @@ Returns different values based on the current theme mode. Automatically adapts w
 - Second parameter: value for dark theme
 
 ```css
-@utility bg-adaptive { background-color: light-dark(#ffffff, #1f2937); }
-@utility text-adaptive { color: light-dark(#111827, #f9fafb); }
-@utility border-adaptive { border-color: light-dark(#e5e7eb, #374151); }
+@utility bg-adaptive {
+  background-color: light-dark(#ffffff, #1f2937);
+}
+@utility text-adaptive {
+  color: light-dark(#111827, #f9fafb);
+}
+@utility border-adaptive {
+  border-color: light-dark(#e5e7eb, #374151);
+}
 ```
 
 ```tsx
-<View className="bg-adaptive border-adaptive border rounded-lg p-4">
+<View className="bg-adaptive border-adaptive rounded-lg border p-4">
   <Text className="text-adaptive">Adapts to light/dark theme</Text>
 </View>
 ```
@@ -1387,7 +1441,7 @@ Apply via `className` just like any Tailwind class:
 You can combine custom CSS classes with Tailwind utilities in a single `className`:
 
 ```tsx
-<View className="card-shadow p-4 m-2">
+<View className="card-shadow m-2 p-4">
   <Text className="adaptive-surface mb-2">{title}</Text>
   <View className="container flex-row">{children}</View>
 </View>
@@ -1399,11 +1453,11 @@ You can combine custom CSS classes with Tailwind utilities in a single `classNam
 // WRONG — .container sets flex:1, and flex-1 also sets flex:1 (harmless but wasteful)
 // WRONG — .container sets width:100%, and w-full also sets width:100% (redundant)
 // DANGEROUS — .card-shadow sets border-radius:12px, and rounded-2xl sets border-radius:16px — CONFLICT!
-<View className="card-shadow rounded-2xl" />
+<View className="card-shadow rounded-2xl" />;
 
 // CORRECT — cn ensures rounded-2xl wins
-import { cn } from '@/lib/cn';
-<View className={cn('card-shadow', 'rounded-2xl')} />
+import { cn } from "@/lib/cn";
+<View className={cn("card-shadow", "rounded-2xl")} />;
 ```
 
 **Rule of thumb**: If your custom CSS class sets properties that might overlap with Tailwind utilities you'll also use, always wrap with `cn()`. See **cn Utility** section for full setup.
@@ -1438,12 +1492,12 @@ Create a utility whose value comes from a CSS variable injected at runtime via `
 Inject the real value at runtime (e.g., from react-navigation's layout event):
 
 ```tsx
-import { Uniwind } from 'uniwind'
+import { Uniwind } from "uniwind";
 
 // e.g., inside a navigation layout listener
 Uniwind.updateCSSVariables(Uniwind.currentTheme, {
-  '--header-height': headerHeight,
-})
+  "--header-height": headerHeight,
+});
 ```
 
 ```tsx
@@ -1455,10 +1509,16 @@ Uniwind.updateCSSVariables(Uniwind.currentTheme, {
 For styles that have no built-in Tailwind class:
 
 ```css
-@utility h-hairline { height: hairlineWidth(); }
-@utility text-scaled { font-size: fontScale(); }
+@utility h-hairline {
+  height: hairlineWidth();
+}
+@utility text-scaled {
+  font-size: fontScale();
+}
 @utility card-shadow {
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  box-shadow:
+    0 4px 6px -1px rgba(0, 0, 0, 0.1),
+    0 2px 4px -1px rgba(0, 0, 0, 0.06);
 }
 ```
 
@@ -1488,10 +1548,10 @@ Customize Tailwind design tokens in `global.css`:
   --color-brand-900: #1e3a8a;
 
   /* Typography */
-  --font-sans: 'Roboto-Regular';
-  --font-sans-medium: 'Roboto-Medium';
-  --font-sans-bold: 'Roboto-Bold';
-  --font-mono: 'FiraCode-Regular';
+  --font-sans: "Roboto-Regular";
+  --font-sans-medium: "Roboto-Medium";
+  --font-sans-bold: "Roboto-Bold";
+  --font-mono: "FiraCode-Regular";
 
   /* Spacing & sizing */
   --text-base: 15px;
@@ -1511,9 +1571,9 @@ React Native requires a **single font** per family — no fallbacks:
 
 ```css
 @theme {
-  --font-sans: 'Roboto-Regular';
-  --font-sans-bold: 'Roboto-Bold';
-  --font-mono: 'FiraCode-Regular';
+  --font-sans: "Roboto-Regular";
+  --font-sans-bold: "Roboto-Bold";
+  --font-mono: "FiraCode-Regular";
 }
 ```
 
@@ -1528,9 +1588,15 @@ Font name must **exactly match** the font file name (without extension).
 ```css
 @layer theme {
   :root {
-    @variant ios { --font-sans: 'SF Pro Text'; }
-    @variant android { --font-sans: 'Roboto-Regular'; }
-    @variant web { --font-sans: 'system-ui'; }
+    @variant ios {
+      --font-sans: "SF Pro Text";
+    }
+    @variant android {
+      --font-sans: "Roboto-Regular";
+    }
+    @variant web {
+      --font-sans: "system-ui";
+    }
   }
 }
 ```
@@ -1540,24 +1606,24 @@ Font name must **exactly match** the font file name (without extension).
 Built-in support — no extra dependencies:
 
 ```tsx
-<View className="bg-gradient-to-r from-red-500 via-yellow-500 to-green-500 p-4 rounded-lg">
-  <Text className="text-white font-bold">Gradient</Text>
+<View className="rounded-lg bg-gradient-to-r from-red-500 via-yellow-500 to-green-500 p-4">
+  <Text className="font-bold text-white">Gradient</Text>
 </View>
 ```
 
 For `expo-linear-gradient`, you can wrap it with `withUniwind` for className-based layout and styling (padding, border-radius, flex, etc.), but the `colors` prop is an array that cannot be resolved via className — it must be provided explicitly. Use `useCSSVariable` to get theme-aware colors:
 
 ```tsx
-import { useCSSVariable } from 'uniwind';
-import { withUniwind } from 'uniwind';
-import { LinearGradient as RNLinearGradient } from 'expo-linear-gradient';
+import { LinearGradient as RNLinearGradient } from "expo-linear-gradient";
+import { useCSSVariable } from "uniwind";
+import { withUniwind } from "uniwind";
 
 const LinearGradient = withUniwind(RNLinearGradient);
 
 function GradientCard() {
   // useCSSVariable returns string | number | undefined
-  const primary = useCSSVariable('--color-primary');
-  const secondary = useCSSVariable('--color-secondary');
+  const primary = useCSSVariable("--color-primary");
+  const secondary = useCSSVariable("--color-secondary");
 
   // Guard against undefined — LinearGradient.colors requires valid ColorValues
   if (!primary || !secondary) {
@@ -1569,7 +1635,7 @@ function GradientCard() {
       className="flex-1 rounded-2xl p-6"
       colors={[primary as string, secondary as string]}
     >
-      <Text className="text-white font-bold">Themed gradient</Text>
+      <Text className="font-bold text-white">Themed gradient</Text>
     </LinearGradient>
   );
 }
@@ -1578,20 +1644,20 @@ function GradientCard() {
 Alternatively, export a wrapped component from a shared module for reuse:
 
 ```tsx
+import { LinearGradient as RNLinearGradient } from "expo-linear-gradient";
 // components/styled.ts
-import { withUniwind } from 'uniwind';
-import { LinearGradient as RNLinearGradient } from 'expo-linear-gradient';
+import { withUniwind } from "uniwind";
 
 export const LinearGradient = withUniwind(RNLinearGradient);
 ```
 
 ```tsx
 // usage — className handles layout, colors still passed manually
-import { LinearGradient } from '@/components/styled';
+import { LinearGradient } from "@/components/styled";
 
-<LinearGradient className="rounded-xl p-4" colors={['#ff6b6b', '#4ecdc4']}>
+<LinearGradient className="rounded-xl p-4" colors={["#ff6b6b", "#4ecdc4"]}>
   <Text className="text-white">Static gradient</Text>
-</LinearGradient>
+</LinearGradient>;
 ```
 
 ## React Navigation Integration
@@ -1599,11 +1665,11 @@ import { LinearGradient } from '@/components/styled';
 Use `useResolveClassNames` for screen options that only accept `style` objects:
 
 ```tsx
-import { useResolveClassNames } from 'uniwind';
+import { useResolveClassNames } from "uniwind";
 
 function Layout() {
-  const headerStyle = useResolveClassNames('bg-background');
-  const headerTitleStyle = useResolveClassNames('text-foreground font-bold');
+  const headerStyle = useResolveClassNames("bg-background");
+  const headerTitleStyle = useResolveClassNames("text-foreground font-bold");
 
   return (
     <Stack.Navigator
@@ -1638,6 +1704,7 @@ Use semantic color tokens (`bg-primary`, `text-foreground`) for theme consistenc
 ## Supported vs Unsupported Classes
 
 React Native uses the Yoga layout engine. Key differences from web CSS:
+
 - **No CSS cascade/inheritance** — styles don't inherit from parents
 - **Flexbox by default** — all views use flexbox with `flexDirection: 'column'`
 - **Limited CSS properties** — no floats, grid, pseudo-elements
@@ -1647,13 +1714,13 @@ React Native uses the Yoga layout engine. Key differences from web CSS:
 Uniwind provides additional utility classes for React Native features not covered by standard Tailwind:
 
 | Class | Effect |
-|-------|--------|
+| --- | --- |
 | `border-continuous` | Sets `borderCurve: 'continuous'` — smooth, superellipse corners (iOS) |
 | `border-circular` | Sets `borderCurve: 'circular'` — standard circular corners (iOS default) |
 
 ```tsx
 // Smooth iOS-style rounded corners (like SwiftUI's .continuous)
-<View className="rounded-2xl border-continuous bg-card p-4">
+<View className="border-continuous bg-card rounded-2xl p-4">
   <Text className="text-foreground">Smooth corners</Text>
 </View>
 ```
@@ -1699,11 +1766,13 @@ Package: `"uniwind": "npm:uniwind-pro@latest"` in `package.json`.
 ### Installation
 
 1. Set dependency alias in `package.json`:
+
    ```json
    { "dependencies": { "uniwind": "npm:uniwind-pro@latest" } }
    ```
 
 2. Install peer dependencies:
+
    ```bash
    npm install react-native-nitro-modules react-native-reanimated react-native-worklets
    ```
@@ -1711,11 +1780,12 @@ Package: `"uniwind": "npm:uniwind-pro@latest"` in `package.json`.
 3. Authenticate: `npx uniwind-pro` (interactive — select "Login with GitHub")
 
 4. Add Babel plugin:
+
    ```js
    // babel.config.js
    module.exports = {
-     presets: ['module:metro-react-native-babel-preset'],
-     plugins: ['react-native-worklets/plugin'],
+     presets: ["module:metro-react-native-babel-preset"],
+     plugins: ["react-native-worklets/plugin"],
    };
    ```
 
@@ -1747,33 +1817,33 @@ Pro does **NOT** work with Expo Go. Requires native rebuild.
 
 Custom keyframe animations beyond Tailwind defaults:
 
-| Class | Description |
-|-------|-------------|
-| `animate-wiggle` | Rotational wiggle |
-| `animate-shake` | Horizontal shake |
-| `animate-flash` | Opacity flash on/off |
-| `animate-rubber-band` | Elastic scale stretch |
-| `animate-swing` | Pendulum swing |
-| `animate-tada` | Scale + rotate attention seeker |
-| `animate-heartbeat` | Double-pulse heartbeat |
-| `animate-jello` | Rotational jello wobble |
-| `animate-float` | Gentle vertical float |
-| `animate-breathe` | Subtle breathing scale |
-| `animate-tilt` | Alternating tilt rotation |
-| `animate-glitch` | Rapid horizontal jitter |
+| Class                 | Description                     |
+| --------------------- | ------------------------------- |
+| `animate-wiggle`      | Rotational wiggle               |
+| `animate-shake`       | Horizontal shake                |
+| `animate-flash`       | Opacity flash on/off            |
+| `animate-rubber-band` | Elastic scale stretch           |
+| `animate-swing`       | Pendulum swing                  |
+| `animate-tada`        | Scale + rotate attention seeker |
+| `animate-heartbeat`   | Double-pulse heartbeat          |
+| `animate-jello`       | Rotational jello wobble         |
+| `animate-float`       | Gentle vertical float           |
+| `animate-breathe`     | Subtle breathing scale          |
+| `animate-tilt`        | Alternating tilt rotation       |
+| `animate-glitch`      | Rapid horizontal jitter         |
 
 Components auto-swap to Animated versions when animation classes detected:
 
-| Component | Animated Version |
-|-----------|------------------|
-| `View` | `Animated.View` |
-| `Text` | `Animated.Text` |
-| `Image` | `Animated.Image` |
+| Component         | Animated Version           |
+| ----------------- | -------------------------- |
+| `View`            | `Animated.View`            |
+| `Text`            | `Animated.Text`            |
+| `Image`           | `Animated.Image`           |
 | `ImageBackground` | `Animated.ImageBackground` |
-| `ScrollView` | `Animated.ScrollView` |
-| `FlatList` | `Animated.FlatList` |
-| `TextInput` | `Animated.TextInput` |
-| `Pressable` | `Animated.Pressable` |
+| `ScrollView`      | `Animated.ScrollView`      |
+| `FlatList`        | `Animated.FlatList`        |
+| `TextInput`       | `Animated.TextInput`       |
+| `Pressable`       | `Animated.Pressable`       |
 
 ### Entering & Exiting Animations
 
@@ -1781,10 +1851,18 @@ Drive Reanimated's entering/exiting animations via className — no Reanimated i
 
 ```tsx
 // Bounce in, bounce out
-{visible && <View className="size-20 bg-primary rounded-xl uw-entering-bounce-in uw-exiting-bounce-out" />}
+{
+  visible && (
+    <View className="bg-primary uw-entering-bounce-in uw-exiting-bounce-out size-20 rounded-xl" />
+  );
+}
 
 // Fade in slowly (1000ms)
-{visible && <View className="size-20 bg-primary rounded-xl uw-entering-fade-in uw-entering-duration-1000 uw-exiting-fade-out" />}
+{
+  visible && (
+    <View className="bg-primary uw-entering-fade-in uw-entering-duration-1000 uw-exiting-fade-out size-20 rounded-xl" />
+  );
+}
 ```
 
 **Entering presets**: `uw-entering-fade-in` `uw-entering-fade-in-right` `uw-entering-fade-in-left` `uw-entering-fade-in-up` `uw-entering-fade-in-down` `uw-entering-slide-in-right` `uw-entering-slide-in-left` `uw-entering-slide-in-up` `uw-entering-slide-in-down` `uw-entering-zoom-in` `uw-entering-zoom-in-rotate` `uw-entering-zoom-in-left` `uw-entering-zoom-in-right` `uw-entering-zoom-in-up` `uw-entering-zoom-in-down` `uw-entering-zoom-in-easy-up` `uw-entering-zoom-in-easy-down` `uw-entering-bounce-in` `uw-entering-bounce-in-down` `uw-entering-bounce-in-up` `uw-entering-bounce-in-left` `uw-entering-bounce-in-right` `uw-entering-flip-in-x-up` `uw-entering-flip-in-x-down` `uw-entering-flip-in-y-left` `uw-entering-flip-in-y-right` `uw-entering-flip-in-easy-x` `uw-entering-flip-in-easy-y` `uw-entering-stretch-in-x` `uw-entering-stretch-in-y` `uw-entering-rotate-in-down-left` `uw-entering-rotate-in-down-right` `uw-entering-rotate-in-up-left` `uw-entering-rotate-in-up-right` `uw-entering-roll-in-left` `uw-entering-roll-in-right` `uw-entering-pinwheel-in` `uw-entering-light-speed-in-right` `uw-entering-light-speed-in-left`
@@ -1792,6 +1870,7 @@ Drive Reanimated's entering/exiting animations via className — no Reanimated i
 **Exiting presets**: `uw-exiting-fade-out` `uw-exiting-fade-out-right` `uw-exiting-fade-out-left` `uw-exiting-fade-out-up` `uw-exiting-fade-out-down` `uw-exiting-slide-out-right` `uw-exiting-slide-out-left` `uw-exiting-slide-out-up` `uw-exiting-slide-out-down` `uw-exiting-zoom-out` `uw-exiting-zoom-out-rotate` `uw-exiting-zoom-out-left` `uw-exiting-zoom-out-right` `uw-exiting-zoom-out-up` `uw-exiting-zoom-out-down` `uw-exiting-zoom-out-easy-up` `uw-exiting-zoom-out-easy-down` `uw-exiting-bounce-out` `uw-exiting-bounce-out-down` `uw-exiting-bounce-out-up` `uw-exiting-bounce-out-left` `uw-exiting-bounce-out-right` `uw-exiting-flip-out-x-up` `uw-exiting-flip-out-x-down` `uw-exiting-flip-out-y-left` `uw-exiting-flip-out-y-right` `uw-exiting-flip-out-easy-x` `uw-exiting-flip-out-easy-y` `uw-exiting-stretch-out-x` `uw-exiting-stretch-out-y` `uw-exiting-rotate-out-down-left` `uw-exiting-rotate-out-down-right` `uw-exiting-rotate-out-up-left` `uw-exiting-rotate-out-up-right` `uw-exiting-roll-out-left` `uw-exiting-roll-out-right` `uw-exiting-pinwheel-out` `uw-exiting-light-speed-out-right` `uw-exiting-light-speed-out-left`
 
 **Animation modifiers** (pattern: `uw-{entering|exiting|layout}-{modifier}`):
+
 - Duration: `uw-{type}-duration-75` `uw-{type}-duration-100` ... `uw-{type}-duration-1000` or arbitrary `uw-{type}-duration-{ms}`
 - Delay: `uw-{type}-delay-75` ... `uw-{type}-delay-1000` or arbitrary `uw-{type}-delay-{ms}`
 - Easing: `uw-{type}-ease-linear` `uw-{type}-ease-in` `uw-{type}-ease-out` `uw-{type}-ease-in-out` `uw-{type}-ease-bounce`
@@ -1803,19 +1882,22 @@ Animate position/size changes when siblings are added or removed:
 
 ```tsx
 <View className="w-full gap-2">
-  {items.map(item => (
-    <View key={item.id} className={`h-14 ${item.color} rounded-xl uw-entering-fade-in uw-exiting-fade-out uw-layout-linear-transition`} />
+  {items.map((item) => (
+    <View
+      key={item.id}
+      className={`h-14 ${item.color} uw-entering-fade-in uw-exiting-fade-out uw-layout-linear-transition rounded-xl`}
+    />
   ))}
 </View>
 ```
 
-| Class | Description |
-|-------|-------------|
-| `uw-layout-linear-transition` | Smooth linear repositioning |
-| `uw-layout-fading-transition` | Fade during repositioning |
-| `uw-layout-jumping-transition` | Bouncy jump to new position |
-| `uw-layout-curved-transition` | Curved path repositioning |
-| `uw-layout-sequenced-transition` | Sequenced repositioning |
+| Class                             | Description                       |
+| --------------------------------- | --------------------------------- |
+| `uw-layout-linear-transition`     | Smooth linear repositioning       |
+| `uw-layout-fading-transition`     | Fade during repositioning         |
+| `uw-layout-jumping-transition`    | Bouncy jump to new position       |
+| `uw-layout-curved-transition`     | Curved path repositioning         |
+| `uw-layout-sequenced-transition`  | Sequenced repositioning           |
 | `uw-layout-entry-exit-transition` | Combined entry/exit during layout |
 
 ### Transitions
@@ -1838,14 +1920,14 @@ Smooth property changes when className or state changes:
 </Pressable>
 ```
 
-| Class | Properties |
-|-------|------------|
-| `transition-none` | No transition |
-| `transition-all` | All properties |
-| `transition-colors` | Background, border, text colors |
-| `transition-opacity` | Opacity |
-| `transition-shadow` | Box shadow |
-| `transition-transform` | Scale, rotate, translate |
+| Class                  | Properties                      |
+| ---------------------- | ------------------------------- |
+| `transition-none`      | No transition                   |
+| `transition-all`       | All properties                  |
+| `transition-colors`    | Background, border, text colors |
+| `transition-opacity`   | Opacity                         |
+| `transition-shadow`    | Box shadow                      |
+| `transition-transform` | Scale, rotate, translate        |
 
 Duration: `duration-75` `duration-100` `duration-150` `duration-200` `duration-300` `duration-500` `duration-700` `duration-1000`
 
@@ -1926,30 +2008,30 @@ Remove `SafeAreaListener` setup — insets injected from native layer:
 Native animated transitions when switching themes. Supported on iOS, Android, and Web.
 
 ```tsx
-import { Uniwind, ThemeTransitionPreset } from 'uniwind';
+import { Uniwind, ThemeTransitionPreset } from "uniwind";
 
 // Fade transition
-Uniwind.setTheme('dark', { preset: ThemeTransitionPreset.Fade });
+Uniwind.setTheme("dark", { preset: ThemeTransitionPreset.Fade });
 
 // Slide transitions
-Uniwind.setTheme('dark', { preset: ThemeTransitionPreset.SlideRightToLeft });
-Uniwind.setTheme('light', { preset: ThemeTransitionPreset.SlideLeftToRight });
+Uniwind.setTheme("dark", { preset: ThemeTransitionPreset.SlideRightToLeft });
+Uniwind.setTheme("light", { preset: ThemeTransitionPreset.SlideLeftToRight });
 
 // Circle mask transitions (expand from a corner or center)
-Uniwind.setTheme('ocean', { preset: ThemeTransitionPreset.CircleCenter });
+Uniwind.setTheme("ocean", { preset: ThemeTransitionPreset.CircleCenter });
 
 // Blur transitions
-Uniwind.setTheme('dark', { preset: ThemeTransitionPreset.Blur });
-Uniwind.setTheme('dark', { preset: ThemeTransitionPreset.BlurRightToLeft });
+Uniwind.setTheme("dark", { preset: ThemeTransitionPreset.Blur });
+Uniwind.setTheme("dark", { preset: ThemeTransitionPreset.BlurRightToLeft });
 
 // No animation
-Uniwind.setTheme('light');
+Uniwind.setTheme("light");
 ```
 
 Available presets:
 
 | Preset | Effect |
-|--------|--------|
+| --- | --- |
 | `ThemeTransitionPreset.None` | Instant switch, no animation |
 | `ThemeTransitionPreset.Fade` | Crossfade between themes |
 | `ThemeTransitionPreset.SlideRightToLeft` | Slide new theme in from right |
@@ -1968,29 +2050,35 @@ Available presets:
 When styles aren't working, check in this order:
 
 ### 1. package.json
+
 - `"uniwind"` (or `"uniwind-pro"`) in dependencies
 - `"tailwindcss"` at v4+ (`^4.0.0`)
 - For Pro: `react-native-nitro-modules`, `react-native-reanimated`, `react-native-worklets`
 
 ### 2. metro.config.js
+
 - `withUniwindConfig` imported from `'uniwind/metro'`
 - `withUniwindConfig` is the **outermost** wrapper
 - `cssEntryFile` is a **relative path string** (e.g., `'./global.css'`)
 - No `path.resolve()` or absolute paths
 
 ### 3. global.css
+
 - Contains `@import 'tailwindcss';` AND `@import 'uniwind';`
 - Imported in `App.tsx` or root layout, **NOT** in `index.ts`/`index.js`
 - Location determines app root for Tailwind scanning
 
 ### 4. babel.config.js (Pro only)
+
 - `'react-native-worklets/plugin'` in plugins array
 
 ### 5. TypeScript
+
 - `uniwind-types.d.ts` exists (generated after running Metro)
 - Included in `tsconfig.json` or placed in `src/`/`app/` dir
 
 ### 6. Build
+
 - Metro server restarted after config changes
 - Metro cache cleared (`npx expo start --clear` or `npx react-native start --reset-cache`)
 - Native rebuild done (if Pro or after dependency changes)
@@ -1998,7 +2086,7 @@ When styles aren't working, check in this order:
 ## Troubleshooting
 
 | Symptom | Cause | Fix |
-|---------|-------|-----|
+| --- | --- | --- |
 | Styles not applying | Missing imports in global.css | Add `@import 'tailwindcss'; @import 'uniwind';` |
 | Styles not applying | global.css imported in index.js | Move import to App.tsx or `_layout.tsx` |
 | Classes not detected | global.css in nested dir, components elsewhere | Add `@source '../components'` in global.css |
@@ -2041,7 +2129,7 @@ If your app disables `unstable_enablePackageExports` (common in crypto apps), us
 ```js
 config.resolver.unstable_enablePackageExports = false;
 config.resolver.resolveRequest = (context, moduleName, platform) => {
-  if (['uniwind', 'culori'].some((prefix) => moduleName.startsWith(prefix))) {
+  if (["uniwind", "culori"].some((prefix) => moduleName.startsWith(prefix))) {
     return context.resolveRequest(
       { ...context, unstable_enablePackageExports: true },
       moduleName,
@@ -2054,62 +2142,44 @@ config.resolver.resolveRequest = (context, moduleName, platform) => {
 
 ## FAQ
 
-**Where to put global.css in Expo Router?**
-Project root. Import in `app/_layout.tsx`. If placed in `app/`, add `@source` for sibling dirs.
+**Where to put global.css in Expo Router?** Project root. Import in `app/_layout.tsx`. If placed in `app/`, add `@source` for sibling dirs.
 
-**Does Uniwind work with Expo Go?**
-Free: Yes. Pro: No — requires native rebuild (development builds).
+**Does Uniwind work with Expo Go?** Free: Yes. Pro: No — requires native rebuild (development builds).
 
-**Can I use tailwind.config.js?**
-No. Uniwind uses Tailwind v4 — all config via `@theme` in `global.css`.
+**Can I use tailwind.config.js?** No. Uniwind uses Tailwind v4 — all config via `@theme` in `global.css`.
 
-**How to access CSS variables in JS?**
-Inside components: `useCSSVariable('--color-primary')` (reactive). Outside React: `Uniwind.getCSSVariable('--color-primary')` (one-shot, 1.6.4+). For variables not used in classNames, define with `@theme static`.
+**How to access CSS variables in JS?** Inside components: `useCSSVariable('--color-primary')` (reactive). Outside React: `Uniwind.getCSSVariable('--color-primary')` (one-shot, 1.6.4+). For variables not used in classNames, define with `@theme static`.
 
-**Can I use Platform.select()?**
-Yes, but prefer platform selectors (`ios:pt-12 android:pt-6`) — cleaner, no imports.
+**Can I use Platform.select()?** Yes, but prefer platform selectors (`ios:pt-12 android:pt-6`) — cleaner, no imports.
 
-**Next.js support?**
-Not officially supported. Community plugin: `uniwind-plugin-next`. For Next.js, use standard Tailwind CSS.
+**Next.js support?** Not officially supported. Community plugin: `uniwind-plugin-next`. For Next.js, use standard Tailwind CSS.
 
-**Vite support?**
-Yes, since v1.2.0. Use `uniwind/vite` plugin alongside `@tailwindcss/vite`.
+**Vite support?** Yes, since v1.2.0. Use `uniwind/vite` plugin alongside `@tailwindcss/vite`.
 
-**Full app reloads on CSS changes?**
-Metro can't hot-reload files with many providers. Move `global.css` import deeper in the component tree.
+**Full app reloads on CSS changes?** Metro can't hot-reload files with many providers. Move `global.css` import deeper in the component tree.
 
-**Style specificity?**
-Important utilities like `!bg-red-500` override non-important utilities for the same property and work with variants (`active:!bg-red-500`, `ios:!pt-12`). Inline `style` always overrides `className`, even important utilities. Use `className` for static styles, inline only for truly dynamic values. Use `cn()` from tailwind-merge for component libraries where classNames may conflict.
+**Style specificity?** Important utilities like `!bg-red-500` override non-important utilities for the same property and work with variants (`active:!bg-red-500`, `ios:!pt-12`). Inline `style` always overrides `className`, even important utilities. Use `className` for static styles, inline only for truly dynamic values. Use `cn()` from tailwind-merge for component libraries where classNames may conflict.
 
-**How do I include custom fonts?**
-Load font files (Expo: `expo-font` plugin in `app.json`; Bare RN: `react-native-asset`), then map in CSS: `@theme { --font-sans: 'Roboto-Regular'; }`. Font name must exactly match the file name. See the **Fonts** section above.
+**How do I include custom fonts?** Load font files (Expo: `expo-font` plugin in `app.json`; Bare RN: `react-native-asset`), then map in CSS: `@theme { --font-sans: 'Roboto-Regular'; }`. Font name must exactly match the file name. See the **Fonts** section above.
 
-**How can I style based on prop values?**
-Use data selectors: `data-[selected=true]:ring-2`. Only equality checks supported. See the **Data Selectors** section above.
+**How can I style based on prop values?** Use data selectors: `data-[selected=true]:ring-2`. Only equality checks supported. See the **Data Selectors** section above.
 
-**How can I use gradients?**
-Built-in: `bg-gradient-to-r from-red-500 to-green-500`. Also supports angle-based (`bg-linear-90`) and arbitrary values (`bg-linear-[45deg,#f00_0%,#00f_100%]`). See the **Gradients** section above.
+**How can I use gradients?** Built-in: `bg-gradient-to-r from-red-500 to-green-500`. Also supports angle-based (`bg-linear-90`) and arbitrary values (`bg-linear-[45deg,#f00_0%,#00f_100%]`). See the **Gradients** section above.
 
-**How does className deduplication work?**
-Uniwind does NOT auto-deduplicate conflicting classNames. Use `tailwind-merge` with a `cn()` utility. See the **cn Utility** section above.
+**How does className deduplication work?** Uniwind does NOT auto-deduplicate conflicting classNames. Use `tailwind-merge` with a `cn()` utility. See the **cn Utility** section above.
 
-**How to debug 'Failed to serialize javascript object'?**
-Clear caches: `watchman watch-del-all; rm -rf node_modules/.cache; npx expo start --clear`. Enable `debug: true` in metro config to identify the problematic CSS pattern. See the **Troubleshooting** table above.
+**How to debug 'Failed to serialize javascript object'?** Clear caches: `watchman watch-del-all; rm -rf node_modules/.cache; npx expo start --clear`. Enable `debug: true` in metro config to identify the problematic CSS pattern. See the **Troubleshooting** table above.
 
-**How do I enable safe area classNames?**
-Free: Install `react-native-safe-area-context`, wrap root with `SafeAreaListener`, call `Uniwind.updateInsets(insets)`. Pro: Automatic — no setup. Then use `pt-safe`, `pb-safe`, etc. See the **Safe Area Utilities** section above.
+**How do I enable safe area classNames?** Free: Install `react-native-safe-area-context`, wrap root with `SafeAreaListener`, call `Uniwind.updateInsets(insets)`. Pro: Automatic — no setup. Then use `pt-safe`, `pb-safe`, etc. See the **Safe Area Utilities** section above.
 
-**What UI kits work well with Uniwind?**
-**React Native Reusables** (shadcn philosophy, copy-paste components) and **HeroUI Native** (complete library, optimized for Uniwind). Any library works via `withUniwind` wrapper. See the **UI Kit Compatibility** section above.
+**What UI kits work well with Uniwind?** **React Native Reusables** (shadcn philosophy, copy-paste components) and **HeroUI Native** (complete library, optimized for Uniwind). Any library works via `withUniwind` wrapper. See the **UI Kit Compatibility** section above.
 
-**Can I scope a theme to a single component?**
-Yes, use `ScopedTheme`: `<ScopedTheme theme="dark"><Card /></ScopedTheme>`. It forces a theme for the subtree without changing the global theme. See the **Theming** section.
+**Can I scope a theme to a single component?** Yes, use `ScopedTheme`: `<ScopedTheme theme="dark"><Card /></ScopedTheme>`. It forces a theme for the subtree without changing the global theme. See the **Theming** section.
 
-**Does `active:` work with `react-native-gesture-handler` Pressable?**
-No. `withUniwind` does NOT support interactive state selectors (`active:`, `focus:`, `disabled:`). Only core RN `Pressable`, `TextInput`, and `Switch` support them. For RNGH components, use `onPressIn`/`onPressOut` with state.
+**Does `active:` work with `react-native-gesture-handler` Pressable?** No. `withUniwind` does NOT support interactive state selectors (`active:`, `focus:`, `disabled:`). Only core RN `Pressable`, `TextInput`, and `Switch` support them. For RNGH components, use `onPressIn`/`onPressOut` with state.
 
-**Can I customize the default `border` color?**
-Yes — use `@utility border` to override the class entirely:
+**Can I customize the default `border` color?** Yes — use `@utility border` to override the class entirely:
+
 ```css
 @utility border {
   border-width: 1px;
@@ -2117,19 +2187,16 @@ Yes — use `@utility border` to override the class entirely:
   border-color: var(--color-primary);
 }
 ```
+
 This completely replaces the built-in `border` behavior, so re-declare any properties you still need. Alternatively, use `border border-gray-300` explicitly or define `--color-border` in `@theme` and use `border-border`.
 
-**Can I use platform-specific fonts in `@theme {}`?**
-No. `@theme {}` only accepts custom properties. Use `@layer theme { :root { @variant ios { --font-sans: '...'; } } }` instead. Note: use `@variant` (not `@media`) for platform selection in CSS.
+**Can I use platform-specific fonts in `@theme {}`?** No. `@theme {}` only accepts custom properties. Use `@layer theme { :root { @variant ios { --font-sans: '...'; } } }` instead. Note: use `@variant` (not `@media`) for platform selection in CSS.
 
-**Does Uniwind work with ESM metro config (`metro.config.mjs` or `metro.config.ts`)?**
-Yes since v1.3.0+. If you hit `Class extends value is not a constructor`, update Uniwind or use CommonJS `metro.config.js`.
+**Does Uniwind work with ESM metro config (`metro.config.mjs` or `metro.config.ts`)?** Yes since v1.3.0+. If you hit `Class extends value is not a constructor`, update Uniwind or use CommonJS `metro.config.js`.
 
-**Classes from `node_modules` work in dev but not production (bun)?**
-Bun symlinks packages. Tailwind's Oxide scanner can't follow them. Use resolved `@source` paths and hoist the package. See **UI Kit Compatibility** for details.
+**Classes from `node_modules` work in dev but not production (bun)?** Bun symlinks packages. Tailwind's Oxide scanner can't follow them. Use resolved `@source` paths and hoist the package. See **UI Kit Compatibility** for details.
 
-**How to clear all caches when debugging?**
-`watchman watch-del-all 2>/dev/null; rm -rf node_modules/.cache && npx expo start --clear`. This clears Watchman, Babel/bundler caches, and Expo internal cache.
+**How to clear all caches when debugging?** `watchman watch-del-all 2>/dev/null; rm -rf node_modules/.cache && npx expo start --clear`. This clears Watchman, Babel/bundler caches, and Expo internal cache.
 
 ## MCP Server
 

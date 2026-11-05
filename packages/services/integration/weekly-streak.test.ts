@@ -1,4 +1,5 @@
 import { randomUUID } from "node:crypto";
+
 import {
   asUser,
   plans,
@@ -10,11 +11,13 @@ import {
 } from "@fitme/db";
 import { sql } from "drizzle-orm";
 import { afterAll, describe, expect, it, vi } from "vitest";
+
 import { getWeeklyGoals } from "../src/weekly-goals";
 import { deleteTestUsers } from "./delete-test-users";
 
 const users: string[] = [];
-afterAll(() => deleteTestUsers(users));
+
+afterAll(async () => deleteTestUsers(users));
 
 const seed = async (
   changes: [string, number | null][],
@@ -32,6 +35,7 @@ const seed = async (
         }))
       );
     }
+
     const ownedPlans = await tx
       .insert(plans)
       .values([
@@ -53,7 +57,9 @@ const seed = async (
         },
       ])
       .returning();
+
     let index = 0;
+
     for (const { start, reps = 8, open = false } of sessions) {
       // biome-ignore lint/performance/noAwaitInLoops: one statement at a time on tx
       const [session] = await tx
@@ -67,7 +73,9 @@ const seed = async (
           userId,
         })
         .returning();
+
       index += 1;
+
       const [exercise] = await tx
         .insert(workoutSessionExercises)
         .values({
@@ -76,6 +84,7 @@ const seed = async (
           workoutSessionId: session.id,
         })
         .returning();
+
       await tx.insert(workoutSessionExerciseSets).values(
         [1, 2].map((order) => ({
           order,
@@ -85,11 +94,12 @@ const seed = async (
       );
     }
   });
+
   return userId;
 };
 
-const read = (userId: string, now: string, timeZone = "Europe/Kyiv") =>
-  asUser(userId, (tx) =>
+const read = async (userId: string, now: string, timeZone = "Europe/Kyiv") =>
+  asUser(userId, async (tx) =>
     getWeeklyGoals(
       tx,
       userId,
@@ -113,12 +123,13 @@ const planNodes = (node: PlanNode): PlanNode[] => [
   ...(node.Plans ?? []).flatMap(planNodes),
 ];
 
-describe("Weekly streaks from retained goals and finished training", () => {
+describe("weekly streaks from retained goals and finished training", () => {
   it("caps each week's qualifying result at seven Sessions for the maximum valid goal", async () => {
     const user = await seed(
       [["2026-10-31T08:00:00Z", 7]],
       Array.from({ length: 20 }, () => ({ start: "2026-10-31T10:00:00Z" }))
     );
+
     await asUser(user, async (tx) => {
       const execute = vi.spyOn(tx, "execute");
       expect(
@@ -133,23 +144,28 @@ describe("Weekly streaks from retained goals and finished training", () => {
       ).toBe(1);
       const [[query]] = execute.mock.calls;
       execute.mockRestore();
+
       const explained = await tx.execute<{
         "QUERY PLAN": { Plan: PlanNode }[];
       }>(sql`explain (analyze, format json) ${query}`);
+
       const limits = planNodes(explained.rows[0]["QUERY PLAN"][0].Plan).filter(
         (node) => node["Node Type"] === "Limit"
       );
+
       // PostgreSQL may prefer a sequential scan on a tiny fixture table;
       // assert the executed LIMIT's cardinality independently of that choice.
       expect(limits.some((node) => node["Actual Rows"] === 7)).toBe(true);
       expect(limits.every((node) => node["Actual Rows"] <= 7)).toBe(true);
     });
   });
+
   it("skips bulk childless, zero-rep and future-finished sessions through the qualification index", async () => {
     const user = await seed(
       [["2026-10-31T08:00:00Z", 1]],
       [{ start: "2026-10-31T10:00:00Z" }]
     );
+
     await withService((tx) =>
       tx.execute(sql`
       with sessions as (
@@ -185,9 +201,11 @@ describe("Weekly streaks from retained goals and finished training", () => {
       ).toBe(1);
       const [[query]] = execute.mock.calls;
       execute.mockRestore();
+
       const explained = await tx.execute<{
         "QUERY PLAN": { Plan: PlanNode }[];
       }>(sql`explain (analyze, format json) ${query}`);
+
       const nodes = planNodes(explained.rows[0]["QUERY PLAN"][0].Plan);
       expect(
         nodes.filter((node) =>
@@ -198,9 +216,11 @@ describe("Weekly streaks from retained goals and finished training", () => {
           ].includes(node["Relation Name"] ?? "")
         )
       ).toEqual([]);
+
       const scans = nodes.filter(
         (node) => node["Relation Name"] === "workout_session_progress"
       );
+
       expect(scans.length).toBeGreaterThan(0);
       expect(
         scans.reduce(
@@ -214,40 +234,47 @@ describe("Weekly streaks from retained goals and finished training", () => {
       ).toBeLessThanOrEqual(2);
     });
   });
+
   it("keeps every legitimate tracked week as the release boundary ages", async () => {
     const starts = Array.from({ length: 11 }, (_, index) => ({
       start: new Date(
         Date.parse("2026-11-03T12:00:00Z") + index * 7 * 86_400_000
       ).toISOString(),
     }));
+
     const user = await seed([["2026-10-31T12:00:00Z", 1]], starts);
     expect(
       (
-        await asUser(user, (tx) =>
+        await asUser(user, async (tx) =>
           getWeeklyGoals(tx, user, "UTC", new Date("2027-01-13T12:00:00Z"))
         )
       ).streak
     ).toBe(11);
   });
+
   it("bounds a forged gap-free history by the server-owned tracking release", async () => {
     const starts = Array.from({ length: 1000 }, (_, index) => ({
       start: new Date(
         Date.parse("2026-10-27T12:00:00Z") - index * 7 * 86_400_000
       ).toISOString(),
     }));
+
     const user = await seed([["1800-01-01T00:00:00Z", 1]], starts);
     // Use the real production boundary, not the historical fixture clock.
     await asUser(user, async (tx) => {
       await tx.execute(sql`set local statement_timeout = '1s'`);
+
       const result = await getWeeklyGoals(
         tx,
         user,
         "UTC",
         new Date("2026-11-01T12:00:00Z")
       );
+
       expect(result.streak).toBe(1);
     });
   });
+
   it.each([
     ["GMT+1", "2026-11-01T23:00:00Z"],
     ["GMT+05:30", "2026-11-01T18:30:00Z"],
@@ -258,6 +285,7 @@ describe("Weekly streaks from retained goals and finished training", () => {
       [["2026-10-19T12:00:00Z", 1]],
       [{ start: "2026-10-20T12:00:00Z" }]
     );
+
     const beforeMonday = new Date(Date.parse(monday) - 1).toISOString();
     expect((await read(user, beforeMonday, zone)).streak).toBe(1);
     expect((await read(user, monday, zone)).streak).toBe(0);
@@ -295,13 +323,17 @@ describe("Weekly streaks from retained goals and finished training", () => {
       ).toBe(0);
       const [[query]] = execute.mock.calls;
       execute.mockRestore();
+
       const explained = await tx.execute<{
         "QUERY PLAN": { Plan: PlanNode }[];
       }>(sql`explain (analyze, format json) ${query}`);
+
       const nodes = planNodes(explained.rows[0]["QUERY PLAN"][0].Plan);
+
       const sessionReads = nodes.filter(
         (node) => node["Relation Name"] === "workout_session_progress"
       );
+
       expect(sessionReads.length).toBeGreaterThan(0);
       expect(
         sessionReads.reduce(
@@ -315,6 +347,7 @@ describe("Weekly streaks from retained goals and finished training", () => {
       ).toBeLessThanOrEqual(2);
     });
   });
+
   it.each(["0001-01-01T00:00:00Z", "-infinity"])(
     "bounds reads by recorded training with a caller-chosen %s goal timestamp",
     async (recordedAt) => {
@@ -322,22 +355,26 @@ describe("Weekly streaks from retained goals and finished training", () => {
         [["2026-10-01T10:00:00Z", 1]],
         [{ start: "2026-10-27T10:00:00Z" }]
       );
+
       // The exposed Data API's authenticated INSERT permission permits this.
       await asUser(user, (tx) =>
         tx
           .insert(weeklyGoalChanges)
           .values({ recordedAt, target: 1, userId: user })
       );
+
       const result = await asUser(user, async (tx) => {
         // Keep this regression safe even against the old range-expanding query.
         await tx.execute(sql`set local statement_timeout = '1s'`);
-        return getWeeklyGoals(
+
+        return await getWeeklyGoals(
           tx,
           user,
           "Europe/Kyiv",
           new Date("2026-10-28T12:00:00Z")
         );
       });
+
       expect(result.streak).toBe(1);
     }
   );
@@ -346,8 +383,10 @@ describe("Weekly streaks from retained goals and finished training", () => {
     const starts = Array.from({ length: 11 }, (_, index) => {
       const date = new Date("2026-08-11T10:00:00Z");
       date.setUTCDate(date.getUTCDate() + index * 7);
+
       return { start: date.toISOString() };
     });
+
     const user = await seed([["2026-08-05T10:00:00Z", 1]], starts);
     // Eleven successful completed weeks; current week remains pending.
     expect((await read(user, "2026-11-01T21:59:59Z")).streak).toBe(11);
@@ -370,6 +409,7 @@ describe("Weekly streaks from retained goals and finished training", () => {
         { start: "2026-10-28T10:00:00Z" },
       ]
     );
+
     expect((await read(user, "2026-10-28T12:00:00Z")).streak).toBe(4);
   });
 
@@ -387,6 +427,7 @@ describe("Weekly streaks from retained goals and finished training", () => {
         { start: "2026-10-27T10:00:00Z" },
       ]
     );
+
     expect((await read(user, "2026-10-25T12:00:00Z")).streak).toBe(2);
     expect((await read(user, "2026-10-26T12:00:00Z")).streak).toBe(0);
     expect((await read(user, "2026-10-28T12:00:00Z")).streak).toBe(1);
@@ -397,11 +438,14 @@ describe("Weekly streaks from retained goals and finished training", () => {
       [["2026-10-21T10:00:00Z", 1]],
       [{ start: "2026-10-22T10:00:00Z" }]
     );
+
     expect((await read(hit, "2026-10-23T10:00:00Z")).streak).toBe(1);
+
     const missed = await seed(
       [["2026-10-21T10:00:00Z", 1]],
       [{ start: "2026-10-27T10:00:00Z" }]
     );
+
     expect((await read(missed, "2026-10-28T10:00:00Z")).streak).toBe(1);
   });
 
@@ -415,6 +459,7 @@ describe("Weekly streaks from retained goals and finished training", () => {
         { open: true, start: "2026-10-28T10:00:00Z" },
       ]
     );
+
     expect((await read(user, "2026-10-28T12:00:00Z")).streak).toBe(1);
     // At this instant it is already Monday in Kyiv, but still Sunday in LA.
     expect(
@@ -431,10 +476,11 @@ describe("Weekly streaks from retained goals and finished training", () => {
       ],
       [{ start: "2026-10-22T10:00:00Z" }]
     );
+
     expect((await read(user, "2026-10-29T12:00:00Z")).streak).toBe(0);
     const intruder = await seed([], []);
-    expect(
-      await asUser(intruder, (tx) =>
+    await expect(
+      asUser(intruder, async (tx) =>
         getWeeklyGoals(
           tx,
           user,
@@ -442,6 +488,6 @@ describe("Weekly streaks from retained goals and finished training", () => {
           new Date("2026-10-29T12:00:00Z")
         )
       )
-    ).toEqual({ changes: [], streak: 0 });
+    ).resolves.toEqual({ changes: [], streak: 0 });
   });
 });

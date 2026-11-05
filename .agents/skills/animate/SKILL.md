@@ -58,7 +58,7 @@ Name it in one of these words before continuing:
 - **State indication** — making a state change legible
 - **Preventing a jarring change** — bridging content that would otherwise teleport
 - **Explanation** — demonstrating how something works (marketing/onboarding only)
-- **Delight** — allowed *only* at the rare/first-time tier
+- **Delight** — allowed _only_ at the rare/first-time tier
 
 Can't name it? Don't build it. "It looks cool" on a frequently-seen element is a reason to stop.
 
@@ -78,7 +78,7 @@ Walk down; stop at the first that fits.
 
 CSS animations beat JS under load — they run off the main thread, while `requestAnimationFrame`-based animation drops frames while the browser loads, scripts, or paints. Use CSS for predetermined motion, JS for dynamic and interruptible motion.
 
-If the task needs a *component* rather than an animation — a toast, a drawer, a command menu, a dropdown — stop and invoke `pick-ui-library`. Hand-rolling those is how you end up with a `<div>` dropdown and no focus management.
+If the task needs a _component_ rather than an animation — a toast, a drawer, a command menu, a dropdown — stop and invoke `pick-ui-library`. Hand-rolling those is how you end up with a `<div>` dropdown and no focus management.
 
 ### 4. Pick the properties
 
@@ -99,35 +99,45 @@ If the task needs a *component* rather than an animation — a toast, a drawer, 
 
 **Easing**, in decision order:
 
-| Situation | Easing |
-| --- | --- |
-| Entering or exiting | `ease-out` |
-| Moving / morphing on screen | `ease-in-out` |
-| Hover / color change | `ease` |
-| Constant motion (marquee, progress) | `linear` |
-| Default | `ease-out` |
+| Situation                           | Easing        |
+| ----------------------------------- | ------------- |
+| Entering or exiting                 | `ease-out`    |
+| Moving / morphing on screen         | `ease-in-out` |
+| Hover / color change                | `ease`        |
+| Constant motion (marquee, progress) | `linear`      |
+| Default                             | `ease-out`    |
 
-**Never `ease-in` on UI.** It starts slow, delaying the exact moment the user is watching. `ease-out` at 200ms *feels* faster than `ease-in` at 200ms.
+**Never `ease-in` on UI.** It starts slow, delaying the exact moment the user is watching. `ease-out` at 200ms _feels_ faster than `ease-in` at 200ms.
 
 Built-in CSS easings are too weak. Use these:
 
 ```css
---ease-out: cubic-bezier(0.23, 1, 0.32, 1);        /* strong ease-out for UI */
---ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);    /* strong ease-in-out for on-screen movement */
---ease-drawer: cubic-bezier(0.32, 0.72, 0, 1);     /* iOS-like drawer curve (Ionic) */
+--ease-out: cubic-bezier(0.23, 1, 0.32, 1); /* strong ease-out for UI */
+--ease-in-out: cubic-bezier(
+  0.77,
+  0,
+  0.175,
+  1
+); /* strong ease-in-out for on-screen movement */
+--ease-drawer: cubic-bezier(
+  0.32,
+  0.72,
+  0,
+  1
+); /* iOS-like drawer curve (Ionic) */
 ```
 
 Need a curve that isn't here? Take it from [easing.dev](https://easing.dev/) or [easings.co](https://easings.co/). Don't hand-roll one.
 
 **Duration:**
 
-| Element | Duration |
-| --- | --- |
-| Button press feedback | 100–160ms |
-| Tooltips, small popovers | 125–200ms |
-| Dropdowns, selects | 150–250ms |
-| Modals, drawers | 200–500ms |
-| Marketing / explanatory | Can be longer |
+| Element                  | Duration      |
+| ------------------------ | ------------- |
+| Button press feedback    | 100–160ms     |
+| Tooltips, small popovers | 125–200ms     |
+| Dropdowns, selects       | 150–250ms     |
+| Modals, drawers          | 200–500ms     |
+| Marketing / explanatory  | Can be longer |
 
 **UI animations stay under 300ms.** A 180ms dropdown feels more responsive than a 400ms one.
 
@@ -153,17 +163,21 @@ Ships with the animation, every time.
 
 ```css
 @media (prefers-reduced-motion: reduce) {
-  .element { animation: fade 0.2s ease; } /* keep opacity/color, drop transform-based motion */
+  .element {
+    animation: fade 0.2s ease;
+  } /* keep opacity/color, drop transform-based motion */
 }
 
 @media (hover: hover) and (pointer: fine) {
-  .element:hover { transform: scale(1.05); } /* touch fires false hovers on tap */
+  .element:hover {
+    transform: scale(1.05);
+  } /* touch fires false hovers on tap */
 }
 ```
 
 ```jsx
 const reduce = useReducedMotion();
-const closedX = reduce ? 0 : '-100%';
+const closedX = reduce ? 0 : "-100%";
 ```
 
 Reduced motion means **fewer and gentler** animations, not zero — keep transitions that aid comprehension, remove movement and position changes.

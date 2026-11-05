@@ -1,4 +1,5 @@
 import { serve } from "@hono/node-server";
+
 import app from "./app";
 
 const DEFAULT_PORT = 3006;
@@ -13,4 +14,5 @@ const shutdown = () => {
 };
 
 process.on("SIGINT", shutdown);
+
 process.on("SIGTERM", shutdown);

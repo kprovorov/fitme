@@ -1,4 +1,5 @@
 import type { SessionContext } from "eve/tools";
+
 import type { ClaimSession } from "./clerk-auth";
 import { isEvalRunnerTurn } from "./eval-runner";
 import { ownerOfTurn } from "./owner";
@@ -30,20 +31,26 @@ export const admitTurn = async (
   if (isEvalRunnerTurn(auth)) {
     return isEvalRun();
   }
+
   const owner = ownerOfTurn(auth);
+
   if (!owner) {
     return false;
   }
+
   try {
     const recorded = await claim(sessionId, owner);
+
     if (recorded !== owner) {
       throw new Error(
         `Arnold session ${sessionId} isn't recorded for its owner`
       );
     }
+
     return true;
   } catch (error) {
     await report(error, { sessionId });
+
     return false;
   }
 };

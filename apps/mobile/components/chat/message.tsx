@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import { Text } from "react-native";
 import Animated, { FadeIn, FadeOut } from "react-native-reanimated";
+
 import { ChatMarkdown } from "@/components/markdown";
 
 /**
@@ -18,13 +19,13 @@ export function Message({
   if (from === "user") {
     return (
       <Animated.View
-        className="mb-2 max-w-[80%] self-end rounded-2xl bg-primary p-3 dark:bg-user-bubble"
+        className="bg-primary dark:bg-user-bubble mb-2 max-w-[80%] self-end rounded-2xl p-3"
         entering={FadeIn.duration(200)}
         exiting={FadeOut.duration(150)}
         style={{ borderCurve: "continuous" }}
       >
         {typeof children === "string" ? (
-          <Text className="text-black text-body dark:text-black" selectable>
+          <Text className="text-body text-black dark:text-black" selectable>
             {children}
           </Text>
         ) : (

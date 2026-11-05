@@ -1,7 +1,9 @@
 import { MAX_FREQUENCY, MIN_FREQUENCY } from "@fitme/core/limits";
 import { calendarOffsetMinutes } from "@fitme/core/weekly-goals";
 import { createRoute, OpenAPIHono, z } from "@hono/zod-openapi";
-import { type ApiEnv, bearerSecurity, requires } from "../auth.js";
+
+import { bearerSecurity, requires } from "../auth.js";
+import type { ApiEnv } from "../auth.js";
 import {
   invalidRequest,
   invalidRequestResponse,
@@ -60,13 +62,16 @@ const listWeeklyGoals = createRoute({
           if (calendarOffsetMinutes(value) !== null) {
             return true;
           }
+
           if (!IANA_TIME_ZONE.test(value)) {
             return false;
           }
+
           try {
             new Intl.DateTimeFormat("en", {
               timeZone: value,
             }).resolvedOptions();
+
             return true;
           } catch {
             return false;
@@ -97,9 +102,11 @@ export const weeklyGoals = new OpenAPIHono<ApiEnv>({
   defaultHook: invalidRequest,
 }).openapi(listWeeklyGoals, async (c) => {
   const { time_zone } = c.req.valid("query");
+
   const { changes, streak } = await c.var
     .getServices()
     .getWeeklyGoals(time_zone);
+
   // Parsed through the contract, so fields beyond it never go out.
   return c.json(WeeklyGoalChanges.parse({ data: changes, streak }), 200);
 });

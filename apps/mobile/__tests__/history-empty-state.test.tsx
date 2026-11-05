@@ -9,21 +9,24 @@ import { beforeEach, describe, expect, it, jest } from "@jest/globals";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { act, fireEvent, render, screen } from "@testing-library/react-native";
 import type { ReactElement, ReactNode } from "react";
-import { Alert, type RefreshControlProps } from "react-native";
+import { Alert } from "react-native";
+import type { RefreshControlProps } from "react-native";
+import { it, describe, expect, beforeEach } from "vitest";
+
 import HistoryScreen from "~/app/(tabs)/history/index";
 import { setDeviceLanguages } from "~/test-utils/device-locales";
 import {
   backend,
   FAKE_USER_ID,
   fakePublicApi,
-  type SeedPlan,
 } from "~/test-utils/fake-public-api";
+import type { SeedPlan } from "~/test-utils/fake-public-api";
 import { InAppLanguage } from "~/test-utils/in-app-language";
 import { createTestQueryClient, settle } from "~/test-utils/query-client";
 
 const mockPush = jest.fn();
 
-jest.mock("expo-router", () => ({
+jest.mock<typeof import("expo-router")>(import("expo-router"), () => ({
   Link: ({ children }: { children: ReactNode }) => children,
   Stack: { Screen: () => null },
   useRouter: () => ({ navigate: jest.fn(), push: mockPush }),
@@ -31,64 +34,81 @@ jest.mock("expo-router", () => ({
 
 // LegendList lays its items out on measure, which Jest never does: render
 // every item (or the empty component) in a plain view instead.
-jest.mock("@legendapp/list/react-native", () => ({
-  LegendList: <T,>({
-    data,
-    keyExtractor,
-    ListEmptyComponent,
-    refreshControl,
-    renderItem,
-  }: {
-    data: T[];
-    keyExtractor: (item: T) => string;
-    ListEmptyComponent: ReactNode;
-    refreshControl: ReactElement<RefreshControlProps>;
-    renderItem: (info: { item: T }) => ReactNode;
-  }) => {
-    const { Fragment } = jest.requireActual<typeof import("react")>("react");
-    const { ScrollView } =
-      jest.requireActual<typeof import("react-native")>("react-native");
-    // The list's pull to refresh, kept on its view for the test to pull.
-    return (
-      <ScrollView refreshControl={refreshControl} testID="history-list">
-        {data.length === 0
-          ? ListEmptyComponent
-          : data.map((item) => (
-              <Fragment key={keyExtractor(item)}>
-                {renderItem({ item })}
-              </Fragment>
-            ))}
-      </ScrollView>
-    );
-  },
-}));
+jest.mock<typeof import("@legendapp/list/react-native")>(
+  import("@legendapp/list/react-native"),
+  () => ({
+    LegendList: <T,>({
+      data,
+      keyExtractor,
+      ListEmptyComponent,
+      refreshControl,
+      renderItem,
+    }: {
+      data: T[];
+      keyExtractor: (item: T) => string;
+      ListEmptyComponent: ReactNode;
+      refreshControl: ReactElement<RefreshControlProps>;
+      renderItem: (info: { item: T }) => ReactNode;
+    }) => {
+      const { Fragment } = jest.requireActual<typeof import("react")>("react");
+
+      const { ScrollView } =
+        jest.requireActual<typeof import("react-native")>("react-native");
+
+      // The list's pull to refresh, kept on its view for the test to pull.
+      return (
+        <ScrollView refreshControl={refreshControl} testID="history-list">
+          {data.length === 0
+            ? ListEmptyComponent
+            : data.map((item) => (
+                <Fragment key={keyExtractor(item)}>
+                  {renderItem({ item })}
+                </Fragment>
+              ))}
+        </ScrollView>
+      );
+    },
+  })
+);
 
 // The real Clerk SDK (reached through the Profile read) opens a MessagePort
 // at import that keeps Jest alive.
-jest.mock("~/lib/clerk", () => ({
+jest.mock<typeof import("~/lib/clerk")>(import("~/lib/clerk"), () => ({
   getCurrentUserId: () =>
     jest.requireActual<typeof import("~/test-utils/fake-public-api")>(
       "~/test-utils/fake-public-api"
     ).FAKE_USER_ID,
 }));
 
-jest.mock("~/lib/segment", () => ({ segmentClient: { track: jest.fn() } }));
-
-jest.mock("react-native-purchases", () => ({
-  __esModule: true,
-  default: { invalidateCustomerInfoCache: jest.fn() },
+jest.mock<typeof import("~/lib/segment")>(import("~/lib/segment"), () => ({
+  segmentClient: { track: jest.fn() },
 }));
 
-jest.mock("~/components/symbol-image", () => ({ SymbolImage: () => null }));
-jest.mock("~/components/ui/button", () =>
-  jest.requireActual("~/test-utils/button-stub")
+jest.mock<typeof import("react-native-purchases")>(
+  import("react-native-purchases"),
+  () => ({
+    __esModule: true,
+    default: { invalidateCustomerInfoCache: jest.fn() },
+  })
+);
+
+jest.mock<typeof import("~/components/symbol-image")>(
+  import("~/components/symbol-image"),
+  () => ({ SymbolImage: () => null })
+);
+
+jest.mock<typeof import("~/components/ui/button")>(
+  import("~/components/ui/button"),
+  () => jest.requireActual("~/test-utils/button-stub")
 );
 
 const START = "POST /v1/workout-sessions";
 const ACTIVE_PLAN = "GET /v1/plans/active";
 const LIST = "GET /v1/workout-sessions";
+
 /** History's own reads of the list. */
 const FINISHED = { status: "finished" };
+
 /** The open Workout Session's read of the list. */
 const IN_PROGRESS = { limit: "1", status: "in_progress" };
 
@@ -148,12 +168,12 @@ const ACTION =
 
 beforeEach(() => {
   jest.clearAllMocks();
-  jest.spyOn(Alert, "alert").mockImplementation(() => undefined);
+  jest.spyOn(Alert, "alert").mockReturnValue(undefined);
   backend.reset();
   backend.seedProfile(FAKE_USER_ID);
 });
 
-describe("The empty History", () => {
+describe("the empty History", () => {
   it("starts the active Plan's next Workout, naming it, its Plan and its Exercises", async () => {
     backend.seedPlan(structuredClone(PLAN));
     await mount();
@@ -174,6 +194,7 @@ describe("The empty History", () => {
     const started = backend.sessions.find(
       (session) => session.finished_at === null
     );
+
     expect(started?.workout_id).toBe("workout-1");
     expect(fakePublicApi.count(START)).toBe(1);
     expect(mockPush).toHaveBeenCalledWith(
@@ -232,6 +253,7 @@ describe("The empty History", () => {
     for (const plan of plans) {
       backend.seedPlan(plan);
     }
+
     await mount();
 
     expect(screen.queryByRole("button", { name: START_LABEL })).toBeNull();
@@ -251,7 +273,7 @@ describe("The empty History", () => {
   });
 });
 
-describe("Starting from the empty History", () => {
+describe("starting from the empty History", () => {
   beforeEach(() => {
     backend.seedPlan(structuredClone(PLAN));
   });
@@ -342,7 +364,7 @@ const READS = [
   },
 ];
 
-describe("The empty History's reads", () => {
+describe("the empty History's reads", () => {
   beforeEach(() => {
     backend.seedPlan(structuredClone(PLAN));
   });
@@ -392,7 +414,7 @@ describe("The empty History's reads", () => {
   );
 });
 
-describe("The empty History's reads, rate limited", () => {
+describe("the empty History's reads, rate limited", () => {
   it.each([
     [
       "History",
@@ -443,7 +465,7 @@ const pullToRefresh = async () => {
   await act(() => refreshControl.props.onRefresh());
 };
 
-describe("Refreshing the empty History", () => {
+describe("refreshing the empty History", () => {
   it("keeps the action it read when the active Plan's refresh fails", async () => {
     backend.seedPlan(structuredClone(PLAN));
     await mount();
@@ -481,9 +503,9 @@ describe("Refreshing the empty History", () => {
   });
 });
 
-describe("The empty History on a Ukrainian device", () => {
+describe("the empty History on a Ukrainian device", () => {
   it.each([
-    ["Start", () => undefined, "Почати «Upper A»"],
+    ["Start", () => {}, "Почати «Upper A»"],
     ["Resume", () => seedOpenSession("workout-1"), "Продовжити «Upper A»"],
   ])("offers %s in Ukrainian", async (_, seed, label) => {
     backend.seedPlan(structuredClone(PLAN));

@@ -21,6 +21,7 @@ import {
 } from "react";
 import { useTranslation } from "react-i18next";
 import RevenueCatUI from "react-native-purchases-ui";
+
 import {
   ChatProvider,
   Conversation,
@@ -44,7 +45,6 @@ import { useSelectedArnoldModel } from "~/hooks/arnold-model";
 import { useIsProQuery } from "~/hooks/revenueCat";
 import { ATTACHMENTS_ENABLED } from "~/lib/arnold-attachments";
 import {
-  type ArnoldErrorKind,
   arnoldErrorAction,
   arnoldErrorKind,
   arnoldRunConfig,
@@ -55,6 +55,7 @@ import {
   saveArnoldConversation,
   saveArnoldSession,
 } from "~/lib/arnold-chat";
+import type { ArnoldErrorKind } from "~/lib/arnold-chat";
 import { getClerk } from "~/lib/clerk";
 
 const getArnoldToken = async () => (await getClerk().session?.getToken()) ?? "";
@@ -75,6 +76,7 @@ function ArnoldRuntime({
   userId: string;
 }) {
   const [saved] = useState(() => loadSavedArnoldConversation(userId));
+
   const runtime = useEveAgentRuntime({
     // Resolved per request, reconnects included: Clerk tokens live ~60 s.
     auth: { bearer: getArnoldToken },
@@ -113,10 +115,12 @@ function useArnoldChat(userId: string, [input, setInput]: Composer) {
   const aui = useAui();
   const { t } = useTranslation();
   const threadMessages = useAuiState((s) => s.thread.messages);
+
   const messages = useMemo(
     () => threadMessages.filter((message) => !isRefusedSend(message)),
     [threadMessages]
   );
+
   const isRunning = useAuiState((s) => s.thread.isRunning);
   const isLoading = useAuiState((s) => s.thread.isLoading);
   const eveError = useEveError();
@@ -146,6 +150,7 @@ function useArnoldChat(userId: string, [input, setInput]: Composer) {
     if (isBusy) {
       return;
     }
+
     clearSavedArnoldConversation(userId);
     resetSession();
   }, [isBusy, resetSession, userId]);
@@ -154,13 +159,16 @@ function useArnoldChat(userId: string, [input, setInput]: Composer) {
   // (`useEveReset` returns a new function each time).
   const handleError = useEffectEvent((error: unknown) => {
     const action = arnoldErrorAction(error);
+
     if (action === "none") {
       return;
     }
+
     // The refused text goes back into the composer, to send again.
     const refused = lastSentRef.current;
     lastSentRef.current = "";
     setInput((current) => current || refused);
+
     if (action === "paywall") {
       RevenueCatUI.presentPaywall();
     } else if (action === "new-conversation") {
@@ -179,11 +187,15 @@ function useArnoldChat(userId: string, [input, setInput]: Composer) {
         prevStreamingTextRef.current = "";
         streamingStore.set("");
       }
+
       return;
     }
+
     const lastMessage = messages.at(-1);
+
     if (lastMessage?.role === "assistant") {
       const text = messageText(lastMessage);
+
       if (text !== prevStreamingTextRef.current) {
         prevStreamingTextRef.current = text;
         streamingStore.set(text);
@@ -208,6 +220,7 @@ function useArnoldChat(userId: string, [input, setInput]: Composer) {
     if (!input.trim() || isBusy) {
       return;
     }
+
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     sendMessage(input);
     setInput("");
@@ -247,9 +260,11 @@ function ArnoldChat({
   const attachments = useArnoldAttachments();
   const { t } = useTranslation();
   const { model } = useSelectedArnoldModel();
+
   const { initialMessage } = useLocalSearchParams<{
     initialMessage?: string;
   }>();
+
   const router = useRouter();
   const sentInitialMessageRef = useRef<string | null>(null);
 
@@ -264,21 +279,27 @@ function ArnoldChat({
     ) {
       return;
     }
+
     sentInitialMessageRef.current = initialMessage;
     router.setParams({ initialMessage: undefined });
+
     if (isPro === false) {
       chat.setInput(initialMessage);
       RevenueCatUI.presentPaywall();
+
       return;
     }
+
     chat.sendMessage(initialMessage);
   }, [initialMessage, isPro, chat, router]);
 
   const handleSend = useCallback(() => {
     if (isPro === false) {
       RevenueCatUI.presentPaywall();
+
       return;
     }
+
     chat.onSend();
   }, [isPro, chat]);
 
@@ -369,12 +390,15 @@ export default function ArnoldScreen() {
   const { data: isPro, isPending: isProPending } = useIsProQuery();
   // Above the runtime, so a remount after a purchase keeps the draft.
   const composer = useState("");
+
   // Wait for the entitlement: a free User's saved Conversation must not
   // resume, since every Arnold request checks Pro and a refusal is cached.
   if (!user || isProPending) {
     return null;
   }
+
   const canResume = isPro !== false;
+
   // Keyed by User and access: a different User gets their own runtime, and
   // buying Pro remounts it so the saved Conversation resumes.
   return (

@@ -6,6 +6,7 @@ import type {
   SavePlanResult,
 } from "@fitme/services/plans";
 import { describe, expect, it } from "vitest";
+
 import {
   fakeServices,
   libraryCover,
@@ -151,10 +152,11 @@ const recordingServices = ({
   weightUnit?: "kg" | "lbs";
 } = {}) => {
   const calls: {
-    covers: Array<string | null> | undefined;
+    covers: (string | null)[] | undefined;
     plan: SavedPlan;
     planId: string;
   }[] = [];
+
   const services = fakeServices({
     savePlan: (id, plan, { coverNewWorkouts }: SavePlanOptions) => {
       calls.push({
@@ -165,9 +167,11 @@ const recordingServices = ({
         plan,
         planId: id,
       });
+
       return Promise.resolve({ value: result, weightUnit });
     },
   });
+
   return { calls, services };
 };
 
@@ -185,7 +189,7 @@ const put = (
     method: "PUT",
   });
 
-describe("PUT /v1/plans/{id}", () => {
+describe("pUT /v1/plans/{id}", () => {
   it("saves the sent Plan with its ids and answers it in full with its weight unit", async () => {
     const { calls, services } = recordingServices();
     const { app, reported, servicesFor } = testApp({ exercises, services });
@@ -193,7 +197,7 @@ describe("PUT /v1/plans/{id}", () => {
     const response = await put(app, body());
 
     expect(response.status).toBe(200);
-    expect(await response.json()).toEqual({
+    await expect(response.json()).resolves.toEqual({
       data: { ...saved, weight_unit: "kg" },
     });
     expect(calls).toEqual([{ covers: [null], plan: body(), planId }]);
@@ -205,6 +209,7 @@ describe("PUT /v1/plans/{id}", () => {
     const { calls, services } = recordingServices({
       usedCoverIds: [HINGE_COVER],
     });
+
     const { app } = testApp({
       covers: [
         libraryCover(HINGE_COVER, ["hamstrings"]),
@@ -247,12 +252,13 @@ describe("PUT /v1/plans/{id}", () => {
     const { services } = recordingServices({
       result: { status: "not_found" },
     });
+
     const { app, reported } = testApp({ exercises, services });
 
     const response = await put(app, body());
 
     expect(response.status).toBe(404);
-    expect(await response.json()).toEqual({
+    await expect(response.json()).resolves.toEqual({
       error: { code: "not_found", message: "Plan not found" },
     });
     expect(reported).toEqual([]);
@@ -262,12 +268,13 @@ describe("PUT /v1/plans/{id}", () => {
     const { services } = recordingServices({
       result: { ids: [KEPT_EXERCISE, KEPT_SET], status: "invalid_ids" },
     });
+
     const { app, reported } = testApp({ exercises, services });
 
     const response = await put(app, body());
 
     expect(response.status).toBe(400);
-    expect(await response.json()).toEqual({
+    await expect(response.json()).resolves.toEqual({
       error: {
         code: "invalid_request",
         message: `Not this Plan's, or not under the parent sent: ${KEPT_EXERCISE}, ${KEPT_SET}`,
@@ -282,6 +289,7 @@ describe("PUT /v1/plans/{id}", () => {
       exercises,
       services: fakeServices({}),
     });
+
     const payload = body();
     payload.workouts[0].exercises[0].exercise_slug = "made-up-press";
     payload.workouts[1].exercises[0].exercise_slug = "made-up-press";
@@ -289,7 +297,7 @@ describe("PUT /v1/plans/{id}", () => {
     const response = await put(app, payload);
 
     expect(response.status).toBe(400);
-    expect(await response.json()).toEqual({
+    await expect(response.json()).resolves.toEqual({
       error: {
         code: "unknown_exercises",
         message: "Unknown exercise_slug(s): made-up-press",
@@ -303,13 +311,14 @@ describe("PUT /v1/plans/{id}", () => {
       exercises,
       services: fakeServices({}),
     });
+
     const outage = new LibraryUnavailableError();
     library.failWith(outage);
 
     const response = await put(app, body());
 
     expect(response.status).toBe(503);
-    expect(await response.json()).toEqual({
+    await expect(response.json()).resolves.toEqual({
       error: {
         code: "library_unavailable",
         message:
@@ -324,6 +333,7 @@ describe("PUT /v1/plans/{id}", () => {
       exercises,
       services: fakeServices({}),
     });
+
     const outage = new LibraryUnavailableError();
     library.covers = () => Promise.reject(outage);
 
@@ -349,6 +359,7 @@ describe("PUT /v1/plans/{id}", () => {
   const invalid = (edit: (payload: ReturnType<typeof body>) => void) => {
     const payload = body();
     edit(payload);
+
     return payload;
   };
 
@@ -487,6 +498,7 @@ describe("PUT /v1/plans/{id}", () => {
 
   it("answers 429 rate_limited with Retry-After once the User is over the limit, saving nothing", async () => {
     const { calls, services } = recordingServices();
+
     const { app } = testApp({
       exercises,
       rateLimiter: memoryRateLimiter({ limit: 1, windowMs: 60_000 }),

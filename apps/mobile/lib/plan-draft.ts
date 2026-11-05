@@ -1,8 +1,6 @@
 import type { components } from "@fitme/api-client";
 import {
-  type ExperienceLevel,
   experienceLevels,
-  type Goal,
   goals,
   MAX_EXERCISES_PER_WORKOUT,
   MAX_FREQUENCY,
@@ -16,9 +14,10 @@ import {
   MAX_WORKOUT_DURATION_MINUTES,
   MAX_WORKOUTS_PER_PLAN,
   MIN_FREQUENCY,
-  type Place,
   places,
 } from "@fitme/core";
+import type { ExperienceLevel, Goal, Place } from "@fitme/core";
+
 import type { FullPlan, PlanWorkout } from "~/hooks/queries/plans";
 
 /**
@@ -167,6 +166,7 @@ let keys = 0;
  */
 const newDraftKey = (): string => {
   keys += 1;
+
   return `new-${keys}`;
 };
 
@@ -241,6 +241,7 @@ const isStorableWeight = (value: number | null): value is number =>
 
 const isSavableName = (name: string) => {
   const trimmed = name.trim();
+
   return trimmed.length >= 1 && trimmed.length <= MAX_PLAN_NAME_LENGTH;
 };
 
@@ -257,7 +258,9 @@ export const isSavableTarget = (
   if (target === "weight") {
     return isStorableWeight(value);
   }
+
   const { max, min } = SET_TARGET_BOUNDS[target];
+
   return isWholeNumberIn(value, min, max);
 };
 
@@ -308,6 +311,7 @@ export const isSavablePlanDraft = (
 /** A text field the write leaves out when there's nothing in it. */
 const textOrNothing = (value: string) => {
   const trimmed = value.trim();
+
   return trimmed === "" ? {} : { description: trimmed };
 };
 
@@ -356,26 +360,33 @@ const savedIdsByKey = (
   saved: FullPlan
 ): Map<string, string> => {
   const ids = new Map<string, string>();
+
   if (saved.workouts.length !== sent.workouts.length) {
     return ids;
   }
+
   sent.workouts.forEach((workout, at) => {
     const savedWorkout = saved.workouts[at];
     ids.set(workout.key, savedWorkout.id);
+
     if (savedWorkout.exercises.length !== workout.exercises.length) {
       return;
     }
+
     workout.exercises.forEach((exercise, index) => {
       const savedExercise = savedWorkout.exercises[index];
       ids.set(exercise.key, savedExercise.id);
+
       if (savedExercise.sets.length !== exercise.sets.length) {
         return;
       }
+
       exercise.sets.forEach((set, position) => {
         ids.set(set.key, savedExercise.sets[position].id);
       });
     });
   });
+
   return ids;
 };
 
@@ -385,6 +396,7 @@ const withSavedId = <TRow extends { id?: string; key: string }>(
   ids: Map<string, string>
 ): TRow => {
   const id = row.id ?? ids.get(row.key);
+
   return id === row.id ? row : { ...row, id };
 };
 
@@ -405,9 +417,11 @@ export const adoptSavedIds = (
   saved: FullPlan
 ): PlanDraft => {
   const ids = savedIdsByKey(sent, saved);
+
   if (ids.size === 0) {
     return draft;
   }
+
   return {
     ...draft,
     workouts: draft.workouts.map((workout) => ({
@@ -427,12 +441,15 @@ export const moveDraftWorkout = (
   by: -1 | 1
 ): PlanDraft => {
   const to = index + by;
+
   if (to < 0 || to >= draft.workouts.length) {
     return draft;
   }
+
   const workouts = [...draft.workouts];
   const [moved] = workouts.splice(index, 1);
   workouts.splice(to, 0, moved);
+
   return { ...draft, workouts };
 };
 
@@ -460,11 +477,14 @@ export const nextWorkoutName = (
 ): string => {
   const taken = new Set(workouts.map((workout) => workout.name.trim()));
   const from = workouts.length % LETTERS.length;
+
   const letters = Array.from(
     { length: LETTERS.length },
     (_letter, at) => LETTERS[(from + at) % LETTERS.length]
   );
+
   const free = letters.find((letter) => !taken.has(nameFor(letter)));
+
   return nameFor(free ?? LETTERS[from]);
 };
 
@@ -487,6 +507,7 @@ export const addDraftWorkout = (
     key: newDraftKey(),
     name,
   };
+
   return {
     draft: { ...draft, workouts: [...draft.workouts, workout] },
     key: workout.key,
@@ -589,13 +610,17 @@ export const moveDraftExercise = (
     const index = workout.exercises.findIndex(
       (exercise) => exercise.key === exerciseKey
     );
+
     const to = index + by;
-    if (index < 0 || to < 0 || to >= workout.exercises.length) {
+
+    if (index === -1 || to < 0 || to >= workout.exercises.length) {
       return workout;
     }
+
     const exercises = [...workout.exercises];
     const [moved] = exercises.splice(index, 1);
     exercises.splice(to, 0, moved);
+
     return { ...workout, exercises };
   });
 
@@ -628,6 +653,7 @@ export const addDraftSet = (
 ): PlanDraft =>
   changeExercise(draft, workoutKey, exerciseKey, (exercise) => {
     const previous = exercise.sets.at(-1);
+
     const added: DraftSet = previous
       ? {
           key: newDraftKey(),
@@ -636,6 +662,7 @@ export const addDraftSet = (
           weight: previous.weight,
         }
       : newSet();
+
     return { ...exercise, sets: [...exercise.sets, added] };
   });
 

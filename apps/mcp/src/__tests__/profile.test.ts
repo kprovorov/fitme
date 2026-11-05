@@ -1,13 +1,15 @@
 import { reportError as appReportError } from "@fitme/observability/node";
 import { DrizzleQueryError } from "drizzle-orm";
 import { afterEach, describe, expect, it, vi } from "vitest";
+
 import { call, connectWithServices, recordingReporter } from "./harness.js";
 
 const sentry = vi.hoisted(() => ({
   captureException: vi.fn(),
   flush: vi.fn(() => Promise.resolve(true)),
 }));
-vi.mock("@sentry/node", () => sentry);
+
+vi.mock<typeof import("@sentry/node")>(import("@sentry/node"), () => sentry);
 
 afterEach(() => {
   vi.clearAllMocks();
@@ -41,6 +43,7 @@ describe("get_profile", () => {
       measurement_system: "us",
       units: { height: "in", weight: "lbs" },
     };
+
     const client = await connectWithServices({
       getProfile: () => Promise.resolve(usProfile),
     });
@@ -50,6 +53,7 @@ describe("get_profile", () => {
 
   it("answers a User without a Profile with a tool error, unreported", async () => {
     const { reportError, reported } = recordingReporter();
+
     const client = await connectWithServices(
       { getProfile: () => Promise.resolve(null) },
       reportError
@@ -65,7 +69,8 @@ describe("get_profile", () => {
   });
 
   it("reports a database failure without its SQL, params or Postgres message", async () => {
-    const log = vi.spyOn(console, "error").mockImplementation(() => undefined);
+    const log = vi.spyOn(console, "error").mockReturnValue(undefined);
+
     const failure = new DrizzleQueryError(
       'insert into "plans" ("description") values ($1)',
       ["my knee hurts"],
@@ -74,6 +79,7 @@ describe("get_profile", () => {
         { code: "22P02" }
       )
     );
+
     // The app's own reporter (@fitme/observability/node), Sentry faked
     const client = await connectWithServices(
       { getProfile: () => Promise.reject(failure) },
@@ -86,17 +92,19 @@ describe("get_profile", () => {
     expect(outcome.text).toBe(
       'invalid input syntax for type uuid: "my knee hurts"'
     );
-    expect(sentry.captureException).toHaveBeenCalledTimes(1);
+    expect(sentry.captureException).toHaveBeenCalledOnce();
     const [sent, hint] = sentry.captureException.mock.calls[0] ?? [];
     expect(sent).toBeInstanceOf(Error);
     const { cause, message, stack } = sent as Error;
     expect(message).toBe("Database query failed (SQLSTATE 22P02)");
     expect(cause).toBeUndefined();
     expect(log.mock.calls.flat()).toEqual([sent]);
+
     for (const leak of ["insert into", "my knee hurts", "params"]) {
       expect(stack).not.toContain(leak);
       expect(JSON.stringify(sent)).not.toContain(leak);
     }
+
     // The frames still point at where the query failed
     expect(stack).toContain("profile.test.ts");
     expect(hint).toEqual({ tags: { sqlstate: "22P02" } });
@@ -105,6 +113,7 @@ describe("get_profile", () => {
   it("reports an unexpected failure and answers a tool error without its details", async () => {
     const { reportError, reported } = recordingReporter();
     const failure = new Error("connect ECONNREFUSED");
+
     const client = await connectWithServices(
       { getProfile: () => Promise.reject(failure) },
       reportError

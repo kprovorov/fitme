@@ -1,4 +1,5 @@
 import type { PlanWorkout } from "~/hooks/queries/plans";
+
 import { VStack } from "../ui/vstack";
 import WorkoutCard from "./workout-card";
 
@@ -10,7 +11,7 @@ interface WorkoutListProps {
 
 export default function WorkoutList({ planId, workouts }: WorkoutListProps) {
   return (
-    <VStack className="flex-1 items-stretch gap-sm">
+    <VStack className="gap-sm flex-1 items-stretch">
       {workouts.map((workout) => (
         <WorkoutCard key={workout.id} planId={planId} workout={workout} />
       ))}

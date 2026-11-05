@@ -1,9 +1,11 @@
 import { Text, View } from "react-native";
 import { useCSSVariable, useResolveClassNames } from "uniwind";
+
 import { Table, TableCell, TableHead, TableRow } from "~/components/ui/table";
 import { Text as StyledText } from "~/components/ui/text";
 import { openWebPage } from "~/lib/external-links";
 import { cn } from "~/lib/utils";
+
 import Markdown from "./markdown";
 
 // Read in this order: text, rules, quiet fills (quotes, code, images), links
@@ -19,7 +21,7 @@ const VAR_NAMES = [
  * the same way they appear during streaming. Skips fenced code blocks.
  */
 function preserveNewlines(md: string): string {
-  return md.replace(/(```[\s\S]*?```)|(\n)/g, (match, codeBlock) =>
+  return md.replaceAll(/(```[\s\S]*?```)|(\n)/g, (match, codeBlock) =>
     codeBlock ? match : "  \n"
   );
 }
@@ -120,7 +122,7 @@ export function ChatMarkdown({ children }: { children: string }) {
         // styles: a header row on `muted`, Subhead cells
         table: ({ node, children: rows }) => (
           <Table
-            className="my-2 overflow-hidden rounded-lg border border-border border-continuous"
+            className="border-border border-continuous my-2 overflow-hidden rounded-lg border"
             key={node.key}
           >
             {rows}
@@ -130,6 +132,7 @@ export function ChatMarkdown({ children }: { children: string }) {
         // they don't double the table's own border at the right and bottom
         tableCell: ({ node, children: content, extras }) => {
           const Cell = extras?.isHeader ? TableHead : TableCell;
+
           return (
             <Cell
               className={cn(
@@ -145,7 +148,7 @@ export function ChatMarkdown({ children }: { children: string }) {
         tableRow: ({ node, children: cells, extras }) => (
           <TableRow
             className={
-              extras?.isHeader ? "border-b-0 bg-muted" : "border-t border-b-0"
+              extras?.isHeader ? "bg-muted border-b-0" : "border-t border-b-0"
             }
             key={node.key}
           >

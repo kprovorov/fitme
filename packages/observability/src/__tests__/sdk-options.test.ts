@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+
 import { resolveObservabilityConfig } from "../config";
 import { tracePropagationTargets } from "../propagation";
 import { scrubEvent } from "../scrub";
@@ -9,7 +10,7 @@ const production = resolveObservabilityConfig({
   env: { VERCEL_ENV: "production", VERCEL_GIT_COMMIT_SHA: "abc123" },
 });
 
-describe("sdkOptions", () => {
+describe(sdkOptions, () => {
   it("carries the resolved environment, release and sampling", () => {
     expect(sdkOptions(production)).toMatchObject({
       dsn: "https://key@o1.ingest.sentry.io/1",
@@ -24,6 +25,7 @@ describe("sdkOptions", () => {
     const options = sdkOptions(
       resolveObservabilityConfig({ dsn: undefined, env: {} })
     );
+
     expect(options.enabled).toBe(false);
     expect(options.dsn).toBeUndefined();
   });

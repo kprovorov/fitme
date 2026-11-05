@@ -1,10 +1,11 @@
 import { describe, expect, it } from "vitest";
+
 import { resolveObservabilityConfig } from "../index";
 
 const DSN = "https://key@o1.ingest.sentry.io/2";
 const SHA = "0123456789abcdef0123456789abcdef01234567";
 
-describe("resolveObservabilityConfig", () => {
+describe(resolveObservabilityConfig, () => {
   it("samples 20% of traces in production, tagged with the commit", () => {
     expect(
       resolveObservabilityConfig({

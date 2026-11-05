@@ -1,4 +1,5 @@
-import Svg, { Path, type SvgProps } from "react-native-svg";
+import Svg, { Path } from "react-native-svg";
+import type { SvgProps } from "react-native-svg";
 
 export default function Threads({ ...props }: SvgProps) {
   return (

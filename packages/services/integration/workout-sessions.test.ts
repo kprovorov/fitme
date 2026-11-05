@@ -1,4 +1,5 @@
 import { randomUUID } from "node:crypto";
+
 import {
   asUser,
   plans,
@@ -12,6 +13,7 @@ import {
 } from "@fitme/db";
 import { eq } from "drizzle-orm";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
+
 import {
   deleteWorkoutSession,
   getWorkoutSession,
@@ -51,7 +53,7 @@ interface Seeded {
 let seeded: Seeded;
 let intruderSessionId: string;
 
-const seedOwner = (): Promise<Seeded> =>
+const seedOwner = async (): Promise<Seeded> =>
   withService(async (tx) => {
     const [plan] = await tx
       .insert(plans)
@@ -63,14 +65,17 @@ const seedOwner = (): Promise<Seeded> =>
         userId: owner,
       })
       .returning({ id: plans.id });
+
     const [workout] = await tx
       .insert(workouts)
       .values({ description: "A", name: "Day A", order: 1, planId: plan.id })
       .returning({ id: workouts.id });
+
     const [planExercise] = await tx
       .insert(workoutExercises)
       .values({ exerciseSlug: benchSlug, order: 1, workoutId: workout.id })
       .returning({ id: workoutExercises.id });
+
     const [planSet] = await tx
       .insert(workoutExerciseSets)
       .values({
@@ -110,6 +115,7 @@ const seedOwner = (): Promise<Seeded> =>
         { exerciseSlug: benchSlug, order: 1, workoutSessionId: finished.id },
       ])
       .returning({ id: workoutSessionExercises.id });
+
     const [squatSet, benchSet2, benchSet1, finishedSet] = await tx
       .insert(workoutSessionExerciseSets)
       .values([
@@ -157,21 +163,23 @@ const seedOwner = (): Promise<Seeded> =>
     };
   });
 
-const setRow = (setId: string) =>
+const setRow = async (setId: string) =>
   withService(async (tx) => {
     const [row] = await tx
       .select()
       .from(workoutSessionExerciseSets)
       .where(eq(workoutSessionExerciseSets.id, setId));
+
     return row;
   });
 
-const sessionExists = (sessionId: string) =>
+const sessionExists = async (sessionId: string) =>
   withService(async (tx) => {
     const rows = await tx
       .select({ id: workoutSessions.id })
       .from(workoutSessions)
       .where(eq(workoutSessions.id, sessionId));
+
     return rows.length > 0;
   });
 
@@ -189,9 +197,9 @@ afterAll(async () => {
   await deleteTestUsers([owner, intruder, lifter]);
 });
 
-describe("listWorkoutSessions", () => {
+describe(listWorkoutSessions, () => {
   it("lists the User's sessions newest first with set counts", async () => {
-    const page = await asUser(owner, (tx) =>
+    const page = await asUser(owner, async (tx) =>
       listWorkoutSessions(tx, { limit: 20, offset: 0, status: "all" })
     );
 
@@ -282,6 +290,7 @@ describe("listWorkoutSessions", () => {
           },
         ])
         .returning({ id: workoutSessions.id });
+
       const exercises = await tx
         .insert(workoutSessionExercises)
         .values(
@@ -292,6 +301,7 @@ describe("listWorkoutSessions", () => {
           }))
         )
         .returning({ id: workoutSessionExercises.id });
+
       const logged = "2026-10-05T10:30:00Z";
       await tx.insert(workoutSessionExerciseSets).values([
         // No weight: reps count, volume doesn't.
@@ -332,10 +342,11 @@ describe("listWorkoutSessions", () => {
           workoutSessionExerciseId: exercises[1].id,
         },
       ]);
+
       return sessions;
     });
 
-    const page = await asUser(lifter, (tx) =>
+    const page = await asUser(lifter, async (tx) =>
       listWorkoutSessions(tx, { limit: 20, offset: 0, status: "finished" })
     );
 
@@ -356,7 +367,7 @@ describe("listWorkoutSessions", () => {
   });
 
   it("never lists another User's sessions", async () => {
-    const page = await asUser(intruder, (tx) =>
+    const page = await asUser(intruder, async (tx) =>
       listWorkoutSessions(tx, { limit: 20, offset: 0, status: "all" })
     );
 
@@ -373,9 +384,9 @@ describe("listWorkoutSessions", () => {
   });
 });
 
-describe("getWorkoutSession", () => {
+describe(getWorkoutSession, () => {
   it("returns the session with its exercises and sets in order", async () => {
-    const session = await asUser(owner, (tx) =>
+    const session = await asUser(owner, async (tx) =>
       getWorkoutSession(tx, seeded.openSessionId)
     );
 
@@ -421,7 +432,7 @@ describe("getWorkoutSession", () => {
   });
 
   it("returns a finished session with its logged sets", async () => {
-    const session = await asUser(owner, (tx) =>
+    const session = await asUser(owner, async (tx) =>
       getWorkoutSession(tx, seeded.finishedSessionId)
     );
 
@@ -449,13 +460,14 @@ describe("getWorkoutSession", () => {
   });
 });
 
-describe("logSet", () => {
+describe(logSet, () => {
   it("logs a set in the User's open session and overwrites it when logged again", async () => {
     const [setId] = seeded.openSetIds;
-    await asUser(owner, (tx) =>
+    await asUser(owner, async (tx) =>
       logSet(tx, { repsCompleted: 5, setId, weightCompleted: 50 })
     );
-    const result = await asUser(owner, (tx) =>
+
+    const result = await asUser(owner, async (tx) =>
       logSet(tx, { repsCompleted: 7, setId, weightCompleted: 62.5 })
     );
 
@@ -472,14 +484,14 @@ describe("logSet", () => {
       },
       status: "logged",
     });
-    expect(await setRow(setId)).toMatchObject({
+    await expect(setRow(setId)).resolves.toMatchObject({
       repsCompleted: 7,
       weightCompleted: "62.50",
     });
   });
 
   it("leaves a set of a finished session as it was", async () => {
-    const result = await asUser(owner, (tx) =>
+    const result = await asUser(owner, async (tx) =>
       logSet(tx, {
         repsCompleted: 1,
         setId: seeded.finishedSetId,
@@ -492,7 +504,7 @@ describe("logSet", () => {
       sessionId: seeded.finishedSessionId,
       status: "session_finished",
     });
-    expect(await setRow(seeded.finishedSetId)).toMatchObject({
+    await expect(setRow(seeded.finishedSetId)).resolves.toMatchObject({
       repsCompleted: 8,
       weightCompleted: "60.00",
     });
@@ -518,12 +530,13 @@ describe("logSet", () => {
 
   it("never writes another User's set", async () => {
     const [, setId] = seeded.openSetIds;
-    const result = await asUser(intruder, (tx) =>
+
+    const result = await asUser(intruder, async (tx) =>
       logSet(tx, { repsCompleted: 99, setId, weightCompleted: 999 })
     );
 
     expect(result).toEqual({ status: "not_found" });
-    expect(await setRow(setId)).toMatchObject({
+    await expect(setRow(setId)).resolves.toMatchObject({
       loggedAt: null,
       repsCompleted: null,
       weightCompleted: null,
@@ -531,29 +544,29 @@ describe("logSet", () => {
   });
 });
 
-describe("deleteWorkoutSession", () => {
+describe(deleteWorkoutSession, () => {
   it("never deletes another User's session", async () => {
-    expect(
-      await asUser(intruder, (tx) =>
+    await expect(
+      asUser(intruder, async (tx) =>
         deleteWorkoutSession(tx, seeded.finishedSessionId)
       )
-    ).toBe(false);
-    expect(await sessionExists(seeded.finishedSessionId)).toBe(true);
+    ).resolves.toBe(false);
+    await expect(sessionExists(seeded.finishedSessionId)).resolves.toBe(true);
   });
 
   it("deletes the User's session with its sets, then finds nothing", async () => {
-    expect(
-      await asUser(owner, (tx) =>
+    await expect(
+      asUser(owner, async (tx) =>
         deleteWorkoutSession(tx, seeded.finishedSessionId)
       )
-    ).toBe(true);
-    expect(await sessionExists(seeded.finishedSessionId)).toBe(false);
-    expect(await setRow(seeded.finishedSetId)).toBeUndefined();
+    ).resolves.toBe(true);
+    await expect(sessionExists(seeded.finishedSessionId)).resolves.toBe(false);
+    await expect(setRow(seeded.finishedSetId)).resolves.toBeUndefined();
 
-    expect(
-      await asUser(owner, (tx) =>
+    await expect(
+      asUser(owner, async (tx) =>
         deleteWorkoutSession(tx, seeded.finishedSessionId)
       )
-    ).toBe(false);
+    ).resolves.toBe(false);
   });
 });

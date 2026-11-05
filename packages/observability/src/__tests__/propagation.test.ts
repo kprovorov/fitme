@@ -1,11 +1,12 @@
 import { describe, expect, it } from "vitest";
+
 import { tracePropagationTargets } from "../index";
 
 // How Sentry applies the list: a URL gets trace headers when any target matches
 const propagatesTo = (url: string) =>
   tracePropagationTargets.some((target) => target.test(url));
 
-describe("tracePropagationTargets", () => {
+describe(tracePropagationTargets, () => {
   it.each([
     "https://api.fitmeproject.com/v1/client-config",
     "https://app.fitmeproject.com/dashboard",

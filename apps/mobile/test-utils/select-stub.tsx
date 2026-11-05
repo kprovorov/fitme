@@ -7,6 +7,7 @@
  */
 import { useCallback } from "react";
 import { Pressable, Text, View } from "react-native";
+
 import type { SelectProps } from "~/components/ui/select";
 
 type Value = string | number;
@@ -23,6 +24,7 @@ const Option = <TValue extends Value>({
   value: TValue;
 }) => {
   const pick = useCallback(() => onPick?.(value), [onPick, value]);
+
   return (
     <Pressable
       accessibilityLabel={label}
@@ -41,6 +43,7 @@ export const Select = <TValue extends Value>({
   value,
 }: SelectProps<TValue>) => {
   const chosen = options.find((option) => option.value === value);
+
   return (
     <View testID={testID}>
       {label ? <Text>{label}</Text> : null}

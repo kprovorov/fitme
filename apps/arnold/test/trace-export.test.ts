@@ -3,6 +3,7 @@ import type {
   TraceCaptureContext,
 } from "eve/instrumentation/otel";
 import { describe, expect, it } from "vitest";
+
 import {
   arnoldTracePolicy,
   sentryExportPolicy,
@@ -20,7 +21,7 @@ const span: SpanExportContext = {
 const keeps = (key: string, value: unknown = "x") =>
   sentryExportPolicy.attribute?.({ key, span, value });
 
-describe("sentryExportPolicy", () => {
+describe(sentryExportPolicy, () => {
   it("keeps every span, redacting its inputs and outputs", () => {
     expect(sentryExportPolicy.span?.(span)).toEqual({
       inputs: true,
@@ -80,7 +81,7 @@ describe("sentryExportPolicy", () => {
   });
 });
 
-describe("arnoldTracePolicy", () => {
+describe(arnoldTracePolicy, () => {
   const trace: Omit<TraceCaptureContext, "environment"> = {
     agentName: "arnold",
     audience: "public",
@@ -110,7 +111,7 @@ describe("arnoldTracePolicy", () => {
   });
 });
 
-describe("sentryOtlpExport", () => {
+describe(sentryOtlpExport, () => {
   const url = "https://o1.ingest.us.sentry.io/api/2/integration/otlp/v1/traces";
   const dsn = "https://publickey@o1.ingest.us.sentry.io/2";
 

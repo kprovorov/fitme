@@ -3,7 +3,9 @@ import { Link } from "expo-router";
 import { useCallback } from "react";
 import { useTranslation } from "react-i18next";
 import { ActivityIndicator, Pressable, View } from "react-native";
+
 import { usePlanSummariesQuery } from "~/hooks/queries/plans";
+
 import PlanCard from "../plans/plan-card";
 import { Button } from "../ui/button";
 import { Text } from "../ui/text";
@@ -17,6 +19,7 @@ import { VStack } from "../ui/vstack";
 export default function PlansListView() {
   const { data: plans, error, isError, refetch } = usePlanSummariesQuery();
   const { t } = useTranslation();
+
   const retry = useCallback(() => {
     refetch();
   }, [refetch]);
@@ -33,11 +36,13 @@ export default function PlansListView() {
         </Link>
       ));
     }
+
     if (isError) {
       const waitSeconds = rateLimitedFor(error);
+
       return (
-        <View className="items-center gap-sm pt-lg">
-          <Text className="text-center text-muted-foreground">
+        <View className="gap-sm pt-lg items-center">
+          <Text className="text-muted-foreground text-center">
             {waitSeconds === null
               ? t("plans.listLoadError")
               : t("common.rateLimited", { seconds: waitSeconds })}
@@ -51,8 +56,9 @@ export default function PlansListView() {
         </View>
       );
     }
+
     return (
-      <View className="items-center pt-lg" testID="plans-loading">
+      <View className="pt-lg items-center" testID="plans-loading">
         <ActivityIndicator colorClassName="accent-foreground" />
       </View>
     );

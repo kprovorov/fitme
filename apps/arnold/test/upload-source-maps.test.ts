@@ -10,13 +10,16 @@ import {
 } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join, relative } from "node:path";
+
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+
 import { uploadSourceMaps } from "../scripts/upload-source-maps";
 
 const ENV = {
   SENTRY_AUTH_TOKEN: "sntrys_test",
   VERCEL_GIT_COMMIT_SHA: "abc123",
 };
+
 const INJECTED = "//# debugId=test";
 
 let root: string;
@@ -31,9 +34,11 @@ const write = (path: string, content = "") => {
 const filesIn = (dir: string): string[] =>
   readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
     const path = join(entry.parentPath, entry.name);
+
     if (entry.isDirectory()) {
       return filesIn(path).map((file) => join(entry.name, file));
     }
+
     return entry.isFile() ? [relative(dir, path)] : [];
   });
 
@@ -60,9 +65,11 @@ const vercelOutput = () => {
 /** The directory a sentry-cli call was pointed at: its last argument. */
 const target = (args: string[]): string => {
   const dir = args.at(-1);
+
   if (!dir) {
     throw new Error("sentry-cli was called without a directory");
   }
+
   return dir;
 };
 
@@ -75,19 +82,23 @@ const visibleFilesIn = (dir: string): string[] =>
 /** Records each sentry-cli call and the files it sees, injects like it. */
 const fakeSentryCli = () => {
   const calls: { args: string[]; files: string[] }[] = [];
+
   const run = vi.fn((args: string[]) => {
     const dir = target(args);
     calls.push({ args, files: visibleFilesIn(dir).sort() });
+
     if (args[1] === "inject") {
       const scripts = visibleFilesIn(dir).filter((file) =>
         file.endsWith(".mjs")
       );
+
       for (const script of scripts) {
         const path = join(dir, script);
-        writeFileSync(path, `${readFileSync(path, "utf8")}\n${INJECTED}`);
+        writeFileSync(path, `${readFileSync(path, "utf-8")}\n${INJECTED}`);
       }
     }
   });
+
   return { calls, run };
 };
 
@@ -95,15 +106,15 @@ beforeEach(() => {
   root = mkdtempSync(join(tmpdir(), "arnold-source-maps-"));
   output = join(root, "functions");
   mkdirSync(output);
-  vi.spyOn(console, "log").mockImplementation(() => undefined);
-  vi.spyOn(console, "warn").mockImplementation(() => undefined);
+  vi.spyOn(console, "log").mockReturnValue(undefined);
+  vi.spyOn(console, "warn").mockReturnValue(undefined);
 });
 
 afterEach(() => {
   rmSync(root, { force: true, recursive: true });
 });
 
-describe("uploadSourceMaps", () => {
+describe(uploadSourceMaps, () => {
   it("points sentry-cli only at the files that have a source map, once each, in no dot directory", () => {
     vercelOutput();
     const cli = fakeSentryCli();
@@ -119,6 +130,7 @@ describe("uploadSourceMaps", () => {
       "well-known/workflow/v1/flow.func/index.mjs",
       "well-known/workflow/v1/flow.func/index.mjs.map",
     ];
+
     expect(cli.calls.map((call) => call.args.slice(0, 2))).toEqual([
       ["sourcemaps", "inject"],
       ["sourcemaps", "upload"],
@@ -141,17 +153,17 @@ describe("uploadSourceMaps", () => {
       target(inject.args),
     ]);
     expect(existsSync(target(inject.args))).toBe(false);
-    expect(readFileSync(join(output, "__server.func/index.mjs"), "utf8")).toBe(
+    expect(readFileSync(join(output, "__server.func/index.mjs"), "utf-8")).toBe(
       `index\n${INJECTED}`
     );
     expect(
       readFileSync(
         join(output, ".well-known/workflow/v1/flow.func/index.mjs"),
-        "utf8"
+        "utf-8"
       )
     ).toBe(`flow\n${INJECTED}`);
     expect(
-      readFileSync(join(output, "__server.func/_libs/_1.mjs"), "utf8")
+      readFileSync(join(output, "__server.func/_libs/_1.mjs"), "utf-8")
     ).toBe("no map");
     expect(filesIn(output).sort()).toEqual([
       ".well-known/workflow/v1/flow.func/index.mjs",
@@ -183,14 +195,15 @@ describe("uploadSourceMaps", () => {
     const cli = fakeSentryCli();
     cli.run.mockImplementation((args: string[]) => {
       cli.calls.push({ args, files: [] });
+
       if (args[1] === "upload") {
         throw new Error("Command failed: sentry-cli sourcemaps upload");
       }
     });
 
-    expect(() =>
-      uploadSourceMaps({ env: ENV, outputDir: output, sentryCli: cli.run })
-    ).not.toThrow();
+    expect(() => {
+      uploadSourceMaps({ env: ENV, outputDir: output, sentryCli: cli.run });
+    }).not.toThrow();
 
     expect(console.warn).toHaveBeenCalledWith(
       "Sentry source map upload failed",

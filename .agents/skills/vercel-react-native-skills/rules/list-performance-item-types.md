@@ -7,10 +7,7 @@ tags: list, performance, recycling, heterogeneous, LegendList
 
 ## Use Item Types for Heterogeneous Lists
 
-When a list has different item layouts (messages, images, headers, etc.), use a
-`type` field on each item and provide `getItemType` to the list. This puts items
-into separate recycling pools so a message component never gets recycled into an
-image component.
+When a list has different item layouts (messages, images, headers, etc.), use a `type` field on each item and provide `getItemType` to the list. This puts items into separate recycling pools so a message component never gets recycled into an image component.
 
 **Incorrect (single component with conditionals):**
 
@@ -78,8 +75,7 @@ function Feed({ items }: { items: FeedItem[] }) {
 - **Recycling efficiency**: Items with the same type share a recycling pool
 - **No layout thrashing**: A header never recycles into an image cell
 - **Type safety**: TypeScript can narrow the item type in each branch
-- **Better size estimation**: Use `getEstimatedItemSize` with `itemType` for
-  accurate estimates per type
+- **Better size estimation**: Use `getEstimatedItemSize` with `itemType` for accurate estimates per type
 
 ```tsx
 <LegendList
@@ -105,5 +101,4 @@ function Feed({ items }: { items: FeedItem[] }) {
 />
 ```
 
-Reference:
-[LegendList getItemType](https://legendapp.com/open-source/list/api/props/#getitemtype-v2)
+Reference: [LegendList getItemType](https://legendapp.com/open-source/list/api/props/#getitemtype-v2)

@@ -32,6 +32,7 @@ export function isWorkoutFullyTracked(
   if (session.finished_at) {
     return false;
   }
+
   return (
     session.exercises.length > 0 && session.exercises.every(isExerciseTracked)
   );
@@ -85,9 +86,11 @@ export interface ExerciseProgress {
 export function exerciseProgress(sets: TrackableSet[]): ExerciseProgress {
   const total = sets.length;
   const logged = sets.filter(isSetTracked).length;
+
   if (total > 0 && logged === total) {
     return { logged, state: "done", total };
   }
+
   return { logged, state: logged > 0 ? "in-progress" : "todo", total };
 }
 
@@ -113,6 +116,7 @@ export function sessionVolume(exercises: { sets: ResultSet[] }[]): number {
       ),
     0
   );
+
   return Math.round(volume * 100) / 100;
 }
 
@@ -128,16 +132,20 @@ export interface SetResult {
  */
 export function bestSet(sets: ResultSet[]): SetResult | null {
   let best: SetResult | null = null;
+
   for (const set of sets) {
     if (!isSetTracked(set)) {
       continue;
     }
+
     const result = {
       reps: set.reps_completed ?? 0,
       weight: set.weight_completed,
     };
+
     const weight = result.weight ?? 0;
     const bestWeight = best?.weight ?? 0;
+
     if (
       best === null ||
       weight > bestWeight ||
@@ -146,6 +154,7 @@ export function bestSet(sets: ResultSet[]): SetResult | null {
       best = result;
     }
   }
+
   return best;
 }
 
@@ -161,10 +170,13 @@ export function formatRepRange(
   const reps = sets
     .map((set) => set.reps_recommended)
     .filter((value): value is number => value !== null && value > 0);
+
   if (reps.length === 0) {
     return null;
   }
+
   const min = Math.min(...reps);
   const max = Math.max(...reps);
+
   return min === max ? `${min}` : `${min}–${max}`;
 }

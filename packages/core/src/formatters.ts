@@ -8,6 +8,7 @@ export const formatElapsed = (milliseconds: number) => {
   const minutes = Math.floor((totalSeconds % 3600) / 60);
   const seconds = totalSeconds % 60;
   const pad = (value: number) => value.toString().padStart(2, "0");
+
   return hours > 0
     ? `${hours}:${pad(minutes)}:${pad(seconds)}`
     : `${minutes}:${pad(seconds)}`;

@@ -1,6 +1,8 @@
 import { attachDatabasePool } from "@vercel/functions";
-import { drizzle, type NodePgDatabase } from "drizzle-orm/node-postgres";
+import { drizzle } from "drizzle-orm/node-postgres";
+import type { NodePgDatabase } from "drizzle-orm/node-postgres";
 import { Pool } from "pg";
+
 import * as relations from "./relations";
 import * as tables from "./schema";
 
@@ -15,6 +17,7 @@ const DATABASE_URL_ENV = "FITME_DATABASE_URL";
 
 // Fluid instances each hold their own pool; keep it small (research §9.5).
 const POOL_MAX = 5;
+
 // attachDatabasePool recognizes pg by this option and keeps the function
 // alive until idle clients are released.
 const IDLE_TIMEOUT_MS = 10_000;
@@ -34,17 +37,21 @@ let connection: Connection | undefined;
 
 const readConfig = () => {
   const connectionString = process.env[DATABASE_URL_ENV];
+
   if (!connectionString) {
     throw new Error(`${DATABASE_URL_ENV} is not set`);
   }
+
   const applicationName = new URL(connectionString).searchParams.get(
     "application_name"
   );
+
   if (!applicationName) {
     throw new Error(
       `${DATABASE_URL_ENV} must set application_name so database activity stays attributable`
     );
   }
+
   return { applicationName, connectionString };
 };
 
@@ -53,19 +60,23 @@ export const getConnection = (): Connection => {
   if (connection) {
     return connection;
   }
+
   const { applicationName, connectionString } = readConfig();
+
   const pool = new Pool({
     application_name: applicationName,
     connectionString,
     idleTimeoutMillis: IDLE_TIMEOUT_MS,
     max: POOL_MAX,
   });
+
   // An idle client that errors (the pooler or Postgres dropped it) is removed
   // from the pool; without a listener the error would crash the process.
-  pool.on("error", () => undefined);
+  pool.on("error", () => {});
   // A no-op off Vercel.
   attachDatabasePool(pool);
   connection = { applicationName, db: drizzle({ client: pool, schema }), pool };
+
   return connection;
 };
 

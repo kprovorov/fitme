@@ -1,19 +1,20 @@
 import { useEffect, useRef, useState } from "react";
-import {
-  type NativeScrollEvent,
-  type NativeSyntheticEvent,
-  ScrollView,
-  type ScrollViewInstance,
-  useWindowDimensions,
-  View,
+import { ScrollView, useWindowDimensions, View } from "react-native";
+import type {
+  NativeScrollEvent,
+  NativeSyntheticEvent,
+  ScrollViewInstance,
 } from "react-native";
+
 import type { FullPlan } from "~/hooks/queries/plans";
 import { useOpenWorkoutSessionQuery } from "~/hooks/queries/workout-sessions";
 import { cn } from "~/lib/utils";
+
 import WorkoutCarouselCard from "./workout-carousel-card";
 
 /** The `sm` spacing token: each card's inset from the screen's edges. */
 const CARD_INSET = 16;
+
 /** The `xs` spacing token: the gap between cards, where the next one peeks. */
 const CARD_GAP = 8;
 
@@ -33,15 +34,19 @@ export default function WorkoutCarousel({ plan }: WorkoutCarouselProps) {
   const [page, setPage] = useState(0);
   const scrollView = useRef<ScrollViewInstance>(null);
   const { data: openSession } = useOpenWorkoutSessionQuery();
+
   // The open Workout Session's Workout, if it's one of this Plan's.
   const openWorkoutId =
     plan.workouts.find(({ id }) => id === openSession?.workout?.id)?.id ?? null;
+
   const isOpen = (workoutId: string) => Number(workoutId === openWorkoutId);
+
   // A copy: plan.workouts is the query cache's array, never sorted in place.
   // The rotation's first Workout is the Next one, after the open session's.
   const workouts = [...plan.workouts].sort(
     (a, b) => isOpen(b.id) - isOpen(a.id) || a.order - b.order
   );
+
   // A session opened from a later card moves that card to the front: scroll
   // back to it, or the card now at the old offset shows instead.
   useEffect(() => {

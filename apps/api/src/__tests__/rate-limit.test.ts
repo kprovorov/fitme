@@ -1,6 +1,9 @@
-import { memoryRateLimiter, type RateLimitResult } from "@fitme/rate-limit";
+import { memoryRateLimiter } from "@fitme/rate-limit";
+import type { RateLimitResult } from "@fitme/rate-limit";
 import { describe, expect, it, vi } from "vitest";
-import { type RateLimiter, rateLimiterFromEnv } from "../rate-limit.js";
+
+import { rateLimiterFromEnv } from "../rate-limit.js";
+import type { RateLimiter } from "../rate-limit.js";
 import { fakeServices, signedInAs, testApp } from "../test/harness.js";
 
 const MINUTE_MS = 60_000;
@@ -8,6 +11,7 @@ const MINUTE_MS = 60_000;
 /** A clock tests move by hand. */
 const fakeClock = (start = Date.UTC(2026, 9, 23)) => {
   let time = start;
+
   return {
     advance: (ms: number) => {
       time += ms;
@@ -36,38 +40,45 @@ const requestTimes = async (
   headers: Record<string, string> = signedInAs("user_alice")
 ) => {
   const statuses: number[] = [];
+
   for (let i = 0; i < times; i += 1) {
     // biome-ignore lint/performance/noAwaitInLoops: one at a time, so the statuses come back in the order they were counted
     statuses.push((await app.request(path, { headers })).status);
   }
+
   return statuses;
 };
 
 describe("rate limiting", () => {
-  it("answers a User's 301st request within a minute with 429 and Retry-After", {
-    timeout: 30_000,
-  }, async () => {
-    const clock = fakeClock();
-    const { app, reported } = limitedApp(clock, 300);
+  it(
+    "answers a User's 301st request within a minute with 429 and Retry-After",
+    {
+      timeout: 30_000,
+    },
+    async () => {
+      const clock = fakeClock();
+      const { app, reported } = limitedApp(clock, 300);
 
-    const statuses = await requestTimes(app, 300);
-    clock.advance(45_000);
-    const response = await app.request("/v1/profile", {
-      headers: signedInAs("user_alice"),
-    });
+      const statuses = await requestTimes(app, 300);
+      clock.advance(45_000);
 
-    expect(statuses).toEqual(new Array(300).fill(200));
-    expect(response.status).toBe(429);
-    expect(response.headers.get("Retry-After")).toBe("15");
-    expect(await response.json()).toEqual({
-      error: {
-        code: "rate_limited",
-        message:
-          "Too many requests, retry after the Retry-After header's seconds",
-      },
-    });
-    expect(reported).toEqual([]);
-  });
+      const response = await app.request("/v1/profile", {
+        headers: signedInAs("user_alice"),
+      });
+
+      expect(statuses).toEqual(new Array(300).fill(200));
+      expect(response.status).toBe(429);
+      expect(response.headers.get("Retry-After")).toBe("15");
+      await expect(response.json()).resolves.toEqual({
+        error: {
+          code: "rate_limited",
+          message:
+            "Too many requests, retry after the Retry-After header's seconds",
+        },
+      });
+      expect(reported).toEqual([]);
+    }
+  );
 
   it("resets the window after a minute", async () => {
     const clock = fakeClock();
@@ -76,13 +87,14 @@ describe("rate limiting", () => {
     await requestTimes(app, 4);
     clock.advance(MINUTE_MS);
 
-    expect(await requestTimes(app, 3)).toEqual([200, 200, 200]);
+    await expect(requestTimes(app, 3)).resolves.toEqual([200, 200, 200]);
   });
 
   it("counts each User separately", async () => {
     const { app } = limitedApp();
 
     await requestTimes(app, 4);
+
     const response = await app.request("/v1/profile", {
       headers: signedInAs("user_bob"),
     });
@@ -93,7 +105,10 @@ describe("rate limiting", () => {
   it("counts requests to unknown routes too", async () => {
     const { app } = limitedApp();
 
-    expect(await requestTimes(app, 3, "/nope")).toEqual([404, 404, 404]);
+    await expect(requestTimes(app, 3, "/nope")).resolves.toEqual([
+      404, 404, 404,
+    ]);
+
     const response = await app.request("/v1/profile", {
       headers: signedInAs("user_alice"),
     });
@@ -110,11 +125,13 @@ describe("rate limiting", () => {
     const limit = vi.fn<RateLimiter["limit"]>(() =>
       Promise.resolve({ allowed: false, retryAfterSeconds: 60 })
     );
+
     const { app } = testApp({ rateLimiter: { limit } });
 
     const withToken = await app.request(path, {
       headers: signedInAs("user_alice"),
     });
+
     const withoutToken = await app.request(path);
 
     expect(withToken.status).toBe(200);
@@ -126,6 +143,7 @@ describe("rate limiting", () => {
     const limit = vi.fn<RateLimiter["limit"]>(() =>
       Promise.resolve({ allowed: true })
     );
+
     const { app } = testApp({ rateLimiter: { limit } });
 
     const response = await app.request("/v1/profile");
@@ -138,6 +156,7 @@ describe("rate limiting", () => {
     const limit = vi.fn<RateLimiter["limit"]>(() =>
       Promise.resolve({ allowed: true })
     );
+
     const { app } = testApp({ rateLimiter: { limit }, services });
 
     await app.request("/v1/profile", { headers: signedInAs("user_alice") });
@@ -147,6 +166,7 @@ describe("rate limiting", () => {
 
   it("serves the request and reports once when the limiter throws", async () => {
     const outage = new Error("Upstash is down");
+
     const { app, reported } = testApp({
       rateLimiter: { limit: () => Promise.reject(outage) },
       services,
@@ -163,22 +183,26 @@ describe("rate limiting", () => {
 
   it("serves the request and reports once when the limiter takes over 1 s", async () => {
     vi.useFakeTimers();
+
     const { app, reported } = testApp({
-      rateLimiter: { limit: () => new Promise(() => undefined) },
+      rateLimiter: { limit: () => new Promise(() => {}) },
       services,
     });
 
     let settled = false;
+
     const pending = Promise.resolve(
       app.request("/v1/profile", { headers: signedInAs("user_alice") })
     ).finally(() => {
       settled = true;
     });
+
     // Token verification is async, so the limiter's timer starts some ticks in.
     while (!settled) {
       // biome-ignore lint/performance/noAwaitInLoops: each step lets the request reach its next timer
       await vi.advanceTimersByTimeAsync(100);
     }
+
     const response = await pending;
     vi.useRealTimers();
 
@@ -190,11 +214,12 @@ describe("rate limiting", () => {
   });
 });
 
-describe("rateLimiterFromEnv", () => {
+describe(rateLimiterFromEnv, () => {
   it("limits each User to 300 a minute by default", async () => {
     const limiter = rateLimiterFromEnv({ NODE_ENV: "development" });
 
     const results: RateLimitResult[] = [];
+
     for (let i = 0; i < 301; i += 1) {
       // biome-ignore lint/performance/noAwaitInLoops: counted in order
       results.push(await limiter.limit("user:user_alice"));
@@ -217,7 +242,7 @@ describe("rateLimiterFromEnv", () => {
     await limiter.limit("user:user_alice");
     await limiter.limit("user:user_alice");
 
-    expect(await limiter.limit("user:user_alice")).toEqual({
+    await expect(limiter.limit("user:user_alice")).resolves.toEqual({
       allowed: false,
       retryAfterSeconds: 10,
     });
@@ -259,7 +284,9 @@ describe("rateLimiterFromEnv", () => {
   it("uses the in-memory limiter outside production without Upstash", async () => {
     const limiter = rateLimiterFromEnv({ NODE_ENV: "development" });
 
-    expect(await limiter.limit("user:user_alice")).toEqual({ allowed: true });
+    await expect(limiter.limit("user:user_alice")).resolves.toEqual({
+      allowed: true,
+    });
   });
 
   it("uses the in-memory limiter on a Vercel preview without Upstash", async () => {
@@ -268,6 +295,8 @@ describe("rateLimiterFromEnv", () => {
       VERCEL_ENV: "preview",
     });
 
-    expect(await limiter.limit("user:user_alice")).toEqual({ allowed: true });
+    await expect(limiter.limit("user:user_alice")).resolves.toEqual({
+      allowed: true,
+    });
   });
 });

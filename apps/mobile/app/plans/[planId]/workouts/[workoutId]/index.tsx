@@ -3,13 +3,10 @@ import { formatNumber } from "@fitme/i18n";
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 import { useCallback, useState } from "react";
 import { useTranslation } from "react-i18next";
-import {
-  ActivityIndicator,
-  type LayoutChangeEvent,
-  ScrollView,
-  View,
-} from "react-native";
+import { ActivityIndicator, ScrollView, View } from "react-native";
+import type { LayoutChangeEvent } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+
 import { Button } from "~/components/ui/button";
 import { Card } from "~/components/ui/card";
 import { Text } from "~/components/ui/text";
@@ -18,11 +15,8 @@ import PlannedWorkoutExerciseCard from "~/components/views/planned-workout-exerc
 import { BlockedStart } from "~/components/workout-sessions/blocked-start";
 import { StatRow } from "~/components/workout-sessions/workout-session-stats";
 import { useExercises } from "~/hooks/queries/library";
-import {
-  type FullPlan,
-  type PlanWorkout,
-  usePlanQuery,
-} from "~/hooks/queries/plans";
+import { usePlanQuery } from "~/hooks/queries/plans";
+import type { FullPlan, PlanWorkout } from "~/hooks/queries/plans";
 import {
   useOpenWorkoutSessionQuery,
   useOwnOpenWorkoutSession,
@@ -61,22 +55,27 @@ function WorkoutAction({
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const { t } = useTranslation();
+
   const openSession = useCallback(
     (sessionId: string) => {
       router.replace(workoutSessionPath(planId, workoutId, sessionId));
     },
     [router, planId, workoutId]
   );
+
   const { blockedBy, startWorkout, isStarting } = useStartWorkout(
     workoutId,
     openSession
   );
+
   const ownOpenSession = useOwnOpenWorkoutSession(workoutId);
+
   const continueWorkout = useCallback(() => {
     if (ownOpenSession) {
       openSession(ownOpenSession.id);
     }
   }, [openSession, ownOpenSession]);
+
   const continueBlocking = useCallback(() => {
     if (blockedBy) {
       router.replace(openSessionPath(blockedBy));
@@ -95,6 +94,7 @@ function WorkoutAction({
         />
       );
     }
+
     if (blockedBy) {
       return (
         <BlockedStart
@@ -104,6 +104,7 @@ function WorkoutAction({
         />
       );
     }
+
     return (
       <Button
         icon="arrow.right"
@@ -122,10 +123,10 @@ function WorkoutAction({
       // Blocked, it's a bottom bar: its caption and the disabled Start would
       // be unreadable over the content scrolling under them.
       className={cn(
-        "absolute inset-x-0 bottom-0 px-sm",
+        "px-sm absolute inset-x-0 bottom-0",
         blockedBy &&
           !ownOpenSession &&
-          "border-border border-hairline border-t bg-background pt-sm"
+          "border-border border-hairline bg-background pt-sm border-t"
       )}
       onLayout={onLayout}
       pointerEvents="box-none"
@@ -150,13 +151,16 @@ function WorkoutContent({
   const { t } = useTranslation();
   const i18n = useI18n();
   const exercises = [...workout.exercises].sort((a, b) => a.order - b.order);
+
   const shownBySlug = useExercises(
     exercises.map(({ exercise_slug }) => exercise_slug)
   );
+
   const setCount = exercises.reduce(
     (total, exercise) => total + exercise.sets.length,
     0
   );
+
   // The Plan's Workout duration, left out while it's unset (ADR 0017).
   const duration = plan.workout_duration;
 
@@ -197,7 +201,7 @@ function WorkoutContent({
           />
         ))
       ) : (
-        <Text className="px-sm text-center text-muted-foreground">
+        <Text className="px-sm text-muted-foreground text-center">
           {t("plannedWorkout.noExercises")}
         </Text>
       )}
@@ -215,10 +219,12 @@ export default function WorkoutScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const { t } = useTranslation();
+
   const { planId, workoutId } = useLocalSearchParams<{
     planId: string;
     workoutId: string;
   }>();
+
   // `null` once the Plan is gone (deleted, missing or never the User's); a
   // failed refresh keeps the Plan read last.
   const {
@@ -227,11 +233,13 @@ export default function WorkoutScreen() {
     isError,
     refetch,
   } = usePlanQuery({ variables: { id: planId } });
+
   // `null` once the Workout is gone too: replaced by a Plan edit, so the
   // Plan no longer lists it.
   const workout = plan
     ? (plan.workouts.find(({ id }) => id === workoutId) ?? null)
     : plan;
+
   // Read alongside the Workout, so Start shows blocked from the first frame.
   // Once answered, a failed refresh keeps that answer; with no answer at all
   // the screen can't say whether Start is blocked, so it's the load error.
@@ -241,10 +249,12 @@ export default function WorkoutScreen() {
     isError: isOpenSessionError,
     refetch: refetchOpenSession,
   } = useOpenWorkoutSessionQuery();
+
   const isOpenSessionKnown = openSession !== undefined;
   const openSessionFailed = isOpenSessionError && !isOpenSessionKnown;
   // The pinned action's height, safe area included: the content ends above it.
   const [actionHeight, setActionHeight] = useState(0);
+
   const measureAction = useCallback((event: LayoutChangeEvent) => {
     setActionHeight(event.nativeEvent.layout.height);
   }, []);
@@ -253,6 +263,7 @@ export default function WorkoutScreen() {
     refetch();
     refetchOpenSession();
   }, [refetch, refetchOpenSession]);
+
   const goBack = useCallback(() => {
     if (router.canGoBack()) {
       router.back();
@@ -260,6 +271,7 @@ export default function WorkoutScreen() {
       router.replace("/");
     }
   }, [router]);
+
   // The Plan editor, opened with this Workout's editor already pushed.
   const editWorkout = useCallback(() => {
     router.push({
@@ -276,11 +288,12 @@ export default function WorkoutScreen() {
     if (plan && shownWorkout) {
       return <WorkoutContent plan={plan} workout={shownWorkout} />;
     }
+
     // Replaced by a Plan edit, or its Plan deleted.
     if (workout === null) {
       return (
-        <View className="items-center gap-sm pt-lg">
-          <Text className="text-center text-muted-foreground">
+        <View className="gap-sm pt-lg items-center">
+          <Text className="text-muted-foreground text-center">
             {t("plannedWorkout.gone")}
           </Text>
           <Button
@@ -292,13 +305,15 @@ export default function WorkoutScreen() {
         </View>
       );
     }
+
     if (isError || openSessionFailed) {
       const waitSeconds =
         rateLimitedFor(isError ? planError : null) ??
         (openSessionFailed ? rateLimitedFor(openSessionError) : null);
+
       return (
-        <View className="items-center gap-sm pt-lg">
-          <Text className="text-center text-muted-foreground">
+        <View className="gap-sm pt-lg items-center">
+          <Text className="text-muted-foreground text-center">
             {waitSeconds === null
               ? t("plannedWorkout.loadError")
               : t("common.rateLimited", { seconds: waitSeconds })}
@@ -312,8 +327,9 @@ export default function WorkoutScreen() {
         </View>
       );
     }
+
     return (
-      <View className="items-center pt-lg" testID="workout-loading">
+      <View className="pt-lg items-center" testID="workout-loading">
         <ActivityIndicator colorClassName="accent-foreground" />
       </View>
     );

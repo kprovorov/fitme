@@ -1,19 +1,13 @@
-import {
-  experienceLevels,
-  type Goal,
-  goals,
-  type Place,
-  places,
-} from "@fitme/core";
+import { experienceLevels, goals, places } from "@fitme/core";
+import type { Goal, Place } from "@fitme/core";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { router, Stack } from "expo-router";
 import type { TFunction } from "i18next";
 import { useCallback } from "react";
-import {
-  Controller,
-  type ControllerFieldState,
-  type ControllerRenderProps,
-  useForm,
+import { Controller, useForm } from "react-hook-form";
+import type {
+  ControllerFieldState,
+  ControllerRenderProps,
 } from "react-hook-form";
 import { useTranslation } from "react-i18next";
 import { Pressable, View } from "react-native";
@@ -21,6 +15,7 @@ import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import type { SFSymbol } from "sf-symbols-typescript";
 import { z } from "zod";
+
 import { goalSymbol } from "~/components/plans/plan-symbols";
 import { SymbolImage } from "~/components/symbol-image";
 import { Badge } from "~/components/ui/badge";
@@ -42,6 +37,7 @@ import { cn } from "~/lib/utils";
 // language, as the User would write it; Arnold answers in it.
 function buildPlanMessage(data: PlanFormValues, t: TFunction): string {
   const labels = choiceLabels(t);
+
   const lines = [
     t("planner.message.intro"),
     t("planner.message.goal", { goal: labels.goal(data.goal) }),
@@ -52,9 +48,11 @@ function buildPlanMessage(data: PlanFormValues, t: TFunction): string {
     t("planner.message.place", { place: labels.place(data.place) }),
     t("planner.message.frequency", { count: data.frequency }),
   ];
+
   if (data.note) {
     lines.push(t("planner.message.note", { note: data.note }));
   }
+
   return lines.join("\n");
 }
 
@@ -81,7 +79,7 @@ const goalOptions = [
 ] as const satisfies readonly Goal[];
 
 // Home workouts aren't planned yet.
-const soonPlaces: readonly Place[] = ["home"];
+const soonPlaces: readonly Place[] = new Set(["home"]);
 
 const frequencyOptions = [1, 2, 3, 4, 5, 6, 7];
 
@@ -151,7 +149,8 @@ function PlaceOptions({ field: { onChange, value } }: PlanFieldProps<"place">) {
   return (
     <View className="flex flex-row items-stretch justify-stretch gap-4">
       {places.map((option) => {
-        const soon = soonPlaces.includes(option);
+        const soon = soonPlaces.has(option);
+
         return (
           <RadioGroupItemWithLabel
             badge={soon ? t("planner.place.soon") : undefined}
@@ -193,6 +192,7 @@ function NoteField({
   fieldState: { error },
 }: PlanFieldProps<"note">) {
   const { t } = useTranslation();
+
   return (
     <Textarea
       className="h-48"
@@ -250,7 +250,7 @@ export default function PlannerScreen() {
         showsVerticalScrollIndicator={false}
       >
         <VStack
-          className="items-center justify-center gap-4 p-md"
+          className="p-md items-center justify-center gap-4"
           style={{ paddingBottom: insets.bottom }}
         >
           <VStack className="w-full items-stretch">
@@ -395,12 +395,12 @@ function RadioDot({
   return (
     <View
       className={cn(
-        "aspect-square h-5 w-5 items-center justify-center rounded-full border-2 border-primary",
+        "border-primary aspect-square h-5 w-5 items-center justify-center rounded-full border-2",
         disabled && "border-muted"
       )}
     >
       {selected ? (
-        <View className="aspect-square h-[10px] w-[10px] rounded-full bg-primary" />
+        <View className="bg-primary aspect-square h-[10px] w-[10px] rounded-full" />
       ) : null}
     </View>
   );
@@ -433,7 +433,7 @@ function RadioGroupItemWithLabel({
 
   return (
     <Pressable
-      className={`flex flex-1 flex-row items-center justify-start gap-2 rounded-lg border-2 bg-card p-4 ${
+      className={`bg-card flex flex-1 flex-row items-center justify-start gap-2 rounded-lg border-2 p-4 ${
         isSelected ? "border-primary" : "border-transparent"
       } ${disabled ? "opacity-50" : ""}`}
       onPress={handlePress}
@@ -487,7 +487,7 @@ function RadioGroupItemTileWithIcon({
 
   return (
     <Pressable
-      className={`flex flex-1 flex-col items-center justify-start gap-2 rounded-lg border-2 bg-card p-4 ${
+      className={`bg-card flex flex-1 flex-col items-center justify-start gap-2 rounded-lg border-2 p-4 ${
         isSelected ? "border-primary" : "border-transparent"
       } ${disabled ? "opacity-50" : ""}`}
       onPress={handlePress}
@@ -541,7 +541,7 @@ function RadioGroupItemTile({
 
   return (
     <Pressable
-      className={`flex flex-1 flex-col items-center justify-start gap-2 rounded-lg border-2 bg-card py-1 ${
+      className={`bg-card flex flex-1 flex-col items-center justify-start gap-2 rounded-lg border-2 py-1 ${
         isSelected ? "border-primary" : "border-transparent"
       } ${disabled ? "opacity-50" : ""}`}
       onPress={handlePress}

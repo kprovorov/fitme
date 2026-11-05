@@ -1,9 +1,7 @@
-import {
-  type AppLanguage,
-  appLanguages,
-  defaultAppLanguage,
-} from "@fitme/core/models";
+import { appLanguages, defaultAppLanguage } from "@fitme/core/models";
+import type { AppLanguage } from "@fitme/core/models";
 import { createRoute, OpenAPIHono, z } from "@hono/zod-openapi";
+
 import {
   Equipment,
   ErrorResponse,
@@ -21,6 +19,7 @@ const DEFAULT_LIMIT = 20;
 const MAX_LIMIT = 50;
 const MAX_SEARCH = 100;
 const MAX_SLUGS = 40;
+
 const LIST_PARAMETERS = [
   "equipment",
   "limit",
@@ -136,9 +135,11 @@ const listExercises = createRoute({
             path: ["muscle_groups"],
           });
         }
+
         if (query.slugs === undefined) {
           return;
         }
+
         for (const name of LIST_PARAMETERS) {
           if (query[name] !== undefined) {
             ctx.addIssue({
@@ -203,13 +204,16 @@ const indexLanguage = (served: ServedLanguage) => {
   const bySlug = new Map(
     served.exercises.map((exercise) => [exercise.slug, exercise])
   );
+
   // parsing strips every field ExerciseSummary doesn't define
   const summaries = served.exercises.map((exercise) =>
     ExerciseSummary.parse(exercise)
   );
+
   const summaryBySlug = new Map(
     summaries.map((summary) => [summary.slug, summary])
   );
+
   return { bySlug, searchNames: served.searchNames, summaries, summaryBySlug };
 };
 
@@ -233,13 +237,18 @@ export const exerciseRoutes = (library: ServedLibrary) => {
         search,
         slugs,
       } = c.req.valid("query");
+
       const { searchNames, summaries, summaryBySlug } = indexes[asked];
+
       if (slugs !== undefined) {
         const data = slugs.flatMap((slug) => summaryBySlug.get(slug) ?? []);
         const missing = slugs.filter((slug) => !summaryBySlug.has(slug));
+
         return c.json({ data, missing }, 200);
       }
+
       const term = search?.toLowerCase();
+
       const matches = summaries.filter(
         (summary, i) =>
           (!term || searchNames[i]?.some((name) => name.includes(term))) &&
@@ -250,8 +259,10 @@ export const exerciseRoutes = (library: ServedLibrary) => {
           (!equipment ||
             equipment.some((item) => summary.equipment.includes(item)))
       );
+
       const data = matches.slice(offset, offset + limit);
       const total = matches.length;
+
       return c.json(
         { data, hasMore: offset + data.length < total, total },
         200
@@ -260,12 +271,14 @@ export const exerciseRoutes = (library: ServedLibrary) => {
     .openapi(getExercise, (c) => {
       const { language: asked = defaultAppLanguage } = c.req.valid("query");
       const exercise = indexes[asked].bySlug.get(c.req.valid("param").slug);
+
       if (!exercise) {
         return c.json(
           { error: { code: "not_found", message: "Exercise not found" } },
           404
         );
       }
+
       return c.json(exercise, 200);
     });
 };

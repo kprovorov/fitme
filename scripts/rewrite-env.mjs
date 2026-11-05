@@ -19,10 +19,13 @@ export const parseStackOutput = (output) => {
     .split("\n")
     .reverse()
     .find((line) => line.startsWith("{"));
+
   if (!json) {
     throw new Error("no JSON in the `supabase start` output");
   }
+
   const stack = JSON.parse(json);
+
   return {
     mcpUrl: stack.env.MCP_URL,
     poolerPort: stack.endpoints["pooler.sql"].port,
@@ -33,17 +36,21 @@ export const parseStackOutput = (output) => {
 export const rewriteEnvText = (text, { poolerPort }) =>
   text.replace(LOCAL_POOLER_URL, `$1${poolerPort}`);
 
-const envFiles = function* (checkout) {
+const envFiles = function* envFiles(checkout) {
   for (const parent of ["apps", "packages"]) {
     const parentDir = path.join(checkout, parent);
+
     if (!fs.existsSync(parentDir)) {
       continue;
     }
+
     for (const dir of fs.readdirSync(parentDir)) {
       const full = path.join(parentDir, dir);
+
       if (!fs.existsSync(path.join(full, "package.json"))) {
         continue;
       }
+
       for (const name of fs.readdirSync(full)) {
         if (name.startsWith(".env") && !name.endsWith(".example")) {
           yield path.join(full, name);
@@ -58,12 +65,16 @@ const main = ([checkout, output]) => {
     console.error(
       "Usage: node scripts/rewrite-env.mjs <checkout> <supabase start output>"
     );
+
     return 2;
   }
+
   const stack = parseStackOutput(output);
+
   for (const file of envFiles(checkout)) {
-    const before = fs.readFileSync(file, "utf8");
+    const before = fs.readFileSync(file, "utf-8");
     const after = rewriteEnvText(before, stack);
+
     if (after !== before) {
       fs.writeFileSync(file, after);
       console.error(
@@ -71,10 +82,12 @@ const main = ([checkout, output]) => {
       );
     }
   }
+
   console.log(stack.mcpUrl ?? "");
+
   return 0;
 };
 
-if (process.argv[1] === fileURLToPath(import.meta.url)) {
+if (process.argv[1] === import.meta.filename) {
   process.exitCode = main(process.argv.slice(2));
 }

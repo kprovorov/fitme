@@ -11,20 +11,22 @@ import { PortalHost } from "@rn-primitives/portal";
 import * as Sentry from "@sentry/react-native";
 import "expo-dev-client";
 import { useFonts } from "expo-font";
+import { Stack } from "expo-router";
+import { getFocusedRouteNameFromRoute } from "expo-router/react-navigation";
 import * as SplashScreen from "expo-splash-screen";
 import { StatusBar } from "expo-status-bar";
 import { useEffect } from "react";
 import { useTranslation } from "react-i18next";
+import "react-native-reanimated";
 import { Platform } from "react-native";
 import Purchases from "react-native-purchases";
-import "react-native-reanimated";
 import { Uniwind } from "uniwind";
+
 import MinimumVersionGate from "~/components/minimum-version-gate";
+
+import "../global.css";
 import Providers from "~/components/providers";
 import { PlanUpdateSheetHost } from "~/components/workout-sessions/plan-update-sheet";
-import "../global.css";
-import { Stack } from "expo-router";
-import { getFocusedRouteNameFromRoute } from "expo-router/react-navigation";
 import { SCROLL_EDGE_EFFECTS } from "~/lib/constants";
 import { useAppLanguageSync } from "~/lib/i18n";
 import { isTracedRequestUrl, templateRequestSpans } from "~/lib/request-spans";
@@ -90,6 +92,7 @@ if (!IS_E2E) {
     ios: process.env.EXPO_PUBLIC_REVENUECAT_IOS_API_KEY,
     web: process.env.EXPO_PUBLIC_REVENUECAT_WEB_API_KEY,
   });
+
   Purchases.configure({ apiKey: revenueCatApiKey ?? "" });
 }
 
@@ -97,6 +100,7 @@ function RootLayout() {
   useAppLanguageSync();
   // Re-renders on a language change, so the back button titles follow it.
   useTranslation();
+
   const [loaded] = useFonts({
     NunitoSans_400Regular,
     NunitoSans_600SemiBold,

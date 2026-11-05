@@ -1,8 +1,10 @@
 import { isClerkAPIResponseError } from "@clerk/expo";
+
 import { getClerkErrorMessage } from "~/lib/clerk";
 import { i18n } from "~/lib/i18n";
 
 const NETWORK_FAILURE = /network|fetch|connection|offline/i;
+
 export function getAuthErrorMessage(error: unknown): string {
   if (
     isClerkAPIResponseError(error) &&
@@ -14,8 +16,10 @@ export function getAuthErrorMessage(error: unknown): string {
   ) {
     return i18n.t("auth.errors.credentials");
   }
+
   if (error instanceof TypeError && NETWORK_FAILURE.test(error.message)) {
     return i18n.t("auth.errors.connection");
   }
+
   return getClerkErrorMessage(error);
 }

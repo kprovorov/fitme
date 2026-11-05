@@ -1,5 +1,7 @@
-import { type Hook, z } from "@hono/zod-openapi";
+import { z } from "@hono/zod-openapi";
+import type { Hook } from "@hono/zod-openapi";
 import type { Env } from "hono";
+
 import { BEARER_AUTH } from "../auth";
 import { ErrorResponse } from "../schemas";
 
@@ -33,6 +35,7 @@ export const invalidRequest: Hook<unknown, Env, string, unknown> = (
     const message = result.error.issues
       .map((issue) => `${issue.path.join(".")}: ${issue.message}`)
       .join("; ");
+
     return c.json({ error: { code: "invalid_request", message } }, 400);
   }
 };

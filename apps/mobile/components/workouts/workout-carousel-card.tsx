@@ -5,6 +5,7 @@ import { useRouter } from "expo-router";
 import { useCallback, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { StyleSheet, useWindowDimensions, View } from "react-native";
+
 import { useCovers, useExercises } from "~/hooks/queries/library";
 import type { PlanWorkout } from "~/hooks/queries/plans";
 import { useOwnOpenWorkoutSession } from "~/hooks/queries/workout-sessions";
@@ -16,6 +17,7 @@ import {
 import { useChoiceLabels } from "~/lib/choices";
 import { sizedThumbnailUrl } from "~/lib/exercise-media";
 import { useI18n } from "~/lib/i18n";
+
 import { SymbolImage } from "../symbol-image";
 import { Badge } from "../ui/badge";
 import { Button } from "../ui/button";
@@ -63,13 +65,17 @@ function WorkoutCover({
   const covers = useCovers();
   const [failedUrl, setFailedUrl] = useState<string>();
   const imageUrl = coverId ? covers.get(coverId)?.image_url : undefined;
+
   const uri = imageUrl
     ? sizedThumbnailUrl(imageUrl, Math.round(width), CARD_HEIGHT)
     : undefined;
+
   const onError = useCallback(() => setFailedUrl(uri), [uri]);
+
   if (!uri || failedUrl === uri) {
     return null;
   }
+
   return (
     <Image
       contentFit="cover"
@@ -101,9 +107,11 @@ export default function WorkoutCarouselCard({
   const labels = useChoiceLabels();
   const { fontScale } = useWindowDimensions();
   const stacked = fontScale > STACKED_FONT_SCALE;
+
   const openSession = (sessionId: string) => {
     router.push(workoutSessionPath(planId, workout.id, sessionId));
   };
+
   // Another Workout's open session still lets Start ask the API, whose 409
   // alerts "Finish <Workout> first" with a way into it (that session's own
   // card reads Continue).
@@ -112,7 +120,9 @@ export default function WorkoutCarouselCard({
     openSession,
     { onContinueBlocking: (open) => router.push(openSessionPath(open)) }
   );
+
   const ownOpenSession = useOwnOpenWorkoutSession(workout.id);
+
   const continueWorkout = () => {
     if (ownOpenSession) {
       openSession(ownOpenSession.id);
@@ -120,17 +130,21 @@ export default function WorkoutCarouselCard({
   };
 
   const exercises = [...workout.exercises].sort((a, b) => a.order - b.order);
+
   const shownBySlug = useExercises(
     exercises.map(({ exercise_slug }) => exercise_slug)
   );
+
   // Ranked like the Cover picker ranks them; only Exercises the Library has
   // answered for count, so no badges show before it has.
   const muscleGroups = rankMuscleGroups({
     exercises: exercises.flatMap(({ exercise_slug }) => {
       const shown = shownBySlug[exercise_slug];
+
       return shown?.isResolved ? [{ muscleGroups: shown.muscle_groups }] : [];
     }),
   });
+
   const hiddenGroups = muscleGroups.length - SHOWN_MUSCLE_GROUPS;
 
   const openPreview = () => {
@@ -149,15 +163,15 @@ export default function WorkoutCarouselCard({
             testID={`workout-cover-${workout.id}`}
             width={width}
           />
-          <View className="absolute inset-x-0 top-1/2 bottom-0 bg-linear-to-b from-transparent to-50% to-card/90" />
+          <View className="to-card/90 absolute inset-x-0 top-1/2 bottom-0 bg-linear-to-b from-transparent to-50%" />
         </>
       }
       className="min-h-100 flex-1"
       padding="none"
       testID={`workout-card-${workout.id}`}
     >
-      <View className="flex-1 gap-xs p-sm">
-        <View className="flex-row flex-wrap justify-end gap-xs">
+      <View className="gap-xs p-sm flex-1">
+        <View className="gap-xs flex-row flex-wrap justify-end">
           {muscleGroups.slice(0, SHOWN_MUSCLE_GROUPS).map((group) => (
             <Badge key={group} variant="secondary">
               <Text>{labels.muscleGroup(group)}</Text>
@@ -177,9 +191,9 @@ export default function WorkoutCarouselCard({
             </Badge>
           ) : null}
         </View>
-        <View className="flex-1 justify-end gap-xs">
+        <View className="gap-xs flex-1 justify-end">
           <H4 className="text-primary">{workout.name}</H4>
-          <View className="flex-row flex-wrap gap-x-sm">
+          <View className="gap-x-sm flex-row flex-wrap">
             <View accessible className="flex-row items-center gap-1 py-0.5">
               <SymbolImage
                 className="text-footnote-emphasized text-foreground"
@@ -213,7 +227,7 @@ export default function WorkoutCarouselCard({
           </View>
           {/* Stacked, Start (the main action) goes on top. */}
           <View
-            className={stacked ? "flex-col-reverse gap-xs" : "flex-row gap-sm"}
+            className={stacked ? "gap-xs flex-col-reverse" : "gap-sm flex-row"}
           >
             <View className={stacked ? undefined : "flex-1"}>
               <Button

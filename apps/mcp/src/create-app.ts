@@ -5,19 +5,22 @@ import {
   observeHono,
   reportError as reportToObservability,
 } from "@fitme/observability/node";
-import { Hono, type MiddlewareHandler } from "hono";
+import { Hono } from "hono";
+import type { MiddlewareHandler } from "hono";
 import { cors } from "hono/cors";
 import { HTTPException } from "hono/http-exception";
 import { logger } from "hono/logger";
+
 import {
-  type AuthVariables,
   PROTECTED_RESOURCE_METADATA_PATH,
   protectedResourceMetadata,
   requireBearerToken,
   requireClerkUser,
   requireConfig,
 } from "./auth.js";
-import { createToolContext, type ReportError } from "./context.js";
+import type { AuthVariables } from "./auth.js";
+import { createToolContext } from "./context.js";
+import type { ReportError } from "./context.js";
 import type { LibraryFactory } from "./library.js";
 import { answerUnsupportedProtocolVersion } from "./protocol-version.js";
 import { createMcpServer } from "./server.js";
@@ -57,8 +60,10 @@ export interface CreateAppOptions {
 const refuseNonPost: MiddlewareHandler = async (c, next) => {
   if (c.req.method === "POST") {
     await next();
+
     return;
   }
+
   return c.json(
     {
       error: {
@@ -82,9 +87,11 @@ export function createApp({
 
   // First, so the request span covers every other middleware
   app.use(observeHono(app));
+
   if (logRequests) {
     app.use(logger());
   }
+
   app.use(
     cors({
       allowHeaders: [
@@ -106,6 +113,7 @@ export function createApp({
   // while it's unset.
   app.get("/.well-known/openai-apps-challenge", (c) => {
     const challenge = process.env.OPENAI_APPS_CHALLENGE?.trim();
+
     return challenge ? c.text(challenge) : c.notFound();
   });
 
@@ -134,6 +142,7 @@ export function createApp({
       reportError,
       user: c.get("clerkUser"),
     });
+
     return streamableHttpHandler(() => createMcpServer({ context }))(c);
   });
 
@@ -144,7 +153,9 @@ export function createApp({
         error.status
       );
     }
+
     await reportError(error);
+
     return c.json(
       { error: { code: "internal_error", message: "Internal server error" } },
       500

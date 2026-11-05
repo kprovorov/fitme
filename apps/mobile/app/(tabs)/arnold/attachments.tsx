@@ -6,6 +6,7 @@ import { useTranslation } from "react-i18next";
 import { Pressable, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import type { SFSymbol } from "sf-symbols-typescript";
+
 import { AndroidGrabber } from "@/components/grabber";
 import { SymbolImage } from "@/components/symbol-image";
 import { GLASS_ENABLED } from "~/components/ui/swift-ui";
@@ -37,7 +38,7 @@ function AttachmentButton({
     <Pressable
       accessibilityRole="button"
       className={cn(
-        "flex-1 items-center gap-2 rounded-xl border-continuous bg-secondary py-3 active:opacity-80",
+        "border-continuous bg-secondary flex-1 items-center gap-2 rounded-xl py-3 active:opacity-80",
         disabled && "opacity-50"
       )}
       disabled={disabled}
@@ -80,22 +81,28 @@ export default function AddToChatSheet() {
     if (remaining <= 0) {
       return;
     }
+
     setIsPicking(true);
     setHasFailed(false);
     // Read before the await: the picker and the re-encoding take a while,
     // and the store drops what comes back for a User who has signed out.
     const startedFor = arnoldAttachmentsOwner();
+
     try {
       const picked = await pickLibraryPhotos(remaining);
+
       // Cancelled: nothing picked, nothing to show, the sheet stays open.
       if (!picked) {
         return;
       }
+
       if (picked.images.length > 0) {
         addArnoldAttachments(picked.images, startedFor);
         router.back();
+
         return;
       }
+
       setHasFailed(picked.failed > 0);
     } catch (error) {
       // The picker itself failed, which is rarer than a photo failing.
@@ -116,7 +123,7 @@ export default function AddToChatSheet() {
       }}
     >
       <AndroidGrabber />
-      <View className="gap-3 px-md pt-2 pb-md">
+      <View className="px-md pb-md gap-3 pt-2">
         <View className="flex-row gap-3">
           <AttachmentButton
             icon="camera"
@@ -130,7 +137,7 @@ export default function AddToChatSheet() {
           />
         </View>
         {isFull || hasFailed ? (
-          <View className="rounded-xl border-continuous bg-card px-3 py-2.5">
+          <View className="border-continuous bg-card rounded-xl px-3 py-2.5">
             <Text className="text-footnote text-muted-foreground">
               {isFull
                 ? t("arnold.attachments.perMessageLimit", {

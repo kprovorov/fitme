@@ -1,6 +1,7 @@
 import { Stack } from "expo-router";
 import { useTranslation } from "react-i18next";
 import { ScrollView } from "react-native";
+
 import { AlertDialog } from "~/components/ui/alert-dialog";
 import { MenuList, MenuListItem } from "~/components/ui/menu-list";
 import { Separator } from "~/components/ui/separator";

@@ -1,8 +1,8 @@
-import "~/test-utils/auth-ui";
-
 import { beforeEach, describe, expect, it, jest } from "@jest/globals";
 import { act, fireEvent, render, screen } from "@testing-library/react-native";
 import { router } from "expo-router";
+import { it, describe, expect, beforeEach } from "vitest";
+
 import AuthWelcomeView from "~/components/views/auth-welcome-view";
 import { configuredSocialProviders } from "~/hooks/native-social-auth";
 import { segmentClient } from "~/lib/segment";
@@ -34,24 +34,31 @@ interface NativeResult {
     createdSessionId?: string;
   };
 }
+
 const mockSetActive = jest.fn<NonNullable<NativeResult["setActive"]>>(() =>
   Promise.resolve()
 );
+
 let mockResult: NativeResult = { createdSessionId: null };
+
 const mockApple = jest.fn<() => Promise<NativeResult>>(() =>
   Promise.resolve(mockResult)
 );
+
 const mockGoogle = jest.fn<() => Promise<NativeResult>>(() =>
   Promise.resolve(mockResult)
 );
+
 const mockPrepareEmail = jest.fn(() => Promise.resolve({}));
 const mockPrepareSecond = jest.fn(() => Promise.resolve({}));
+
 const mockSignIn = {
   firstFactorVerification: { status: "unverified" },
   id: "sia_previous",
   prepareSecondFactor: mockPrepareSecond,
   status: "needs_identifier",
 };
+
 const mockSignUp = {
   emailAddress: "tony@example.com",
   id: "sua_previous",
@@ -61,35 +68,61 @@ const mockSignUp = {
   unverifiedFields: ["email_address"],
   verifications: { externalAccount: { status: "unverified" } },
 };
+
 const makeSignIn = (
   overrides: Partial<NonNullable<NativeResult["signIn"]>>
 ) => ({ ...mockSignIn, ...overrides });
+
 const makeSignUp = (
   overrides: Partial<NonNullable<NativeResult["signUp"]>>
 ) => ({ ...mockSignUp, ...overrides });
-jest.mock("@clerk/expo", () => ({
+
+jest.mock<typeof import("@clerk/expo")>(import("@clerk/expo"), () => ({
   isClerkAPIResponseError: () => false,
   useSignIn: () => ({ signIn: mockSignIn }),
   useSignUp: () => ({ signUp: mockSignUp }),
 }));
-jest.mock("@clerk/expo/legacy", () => ({
-  useSignIn: () => ({ signIn: mockSignIn }),
-  useSignUp: () => ({ signUp: mockSignUp }),
-}));
-jest.mock("@clerk/expo/apple", () => ({
-  useSignInWithApple: () => ({ startAppleAuthenticationFlow: mockApple }),
-}));
-jest.mock("@clerk/expo/google", () => ({
-  useSignInWithGoogle: () => ({ startGoogleAuthenticationFlow: mockGoogle }),
-}));
-jest.mock("@clerk/expo/token-cache", () => ({ tokenCache: {} }));
-jest.mock("expo-router", () => ({
+
+jest.mock<typeof import("@clerk/expo/legacy")>(
+  import("@clerk/expo/legacy"),
+  () => ({
+    useSignIn: () => ({ signIn: mockSignIn }),
+    useSignUp: () => ({ signUp: mockSignUp }),
+  })
+);
+
+jest.mock<typeof import("@clerk/expo/apple")>(
+  import("@clerk/expo/apple"),
+  () => ({
+    useSignInWithApple: () => ({ startAppleAuthenticationFlow: mockApple }),
+  })
+);
+
+jest.mock<typeof import("@clerk/expo/google")>(
+  import("@clerk/expo/google"),
+  () => ({
+    useSignInWithGoogle: () => ({ startGoogleAuthenticationFlow: mockGoogle }),
+  })
+);
+
+jest.mock<typeof import("@clerk/expo/token-cache")>(
+  import("@clerk/expo/token-cache"),
+  () => ({ tokenCache: {} })
+);
+
+jest.mock<typeof import("expo-router")>(import("expo-router"), () => ({
   router: { push: jest.fn(), replace: jest.fn() },
 }));
-jest.mock("~/lib/segment", () => ({ segmentClient: { track: jest.fn() } }));
-jest.mock("~/components/ui/button", () =>
-  jest.requireActual("~/test-utils/button-stub")
+
+jest.mock<typeof import("~/lib/segment")>(import("~/lib/segment"), () => ({
+  segmentClient: { track: jest.fn() },
+}));
+
+jest.mock<typeof import("~/components/ui/button")>(
+  import("~/components/ui/button"),
+  () => jest.requireActual("~/test-utils/button-stub")
 );
+
 const config = {
   appleEnabled: true,
   googleEnabled: true,
@@ -97,13 +130,15 @@ const config = {
   googleIosUrlScheme: "com.googleusercontent.apps.123-ios",
   googleWebClientId: "123-web.apps.googleusercontent.com",
 };
+
 beforeEach(() => {
   jest.clearAllMocks();
   setAuthProviderConfig(config);
   mockResult = { createdSessionId: null };
-  mockApple.mockImplementation(() => Promise.resolve(mockResult));
-  mockGoogle.mockImplementation(() => Promise.resolve(mockResult));
+  mockApple.mockResolvedValue(mockResult);
+  mockGoogle.mockResolvedValue(mockResult);
 });
+
 const show = async () => {
   await render(<AuthWelcomeView />);
   await screen.findByRole("button", { name: "Continue with Apple" });
@@ -119,6 +154,7 @@ describe("signed-out Welcome", () => {
     await fireEvent.press(screen.getByRole("link", { name: "Log in" }));
     expect(router.push).toHaveBeenCalledWith("/auth/login");
   });
+
   it("uses the email-only fallback when providers are not enabled", async () => {
     setAuthProviderConfig({
       ...config,
@@ -136,6 +172,7 @@ describe("signed-out Welcome", () => {
       screen.queryByRole("button", { name: "Continue with Google" })
     ).toBeNull();
   });
+
   it("does not offer Google when its native callback scheme is missing", () => {
     setAuthProviderConfig({ ...config, googleIosUrlScheme: "" });
     expect(configuredSocialProviders()).toEqual(["apple"]);
@@ -159,6 +196,7 @@ describe("native social results", () => {
       expect(segmentClient.track).toHaveBeenCalledWith("User Logged In");
     }
   );
+
   it("enters with a new social User without asking for a name", async () => {
     mockResult = {
       createdSessionId: "sess_new",
@@ -179,6 +217,7 @@ describe("native social results", () => {
     expect(screen.queryByLabelText("Name")).toBeNull();
     expect(segmentClient.track).toHaveBeenCalledWith("User Registered");
   });
+
   it("returns quietly to Welcome when the User cancels", async () => {
     await show();
     await fireEvent.press(
@@ -191,6 +230,7 @@ describe("native social results", () => {
       screen.getByRole("button", { name: "Continue with Apple" })
     ).toBeEnabled();
   });
+
   it("shows a provider failure and permits another attempt", async () => {
     mockApple.mockRejectedValueOnce(new Error("Offline"));
     await show();
@@ -206,6 +246,7 @@ describe("native social results", () => {
     );
     expect(mockSetActive).toHaveBeenCalledWith({ session: "sess_retry" });
   });
+
   it("continues a social signup requiring email verification", async () => {
     mockResult = {
       createdSessionId: null,
@@ -221,13 +262,14 @@ describe("native social results", () => {
     await fireEvent.press(
       screen.getByRole("button", { name: "Continue with Apple" })
     );
-    expect(mockPrepareEmail).toHaveBeenCalledTimes(1);
+    expect(mockPrepareEmail).toHaveBeenCalledOnce();
     expect(router.push).toHaveBeenCalledWith({
       params: { purpose: "sign-up" },
       pathname: "/auth/verify-code",
     });
     expect(mockSetActive).not.toHaveBeenCalled();
   });
+
   it("continues a supported Device Trust challenge", async () => {
     mockResult = {
       createdSessionId: null,
@@ -243,12 +285,13 @@ describe("native social results", () => {
     await fireEvent.press(
       screen.getByRole("button", { name: "Continue with Google" })
     );
-    expect(mockPrepareSecond).toHaveBeenCalledTimes(1);
+    expect(mockPrepareSecond).toHaveBeenCalledOnce();
     expect(router.push).toHaveBeenCalledWith({
       params: { purpose: "sign-in", source: "social" },
       pathname: "/auth/verify-code",
     });
   });
+
   it("explains unsupported requirements without creating a fabricated name", async () => {
     mockResult = {
       createdSessionId: null,
@@ -271,8 +314,9 @@ describe("native social results", () => {
     expect(mockSetActive).not.toHaveBeenCalled();
     expect(router.push).not.toHaveBeenCalled();
   });
+
   it("prevents concurrent attempts and ignores a result after leaving the screen", async () => {
-    let finish: (value: NativeResult) => void = () => undefined;
+    let finish: (value: NativeResult) => void = () => {};
     mockApple.mockImplementationOnce(
       () =>
         new Promise((resolve) => {
@@ -280,12 +324,14 @@ describe("native social results", () => {
         })
     );
     const view = await render(<AuthWelcomeView />);
+
     const apple = await screen.findByRole("button", {
       name: "Continue with Apple",
     });
+
     await fireEvent.press(apple);
     await fireEvent.press(apple);
-    expect(mockApple).toHaveBeenCalledTimes(1);
+    expect(mockApple).toHaveBeenCalledOnce();
     expect(
       screen.getByRole("button", { name: "Continue with Email" })
     ).toBeDisabled();
@@ -309,10 +355,12 @@ describe("native legacy resource boundary", () => {
     expect(router.push).not.toHaveBeenCalled();
     expect(screen.queryByRole("alert")).toBeNull();
   });
+
   it("sends verification on the new resource returned by the native Google hook", async () => {
     const newPrepare = jest.fn<
       (params: { strategy: string }) => Promise<unknown>
     >(() => Promise.resolve({}));
+
     mockResult = {
       createdSessionId: null,
       signUp: makeSignUp({
@@ -331,6 +379,7 @@ describe("native legacy resource boundary", () => {
       pathname: "/auth/verify-code",
     });
   });
+
   it("uses the activated session id to classify analytics despite an old signup session", async () => {
     mockResult = {
       createdSessionId: "sess_current",
@@ -344,6 +393,7 @@ describe("native legacy resource boundary", () => {
     expect(segmentClient.track).toHaveBeenCalledWith("User Logged In");
     expect(segmentClient.track).not.toHaveBeenCalledWith("User Registered");
   });
+
   it("treats a native cancellation error as cancellation", async () => {
     mockApple.mockRejectedValueOnce(
       Object.assign(new Error("Cancelled"), { code: "ERR_REQUEST_CANCELED" })

@@ -1,4 +1,5 @@
-import { Field, type InputProps } from "~/components/ui/input";
+import { Field } from "~/components/ui/input";
+import type { InputProps } from "~/components/ui/input";
 import { cn } from "~/lib/utils";
 
 /**
@@ -12,7 +13,7 @@ const Textarea = ({
   ...props
 }: InputProps) => (
   <Field
-    className={cn("min-h-20 py-xs", className)}
+    className={cn("py-xs min-h-20", className)}
     multiline={multiline}
     numberOfLines={numberOfLines}
     textAlignVertical="top"

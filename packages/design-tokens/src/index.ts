@@ -22,15 +22,18 @@ export interface Token {
 }
 
 /** Absolute path of the token CSS. */
-export const TOKENS_CSS_PATH = new URL("./tokens.css", import.meta.url);
+export const TOKENS_CSS_PATH = new URL("tokens.css", import.meta.url);
 
 const COMMENT = /\/\*[\s\S]*?\*\//g;
 const THEME_BLOCK = /@theme\s*\{([^}]*)\}/;
+
 // One `property: value` statement of the block, before its name is checked
 const DECLARATION = /^(\S+?)\s*:\s*(\S[\s\S]*)$/;
+
 // `--<kind>-<name>`: lowercase kind, then lowercase words joined by `-` or
 // `--` (`--text-body--line-height`, `--radius-2xl`)
 const TOKEN_NAME = /^--([a-z]+)-([a-z0-9]+(?:--?[a-z0-9]+)*)$/;
+
 const KINDS: readonly TokenKind[] = [
   "color",
   "text",
@@ -50,7 +53,8 @@ const isTokenKind = (value: string): value is TokenKind =>
  * kind throws, so a broken token file can't parse as a shorter one.
  */
 export function parseTokens(css: string): Token[] {
-  const block = css.replace(COMMENT, "").match(THEME_BLOCK)?.[1];
+  const block = THEME_BLOCK.exec(css.replaceAll(COMMENT, ""))?.[1];
+
   if (block === undefined) {
     throw new Error("No @theme block found in the token CSS");
   }
@@ -60,19 +64,24 @@ export function parseTokens(css: string): Token[] {
     .map((statement) => statement.trim())
     .filter((statement) => statement !== "")
     .map((statement) => {
-      const [, variable, value] = statement.match(DECLARATION) ?? [];
+      const [, variable, value] = DECLARATION.exec(statement) ?? [];
+
       if (variable === undefined || value === undefined) {
         throw new Error(`Malformed declaration in @theme: "${statement}"`);
       }
-      const [, kind, name] = variable.match(TOKEN_NAME) ?? [];
+
+      const [, kind, name] = TOKEN_NAME.exec(variable) ?? [];
+
       if (kind === undefined || name === undefined) {
         throw new Error(
           `Malformed token name ${variable}: expected --<kind>-<name> in lowercase`
         );
       }
+
       if (!isTokenKind(kind)) {
         throw new Error(`Unknown token kind in ${variable}`);
       }
+
       return { kind, name, value: value.trim(), variable };
     });
 }
@@ -92,29 +101,36 @@ const UTILITY_BLOCK = /@utility\s+([a-z0-9-]+)\s*\{([^}]*)\}/g;
  * without a `property: value` shape, or a repeated property, throws.
  */
 export function parseUtilities(css: string): Utility[] {
-  return [...css.replace(COMMENT, "").matchAll(UTILITY_BLOCK)].map(
+  return [...css.replaceAll(COMMENT, "").matchAll(UTILITY_BLOCK)].map(
     ([, name = "", body = ""]) => {
       const declarations: Record<string, string> = {};
+
       for (const statement of body.split(";")) {
         const trimmed = statement.trim();
+
         if (trimmed === "") {
           continue;
         }
-        const [, property, value] = trimmed.match(DECLARATION) ?? [];
+
+        const [, property, value] = DECLARATION.exec(trimmed) ?? [];
+
         if (property === undefined || value === undefined) {
           throw new Error(`Malformed declaration in @utility ${name}`);
         }
+
         if (property in declarations) {
           throw new Error(`Repeated ${property} in @utility ${name}`);
         }
+
         declarations[property] = value.trim();
       }
+
       return { declarations, name };
     }
   );
 }
 
-const readTokenCss = () => readFileSync(TOKENS_CSS_PATH, "utf8");
+const readTokenCss = () => readFileSync(TOKENS_CSS_PATH, "utf-8");
 
 /** Reads and parses the package's own `tokens.css`. */
 export const readTokens = (): Token[] => parseTokens(readTokenCss());

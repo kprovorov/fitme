@@ -1,20 +1,20 @@
 import {
-  type ExperienceLevel,
   experienceLevels,
-  type Goal,
   goals,
   MAX_FREQUENCY,
   MAX_PLAN_NAME_LENGTH,
   MAX_PLAN_TEXT_LENGTH,
   MAX_WORKOUT_DURATION_MINUTES,
   MIN_FREQUENCY,
-  type Place,
   places,
 } from "@fitme/core";
+import type { ExperienceLevel, Goal, Place } from "@fitme/core";
 import { formatCount } from "@fitme/i18n";
-import { type ReactNode, useCallback, useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
+import type { ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { Pressable, View } from "react-native";
+
 import { SymbolImage } from "~/components/symbol-image";
 import { Button } from "~/components/ui/button";
 import { DropdownMenu } from "~/components/ui/dropdown-menu";
@@ -33,13 +33,11 @@ import { useChoiceLabels } from "~/lib/choices";
 import { useI18n } from "~/lib/i18n";
 import {
   canAddDraftWorkout,
-  type DraftChange,
-  type DraftWorkout,
   isSavableWorkout,
   moveDraftWorkout,
-  type PlanDraft,
   removeDraftWorkout,
 } from "~/lib/plan-draft";
+import type { DraftChange, DraftWorkout, PlanDraft } from "~/lib/plan-draft";
 
 interface PlanEditorViewProps {
   draft: PlanDraft;
@@ -57,10 +55,13 @@ const DIGITS = /^\d+$/;
 /** The whole number `text` holds, or `null` when it holds none. */
 const wholeNumber = (text: string): number | null => {
   const trimmed = text.trim();
+
   if (!DIGITS.test(trimmed)) {
     return null;
   }
+
   const value = Number(trimmed);
+
   return Number.isSafeInteger(value) ? value : null;
 };
 
@@ -109,6 +110,7 @@ function NumberField({
   // What the User typed, so a half-typed number isn't rewritten under them;
   // the draft keeps the value it parses to (`null` for none).
   const [text, setText] = useState(value === null ? "" : String(value));
+
   const change = useCallback(
     (typed: string) => {
       setText(typed);
@@ -116,6 +118,7 @@ function NumberField({
     },
     [onChangeNumber]
   );
+
   const field = (
     <Input
       containerClassName={unit ? "flex-1" : undefined}
@@ -126,12 +129,13 @@ function NumberField({
       value={text}
     />
   );
+
   return (
     <Field label={label}>
       {unit ? (
-        <HStack className="items-start gap-sm">
+        <HStack className="gap-sm items-start">
           {field}
-          <Text className="pt-3 text-muted-foreground text-subhead">
+          <Text className="text-muted-foreground text-subhead pt-3">
             {unit}
           </Text>
         </HStack>
@@ -157,13 +161,15 @@ function WorkoutRow({
 }) {
   const { t } = useTranslation();
   const i18n = useI18n();
+
   const items = useMemo(() => {
-    const actions: Array<{
+    const actions: {
       destructive?: boolean;
       label: string;
       onPress: () => void;
       systemImage: "arrow.up" | "arrow.down" | "trash";
-    }> = [];
+    }[] = [];
+
     if (index > 0) {
       actions.push({
         label: t("planEditor.moveUp", { name: workout.name }),
@@ -171,6 +177,7 @@ function WorkoutRow({
         systemImage: "arrow.up",
       });
     }
+
     if (index < total - 1) {
       actions.push({
         label: t("planEditor.moveDown", { name: workout.name }),
@@ -178,12 +185,14 @@ function WorkoutRow({
         systemImage: "arrow.down",
       });
     }
+
     actions.push({
       destructive: true,
       label: t("planEditor.remove", { name: workout.name }),
       onPress: () => onChange((draft) => removeDraftWorkout(draft, index)),
       systemImage: "trash",
     });
+
     return actions;
   }, [index, onChange, t, total, workout.name]);
 
@@ -192,6 +201,7 @@ function WorkoutRow({
   // Why Save is off, for a Workout whose own editor would have to show it:
   // no Exercise, or a name or a set target the whole-Plan save can't take.
   let problem: string | undefined;
+
   if (workout.exercises.length === 0) {
     problem = t("planEditor.workoutNeedsExercise");
   } else if (!isSavableWorkout(workout)) {
@@ -220,7 +230,7 @@ function WorkoutRow({
           ) : null}
         </VStack>
         <SymbolImage
-          className="shrink-0 text-body text-muted-foreground"
+          className="text-body text-muted-foreground shrink-0"
           name="chevron.right"
         />
       </Pressable>
@@ -255,30 +265,36 @@ export default function PlanEditorView({
     (name: string) => onChange((drafted) => ({ ...drafted, name })),
     [onChange]
   );
+
   const setDescription = useCallback(
     (description: string) =>
       onChange((drafted) => ({ ...drafted, description })),
     [onChange]
   );
+
   const setFrequency = useCallback(
     (frequency: number | null) =>
       onChange((drafted) => ({ ...drafted, frequency })),
     [onChange]
   );
+
   const setWorkoutDuration = useCallback(
     (workoutDuration: number | null) =>
       onChange((drafted) => ({ ...drafted, workoutDuration })),
     [onChange]
   );
+
   const setGoal = useCallback(
     (goal: Goal) => onChange((drafted) => ({ ...drafted, goal })),
     [onChange]
   );
+
   const setExperienceLevel = useCallback(
     (experienceLevel: ExperienceLevel) =>
       onChange((drafted) => ({ ...drafted, experienceLevel })),
     [onChange]
   );
+
   const setPlace = useCallback(
     (place: Place) => onChange((drafted) => ({ ...drafted, place })),
     [onChange]
@@ -288,6 +304,7 @@ export default function PlanEditorView({
     () => goals.map((goal) => ({ label: labels.goal(goal), value: goal })),
     [labels]
   );
+
   const levelOptions = useMemo(
     () =>
       experienceLevels.map((level) => ({
@@ -296,12 +313,14 @@ export default function PlanEditorView({
       })),
     [labels]
   );
+
   const placeOptions = useMemo(
     () => places.map((place) => ({ label: labels.place(place), value: place })),
     [labels]
   );
 
   const choiceRequired = t("planEditor.errors.choiceRequired");
+
   const descriptionError =
     draft.description.trim().length > MAX_PLAN_TEXT_LENGTH
       ? t("planEditor.errors.descriptionTooLong", { max: MAX_PLAN_TEXT_LENGTH })
@@ -309,6 +328,7 @@ export default function PlanEditorView({
 
   const trimmedName = draft.name.trim();
   let nameError: string | undefined;
+
   if (trimmedName === "") {
     nameError = t("planEditor.errors.nameRequired");
   } else if (trimmedName.length > MAX_PLAN_NAME_LENGTH) {
@@ -318,10 +338,10 @@ export default function PlanEditorView({
   }
 
   return (
-    <VStack className="items-stretch gap-lg">
+    <VStack className="gap-lg items-stretch">
       {saveError ? <ErrorMessage>{saveError}</ErrorMessage> : null}
 
-      <VStack className="items-stretch gap-md">
+      <VStack className="gap-md items-stretch">
         <H4>{t("planEditor.details")}</H4>
         <Field label={t("planEditor.name")}>
           <Input
@@ -406,7 +426,7 @@ export default function PlanEditorView({
         </Field>
       </VStack>
 
-      <VStack className="items-stretch gap-sm">
+      <VStack className="gap-sm items-stretch">
         <H4>{t("planEditor.workouts")}</H4>
         <Text className="text-muted-foreground text-subhead">
           {t("planEditor.workoutsHint")}

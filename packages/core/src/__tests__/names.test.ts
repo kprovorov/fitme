@@ -1,7 +1,8 @@
 import { describe, expect, it } from "vitest";
+
 import { splitName } from "../names";
 
-describe("splitName", () => {
+describe(splitName, () => {
   it("splits a full name on the first space", () => {
     expect(splitName("Mary Jane Watson")).toEqual({
       firstName: "Mary",

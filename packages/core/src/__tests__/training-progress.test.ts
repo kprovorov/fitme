@@ -1,16 +1,16 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import {
-  monthlyTotals,
-  type ProgressSession,
-  qualifiesForProgress,
-} from "../training-progress";
+
+import { monthlyTotals, qualifiesForProgress } from "../training-progress";
+import type { ProgressSession } from "../training-progress";
 
 // Kyiv moves its clocks forward on 29 March 2026 (03:00 → 04:00) and back on
 // 25 October 2026 (04:00 → 03:00); Node reads TZ again when it changes.
 const originalTimeZone = process.env.TZ;
+
 beforeAll(() => {
   process.env.TZ = "Europe/Kyiv";
 });
+
 afterAll(() => {
   // Assigning `undefined` would set the string "undefined", read as UTC.
   if (originalTimeZone === undefined) {
@@ -34,7 +34,7 @@ const session = (
   ...overrides,
 });
 
-describe("qualifiesForProgress", () => {
+describe(qualifiesForProgress, () => {
   it("takes a finished session with reps", () => {
     expect(
       qualifiesForProgress(
@@ -57,7 +57,7 @@ describe("qualifiesForProgress", () => {
   });
 });
 
-describe("monthlyTotals", () => {
+describe(monthlyTotals, () => {
   // Friday 30 October 2026, noon in Kyiv.
   const now = new Date("2026-10-30T10:00:00Z");
 
@@ -103,6 +103,7 @@ describe("monthlyTotals", () => {
     const lateStart = session("2026-09-30T20:30:00Z", "2026-09-30T22:00:00Z");
     // Starts 00:30 on 1 November in Kyiv: November, though still 31 October in UTC.
     const earlyStart = session("2026-10-31T22:30:00Z", "2026-10-31T23:30:00Z");
+
     // Starts 23:00 on 31 October in Kyiv, finishes in November: October's.
     const acrossMonths = session(
       "2026-10-31T21:00:00Z",

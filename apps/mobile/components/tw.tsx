@@ -82,6 +82,7 @@ function convertStylesToProps(
   if (!style) {
     return { props: {} as Record<string, unknown>, style };
   }
+
   const flatStyle = flattenStyle(style);
   const props: Record<string, unknown> = {};
 
@@ -101,10 +102,13 @@ function convertStylesToProps(
 function flattenStyle(style: unknown): Record<string, unknown> {
   if (Array.isArray(style)) {
     const flat: Record<string, unknown> = {};
+
     for (const item of style) {
       Object.assign(flat, flattenStyle(item));
     }
+
     return flat;
   }
+
   return style && typeof style === "object" ? { ...style } : {};
 }

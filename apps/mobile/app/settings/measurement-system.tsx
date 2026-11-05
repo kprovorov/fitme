@@ -1,18 +1,22 @@
 import { rateLimitedFor } from "@fitme/api-client";
-import { type MeasurementSystem, measurementSystems } from "@fitme/core";
+import { measurementSystems } from "@fitme/core";
+import type { MeasurementSystem } from "@fitme/core";
 import * as Sentry from "@sentry/react-native";
-import { type QueryClient, useQueryClient } from "@tanstack/react-query";
+import { useQueryClient } from "@tanstack/react-query";
+import type { QueryClient } from "@tanstack/react-query";
 import { Stack } from "expo-router";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { ActivityIndicator, Alert, View } from "react-native";
+
 import { AlertDialog } from "~/components/ui/alert-dialog";
 import { Button } from "~/components/ui/button";
 import { ErrorMessage } from "~/components/ui/error-message";
 import { RadioGroup } from "~/components/ui/radio-group";
 import { VStack } from "~/components/ui/vstack";
 import { seedProfile } from "~/hooks/mutations/profiles";
-import { type Profile, useProfileQuery } from "~/hooks/queries/profiles";
+import { useProfileQuery } from "~/hooks/queries/profiles";
+import type { Profile } from "~/hooks/queries/profiles";
 import {
   invalidateWeighedQueries,
   rememberPendingWeighedRefresh,
@@ -21,7 +25,8 @@ import {
 import { useChoiceLabels } from "~/lib/choices";
 import { i18n } from "~/lib/i18n";
 import { measurementSystemOf } from "~/lib/profile";
-import { isStillWriteStarter, type WriteStarter } from "~/lib/write-answers";
+import { isStillWriteStarter } from "~/lib/write-answers";
+import type { WriteStarter } from "~/lib/write-answers";
 
 /**
  * The system a switch left saved, decided only from a Profile it has: the
@@ -44,30 +49,37 @@ const readSavedSystem = async (
 ): Promise<{ saved: MeasurementSystem | undefined } | null> => {
   if (answer) {
     const seeded = await seedProfile(queryClient, answer, starter);
+
     if (seeded === "signed-out") {
       return null;
     }
+
     if (seeded === "seeded") {
       return { saved: measurementSystemOf(answer) };
     }
+
     // Superseded: the helper has read the Profile again. Once that read
     // landed (a read that lands clears `isInvalidated`, a failed one leaves
     // it set), it already shows the system saved after the switch.
     const reconciled = queryClient.getQueryState(useProfileQuery.getKey());
+
     if (reconciled?.status === "success" && !reconciled.isInvalidated) {
       return {
         saved: measurementSystemOf(reconciled.data as Profile | null),
       };
     }
   }
+
   if (!isStillWriteStarter(starter)) {
     return null;
   }
+
   try {
     const fresh = await queryClient.fetchQuery({
       ...useProfileQuery.getFetchOptions(),
       staleTime: 0,
     });
+
     return isStillWriteStarter(starter)
       ? { saved: measurementSystemOf(fresh) }
       : null;
@@ -75,16 +87,19 @@ const readSavedSystem = async (
     if (!isStillWriteStarter(starter)) {
       return null;
     }
+
     // Too many requests is the User's to wait out, not a bug.
     if (rateLimitedFor(fetchError) === null) {
       Sentry.captureException(fetchError);
     }
+
     // The conversion may well have committed, so the weighed queries are
     // left in their old unit with their old numbers, and the next Profile
     // read that lands says whether it did (FIT-553). Remembered before the
     // Profile is dropped, so the read that dropping it starts already counts.
     rememberPendingWeighedRefresh(queryClient, system, starter);
     queryClient.resetQueries({ queryKey: useProfileQuery.getKey() });
+
     return { saved: undefined };
   }
 };
@@ -117,6 +132,7 @@ export default function MeasurementSystemScreen() {
   const queryClient = useQueryClient();
   const labels = useChoiceLabels();
   const { t } = useTranslation(undefined, { i18n });
+
   const options = useMemo(
     () =>
       measurementSystems.map((system) => ({
@@ -138,6 +154,7 @@ export default function MeasurementSystemScreen() {
   const isMounted = useRef<boolean>(true);
   useEffect(() => {
     isMounted.current = true;
+
     return () => {
       isMounted.current = false;
     };
@@ -182,13 +199,17 @@ export default function MeasurementSystemScreen() {
           answer,
           starter
         );
+
         setSwitchingTo(null);
+
         // Another User signed in meanwhile: nothing here is theirs to
         // re-read, and no alert is theirs either.
         if (result === null) {
           return;
         }
+
         const { saved } = result;
+
         // Once the Profile says the new system is saved, every stored weight
         // is in it, so every Screen showing one is read again (FIT-539). It
         // waits for the Profile, the unit those Screens show: a Profile that
@@ -201,6 +222,7 @@ export default function MeasurementSystemScreen() {
         if (saved === system) {
           invalidateWeighedQueries(queryClient);
         }
+
         if (isMounted.current) {
           alertSwitchResult(saved, error, system);
         }
@@ -222,6 +244,7 @@ export default function MeasurementSystemScreen() {
       if (!isLoaded || isSwitching || system === savedSystem) {
         return;
       }
+
       setPendingSystem(system);
     },
     [isLoaded, isSwitching, savedSystem]
@@ -295,6 +318,7 @@ export default function MeasurementSystemScreen() {
                     setSwitchingTo(pendingSystem);
                     updateMeasurementSystem(pendingSystem);
                   }
+
                   setPendingSystem(null);
                 },
               },

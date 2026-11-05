@@ -1,7 +1,9 @@
 import { randomBytes } from "node:crypto";
+
 import type { Cover, Exercise } from "@fitme/library-sdk";
 import { createFakeLibrary } from "@fitme/library-sdk/fake";
 import type { Client } from "@modelcontextprotocol/sdk/client/index.js";
+
 import {
   call,
   connect,
@@ -89,9 +91,11 @@ export const createTestUser = (label: string): TestUser => ({
 /** MCP client whose user tools run against the real stack as `user`. */
 export function connectAs(user: TestUser) {
   const services = createServicesFromEnv(user.userId);
+
   if (!services) {
     throw new Error("FITME_DATABASE_URL must point at the stack's pooler.");
   }
+
   return connect(contextFor(services, ignoreReports, integrationLibrary()));
 }
 
@@ -102,9 +106,11 @@ export async function callOk<T>(
   args: Record<string, unknown> = {}
 ): Promise<T> {
   const outcome = await call(client, name, args);
+
   if (outcome.isError) {
-    throw new Error(`${name} failed: ${outcome.text}`);
+    throw new TypeError(`${name} failed: ${outcome.text}`);
   }
+
   return outcome.json as T;
 }
 
@@ -115,9 +121,11 @@ export async function callError(
   args: Record<string, unknown> = {}
 ): Promise<string> {
   const outcome = await call(client, name, args);
+
   if (!outcome.isError) {
-    throw new Error(`${name} unexpectedly succeeded: ${outcome.text}`);
+    throw new TypeError(`${name} unexpectedly succeeded: ${outcome.text}`);
   }
+
   return outcome.text;
 }
 
@@ -138,10 +146,13 @@ export async function pickExercises(client: Client) {
   const page = await callOk<ExercisePage>(client, "list_exercises", {
     limit: 2,
   });
+
   const [first, second] = page.exercises;
+
   if (!(first && second)) {
     throw new Error("The fake Library has fewer than two Exercises.");
   }
+
   return [first, second] as const;
 }
 

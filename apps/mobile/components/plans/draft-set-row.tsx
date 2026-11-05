@@ -2,6 +2,7 @@ import { MAX_WEIGHT_DECIMALS } from "@fitme/core";
 import { useCallback, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { View } from "react-native";
+
 import {
   SET_CHECK_COLUMN_CLASS,
   SET_NUMBER_COLUMN_CLASS,
@@ -13,19 +14,18 @@ import { ErrorMessage } from "~/components/ui/error-message";
 import { Input } from "~/components/ui/input";
 import { Text } from "~/components/ui/text";
 import {
-  type DraftChange,
-  type DraftSet,
-  type DraftSetTarget,
   isSavableTarget,
   removeDraftSet,
   SET_TARGET_BOUNDS,
   updateDraftSet,
 } from "~/lib/plan-draft";
+import type { DraftChange, DraftSet, DraftSetTarget } from "~/lib/plan-draft";
 import { decimalsOf, formatSetWeight, planTargetValue } from "~/lib/set-inputs";
 import { cn } from "~/lib/utils";
 
 /** A target cell: the three share the width the other columns leave. */
 const CELL_CLASS = "h-10 flex-1";
+
 /** A cell's input: the set table's number styling. */
 const INPUT_CLASS = "min-h-10 px-1 text-center text-mono-body";
 
@@ -36,6 +36,7 @@ const targetText = (value: number | null, target: DraftSetTarget) => {
   if (value === null) {
     return "";
   }
+
   return target === "weight" ? formatSetWeight(value) : String(value);
 };
 
@@ -59,6 +60,7 @@ function TargetField({
     (typed: string) => onChangeTarget(target, typed),
     [onChangeTarget, target]
   );
+
   return (
     <Input
       accessibilityLabel={accessibilityLabel}
@@ -107,6 +109,7 @@ export default function DraftSetRow({
   workoutKey,
 }: DraftSetRowProps) {
   const { t } = useTranslation();
+
   // What the User typed, so a half-typed number isn't rewritten under them.
   const [typed, setTyped] = useState(() => ({
     reps: targetText(set.reps, "reps"),
@@ -130,6 +133,7 @@ export default function DraftSetRow({
     },
     [exerciseKey, onChange, set.key, workoutKey]
   );
+
   const remove = useCallback(
     () =>
       onChange((draft) =>
@@ -143,10 +147,12 @@ export default function DraftSetRow({
     if (isSavableTarget(target, set[target])) {
       return null;
     }
+
     // Its own rule first: a range message would name bounds `60,555` meets.
     if (target === "weight" && decimalsOf(typed.weight) > MAX_WEIGHT_DECIMALS) {
       return t("sets.form.weightDecimals", { count: MAX_WEIGHT_DECIMALS });
     }
+
     return t(`planEditor.workout.errors.${target}Range`, {
       max: SET_TARGET_BOUNDS[target].max,
       min: SET_TARGET_BOUNDS[target].min,
@@ -158,18 +164,19 @@ export default function DraftSetRow({
     rest: t("sets.row.restInput", { order }),
     weight: t("sets.row.weightInput", { order }),
   };
+
   const messages = TARGETS.map(messageFor).filter(
     (message): message is string => message !== null
   );
 
   return (
     <View className="gap-1">
-      <View className="flex-row items-center gap-sm">
+      <View className="gap-sm flex-row items-center">
         <Text
           adjustsFontSizeToFit
           className={cn(
             SET_NUMBER_COLUMN_CLASS,
-            "text-center text-mono-body text-muted-foreground"
+            "text-mono-body text-muted-foreground text-center"
           )}
           maxFontSizeMultiplier={SET_TABLE_MAX_FONT_SCALE}
           numberOfLines={1}

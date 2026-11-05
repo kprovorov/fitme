@@ -1,12 +1,10 @@
-import {
-  Image as ExpoImage,
-  type ImageLoadEventData,
-  type ImageProps,
-} from "expo-image";
+import { Image as ExpoImage } from "expo-image";
+import type { ImageLoadEventData, ImageProps } from "expo-image";
 import { useCallback, useState } from "react";
 import { View } from "react-native";
 import type { SFSymbol } from "sf-symbols-typescript";
 import { useResolveClassNames, withUniwind } from "uniwind";
+
 import { cn } from "~/lib/utils";
 
 const Image = withUniwind(ExpoImage);
@@ -53,14 +51,17 @@ export function SymbolImage({
   const classNames = cn("text-body", className);
   const textStyle = useResolveClassNames(classNames);
   const pointSize = size ?? (textStyle.fontSize as number | undefined);
+
   const lineHeight =
     size === undefined
       ? (textStyle.lineHeight as number | undefined)
       : undefined;
+
   const [symbolSize, setSymbolSize] = useState<{
     height: number;
     width: number;
   } | null>(null);
+
   const handleLoad = useCallback(({ source }: ImageLoadEventData) => {
     setSymbolSize((previous) =>
       previous?.height === source.height && previous.width === source.width
@@ -68,6 +69,7 @@ export function SymbolImage({
         : { height: source.height, width: source.width }
     );
   }, []);
+
   const box = pointSize
     ? {
         fontSize: pointSize,

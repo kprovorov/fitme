@@ -8,14 +8,17 @@ import { after, describe, test } from "node:test";
 import { fileURLToPath } from "node:url";
 import zlib from "node:zlib";
 
+import { describe, test } from "vitest";
+
 const SCRIPT = fileURLToPath(
-  new URL("./app-store-screenshots.mjs", import.meta.url)
+  new URL("app-store-screenshots.mjs", import.meta.url)
 );
 
 const WIDTH = 1320;
 const HEIGHT = 2868;
 
 const tempDirs = [];
+
 after(() => {
   for (const dir of tempDirs) {
     fs.rmSync(dir, { force: true, recursive: true });
@@ -30,6 +33,7 @@ const chunk = (type, data = Buffer.alloc(0)) => {
   const body = Buffer.concat([Buffer.from(type, "latin1"), data]);
   const crc = Buffer.alloc(4);
   crc.writeUInt32BE(zlib.crc32(body));
+
   return Buffer.concat([length, body, crc]);
 };
 
@@ -51,10 +55,13 @@ const png = ({
     transparency,
     width,
   });
+
   const cached = pngCache.get(key);
+
   if (cached) {
     return cached;
   }
+
   const ihdr = Buffer.alloc(13);
   ihdr.writeUInt32BE(width, 0);
   ihdr.writeUInt32BE(height, 4);
@@ -65,28 +72,35 @@ const png = ({
   // Every byte 0: filter type None, black pixels. With an alpha channel the
   // alpha would be 0, so set it to 255: fully opaque, still an alpha channel.
   const raw = Buffer.alloc(rowBytes * height);
+
   if (colorType === 4 || colorType === 6) {
     const channels = CHANNELS[colorType];
+
     for (let y = 0; y < height; y += 1) {
       for (let x = 0; x < width; x += 1) {
         raw[y * rowBytes + 1 + x * channels + channels - 1] = 255;
       }
     }
   }
+
   const parts = [
     Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]),
     chunk("IHDR", ihdr),
   ];
+
   if (colorType === 3) {
     parts.push(chunk("PLTE", palette));
   }
+
   if (transparency) {
     // RGB colour key: black is transparent.
     parts.push(chunk("tRNS", Buffer.alloc(6)));
   }
+
   parts.push(chunk("IDAT", zlib.deflateSync(raw)), chunk("IEND"));
   const bytes = Buffer.concat(parts);
   pngCache.set(key, bytes);
+
   return bytes;
 };
 
@@ -94,15 +108,19 @@ const png = ({
 const makeTree = (tree) => {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), "app-store-shots-"));
   tempDirs.push(dir);
+
   for (const [name, content] of Object.entries(tree)) {
     const file = path.join(dir, name);
+
     if (name.endsWith("/")) {
       fs.mkdirSync(file, { recursive: true });
       continue;
     }
+
     fs.mkdirSync(path.dirname(file), { recursive: true });
     fs.writeFileSync(file, content);
   }
+
   return dir;
 };
 
@@ -116,8 +134,9 @@ const images = (set, count, bytes = png()) =>
 
 const run = (...args) => {
   const child = spawnSync(process.execPath, [SCRIPT, ...args], {
-    encoding: "utf8",
+    encoding: "utf-8",
   });
+
   return {
     lines: child.stderr ? child.stderr.trimEnd().split("\n") : [],
     status: child.status,
@@ -130,10 +149,13 @@ const run = (...args) => {
 const listingConfig = (locales = ["en-US", "uk"]) => {
   const dir = makeTree({});
   const file = path.join(dir, "store.config.json");
+
   const info = Object.fromEntries(
     locales.map((locale) => [locale, { title: `Fitme (${locale})` }])
   );
+
   fs.writeFileSync(file, JSON.stringify({ apple: { info }, configVersion: 0 }));
+
   return file;
 };
 
@@ -220,6 +242,7 @@ describe("check rejects (numbering)", () => {
         [`${EN}/drafts/`]: null,
       })
     );
+
     assert.equal(result.status, 1, result.stdout);
     assert.deepEqual(
       unreported(result, [
@@ -239,6 +262,7 @@ describe("check rejects (numbering)", () => {
     const result = check(
       makeTree({ ...images(EN, 1), ...images("iphone-6.7/en-US", 1) })
     );
+
     assert.equal(result.status, 1, result.stdout);
     assert.deepEqual(
       unreported(result, [
@@ -253,6 +277,7 @@ describe("check rejects (numbering)", () => {
     const result = check(
       makeTree({ ...images(EN, 1), "iphone-6.9/01.png": png() })
     );
+
     assert.equal(result.status, 1, result.stdout);
     assert.deepEqual(
       unreported(result, ["iphone-6.9 / 01.png: not a Listing locale folder"]),
@@ -272,6 +297,7 @@ describe("check rejects (images)", () => {
     const result = check(
       makeTree(withImage(png({ height: 2622, width: 1206 })))
     );
+
     assert.equal(result.status, 1, result.stdout);
     assert.deepEqual(
       unreported(result, [
@@ -286,6 +312,7 @@ describe("check rejects (images)", () => {
     const result = check(
       makeTree(withImage(png({ height: WIDTH, width: HEIGHT })))
     );
+
     assert.equal(result.status, 1, result.stdout);
     assert.deepEqual(
       unreported(result, [
@@ -299,9 +326,12 @@ describe("check rejects (images)", () => {
   test("non-PNG bytes under .png", () => {
     const result = check(
       makeTree(
-        withImage(Buffer.from("\xff\xd8\xff\xe0 a JPEG really", "latin1"))
+        withImage(
+          Buffer.from("\u00ff\u00d8\u00ff\u00e0 a JPEG really", "latin1")
+        )
       )
     );
+
     assert.equal(result.status, 1, result.stdout);
     assert.deepEqual(
       unreported(result, ["iphone-6.9 / en-US / 02.png: not a PNG"]),
@@ -312,9 +342,11 @@ describe("check rejects (images)", () => {
 
   test("a truncated PNG", () => {
     const whole = png();
+
     const result = check(
       makeTree(withImage(whole.subarray(0, Math.floor(whole.length / 2))))
     );
+
     assert.equal(result.status, 1, result.stdout);
     assert.deepEqual(
       unreported(result, [
@@ -330,12 +362,14 @@ describe("check rejects (images)", () => {
     const ihdr = png().subarray(8, 8 + 25);
     const rowBytes = 1 + WIDTH * 3;
     const half = zlib.deflateSync(Buffer.alloc(rowBytes * (HEIGHT / 2)));
+
     const bytes = Buffer.concat([
       png().subarray(0, 8),
       ihdr,
       chunk("IDAT", half),
       chunk("IEND"),
     ]);
+
     const result = check(makeTree(withImage(bytes)));
     assert.equal(result.status, 1, result.stdout);
     assert.deepEqual(
@@ -349,11 +383,13 @@ describe("check rejects (images)", () => {
 
   test("image data that runs long", () => {
     const rowBytes = 1 + WIDTH * 3;
+
     const bytes = Buffer.concat([
       png().subarray(0, 8 + 25),
       chunk("IDAT", zlib.deflateSync(Buffer.alloc(rowBytes * (HEIGHT + 2)))),
       chunk("IEND"),
     ]);
+
     const result = check(makeTree(withImage(bytes)));
     assert.equal(result.status, 1, result.stdout);
     assert.deepEqual(
@@ -372,12 +408,14 @@ describe("check rejects (images)", () => {
     ihdr.writeUInt32BE(2 ** 31 - 1, 4);
     ihdr[8] = 8;
     ihdr[9] = 2;
+
     const bytes = Buffer.concat([
       png().subarray(0, 8),
       chunk("IHDR", ihdr),
       chunk("IDAT", zlib.deflateSync(Buffer.alloc(8))),
       chunk("IEND"),
     ]);
+
     const result = check(makeTree(withImage(bytes)));
     assert.equal(result.status, 1, result.stdout);
     assert.deepEqual(
@@ -428,6 +466,7 @@ describe("check rejects (images)", () => {
       }),
       listingConfig(["en-US", "uk", "de-DE"])
     );
+
     assert.equal(result.status, 1, result.stdout);
     assert.deepEqual(
       unreported(result, [
@@ -448,6 +487,7 @@ describe("check rejects (images)", () => {
         ...withImage(png({ colorType: 4 }), UK),
       })
     );
+
     assert.equal(result.status, 1, result.stdout);
     assert.deepEqual(
       unreported(result, [
@@ -480,6 +520,7 @@ describe("check rejects (images)", () => {
         "iphone-6.7/en-US/01.png": png(),
       })
     );
+
     assert.equal(result.status, 1, result.stdout);
     assert.deepEqual(
       unreported(result, [
@@ -501,6 +542,7 @@ describe("check against the listing config", () => {
       makeTree(images(EN, 1)),
       listingConfig(["en-US", "uk", "de-DE"])
     );
+
     assert.equal(result.status, 0, result.lines.join("\n"));
     assert.deepEqual(result.lines, []);
   });
@@ -510,12 +552,14 @@ describe("check against the listing config", () => {
       "check",
       makeTree({ ...images(EN, 1), ...images(UK, 1) })
     );
+
     assert.equal(result.status, 0, result.lines.join("\n"));
     assert.deepEqual(result.lines, []);
   });
 
   test("rejects a Listing locale folder the config doesn't list", () => {
     const config = listingConfig(["en-US", "uk"]);
+
     const result = check(
       makeTree({
         ...images(EN, 1),
@@ -524,6 +568,7 @@ describe("check against the listing config", () => {
       }),
       config
     );
+
     assert.equal(result.status, 1, result.stdout);
     assert.deepEqual(
       unreported(result, [
@@ -645,12 +690,14 @@ const GIT_ENV = {
 const git = (cwd, ...args) => {
   const child = spawnSync("git", args, {
     cwd,
-    encoding: "utf8",
+    encoding: "utf-8",
     env: GIT_ENV,
   });
+
   if (child.status !== 0) {
     throw new Error(`git ${args.join(" ")} failed: ${child.stderr}`);
   }
+
   return child.stdout;
 };
 
@@ -677,9 +724,11 @@ const makeRepo = (tree, locales = ["en-US", "uk"]) => {
     ),
     "store.config.json": configJson(locales),
   });
+
   git(repo, "init", "-q", "-b", "main");
   git(repo, "add", "-A");
   git(repo, "commit", "-q", "-m", "base");
+
   return {
     config: path.join(repo, "store.config.json"),
     dir: path.join(repo, SCREENSHOTS),
@@ -754,12 +803,14 @@ describe("check against a base ref", () => {
 
   test("accepts a Screenshot set added since the base", () => {
     const repo = makeRepo(images(EN, 1));
+
     for (const [name, bytes] of Object.entries(images(UK, 1))) {
       fs.mkdirSync(path.join(repo.dir, path.dirname(name)), {
         recursive: true,
       });
       fs.writeFileSync(path.join(repo.dir, name), bytes);
     }
+
     const result = checkAgainst(repo);
     assert.equal(result.status, 0, result.lines.join("\n"));
   });
@@ -796,6 +847,7 @@ describe("check against a base ref", () => {
 
   test("fails outside a Git repo", () => {
     const dir = makeTree(images(EN, 1));
+
     const result = run(
       "check",
       dir,
@@ -804,6 +856,7 @@ describe("check against a base ref", () => {
       "--config",
       DEFAULT_CONFIG
     );
+
     assert.equal(result.status, 1, result.stdout);
     assert.ok(
       result.lines[0].startsWith("--base HEAD: can't read the Screenshot sets"),
@@ -862,13 +915,14 @@ const listing = (content = LISTING) => {
   const config = path.join(dir, "apps", "mobile", "store.config.json");
   fs.mkdirSync(path.dirname(config), { recursive: true });
   fs.writeFileSync(config, `${JSON.stringify(content, null, 2)}\n`);
+
   return { config, staging: path.join(dir, "staging") };
 };
 
 const prepare = (dir, { config, staging }) =>
   run("prepare", staging, dir, "--config", config);
 
-const readConfig = (config) => JSON.parse(fs.readFileSync(config, "utf8"));
+const readConfig = (config) => JSON.parse(fs.readFileSync(config, "utf-8"));
 
 const sha8 = (bytes) =>
   crypto.createHash("sha256").update(bytes).digest("hex").slice(0, 8);
@@ -877,6 +931,7 @@ const sha8 = (bytes) =>
 // every other variant, different bytes (and so a different sha256).
 const variant = (n, base = png()) => {
   const iend = base.length - 12;
+
   return Buffer.concat([
     base.subarray(0, iend),
     chunk("tEXt", Buffer.from(`Comment\0${String(n).padStart(4, "0")}`)),
@@ -905,6 +960,7 @@ describe("prepare", () => {
       ...distinctImages(EN, 2),
       ...distinctImages(UK, 1, 100),
     };
+
     const dir = makeTree(tree);
     const target = listing();
     const result = prepare(dir, target);
@@ -915,6 +971,7 @@ describe("prepare", () => {
     const uk = written.apple.info.uk.screenshots;
     assert.deepEqual(Object.keys(en), ["APP_IPHONE_67"]);
     assert.deepEqual(Object.keys(uk), ["APP_IPHONE_67"]);
+
     for (const [set, paths] of [
       [EN, en.APP_IPHONE_67],
       [UK, uk.APP_IPHONE_67],
@@ -924,6 +981,7 @@ describe("prepare", () => {
         files.length,
         Object.keys(tree).filter((name) => name.startsWith(`${set}/`)).length
       );
+
       for (const [i, file] of files.entries()) {
         const number = String(i + 1).padStart(2, "0");
         const source = tree[`${set}/${number}.png`];
@@ -970,14 +1028,17 @@ describe("prepare (names and order)", () => {
       names(target.config).map((name) => STAGED_NAME.exec(name)?.[1]),
       ["01", "02", "03", "04", "05", "06", "07", "08", "09", "10"]
     );
+
     const files = staged(
       target.config,
       readConfig(target.config).apple.info["en-US"].screenshots.APP_IPHONE_67
     );
+
     for (const [i, file] of files.entries()) {
       const source = tree[`${EN}/${String(i + 1).padStart(2, "0")}.png`];
       assert.ok(fs.readFileSync(file).equals(source), file);
     }
+
     // uk is in the config but has no folder: no entry, its text as it was.
     assert.deepEqual(
       readConfig(target.config).apple.info.uk,
@@ -996,10 +1057,12 @@ describe("prepare (names and order)", () => {
     const replacement = variant(999);
     assert.equal(replacement.length, tree[`${EN}/02.png`].length);
     const replaced = listing();
+
     const result = prepare(
       makeTree({ ...tree, [`${EN}/02.png`]: replacement }),
       replaced
     );
+
     assert.equal(result.status, 0, result.lines.join("\n"));
     const [one, two, three] = names(first.config);
     assert.deepEqual(names(replaced.config), [
@@ -1014,13 +1077,14 @@ describe("prepare (names and order)", () => {
 describe("prepare writes nothing", () => {
   // What prepare left: the config's text and the staged files.
   const leftover = (target) => ({
-    config: fs.readFileSync(target.config, "utf8"),
+    config: fs.readFileSync(target.config, "utf-8"),
     staged: filesUnder(target.staging),
   });
 
   test("for an invalid tree", () => {
     const target = listing();
-    const before = fs.readFileSync(target.config, "utf8");
+    const before = fs.readFileSync(target.config, "utf-8");
+
     const result = prepare(
       makeTree({
         ...distinctImages(EN, 2),
@@ -1028,6 +1092,7 @@ describe("prepare writes nothing", () => {
       }),
       target
     );
+
     assert.equal(result.status, 1, result.stdout);
     assert.deepEqual(result.lines, [
       "iphone-6.9 / uk / 01.png: 1290×2868, needs exactly 1320×2868 (portrait)",
@@ -1037,7 +1102,8 @@ describe("prepare writes nothing", () => {
 
   test("for a Listing locale folder the config doesn't list", () => {
     const target = listing();
-    const before = fs.readFileSync(target.config, "utf8");
+    const before = fs.readFileSync(target.config, "utf-8");
+
     const result = prepare(
       makeTree({
         ...distinctImages(EN, 1),
@@ -1045,6 +1111,7 @@ describe("prepare writes nothing", () => {
       }),
       target
     );
+
     assert.equal(result.status, 1, result.stdout);
     assert.deepEqual(result.lines, [
       `iphone-6.9 / uk-UA: Listing locale not in the listing config (${target.config} lists en-US, uk)`,
@@ -1057,11 +1124,14 @@ describe("prepare writes nothing", () => {
       ...LISTING,
       apple: { ...LISTING.apple, info: { ...LISTING.apple.info, uk: "Fitme" } },
     });
-    const before = fs.readFileSync(target.config, "utf8");
+
+    const before = fs.readFileSync(target.config, "utf-8");
+
     const result = prepare(
       makeTree({ ...distinctImages(EN, 1), ...distinctImages(UK, 1) }),
       target
     );
+
     assert.equal(result.status, 1, result.stdout);
     assert.deepEqual(result.lines, [
       `${target.config}: apple.info.uk: not an object of listing text`,
@@ -1073,7 +1143,7 @@ describe("prepare writes nothing", () => {
     const tree = makeTree(distinctImages(EN, 1));
     const target = listing();
     assert.equal(prepare(tree, target).status, 0);
-    const before = fs.readFileSync(target.config, "utf8");
+    const before = fs.readFileSync(target.config, "utf-8");
     const again = { ...target, staging: `${target.staging}-again` };
     const result = prepare(tree, again);
     assert.equal(result.status, 1, result.stdout);
@@ -1098,7 +1168,7 @@ describe("prepare writes nothing", () => {
 
   test("but succeeds without any Screenshot sets, the config text only", () => {
     const target = listing();
-    const before = fs.readFileSync(target.config, "utf8");
+    const before = fs.readFileSync(target.config, "utf-8");
     const result = prepare(makeTree({ "README.md": "# App Store" }), target);
     assert.equal(result.status, 0, result.lines.join("\n"));
     assert.deepEqual(leftover(target), { config: before, staged: [] });
@@ -1109,6 +1179,7 @@ describe("prepare writes nothing", () => {
 describe("the command line (prepare)", () => {
   test("takes no base ref", () => {
     const { staging } = listing();
+
     const result = run(
       "prepare",
       staging,
@@ -1116,6 +1187,7 @@ describe("the command line (prepare)", () => {
       "--base",
       "HEAD"
     );
+
     assert.equal(result.status, 2);
     assert.ok(result.lines[0].startsWith("Usage:"));
   });

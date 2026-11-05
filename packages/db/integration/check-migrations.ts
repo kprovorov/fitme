@@ -1,5 +1,6 @@
 import { readdirSync } from "node:fs";
 import { fileURLToPath } from "node:url";
+
 import pg from "pg";
 
 /**
@@ -13,6 +14,7 @@ import pg from "pg";
 const MIGRATIONS_DIR = fileURLToPath(
   new URL("../../supabase/supabase/migrations", import.meta.url)
 );
+
 const MIGRATION_FILE = /^(\d+)_.*\.sql$/;
 
 export const APPLY_MIGRATIONS_COMMAND =
@@ -31,6 +33,7 @@ export const missingMigrations = (
   applied: Iterable<string>
 ): string[] => {
   const done = new Set(applied);
+
   return files.filter((version) => !done.has(version));
 };
 
@@ -41,14 +44,17 @@ const appliedVersions = async (adminUrl: string): Promise<string[]> => {
     connectionTimeoutMillis: 10_000,
     query_timeout: 10_000,
   });
+
   try {
     await client.connect();
+
     const { rows } = await client.query<{ version: string }>(
       "select version from supabase_migrations.schema_migrations"
     );
+
     return rows.map((row) => row.version);
   } finally {
-    await client.end().catch(() => undefined);
+    await client.end().catch(() => {});
   }
 };
 
@@ -63,16 +69,21 @@ export const migrationsError = (
   applied: readonly string[]
 ): Error | null => {
   const missing = missingMigrations(files, applied);
+
   if (missing.length === 0) {
     return null;
   }
+
   const newestApplied = [...applied].sort().at(-1);
+
   const outOfOrder =
     newestApplied !== undefined &&
     missing.some((version) => version < newestApplied);
+
   const command = outOfOrder
     ? `${APPLY_MIGRATIONS_COMMAND} --include-all`
     : APPLY_MIGRATIONS_COMMAND;
+
   return new Error(
     `the local Supabase stack is missing ${missing.length} migration(s) from this checkout (${missing.join(", ")}); run \`${command}\``
   );
@@ -91,6 +102,7 @@ export const checkMigrationsApplied = async (
     migrationVersions(dir),
     await appliedVersions(adminUrl)
   );
+
   if (error) {
     throw error;
   }

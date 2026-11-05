@@ -1,5 +1,7 @@
 import { describe, expect, it, jest } from "@jest/globals";
 import { render, screen } from "@testing-library/react-native";
+import { describe, expect, it } from "vitest";
+
 import { Badge } from "../badge";
 import { Text } from "../text";
 
@@ -13,13 +15,17 @@ const VARIANTS = [
 
 // The symbol, as a plain view carrying its props: what it draws from them
 // (size, weight, color from the class names) is SymbolImage's own
-jest.mock("~/components/symbol-image", () => {
-  const { View: MockView } =
-    jest.requireActual<typeof import("react-native")>("react-native");
-  return {
-    SymbolImage: (props: object) => <MockView {...props} testID="symbol" />,
-  };
-});
+jest.mock<typeof import("~/components/symbol-image")>(
+  import("~/components/symbol-image"),
+  () => {
+    const { View: MockView } =
+      jest.requireActual<typeof import("react-native")>("react-native");
+
+    return {
+      SymbolImage: (props: object) => <MockView {...props} testID="symbol" />,
+    };
+  }
+);
 
 /** The icon, hidden from accessibility, so queries must ask for it. */
 function symbol() {
@@ -29,18 +35,22 @@ function symbol() {
 /** The badge's children in order: "symbol" for the icon, else the text. */
 function childOrder(): string[] {
   const badge = screen.getByTestId("badge");
+
   return badge.children.map((child) => {
     if (typeof child === "string") {
       return child;
     }
+
     const [first] = child.children;
+
     const isIcon =
       typeof first !== "string" && first?.props.testID === "symbol";
+
     return isIcon ? "symbol" : String(child.props.children);
   });
 }
 
-describe("Badge", () => {
+describe(Badge, () => {
   it("renders its label with the default variant", async () => {
     await render(
       <Badge>
@@ -96,7 +106,7 @@ describe("Badge", () => {
   it("keeps its own fill and shape when a caller passes surface classes", async () => {
     await render(
       <Badge
-        className="mt-2 rounded-none bg-primary px-4"
+        className="bg-primary mt-2 rounded-none px-4"
         testID="badge"
         variant="secondary"
       >
@@ -109,6 +119,7 @@ describe("Badge", () => {
     expect(classes).toEqual(
       expect.arrayContaining(["mt-2", "bg-secondary", "rounded-full", "px-2"])
     );
+
     for (const dropped of ["bg-primary", "rounded-none", "px-4"]) {
       expect(classes).not.toContain(dropped);
     }

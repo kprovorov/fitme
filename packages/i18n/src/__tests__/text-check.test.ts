@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+
 import {
   ALLOWLIST,
   checkFiles,
@@ -11,7 +12,7 @@ const PATH = "apps/mobile/components/example.tsx";
 const texts = (source: string, path = PATH) =>
   checkSource(path, source).map((finding) => finding.text);
 
-describe("checkSource", () => {
+describe(checkSource, () => {
   it("fails JSX text, naming the file, line, column and text", () => {
     const source = [
       "export function Empty() {",
@@ -169,7 +170,7 @@ describe("checkSource", () => {
   });
 });
 
-describe("checkFiles", () => {
+describe(checkFiles, () => {
   const files = new Map([
     ["apps/mobile/app/empty.tsx", "<Text>Nothing here</Text>"],
     ["apps/mobile/app/home.tsx", '<Text>{t("home.title")}</Text>'],

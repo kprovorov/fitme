@@ -3,50 +3,72 @@ import {
   LibraryUnavailableError,
 } from "@fitme/library-sdk";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+
 import { fakeLibrary } from "./library";
 import {
   contextFor,
   inputSchemaOf,
-  type TestedTool,
   userIdFields,
   withClientContext,
 } from "./tool-context";
+import type { TestedTool } from "./tool-context";
 
 const db = vi.hoisted(() => ({ asUser: vi.fn() }));
+
 const plans = vi.hoisted(() => ({
   getActivePlan: vi.fn(),
   listPlans: vi.fn(),
 }));
+
 const sessions = vi.hoisted(() => ({ listWorkoutHistory: vi.fn() }));
 const observability = vi.hoisted(() => ({ reportError: vi.fn() }));
-vi.mock("@fitme/db", () => db);
-vi.mock("@fitme/services/plans", () => plans);
-vi.mock("@fitme/services/workout-sessions", () => sessions);
-vi.mock("@fitme/observability/node", () => observability);
-vi.mock("../agent/lib/library", async () => {
-  const { fakeLibrary: library } = await import("./library");
-  return { getLibrary: () => library };
-});
 
-const { default: getActivePlan } = await import(
-  "../agent/tools/get_active_plan"
+vi.mock<typeof import("@fitme/db")>(import("@fitme/db"), () => db);
+
+vi.mock<typeof import("@fitme/services/plans")>(
+  import("@fitme/services/plans"),
+  () => plans
 );
+
+vi.mock<typeof import("@fitme/services/workout-sessions")>(
+  import("@fitme/services/workout-sessions"),
+  () => sessions
+);
+
+vi.mock<typeof import("@fitme/observability/node")>(
+  import("@fitme/observability/node"),
+  () => observability
+);
+
+vi.mock<typeof import("../agent/lib/library")>(
+  import("../agent/lib/library"),
+  async () => {
+    const { fakeLibrary: library } = await import("./library");
+
+    return { getLibrary: () => library };
+  }
+);
+
+const { default: getActivePlan } =
+  await import("../agent/tools/get_active_plan");
+
 const { default: getPlans } = await import("../agent/tools/get_plans");
-const { default: getWorkoutsHistory } = await import(
-  "../agent/tools/get_workouts_history"
-);
-const { default: searchExercises } = await import(
-  "../agent/tools/search_exercises"
-);
-const { default: displayWorkoutPlan } = await import(
-  "../agent/tools/display_workout_plan"
-);
+
+const { default: getWorkoutsHistory } =
+  await import("../agent/tools/get_workouts_history");
+
+const { default: searchExercises } =
+  await import("../agent/tools/search_exercises");
+
+const { default: displayWorkoutPlan } =
+  await import("../agent/tools/display_workout_plan");
 
 const tx = { fake: "transaction" };
 
 /** What eve hands `execute` after validating the model's input. */
 const parseInput = <Input>(tool: TestedTool<Input>, input: unknown) =>
   inputSchemaOf(tool).parse(input);
+
 const alice = contextFor("user_alice");
 
 const set = {
@@ -56,6 +78,7 @@ const set = {
   rest_recommended: 90,
   weight_recommended: 60,
 };
+
 /** A Workout Exercise as the services return it. */
 const planExercise = (id: string, slug: string) => ({
   exercise_slug: slug,
@@ -63,6 +86,7 @@ const planExercise = (id: string, slug: string) => ({
   order: 1,
   sets: [set],
 });
+
 const plan = {
   id: "plan_1",
   is_active: true,
@@ -80,7 +104,9 @@ const plan = {
     },
   ],
 };
+
 const loggedSet = { ...set, logged_at: null, reps_completed: 8 };
+
 const history = [
   {
     exercises: [
@@ -135,7 +161,7 @@ describe("get_active_plan", () => {
   });
 
   it("names each Exercise from the library, and from its slug when the library doesn't know it", async () => {
-    expect(await getActivePlan.execute({}, alice)).toEqual({
+    await expect(getActivePlan.execute({}, alice)).resolves.toEqual({
       ...plan,
       workouts: [
         {
@@ -183,7 +209,7 @@ describe("get_active_plan", () => {
   it("tells the model when no Plan is active", async () => {
     plans.getActivePlan.mockResolvedValue(null);
 
-    expect(await getActivePlan.execute({}, alice)).toEqual({
+    await expect(getActivePlan.execute({}, alice)).resolves.toEqual({
       error: "No active plan found",
     });
   });
@@ -198,7 +224,7 @@ describe("get_plans", () => {
   it("lists the Plans as the session's User", async () => {
     const input = parseInput(getPlans, userIdFields);
 
-    expect(await getPlans.execute(input, alice)).toEqual([plan]);
+    await expect(getPlans.execute(input, alice)).resolves.toEqual([plan]);
     expect(input).toEqual({});
     expect(db.asUser).toHaveBeenCalledWith("user_alice", expect.any(Function));
     expect(plans.listPlans).toHaveBeenCalledWith(tx, "user_alice");
@@ -215,7 +241,7 @@ describe("get_workouts_history", () => {
   it("reads the latest finished sessions as the session's User, Exercises named from the library", async () => {
     const input = parseInput(getWorkoutsHistory, { ...userIdFields, limit: 3 });
 
-    expect(await getWorkoutsHistory.execute(input, alice)).toEqual([
+    await expect(getWorkoutsHistory.execute(input, alice)).resolves.toEqual([
       {
         ...history[0],
         exercises: [
@@ -248,7 +274,7 @@ describe("get_workouts_history", () => {
       muscle_groups: [],
       name: "Back squat",
     });
-    expect(observability.reportError).toHaveBeenCalled();
+    expect(observability.reportError).toHaveBeenCalledWith();
   });
 
   it("reads 10 sessions by default and at most 20", () => {
@@ -273,7 +299,7 @@ describe("search_exercises", () => {
       query: "press",
     });
 
-    expect(await searchExercises.execute(input, alice)).toEqual([
+    await expect(searchExercises.execute(input, alice)).resolves.toEqual([
       {
         exercise_slug: "bench-press",
         muscle_groups: ["chest", "triceps"],
@@ -309,7 +335,7 @@ describe("search_exercises", () => {
   it("asks to retry when the library fails, and reports it", async () => {
     fakeLibrary.failWith(libraryDown);
 
-    expect(await searchExercises.execute({}, alice)).toEqual({
+    await expect(searchExercises.execute({}, alice)).resolves.toEqual({
       error: expect.stringContaining("Try again"),
     });
     expect(observability.reportError).toHaveBeenCalledWith(
@@ -345,9 +371,11 @@ describe("the App language", () => {
         },
       ],
     });
+
     const answer = (await getActivePlan.execute({}, ctx)) as {
       workouts: { exercises: ShownExercise[] }[];
     };
+
     return answer.workouts[0].exercises.map(({ name }) => name);
   };
 
@@ -357,11 +385,12 @@ describe("the App language", () => {
       { muscle_group: "chest", query },
       ctx
     )) as ShownExercise[];
+
     return found.map(({ name }) => name);
   };
 
   it("names a Plan's Exercises in Ukrainian, an untranslated one in English and an unknown one from its slug", async () => {
-    expect(await planNames(inUkrainian)).toEqual([
+    await expect(planNames(inUkrainian)).resolves.toEqual([
       "Жим лежачи",
       "Incline Dumbbell Press",
       "Jefferson curl",
@@ -371,9 +400,9 @@ describe("the App language", () => {
   it("names a Plan's Exercises in English without a language, in English and in a language that isn't an App language", async () => {
     const english = ["Bench Press", "Incline Dumbbell Press", "Jefferson curl"];
 
-    expect(await planNames(alice)).toEqual(english);
-    expect(await planNames(inEnglish)).toEqual(english);
-    expect(await planNames(inGerman)).toEqual(english);
+    await expect(planNames(alice)).resolves.toEqual(english);
+    await expect(planNames(inEnglish)).resolves.toEqual(english);
+    await expect(planNames(inGerman)).resolves.toEqual(english);
   });
 
   it("names the workout history's Exercises in the App language, keeping their muscle groups", async () => {
@@ -382,15 +411,18 @@ describe("the App language", () => {
         { limit: 10 },
         ctx
       )) as { exercises: ShownExercise[] }[];
+
       return session.exercises[0];
     };
 
-    expect(await shown(inUkrainian)).toMatchObject({
+    await expect(shown(inUkrainian)).resolves.toMatchObject({
       muscle_groups: ["quadriceps", "glutes"],
       name: "Присідання зі штангою",
     });
-    expect(await shown(alice)).toMatchObject({ name: "Back Squat" });
-    expect(await shown(inGerman)).toMatchObject({ name: "Back Squat" });
+    await expect(shown(alice)).resolves.toMatchObject({ name: "Back Squat" });
+    await expect(shown(inGerman)).resolves.toMatchObject({
+      name: "Back Squat",
+    });
   });
 
   it("names the workout history's untranslated Exercises in English", async () => {
@@ -415,7 +447,7 @@ describe("the App language", () => {
   });
 
   it("answers search results in Ukrainian, an untranslated one in English, in Ukrainian order", async () => {
-    expect(await searchNames(inUkrainian)).toEqual([
+    await expect(searchNames(inUkrainian)).resolves.toEqual([
       "Жим лежачи",
       "Incline Dumbbell Press",
     ]);
@@ -424,14 +456,18 @@ describe("the App language", () => {
   it("answers search results in English without a language or with one that isn't an App language", async () => {
     const english = ["Bench Press", "Incline Dumbbell Press"];
 
-    expect(await searchNames(alice)).toEqual(english);
-    expect(await searchNames(inEnglish)).toEqual(english);
-    expect(await searchNames(inGerman)).toEqual(english);
+    await expect(searchNames(alice)).resolves.toEqual(english);
+    await expect(searchNames(inEnglish)).resolves.toEqual(english);
+    await expect(searchNames(inGerman)).resolves.toEqual(english);
   });
 
   it("finds an Exercise by its Ukrainian name, and still by its English one", async () => {
-    expect(await searchNames(inUkrainian, "жим")).toEqual(["Жим лежачи"]);
-    expect(await searchNames(inUkrainian, "bench")).toEqual(["Жим лежачи"]);
+    await expect(searchNames(inUkrainian, "жим")).resolves.toEqual([
+      "Жим лежачи",
+    ]);
+    await expect(searchNames(inUkrainian, "bench")).resolves.toEqual([
+      "Жим лежачи",
+    ]);
   });
 
   it("asks the library in the App language", async () => {
@@ -455,6 +491,7 @@ describe("display_workout_plan", () => {
     reps: "8-10",
     sets: 3,
   });
+
   const proposed = (...exercises: ReturnType<typeof exercise>[]) => ({
     description: "Three full-body days",
     frequencyPerWeek: 3,
@@ -462,13 +499,14 @@ describe("display_workout_plan", () => {
     name: "Full body",
     workouts: [{ dayLabel: "Monday", exercises, name: "Day A" }],
   });
+
   const run = (input: unknown) =>
     displayWorkoutPlan.execute(parseInput(displayWorkoutPlan, input), alice);
 
   it("returns the proposed Plan as given, Exercises by exercise_slug only", async () => {
     const card = proposed(exercise("bench-press", "Bench press"));
 
-    expect(await run(card)).toEqual(card);
+    await expect(run(card)).resolves.toEqual(card);
     expect(db.asUser).not.toHaveBeenCalled();
   });
 

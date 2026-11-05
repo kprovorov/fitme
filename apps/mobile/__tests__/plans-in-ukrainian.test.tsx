@@ -10,7 +10,10 @@ import { beforeEach, describe, expect, it, jest } from "@jest/globals";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { fireEvent, render, screen } from "@testing-library/react-native";
 import type { ReactNode } from "react";
-import { Alert, type AlertButton, Pressable, Text } from "react-native";
+import { Alert, Pressable, Text } from "react-native";
+import type { AlertButton } from "react-native";
+import { it, describe, expect, beforeEach } from "vitest";
+
 import PlanScreen from "~/app/plans/[planId]/index";
 import WorkoutScreen from "~/app/plans/[planId]/workouts/[workoutId]/index";
 import PlansScreen from "~/app/plans/index";
@@ -45,6 +48,7 @@ const MockHeader = ({ options }: { options: MockHeaderOptions }) => {
   const items = (options.unstable_headerRightItems?.() ?? []).flatMap((item) =>
     item.menu ? [item, ...item.menu.items] : [item]
   );
+
   return (
     <>
       {options.title ? <Text>{options.title}</Text> : null}
@@ -57,7 +61,7 @@ const MockHeader = ({ options }: { options: MockHeaderOptions }) => {
   );
 };
 
-jest.mock("expo-router", () => ({
+jest.mock<typeof import("expo-router")>(import("expo-router"), () => ({
   Link: ({ children }: { children: ReactNode }) => children,
   Stack: {
     Screen: (props: { options: MockHeaderOptions }) => (
@@ -77,27 +81,46 @@ jest.mock("expo-router", () => ({
   }),
 }));
 
-jest.mock("react-native-safe-area-context", () => ({
-  useSafeAreaInsets: () => ({ bottom: 0, left: 0, right: 0, top: 0 }),
-}));
+jest.mock<typeof import("react-native-safe-area-context")>(
+  import("react-native-safe-area-context"),
+  () => ({
+    useSafeAreaInsets: () => ({ bottom: 0, left: 0, right: 0, top: 0 }),
+  })
+);
 
 // The real Clerk SDK (reached through the Workout cards) opens a MessagePort
 // at import that keeps Jest alive.
-jest.mock("~/lib/clerk", () => ({
+jest.mock<typeof import("~/lib/clerk")>(import("~/lib/clerk"), () => ({
   getCurrentUserId: () =>
     jest.requireActual<typeof import("~/test-utils/fake-public-api")>(
       "~/test-utils/fake-public-api"
     ).FAKE_USER_ID,
 }));
 
-jest.mock("~/lib/segment", () => ({ segmentClient: { track: jest.fn() } }));
-jest.mock("~/hooks/revenueCat", () => ({
-  useIsProQuery: () => ({ data: false }),
+jest.mock<typeof import("~/lib/segment")>(import("~/lib/segment"), () => ({
+  segmentClient: { track: jest.fn() },
 }));
-jest.mock("~/components/exercises/exercise-image", () => () => null);
-jest.mock("~/components/symbol-image", () => ({ SymbolImage: () => null }));
-jest.mock("~/components/ui/button", () =>
-  jest.requireActual("~/test-utils/button-stub")
+
+jest.mock<typeof import("~/hooks/revenueCat")>(
+  import("~/hooks/revenueCat"),
+  () => ({
+    useIsProQuery: () => ({ data: false }),
+  })
+);
+
+jest.mock<typeof import("~/components/exercises/exercise-image")>(
+  import("~/components/exercises/exercise-image"),
+  () => () => null
+);
+
+jest.mock<typeof import("~/components/symbol-image")>(
+  import("~/components/symbol-image"),
+  () => ({ SymbolImage: () => null })
+);
+
+jest.mock<typeof import("~/components/ui/button")>(
+  import("~/components/ui/button"),
+  () => jest.requireActual("~/test-utils/button-stub")
 );
 
 const DELETE = "DELETE /v1/plans/{id}";
@@ -116,16 +139,18 @@ const mount = async (children: ReactNode) => {
 };
 
 const alerts = () =>
-  (Alert.alert as jest.Mock).mock.calls as [string, string, AlertButton[]?][];
+  jest.mocked(Alert.alert).mock.calls as [string, string, AlertButton[]?][];
 
 /** Picks `item` in the header menu and presses `button` in its alert. */
 const choose = async (item: string, button: string) => {
   await fireEvent.press(screen.getByText(item));
   const buttons = alerts().at(-1)?.[2] ?? [];
   const pressed = buttons.find((candidate) => candidate.text === button);
+
   if (!pressed?.onPress) {
     throw new Error(`No "${button}" button in the last alert`);
   }
+
   pressed.onPress();
   await settle(queryClient);
 };
@@ -139,7 +164,7 @@ const exercises = (prefix: string, count: number) =>
 
 beforeEach(() => {
   jest.clearAllMocks();
-  jest.spyOn(Alert, "alert").mockImplementation(() => undefined);
+  jest.spyOn(Alert, "alert").mockReturnValue(undefined);
   backend.reset();
   backend.seedProfile(FAKE_USER_ID);
   mockPlanId.current = "plan-1";
@@ -161,7 +186,7 @@ beforeEach(() => {
   setDeviceLanguages(["uk-UA"]);
 });
 
-describe("The Plan list in Ukrainian", () => {
+describe("the Plan list in Ukrainian", () => {
   it("shows its title, each Plan's options and the create action", async () => {
     await mount(<PlansScreen />);
 
@@ -190,7 +215,7 @@ describe("The Plan list in Ukrainian", () => {
   });
 });
 
-describe("A Plan's screen in Ukrainian", () => {
+describe("a Plan's screen in Ukrainian", () => {
   it("shows each Workout's Exercise count with its plural form", async () => {
     await mount(<PlanScreen />);
 
@@ -310,7 +335,7 @@ describe("A Plan's screen in Ukrainian", () => {
   });
 });
 
-describe("A Plan's Workout screen in Ukrainian", () => {
+describe("a Plan's Workout screen in Ukrainian", () => {
   it("shows its planned stats and Start", async () => {
     await mount(<WorkoutScreen />);
 

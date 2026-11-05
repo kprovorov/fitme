@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+
 import { isQueryError, sanitizeError } from "../index";
 
 const SQL = 'delete from "profiles" where "user_id" = $1';
@@ -20,7 +21,7 @@ class FakeQueryError extends Error {
 const postgresError = (code: string, message: string) =>
   Object.assign(new Error(message), { code });
 
-describe("isQueryError", () => {
+describe(isQueryError, () => {
   it("recognises an error with own query and params", () => {
     expect(isQueryError(new FakeQueryError(SQL, [USER_ID]))).toBe(true);
   });
@@ -33,12 +34,13 @@ describe("isQueryError", () => {
   });
 });
 
-describe("sanitizeError", () => {
+describe(sanitizeError, () => {
   it("replaces a query error with its SQLSTATE and stack frames only", () => {
     const cause = postgresError(
       "22P02",
       `invalid input syntax for type uuid: "${USER_ID}"`
     );
+
     const query = new FakeQueryError(SQL, [USER_ID], cause);
 
     const { error, tags } = sanitizeError(query);
@@ -60,6 +62,7 @@ describe("sanitizeError", () => {
         .split("\n")
         .filter((line) => line.startsWith("    at "))
     );
+
     for (const leak of [SQL, USER_ID, "invalid input syntax", "Failed query"]) {
       expect(sanitized.stack).not.toContain(leak);
     }
@@ -71,6 +74,7 @@ describe("sanitizeError", () => {
       [USER_ID],
       postgresError("23505", "dup")
     );
+
     const wrapper = new Error("cleanup failed", { cause: query });
 
     const { error, tags } = sanitizeError(wrapper);

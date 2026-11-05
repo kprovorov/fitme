@@ -1,8 +1,10 @@
-import { type MuscleGroup, muscleGroups } from "@fitme/core";
+import { muscleGroups } from "@fitme/core";
+import type { MuscleGroup } from "@fitme/core";
 import type { ExerciseSummary } from "@fitme/library-sdk";
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 import { useCallback, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
+
 import { ExerciseRowSymbol } from "~/components/exercises/exercise-row";
 import ExercisesView from "~/components/views/exercises-view";
 import { useHeaderSearch } from "~/hooks/header-search";
@@ -30,9 +32,11 @@ const isMuscleGroup = (value: string | undefined): value is MuscleGroup =>
 export default function PlanExercisePickerScreen() {
   const { t } = useTranslation();
   const router = useRouter();
+
   const { onSearchChange, search, searchBarOptions } = useHeaderSearch({
     inSheet: true,
   });
+
   const {
     draft: draftKey,
     muscleGroup,
@@ -62,6 +66,7 @@ export default function PlanExercisePickerScreen() {
       if (left.current) {
         return;
       }
+
       left.current = true;
       updatePlanDraft(draftKey, (draft) =>
         replaceExerciseKey

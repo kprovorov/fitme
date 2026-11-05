@@ -1,8 +1,6 @@
-import {
-  createPublicApi,
-  type PublicApi,
-  type PublicApiFetch,
-} from "@fitme/api-client";
+import { createPublicApi } from "@fitme/api-client";
+import type { PublicApi, PublicApiFetch } from "@fitme/api-client";
+
 import { publicApiUrl } from "~/lib/env";
 
 export interface PublicApiForOptions {

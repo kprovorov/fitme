@@ -5,12 +5,14 @@ import { deleteUserData } from "@fitme/services/delete-user-data";
 import { Hono } from "hono";
 import { HTTPException } from "hono/http-exception";
 import { logger } from "hono/logger";
+
 import {
   arnoldResetConfig,
   arnoldSessionResetter,
   deleteArnoldConversations,
 } from "./arnold.js";
-import { type ClerkWebhookDeps, clerkRoutes } from "./routes/clerk.js";
+import { clerkRoutes } from "./routes/clerk.js";
+import type { ClerkWebhookDeps } from "./routes/clerk.js";
 
 export interface AppDeps {
   clerk: Omit<ClerkWebhookDeps, "reportError">;
@@ -64,7 +66,9 @@ export const createApp = (
         error.status
       );
     }
+
     await report(error);
+
     return c.json(
       { error: { code: "internal_error", message: "Internal server error" } },
       500

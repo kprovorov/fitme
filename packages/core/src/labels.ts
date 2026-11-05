@@ -10,14 +10,18 @@ export const getMeasurementSystemLabel = (
   measurementSystem: MeasurementSystem
 ) => {
   switch (measurementSystem) {
-    case "metric":
+    case "metric": {
       return "Metric";
-    case "us":
+    }
+    case "us": {
       return "US";
-    case "uk":
+    }
+    case "uk": {
       return "UK";
-    default:
+    }
+    default: {
       return measurementSystem;
+    }
   }
 };
 
@@ -25,92 +29,120 @@ export const getMeasurementSystemDisclaimer = (
   measurementSystem: MeasurementSystem
 ) => {
   switch (measurementSystem) {
-    case "metric":
+    case "metric": {
       return "Centimeters and Kilograms";
-    case "us":
+    }
+    case "us": {
       return "Feet, Inches and Pounds";
-    case "uk":
+    }
+    case "uk": {
       return "Feet, Inches and Pounds";
-    default:
+    }
+    default: {
       return;
+    }
   }
 };
 
 export const getWeightLabel = (measurementSystem: MeasurementSystem) => {
   switch (measurementSystem) {
-    case "metric":
+    case "metric": {
       return "kg";
-    case "us":
+    }
+    case "us": {
       return "lbs";
-    case "uk":
+    }
+    case "uk": {
       return "lbs";
-    default:
+    }
+    default: {
       return;
+    }
   }
 };
 
 export const getHeightLabel = (measurementSystem: MeasurementSystem) => {
   switch (measurementSystem) {
-    case "metric":
+    case "metric": {
       return "cm";
-    case "us":
+    }
+    case "us": {
       return "ft";
-    case "uk":
+    }
+    case "uk": {
       return "ft";
-    default:
+    }
+    default: {
       return;
+    }
   }
 };
 
 export const getGenderLabel = (gender: Gender) => {
   switch (gender) {
-    case "male":
+    case "male": {
       return "Male";
-    case "female":
+    }
+    case "female": {
       return "Female";
-    default:
+    }
+    default: {
       return gender;
+    }
   }
 };
 
 export const getGoalLabel = (goal: Goal) => {
   switch (goal) {
-    case "fat-loss":
+    case "fat-loss": {
       return "Lose Weight";
-    case "muscle-gain":
+    }
+    case "muscle-gain": {
       return "Gain Muscle";
-    case "recomposition":
+    }
+    case "recomposition": {
       return "Recomposition";
-    case "strength-performance":
+    }
+    case "strength-performance": {
       return "Strength & Performance";
-    case "general-health-fitness":
+    }
+    case "general-health-fitness": {
       return "General Health & Fitness";
-    default:
+    }
+    default: {
       return;
+    }
   }
 };
 
 export const getPlaceLabel = (place: Place) => {
   switch (place) {
-    case "gym":
+    case "gym": {
       return "Gym";
-    case "home":
+    }
+    case "home": {
       return "Home";
-    default:
+    }
+    default: {
       return;
+    }
   }
 };
 
 export const getExperienceLevelLabel = (experienceLevel: ExperienceLevel) => {
   switch (experienceLevel) {
-    case "beginner":
+    case "beginner": {
       return "Beginner";
-    case "intermediate":
+    }
+    case "intermediate": {
       return "Intermediate";
-    case "advanced":
+    }
+    case "advanced": {
       return "Advanced";
-    default:
+    }
+    default: {
       return;
+    }
   }
 };
 
@@ -118,13 +150,17 @@ export const getExperienceLevelDisclaimer = (
   experienceLevel: ExperienceLevel
 ) => {
   switch (experienceLevel) {
-    case "beginner":
+    case "beginner": {
       return "0-6 mo experience";
-    case "intermediate":
+    }
+    case "intermediate": {
       return "6 mo - 3 yrs experience";
-    case "advanced":
+    }
+    case "advanced": {
       return "3+ yrs experience";
-    default:
+    }
+    default: {
       return;
+    }
   }
 };

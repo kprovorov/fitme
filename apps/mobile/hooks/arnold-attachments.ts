@@ -1,4 +1,5 @@
 import { useSyncExternalStore } from "react";
+
 import type { PickedImage } from "~/lib/arnold-attachment-picker";
 
 /**
@@ -35,6 +36,7 @@ const emit = () => {
 
 const subscribe = (listener: () => void) => {
   listeners.add(listener);
+
   return () => {
     listeners.delete(listener);
   };
@@ -70,14 +72,18 @@ export function addArnoldAttachments(
   if (startedFor !== owner) {
     return;
   }
+
   const room = images.slice(0, remainingAttachmentSlots());
+
   if (room.length === 0) {
     return;
   }
+
   picked = [
     ...picked,
     ...room.map((image) => {
       nextId += 1;
+
       return { ...image, id: `attachment-${nextId}` };
     }),
   ];
@@ -87,9 +93,11 @@ export function addArnoldAttachments(
 /** Removes one, by its id (the thumbnail's ×). */
 export function removeArnoldAttachment(id: string): void {
   const left = picked.filter((attachment) => attachment.id !== id);
+
   if (left.length === picked.length) {
     return;
   }
+
   picked = left;
   emit();
 }
@@ -99,6 +107,7 @@ export function clearArnoldAttachments(): void {
   if (picked.length === 0) {
     return;
   }
+
   picked = NONE;
   emit();
 }

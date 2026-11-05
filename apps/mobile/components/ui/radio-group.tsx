@@ -15,8 +15,10 @@ import {
   tint,
 } from "@expo/ui/swift-ui/modifiers";
 import { useCallback } from "react";
+
 import { SwiftUIHost, useSwiftUITheme } from "~/components/ui/swift-ui";
 import { cn } from "~/lib/utils";
+
 import type { PickerOption, PickerValue } from "./picker";
 
 interface RadioGroupProps<TValue extends PickerValue> {
@@ -107,4 +109,5 @@ const RadioGroup = <TValue extends PickerValue>({
 RadioGroup.displayName = "RadioGroup";
 
 export type { RadioGroupProps };
+
 export { RadioGroup };

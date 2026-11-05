@@ -1,5 +1,6 @@
 import * as LabelPrimitive from "@rn-primitives/label";
 import type * as React from "react";
+
 import { cn } from "~/lib/utils";
 
 type LabelProps = LabelPrimitive.TextProps & {
@@ -37,7 +38,9 @@ const Label = ({
     />
   </LabelPrimitive.Root>
 );
+
 Label.displayName = LabelPrimitive.Root.displayName;
 
 export type { LabelProps };
+
 export { Label };

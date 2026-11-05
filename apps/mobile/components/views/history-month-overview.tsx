@@ -8,6 +8,7 @@ import {
 } from "@fitme/i18n";
 import { useTranslation } from "react-i18next";
 import { View } from "react-native";
+
 import { Badge } from "~/components/ui/badge";
 import { Separator } from "~/components/ui/separator";
 import { Text } from "~/components/ui/text";
@@ -38,6 +39,7 @@ function Stat({
   value,
 }: StatProps) {
   const { t } = useTranslation();
+
   return (
     <View
       accessibilityLabel={t("history.statLabel", { title, value: spokenValue })}
@@ -76,17 +78,18 @@ export default function HistoryMonthOverview({
   const totals = monthlyTotals(history.sessions);
   const time = formatDuration(i18n, totals.elapsedMs);
   const stacked = useStackedLayout();
+
   const goalOverview = weeklyGoals
     ? weeklyGoalOverview(weeklyGoals.changes, history.sessions)
     : null;
 
   return (
-    <View className="gap-sm px-1 pb-lg">
+    <View className="gap-sm pb-lg px-1">
       <View
         className={
           stacked
-            ? "items-start gap-xs"
-            : "flex-row flex-wrap items-center justify-between gap-xs"
+            ? "gap-xs items-start"
+            : "gap-xs flex-row flex-wrap items-center justify-between"
         }
       >
         <H4>{t("history.thisMonth")}</H4>
@@ -105,7 +108,7 @@ export default function HistoryMonthOverview({
           </Badge>
         ) : null}
       </View>
-      <View className={stacked ? "gap-sm" : "flex-row gap-sm"}>
+      <View className={stacked ? "gap-sm" : "gap-sm flex-row"}>
         <Stat
           accent
           spokenValue={formatCount(i18n, "workouts", totals.workouts)}

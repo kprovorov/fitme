@@ -1,6 +1,8 @@
 import * as Slot from "@rn-primitives/slot";
 import * as React from "react";
-import { Platform, Text as RNText, type Role } from "react-native";
+import { Platform, Text as RNText } from "react-native";
+import type { Role } from "react-native";
+
 import { cn } from "~/lib/utils";
 
 /**
@@ -63,6 +65,7 @@ function Text({
 }: TextProps) {
   const textClass = React.useContext(TextClassContext);
   const Component = asChild ? Slot.Text : RNText;
+
   return (
     <Component
       aria-level={ARIA_LEVEL[variant]}
@@ -79,4 +82,5 @@ function Text({
 }
 
 export type { TextProps, TextVariant };
+
 export { ARIA_LEVEL, ROLE, TEXT_VARIANTS, Text, TextClassContext };

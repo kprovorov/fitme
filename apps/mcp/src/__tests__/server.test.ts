@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+
 import { call, connect } from "./harness.js";
 
 const EXERCISE_ID = /exercise_?id/i;
@@ -52,6 +53,7 @@ describe("tool registry", () => {
         openWorldHint: expect.any(Boolean),
         readOnlyHint: expect.any(Boolean),
       });
+
       if (tool.annotations?.readOnlyHint) {
         expect(tool.annotations.destructiveHint, tool.name).toBe(false);
       }
@@ -85,6 +87,7 @@ describe("catalog tools", () => {
     const group = await call(client, "describe_muscle_group", {
       muscleGroup: "lower-back",
     });
+
     expect(group.json).toEqual({ id: "lower-back", name: "Lower Back" });
   });
 

@@ -37,21 +37,21 @@ Example: `{baseDir}/scripts/rc-api.sh /projects` to list projects.
 
 Start with `{baseDir}/references/api-v2.md` for auth, pagination, and common patterns. Then load the domain file you need:
 
-| Domain             | File                               | Covers                                                                                                   |
-| ------------------ | ---------------------------------- | -------------------------------------------------------------------------------------------------------- |
-| Customers          | `references/customers.md`          | CRUD, attributes, aliases, entitlements, subscriptions, purchases, invoices, virtual currencies, actions |
-| Subscriptions      | `references/subscriptions.md`      | List, get, transactions, cancel, refund, management URL                                                  |
-| Products           | `references/products.md`           | CRUD, create in store, test prices                                                                       |
-| Offerings          | `references/offerings.md`          | Offerings, packages, package products                                                                    |
-| Entitlements       | `references/entitlements.md`       | CRUD, attach/detach products                                                                             |
-| Purchases          | `references/purchases.md`          | List, get, refund, entitlements                                                                          |
-| Projects           | `references/projects.md`           | Projects, apps, API keys, StoreKit config                                                                |
-| Metrics            | `references/metrics.md`            | Overview metrics, charts, chart options                                                                  |
-| Paywalls           | `references/paywalls.md`           | Paywall creation                                                                                         |
-| Integrations       | `references/integrations.md`       | Integrations CRUD                                                                                        |
-| Virtual Currencies | `references/virtual-currencies.md` | Virtual currencies CRUD                                                                                  |
-| Error Handling     | `references/error-handling.md`     | Error handling                                                                                           |
-| Rate Limits        | `references/rate-limits.md`        | Rate limits                                                                                              |
+| Domain | File | Covers |
+| --- | --- | --- |
+| Customers | `references/customers.md` | CRUD, attributes, aliases, entitlements, subscriptions, purchases, invoices, virtual currencies, actions |
+| Subscriptions | `references/subscriptions.md` | List, get, transactions, cancel, refund, management URL |
+| Products | `references/products.md` | CRUD, create in store, test prices |
+| Offerings | `references/offerings.md` | Offerings, packages, package products |
+| Entitlements | `references/entitlements.md` | CRUD, attach/detach products |
+| Purchases | `references/purchases.md` | List, get, refund, entitlements |
+| Projects | `references/projects.md` | Projects, apps, API keys, StoreKit config |
+| Metrics | `references/metrics.md` | Overview metrics, charts, chart options |
+| Paywalls | `references/paywalls.md` | Paywall creation |
+| Integrations | `references/integrations.md` | Integrations CRUD |
+| Virtual Currencies | `references/virtual-currencies.md` | Virtual currencies CRUD |
+| Error Handling | `references/error-handling.md` | Error handling |
+| Rate Limits | `references/rate-limits.md` | Rate limits |
 
 Only load the reference file relevant to the current task — don't load them all.
 

@@ -1,4 +1,5 @@
 import * as Sentry from "@sentry/nextjs";
+
 import { sentryOptions } from "~/lib/observability";
 
 // Server-side Sentry (Node and edge): runs once per server instance, before

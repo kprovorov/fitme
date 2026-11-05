@@ -1,4 +1,5 @@
-import { inchesToFeetAndInches, type MeasurementSystem } from "@fitme/core";
+import { inchesToFeetAndInches } from "@fitme/core";
+import type { MeasurementSystem } from "@fitme/core";
 import type { i18n } from "i18next";
 
 /**
@@ -59,17 +60,21 @@ export function setDeviceConventions(
  */
 const instanceOf = (translator: Translator): object => {
   let current: object | null = translator;
+
   while (current) {
     if (conventionsByInstance.has(current)) {
       return current;
     }
+
     const original: object | undefined = (current as { __original?: object })
       .__original;
+
     current =
       original && original !== current
         ? original
         : Object.getPrototypeOf(current);
   }
+
   return translator;
 };
 
@@ -105,10 +110,12 @@ export const numberFormat = (
 ): Intl.NumberFormat => {
   const key = `${locale}|${JSON.stringify(options)}`;
   let format = numberFormats.get(key);
+
   if (!format) {
     format = new Intl.NumberFormat(locale, options);
     numberFormats.set(key, format);
   }
+
   return format;
 };
 
@@ -165,6 +172,7 @@ export const formatDate = (
 /** A time of day on the device's clock: `18:05` or `6:05 PM`. */
 export const formatTime = (translator: Translator, date: Date): string => {
   const { uses24hourClock } = conventionsOf(translator);
+
   return dateFormat(formatLocale(translator), {
     hour: "numeric",
     minute: "2-digit",
@@ -217,7 +225,9 @@ export const formatHeight = (
   if (measurementSystem === "metric") {
     return formatUnit(translator, height, "cm");
   }
+
   const { feet, inches } = inchesToFeetAndInches(height);
+
   return `${feet}′ ${inches}″`;
 };
 
@@ -231,6 +241,7 @@ export const formatDuration = (
   const totalMinutes = Math.max(0, Math.round(durationMs / MINUTE_MS));
   const hours = Math.floor(totalMinutes / 60);
   const minutes = totalMinutes % 60;
+
   return hours > 0
     ? translator.t("duration.hoursMinutes", { hours, minutes })
     : translator.t("duration.minutes", { minutes });
@@ -258,10 +269,13 @@ type WeightUnit = Extract<Unit, "kg" | "lbs">;
  */
 const compactVolume = (volume: number, unit: WeightUnit) => {
   const whole = Math.round(volume);
+
   if (whole < THOUSAND) {
     return { compact: null, unit, value: whole } as const;
   }
+
   const thousandsToOneDecimal = Math.round((volume / THOUSAND) * 10) / 10;
+
   return {
     compact: unit === "kg" ? "t" : "thousandLbs",
     unit,
@@ -279,6 +293,7 @@ export const formatCompactVolume = (
   unit: WeightUnit
 ): string => {
   const { compact, value } = compactVolume(volume, unit);
+
   return compact === null
     ? formatUnit(translator, value, unit)
     : translator.t(`compactUnits.${compact}`, { value });
@@ -291,6 +306,7 @@ export const spokenCompactVolume = (
   unit: WeightUnit
 ): string => {
   const { compact, value } = compactVolume(volume, unit);
+
   return compact === null
     ? spokenUnit(translator, value, unit)
     : translator.t(`spokenCompactUnits.${compact}`, { count: value });

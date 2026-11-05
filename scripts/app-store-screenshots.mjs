@@ -27,6 +27,7 @@ const DEFAULT_DIR = fileURLToPath(
 
 // Shown as the repo-relative path in messages, read through the absolute one.
 const DEFAULT_CONFIG = "apps/mobile/store.config.json";
+
 const DEFAULT_CONFIG_FILE = fileURLToPath(
   new URL(`../${DEFAULT_CONFIG}`, import.meta.url)
 );
@@ -52,6 +53,7 @@ const KNOWN_DEVICES = `known: ${Object.keys(DEVICES).join(", ")}`;
 
 const MAX_IMAGES = 10;
 const IMAGE_NAME = /^(\d{2})\.png$/;
+
 // The README lives beside the device folders; Finder litters every folder it
 // opens with .DS_Store (git-ignored, so never in a commit).
 const ROOT_FILES = new Set(["README.md"]);
@@ -75,10 +77,13 @@ const COLOR_TYPES = {
   4: { bitDepths: [8, 16], channels: 2 }, // greyscale + alpha
   6: { bitDepths: [8, 16], channels: 4 }, // RGB + alpha
 };
+
 const ALPHA_COLOR_TYPES = new Set([4, 6]);
 const MAX_FILTER_TYPE = 4;
+
 // The PNG spec's limit on width and height.
 const MAX_DIMENSION = 2 ** 31 - 1;
+
 // The chunks a decoder must understand; any other critical one (its type
 // starting with a capital) means the image can't be decoded.
 const CRITICAL_CHUNKS = new Set(["IHDR", "PLTE", "IDAT", "IEND"]);
@@ -96,6 +101,7 @@ const ADAM7 = [
 ];
 
 class PngError extends Error {}
+
 // Not even a PNG: the bytes under the .png name are something else.
 class NotPngError extends PngError {}
 
@@ -111,50 +117,66 @@ const passes = ({ height, interlace, width }) =>
 const readChunks = (bytes) => {
   const chunks = [];
   let offset = PNG_SIGNATURE.length;
+
   while (chunks.at(-1)?.type !== "IEND") {
     if (offset + 12 > bytes.length) {
       throw new PngError("it ends before its IEND chunk");
     }
+
     const length = bytes.readUInt32BE(offset);
     const end = offset + 12 + length;
+
     if (end > bytes.length) {
       throw new PngError("it ends inside a chunk");
     }
+
     const body = bytes.subarray(offset + 4, end - 4);
+
     if (zlib.crc32(body) !== bytes.readUInt32BE(end - 4)) {
       throw new PngError("a chunk's CRC doesn't match");
     }
+
     chunks.push({
       data: body.subarray(4),
       type: body.subarray(0, 4).toString("latin1"),
     });
     offset = end;
   }
+
   if (offset !== bytes.length) {
     throw new PngError("it has data after its IEND chunk");
   }
+
   const unknown = chunks.find(
     ({ type }) => isCritical(type) && !CRITICAL_CHUNKS.has(type)
   );
+
   if (unknown) {
     throw new PngError(`an unknown critical chunk (${unknown.type})`);
   }
+
   if (chunks.filter(({ type }) => type === "IHDR").length > 1) {
     throw new PngError("more than one IHDR chunk");
   }
+
   const idat = chunks.flatMap(({ type }, i) => (type === "IDAT" ? [i] : []));
+
   if (idat.some((index, i) => i > 0 && index !== idat[i - 1] + 1)) {
     throw new PngError("its IDAT chunks aren't consecutive");
   }
+
   return chunks;
 };
 
 const readHeader = (chunks) => {
   const [first] = chunks;
+
   if (first.type !== "IHDR" || first.data.length !== 13) {
     throw new PngError("it doesn't start with an IHDR chunk");
   }
+
   const { data } = first;
+
   const header = {
     bitDepth: data[8],
     colorType: data[9],
@@ -162,7 +184,9 @@ const readHeader = (chunks) => {
     interlace: data[12],
     width: data.readUInt32BE(0),
   };
+
   const format = COLOR_TYPES[header.colorType];
+
   if (
     !format?.bitDepths.includes(header.bitDepth) ||
     data[10] !== 0 ||
@@ -175,6 +199,7 @@ const readHeader = (chunks) => {
   ) {
     throw new PngError("its IHDR chunk is invalid");
   }
+
   return { ...header, channels: format.channels };
 };
 
@@ -189,17 +214,22 @@ const decodeImageData = (chunks, header) => {
       count: height,
       length: 1 + Math.ceil((width * header.channels * header.bitDepth) / 8),
     }));
+
   const expected = scanlines.reduce(
     (sum, { count, length }) => sum + count * length,
     0
   );
+
   const data = Buffer.concat(
     chunks.filter((c) => c.type === "IDAT").map((c) => c.data)
   );
+
   if (data.length === 0) {
     throw new PngError("it has no image data");
   }
+
   let raw;
+
   try {
     raw = zlib.inflateSync(data, {
       maxOutputLength: Math.min(expected + 1, bufferConstants.MAX_LENGTH),
@@ -208,19 +238,24 @@ const decodeImageData = (chunks, header) => {
     if (error.code === "ERR_BUFFER_TOO_LARGE") {
       throw new PngError("its image data is too long", { cause: error });
     }
+
     throw new PngError("its image data doesn't inflate", { cause: error });
   }
+
   if (raw.length !== expected) {
     throw new PngError(
       `its image data is ${raw.length < expected ? "short" : "too long"}`
     );
   }
+
   let offset = 0;
+
   for (const { count, length } of scanlines) {
     for (let row = 0; row < count; row += 1) {
       if (raw[offset] > MAX_FILTER_TYPE) {
         throw new PngError("a scanline has an unknown filter type");
       }
+
       offset += length;
     }
   }
@@ -230,25 +265,33 @@ const decodeImageData = (chunks, header) => {
 // 2^bitDepth RGB entries; greyscale images may not carry one.
 const checkPalette = (chunks, { bitDepth, colorType }) => {
   const palettes = chunks.filter(({ type }) => type === "PLTE");
+
   if (palettes.length === 0) {
     if (colorType === 3) {
       throw new PngError("a palette image without a PLTE chunk");
     }
+
     return;
   }
+
   if (colorType === 0 || colorType === 4) {
     throw new PngError("a greyscale image with a PLTE chunk");
   }
+
   if (palettes.length > 1) {
     throw new PngError("more than one PLTE chunk");
   }
+
   const [palette] = palettes;
   const firstImageData = chunks.findIndex(({ type }) => type === "IDAT");
+
   if (firstImageData !== -1 && chunks.indexOf(palette) > firstImageData) {
     throw new PngError("its PLTE chunk comes after its image data");
   }
+
   const paletteEntries = palette.data.length / 3;
   const maxEntries = Math.min(256, 2 ** bitDepth);
+
   if (
     !Number.isInteger(paletteEntries) ||
     paletteEntries < 1 ||
@@ -266,10 +309,12 @@ const readPng = (bytes) => {
   if (!bytes.subarray(0, 8).equals(PNG_SIGNATURE)) {
     throw new NotPngError("no PNG signature");
   }
+
   const chunks = readChunks(bytes);
   const header = readHeader(chunks);
   checkPalette(chunks, header);
   decodeImageData(chunks, header);
+
   return {
     alpha: ALPHA_COLOR_TYPES.has(header.colorType),
     height: header.height,
@@ -280,20 +325,25 @@ const readPng = (bytes) => {
 
 const checkImage = ({ device, file, label, problems }) => {
   let image;
+
   try {
     image = readPng(fs.readFileSync(file));
   } catch (error) {
     if (!(error instanceof PngError)) {
       throw error;
     }
+
     problems.push(
       error instanceof NotPngError
         ? `${label}: not a PNG (${error.message})`
         : `${label}: doesn't decode as a PNG (${error.message})`
     );
+
     return;
   }
+
   const { height, width } = device;
+
   if (image.width !== width || image.height !== height) {
     problems.push(
       image.width === height && image.height === width
@@ -301,11 +351,13 @@ const checkImage = ({ device, file, label, problems }) => {
         : `${label}: ${image.width}×${image.height}, needs exactly ${width}×${height} (portrait)`
     );
   }
+
   if (image.alpha) {
     problems.push(
       `${label}: has an alpha channel (even fully opaque, export without one)`
     );
   }
+
   if (image.transparency) {
     problems.push(
       `${label}: has transparency (a tRNS chunk), export fully opaque`
@@ -319,15 +371,18 @@ const imageName = (number) => `${String(number).padStart(2, "0")}.png`;
 // device's size (a DEVICES entry). Answers the image numbers it found.
 const checkSet = ({ device, dir, label, problems }) => {
   const numbers = [];
+
   for (const entry of entries(dir)) {
     const match = IMAGE_NAME.exec(entry.name);
     const number = match ? Number(match[1]) : 0;
+
     if (!entry.isFile() || number < 1) {
       problems.push(
         `${label} / ${entry.name}: not an image name (a Screenshot set holds only 01.png, 02.png, … in display order)`
       );
       continue;
     }
+
     numbers.push(number);
     checkImage({
       device,
@@ -336,17 +391,22 @@ const checkSet = ({ device, dir, label, problems }) => {
       problems,
     });
   }
+
   if (numbers.length === 0) {
     problems.push(
       `${label}: empty Screenshot set (it needs 1 to ${MAX_IMAGES} images)`
     );
+
     return numbers;
   }
+
   if (numbers.length > MAX_IMAGES) {
     problems.push(`${label}: ${numbers.length} images, at most ${MAX_IMAGES}`);
   }
+
   const present = new Set(numbers);
   const last = Math.max(...numbers);
+
   for (let number = 1; number < last; number += 1) {
     if (!present.has(number)) {
       problems.push(
@@ -354,6 +414,7 @@ const checkSet = ({ device, dir, label, problems }) => {
       );
     }
   }
+
   return numbers;
 };
 
@@ -363,6 +424,7 @@ const screenshotEntries = (value, at = []) => {
   if (value === null || typeof value !== "object") {
     return [];
   }
+
   return Object.entries(value).flatMap(([key, child]) => [
     ...(key === "screenshots" ? [[...at, key].join(".")] : []),
     ...screenshotEntries(child, [...at, key]),
@@ -374,34 +436,45 @@ const screenshotEntries = (value, at = []) => {
 // say.
 const readListingConfig = ({ file, label, problems }) => {
   let text;
+
   try {
-    text = fs.readFileSync(file, "utf8");
+    text = fs.readFileSync(file, "utf-8");
   } catch (error) {
     if (error.code !== "ENOENT") {
       throw error;
     }
+
     problems.push(`${label}: no such listing config`);
+
     return null;
   }
+
   let config;
+
   try {
     config = JSON.parse(text);
   } catch (error) {
     problems.push(`${label}: not valid JSON (${error.message})`);
+
     return null;
   }
+
   for (const entry of screenshotEntries(config)) {
     problems.push(
       `${label}: ${entry}: a hand-written screenshots entry (the Screenshot set folders are the only definition; release writes these entries)`
     );
   }
+
   const info = config?.apple?.info;
+
   if (info === null || typeof info !== "object" || Array.isArray(info)) {
     problems.push(
       `${label}: no apple.info object (the listing text per Listing locale)`
     );
+
     return null;
   }
+
   return { config, locales: new Set(Object.keys(info)) };
 };
 
@@ -412,47 +485,59 @@ const readListingConfig = ({ file, label, problems }) => {
 const checkDevice = ({ dir, listing, name, problems }) => {
   const sets = [];
   let hasPrimary = false;
+
   for (const locale of entries(dir)) {
     const label = `${name} / ${locale.name}`;
+
     if (!locale.isDirectory()) {
       problems.push(
         `${label}: not a Listing locale folder (a device folder holds one folder per Listing locale)`
       );
       continue;
     }
+
     hasPrimary ||= locale.name === PRIMARY_LOCALE;
+
     if (listing && !listing.locales.has(locale.name)) {
       problems.push(
         `${label}: Listing locale not in the listing config (${listing.listed})`
       );
     }
+
     const setDir = path.join(dir, locale.name);
+
     const numbers = checkSet({
       device: DEVICES[name],
       dir: setDir,
       label,
       problems,
     }).sort((a, b) => a - b);
+
     sets.push({ device: name, dir: setDir, locale: locale.name, numbers });
   }
+
   if (!hasPrimary) {
     problems.push(
       `${name} / ${PRIMARY_LOCALE}: missing (every device folder needs an ${PRIMARY_LOCALE} Screenshot set)`
     );
   }
+
   return sets;
 };
 
 const git = (cwd, args) => {
-  const child = spawnSync("git", args, { cwd, encoding: "utf8" });
+  const child = spawnSync("git", args, { cwd, encoding: "utf-8" });
+
   if (child.error) {
     throw new Error(`git didn't run (${child.error.message})`, {
       cause: child.error,
     });
   }
+
   if (child.status !== 0) {
     throw new Error(child.stderr.trim() || `git exited ${child.status}`);
   }
+
   return child.stdout;
 };
 
@@ -463,6 +548,7 @@ const setsAt = (dir, ref) => {
   const prefix = git(dir, ["rev-parse", "--show-prefix"]).trim();
   const top = git(dir, ["rev-parse", "--show-toplevel"]).trim();
   git(top, ["rev-parse", "--verify", `${ref}^{commit}`]);
+
   const files = git(top, [
     "ls-tree",
     "-r",
@@ -472,13 +558,17 @@ const setsAt = (dir, ref) => {
     "--",
     prefix || ".",
   ]);
+
   const sets = new Set();
+
   for (const file of files.split("\0")) {
     const parts = file.slice(prefix.length).split("/");
+
     if (parts.length >= 3 && Object.hasOwn(DEVICES, parts[0])) {
       sets.add(`${parts[0]}/${parts[1]}`);
     }
   }
+
   return sets;
 };
 
@@ -489,20 +579,26 @@ const setsAt = (dir, ref) => {
 const checkDeletedSets = ({ base, configLabel, dir, locales, problems }) => {
   if (base.startsWith("-")) {
     problems.push(`--base ${base}: not a Git ref`);
+
     return;
   }
+
   let sets;
+
   try {
     sets = setsAt(dir, base);
   } catch (error) {
     problems.push(
       `--base ${base}: can't read the Screenshot sets at it (${error.message})`
     );
+
     return;
   }
+
   for (const set of [...sets].sort()) {
     const [device, locale] = set.split("/");
     const gone = !fs.statSync(path.join(dir, set), { throwIfNoEntry: false });
+
     if (gone && locales.has(locale)) {
       problems.push(
         `${device} / ${locale}: Screenshot set deleted since ${base}, but ${locale} is still a Listing locale in ${configLabel}; the upload never clears a remote set, so its screenshots would stay online as they are. Replace the images instead, or remove ${locale} from the listing config deliberately`
@@ -518,31 +614,39 @@ const checkScreenshots = ({ base, config, dir }) => {
   const sets = [];
   const read = readListingConfig({ ...config, problems });
   const locales = read?.locales;
+
   const listing = read && {
     listed: `${config.label} lists ${[...locales].join(", ") || "none"}`,
     locales,
   };
+
   const result = () => ({
     imageCount: sets.reduce((sum, set) => sum + set.numbers.length, 0),
     listing: read?.config ?? null,
     problems,
     sets,
   });
+
   if (!fs.statSync(dir, { throwIfNoEntry: false })?.isDirectory()) {
     problems.push(`${dir}: no such directory`);
+
     return result();
   }
+
   for (const device of entries(dir)) {
     if (!device.isDirectory()) {
       if (!ROOT_FILES.has(device.name)) {
         problems.push(`${device.name}: not a device folder (${KNOWN_DEVICES})`);
       }
+
       continue;
     }
+
     if (!Object.hasOwn(DEVICES, device.name)) {
       problems.push(`${device.name}: unknown device folder (${KNOWN_DEVICES})`);
       continue;
     }
+
     sets.push(
       ...checkDevice({
         dir: path.join(dir, device.name),
@@ -552,6 +656,7 @@ const checkScreenshots = ({ base, config, dir }) => {
       })
     );
   }
+
   // Without the config's Listing locales the rule can't tell; the config's own
   // problem already fails the check.
   if (base !== undefined && locales) {
@@ -563,6 +668,7 @@ const checkScreenshots = ({ base, config, dir }) => {
       problems,
     });
   }
+
   return result();
 };
 
@@ -584,6 +690,7 @@ const report = (problems) => {
   for (const problem of problems) {
     console.error(problem);
   }
+
   return problems.length > 0 ? 1 : 0;
 };
 
@@ -593,12 +700,15 @@ const check = ({ base, config, dir }) => {
     config,
     dir,
   });
+
   if (report(problems)) {
     return 1;
   }
+
   console.log(
     `${plural(sets.length, "Screenshot set")}, ${plural(imageCount, "image")}: all pass.`
   );
+
   return 0;
 };
 
@@ -614,15 +724,19 @@ const HASH_LENGTH = 8;
 const stageSet = ({ appDir, set, staging }) => {
   const target = path.join(staging, set.device, set.locale);
   fs.mkdirSync(target, { recursive: true });
+
   return set.numbers.map((number) => {
     const name = imageName(number);
     const bytes = fs.readFileSync(path.join(set.dir, name));
     const hash = crypto.createHash("sha256").update(bytes).digest("hex");
+
     const file = path.join(
       target,
       `${path.basename(name, ".png")}-${hash.slice(0, HASH_LENGTH)}.png`
     );
+
     fs.writeFileSync(file, bytes);
+
     return path.relative(appDir, path.resolve(file)).split(path.sep).join("/");
   });
 };
@@ -638,7 +752,9 @@ const prepare = ({ config, dir, staging }) => {
     config,
     dir,
   });
+
   const info = listing?.apple.info;
+
   // check accepts any listing text; prepare needs an object to add to.
   for (const { locale } of sets) {
     if (info && Object.hasOwn(info, locale) && !isObject(info[locale])) {
@@ -647,19 +763,24 @@ const prepare = ({ config, dir, staging }) => {
       );
     }
   }
+
   if (report(problems)) {
     return 1;
   }
+
   if (sets.length === 0) {
     console.log(
       "No Screenshot sets: nothing staged, the listing config is as it was."
     );
+
     return 0;
   }
+
   // EAS resolves screenshot paths from the mobile app's directory, the one
   // holding the listing config.
   const appDir = path.dirname(path.resolve(config.file));
   const screenshots = {};
+
   for (const set of sets) {
     screenshots[set.locale] ??= {};
     screenshots[set.locale][DEVICES[set.device].displayType] = stageSet({
@@ -668,13 +789,16 @@ const prepare = ({ config, dir, staging }) => {
       staging,
     });
   }
+
   for (const [locale, entry] of Object.entries(screenshots)) {
     info[locale].screenshots = entry;
   }
+
   fs.writeFileSync(config.file, `${JSON.stringify(listing, null, 2)}\n`);
   console.log(
     `${plural(sets.length, "Screenshot set")}, ${plural(imageCount, "image")}: staged in ${staging}, entries written to ${config.label}.`
   );
+
   return 0;
 };
 
@@ -682,10 +806,12 @@ const main = (args) => {
   const parsed = parse(args);
   const [command, ...rest] = parsed?.positionals ?? [];
   const { base, config: configArg } = parsed?.values ?? {};
+
   const config =
     configArg === undefined
       ? { file: DEFAULT_CONFIG_FILE, label: DEFAULT_CONFIG }
       : { file: configArg, label: configArg };
+
   if (configArg === "") {
     // falls through to the usage below
   } else if (command === "check" && rest.length <= 1) {
@@ -698,12 +824,15 @@ const main = (args) => {
   ) {
     // No base ref: the deleted set rule is the pull request's.
     const [staging, dir = DEFAULT_DIR] = rest;
+
     return prepare({ config, dir, staging });
   }
+
   console.error(USAGE);
+
   return 2;
 };
 
-if (process.argv[1] === fileURLToPath(import.meta.url)) {
+if (process.argv[1] === import.meta.filename) {
   process.exitCode = main(process.argv.slice(2));
 }

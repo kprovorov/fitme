@@ -1,7 +1,9 @@
 import type { PlanUpdate as PlanUpdateAnswer } from "@fitme/services/plan-update";
 import { createRoute, OpenAPIHono, z } from "@hono/zod-openapi";
 import type { Context } from "hono";
-import { type ApiEnv, bearerSecurity, requires } from "../auth.js";
+
+import { bearerSecurity, requires } from "../auth.js";
+import type { ApiEnv } from "../auth.js";
 import { checkExerciseSlugs, slugRefusal } from "../library.js";
 import {
   ExerciseSlug,
@@ -475,10 +477,13 @@ export const workoutSessions = new OpenAPIHono<ApiEnv>({
   .openapi(getWorkoutSession, async (c) => {
     const { id } = c.req.valid("param");
     const found = await c.var.getServices().getWorkoutSession(id);
+
     if (!found) {
       return c.json(notFound, 404);
     }
+
     const { value, weightUnit } = found;
+
     return c.json(
       WorkoutSessionResponse.parse({
         data: { ...value, weight_unit: weightUnit },
@@ -488,38 +493,48 @@ export const workoutSessions = new OpenAPIHono<ApiEnv>({
   })
   .openapi(startWorkoutSessionRoute, async (c) => {
     const { workout_id } = c.req.valid("json");
+
     const { value, weightUnit } = await c.var
       .getServices()
       .startWorkoutSession(workout_id);
+
     if (value.status === "not_found") {
       return c.json(
         { error: { code: "not_found", message: "Workout not found" } },
         404
       );
     }
+
     if (value.status === "session_in_progress") {
       const message =
         value.workoutName === null
           ? `Workout Session ${value.sessionId} is in progress; finish it before starting another`
           : `Workout "${value.workoutName}" is in progress (Workout Session ${value.sessionId}); finish it before starting another`;
+
       return c.json({ error: { code: "session_in_progress", message } }, 409);
     }
+
     const body = WorkoutSessionResponse.parse({
       data: { ...value.session, weight_unit: weightUnit },
     });
+
     if (value.resumed) {
       return c.json(body, 200);
     }
+
     return c.json(body, 201);
   })
   .openapi(finishWorkoutSessionRoute, async (c) => {
     const { id } = c.req.valid("param");
+
     const { value, weightUnit } = await c.var
       .getServices()
       .finishWorkoutSession(id);
+
     if (value.status === "not_found") {
       return c.json(notFound, 404);
     }
+
     return c.json(
       FinishedWorkoutSessionResponse.parse({
         already_finished: value.alreadyFinished,
@@ -543,6 +558,7 @@ export const workoutSessions = new OpenAPIHono<ApiEnv>({
   .openapi(addExerciseRoute, async (c) => {
     const { id } = c.req.valid("param");
     const { exercise_slug } = c.req.valid("json");
+
     const refusal = slugRefusal(
       await checkExerciseSlugs({
         library: c.var.getLibrary(),
@@ -550,21 +566,26 @@ export const workoutSessions = new OpenAPIHono<ApiEnv>({
         slugs: [exercise_slug],
       })
     );
+
     if (refusal) {
       return c.json(refusal.body, refusal.status);
     }
+
     const { value, weightUnit } = await c.var
       .getServices()
       .addExerciseToWorkoutSession({
         exerciseSlug: exercise_slug,
         sessionId: id,
       });
+
     if (value.status === "not_found") {
       return c.json(notFound, 404);
     }
+
     if (value.status === "session_finished") {
       return c.json(sessionFinished(id, value.finishedAt), 409);
     }
+
     return c.json(
       WorkoutSessionExerciseResponse.parse({
         data: { ...value.exercise, weight_unit: weightUnit },
@@ -577,14 +598,17 @@ export const workoutSessions = new OpenAPIHono<ApiEnv>({
     // existed or is another User's (RLS hides it): each answers 204, so a
     // retried delete succeeds and no id is revealed.
     await c.var.getServices().deleteWorkoutSession(c.req.valid("param").id);
+
     return c.body(null, 204);
   })
   .openapi(listWorkoutSessions, async (c) => {
     const options = c.req.valid("query");
+
     const {
       value: { sessions, total },
       weightUnit,
     } = await c.var.getServices().listWorkoutSessions(options);
+
     // Parsed through the contract, so fields beyond it never go out.
     return c.json(
       WorkoutSessionPage.parse({

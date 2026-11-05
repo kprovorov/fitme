@@ -3,14 +3,12 @@ import { createRoute, OpenAPIHono, z } from "@hono/zod-openapi";
 import { cors } from "hono/cors";
 import { HTTPException } from "hono/http-exception";
 import { logger } from "hono/logger";
-import {
-  type AuthConfig,
-  type AuthEnv,
-  BEARER_AUTH,
-  requireCaller,
-} from "./auth";
+
+import { BEARER_AUTH, requireCaller } from "./auth";
+import type { AuthConfig, AuthEnv } from "./auth";
 import { deviceCache } from "./cache";
-import { type RateLimiter, rateLimitUsers } from "./rate-limit";
+import { rateLimitUsers } from "./rate-limit";
+import type { RateLimiter } from "./rate-limit";
 import { coverRoutes } from "./routes/covers";
 import { exerciseRoutes } from "./routes/exercises";
 import type { ServedLibrary } from "./served-library";
@@ -69,9 +67,11 @@ export const createApp = ({
   // A User is known by their Clerk id only; a server caller is no User.
   app.use(async (c, next) => {
     const caller = c.get("caller");
+
     if (caller.type === "user") {
       identifyUser(caller.userId);
     }
+
     await next();
   });
   app.openAPIRegistry.registerComponent("securitySchemes", BEARER_AUTH, {
@@ -102,7 +102,9 @@ export const createApp = ({
         error.status
       );
     }
+
     await reportError(error);
+
     return c.json(
       { error: { code: "internal_error", message: "Internal server error" } },
       500

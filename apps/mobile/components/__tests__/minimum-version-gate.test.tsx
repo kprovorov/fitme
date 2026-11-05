@@ -8,19 +8,23 @@ import {
 } from "@jest/globals";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { act, fireEvent, render, screen } from "@testing-library/react-native";
-import { AppState, type AppStateStatus, Linking, Text } from "react-native";
+import { AppState, Linking, Text } from "react-native";
+import type { AppStateStatus } from "react-native";
+import { it, afterEach, describe, expect, beforeEach } from "vitest";
+
 import { useClientConfigQuery } from "~/hooks/queries/client-config";
 import { i18n } from "~/lib/i18n";
 import { setDeviceLanguages } from "~/test-utils/device-locales";
 import { InAppLanguage } from "~/test-utils/in-app-language";
 import { createTestQueryClient, settle } from "~/test-utils/query-client";
+
 import MinimumVersionGate from "../minimum-version-gate";
 
 const INSTALLED_VERSION = "1.4.0";
 const APP_STORE_URL = "https://apps.apple.com/app/id6741153628";
 const API_URL = "https://api.example.com";
 
-jest.mock("expo-constants", () => ({
+jest.mock<typeof import("expo-constants")>(import("expo-constants"), () => ({
   __esModule: true,
   default: {
     expoConfig: {
@@ -30,20 +34,27 @@ jest.mock("expo-constants", () => ({
     },
   },
 }));
-jest.mock("~/components/ui/button", () =>
-  jest.requireActual("~/test-utils/button-stub")
+
+jest.mock<typeof import("~/components/ui/button")>(
+  import("~/components/ui/button"),
+  () => jest.requireActual("~/test-utils/button-stub")
 );
 
 const mockFetch = jest.fn<typeof fetch>();
 const openURL = jest.spyOn(Linking, "openURL");
-let changeAppState: (state: AppStateStatus) => void = () => undefined;
+let changeAppState: (state: AppStateStatus) => void = () => {};
 
 /** The API answers with this minimum iOS version from now on. */
 const serveMinimumIosVersion = (ios: string | null) => {
-  mockFetch.mockImplementation(() =>
-    Promise.resolve(
-      Response.json({ data: { minimumVersion: { android: null, ios } } })
-    )
+  mockFetch.mockResolvedValue(
+    Response.json({
+      data: {
+        minimumVersion: {
+          android: null,
+          ios,
+        },
+      },
+    })
   );
 };
 
@@ -71,11 +82,12 @@ beforeEach(() => {
   openURL.mockResolvedValue();
   jest.spyOn(AppState, "addEventListener").mockImplementation((_, handler) => {
     changeAppState = handler;
+
     return { remove: jest.fn() };
   });
 });
 
-describe("MinimumVersionGate", () => {
+describe(MinimumVersionGate, () => {
   it("blocks the app below the minimum and links to the store", async () => {
     serveMinimumIosVersion("1.5.0");
 
@@ -85,7 +97,7 @@ describe("MinimumVersionGate", () => {
       `${API_URL}/v1/client-config`,
       expect.anything()
     );
-    expect(await screen.findByText("Update required")).toBeTruthy();
+    await expect(screen.findByText("Update required")).resolves.toBeTruthy();
     expect(screen.queryByText("Home")).toBeNull();
 
     await fireEvent.press(screen.getByRole("button", { name: "Update" }));
@@ -138,7 +150,7 @@ describe("MinimumVersionGate", () => {
   it("checks again when the app returns to the foreground", async () => {
     serveMinimumIosVersion("1.5.0");
     await renderGate();
-    expect(await screen.findByText("Update required")).toBeTruthy();
+    await expect(screen.findByText("Update required")).resolves.toBeTruthy();
 
     serveMinimumIosVersion("1.3.0");
     await act(async () => {
@@ -146,12 +158,12 @@ describe("MinimumVersionGate", () => {
       await Promise.resolve();
     });
 
-    expect(await screen.findByText("Home")).toBeTruthy();
+    await expect(screen.findByText("Home")).resolves.toBeTruthy();
     expect(screen.queryByText("Update required")).toBeNull();
   });
 });
 
-describe("MinimumVersionGate on a Ukrainian device", () => {
+describe("minimumVersionGate on a Ukrainian device", () => {
   beforeEach(() => {
     setDeviceLanguages(["uk-UA"]);
   });
@@ -166,7 +178,7 @@ describe("MinimumVersionGate on a Ukrainian device", () => {
 
     await renderGate();
 
-    expect(await screen.findByText("Потрібне оновлення")).toBeTruthy();
+    await expect(screen.findByText("Потрібне оновлення")).resolves.toBeTruthy();
     expect(
       screen.getByText(
         "Ця версія Fitme більше не підтримується. Оновіть застосунок, щоб і далі тренуватися."

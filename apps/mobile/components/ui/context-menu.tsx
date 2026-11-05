@@ -5,6 +5,7 @@ import {
 } from "@expo/ui/swift-ui";
 import type * as React from "react";
 import type { SFSymbol } from "sf-symbols-typescript";
+
 import { SwiftUIHost } from "~/components/ui/swift-ui";
 
 interface ContextMenuItem {
@@ -56,4 +57,5 @@ const ContextMenu = ({
 ContextMenu.displayName = "ContextMenu";
 
 export type { ContextMenuItem, ContextMenuProps };
+
 export { ContextMenu };

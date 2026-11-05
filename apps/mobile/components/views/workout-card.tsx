@@ -2,6 +2,7 @@ import { Link, useRouter } from "expo-router";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Pressable, ScrollView } from "react-native";
+
 import { HStack } from "@/components/ui/hstack";
 import { Text } from "@/components/ui/text";
 import { H4 } from "@/components/ui/typography";
@@ -9,6 +10,7 @@ import { VStack } from "@/components/ui/vstack";
 import { shownExercise, useExercises } from "~/hooks/queries/library";
 import type { PlanWorkout } from "~/hooks/queries/plans";
 import { useOwnOpenWorkoutSession } from "~/hooks/queries/workout-sessions";
+
 import ExerciseImage from "../exercises/exercise-image";
 import { COUNT_SYMBOL } from "../plans/plan-symbols";
 import { SymbolImage } from "../symbol-image";
@@ -66,6 +68,7 @@ export default function WorkoutCard({ planId, workout }: WorkoutCardProps) {
   const exerciseCount = t("workoutCard.exercises", {
     count: workout.exercises.length,
   });
+
   const openWorkout = () => {
     router.push(
       activeSession
@@ -82,7 +85,7 @@ export default function WorkoutCard({ planId, workout }: WorkoutCardProps) {
             asChild
             href={`/plans/${planId}/workouts/${workout.id}/sessions/${activeSession.id}`}
           >
-            <Pressable className="flex-row items-center justify-between rounded-xl border-continuous bg-primary px-3 py-2 active:opacity-80">
+            <Pressable className="border-continuous bg-primary flex-row items-center justify-between rounded-xl px-3 py-2 active:opacity-80">
               <HStack className="flex-1 justify-start gap-1">
                 <SymbolImage
                   className="text-primary-foreground text-subhead-emphasized"
@@ -118,7 +121,7 @@ export default function WorkoutCard({ planId, workout }: WorkoutCardProps) {
         >
           <VStack className="w-full flex-shrink items-stretch gap-4">
             <HStack className="gap-sm">
-              <H4 className="flex-1 text-primary">{workout.name}</H4>
+              <H4 className="text-primary flex-1">{workout.name}</H4>
               <SymbolImage
                 className="text-footnote-emphasized text-muted-foreground"
                 name="chevron.right"

@@ -15,6 +15,8 @@ import {
 } from "@testing-library/react-native";
 import type { ReactElement, ReactNode } from "react";
 import type { RefreshControlProps } from "react-native";
+import { it, describe, expect, beforeEach } from "vitest";
+
 import HomeScreen from "~/app/(tabs)/(home)/index";
 import HistoryScreen from "~/app/(tabs)/history/index";
 import WorkoutScreen from "~/app/plans/[planId]/workouts/[workoutId]/index";
@@ -28,7 +30,7 @@ import { createTestQueryClient, settle } from "~/test-utils/query-client";
 
 const mockPush = jest.fn();
 
-jest.mock("expo-router", () => ({
+jest.mock<typeof import("expo-router")>(import("expo-router"), () => ({
   Link: ({ children }: { children: unknown }) => children,
   Stack: { Screen: () => null },
   useLocalSearchParams: () => ({ planId: "plan-1", workoutId: "workout-push" }),
@@ -45,56 +47,81 @@ jest.mock("expo-router", () => ({
 
 // LegendList lays its items out on measure, which Jest never does: render
 // its empty component (History has nothing finished here) in a plain view.
-jest.mock("@legendapp/list/react-native", () => ({
-  LegendList: ({
-    ListEmptyComponent,
-    refreshControl,
-  }: {
-    ListEmptyComponent: ReactNode;
-    refreshControl: ReactElement<RefreshControlProps>;
-  }) => {
-    const { ScrollView } =
-      jest.requireActual<typeof import("react-native")>("react-native");
-    return (
-      <ScrollView refreshControl={refreshControl}>
-        {ListEmptyComponent}
-      </ScrollView>
-    );
-  },
-}));
+jest.mock<typeof import("@legendapp/list/react-native")>(
+  import("@legendapp/list/react-native"),
+  () => ({
+    LegendList: ({
+      ListEmptyComponent,
+      refreshControl,
+    }: {
+      ListEmptyComponent: ReactNode;
+      refreshControl: ReactElement<RefreshControlProps>;
+    }) => {
+      const { ScrollView } =
+        jest.requireActual<typeof import("react-native")>("react-native");
 
-jest.mock("@clerk/expo", () => ({
+      return (
+        <ScrollView refreshControl={refreshControl}>
+          {ListEmptyComponent}
+        </ScrollView>
+      );
+    },
+  })
+);
+
+jest.mock<typeof import("@clerk/expo")>(import("@clerk/expo"), () => ({
   useUser: () => ({ isLoaded: true, user: { id: "user-1" } }),
 }));
 
-jest.mock("react-native-purchases", () => ({
-  __esModule: true,
-  default: { invalidateCustomerInfoCache: () => Promise.resolve() },
-}));
+jest.mock<typeof import("react-native-purchases")>(
+  import("react-native-purchases"),
+  () => ({
+    __esModule: true,
+    default: { invalidateCustomerInfoCache: () => Promise.resolve() },
+  })
+);
 
-jest.mock("react-native-safe-area-context", () => ({
-  useSafeAreaInsets: () => ({ bottom: 0, left: 0, right: 0, top: 0 }),
-}));
+jest.mock<typeof import("react-native-safe-area-context")>(
+  import("react-native-safe-area-context"),
+  () => ({
+    useSafeAreaInsets: () => ({ bottom: 0, left: 0, right: 0, top: 0 }),
+  })
+);
 
 // The real Clerk SDK opens a MessagePort at import that keeps Jest alive.
-jest.mock("~/lib/clerk", () => ({
+jest.mock<typeof import("~/lib/clerk")>(import("~/lib/clerk"), () => ({
   getCurrentUserId: () =>
     jest.requireActual<typeof import("~/test-utils/fake-public-api")>(
       "~/test-utils/fake-public-api"
     ).FAKE_USER_ID,
 }));
 
-jest.mock("~/lib/segment", () => ({ segmentClient: { track: jest.fn() } }));
-jest.mock("~/components/exercises/exercise-image", () => () => null);
-jest.mock("~/components/symbol-image", () => ({ SymbolImage: () => null }));
-jest.mock("~/components/ui/dropdown-menu", () =>
-  jest.requireActual("~/test-utils/dropdown-menu-stub")
+jest.mock<typeof import("~/lib/segment")>(import("~/lib/segment"), () => ({
+  segmentClient: { track: jest.fn() },
+}));
+
+jest.mock<typeof import("~/components/exercises/exercise-image")>(
+  import("~/components/exercises/exercise-image"),
+  () => () => null
 );
-jest.mock("~/components/ui/button", () =>
-  jest.requireActual("~/test-utils/button-stub")
+
+jest.mock<typeof import("~/components/symbol-image")>(
+  import("~/components/symbol-image"),
+  () => ({ SymbolImage: () => null })
+);
+
+jest.mock<typeof import("~/components/ui/dropdown-menu")>(
+  import("~/components/ui/dropdown-menu"),
+  () => jest.requireActual("~/test-utils/dropdown-menu-stub")
+);
+
+jest.mock<typeof import("~/components/ui/button")>(
+  import("~/components/ui/button"),
+  () => jest.requireActual("~/test-utils/button-stub")
 );
 
 const LIST = "GET /v1/workout-sessions";
+
 /** The open Workout Session's read of the list. */
 const IN_PROGRESS = { limit: "1", status: "in_progress" };
 
@@ -153,7 +180,7 @@ beforeEach(() => {
   });
 });
 
-describe("The Open Workout Session", () => {
+describe("the Open Workout Session", () => {
   it("is the same on the Workout tab, the Workout screen and History, from one read", async () => {
     await mountAll();
 
@@ -188,9 +215,11 @@ describe("The Open Workout Session", () => {
     await mountAll();
 
     const open = backend.session("open-session");
+
     if (open) {
       open.finished_at = "2026-10-29T10:00:00.000Z";
     }
+
     await act(() =>
       queryClient.invalidateQueries({
         queryKey: OPEN_WORKOUT_SESSION_QUERY_KEY,
@@ -213,7 +242,7 @@ describe("The Open Workout Session", () => {
   });
 });
 
-describe("The Open Workout Session's failed reads", () => {
+describe("the Open Workout Session's failed reads", () => {
   it("keep the last answer on every screen when a refresh fails", async () => {
     await mountAll();
     fakePublicApi.failNext(LIST, { status: 500 }, IN_PROGRESS);
@@ -247,6 +276,7 @@ describe("The Open Workout Session's failed reads", () => {
     for (const _screen of ["Workout tab", "Workout screen", "History"]) {
       fakePublicApi.failNext(LIST, { status: 500 }, IN_PROGRESS);
     }
+
     await mountAll();
 
     // The Workout screen and History don't guess: their load errors.

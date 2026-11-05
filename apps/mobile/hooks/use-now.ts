@@ -11,8 +11,10 @@ export function useNow(active: boolean, intervalMs = 1000): number {
     if (!active) {
       return;
     }
+
     setNow(Date.now());
     const timer = setInterval(() => setNow(Date.now()), intervalMs);
+
     return () => clearInterval(timer);
   }, [active, intervalMs]);
 

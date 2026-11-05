@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
+
 import { admitTurn } from "../agent/lib/conversation";
 import { evalRunner, isLocalEvalRun } from "../agent/lib/eval-runner";
 import { conversationOwner } from "../agent/lib/owner";
@@ -9,7 +10,7 @@ const EVAL_RUN = { EVE_DEV: "1", EVE_EVALUATION: "1" };
 const request = () =>
   new Request("http://127.0.0.1:3005/eve/v1/session", { method: "POST" });
 
-describe("isLocalEvalRun", () => {
+describe(isLocalEvalRun, () => {
   it("is true only on the dev server `eve eval` boots", () => {
     expect(isLocalEvalRun(EVAL_RUN)).toBe(true);
     expect(isLocalEvalRun({})).toBe(false);
@@ -22,7 +23,7 @@ describe("isLocalEvalRun", () => {
   });
 });
 
-describe("evalRunner", () => {
+describe(evalRunner, () => {
   it("admits the local eval runner, allowed to stub tools", async () => {
     const caller = await evalRunner(() => EVAL_RUN)(request());
 
@@ -54,6 +55,7 @@ describe("admitTurn for the eval runner", () => {
     principalId: "local-dev",
     principalType: "local-dev",
   };
+
   const deps = (evalRun: boolean) => ({
     claim: vi.fn(),
     isEvalRun: () => evalRun,
@@ -63,24 +65,24 @@ describe("admitTurn for the eval runner", () => {
   it("lets its turns run without recording the session", async () => {
     const { claim, isEvalRun, report } = deps(true);
 
-    expect(
-      await admitTurn(
+    await expect(
+      admitTurn(
         { auth: { current: runner, initiator: runner }, sessionId: "wrun_1" },
         { claim, isEvalRun, report }
       )
-    ).toBe(true);
+    ).resolves.toBe(true);
     expect(claim).not.toHaveBeenCalled();
   });
 
   it("refuses a local-dev caller outside a local eval run", async () => {
     const { claim, isEvalRun, report } = deps(false);
 
-    expect(
-      await admitTurn(
+    await expect(
+      admitTurn(
         { auth: { current: runner, initiator: runner }, sessionId: "wrun_1" },
         { claim, isEvalRun, report }
       )
-    ).toBe(false);
+    ).resolves.toBe(false);
     expect(claim).not.toHaveBeenCalled();
   });
 });

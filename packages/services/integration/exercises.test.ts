@@ -1,4 +1,5 @@
 import { randomUUID } from "node:crypto";
+
 import {
   asUser,
   plans,
@@ -10,6 +11,7 @@ import {
 } from "@fitme/db";
 import { inArray } from "drizzle-orm";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
+
 import { getExerciseHistory } from "../src/exercises";
 import { deleteTestUsers } from "./delete-test-users";
 
@@ -41,7 +43,7 @@ interface SeededSession {
  * A Plan with one Workout and a Workout Session in it, holding one entry of
  * `alphaSlug` with the given sets, each with targets (8 reps at 70).
  */
-const seedSession = (
+const seedSession = async (
   userId: string,
   startedAt: string,
   sets: SeedSet[]
@@ -57,6 +59,7 @@ const seedSession = (
         userId,
       })
       .returning({ id: plans.id });
+
     const [workout] = await tx
       .insert(workouts)
       .values({
@@ -66,6 +69,7 @@ const seedSession = (
         planId: plan.id,
       })
       .returning({ id: workouts.id });
+
     const [session] = await tx
       .insert(workoutSessions)
       .values({
@@ -76,6 +80,7 @@ const seedSession = (
         workoutId: workout.id,
       })
       .returning({ id: workoutSessions.id });
+
     const [sessionExercise] = await tx
       .insert(workoutSessionExercises)
       .values({
@@ -85,6 +90,7 @@ const seedSession = (
         workoutSessionId: session.id,
       })
       .returning({ id: workoutSessionExercises.id });
+
     // inserted out of order, to show the sets come back by `order`
     await tx.insert(workoutSessionExerciseSets).values(
       sets
@@ -98,6 +104,7 @@ const seedSession = (
         }))
         .reverse()
     );
+
     return {
       planId: plan.id,
       sessionExerciseId: sessionExercise.id,
@@ -143,9 +150,9 @@ afterAll(async () => {
   await deleteTestUsers([owner, intruder]);
 });
 
-describe("getExerciseHistory", () => {
-  const history = (userId: string, limit = 10, offset = 0) =>
-    asUser(userId, (tx) =>
+describe(getExerciseHistory, () => {
+  const history = async (userId: string, limit = 10, offset = 0) =>
+    asUser(userId, async (tx) =>
       getExerciseHistory(tx, userId, {
         exerciseSlug: alphaSlug,
         limit,
@@ -154,7 +161,7 @@ describe("getExerciseHistory", () => {
     );
 
   it("returns the User's entries newest first, with their logged sets in order and their targets", async () => {
-    expect(await history(owner)).toEqual({
+    await expect(history(owner)).resolves.toEqual({
       entries: [
         {
           finished_at: "2026-10-03T10:00:00+00:00",
@@ -235,19 +242,22 @@ describe("getExerciseHistory", () => {
   });
 
   it("answers an empty page past the end, with the total", async () => {
-    expect(await history(owner, 10, 10)).toEqual({ entries: [], total: 3 });
+    await expect(history(owner, 10, 10)).resolves.toEqual({
+      entries: [],
+      total: 3,
+    });
   });
 
   it("answers an empty page for an Exercise the User never did", async () => {
-    expect(
-      await asUser(owner, (tx) =>
+    await expect(
+      asUser(owner, async (tx) =>
         getExerciseHistory(tx, owner, {
           exerciseSlug: `unknown-${runId}`,
           limit: 10,
           offset: 0,
         })
       )
-    ).toEqual({ entries: [], total: 0 });
+    ).resolves.toEqual({ entries: [], total: 0 });
   });
 
   it("never includes another User's Workout Sessions", async () => {
@@ -255,21 +265,22 @@ describe("getExerciseHistory", () => {
     expect(theirs.entries.map((entry) => entry.session_id)).toEqual([
       intruders.sessionId,
     ]);
-    expect(
-      await asUser(owner, (tx) =>
+    await expect(
+      asUser(owner, async (tx) =>
         getExerciseHistory(tx, intruder, {
           exerciseSlug: alphaSlug,
           limit: 10,
           offset: 0,
         })
       )
-    ).toEqual({ entries: [], total: 0 });
+    ).resolves.toEqual({ entries: [], total: 0 });
   });
 
   it("shows a Workout Session whose Plan and Workout are gone without them", async () => {
     const orphan = await seedSession(owner, "2026-09-01T10:00:00+00:00", [
       logged(6, 60),
     ]);
+
     await withService((tx) =>
       tx.delete(plans).where(inArray(plans.id, [orphan.planId]))
     );

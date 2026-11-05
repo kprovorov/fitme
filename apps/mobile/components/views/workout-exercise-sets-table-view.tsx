@@ -1,11 +1,14 @@
 import { formatElapsed } from "@fitme/core";
-import { type Translator, unitName } from "@fitme/i18n";
+import { unitName } from "@fitme/i18n";
+import type { Translator } from "@fitme/i18n";
 import type { ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { View } from "react-native";
+
 import type { FullPlan, PlanSet } from "~/hooks/queries/plans";
 import { describeSetTarget, formatSetTarget } from "~/lib/set-inputs";
 import { cn } from "~/lib/utils";
+
 import {
   SET_NUMBER_COLUMN_CLASS,
   SET_TABLE_MAX_FONT_SCALE,
@@ -35,7 +38,7 @@ function Cell({
     <Text
       adjustsFontSizeToFit
       className={cn(
-        "text-center text-mono-body",
+        "text-mono-body text-center",
         header && "text-primary",
         className
       )}
@@ -74,10 +77,10 @@ export default function WorkoutExerciseSetsTableView({
   const weightLabel = unitName(i18n, weightUnit);
 
   return (
-    <VStack className="items-stretch gap-sm">
+    <VStack className="gap-sm items-stretch">
       <View
         accessibilityElementsHidden
-        className="flex-row items-center gap-sm"
+        className="gap-sm flex-row items-center"
         importantForAccessibility="no-hide-descendants"
       >
         <Cell className={SET_NUMBER_COLUMN_CLASS} header>
@@ -102,7 +105,7 @@ export default function WorkoutExerciseSetsTableView({
           >
             <Cell className={SET_NUMBER_COLUMN_CLASS}>{`#${set.order}`}</Cell>
             <Cell className="flex-1">{formatSetTarget(set, weightLabel)}</Cell>
-            <Cell className="flex-1 text-muted-foreground">
+            <Cell className="text-muted-foreground flex-1">
               {formatRest(set.rest_recommended)}
             </Cell>
           </View>

@@ -40,15 +40,19 @@ export const memoryRateLimiter = ({
   windowMs,
 }: RateLimit & { now?: () => number }): RateLimiter => {
   const windows = new Map<string, { count: number; resetAt: number }>();
+
   return {
-    limit: (key) => {
+    limit: async (key) => {
       const time = now();
       let window = windows.get(key);
+
       if (!window || time >= window.resetAt) {
         window = { count: 0, resetAt: time + windowMs };
         windows.set(key, window);
       }
+
       window.count += 1;
+
       return Promise.resolve(
         window.count <= limit
           ? { allowed: true }
@@ -99,6 +103,7 @@ export const upstashRateLimiter = ({
     // out itself so an outage gets reported.
     timeout: 0,
   });
+
   return {
     limit: async (key) => {
       const { pending, reset, success } = await ratelimit.limit(key);
@@ -109,6 +114,7 @@ export const upstashRateLimiter = ({
           console.warn("Rate limit analytics write failed", error);
         })
       );
+
       return success
         ? { allowed: true }
         : {
@@ -139,25 +145,29 @@ export const rateLimiterFromEnv = (
 ): RateLimiter => {
   const url = env.UPSTASH_REDIS_REST_URL;
   const token = env.UPSTASH_REDIS_REST_TOKEN;
+
   if (url && token) {
     return upstashRateLimiter({ ...options, token, url });
   }
+
   if (isProduction(env)) {
     throw new Error(
       "UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN are required in production"
     );
   }
+
   return memoryRateLimiter(options);
 };
 
 const withTimeout = async <T>(promise: Promise<T>, ms: number) => {
   let timer: ReturnType<typeof setTimeout> | undefined;
+
   const timeout = new Promise<never>((_, reject) => {
-    timer = setTimeout(
-      () => reject(new Error(`Rate limiter timed out after ${ms} ms`)),
-      ms
-    );
+    timer = setTimeout(() => {
+      reject(new Error(`Rate limiter timed out after ${ms} ms`));
+    }, ms);
   });
+
   try {
     return await Promise.race([promise, timeout]);
   } finally {
@@ -187,6 +197,7 @@ export const checkRateLimit = async ({
     await reportError(
       new Error("Rate limiter failed, serving uncounted", { cause: error })
     );
+
     return { allowed: true };
   }
 };

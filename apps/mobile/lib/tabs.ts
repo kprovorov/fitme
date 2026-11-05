@@ -1,5 +1,6 @@
 import { Platform } from "react-native";
 import type { SFSymbol } from "sf-symbols-typescript";
+
 import { i18n } from "~/lib/i18n";
 
 /** Each tab's route name and the catalog key of its tab bar title. */
@@ -41,6 +42,7 @@ export const getTabSymbol = (
   iosMajor = deviceIosMajor()
 ): SFSymbol => {
   const { fallback, since, symbol } = TAB_SYMBOLS[routeName];
+
   return fallback && since && iosMajor < since ? fallback : symbol;
 };
 

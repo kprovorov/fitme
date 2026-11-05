@@ -1,4 +1,5 @@
 import { View } from "react-native";
+
 import { Image } from "~/components/tw";
 import { Text } from "~/components/ui/text";
 import { H1, H2 } from "~/components/ui/typography";
@@ -13,7 +14,7 @@ export function AuthHeader({
   welcome?: boolean;
 }) {
   return (
-    <View className={welcome ? "items-start gap-sm" : "items-start gap-xs"}>
+    <View className={welcome ? "gap-sm items-start" : "gap-xs items-start"}>
       <View className={welcome ? "pb-sm" : "pb-md"}>
         <Image
           accessible={false}

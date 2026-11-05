@@ -1,4 +1,6 @@
-import createClient, { type Client } from "openapi-fetch";
+import createClient from "openapi-fetch";
+import type { Client } from "openapi-fetch";
+
 import type { paths } from "./schema";
 
 /** Seconds to wait after a 429 whose `Retry-After` can't be read. */
@@ -44,6 +46,7 @@ export const rateLimitedFor = (error: unknown): number | null =>
 
 const retryAfter = (response: Response): number => {
   const seconds = Number(response.headers.get("Retry-After"));
+
   return Number.isFinite(seconds) && seconds > 0
     ? Math.ceil(seconds)
     : DEFAULT_RETRY_AFTER_SECONDS;
@@ -53,20 +56,25 @@ const retryAfter = (response: Response): number => {
 const errorFrom = async (response: Response): Promise<ApiError> => {
   let code: string | null = null;
   let message = `Public API request failed (${response.status})`;
+
   try {
     const { error } = (await response.json()) as {
       error?: { code?: unknown; message?: unknown };
     };
+
     const { code: errorCode, message: errorMessage } = error ?? {};
+
     if (typeof errorCode === "string") {
       code = errorCode;
     }
+
     if (typeof errorMessage === "string") {
       message = errorMessage;
     }
   } catch {
     // Not the API's JSON (a proxy's error page): the status says enough.
   }
+
   return new ApiError(message, {
     code,
     retryAfterSeconds: response.status === 429 ? retryAfter(response) : null,
@@ -111,40 +119,49 @@ export const createPublicApi = ({
     const headers = new Headers(request.headers);
     const hasBody = request.method !== "GET" && request.method !== "HEAD";
     let response: Response;
+
     try {
       // Inside the `try`: Clerk failing to refresh the token offline is a
       // network failure too.
       const bearer = await token();
+
       if (bearer) {
         headers.set("Authorization", `Bearer ${bearer}`);
       }
+
       response = await (fetchImpl ?? globalThis.fetch)(request.url, {
         body: hasBody ? await request.text() : undefined,
         headers,
         method: request.method,
         signal: request.signal,
       });
-    } catch (cause) {
-      throw new ApiError("Network request failed", { cause });
+    } catch (error) {
+      throw new ApiError("Network request failed", { error });
     }
+
     if (!response.ok) {
       throw await errorFrom(response);
     }
+
     return response;
   };
 
   let current: { client: PublicApi; url: string } | undefined;
+
   return () => {
     const url = baseUrl();
+
     if (!url) {
       throw new ApiError("The Public API base URL is not set");
     }
+
     if (current?.url !== url) {
       current = {
         client: createClient<paths>({ baseUrl: url, fetch: send }),
         url,
       };
     }
+
     return current.client;
   };
 };

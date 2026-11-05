@@ -1,10 +1,11 @@
 import { createHash, timingSafeEqual } from "node:crypto";
+
 import {
-  type AuthFn,
   extractBearerToken,
   ForbiddenError,
   withAuthChallenges,
 } from "eve/channels/auth";
+import type { AuthFn } from "eve/channels/auth";
 
 interface AccountDeletionResetOptions {
   /**
@@ -30,24 +31,29 @@ const digest = (value: string) => createHash("sha256").update(value).digest();
  */
 export const accountDeletionReset = ({
   secret = () => process.env.ARNOLD_RESET_SECRET,
-}: AccountDeletionResetOptions = {}): AuthFn<Request> =>
+}: AccountDeletionResetOptions = {}): AuthFn =>
   withAuthChallenges(
-    (request) => {
+    async (request) => {
       const expected = secret();
       const token = extractBearerToken(request.headers.get("authorization"));
+
       if (!(expected && expected.length >= MIN_SECRET_LENGTH && token)) {
         return Promise.resolve(null);
       }
+
       // Compared as digests: equal length, constant time
       if (!timingSafeEqual(digest(token), digest(expected))) {
         return Promise.resolve(null);
       }
+
       const { pathname } = new URL(request.url);
+
       if (request.method !== "POST" || !RESET_ROUTE.test(pathname)) {
         throw new ForbiddenError({
           message: "This credential only resets sessions.",
         });
       }
+
       return Promise.resolve({
         attributes: {},
         authenticator: "account-deletion",

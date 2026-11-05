@@ -2,6 +2,7 @@ import { isLiquidGlassAvailable } from "expo-glass-effect";
 import { Stack } from "expo-router";
 import { useTranslation } from "react-i18next";
 import { useCSSVariable } from "uniwind";
+
 import { SCROLL_EDGE_EFFECTS } from "~/lib/constants";
 
 const GLASS = isLiquidGlassAvailable();

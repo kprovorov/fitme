@@ -1,5 +1,6 @@
 import type { PlanDetail } from "@fitme/services/plans";
 import { describe, expect, it } from "vitest";
+
 import type { UserServices } from "../services.js";
 import { fakeServices, signedInAs, testApp } from "../test/harness.js";
 
@@ -66,19 +67,22 @@ const json = (method: string, body: unknown) => ({
 
 const patch = (services: Partial<UserServices>, body: unknown, id = planId) => {
   const harness = testApp({ services: fakeServices(services) });
+
   return {
     ...harness,
     response: harness.app.request(`/v1/plans/${id}`, json("PATCH", body)),
   };
 };
 
-describe("PATCH /v1/plans/{id}", () => {
+describe("pATCH /v1/plans/{id}", () => {
   it("changes only the given fields and answers the Plan in full", async () => {
     const asked: unknown[] = [];
+
     const { reported, response, servicesFor } = patch(
       {
         updatePlan: (id, changes) => {
           asked.push([id, changes]);
+
           return Promise.resolve(
             weighed({ name: "Renamed", note: "Deload" }, "lbs")
           );
@@ -90,7 +94,7 @@ describe("PATCH /v1/plans/{id}", () => {
     const answered = await response;
 
     expect(answered.status).toBe(200);
-    expect(await answered.json()).toEqual({
+    await expect(answered.json()).resolves.toEqual({
       data: { ...detail, name: "Renamed", note: "Deload", weight_unit: "lbs" },
     });
     expect(asked).toEqual([[planId, { name: "Renamed", note: "Deload" }]]);
@@ -109,11 +113,14 @@ describe("PATCH /v1/plans/{id}", () => {
       place: "home",
       workout_duration: 45,
     };
+
     const asked: unknown[] = [];
+
     const { response } = patch(
       {
         updatePlan: (_id, given) => {
           asked.push(given);
+
           return Promise.resolve(weighed(changes));
         },
       },
@@ -159,7 +166,7 @@ describe("PATCH /v1/plans/{id}", () => {
     const answered = await response;
 
     expect(answered.status).toBe(404);
-    expect(await answered.json()).toEqual({
+    await expect(answered.json()).resolves.toEqual({
       error: { code: "not_found", message: "Plan not found" },
     });
     expect(reported).toEqual([]);
@@ -186,6 +193,7 @@ describe("PATCH /v1/plans/{id}", () => {
 
 const post = (services: Partial<UserServices>, id = planId) => {
   const harness = testApp({ services: fakeServices(services) });
+
   return {
     ...harness,
     response: harness.app.request(`/v1/plans/${id}/activate`, {
@@ -195,12 +203,14 @@ const post = (services: Partial<UserServices>, id = planId) => {
   };
 };
 
-describe("POST /v1/plans/{id}/activate", () => {
+describe("pOST /v1/plans/{id}/activate", () => {
   it("activates the Plan and answers it in full", async () => {
     const asked: string[] = [];
+
     const { reported, response, servicesFor } = post({
       activatePlan: (id) => {
         asked.push(id);
+
         return Promise.resolve(weighed({ is_active: true }, "lbs"));
       },
     });
@@ -208,7 +218,7 @@ describe("POST /v1/plans/{id}/activate", () => {
     const answered = await response;
 
     expect(answered.status).toBe(200);
-    expect(await answered.json()).toEqual({
+    await expect(answered.json()).resolves.toEqual({
       data: { ...detail, is_active: true, weight_unit: "lbs" },
     });
     expect(asked).toEqual([planId]);
@@ -224,7 +234,7 @@ describe("POST /v1/plans/{id}/activate", () => {
     const answered = await response;
 
     expect(answered.status).toBe(404);
-    expect(await answered.json()).toEqual({
+    await expect(answered.json()).resolves.toEqual({
       error: { code: "not_found", message: "Plan not found" },
     });
     expect(reported).toEqual([]);
@@ -252,6 +262,7 @@ describe("POST /v1/plans/{id}/activate", () => {
 
 const remove = (services: Partial<UserServices>, id = planId) => {
   const harness = testApp({ services: fakeServices(services) });
+
   return {
     ...harness,
     response: harness.app.request(`/v1/plans/${id}`, {
@@ -267,15 +278,17 @@ const deleted = (alreadyDeleted: boolean) => ({
   plan: { id: planId, name: "Full body" },
 });
 
-describe("DELETE /v1/plans/{id}", () => {
+describe("dELETE /v1/plans/{id}", () => {
   it.each([
     ["deletes the Plan", false],
     ["answers the same for a Plan already deleted", true],
   ])("%s: 204 with no body", async (_label, alreadyDeleted) => {
     const asked: string[] = [];
+
     const { reported, response, servicesFor } = remove({
       deletePlan: (id) => {
         asked.push(id);
+
         return Promise.resolve(deleted(alreadyDeleted));
       },
     });
@@ -283,7 +296,7 @@ describe("DELETE /v1/plans/{id}", () => {
     const answered = await response;
 
     expect(answered.status).toBe(204);
-    expect(await answered.text()).toBe("");
+    await expect(answered.text()).resolves.toBe("");
     expect(asked).toEqual([planId]);
     expect(servicesFor).toEqual(["user_alice"]);
     expect(reported).toEqual([]);
@@ -297,7 +310,7 @@ describe("DELETE /v1/plans/{id}", () => {
     const answered = await response;
 
     expect(answered.status).toBe(404);
-    expect(await answered.json()).toEqual({
+    await expect(answered.json()).resolves.toEqual({
       error: { code: "not_found", message: "Plan not found" },
     });
     expect(reported).toEqual([]);

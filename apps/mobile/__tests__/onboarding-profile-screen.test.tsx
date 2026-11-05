@@ -11,6 +11,8 @@ import { fireEvent, render, screen } from "@testing-library/react-native";
 import { router } from "expo-router";
 import { useCallback } from "react";
 import { Pressable, Text } from "react-native";
+import { it, describe, expect, beforeEach } from "vitest";
+
 import ProfileScreen from "~/app/onboarding/profile";
 import { useAppLanguageSync } from "~/lib/i18n";
 import { segmentClient } from "~/lib/segment";
@@ -27,45 +29,58 @@ import {
   until,
 } from "~/test-utils/query-client";
 
-jest.mock("expo-router", () => ({
+jest.mock<typeof import("expo-router")>(import("expo-router"), () => ({
   router: { dismissTo: jest.fn() },
   Stack: { Screen: () => null },
 }));
 
-jest.mock("@sentry/react-native", () => ({ captureException: jest.fn() }));
+jest.mock<typeof import("@sentry/react-native")>(
+  import("@sentry/react-native"),
+  () => ({ captureException: jest.fn() })
+);
 
-jest.mock("~/lib/segment", () => ({ segmentClient: { track: jest.fn() } }));
+jest.mock<typeof import("~/lib/segment")>(import("~/lib/segment"), () => ({
+  segmentClient: { track: jest.fn() },
+}));
 
-jest.mock("@clerk/expo", () => ({
+jest.mock<typeof import("@clerk/expo")>(import("@clerk/expo"), () => ({
   useUser: () => ({ isLoaded: true, user: { id: "user_test" } }),
 }));
 
-jest.mock("~/lib/clerk", () => ({
+jest.mock<typeof import("~/lib/clerk")>(import("~/lib/clerk"), () => ({
   getCurrentUserId: () =>
     jest.requireActual<typeof import("~/test-utils/fake-public-api")>(
       "~/test-utils/fake-public-api"
     ).FAKE_USER_ID,
 }));
 
-jest.mock("react-native-safe-area-context", () => ({
-  useSafeAreaInsets: () => ({ bottom: 0, left: 0, right: 0, top: 0 }),
-}));
+jest.mock<typeof import("react-native-safe-area-context")>(
+  import("react-native-safe-area-context"),
+  () => ({
+    useSafeAreaInsets: () => ({ bottom: 0, left: 0, right: 0, top: 0 }),
+  })
+);
 
 // Reanimated's worklets need a native module; the drawer only needs a View.
-jest.mock("react-native-reanimated", () => {
-  const { View } =
-    jest.requireActual<typeof import("react-native")>("react-native");
-  return {
-    __esModule: true,
-    default: { View },
-    useAnimatedStyle: () => ({}),
-    useSharedValue: (value: number) => ({ value }),
-    withTiming: (value: number) => value,
-  };
-});
+jest.mock<typeof import("react-native-reanimated")>(
+  import("react-native-reanimated"),
+  () => {
+    const { View } =
+      jest.requireActual<typeof import("react-native")>("react-native");
 
-jest.mock("~/components/ui/button", () =>
-  jest.requireActual("~/test-utils/button-stub")
+    return {
+      __esModule: true,
+      default: { View },
+      useAnimatedStyle: () => ({}),
+      useSharedValue: (value: number) => ({ value }),
+      withTiming: (value: number) => value,
+    };
+  }
+);
+
+jest.mock<typeof import("~/components/ui/button")>(
+  import("~/components/ui/button"),
+  () => jest.requireActual("~/test-utils/button-stub")
 );
 
 // One option of the wheel stand-in. Top-level (and `mock`-prefixed, so the
@@ -82,6 +97,7 @@ const MockWheelOption = ({
     () => onValueChange(value),
     [onValueChange, value]
   );
+
   return (
     <Pressable onPress={handlePress} testID={`wheel-${value}`}>
       <Text>{value}</Text>
@@ -91,42 +107,48 @@ const MockWheelOption = ({
 
 // The SwiftUI wheel can't mount under Jest. Like the native one, the stand-in
 // reports a value only when one of its options is tapped.
-jest.mock("~/components/ui/picker", () => {
-  const { View: MockView } =
-    jest.requireActual<typeof import("react-native")>("react-native");
-  return {
-    Picker: ({
-      onValueChange,
-      options,
-    }: {
-      onValueChange: (value: number) => void;
-      options: { value: number }[];
-    }) => (
-      <MockView>
-        {options.map((option) => (
-          <MockWheelOption
-            key={option.value}
-            onValueChange={onValueChange}
-            value={option.value}
-          />
-        ))}
-      </MockView>
-    ),
-  };
-});
+jest.mock<typeof import("~/components/ui/picker")>(
+  import("~/components/ui/picker"),
+  () => {
+    const { View: MockView } =
+      jest.requireActual<typeof import("react-native")>("react-native");
+
+    return {
+      Picker: ({
+        onValueChange,
+        options,
+      }: {
+        onValueChange: (value: number) => void;
+        options: { value: number }[];
+      }) => (
+        <MockView>
+          {options.map((option) => (
+            <MockWheelOption
+              key={option.value}
+              onValueChange={onValueChange}
+              value={option.value}
+            />
+          ))}
+        </MockView>
+      ),
+    };
+  }
+);
 
 // The stand-in `jest.mock("~/lib/segment")` installs.
-const track = segmentClient.track as unknown as jest.Mock;
+const track = jest.mocked(segmentClient.track);
 
 const PROFILE_GET = "GET /v1/profile";
 const PROFILE_PATCH = "PATCH /v1/profile";
 const PROFILE_PUT = "PUT /v1/profile";
+
 const LOAD_ERROR =
   "Couldn't load your profile. Please check your connection and try again.";
 
 /** Every request but the Profile's reads. */
 const writes = () =>
   fakePublicApi.requests.filter(({ route }) => route !== PROFILE_GET);
+
 const SAVE_ERROR =
   "Couldn't save your profile. Please check your connection and try again.";
 
@@ -135,6 +157,7 @@ let queryClient = createTestQueryClient();
 /** The screen under the root layout's language sync. */
 function App() {
   useAppLanguageSync();
+
   return <ProfileScreen />;
 }
 
@@ -163,7 +186,7 @@ const fillAndSubmit = async () => {
   await settle(queryClient);
 };
 
-describe("Onboarding ProfileScreen", () => {
+describe("onboarding ProfileScreen", () => {
   beforeEach(() => {
     // A metric device, so the form suggests centimeters and kilograms.
     setDeviceLanguages(["en-GB"]);
@@ -194,6 +217,7 @@ describe("Onboarding ProfileScreen", () => {
     for (const text of ["40 y.o.", "58.5 kg", "165 cm"]) {
       expect(screen.getByText(text)).toBeTruthy();
     }
+
     expect(screen.getByLabelText("Female")).toBeChecked();
   });
 
@@ -384,7 +408,7 @@ describe("Onboarding ProfileScreen", () => {
       await fillAndSubmit();
 
       expect(screen.getByText(SAVE_ERROR)).toBeTruthy();
-      expect(Sentry.captureException).toHaveBeenCalledTimes(1);
+      expect(Sentry.captureException).toHaveBeenCalledOnce();
       expect(backend.profile(FAKE_USER_ID)).toBeUndefined();
       expect(track).not.toHaveBeenCalled();
       expect(router.dismissTo).not.toHaveBeenCalled();
@@ -392,7 +416,7 @@ describe("Onboarding ProfileScreen", () => {
   );
 });
 
-describe("Onboarding ProfileScreen in Ukrainian", () => {
+describe("onboarding ProfileScreen in Ukrainian", () => {
   beforeEach(() => {
     jest.clearAllMocks();
     backend.reset();
@@ -429,7 +453,7 @@ describe("Onboarding ProfileScreen in Ukrainian", () => {
 
     await fireEvent.press(screen.getByText("Далі"));
 
-    expect(await screen.findByText("Вкажіть стать")).toBeTruthy();
+    await expect(screen.findByText("Вкажіть стать")).resolves.toBeTruthy();
     expect(screen.getByText("Вкажіть вік")).toBeTruthy();
 
     await pick("Вік", 28);

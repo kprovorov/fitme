@@ -3,6 +3,7 @@ import type {
   WorkoutSessionSummary,
 } from "@fitme/services/workout-sessions";
 import { describe, expect, it } from "vitest";
+
 import type { UserServices, Weighed } from "../services.js";
 import { fakeServices, signedInAs, testApp } from "../test/harness.js";
 
@@ -58,30 +59,34 @@ const listing = (
   weightUnit: Weighed<ListPage>["weightUnit"] = "kg"
 ) => {
   const calls: ListOptions[] = [];
+
   const services = fakeServices({
     listWorkoutSessions: (options) => {
       calls.push(options);
+
       return Promise.resolve({ value: page, weightUnit });
     },
   });
+
   return { calls, services };
 };
 
 const get = (app: ReturnType<typeof testApp>["app"], path: string) =>
   app.request(path, { headers: signedInAs("user_alice") });
 
-describe("GET /v1/workout-sessions", () => {
+describe("gET /v1/workout-sessions", () => {
   it("answers a page of the User's Workout Sessions with their counts", async () => {
     const { calls, services } = listing({
       sessions: [summary, finishedSummary],
       total: 2,
     });
+
     const { app, servicesFor } = testApp({ services });
 
     const response = await get(app, "/v1/workout-sessions");
 
     expect(response.status).toBe(200);
-    expect(await response.json()).toEqual({
+    await expect(response.json()).resolves.toEqual({
       data: [summary, finishedSummary],
       hasMore: false,
       total: 2,
@@ -100,7 +105,7 @@ describe("GET /v1/workout-sessions", () => {
       "/v1/workout-sessions?status=in_progress&limit=1&offset=1"
     );
 
-    expect(await response.json()).toEqual({
+    await expect(response.json()).resolves.toEqual({
       data: [summary],
       hasMore: true,
       total: 3,
@@ -116,6 +121,7 @@ describe("GET /v1/workout-sessions", () => {
       reps: 5,
       weight: 110,
     };
+
     const session = { ...finishedSummary, personal_records: [record] };
     const { services } = listing({ sessions: [session], total: 1 });
     const { app, reported } = testApp({ services });
@@ -134,7 +140,7 @@ describe("GET /v1/workout-sessions", () => {
     const response = await get(app, "/v1/workout-sessions?offset=10");
 
     expect(response.status).toBe(200);
-    expect(await response.json()).toEqual({
+    await expect(response.json()).resolves.toEqual({
       data: [],
       hasMore: false,
       total: 3,
@@ -173,11 +179,12 @@ describe("GET /v1/workout-sessions", () => {
       ],
       total: 1,
     });
+
     const { app } = testApp({ services });
 
     const response = await get(app, "/v1/workout-sessions");
 
-    expect(await response.json()).toEqual({
+    await expect(response.json()).resolves.toEqual({
       data: [summary],
       hasMore: false,
       total: 1,
@@ -191,7 +198,7 @@ describe("GET /v1/workout-sessions", () => {
 
     const response = await get(app, "/v1/workout-sessions?status=finished");
 
-    expect(await response.json()).toEqual({
+    await expect(response.json()).resolves.toEqual({
       data: [expect.objectContaining({ completed_rep_count: 8, volume: 644 })],
       hasMore: false,
       total: 1,
@@ -204,11 +211,12 @@ describe("GET /v1/workout-sessions", () => {
       { sessions: [summary, finishedSummary], total: 2 },
       "lbs"
     );
+
     const { app } = testApp({ services });
 
     const response = await get(app, "/v1/workout-sessions");
 
-    expect(await response.json()).toEqual({
+    await expect(response.json()).resolves.toEqual({
       data: [
         expect.objectContaining({ id: summary.id, personal_records: [] }),
         expect.objectContaining({
@@ -286,13 +294,15 @@ const fromServices: Weighed<WorkoutSessionDetail> = {
 /** The same Workout Session as the API answers it. */
 const shown = { ...sessionFields, exercises: [exercise], weight_unit: "lbs" };
 
-describe("GET /v1/workout-sessions/:id", () => {
+describe("gET /v1/workout-sessions/:id", () => {
   it("answers the Workout Session in full with its weight unit, Exercises by slug only", async () => {
     const asked: string[] = [];
+
     const { app, servicesFor } = testApp({
       services: fakeServices({
         getWorkoutSession: (id) => {
           asked.push(id);
+
           return Promise.resolve(fromServices);
         },
       }),
@@ -301,7 +311,7 @@ describe("GET /v1/workout-sessions/:id", () => {
     const response = await get(app, `/v1/workout-sessions/${SESSION_ID}`);
 
     expect(response.status).toBe(200);
-    expect(await response.json()).toEqual({ data: shown });
+    await expect(response.json()).resolves.toEqual({ data: shown });
     expect(asked).toEqual([SESSION_ID]);
     expect(servicesFor).toEqual(["user_alice"]);
   });
@@ -316,7 +326,7 @@ describe("GET /v1/workout-sessions/:id", () => {
     const response = await get(app, `/v1/workout-sessions/${SESSION_ID}`);
 
     expect(response.status).toBe(404);
-    expect(await response.json()).toEqual({
+    await expect(response.json()).resolves.toEqual({
       error: { code: "not_found", message: "Workout Session not found" },
     });
     expect(reported).toEqual([]);
@@ -334,6 +344,7 @@ describe("GET /v1/workout-sessions/:id", () => {
 
   it("never shows internal fields", async () => {
     const [storedExercise] = fromServices.value.exercises;
+
     const withInternals = {
       ...fromServices,
       value: {
@@ -348,6 +359,7 @@ describe("GET /v1/workout-sessions/:id", () => {
         workout_id: WORKOUT_ID,
       },
     };
+
     const { app } = testApp({
       services: fakeServices({
         getWorkoutSession: () => Promise.resolve(withInternals),
@@ -356,7 +368,7 @@ describe("GET /v1/workout-sessions/:id", () => {
 
     const response = await get(app, `/v1/workout-sessions/${SESSION_ID}`);
 
-    expect(await response.json()).toEqual({
+    await expect(response.json()).resolves.toEqual({
       data: { ...shown, exercises: [{ ...exercise, sets: [set] }] },
     });
   });

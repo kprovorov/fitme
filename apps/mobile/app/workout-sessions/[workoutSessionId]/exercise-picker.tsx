@@ -1,10 +1,12 @@
-import { type MuscleGroup, muscleGroups } from "@fitme/core";
+import { muscleGroups } from "@fitme/core";
+import type { MuscleGroup } from "@fitme/core";
 import type { ExerciseSummary } from "@fitme/library-sdk";
 import { useQueryClient } from "@tanstack/react-query";
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Alert } from "react-native";
+
 import { ExerciseRowSymbol } from "~/components/exercises/exercise-row";
 import ExercisesView from "~/components/views/exercises-view";
 import { useHeaderSearch } from "~/hooks/header-search";
@@ -35,9 +37,11 @@ export default function ExercisePickerScreen() {
   const { t } = useTranslation();
   const router = useRouter();
   const queryClient = useQueryClient();
+
   const { onSearchChange, search, searchBarOptions } = useHeaderSearch({
     inSheet: true,
   });
+
   const {
     muscleGroup,
     replaceExerciseId: replacingId,
@@ -84,10 +88,12 @@ export default function ExercisePickerScreen() {
     },
     []
   );
+
   const close = useCallback(() => {
     if (left.current) {
       return;
     }
+
     left.current = true;
     router.back();
   }, [router]);
@@ -106,8 +112,10 @@ export default function ExercisePickerScreen() {
             t("workoutSession.editFailed.replaceTitle"),
             sessionEditFailureMessage(t, error)
           );
+
           return;
         }
+
         if (!IS_E2E) {
           segmentClient.track("Exercise Replaced", {
             exercise_slug: exercise.slug,
@@ -126,8 +134,10 @@ export default function ExercisePickerScreen() {
             t("workoutSession.editFailed.addTitle"),
             sessionEditFailureMessage(t, error)
           );
+
           return;
         }
+
         if (!IS_E2E) {
           segmentClient.track("Exercise Added", {
             exercise_slug: exercise.slug,
@@ -135,6 +145,7 @@ export default function ExercisePickerScreen() {
           });
         }
       }
+
       close();
     },
     [addExercise, close, replaceExercise, replacingId, sessionId, t]
@@ -147,8 +158,10 @@ export default function ExercisePickerScreen() {
       if (saving.current || left.current) {
         return;
       }
+
       saving.current = true;
       setIsSaving(true);
+
       try {
         await save(exercise);
       } finally {

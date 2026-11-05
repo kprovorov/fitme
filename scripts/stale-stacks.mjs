@@ -16,10 +16,13 @@ export const staleStacks = (
     .split("\n")
     .reverse()
     .find((line) => line.startsWith("{"));
+
   if (!json) {
     throw new Error("no JSON in the `supabase stack list` output");
   }
+
   const own = checkout && path.join(checkout, "packages/supabase");
+
   return JSON.parse(json).stacks.filter(
     (stack) => stack.project_root === own || !exists(stack.project_root)
   );
@@ -30,17 +33,20 @@ const main = ([output, checkout]) => {
     console.error(
       "Usage: node scripts/stale-stacks.mjs <supabase stack list output> [checkout]"
     );
+
     return 2;
   }
+
   for (const stack of staleStacks(output, { checkout })) {
     console.error(
       `Destroying ${stack.id.slice(0, 8)} (${stack.project_root}, ${stack.branch_context})`
     );
     console.log(stack.id);
   }
+
   return 0;
 };
 
-if (process.argv[1] === fileURLToPath(import.meta.url)) {
+if (process.argv[1] === import.meta.filename) {
   process.exitCode = main(process.argv.slice(2));
 }

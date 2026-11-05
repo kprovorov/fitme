@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
+
 import { createI18n } from "..";
 import {
-  type CountKind,
   formatCompactVolume,
   formatCount,
   formatDuration,
@@ -12,9 +12,9 @@ import {
   formatWorkoutDuration,
   spokenCompactVolume,
   spokenUnit,
-  type Unit,
   unitName,
 } from "../format";
+import type { CountKind, Unit } from "../format";
 
 const en = createI18n("en");
 const uk = createI18n("uk");
@@ -22,7 +22,7 @@ const uk = createI18n("uk");
 // Intl writes Ukrainian thousands with a no-break space.
 const NBSP = " ";
 
-describe("formatCount", () => {
+describe(formatCount, () => {
   const counts = [1, 2, 5, 11, 21, 22] as const;
 
   it.each<[CountKind, string[]]>([
@@ -127,7 +127,7 @@ describe("formatCount", () => {
   });
 });
 
-describe("formatNumber", () => {
+describe(formatNumber, () => {
   it("writes a number as the language does", () => {
     expect(formatNumber(en, 62.5)).toBe("62.5");
     expect(formatNumber(uk, 62.5)).toBe("62,5");
@@ -163,7 +163,7 @@ describe("units", () => {
   });
 });
 
-describe("formatWeight", () => {
+describe(formatWeight, () => {
   it("uses the measurement system's unit, whatever the language", () => {
     expect(formatWeight(en, 70, "metric")).toBe("70 kg");
     expect(formatWeight(en, 155, "us")).toBe("155 lbs");
@@ -173,7 +173,7 @@ describe("formatWeight", () => {
   });
 });
 
-describe("formatHeight", () => {
+describe(formatHeight, () => {
   it("shows metric heights in centimeters", () => {
     expect(formatHeight(en, 180, "metric")).toBe("180 cm");
     expect(formatHeight(uk, 180.5, "metric")).toBe("180,5 см");
@@ -187,7 +187,7 @@ describe("formatHeight", () => {
   });
 });
 
-describe("formatWorkoutDuration", () => {
+describe(formatWorkoutDuration, () => {
   const start = "2026-10-29T10:00:00.000Z";
 
   it("shows minutes, then hours and minutes past an hour", () => {
@@ -212,7 +212,7 @@ describe("formatWorkoutDuration", () => {
   });
 });
 
-describe("formatDuration", () => {
+describe(formatDuration, () => {
   const MINUTE_MS = 60_000;
 
   it("shows hours and minutes, rounded to the minute", () => {
@@ -229,7 +229,7 @@ describe("formatDuration", () => {
   });
 });
 
-describe("formatCompactVolume", () => {
+describe(formatCompactVolume, () => {
   it("shows kilograms below a tonne, then tonnes to one decimal", () => {
     expect(formatCompactVolume(en, 0, "kg")).toBe("0 kg");
     expect(formatCompactVolume(en, 999.4, "kg")).toBe("999 kg");

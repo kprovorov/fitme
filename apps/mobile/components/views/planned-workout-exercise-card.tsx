@@ -1,8 +1,11 @@
 import { useRouter } from "expo-router";
 import { useTranslation } from "react-i18next";
+
 import { Card } from "~/components/ui/card";
-import { type ShownExercise, shownExercise } from "~/hooks/queries/library";
+import { shownExercise } from "~/hooks/queries/library";
+import type { ShownExercise } from "~/hooks/queries/library";
 import type { FullPlan, PlanExercise } from "~/hooks/queries/plans";
+
 import ExerciseCardHeader, { OpenChevron } from "./exercise-card-header";
 import WorkoutExerciseSetsTableView from "./workout-exercise-sets-table-view";
 
@@ -26,6 +29,7 @@ export default function PlannedWorkoutExerciseCard({
 }: PlannedWorkoutExerciseCardProps) {
   const router = useRouter();
   const { t } = useTranslation();
+
   const exercise =
     resolved ?? shownExercise(workoutExercise.exercise_slug, null);
 

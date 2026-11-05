@@ -16,7 +16,10 @@ import {
   within,
 } from "@testing-library/react-native";
 import type { ReactNode } from "react";
-import { Alert, type AlertButton, Pressable, Text, View } from "react-native";
+import { Alert, Pressable, Text, View } from "react-native";
+import type { AlertButton } from "react-native";
+import { it, describe, expect, beforeEach } from "vitest";
+
 import PlanScreen from "~/app/plans/[planId]/index";
 import PlansScreen from "~/app/plans/index";
 import PlansListView from "~/components/views/plan-list-view";
@@ -52,6 +55,7 @@ const MockHeader = ({ options }: { options: MockHeaderOptions }) => {
   const items = (options.unstable_headerRightItems?.() ?? []).flatMap(
     (item) => item.menu?.items ?? [item]
   );
+
   return (
     <>
       {options.title ? (
@@ -66,7 +70,7 @@ const MockHeader = ({ options }: { options: MockHeaderOptions }) => {
   );
 };
 
-jest.mock("expo-router", () => ({
+jest.mock<typeof import("expo-router")>(import("expo-router"), () => ({
   Link: ({ children }: { children: ReactNode }) => children,
   Stack: {
     Screen: (props: { options: MockHeaderOptions }) => (
@@ -84,19 +88,31 @@ jest.mock("expo-router", () => ({
 
 // The real Clerk SDK (reached through the Workout cards) opens a MessagePort
 // at import that keeps Jest alive.
-jest.mock("~/lib/clerk", () => ({
+jest.mock<typeof import("~/lib/clerk")>(import("~/lib/clerk"), () => ({
   getCurrentUserId: jest.requireActual<
     typeof import("~/test-utils/signed-in-user")
   >("~/test-utils/signed-in-user").getCurrentUserId,
 }));
 
-jest.mock("~/lib/segment", () => ({ segmentClient: { track: jest.fn() } }));
-jest.mock("~/hooks/revenueCat", () => ({
-  useIsProQuery: () => ({ data: false }),
+jest.mock<typeof import("~/lib/segment")>(import("~/lib/segment"), () => ({
+  segmentClient: { track: jest.fn() },
 }));
-jest.mock("~/components/symbol-image", () => ({ SymbolImage: () => null }));
-jest.mock("~/components/ui/button", () =>
-  jest.requireActual("~/test-utils/button-stub")
+
+jest.mock<typeof import("~/hooks/revenueCat")>(
+  import("~/hooks/revenueCat"),
+  () => ({
+    useIsProQuery: () => ({ data: false }),
+  })
+);
+
+jest.mock<typeof import("~/components/symbol-image")>(
+  import("~/components/symbol-image"),
+  () => ({ SymbolImage: () => null })
+);
+
+jest.mock<typeof import("~/components/ui/button")>(
+  import("~/components/ui/button"),
+  () => jest.requireActual("~/test-utils/button-stub")
 );
 
 const ACTIVATE = "POST /v1/plans/{id}/activate";
@@ -110,7 +126,7 @@ const PLAN_LOAD_ERROR = /Couldn't load this plan/;
 const WORKOUT_CARD = /Day, /;
 
 // The stand-in `jest.mock("~/lib/segment")` installs.
-const track = segmentClient.track as unknown as jest.Mock;
+const track = jest.mocked(segmentClient.track);
 
 let queryClient = createTestQueryClient();
 
@@ -118,15 +134,18 @@ let queryClient = createTestQueryClient();
 const ActivePlanName = () => {
   const { data: plans } = usePlanSummariesQuery();
   const activePlan = plans?.find((plan) => plan.is_active);
+
   return activePlan ? <Text>{activePlan.name}</Text> : null;
 };
 
 // Whether another Plan's screen, open behind this one, shows it active.
 const PlanActivity = ({ id }: { id: string }) => {
   const { data: plan } = usePlanQuery({ variables: { id } });
+
   if (!plan) {
     return null;
   }
+
   return <Text>{`${id} ${plan.is_active ? "active" : "inactive"}`}</Text>;
 };
 
@@ -157,23 +176,25 @@ const pullToRefresh = async (testID: string) => {
 };
 
 const alerts = () =>
-  (Alert.alert as jest.Mock).mock.calls as [string, string, AlertButton[]?][];
+  jest.mocked(Alert.alert).mock.calls as [string, string, AlertButton[]?][];
 
 /** Picks `item` in the header menu and presses `button` in its alert. */
 const choose = async (item: string, button: string) => {
   await fireEvent.press(screen.getByText(item));
   const buttons = alerts().at(-1)?.[2] ?? [];
   const pressed = buttons.find((candidate) => candidate.text === button);
+
   if (!pressed?.onPress) {
     throw new Error(`No "${button}" button in the last alert`);
   }
+
   pressed.onPress();
   await settle(queryClient);
 };
 
 beforeEach(() => {
   jest.clearAllMocks();
-  jest.spyOn(Alert, "alert").mockImplementation(() => undefined);
+  jest.spyOn(Alert, "alert").mockReturnValue(undefined);
   backend.reset();
   mockPlanId.current = "plan-1";
   backend.seedPlan({ id: "plan-1", name: "Strength", workouts: [] });
@@ -185,7 +206,7 @@ beforeEach(() => {
   });
 });
 
-describe("The Plans list", () => {
+describe("the Plans list", () => {
   const mountList = async () => {
     queryClient = createTestQueryClient();
     await render(
@@ -263,7 +284,7 @@ describe("The Plans list", () => {
   });
 });
 
-describe("A Plan's screen", () => {
+describe("a Plan's screen", () => {
   beforeEach(() => {
     backend.seedPlan({
       id: "plan-3",
@@ -314,7 +335,7 @@ describe("A Plan's screen", () => {
     expect(screen.queryByText("Archive")).toBeNull();
 
     await fireEvent.press(screen.getByRole("button", { name: "Go Back" }));
-    expect(mockBack).toHaveBeenCalled();
+    expect(mockBack).toHaveBeenCalledWith();
   });
 
   it("says another User's Plan no longer exists", async () => {
@@ -373,7 +394,7 @@ describe("A Plan's screen", () => {
   });
 });
 
-describe("Activating a Plan", () => {
+describe("activating a Plan", () => {
   it("makes it the active Plan through the API, every other one inactive", async () => {
     await mount(<ActivePlanName />);
     expect(beside().getByText("Hypertrophy")).toBeTruthy();
@@ -465,9 +486,11 @@ describe("Activating a Plan", () => {
     signInAs("user_next");
     const planReads = fakePublicApi.count(GET_PLAN);
     const resumeRead = fakePublicApi.pause(GET_PLAN);
+
     const nextUsersRead = queryClient.fetchQuery(
       usePlanQuery.getFetchOptions({ id: "plan-1" })
     );
+
     await until(() => fakePublicApi.count(GET_PLAN) === planReads + 1);
     const listReads = fakePublicApi.count(LIST_PLANS);
 
@@ -523,7 +546,7 @@ describe("Activating a Plan", () => {
   });
 });
 
-describe("Deleting a Plan", () => {
+describe("deleting a Plan", () => {
   it("removes it from the lists through the API", async () => {
     await mount(<PlansListView />);
     expect(beside().getByText("Strength")).toBeTruthy();
@@ -614,7 +637,7 @@ describe("Deleting a Plan", () => {
   });
 });
 
-describe("Pulling the Plan screen to refresh", () => {
+describe("pulling the Plan screen to refresh", () => {
   const LIST = "GET /v1/workout-sessions";
   /** The open Workout Session's read of the list. */
   const IN_PROGRESS = { limit: "1", status: "in_progress" };

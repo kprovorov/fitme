@@ -5,6 +5,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { View } from "react-native";
 import type { SFSymbol } from "sf-symbols-typescript";
+
 import { SymbolImage } from "~/components/symbol-image";
 import { Button } from "~/components/ui/button";
 import { Dialog } from "~/components/ui/dialog";
@@ -14,19 +15,18 @@ import { H3, Muted } from "~/components/ui/typography";
 import { VStack } from "~/components/ui/vstack";
 import {
   closePlanUpdatePrompt,
-  type PlanUpdatePrompt,
   usePlanUpdatePrompt,
 } from "~/hooks/plan-update-prompt";
+import type { PlanUpdatePrompt } from "~/hooks/plan-update-prompt";
 import { shownExercise, useExercises } from "~/hooks/queries/library";
 import { useApplyPlanUpdateMutation } from "~/hooks/queries/workout-sessions";
 import { useI18n } from "~/lib/i18n";
 import {
   formatPlanChange,
-  type PlanUpdate,
-  type PlanUpdateChangeKind,
   planUpdateProperties,
   planUpdateSlugs,
 } from "~/lib/plan-changes";
+import type { PlanUpdate, PlanUpdateChangeKind } from "~/lib/plan-changes";
 import { segmentClient } from "~/lib/segment";
 
 /**
@@ -74,11 +74,14 @@ export function PlanUpdateSheet({
   const i18n = useI18n();
   const { t } = useTranslation();
   const exercises = useExercises(planUpdateSlugs(preview?.changes ?? []));
+
   const updateLabel = hasFailed
     ? t("planUpdate.retry")
     : t("planUpdate.update");
+
   const nameOf = (slug: string) =>
     (exercises[slug] ?? shownExercise(slug, null)).name;
+
   const handleIsPresentedChange = useCallback(
     (isPresented: boolean) => {
       // Dismissal is disabled; should the system close it anyway, the Plan
@@ -115,6 +118,7 @@ export function PlanUpdateSheet({
                 nameOf,
                 i18n
               );
+
               return (
                 <View
                   accessibilityLabel={line.accessibilityLabel}
@@ -128,7 +132,7 @@ export function PlanUpdateSheet({
                     className="text-body text-primary"
                     name={CHANGE_SYMBOL[change.kind]}
                   />
-                  <Text className="flex-1 text-body">{line.text}</Text>
+                  <Text className="text-body flex-1">{line.text}</Text>
                 </View>
               );
             })}
@@ -175,6 +179,7 @@ export function PlanUpdateSheet({
 export function PlanUpdateSheetHost() {
   const prompt = usePlanUpdatePrompt();
   const queryClient = useQueryClient();
+
   const {
     error: applyError,
     isError: hasFailed,
@@ -182,6 +187,7 @@ export function PlanUpdateSheetHost() {
     mutate: apply,
     reset,
   } = useApplyPlanUpdateMutation();
+
   // A ref, so a second tap before the re-render is still ignored.
   const answeredRef = useRef(false);
   // The last question, kept so the content stays while the sheet slides away.
@@ -190,6 +196,7 @@ export function PlanUpdateSheetHost() {
   useEffect(() => {
     answeredRef.current = false;
     reset();
+
     if (prompt) {
       setLastPrompt(prompt);
     }
@@ -204,6 +211,7 @@ export function PlanUpdateSheetHost() {
     if (!prompt || answeredRef.current) {
       return;
     }
+
     answeredRef.current = true;
     apply(
       { sessionId: prompt.sessionId },
@@ -213,12 +221,14 @@ export function PlanUpdateSheetHost() {
           if (rateLimitedFor(error) === null) {
             Sentry.captureException(error);
           }
+
           answeredRef.current = false;
         },
         onSuccess: () => {
           for (const queryKey of PLAN_QUERY_KEYS) {
             queryClient.invalidateQueries({ queryKey });
           }
+
           segmentClient.track(
             "Plan Update Accepted",
             planUpdateProperties(prompt.sessionId, prompt.preview)
@@ -233,6 +243,7 @@ export function PlanUpdateSheetHost() {
     if (!prompt || answeredRef.current) {
       return;
     }
+
     answeredRef.current = true;
     segmentClient.track(
       "Plan Update Declined",
@@ -242,6 +253,7 @@ export function PlanUpdateSheetHost() {
   }, [close, prompt]);
 
   const shown = prompt ?? lastPrompt;
+
   return (
     <PlanUpdateSheet
       hasFailed={hasFailed}

@@ -11,6 +11,7 @@ import {
   ScrollView,
   View,
 } from "react-native";
+
 import { Button } from "~/components/ui/button";
 import { Text } from "~/components/ui/text";
 import { VStack } from "~/components/ui/vstack";
@@ -33,7 +34,9 @@ const failureMessage = (t: TFunction, error: unknown) => {
   if (error instanceof ApiError && error.code === "not_found") {
     return t("plans.errors.notFound");
   }
+
   const waitSeconds = rateLimitedFor(error);
+
   return waitSeconds === null
     ? t("plans.errors.network")
     : t("plans.errors.rateLimited", { seconds: waitSeconds });
@@ -63,6 +66,7 @@ export default function PlanScreen() {
       refreshPlans();
     },
   });
+
   const activate = useCallback(() => {
     activatePlan(
       { id: planId },
@@ -108,6 +112,7 @@ export default function PlanScreen() {
   const retry = useCallback(() => {
     refetch();
   }, [refetch]);
+
   const goBack = useCallback(() => {
     if (router.canGoBack()) {
       router.back();
@@ -124,10 +129,11 @@ export default function PlanScreen() {
         </VStack>
       );
     }
+
     if (plan === null) {
       return (
-        <View className="items-center gap-sm pt-lg">
-          <Text className="text-center text-muted-foreground">
+        <View className="gap-sm pt-lg items-center">
+          <Text className="text-muted-foreground text-center">
             {t("plans.errors.notFound")}
           </Text>
           <Button
@@ -139,11 +145,13 @@ export default function PlanScreen() {
         </View>
       );
     }
+
     if (isError) {
       const waitSeconds = rateLimitedFor(readError);
+
       return (
-        <View className="items-center gap-sm pt-lg">
-          <Text className="text-center text-muted-foreground">
+        <View className="gap-sm pt-lg items-center">
+          <Text className="text-muted-foreground text-center">
             {waitSeconds === null
               ? t("plans.loadError")
               : t("common.rateLimited", { seconds: waitSeconds })}
@@ -157,8 +165,9 @@ export default function PlanScreen() {
         </View>
       );
     }
+
     return (
-      <View className="items-center pt-lg" testID="plan-loading">
+      <View className="pt-lg items-center" testID="plan-loading">
         <ActivityIndicator colorClassName="accent-foreground" />
       </View>
     );

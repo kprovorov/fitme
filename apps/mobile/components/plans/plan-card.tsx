@@ -1,8 +1,10 @@
 import type { ExperienceLevel, Goal, Place } from "@fitme/core";
 import { useTranslation } from "react-i18next";
+
 import { SymbolImage } from "~/components/symbol-image";
 import type { PlanSummary } from "~/hooks/queries/plans";
 import { useChoiceLabels } from "~/lib/choices";
+
 import {
   Card,
   CardContent,
@@ -37,6 +39,7 @@ export default function PlanCard({ plan }: PlanCardProps) {
   const goal = plan.goal as Goal | null;
   const level = plan.experience_level as ExperienceLevel | null;
   const place = plan.place as Place | null;
+
   const details = [
     ...(goal
       ? [{ icon: goalSymbol(goal), key: "goal", label: labels.goal(goal) }]
@@ -59,8 +62,9 @@ export default function PlanCard({ plan }: PlanCardProps) {
       ? [{ icon: placeSymbol(place), key: "place", label: labels.place(place) }]
       : []),
   ];
+
   return (
-    <Card className="flex-1 gap-sm">
+    <Card className="gap-sm flex-1">
       <CardHeader>
         <CardTitle
           className={plan.is_active ? "text-primary" : "text-muted-foreground"}

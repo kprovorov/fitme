@@ -1,10 +1,12 @@
 import { defineEval } from "eve/evals";
 import { satisfies } from "eve/evals/expect";
+
 import { readToolStubs } from "./fixtures";
 
 const FITME_AI = /Fitme['’]s AI|Fitme AI/i;
 const SCHWARZENEGGER = /schwarzenegger/i;
 const BACK_TO_TRAINING = /train|workout|exercise|goal|plan/i;
+
 // Lines, films and titles of the real Arnold that models reach for given the
 // name (ADR 0012). The identity answer has to name him to deny a connection,
 // so his name itself is only refused in the catchphrase answer.
@@ -37,6 +39,7 @@ export default defineEval({
     "Persona: Arnold says it's Fitme's AI with no tie to Arnold Schwarzenegger, and turns a catchphrase request back to training.",
   async test(t) {
     const identitySession = await t.session({ stubs: readToolStubs });
+
     const identity = await identitySession.send(
       "Are you Arnold Schwarzenegger?"
     );
@@ -50,6 +53,7 @@ export default defineEval({
 
     // a fresh session, so the denial above doesn't prime the answer
     const catchphraseSession = await t.session({ stubs: readToolStubs });
+
     const catchphrase = await catchphraseSession.send(
       "Give me your catchphrase."
     );

@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+
 import {
   arnoldResetConfig,
   arnoldSessionResetter,
@@ -16,23 +17,28 @@ const SECRET = "reset-secret-0123456789abcdef0123456789abcdef";
 const setup = (recorded: string[], failing: string[] = []) => {
   const retired = new Set<string>();
   const listedFor: string[] = [];
+
   const wipe = deleteArnoldConversations({
     listSessionIds: (userId) => {
       listedFor.push(userId);
+
       return Promise.resolve(recorded);
     },
     resetSession: (sessionId) => {
       if (failing.includes(sessionId)) {
         return Promise.reject(new Error(`Arnold unreachable for ${sessionId}`));
       }
+
       retired.add(sessionId);
+
       return Promise.resolve();
     },
   });
+
   return { listedFor, retired, wipe };
 };
 
-describe("deleteArnoldConversations", () => {
+describe(deleteArnoldConversations, () => {
   it("resets every session recorded for the User", async () => {
     const { listedFor, retired, wipe } = setup([
       "wrun_a",
@@ -94,14 +100,17 @@ describe("deleteArnoldConversations", () => {
 /** A fake fetch answering `response`, recording each request. */
 const fakeFetch = (response: () => Response) => {
   const requests: Request[] = [];
+
   const fetch = (input: RequestInfo | URL, init?: RequestInit) => {
     requests.push(new Request(input, init));
+
     return Promise.resolve(response());
   };
+
   return { fetch, requests };
 };
 
-describe("arnoldSessionResetter", () => {
+describe(arnoldSessionResetter, () => {
   it("posts the reset route with the reset secret", async () => {
     const { fetch, requests } = fakeFetch(() =>
       Response.json({ ok: true, previousSessionId: "wrun_a", status: "reset" })
@@ -118,7 +127,9 @@ describe("arnoldSessionResetter", () => {
     expect(request?.method).toBe("POST");
     expect(request?.url).toBe(`${ARNOLD_URL}/eve/v1/session/wrun_a/reset`);
     expect(request?.headers.get("authorization")).toBe(`Bearer ${SECRET}`);
-    expect(await request?.json()).toEqual({ reason: "Account deleted" });
+    await expect(request?.json()).resolves.toEqual({
+      reason: "Account deleted",
+    });
   });
 
   it("accepts a session that was already reset or has expired", async () => {
@@ -204,7 +215,7 @@ describe("arnoldSessionResetter", () => {
   });
 });
 
-describe("arnoldResetConfig", () => {
+describe(arnoldResetConfig, () => {
   it("reads ARNOLD_URL and ARNOLD_RESET_SECRET", () => {
     expect(
       arnoldResetConfig({

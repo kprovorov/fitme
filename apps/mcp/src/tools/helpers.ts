@@ -1,4 +1,5 @@
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
+
 import type { ToolContext } from "../context.js";
 import type { UserServices } from "../services.js";
 
@@ -33,6 +34,7 @@ export function requireFound<T>(value: T, message: string): NonNullable<T> {
   if (value === null || value === undefined) {
     throw new ToolError(message);
   }
+
   return value;
 }
 
@@ -45,6 +47,7 @@ const isPostgresError = (value: unknown): value is Error & DatabaseError =>
 /** The Postgres error Drizzle wrapped as the `cause`, if there is one. */
 const postgresCause = (error: unknown) => {
   const cause = error instanceof Error ? error.cause : undefined;
+
   return isPostgresError(cause) ? cause : undefined;
 };
 
@@ -55,6 +58,7 @@ const postgresCause = (error: unknown) => {
  */
 const describeServiceError = (error: unknown) => {
   const database = postgresCause(error);
+
   return database ? describeDatabaseError(database) : SERVICE_FAILURE_MESSAGE;
 };
 
@@ -76,7 +80,9 @@ export function withToolErrors<Args>(
       if (error instanceof ToolError) {
         return errorResult(error.message);
       }
+
       await ctx.reportError(error);
+
       return errorResult(describeServiceError(error));
     }
   };

@@ -1,16 +1,15 @@
-import { ApiError, type components } from "@fitme/api-client";
+import { ApiError } from "@fitme/api-client";
+import type { components } from "@fitme/api-client";
 import type { QueryClient } from "@tanstack/react-query";
 import { createMutation, createQuery } from "react-query-kit";
+
 import { WEEKLY_GOALS_QUERY_KEY } from "~/hooks/queries/weekly-goals";
 import { IS_E2E } from "~/lib/constants";
 import type { NewPlan } from "~/lib/plan-card";
 import { publicApi } from "~/lib/public-api";
 import { segmentClient } from "~/lib/segment";
-import {
-  rememberWriteStarter,
-  seedWriteAnswer,
-  type WriteStarter,
-} from "~/lib/write-answers";
+import { rememberWriteStarter, seedWriteAnswer } from "~/lib/write-answers";
+import type { WriteStarter } from "~/lib/write-answers";
 
 /**
  * The Plan details a Plan built by hand leaves unset (ADR 0017): the app
@@ -65,9 +64,11 @@ export const PLANS_QUERY_KEY = ["plans"];
 export const usePlanSummariesQuery = createQuery<PlanSummary[]>({
   fetcher: async (): Promise<PlanSummary[]> => {
     const { data } = await publicApi().GET("/v1/plans");
+
     if (!data) {
       throw new ApiError("Public API answered no Plans");
     }
+
     return data.data;
   },
   queryKey: [...PLANS_QUERY_KEY, "summaries"],
@@ -84,9 +85,11 @@ export const usePlanSummariesQuery = createQuery<PlanSummary[]>({
 export const useActivePlanQuery = createQuery<FullPlan | null>({
   fetcher: async (): Promise<FullPlan | null> => {
     const { data } = await publicApi().GET("/v1/plans/active");
+
     if (!data) {
       throw new ApiError("Public API answered no active Plan");
     }
+
     return data.data;
   },
   queryKey: [...PLANS_QUERY_KEY, "active"],
@@ -109,14 +112,17 @@ export const usePlanQuery = createQuery<FullPlan | null, PlanQueryVariables>({
       const { data } = await publicApi().GET("/v1/plans/{id}", {
         params: { path: { id } },
       });
+
       if (!data) {
         throw new ApiError("Public API answered no Plan");
       }
+
       return data.data;
     } catch (error) {
       if (error instanceof ApiError && error.status === 404) {
         return null;
       }
+
       throw error;
     }
   },
@@ -170,14 +176,18 @@ export const useCreatePlanMutation = createMutation<
     const { data } = await publicApi().POST("/v1/plans", {
       body: { ...plan, activate: true },
     });
+
     if (!data) {
       throw new ApiError("Public API answered no Plan");
     }
+
     const { id } = data.data;
+
     if (!IS_E2E) {
       segmentClient.track("Plan Saved", { plan_id: id });
       segmentClient.track("Plan Activated", { plan_id: id });
     }
+
     return data.data;
   },
   // On the mutation, not the call: it still runs once the card is gone. The
@@ -205,12 +215,15 @@ export const useActivatePlanMutation = createMutation<
     const { data } = await publicApi().POST("/v1/plans/{id}/activate", {
       params: { path: { id } },
     });
+
     if (!data) {
       throw new ApiError("Public API answered no Plan");
     }
+
     if (!IS_E2E) {
       segmentClient.track("Plan Activated", { plan_id: id });
     }
+
     return data.data;
   },
   // On the mutation, not the call: it still runs once the screen is gone.
@@ -228,6 +241,7 @@ export const useActivatePlanMutation = createMutation<
 export const useDeletePlanMutation = createMutation<void, { id: string }>({
   mutationFn: async ({ id }: { id: string }): Promise<void> => {
     await publicApi().DELETE("/v1/plans/{id}", { params: { path: { id } } });
+
     if (!IS_E2E) {
       segmentClient.track("Plan Deleted", { plan_id: id });
     }

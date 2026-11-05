@@ -1,4 +1,5 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+
 import type { ToolContext } from "./context.js";
 import { registerCatalogTools } from "./tools/catalog.js";
 import { registerExerciseTools } from "./tools/exercises.js";

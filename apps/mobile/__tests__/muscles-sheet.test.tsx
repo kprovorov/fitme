@@ -10,7 +10,8 @@
  */
 import type { FakeLibrary } from "@fitme/library-sdk/fake";
 import { beforeEach, describe, expect, it, jest } from "@jest/globals";
-import { type QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { QueryClientProvider } from "@tanstack/react-query";
+import type { QueryClient } from "@tanstack/react-query";
 import {
   act,
   fireEvent,
@@ -18,6 +19,8 @@ import {
   screen,
   within,
 } from "@testing-library/react-native";
+import { it, describe, expect, beforeEach } from "vitest";
+
 import LibraryScreen from "~/app/(tabs)/library/index";
 import MusclesSheet from "~/app/muscles";
 import { getMuscleChoice } from "~/hooks/muscle-choice";
@@ -37,10 +40,11 @@ import {
   stubRouter,
 } from "~/test-utils/router-stub";
 
-jest.mock("expo-router", () => {
+jest.mock<typeof import("expo-router")>(import("expo-router"), () => {
   const stub = jest.requireActual<typeof import("~/test-utils/router-stub")>(
     "~/test-utils/router-stub"
   );
+
   return {
     router: stub.stubRouter,
     Stack: { Screen: stub.StackScreenStub },
@@ -48,12 +52,22 @@ jest.mock("expo-router", () => {
     useRouter: () => stub.stubRouter,
   };
 });
-jest.mock("~/components/ui/button", () =>
-  jest.requireActual("~/test-utils/button-stub")
+
+jest.mock<typeof import("~/components/ui/button")>(
+  import("~/components/ui/button"),
+  () => jest.requireActual("~/test-utils/button-stub")
 );
+
 // A thumbnail shows as nothing.
-jest.mock("~/components/exercises/exercise-image", () => () => null);
-jest.mock("~/components/symbol-image", () => ({ SymbolImage: () => null }));
+jest.mock<typeof import("~/components/exercises/exercise-image")>(
+  import("~/components/exercises/exercise-image"),
+  () => () => null
+);
+
+jest.mock<typeof import("~/components/symbol-image")>(
+  import("~/components/symbol-image"),
+  () => ({ SymbolImage: () => null })
+);
 
 let fake: FakeLibrary;
 let list: jest.SpiedFunction<FakeLibrary["list"]>;
@@ -117,9 +131,11 @@ describe("the Muscles sheet over the Library tab", () => {
     ]);
     expect(screen.getByRole("header", { name: "Muscles" })).toBeTruthy();
     expect(screen.getByLabelText("Reset")).toBeTruthy();
+
     const names = screen
       .getAllByRole("checkbox")
       .map((row) => row.props.accessibilityLabel);
+
     expect(names).toEqual([
       "Chest",
       "Back",
@@ -148,7 +164,7 @@ describe("the Muscles sheet over the Library tab", () => {
     await tick("Chest");
     expect(isChecked("Chest")).toBe(true);
     // Nothing is applied while the User is still choosing.
-    expect(list).toHaveBeenCalledTimes(1);
+    expect(list).toHaveBeenCalledOnce();
     await confirm();
 
     expect(sheetOpen()).toBe(false);

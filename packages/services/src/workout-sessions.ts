@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
+
 import {
   plans,
-  type Transaction,
   workoutExerciseSets,
   workoutExercises,
   workoutSessionExerciseSets,
@@ -9,6 +9,7 @@ import {
   workoutSessions,
   workouts,
 } from "@fitme/db";
+import type { Transaction } from "@fitme/db";
 import {
   and,
   asc,
@@ -19,16 +20,17 @@ import {
   isNotNull,
   isNull,
   max,
-  type SQL,
   sql,
 } from "drizzle-orm";
+import type { SQL } from "drizzle-orm";
 import type { AnyPgColumn } from "drizzle-orm/pg-core";
+
 import {
   awardPersonalRecords,
   lockPersonalRecordHistory,
   personalRecordsOfSession,
-  type WorkoutSessionPersonalRecord,
 } from "./personal-records";
+import type { WorkoutSessionPersonalRecord } from "./personal-records";
 import { lockProfileUnits } from "./profile";
 import { recordWeeklyGoal } from "./weekly-goals";
 
@@ -196,6 +198,7 @@ const statusCondition = (status: WorkoutSessionStatusFilter) => {
   if (status === "in_progress") {
     return isNull(workoutSessions.finishedAt);
   }
+
   if (status === "finished") {
     return isNotNull(workoutSessions.finishedAt);
   }
@@ -209,6 +212,7 @@ const countSessions = async (tx: Transaction, where: SQL | undefined) => {
     .select({ total: count() })
     .from(workoutSessions)
     .where(where);
+
   return total;
 };
 
@@ -223,6 +227,7 @@ export const listWorkoutSessions = async (
 ): Promise<WorkoutSessionPage> => {
   const where = statusCondition(status);
   const sessionExerciseIds = sql`select ${workoutSessionExercises.id} from ${workoutSessionExercises} where ${workoutSessionExercises.workoutSessionId} = ${workoutSessions.id}`;
+
   const rows = await tx
     .select({
       ...sessionColumns,
@@ -254,6 +259,7 @@ export const listWorkoutSessions = async (
     .orderBy(desc(workoutSessions.startedAt), asc(workoutSessions.id))
     .limit(limit)
     .offset(offset);
+
   const [first] = rows;
   // An empty page has no row to carry the total: count on its own (no rows
   // to disagree with).
@@ -325,8 +331,10 @@ const findSessionDetails = async (
 
   const sessions = new Map<string, WorkoutSessionDetail>();
   const sessionExercises = new Map<string, WorkoutSessionExercise>();
+
   for (const row of rows) {
     let session = sessions.get(row.id);
+
     if (!session) {
       session = {
         exercises: [],
@@ -338,6 +346,7 @@ const findSessionDetails = async (
       };
       sessions.set(row.id, session);
     }
+
     const {
       exerciseSlug,
       sessionExerciseId,
@@ -345,6 +354,7 @@ const findSessionDetails = async (
       setId,
       setOrder,
     } = row;
+
     if (
       sessionExerciseId === null ||
       sessionExerciseOrder === null ||
@@ -352,7 +362,9 @@ const findSessionDetails = async (
     ) {
       continue;
     }
+
     let exercise = sessionExercises.get(sessionExerciseId);
+
     if (!exercise) {
       exercise = {
         exercise_slug: exerciseSlug,
@@ -363,10 +375,12 @@ const findSessionDetails = async (
       sessionExercises.set(sessionExerciseId, exercise);
       session.exercises.push(exercise);
     }
+
     if (setId !== null && setOrder !== null) {
       exercise.sets.push(toSet({ ...row, id: setId, order: setOrder }));
     }
   }
+
   return [...sessions.values()];
 };
 
@@ -383,6 +397,7 @@ export const getWorkoutSession = async (
     tx,
     eq(workoutSessions.id, sessionId)
   );
+
   return session ?? null;
 };
 
@@ -396,7 +411,7 @@ export interface WorkoutHistoryOptions {
  * `tx` (from `asUser`; RLS hides every other User's). One statement, so one
  * snapshot.
  */
-export const listWorkoutHistory = (
+export const listWorkoutHistory = async (
   tx: Transaction,
   { limit }: WorkoutHistoryOptions
 ): Promise<WorkoutSessionDetail[]> => {
@@ -406,6 +421,7 @@ export const listWorkoutHistory = (
     .where(isNotNull(workoutSessions.finishedAt))
     .orderBy(desc(workoutSessions.finishedAt), asc(workoutSessions.id))
     .limit(limit);
+
   return findSessionDetails(tx, inArray(workoutSessions.id, latestFinished), [
     desc(workoutSessions.finishedAt),
   ]);
@@ -437,6 +453,7 @@ export const logSet = async (
   { repsCompleted, setId, weightCompleted }: LogSetInput
 ): Promise<LogSetResult> => {
   await lockSessionTables(tx);
+
   const [session] = await tx
     .select({
       finishedAt: timestampText<string | null>(workoutSessions.finishedAt),
@@ -456,9 +473,11 @@ export const logSet = async (
     )
     .where(eq(workoutSessionExerciseSets.id, setId))
     .for("no key update", { of: workoutSessions });
+
   if (!session) {
     return { status: "not_found" };
   }
+
   if (session.finishedAt) {
     return {
       ...session,
@@ -466,6 +485,7 @@ export const logSet = async (
       status: "session_finished",
     };
   }
+
   const [set] = await tx
     .update(workoutSessionExerciseSets)
     .set({
@@ -476,6 +496,7 @@ export const logSet = async (
     // Set rows carry no User id; RLS scopes the update to the User.
     .where(eq(workoutSessionExerciseSets.id, setId))
     .returning(setColumns);
+
   if (set) {
     return { set: toSet(set), status: "logged" };
   }
@@ -518,9 +539,11 @@ const lockSessionForEdit = async (
       and(eq(workoutSessions.id, sessionId), eq(workoutSessions.userId, userId))
     )
     .for("no key update");
+
   if (!session) {
     return { status: "not_found" };
   }
+
   return session.finishedAt
     ? { finishedAt: session.finishedAt, status: "session_finished" }
     : { status: "open" };
@@ -553,13 +576,16 @@ export const addExerciseToWorkoutSession = async (
 ): Promise<AddExerciseToWorkoutSessionResult> => {
   await lockSessionTables(tx);
   const session = await lockSessionForEdit(tx, userId, sessionId);
+
   if (session.status !== "open") {
     return session;
   }
+
   const [{ last }] = await tx
     .select({ last: max(workoutSessionExercises.order) })
     .from(workoutSessionExercises)
     .where(eq(workoutSessionExercises.workoutSessionId, sessionId));
+
   const [added] = await tx
     .insert(workoutSessionExercises)
     .values({
@@ -572,6 +598,7 @@ export const addExerciseToWorkoutSession = async (
       id: workoutSessionExercises.id,
       order: workoutSessionExercises.order,
     });
+
   return { exercise: { ...added, sets: [] }, status: "added" };
 };
 
@@ -590,6 +617,7 @@ const lockSessionOfExercise = async (
   sessionExerciseId: string
 ): Promise<SessionExerciseForEdit> => {
   await lockSessionTables(tx);
+
   const [found] = await tx
     .select({ sessionId: workoutSessionExercises.workoutSessionId })
     .from(workoutSessionExercises)
@@ -603,10 +631,13 @@ const lockSessionOfExercise = async (
         eq(workoutSessions.userId, userId)
       )
     );
+
   if (!found) {
     return { status: "not_found" };
   }
+
   const session = await lockSessionForEdit(tx, userId, found.sessionId);
+
   return session.status === "not_found"
     ? session
     : { ...session, sessionId: found.sessionId };
@@ -631,9 +662,11 @@ export const removeExerciseFromWorkoutSession = async (
   sessionExerciseId: string
 ): Promise<RemoveExerciseFromWorkoutSessionResult> => {
   const session = await lockSessionOfExercise(tx, userId, sessionExerciseId);
+
   if (session.status !== "open") {
     return session;
   }
+
   const removed = await tx
     .delete(workoutSessionExercises)
     .where(
@@ -643,6 +676,7 @@ export const removeExerciseFromWorkoutSession = async (
       )
     )
     .returning({ id: workoutSessionExercises.id });
+
   return removed.length > 0 ? { status: "removed" } : { status: "not_found" };
 };
 
@@ -672,9 +706,11 @@ export const replaceExerciseInWorkoutSession = async (
   { exerciseSlug, sessionExerciseId }: ReplaceExerciseInWorkoutSessionInput
 ): Promise<ReplaceExerciseInWorkoutSessionResult> => {
   const session = await lockSessionOfExercise(tx, userId, sessionExerciseId);
+
   if (session.status !== "open") {
     return session;
   }
+
   const [replaced] = await tx
     .update(workoutSessionExercises)
     .set({ exerciseSlug })
@@ -689,9 +725,11 @@ export const replaceExerciseInWorkoutSession = async (
       id: workoutSessionExercises.id,
       order: workoutSessionExercises.order,
     });
+
   if (!replaced) {
     return { status: "not_found" };
   }
+
   const sets = await tx
     .update(workoutSessionExerciseSets)
     .set({ repsRecommended: 0, weightRecommended: "0" })
@@ -699,6 +737,7 @@ export const replaceExerciseInWorkoutSession = async (
       eq(workoutSessionExerciseSets.workoutSessionExerciseId, sessionExerciseId)
     )
     .returning(setColumns);
+
   return {
     exercise: {
       ...replaced,
@@ -742,9 +781,11 @@ export const addSetToWorkoutSessionExercise = async (
   }: AddSetToWorkoutSessionExerciseInput
 ): Promise<AddSetToWorkoutSessionExerciseResult> => {
   const session = await lockSessionOfExercise(tx, userId, sessionExerciseId);
+
   if (session.status !== "open") {
     return session;
   }
+
   const [exercise] = await tx
     .select({ id: workoutSessionExercises.id })
     .from(workoutSessionExercises)
@@ -755,15 +796,18 @@ export const addSetToWorkoutSessionExercise = async (
       )
     )
     .for("no key update");
+
   if (!exercise) {
     return { status: "not_found" };
   }
+
   const [{ last }] = await tx
     .select({ last: max(workoutSessionExerciseSets.order) })
     .from(workoutSessionExerciseSets)
     .where(
       eq(workoutSessionExerciseSets.workoutSessionExerciseId, sessionExerciseId)
     );
+
   const [added] = await tx
     .insert(workoutSessionExerciseSets)
     .values({
@@ -774,6 +818,7 @@ export const addSetToWorkoutSessionExercise = async (
       workoutSessionExerciseId: sessionExerciseId,
     })
     .returning(setColumns);
+
   return { set: toSet(added), status: "added" };
 };
 
@@ -789,6 +834,7 @@ export const deleteWorkoutSession = async (
     .delete(workoutSessions)
     .where(eq(workoutSessions.id, sessionId))
     .returning({ id: workoutSessions.id });
+
   return deleted.length > 0;
 };
 
@@ -827,6 +873,7 @@ const findOpenSession = async (tx: Transaction) => {
         isNull(workoutSessions.finishedAt)
       )
     );
+
   return open ?? null;
 };
 
@@ -851,6 +898,7 @@ const copyWorkoutTemplate = async (
     .from(workoutExercises)
     .where(eq(workoutExercises.workoutId, workoutId))
     .orderBy(asc(workoutExercises.order), asc(workoutExercises.id));
+
   if (templateExercises.length === 0) {
     return;
   }
@@ -860,6 +908,7 @@ const copyWorkoutTemplate = async (
     id: randomUUID(),
     template,
   }));
+
   await tx.insert(workoutSessionExercises).values(
     copies.map(({ id, template }) => ({
       exerciseSlug: template.exerciseSlug,
@@ -884,9 +933,11 @@ const copyWorkoutTemplate = async (
 /** The session this transaction just inserted; no one else can delete it yet. */
 const readWrittenSession = async (tx: Transaction, sessionId: string) => {
   const session = await getWorkoutSession(tx, sessionId);
+
   if (!session) {
     throw new Error(`Workout session ${sessionId} vanished after its write.`);
   }
+
   return session;
 };
 
@@ -903,7 +954,9 @@ const insertOrResume = async (
   if (attemptsLeft === 0) {
     return { status: "not_found" };
   }
+
   const open = await findOpenSession(tx);
+
   if (open && open.workoutId !== workoutId) {
     return {
       sessionId: open.id,
@@ -911,13 +964,16 @@ const insertOrResume = async (
       workoutName: open.workoutName,
     };
   }
+
   if (open) {
     const session = await getWorkoutSession(tx, open.id);
+
     if (session) {
       return { resumed: true, session, status: "started" };
     }
+
     // Deleted between the two reads (READ COMMITTED): start a fresh one
-    return insertOrResume(tx, workoutId, planId, attemptsLeft - 1);
+    return await insertOrResume(tx, workoutId, planId, attemptsLeft - 1);
   }
 
   const [created] = await tx
@@ -933,12 +989,15 @@ const insertOrResume = async (
       where: isNull(workoutSessions.finishedAt),
     })
     .returning({ id: workoutSessions.id });
+
   if (!created) {
     // Lost a race with a concurrent start: the next attempt resumes or
     // refuses on its session (copied by that start, which has committed by now)
-    return insertOrResume(tx, workoutId, planId, attemptsLeft - 1);
+    return await insertOrResume(tx, workoutId, planId, attemptsLeft - 1);
   }
+
   await copyWorkoutTemplate(tx, workoutId, created.id);
+
   return {
     resumed: false,
     session: await readWrittenSession(tx, created.id),
@@ -965,11 +1024,12 @@ export const startWorkoutSession = async (
     .from(workouts)
     .innerJoin(plans, eq(plans.id, workouts.planId))
     .where(and(eq(workouts.id, workoutId), isNull(plans.deletedAt)));
+
   if (!workout) {
     return { status: "not_found" };
   }
 
-  return insertOrResume(tx, workoutId, workout.planId, START_ATTEMPTS);
+  return await insertOrResume(tx, workoutId, workout.planId, START_ATTEMPTS);
 };
 
 export type FinishWorkoutSessionResult =
@@ -991,6 +1051,7 @@ const rotateWorkout = async (tx: Transaction, workoutId: string) => {
     .select({ planId: workouts.planId })
     .from(workouts)
     .where(eq(workouts.id, workoutId));
+
   if (!workout) {
     return false;
   }
@@ -1018,6 +1079,7 @@ const rotateWorkout = async (tx: Transaction, workoutId: string) => {
     where w.id = ranked.id
       and w."order" <> ranked.new_order
   `);
+
   return true;
 };
 
@@ -1047,14 +1109,17 @@ export const finishWorkoutSession = async (
     .select({ planId: workoutSessions.planId, userId: workoutSessions.userId })
     .from(workoutSessions)
     .where(eq(workoutSessions.id, sessionId));
+
   if (!owned) {
     return { status: "not_found" };
   }
+
   // Share-lock the Profile before the Plan (the Plan Update's order): the
   // Personal records below copy weights, so no measurement-system conversion
   // may commit between reading them and writing the records
   await lockProfileUnits(tx, owned.userId);
   await lockPersonalRecordHistory(tx, owned.userId);
+
   if (owned.planId) {
     await tx
       .select({ id: plans.id })
@@ -1077,19 +1142,24 @@ export const finishWorkoutSession = async (
   if (claimed) {
     await awardPersonalRecords(tx, owned.userId, sessionId);
   }
+
   const rotated = claimed?.workoutId
     ? await rotateWorkout(tx, claimed.workoutId)
     : false;
+
   if (claimed) {
     // Starts tracking the Weekly goal for a User whose Plan no service
     // write has recorded yet; a no-op otherwise
     await recordWeeklyGoal(tx, owned.userId);
   }
+
   // An already finished session isn't locked, so it may have been deleted
   // since the claim (READ COMMITTED)
   const session = await getWorkoutSession(tx, sessionId);
+
   if (!session) {
     return { status: "not_found" };
   }
+
   return { alreadyFinished: !claimed, rotated, session, status: "finished" };
 };

@@ -6,15 +6,14 @@ import type {
 } from "@fitme/core";
 import type { QueryClient } from "@tanstack/react-query";
 import { createMutation } from "react-query-kit";
-import { type Profile, useProfileQuery } from "~/hooks/queries/profiles";
+
+import { useProfileQuery } from "~/hooks/queries/profiles";
+import type { Profile } from "~/hooks/queries/profiles";
 import { getClerk } from "~/lib/clerk";
 import { publicApi } from "~/lib/public-api";
 import { splitFullName } from "~/lib/user-name";
-import {
-  rememberWriteStarter,
-  seedWriteAnswer,
-  type WriteStarter,
-} from "~/lib/write-answers";
+import { rememberWriteStarter, seedWriteAnswer } from "~/lib/write-answers";
+import type { WriteStarter } from "~/lib/write-answers";
 
 const EDITABLE_FIELDS = ["age", "gender", "height", "weight"] as const;
 
@@ -33,11 +32,13 @@ export const profileChanges = (
   values: EditableFields
 ): ProfileChanges => {
   const changes: ProfileChanges = {};
+
   for (const field of EDITABLE_FIELDS) {
     if (profile[field] !== values[field]) {
       Object.assign(changes, { [field]: values[field] });
     }
   }
+
   return changes;
 };
 
@@ -67,19 +68,26 @@ const saveProfile = async ({
     const { data } = await publicApi().PUT("/v1/profile", {
       body: { ...values, measurement_system: measurementSystem },
     });
+
     if (!data) {
       throw new ApiError("Public API answered no Profile");
     }
+
     return data.data;
   }
+
   const changes = profileChanges(profile, values);
+
   if (Object.keys(changes).length === 0) {
     return profile;
   }
+
   const { data } = await publicApi().PATCH("/v1/profile", { body: changes });
+
   if (!data) {
     throw new ApiError("Public API answered no Profile");
   }
+
   return data.data;
 };
 
@@ -158,6 +166,7 @@ export const useUpdateProfileMutation = createMutation<
     ) {
       await user.update(splitFullName(name));
     }
+
     return saved;
   },
   onMutate: rememberProfileWrite,

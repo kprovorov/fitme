@@ -1,4 +1,5 @@
 import { createHash } from "node:crypto";
+
 import type { ToolContext } from "eve/tools";
 
 const sha256 = (value: unknown) =>
@@ -36,16 +37,21 @@ export const requestKey = (ctx: ToolContext, input: unknown): string => {
     ctx.toolName,
     input,
   ]);
+
   let calls = attempts.get(ctx.messages);
+
   if (!calls) {
     calls = new Map();
     attempts.set(ctx.messages, calls);
   }
+
   const callIds = calls.get(call) ?? [];
   calls.set(call, callIds);
   let occurrence = callIds.indexOf(ctx.callId);
+
   if (occurrence === -1) {
     occurrence = callIds.push(ctx.callId) - 1;
   }
+
   return sha256([call, occurrence]);
 };

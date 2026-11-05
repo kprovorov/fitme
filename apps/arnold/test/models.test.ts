@@ -1,6 +1,7 @@
 import { arnoldModels, defaultArnoldModelId } from "@fitme/core";
 import type { ModelMessage } from "ai";
 import { describe, expect, it } from "vitest";
+
 import {
   arnoldModelSelection,
   UnsupportedArnoldModelError,
@@ -22,7 +23,7 @@ const userSays = (text: string): ModelMessage =>
     role: "user",
   }) as ModelMessage;
 
-describe("arnoldModelSelection", () => {
+describe(arnoldModelSelection, () => {
   it("runs the turn on the model the client context asks for", () => {
     expect(
       arnoldModelSelection([
@@ -69,6 +70,7 @@ describe("arnoldModelSelection", () => {
       const { model, modelOptions } = arnoldModelSelection([
         clientContext({ model: id }),
       ]);
+
       const gateway = modelOptions.providerOptions?.gateway;
 
       expect(model).toBe(id);

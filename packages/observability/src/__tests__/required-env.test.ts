@@ -1,12 +1,15 @@
 import { describe, expect, it, vi } from "vitest";
+
 import { reportMissingEnv } from "../node";
 
 const recorder = () =>
-  vi.fn((_error: unknown, _tags?: Record<string, string>) => Promise.resolve());
+  vi.fn(async (_error: unknown, _tags?: Record<string, string>) =>
+    Promise.resolve()
+  );
 
 const production = { VERCEL_ENV: "production" };
 
-describe("reportMissingEnv", () => {
+describe(reportMissingEnv, () => {
   it("reports each missing or empty variable once on production", async () => {
     const report = recorder();
 

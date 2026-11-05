@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+
 import {
   ALLOWLIST,
   checkFiles,
@@ -11,7 +12,7 @@ const PATH = "apps/mobile/components/example.tsx";
 const literals = (source: string) =>
   checkSource(PATH, source).map((finding) => finding.literal);
 
-describe("checkSource", () => {
+describe(checkSource, () => {
   it("fails a hex color in a .tsx file, naming the file, line and literal", () => {
     const source = [
       "export function Logo() {",
@@ -176,7 +177,7 @@ describe("checkSource", () => {
   });
 });
 
-describe("checkFiles", () => {
+describe(checkFiles, () => {
   const files = new Map([
     ["apps/mobile/components/sign.tsx", '<Path fill="#C0FF38" />'],
     ["apps/web/app/page.tsx", '<div className="text-primary" />'],
@@ -203,6 +204,7 @@ describe("checkFiles", () => {
 
   it("reports an allowlist entry whose file has no literal left", () => {
     const stale = { path: "apps/web/app/page.tsx", reason: "no longer needed" };
+
     const result = checkFiles(new Map([["apps/web/app/page.tsx", "<div />"]]), [
       stale,
     ]);

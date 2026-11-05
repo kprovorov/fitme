@@ -5,19 +5,25 @@ import os from "node:os";
 import path from "node:path";
 import { after, describe, test } from "node:test";
 import { fileURLToPath } from "node:url";
+
+import { describe, test } from "vitest";
+
 import { staleV2Stacks } from "./v2-stacks.mjs";
 
 const DESTROYING_GONE = /Destroying gone-id/;
 const USAGE = /Usage/;
 
-const SCRIPT = fileURLToPath(new URL("./v2-stacks.mjs", import.meta.url));
+const SCRIPT = fileURLToPath(new URL("v2-stacks.mjs", import.meta.url));
 
 const tempDirs = [];
+
 const tempDir = (prefix) => {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), prefix));
   tempDirs.push(dir);
+
   return dir;
 };
+
 after(() => {
   for (const dir of tempDirs) {
     fs.rmSync(dir, { force: true, recursive: true });
@@ -90,7 +96,7 @@ describe("the CLI", () => {
     writeState(root, "gone-id", path.join(live, "missing"));
 
     const run = spawnSync(process.execPath, [SCRIPT, root], {
-      encoding: "utf8",
+      encoding: "utf-8",
     });
 
     assert.equal(run.status, 0, run.stderr);
@@ -99,7 +105,7 @@ describe("the CLI", () => {
   });
 
   test("fails without its arguments", () => {
-    const run = spawnSync(process.execPath, [SCRIPT], { encoding: "utf8" });
+    const run = spawnSync(process.execPath, [SCRIPT], { encoding: "utf-8" });
     assert.notEqual(run.status, 0);
     assert.match(run.stderr, USAGE);
   });

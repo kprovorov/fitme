@@ -2,6 +2,8 @@ import { describe, expect, it, jest } from "@jest/globals";
 import { render, screen } from "@testing-library/react-native";
 import type * as React from "react";
 import { View as HostedView } from "react-native";
+import { describe, expect, it } from "vitest";
+
 import type { ButtonVariant } from "~/components/ui/button";
 import { Button } from "~/components/ui/button";
 
@@ -13,111 +15,127 @@ interface Modifier {
 // SwiftUI views can't mount under Jest, so `@expo/ui` is swapped for plain
 // React Native views. Modifiers become `{ type, args }` records, and the
 // button turns its accessibility modifiers into the props VoiceOver reads.
-jest.mock("@expo/ui/swift-ui/modifiers", () => {
-  const modifier =
-    (type: string) =>
-    (...args: unknown[]) => ({ args, type });
-  return {
-    accessibilityHint: modifier("accessibilityHint"),
-    accessibilityLabel: modifier("accessibilityLabel"),
-    background: modifier("background"),
-    buttonBorderShape: modifier("buttonBorderShape"),
-    buttonStyle: modifier("buttonStyle"),
-    contentShape: modifier("contentShape"),
-    controlSize: modifier("controlSize"),
-    disabled: modifier("disabled"),
-    fixedSize: modifier("fixedSize"),
-    font: modifier("font"),
-    foregroundStyle: modifier("foregroundStyle"),
-    frame: modifier("frame"),
-    opacity: modifier("opacity"),
-    padding: modifier("padding"),
-    shapes: { capsule: () => "capsule", circle: () => "circle" },
-    tint: modifier("tint"),
-  };
-});
+jest.mock<typeof import("@expo/ui/swift-ui/modifiers")>(
+  import("@expo/ui/swift-ui/modifiers"),
+  () => {
+    const modifier =
+      (type: string) =>
+      (...args: unknown[]) => ({ args, type });
 
-jest.mock("@expo/ui/swift-ui", () => {
-  const { Pressable, Text, View } =
-    jest.requireActual<typeof import("react-native")>("react-native");
+    return {
+      accessibilityHint: modifier("accessibilityHint"),
+      accessibilityLabel: modifier("accessibilityLabel"),
+      background: modifier("background"),
+      buttonBorderShape: modifier("buttonBorderShape"),
+      buttonStyle: modifier("buttonStyle"),
+      contentShape: modifier("contentShape"),
+      controlSize: modifier("controlSize"),
+      disabled: modifier("disabled"),
+      fixedSize: modifier("fixedSize"),
+      font: modifier("font"),
+      foregroundStyle: modifier("foregroundStyle"),
+      frame: modifier("frame"),
+      opacity: modifier("opacity"),
+      padding: modifier("padding"),
+      shapes: { capsule: () => "capsule", circle: () => "circle" },
+      tint: modifier("tint"),
+    };
+  }
+);
 
-  const argOf = (modifiers: Modifier[] | undefined, type: string) =>
-    modifiers?.find((m) => m.type === type)?.args[0];
+jest.mock<typeof import("@expo/ui/swift-ui")>(
+  import("@expo/ui/swift-ui"),
+  () => {
+    const { Pressable, Text, View } =
+      jest.requireActual<typeof import("react-native")>("react-native");
 
-  // Lowercase, so React Refresh doesn't register it from inside the factory
-  // Each stack lists its modifiers, for the tests that check them.
-  const container = ({
-    children,
-    modifiers,
-  }: {
-    children?: React.ReactNode;
-    modifiers?: Modifier[];
-  }) => <View {...{ modifierRecords: modifiers ?? [] }}>{children}</View>;
+    const argOf = (modifiers: Modifier[] | undefined, type: string) =>
+      modifiers?.find((m) => m.type === type)?.args[0];
 
-  return {
-    Button: ({
+    // Lowercase, so React Refresh doesn't register it from inside the factory
+    // Each stack lists its modifiers, for the tests that check them.
+    const container = ({
       children,
       modifiers,
-      onPress,
-      testID,
     }: {
       children?: React.ReactNode;
       modifiers?: Modifier[];
-      onPress?: () => void;
-      testID?: string;
-    }) => {
-      const disabled = argOf(modifiers, "disabled") === true;
-      return (
-        <Pressable
-          accessibilityHint={argOf(modifiers, "accessibilityHint") as string}
-          accessibilityLabel={argOf(modifiers, "accessibilityLabel") as string}
-          accessibilityRole="button"
-          accessibilityState={{ disabled }}
-          disabled={disabled}
-          onPress={onPress}
-          testID={testID}
-          // The native style, shape and tint, for the tests that check them
+    }) => <View {...{ modifierRecords: modifiers ?? [] }}>{children}</View>;
+
+    return {
+      Button: ({
+        children,
+        modifiers,
+        onPress,
+        testID,
+      }: {
+        children?: React.ReactNode;
+        modifiers?: Modifier[];
+        onPress?: () => void;
+        testID?: string;
+      }) => {
+        const disabled = argOf(modifiers, "disabled") === true;
+
+        return (
+          <Pressable
+            accessibilityHint={argOf(modifiers, "accessibilityHint") as string}
+            accessibilityLabel={
+              argOf(modifiers, "accessibilityLabel") as string
+            }
+            accessibilityRole="button"
+            accessibilityState={{ disabled }}
+            disabled={disabled}
+            onPress={onPress}
+            testID={testID}
+            // The native style, shape and tint, for the tests that check them
+            {...{
+              buttonBorderShape: argOf(modifiers, "buttonBorderShape"),
+              buttonStyle: argOf(modifiers, "buttonStyle"),
+              controlSize: argOf(modifiers, "controlSize"),
+              tint: argOf(modifiers, "tint"),
+            }}
+          >
+            {children}
+          </Pressable>
+        );
+      },
+      Group: container,
+      Host: container,
+      HStack: container,
+      Image: ({
+        color,
+        systemName,
+      }: {
+        color?: string;
+        systemName: string;
+      }) => (
+        <Text testID={`icon-${systemName}`} {...{ color }}>
+          {`[${systemName}]`}
+        </Text>
+      ),
+      ProgressView: () => <View testID="spinner" />,
+      RNHostView: container,
+      // The label's color and font, for the tests that check them
+      Text: ({
+        children,
+        modifiers,
+      }: {
+        children?: React.ReactNode;
+        modifiers?: Modifier[];
+      }) => (
+        <Text
           {...{
-            buttonBorderShape: argOf(modifiers, "buttonBorderShape"),
-            buttonStyle: argOf(modifiers, "buttonStyle"),
-            controlSize: argOf(modifiers, "controlSize"),
-            tint: argOf(modifiers, "tint"),
+            color: argOf(modifiers, "foregroundStyle"),
+            font: argOf(modifiers, "font"),
           }}
         >
           {children}
-        </Pressable>
-      );
-    },
-    Group: container,
-    Host: container,
-    HStack: container,
-    Image: ({ color, systemName }: { color?: string; systemName: string }) => (
-      <Text testID={`icon-${systemName}`} {...{ color }}>
-        {`[${systemName}]`}
-      </Text>
-    ),
-    ProgressView: () => <View testID="spinner" />,
-    RNHostView: container,
-    // The label's color and font, for the tests that check them
-    Text: ({
-      children,
-      modifiers,
-    }: {
-      children?: React.ReactNode;
-      modifiers?: Modifier[];
-    }) => (
-      <Text
-        {...{
-          color: argOf(modifiers, "foregroundStyle"),
-          font: argOf(modifiers, "font"),
-        }}
-      >
-        {children}
-      </Text>
-    ),
-    ZStack: container,
-  };
-});
+        </Text>
+      ),
+      ZStack: container,
+    };
+  }
+);
 
 // uniwind resolves no theme values under Jest. The size tokens get a stand-in
 // diameter and the colors their class name, so the buttons that read them
@@ -128,27 +146,34 @@ const mockColorClass = /^text-(primary|secondary|destructive|foreground)/;
 let mockLastColorClass: string | undefined;
 const mockTextStyleClass = /^text-[a-z0-9-]+-emphasized$/;
 
-jest.mock("uniwind", () => {
+jest.mock<typeof import("uniwind")>(import("uniwind"), () => {
   const actual = jest.requireActual<typeof import("uniwind")>("uniwind");
+
   return {
     ...actual,
     useResolveClassNames: (className: string) => {
       const resolved = actual.useResolveClassNames(className);
+
       if (className.startsWith("size-button-")) {
         return { height: 47, width: 47 };
       }
+
       // A text style answers its own name as the family, so a label's font
       // names the style it was set in.
       if (mockTextStyleClass.test(className)) {
         return { fontFamily: className, fontSize: 1 };
       }
+
       if (mockColorClass.test(className)) {
         mockLastColorClass = className;
+
         return { color: className };
       }
+
       if (className === "" && mockLastColorClass !== undefined) {
         return { color: mockLastColorClass };
       }
+
       return resolved;
     },
   };
@@ -160,18 +185,20 @@ let mockNativeCircleEnabled = true;
 // Liquid Glass and the native circle shape (iOS 17+) are on unless a test
 // turns them off. Getters defined in place (a spread would copy the flags'
 // values once, when the factory runs).
-jest.mock("~/components/ui/swift-ui", () =>
-  Object.defineProperties(
-    {
-      ...jest.requireActual<typeof import("~/components/ui/swift-ui")>(
-        "~/components/ui/swift-ui"
-      ),
-    },
-    {
-      GLASS_ENABLED: { get: () => mockGlassEnabled },
-      NATIVE_CIRCLE_ENABLED: { get: () => mockNativeCircleEnabled },
-    }
-  )
+jest.mock<typeof import("~/components/ui/swift-ui")>(
+  import("~/components/ui/swift-ui"),
+  () =>
+    Object.defineProperties(
+      {
+        ...jest.requireActual<typeof import("~/components/ui/swift-ui")>(
+          "~/components/ui/swift-ui"
+        ),
+      },
+      {
+        GLASS_ENABLED: { get: () => mockGlassEnabled },
+        NATIVE_CIRCLE_ENABLED: { get: () => mockNativeCircleEnabled },
+      }
+    )
 );
 
 const VARIANTS: ButtonVariant[] = [
@@ -189,12 +216,15 @@ const texts = (node: JsonNode | JsonNode[] | string | null): string[] => {
   if (node === null) {
     return [];
   }
+
   if (typeof node === "string") {
     return [node];
   }
+
   if (Array.isArray(node)) {
     return node.flatMap(texts);
   }
+
   return (node.children ?? []).flatMap(texts);
 };
 
@@ -206,24 +236,31 @@ interface JsonHost {
 /** Every stack's modifiers, outermost first. */
 const stackModifiers = (): Modifier[][] => {
   const lists: Modifier[][] = [];
+
   const walk = (node: JsonHost | JsonHost[] | string | null) => {
     if (node === null || typeof node === "string") {
       return;
     }
+
     if (Array.isArray(node)) {
       for (const child of node) {
         walk(child);
       }
+
       return;
     }
+
     if (node.props.modifierRecords) {
       lists.push(node.props.modifierRecords);
     }
+
     for (const child of node.children ?? []) {
       walk(child);
     }
   };
+
   walk(screen.toJSON() as JsonHost | JsonHost[] | null);
+
   return lists;
 };
 
@@ -242,7 +279,7 @@ const modifierArgs = (type: string): unknown[][] =>
 const readingOrder = () =>
   texts(screen.toJSON() as JsonNode | JsonNode[] | null).join(" ");
 
-describe("Button", () => {
+describe(Button, () => {
   it.each(VARIANTS)(
     "renders the %s variant with its label",
     async (variant) => {
@@ -273,6 +310,7 @@ describe("Button", () => {
     "draws %s as the solid %s style without Liquid Glass",
     async (variant, style) => {
       mockGlassEnabled = false;
+
       try {
         await render(<Button label="Save" variant={variant} />);
 
@@ -309,6 +347,7 @@ describe("Button", () => {
     "draws size %s at the native %s control size (glass: %s)",
     async (size, controlSize, glass) => {
       mockGlassEnabled = glass;
+
       try {
         await render(<Button label="Save" size={size} />);
 
@@ -325,6 +364,7 @@ describe("Button", () => {
     "draws destructive as a destructive label and icon on a neutral fill (glass: %s)",
     async (glass) => {
       mockGlassEnabled = glass;
+
       try {
         await render(
           <Button icon="trash" label="Delete" variant="destructive" />
@@ -345,6 +385,7 @@ describe("Button", () => {
     const { rerender } = await render(
       <Button accessibilityLabel="Log set" icon="checkmark" shape="circle" />
     );
+
     const defaultColor = screen.getByTestId("icon-checkmark").props.color;
 
     await rerender(
@@ -368,6 +409,7 @@ describe("Button", () => {
 
   it("paints a destructive circle secondary below iOS 17", async () => {
     mockNativeCircleEnabled = false;
+
     try {
       await render(
         <Button
@@ -391,6 +433,7 @@ describe("Button", () => {
 
   it("paints its own circle below iOS 17, where the native shape is missing", async () => {
     mockNativeCircleEnabled = false;
+
     try {
       await render(
         <Button
@@ -404,9 +447,11 @@ describe("Button", () => {
       const button = screen.getByRole("button", { name: "Log set" });
       expect(button.props.buttonStyle).toBe("plain");
       expect(button.props.buttonBorderShape).toBeUndefined();
+
       const painted = modifierLists().filter((types) =>
         types.includes("background")
       );
+
       expect(painted).toEqual([["frame", "background", "contentShape"]]);
     } finally {
       mockNativeCircleEnabled = true;
@@ -415,6 +460,7 @@ describe("Button", () => {
 
   it("keeps a pill native below iOS 17", async () => {
     mockNativeCircleEnabled = false;
+
     try {
       await render(<Button label="Save" variant="secondary" />);
 
@@ -552,6 +598,7 @@ describe("Button", () => {
       icon: "plus",
       shape: "circle",
     } as const;
+
     // Never rendered: the checks are the `@ts-expect-error`s, which fail
     // `pnpm typecheck` once the line they mark type-checks.
     const elements = [

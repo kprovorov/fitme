@@ -1,8 +1,10 @@
 import type { Goal, Place } from "@fitme/core";
 import { useTranslation } from "react-i18next";
 import { View } from "react-native";
+
 import type { FullPlan } from "~/hooks/queries/plans";
 import { useChoiceLabels } from "~/lib/choices";
+
 import { Badge } from "../ui/badge";
 import { Text } from "../ui/text";
 import { H2 } from "../ui/typography";
@@ -24,11 +26,12 @@ export default function PlanHeader({ plan }: PlanHeaderProps) {
   // know shows as itself (`useChoiceLabels`) with the default symbol.
   const goal = plan.goal as Goal | null;
   const place = plan.place as Place | null;
+
   return (
-    <View className="items-start gap-xs py-sm">
+    <View className="gap-xs py-sm items-start">
       {/* Title 1 Emphasized in white, as Figma has it, not H2's lime. */}
       <H2 className="text-foreground">{plan.name}</H2>
-      <View className="flex-row flex-wrap gap-x-sm gap-y-xs">
+      <View className="gap-x-sm gap-y-xs flex-row flex-wrap">
         <Badge icon={COUNT_SYMBOL}>
           <Text>{t("plans.frequency", { count: plan.frequency })}</Text>
         </Badge>

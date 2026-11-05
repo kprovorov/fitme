@@ -1,5 +1,6 @@
 import { useRouter } from "expo-router";
 import { useTranslation } from "react-i18next";
+
 import { DropdownMenu } from "../ui/dropdown-menu";
 
 /**
@@ -9,6 +10,7 @@ import { DropdownMenu } from "../ui/dropdown-menu";
 export default function PlanMenu() {
   const { t } = useTranslation();
   const router = useRouter();
+
   return (
     <DropdownMenu
       accessibilityLabel={t("home.planMenu")}

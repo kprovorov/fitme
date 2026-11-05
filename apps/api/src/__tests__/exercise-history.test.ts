@@ -4,6 +4,7 @@ import type {
   ExerciseHistoryQuery,
 } from "@fitme/services/exercises";
 import { describe, expect, it } from "vitest";
+
 import type { UserServices, Weighed } from "../services.js";
 import { fakeServices, signedInAs, testApp } from "../test/harness.js";
 
@@ -84,12 +85,15 @@ const listing = (
   weightUnit: Weighed<Page>["weightUnit"] = "kg"
 ) => {
   const calls: ExerciseHistoryQuery[] = [];
+
   const services = fakeServices({
     getExerciseHistory: (query) => {
       calls.push(query);
+
       return Promise.resolve({ value: page, weightUnit });
     },
   });
+
   return { calls, services };
 };
 
@@ -98,7 +102,7 @@ const get = (app: ReturnType<typeof testApp>["app"], query: string) =>
     headers: signedInAs("user_alice"),
   });
 
-describe("GET /v1/workout-session-exercises", () => {
+describe("gET /v1/workout-session-exercises", () => {
   it("answers a page of the User's entries for the Exercise, with its bodyweight set", async () => {
     const { calls, services } = listing({ entries: [entry], total: 1 });
     const { app, servicesFor } = testApp({ services });
@@ -106,7 +110,7 @@ describe("GET /v1/workout-session-exercises", () => {
     const response = await get(app, `exercise_slug=${SLUG}`);
 
     expect(response.status).toBe(200);
-    expect(await response.json()).toEqual({
+    await expect(response.json()).resolves.toEqual({
       data: [answered],
       hasMore: false,
       total: 1,
@@ -122,7 +126,10 @@ describe("GET /v1/workout-session-exercises", () => {
 
     const response = await get(app, `exercise_slug=${SLUG}&limit=1&offset=1`);
 
-    expect(await response.json()).toMatchObject({ hasMore: true, total: 5 });
+    await expect(response.json()).resolves.toMatchObject({
+      hasMore: true,
+      total: 5,
+    });
     expect(calls).toEqual([{ exerciseSlug: SLUG, limit: 1, offset: 1 }]);
   });
 
@@ -133,7 +140,7 @@ describe("GET /v1/workout-session-exercises", () => {
     const response = await get(app, `exercise_slug=${SLUG}&offset=10`);
 
     expect(response.status).toBe(200);
-    expect(await response.json()).toEqual({
+    await expect(response.json()).resolves.toEqual({
       data: [],
       hasMore: false,
       total: 3,
@@ -148,7 +155,7 @@ describe("GET /v1/workout-session-exercises", () => {
     const response = await get(app, "exercise_slug=never-done-this");
 
     expect(response.status).toBe(200);
-    expect(await response.json()).toEqual({
+    await expect(response.json()).resolves.toEqual({
       data: [],
       hasMore: false,
       total: 0,
@@ -163,7 +170,9 @@ describe("GET /v1/workout-session-exercises", () => {
 
     const response = await get(app, `exercise_slug=${SLUG}`);
 
-    expect(await response.json()).toMatchObject({ weight_unit: "lbs" });
+    await expect(response.json()).resolves.toMatchObject({
+      weight_unit: "lbs",
+    });
   });
 
   it("never shows fields beyond the contract", async () => {
@@ -177,11 +186,12 @@ describe("GET /v1/workout-session-exercises", () => {
       ],
       total: 1,
     });
+
     const { app } = testApp({ services });
 
     const response = await get(app, `exercise_slug=${SLUG}`);
 
-    expect(await response.json()).toEqual({
+    await expect(response.json()).resolves.toEqual({
       data: [{ ...answered, sets: [answered.sets[0]] }],
       hasMore: false,
       total: 1,
@@ -222,6 +232,7 @@ describe("GET /v1/workout-session-exercises", () => {
 
   it("answers 429 with Retry-After once the User is over their limit", async () => {
     const { services } = listing({ entries: [], total: 0 });
+
     const { app, reported } = testApp({
       rateLimiter: memoryRateLimiter({ limit: 1, windowMs: 60_000 }),
       services,

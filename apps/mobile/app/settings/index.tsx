@@ -2,6 +2,7 @@ import { useUser } from "@clerk/expo";
 import { Link, Stack } from "expo-router";
 import { useTranslation } from "react-i18next";
 import { ScrollView } from "react-native";
+
 import { AlertDialog } from "~/components/ui/alert-dialog";
 import { HStack } from "~/components/ui/hstack";
 import { MenuList, MenuListItem } from "~/components/ui/menu-list";

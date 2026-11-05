@@ -1,10 +1,12 @@
 import { LibraryUnavailableError } from "@fitme/library-sdk";
 import type { ToolContext } from "eve/tools";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+
 import { fakeLibrary } from "./library";
 import { contextFor, inputSchemaOf, userIdFields } from "./tool-context";
 
 const db = vi.hoisted(() => ({ asUser: vi.fn() }));
+
 const editErrors = vi.hoisted(() => ({
   MAX_SETS_PER_EXERCISE: 20,
   TooManySetsError: class FakeTooManySetsError extends Error {
@@ -13,6 +15,7 @@ const editErrors = vi.hoisted(() => ({
     }
   },
 }));
+
 const edits = vi.hoisted(() => ({
   addExerciseToWorkout: vi.fn(),
   addSetToExercise: vi.fn(),
@@ -21,37 +24,50 @@ const edits = vi.hoisted(() => ({
   replaceExerciseInWorkout: vi.fn(),
   updateSetRecommendations: vi.fn(),
 }));
-vi.mock("@fitme/db", () => db);
-vi.mock("@fitme/services/workout-edits", () => ({
-  ...edits,
-  ...editErrors,
-}));
+
+vi.mock<typeof import("@fitme/db")>(import("@fitme/db"), () => db);
+
+vi.mock<typeof import("@fitme/services/workout-edits")>(
+  import("@fitme/services/workout-edits"),
+  () => ({
+    ...edits,
+    ...editErrors,
+  })
+);
 
 const observability = vi.hoisted(() => ({ reportError: vi.fn() }));
-vi.mock("@fitme/observability/node", () => observability);
-vi.mock("../agent/lib/library", async () => {
-  const { fakeLibrary: library } = await import("./library");
-  return { getLibrary: () => library };
-});
 
-const { default: addExerciseToWorkout } = await import(
-  "../agent/tools/add_exercise_to_workout"
+vi.mock<typeof import("@fitme/observability/node")>(
+  import("@fitme/observability/node"),
+  () => observability
 );
-const { default: addSetToExercise } = await import(
-  "../agent/tools/add_set_to_exercise"
+
+vi.mock<typeof import("../agent/lib/library")>(
+  import("../agent/lib/library"),
+  async () => {
+    const { fakeLibrary: library } = await import("./library");
+
+    return { getLibrary: () => library };
+  }
 );
-const { default: removeExerciseFromWorkout } = await import(
-  "../agent/tools/remove_exercise_from_workout"
-);
-const { default: removeSetFromExercise } = await import(
-  "../agent/tools/remove_set_from_exercise"
-);
-const { default: replaceExerciseInWorkout } = await import(
-  "../agent/tools/replace_exercise_in_workout"
-);
-const { default: updateSetRecommendations } = await import(
-  "../agent/tools/update_set_recommendations"
-);
+
+const { default: addExerciseToWorkout } =
+  await import("../agent/tools/add_exercise_to_workout");
+
+const { default: addSetToExercise } =
+  await import("../agent/tools/add_set_to_exercise");
+
+const { default: removeExerciseFromWorkout } =
+  await import("../agent/tools/remove_exercise_from_workout");
+
+const { default: removeSetFromExercise } =
+  await import("../agent/tools/remove_set_from_exercise");
+
+const { default: replaceExerciseInWorkout } =
+  await import("../agent/tools/replace_exercise_in_workout");
+
+const { default: updateSetRecommendations } =
+  await import("../agent/tools/update_set_recommendations");
 
 const tx = { fake: "transaction" };
 const workoutId = "a0000000-0000-4000-8000-000000000001";
@@ -59,9 +75,11 @@ const workoutExerciseId = "b0000000-0000-4000-8000-000000000001";
 const exerciseSlug = "bench-press";
 const legacyExerciseId = "c0000000-0000-4000-8000-000000000001";
 const setId = "d0000000-0000-4000-8000-000000000001";
+
 const sets = [
   { reps_recommended: 8, rest_recommended: 90, weight_recommended: 60 },
 ];
+
 const [newSet] = sets;
 
 interface Tool {
@@ -72,8 +90,9 @@ interface Tool {
 /** What eve hands `execute` after validating the model's input. */
 const parseInput = (tool: Tool, input: unknown) =>
   inputSchemaOf(tool).parse(input);
+
 const run = (tool: Tool, input: unknown, ctx = contextFor("user_alice")) =>
-  tool.execute(parseInput(tool, input) as never, ctx);
+  tool.execute(parseInput(tool, input), ctx);
 
 const serviceCalls = () =>
   JSON.stringify([
@@ -169,7 +188,7 @@ describe.each(cases)("$name", ({ input, service, tool }) => {
   it("ignores any User id in its input", async () => {
     const parsed = parseInput(tool, { ...input, ...userIdFields });
 
-    await tool.execute(parsed as never, contextFor("user_alice"));
+    await tool.execute(parsed, contextFor("user_alice"));
 
     expect(parsed).toEqual(input);
     expect(serviceCalls()).not.toContain("user_mallory");
@@ -223,7 +242,9 @@ describe.each(slugChecks)(
   "$field checks",
   ({ field, input, service, tool }) => {
     it("refuses a slug the library doesn't know, writing nothing", async () => {
-      expect(await run(tool, { ...input, [field]: "made-up-fly" })).toEqual({
+      await expect(
+        run(tool, { ...input, [field]: "made-up-fly" })
+      ).resolves.toEqual({
         error:
           "Unknown exercise_slug(s): made-up-fly. Use search_exercises to find a valid exercise_slug; nothing was saved.",
       });
@@ -246,7 +267,7 @@ describe.each(slugChecks)(
       const failure = new LibraryUnavailableError();
       fakeLibrary.failWith(failure);
 
-      expect(await run(tool, input)).toEqual({
+      await expect(run(tool, input)).resolves.toEqual({
         error:
           "The exercise library is unavailable right now, so nothing was saved. Try again in a moment.",
       });
@@ -263,7 +284,7 @@ describe("add_exercise_to_workout", () => {
   const input = { exercise_slug: exerciseSlug, sets, workout_id: workoutId };
 
   it("adds the Exercise and reports it", async () => {
-    expect(await run(addExerciseToWorkout, input)).toEqual({
+    await expect(run(addExerciseToWorkout, input)).resolves.toEqual({
       sets_added: 1,
       success: true,
       workout_exercise_id: workoutExerciseId,
@@ -279,7 +300,7 @@ describe("add_exercise_to_workout", () => {
   it("tells the model when the User has no such Workout", async () => {
     edits.addExerciseToWorkout.mockResolvedValue(null);
 
-    expect(await run(addExerciseToWorkout, input)).toEqual({
+    await expect(run(addExerciseToWorkout, input)).resolves.toEqual({
       error: "Workout not found",
     });
   });
@@ -298,7 +319,7 @@ describe("add_set_to_exercise", () => {
   const input = { ...newSet, workout_exercise_id: workoutExerciseId };
 
   it("appends the set and reports it", async () => {
-    expect(await run(addSetToExercise, input)).toEqual({
+    await expect(run(addSetToExercise, input)).resolves.toEqual({
       order: 3,
       set_id: setId,
       success: true,
@@ -315,7 +336,7 @@ describe("add_set_to_exercise", () => {
       new editErrors.TooManySetsError(20)
     );
 
-    expect(await run(addSetToExercise, input)).toEqual({
+    await expect(run(addSetToExercise, input)).resolves.toEqual({
       error: "An exercise can have at most 20 sets",
     });
   });
@@ -323,7 +344,7 @@ describe("add_set_to_exercise", () => {
   it("tells the model when the User has no such Workout Exercise", async () => {
     edits.addSetToExercise.mockResolvedValue(null);
 
-    expect(await run(addSetToExercise, input)).toEqual({
+    await expect(run(addSetToExercise, input)).resolves.toEqual({
       error: "Workout exercise not found",
     });
   });
@@ -335,6 +356,7 @@ describe("set targets", () => {
     { rest_recommended: 3601 },
     { weight_recommended: 10_001 },
   ];
+
   const accepts = (tool: Tool, input: unknown) =>
     inputSchemaOf(tool).safeParse(input).success;
 
@@ -389,12 +411,16 @@ describe("set targets", () => {
 
 describe("request keys", () => {
   const input = { ...newSet, workout_exercise_id: workoutExerciseId };
+
   const keyOf = async (ctx: ToolContext, call = input) => {
     edits.addSetToExercise.mockClear();
     await run(addSetToExercise, call, ctx);
+
     return edits.addSetToExercise.mock.calls[0][2].requestKey as string;
   };
+
   const alice = contextFor("user_alice");
+
   /**
    * One execution of a step: the AI SDK hands every tool call of it the same
    * model input array; a re-run rebuilds that input as a new array.
@@ -408,16 +434,19 @@ describe("request keys", () => {
     const first = await keyOf(attempt().call("call_1"));
 
     // Same model input, new array; the model's call gets a new id
-    expect(await keyOf(attempt().call("call_9"))).toBe(first);
+    await expect(keyOf(attempt().call("call_9"))).resolves.toBe(first);
   });
 
   it("differs for identical calls in one step, and a re-run matches each", async () => {
     const firstAttempt = attempt();
+
     const firstKeys = [
       await keyOf(firstAttempt.call("call_1")),
       await keyOf(firstAttempt.call("call_2")),
     ];
+
     const rerun = attempt();
+
     const rerunKeys = [
       await keyOf(rerun.call("call_8")),
       await keyOf(rerun.call("call_9")),
@@ -433,13 +462,13 @@ describe("request keys", () => {
     // The first attempt's calls stay known, but the re-run is its own attempt
     const rerun = attempt();
 
-    expect(await keyOf(rerun.call("call_2"))).toBe(first);
+    await expect(keyOf(rerun.call("call_2"))).resolves.toBe(first);
   });
 
   it("stays the same for one call asked about twice", async () => {
     const step = attempt();
 
-    expect(await keyOf(step.call("call_1"))).toBe(
+    await expect(keyOf(step.call("call_1"))).resolves.toBe(
       await keyOf(step.call("call_1"))
     );
   });
@@ -450,30 +479,32 @@ describe("request keys", () => {
       { content: "tool result", role: "tool" },
     ]);
 
-    expect(await keyOf(laterStep.call("call_1"))).not.toBe(
+    await expect(keyOf(laterStep.call("call_1"))).resolves.not.toBe(
       await keyOf(attempt().call("call_1"))
     );
   });
 
   it("differs for different input", async () => {
-    expect(await keyOf(alice, { ...input, reps_recommended: 12 })).not.toBe(
-      await keyOf(alice)
-    );
+    await expect(
+      keyOf(alice, { ...input, reps_recommended: 12 })
+    ).resolves.not.toBe(await keyOf(alice));
   });
 
   it("differs in another turn or session", async () => {
     const key = await keyOf(attempt().call("call_1"));
+
     const otherTurn = {
       ...attempt().call("call_1"),
       session: { ...alice.session, turn: { id: "turn_2", sequence: 2 } },
     } as ToolContext;
+
     const otherSession = {
       ...attempt().call("call_1"),
       session: { ...alice.session, id: "wrun_other" },
     } as ToolContext;
 
-    expect(await keyOf(otherTurn)).not.toBe(key);
-    expect(await keyOf(otherSession)).not.toBe(key);
+    await expect(keyOf(otherTurn)).resolves.not.toBe(key);
+    await expect(keyOf(otherSession)).resolves.not.toBe(key);
   });
 });
 
@@ -481,7 +512,7 @@ describe("remove_exercise_from_workout", () => {
   const input = { workout_exercise_id: workoutExerciseId };
 
   it("removes the Exercise and reports it", async () => {
-    expect(await run(removeExerciseFromWorkout, input)).toEqual({
+    await expect(run(removeExerciseFromWorkout, input)).resolves.toEqual({
       success: true,
       workout_exercise_id: workoutExerciseId,
     });
@@ -495,7 +526,7 @@ describe("remove_exercise_from_workout", () => {
   it("tells the model the Workout Exercise is gone, even when a re-run removed it", async () => {
     edits.removeExerciseFromWorkout.mockResolvedValue(false);
 
-    expect(await run(removeExerciseFromWorkout, input)).toEqual({
+    await expect(run(removeExerciseFromWorkout, input)).resolves.toEqual({
       error:
         "Workout exercise not found: it doesn't exist or was already removed",
     });
@@ -504,7 +535,9 @@ describe("remove_exercise_from_workout", () => {
 
 describe("remove_set_from_exercise", () => {
   it("removes the set and reports it", async () => {
-    expect(await run(removeSetFromExercise, { set_id: setId })).toEqual({
+    await expect(
+      run(removeSetFromExercise, { set_id: setId })
+    ).resolves.toEqual({
       set_id: setId,
       success: true,
     });
@@ -518,7 +551,9 @@ describe("remove_set_from_exercise", () => {
   it("tells the model when the User has no such set", async () => {
     edits.removeSetFromExercise.mockResolvedValue(false);
 
-    expect(await run(removeSetFromExercise, { set_id: setId })).toEqual({
+    await expect(
+      run(removeSetFromExercise, { set_id: setId })
+    ).resolves.toEqual({
       error: "Set not found: it doesn't exist or was already removed",
     });
   });
@@ -532,7 +567,7 @@ describe("replace_exercise_in_workout", () => {
   };
 
   it("replaces the Exercise and reports it", async () => {
-    expect(await run(replaceExerciseInWorkout, input)).toEqual({
+    await expect(run(replaceExerciseInWorkout, input)).resolves.toEqual({
       new_exercise_slug: exerciseSlug,
       sets_replaced: 1,
       success: true,
@@ -548,7 +583,7 @@ describe("replace_exercise_in_workout", () => {
   it("tells the model when the User has no such Workout Exercise", async () => {
     edits.replaceExerciseInWorkout.mockResolvedValue(false);
 
-    expect(await run(replaceExerciseInWorkout, input)).toEqual({
+    await expect(run(replaceExerciseInWorkout, input)).resolves.toEqual({
       error: "Workout exercise not found",
     });
   });
@@ -556,12 +591,12 @@ describe("replace_exercise_in_workout", () => {
 
 describe("update_set_recommendations", () => {
   it("changes only the given targets and reports them", async () => {
-    expect(
-      await run(updateSetRecommendations, {
+    await expect(
+      run(updateSetRecommendations, {
         reps_recommended: 10,
         set_id: setId,
       })
-    ).toEqual({
+    ).resolves.toEqual({
       set_id: setId,
       success: true,
       updated: { reps_recommended: 10 },
@@ -575,7 +610,9 @@ describe("update_set_recommendations", () => {
   });
 
   it("tells the model when there is nothing to change", async () => {
-    expect(await run(updateSetRecommendations, { set_id: setId })).toEqual({
+    await expect(
+      run(updateSetRecommendations, { set_id: setId })
+    ).resolves.toEqual({
       error:
         "At least one of reps_recommended, weight_recommended, or rest_recommended must be provided",
     });
@@ -585,11 +622,11 @@ describe("update_set_recommendations", () => {
   it("tells the model when the User has no such set", async () => {
     edits.updateSetRecommendations.mockResolvedValue(null);
 
-    expect(
-      await run(updateSetRecommendations, {
+    await expect(
+      run(updateSetRecommendations, {
         reps_recommended: 10,
         set_id: setId,
       })
-    ).toEqual({ error: "Set not found" });
+    ).resolves.toEqual({ error: "Set not found" });
   });
 });

@@ -22,13 +22,16 @@ const MAX_CAUSE_DEPTH = 10;
 /** The query error in `error`'s cause chain, if there is one. */
 const findQueryError = (error: unknown) => {
   let current = error;
+
   for (let depth = 0; depth < MAX_CAUSE_DEPTH; depth += 1) {
     if (isQueryError(current)) {
       return current;
     }
+
     if (!(current instanceof Error)) {
       return;
     }
+
     current = current.cause;
   }
 };
@@ -52,17 +55,22 @@ export interface SanitizedError {
  */
 export const sanitizeError = (error: unknown): SanitizedError => {
   const query = findQueryError(error);
+
   if (!query) {
     return { error };
   }
+
   const sqlstate = sqlstateOf(query.cause) ?? "unknown";
   const sanitized = new Error(`${QUERY_FAILED_MESSAGE} (SQLSTATE ${sqlstate})`);
   sanitized.name = "DatabaseQueryError";
+
   const frames = (query.stack ?? "")
     .split("\n")
     .filter((line) => STACK_FRAME.test(line));
+
   sanitized.stack = [`${sanitized.name}: ${sanitized.message}`, ...frames].join(
     "\n"
   );
+
   return { error: sanitized, tags: { sqlstate } };
 };

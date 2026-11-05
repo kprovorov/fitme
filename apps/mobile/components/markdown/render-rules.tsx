@@ -1,18 +1,18 @@
-import {
-  Image,
-  type ImageProps,
-  type ImageStyle,
-  Text,
-  type TextStyle,
-  View,
-  type ViewStyle,
+import { Image, Text, View } from "react-native";
+import type {
+  ImageProps,
+  ImageStyle,
+  TextStyle,
+  ViewStyle,
 } from "react-native";
+
 import { CodeBlock } from "./code-block";
 import type { RenderRules, StyleMap } from "./types";
 
 // Helper to safely get styles with proper casting
 const getViewStyle = (styles: StyleMap, key: string): ViewStyle | undefined =>
   styles[key] as ViewStyle | undefined;
+
 const getTextStyle = (styles: StyleMap, key: string): TextStyle | undefined =>
   styles[key] as TextStyle | undefined;
 
@@ -57,6 +57,7 @@ const renderRules: RenderRules = {
         ? { accessibilityLabel: node.alt, accessible: true, alt: node.alt }
         : {}),
     };
+
     return <Image key={node.key} {...imageProps} />;
   },
   inlineCode: ({ node, styles }) => (
@@ -66,6 +67,7 @@ const renderRules: RenderRules = {
   ),
   link: ({ node, styles, children, extras }) => {
     const onPress = () => extras?.onPress?.(node.url);
+
     return (
       <Text
         key={node.key}
@@ -98,6 +100,7 @@ const renderRules: RenderRules = {
   ),
   paragraph: ({ node, styles, children, parentStack }) => {
     const inListItem = parentStack.some((p) => p.type === "listItem");
+
     return (
       <Text
         key={node.key}
@@ -171,6 +174,7 @@ const renderRules: RenderRules = {
   ),
   unknown: ({ node }) => {
     console.warn("Unknown node type encountered", node.type);
+
     return null;
   },
 };

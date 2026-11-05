@@ -3,19 +3,21 @@ import type {
   ThreadMessage,
   ToolCallMessagePart,
 } from "@assistant-ui/react-native";
-import { LegendList, type LegendListRef } from "@legendapp/list/react-native";
+import { LegendList } from "@legendapp/list/react-native";
+import type { LegendListRef } from "@legendapp/list/react-native";
 import { isLiquidGlassAvailable } from "expo-glass-effect";
 import {
   createContext,
-  type ReactNode,
   use,
   useCallback,
   useImperativeHandle,
   useRef,
   useState,
 } from "react";
+import type { ReactNode } from "react";
 import { useTranslation } from "react-i18next";
-import { type LayoutChangeEvent, Text, View } from "react-native";
+import { Text, View } from "react-native";
+import type { LayoutChangeEvent } from "react-native";
 import { useKeyboardHandler } from "react-native-keyboard-controller";
 import Animated, {
   runOnJS,
@@ -27,14 +29,17 @@ import Animated, {
 } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import type { SFSymbol } from "sf-symbols-typescript";
+
 import { SymbolImage } from "@/components/symbol-image";
+
 import { TouchableGlass } from "../touchable-glass";
 import { KeyboardGestureArea } from "../tw";
 import { useChatContext } from "./chat-context";
 import { Message, MessageResponse } from "./message";
 import { messageText } from "./message-text";
 import { StreamingMessage } from "./streaming-message";
-import { type WorkoutPlan, WorkoutPlanCard } from "./workout-plan-card";
+import { WorkoutPlanCard } from "./workout-plan-card";
+import type { WorkoutPlan } from "./workout-plan-card";
 
 const IS_GLASS = isLiquidGlassAvailable();
 
@@ -52,6 +57,7 @@ function AnimatableLegendList({ ref, ...props }: AnimatableLegendListProps) {
 
   useImperativeHandle(ref, () => {
     const list = listRef.current as LegendListRef;
+
     return {
       ...list,
       getAnimatableRef: () => list.getNativeScrollRef(),
@@ -83,11 +89,13 @@ const ConversationCtx = createContext<ConversationContextValue | null>(null);
 
 export function useConversationContext() {
   const ctx = use(ConversationCtx);
+
   if (!ctx) {
     throw new Error(
       "useConversationContext must be used within <Conversation>"
     );
   }
+
   return ctx;
 }
 
@@ -130,24 +138,29 @@ export function Conversation({
 
   const bottomInset = useDerivedValue(() => {
     const keyboard = Math.abs(keyboardHeight.value);
+
     return composerHeight.value + Math.max(insets.bottom, keyboard);
   });
 
   const isAtBottom = useDerivedValue(() => {
     const maxScrollY =
       totalContentHeight.value - scrollViewHeight.value + bottomInset.value;
+
     if (maxScrollY <= 0) {
       return true;
     }
+
     return maxScrollY - scrollY.value <= SCROLL_THRESHOLD;
   });
 
   const shouldShowScrollButton = useDerivedValue(() => {
     const maxScrollY =
       totalContentHeight.value - scrollViewHeight.value + bottomInset.value;
+
     if (maxScrollY <= 50) {
       return false;
     }
+
     return !isAtBottom.value;
   });
 
@@ -215,6 +228,7 @@ export function Conversation({
         keyboardHeight.value = e.height;
         keyboardHeightForInset.value = withTiming(e.height, { duration: 250 });
         wasInteractive.value = false;
+
         if (shouldScroll) {
           runOnJS(scrollToBottom)();
         }
@@ -234,6 +248,7 @@ export function Conversation({
       },
       onStart: (e) => {
         "worklet";
+
         // Track if keyboard is opening from a tap (not from interactive dismiss)
         if (e.height > 0 && !wasInteractive.value) {
           wasInteractive.value = false;
@@ -248,6 +263,7 @@ export function Conversation({
 
   const footerSpacerStyle = useAnimatedStyle(() => {
     const scrollHeight = scrollViewHeight.value;
+
     if (scrollHeight <= 0) {
       return { height: 0 };
     }
@@ -258,6 +274,7 @@ export function Conversation({
     const footerHeight = Math.max(0, blankSpace - topPadding);
 
     currentFooterHeight.value = footerHeight;
+
     return { height: footerHeight };
   });
 
@@ -285,6 +302,7 @@ export function Conversation({
   const listAnimatedProps = useAnimatedProps(() => {
     const keyboard = Math.abs(keyboardHeightForInset.value);
     const bottom = composerHeight.value + Math.max(insets.bottom, keyboard);
+
     return {
       contentInset: { bottom, left: 0, right: 0, top: topPadding },
       scrollIndicatorInsets: { bottom, left: 0, right: 0, top: 0 },
@@ -324,10 +342,10 @@ export function Conversation({
         <Message from="assistant">
           {item.content
             .filter((p): p is TextMessagePart => p.type === "text" && !!p.text)
-            .map((part, i) => {
+            .map((part, i) => (
               // biome-ignore lint/suspicious/noArrayIndexKey: text parts have no stable ID
-              return <MessageResponse key={i}>{part.text}</MessageResponse>;
-            })}
+              <MessageResponse key={i}>{part.text}</MessageResponse>
+            ))}
           {item.content
             .filter(
               (p): p is ToolCallMessagePart =>
@@ -361,7 +379,7 @@ export function Conversation({
 
   return (
     <ConversationCtx value={contextValue}>
-      <View className="flex-1 bg-background">
+      <View className="bg-background flex-1">
         <KeyboardGestureArea
           className="flex-1"
           interpolator="ios"
@@ -422,7 +440,7 @@ export function ConversationScrollButton() {
         onPress={scrollToBottom}
       >
         <SymbolImage
-          className="mt-1 text-footnote text-muted-foreground dark:text-muted-foreground"
+          className="text-footnote text-muted-foreground dark:text-muted-foreground mt-1"
           name="chevron.down"
           sfEffect={{ effect: "wiggle", repeat: -1 }}
         />
@@ -446,11 +464,11 @@ export function ConversationEmptyState({
         className="text-large-title text-muted-foreground"
         name={icon}
       />
-      <Text className="text-center text-foreground text-title-2-emphasized dark:text-foreground">
+      <Text className="text-foreground text-title-2-emphasized dark:text-foreground text-center">
         {title}
       </Text>
       {description ? (
-        <Text className="text-center text-muted-foreground text-subhead dark:text-muted-foreground">
+        <Text className="text-muted-foreground text-subhead dark:text-muted-foreground text-center">
           {description}
         </Text>
       ) : null}

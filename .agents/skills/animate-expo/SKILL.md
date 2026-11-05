@@ -95,7 +95,7 @@ Reach for a shared value only when the value is continuous or interruptible. A p
 
 ### 4. Pick the properties
 
-- **`transform` and `opacity` are free.** Everything else is a layout pass. `width`, `height`, `margin`, `padding`, `flex`, `top`, `left`, `gap` re-run Yoga on every frame for that node *and its siblings*.
+- **`transform` and `opacity` are free.** Everything else is a layout pass. `width`, `height`, `margin`, `padding`, `flex`, `top`, `left`, `gap` re-run Yoga on every frame for that node _and its siblings_.
 - **The one exception: an absolutely positioned element with no children** — a tab pill, a progress bar fill. It's out of flow, so nothing else re-lays-out, and animating `width` keeps the corner radius that `scaleX` would smear.
 - **Never `scale(0)`.** Start from `scale(0.9–0.97)` + `opacity: 0`. Nothing in the real world appears from nothing.
 - **`transform` is an array and order matters** — `[{ translateY }, { scale }]` scales after moving; reversed, the translate gets scaled too. Keep translate first unless you want the multiplication.
@@ -120,31 +120,31 @@ Reanimated's spring takes Apple's two designer parameters directly — use this 
 
 **Easing**, for everything without a finger on it:
 
-| Situation | Easing |
-| --- | --- |
-| Entering or exiting | `ease-out` |
-| Moving / morphing on screen | `ease-in-out` |
-| Constant motion (progress, marquee) | `linear` |
-| Default | `ease-out` |
+| Situation                           | Easing        |
+| ----------------------------------- | ------------- |
+| Entering or exiting                 | `ease-out`    |
+| Moving / morphing on screen         | `ease-in-out` |
+| Constant motion (progress, marquee) | `linear`      |
+| Default                             | `ease-out`    |
 
 **Never `ease-in` on UI.** It starts slow, delaying the exact moment the user is watching. Reanimated's built-ins are as weak as CSS's — use these:
 
 ```js
-import { Easing } from 'react-native-reanimated';
+import { Easing } from "react-native-reanimated";
 
-const EASE_OUT = Easing.bezier(0.23, 1, 0.32, 1);      // strong ease-out for UI
-const EASE_IN_OUT = Easing.bezier(0.77, 0, 0.175, 1);  // on-screen movement
-const EASE_SHEET = Easing.bezier(0.32, 0.72, 0, 1);    // iOS sheet curve
+const EASE_OUT = Easing.bezier(0.23, 1, 0.32, 1); // strong ease-out for UI
+const EASE_IN_OUT = Easing.bezier(0.77, 0, 0.175, 1); // on-screen movement
+const EASE_SHEET = Easing.bezier(0.32, 0.72, 0, 1); // iOS sheet curve
 ```
 
 **Duration:**
 
-| Element | Duration |
-| --- | --- |
-| Press feedback | 100–150ms |
-| Toggle, chip, small state change | 150–200ms |
-| Sheet, modal, drawer | spring, ~300ms perceived |
-| Screen transition | the platform default — don't override it |
+| Element                          | Duration                                 |
+| -------------------------------- | ---------------------------------------- |
+| Press feedback                   | 100–150ms                                |
+| Toggle, chip, small state change | 150–200ms                                |
+| Sheet, modal, drawer             | spring, ~300ms perceived                 |
+| Screen transition                | the platform default — don't override it |
 
 Mobile UI animations stay under 300ms, same as web. The platform's own transitions are longer (iOS push is 350ms); match the platform for navigation, beat it everywhere else.
 
@@ -190,13 +190,21 @@ From a worklet, haptics must be scheduled back to the RN runtime: `scheduleOnRN(
 ### 9. Reduced motion and accessibility
 
 ```jsx
-import { useReducedMotion, ReduceMotion, withSpring } from 'react-native-reanimated';
+import {
+  useReducedMotion,
+  ReduceMotion,
+  withSpring,
+} from "react-native-reanimated";
 
 const reduced = useReducedMotion();
 const y = useSharedValue(reduced ? 0 : SHEET_HEIGHT);
 
 // or let each animation decide
-withSpring(0, { duration: 300, dampingRatio: 0.8, reduceMotion: ReduceMotion.System });
+withSpring(0, {
+  duration: 300,
+  dampingRatio: 0.8,
+  reduceMotion: ReduceMotion.System,
+});
 ```
 
 Reduced motion means **fewer and gentler**, not zero: keep opacity and color changes that explain a state change, drop translation, scale, parallax and overshoot. Screen transitions become `animation: 'fade'`.
@@ -217,7 +225,11 @@ Check these first when "the animation just doesn't run":
 On ProMotion iPhones, third-party animations are capped at 60fps unless `CADisableMinimumFrameDurationOnPhone` is set. Recent Expo SDKs set it by default — confirm it's there, and add it if not:
 
 ```json
-{ "expo": { "ios": { "infoPlist": { "CADisableMinimumFrameDurationOnPhone": true } } } }
+{
+  "expo": {
+    "ios": { "infoPlist": { "CADisableMinimumFrameDurationOnPhone": true } }
+  }
+}
 ```
 
 Then the frame budget is 8ms, not 16. This is also why a UI-thread animation matters more on mobile than it does on web.

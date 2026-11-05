@@ -1,6 +1,7 @@
 import { ApiError } from "@fitme/api-client";
 import type { WorkoutSessionExerciseSet } from "@fitme/core";
 import { createMutation } from "react-query-kit";
+
 import { publicApi } from "~/lib/public-api";
 
 export interface UpdateWorkoutSessionExerciseSetParams {
@@ -52,9 +53,11 @@ export const useUpdateWorkoutSessionExerciseSetMutation = createMutation<
         params: { path: { id: setId } },
       }
     );
+
     if (!logged) {
       throw new ApiError("Public API answered without the logged set");
     }
+
     return logged.data;
   },
 });
@@ -96,9 +99,11 @@ export const useCreateWorkoutSessionExerciseSetMutation = createMutation<
         params: { path: { id: exerciseId } },
       }
     );
+
     if (!added) {
       throw new ApiError("Public API answered without the added set");
     }
+
     return added.data;
   },
 });

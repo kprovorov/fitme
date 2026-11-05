@@ -15,10 +15,13 @@ import {
   it,
   jest,
 } from "@jest/globals";
-import { type QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { QueryClientProvider } from "@tanstack/react-query";
+import type { QueryClient } from "@tanstack/react-query";
 import { act, fireEvent, render, screen } from "@testing-library/react-native";
 import type { ReactNode } from "react";
 import { AccessibilityInfo, Alert } from "react-native";
+import { it, afterEach, describe, expect, beforeEach } from "vitest";
+
 import PlanSessionExerciseScreen from "~/app/plans/[planId]/workouts/[workoutId]/sessions/[sessionId]/exercises/[exerciseId]/index";
 import { i18n, useAppLanguageSync } from "~/lib/i18n";
 import { storage } from "~/lib/mmkv";
@@ -36,12 +39,13 @@ import {
 
 // The real Clerk SDK (reached through the Workout Session's writes) opens a
 // MessagePort at import that keeps Jest alive.
-jest.mock("~/lib/clerk", () => ({
+jest.mock<typeof import("~/lib/clerk")>(import("~/lib/clerk"), () => ({
   getCurrentUserId: jest.requireActual<
     typeof import("~/test-utils/signed-in-user")
   >("~/test-utils/signed-in-user").getCurrentUserId,
 }));
-jest.mock("expo-router", () => ({
+
+jest.mock<typeof import("expo-router")>(import("expo-router"), () => ({
   Link: ({ children }: { children: ReactNode }) => children,
   Stack: { Screen: () => null },
   useIsFocused: () => true,
@@ -59,51 +63,97 @@ jest.mock("expo-router", () => ({
   }),
 }));
 
-jest.mock(
-  "~/lib/library",
+jest.mock<typeof import("~/lib/library")>(
+  import("~/lib/library"),
   () =>
     jest.requireActual<typeof import("~/test-utils/fake-library")>(
       "~/test-utils/fake-library"
     ).libraryModule
 );
-jest.mock("~/hooks/queries/profiles", () => ({
-  useProfileQuery: () => ({ data: { measurement_system: "metric" } }),
+
+jest.mock<typeof import("~/hooks/queries/profiles")>(
+  import("~/hooks/queries/profiles"),
+  () => ({
+    useProfileQuery: () => ({ data: { measurement_system: "metric" } }),
+  })
+);
+
+jest.mock<typeof import("@sentry/react-native")>(
+  import("@sentry/react-native"),
+  () => ({ captureException: jest.fn() })
+);
+
+jest.mock<typeof import("~/lib/segment")>(import("~/lib/segment"), () => ({
+  segmentClient: { track: jest.fn() },
 }));
-jest.mock("@sentry/react-native", () => ({ captureException: jest.fn() }));
-jest.mock("~/lib/segment", () => ({ segmentClient: { track: jest.fn() } }));
-jest.mock("react-native-safe-area-context", () => ({
-  useSafeAreaInsets: () => ({ bottom: 0, left: 0, right: 0, top: 0 }),
-}));
-jest.mock("react-native-keyboard-controller", () => {
-  const { ScrollView } =
-    jest.requireActual<typeof import("react-native")>("react-native");
-  return { KeyboardAwareScrollView: ScrollView };
-});
+
+jest.mock<typeof import("react-native-safe-area-context")>(
+  import("react-native-safe-area-context"),
+  () => ({
+    useSafeAreaInsets: () => ({ bottom: 0, left: 0, right: 0, top: 0 }),
+  })
+);
+
+jest.mock<typeof import("react-native-keyboard-controller")>(
+  import("react-native-keyboard-controller"),
+  () => {
+    const { ScrollView } =
+      jest.requireActual<typeof import("react-native")>("react-native");
+
+    return { KeyboardAwareScrollView: ScrollView };
+  }
+);
+
 // Reanimated can't load under Jest: the rest timer's view is a plain View,
 // its transitions no-ops.
-jest.mock("react-native-reanimated", () => {
-  const { View } =
-    jest.requireActual<typeof import("react-native")>("react-native");
-  const transition = { duration: () => undefined };
-  return {
-    __esModule: true,
-    default: { View },
-    FadeIn: transition,
-    FadeInDown: transition,
-    FadeOut: transition,
-    FadeOutDown: transition,
-    useReducedMotion: () => false,
-  };
-});
-jest.mock("~/components/exercises/exercise-image", () => () => null);
-jest.mock("~/components/exercises/exercise-video", () => () => null);
-jest.mock("~/components/views/exercise-history-view", () => () => null);
-jest.mock("~/components/symbol-image", () => ({ SymbolImage: () => null }));
-jest.mock("~/components/ui/button", () =>
-  jest.requireActual("~/test-utils/button-stub")
+jest.mock<typeof import("react-native-reanimated")>(
+  import("react-native-reanimated"),
+  () => {
+    const { View } =
+      jest.requireActual<typeof import("react-native")>("react-native");
+
+    const transition = { duration: () => {} };
+
+    return {
+      __esModule: true,
+      default: { View },
+      FadeIn: transition,
+      FadeInDown: transition,
+      FadeOut: transition,
+      FadeOutDown: transition,
+      useReducedMotion: () => false,
+    };
+  }
 );
-jest.mock("~/components/ui/dialog", () =>
-  jest.requireActual("~/test-utils/dialog-stub")
+
+jest.mock<typeof import("~/components/exercises/exercise-image")>(
+  import("~/components/exercises/exercise-image"),
+  () => () => null
+);
+
+jest.mock<typeof import("~/components/exercises/exercise-video")>(
+  import("~/components/exercises/exercise-video"),
+  () => () => null
+);
+
+jest.mock<typeof import("~/components/views/exercise-history-view")>(
+  import("~/components/views/exercise-history-view"),
+  () => () => null
+);
+
+jest.mock<typeof import("~/components/symbol-image")>(
+  import("~/components/symbol-image"),
+  () => ({ SymbolImage: () => null })
+);
+
+jest.mock<typeof import("~/components/ui/button")>(
+  import("~/components/ui/button"),
+  () => jest.requireActual("~/test-utils/button-stub")
+);
+
+jest.mock<typeof import("~/components/ui/dialog")>(
+  import("~/components/ui/dialog"),
+  () => jest.requireActual("~/test-utils/dialog-stub")
 );
 
 const ADD_SET = "POST /v1/workout-session-exercises/{id}/sets";
@@ -113,6 +163,7 @@ let queryClient: QueryClient;
 
 function InAppLanguage({ children }: { children: ReactNode }) {
   useAppLanguageSync();
+
   return children;
 }
 
@@ -152,6 +203,7 @@ const logSet = async (order: number, reps?: string) => {
       reps
     );
   }
+
   await fireEvent.press(screen.getByTestId(`log-set-button-${order}`));
   await settle();
 };
@@ -163,10 +215,10 @@ beforeEach(() => {
   backend.reset();
   storage.clearAll();
   serveLibrary([libraryExerciseNamed("Squat")]);
-  jest.spyOn(Alert, "alert").mockImplementation(() => undefined);
+  jest.spyOn(Alert, "alert").mockReturnValue(undefined);
   jest
     .spyOn(AccessibilityInfo, "announceForAccessibility")
-    .mockImplementation(() => undefined);
+    .mockReturnValue(undefined);
   setDeviceLanguages(["uk-UA"]);
 });
 
@@ -235,7 +287,7 @@ describe("the rest timer in Ukrainian", () => {
     expect(screen.getByText("Пропустити")).toBeTruthy();
 
     await fireEvent.press(screen.getByLabelText("Пропустити відпочинок"));
-    await act(() => undefined);
+    await act(() => {});
     expect(screen.queryByText("Відпочинок · далі підхід 2")).toBeNull();
   });
 });

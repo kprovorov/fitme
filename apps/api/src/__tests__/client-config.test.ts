@@ -1,10 +1,12 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+
 import { createApp } from "../create-app.js";
 
 const app = createApp();
 
 const getClientConfig = async () => {
   const response = await app.request("/v1/client-config");
+
   return { body: await response.json(), response };
 };
 
@@ -23,7 +25,7 @@ afterEach(() => {
   vi.unstubAllEnvs();
 });
 
-describe("GET /v1/client-config", () => {
+describe("gET /v1/client-config", () => {
   it("returns the configured minimum app version per platform", async () => {
     vi.stubEnv("MIN_APP_VERSION_IOS", "1.10.0");
     vi.stubEnv("MIN_APP_VERSION_ANDROID", "1.9.3");

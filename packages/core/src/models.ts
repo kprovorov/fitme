@@ -5,9 +5,11 @@ export const goals = [
   "strength-performance",
   "general-health-fitness",
 ] as const;
+
 export type Goal = (typeof goals)[number];
 
 export const places = ["gym", "home"] as const;
+
 export type Place = (typeof places)[number];
 
 export const experienceLevels = [
@@ -15,12 +17,15 @@ export const experienceLevels = [
   "intermediate",
   "advanced",
 ] as const;
+
 export type ExperienceLevel = (typeof experienceLevels)[number];
 
 export const genders = ["male", "female"] as const;
+
 export type Gender = (typeof genders)[number];
 
 export const measurementSystems = ["metric", "us", "uk"] as const;
+
 export type MeasurementSystem = (typeof measurementSystems)[number];
 
 export const muscleGroups = [
@@ -42,6 +47,7 @@ export const muscleGroups = [
   "cardio",
   "full-body",
 ] as const;
+
 export type MuscleGroup = (typeof muscleGroups)[number];
 
 /**
@@ -61,6 +67,7 @@ export const equipment = [
   "landmine",
   "bodyweight",
 ] as const;
+
 export type Equipment = (typeof equipment)[number];
 
 export function isEquipment(value: unknown): value is Equipment {
@@ -69,6 +76,7 @@ export function isEquipment(value: unknown): value is Equipment {
 
 /** The languages Fitme speaks to a User in (GLOSSARY.md: App language). */
 export const appLanguages = ["en", "uk", "es", "ca"] as const;
+
 export type AppLanguage = (typeof appLanguages)[number];
 
 /** The App language for every device language Fitme doesn't support. */
@@ -92,10 +100,12 @@ export function resolveAppLanguage(
 ): AppLanguage {
   for (const tag of preferredLanguages) {
     const subtag = LANGUAGE_SUBTAG.exec(tag)?.[0].toLowerCase();
+
     if (isAppLanguage(subtag)) {
       return subtag;
     }
   }
+
   return defaultAppLanguage;
 }
 
@@ -296,6 +306,7 @@ export const arnoldModels = [
 }[];
 
 export type ArnoldModel = (typeof arnoldModels)[number];
+
 export type ArnoldModelId = ArnoldModel["id"];
 
 export const defaultArnoldModelId: ArnoldModelId = "openai/gpt-5.5";

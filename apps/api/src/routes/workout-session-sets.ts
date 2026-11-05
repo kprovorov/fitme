@@ -1,5 +1,7 @@
 import { createRoute, OpenAPIHono, z } from "@hono/zod-openapi";
-import { type ApiEnv, bearerSecurity, requires } from "../auth.js";
+
+import { bearerSecurity, requires } from "../auth.js";
+import type { ApiEnv } from "../auth.js";
 import {
   errorResponse,
   Id,
@@ -49,11 +51,13 @@ export const workoutSessionSets = new OpenAPIHono<ApiEnv>({
 }).openapi(logSetRoute, async (c) => {
   const { id } = c.req.valid("param");
   const { reps_completed, weight_completed } = c.req.valid("json");
+
   const { value, weightUnit } = await c.var.getServices().logSet({
     repsCompleted: reps_completed,
     setId: id,
     weightCompleted: weight_completed,
   });
+
   if (value.status === "not_found") {
     return c.json(
       {
@@ -62,6 +66,7 @@ export const workoutSessionSets = new OpenAPIHono<ApiEnv>({
       404
     );
   }
+
   if (value.status === "session_finished") {
     return c.json(
       {
@@ -73,6 +78,7 @@ export const workoutSessionSets = new OpenAPIHono<ApiEnv>({
       409
     );
   }
+
   return c.json(
     WorkoutSessionSetResponse.parse({
       data: { ...value.set, weight_unit: weightUnit },

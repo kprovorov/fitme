@@ -10,13 +10,14 @@ import {
   SUPPORTED_PROTOCOL_VERSIONS,
 } from "@modelcontextprotocol/sdk/types.js";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+
 import { createApp } from "../create-app.js";
 import type { ServicesFactory } from "../services.js";
 import { fakeServices, ignoreReports, recordingReporter } from "./harness.js";
 
 // Clerk is stubbed at its SDK boundary: no Clerk instance or network. The
 // middleware passes through and `getAuth` answers what each test sets up.
-vi.mock("@clerk/hono", () => ({
+vi.mock<typeof import("@clerk/hono")>(import("@clerk/hono"), () => ({
   clerkMiddleware: () => async (_c: unknown, next: () => Promise<void>) => {
     await next();
   },
@@ -36,16 +37,13 @@ const clerkToken = (userId: string) => `oat_${userId}`;
 
 /** Makes `getAuth` accept the request's OAuth token as `userId`. */
 const signInAs = (userId: string) => {
-  mockedGetAuth.mockImplementation(
-    () =>
-      ({
-        clientId: "client_test",
-        isAuthenticated: true,
-        scopes: ["openid", "profile", "email"],
-        tokenType: "oauth_token",
-        userId,
-      }) as unknown as ReturnType<typeof getAuth>
-  );
+  mockedGetAuth.mockReturnValue({
+    clientId: "client_test",
+    isAuthenticated: true,
+    scopes: ["openid", "profile", "email"],
+    tokenType: "oauth_token",
+    userId,
+  } as unknown as ReturnType<typeof getAuth>);
 };
 
 /** Makes `getAuth` reject the token (expired, revoked, wrong instance…). */
@@ -129,6 +127,7 @@ const readToolResult = async (response: Response) => {
   const [, data] = (await response.text()).match(SSE_DATA_LINE) ?? [];
   const message = JSON.parse(data ?? "{}");
   const [content] = message.result.content;
+
   return {
     isError: message.result.isError === true,
     text: String(content.text),
@@ -167,9 +166,11 @@ const createTestApp = () => {
   const servicesUserIds: string[] = [];
   const identifiedUserIds: string[] = [];
   const { reportError, reported } = recordingReporter();
+
   const app = createApp({
     createServices: (userId) => {
       servicesUserIds.push(userId);
+
       return profileServices(userId);
     },
     identifyUser: (userId) => {
@@ -178,6 +179,7 @@ const createTestApp = () => {
     logRequests: false,
     reportError,
   });
+
   return { app, identifiedUserIds, reported, servicesUserIds };
 };
 
@@ -212,7 +214,7 @@ describe("without a token", () => {
       `Bearer resource_metadata="${METADATA_URL}"`
     );
     // RFC 6750: no error code when no credentials were sent.
-    expect(await response.json()).not.toHaveProperty("error");
+    await expect(response.json()).resolves.not.toHaveProperty("error");
     expect(servicesUserIds).toEqual([]);
     expect(reported).toEqual([]);
   });
@@ -268,15 +270,18 @@ describe("with a token Clerk rejects", () => {
     const bodies = await Promise.all(
       responses.map((response) => response.json())
     );
+
     for (const response of responses) {
       expect(response.status).toBe(401);
       expect(response.headers.get("WWW-Authenticate")).toBe(
         `Bearer error="invalid_token", error_description="The access token is invalid or expired. Sign in again.", resource_metadata="${METADATA_URL}"`
       );
     }
+
     for (const body of bodies) {
       expect(body).toMatchObject({ error: "invalid_token" });
     }
+
     expect(servicesUserIds).toEqual([]);
   });
 
@@ -304,7 +309,7 @@ describe("misconfiguration", () => {
       const withoutToken = await callTool(app, "ping");
 
       expect([withToken.status, withoutToken.status]).toEqual([500, 500]);
-      expect(await withToken.json()).toEqual({
+      await expect(withToken.json()).resolves.toEqual({
         error: {
           code: "not_configured",
           message: expect.stringContaining(name),
@@ -324,7 +329,7 @@ describe("public routes", () => {
     const response = await app.request("/health");
 
     expect(response.status).toBe(200);
-    expect(await response.json()).toEqual({ ok: true });
+    await expect(response.json()).resolves.toEqual({ ok: true });
   });
 
   it("serves the OpenAI Apps challenge from the env without a token or config", async () => {
@@ -336,7 +341,7 @@ describe("public routes", () => {
 
     expect(response.status).toBe(200);
     expect(response.headers.get("content-type")).toMatch(PLAIN_TEXT);
-    expect(await response.text()).toBe("challenge-token");
+    await expect(response.text()).resolves.toBe("challenge-token");
   });
 
   it.each(["", "   "])(
@@ -359,7 +364,7 @@ describe("public routes", () => {
     );
 
     expect(response.status).toBe(200);
-    expect(await response.json()).toMatchObject({
+    await expect(response.json()).resolves.toMatchObject({
       authorization_servers: [`https://${CLERK_FRONTEND_API}`],
       bearer_methods_supported: ["header"],
       resource: "http://localhost/",
@@ -374,9 +379,10 @@ describe("public routes", () => {
     const metadata = await app.request(
       "http://internal:3002/.well-known/oauth-protected-resource"
     );
+
     const challenge = await callTool(app, "list_plans");
 
-    expect(await metadata.json()).toMatchObject({
+    await expect(metadata.json()).resolves.toMatchObject({
       resource: "https://mcp.fitmeproject.com/",
     });
     expect(challenge.headers.get("WWW-Authenticate")).toBe(
@@ -445,6 +451,7 @@ describe("with a valid Clerk token", () => {
 
   it("reports missing database config as a tool error", async () => {
     signInAs("user_alice");
+
     const app = createApp({
       createServices: () => null,
       logRequests: false,
@@ -470,6 +477,7 @@ describe("with a valid Clerk token", () => {
     vi.stubEnv("EXERCISES_MCP_SECRET", "x".repeat(32));
     vi.stubEnv("LIBRARY_URL", "https://library.test");
     vi.stubEnv("LIBRARY_MCP_SECRET", "");
+
     const app = createApp({
       logRequests: false,
       reportError: ignoreReports,
@@ -509,7 +517,7 @@ describe("with a valid Clerk token", () => {
       // that never ends, so reading the body would hang the test.
       expect(response.status).toBe(405);
       expect(response.headers.get("Allow")).toBe("POST");
-      expect(await response.json()).toMatchObject({
+      await expect(response.json()).resolves.toMatchObject({
         error: { code: "method_not_allowed" },
       });
       expect(reported).toEqual([]);
@@ -555,7 +563,9 @@ describe("protocol version", () => {
     const transport = new WebStandardStreamableHTTPServerTransport({
       sessionIdGenerator: undefined,
     });
+
     await new McpServer({ name: "sdk", version: "0.0.0" }).connect(transport);
+
     try {
       return await transport.handleRequest(request);
     } finally {
@@ -571,6 +581,7 @@ describe("protocol version", () => {
     signInAs("user_alice");
     const { app, reported } = createTestApp();
     const expected = await transportAnswer(toolsListOn(UNSUPPORTED_VERSION));
+
     const handleRequest = vi.spyOn(
       WebStandardStreamableHTTPServerTransport.prototype,
       "handleRequest"
@@ -595,6 +606,7 @@ describe("protocol version", () => {
   it("leaves a batch over the transport's limit to the transport", async () => {
     signInAs("user_alice");
     const { app } = createTestApp();
+
     const oversizedBatch = () =>
       new Request("http://localhost/", {
         body: JSON.stringify(
@@ -612,17 +624,19 @@ describe("protocol version", () => {
         },
         method: "POST",
       });
+
     const expected = await transportAnswer(oversizedBatch());
 
     const response = await app.request(oversizedBatch());
 
-    expect(await response.json()).toEqual(await expected.json());
+    await expect(response.json()).resolves.toEqual(await expected.json());
     expect(response.status).toBe(expected.status);
   });
 
   it("leaves a body over the transport's size limit to the transport", async () => {
     signInAs("user_alice");
     const { app } = createTestApp();
+
     const oversized = (version: string) =>
       new Request("http://localhost/", {
         body: JSON.stringify({
@@ -639,12 +653,13 @@ describe("protocol version", () => {
         },
         method: "POST",
       });
+
     const expected = await transportAnswer(oversized(UNSUPPORTED_VERSION));
 
     const response = await app.request(oversized(UNSUPPORTED_VERSION));
 
     expect(response.status).toBe(413);
-    expect(await response.json()).toEqual(await expected.json());
+    await expect(response.json()).resolves.toEqual(await expected.json());
   });
 
   it.each([
@@ -679,7 +694,7 @@ describe("protocol version", () => {
       });
 
       expect(response.status).toBe(200);
-      expect(await response.text()).toContain(
+      await expect(response.text()).resolves.toContain(
         `"protocolVersion":"${LATEST_PROTOCOL_VERSION}"`
       );
     }
@@ -731,7 +746,7 @@ describe("observability", () => {
     const response = await listTools(app, clerkToken("user_alice"));
 
     expect(response.status).toBe(500);
-    expect(await response.json()).toEqual({
+    await expect(response.json()).resolves.toEqual({
       error: { code: "internal_error", message: "Internal server error" },
     });
     expect(reported).toEqual([crash]);

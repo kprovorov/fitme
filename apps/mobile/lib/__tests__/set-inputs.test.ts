@@ -1,4 +1,6 @@
 import { describe, expect, it } from "@jest/globals";
+import { describe, expect, it } from "vitest";
+
 import {
   describeSetTarget,
   formatSetTarget,
@@ -10,7 +12,7 @@ import {
 const errorOf = (field: typeof setWeightField, input: string) =>
   field.safeParse(input).error?.issues.map((issue) => issue.message);
 
-describe("setWeightField", () => {
+describe(setWeightField, () => {
   it("parses a weight with either decimal separator", () => {
     expect(setWeightField.parse("1,5")).toBe(1.5);
     expect(setWeightField.parse("1.5")).toBe(1.5);
@@ -58,7 +60,7 @@ describe("setWeightField", () => {
   });
 });
 
-describe("setRepsField", () => {
+describe(setRepsField, () => {
   it("parses whole reps, 0 included", () => {
     expect(setRepsField.parse("12")).toBe(12);
     expect(setRepsField.parse("0")).toBe(0);
@@ -81,7 +83,7 @@ describe("setRepsField", () => {
   });
 });
 
-describe("formatSetWeight", () => {
+describe(formatSetWeight, () => {
   it("shows a weight as the field takes it, without trailing zeros", () => {
     expect(formatSetWeight(80)).toBe("80");
     expect(formatSetWeight(1.5)).toBe("1,5");
@@ -90,7 +92,7 @@ describe("formatSetWeight", () => {
   });
 });
 
-describe("formatSetTarget", () => {
+describe(formatSetTarget, () => {
   it("shows the recommended reps × weight with the unit", () => {
     expect(
       formatSetTarget({ reps_recommended: 12, weight_recommended: 45 }, "kg")
@@ -128,7 +130,7 @@ describe("formatSetTarget", () => {
   });
 });
 
-describe("describeSetTarget", () => {
+describe(describeSetTarget, () => {
   it("reads reps at weight, with the unit spelled as shown", () => {
     expect(
       describeSetTarget(

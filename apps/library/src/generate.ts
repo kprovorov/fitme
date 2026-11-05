@@ -1,6 +1,8 @@
 import { mkdir, writeFile } from "node:fs/promises";
 import { dirname, resolve } from "node:path";
+
 import { get } from "@vercel/blob";
+
 import { generateLibraryModule } from "./build/library-module";
 
 const APP_ROOT = resolve(import.meta.dirname, "..");
@@ -23,9 +25,11 @@ const result = await generateLibraryModule({
 if (result.ok) {
   await mkdir(dirname(out), { recursive: true });
   await writeFile(out, result.source);
+
   // The build log names the deployment's content: its source, size and hash.
   const exercises =
     result.exercises === 1 ? "1 Exercise" : `${result.exercises} Exercises`;
+
   const covers = result.covers === 1 ? "1 Cover" : `${result.covers} Covers`;
   console.log(
     `generated ${out} from ${result.bundle}: ${exercises}, ${covers}, library hash ${result.hash}`
@@ -35,8 +39,10 @@ if (result.ok) {
   console.error(
     `can't generate the Library: ${count} problem${count === 1 ? "" : "s"}\n`
   );
+
   for (const problem of result.problems) {
     console.error(`  ${problem}`);
   }
+
   process.exitCode = 1;
 }

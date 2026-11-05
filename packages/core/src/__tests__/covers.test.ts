@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
-import { type CoverOption, type CoverWorkout, pickCovers } from "../covers";
+
+import { pickCovers } from "../covers";
+import type { CoverOption, CoverWorkout } from "../covers";
 import type { MuscleGroup } from "../models";
 
 /** A Workout whose Exercises train these muscle groups, in Exercise order. */
@@ -14,10 +16,11 @@ const cover = (id: string, ...muscleGroups: MuscleGroup[]): CoverOption => ({
 
 /** Always picks the first candidate. */
 const first = () => 0;
-/** Always picks the last candidate. */
-const last = () => 0.999_999;
 
-describe("pickCovers", () => {
+/** Always picks the last candidate. */
+const last = () => 0.999999;
+
+describe(pickCovers, () => {
   it("answers none for every Workout when the Library has no Covers", () => {
     expect(
       pickCovers({
@@ -30,6 +33,7 @@ describe("pickCovers", () => {
 
   it("picks a Cover tagged with the muscle group most Exercises train", () => {
     const covers = [cover("chest-1", "chest"), cover("legs-1", "quadriceps")];
+
     const legDay = workout(
       ["chest"],
       ["quadriceps"],
@@ -67,6 +71,7 @@ describe("pickCovers", () => {
       cover("chest-2", "chest"),
       cover("chest-3", "chest"),
     ];
+
     const pick = (random: () => number) =>
       pickCovers({ covers, random, workouts: [workout(["chest"])] });
 
@@ -86,6 +91,7 @@ describe("pickCovers", () => {
 
   it("falls back to any Cover when none suits the Workout's muscle groups", () => {
     const covers = [cover("back-1", "back"), cover("chest-1", "chest")];
+
     const pick = (random: () => number) =>
       pickCovers({ covers, random, workouts: [workout(["glutes"])] });
 
@@ -107,6 +113,7 @@ describe("pickCovers", () => {
       cover("chest-2", "chest"),
       cover("back-1", "back"),
     ];
+
     const pushDay = workout(["chest"], ["chest"]);
 
     expect(
@@ -120,6 +127,7 @@ describe("pickCovers", () => {
 
   it("prefers a free Cover for the next muscle group over a used one for the top", () => {
     const covers = [cover("chest-1", "chest"), cover("triceps-1", "triceps")];
+
     const pushDay = workout(
       ["chest"],
       ["chest", "triceps"],
@@ -181,6 +189,7 @@ describe("pickCovers", () => {
 
   it("keeps a random source outside [0, 1) on a candidate", () => {
     const covers = [cover("chest-1", "chest"), cover("chest-2", "chest")];
+
     const pick = (random: () => number) =>
       pickCovers({ covers, random, workouts: [workout(["chest"])] });
 

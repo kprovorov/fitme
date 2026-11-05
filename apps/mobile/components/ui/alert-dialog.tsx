@@ -9,6 +9,7 @@ import { frame, tint } from "@expo/ui/swift-ui/modifiers";
 import * as Slot from "@rn-primitives/slot";
 import type * as React from "react";
 import { useCallback, useState } from "react";
+
 import {
   isStretchClassName,
   SwiftUIHost,
@@ -107,4 +108,5 @@ const AlertDialog = ({
 AlertDialog.displayName = "AlertDialog";
 
 export type { AlertDialogAction, AlertDialogActionRole, AlertDialogProps };
+
 export { AlertDialog };

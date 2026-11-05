@@ -1,37 +1,42 @@
 import { asUser } from "@fitme/db";
-import {
-  type ExerciseHistoryPage,
-  type ExerciseHistoryQuery,
-  getExerciseHistory,
+import { getExerciseHistory } from "@fitme/services/exercises";
+import type {
+  ExerciseHistoryPage,
+  ExerciseHistoryQuery,
 } from "@fitme/services/exercises";
 import {
   activatePlan,
   createPlan,
-  type DeletedPlan,
   deletePlan,
   getPlan,
   listPlans,
-  type NewPlan,
-  type PlanChanges,
-  type PlanDetail,
-  type PlanSummary,
   updatePlan,
 } from "@fitme/services/plans";
-import { getProfile, type ProfileWithUnits } from "@fitme/services/profile";
+import type {
+  DeletedPlan,
+  NewPlan,
+  PlanChanges,
+  PlanDetail,
+  PlanSummary,
+} from "@fitme/services/plans";
+import { getProfile } from "@fitme/services/profile";
+import type { ProfileWithUnits } from "@fitme/services/profile";
 import {
   deleteWorkoutSession,
-  type FinishWorkoutSessionResult,
   finishWorkoutSession,
   getWorkoutSession,
-  type ListWorkoutSessionsOptions,
-  type LogSetInput,
-  type LogSetResult,
   listWorkoutSessions,
   logSet,
-  type StartWorkoutSessionResult,
   startWorkoutSession,
-  type WorkoutSessionDetail,
-  type WorkoutSessionPage,
+} from "@fitme/services/workout-sessions";
+import type {
+  FinishWorkoutSessionResult,
+  ListWorkoutSessionsOptions,
+  LogSetInput,
+  LogSetResult,
+  StartWorkoutSessionResult,
+  WorkoutSessionDetail,
+  WorkoutSessionPage,
 } from "@fitme/services/workout-sessions";
 
 /**
@@ -80,6 +85,7 @@ export const createServicesFromEnv: ServicesFactory = (userId) => {
   if (!process.env.FITME_DATABASE_URL) {
     return null;
   }
+
   return {
     activatePlan: (planId) =>
       asUser(userId, (tx) => activatePlan(tx, userId, planId)),

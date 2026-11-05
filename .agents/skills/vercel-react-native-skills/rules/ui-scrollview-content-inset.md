@@ -7,10 +7,7 @@ tags: scrollview, layout, contentInset, performance
 
 ## Use contentInset for Dynamic ScrollView Spacing
 
-When adding space to the top or bottom of a ScrollView that may change
-(keyboard, toolbars, dynamic content), use `contentInset` instead of padding.
-Changing `contentInset` doesn't trigger layout recalculation—it adjusts the
-scroll area without re-rendering content.
+When adding space to the top or bottom of a ScrollView that may change (keyboard, toolbars, dynamic content), use `contentInset` instead of padding. Changing `contentInset` doesn't trigger layout recalculation—it adjusts the scroll area without re-rendering content.
 
 **Incorrect (padding causes layout recalculation):**
 
@@ -41,5 +38,4 @@ function Feed({ bottomOffset }: { bottomOffset: number }) {
 // Changing bottomOffset only adjusts scroll bounds
 ```
 
-Use `scrollIndicatorInsets` alongside `contentInset` to keep the scroll
-indicator aligned. For static spacing that never changes, padding is fine.
+Use `scrollIndicatorInsets` alongside `contentInset` to keep the scroll indicator aligned. For static spacing that never changes, padding is fine.

@@ -12,6 +12,7 @@ import {
 } from "@fitme/core";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
+
 import { asJson, READ_ONLY } from "./helpers.js";
 
 interface ServerInfo {

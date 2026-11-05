@@ -3,6 +3,7 @@
  * (`jest.setupFilesAfterEnv` in package.json).
  */
 import { afterEach } from "@jest/globals";
+
 import { resetMuscleChoices } from "~/hooks/muscle-choice";
 import { resetPlanDrafts } from "~/hooks/plan-draft";
 import { resetDeviceLanguages } from "~/test-utils/device-locales";
@@ -23,6 +24,7 @@ afterEach(() => {
 afterEach(() => {
   const { unhandled } = fakePublicApi;
   fakePublicApi.reset();
+
   if (unhandled.length > 0) {
     throw new Error(
       `Fake Public API has no route for: ${unhandled.join(", ")}. Add it to test-utils/fake-public-api.ts.`
@@ -36,6 +38,7 @@ afterEach(() => {
 afterEach(() => {
   const { unhandled } = fakeArnold;
   fakeArnold.reset();
+
   if (unhandled.length > 0) {
     throw new Error(
       `Fake Arnold has no route for: ${unhandled.join(", ")}. Add it to test-utils/fake-arnold.ts.`

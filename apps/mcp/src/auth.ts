@@ -3,6 +3,7 @@ import { protectedResourceHandlerClerk } from "@clerk/mcp-tools/hono";
 import type { Context } from "hono";
 import { env } from "hono/adapter";
 import { createMiddleware } from "hono/factory";
+
 import type { ClerkUser } from "./context.js";
 
 /**
@@ -53,19 +54,23 @@ export const protectedResourceMetadata = (c: Context) =>
  */
 function unauthorized(c: Context, reason: "invalid" | "missing") {
   const metadata = `resource_metadata="${resourceMetadataUrl(c)}"`;
+
   if (reason === "missing") {
     // RFC 6750: a request without credentials gets no error code.
     c.header("WWW-Authenticate", `Bearer ${metadata}`);
+
     return c.json(
       { error_description: "Authentication required: sign in with OAuth." },
       401
     );
   }
+
   const description = "The access token is invalid or expired. Sign in again.";
   c.header(
     "WWW-Authenticate",
     `Bearer error="invalid_token", error_description="${description}", ${metadata}`
   );
+
   return c.json(
     { error: "invalid_token", error_description: description },
     401
@@ -77,6 +82,7 @@ export const requireConfig = createMiddleware<{ Variables: AuthVariables }>(
   async (c, next) => {
     const values = env<Record<string, string | undefined>>(c);
     const missing = REQUIRED_ENV.filter((name) => !values[name]);
+
     if (missing.length > 0) {
       return c.json(
         {
@@ -88,6 +94,7 @@ export const requireConfig = createMiddleware<{ Variables: AuthVariables }>(
         500
       );
     }
+
     await next();
   }
 );
@@ -101,6 +108,7 @@ export const requireBearerToken = createMiddleware<{
   if (!BEARER_TOKEN.test(c.req.header("Authorization") ?? "")) {
     return unauthorized(c, "missing");
   }
+
   await next();
 });
 
@@ -111,9 +119,11 @@ export const requireBearerToken = createMiddleware<{
 export const requireClerkUser = createMiddleware<{ Variables: AuthVariables }>(
   async (c, next) => {
     const auth = getAuth(c, { acceptsToken: "oauth_token" });
+
     if (!(auth.isAuthenticated && auth.userId)) {
       return unauthorized(c, "invalid");
     }
+
     c.set("clerkUser", { userId: auth.userId });
     await next();
   }

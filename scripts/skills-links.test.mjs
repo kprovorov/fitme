@@ -4,11 +4,15 @@ import os from "node:os";
 import path from "node:path";
 import { after, describe, test } from "node:test";
 import { fileURLToPath } from "node:url";
+
+import { describe, test } from "vitest";
+
 import { skillLinkProblems } from "./skills-links.mjs";
 
 const REPO_ROOT = fileURLToPath(new URL("..", import.meta.url));
 
 const tempDirs = [];
+
 after(() => {
   for (const dir of tempDirs) {
     fs.rmSync(dir, { force: true, recursive: true });
@@ -20,16 +24,20 @@ after(() => {
 const fixture = ({ skills, links }) => {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), "skills-links-"));
   tempDirs.push(root);
+
   for (const name of skills) {
     const dir = path.join(root, ".agents/skills", name);
     fs.mkdirSync(dir, { recursive: true });
     fs.writeFileSync(path.join(dir, "SKILL.md"), `# ${name}\n`);
   }
+
   const linkDir = path.join(root, ".claude/skills");
   fs.mkdirSync(linkDir, { recursive: true });
+
   for (const [name, target] of Object.entries(links)) {
     fs.symlinkSync(target, path.join(linkDir, name));
   }
+
   return root;
 };
 
@@ -45,6 +53,7 @@ describe("skillLinkProblems", () => {
       links: { alpha: linkTo("alpha"), beta: linkTo("beta") },
       skills: ["alpha", "beta"],
     });
+
     assert.deepEqual(skillLinkProblems(root), []);
   });
 
@@ -53,6 +62,7 @@ describe("skillLinkProblems", () => {
       links: { alpha: linkTo("alpha") },
       skills: ["alpha", "beta"],
     });
+
     assert.deepEqual(skillLinkProblems(root), [
       ".claude/skills/beta is missing: run `ln -s ../../.agents/skills/beta .claude/skills/beta`",
     ]);
@@ -63,6 +73,7 @@ describe("skillLinkProblems", () => {
       links: { alpha: linkTo("alpha"), gone: linkTo("gone") },
       skills: ["alpha"],
     });
+
     assert.deepEqual(skillLinkProblems(root), [
       ".claude/skills/gone points at nothing (../../.agents/skills/gone)",
     ]);
@@ -73,6 +84,7 @@ describe("skillLinkProblems", () => {
       links: { alpha: linkTo("beta"), beta: linkTo("beta") },
       skills: ["alpha", "beta"],
     });
+
     assert.deepEqual(skillLinkProblems(root), [
       ".claude/skills/alpha points at ../../.agents/skills/beta, not ../../.agents/skills/alpha",
     ]);

@@ -1,8 +1,5 @@
-import {
-  type AppLanguage,
-  defaultAppLanguage,
-  isAppLanguage,
-} from "@fitme/core/models";
+import { defaultAppLanguage, isAppLanguage } from "@fitme/core/models";
+import type { AppLanguage } from "@fitme/core/models";
 import type { ModelMessage } from "ai";
 
 // eve hands a turn's `clientContext` object to the model as a user-role
@@ -16,12 +13,15 @@ const CLIENT_CONTEXT_PREFIX = "Client context:\n";
 
 const clientContextTexts = (message: ModelMessage): string[] => {
   const { kind } = message as { kind?: unknown };
+
   if (message.role !== "user" || kind !== CLIENT_CONTEXT_KIND) {
     return [];
   }
+
   if (typeof message.content === "string") {
     return [message.content];
   }
+
   return message.content.flatMap((part) =>
     part.type === "text" ? [part.text] : []
   );
@@ -31,8 +31,10 @@ const parseClientContext = (text: string): Record<string, unknown> | null => {
   if (!text.startsWith(CLIENT_CONTEXT_PREFIX)) {
     return null;
   }
+
   try {
     const value: unknown = JSON.parse(text.slice(CLIENT_CONTEXT_PREFIX.length));
+
     return typeof value === "object" && value !== null && !Array.isArray(value)
       ? (value as Record<string, unknown>)
       : null;
@@ -48,11 +50,13 @@ export const latestClientContext = (
   for (const message of [...messages].reverse()) {
     for (const text of clientContextTexts(message).reverse()) {
       const context = parseClientContext(text);
+
       if (context) {
         return context;
       }
     }
   }
+
   return null;
 };
 
@@ -62,6 +66,7 @@ export const latestClientContext = (
  */
 export const appLanguage = (messages: readonly ModelMessage[]): AppLanguage => {
   const language = latestClientContext(messages)?.language;
+
   return isAppLanguage(language) ? language : defaultAppLanguage;
 };
 
@@ -73,5 +78,6 @@ export const libraryLanguage = (
   messages: readonly ModelMessage[]
 ): AppLanguage | undefined => {
   const language = appLanguage(messages);
+
   return language === defaultAppLanguage ? undefined : language;
 };

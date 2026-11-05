@@ -7,7 +7,7 @@ function AppStoreBadge({ className }: { className?: string }) {
   return (
     <a
       className={cn(
-        "inline-flex shrink-0 rounded-lg focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
+        "focus-visible:ring-ring focus-visible:ring-offset-background inline-flex shrink-0 rounded-lg focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-hidden",
         className
       )}
       href={appStoreUrl}

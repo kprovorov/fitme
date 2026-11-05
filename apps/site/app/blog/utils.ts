@@ -18,18 +18,22 @@ export interface BlogPost {
 
 function parseFrontmatter(fileContent: string) {
   const [, frontMatterBlock] = fileContent.match(FRONTMATTER_REGEX) ?? [];
+
   if (frontMatterBlock === undefined) {
     throw new Error("Blog post is missing a frontmatter block");
   }
+
   const content = fileContent.replace(FRONTMATTER_REGEX, "").trim();
   const metadata: Partial<Metadata> = {};
 
   for (const line of frontMatterBlock.trim().split("\n")) {
     const [key, ...valueParts] = line.split(": ");
+
     const value = valueParts
       .join(": ")
       .trim()
       .replace(QUOTED_VALUE_REGEX, "$1");
+
     metadata[key.trim() as keyof Metadata] = value;
   }
 
@@ -42,6 +46,7 @@ function getMDXFiles(dir: string) {
 
 function readMDXFile(filePath: string) {
   const rawContent = fs.readFileSync(filePath, "utf-8");
+
   return parseFrontmatter(rawContent);
 }
 

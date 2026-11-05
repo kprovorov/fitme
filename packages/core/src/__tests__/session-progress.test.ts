@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+
 import { formatElapsed } from "../formatters";
 import {
   bestSet,
@@ -15,7 +16,7 @@ const set = (
   weight_completed: number | null = null
 ) => ({ order, reps_completed, weight_completed });
 
-describe("exerciseProgress", () => {
+describe(exerciseProgress, () => {
   it("is done when every set is logged", () => {
     expect(exerciseProgress([set(1, 10), set(2, 0)])).toEqual({
       logged: 2,
@@ -36,7 +37,7 @@ describe("exerciseProgress", () => {
   });
 });
 
-describe("countLoggedSets", () => {
+describe(countLoggedSets, () => {
   it("counts logged sets across exercises, zero reps included", () => {
     expect(
       countLoggedSets({
@@ -46,7 +47,7 @@ describe("countLoggedSets", () => {
   });
 });
 
-describe("sessionVolume", () => {
+describe(sessionVolume, () => {
   it("sums weight × reps of logged sets", () => {
     expect(
       sessionVolume([
@@ -61,7 +62,7 @@ describe("sessionVolume", () => {
   });
 });
 
-describe("bestSet", () => {
+describe(bestSet, () => {
   it("picks the heaviest set, then the most reps", () => {
     expect(
       bestSet([set(1, 12, 17.5), set(2, 15, 17.5), set(3, 20, 15)])
@@ -80,7 +81,7 @@ describe("bestSet", () => {
   });
 });
 
-describe("formatSetResult", () => {
+describe(formatSetResult, () => {
   it("shows weight × reps, or reps alone without a weight", () => {
     expect(formatSetResult({ reps: 12, weight: 17.5 })).toBe("17.5 × 12");
     expect(formatSetResult({ reps: 12, weight: null })).toBe("12 reps");
@@ -88,7 +89,7 @@ describe("formatSetResult", () => {
   });
 });
 
-describe("formatRepRange", () => {
+describe(formatRepRange, () => {
   it("formats a range, a single value, or nothing", () => {
     expect(
       formatRepRange([
@@ -102,7 +103,7 @@ describe("formatRepRange", () => {
   });
 });
 
-describe("formatElapsed", () => {
+describe(formatElapsed, () => {
   it("formats minutes and seconds, adding hours past an hour", () => {
     expect(formatElapsed(42 * 60_000 + 17_000)).toBe("42:17");
     expect(formatElapsed(65_000)).toBe("1:05");

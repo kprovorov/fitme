@@ -2,7 +2,8 @@ import { formatElapsed } from "@fitme/core";
 import * as Haptics from "expo-haptics";
 import { useCallback, useEffect } from "react";
 import { useTranslation } from "react-i18next";
-import { AccessibilityInfo, type LayoutChangeEvent, View } from "react-native";
+import { AccessibilityInfo, View } from "react-native";
+import type { LayoutChangeEvent } from "react-native";
 import Animated, {
   FadeIn,
   FadeInDown,
@@ -10,6 +11,7 @@ import Animated, {
   FadeOutDown,
   useReducedMotion,
 } from "react-native-reanimated";
+
 import { Button } from "~/components/ui/button";
 import { Text } from "~/components/ui/text";
 import { useNow } from "~/hooks/use-now";
@@ -52,10 +54,12 @@ export default function RestTimer({
   const reduceMotion = useReducedMotion();
   const entering = (reduceMotion ? FadeIn : FadeInDown).duration(ENTER_MS);
   const exiting = (reduceMotion ? FadeOut : FadeOutDown).duration(EXIT_MS);
+
   const lessRest = useCallback(
     () => onAdjust(-ADJUST_STEP_SECONDS),
     [onAdjust]
   );
+
   const moreRest = useCallback(() => onAdjust(ADJUST_STEP_SECONDS), [onAdjust]);
   const now = useNow(true, 250);
   const remaining = Math.max(0, rest.endsAt - now);
@@ -75,16 +79,16 @@ export default function RestTimer({
 
   return (
     <Animated.View
-      className="absolute inset-x-sm"
+      className="inset-x-sm absolute"
       entering={entering}
       exiting={exiting}
       onLayout={onLayout}
       style={{ bottom: bottomInset + 8 }}
     >
-      <View className="overflow-hidden rounded-3xl border border-border border-continuous bg-secondary">
-        <View className="h-0.5 bg-foreground/10">
+      <View className="border-border border-continuous bg-secondary overflow-hidden rounded-3xl border">
+        <View className="bg-foreground/10 h-0.5">
           <View
-            className="h-0.5 w-full bg-primary"
+            className="bg-primary h-0.5 w-full"
             style={{
               transform: [{ scaleX: fraction }],
               transformOrigin: "left",

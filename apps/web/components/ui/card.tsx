@@ -1,4 +1,5 @@
 import type { ComponentProps } from "react";
+
 import { cn } from "~/lib/utils";
 
 // The Card owns the padding and the gap between its parts, so every card gets
@@ -7,7 +8,7 @@ export function Card({ className, ...props }: ComponentProps<"div">) {
   return (
     <div
       className={cn(
-        "flex flex-col gap-sm rounded-card bg-card p-sm text-card-foreground",
+        "gap-sm rounded-card bg-card p-sm text-card-foreground flex flex-col",
         className
       )}
       {...props}
@@ -23,7 +24,7 @@ export function CardTitle({ className, ...props }: ComponentProps<"h3">) {
   return (
     <h3
       className={cn(
-        "font-bold text-lg text-primary leading-none tracking-tight",
+        "text-primary text-lg leading-none font-bold tracking-tight",
         className
       )}
       {...props}

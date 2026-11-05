@@ -1,7 +1,8 @@
 import { describe, expect, it } from "vitest";
+
 import { feetAndInchesToInches, inchesToFeetAndInches } from "../utils";
 
-describe("inchesToFeetAndInches", () => {
+describe(inchesToFeetAndInches, () => {
   it("splits total inches into feet and inches", () => {
     expect(inchesToFeetAndInches(71)).toEqual({ feet: 5, inches: 11 });
   });
@@ -19,7 +20,7 @@ describe("inchesToFeetAndInches", () => {
   });
 });
 
-describe("feetAndInchesToInches", () => {
+describe(feetAndInchesToInches, () => {
   it("combines feet and inches into total inches", () => {
     expect(feetAndInchesToInches(5, 11)).toBe(71);
   });

@@ -50,6 +50,7 @@ Every spec is broken into tickets the same way (`/to-tickets` and any hand-made 
   - removing what's no longer used comes after the last ticket that used it (expand, then contract).
 
   Root docs (`GLOSSARY.md`, ADRs, `AGENTS.md`) written during the spec's design session are committed with it, not ticketed.
+
 - **Small tickets.** Each one is a narrow slice a fresh agent can finish and verify in one session: one behaviour, its tests and its docs. Prefer more, smaller tickets with clear blockers over a few big ones. A test seam the later tickets need is its own first ticket.
 - **Hidden until done.** When the User-facing feature needs several tickets, keep it behind a flag that tests can switch on. The last ticket removes the flag, blocked by every ticket the feature needs.
 - **Labels.** Each ticket gets the area label of the app it changes. A package without a label of its own takes the label of the apps whose behaviour it affects (see **Area labels**). Add `mac` where it applies.

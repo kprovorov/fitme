@@ -22,16 +22,22 @@ const matches = (ifNoneMatch: string | undefined, etag: string) =>
  */
 export const deviceCache = (libraryHash: string) => {
   const etag = `"${libraryHash}"`;
+
   return createMiddleware(async (c, next) => {
     await next();
+
     if (c.res.status !== 200) {
       return;
     }
+
     const headers = { "Cache-Control": CACHE_CONTROL, ETag: etag };
+
     if (matches(c.req.header("If-None-Match"), etag)) {
       c.res = new Response(null, { headers, status: 304 });
+
       return;
     }
+
     for (const [name, value] of Object.entries(headers)) {
       c.res.headers.set(name, value);
     }
