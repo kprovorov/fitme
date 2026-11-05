@@ -51,6 +51,50 @@
         "marketingUrl": "https://fitmeproject.com",
         "supportUrl": "https://fitmeproject.com/support",
         "privacyPolicyUrl": "https://fitmeproject.com/privacy-policy"
+      },
+      "es-ES": {
+        "title": "Fitme: Plan de gimnasio con IA",
+        "subtitle": "Diario, rutinas y récords",
+        "promoText": "Cuéntale tu objetivo a Arnold y recibe un plan adaptado a tu horario. Registra cada serie, celebra tus récords y pide cambios de ejercicios o peso cuando quieras.",
+        "description": "Fitme combina un planificador de entrenamientos con IA y un diario de gimnasio. Cuéntale a Arnold, la IA de Fitme, tu objetivo, experiencia y disponibilidad, y recibe un plan de varios días con ejercicios, series, repeticiones y descansos.\n\nRegistra cada serie con un toque, descubre qué músculos has trabajado y gana un trofeo con cada nuevo récord. Pide a Arnold que sustituya un ejercicio, añada una serie o ajuste el peso. Después de cada entrenamiento, Fitme detecta los cambios y te ofrece actualizar el plan.\n\nQué incluye:\n• Planes de entrenamiento con IA adaptados a tu objetivo\n• Registro rápido de series con resúmenes y trofeos por tus récords\n• Historial de cada ejercicio para seguir tu progreso\n• 77 ejercicios con vídeos 3D y consejos de técnica\n• Chat con Arnold (Fitme Pro) para editar o rehacer tu plan cuando quieras\n\nEl registro de entrenamientos, el historial y la biblioteca de ejercicios son gratuitos. Fitme Pro (Arnold) es una suscripción opcional del App Store que puedes cancelar cuando quieras.\n\nTérminos de uso: https://www.apple.com/legal/internet-services/itunes/dev/stdeula/",
+        "keywords": [
+          "gimnasio",
+          "entrenamiento",
+          "rutina",
+          "fuerza",
+          "pesas",
+          "fitness",
+          "ejercicios",
+          "récords",
+          "progreso",
+          "entrenador"
+        ],
+        "releaseNotes": "Planes más inteligentes: al terminar un entrenamiento, Fitme detecta los cambios de ejercicios, series, peso y repeticiones, y te ofrece actualizar el plan para la próxima sesión.\n\nPantalla de entrenamiento renovada: registra las series en una tabla más clara y consulta todo lo necesario en la nueva pantalla de ejercicio.\n\nTermina desde Inicio: finaliza un entrenamiento desde su tarjeta, con confirmación si quedan series sin registrar. Los ejercicios omitidos ya no aparecen en el resumen ni en el historial.\n\nBiblioteca más rápida: busca con mayor agilidad y abre al instante los ejercicios que ya has visto, incluso sin conexión.\n\nNuevo diseño oscuro con controles nativos de iOS, SF Symbols y botones Liquid Glass.\n\nCorrecciones y mejoras: comprobación de repeticiones y peso, errores claros si una serie no se guarda, todos los próximos entrenamientos en Inicio, ajustes en el perfil y las unidades, y mejoras de VoiceOver.",
+        "marketingUrl": "https://fitmeproject.com",
+        "supportUrl": "https://fitmeproject.com/support",
+        "privacyPolicyUrl": "https://fitmeproject.com/privacy-policy"
+      },
+      "ca": {
+        "title": "Fitme: Pla de gimnàs amb IA",
+        "subtitle": "Diari, rutines i rècords",
+        "promoText": "Explica el teu objectiu a Arnold i rep un pla adaptat al teu horari. Registra cada sèrie, celebra els rècords i demana canvis d’exercicis o pes quan vulguis.",
+        "description": "Fitme combina un planificador d’entrenaments amb IA i un diari de gimnàs. Explica a Arnold, la IA de Fitme, el teu objectiu, experiència i disponibilitat, i rep un pla de diversos dies amb exercicis, sèries, repeticions i descansos.\n\nRegistra cada sèrie amb un toc, descobreix quins músculs has treballat i guanya un trofeu amb cada nou rècord. Demana a Arnold que substitueixi un exercici, afegeixi una sèrie o ajusti el pes. Després de cada entrenament, Fitme detecta els canvis i t’ofereix actualitzar el pla.\n\nQuè inclou:\n• Plans d’entrenament amb IA adaptats al teu objectiu\n• Registre ràpid de sèries amb resums i trofeus pels teus rècords\n• Historial de cada exercici per seguir el teu progrés\n• 77 exercicis amb vídeos 3D i consells de tècnica\n• Xat amb Arnold (Fitme Pro) per editar o refer el teu pla quan vulguis\n\nEl registre d’entrenaments, l’historial i la biblioteca d’exercicis són gratuïts. Fitme Pro (Arnold) és una subscripció opcional de l’App Store que pots cancel·lar quan vulguis.\n\nCondicions d’ús: https://www.apple.com/legal/internet-services/itunes/dev/stdeula/",
+        "keywords": [
+          "gimnàs",
+          "entrenament",
+          "rutina",
+          "força",
+          "peses",
+          "fitness",
+          "exercicis",
+          "rècords",
+          "progrés",
+          "entrenador"
+        ],
+        "releaseNotes": "Plans més intel·ligents: quan acabes un entrenament, Fitme detecta els canvis d’exercicis, sèries, pes i repeticions, i t’ofereix actualitzar el pla per a la pròxima sessió.\n\nPantalla d’entrenament renovada: registra les sèries en una taula més clara i consulta tot el que necessites a la nova pantalla d’exercici.\n\nAcaba des d’Inici: finalitza un entrenament des de la seva targeta, amb confirmació si queden sèries sense registrar. Els exercicis omesos ja no apareixen al resum ni a l’historial.\n\nBiblioteca més ràpida: cerca amb més agilitat i obre a l’instant els exercicis que ja has vist, fins i tot sense connexió.\n\nNou disseny fosc amb controls natius d’iOS, SF Symbols i botons Liquid Glass.\n\nCorreccions i millores: comprovació de repeticions i pes, errors clars si una sèrie no es desa, tots els pròxims entrenaments a Inici, ajustos al perfil i les unitats, i millores de VoiceOver.",
+        "marketingUrl": "https://fitmeproject.com",
+        "supportUrl": "https://fitmeproject.com/support",
+        "privacyPolicyUrl": "https://fitmeproject.com/privacy-policy"
       }
     },
     "copyright": "2025 Kyrylo Provorov"
