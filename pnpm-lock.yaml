@@ -26,7 +26,7 @@ importers:
   .:
     devDependencies:
       '@shadcn/lint':
-        specifier: ^0.2.5
+        specifier: ^0.2.3
         version: 0.2.5(@typescript-eslint/parser@8.72.1(eslint@10.14.0(jiti@2.7.0))(typescript@6.0.3))(eslint@10.14.0(jiti@2.7.0))
       eslint-plugin-github:
         specifier: 6.1.2
@@ -44,13 +44,13 @@ importers:
         specifier: ^0.75.0
         version: 0.75.0
       oxlint:
-        specifier: ^1.91.0
+        specifier: ^1.90.0
         version: 1.91.0(oxlint-tsgolint@7.0.2006)
       oxlint-plugin-react-doctor:
-        specifier: ^0.9.22
+        specifier: ^0.9.21
         version: 0.9.22
       oxlint-tsgolint:
-        specifier: ^7.0.2006
+        specifier: ^7.0.2005
         version: 7.0.2006
       playwright:
         specifier: ^1.64.1
@@ -62,7 +62,7 @@ importers:
         specifier: ~5.9.2
         version: 5.9.3
       ultracite:
-        specifier: ^8.1.1
+        specifier: 8.1.1
         version: 8.1.1(eslint@10.14.0(jiti@2.7.0))(oxfmt@0.75.0)(oxlint@1.91.0(oxlint-tsgolint@7.0.2006))(prettier@3.9.10)
 
   apps/api:

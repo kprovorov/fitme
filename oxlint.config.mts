@@ -13,27 +13,27 @@ import tanstack from "ultracite/oxlint/tanstack";
 import tanstackJsPlugins from "ultracite/oxlint/tanstack/js-plugins";
 import vitest from "ultracite/oxlint/vitest";
 
-const jsPlugins = selectJsPlugins(["react-doctor", "github"]);
+const jsPlugins = selectJsPlugins(["github", "react-doctor"]);
 
 export default defineConfig({
   env: core.env,
   extends: [
+    antiSlop,
     core,
     drizzle,
-    vitest,
-    react,
-    tanstack,
-    reactNative,
     jest,
     next,
     nextJsPlugins,
-    tanstackJsPlugins,
+    react,
+    reactNative,
     shadcn,
-    antiSlop,
+    tanstack,
+    tanstackJsPlugins,
+    vitest,
     jsPlugins,
   ],
   ignorePatterns: core.ignorePatterns,
   jsPlugins: [...jsPlugins.jsPlugins, ...shadcn.jsPlugins],
-  options: { typeAware: true },
   settings: jsPluginSettings,
+  options: { typeAware: true },
 });
