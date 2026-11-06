@@ -77,7 +77,7 @@ const WorkoutSessionScreen = ({ sessionId }: WorkoutSessionScreenProps) => {
                     isLoading={isFinishing}
                     label={t("workoutSession.finish")}
                     onPress={confirmFinish}
-                    size="sm"
+                    size="lg"
                     testID="finish-workout-button"
                   />
                 ) : null}

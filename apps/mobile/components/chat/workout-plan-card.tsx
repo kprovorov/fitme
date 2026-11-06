@@ -258,6 +258,7 @@ export const WorkoutPlanCard = ({ plan }: { plan: WorkoutPlan }) => {
           isLoading={isSaving}
           label={t(saved ? "arnold.planCard.saved" : "arnold.planCard.save")}
           onPress={handleSave}
+          size="lg"
         />
       </View>
     </Animated.View>

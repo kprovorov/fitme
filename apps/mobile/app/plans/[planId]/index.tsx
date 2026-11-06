@@ -145,6 +145,7 @@ const PlanScreen = () => {
             fill={false}
             label={t("plans.goBack")}
             onPress={goBack}
+            size="lg"
             variant="secondary"
           />
         </View>
@@ -165,6 +166,7 @@ const PlanScreen = () => {
             fill={false}
             label={t("common.tryAgain")}
             onPress={retry}
+            size="lg"
             variant="secondary"
           />
         </View>

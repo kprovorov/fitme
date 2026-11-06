@@ -13,6 +13,7 @@
   },
   "scripts": {
     "schema:generate": "tsx scripts/generate-schema.ts",
+    "test": "vitest run scripts/sort-generated-members.test.ts",
     "test:integration": "vitest run --config vitest.integration.config.ts",
     "typecheck": "tsc --noEmit"
   },

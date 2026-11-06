@@ -137,7 +137,7 @@ Metric and imperial units. Dark mode.
 
 ## Screenshots
 
-Ready-made iPhone simulator screenshots (raw and framed) are in [`screenshots/`](screenshots/README.md). Suggested App Store order:
+Ready-made iPhone simulator screenshots (raw, framed and App Store exports) in English, Ukrainian, Spanish and Catalan are in [`screenshots/`](screenshots/README.md). Suggested App Store order:
 
 1. `arnold-generated-plan.png`: "Tell Arnold your goal. Get a plan."
 2. `workout-log-set.png`: "Log every set."

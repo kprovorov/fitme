@@ -103,6 +103,7 @@ const ProfileView = () => {
                   <Button
                     label={t("profile.pro.manage")}
                     onPress={openManagementURL}
+                    size="lg"
                     variant="secondary"
                   />
                 )}
@@ -120,6 +121,7 @@ const ProfileView = () => {
                 <Button
                   label={t("profile.free.upgrade")}
                   onPress={presentPaywall}
+                  size="lg"
                 />
               </View>
             )}

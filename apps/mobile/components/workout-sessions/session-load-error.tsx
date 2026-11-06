@@ -36,6 +36,7 @@ const SessionLoadError = ({
         fill={false}
         label={t("common.tryAgain")}
         onPress={onRetry}
+        size="lg"
         variant="secondary"
       />
     </View>

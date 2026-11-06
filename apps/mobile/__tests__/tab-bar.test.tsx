@@ -6,7 +6,6 @@
  */
 import { describe, expect, it, jest } from "@jest/globals";
 import { act, render, screen, within } from "@testing-library/react-native";
-import { describe, expect, it } from "vitest";
 
 import TabLayout from "~/app/(tabs)/_layout";
 import { useAppLanguageSync } from "~/lib/i18n";
@@ -74,8 +73,8 @@ describe("tab bar", () => {
   });
 
   it.each([
-    ["es-ES", ["Entrenamiento", "Historial", "Arnold AI", "Biblioteca"]],
-    ["ca-ES", ["Entrenament", "Historial", "Arnold AI", "Biblioteca"]],
+    ["es-ES", ["Entreno", "Historial", "Arnold AI", "Biblioteca"]],
+    ["ca-ES", ["Entrena", "Historial", "Arnold AI", "Biblioteca"]],
   ])("is localized on a %s device", async (language, labels) => {
     setDeviceLanguages([language]);
     await render(<App />);
@@ -86,15 +85,15 @@ describe("tab bar", () => {
   it("switches between Spanish and Catalan while open", async () => {
     setDeviceLanguages(["es-ES"]);
     await render(<App />);
-    expect(screen.getByText("Entrenamiento")).toBeTruthy();
+    expect(screen.getByText("Entreno")).toBeTruthy();
 
     await act(() => setDeviceLanguages(["ca-ES"]));
-    expect(screen.getByText("Entrenament")).toBeTruthy();
-    expect(screen.queryByText("Entrenamiento")).toBeNull();
+    expect(screen.getByText("Entrena")).toBeTruthy();
+    expect(screen.queryByText("Entreno")).toBeNull();
 
     await act(() => setDeviceLanguages(["es-MX"]));
-    expect(screen.getByText("Entrenamiento")).toBeTruthy();
-    expect(screen.queryByText("Entrenament")).toBeNull();
+    expect(screen.getByText("Entreno")).toBeTruthy();
+    expect(screen.queryByText("Entrena")).toBeNull();
   });
 
   it("is in English on a device in a language the app doesn't speak", async () => {

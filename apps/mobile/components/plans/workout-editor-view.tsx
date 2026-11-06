@@ -300,6 +300,7 @@ const WorkoutEditorView = ({
           icon="plus"
           label={t("planEditor.workout.addExercise")}
           onPress={onAddExercise}
+          size="lg"
           testID="add-draft-exercise"
           variant="secondary"
         />

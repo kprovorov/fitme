@@ -308,6 +308,7 @@ const WorkoutScreen = () => {
             fill={false}
             label={t("plannedWorkout.goBack")}
             onPress={goBack}
+            size="lg"
             variant="secondary"
           />
         </View>
@@ -330,6 +331,7 @@ const WorkoutScreen = () => {
             fill={false}
             label={t("common.tryAgain")}
             onPress={retry}
+            size="lg"
             variant="secondary"
           />
         </View>

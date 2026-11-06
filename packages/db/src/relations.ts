@@ -14,7 +14,6 @@ import {
   workoutSessions,
   workouts,
 } from "./schema";
-
 export const personalRecordsRelations = relations(
   personalRecords,
   ({ one }) => ({
@@ -24,12 +23,10 @@ export const personalRecordsRelations = relations(
     }),
   })
 );
-
 export const plansRelations = relations(plans, ({ many }) => ({
   workoutSessions: many(workoutSessions),
   workouts: many(workouts),
 }));
-
 export const workoutExerciseSetsRelations = relations(
   workoutExerciseSets,
   ({ one }) => ({
@@ -39,7 +36,6 @@ export const workoutExerciseSetsRelations = relations(
     }),
   })
 );
-
 export const workoutExercisesRelations = relations(
   workoutExercises,
   ({ one, many }) => ({
@@ -50,7 +46,6 @@ export const workoutExercisesRelations = relations(
     workoutExerciseSets: many(workoutExerciseSets),
   })
 );
-
 export const workoutSessionExerciseProgressInPrivateRelations = relations(
   workoutSessionExerciseProgressInPrivate,
   ({ one }) => ({
@@ -66,7 +61,6 @@ export const workoutSessionExerciseProgressInPrivateRelations = relations(
     }),
   })
 );
-
 export const workoutSessionExerciseSetsRelations = relations(
   workoutSessionExerciseSets,
   ({ one }) => ({
@@ -76,7 +70,6 @@ export const workoutSessionExerciseSetsRelations = relations(
     }),
   })
 );
-
 export const workoutSessionExercisesRelations = relations(
   workoutSessionExercises,
   ({ one, many }) => ({
@@ -90,7 +83,6 @@ export const workoutSessionExercisesRelations = relations(
     workoutSessionExerciseSets: many(workoutSessionExerciseSets),
   })
 );
-
 export const workoutSessionProgressRelations = relations(
   workoutSessionProgress,
   ({ one }) => ({
@@ -100,7 +92,6 @@ export const workoutSessionProgressRelations = relations(
     }),
   })
 );
-
 export const workoutSessionsRelations = relations(
   workoutSessions,
   ({ one, many }) => ({
@@ -120,7 +111,6 @@ export const workoutSessionsRelations = relations(
     workoutSessionProgresses: many(workoutSessionProgress),
   })
 );
-
 export const workoutsRelations = relations(workouts, ({ one, many }) => ({
   plan: one(plans, {
     fields: [workouts.planId],

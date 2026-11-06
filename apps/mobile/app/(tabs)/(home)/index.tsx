@@ -160,6 +160,7 @@ const HomeScreen = () => {
             className="w-full"
             label={t("common.tryAgain")}
             onPress={retryPlans}
+            size="lg"
           />
         </VStack>
       );
@@ -188,6 +189,7 @@ const HomeScreen = () => {
           className="w-full"
           label={t("home.empty.action")}
           onPress={handleCreatePlan}
+          size="lg"
         />
         {/* The Plan menu sits above the active Plan's Workouts, so with
             Plans but none active this is the way to the Plans list. */}
@@ -196,6 +198,7 @@ const HomeScreen = () => {
             className="w-full"
             label={t("home.managePlans")}
             onPress={handleManagePlans}
+            size="lg"
             variant="secondary"
           />
         ) : null}

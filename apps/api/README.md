@@ -11,6 +11,8 @@ pnpm api test:integration # vitest against a running Supabase stack (see below)
 pnpm api openapi        # regenerate openapi.json (commit it; CI fails when it's stale)
 ```
 
+The dev command loads `apps/api/.env` when it exists. Restart it after changing that file.
+
 ## Endpoints
 
 - `GET /health` — liveness

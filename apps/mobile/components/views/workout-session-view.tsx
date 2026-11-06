@@ -132,6 +132,7 @@ const WorkoutSessionView = ({
           icon="plus"
           label={t("workoutSession.addExercise")}
           onPress={openPicker}
+          size="lg"
           variant="secondary"
         />
       )}

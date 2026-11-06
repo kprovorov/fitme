@@ -541,6 +541,7 @@ const PlannerScreen = () => {
                       pathname: "/(tabs)/arnold",
                     });
                   })}
+                  size="lg"
                 />
               </View>
             </VStack>

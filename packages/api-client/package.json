@@ -10,7 +10,7 @@
     ".": "./src/index.ts"
   },
   "scripts": {
-    "generate": "openapi-typescript ../../apps/api/openapi.json --output src/schema.ts && biome check --write --unsafe src/schema.ts",
+    "generate": "openapi-typescript ../../apps/api/openapi.json --output src/schema.ts && oxfmt --write src/schema.ts",
     "test": "vitest run",
     "test:watch": "vitest",
     "typecheck": "tsc --noEmit"

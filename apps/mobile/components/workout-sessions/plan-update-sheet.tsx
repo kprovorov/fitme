@@ -173,6 +173,7 @@ export const PlanUpdateSheet = ({
               isLoading={isApplying}
               label={updateLabel}
               onPress={onUpdate}
+              size="lg"
               testID="plan-update-accept"
             />
             <Button
@@ -181,6 +182,7 @@ export const PlanUpdateSheet = ({
               disabled={isApplying}
               label={t("planUpdate.keep")}
               onPress={onKeep}
+              size="lg"
               testID="plan-update-decline"
               variant="secondary"
             />

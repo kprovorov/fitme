@@ -149,6 +149,7 @@ const WorkoutSessionSummaryView = ({
           iconPosition="trailing"
           label={t("workoutSummary.continue")}
           onPress={onContinue}
+          size="lg"
         />
       </View>
     </View>

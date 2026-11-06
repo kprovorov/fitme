@@ -371,6 +371,7 @@ const PlanEditorScreen = () => {
               fill={false}
               label={plan === null ? t("plans.goBack") : t("common.tryAgain")}
               onPress={plan === null ? close : retry}
+              size="lg"
               variant="secondary"
             />
           </View>

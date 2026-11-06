@@ -6,7 +6,7 @@ export type Json =
   | { [key: string]: Json | undefined }
   | Json[];
 
-export interface Database {
+export type Database = {
   public: {
     Tables: {
       arnold_sessions: {
@@ -503,7 +503,7 @@ export interface Database {
     Enums: Record<string, never>;
     CompositeTypes: Record<string, never>;
   };
-}
+};
 
 type DatabaseWithoutInternals = Omit<Database, "__InternalSupabase">;
 

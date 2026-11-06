@@ -19,9 +19,7 @@ import {
   uniqueIndex,
   uuid,
 } from "drizzle-orm/pg-core";
-
 export const privateSchema = pgSchema("private");
-
 export const arnoldSessions = pgTable(
   "arnold_sessions",
   {
@@ -50,7 +48,6 @@ export const arnoldSessions = pgTable(
     }),
   ]
 );
-
 export const personalRecordInitializations = pgTable(
   "personal_record_initializations",
   {
@@ -62,7 +59,7 @@ export const personalRecordInitializations = pgTable(
       .notNull(),
     userId: text("user_id").primaryKey().notNull(),
   },
-  (_table) => [
+  (table) => [
     pgPolicy("personal_record_initializations_backend_insert", {
       as: "permissive",
       for: "insert",
@@ -77,7 +74,57 @@ export const personalRecordInitializations = pgTable(
     }),
   ]
 );
-
+export const personalRecords = pgTable(
+  "personal_records",
+  {
+    createdAt: timestamp("created_at", { mode: "string", withTimezone: true })
+      .defaultNow()
+      .notNull(),
+    exerciseSlug: text("exercise_slug").notNull(),
+    id: uuid().defaultRandom().primaryKey().notNull(),
+    kind: text().notNull(),
+    reps: integer().notNull(),
+    userId: text("user_id").notNull(),
+    weight: numeric({ precision: 8, scale: 2 }).notNull(),
+    workoutSessionId: uuid("workout_session_id").notNull(),
+  },
+  (table) => [
+    index("personal_records_user_id_idx").using(
+      "btree",
+      table.userId.asc().nullsLast().op("text_ops")
+    ),
+    foreignKey({
+      columns: [table.workoutSessionId],
+      foreignColumns: [workoutSessions.id],
+      name: "personal_records_workout_session_id_fkey",
+    }).onDelete("cascade"),
+    unique("personal_records_session_exercise_key").on(
+      table.workoutSessionId,
+      table.exerciseSlug
+    ),
+    pgPolicy("personal_records_backend", {
+      as: "permissive",
+      for: "all",
+      to: ["authenticated"],
+      using: sql`((SESSION_USER = 'fitme'::name) AND (user_id = ( SELECT current_user_id() AS current_user_id)))`,
+      withCheck: sql`((SESSION_USER = 'fitme'::name) AND (user_id = ( SELECT current_user_id() AS current_user_id)) AND (EXISTS ( SELECT 1
+   FROM workout_sessions ws
+  WHERE ((ws.id = personal_records.workout_session_id) AND (ws.user_id = ( SELECT current_user_id() AS current_user_id)) AND (ws.finished_at IS NOT NULL)))))`,
+    }),
+    pgPolicy("personal_records_select", {
+      as: "permissive",
+      for: "select",
+      to: ["authenticated"],
+      using: sql`(user_id = ( SELECT current_user_id() AS current_user_id))`,
+    }),
+    check(
+      "personal_records_kind_check",
+      sql`kind = ANY (ARRAY['weight'::text, 'reps'::text])`
+    ),
+    check("personal_records_reps_check", sql`reps > 0`),
+    check("personal_records_weight_check", sql`weight >= (0)::numeric`),
+  ]
+);
 export const plans = pgTable(
   "plans",
   {
@@ -121,47 +168,328 @@ export const plans = pgTable(
     }),
   ]
 );
-
-export const workouts = pgTable(
-  "workouts",
+export const profiles = pgTable(
+  "profiles",
   {
-    cover: text(),
+    age: integer().notNull(),
     createdAt: timestamp("created_at", {
       mode: "string",
       withTimezone: true,
     }).defaultNow(),
-    description: text().notNull(),
+    gender: text().notNull(),
+    height: numeric({ precision: 8, scale: 2 }).notNull(),
     id: uuid().defaultRandom().primaryKey().notNull(),
-    name: text().notNull(),
-    order: integer().notNull(),
-    planId: uuid("plan_id").notNull(),
+    measurementSystem: text("measurement_system").default("metric").notNull(),
     updatedAt: timestamp("updated_at", {
       mode: "string",
       withTimezone: true,
     }).defaultNow(),
+    userId: text("user_id").notNull(),
+    weight: numeric({ precision: 8, scale: 2 }).notNull(),
   },
   (table) => [
-    index("workouts_plan_id_idx").using(
+    unique("profiles_user_id_unique").on(table.userId),
+    pgPolicy("profiles_all", {
+      as: "permissive",
+      for: "all",
+      to: ["public"],
+      using: sql`(user_id = ( SELECT current_user_id() AS current_user_id))`,
+      withCheck: sql`(user_id = ( SELECT current_user_id() AS current_user_id))`,
+    }),
+  ]
+);
+export const retiredUserIdsInPrivate = privateSchema.table("retired_user_ids", {
+  rekeyedTo: text("rekeyed_to"),
+  retiredAt: timestamp("retired_at", { mode: "string", withTimezone: true })
+    .defaultNow()
+    .notNull(),
+  userId: text("user_id").primaryKey().notNull(),
+});
+export const weeklyGoalChanges = pgTable(
+  "weekly_goal_changes",
+  {
+    id: uuid().defaultRandom().primaryKey().notNull(),
+    recordedAt: timestamp("recorded_at", { mode: "string", withTimezone: true })
+      .defaultNow()
+      .notNull(),
+    target: smallint(),
+    userId: text("user_id").notNull(),
+  },
+  (table) => [
+    index("weekly_goal_changes_user_id_recorded_at_idx").using(
       "btree",
-      table.planId.asc().nullsLast().op("uuid_ops")
+      table.userId.asc().nullsLast().op("text_ops"),
+      table.recordedAt.asc().nullsLast().op("text_ops")
     ),
+    pgPolicy("weekly_goal_changes_insert", {
+      as: "permissive",
+      for: "insert",
+      to: ["authenticated"],
+      withCheck: sql`(user_id = ( SELECT current_user_id() AS current_user_id))`,
+    }),
+    pgPolicy("weekly_goal_changes_select", {
+      as: "permissive",
+      for: "select",
+      to: ["authenticated"],
+      using: sql`(user_id = ( SELECT current_user_id() AS current_user_id))`,
+    }),
+    check("weekly_goal_changes_target_check", sql`target > 0`),
+    check(
+      "weekly_goal_changes_target_range",
+      sql`(target >= 1) AND (target <= 7)`
+    ),
+  ]
+);
+export const workoutExerciseSets = pgTable(
+  "workout_exercise_sets",
+  {
+    createdAt: timestamp("created_at", {
+      mode: "string",
+      withTimezone: true,
+    }).defaultNow(),
+    id: uuid().defaultRandom().primaryKey().notNull(),
+    order: integer().notNull(),
+    repsRecommended: integer("reps_recommended").notNull(),
+    requestKey: text("request_key"),
+    restRecommended: integer("rest_recommended").notNull(),
+    updatedAt: timestamp("updated_at", {
+      mode: "string",
+      withTimezone: true,
+    }).defaultNow(),
+    weightRecommended: numeric("weight_recommended", {
+      precision: 8,
+      scale: 2,
+    }).notNull(),
+    workoutExerciseId: uuid("workout_exercise_id").notNull(),
+  },
+  (table) => [
+    index("workout_exercise_sets_exercise_id_idx").using(
+      "btree",
+      table.workoutExerciseId.asc().nullsLast().op("uuid_ops")
+    ),
+    uniqueIndex("workout_exercise_sets_request_key_key")
+      .using("btree", table.requestKey.asc().nullsLast().op("text_ops"))
+      .where(sql`(request_key IS NOT NULL)`),
     foreignKey({
-      columns: [table.planId],
-      foreignColumns: [plans.id],
-      name: "workouts_plan_id_fkey",
+      columns: [table.workoutExerciseId],
+      foreignColumns: [workoutExercises.id],
+      name: "workout_exercise_sets_workout_exercise_id_fkey",
     }).onDelete("cascade"),
-    pgPolicy("workouts_all", {
+    pgPolicy("workout_exercise_sets_all", {
       as: "permissive",
       for: "all",
       to: ["public"],
       using: sql`(EXISTS ( SELECT 1
-   FROM plans
-  WHERE ((plans.id = workouts.plan_id) AND (plans.user_id = ( SELECT current_user_id() AS current_user_id)))))`,
+   FROM ((workout_exercises we
+     JOIN workouts w ON ((w.id = we.workout_id)))
+     JOIN plans p ON ((p.id = w.plan_id)))
+  WHERE ((we.id = workout_exercise_sets.workout_exercise_id) AND (p.user_id = ( SELECT current_user_id() AS current_user_id)))))`,
     }),
-    check("workouts_order_positive", sql`"order" >= 1`),
+    check("workout_exercise_sets_order_positive", sql`"order" >= 1`),
   ]
 );
-
+export const workoutExercises = pgTable(
+  "workout_exercises",
+  {
+    createdAt: timestamp("created_at", {
+      mode: "string",
+      withTimezone: true,
+    }).defaultNow(),
+    exerciseSlug: text("exercise_slug").notNull(),
+    id: uuid().defaultRandom().primaryKey().notNull(),
+    order: integer().notNull(),
+    requestKey: text("request_key"),
+    updatedAt: timestamp("updated_at", {
+      mode: "string",
+      withTimezone: true,
+    }).defaultNow(),
+    workoutId: uuid("workout_id").notNull(),
+  },
+  (table) => [
+    uniqueIndex("workout_exercises_request_key_key")
+      .using("btree", table.requestKey.asc().nullsLast().op("text_ops"))
+      .where(sql`(request_key IS NOT NULL)`),
+    index("workout_exercises_workout_id_idx").using(
+      "btree",
+      table.workoutId.asc().nullsLast().op("uuid_ops")
+    ),
+    foreignKey({
+      columns: [table.workoutId],
+      foreignColumns: [workouts.id],
+      name: "workout_exercises_workout_id_fkey",
+    }).onDelete("cascade"),
+    pgPolicy("workout_exercises_all", {
+      as: "permissive",
+      for: "all",
+      to: ["public"],
+      using: sql`(EXISTS ( SELECT 1
+   FROM (workouts w
+     JOIN plans p ON ((p.id = w.plan_id)))
+  WHERE ((w.id = workout_exercises.workout_id) AND (p.user_id = ( SELECT current_user_id() AS current_user_id)))))`,
+    }),
+    check("workout_exercises_order_positive", sql`"order" >= 1`),
+  ]
+);
+export const workoutSessionExerciseProgressInPrivate = privateSchema.table(
+  "workout_session_exercise_progress",
+  {
+    // You can use { mode: "bigint" } if numbers are exceeding js number limitations
+    completedSetCount: bigint("completed_set_count", { mode: "number" })
+      .default(0)
+      .notNull(),
+    workoutSessionExerciseId: uuid("workout_session_exercise_id")
+      .primaryKey()
+      .notNull(),
+    workoutSessionId: uuid("workout_session_id").notNull(),
+  },
+  (table) => [
+    index("workout_session_exercise_progress_session_idx").using(
+      "btree",
+      table.workoutSessionId.asc().nullsLast().op("uuid_ops")
+    ),
+    foreignKey({
+      columns: [table.workoutSessionExerciseId],
+      foreignColumns: [workoutSessionExercises.id],
+      name: "workout_session_exercise_progr_workout_session_exercise_id_fkey",
+    }).onDelete("cascade"),
+    foreignKey({
+      columns: [table.workoutSessionId],
+      foreignColumns: [workoutSessions.id],
+      name: "workout_session_exercise_progress_workout_session_id_fkey",
+    }).onDelete("cascade"),
+    check(
+      "workout_session_exercise_progress_completed_set_count_check",
+      sql`completed_set_count >= 0`
+    ),
+  ]
+);
+export const workoutSessionExerciseSets = pgTable(
+  "workout_session_exercise_sets",
+  {
+    createdAt: timestamp("created_at", {
+      mode: "string",
+      withTimezone: true,
+    }).defaultNow(),
+    id: uuid().defaultRandom().primaryKey().notNull(),
+    loggedAt: timestamp("logged_at", { mode: "string", withTimezone: true }),
+    order: integer().notNull(),
+    repsCompleted: integer("reps_completed"),
+    repsRecommended: integer("reps_recommended"),
+    restRecommended: integer("rest_recommended"),
+    updatedAt: timestamp("updated_at", {
+      mode: "string",
+      withTimezone: true,
+    }).defaultNow(),
+    weightCompleted: numeric("weight_completed", { precision: 8, scale: 2 }),
+    weightRecommended: numeric("weight_recommended", {
+      precision: 10,
+      scale: 2,
+    }),
+    workoutSessionExerciseId: uuid("workout_session_exercise_id").notNull(),
+  },
+  (table) => [
+    index("workout_session_exercise_sets_exercise_id_idx").using(
+      "btree",
+      table.workoutSessionExerciseId.asc().nullsLast().op("uuid_ops")
+    ),
+    foreignKey({
+      columns: [table.workoutSessionExerciseId],
+      foreignColumns: [workoutSessionExercises.id],
+      name: "workout_session_exercise_sets_workout_session_exercise_id_fkey",
+    }).onDelete("cascade"),
+    pgPolicy("workout_session_exercise_sets_all", {
+      as: "permissive",
+      for: "all",
+      to: ["public"],
+      using: sql`(EXISTS ( SELECT 1
+   FROM (workout_session_exercises wse
+     JOIN workout_sessions ws ON ((ws.id = wse.workout_session_id)))
+  WHERE ((wse.id = workout_session_exercise_sets.workout_session_exercise_id) AND (ws.user_id = ( SELECT current_user_id() AS current_user_id)))))`,
+    }),
+    check("workout_session_exercise_sets_order_positive", sql`"order" >= 1`),
+  ]
+);
+export const workoutSessionExercises = pgTable(
+  "workout_session_exercises",
+  {
+    createdAt: timestamp("created_at", {
+      mode: "string",
+      withTimezone: true,
+    }).defaultNow(),
+    exerciseSlug: text("exercise_slug").notNull(),
+    id: uuid().defaultRandom().primaryKey().notNull(),
+    order: integer().notNull(),
+    updatedAt: timestamp("updated_at", {
+      mode: "string",
+      withTimezone: true,
+    }).defaultNow(),
+    workoutSessionId: uuid("workout_session_id").notNull(),
+  },
+  (table) => [
+    index("workout_session_exercises_session_id_idx").using(
+      "btree",
+      table.workoutSessionId.asc().nullsLast().op("uuid_ops")
+    ),
+    foreignKey({
+      columns: [table.workoutSessionId],
+      foreignColumns: [workoutSessions.id],
+      name: "workout_session_exercises_workout_session_id_fkey",
+    }).onDelete("cascade"),
+    pgPolicy("workout_session_exercises_all", {
+      as: "permissive",
+      for: "all",
+      to: ["public"],
+      using: sql`(EXISTS ( SELECT 1
+   FROM workout_sessions ws
+  WHERE ((ws.id = workout_session_exercises.workout_session_id) AND (ws.user_id = ( SELECT current_user_id() AS current_user_id)))))`,
+    }),
+    check("workout_session_exercises_order_positive", sql`"order" >= 1`),
+  ]
+);
+export const workoutSessionProgress = pgTable(
+  "workout_session_progress",
+  {
+    // You can use { mode: "bigint" } if numbers are exceeding js number limitations
+    completedSetCount: bigint("completed_set_count", { mode: "number" })
+      .default(0)
+      .notNull(),
+    finishedAt: timestamp("finished_at", {
+      mode: "string",
+      withTimezone: true,
+    }),
+    startedAt: timestamp("started_at", {
+      mode: "string",
+      withTimezone: true,
+    }).notNull(),
+    userId: text("user_id").notNull(),
+    workoutSessionId: uuid("workout_session_id").primaryKey().notNull(),
+  },
+  (table) => [
+    index("workout_session_progress_qualifying_idx")
+      .using(
+        "btree",
+        table.userId.asc().nullsLast().op("text_ops"),
+        table.startedAt.asc().nullsLast().op("text_ops"),
+        table.finishedAt.asc().nullsLast().op("text_ops")
+      )
+      .where(sql`((finished_at IS NOT NULL) AND (completed_set_count > 0))`),
+    foreignKey({
+      columns: [table.workoutSessionId],
+      foreignColumns: [workoutSessions.id],
+      name: "workout_session_progress_workout_session_id_fkey",
+    }).onDelete("cascade"),
+    pgPolicy("workout_session_progress_select", {
+      as: "permissive",
+      for: "select",
+      to: ["authenticated"],
+      using: sql`(user_id = ( SELECT current_user_id() AS current_user_id))`,
+    }),
+    check(
+      "workout_session_progress_completed_set_count_check",
+      sql`completed_set_count >= 0`
+    ),
+  ]
+);
 export const workoutSessions = pgTable(
   "workout_sessions",
   {
@@ -230,386 +558,42 @@ export const workoutSessions = pgTable(
     }),
   ]
 );
-
-export const personalRecords = pgTable(
-  "personal_records",
+export const workouts = pgTable(
+  "workouts",
   {
-    createdAt: timestamp("created_at", { mode: "string", withTimezone: true })
-      .defaultNow()
-      .notNull(),
-    exerciseSlug: text("exercise_slug").notNull(),
-    id: uuid().defaultRandom().primaryKey().notNull(),
-    kind: text().notNull(),
-    reps: integer().notNull(),
-    userId: text("user_id").notNull(),
-    weight: numeric({ precision: 8, scale: 2 }).notNull(),
-    workoutSessionId: uuid("workout_session_id").notNull(),
-  },
-  (table) => [
-    index("personal_records_user_id_idx").using(
-      "btree",
-      table.userId.asc().nullsLast().op("text_ops")
-    ),
-    foreignKey({
-      columns: [table.workoutSessionId],
-      foreignColumns: [workoutSessions.id],
-      name: "personal_records_workout_session_id_fkey",
-    }).onDelete("cascade"),
-    unique("personal_records_session_exercise_key").on(
-      table.workoutSessionId,
-      table.exerciseSlug
-    ),
-    pgPolicy("personal_records_backend", {
-      as: "permissive",
-      for: "all",
-      to: ["authenticated"],
-      using: sql`((SESSION_USER = 'fitme'::name) AND (user_id = ( SELECT current_user_id() AS current_user_id)))`,
-      withCheck: sql`((SESSION_USER = 'fitme'::name) AND (user_id = ( SELECT current_user_id() AS current_user_id)) AND (EXISTS ( SELECT 1
-   FROM workout_sessions ws
-  WHERE ((ws.id = personal_records.workout_session_id) AND (ws.user_id = ( SELECT current_user_id() AS current_user_id)) AND (ws.finished_at IS NOT NULL)))))`,
-    }),
-    pgPolicy("personal_records_select", {
-      as: "permissive",
-      for: "select",
-      to: ["authenticated"],
-      using: sql`(user_id = ( SELECT current_user_id() AS current_user_id))`,
-    }),
-    check(
-      "personal_records_kind_check",
-      sql`kind = ANY (ARRAY['weight'::text, 'reps'::text])`
-    ),
-    check("personal_records_reps_check", sql`reps > 0`),
-    check("personal_records_weight_check", sql`weight >= (0)::numeric`),
-  ]
-);
-
-export const profiles = pgTable(
-  "profiles",
-  {
-    age: integer().notNull(),
+    cover: text(),
     createdAt: timestamp("created_at", {
       mode: "string",
       withTimezone: true,
     }).defaultNow(),
-    gender: text().notNull(),
-    height: numeric({ precision: 8, scale: 2 }).notNull(),
+    description: text().notNull(),
     id: uuid().defaultRandom().primaryKey().notNull(),
-    measurementSystem: text("measurement_system").default("metric").notNull(),
-    updatedAt: timestamp("updated_at", {
-      mode: "string",
-      withTimezone: true,
-    }).defaultNow(),
-    userId: text("user_id").notNull(),
-    weight: numeric({ precision: 8, scale: 2 }).notNull(),
-  },
-  (table) => [
-    unique("profiles_user_id_unique").on(table.userId),
-    pgPolicy("profiles_all", {
-      as: "permissive",
-      for: "all",
-      to: ["public"],
-      using: sql`(user_id = ( SELECT current_user_id() AS current_user_id))`,
-      withCheck: sql`(user_id = ( SELECT current_user_id() AS current_user_id))`,
-    }),
-  ]
-);
-
-export const retiredUserIdsInPrivate = privateSchema.table("retired_user_ids", {
-  rekeyedTo: text("rekeyed_to"),
-  retiredAt: timestamp("retired_at", { mode: "string", withTimezone: true })
-    .defaultNow()
-    .notNull(),
-  userId: text("user_id").primaryKey().notNull(),
-});
-
-export const weeklyGoalChanges = pgTable(
-  "weekly_goal_changes",
-  {
-    id: uuid().defaultRandom().primaryKey().notNull(),
-    recordedAt: timestamp("recorded_at", { mode: "string", withTimezone: true })
-      .defaultNow()
-      .notNull(),
-    target: smallint(),
-    userId: text("user_id").notNull(),
-  },
-  (table) => [
-    index("weekly_goal_changes_user_id_recorded_at_idx").using(
-      "btree",
-      table.userId.asc().nullsLast().op("text_ops"),
-      table.recordedAt.asc().nullsLast().op("text_ops")
-    ),
-    pgPolicy("weekly_goal_changes_insert", {
-      as: "permissive",
-      for: "insert",
-      to: ["authenticated"],
-      withCheck: sql`(user_id = ( SELECT current_user_id() AS current_user_id))`,
-    }),
-    pgPolicy("weekly_goal_changes_select", {
-      as: "permissive",
-      for: "select",
-      to: ["authenticated"],
-      using: sql`(user_id = ( SELECT current_user_id() AS current_user_id))`,
-    }),
-    check("weekly_goal_changes_target_check", sql`target > 0`),
-    check(
-      "weekly_goal_changes_target_range",
-      sql`(target >= 1) AND (target <= 7)`
-    ),
-  ]
-);
-
-export const workoutExercises = pgTable(
-  "workout_exercises",
-  {
-    createdAt: timestamp("created_at", {
-      mode: "string",
-      withTimezone: true,
-    }).defaultNow(),
-    exerciseSlug: text("exercise_slug").notNull(),
-    id: uuid().defaultRandom().primaryKey().notNull(),
+    name: text().notNull(),
     order: integer().notNull(),
-    requestKey: text("request_key"),
+    planId: uuid("plan_id").notNull(),
     updatedAt: timestamp("updated_at", {
       mode: "string",
       withTimezone: true,
     }).defaultNow(),
-    workoutId: uuid("workout_id").notNull(),
   },
   (table) => [
-    uniqueIndex("workout_exercises_request_key_key")
-      .using("btree", table.requestKey.asc().nullsLast().op("text_ops"))
-      .where(sql`(request_key IS NOT NULL)`),
-    index("workout_exercises_workout_id_idx").using(
+    index("workouts_plan_id_idx").using(
       "btree",
-      table.workoutId.asc().nullsLast().op("uuid_ops")
+      table.planId.asc().nullsLast().op("uuid_ops")
     ),
     foreignKey({
-      columns: [table.workoutId],
-      foreignColumns: [workouts.id],
-      name: "workout_exercises_workout_id_fkey",
+      columns: [table.planId],
+      foreignColumns: [plans.id],
+      name: "workouts_plan_id_fkey",
     }).onDelete("cascade"),
-    pgPolicy("workout_exercises_all", {
+    pgPolicy("workouts_all", {
       as: "permissive",
       for: "all",
       to: ["public"],
       using: sql`(EXISTS ( SELECT 1
-   FROM (workouts w
-     JOIN plans p ON ((p.id = w.plan_id)))
-  WHERE ((w.id = workout_exercises.workout_id) AND (p.user_id = ( SELECT current_user_id() AS current_user_id)))))`,
+   FROM plans
+  WHERE ((plans.id = workouts.plan_id) AND (plans.user_id = ( SELECT current_user_id() AS current_user_id)))))`,
     }),
-    check("workout_exercises_order_positive", sql`"order" >= 1`),
-  ]
-);
-
-export const workoutExerciseSets = pgTable(
-  "workout_exercise_sets",
-  {
-    createdAt: timestamp("created_at", {
-      mode: "string",
-      withTimezone: true,
-    }).defaultNow(),
-    id: uuid().defaultRandom().primaryKey().notNull(),
-    order: integer().notNull(),
-    repsRecommended: integer("reps_recommended").notNull(),
-    requestKey: text("request_key"),
-    restRecommended: integer("rest_recommended").notNull(),
-    updatedAt: timestamp("updated_at", {
-      mode: "string",
-      withTimezone: true,
-    }).defaultNow(),
-    weightRecommended: numeric("weight_recommended", {
-      precision: 8,
-      scale: 2,
-    }).notNull(),
-    workoutExerciseId: uuid("workout_exercise_id").notNull(),
-  },
-  (table) => [
-    index("workout_exercise_sets_exercise_id_idx").using(
-      "btree",
-      table.workoutExerciseId.asc().nullsLast().op("uuid_ops")
-    ),
-    uniqueIndex("workout_exercise_sets_request_key_key")
-      .using("btree", table.requestKey.asc().nullsLast().op("text_ops"))
-      .where(sql`(request_key IS NOT NULL)`),
-    foreignKey({
-      columns: [table.workoutExerciseId],
-      foreignColumns: [workoutExercises.id],
-      name: "workout_exercise_sets_workout_exercise_id_fkey",
-    }).onDelete("cascade"),
-    pgPolicy("workout_exercise_sets_all", {
-      as: "permissive",
-      for: "all",
-      to: ["public"],
-      using: sql`(EXISTS ( SELECT 1
-   FROM ((workout_exercises we
-     JOIN workouts w ON ((w.id = we.workout_id)))
-     JOIN plans p ON ((p.id = w.plan_id)))
-  WHERE ((we.id = workout_exercise_sets.workout_exercise_id) AND (p.user_id = ( SELECT current_user_id() AS current_user_id)))))`,
-    }),
-    check("workout_exercise_sets_order_positive", sql`"order" >= 1`),
-  ]
-);
-
-export const workoutSessionExercises = pgTable(
-  "workout_session_exercises",
-  {
-    createdAt: timestamp("created_at", {
-      mode: "string",
-      withTimezone: true,
-    }).defaultNow(),
-    exerciseSlug: text("exercise_slug").notNull(),
-    id: uuid().defaultRandom().primaryKey().notNull(),
-    order: integer().notNull(),
-    updatedAt: timestamp("updated_at", {
-      mode: "string",
-      withTimezone: true,
-    }).defaultNow(),
-    workoutSessionId: uuid("workout_session_id").notNull(),
-  },
-  (table) => [
-    index("workout_session_exercises_session_id_idx").using(
-      "btree",
-      table.workoutSessionId.asc().nullsLast().op("uuid_ops")
-    ),
-    foreignKey({
-      columns: [table.workoutSessionId],
-      foreignColumns: [workoutSessions.id],
-      name: "workout_session_exercises_workout_session_id_fkey",
-    }).onDelete("cascade"),
-    pgPolicy("workout_session_exercises_all", {
-      as: "permissive",
-      for: "all",
-      to: ["public"],
-      using: sql`(EXISTS ( SELECT 1
-   FROM workout_sessions ws
-  WHERE ((ws.id = workout_session_exercises.workout_session_id) AND (ws.user_id = ( SELECT current_user_id() AS current_user_id)))))`,
-    }),
-    check("workout_session_exercises_order_positive", sql`"order" >= 1`),
-  ]
-);
-
-export const workoutSessionExerciseProgressInPrivate = privateSchema.table(
-  "workout_session_exercise_progress",
-  {
-    // You can use { mode: "bigint" } if numbers are exceeding js number limitations
-    completedSetCount: bigint("completed_set_count", { mode: "number" })
-      .default(0)
-      .notNull(),
-    workoutSessionExerciseId: uuid("workout_session_exercise_id")
-      .primaryKey()
-      .notNull(),
-    workoutSessionId: uuid("workout_session_id").notNull(),
-  },
-  (table) => [
-    index("workout_session_exercise_progress_session_idx").using(
-      "btree",
-      table.workoutSessionId.asc().nullsLast().op("uuid_ops")
-    ),
-    foreignKey({
-      columns: [table.workoutSessionExerciseId],
-      foreignColumns: [workoutSessionExercises.id],
-      name: "workout_session_exercise_progr_workout_session_exercise_id_fkey",
-    }).onDelete("cascade"),
-    foreignKey({
-      columns: [table.workoutSessionId],
-      foreignColumns: [workoutSessions.id],
-      name: "workout_session_exercise_progress_workout_session_id_fkey",
-    }).onDelete("cascade"),
-    check(
-      "workout_session_exercise_progress_completed_set_count_check",
-      sql`completed_set_count >= 0`
-    ),
-  ]
-);
-
-export const workoutSessionExerciseSets = pgTable(
-  "workout_session_exercise_sets",
-  {
-    createdAt: timestamp("created_at", {
-      mode: "string",
-      withTimezone: true,
-    }).defaultNow(),
-    id: uuid().defaultRandom().primaryKey().notNull(),
-    loggedAt: timestamp("logged_at", { mode: "string", withTimezone: true }),
-    order: integer().notNull(),
-    repsCompleted: integer("reps_completed"),
-    repsRecommended: integer("reps_recommended"),
-    restRecommended: integer("rest_recommended"),
-    updatedAt: timestamp("updated_at", {
-      mode: "string",
-      withTimezone: true,
-    }).defaultNow(),
-    weightCompleted: numeric("weight_completed", { precision: 8, scale: 2 }),
-    weightRecommended: numeric("weight_recommended", {
-      precision: 10,
-      scale: 2,
-    }),
-    workoutSessionExerciseId: uuid("workout_session_exercise_id").notNull(),
-  },
-  (table) => [
-    index("workout_session_exercise_sets_exercise_id_idx").using(
-      "btree",
-      table.workoutSessionExerciseId.asc().nullsLast().op("uuid_ops")
-    ),
-    foreignKey({
-      columns: [table.workoutSessionExerciseId],
-      foreignColumns: [workoutSessionExercises.id],
-      name: "workout_session_exercise_sets_workout_session_exercise_id_fkey",
-    }).onDelete("cascade"),
-    pgPolicy("workout_session_exercise_sets_all", {
-      as: "permissive",
-      for: "all",
-      to: ["public"],
-      using: sql`(EXISTS ( SELECT 1
-   FROM (workout_session_exercises wse
-     JOIN workout_sessions ws ON ((ws.id = wse.workout_session_id)))
-  WHERE ((wse.id = workout_session_exercise_sets.workout_session_exercise_id) AND (ws.user_id = ( SELECT current_user_id() AS current_user_id)))))`,
-    }),
-    check("workout_session_exercise_sets_order_positive", sql`"order" >= 1`),
-  ]
-);
-
-export const workoutSessionProgress = pgTable(
-  "workout_session_progress",
-  {
-    // You can use { mode: "bigint" } if numbers are exceeding js number limitations
-    completedSetCount: bigint("completed_set_count", { mode: "number" })
-      .default(0)
-      .notNull(),
-    finishedAt: timestamp("finished_at", {
-      mode: "string",
-      withTimezone: true,
-    }),
-    startedAt: timestamp("started_at", {
-      mode: "string",
-      withTimezone: true,
-    }).notNull(),
-    userId: text("user_id").notNull(),
-    workoutSessionId: uuid("workout_session_id").primaryKey().notNull(),
-  },
-  (table) => [
-    index("workout_session_progress_qualifying_idx")
-      .using(
-        "btree",
-        table.userId.asc().nullsLast().op("text_ops"),
-        table.startedAt.asc().nullsLast().op("text_ops"),
-        table.finishedAt.asc().nullsLast().op("text_ops")
-      )
-      .where(sql`((finished_at IS NOT NULL) AND (completed_set_count > 0))`),
-    foreignKey({
-      columns: [table.workoutSessionId],
-      foreignColumns: [workoutSessions.id],
-      name: "workout_session_progress_workout_session_id_fkey",
-    }).onDelete("cascade"),
-    pgPolicy("workout_session_progress_select", {
-      as: "permissive",
-      for: "select",
-      to: ["authenticated"],
-      using: sql`(user_id = ( SELECT current_user_id() AS current_user_id))`,
-    }),
-    check(
-      "workout_session_progress_completed_set_count_check",
-      sql`completed_set_count >= 0`
-    ),
+    check("workouts_order_positive", sql`"order" >= 1`),
   ]
 );

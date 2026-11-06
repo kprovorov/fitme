@@ -134,6 +134,7 @@ const EditProfileScreen = () => {
             <Button
               label={t("common.tryAgain")}
               onPress={handleRetry}
+              size="lg"
               variant="secondary"
             />
           </VStack>

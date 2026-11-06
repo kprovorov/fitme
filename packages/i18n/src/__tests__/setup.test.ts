@@ -44,7 +44,7 @@ describe("i18n setup", () => {
       one: "1 serie",
       other: "2 series",
       spoken: "2 kilogramos",
-      tab: "Entrenamiento",
+      tab: "Entreno",
     },
     {
       fraction: "1,5 sèries",
@@ -53,7 +53,7 @@ describe("i18n setup", () => {
       one: "1 sèrie",
       other: "2 sèries",
       spoken: "2 quilograms",
-      tab: "Entrenament",
+      tab: "Entrena",
     },
   ])(
     "translates and formats in $language",
@@ -89,6 +89,7 @@ describe("i18n setup", () => {
   it("falls back to English for a key missing in Ukrainian, never the raw key", () => {
     const i18n = createI18n("uk");
     i18n.addResource("en", "translation", "onlyInEnglish", "Only in English");
+    // @ts-expect-error: this fallback key is added at runtime, outside the catalog.
     expect(i18n.t("onlyInEnglish")).toBe("Only in English");
   });
 
