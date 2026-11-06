@@ -1,5 +1,5 @@
 import { readdirSync, readFileSync } from "node:fs";
-import { join, relative, sep } from "node:path";
+import nodePath from "node:path";
 import { fileURLToPath } from "node:url";
 
 import ts from "typescript";
@@ -93,7 +93,7 @@ export const TEXT_PROPS: ReadonlySet<string> = new Set([
  * A custom component's text props follow these names (`confirmLabel`,
  * `emptyTitle`, `buttonText`, `errorMessage`), so they count too.
  */
-const TEXT_PROP_SUFFIX = /(?:Hint|Label|Message|Placeholder|Text|Title)$/;
+const TEXT_PROP_SUFFIX = /(?:Hint|Label|Message|Placeholder|Text|Title)$/u;
 
 /** Whether a prop or property of this name holds shown text. */
 export const isTextProp = (name: string | null) =>
@@ -117,15 +117,15 @@ const SKIPPED_DIRECTORIES = new Set([
   "test-utils",
 ]);
 
-const SOURCE_FILE = /\.tsx?$/;
-const SKIPPED_FILE = /(?:\.(?:test|spec)\.tsx?|\.d\.ts)$/;
+const SOURCE_FILE = /\.tsx?$/u;
+const SKIPPED_FILE = /(?:\.(?:test|spec)\.tsx?|\.d\.ts)$/u;
 
 const LETTER = /\p{L}/u;
 
 // `&nbsp;`, `&middot;`, `&#8212;`: JSX text keeps entities as written
-const HTML_ENTITY = /&(?:#\d+|#x[\da-f]+|\w+);/gi;
-const NON_SPACE = /\S/;
-const WHITESPACE = /\s+/g;
+const HTML_ENTITY = /&(?:#\d+|#x[\da-f]+|\w+);/giu;
+const NON_SPACE = /\S/u;
+const WHITESPACE = /\s+/gu;
 
 const propertyName = (name: ts.Node) => {
   if (
@@ -226,9 +226,7 @@ const isShown = (node: ts.Node) => {
   }
 
   if (ts.isCallExpression(parent) && isAlertCall(parent)) {
-    const index = parent.arguments.indexOf(child as ts.Expression);
-
-    return index === 0 || index === 1;
+    return parent.arguments[0] === child || parent.arguments[1] === child;
   }
 
   return false;
@@ -253,7 +251,7 @@ const textOf = (node: ts.Node) => {
  * Finds the hardcoded text in one source. `path` names the file in each
  * finding and decides whether it's parsed as TSX.
  */
-export function checkSource(path: string, source: string): Finding[] {
+export const checkSource = (path: string, source: string): Finding[] => {
   const file = ts.createSourceFile(
     path,
     source,
@@ -306,15 +304,15 @@ export function checkSource(path: string, source: string): Finding[] {
 
   visit(file);
 
-  return findings.sort((a, b) => a.line - b.line || a.column - b.column);
-}
+  return findings.toSorted((a, b) => a.line - b.line || a.column - b.column);
+};
 
 /** Every checked file under `directory`, absolute, sorted. */
-export function collectFiles(directory: string): string[] {
+export const collectFiles = (directory: string): string[] => {
   const files: string[] = [];
 
   for (const entry of readdirSync(directory, { withFileTypes: true })) {
-    const path = join(directory, entry.name);
+    const path = nodePath.join(directory, entry.name);
 
     if (entry.isDirectory()) {
       if (!SKIPPED_DIRECTORIES.has(entry.name)) {
@@ -325,8 +323,8 @@ export function collectFiles(directory: string): string[] {
     }
   }
 
-  return files.sort();
-}
+  return files.toSorted();
+};
 
 /** The outcome of checking a set of files against the allowlist. */
 export interface CheckResult {
@@ -339,10 +337,10 @@ export interface CheckResult {
  * Checks `files` (repo-relative path → source). Findings in an allowlisted
  * file are dropped; an entry that drops nothing is stale.
  */
-export function checkFiles(
+export const checkFiles = (
   files: ReadonlyMap<string, string>,
   allowlist: readonly AllowlistEntry[] = ALLOWLIST
-): CheckResult {
+): CheckResult => {
   const allowed = new Set(allowlist.map((entry) => entry.path));
   const used = new Set<string>();
   const findings: Finding[] = [];
@@ -363,23 +361,29 @@ export function checkFiles(
     findings,
     staleEntries: allowlist.filter((entry) => !used.has(entry.path)),
   };
-}
+};
 
-const toPosix = (path: string) => path.split(sep).join("/");
+const toPosix = (path: string) => path.split(nodePath.sep).join("/");
 
 /** Reads every checked file of the repo at `root`. */
-export function readCheckedFiles(root: string): Map<string, string> {
+export const readCheckedFiles = (root: string): Map<string, string> => {
   const files = new Map<string, string>();
 
-  for (const path of collectFiles(join(root, CHECKED_DIRECTORY))) {
-    files.set(toPosix(relative(root, path)), readFileSync(path, "utf-8"));
+  for (const path of collectFiles(nodePath.join(root, CHECKED_DIRECTORY))) {
+    files.set(
+      toPosix(nodePath.relative(root, path)),
+      readFileSync(path, "utf-8")
+    );
   }
 
   return files;
-}
+};
 
 /** Formats a result for the terminal: one line per piece of text. */
-export function formatResult({ findings, staleEntries }: CheckResult): string {
+export const formatResult = ({
+  findings,
+  staleEntries,
+}: CheckResult): string => {
   const lines = findings.map(
     ({ column, file, line, text }) => `${file}:${line}:${column}  ${text}`
   );
@@ -391,7 +395,7 @@ export function formatResult({ findings, staleEntries }: CheckResult): string {
   }
 
   return lines.join("\n");
-}
+};
 
 if (import.meta.main) {
   const root = fileURLToPath(new URL("../../..", import.meta.url));

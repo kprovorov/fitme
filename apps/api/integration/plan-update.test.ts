@@ -5,6 +5,7 @@ import { createFakeLibrary } from "@fitme/library-sdk/fake";
 import { deleteTestUsers } from "@fitme/services/delete-test-users";
 import { and, eq } from "drizzle-orm";
 import { afterAll, beforeEach, describe, expect, it } from "vitest";
+import { z } from "zod";
 
 import { createApp } from "../src/create-app.js";
 import { createServicesFromEnv } from "../src/services.js";
@@ -40,12 +41,6 @@ const testUserId = (label: string) =>
 const users: string[] = [];
 let owner = "";
 let intruder = "";
-
-beforeEach(() => {
-  owner = testUserId("planUpdateOwner");
-  intruder = testUserId("planUpdateIntruder");
-  users.push(owner, intruder);
-});
 
 const onePlan = {
   description: "One day",
@@ -99,7 +94,17 @@ const request = async (userId: string, method: string, path: string) => {
   };
 };
 
-const send = (userId: string, method: string, path: string, body: unknown) =>
+type PlanUpdateSetupBody =
+  | typeof onePlan
+  | { workout_id: string }
+  | { reps_completed: number; weight_completed: number };
+
+const send = (
+  userId: string,
+  method: string,
+  path: string,
+  body: PlanUpdateSetupBody
+) =>
   app.request(path, {
     body: JSON.stringify(body),
     headers: { ...signedInAs(userId), "content-type": "application/json" },
@@ -118,14 +123,16 @@ const planUpdatePath = (sessionId: string) =>
  */
 const sessionWithChanges = async () => {
   const created = await send(owner, "POST", "/v1/plans", onePlan);
-  const plan = (await created.json()).data;
+  const createdBody = await created.json();
+  const plan = createdBody.data;
   const [workout] = plan.workouts;
 
   const started = await send(owner, "POST", "/v1/workout-sessions", {
     workout_id: workout.id,
   });
 
-  const session = (await started.json()).data;
+  const startedBody = await started.json();
+  const session = startedBody.data;
   const [squat, deadlift] = session.exercises;
   await send(owner, "PATCH", `/v1/workout-session-sets/${squat.sets[0].id}`, {
     reps_completed: 10,
@@ -147,9 +154,9 @@ const sessionWithChanges = async () => {
   });
 
   return {
-    planId: plan.id as string,
-    sessionId: session.id as string,
-    workoutId: workout.id as string,
+    planId: z.string().parse(plan.id),
+    sessionId: z.string().parse(session.id),
+    workoutId: z.string().parse(workout.id),
   };
 };
 
@@ -195,17 +202,23 @@ const updatedWorkout = [
   },
 ];
 
-afterAll(async () => {
-  await deleteTestUsers(users);
-});
-
 describe("the Plan Update", () => {
+  beforeEach(() => {
+    owner = testUserId("planUpdateOwner");
+    intruder = testUserId("planUpdateIntruder");
+    users.push(owner, intruder);
+  });
+
+  afterAll(async () => {
+    await deleteTestUsers(users);
+  });
+
   it("has no changes while the Workout Session is open", async () => {
     const { planId, sessionId, workoutId } = await sessionWithChanges();
 
     const preview = await request(owner, "GET", planUpdatePath(sessionId));
 
-    expect(preview).toEqual({
+    expect(preview).toStrictEqual({
       body: {
         data: {
           changes: [],
@@ -224,27 +237,34 @@ describe("the Plan Update", () => {
     const before = await workoutOf(planId);
 
     const preview = await request(owner, "GET", planUpdatePath(sessionId));
-    expect(preview.status).toBe(200);
-    expect(preview.body.data).toEqual({
-      changes: expectedChanges,
-      plan: { id: planId, name: "Plan Update" },
-      weight_unit: "kg",
-      workout: { cover: null, id: workoutId, name: "Day A" },
+    expect(preview).toStrictEqual({
+      body: {
+        data: {
+          changes: expectedChanges,
+          plan: { id: planId, name: "Plan Update" },
+          weight_unit: "kg",
+          workout: { cover: null, id: workoutId, name: "Day A" },
+        },
+      },
+      status: 200,
     });
-    await expect(workoutOf(planId)).resolves.toEqual(before);
+    await expect(workoutOf(planId)).resolves.toStrictEqual(before);
 
     const applied = await request(owner, "POST", planUpdatePath(sessionId));
-    expect(applied.status).toBe(200);
-    expect(applied.body).toEqual(preview.body);
-    await expect(workoutOf(planId)).resolves.toEqual(updatedWorkout);
+    expect(applied).toStrictEqual(preview);
+    await expect(workoutOf(planId)).resolves.toStrictEqual(updatedWorkout);
 
-    for (const method of ["GET", "POST"]) {
-      // biome-ignore lint/performance/noAwaitInLoops: one after the other, on purpose
-      const again = await request(owner, method, planUpdatePath(sessionId));
-      expect(again.body.data.changes).toEqual([]);
-    }
-
-    await expect(workoutOf(planId)).resolves.toEqual(updatedWorkout);
+    const previewAgain = await request(owner, "GET", planUpdatePath(sessionId));
+    const applyAgain = await request(owner, "POST", planUpdatePath(sessionId));
+    expect({
+      appliedChanges: applyAgain.body.data.changes,
+      previewChanges: previewAgain.body.data.changes,
+      workout: await workoutOf(planId),
+    }).toStrictEqual({
+      appliedChanges: [],
+      previewChanges: [],
+      workout: updatedWorkout,
+    });
   });
 
   it("writes once for concurrent applies", async () => {
@@ -257,11 +277,14 @@ describe("the Plan Update", () => {
       )
     );
 
-    expect(applies.map(({ status }) => status)).toEqual([200, 200, 200]);
-    expect(applies.map(({ body }) => body.data.changes.length).sort()).toEqual([
-      0, 0, 2,
-    ]);
-    await expect(workoutOf(planId)).resolves.toEqual(updatedWorkout);
+    expect(applies.map(({ status }) => status)).toStrictEqual([200, 200, 200]);
+    expect(
+      applies.filter(({ body }) => body.data.changes.length === 0)
+    ).toHaveLength(2);
+    expect(
+      applies.filter(({ body }) => body.data.changes.length === 2)
+    ).toHaveLength(1);
+    await expect(workoutOf(planId)).resolves.toStrictEqual(updatedWorkout);
   });
 
   it("answers 404 for another User's Workout Session, writing nothing", async () => {
@@ -269,21 +292,26 @@ describe("the Plan Update", () => {
     await finish(sessionId);
     const before = await workoutOf(planId);
 
-    for (const method of ["GET", "POST"]) {
-      // biome-ignore lint/performance/noAwaitInLoops: one after the other, on purpose
-      const refused = await request(
-        intruder,
-        method,
-        planUpdatePath(sessionId)
-      );
+    const refusedPreview = await request(
+      intruder,
+      "GET",
+      planUpdatePath(sessionId)
+    );
 
+    const refusedApply = await request(
+      intruder,
+      "POST",
+      planUpdatePath(sessionId)
+    );
+
+    for (const refused of [refusedPreview, refusedApply]) {
       expect(refused.status).toBe(404);
       expect(refused.body.error.code).toBe("not_found");
     }
 
-    await expect(workoutOf(planId)).resolves.toEqual(before);
+    await expect(workoutOf(planId)).resolves.toStrictEqual(before);
     const own = await request(owner, "GET", planUpdatePath(sessionId));
-    expect(own.body.data.changes).toEqual(expectedChanges);
+    expect(own.body.data.changes).toStrictEqual(expectedChanges);
   });
 
   it("has no Workout once its Plan is deleted", async () => {
@@ -293,7 +321,7 @@ describe("the Plan Update", () => {
 
     const applied = await request(owner, "POST", planUpdatePath(sessionId));
 
-    expect(applied.body.data).toEqual({
+    expect(applied.body.data).toStrictEqual({
       changes: [],
       plan: null,
       weight_unit: "kg",

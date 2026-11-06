@@ -24,15 +24,15 @@ export interface Token {
 /** Absolute path of the token CSS. */
 export const TOKENS_CSS_PATH = new URL("tokens.css", import.meta.url);
 
-const COMMENT = /\/\*[\s\S]*?\*\//g;
-const THEME_BLOCK = /@theme\s*\{([^}]*)\}/;
+const COMMENT = /\/\*[\s\S]*?\*\//gu;
+const THEME_BLOCK = /@theme\s*\{(?<body>[^}]*)\}/u;
 
 // One `property: value` statement of the block, before its name is checked
-const DECLARATION = /^(\S+?)\s*:\s*(\S[\s\S]*)$/;
+const DECLARATION = /^(?<property>\S+?)\s*:\s*(?<value>\S[\s\S]*)$/u;
 
 // `--<kind>-<name>`: lowercase kind, then lowercase words joined by `-` or
 // `--` (`--text-body--line-height`, `--radius-2xl`)
-const TOKEN_NAME = /^--([a-z]+)-([a-z0-9]+(?:--?[a-z0-9]+)*)$/;
+const TOKEN_NAME = /^--(?<kind>[a-z]+)-(?<name>[a-z0-9]+(?:--?[a-z0-9]+)*)$/u;
 
 const KINDS: readonly TokenKind[] = [
   "color",
@@ -44,7 +44,7 @@ const KINDS: readonly TokenKind[] = [
 ];
 
 const isTokenKind = (value: string): value is TokenKind =>
-  (KINDS as readonly string[]).includes(value);
+  KINDS.some((kind) => kind === value);
 
 /**
  * Parses token CSS into its tokens, in file order. Only the `@theme` block
@@ -52,7 +52,7 @@ const isTokenKind = (value: string): value is TokenKind =>
  * declaration, a name that isn't `--<kind>-<name>` in lowercase, or an unknown
  * kind throws, so a broken token file can't parse as a shorter one.
  */
-export function parseTokens(css: string): Token[] {
+export const parseTokens = (css: string): Token[] => {
   const block = THEME_BLOCK.exec(css.replaceAll(COMMENT, ""))?.[1];
 
   if (block === undefined) {
@@ -84,7 +84,7 @@ export function parseTokens(css: string): Token[] {
 
       return { kind, name, value: value.trim(), variable };
     });
-}
+};
 
 /** One `@utility` of `tokens.css`, such as a text style. */
 export interface Utility {
@@ -94,14 +94,14 @@ export interface Utility {
   name: string;
 }
 
-const UTILITY_BLOCK = /@utility\s+([a-z0-9-]+)\s*\{([^}]*)\}/g;
+const UTILITY_BLOCK = /@utility\s+(?<name>[a-z0-9-]+)\s*\{(?<body>[^}]*)\}/gu;
 
 /**
  * Parses the `@utility` blocks of token CSS, in file order. A declaration
  * without a `property: value` shape, or a repeated property, throws.
  */
-export function parseUtilities(css: string): Utility[] {
-  return [...css.replaceAll(COMMENT, "").matchAll(UTILITY_BLOCK)].map(
+export const parseUtilities = (css: string): Utility[] =>
+  [...css.replaceAll(COMMENT, "").matchAll(UTILITY_BLOCK)].map(
     ([, name = "", body = ""]) => {
       const declarations: Record<string, string> = {};
 
@@ -128,7 +128,6 @@ export function parseUtilities(css: string): Utility[] {
       return { declarations, name };
     }
   );
-}
 
 const readTokenCss = () => readFileSync(TOKENS_CSS_PATH, "utf-8");
 

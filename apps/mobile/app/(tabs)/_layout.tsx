@@ -6,7 +6,7 @@ import Authenticated from "~/components/authenticated";
 import { useNavigationTheme } from "~/hooks/navigation-theme";
 import { getTabSymbol, TAB_TITLE_KEYS } from "~/lib/tabs";
 
-export default function TabLayout() {
+const TabLayout = () => {
   const navigationTheme = useNavigationTheme();
   const { t } = useTranslation();
 
@@ -49,4 +49,6 @@ export default function TabLayout() {
       </ThemeProvider>
     </Authenticated>
   );
-}
+};
+
+export default TabLayout;

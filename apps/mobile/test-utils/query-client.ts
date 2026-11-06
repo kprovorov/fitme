@@ -16,7 +16,7 @@ notifyManager.setScheduler((callback) => {
   pendingNotifications.add(notification);
   defaultScheduler(() => {
     try {
-      callback();
+      return callback();
     } finally {
       pendingNotifications.delete(notification);
     }
@@ -57,7 +57,9 @@ const MAX_TICKS = 2000;
 
 const nextMacrotask = () =>
   act(async () => {
-    await new Promise((resolve) => setTimeout(resolve, 0));
+    const { promise, resolve } = Promise.withResolvers<undefined>();
+    setTimeout(resolve, 0, undefined);
+    await promise;
   });
 
 /**
@@ -66,16 +68,21 @@ const nextMacrotask = () =>
  * Real timers only.
  */
 export const until = async (condition: () => boolean) => {
-  for (let tick = 0; tick < MAX_TICKS; tick += 1) {
+  const check = async (tick: number): Promise<void> => {
+    if (tick === MAX_TICKS) {
+      throw new Error(`Condition still false after ${MAX_TICKS} ticks`);
+    }
+
     if (condition()) {
       return;
     }
 
-    // biome-ignore lint/performance/noAwaitInLoops: each tick lets the app reach its next timer
     await nextMacrotask();
-  }
 
-  throw new Error(`Condition still false after ${MAX_TICKS} ticks`);
+    return check(tick + 1);
+  };
+
+  await check(0);
 };
 
 /**
@@ -94,8 +101,13 @@ export const settle = async (
 ) => {
   let idleTicks = 0;
 
-  for (let tick = 0; tick < MAX_TICKS; tick += 1) {
-    // biome-ignore lint/performance/noAwaitInLoops: each tick lets the app reach its next timer
+  const check = async (tick: number): Promise<void> => {
+    if (tick === MAX_TICKS) {
+      throw new Error(
+        `Not settled after ${MAX_TICKS} ticks: ${client.isFetching()} fetching, ${client.isMutating()} mutating`
+      );
+    }
+
     await nextMacrotask();
 
     const idle =
@@ -109,9 +121,9 @@ export const settle = async (
     if (idleTicks === 2) {
       return;
     }
-  }
 
-  throw new Error(
-    `Not settled after ${MAX_TICKS} ticks: ${client.isFetching()} fetching, ${client.isMutating()} mutating`
-  );
+    return check(tick + 1);
+  };
+
+  await check(0);
 };

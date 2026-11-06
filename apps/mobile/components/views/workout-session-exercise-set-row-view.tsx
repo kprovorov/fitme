@@ -22,7 +22,6 @@ import { cn } from "~/lib/utils";
 import WorkoutSessionExerciseSetForm, {
   SET_NUMBER_COLUMN_CLASS,
   SET_TABLE_MAX_FONT_SCALE,
-  SET_TARGET_COLUMN_CLASS,
 } from "../forms/workout-exercise-set-form";
 import type { WorkoutSessionExerciseSetFormValues } from "../forms/workout-exercise-set-form";
 import { Text } from "../ui/text";
@@ -41,7 +40,14 @@ interface WorkoutSessionExerciseSetRowViewProps {
   workoutSessionExerciseSet: WorkoutSessionSet | null;
 }
 
-export default function WorkoutSessionExerciseSetRowView({
+const getSetValues = (set: WorkoutSessionSet | null) => ({
+  repsCompleted: set?.reps_completed ?? null,
+  repsRecommended: set?.reps_recommended ?? 0,
+  weightCompleted: set?.weight_completed ?? null,
+  weightRecommended: set?.weight_recommended ?? 0,
+});
+
+const WorkoutSessionExerciseSetRowView = ({
   exerciseId,
   workoutSessionExerciseSet,
   localSetId,
@@ -51,7 +57,7 @@ export default function WorkoutSessionExerciseSetRowView({
   onSetLogged,
   sessionId,
   weightLabel,
-}: WorkoutSessionExerciseSetRowViewProps) {
+}: WorkoutSessionExerciseSetRowViewProps) => {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
   const isNewSet = workoutSessionExerciseSet === null;
@@ -77,9 +83,7 @@ export default function WorkoutSessionExerciseSetRowView({
   const isEditable = !isDone || isEditing;
   const [saveError, setSaveError] = useState<string | null>(null);
 
-  const handleSaveError = (error: unknown) => {
-    const waitSeconds = rateLimitedFor(error);
-
+  const handleSaveError = (waitSeconds: number | null) => {
     // Never the backend's message: the User can't act on a Postgres error.
     // Kept neutral, since a lost connection isn't the only way a save fails.
     const message =
@@ -132,13 +136,13 @@ export default function WorkoutSessionExerciseSetRowView({
 
   const { mutate: updateWorkoutSessionExerciseSet } =
     useUpdateWorkoutSessionExerciseSetMutation({
-      onError: handleSaveError,
+      onError: (error) => handleSaveError(rateLimitedFor(error)),
       onSuccess: (set) => handleSaved(set, previousRepsCompleted.current),
     });
 
   const { mutate: createWorkoutSessionExerciseSet } =
     useCreateWorkoutSessionExerciseSetMutation({
-      onError: handleSaveError,
+      onError: (error) => handleSaveError(rateLimitedFor(error)),
       onSuccess: (set) => {
         handleSaved(set, null);
         onSetCreated?.(localSetId);
@@ -147,21 +151,8 @@ export default function WorkoutSessionExerciseSetRowView({
 
   const setOrder = isNewSet ? order : workoutSessionExerciseSet.order;
 
-  const weightRecommended = isNewSet
-    ? 0
-    : (workoutSessionExerciseSet.weight_recommended ?? 0);
-
-  const repsRecommended = isNewSet
-    ? 0
-    : (workoutSessionExerciseSet.reps_recommended ?? 0);
-
-  const weightCompleted = isNewSet
-    ? null
-    : workoutSessionExerciseSet.weight_completed;
-
-  const repsCompleted = isNewSet
-    ? null
-    : workoutSessionExerciseSet.reps_completed;
+  const { weightRecommended, repsRecommended, weightCompleted, repsCompleted } =
+    getSetValues(workoutSessionExerciseSet);
 
   const handleEdit = () => setIsEditing(true);
   // A logged set reads as done until it's opened for editing.
@@ -227,10 +218,7 @@ export default function WorkoutSessionExerciseSetRowView({
               // At body size `#2` fills the column: shrink it at the largest
               // text sizes rather than wrap it onto a second line.
               adjustsFontSizeToFit
-              className={cn(
-                SET_NUMBER_COLUMN_CLASS,
-                "text-mono-body text-center"
-              )}
+              className="text-mono-body w-7 text-center"
               maxFontSizeMultiplier={SET_TABLE_MAX_FONT_SCALE}
               numberOfLines={1}
             >
@@ -239,13 +227,10 @@ export default function WorkoutSessionExerciseSetRowView({
           )}
           <Text
             adjustsFontSizeToFit
-            className={cn(
-              SET_TARGET_COLUMN_CLASS,
-              "text-mono-body text-center",
-              showsLogged && "text-muted-foreground"
-            )}
+            className="text-mono-body w-20 text-center"
             maxFontSizeMultiplier={SET_TABLE_MAX_FONT_SCALE}
             numberOfLines={1}
+            variant={showsLogged ? "muted" : "default"}
           >
             {isNewSet
               ? "–"
@@ -262,4 +247,6 @@ export default function WorkoutSessionExerciseSetRowView({
       setIndex={setOrder}
     />
   );
-}
+};
+
+export default WorkoutSessionExerciseSetRowView;

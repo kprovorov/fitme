@@ -1,6 +1,6 @@
 import type { ConfigContext, ExpoConfig } from "expo/config";
 
-export default ({ config }: ConfigContext): ExpoConfig => ({
+const appConfig = ({ config }: ConfigContext): ExpoConfig => ({
   ...config,
   extra: {
     ...config.extra,
@@ -14,3 +14,5 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   name: config.name ?? "Fitme Project",
   slug: config.slug ?? "fitme-project",
 });
+
+export default appConfig;

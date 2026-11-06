@@ -52,24 +52,38 @@ const retryAfter = (response: Response): number => {
     : DEFAULT_RETRY_AFTER_SECONDS;
 };
 
+interface ApiErrorEnvelope {
+  error: { code?: unknown; message?: unknown };
+}
+
+const isApiErrorEnvelope = (value: unknown): value is ApiErrorEnvelope =>
+  value !== null &&
+  typeof value === "object" &&
+  "error" in value &&
+  value.error !== null &&
+  typeof value.error === "object";
+
+const isErrorText = (value: unknown): value is string =>
+  typeof value === "string";
+
 /** The API's `{ error: { code, message } }`, or whatever of it can be read. */
 const errorFrom = async (response: Response): Promise<ApiError> => {
   let code: string | null = null;
   let message = `Public API request failed (${response.status})`;
 
   try {
-    const { error } = (await response.json()) as {
-      error?: { code?: unknown; message?: unknown };
-    };
+    const body: unknown = await response.json();
 
-    const { code: errorCode, message: errorMessage } = error ?? {};
+    if (isApiErrorEnvelope(body)) {
+      const { code: errorCode, message: errorMessage } = body.error;
 
-    if (typeof errorCode === "string") {
-      code = errorCode;
-    }
+      if (isErrorText(errorCode)) {
+        code = errorCode;
+      }
 
-    if (typeof errorMessage === "string") {
-      message = errorMessage;
+      if (isErrorText(errorMessage)) {
+        message = errorMessage;
+      }
     }
   } catch {
     // Not the API's JSON (a proxy's error page): the status says enough.
@@ -125,7 +139,7 @@ export const createPublicApi = ({
       // network failure too.
       const bearer = await token();
 
-      if (bearer) {
+      if (bearer !== null && bearer !== "") {
         headers.set("Authorization", `Bearer ${bearer}`);
       }
 

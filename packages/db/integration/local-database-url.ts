@@ -17,8 +17,28 @@ interface StackStatus {
   endpoints?: Record<string, { address: string; port: number } | undefined>;
 }
 
-const readStatus = (): StackStatus =>
-  JSON.parse(
+const isEndpoint = (
+  value: unknown
+): value is { address: string; port: number } | undefined =>
+  value === undefined ||
+  (typeof value === "object" &&
+    value !== null &&
+    "address" in value &&
+    typeof value.address === "string" &&
+    "port" in value &&
+    typeof value.port === "number");
+
+const isStackStatus = (value: unknown): value is StackStatus =>
+  typeof value === "object" &&
+  value !== null &&
+  (!("endpoints" in value) ||
+    value.endpoints === undefined ||
+    (typeof value.endpoints === "object" &&
+      value.endpoints !== null &&
+      Object.values(value.endpoints).every(isEndpoint)));
+
+const readStatus = (): StackStatus => {
+  const status: unknown = JSON.parse(
     execFileSync(
       "pnpm",
       [
@@ -34,6 +54,13 @@ const readStatus = (): StackStatus =>
       { encoding: "utf-8" }
     )
   );
+
+  if (!isStackStatus(status)) {
+    throw new Error("Invalid local stack status.");
+  }
+
+  return status;
+};
 
 const endpointHost = (name: string, missing: string): string => {
   const endpoint = readStatus().endpoints?.[name];

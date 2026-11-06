@@ -38,15 +38,39 @@ const subscribe = (listener: () => void) => {
 const getSnapshot = () => active?.method ?? null;
 const getActiveToken = () => active?.token;
 
-export function invalidateAuthOperation(pathname?: string) {
+export const invalidateAuthOperation = (pathname?: string) => {
   if (activeRoute !== pathname) {
     activeRoute = pathname;
     routeRevision += 1;
   }
-}
+};
+
+const runAuthTask = async (
+  task: (current: () => boolean) => Promise<string | undefined>,
+  current: () => boolean,
+  setError: (error: string | undefined) => void,
+  token: symbol
+) => {
+  try {
+    const message = await task(current);
+
+    if (current()) {
+      setError(message || undefined);
+    }
+  } catch (error_) {
+    if (current()) {
+      setError(getAuthErrorMessage(error_));
+    }
+  } finally {
+    if (getActiveToken() === token) {
+      active = null;
+      notify();
+    }
+  }
+};
 
 /** Clerk has one mutable attempt per flow, shared by every auth screen. */
-export function useAuthOperation() {
+export const useAuthOperation = () => {
   const pending = useSyncExternalStore(subscribe, getSnapshot, getSnapshot);
   const [error, setError] = useState<string | undefined>(undefined);
   const mounted = useRef<boolean>(true);
@@ -79,25 +103,10 @@ export function useAuthOperation() {
         revision === routeRevision &&
         getActiveToken() === token;
 
-      try {
-        const message = await task(current);
-
-        if (current()) {
-          setError(message || undefined);
-        }
-      } catch (error_) {
-        if (current()) {
-          setError(getAuthErrorMessage(error_));
-        }
-      } finally {
-        if (getActiveToken() === token) {
-          active = null;
-          notify();
-        }
-      }
+      await runAuthTask(task, current, setError, token);
     },
     []
   );
 
   return { clearError, error, pending, run };
-}
+};

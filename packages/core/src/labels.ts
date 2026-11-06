@@ -30,65 +30,26 @@ export const getMeasurementSystemLabel = (
 
 export const getMeasurementSystemDisclaimer = (
   measurementSystem: MeasurementSystem
-) => {
-  switch (measurementSystem) {
-    case "metric": {
-      return "Centimeters and Kilograms";
-    }
+) =>
+  new Map<MeasurementSystem, string>([
+    ["metric", "Centimeters and Kilograms"],
+    ["us", "Feet, Inches and Pounds"],
+    ["uk", "Feet, Inches and Pounds"],
+  ]).get(measurementSystem);
 
-    case "us": {
-      return "Feet, Inches and Pounds";
-    }
+export const getWeightLabel = (measurementSystem: MeasurementSystem) =>
+  new Map<MeasurementSystem, string>([
+    ["metric", "kg"],
+    ["us", "lbs"],
+    ["uk", "lbs"],
+  ]).get(measurementSystem);
 
-    case "uk": {
-      return "Feet, Inches and Pounds";
-    }
-
-    default: {
-      return;
-    }
-  }
-};
-
-export const getWeightLabel = (measurementSystem: MeasurementSystem) => {
-  switch (measurementSystem) {
-    case "metric": {
-      return "kg";
-    }
-
-    case "us": {
-      return "lbs";
-    }
-
-    case "uk": {
-      return "lbs";
-    }
-
-    default: {
-      return;
-    }
-  }
-};
-
-export const getHeightLabel = (measurementSystem: MeasurementSystem) => {
-  switch (measurementSystem) {
-    case "metric": {
-      return "cm";
-    }
-
-    case "us": {
-      return "ft";
-    }
-
-    case "uk": {
-      return "ft";
-    }
-
-    default: {
-      return;
-    }
-  }
-};
+export const getHeightLabel = (measurementSystem: MeasurementSystem) =>
+  new Map<MeasurementSystem, string>([
+    ["metric", "cm"],
+    ["us", "ft"],
+    ["uk", "ft"],
+  ]).get(measurementSystem);
 
 export const getGenderLabel = (gender: Gender) => {
   switch (gender) {
@@ -106,88 +67,33 @@ export const getGenderLabel = (gender: Gender) => {
   }
 };
 
-export const getGoalLabel = (goal: Goal) => {
-  switch (goal) {
-    case "fat-loss": {
-      return "Lose Weight";
-    }
+export const getGoalLabel = (goal: Goal) =>
+  new Map<Goal, string>([
+    ["fat-loss", "Lose Weight"],
+    ["muscle-gain", "Gain Muscle"],
+    ["recomposition", "Recomposition"],
+    ["strength-performance", "Strength & Performance"],
+    ["general-health-fitness", "General Health & Fitness"],
+  ]).get(goal);
 
-    case "muscle-gain": {
-      return "Gain Muscle";
-    }
+export const getPlaceLabel = (place: Place) =>
+  new Map<Place, string>([
+    ["gym", "Gym"],
+    ["home", "Home"],
+  ]).get(place);
 
-    case "recomposition": {
-      return "Recomposition";
-    }
-
-    case "strength-performance": {
-      return "Strength & Performance";
-    }
-
-    case "general-health-fitness": {
-      return "General Health & Fitness";
-    }
-
-    default: {
-      return;
-    }
-  }
-};
-
-export const getPlaceLabel = (place: Place) => {
-  switch (place) {
-    case "gym": {
-      return "Gym";
-    }
-
-    case "home": {
-      return "Home";
-    }
-
-    default: {
-      return;
-    }
-  }
-};
-
-export const getExperienceLevelLabel = (experienceLevel: ExperienceLevel) => {
-  switch (experienceLevel) {
-    case "beginner": {
-      return "Beginner";
-    }
-
-    case "intermediate": {
-      return "Intermediate";
-    }
-
-    case "advanced": {
-      return "Advanced";
-    }
-
-    default: {
-      return;
-    }
-  }
-};
+export const getExperienceLevelLabel = (experienceLevel: ExperienceLevel) =>
+  new Map<ExperienceLevel, string>([
+    ["beginner", "Beginner"],
+    ["intermediate", "Intermediate"],
+    ["advanced", "Advanced"],
+  ]).get(experienceLevel);
 
 export const getExperienceLevelDisclaimer = (
   experienceLevel: ExperienceLevel
-) => {
-  switch (experienceLevel) {
-    case "beginner": {
-      return "0-6 mo experience";
-    }
-
-    case "intermediate": {
-      return "6 mo - 3 yrs experience";
-    }
-
-    case "advanced": {
-      return "3+ yrs experience";
-    }
-
-    default: {
-      return;
-    }
-  }
-};
+) =>
+  new Map<ExperienceLevel, string>([
+    ["beginner", "0-6 mo experience"],
+    ["intermediate", "6 mo - 3 yrs experience"],
+    ["advanced", "3+ yrs experience"],
+  ]).get(experienceLevel);

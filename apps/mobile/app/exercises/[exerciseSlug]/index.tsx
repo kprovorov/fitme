@@ -10,7 +10,7 @@ import { Muted, P } from "~/components/ui/typography";
 import { VStack } from "~/components/ui/vstack";
 import { useExercise, useExerciseDetailQuery } from "~/hooks/queries/library";
 
-export default function ExerciseScreen() {
+const ExerciseScreen = () => {
   const { t } = useTranslation();
   const { exerciseSlug } = useLocalSearchParams<{ exerciseSlug: string }>();
 
@@ -36,7 +36,7 @@ export default function ExerciseScreen() {
               <ExerciseVideo url={exercise.video_url} />
             </View>
           ) : null}
-          <P className="text-primary">{exercise.description}</P>
+          <P>{exercise.description}</P>
           <Muted>{exercise.instructions}</Muted>
         </VStack>
       );
@@ -44,7 +44,7 @@ export default function ExerciseScreen() {
 
     if (exercise === null) {
       return (
-        <Text className="pt-lg text-muted-foreground text-center">
+        <Text className="mt-lg text-center" variant="muted">
           {t("exercise.gone")}
         </Text>
       );
@@ -53,7 +53,7 @@ export default function ExerciseScreen() {
     if (isError) {
       return (
         <View className="gap-sm pt-lg items-center">
-          <Text className="text-muted-foreground text-center">
+          <Text className="text-center" variant="muted">
             {t("exercise.loadError")}
           </Text>
           <Button
@@ -96,4 +96,6 @@ export default function ExerciseScreen() {
       </ScrollView>
     </>
   );
-}
+};
+
+export default ExerciseScreen;

@@ -43,7 +43,7 @@ export const checkExerciseSlugs = async ({
   slugs,
 }: {
   library: Library | null;
-  reportError: (error: unknown) => Promise<void>;
+  reportError: (error: Error) => Promise<void>;
   slugs: string[];
 }): Promise<SlugCheck> => {
   if (!library) {
@@ -63,7 +63,11 @@ export const checkExerciseSlugs = async ({
       ? { slugs: missing, status: "unknown" }
       : { exercises: data, status: "known" };
   } catch (error) {
-    await reportError(error);
+    await reportError(
+      error instanceof Error
+        ? error
+        : new Error("Library lookup failed", { cause: error })
+    );
 
     return { status: "unavailable" };
   }
@@ -116,7 +120,7 @@ export const checkSlugsForCovers = async ({
   library: Library | null;
   random?: () => number;
   readCovers?: boolean;
-  reportError: (error: unknown) => Promise<void>;
+  reportError: (error: Error) => Promise<void>;
   workouts: readonly WorkoutToCover[];
 }): Promise<CoverPickerCheck> => {
   const check = await checkExerciseSlugs({
@@ -139,10 +143,14 @@ export const checkSlugsForCovers = async ({
 
   if (readCovers) {
     try {
-      // A known check had a library to look the slugs up in.
+      // SAFETY: A known check had a library to look the slugs up in.
       covers = await (library as Library).covers();
     } catch (error) {
-      await reportError(error);
+      await reportError(
+        error instanceof Error
+          ? error
+          : new Error("Library covers lookup failed", { cause: error })
+      );
 
       return { status: "covers_unavailable" };
     }

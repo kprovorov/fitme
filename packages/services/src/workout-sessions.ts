@@ -48,7 +48,7 @@ const toNumber = (value: string | null) =>
 export type WorkoutSessionStatus = "finished" | "in_progress";
 
 const statusOf = (finishedAt: string | null): WorkoutSessionStatus =>
-  finishedAt ? "finished" : "in_progress";
+  finishedAt !== null && finishedAt !== "" ? "finished" : "in_progress";
 
 interface NamedRef {
   id: string;
@@ -199,9 +199,9 @@ const statusCondition = (status: WorkoutSessionStatusFilter) => {
     return isNull(workoutSessions.finishedAt);
   }
 
-  if (status === "finished") {
-    return isNotNull(workoutSessions.finishedAt);
-  }
+  return status === "finished"
+    ? isNotNull(workoutSessions.finishedAt)
+    : undefined;
 };
 
 const countOf = (subquery: SQL) =>
@@ -261,9 +261,11 @@ export const listWorkoutSessions = async (
     .offset(offset);
 
   const [first] = rows;
+
   // An empty page has no row to carry the total: count on its own (no rows
   // to disagree with).
-  const total = first ? first.total : await countSessions(tx, where);
+  const total =
+    first === undefined ? await countSessions(tx, where) : first.total;
 
   return {
     sessions: rows.map((row) => ({
@@ -429,6 +431,17 @@ export const listWorkoutHistory = async (
   );
 };
 
+/**
+ * ROW EXCLUSIVE on the tables a session edit writes, in `deleteUserData`'s
+ * order, so an edit queues behind an account deletion before it holds any row
+ * the deletion's cascade needs; taken later, the two deadlock.
+ */
+const lockSessionTables = (tx: Transaction) =>
+  tx.execute(sql`
+    lock table ${workoutSessions}, ${workoutSessionExercises}, ${workoutSessionExerciseSets}
+    in row exclusive mode
+  `);
+
 export interface LogSetInput {
   repsCompleted: number;
   setId: string;
@@ -476,11 +489,11 @@ export const logSet = async (
     .where(eq(workoutSessionExerciseSets.id, setId))
     .for("no key update", { of: workoutSessions });
 
-  if (!session) {
+  if (session === undefined) {
     return { status: "not_found" };
   }
 
-  if (session.finishedAt) {
+  if (session.finishedAt !== null && session.finishedAt !== "") {
     return {
       ...session,
       finishedAt: session.finishedAt,
@@ -499,23 +512,12 @@ export const logSet = async (
     .where(eq(workoutSessionExerciseSets.id, setId))
     .returning(setColumns);
 
-  if (set) {
+  if (set !== undefined) {
     return { set: toSet(set), status: "logged" };
   }
 
   return { status: "not_found" };
 };
-
-/**
- * ROW EXCLUSIVE on the tables a session edit writes, in `deleteUserData`'s
- * order, so an edit queues behind an account deletion before it holds any row
- * the deletion's cascade needs; taken later, the two deadlock.
- */
-const lockSessionTables = (tx: Transaction) =>
-  tx.execute(sql`
-    lock table ${workoutSessions}, ${workoutSessionExercises}, ${workoutSessionExerciseSets}
-    in row exclusive mode
-  `);
 
 type OpenSession =
   | { status: "open" }
@@ -542,11 +544,11 @@ const lockSessionForEdit = async (
     )
     .for("no key update");
 
-  if (!session) {
+  if (session === undefined) {
     return { status: "not_found" };
   }
 
-  return session.finishedAt
+  return session.finishedAt !== null && session.finishedAt !== ""
     ? { finishedAt: session.finishedAt, status: "session_finished" }
     : { status: "open" };
 };
@@ -634,7 +636,7 @@ const lockSessionOfExercise = async (
       )
     );
 
-  if (!found) {
+  if (found === undefined) {
     return { status: "not_found" };
   }
 
@@ -728,7 +730,7 @@ export const replaceExerciseInWorkoutSession = async (
       order: workoutSessionExercises.order,
     });
 
-  if (!replaced) {
+  if (replaced === undefined) {
     return { status: "not_found" };
   }
 
@@ -745,7 +747,7 @@ export const replaceExerciseInWorkoutSession = async (
       ...replaced,
       sets: sets
         .map(toSet)
-        .sort((a, b) => a.order - b.order || a.id.localeCompare(b.id)),
+        .toSorted((a, b) => a.order - b.order || a.id.localeCompare(b.id)),
     },
     status: "replaced",
   };
@@ -799,7 +801,7 @@ export const addSetToWorkoutSessionExercise = async (
     )
     .for("no key update");
 
-  if (!exercise) {
+  if (exercise === undefined) {
     return { status: "not_found" };
   }
 
@@ -959,7 +961,7 @@ const insertOrResume = async (
 
   const open = await findOpenSession(tx);
 
-  if (open && open.workoutId !== workoutId) {
+  if (open !== null && open.workoutId !== workoutId) {
     return {
       sessionId: open.id,
       status: "session_in_progress",
@@ -967,7 +969,7 @@ const insertOrResume = async (
     };
   }
 
-  if (open) {
+  if (open !== null) {
     const session = await getWorkoutSession(tx, open.id);
 
     if (session) {
@@ -992,7 +994,7 @@ const insertOrResume = async (
     })
     .returning({ id: workoutSessions.id });
 
-  if (!created) {
+  if (created === undefined) {
     // Lost a race with a concurrent start: the next attempt resumes or
     // refuses on its session (copied by that start, which has committed by now)
     return await insertOrResume(tx, workoutId, planId, attemptsLeft - 1);
@@ -1027,7 +1029,7 @@ export const startWorkoutSession = async (
     .innerJoin(plans, eq(plans.id, workouts.planId))
     .where(and(eq(workouts.id, workoutId), isNull(plans.deletedAt)));
 
-  if (!workout) {
+  if (workout === undefined) {
     return { status: "not_found" };
   }
 
@@ -1054,7 +1056,7 @@ const rotateWorkout = async (tx: Transaction, workoutId: string) => {
     .from(workouts)
     .where(eq(workouts.id, workoutId));
 
-  if (!workout) {
+  if (workout === undefined) {
     return false;
   }
 
@@ -1112,7 +1114,7 @@ export const finishWorkoutSession = async (
     .from(workoutSessions)
     .where(eq(workoutSessions.id, sessionId));
 
-  if (!owned) {
+  if (owned === undefined) {
     return { status: "not_found" };
   }
 
@@ -1122,7 +1124,7 @@ export const finishWorkoutSession = async (
   await lockProfileUnits(tx, owned.userId);
   await lockPersonalRecordHistory(tx, owned.userId);
 
-  if (owned.planId) {
+  if (owned.planId !== null && owned.planId !== "") {
     await tx
       .select({ id: plans.id })
       .from(plans)
@@ -1141,15 +1143,18 @@ export const finishWorkoutSession = async (
 
   // Only the finish that claimed the session awards its records, so a
   // repeated or concurrent finish never awards twice
-  if (claimed) {
+  if (claimed !== undefined) {
     await awardPersonalRecords(tx, owned.userId, sessionId);
   }
 
-  const rotated = claimed?.workoutId
-    ? await rotateWorkout(tx, claimed.workoutId)
-    : false;
+  const rotated =
+    claimed?.workoutId !== undefined &&
+    claimed.workoutId !== null &&
+    claimed.workoutId !== ""
+      ? await rotateWorkout(tx, claimed.workoutId)
+      : false;
 
-  if (claimed) {
+  if (claimed !== undefined) {
     // Starts tracking the Weekly goal for a User whose Plan no service
     // write has recorded yet; a no-op otherwise
     await recordWeeklyGoal(tx, owned.userId);
@@ -1163,5 +1168,10 @@ export const finishWorkoutSession = async (
     return { status: "not_found" };
   }
 
-  return { alreadyFinished: !claimed, rotated, session, status: "finished" };
+  return {
+    alreadyFinished: claimed === undefined,
+    rotated,
+    session,
+    status: "finished",
+  };
 };

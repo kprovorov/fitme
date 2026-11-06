@@ -1,7 +1,10 @@
-import { Image } from "expo-image";
+import { Image as ExpoImage } from "expo-image";
 import { View } from "react-native";
+import { ScopedVariables, withUniwind } from "uniwind";
 
 import { sizedThumbnailUrl } from "~/lib/exercise-media";
+
+const Image = withUniwind(ExpoImage);
 
 interface ExerciseImageProps {
   exercise: { thumbnail_url: string | null };
@@ -11,22 +14,27 @@ interface ExerciseImageProps {
 }
 
 /** An Exercise's thumbnail, or an empty tile when it has none (not resolved). */
-export default function ExerciseImage({
+const ExerciseImage = ({
   exercise,
   radius = 666,
   size = 48,
-}: ExerciseImageProps) {
-  const style = { aspectRatio: 1 / 1, borderRadius: radius, height: size };
+}: ExerciseImageProps) => (
+  <ScopedVariables
+    variables={{
+      "--exercise-image-radius": radius,
+      "--exercise-image-size": size,
+    }}
+  >
+    {exercise.thumbnail_url ? (
+      <Image
+        className="aspect-square h-(--exercise-image-size) rounded-(--exercise-image-radius)"
+        contentFit="cover"
+        source={{ uri: sizedThumbnailUrl(exercise.thumbnail_url, size) }}
+      />
+    ) : (
+      <View className="bg-secondary aspect-square h-(--exercise-image-size) rounded-(--exercise-image-radius)" />
+    )}
+  </ScopedVariables>
+);
 
-  if (!exercise.thumbnail_url) {
-    return <View className="bg-secondary" style={style} />;
-  }
-
-  return (
-    <Image
-      contentFit="cover"
-      source={{ uri: sizedThumbnailUrl(exercise.thumbnail_url, size) }}
-      style={style}
-    />
-  );
-}
+export default ExerciseImage;

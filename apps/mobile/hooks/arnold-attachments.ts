@@ -65,10 +65,10 @@ export const arnoldAttachmentsOwner = (): string | null => owner;
  * a User who signs out meanwhile must not hand their photos to whoever
  * signs in next, so a pick that comes back for anyone else is dropped.
  */
-export function addArnoldAttachments(
+export const addArnoldAttachments = (
   images: readonly PickedImage[],
   startedFor: string | null
-): void {
+): void => {
   if (startedFor !== owner) {
     return;
   }
@@ -88,10 +88,10 @@ export function addArnoldAttachments(
     }),
   ];
   emit();
-}
+};
 
 /** Removes one, by its id (the thumbnail's ×). */
-export function removeArnoldAttachment(id: string): void {
+export const removeArnoldAttachment = (id: string): void => {
   const left = picked.filter((attachment) => attachment.id !== id);
 
   if (left.length === picked.length) {
@@ -100,17 +100,17 @@ export function removeArnoldAttachment(id: string): void {
 
   picked = left;
   emit();
-}
+};
 
 /** Drops every one of them: a sign-out (`components/auth-sync.tsx`), and tests. */
-export function clearArnoldAttachments(): void {
+export const clearArnoldAttachments = (): void => {
   if (picked.length === 0) {
     return;
   }
 
   picked = NONE;
   emit();
-}
+};
 
 /**
  * Keeps the picks of the User the Arnold screen is showing and drops anyone
@@ -118,27 +118,25 @@ export function clearArnoldAttachments(): void {
  * Dropped as the screen renders, before anything reads them, so no thumbnail
  * of theirs is ever on screen.
  */
-export function useArnoldAttachmentsOwner(userId: string): void {
+export const useArnoldAttachmentsOwner = (userId: string): void => {
   if (owner !== userId) {
     owner = userId;
     picked = NONE;
   }
-}
+};
 
 /** The Attachments picked so far, re-rendering when they change. */
-export function useArnoldAttachments(): readonly ArnoldAttachment[] {
-  return useSyncExternalStore(
+export const useArnoldAttachments = (): readonly ArnoldAttachment[] =>
+  useSyncExternalStore(
     subscribe,
     pickedArnoldAttachments,
     pickedArnoldAttachments
   );
-}
 
 /** How many more the next message takes, re-rendering when that changes. */
-export function useRemainingAttachmentSlots(): number {
-  return useSyncExternalStore(
+export const useRemainingAttachmentSlots = (): number =>
+  useSyncExternalStore(
     subscribe,
     remainingAttachmentSlots,
     remainingAttachmentSlots
   );
-}

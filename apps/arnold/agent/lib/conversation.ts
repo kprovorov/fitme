@@ -8,7 +8,7 @@ interface AdmitTurnDeps {
   claim: ClaimSession;
   /** Whether this is a local `eve eval` run (`isLocalEvalRun`). */
   isEvalRun: () => boolean;
-  report: (error: unknown, context: { sessionId: string }) => Promise<void>;
+  report: (error: Error, context: { sessionId: string }) => Promise<void>;
 }
 
 /**
@@ -34,7 +34,7 @@ export const admitTurn = async (
 
   const owner = ownerOfTurn(auth);
 
-  if (!owner) {
+  if (owner === null || owner === "") {
     return false;
   }
 
@@ -49,7 +49,12 @@ export const admitTurn = async (
 
     return true;
   } catch (error) {
-    await report(error, { sessionId });
+    const failure =
+      error instanceof Error
+        ? error
+        : new Error("Conversation ownership check failed", { cause: error });
+
+    await report(failure, { sessionId });
 
     return false;
   }

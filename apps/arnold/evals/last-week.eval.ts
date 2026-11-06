@@ -2,11 +2,11 @@ import { defineEval } from "eve/evals";
 
 import { readToolStubs } from "./fixtures";
 
-const BENCH = /bench/i;
-const SQUAT = /squat/i;
+const BENCH = /bench/iu;
+const SQUAT = /squat/iu;
 
 // the logged weights, not the Plan's targets (70, 100)
-const LOGGED_WEIGHT = /72\.5|105/;
+const LOGGED_WEIGHT = /72\.5|105/u;
 
 export default defineEval({
   description:

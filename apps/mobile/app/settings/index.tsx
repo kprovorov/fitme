@@ -13,7 +13,7 @@ import { useChoiceLabels } from "~/lib/choices";
 import { i18n } from "~/lib/i18n";
 import { measurementSystemOf } from "~/lib/profile";
 
-export default function SettingsScreen() {
+const SettingsScreen = () => {
   const { user } = useUser();
   const { data: profile } = useProfileQuery();
   const labels = useChoiceLabels();
@@ -47,7 +47,7 @@ export default function SettingsScreen() {
                 <MenuListItem icon="chevron-right">
                   <HStack className="flex-1 justify-between">
                     <Text>{t("settings.measurementSystem")}</Text>
-                    <Text className="text-footnote text-muted-foreground">
+                    <Text variant="muted">
                       {profile === undefined
                         ? null
                         : labels.measurementSystem(
@@ -88,4 +88,6 @@ export default function SettingsScreen() {
       </ScrollView>
     </>
   );
-}
+};
+
+export default SettingsScreen;

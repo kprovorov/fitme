@@ -36,14 +36,14 @@ const GOAL_ICONS: Record<WorkoutPlan["goal"], SFSymbol> = {
 };
 
 /** What the card says when saving failed, by the Public API's answer. */
-const saveErrorMessage = (t: TFunction, error: unknown) => {
+const saveErrorMessage = (t: TFunction, error: ApiError | null) => {
   const seconds = rateLimitedFor(error);
 
   if (seconds !== null) {
     return t("arnold.planCard.errors.rateLimited", { seconds });
   }
 
-  const code = error instanceof ApiError ? error.code : null;
+  const code = error?.code;
 
   if (code === "unknown_exercises") {
     return t("arnold.planCard.errors.unknownExercises");
@@ -56,26 +56,38 @@ const saveErrorMessage = (t: TFunction, error: unknown) => {
   return t("arnold.planCard.errors.generic");
 };
 
-function PlanTag({ icon, label }: { icon: SFSymbol; label: string }) {
-  return (
-    <View className="bg-muted/40 flex-row items-center gap-1.5 rounded-full px-3 py-1.5">
-      <SymbolImage
-        className="text-footnote text-muted-foreground"
-        name={icon}
-      />
-      <Text className="text-footnote text-muted-foreground">{label}</Text>
-    </View>
-  );
-}
+const exerciseKeys = new WeakMap<WorkoutExercise, number>();
+let nextExerciseKey = 0;
 
-function ExerciseRow({
+const exerciseKey = (exercise: WorkoutExercise): number => {
+  const existing = exerciseKeys.get(exercise);
+
+  if (existing !== undefined) {
+    return existing;
+  }
+
+  const key = nextExerciseKey;
+  nextExerciseKey += 1;
+  exerciseKeys.set(exercise, key);
+
+  return key;
+};
+
+const PlanTag = ({ icon, label }: { icon: SFSymbol; label: string }) => (
+  <View className="bg-muted/40 flex-row items-center gap-1.5 rounded-full px-3 py-1.5">
+    <SymbolImage className="text-footnote text-muted-foreground" name={icon} />
+    <Text className="text-footnote text-muted-foreground">{label}</Text>
+  </View>
+);
+
+const ExerciseRow = ({
   exercise,
   shown,
 }: {
   exercise: WorkoutExercise;
   /** The Exercise as resolved by `useExercises`, if it has a slug. */
   shown: ShownExercise | undefined;
-}) {
+}) => {
   const { t } = useTranslation(undefined, { i18n });
   const translator = useI18n();
   // The Library's name once resolved, otherwise Arnold's.
@@ -111,15 +123,15 @@ function ExerciseRow({
       ) : null}
     </Pressable>
   );
-}
+};
 
-function WorkoutDaySection({
+const WorkoutDaySection = ({
   workout,
   last,
 }: {
   workout: WorkoutDay;
   last: boolean;
-}) {
+}) => {
   const translator = useI18n();
 
   const shownBySlug = useExercises(
@@ -153,20 +165,18 @@ function WorkoutDaySection({
         </View>
       </View>
       <View className="border-border/20 mb-1 border-b" />
-      {workout.exercises.map((ex, index) => (
+      {workout.exercises.map((ex) => (
         <ExerciseRow
           exercise={ex}
-          // The same Exercise can appear twice in a Workout.
-          // biome-ignore lint/suspicious/noArrayIndexKey: the list never reorders
-          key={`${ex.exercise_slug}-${index}`}
+          key={exerciseKey(ex)}
           shown={ex.exercise_slug ? shownBySlug[ex.exercise_slug] : undefined}
         />
       ))}
     </View>
   );
-}
+};
 
-export function WorkoutPlanCard({ plan }: { plan: WorkoutPlan }) {
+export const WorkoutPlanCard = ({ plan }: { plan: WorkoutPlan }) => {
   const { t } = useTranslation(undefined, { i18n });
   const labels = useChoiceLabels();
   const [saved, setSaved] = useState(false);
@@ -195,9 +205,8 @@ export function WorkoutPlanCard({ plan }: { plan: WorkoutPlan }) {
 
   return (
     <Animated.View
-      className="border-border/20 bg-secondary/60 mt-1 overflow-hidden rounded-2xl border"
+      className="border-border/20 bg-secondary/60 border-continuous mt-1 overflow-hidden rounded-2xl border"
       entering={FadeIn.duration(300)}
-      style={{ borderCurve: "continuous" }}
     >
       <View className="border-border/20 border-b px-4 pt-4 pb-3">
         <Text className="text-foreground text-title-3-emphasized mb-3">
@@ -238,7 +247,10 @@ export function WorkoutPlanCard({ plan }: { plan: WorkoutPlan }) {
         )}
         {saveError && !saved ? (
           <ErrorMessage className="mb-3">
-            {saveErrorMessage(t, saveError)}
+            {saveErrorMessage(
+              t,
+              saveError instanceof ApiError ? saveError : null
+            )}
           </ErrorMessage>
         ) : null}
         <Button
@@ -250,4 +262,4 @@ export function WorkoutPlanCard({ plan }: { plan: WorkoutPlan }) {
       </View>
     </Animated.View>
   );
-}
+};

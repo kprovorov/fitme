@@ -1,5 +1,7 @@
 import { randomUUID } from "node:crypto";
+import { once } from "node:events";
 import type { AddressInfo } from "node:net";
+import { promisify } from "node:util";
 
 import { serve } from "@hono/node-server";
 import type { OAuthClientProvider } from "@modelcontextprotocol/sdk/client/auth.js";
@@ -23,7 +25,7 @@ const CLERK_API_URL = "https://api.clerk.com/v1";
 
 /** How many redirects the headless consent may follow before giving up. */
 const MAX_REDIRECTS = 10;
-const TRAILING_SLASHES = /\/+$/;
+const TRAILING_SLASHES = /\/+$/u;
 
 export interface ClerkTestUser {
   email: string;
@@ -38,8 +40,30 @@ export interface ClerkOAuthApp {
 
 export type ClerkDev = ReturnType<typeof clerkDev>;
 
+/** Drops the dev browser token from a URL before it goes into an error. */
+const redact = (url: URL) => {
+  const safe = new URL(url);
+  safe.searchParams.delete("__clerk_db_jwt");
+
+  return safe;
+};
+
+const frontend = async <T>(url: URL, form?: URLSearchParams): Promise<T> => {
+  const response = await fetch(url, { body: form, method: "POST" });
+
+  if (!response.ok) {
+    throw new Error(
+      `Clerk Frontend API POST ${url.pathname} failed with ${response.status}: ${await response.text()}`
+    );
+  }
+
+  // SAFETY: A successful Clerk Frontend API response follows the endpoint contract
+  // described by T at each integration-test call site.
+  return (await response.json()) as T;
+};
+
 /** Backend + Frontend API access to the development instance of `secretKey`. */
-export function clerkDev(secretKey: string) {
+export const clerkDev = (secretKey: string) => {
   // Only development instances may get throwaway Users and apps from tests.
   if (!secretKey.startsWith("sk_test_")) {
     throw new Error(
@@ -47,13 +71,26 @@ export function clerkDev(secretKey: string) {
     );
   }
 
-  async function backend<T>(
+  const backend = async <T>(
     method: "DELETE" | "GET" | "POST",
     path: string,
-    body?: Record<string, unknown>
-  ): Promise<T> {
+    body?:
+      | { expires_in_seconds: number; user_id: string }
+      | {
+          name: string;
+          public: boolean;
+          redirect_uris: string[];
+          scopes: string;
+        }
+      | {
+          email_address: string[];
+          password: string;
+          skip_password_checks: boolean;
+        }
+      | Record<string, never>
+  ): Promise<T> => {
     const response = await fetch(`${CLERK_API_URL}${path}`, {
-      body: body && JSON.stringify(body),
+      ...(method !== "GET" && body && { body: JSON.stringify(body) }),
       headers: {
         Authorization: `Bearer ${secretKey}`,
         ...(body && { "Content-Type": "application/json" }),
@@ -67,19 +104,14 @@ export function clerkDev(secretKey: string) {
       );
     }
 
+    // SAFETY: A successful Clerk Backend API response follows the endpoint contract
+    // described by T at each integration-test call site.
     return (await response.json()) as T;
-  }
+  };
 
   let frontendApi: Promise<string> | undefined;
 
-  /** The instance's Frontend API, e.g. https://foo-bar-1.clerk.accounts.dev. */
-  function frontendApiUrl(): Promise<string> {
-    frontendApi ??= lookUpFrontendApiUrl();
-
-    return frontendApi;
-  }
-
-  async function lookUpFrontendApiUrl(): Promise<string> {
+  const lookUpFrontendApiUrl = async (): Promise<string> => {
     const { data } = await backend<{
       data: { frontend_api_url: string; is_satellite: boolean }[];
     }>("GET", "/domains");
@@ -91,7 +123,14 @@ export function clerkDev(secretKey: string) {
     }
 
     return primary.frontend_api_url.replace(TRAILING_SLASHES, "");
-  }
+  };
+
+  /** The instance's Frontend API, e.g. https://foo-bar-1.clerk.accounts.dev. */
+  const frontendApiUrl = (): Promise<string> => {
+    frontendApi ??= lookUpFrontendApiUrl();
+
+    return frontendApi;
+  };
 
   return {
     /**
@@ -158,46 +197,30 @@ export function clerkDev(secretKey: string) {
       // The flow must pass the consent screen, not skip it.
       let consented = false;
 
-      return await follow(withDevBrowser(authorizationUrl), MAX_REDIRECTS);
+      const redirectOf = async (target: URL, form?: URLSearchParams) => {
+        const response = await fetch(target, {
+          body: form,
+          headers: { Cookie: `__clerk_db_jwt=${devBrowserToken}` },
+          method: form ? "POST" : "GET",
+          redirect: "manual",
+        });
 
-      /** Follows Clerk's redirects, consenting on the way, to the client. */
-      async function follow(url: URL, hopsLeft: number): Promise<URL> {
-        if (url.href.startsWith(redirectUri)) {
-          if (!consented) {
-            throw new Error("Clerk redirected back without asking consent.");
-          }
+        const location = response.headers.get("location");
 
-          return url;
+        if (!location) {
+          throw new Error(
+            `Expected a redirect from ${redact(target).href}, got ${response.status}: ${await response.text()}`
+          );
         }
 
-        if (hopsLeft === 0) {
-          throw new Error(`Clerk authorization did not reach ${redirectUri}.`);
-        }
-
-        return await follow(await nextPage(url), hopsLeft - 1);
-      }
-
-      async function nextPage(url: URL) {
-        if (url.origin === fapi.origin) {
-          return await redirectOf(url);
-        }
-
-        // Clerk's Account Portal (hosted pages). Its sign-in page sends a
-        // signed-in User straight on to `redirect_url` (the consent page).
-        const afterSignIn = url.searchParams.get("redirect_url");
-
-        if (url.pathname === "/sign-in" && afterSignIn) {
-          return withDevBrowser(new URL(afterSignIn));
-        }
-
-        return await consent(url, String(sessionId));
-      }
+        return withDevBrowser(new URL(location, target));
+      };
 
       /**
        * Clerk's hosted consent page: submits "Allow" the way its form does,
        * to the Frontend API with every authorization parameter of the page.
        */
-      async function consent(page: URL, session: string) {
+      const consent = async (page: URL, session: string) => {
         const params = new URLSearchParams(page.search);
         const clientId = params.get("client_id");
 
@@ -218,26 +241,42 @@ export function clerkDev(secretKey: string) {
         action.searchParams.set("_clerk_session_id", session);
 
         return await redirectOf(action, params);
-      }
+      };
 
-      async function redirectOf(target: URL, form?: URLSearchParams) {
-        const response = await fetch(target, {
-          body: form,
-          headers: { Cookie: `__clerk_db_jwt=${devBrowserToken}` },
-          method: form ? "POST" : "GET",
-          redirect: "manual",
-        });
-
-        const location = response.headers.get("location");
-
-        if (!location) {
-          throw new Error(
-            `Expected a redirect from ${redact(target).href}, got ${response.status}: ${await response.text()}`
-          );
+      const nextPage = async (url: URL) => {
+        if (url.origin === fapi.origin) {
+          return await redirectOf(url);
         }
 
-        return withDevBrowser(new URL(location, target));
-      }
+        // Clerk's Account Portal (hosted pages). Its sign-in page sends a
+        // signed-in User straight on to `redirect_url` (the consent page).
+        const afterSignIn = url.searchParams.get("redirect_url");
+
+        if (url.pathname === "/sign-in" && afterSignIn) {
+          return withDevBrowser(new URL(afterSignIn));
+        }
+
+        return await consent(url, String(sessionId));
+      };
+
+      /** Follows Clerk's redirects, consenting on the way, to the client. */
+      const follow = async (url: URL, hopsLeft: number): Promise<URL> => {
+        if (url.href.startsWith(redirectUri)) {
+          if (!consented) {
+            throw new Error("Clerk redirected back without asking consent.");
+          }
+
+          return url;
+        }
+
+        if (hopsLeft === 0) {
+          throw new Error(`Clerk authorization did not reach ${redirectUri}.`);
+        }
+
+        return await follow(await nextPage(url), hopsLeft - 1);
+      };
+
+      return await follow(withDevBrowser(authorizationUrl), MAX_REDIRECTS);
     },
 
     async createOAuthApp(redirectUri: string): Promise<ClerkOAuthApp> {
@@ -282,27 +321,7 @@ export function clerkDev(secretKey: string) {
       return `pk_test_${Buffer.from(`${host}$`).toString("base64")}`;
     },
   };
-}
-
-/** Drops the dev browser token from a URL before it goes into an error. */
-function redact(url: URL) {
-  const safe = new URL(url);
-  safe.searchParams.delete("__clerk_db_jwt");
-
-  return safe;
-}
-
-async function frontend<T>(url: URL, form?: URLSearchParams): Promise<T> {
-  const response = await fetch(url, { body: form, method: "POST" });
-
-  if (!response.ok) {
-    throw new Error(
-      `Clerk Frontend API POST ${url.pathname} failed with ${response.status}: ${await response.text()}`
-    );
-  }
-
-  return (await response.json()) as T;
-}
+};
 
 /**
  * The MCP client's side of OAuth: a pre-registered public client whose
@@ -382,13 +401,11 @@ export class HeadlessOAuthProvider implements OAuthClientProvider {
     return this.#codeVerifier;
   }
 
-  state() {
-    return randomUUID();
-  }
+  state = randomUUID;
 }
 
 /** Serves the real MCP app over HTTP on a free local port. */
-export async function startMcpServer() {
+export const startMcpServer = async () => {
   const server = serve({
     fetch: createApp({
       createLibrary: integrationLibrary,
@@ -403,14 +420,13 @@ export async function startMcpServer() {
     port: 0,
   });
 
-  await new Promise<void>((resolve) => server.once("listening", resolve));
+  await once(server, "listening");
+  // SAFETY: The listening event confirms that serve bound the configured TCP
+  // hostname and port, so address() returns AddressInfo rather than a pipe or null.
   const { port } = server.address() as AddressInfo;
 
   return {
-    close: () =>
-      new Promise<void>((resolve, reject) =>
-        server.close((error) => (error ? reject(error) : resolve()))
-      ),
+    close: promisify(server.close.bind(server)),
     url: new URL(`http://127.0.0.1:${port}/`),
   };
-}
+};

@@ -1,3 +1,5 @@
+/// <reference types="node" />
+
 // Removes the BEAM perf maps and JIT dumps (/tmp/perf-<pid>.map,
 // /tmp/jit-<pid>.dump) of processes that are gone. The Supabase CLI's native
 // pooler (Supavisor) runs with `+JPperf true`, so every local stack start
@@ -7,10 +9,10 @@
 // Usage: node scripts/stale-beam-dumps.mjs [dir]   (default /tmp)
 import fs from "node:fs";
 import path from "node:path";
-import { fileURLToPath } from "node:url";
 
-const DUMP = /^(?:perf-(\d+)\.map|jit-(\d+)\.dump)$/;
+const DUMP = /^(?:perf-(?<perfPid>\d+)\.map|jit-(?<jitPid>\d+)\.dump)$/u;
 
+/** @param {number} pid Process ID to check. */
 export const isAlive = (pid) => {
   try {
     process.kill(pid, 0);
@@ -35,12 +37,13 @@ export const removeStaleBeamDumps = ({
     return [];
   }
 
+  /** @type {string[]} */
   const removed = [];
 
   for (const name of names) {
     const match = DUMP.exec(name);
 
-    if (!match || alive(Number(match[1] ?? match[2]))) {
+    if (!match || alive(Number(match.groups.perfPid ?? match.groups.jitPid))) {
       continue;
     }
 
@@ -57,6 +60,7 @@ export const removeStaleBeamDumps = ({
   return removed;
 };
 
+/** @param {string[]} args Command-line arguments. */
 const main = ([dir]) => {
   const removed = removeStaleBeamDumps({ dir });
   console.log(

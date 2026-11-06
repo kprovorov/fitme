@@ -11,6 +11,7 @@ import { skillLinkProblems } from "./skills-links.mjs";
 
 const REPO_ROOT = fileURLToPath(new URL("..", import.meta.url));
 
+/** @type {string[]} */
 const tempDirs = [];
 
 after(() => {
@@ -21,6 +22,7 @@ after(() => {
 
 // A repo root with .agents/skills/<name>/SKILL.md for each skill and the
 // .claude/skills symlinks given as name → target.
+/** @param {{ skills: string[], links: Record<string, string> }} options Skills and symlink targets. */
 const fixture = ({ skills, links }) => {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), "skills-links-"));
   tempDirs.push(root);
@@ -43,7 +45,7 @@ const fixture = ({ skills, links }) => {
 
 const linkTo = (name) => `../../.agents/skills/${name}`;
 
-describe("skillLinkProblems", () => {
+void describe("skillLinkProblems", () => {
   test("every project skill in this repo has its .claude/skills symlink", () => {
     assert.deepEqual(skillLinkProblems(REPO_ROOT), []);
   });

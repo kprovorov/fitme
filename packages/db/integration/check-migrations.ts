@@ -1,7 +1,9 @@
+/// <reference lib="es2023.array" />
+
 import { readdirSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 
-import pg from "pg";
+import { Client } from "pg";
 
 /**
  * Each worktree's local stack only has the migrations from when it was started
@@ -15,7 +17,7 @@ const MIGRATIONS_DIR = fileURLToPath(
   new URL("../../supabase/supabase/migrations", import.meta.url)
 );
 
-const MIGRATION_FILE = /^(\d+)_.*\.sql$/;
+const MIGRATION_FILE = /^(?<version>\d+)_.*\.sql$/u;
 
 export const APPLY_MIGRATIONS_COMMAND =
   "pnpm --filter @fitme/supabase exec supabase migration up --local";
@@ -23,9 +25,9 @@ export const APPLY_MIGRATIONS_COMMAND =
 /** The versions of the migration files in `dir`, oldest first. */
 export const migrationVersions = (dir = MIGRATIONS_DIR): string[] =>
   readdirSync(dir)
-    .map((file) => MIGRATION_FILE.exec(file)?.[1])
+    .map((file) => MIGRATION_FILE.exec(file)?.groups?.version)
     .filter((version): version is string => version !== undefined)
-    .sort();
+    .toSorted();
 
 /** The versions in `files` that `applied` lacks, in order. */
 export const missingMigrations = (
@@ -39,7 +41,7 @@ export const missingMigrations = (
 
 /** The versions recorded in the stack's `supabase_migrations.schema_migrations`. */
 const appliedVersions = async (adminUrl: string): Promise<string[]> => {
-  const client = new pg.Client({
+  const client = new Client({
     connectionString: adminUrl,
     connectionTimeoutMillis: 10_000,
     query_timeout: 10_000,
@@ -54,7 +56,7 @@ const appliedVersions = async (adminUrl: string): Promise<string[]> => {
 
     return rows.map((row) => row.version);
   } finally {
-    await client.end().catch(() => {});
+    await client.end().catch(() => null);
   }
 };
 
@@ -74,7 +76,7 @@ export const migrationsError = (
     return null;
   }
 
-  const newestApplied = [...applied].sort().at(-1);
+  const newestApplied = applied.toSorted().at(-1);
 
   const outOfOrder =
     newestApplied !== undefined &&

@@ -1,13 +1,13 @@
 import { describe, expect, it, vi } from "vitest";
 
+import type { reportError } from "../node";
 import { reportMissingEnv } from "../node";
 
-const recorder = () =>
-  vi.fn(async (_error: unknown, _tags?: Record<string, string>) => {});
+const recorder = () => vi.fn<typeof reportError>(async () => {});
 
 const production = { VERCEL_ENV: "production" };
 
-describe(reportMissingEnv, () => {
+describe("required environment reporting", () => {
   it("reports each missing or empty variable once on production", async () => {
     const report = recorder();
 
@@ -23,7 +23,7 @@ describe(reportMissingEnv, () => {
       }
     );
 
-    expect(missing).toEqual(["CLERK_JWT_KEY", "FITME_DATABASE_URL"]);
+    expect(missing).toStrictEqual(["CLERK_JWT_KEY", "FITME_DATABASE_URL"]);
     expect(report).toHaveBeenCalledTimes(2);
     expect(report).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -48,7 +48,7 @@ describe(reportMissingEnv, () => {
       report,
     });
 
-    expect(missing).toEqual([]);
+    expect(missing).toStrictEqual([]);
     expect(report).not.toHaveBeenCalled();
   });
 
@@ -60,7 +60,7 @@ describe(reportMissingEnv, () => {
 
     const missing = await reportMissingEnv(["CLERK_JWT_KEY"], { env, report });
 
-    expect(missing).toEqual([]);
+    expect(missing).toStrictEqual([]);
     expect(report).not.toHaveBeenCalled();
   });
 
@@ -72,7 +72,7 @@ describe(reportMissingEnv, () => {
       report,
     });
 
-    expect(missing).toEqual([]);
+    expect(missing).toStrictEqual([]);
     expect(report).not.toHaveBeenCalled();
   });
 
@@ -84,7 +84,7 @@ describe(reportMissingEnv, () => {
       report,
     });
 
-    expect(missing).toEqual(["NEW_NAME"]);
+    expect(missing).toStrictEqual(["NEW_NAME"]);
     expect(report).toHaveBeenCalledWith(
       expect.objectContaining({
         message: "Missing NEW_NAME (or OLD_NAME) environment variable",

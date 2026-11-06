@@ -32,7 +32,7 @@ export interface FinishSuggestionControllerOptions {
    * Called when `loadSession` fails; that save then does not trigger, unless
    * another save arrived during the failed read.
    */
-  onError?: (error: unknown) => void;
+  onError?: (error: Error) => void;
   /**
    * Remembers the sessions already suggested. Defaults to memory; pass a
    * persistent store to keep the once-per-session rule across app restarts.
@@ -108,11 +108,11 @@ const reconcile = (
   })),
 });
 
-export function createFinishSuggestionController({
+export const createFinishSuggestionController = ({
   loadSession,
   onError,
   suggestedSessionStore,
-}: FinishSuggestionControllerOptions): FinishSuggestionController {
+}: FinishSuggestionControllerOptions): FinishSuggestionController => {
   const listeners = new Set<() => void>();
   const suggestedSessions = suggestedSessionStore ?? new Set<string>();
   const pendingChecks = new Map<string, PendingCheck>();
@@ -175,7 +175,11 @@ export function createFinishSuggestionController({
       }
     } catch (error) {
       // A save that arrived during the failed read still gets its own check.
-      onError?.(error);
+      onError?.(
+        error instanceof Error
+          ? error
+          : new Error("Failed to load workout session", { cause: error })
+      );
     }
 
     await check(sessionId, pending);
@@ -201,6 +205,7 @@ export function createFinishSuggestionController({
       existing.generation = generationOf(sessionId);
 
       await existing.promise;
+
       return;
     }
 
@@ -263,4 +268,4 @@ export function createFinishSuggestionController({
     },
     watch,
   };
-}
+};

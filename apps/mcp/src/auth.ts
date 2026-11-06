@@ -52,7 +52,7 @@ export const protectedResourceMetadata = (c: Context) =>
  * 401 with the `WWW-Authenticate` challenge MCP clients use to discover the
  * authorization server and start (or, for a rejected token, redo) OAuth.
  */
-function unauthorized(c: Context, reason: "invalid" | "missing") {
+const unauthorized = (c: Context, reason: "invalid" | "missing") => {
   const metadata = `resource_metadata="${resourceMetadataUrl(c)}"`;
 
   if (reason === "missing") {
@@ -75,7 +75,7 @@ function unauthorized(c: Context, reason: "invalid" | "missing") {
     { error: "invalid_token", error_description: description },
     401
   );
-}
+};
 
 /** Fails closed (500) when the Clerk or database config is missing. */
 export const requireConfig = createMiddleware<{ Variables: AuthVariables }>(
@@ -95,11 +95,11 @@ export const requireConfig = createMiddleware<{ Variables: AuthVariables }>(
       );
     }
 
-    await next();
+    return await next();
   }
 );
 
-const BEARER_TOKEN = /^Bearer\s+\S+\s*$/i;
+const BEARER_TOKEN = /^Bearer\s+\S+\s*$/iu;
 
 /** 401 without `Authorization: Bearer <token>`, before asking Clerk. */
 export const requireBearerToken = createMiddleware<{
@@ -109,7 +109,7 @@ export const requireBearerToken = createMiddleware<{
     return unauthorized(c, "missing");
   }
 
-  await next();
+  return await next();
 });
 
 /**
@@ -125,6 +125,7 @@ export const requireClerkUser = createMiddleware<{ Variables: AuthVariables }>(
     }
 
     c.set("clerkUser", { userId: auth.userId });
-    await next();
+
+    return await next();
   }
 );

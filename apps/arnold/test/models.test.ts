@@ -7,30 +7,36 @@ import {
   UnsupportedArnoldModelError,
 } from "../agent/lib/models";
 
+interface ClientContextFixture {
+  language?: string;
+  model?: string | number;
+  route?: string;
+}
+
+type EveUserMessage = ModelMessage & { kind: "context.instruction" | "user" };
+
 // How eve hands a turn's `clientContext: { model }` to the model resolver: a
 // user-role framework message holding "Client context:" and the JSON object.
-const clientContext = (value: object): ModelMessage =>
-  ({
-    content: `Client context:\n${JSON.stringify(value)}`,
-    kind: "context.instruction",
-    role: "user",
-  }) as ModelMessage;
+const clientContext = (value: ClientContextFixture): EveUserMessage => ({
+  content: `Client context:\n${JSON.stringify(value)}`,
+  kind: "context.instruction",
+  role: "user",
+});
 
-const userSays = (text: string): ModelMessage =>
-  ({
-    content: [{ text, type: "text" }],
-    kind: "user",
-    role: "user",
-  }) as ModelMessage;
+const userSays = (text: string): EveUserMessage => ({
+  content: [{ text, type: "text" }],
+  kind: "user",
+  role: "user",
+});
 
-describe(arnoldModelSelection, () => {
+describe("arnold model selection", () => {
   it("runs the turn on the model the client context asks for", () => {
     expect(
       arnoldModelSelection([
         clientContext({ model: "anthropic/claude-sonnet-5" }),
         userSays("what's my weight?"),
       ])
-    ).toEqual({
+    ).toStrictEqual({
       model: "anthropic/claude-sonnet-5",
       modelOptions: {
         providerOptions: {
@@ -59,13 +65,6 @@ describe(arnoldModelSelection, () => {
   });
 
   it("fails over to other hosts of the same model only", () => {
-    expect(
-      arnoldModelSelection([clientContext({ model: "openai/gpt-5.5" })])
-        .modelOptions
-    ).toEqual({
-      providerOptions: { gateway: { order: ["openai", "azure", "bedrock"] } },
-    });
-
     for (const { id } of arnoldModels) {
       const { model, modelOptions } = arnoldModelSelection([
         clientContext({ model: id }),
@@ -77,6 +76,13 @@ describe(arnoldModelSelection, () => {
       expect(gateway?.order).toContain(id.split("/")[0]);
       expect(gateway).not.toHaveProperty("models");
     }
+
+    expect(
+      arnoldModelSelection([clientContext({ model: "openai/gpt-5.5" })])
+        .modelOptions
+    ).toStrictEqual({
+      providerOptions: { gateway: { order: ["openai", "azure", "bedrock"] } },
+    });
   });
 
   it("uses the default Arnold model when the client names none", () => {
@@ -130,17 +136,14 @@ describe(arnoldModelSelection, () => {
     );
   });
 
-  it("refuses a pre-Gateway model id", () => {
-    for (const id of [
-      "gpt-5.5",
-      "claude-opus-5",
-      "claude-haiku-4-5-20251001",
-    ]) {
+  it.each(["gpt-5.5", "claude-opus-5", "claude-haiku-4-5-20251001"])(
+    "refuses a pre-Gateway model id %s",
+    (id) => {
       expect(() =>
         arnoldModelSelection([clientContext({ model: id })])
       ).toThrow(UnsupportedArnoldModelError);
     }
-  });
+  );
 
   it("ignores client context that isn't a JSON object", () => {
     expect(
@@ -149,7 +152,7 @@ describe(arnoldModelSelection, () => {
           content: "Client context:\nnot json",
           kind: "context.instruction",
           role: "user",
-        } as ModelMessage,
+        } satisfies EveUserMessage,
         userSays("hi"),
       ]).model
     ).toBe(defaultArnoldModelId);

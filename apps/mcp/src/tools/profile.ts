@@ -3,7 +3,7 @@ import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { ToolContext } from "../context.js";
 import { asJson, READ_ONLY, requireFound, withServices } from "./helpers.js";
 
-export function registerProfileTools(server: McpServer, ctx: ToolContext) {
+export const registerProfileTools = (server: McpServer, ctx: ToolContext) => {
   server.registerTool(
     "get_profile",
     {
@@ -22,4 +22,4 @@ export function registerProfileTools(server: McpServer, ctx: ToolContext) {
       )
     )
   );
-}
+};

@@ -33,7 +33,7 @@ interface CodeVerification {
   verify: (code: string, current: () => boolean) => Promise<string | undefined>;
 }
 
-function useSignUpVerification(): CodeVerification {
+const useSignUpVerification = (): CodeVerification => {
   const { signUp } = useSignUp();
   const { t } = useTranslation();
 
@@ -78,9 +78,9 @@ function useSignUpVerification(): CodeVerification {
       }
     },
   };
-}
+};
 
-function useResetPasswordVerification(): CodeVerification {
+const useResetPasswordVerification = (): CodeVerification => {
   const { signIn } = useSignIn();
   const { t } = useTranslation();
 
@@ -121,9 +121,11 @@ function useResetPasswordVerification(): CodeVerification {
       router.replace("/auth/reset-password");
     },
   };
-}
+};
 
-function useSignInVerification(source: VerificationSource): CodeVerification {
+const useSignInVerification = (
+  source: VerificationSource
+): CodeVerification => {
   const { signIn } = useSignIn();
   const { t } = useTranslation();
 
@@ -171,40 +173,15 @@ function useSignInVerification(source: VerificationSource): CodeVerification {
       }
     },
   };
-}
+};
 
-export default function VerifyCodeView({
-  purpose,
-  source = "reset-password",
-}: {
-  purpose: CodePurpose;
-  source?: VerificationSource;
-}) {
-  // Named calls keep React Compiler from memoizing a selected hook as a plain function.
-  const verifications: Record<CodePurpose, CodeVerification> = {
-    "reset-password": useResetPasswordVerification(),
-    "sign-in": useSignInVerification(source),
-    "sign-up": useSignUpVerification(),
-  };
-
-  const flow = verifications[purpose];
-
-  return (
-    <CodeVerificationContent
-      flow={flow}
-      key={`${purpose}:${flow.id}`}
-      purpose={purpose}
-    />
-  );
-}
-
-function CodeVerificationContent({
+const CodeVerificationContent = ({
   flow,
   purpose,
 }: {
   flow: CodeVerification;
   purpose: CodePurpose;
-}) {
+}) => {
   const { t } = useTranslation();
   const operation = useAuthOperation();
   const [code, setCode] = useState("");
@@ -228,12 +205,14 @@ function CodeVerificationContent({
     };
   }, [flow.available, coolingDown]);
 
-  const restartHref =
-    purpose === "sign-up"
-      ? "/auth/register"
-      : purpose === "sign-in"
-        ? "/auth/login"
-        : "/auth/forgot-password";
+  let restartHref: "/auth/forgot-password" | "/auth/login" | "/auth/register" =
+    "/auth/forgot-password";
+
+  if (purpose === "sign-up") {
+    restartHref = "/auth/register";
+  } else if (purpose === "sign-in") {
+    restartHref = "/auth/login";
+  }
 
   const restart = useCallback(
     () =>
@@ -377,7 +356,7 @@ function CodeVerificationContent({
           value={code}
         />
         <View className="flex-row flex-wrap items-center gap-x-1">
-          <Text className="text-footnote text-muted-foreground">
+          <Text className="text-footnote" variant="muted">
             {t("verifyCode.didntGet")}
           </Text>
           {/* Figma's Resend: a Footnote Emphasized text link in a 44 pt row. */}
@@ -393,7 +372,7 @@ function CodeVerificationContent({
             {resending ? (
               <ActivityIndicator colorClassName="accent-muted-foreground" />
             ) : (
-              <Text className="text-footnote-emphasized text-muted-foreground">
+              <Text className="text-footnote-emphasized" variant="muted">
                 {resendLabel}
               </Text>
             )}
@@ -402,7 +381,8 @@ function CodeVerificationContent({
         {notice ? (
           <Text
             accessibilityLiveRegion="polite"
-            className="text-footnote text-muted-foreground"
+            className="text-footnote"
+            variant="muted"
           >
             {notice}
           </Text>
@@ -410,4 +390,31 @@ function CodeVerificationContent({
       </View>
     </AuthScreen>
   );
-}
+};
+
+const VerifyCodeView = ({
+  purpose,
+  source = "reset-password",
+}: {
+  purpose: CodePurpose;
+  source?: VerificationSource;
+}) => {
+  // Named calls keep React Compiler from memoizing a selected hook as a plain function.
+  const verifications: Record<CodePurpose, CodeVerification> = {
+    "reset-password": useResetPasswordVerification(),
+    "sign-in": useSignInVerification(source),
+    "sign-up": useSignUpVerification(),
+  };
+
+  const flow = verifications[purpose];
+
+  return (
+    <CodeVerificationContent
+      flow={flow}
+      key={`${purpose}:${flow.id}`}
+      purpose={purpose}
+    />
+  );
+};
+
+export default VerifyCodeView;

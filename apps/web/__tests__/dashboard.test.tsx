@@ -73,8 +73,8 @@ const errorResponse = (
   code: string,
   headers: HeadersInit = {}
 ) =>
-  new Response(
-    JSON.stringify({ error: { code, message: `${code} message` } }),
+  Response.json(
+    { error: { code, message: `${code} message` } },
     { headers: { "Content-Type": "application/json", ...headers }, status }
   );
 
@@ -85,20 +85,20 @@ const load = (fetch: PublicApiFetch, { apiUrl = API_URL } = {}) =>
     getToken: () => Promise.resolve(SESSION_TOKEN),
   });
 
-describe(loadDashboard, () => {
+describe("dashboard loading", () => {
   it("reads the Plans and the recent Workout Sessions with the Clerk session token as the bearer", async () => {
     const fetch = serving([plan()], [session()]);
 
     const result = await load(fetch);
 
-    expect(result.ok).toBe(true);
+    expect(result.ok).toBeTruthy();
 
     if (!result.ok) {
       throw new Error("Expected the read to succeed");
     }
 
-    expect(result.data.plans).toEqual([plan()]);
-    expect(result.data.sessions).toEqual([session()]);
+    expect(result.data.plans).toStrictEqual([plan()]);
+    expect(result.data.sessions).toStrictEqual([session()]);
 
     for (const [, init] of fetch.mock.calls) {
       expect(new Headers(init.headers).get("Authorization")).toBe(
@@ -134,7 +134,7 @@ describe(loadDashboard, () => {
       throw new Error("Expected the read to succeed");
     }
 
-    expect(result.data.plans.map((p) => p.name)).toEqual([
+    expect(result.data.plans.map((p) => p.name)).toStrictEqual([
       "Full body",
       "Newer",
       "Older",
@@ -149,7 +149,7 @@ describe(loadDashboard, () => {
       })
     );
 
-    expect(result.ok).toBe(false);
+    expect(result.ok).toBeFalsy();
 
     if (result.ok) {
       throw new Error("Expected the read to fail");
@@ -186,7 +186,7 @@ describe(loadDashboard, () => {
       })
     );
 
-    expect(result.ok).toBe(false);
+    expect(result.ok).toBeFalsy();
   });
 
   it("fails instead of crashing on a 200 without the answer's data", async () => {
@@ -197,7 +197,7 @@ describe(loadDashboard, () => {
       })
     );
 
-    expect(result.ok).toBe(false);
+    expect(result.ok).toBeFalsy();
   });
 
   it("fails without sending a request when the API URL is unset", async () => {
@@ -205,12 +205,12 @@ describe(loadDashboard, () => {
 
     const result = await load(fetch, { apiUrl: "" });
 
-    expect(result.ok).toBe(false);
+    expect(result.ok).toBeFalsy();
     expect(fetch).not.toHaveBeenCalled();
   });
 });
 
-describe(DashboardView, () => {
+describe("dashboard view", () => {
   it("renders the Plans and the recent Workout Sessions", async () => {
     const result = await load(serving([plan()], [session()]));
 
@@ -274,27 +274,27 @@ describe(DashboardView, () => {
   });
 });
 
-describe(isUnexpectedFailure, () => {
+describe("unexpected dashboard failures", () => {
   it("is every failure nothing else reports", () => {
-    for (const error of [
+    const errors = [
       new ApiError("Network request failed"),
       new ApiError("Unauthorized", { code: "unauthorized", status: 401 }),
       new ApiError("Boom", { code: "internal_error", status: 500 }),
-    ]) {
-      expect(isUnexpectedFailure(error)).toBe(true);
-    }
+    ];
+
+    expect(errors.map(isUnexpectedFailure)).toStrictEqual([true, true, true]);
   });
 
   it("is not the limits and refusals the dashboard shows on purpose", () => {
-    for (const error of [
+    const errors = [
       new ApiError("Too many", {
         code: "rate_limited",
         retryAfterSeconds: 30,
         status: 429,
       }),
       new ApiError("Nope", { code: "invalid_request", status: 400 }),
-    ]) {
-      expect(isUnexpectedFailure(error)).toBe(false);
-    }
+    ];
+
+    expect(errors.map(isUnexpectedFailure)).toStrictEqual([false, false]);
   });
 });

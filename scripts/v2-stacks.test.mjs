@@ -15,8 +15,10 @@ const USAGE = /Usage/;
 
 const SCRIPT = fileURLToPath(new URL("v2-stacks.mjs", import.meta.url));
 
+/** @type {string[]} */
 const tempDirs = [];
 
+/** @param {string} prefix Temporary directory name prefix. */
 const tempDir = (prefix) => {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), prefix));
   tempDirs.push(dir);
@@ -32,6 +34,12 @@ after(() => {
 
 // A stack's state.json as the CLI writes it: v3 records a `pin` in every
 // instance's `creation`, v2 doesn't.
+/**
+ * @param {string} root Stack state directory.
+ * @param {string} id Stack identifier.
+ * @param {string} projectRoot Checkout's Supabase directory.
+ * @param {{ v2?: boolean }} [options] Stack version options.
+ */
 const writeState = (root, id, projectRoot, { v2 = true } = {}) => {
   const creation = v2 ? { config: {} } : { config: {}, pin: {} };
   fs.mkdirSync(path.join(root, id), { recursive: true });
@@ -45,7 +53,7 @@ const writeState = (root, id, projectRoot, { v2 = true } = {}) => {
   );
 };
 
-describe("staleV2Stacks", () => {
+void describe("staleV2Stacks", () => {
   test("picks the v2 stacks of checkouts that no longer exist", () => {
     const root = tempDir("v2-stacks-");
     writeState(root, "live", "/live/packages/supabase");
@@ -88,7 +96,7 @@ describe("staleV2Stacks", () => {
   });
 });
 
-describe("the CLI", () => {
+void describe("the CLI", () => {
   test("prints one id per line, the rest on stderr", () => {
     const root = tempDir("v2-stacks-");
     const live = tempDir("v2-stacks-live-");

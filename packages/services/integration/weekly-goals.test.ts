@@ -32,10 +32,6 @@ const newUser = (name: string) => {
   return id;
 };
 
-afterAll(async () => {
-  await deleteTestUsers(users);
-});
-
 const plan = (frequency: number): NewPlan => ({
   description: "Weekly goal fixture",
   experience_level: "beginner",
@@ -64,10 +60,14 @@ const plan = (frequency: number): NewPlan => ({
   ],
 });
 
-const targets = async (userId: string) =>
-  (
-    await asUser(userId, async (tx) => await listWeeklyGoalChanges(tx, userId))
-  ).map((change) => change.target);
+const targets = async (userId: string) => {
+  const changes = await asUser(
+    userId,
+    async (tx) => await listWeeklyGoalChanges(tx, userId)
+  );
+
+  return changes.map((change) => change.target);
+};
 
 const create = async (userId: string, frequency: number, activate = true) =>
   await asUser(
@@ -76,9 +76,13 @@ const create = async (userId: string, frequency: number, activate = true) =>
   );
 
 // PostgREST's JSON timestamp encoding
-const JSON_TIMESTAMP = /^\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d(\.\d+)?\+00:00$/;
+const JSON_TIMESTAMP = /^\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d(?:\.\d+)?\+00:00$/u;
 
 describe("the Weekly goal log", () => {
+  afterAll(async () => {
+    await deleteTestUsers(users);
+  });
+
   it.each([8, 32_767])(
     "rejects direct oversized goal writes (%s)",
     async (target) => {
@@ -88,13 +92,13 @@ describe("the Weekly goal log", () => {
           tx.insert(weeklyGoalChanges).values({ target, userId })
         )
       ).rejects.toMatchObject({ cause: { code: "23514" } });
-      await expect(targets(userId)).resolves.toEqual([]);
+      await expect(targets(userId)).resolves.toStrictEqual([]);
     }
   );
 
   it("starts with the first active Plan's frequency and ignores repeats", async () => {
     const userId = newUser("First");
-    await expect(targets(userId)).resolves.toEqual([]);
+    await expect(targets(userId)).resolves.toStrictEqual([]);
 
     const created = await create(userId, 3);
     await asUser(
@@ -110,9 +114,8 @@ describe("the Weekly goal log", () => {
       async (tx) => await listWeeklyGoalChanges(tx, userId)
     );
 
-    expect(changes).toEqual([
-      { recorded_at: expect.stringMatching(JSON_TIMESTAMP), target: 3 },
-    ]);
+    const recordedAt: unknown = expect.stringMatching(JSON_TIMESTAMP);
+    expect(changes).toStrictEqual([{ recorded_at: recordedAt, target: 3 }]);
   });
 
   it("records nothing before any Plan is active", async () => {
@@ -122,7 +125,7 @@ describe("the Weekly goal log", () => {
     });
     await create(userId, 4, false);
 
-    await expect(targets(userId)).resolves.toEqual([]);
+    await expect(targets(userId)).resolves.toStrictEqual([]);
   });
 
   it("appends a frequency change of the active Plan, keeping the goals before it", async () => {
@@ -150,9 +153,9 @@ describe("the Weekly goal log", () => {
       async (tx) => await listWeeklyGoalChanges(tx, userId)
     );
 
-    expect(changes.map((change) => change.target)).toEqual([3, 5]);
+    expect(changes.map((change) => change.target)).toStrictEqual([3, 5]);
     // The first goal is retained as it was recorded
-    expect(changes[0]).toEqual(first[0]);
+    expect(changes[0]).toStrictEqual(first[0]);
     expect(Date.parse(changes[1].recorded_at)).toBeGreaterThanOrEqual(
       Date.parse(changes[0].recorded_at)
     );
@@ -168,7 +171,7 @@ describe("the Weekly goal log", () => {
       async (tx) => await updatePlan(tx, userId, spare.id, { frequency: 6 })
     );
 
-    await expect(targets(userId)).resolves.toEqual([3]);
+    await expect(targets(userId)).resolves.toStrictEqual([3]);
   });
 
   it("follows Plan switches, appending only when the goal changes", async () => {
@@ -181,7 +184,7 @@ describe("the Weekly goal log", () => {
       userId,
       async (tx) => await activatePlan(tx, userId, sameGoal.id)
     );
-    await expect(targets(userId)).resolves.toEqual([3]);
+    await expect(targets(userId)).resolves.toStrictEqual([3]);
 
     await asUser(
       userId,
@@ -194,7 +197,7 @@ describe("the Weekly goal log", () => {
     // Created and activated in one go
     await create(userId, 2);
 
-    await expect(targets(userId)).resolves.toEqual([3, 4, 3, 2]);
+    await expect(targets(userId)).resolves.toStrictEqual([3, 4, 3, 2]);
   });
 
   it("records no goal when the active Plan is deleted, then the next one", async () => {
@@ -203,15 +206,15 @@ describe("the Weekly goal log", () => {
     const spare = await create(userId, 5, false);
 
     await asUser(userId, async (tx) => await deletePlan(tx, userId, spare.id));
-    await expect(targets(userId)).resolves.toEqual([3]);
+    await expect(targets(userId)).resolves.toStrictEqual([3]);
 
     await asUser(userId, async (tx) => await deletePlan(tx, userId, active.id));
     // A repeat deletes nothing more and records nothing more
     await asUser(userId, async (tx) => await deletePlan(tx, userId, active.id));
-    await expect(targets(userId)).resolves.toEqual([3, null]);
+    await expect(targets(userId)).resolves.toStrictEqual([3, null]);
 
     await create(userId, 2);
-    await expect(targets(userId)).resolves.toEqual([3, null, 2]);
+    await expect(targets(userId)).resolves.toStrictEqual([3, null, 2]);
   });
 
   it("starts tracking on a finish when the active Plan was written past the services", async () => {
@@ -243,7 +246,7 @@ describe("the Weekly goal log", () => {
         })
     );
 
-    await expect(targets(userId)).resolves.toEqual([]);
+    await expect(targets(userId)).resolves.toStrictEqual([]);
 
     const started = await asUser(
       userId,
@@ -265,7 +268,7 @@ describe("the Weekly goal log", () => {
       async (tx) => await finishWorkoutSession(tx, started.session.id)
     );
 
-    await expect(targets(userId)).resolves.toEqual([4]);
+    await expect(targets(userId)).resolves.toStrictEqual([4]);
   });
 
   it("keeps each User's goals to themselves", async () => {
@@ -275,12 +278,12 @@ describe("the Weekly goal log", () => {
 
     await expect(
       asUser(intruder, async (tx) => await listWeeklyGoalChanges(tx, owner))
-    ).resolves.toEqual([]);
+    ).resolves.toStrictEqual([]);
     await expect(
       asUser(intruder, (tx) =>
         tx.insert(weeklyGoalChanges).values({ target: 7, userId: owner })
       )
-    ).rejects.toThrow();
+    ).rejects.toThrow('Failed query: insert into "weekly_goal_changes"');
     await expect(
       asUser(intruder, (tx) =>
         tx
@@ -288,8 +291,8 @@ describe("the Weekly goal log", () => {
           .set({ target: 1 })
           .where(eq(weeklyGoalChanges.userId, intruder))
       )
-    ).rejects.toThrow();
-    await expect(targets(owner)).resolves.toEqual([3]);
+    ).rejects.toThrow('Failed query: update "weekly_goal_changes"');
+    await expect(targets(owner)).resolves.toStrictEqual([3]);
   });
 
   it("is deleted with the User's data", async () => {
@@ -307,6 +310,6 @@ describe("the Weekly goal log", () => {
         .where(eq(weeklyGoalChanges.userId, userId))
     );
 
-    expect(left).toEqual([]);
+    expect(left).toStrictEqual([]);
   });
 });

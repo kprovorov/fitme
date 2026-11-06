@@ -4,9 +4,8 @@ import type {
 } from "@assistant-ui/react-native";
 
 /** A message's text parts joined, as one string. */
-export function messageText(message: ThreadMessage): string {
-  return message.content
+export const messageText = (message: ThreadMessage): string =>
+  message.content
     .filter((part): part is TextMessagePart => part.type === "text")
     .map((part) => part.text)
     .join("");
-}

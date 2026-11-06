@@ -7,18 +7,17 @@ import { useCallback, useEffect, useRef, useState } from "react";
 
 import { navLinks } from "@/lib/site";
 
-import { Button } from "./ui/button";
-
 /**
  * The header's links below `md`, in a dropdown that closes when one is picked,
  * on Escape (focus goes back to the toggle) or when the route changes.
  */
-function MobileMenu() {
+const MobileMenu = () => {
   const pathname = usePathname();
   const triggerRef = useRef<HTMLButtonElement>(null);
   // The path the menu was opened on: navigating anywhere else closes it.
   const [openPath, setOpenPath] = useState<string | null>(null);
   const isOpen = openPath === pathname;
+  const MenuIcon = isOpen ? IconX : IconMenu2;
 
   const toggle = useCallback(
     () => setOpenPath((path) => (path === pathname ? null : pathname)),
@@ -46,17 +45,22 @@ function MobileMenu() {
 
   return (
     <div className="md:hidden">
-      <Button
+      <button
         aria-controls="mobile-menu"
         aria-expanded={isOpen}
         aria-label={isOpen ? "Close menu" : "Open menu"}
-        icon={isOpen ? IconX : IconMenu2}
+        className="focus-visible:ring-ring focus-visible:ring-offset-background text-body-emphasized text-foreground hover:bg-muted inline-flex size-(--size-button-circle-lg) shrink-0 items-center justify-center gap-2 rounded-full bg-transparent p-0 whitespace-nowrap transition-colors focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-hidden disabled:pointer-events-none disabled:opacity-50"
         onClick={toggle}
         ref={triggerRef}
-        shape="circle"
-        size="lg"
-        variant="ghost"
-      />
+        type="button"
+      >
+        <span
+          aria-hidden="true"
+          className="pointer-events-none inline-flex size-5 shrink-0 items-center justify-center [&_svg]:size-full"
+        >
+          <MenuIcon />
+        </span>
+      </button>
       {isOpen ? (
         <ul
           className="bg-background absolute inset-x-0 top-full flex flex-col border-b px-5 py-2"
@@ -77,6 +81,6 @@ function MobileMenu() {
       ) : null}
     </div>
   );
-}
+};
 
 export { MobileMenu };

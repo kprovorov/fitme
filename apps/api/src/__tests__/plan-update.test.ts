@@ -81,9 +81,11 @@ describe.each([
       const response = await send(app, method);
 
       expect(response.status).toBe(200);
-      await expect(response.json()).resolves.toEqual({ data: planUpdate });
-      expect(calls).toEqual([SESSION_ID]);
-      expect(servicesFor).toEqual(["user_alice"]);
+      await expect(response.json()).resolves.toStrictEqual({
+        data: planUpdate,
+      });
+      expect(calls).toStrictEqual([SESSION_ID]);
+      expect(servicesFor).toStrictEqual(["user_alice"]);
     });
 
     it("answers 200 with no changes for a Workout Session without a Plan Update", async () => {
@@ -93,7 +95,9 @@ describe.each([
       const response = await send(app, method);
 
       expect(response.status).toBe(200);
-      await expect(response.json()).resolves.toEqual({ data: noPlanUpdate });
+      await expect(response.json()).resolves.toStrictEqual({
+        data: noPlanUpdate,
+      });
     });
 
     it("answers 200 with no changes once applied, its Plan and Workout still named", async () => {
@@ -103,7 +107,7 @@ describe.each([
 
       const response = await send(app, method);
 
-      await expect(response.json()).resolves.toEqual({ data: applied });
+      await expect(response.json()).resolves.toStrictEqual({ data: applied });
     });
 
     it("answers 404 not_found for a Workout Session that's missing or another User's, unreported", async () => {
@@ -113,22 +117,24 @@ describe.each([
       const response = await send(app, method);
 
       expect(response.status).toBe(404);
-      await expect(response.json()).resolves.toEqual({
+      await expect(response.json()).resolves.toStrictEqual({
         error: { code: "not_found", message: "Workout Session not found" },
       });
-      expect(reported).toEqual([]);
+      expect(reported).toStrictEqual([]);
     });
 
     it("strips fields beyond the contract", async () => {
       const { services } = answering(service, {
         ...planUpdate,
         changes: [
+          // SAFETY: All remove_exercise fields are valid; the extra field tests stripping.
           {
             exercise_slug: "dips",
             kind: "remove_exercise",
             workoutExerciseId: "2d3e4f5a-6b7c-4d8e-9f0a-1b2c3d4e5f6a",
           } as PlanUpdate["changes"][number],
         ],
+        // SAFETY: The fixture plan has id and name; the extra field tests stripping.
         plan: {
           ...planUpdate.plan,
           user_id: "user_alice",
@@ -137,12 +143,13 @@ describe.each([
 
       const { app } = testApp({ services });
 
-      const { data } = await (await send(app, method)).json();
+      const response = await send(app, method);
+      const { data } = await response.json();
 
-      expect(data.changes).toEqual([
+      expect(data.changes).toStrictEqual([
         { exercise_slug: "dips", kind: "remove_exercise" },
       ]);
-      expect(data.plan).toEqual(planUpdate.plan);
+      expect(data.plan).toStrictEqual(planUpdate.plan);
     });
 
     it("answers 400 invalid_request for an id that isn't a uuid, without calling the services", async () => {
@@ -156,9 +163,10 @@ describe.each([
       );
 
       expect(response.status).toBe(400);
-      expect((await response.json()).error.code).toBe("invalid_request");
-      expect(calls).toEqual([]);
-      expect(reported).toEqual([]);
+      const { error } = await response.json();
+      expect(error.code).toBe("invalid_request");
+      expect(calls).toStrictEqual([]);
+      expect(reported).toStrictEqual([]);
     });
 
     it("answers 401 without a token", async () => {

@@ -4,6 +4,7 @@ import { createFakeLibrary } from "@fitme/library-sdk/fake";
 import type { NewPlan } from "@fitme/services/plans";
 import { describe, expect, it, vi } from "vitest";
 
+import type { UserServices } from "../services.js";
 import {
   BENCH,
   call,
@@ -149,6 +150,15 @@ const failedQuery = (message: string) =>
     cause: Object.assign(new Error(message), { code: "57014" }),
   });
 
+const cover = (id: string, muscleGroups: Cover["muscle_groups"]): Cover => ({
+  id,
+  image_url: `https://media.test/covers/${id}.jpg`,
+  muscle_groups: muscleGroups,
+});
+
+const libraryWith = (covers: Cover[]) =>
+  createFakeLibrary([BENCH, SQUAT], { covers });
+
 describe("list_plans", () => {
   it("returns the User's plans from the service", async () => {
     const client = await connectWithServices({
@@ -157,8 +167,8 @@ describe("list_plans", () => {
 
     const result = await call(client, "list_plans");
 
-    expect(result.isError).toBe(false);
-    expect(JSON.parse(result.text)).toEqual([planSummary]);
+    expect(result.isError).toBeFalsy();
+    expect(JSON.parse(result.text)).toStrictEqual([planSummary]);
   });
 
   it("returns an empty list for a User without plans", async () => {
@@ -166,7 +176,9 @@ describe("list_plans", () => {
       listPlans: () => Promise.resolve([]),
     });
 
-    expect(JSON.parse((await call(client, "list_plans")).text)).toEqual([]);
+    const result = await call(client, "list_plans");
+
+    expect(JSON.parse(result.text)).toStrictEqual([]);
   });
 
   it("reports a database failure as a tool error without the SQL", async () => {
@@ -176,20 +188,23 @@ describe("list_plans", () => {
 
     const result = await call(client, "list_plans");
 
-    expect(result.isError).toBe(true);
+    expect(result.isError).toBeTruthy();
     expect(result.text).toBe("canceling statement");
   });
 });
 
 describe("get_plan", () => {
   it("returns the plan in full, each Exercise by slug with its library name", async () => {
-    const getPlan = vi.fn(() => Promise.resolve(servicePlan));
+    const getPlan = vi.fn<UserServices["getPlan"]>(() =>
+      Promise.resolve(servicePlan)
+    );
+
     const client = await connectWithServices({ getPlan });
 
     const result = await call(client, "get_plan", { planId: PLAN_ID });
 
-    expect(result.isError).toBe(false);
-    expect(result.json).toEqual(toolPlan);
+    expect(result.isError).toBeFalsy();
+    expect(result.json).toStrictEqual(toolPlan);
     expect(getPlan).toHaveBeenCalledWith(PLAN_ID);
   });
 
@@ -200,8 +215,8 @@ describe("get_plan", () => {
 
     const result = await call(client, "get_plan", { planId: PLAN_ID });
 
-    expect(result.isError).toBe(false);
-    expect(result.json).toEqual(unknownToolPlan);
+    expect(result.isError).toBeFalsy();
+    expect(result.json).toStrictEqual(unknownToolPlan);
   });
 
   it("still answers, with slug-derived names, when the library fails, and reports it", async () => {
@@ -215,15 +230,15 @@ describe("get_plan", () => {
 
     const result = await call(client, "get_plan", { planId: PLAN_ID });
 
-    expect(result.isError).toBe(false);
-    expect(result.json).toEqual(
+    expect(result.isError).toBeFalsy();
+    expect(result.json).toStrictEqual(
       toolPlanWith({
         exercise_slug: BENCH.slug,
         muscle_groups: [],
         name: "Bench press",
       })
     );
-    expect(reported).toEqual([expect.any(LibraryUnavailableError)]);
+    expect(reported).toStrictEqual([expect.any(LibraryUnavailableError)]);
   });
 
   it("does not return soft-deleted or foreign plans", async () => {
@@ -232,19 +247,22 @@ describe("get_plan", () => {
     });
 
     const result = await call(client, "get_plan", { planId: PLAN_ID });
-    expect(result.isError).toBe(true);
+    expect(result.isError).toBeTruthy();
     expect(result.text).toBe(
       `Plan ${PLAN_ID} not found (it may have been deleted or belong to another user).`
     );
   });
 
   it("rejects a plan id that isn't a uuid", async () => {
-    const getPlan = vi.fn(() => Promise.resolve(servicePlan));
+    const getPlan = vi.fn<UserServices["getPlan"]>(() =>
+      Promise.resolve(servicePlan)
+    );
+
     const client = await connectWithServices({ getPlan });
 
     const result = await call(client, "get_plan", { planId: "plan-1" });
 
-    expect(result.isError).toBe(true);
+    expect(result.isError).toBeTruthy();
     expect(getPlan).not.toHaveBeenCalled();
   });
 });
@@ -262,13 +280,16 @@ describe("create_plan", () => {
   };
 
   it("creates the plan with exercise_slug through the service and returns it named", async () => {
-    const createPlan = vi.fn(() => Promise.resolve(servicePlan));
+    const createPlan = vi.fn<UserServices["createPlan"]>(() =>
+      Promise.resolve(servicePlan)
+    );
+
     const client = await connectWithServices({ createPlan });
 
     const result = await call(client, "create_plan", plan);
 
-    expect(result.isError).toBe(false);
-    expect(result.json).toEqual(toolPlan);
+    expect(result.isError).toBeFalsy();
+    expect(result.json).toStrictEqual(toolPlan);
     expect(createPlan).toHaveBeenCalledWith({
       ...plan,
       workouts: uncovered(workoutsInput),
@@ -276,7 +297,10 @@ describe("create_plan", () => {
   });
 
   it("rejects unknown Exercise slugs, naming them, before calling the service", async () => {
-    const createPlan = vi.fn(() => Promise.resolve(servicePlan));
+    const createPlan = vi.fn<UserServices["createPlan"]>(() =>
+      Promise.resolve(servicePlan)
+    );
+
     const { reportError, reported } = recordingReporter();
     const client = await connectWithServices({ createPlan }, reportError);
     const [workout] = workoutsInput;
@@ -295,16 +319,19 @@ describe("create_plan", () => {
       ],
     });
 
-    expect(result.isError).toBe(true);
+    expect(result.isError).toBeTruthy();
     expect(result.text).toBe(
       "Unknown exercise_slug(s): nope-press, nope-curl. Use list_exercises to look up valid Exercise slugs."
     );
     expect(createPlan).not.toHaveBeenCalled();
-    expect(reported).toEqual([]);
+    expect(reported).toStrictEqual([]);
   });
 
   it("fails when the library is unavailable, reports it and writes nothing", async () => {
-    const createPlan = vi.fn(() => Promise.resolve(servicePlan));
+    const createPlan = vi.fn<UserServices["createPlan"]>(() =>
+      Promise.resolve(servicePlan)
+    );
+
     const { reportError, reported } = recordingReporter();
 
     const client = await connectWithServices(
@@ -315,14 +342,17 @@ describe("create_plan", () => {
 
     const result = await call(client, "create_plan", plan);
 
-    expect(result.isError).toBe(true);
+    expect(result.isError).toBeTruthy();
     expect(result.text).toBe(UNAVAILABLE);
     expect(createPlan).not.toHaveBeenCalled();
-    expect(reported).toEqual([expect.any(LibraryUnavailableError)]);
+    expect(reported).toStrictEqual([expect.any(LibraryUnavailableError)]);
   });
 
   it("rejects an exercise_id instead of an exercise_slug", async () => {
-    const createPlan = vi.fn(() => Promise.resolve(servicePlan));
+    const createPlan = vi.fn<UserServices["createPlan"]>(() =>
+      Promise.resolve(servicePlan)
+    );
+
     const client = await connectWithServices({ createPlan });
     const [workout] = workoutsInput;
 
@@ -336,17 +366,20 @@ describe("create_plan", () => {
       ],
     });
 
-    expect(result.isError).toBe(true);
+    expect(result.isError).toBeTruthy();
     expect(createPlan).not.toHaveBeenCalled();
   });
 
   it("rejects a plan without workouts before calling the service", async () => {
-    const createPlan = vi.fn(() => Promise.resolve(servicePlan));
+    const createPlan = vi.fn<UserServices["createPlan"]>(() =>
+      Promise.resolve(servicePlan)
+    );
+
     const client = await connectWithServices({ createPlan });
 
     const result = await call(client, "create_plan", { ...plan, workouts: [] });
 
-    expect(result.isError).toBe(true);
+    expect(result.isError).toBeTruthy();
     expect(createPlan).not.toHaveBeenCalled();
   });
 
@@ -357,14 +390,17 @@ describe("create_plan", () => {
 
     const result = await call(client, "create_plan", plan);
 
-    expect(result.isError).toBe(true);
+    expect(result.isError).toBeTruthy();
     expect(result.text).toBe("deadlock detected");
   });
 });
 
 describe("update_plan", () => {
   it("passes only the given metadata fields to the service", async () => {
-    const updatePlan = vi.fn(() => Promise.resolve(servicePlan));
+    const updatePlan = vi.fn<UserServices["updatePlan"]>(() =>
+      Promise.resolve(servicePlan)
+    );
+
     const client = await connectWithServices({ updatePlan });
 
     const result = await call(client, "update_plan", {
@@ -373,8 +409,8 @@ describe("update_plan", () => {
       planId: PLAN_ID,
     });
 
-    expect(result.isError).toBe(false);
-    expect(result.json).toEqual(toolPlan);
+    expect(result.isError).toBeFalsy();
+    expect(result.json).toStrictEqual(toolPlan);
     expect(updatePlan).toHaveBeenCalledWith(PLAN_ID, {
       name: "Renamed",
       note: null,
@@ -382,7 +418,9 @@ describe("update_plan", () => {
   });
 
   it("updates metadata, with slug-derived names, when the library fails", async () => {
-    const updatePlan = vi.fn(() => Promise.resolve(servicePlan));
+    const updatePlan = vi.fn<UserServices["updatePlan"]>(() =>
+      Promise.resolve(servicePlan)
+    );
 
     const client = await connectWithServices(
       { updatePlan },
@@ -395,7 +433,7 @@ describe("update_plan", () => {
       planId: PLAN_ID,
     });
 
-    expect(result.isError).toBe(false);
+    expect(result.isError).toBeFalsy();
     expect(updatePlan).toHaveBeenCalledWith();
     expect(result.json).toMatchObject({
       workouts: [{ exercises: [{ name: "Bench press" }] }],
@@ -403,7 +441,10 @@ describe("update_plan", () => {
   });
 
   it("passes the workouts that replace the plan's", async () => {
-    const updatePlan = vi.fn(() => Promise.resolve(servicePlan));
+    const updatePlan = vi.fn<UserServices["updatePlan"]>(() =>
+      Promise.resolve(servicePlan)
+    );
+
     const client = await connectWithServices({ updatePlan });
 
     const result = await call(client, "update_plan", {
@@ -412,8 +453,8 @@ describe("update_plan", () => {
       workouts: workoutsInput,
     });
 
-    expect(result.isError).toBe(false);
-    expect(result.json).toEqual(toolPlan);
+    expect(result.isError).toBeFalsy();
+    expect(result.json).toStrictEqual(toolPlan);
     expect(updatePlan).toHaveBeenCalledWith(PLAN_ID, {
       frequency: 4,
       workouts: uncovered(workoutsInput),
@@ -421,7 +462,10 @@ describe("update_plan", () => {
   });
 
   it("fails replacing workouts when the library is unavailable, writing nothing", async () => {
-    const updatePlan = vi.fn(() => Promise.resolve(servicePlan));
+    const updatePlan = vi.fn<UserServices["updatePlan"]>(() =>
+      Promise.resolve(servicePlan)
+    );
+
     const { reportError, reported } = recordingReporter();
 
     const client = await connectWithServices(
@@ -435,7 +479,7 @@ describe("update_plan", () => {
       workouts: workoutsInput,
     });
 
-    expect(result.isError).toBe(true);
+    expect(result.isError).toBeTruthy();
     expect(result.text).toBe(UNAVAILABLE);
     expect(updatePlan).not.toHaveBeenCalled();
     expect(reported).toHaveLength(1);
@@ -451,14 +495,16 @@ describe("update_plan", () => {
       planId: PLAN_ID,
     });
 
-    expect(result.isError).toBe(true);
+    expect(result.isError).toBeTruthy();
     expect(result.text).toBe(
       `Plan ${PLAN_ID} not found (it may have been deleted or belong to another user).`
     );
   });
 
   it("rejects unknown Exercise slugs before calling the service", async () => {
-    const updatePlan = vi.fn(() => Promise.resolve(servicePlan));
+    const updatePlan = vi.fn<UserServices["updatePlan"]>(() =>
+      Promise.resolve(servicePlan)
+    );
 
     const client = await connectWithServices(
       { updatePlan },
@@ -471,7 +517,7 @@ describe("update_plan", () => {
       workouts: workoutsInput,
     });
 
-    expect(result.isError).toBe(true);
+    expect(result.isError).toBeTruthy();
     expect(result.text).toBe(
       `Unknown exercise_slug(s): ${SQUAT.slug}. Use list_exercises to look up valid Exercise slugs.`
     );
@@ -479,12 +525,15 @@ describe("update_plan", () => {
   });
 
   it("rejects a call with nothing to update", async () => {
-    const updatePlan = vi.fn(() => Promise.resolve(servicePlan));
+    const updatePlan = vi.fn<UserServices["updatePlan"]>(() =>
+      Promise.resolve(servicePlan)
+    );
+
     const client = await connectWithServices({ updatePlan });
 
     const result = await call(client, "update_plan", { planId: PLAN_ID });
 
-    expect(result.isError).toBe(true);
+    expect(result.isError).toBeTruthy();
     expect(result.text).toContain("Nothing to update");
     expect(updatePlan).not.toHaveBeenCalled();
   });
@@ -499,14 +548,14 @@ describe("update_plan", () => {
       planId: PLAN_ID,
     });
 
-    expect(result.isError).toBe(true);
+    expect(result.isError).toBeTruthy();
     expect(result.text).toBe("deadlock detected");
   });
 });
 
 describe("delete_plan", () => {
   it("soft-deletes a live plan", async () => {
-    const deletePlan = vi.fn(() =>
+    const deletePlan = vi.fn<UserServices["deletePlan"]>(() =>
       Promise.resolve({
         alreadyDeleted: false,
         deleted: true as const,
@@ -518,7 +567,7 @@ describe("delete_plan", () => {
 
     const result = await call(client, "delete_plan", { planId: PLAN_ID });
 
-    expect(result.json).toEqual({
+    expect(result.json).toStrictEqual({
       alreadyDeleted: false,
       deleted: true,
       plan: { id: PLAN_ID, name: "My plan" },
@@ -538,8 +587,8 @@ describe("delete_plan", () => {
 
     const result = await call(client, "delete_plan", { planId: PLAN_ID });
 
-    expect(result.isError).toBe(false);
-    expect(result.json).toEqual({
+    expect(result.isError).toBeFalsy();
+    expect(result.json).toStrictEqual({
       alreadyDeleted: true,
       deleted: true,
       plan: { id: PLAN_ID, name: "Old" },
@@ -552,7 +601,7 @@ describe("delete_plan", () => {
     });
 
     const result = await call(client, "delete_plan", { planId: PLAN_ID });
-    expect(result.isError).toBe(true);
+    expect(result.isError).toBeTruthy();
     expect(result.text).toContain(`Plan ${PLAN_ID} not found`);
   });
 
@@ -563,14 +612,14 @@ describe("delete_plan", () => {
 
     const result = await call(client, "delete_plan", { planId: PLAN_ID });
 
-    expect(result.isError).toBe(true);
+    expect(result.isError).toBeTruthy();
     expect(result.text).toBe("deadlock detected");
   });
 });
 
 describe("activate_plan", () => {
   it("activates the plan and returns its summary", async () => {
-    const activatePlan = vi.fn(() =>
+    const activatePlan = vi.fn<UserServices["activatePlan"]>(() =>
       Promise.resolve({ ...planSummary, is_active: true })
     );
 
@@ -578,8 +627,8 @@ describe("activate_plan", () => {
 
     const result = await call(client, "activate_plan", { planId: PLAN_ID });
 
-    expect(result.isError).toBe(false);
-    expect(result.json).toEqual({
+    expect(result.isError).toBeFalsy();
+    expect(result.json).toStrictEqual({
       activated: true,
       plan: { ...planSummary, is_active: true },
     });
@@ -593,19 +642,19 @@ describe("activate_plan", () => {
 
     const result = await call(client, "activate_plan", { planId: PLAN_ID });
 
-    expect(result.isError).toBe(true);
+    expect(result.isError).toBeTruthy();
     expect(result.text).toBe(
       `Plan ${PLAN_ID} not found (it may have been deleted or belong to another user).`
     );
   });
 
   it("rejects a plan id that isn't a uuid", async () => {
-    const activatePlan = vi.fn();
+    const activatePlan = vi.fn<UserServices["activatePlan"]>();
     const client = await connectWithServices({ activatePlan });
 
     const result = await call(client, "activate_plan", { planId: "nope" });
 
-    expect(result.isError).toBe(true);
+    expect(result.isError).toBeTruthy();
     expect(activatePlan).not.toHaveBeenCalled();
   });
 
@@ -616,7 +665,7 @@ describe("activate_plan", () => {
 
     const result = await call(client, "activate_plan", { planId: PLAN_ID });
 
-    expect(result.isError).toBe(true);
+    expect(result.isError).toBeTruthy();
     expect(result.text).toBe("deadlock detected");
   });
 });
@@ -662,7 +711,7 @@ describe("workout covers", () => {
 
     const result = await call(client, "list_plans");
 
-    expect(JSON.parse(result.text)).toEqual([coveredSummary]);
+    expect(JSON.parse(result.text)).toStrictEqual([coveredSummary]);
   });
 
   it("get_plan shows each Workout's cover, set or null", async () => {
@@ -672,11 +721,14 @@ describe("workout covers", () => {
 
     const result = await call(client, "get_plan", { planId: PLAN_ID });
 
-    expect(result.json).toEqual(coveredToolPlan);
+    expect(result.json).toStrictEqual(coveredToolPlan);
   });
 
   it("create_plan shows each Workout's cover and never passes one on from the input", async () => {
-    const createPlan = vi.fn(() => Promise.resolve(coveredServicePlan));
+    const createPlan = vi.fn<UserServices["createPlan"]>(() =>
+      Promise.resolve(coveredServicePlan)
+    );
+
     const client = await connectWithServices({ createPlan });
 
     const result = await call(client, "create_plan", {
@@ -684,8 +736,8 @@ describe("workout covers", () => {
       workouts: workoutsWithCover,
     });
 
-    expect(result.isError).toBe(false);
-    expect(result.json).toEqual(coveredToolPlan);
+    expect(result.isError).toBeFalsy();
+    expect(result.json).toStrictEqual(coveredToolPlan);
     expect(createPlan).toHaveBeenCalledWith({
       ...metadata,
       workouts: uncovered(workoutsInput),
@@ -693,7 +745,10 @@ describe("workout covers", () => {
   });
 
   it("update_plan shows each Workout's cover and never passes one on from the input", async () => {
-    const updatePlan = vi.fn(() => Promise.resolve(coveredServicePlan));
+    const updatePlan = vi.fn<UserServices["updatePlan"]>(() =>
+      Promise.resolve(coveredServicePlan)
+    );
+
     const client = await connectWithServices({ updatePlan });
 
     const result = await call(client, "update_plan", {
@@ -701,8 +756,8 @@ describe("workout covers", () => {
       workouts: workoutsWithCover,
     });
 
-    expect(result.isError).toBe(false);
-    expect(result.json).toEqual(coveredToolPlan);
+    expect(result.isError).toBeFalsy();
+    expect(result.json).toStrictEqual(coveredToolPlan);
     expect(updatePlan).toHaveBeenCalledWith(PLAN_ID, {
       workouts: uncovered(workoutsInput),
     });
@@ -715,17 +770,14 @@ describe("workout covers", () => {
 
     const result = await call(client, "activate_plan", { planId: PLAN_ID });
 
-    expect(result.json).toEqual({ activated: true, plan: coveredSummary });
+    expect(result.json).toStrictEqual({
+      activated: true,
+      plan: coveredSummary,
+    });
   });
 });
 
 describe("cover assignment", () => {
-  const cover = (id: string, muscleGroups: Cover["muscle_groups"]): Cover => ({
-    id,
-    image_url: `https://media.test/covers/${id}.jpg`,
-    muscle_groups: muscleGroups,
-  });
-
   const CHEST_A = cover("c0000000-0000-4000-8000-00000000000a", ["chest"]);
   const CHEST_B = cover("c0000000-0000-4000-8000-00000000000b", ["chest"]);
 
@@ -739,11 +791,10 @@ describe("cover assignment", () => {
   const chestDay = { ...dayA, exercises: [benchEntry], name: "Chest day" };
   const legDay = { ...dayA, exercises: [squatEntry], name: "Leg day" };
 
-  const libraryWith = (covers: Cover[]) =>
-    createFakeLibrary([BENCH, SQUAT], { covers });
-
   it("create_plan gives each Workout a Cover of its most-trained muscle group", async () => {
-    const createPlan = vi.fn(() => Promise.resolve(servicePlan));
+    const createPlan = vi.fn<UserServices["createPlan"]>(() =>
+      Promise.resolve(servicePlan)
+    );
 
     const client = await connectWithServices(
       { createPlan },
@@ -756,7 +807,7 @@ describe("cover assignment", () => {
       workouts: [chestDay, legDay],
     });
 
-    expect(result.isError).toBe(false);
+    expect(result.isError).toBeFalsy();
     expect(createPlan).toHaveBeenCalledWith({
       ...metadata,
       workouts: [
@@ -769,7 +820,7 @@ describe("cover assignment", () => {
   it("create_plan keeps the Covers distinct within the Plan", async () => {
     const passed: unknown[] = [];
 
-    const createPlan = vi.fn((plan: NewPlan) => {
+    const createPlan = vi.fn<UserServices["createPlan"]>((plan: NewPlan) => {
       passed.push(...plan.workouts.map((workout) => workout.cover));
 
       return Promise.resolve(servicePlan);
@@ -786,11 +837,15 @@ describe("cover assignment", () => {
       workouts: [chestDay, chestDay],
     });
 
-    expect(passed.sort()).toEqual([CHEST_A.id, CHEST_B.id].sort());
+    expect(passed.toSorted()).toStrictEqual(
+      [CHEST_A.id, CHEST_B.id].toSorted()
+    );
   });
 
   it("update_plan with workouts gives each new Workout a Cover", async () => {
-    const updatePlan = vi.fn(() => Promise.resolve(servicePlan));
+    const updatePlan = vi.fn<UserServices["updatePlan"]>(() =>
+      Promise.resolve(servicePlan)
+    );
 
     const client = await connectWithServices(
       { updatePlan },
@@ -803,7 +858,7 @@ describe("cover assignment", () => {
       workouts: [legDay, chestDay],
     });
 
-    expect(result.isError).toBe(false);
+    expect(result.isError).toBeFalsy();
     expect(updatePlan).toHaveBeenCalledWith(PLAN_ID, {
       workouts: [
         { ...legDay, cover: LEGS.id },
@@ -813,7 +868,10 @@ describe("cover assignment", () => {
   });
 
   it("a metadata-only update_plan leaves the Covers alone", async () => {
-    const updatePlan = vi.fn(() => Promise.resolve(servicePlan));
+    const updatePlan = vi.fn<UserServices["updatePlan"]>(() =>
+      Promise.resolve(servicePlan)
+    );
+
     const library = libraryWith([CHEST_A]);
     const covers = vi.spyOn(library, "covers");
 
@@ -830,8 +888,14 @@ describe("cover assignment", () => {
   });
 
   it("covers() failing is the Library tool error, reported, with nothing written", async () => {
-    const createPlan = vi.fn(() => Promise.resolve(servicePlan));
-    const updatePlan = vi.fn(() => Promise.resolve(servicePlan));
+    const createPlan = vi.fn<UserServices["createPlan"]>(() =>
+      Promise.resolve(servicePlan)
+    );
+
+    const updatePlan = vi.fn<UserServices["updatePlan"]>(() =>
+      Promise.resolve(servicePlan)
+    );
+
     const failure = new LibraryUnavailableError({ status: 503 });
     const library = libraryWith([CHEST_A]);
     vi.spyOn(library, "covers").mockRejectedValue(failure);
@@ -854,12 +918,12 @@ describe("cover assignment", () => {
     });
 
     for (const result of [created, updated]) {
-      expect(result.isError).toBe(true);
+      expect(result.isError).toBeTruthy();
       expect(result.text).toBe(UNAVAILABLE);
     }
 
     expect(createPlan).not.toHaveBeenCalled();
     expect(updatePlan).not.toHaveBeenCalled();
-    expect(reported).toEqual([failure, failure]);
+    expect(reported).toStrictEqual([failure, failure]);
   });
 });

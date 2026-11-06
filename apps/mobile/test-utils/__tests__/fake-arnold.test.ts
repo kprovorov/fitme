@@ -130,9 +130,11 @@ describe("fake Arnold", () => {
       previousSessionId: session.state.sessionId,
       status: "reset",
     });
+
     const refused = await session
       .send("Again")
       .catch((error: unknown) => error);
+
     expect((refused as ClientError).code).toBe("session_not_active");
   });
 

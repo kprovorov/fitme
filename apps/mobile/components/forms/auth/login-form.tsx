@@ -5,6 +5,7 @@ import type { ElementRef } from "react";
 import { useController, useForm } from "react-hook-form";
 import type { FieldErrors } from "react-hook-form";
 import { useTranslation } from "react-i18next";
+import { View } from "react-native";
 import type { TextInput } from "react-native";
 import { z } from "zod";
 
@@ -12,7 +13,6 @@ import type { AuthFormLayout } from "~/components/auth/auth-screen";
 import { PasswordInput } from "~/components/auth/password-input";
 import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
-import { VStack } from "~/components/ui/vstack";
 
 const loginFormSchema = (t: TFunction) =>
   z.object({
@@ -65,6 +65,7 @@ export default function LoginForm({
     [email, onEdit]
   );
 
+  const passwordRef = useRef<ElementRef<typeof TextInput>>(null);
   const focusPassword = useCallback(() => passwordRef.current?.focus(), []);
 
   const { field: password, fieldState: passwordState } = useController({
@@ -80,7 +81,8 @@ export default function LoginForm({
     [password, onEdit]
   );
 
-  const passwordRef = useRef<ElementRef<typeof TextInput>>(null);
+  const { onBlur: handleEmailBlur } = email;
+  const { onBlur: handlePasswordBlur } = password;
 
   return children({
     action: (
@@ -97,7 +99,7 @@ export default function LoginForm({
       />
     ),
     fields: (
-      <VStack className="gap-sm items-stretch">
+      <View className="gap-sm flex flex-col items-stretch justify-center">
         <Input
           accessibilityLabel={t("auth.fields.email")}
           autoCapitalize="none"
@@ -106,7 +108,7 @@ export default function LoginForm({
           editable={!busy}
           error={emailState.error?.message}
           keyboardType="email-address"
-          onBlur={email.onBlur}
+          onBlur={handleEmailBlur}
           onChangeText={changeEmail}
           onSubmitEditing={focusPassword}
           placeholder={t("auth.fields.email")}
@@ -121,7 +123,7 @@ export default function LoginForm({
           autoComplete="current-password"
           editable={!busy}
           error={passwordState.error?.message}
-          onBlur={password.onBlur}
+          onBlur={handlePasswordBlur}
           onChangeText={changePassword}
           onSubmitEditing={submit}
           placeholder={t("auth.fields.passwordPlaceholder")}
@@ -131,7 +133,7 @@ export default function LoginForm({
           textContentType="password"
           value={password.value}
         />
-      </VStack>
+      </View>
     ),
   });
 }

@@ -21,15 +21,15 @@ import {
   rmSync,
 } from "node:fs";
 import { tmpdir } from "node:os";
-import { dirname, join, relative, sep } from "node:path";
+import path from "node:path";
 
 import { SentryCli } from "@sentry/cli";
 
 // Vercel's build output when building there, eve's own otherwise.
 const OUTPUT_DIRS = [".vercel/output/functions", ".output/server"];
 
-const SCRIPT = /\.[cm]?js$/;
-const LEADING_DOTS = /^\.+/;
+const SCRIPT = /\.[cm]?js$/u;
+const LEADING_DOTS = /^\.+/u;
 
 /** Runs sentry-cli with these arguments; throws when it fails. */
 export type SentryCliRunner = (args: string[]) => void;
@@ -42,15 +42,21 @@ export type SentryCliRunner = (args: string[]) => void;
 const findMappedScripts = (dir: string, base = dir): string[] => {
   const entries = readdirSync(dir, { withFileTypes: true });
 
-  const files = new Set(
-    entries.filter((entry) => entry.isFile()).map((entry) => entry.name)
-  );
+  const files = new Set<string>();
+
+  for (const entry of entries) {
+    if (entry.isFile()) {
+      files.add(entry.name);
+    }
+  }
 
   return entries.flatMap((entry) => {
-    const path = join(dir, entry.name);
+    const filePath = path.join(dir, entry.name);
 
     if (entry.isDirectory()) {
-      return entry.name === "node_modules" ? [] : findMappedScripts(path, base);
+      return entry.name === "node_modules"
+        ? []
+        : findMappedScripts(filePath, base);
     }
 
     const mapped =
@@ -58,19 +64,19 @@ const findMappedScripts = (dir: string, base = dir): string[] => {
       SCRIPT.test(entry.name) &&
       files.has(`${entry.name}.map`);
 
-    return mapped ? [relative(base, path)] : [];
+    return mapped ? [path.relative(base, filePath)] : [];
   });
 };
 
 /** Where a file of the build output is staged: no segment starts with a dot. */
 const stagedPath = (file: string): string =>
   file
-    .split(sep)
+    .split(path.sep)
     .map((segment) => segment.replace(LEADING_DOTS, ""))
-    .join(sep);
+    .join(path.sep);
 
 const copy = (from: string, to: string): void => {
-  mkdirSync(dirname(to), { recursive: true });
+  mkdirSync(path.dirname(to), { recursive: true });
   copyFileSync(from, to);
 };
 
@@ -94,9 +100,9 @@ const upload = (
     throw new Error("Two build output files would be staged at the same path");
   }
 
-  const staging = mkdtempSync(join(tmpdir(), "arnold-source-maps-"));
-  const inOutput = (file: string) => join(outputDir, file);
-  const inStaging = (file: string) => join(staging, stagedPath(file));
+  const staging = mkdtempSync(path.join(tmpdir(), "arnold-source-maps-"));
+  const inOutput = (file: string) => path.join(outputDir, file);
+  const inStaging = (file: string) => path.join(staging, stagedPath(file));
 
   try {
     for (const file of [...scripts, ...maps]) {
@@ -113,7 +119,9 @@ const upload = (
     sentryCli([
       "sourcemaps",
       "upload",
-      ...(release ? ["--release", release] : []),
+      ...(release !== undefined && release !== ""
+        ? ["--release", release]
+        : []),
       staging,
     ]);
   } finally {
@@ -135,13 +143,13 @@ export const uploadSourceMaps = ({
   outputDir: string | undefined;
   sentryCli: SentryCliRunner;
 }) => {
-  if (!env.SENTRY_AUTH_TOKEN) {
+  if (env.SENTRY_AUTH_TOKEN === undefined || env.SENTRY_AUTH_TOKEN === "") {
     console.log("No SENTRY_AUTH_TOKEN: skipping the source map upload");
 
     return;
   }
 
-  if (!outputDir) {
+  if (outputDir === undefined || outputDir === "") {
     console.warn("No source maps in the build output: nothing to upload");
 
     return;
@@ -161,7 +169,8 @@ if (import.meta.main) {
   uploadSourceMaps({
     env: process.env,
     outputDir: OUTPUT_DIRS.find((candidate) => existsSync(candidate)),
-    sentryCli: (args) =>
-      execFileSync(SentryCli.getPath(), args, { stdio: "inherit" }),
+    sentryCli: (args) => {
+      execFileSync(SentryCli.getPath(), args, { stdio: "inherit" });
+    },
   });
 }

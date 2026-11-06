@@ -1,5 +1,6 @@
 import * as Slot from "@rn-primitives/slot";
 import type * as React from "react";
+import { useMemo } from "react";
 import { View } from "react-native";
 import type { SFSymbol } from "sf-symbols-typescript";
 
@@ -73,7 +74,7 @@ type BadgeProps = React.ComponentProps<typeof View> & {
  * Badge owns its look: `className` only places it, and Badge's own classes
  * are merged after it, so a caller's fill, radius, padding or gap is dropped.
  */
-function Badge({
+const Badge = ({
   className,
   variant = "default",
   asChild,
@@ -81,8 +82,13 @@ function Badge({
   icon,
   iconPosition = "leading",
   ...props
-}: BadgeProps) {
+}: BadgeProps) => {
   const Component = asChild ? Slot.View : View;
+
+  const textClass = useMemo(
+    () => cn(LABEL_FONT_CLASS, badgeVariants[variant].labelClass),
+    [variant]
+  );
 
   const iconView = icon ? (
     <View
@@ -109,9 +115,7 @@ function Badge({
   );
 
   return (
-    <TextClassContext.Provider
-      value={cn(LABEL_FONT_CLASS, badgeVariants[variant].labelClass)}
-    >
+    <TextClassContext.Provider value={textClass}>
       <Component
         className={cn(
           className,
@@ -124,7 +128,7 @@ function Badge({
       </Component>
     </TextClassContext.Provider>
   );
-}
+};
 
 export type { BadgeIconPosition, BadgeProps };
 

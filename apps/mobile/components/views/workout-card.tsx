@@ -1,7 +1,7 @@
 import { Link, useRouter } from "expo-router";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Pressable, ScrollView } from "react-native";
+import { Pressable, ScrollView, View } from "react-native";
 
 import { HStack } from "@/components/ui/hstack";
 import { Text } from "@/components/ui/text";
@@ -29,7 +29,7 @@ interface WorkoutCardProps {
  * screen; the Workout tab has its own cards
  * (`components/workouts/workout-carousel-card.tsx`).
  */
-export default function WorkoutCard({ planId, workout }: WorkoutCardProps) {
+const WorkoutCard = ({ planId, workout }: WorkoutCardProps) => {
   const router = useRouter();
   const { t } = useTranslation();
   const activeSession = useOwnOpenWorkoutSession(workout.id);
@@ -79,32 +79,32 @@ export default function WorkoutCard({ planId, workout }: WorkoutCardProps) {
 
   return (
     <Card className="flex-1">
-      <VStack className="flex-1 items-stretch gap-4">
+      <VStack className="flex-1 items-stretch">
         {activeSession && (
           <Link
             asChild
             href={`/plans/${planId}/workouts/${workout.id}/sessions/${activeSession.id}`}
           >
             <Pressable className="border-continuous bg-primary flex-row items-center justify-between rounded-xl px-3 py-2 active:opacity-80">
-              <HStack className="flex-1 justify-start gap-1">
+              <View className="flex flex-1 flex-row items-center justify-start gap-1">
                 <SymbolImage
                   className="text-primary-foreground text-subhead-emphasized"
                   name="timer"
                 />
-                <Text className="text-primary-foreground text-subhead-emphasized">
+                <Text className="text-primary-foreground" variant="small">
                   {elapsedTime}
                 </Text>
-              </HStack>
+              </View>
 
-              <HStack className="gap-1">
-                <Text className="text-primary-foreground text-subhead-emphasized">
+              <View className="flex flex-row items-center justify-center gap-1">
+                <Text className="text-primary-foreground" variant="small">
                   {t("workoutCard.toWorkout")}
                 </Text>
                 <SymbolImage
                   className="text-primary-foreground text-subhead-emphasized"
                   name="arrow.right"
                 />
-              </HStack>
+              </View>
             </Pressable>
           </Link>
         )}
@@ -119,22 +119,22 @@ export default function WorkoutCard({ planId, workout }: WorkoutCardProps) {
           className="active:opacity-70"
           onPress={openWorkout}
         >
-          <VStack className="w-full flex-shrink items-stretch gap-4">
-            <HStack className="gap-sm">
+          <VStack className="w-full flex-shrink items-stretch">
+            <View className="gap-sm flex flex-row items-center justify-center">
               <H4 className="text-primary flex-1">{workout.name}</H4>
               <SymbolImage
                 className="text-footnote-emphasized text-muted-foreground"
                 name="chevron.right"
               />
-            </HStack>
+            </View>
             <HStack className="justify-start">
-              <HStack className="gap-1">
+              <View className="flex flex-row items-center justify-center gap-1">
                 <SymbolImage
                   className="text-muted-foreground text-subhead-emphasized"
                   name={COUNT_SYMBOL}
                 />
-                <Text className="text-subhead-emphasized">{exerciseCount}</Text>
-              </HStack>
+                <Text variant="small">{exerciseCount}</Text>
+              </View>
             </HStack>
             {workout.exercises.length > 0 && (
               <ScrollView
@@ -142,8 +142,8 @@ export default function WorkoutCard({ planId, workout }: WorkoutCardProps) {
                 horizontal
                 showsHorizontalScrollIndicator={false}
               >
-                {[...workout.exercises]
-                  .sort((a, b) => a.order - b.order)
+                {workout.exercises
+                  .toSorted((a, b) => a.order - b.order)
                   .map(({ exercise_slug, id }) => (
                     <ExerciseImage
                       exercise={
@@ -160,4 +160,6 @@ export default function WorkoutCard({ planId, workout }: WorkoutCardProps) {
       </VStack>
     </Card>
   );
-}
+};
+
+export default WorkoutCard;

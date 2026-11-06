@@ -151,6 +151,7 @@ const seedPlan = (
       {
         predicate: ({ queryKey }) =>
           queryKey[0] === "plan" &&
+          // SAFETY: "plan" keys come from usePlanQuery with PlanQueryVariables as the second element, if present.
           (queryKey[1] as PlanQueryVariables | undefined)?.id !== plan.id,
       },
       { queryKey: WEEKLY_GOALS_QUERY_KEY },
@@ -238,8 +239,8 @@ export const useActivatePlanMutation = createMutation<
  * Soft-deletes the Plan through `DELETE /v1/plans/{id}` (its Workout Sessions
  * stay); a Plan already deleted succeeds again. Rejects with an `ApiError`.
  */
-export const useDeletePlanMutation = createMutation<void, { id: string }>({
-  mutationFn: async ({ id }: { id: string }): Promise<void> => {
+export const useDeletePlanMutation = createMutation<undefined, { id: string }>({
+  mutationFn: async ({ id }: { id: string }): Promise<undefined> => {
     await publicApi().DELETE("/v1/plans/{id}", { params: { path: { id } } });
 
     if (!IS_E2E) {

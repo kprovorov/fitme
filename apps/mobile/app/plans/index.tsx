@@ -6,7 +6,7 @@ import { RefreshControl, ScrollView } from "react-native";
 import PlansListView from "~/components/views/plan-list-view";
 import { usePlanSummariesQuery } from "~/hooks/queries/plans";
 
-export default function PlansScreen() {
+const PlansScreen = () => {
   const { refetch, isLoading } = usePlanSummariesQuery();
   const router = useRouter();
   const { t } = useTranslation();
@@ -55,4 +55,6 @@ export default function PlansScreen() {
       </ScrollView>
     </>
   );
-}
+};
+
+export default PlansScreen;

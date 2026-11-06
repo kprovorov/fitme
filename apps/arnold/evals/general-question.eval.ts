@@ -2,7 +2,7 @@ import { defineEval } from "eve/evals";
 
 import { readToolStubs } from "./fixtures";
 
-const MINUTES = /minute/i;
+const MINUTES = /minute/iu;
 
 export default defineEval({
   description: "A general fitness question gets a text answer, no plan card.",

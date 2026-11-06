@@ -21,7 +21,7 @@ interface ServerInfo {
 }
 
 /** Static catalog tools backed by `@fitme/core`; they read no User data. */
-export function registerCatalogTools(server: McpServer, info: ServerInfo) {
+export const registerCatalogTools = (server: McpServer, info: ServerInfo) => {
   server.registerTool(
     "ping",
     {
@@ -88,4 +88,4 @@ export function registerCatalogTools(server: McpServer, info: ServerInfo) {
     ({ muscleGroup }) =>
       asJson({ id: muscleGroup, name: muscleGroupToName(muscleGroup) })
   );
-}
+};

@@ -26,22 +26,30 @@ export const SearchBar = ({
 
   const change = (next: string) => {
     setText(next);
+    // SAFETY: The header search handler reads only nativeEvent.text, supplied here.
     options.onChangeText?.({ nativeEvent: { text: next } } as Parameters<
       NonNullable<SearchBarProps["onChangeText"]>
     >[0]);
   };
 
   useImperativeHandle(options.ref, () => ({
-    blur: () => {},
+    blur: () => {
+      // The stand-in has no native focus to release.
+    },
     cancelSearch: () => setText(""),
     clearText: () => setText(""),
-    focus: () => {},
+    focus: () => {
+      // The stand-in has no native focus to acquire.
+    },
     setText,
-    toggleCancelButton: () => {},
+    toggleCancelButton: () => {
+      // The stand-in always renders its Cancel button.
+    },
   }));
 
   const cancel = () => {
     setText("");
+    // SAFETY: The header search cancel handler ignores the event argument.
     options.onCancelButtonPress?.(
       {} as Parameters<NonNullable<SearchBarProps["onCancelButtonPress"]>>[0]
     );

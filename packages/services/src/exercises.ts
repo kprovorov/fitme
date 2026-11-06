@@ -136,7 +136,8 @@ export const getExerciseHistory = async (
         finished_at: jsonTimestamp(workoutSessions.finishedAt),
         session_exercise_id: workoutSessionExercises.id,
         session_id: workoutSessions.id,
-        started_at: jsonTimestamp(workoutSessions.startedAt) as SQL<string>,
+        // startedAt is NOT NULL, so its JSON text is always a string.
+        started_at: sql<string>`to_json(${workoutSessions.startedAt}) #>> '{}'`,
       },
       plan: { id: plans.id, name: plans.name },
       set: {
@@ -199,6 +200,6 @@ export const getExerciseHistory = async (
     entries: [...entries.values()],
     // An empty page has no row to carry the total: count on its own (no rows
     // to disagree with).
-    total: first ? first.total : await countEntries(tx, matches),
+    total: first === undefined ? await countEntries(tx, matches) : first.total,
   };
 };

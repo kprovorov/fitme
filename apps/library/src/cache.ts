@@ -3,7 +3,7 @@ import { createMiddleware } from "hono/factory";
 /** Devices reuse an answer for an hour, then revalidate. */
 const CACHE_CONTROL = "private, max-age=3600";
 
-const WEAK_PREFIX = /^W\//;
+const WEAK_PREFIX = /^W\//u;
 
 /** Whether an `If-None-Match` header lists `etag` (weak comparison) or is `*`. */
 const matches = (ifNoneMatch: string | undefined, etag: string) =>
@@ -23,23 +23,25 @@ const matches = (ifNoneMatch: string | undefined, etag: string) =>
 export const deviceCache = (libraryHash: string) => {
   const etag = `"${libraryHash}"`;
 
-  return createMiddleware(async (c, next) => {
-    await next();
+  return createMiddleware((c, next) =>
+    next().then(() => {
+      if (c.res.status !== 200) {
+        return c.res;
+      }
 
-    if (c.res.status !== 200) {
-      return;
-    }
+      const headers = { "Cache-Control": CACHE_CONTROL, ETag: etag };
 
-    const headers = { "Cache-Control": CACHE_CONTROL, ETag: etag };
+      if (matches(c.req.header("If-None-Match"), etag)) {
+        c.res = new Response(null, { headers, status: 304 });
 
-    if (matches(c.req.header("If-None-Match"), etag)) {
-      c.res = new Response(null, { headers, status: 304 });
+        return c.res;
+      }
 
-      return;
-    }
+      for (const [name, value] of Object.entries(headers)) {
+        c.res.headers.set(name, value);
+      }
 
-    for (const [name, value] of Object.entries(headers)) {
-      c.res.headers.set(name, value);
-    }
-  });
+      return c.res;
+    })
+  );
 };

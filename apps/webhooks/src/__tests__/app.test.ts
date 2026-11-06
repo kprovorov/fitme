@@ -29,23 +29,23 @@ app.get("/test/teapot", () => {
   throw new HTTPException(418, { message: "I'm a teapot" });
 });
 
-afterEach(() => {
-  reported.length = 0;
-});
-
 describe("app", () => {
+  afterEach(() => {
+    reported.length = 0;
+  });
+
   it("answers /health", async () => {
     const response = await app.request("/health");
 
     expect(response.status).toBe(200);
-    await expect(response.json()).resolves.toEqual({ ok: true });
+    await expect(response.json()).resolves.toStrictEqual({ ok: true });
   });
 
   it("answers an unknown route with a JSON 404", async () => {
     const response = await app.request("/nope");
 
     expect(response.status).toBe(404);
-    await expect(response.json()).resolves.toEqual({
+    await expect(response.json()).resolves.toStrictEqual({
       error: { code: "not_found", message: "Route not found" },
     });
   });
@@ -54,7 +54,7 @@ describe("app", () => {
     const response = await app.request("/clerk");
 
     expect(response.status).toBe(404);
-    await expect(response.json()).resolves.toEqual({
+    await expect(response.json()).resolves.toStrictEqual({
       error: { code: "not_found", message: "Route not found" },
     });
   });
@@ -63,19 +63,19 @@ describe("app", () => {
     const response = await app.request("/test/crash");
 
     expect(response.status).toBe(500);
-    await expect(response.json()).resolves.toEqual({
+    await expect(response.json()).resolves.toStrictEqual({
       error: { code: "internal_error", message: "Internal server error" },
     });
-    expect(reported).toEqual([crash]);
+    expect(reported).toStrictEqual([crash]);
   });
 
   it("answers an HTTP error with its status without reporting it", async () => {
     const response = await app.request("/test/teapot");
 
     expect(response.status).toBe(418);
-    await expect(response.json()).resolves.toEqual({
+    await expect(response.json()).resolves.toStrictEqual({
       error: { code: "http_error", message: "I'm a teapot" },
     });
-    expect(reported).toEqual([]);
+    expect(reported).toStrictEqual([]);
   });
 });

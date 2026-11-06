@@ -6,7 +6,7 @@ import {
   publicCacheHeaders,
 } from "../schemas.js";
 
-const VERSION_PATTERN = /^\d+\.\d+\.\d+$/;
+const VERSION_PATTERN = /^\d+\.\d+\.\d+$/u;
 
 /** An `x.y.z` version from env, or `undefined` when unset or malformed. */
 const versionFromEnv = (name: string) => {

@@ -6,7 +6,7 @@ export interface ClerkWebhookDeps {
   /** Resets every Arnold session recorded for the User. */
   deleteArnoldConversations: (userId: string) => Promise<void>;
   deleteUserData: (userId: string) => Promise<void>;
-  reportError: (error: unknown) => Promise<void>;
+  reportError: (error: Error) => Promise<void>;
   /** Unset fails every delivery with a reported 500, so Clerk keeps retrying. */
   signingSecret: string | undefined;
 }
@@ -52,7 +52,11 @@ export const clerkRoutes = ({
         await deleteUserData(event.data.id);
         await deleteArnoldConversations(event.data.id);
       } catch (error) {
-        await reportError(error);
+        await reportError(
+          error instanceof Error
+            ? error
+            : new Error("User data cleanup failed", { cause: error })
+        );
 
         return c.json(
           errorBody("cleanup_failed", "User data cleanup failed"),

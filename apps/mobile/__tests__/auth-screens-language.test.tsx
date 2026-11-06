@@ -5,11 +5,11 @@
  * `expo-localization` (`test-utils/device-locales.ts`).
  */
 import { beforeEach, describe, expect, it, jest } from "@jest/globals";
-
-import "~/test-utils/auth-ui";
 import { fireEvent, render, screen } from "@testing-library/react-native";
 import { router } from "expo-router";
 import type { ComponentType } from "react";
+
+import "~/test-utils/auth-ui";
 import { it, describe, expect, beforeEach } from "vitest";
 
 import LoginScreen from "~/app/auth/login";

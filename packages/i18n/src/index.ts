@@ -1,16 +1,16 @@
 import { defaultAppLanguage } from "@fitme/core";
 import type { AppLanguage } from "@fitme/core";
-import i18next from "i18next";
+import { createInstance } from "i18next";
 import type { i18n } from "i18next";
 
 import ca from "./catalogs/ca.json";
 import en from "./catalogs/en.json";
 import es from "./catalogs/es.json";
 import uk from "./catalogs/uk.json";
+import type { Catalog } from "./check";
+import { numberFormat, regionOf, withRegion } from "./format";
 
 export { type Catalog, checkCatalogs, pluralForms } from "./check";
-
-import { numberFormat, regionOf, withRegion } from "./format";
 
 export {
   type CountKind,
@@ -45,13 +45,12 @@ const NUMBER_FORMAT_OPTIONS = [
 ] as const;
 
 const numberFormatOptions = (
-  options: Record<string, unknown> = {}
+  options: Intl.NumberFormatOptions = {}
 ): Intl.NumberFormatOptions =>
   Object.fromEntries(
-    NUMBER_FORMAT_OPTIONS.filter((key) => key in options).map((key) => [
-      key,
-      options[key],
-    ])
+    NUMBER_FORMAT_OPTIONS.flatMap((key) =>
+      key in options ? [[key, options[key]]] : []
+    )
   );
 
 /** The one namespace: every key lives in `translation`. */
@@ -60,7 +59,7 @@ export const defaultNamespace = "translation";
 /** Every App language's catalog. English is the source and the fallback. */
 export const catalogs = { ca, en, es, uk } satisfies Record<
   AppLanguage,
-  object
+  Catalog
 >;
 
 declare module "i18next" {
@@ -77,9 +76,9 @@ declare module "i18next" {
  * every catalog bundled (no backend, nothing loaded later). A key missing
  * from the language's catalog falls back to English.
  */
-export function createI18n(language: AppLanguage): i18n {
-  const instance = i18next.createInstance();
-  instance.init({
+export const createI18n = (language: AppLanguage): i18n => {
+  const instance = createInstance();
+  void instance.init({
     defaultNS: defaultNamespace,
     fallbackLng: defaultAppLanguage,
     initAsync: false,
@@ -98,12 +97,14 @@ export function createI18n(language: AppLanguage): i18n {
   });
   // The catalogs' `{{…, number}}` placeholders take the device region too,
   // so `62.5 kg` reads like every other number (`formatNumber`).
-  instance.services.formatter?.add("number", (value, lng, options) =>
-    numberFormat(
-      withRegion(lng ?? instance.language, regionOf(instance)),
-      numberFormatOptions(options)
-    ).format(value)
+  instance.services.formatter?.add(
+    "number",
+    (value: number | bigint, lng, options: Intl.NumberFormatOptions = {}) =>
+      numberFormat(
+        withRegion(lng ?? instance.language, regionOf(instance)),
+        numberFormatOptions(options)
+      ).format(value)
   );
 
   return instance;
-}
+};

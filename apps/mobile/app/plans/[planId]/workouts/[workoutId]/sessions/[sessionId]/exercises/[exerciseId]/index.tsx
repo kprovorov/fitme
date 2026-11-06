@@ -38,7 +38,7 @@ const HISTORY_NEAR_END_THRESHOLD = 0.5;
 /** How often scrolling reports its position, in milliseconds. */
 const SCROLL_EVENT_THROTTLE_MS = 16;
 
-export default function WorkoutSessionExerciseScreen() {
+const WorkoutSessionExerciseScreen = () => {
   const { t } = useTranslation();
   const router = useRouter();
   const insets = useSafeAreaInsets();
@@ -48,7 +48,12 @@ export default function WorkoutSessionExerciseScreen() {
     workoutId: _workoutId,
     sessionId,
     exerciseId,
-  } = useLocalSearchParams();
+  } = useLocalSearchParams<{
+    planId: string;
+    workoutId: string;
+    sessionId: string;
+    exerciseId: string;
+  }>();
 
   // The Exercise comes from its Workout Session's read: a failed refresh
   // keeps it on screen, and with none read yet it's the load error. One the
@@ -59,7 +64,7 @@ export default function WorkoutSessionExerciseScreen() {
     isError,
     refetch,
   } = useWorkoutSessionQuery({
-    variables: { sessionId: sessionId as string },
+    variables: { sessionId },
   });
 
   const workoutSessionExercise = workoutSession?.exercises.find(
@@ -172,16 +177,16 @@ export default function WorkoutSessionExerciseScreen() {
           />
           <Card>
             <WorkoutSessionExerciseSetsTableView
-              exerciseId={exerciseId as string}
+              exerciseId={exerciseId}
               onSetLogged={handleSetLogged}
               readOnly={isFinished}
-              sessionId={sessionId as string}
+              sessionId={sessionId}
               weightUnit={workoutSession.weight_unit}
               workoutSessionExerciseSets={workoutSessionExercise.sets}
             />
           </Card>
           <ExerciseHistoryView
-            excludeId={exerciseId as string}
+            excludeId={exerciseId}
             exerciseSlug={workoutSessionExercise.exercise_slug}
             ref={history}
           />
@@ -249,8 +254,10 @@ export default function WorkoutSessionExerciseScreen() {
       <WorkoutSessionFinishSuggestion
         isFinished={isFinished}
         screensAboveSession={1}
-        sessionId={sessionId as string}
+        sessionId={sessionId}
       />
     </>
   );
-}
+};
+
+export default WorkoutSessionExerciseScreen;

@@ -30,13 +30,13 @@ const ICON_SIZE = 18;
  */
 const TITLE_MAX_FONT_SCALE = 2;
 
-function StartAction({
+const StartAction = ({
   plan,
   workout,
 }: {
   plan: FullPlan;
   workout: PlanWorkout;
-}) {
+}) => {
   const router = useRouter();
   const { t } = useTranslation();
   const i18n = useI18n();
@@ -60,7 +60,7 @@ function StartAction({
         size="lg"
         testID="history-start-workout"
       />
-      <Text className="text-footnote text-muted-foreground text-center">
+      <Text className="text-center" variant="muted">
         {t("history.empty.nextUp", {
           exercises: formatCount(i18n, "exercises", workout.exercises.length),
           plan: plan.name ?? "",
@@ -68,9 +68,9 @@ function StartAction({
       </Text>
     </>
   );
-}
+};
 
-function ResumeAction({ openSession }: { openSession: OpenWorkoutSession }) {
+const ResumeAction = ({ openSession }: { openSession: OpenWorkoutSession }) => {
   const router = useRouter();
   const { t } = useTranslation();
   const name = openSession.workout?.name;
@@ -92,14 +92,14 @@ function ResumeAction({ openSession }: { openSession: OpenWorkoutSession }) {
         onPress={resume}
         size="lg"
       />
-      <Text className="text-footnote text-muted-foreground text-center">
+      <Text className="text-center" variant="muted">
         {t("history.empty.inProgress")}
       </Text>
     </>
   );
-}
+};
 
-function CreatePlanAction() {
+const CreatePlanAction = () => {
   const router = useRouter();
   const { t } = useTranslation();
   const createPlan = useCallback(() => router.push("/planner"), [router]);
@@ -112,7 +112,7 @@ function CreatePlanAction() {
       size="lg"
     />
   );
-}
+};
 
 interface EmptyHistoryCardProps {
   /**
@@ -131,10 +131,10 @@ interface EmptyHistoryCardProps {
  * else Start the active Plan's next Workout, else Create a plan. An active
  * Plan with no Workout has nothing to start, so it gets Create a plan too.
  */
-export function EmptyHistoryCard({
+export const EmptyHistoryCard = ({
   activePlan,
   openSession,
-}: EmptyHistoryCardProps) {
+}: EmptyHistoryCardProps) => {
   const { t } = useTranslation();
   const nextWorkout = activePlan ? nextWorkoutOf(activePlan) : undefined;
 
@@ -184,4 +184,4 @@ export function EmptyHistoryCard({
       </View>
     </Card>
   );
-}
+};

@@ -1,6 +1,7 @@
 import { appLanguages } from "@fitme/core";
 import type { AppLanguage } from "@fitme/core";
 import type { Cover, Exercise, ExerciseSummary } from "@fitme/library-sdk";
+import { z } from "zod";
 
 import { storage } from "~/lib/mmkv";
 
@@ -45,33 +46,33 @@ export interface CachedEntry<T> {
   value: T;
 }
 
-const isRecord = (value: unknown): value is Record<string, unknown> =>
-  typeof value === "object" && value !== null;
+const summarySchema = z.object({
+  slug: z.string(),
+  name: z.string(),
+  thumbnail_url: z.string(),
+  video_url: z.string(),
+  muscle_groups: z.array(z.string()),
+});
+
+const exerciseSchema = summarySchema.extend({
+  description: z.string(),
+  instructions: z.string(),
+});
+
+const coverSchema = z.object({
+  id: z.string(),
+  image_url: z.string(),
+  muscle_groups: z.array(z.string()),
+});
 
 const isSummary = (value: unknown): value is ExerciseSummary =>
-  isRecord(value) &&
-  typeof value.slug === "string" &&
-  typeof value.name === "string" &&
-  typeof value.thumbnail_url === "string" &&
-  typeof value.video_url === "string" &&
-  Array.isArray(value.muscle_groups) &&
-  value.muscle_groups.every((group) => typeof group === "string");
+  summarySchema.safeParse(value).success;
 
 const isExercise = (value: unknown): value is Exercise =>
-  isSummary(value) &&
-  isRecord(value) &&
-  typeof value.description === "string" &&
-  typeof value.instructions === "string";
-
-const isCover = (value: unknown): value is Cover =>
-  isRecord(value) &&
-  typeof value.id === "string" &&
-  typeof value.image_url === "string" &&
-  Array.isArray(value.muscle_groups) &&
-  value.muscle_groups.every((group) => typeof group === "string");
+  exerciseSchema.safeParse(value).success;
 
 const isCoverList = (value: unknown): value is Cover[] =>
-  Array.isArray(value) && value.every(isCover);
+  z.array(coverSchema).safeParse(value).success;
 
 /** The entry under `key`; an unreadable or malformed value counts as none. */
 const read = <T>(
@@ -93,12 +94,19 @@ const read = <T>(
     return;
   }
 
-  if (
-    isRecord(entry) &&
-    typeof entry.savedAt === "number" &&
-    isValue(entry.value)
-  ) {
-    return { savedAt: entry.savedAt, value: entry.value };
+  const parsed = z
+    .object({
+      savedAt: z.union([
+        z.number(),
+        z.literal(Number.POSITIVE_INFINITY),
+        z.literal(Number.NEGATIVE_INFINITY),
+      ]),
+      value: z.custom<T>(isValue),
+    })
+    .safeParse(entry);
+
+  if (parsed.success) {
+    return { savedAt: parsed.data.savedAt, value: parsed.data.value };
   }
 };
 

@@ -3,6 +3,7 @@ import { observeHono, reportError } from "@fitme/observability/node";
 import { listArnoldSessionIds } from "@fitme/services/arnold-sessions";
 import { deleteUserData } from "@fitme/services/delete-user-data";
 import { Hono } from "hono";
+import type { ErrorHandler } from "hono";
 import { HTTPException } from "hono/http-exception";
 import { logger } from "hono/logger";
 
@@ -22,7 +23,7 @@ export interface AppDeps {
 
 /**
  * The real dependencies: the database through withService, Arnold,
- * @fitme/observability, env. The Arnold session ids are read in withService:
+ * observability through the shared package, env. The Arnold session ids are read in withService:
  * by then the User's id is retired, so asUser would see none.
  */
 const defaultDeps = (): AppDeps => ({
@@ -59,7 +60,7 @@ export const createApp = (
     c.json({ error: { code: "not_found", message: "Route not found" } }, 404)
   );
 
-  app.onError(async (error, c) => {
+  const handleError: ErrorHandler = async (error, c) => {
     if (error instanceof HTTPException) {
       return c.json(
         { error: { code: "http_error", message: error.message } },
@@ -73,7 +74,9 @@ export const createApp = (
       { error: { code: "internal_error", message: "Internal server error" } },
       500
     );
-  });
+  };
+
+  app.onError(handleError);
 
   return app;
 };

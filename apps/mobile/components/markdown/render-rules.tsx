@@ -11,9 +11,11 @@ import type { RenderRules, StyleMap } from "./types";
 
 // Helper to safely get styles with proper casting
 const getViewStyle = (styles: StyleMap, key: string): ViewStyle | undefined =>
+  // SAFETY: View keys select layout styles or _VIEW_SAFE_ entries stripped of text-only props by getMergedStyles.
   styles[key] as ViewStyle | undefined;
 
 const getTextStyle = (styles: StyleMap, key: string): TextStyle | undefined =>
+  // SAFETY: Text rules select text style entries flattened by getMergedStyles; absent keys remain undefined.
   styles[key] as TextStyle | undefined;
 
 const renderRules: RenderRules = {
@@ -52,11 +54,15 @@ const renderRules: RenderRules = {
   image: ({ node, styles }) => {
     const imageProps: ImageProps = {
       source: { uri: node.url },
+      // SAFETY: getMergedStyles flattens the image entry, whose styles are consumed only by Image.
       style: styles.image as ImageStyle,
-      ...(node.alt
-        ? { accessibilityLabel: node.alt, accessible: true, alt: node.alt }
-        : {}),
     };
+
+    if (node.alt) {
+      imageProps.accessibilityLabel = node.alt;
+      imageProps.accessible = true;
+      imageProps.alt = node.alt;
+    }
 
     return <Image key={node.key} {...imageProps} />;
   },
@@ -88,9 +94,7 @@ const renderRules: RenderRules = {
   ),
   listItem: ({ node, styles, children, extras }) => (
     <View key={node.key} style={getViewStyle(styles, "listItem")}>
-      {extras?.customListStyleType ? (
-        extras.customListStyleType
-      ) : (
+      {extras?.customListStyleType || (
         <Text style={getTextStyle(styles, "listBullet")}>
           {extras?.listStyleType}
         </Text>

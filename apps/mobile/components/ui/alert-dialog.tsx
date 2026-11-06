@@ -86,12 +86,12 @@ const AlertDialog = ({
           )}
         </Alert.Trigger>
         <Alert.Actions>
-          {actions.map((action) => (
+          {actions.map(({ label, onPress: handlePress, role }) => (
             <SwiftUIButton
-              key={action.label}
-              label={action.label}
-              onPress={action.onPress}
-              role={action.role ?? "default"}
+              key={label}
+              label={label}
+              onPress={handlePress}
+              role={role ?? "default"}
             />
           ))}
         </Alert.Actions>

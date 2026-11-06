@@ -19,12 +19,13 @@ import { Text } from "~/components/ui/text";
 import { useStoreProfileMutation } from "~/hooks/mutations/profiles";
 import type { StoreProfileData } from "~/hooks/mutations/profiles";
 import { useProfileQuery } from "~/hooks/queries/profiles";
+import type { Profile } from "~/hooks/queries/profiles";
 import { IS_E2E } from "~/lib/constants";
 import { storage } from "~/lib/mmkv";
 import { genderOf, measurementSystemOf } from "~/lib/profile";
 import { segmentClient } from "~/lib/segment";
 
-export default function ProfileScreen() {
+const ProfileScreen = () => {
   const { t } = useTranslation();
 
   const { user } = useUser();
@@ -45,8 +46,8 @@ export default function ProfileScreen() {
 
   const locales = useLocales();
 
-  const deviceMeasurementSystem = (locales[0]?.measurementSystem ??
-    "metric") as MeasurementSystem;
+  const deviceMeasurementSystem: MeasurementSystem =
+    locales[0]?.measurementSystem ?? "metric";
 
   const measurementSystem: MeasurementSystem = profile
     ? measurementSystemOf(profile)
@@ -69,7 +70,7 @@ export default function ProfileScreen() {
   // has set to the saved one by the time this runs. On the call, not the
   // hook: a hook-level `onSuccess` would replace the mutation's own.
   const handleSaved = useCallback(
-    (_profile: unknown, variables: StoreProfileData) => {
+    (_profile: Profile, variables: StoreProfileData) => {
       if (user) {
         storage.set(`onboarding.seen.${user.id}`, true);
       }
@@ -178,4 +179,6 @@ export default function ProfileScreen() {
       ) : null}
     </>
   );
-}
+};
+
+export default ProfileScreen;

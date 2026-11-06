@@ -285,7 +285,7 @@ export const createServicesFromEnv: ServicesFactory = (userId) => {
   /** `run`, after locking the units its weights are in (and `before`, first). */
   const inUnits = <T>(
     run: (tx: Transaction) => Promise<T>,
-    { before }: { before?: (tx: Transaction) => Promise<unknown> } = {}
+    { before }: { before?: (tx: Transaction) => Promise<void> } = {}
   ) =>
     asUser(userId, async (tx): Promise<Weighed<T>> => {
       await before?.(tx);
@@ -300,8 +300,9 @@ export const createServicesFromEnv: ServicesFactory = (userId) => {
    * them after it would deadlock. Waiting for them up front holds nothing.
    */
   const write = {
-    before: (tx: Transaction) =>
-      tx.execute(sql`lock table ${USER_TABLES} in row exclusive mode`),
+    before: async (tx: Transaction): Promise<void> => {
+      await tx.execute(sql`lock table ${USER_TABLES} in row exclusive mode`);
+    },
   };
 
   /** `read` (or a write, with `write`) in its units, or `null` when it finds nothing. */

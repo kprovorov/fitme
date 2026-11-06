@@ -1,6 +1,8 @@
-import { readFileSync } from "node:fs";
+/// <reference lib="es2023.array" />
+
+import { readFile } from "node:fs/promises";
 import { createRequire } from "node:module";
-import { dirname } from "node:path";
+import nodePath from "node:path";
 
 import { compile } from "tailwindcss";
 import { describe, expect, it } from "vitest";
@@ -56,27 +58,29 @@ const sizeOf = (style: string) => {
 };
 
 const EXPECTED: Record<string, Expected> = Object.fromEntries([
-  ...HIG.flatMap(([style, regular, size, lineHeight, emphasized]) => [
-    [
-      `text-${style}`,
-      {
-        family: `nunito-sans-${regular}`,
-        lineHeight,
-        size,
-        weight: WEIGHTS[regular],
-      },
-    ],
-    [
-      `text-${style}-emphasized`,
-      {
-        family: `nunito-sans-${emphasized}`,
-        lineHeight,
-        size,
-        weight: WEIGHTS[emphasized],
-      },
-    ],
-  ]),
-  ...MONO_STYLES.flatMap((style) => [
+  ...HIG.flatMap<[string, Expected]>(
+    ([style, regular, size, lineHeight, emphasized]) => [
+      [
+        `text-${style}`,
+        {
+          family: `nunito-sans-${regular}`,
+          lineHeight,
+          size,
+          weight: WEIGHTS[regular],
+        },
+      ],
+      [
+        `text-${style}-emphasized`,
+        {
+          family: `nunito-sans-${emphasized}`,
+          lineHeight,
+          size,
+          weight: WEIGHTS[emphasized],
+        },
+      ],
+    ]
+  ),
+  ...MONO_STYLES.flatMap<[string, Expected]>((style) => [
     [
       `text-mono-${style}`,
       { family: "ibm-plex-mono", ...sizeOf(style), weight: "400" },
@@ -91,19 +95,19 @@ const EXPECTED: Record<string, Expected> = Object.fromEntries([
 const tokens = readTokens();
 const utilities = readUtilities();
 
-const VAR = /^var\((--[a-z0-9-]+)\)$/;
+const VAR = /^var\((?<variable>--[a-z0-9-]+)\)$/u;
 
 // The token a `var(--…)` declaration points at, as written in @theme
 const resolve = (value: string | undefined) => {
-  const variable = value?.match(VAR)?.[1];
+  const variable = value?.match(VAR)?.groups?.variable;
 
   return tokens.find((token) => token.variable === variable)?.value;
 };
 
 describe("text style utilities", () => {
   it("are the 22 HIG styles and the 10 Mono styles, nothing else", () => {
-    expect(utilities.map((u) => u.name).sort()).toEqual(
-      Object.keys(EXPECTED).sort()
+    expect(utilities.map((u) => u.name).toSorted()).toStrictEqual(
+      Object.keys(EXPECTED).toSorted()
     );
     expect(Object.keys(EXPECTED)).toHaveLength(32);
   });
@@ -112,12 +116,13 @@ describe("text style utilities", () => {
     "%s has the table's font, weight, size and line height",
     (name, expected) => {
       const utility = utilities.find((u) => u.name === name);
-      expect(utility?.declarations).toEqual({
+      const tokenReference: unknown = expect.stringMatching(VAR);
+      expect(utility?.declarations).toStrictEqual({
         "font-family": `var(--font-${expected.family})`,
-        "font-size": expect.stringMatching(VAR),
+        "font-size": tokenReference,
         "font-weight": expected.weight,
         "letter-spacing": "0",
-        "line-height": expect.stringMatching(VAR),
+        "line-height": tokenReference,
       });
       expect(resolve(utility?.declarations["font-size"])).toBe(
         `${expected.size}px`
@@ -130,7 +135,7 @@ describe("text style utilities", () => {
   );
 });
 
-describe(parseUtilities, () => {
+describe("utility parsing", () => {
   it("reads each block's declarations and ignores comments", () => {
     const css = `
       @theme { --text-body: 17px; }
@@ -141,7 +146,7 @@ describe(parseUtilities, () => {
       }
     `;
 
-    expect(parseUtilities(css)).toEqual([
+    expect(parseUtilities(css)).toStrictEqual([
       {
         declarations: {
           "font-size": "var(--text-body)",
@@ -167,18 +172,18 @@ describe(parseUtilities, () => {
 
 const require = createRequire(import.meta.url);
 
-const RULE_BODY = /\.text-body-emphasized \{([^}]*)\}/;
-const ROUNDED_FULL_BODY = /\.rounded-full \{([^}]*)\}/;
+const RULE_BODY = /\.text-body-emphasized \{(?<body>[^}]*)\}/u;
+const ROUNDED_FULL_BODY = /\.rounded-full \{(?<body>[^}]*)\}/u;
 
 // Builds the given classes the way an app's Tailwind does, with the app's own
 // font roles mapped after the import
-async function build(classes: string[]) {
+const build = async (classes: string[]) => {
   const compiler = await compile(
     `@import "tailwindcss";
      @import "./tokens.css";
      @theme { --font-nunito-sans-semibold: "App-SemiBold"; }`,
     {
-      base: dirname(TOKENS_CSS_PATH.pathname),
+      base: nodePath.dirname(TOKENS_CSS_PATH.pathname),
       loadStylesheet: async (id, base) => {
         const path =
           id === "./tokens.css"
@@ -191,8 +196,8 @@ async function build(classes: string[]) {
               );
 
         return {
-          base: dirname(path),
-          content: readFileSync(path, "utf-8"),
+          base: nodePath.dirname(path),
+          content: await readFile(path, "utf-8"),
           path,
         };
       },
@@ -200,15 +205,15 @@ async function build(classes: string[]) {
   );
 
   return compiler.build(classes);
-}
+};
 
 describe("in Tailwind", () => {
   it("compiles every text style to a class", async () => {
     const css = await build(Object.keys(EXPECTED));
 
-    for (const name of Object.keys(EXPECTED)) {
-      expect(css).toContain(`.${name} {`);
-    }
+    expect(
+      Object.keys(EXPECTED).filter((name) => !css.includes(`.${name} {`))
+    ).toStrictEqual([]);
   });
 
   it("uses the app's font role and the token values", async () => {
@@ -217,11 +222,11 @@ describe("in Tailwind", () => {
     expect(css).toContain("--text-body: 17px;");
     expect(css).toContain("--text-body--line-height: 22px;");
 
-    const rule = RULE_BODY.exec(css)?.[1]
-      ?.split(";")
+    const rule = RULE_BODY.exec(css)
+      ?.groups?.body?.split(";")
       .map((d) => d.trim());
 
-    expect(rule?.filter(Boolean).sort()).toEqual([
+    expect(rule?.filter(Boolean).toSorted()).toStrictEqual([
       "font-family: var(--font-nunito-sans-semibold)",
       "font-size: var(--text-body)",
       "font-weight: 600",
@@ -233,7 +238,7 @@ describe("in Tailwind", () => {
   it("resolves rounded-full through the radius-full token", async () => {
     const css = await build(["rounded-full"]);
     expect(css).toContain("--radius-full: 9999px;");
-    expect(ROUNDED_FULL_BODY.exec(css)?.[1]?.trim()).toBe(
+    expect(ROUNDED_FULL_BODY.exec(css)?.groups?.body?.trim()).toBe(
       "border-radius: var(--radius-full);"
     );
   });

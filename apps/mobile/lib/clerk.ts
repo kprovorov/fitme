@@ -1,12 +1,13 @@
 import { getClerkInstance, isClerkAPIResponseError } from "@clerk/expo";
 import { tokenCache } from "@clerk/expo/token-cache";
+import { z } from "zod";
 
 import { i18n } from "~/lib/i18n";
 
 export const clerkPublishableKey =
   process.env.EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY ?? "";
 
-export { tokenCache };
+export { tokenCache } from "@clerk/expo/token-cache";
 
 /** The Clerk instance shared with `ClerkProvider`, for code outside React. */
 export const getClerk = () =>
@@ -23,12 +24,14 @@ export const getCurrentUserId = (): string => {
   return userId;
 };
 
-/**
- * A message for a Clerk error that can be shown to the User as is: Clerk's
- * own (in English), or the app's generic one in the App language.
- */
-export const getClerkErrorMessage = (error: unknown): string => {
-  if (isClerkAPIResponseError(error)) {
+const clerkErrorSchema = z
+  .unknown()
+  .transform((input) => (isClerkAPIResponseError(input) ? input : null));
+
+type ClerkError = z.infer<typeof clerkErrorSchema>;
+
+const formatClerkErrorMessage = (error: ClerkError): string => {
+  if (error !== null) {
     const [first] = error.errors;
 
     return (
@@ -38,3 +41,11 @@ export const getClerkErrorMessage = (error: unknown): string => {
 
   return i18n.t("common.genericError");
 };
+
+/**
+ * A message for a Clerk error that can be shown to the User as is: Clerk's
+ * own (in English), or the app's generic one in the App language.
+ */
+export const getClerkErrorMessage = clerkErrorSchema.transform(
+  formatClerkErrorMessage
+).parse;

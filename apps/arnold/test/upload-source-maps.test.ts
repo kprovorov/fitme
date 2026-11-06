@@ -9,7 +9,7 @@ import {
   writeFileSync,
 } from "node:fs";
 import { tmpdir } from "node:os";
-import { dirname, join, relative } from "node:path";
+import nodePath from "node:path";
 
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -26,20 +26,20 @@ let root: string;
 let output: string;
 
 const write = (path: string, content = "") => {
-  mkdirSync(dirname(join(output, path)), { recursive: true });
-  writeFileSync(join(output, path), content);
+  mkdirSync(nodePath.dirname(nodePath.join(output, path)), { recursive: true });
+  writeFileSync(nodePath.join(output, path), content);
 };
 
 /** Every file under `dir`, relative to it, without following symlinks. */
 const filesIn = (dir: string): string[] =>
   readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
-    const path = join(entry.parentPath, entry.name);
+    const path = nodePath.join(entry.parentPath, entry.name);
 
     if (entry.isDirectory()) {
-      return filesIn(path).map((file) => join(entry.name, file));
+      return filesIn(path).map((file) => nodePath.join(entry.name, file));
     }
 
-    return entry.isFile() ? [relative(dir, path)] : [];
+    return entry.isFile() ? [nodePath.relative(dir, path)] : [];
   });
 
 /**
@@ -58,15 +58,18 @@ const vercelOutput = () => {
   write("__server.func/node_modules/pkg/index.js.map", "{}");
   write(".well-known/workflow/v1/flow.func/index.mjs", "flow");
   write(".well-known/workflow/v1/flow.func/index.mjs.map", "{}");
-  mkdirSync(join(output, "eve/v1"), { recursive: true });
-  symlinkSync("../../__server.func", join(output, "eve/v1/health.func"));
+  mkdirSync(nodePath.join(output, "eve/v1"), { recursive: true });
+  symlinkSync(
+    "../../__server.func",
+    nodePath.join(output, "eve/v1/health.func")
+  );
 };
 
 /** The directory a sentry-cli call was pointed at: its last argument. */
 const target = (args: string[]): string => {
   const dir = args.at(-1);
 
-  if (!dir) {
+  if (dir === undefined || dir === "") {
     throw new Error("sentry-cli was called without a directory");
   }
 
@@ -83,9 +86,9 @@ const visibleFilesIn = (dir: string): string[] =>
 const fakeSentryCli = () => {
   const calls: { args: string[]; files: string[] }[] = [];
 
-  const run = vi.fn((args: string[]) => {
+  const run = vi.fn<(args: string[]) => void>((args) => {
     const dir = target(args);
-    calls.push({ args, files: visibleFilesIn(dir).sort() });
+    calls.push({ args, files: visibleFilesIn(dir).toSorted() });
 
     if (args[1] === "inject") {
       const scripts = visibleFilesIn(dir).filter((file) =>
@@ -93,7 +96,7 @@ const fakeSentryCli = () => {
       );
 
       for (const script of scripts) {
-        const path = join(dir, script);
+        const path = nodePath.join(dir, script);
         writeFileSync(path, `${readFileSync(path, "utf-8")}\n${INJECTED}`);
       }
     }
@@ -102,19 +105,19 @@ const fakeSentryCli = () => {
   return { calls, run };
 };
 
-beforeEach(() => {
-  root = mkdtempSync(join(tmpdir(), "arnold-source-maps-"));
-  output = join(root, "functions");
-  mkdirSync(output);
-  vi.spyOn(console, "log").mockReturnValue(undefined);
-  vi.spyOn(console, "warn").mockReturnValue(undefined);
-});
+describe("source map uploads for Vercel", () => {
+  beforeEach(() => {
+    root = mkdtempSync(nodePath.join(tmpdir(), "arnold-source-maps-"));
+    output = nodePath.join(root, "functions");
+    mkdirSync(output);
+    vi.spyOn(console, "log").mockReturnValue(undefined);
+    vi.spyOn(console, "warn").mockReturnValue(undefined);
+  });
 
-afterEach(() => {
-  rmSync(root, { force: true, recursive: true });
-});
+  afterEach(() => {
+    rmSync(root, { force: true, recursive: true });
+  });
 
-describe(uploadSourceMaps, () => {
   it("points sentry-cli only at the files that have a source map, once each, in no dot directory", () => {
     vercelOutput();
     const cli = fakeSentryCli();
@@ -131,11 +134,11 @@ describe(uploadSourceMaps, () => {
       "well-known/workflow/v1/flow.func/index.mjs.map",
     ];
 
-    expect(cli.calls.map((call) => call.args.slice(0, 2))).toEqual([
+    expect(cli.calls.map((call) => call.args.slice(0, 2))).toStrictEqual([
       ["sourcemaps", "inject"],
       ["sourcemaps", "upload"],
     ]);
-    expect(cli.calls.map((call) => call.files)).toEqual([mapped, mapped]);
+    expect(cli.calls.map((call) => call.files)).toStrictEqual([mapped, mapped]);
   });
 
   it("uploads for the release, ships the injected scripts and deletes the maps", () => {
@@ -145,27 +148,25 @@ describe(uploadSourceMaps, () => {
     uploadSourceMaps({ env: ENV, outputDir: output, sentryCli: cli.run });
 
     const [inject, upload] = cli.calls;
-    expect(upload.args).toEqual([
+    expect(upload.args).toStrictEqual([
       "sourcemaps",
       "upload",
       "--release",
       "abc123",
       target(inject.args),
     ]);
-    expect(existsSync(target(inject.args))).toBe(false);
-    expect(readFileSync(join(output, "__server.func/index.mjs"), "utf-8")).toBe(
-      `index\n${INJECTED}`
-    );
-    expect(
+    expect(existsSync(target(inject.args))).toBeFalsy();
+    expect([
+      readFileSync(nodePath.join(output, "__server.func/index.mjs"), "utf-8"),
       readFileSync(
-        join(output, ".well-known/workflow/v1/flow.func/index.mjs"),
+        nodePath.join(output, ".well-known/workflow/v1/flow.func/index.mjs"),
         "utf-8"
-      )
-    ).toBe(`flow\n${INJECTED}`);
+      ),
+    ]).toStrictEqual([`index\n${INJECTED}`, `flow\n${INJECTED}`]);
     expect(
-      readFileSync(join(output, "__server.func/_libs/_1.mjs"), "utf-8")
+      readFileSync(nodePath.join(output, "__server.func/_libs/_1.mjs"), "utf-8")
     ).toBe("no map");
-    expect(filesIn(output).sort()).toEqual([
+    expect(filesIn(output).toSorted()).toStrictEqual([
       ".well-known/workflow/v1/flow.func/index.mjs",
       "__server.func/_libs/@ai-sdk/gateway+[...].mjs",
       "__server.func/_libs/_1.mjs",
@@ -187,7 +188,9 @@ describe(uploadSourceMaps, () => {
     });
 
     expect(cli.run).not.toHaveBeenCalled();
-    expect(existsSync(join(output, "__server.func/index.mjs.map"))).toBe(true);
+    expect(
+      existsSync(nodePath.join(output, "__server.func/index.mjs.map"))
+    ).toBeTruthy();
   });
 
   it("never fails the build when the upload fails, and keeps the maps", () => {
@@ -209,8 +212,10 @@ describe(uploadSourceMaps, () => {
       "Sentry source map upload failed",
       "Command failed: sentry-cli sourcemaps upload"
     );
-    expect(existsSync(join(output, "__server.func/index.mjs.map"))).toBe(true);
-    expect(existsSync(target(cli.calls[0].args))).toBe(false);
+    expect(
+      existsSync(nodePath.join(output, "__server.func/index.mjs.map"))
+    ).toBeTruthy();
+    expect(existsSync(target(cli.calls[0].args))).toBeFalsy();
   });
 
   it("uploads nothing when the build output has no source maps", () => {

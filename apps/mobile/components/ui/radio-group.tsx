@@ -56,6 +56,7 @@ const RadioGroup = <TValue extends PickerValue>({
   const theme = useSwiftUITheme();
 
   const handleSelectionChange = useCallback(
+    // SAFETY: SwiftUI reports a selected option's tag, and every option tag is a TValue.
     (selection: TValue | null) => onValueChange?.(selection as TValue),
     [onValueChange]
   );

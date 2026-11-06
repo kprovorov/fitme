@@ -20,22 +20,48 @@ const API_ATTEMPTS = 5;
 const API_RETRY_DELAY_MS = 3000;
 const API_TIMEOUT_MS = 10_000;
 
-function requireEnv(name: string): string {
+type ClerkRequestBody =
+  | {
+      email_address: string[];
+      password: string;
+      skip_password_checks: boolean;
+    }
+  | { user_id: string }
+  | Record<string, never>;
+
+interface JwtPayload {
+  role?: unknown;
+}
+
+const isJwtPayload = (value: unknown): value is JwtPayload =>
+  typeof value === "object" && value !== null;
+
+const hasClerkField = <Key extends "id" | "jwt">(
+  value: unknown,
+  key: Key
+): value is Record<Key, string> =>
+  typeof value === "object" &&
+  value !== null &&
+  (key === "id"
+    ? "id" in value && typeof value.id === "string"
+    : "jwt" in value && typeof value.jwt === "string");
+
+const requireEnv = (name: string): string => {
   const value = process.env[name];
 
-  if (!value) {
+  if (value === undefined || value === "") {
     throw new Error(`Missing ${name} environment variable`);
   }
 
   return value;
-}
+};
 
-async function clerkRequest<T>(
+const clerkRequest = async (
   secretKey: string,
   method: "POST" | "DELETE",
   path: string,
-  body?: Record<string, unknown>
-): Promise<T> {
+  body?: ClerkRequestBody
+): Promise<Response> => {
   const response = await fetch(`${CLERK_API_URL}${path}`, {
     body: body && JSON.stringify(body),
     headers: {
@@ -51,57 +77,92 @@ async function clerkRequest<T>(
     );
   }
 
-  return (await response.json()) as T;
-}
+  return response;
+};
 
-function decodeJwtPayload(jwt: string): Record<string, unknown> {
+const readClerkField = async <Key extends "id" | "jwt">(
+  response: Response,
+  key: Key
+): Promise<Record<Key, string>> => {
+  const data: unknown = await response.json();
+
+  if (!hasClerkField(data, key)) {
+    throw new Error(`Clerk returned a malformed ${key} response`);
+  }
+
+  return data;
+};
+
+const decodeJwtPayload = (jwt: string) => {
   const [, payload] = jwt.split(".");
 
   if (!payload) {
     throw new Error("Clerk returned a malformed session token");
   }
 
-  return JSON.parse(Buffer.from(payload, "base64url").toString("utf-8"));
-}
+  const claims: unknown = JSON.parse(
+    Buffer.from(payload, "base64url").toString("utf-8")
+  );
 
-async function checkApi(apiUrl: string, jwt: string) {
+  const role = isJwtPayload(claims) ? claims.role : undefined;
+
+  if (role !== "authenticated") {
+    throw new Error(
+      `Clerk session token has role ${JSON.stringify(role)}, expected "authenticated". Is the Supabase integration activated on the Clerk instance?`
+    );
+  }
+
+  return { role };
+};
+
+const checkApi = async (
+  apiUrl: string,
+  jwt: string,
+  attempt = 1
+): Promise<void> => {
   let failure = "";
+  let response: Response | undefined;
 
-  for (let attempt = 1; attempt <= API_ATTEMPTS; attempt += 1) {
+  try {
     // A new User has no Profile yet, so the API answers { data: null }.
-    // biome-ignore lint/performance/noAwaitInLoops: retries, one at a time
-    const response = await fetch(`${apiUrl}/v1/profile`, {
+    response = await fetch(`${apiUrl}/v1/profile`, {
       headers: { Authorization: `Bearer ${jwt}` },
       signal: AbortSignal.timeout(API_TIMEOUT_MS),
-    }).catch((error: unknown) => error);
+    });
+  } catch (error) {
+    failure = String(error);
+  }
 
-    if (response instanceof Response && response.ok) {
-      console.log(
-        `The Public API at ${apiUrl} accepts Clerk development session tokens and reads the User's data.`
-      );
-
-      return;
-    }
-
-    failure =
-      response instanceof Response
-        ? `${response.status}: ${await response.text()}`
-        : String(response);
-    console.error(
-      `GET /v1/profile failed with ${failure} (attempt ${attempt}/${API_ATTEMPTS})`
+  if (response !== undefined && response.ok) {
+    console.log(
+      `The Public API at ${apiUrl} accepts Clerk development session tokens and reads the User's data.`
     );
 
-    if (attempt < API_ATTEMPTS) {
-      await sleep(API_RETRY_DELAY_MS);
-    }
+    return;
+  }
+
+  if (response !== undefined) {
+    failure = `${response.status}: ${await response.text()}`;
+  }
+
+  console.error(
+    `GET /v1/profile failed with ${failure} (attempt ${attempt}/${API_ATTEMPTS})`
+  );
+
+  if (attempt < API_ATTEMPTS) {
+    await sleep(API_RETRY_DELAY_MS);
+
+    await checkApi(apiUrl, jwt, attempt + 1);
+
+    return;
   }
 
   throw new Error(
     `The Public API at ${apiUrl} never answered GET /v1/profile with 200 (last: ${failure})`
   );
-}
+};
 
-async function main() {
+const main = async () => {
   const secretKey = requireEnv("CLERK_SECRET_KEY");
   const supabaseUrl = requireEnv("SUPABASE_URL");
   const anonKey = requireEnv("SUPABASE_ANON_KEY");
@@ -113,35 +174,37 @@ async function main() {
     throw new Error("CLERK_SECRET_KEY must be a development key (sk_test_…)");
   }
 
-  const user = await clerkRequest<{ id: string }>(secretKey, "POST", "/users", {
-    email_address: [`trust-check-${randomUUID()}+clerk_test@fitmeproject.com`],
-    password: randomUUID(),
-    skip_password_checks: true,
-  });
+  const user = await readClerkField(
+    await clerkRequest(secretKey, "POST", "/users", {
+      email_address: [
+        `trust-check-${randomUUID()}+clerk_test@fitmeproject.com`,
+      ],
+      password: randomUUID(),
+      skip_password_checks: true,
+    }),
+    "id"
+  );
 
   try {
-    const session = await clerkRequest<{ id: string }>(
-      secretKey,
-      "POST",
-      "/sessions",
-      { user_id: user.id }
+    const session = await readClerkField(
+      await clerkRequest(secretKey, "POST", "/sessions", {
+        user_id: user.id,
+      }),
+      "id"
     );
 
-    const { jwt } = await clerkRequest<{ jwt: string }>(
-      secretKey,
-      "POST",
-      `/sessions/${session.id}/tokens`,
-      // Clerk answers 415 to a POST without a JSON body.
-      {}
+    const { jwt } = await readClerkField(
+      await clerkRequest(
+        secretKey,
+        "POST",
+        `/sessions/${session.id}/tokens`,
+        // Clerk answers 415 to a POST without a JSON body.
+        {}
+      ),
+      "jwt"
     );
 
-    const { role } = decodeJwtPayload(jwt);
-
-    if (role !== "authenticated") {
-      throw new Error(
-        `Clerk session token has role ${JSON.stringify(role)}, expected "authenticated". Is the Supabase integration activated on the Clerk instance?`
-      );
-    }
+    decodeJwtPayload(jwt);
 
     // PostgREST rejects a token it cannot verify with 401 and otherwise runs
     // the request as the token's `role` claim, checked above. The test User
@@ -161,20 +224,28 @@ async function main() {
       `Supabase at ${supabaseUrl} accepts Clerk development session tokens as authenticated.`
     );
 
-    if (apiUrl) {
+    if (apiUrl !== undefined && apiUrl !== "") {
       await checkApi(apiUrl, jwt);
     }
   } finally {
     // A failed cleanup must not mask the outcome of the check.
-    await clerkRequest(secretKey, "DELETE", `/users/${user.id}`).catch(
-      (error) => {
-        console.error(`Failed to delete Clerk user ${user.id}:`, error);
-      }
-    );
-  }
-}
+    try {
+      const response = await clerkRequest(
+        secretKey,
+        "DELETE",
+        `/users/${user.id}`
+      );
 
-main().catch((error) => {
+      await response.json();
+    } catch (error) {
+      console.error(`Failed to delete Clerk user ${user.id}:`, error);
+    }
+  }
+};
+
+try {
+  await main();
+} catch (error) {
   console.error(error);
   process.exit(1);
-});
+}

@@ -10,7 +10,7 @@ const production = resolveObservabilityConfig({
   env: { VERCEL_ENV: "production", VERCEL_GIT_COMMIT_SHA: "abc123" },
 });
 
-describe(sdkOptions, () => {
+describe("sdk options", () => {
   it("carries the resolved environment, release and sampling", () => {
     expect(sdkOptions(production)).toMatchObject({
       dsn: "https://key@o1.ingest.sentry.io/1",
@@ -26,7 +26,7 @@ describe(sdkOptions, () => {
       resolveObservabilityConfig({ dsn: undefined, env: {} })
     );
 
-    expect(options.enabled).toBe(false);
+    expect(options.enabled).toBeFalsy();
     expect(options.dsn).toBeUndefined();
   });
 
@@ -39,11 +39,17 @@ describe(sdkOptions, () => {
 
   it("collects no credentials, bodies or User data", () => {
     const { dataCollection } = sdkOptions(production);
+
+    const deniedHeaders: unknown = expect.arrayContaining([
+      "authorization",
+      "cookie",
+    ]);
+
     expect(dataCollection).toMatchObject({
       cookies: false,
       httpBodies: [],
       httpHeaders: {
-        request: { deny: expect.arrayContaining(["authorization", "cookie"]) },
+        request: { deny: deniedHeaders },
         response: false,
       },
       stackFrameVariables: false,

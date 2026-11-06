@@ -11,10 +11,10 @@ export type VerificationIntent =
 export const isCodePurpose = (value: unknown): value is CodePurpose =>
   codePurposes.some((purpose) => purpose === value);
 
-export function parseVerificationIntent(params: {
+export const parseVerificationIntent = (params: {
   purpose?: unknown;
   source?: unknown;
-}): VerificationIntent | undefined {
+}): VerificationIntent | undefined => {
   if (!isCodePurpose(params.purpose)) {
     return;
   }
@@ -34,14 +34,11 @@ export function parseVerificationIntent(params: {
   }
 
   return { purpose: "sign-in", source };
-}
+};
 
-export function supportsEmailChallenge(
+export const supportsEmailChallenge = (
   status: string | null,
   factors: readonly { strategy: string }[]
-) {
-  return (
-    (status === "needs_client_trust" || status === "needs_second_factor") &&
-    factors.some((factor) => factor.strategy === "email_code")
-  );
-}
+) =>
+  (status === "needs_client_trust" || status === "needs_second_factor") &&
+  factors.some((factor) => factor.strategy === "email_code");

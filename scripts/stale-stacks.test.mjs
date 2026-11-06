@@ -16,8 +16,10 @@ const USAGE = /Usage/;
 
 const SCRIPT = fileURLToPath(new URL("stale-stacks.mjs", import.meta.url));
 
+/** @type {string[]} */
 const tempDirs = [];
 
+/** @param {string} prefix Temporary directory name prefix. */
 const tempDir = (prefix) => {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), prefix));
   tempDirs.push(dir);
@@ -31,16 +33,21 @@ after(() => {
   }
 });
 
+/** @param {unknown} stacks Stacks to serialize as CLI output. */
 const listOutput = (stacks) =>
   `Listing stacks...\n${JSON.stringify({ stacks })}\n`;
 
+/**
+ * @param {string} id Stack identifier.
+ * @param {string} projectRoot Stack checkout path.
+ */
 const stack = (id, projectRoot) => ({
   branch_context: "main",
   id,
   project_root: projectRoot,
 });
 
-describe("staleStacks", () => {
+void describe("staleStacks", () => {
   test("picks the stacks of checkouts that no longer exist", () => {
     const exists = (dir) => dir === "/live/packages/supabase";
 
@@ -77,7 +84,7 @@ describe("staleStacks", () => {
   });
 });
 
-describe("the CLI", () => {
+void describe("the CLI", () => {
   test("prints one id per line, the rest on stderr", () => {
     const live = tempDir("stale-stacks-");
     fs.mkdirSync(path.join(live, "packages/supabase"), { recursive: true });

@@ -19,7 +19,16 @@ import { useAvailableSocialProviders } from "~/hooks/native-social-auth";
 import { IS_E2E } from "~/lib/constants";
 import { segmentClient } from "~/lib/segment";
 
-export default function LoginView() {
+const openRecovery = () => router.push("/auth/forgot-password");
+
+const LoginView = () => {
+  const { t } = useTranslation();
+  const { signIn } = useSignIn();
+  const operation = useAuthOperation();
+  const providers = useAvailableSocialProviders();
+  const busy = operation.pending !== null;
+  const handleEdit = operation.clearError;
+
   const finishPassword = async () => {
     const { error: finalizeError } = await signIn.finalize();
 
@@ -77,70 +86,50 @@ export default function LoginView() {
       return t("auth.login.cantSignInHere");
     });
 
-  const renderForm = ({ fields, action }: AuthFormParts) => {
-    const openRecovery = () => router.push("/auth/forgot-password");
-
-    return (
-      <AuthScreen
-        action={
-          <View className="gap-xs">
-            {operation.error ? (
-              <ErrorMessage testID="login-error">
-                {operation.error}
-              </ErrorMessage>
-            ) : null}
-            {action}
-          </View>
-        }
-        footer={
-          <>
-            <AuthLegal disabled={busy} />
-            <AuthSwitch
-              disabled={busy}
-              href="/auth/register"
-              label={t("auth.login.registerLink")}
-              prompt={t("auth.login.noAccount")}
-            />
-          </>
-        }
-      >
-        <AuthHeader title={t("auth.login.heading")} />
-        <SocialAuthButtons
-          divider
-          operation={operation}
-          providers={providers}
-        />
-        <View className="gap-sm">
-          {fields}
-          <Pressable
-            accessibilityRole="link"
-            className="min-h-11 items-end justify-center"
-            disabled={busy}
-            onPress={openRecovery}
-            testID="forgot-password-link"
-          >
-            <Text className="text-footnote-emphasized text-primary">
-              {t("auth.login.forgotPasswordLink")}
-            </Text>
-          </Pressable>
+  const renderForm = ({ fields, action }: AuthFormParts) => (
+    <AuthScreen
+      action={
+        <View className="gap-xs">
+          {operation.error ? (
+            <ErrorMessage testID="login-error">{operation.error}</ErrorMessage>
+          ) : null}
+          {action}
         </View>
-      </AuthScreen>
-    );
-  };
-
-  const { t } = useTranslation();
-  const { signIn } = useSignIn();
-  const operation = useAuthOperation();
-  const providers = useAvailableSocialProviders();
-  const busy = operation.pending !== null;
+      }
+      footer={
+        <>
+          <AuthLegal disabled={busy} />
+          <AuthSwitch
+            disabled={busy}
+            href="/auth/register"
+            label={t("auth.login.registerLink")}
+            prompt={t("auth.login.noAccount")}
+          />
+        </>
+      }
+    >
+      <AuthHeader title={t("auth.login.heading")} />
+      <SocialAuthButtons divider operation={operation} providers={providers} />
+      <View className="gap-sm">
+        {fields}
+        <Pressable
+          accessibilityRole="link"
+          className="min-h-11 items-end justify-center"
+          disabled={busy}
+          onPress={openRecovery}
+          testID="forgot-password-link"
+        >
+          <Text variant="small">{t("auth.login.forgotPasswordLink")}</Text>
+        </Pressable>
+      </View>
+    </AuthScreen>
+  );
 
   return (
-    <LoginForm
-      disabled={busy}
-      onEdit={operation.clearError}
-      onSubmit={submitEmail}
-    >
+    <LoginForm disabled={busy} onEdit={handleEdit} onSubmit={submitEmail}>
       {renderForm}
     </LoginForm>
   );
-}
+};
+
+export default LoginView;

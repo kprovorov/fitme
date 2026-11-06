@@ -30,10 +30,10 @@ export type ArnoldModelList = z.infer<typeof arnoldModelListSchema>;
  * The model a turn runs on: the saved pick when it's in the list, otherwise
  * the list's default. No list, no model: Arnold then picks its own default.
  */
-export function resolveArnoldModel(
+export const resolveArnoldModel = (
   savedId: string | undefined,
   list: ArnoldModelList | undefined
-): ArnoldModelOption | undefined {
+): ArnoldModelOption | undefined => {
   if (!list) {
     return;
   }
@@ -42,10 +42,10 @@ export function resolveArnoldModel(
     list.models.find(({ id }) => id === savedId) ??
     list.models.find(({ id }) => id === list.defaultId)
   );
-}
+};
 
 /** The cached list; an unreadable or malformed value counts as none. */
-export function readCachedArnoldModels(): ArnoldModelList | undefined {
+export const readCachedArnoldModels = (): ArnoldModelList | undefined => {
   const raw = storage.getString(MODELS_KEY);
 
   if (!raw) {
@@ -63,19 +63,18 @@ export function readCachedArnoldModels(): ArnoldModelList | undefined {
   const parsed = arnoldModelListSchema.safeParse(value);
 
   return parsed.success ? parsed.data : undefined;
-}
+};
 
-export function writeCachedArnoldModels(list: ArnoldModelList) {
+export const writeCachedArnoldModels = (list: ArnoldModelList) => {
   storage.set(MODELS_KEY, JSON.stringify(list));
-}
+};
 
 /**
  * Non-reactive read of the model to send, safe to call from request builders
  * outside React. The cache holds the last fetched list, so it's current.
  */
-export function getSelectedArnoldModelId(): string | undefined {
-  return resolveArnoldModel(
+export const getSelectedArnoldModelId = (): string | undefined =>
+  resolveArnoldModel(
     storage.getString(SELECTED_MODEL_KEY),
     readCachedArnoldModels()
   )?.id;
-}

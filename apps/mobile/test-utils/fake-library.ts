@@ -1,4 +1,3 @@
-import type { Equipment, MuscleGroup } from "@fitme/core";
 import type { Cover, Exercise, Library } from "@fitme/library-sdk";
 import { createFakeLibrary } from "@fitme/library-sdk/fake";
 import type { FakeExercise, FakeLibrary } from "@fitme/library-sdk/fake";
@@ -13,9 +12,9 @@ export const libraryExercise = (
   overrides: Partial<FakeExercise & Exercise> = {}
 ): Exercise & FakeExercise => ({
   description: `About ${slug}.`,
-  equipment: [] as Equipment[],
+  equipment: [],
   instructions: `- Do ${slug}.`,
-  muscle_groups: ["chest"] as MuscleGroup[],
+  muscle_groups: ["chest"],
   name: slug
     .split("-")
     .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
@@ -25,6 +24,10 @@ export const libraryExercise = (
   video_url: `https://media.test/${slug}.mp4`,
   ...overrides,
 });
+
+interface LibraryHolder {
+  current: Library;
+}
 
 /**
  * What `~/lib/library` exports in tests: point `current` at a fake
@@ -36,7 +39,7 @@ export const libraryExercise = (
  *     ).libraryModule
  *   );
  */
-export const library: { current: Library } = {
+export const library: LibraryHolder = {
   current: createFakeLibrary([]),
 };
 

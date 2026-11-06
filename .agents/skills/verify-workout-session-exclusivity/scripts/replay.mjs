@@ -1,12 +1,21 @@
+/// <reference types="node" />
+
 import { execFileSync } from "node:child_process";
 import { mkdirSync, rmSync, writeFileSync } from "node:fs";
-import { join } from "node:path";
+import path from "node:path";
 
 // No connection string or project environment is used. This starts a fresh
 // local cluster, listening only on its private Unix socket, and stops it.
-export function replay(indexSql, out) {
+/**
+ * @param {string} indexSql Index definition to replay.
+ * @param {string} out Directory for the isolated cluster and evidence.
+ */
+export const replay = (indexSql, out) => {
   const bin = process.env.PG_BIN;
-  const command = (name) => (bin ? join(bin, name) : name);
+
+  /** @param {string} name PostgreSQL executable name. */
+  const command = (name) =>
+    bin !== undefined && bin !== "" ? path.join(bin, name) : name;
 
   // libpq can prefer PGHOSTADDR over an explicit -h socket, and PGSERVICE
   // can load connection settings. No inherited PG* settings reach a child.
@@ -14,10 +23,14 @@ export function replay(indexSql, out) {
     Object.entries(process.env).filter(([name]) => !name.startsWith("PG"))
   );
 
-  const data = join(out, "postgres");
-  const socket = join(out, "socket");
+  const data = path.join(out, "postgres");
+  const socket = path.join(out, "socket");
   mkdirSync(socket, { mode: 0o700 });
 
+  /**
+   * @param {string} name PostgreSQL executable name.
+   * @param {string[]} args Command arguments.
+   */
   const run = (name, args, options = {}) =>
     execFileSync(command(name), args, {
       encoding: "utf-8",
@@ -42,7 +55,7 @@ export function replay(indexSql, out) {
     "-D",
     data,
     "-l",
-    join(out, "postgres.log"),
+    path.join(out, "postgres.log"),
     "-o",
     options,
     "-w",
@@ -62,6 +75,7 @@ export function replay(indexSql, out) {
     "-At",
   ];
 
+  /** @param {string} text SQL statement to execute. */
   const sql = (text) => run("psql", [...args, "-c", text]);
   let violation = false;
   const evidence = [];
@@ -156,10 +170,10 @@ export function replay(indexSql, out) {
   } finally {
     run("pg_ctl", ["-D", data, "-m", "immediate", "-w", "stop"]);
     rmSync(data, { recursive: true, force: true });
-    writeFileSync(join(out, "sql-replay.txt"), `${evidence.join("\n")}\n`);
+    writeFileSync(path.join(out, "sql-replay.txt"), `${evidence.join("\n")}\n`);
   }
 
   console.log(`SQL replay: ${violation ? "FAIL OneOpenPerUser" : "PASS"}`);
 
   return violation;
-}
+};

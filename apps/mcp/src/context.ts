@@ -50,12 +50,12 @@ const LIBRARY_NOT_CONFIGURED_MESSAGE =
  * that User id through `asUser`, so RLS sees them as the caller, and on the
  * Library API.
  */
-export function createToolContext({
+export const createToolContext = ({
   createLibrary = createLibraryFromEnv,
   createServices = createServicesFromEnv,
   reportError,
   user,
-}: ToolContextOptions): ToolContext {
+}: ToolContextOptions): ToolContext => {
   let services: UserServices | undefined;
   let library: Library | undefined;
 
@@ -80,4 +80,4 @@ export function createToolContext({
     },
     reportError,
   };
-}
+};

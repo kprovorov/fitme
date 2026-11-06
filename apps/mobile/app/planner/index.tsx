@@ -4,7 +4,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { router, Stack } from "expo-router";
 import type { TFunction } from "i18next";
 import { useCallback } from "react";
-import { Controller, useForm } from "react-hook-form";
+import { Controller, useForm, useWatch } from "react-hook-form";
 import type {
   ControllerFieldState,
   ControllerRenderProps,
@@ -14,6 +14,7 @@ import { Pressable, View } from "react-native";
 import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import type { SFSymbol } from "sf-symbols-typescript";
+import { ScopedVariables } from "uniwind";
 import { z } from "zod";
 
 import { goalSymbol } from "~/components/plans/plan-symbols";
@@ -35,7 +36,7 @@ import { cn } from "~/lib/utils";
 
 // The message is sent to Arnold as the User's own text, so it's in the App
 // language, as the User would write it; Arnold answers in it.
-function buildPlanMessage(data: PlanFormValues, t: TFunction): string {
+const buildPlanMessage = (data: PlanFormValues, t: TFunction): string => {
   const labels = choiceLabels(t);
 
   const lines = [
@@ -54,7 +55,7 @@ function buildPlanMessage(data: PlanFormValues, t: TFunction): string {
   }
 
   return lines.join("\n");
-}
+};
 
 export type PlanFormValues = z.infer<typeof formSchema>;
 
@@ -88,328 +89,31 @@ interface PlanFieldProps<TName extends keyof PlanFormValues> {
   fieldState: ControllerFieldState;
 }
 
-function GoalOptions({ field: { onChange, value } }: PlanFieldProps<"goal">) {
-  const { t } = useTranslation();
-
-  return (
-    <View className="flex flex-row items-stretch justify-stretch gap-4">
-      {goalOptions.map((option) => (
-        <RadioGroupItemTileWithIcon
-          disabled={false}
-          icon={goalSymbol(option)}
-          isSelected={option === value}
-          key={option}
-          label={t(`planner.goal.options.${option}`)}
-          onSelect={onChange}
-          value={option}
-        />
-      ))}
-    </View>
-  );
-}
-
-function ExperienceLevelOptions({
-  field: { onChange, value },
-}: PlanFieldProps<"experience_level">) {
-  const labels = useChoiceLabels();
-
-  return (
-    <View className="flex flex-col items-stretch justify-stretch gap-4">
-      {experienceLevels.map((option) => (
-        <RadioGroupItemWithLabel
-          disabled={false}
-          disclaimer={labels.experienceLevelDescription(option)}
-          isSelected={option === value}
-          key={option}
-          label={labels.experienceLevel(option)}
-          onSelect={onChange}
-          testID={`experience-${option}`}
-          value={option}
-        />
-      ))}
-    </View>
-  );
-}
-
-function renderWorkoutDurationField({
-  field: { onChange, value },
-}: PlanFieldProps<"workout_duration">) {
-  return (
-    <Slider
-      max={120}
-      min={30}
-      onValueChange={onChange}
-      step={10}
-      value={value}
-    />
-  );
-}
-
-function PlaceOptions({ field: { onChange, value } }: PlanFieldProps<"place">) {
-  const { t } = useTranslation();
-  const labels = useChoiceLabels();
-
-  return (
-    <View className="flex flex-row items-stretch justify-stretch gap-4">
-      {places.map((option) => {
-        const soon = soonPlaces.has(option);
-
-        return (
-          <RadioGroupItemWithLabel
-            badge={soon ? t("planner.place.soon") : undefined}
-            disabled={soon}
-            isSelected={option === value}
-            key={option}
-            label={labels.place(option)}
-            onSelect={onChange}
-            value={option}
-          />
-        );
-      })}
-    </View>
-  );
-}
-
-function renderFrequencyField({
-  field: { onChange, value },
-}: PlanFieldProps<"frequency">) {
-  return (
-    <View className="flex flex-row items-stretch justify-stretch gap-4">
-      {frequencyOptions.map((option) => (
-        <RadioGroupItemTile
-          disabled={false}
-          isSelected={option?.toString() === value?.toString()}
-          key={option}
-          label={option?.toString()}
-          onSelect={onChange}
-          testID={`frequency-${option}`}
-          value={option?.toString()}
-        />
-      ))}
-    </View>
-  );
-}
-
-function NoteField({
-  field: { onChange, value },
-  fieldState: { error },
-}: PlanFieldProps<"note">) {
-  const { t } = useTranslation();
-
-  return (
-    <Textarea
-      className="h-48"
-      error={error?.message}
-      onChangeText={onChange}
-      placeholder={t("planner.note.placeholder")}
-      value={value}
-    />
-  );
-}
-
-// Controller's render prop must be stable; the fields read their text through
-// hooks, so each is a component behind one.
-function renderGoalField(props: PlanFieldProps<"goal">) {
-  return <GoalOptions {...props} />;
-}
-
-function renderExperienceLevelField(props: PlanFieldProps<"experience_level">) {
-  return <ExperienceLevelOptions {...props} />;
-}
-
-function renderPlaceField(props: PlanFieldProps<"place">) {
-  return <PlaceOptions {...props} />;
-}
-
-function renderNoteField(props: PlanFieldProps<"note">) {
-  return <NoteField {...props} />;
-}
-
-export default function PlannerScreen() {
-  const form = useForm<PlanFormValues>({
-    defaultValues: {
-      place: "gym",
-      workout_duration: 60,
-    },
-    resolver: zodResolver(formSchema),
-  });
-
-  const insets = useSafeAreaInsets();
-  const { t } = useTranslation();
-
-  return (
-    <>
-      <Stack.Screen
-        options={{
-          title: t("planner.title"),
-        }}
-      />
-
-      <KeyboardAwareScrollView
-        bottomOffset={24}
-        className="flex-1"
-        contentInsetAdjustmentBehavior="automatic"
-        keyboardShouldPersistTaps="handled"
-        showsVerticalScrollIndicator={false}
-      >
-        <VStack
-          className="p-md items-center justify-center gap-4"
-          style={{ paddingBottom: insets.bottom }}
-        >
-          <VStack className="w-full items-stretch">
-            <VStack className="items-start justify-start gap-0">
-              <H4>{t("planner.goal.title")}</H4>
-              <Text className="text-muted-foreground text-subhead">
-                {t("planner.goal.question")}
-              </Text>
-            </VStack>
-
-            <Controller
-              control={form.control}
-              name="goal"
-              render={renderGoalField}
-            />
-            {form.formState.errors.goal ? (
-              <ErrorMessage>{form.formState.errors.goal.message}</ErrorMessage>
-            ) : null}
-
-            <VStack className="items-start justify-start gap-0">
-              <H4>{t("planner.experience.title")}</H4>
-              <Text className="text-muted-foreground text-subhead">
-                {t("planner.experience.question")}
-              </Text>
-            </VStack>
-
-            <Controller
-              control={form.control}
-              name="experience_level"
-              render={renderExperienceLevelField}
-            />
-            {form.formState.errors.experience_level ? (
-              <ErrorMessage>
-                {form.formState.errors.experience_level.message}
-              </ErrorMessage>
-            ) : null}
-
-            <VStack className="items-stretch justify-start gap-0">
-              <HStack className="items-center justify-between">
-                <H4>{t("planner.duration.title")}</H4>
-                <Text className="text-primary text-subhead">
-                  {t("planner.duration.minutes", {
-                    count: form.watch("workout_duration"),
-                  })}
-                </Text>
-              </HStack>
-              <Text className="text-muted-foreground text-subhead">
-                {t("planner.duration.question")}
-              </Text>
-            </VStack>
-
-            <Controller
-              control={form.control}
-              name="workout_duration"
-              render={renderWorkoutDurationField}
-            />
-            {form.formState.errors.workout_duration ? (
-              <ErrorMessage>
-                {form.formState.errors.workout_duration.message}
-              </ErrorMessage>
-            ) : null}
-
-            <VStack className="items-start justify-start gap-0">
-              <H4>{t("planner.place.title")}</H4>
-              <Text className="text-muted-foreground text-subhead">
-                {t("planner.place.question")}
-              </Text>
-            </VStack>
-
-            <Controller
-              control={form.control}
-              name="place"
-              render={renderPlaceField}
-            />
-            {form.formState.errors.place ? (
-              <ErrorMessage>{form.formState.errors.place.message}</ErrorMessage>
-            ) : null}
-
-            <VStack className="items-start justify-start gap-0">
-              <H4>{t("planner.frequency.title")}</H4>
-              <Text className="text-muted-foreground text-subhead">
-                {t("planner.frequency.question")}
-              </Text>
-            </VStack>
-
-            <Controller
-              control={form.control}
-              name="frequency"
-              render={renderFrequencyField}
-            />
-            {form.formState.errors.frequency ? (
-              <ErrorMessage>
-                {form.formState.errors.frequency.message}
-              </ErrorMessage>
-            ) : null}
-
-            <VStack className="items-start justify-start gap-0">
-              <H4>{t("planner.note.title")}</H4>
-              <Text className="text-muted-foreground text-subhead">
-                {t("planner.note.question")}
-              </Text>
-            </VStack>
-
-            <Controller
-              control={form.control}
-              name="note"
-              render={renderNoteField}
-            />
-
-            <VStack className="items-stretch gap-2">
-              <Button
-                label={t("planner.submit")}
-                onPress={form.handleSubmit((data) => {
-                  router.dismissTo({
-                    params: {
-                      initialMessage: buildPlanMessage(data, t),
-                    },
-                    pathname: "/(tabs)/arnold",
-                  });
-                })}
-              />
-            </VStack>
-          </VStack>
-        </VStack>
-      </KeyboardAwareScrollView>
-    </>
-  );
-}
-
 /**
  * The planner's option tiles are a bespoke layout (icons, badges, disclaimers)
  * that SwiftUI's `Picker` can't express, so they keep a hand-drawn indicator
  * instead of using the shared SwiftUI `RadioGroup`.
  */
-function RadioDot({
+const RadioDot = ({
   selected,
   disabled,
 }: {
   selected: boolean;
   disabled: boolean;
-}) {
-  return (
-    <View
-      className={cn(
-        "border-primary aspect-square h-5 w-5 items-center justify-center rounded-full border-2",
-        disabled && "border-muted"
-      )}
-    >
-      {selected ? (
-        <View className="bg-primary aspect-square h-[10px] w-[10px] rounded-full" />
-      ) : null}
-    </View>
-  );
-}
+}) => (
+  <View
+    className={cn(
+      "border-primary aspect-square h-5 w-5 items-center justify-center rounded-full border-2",
+      disabled && "border-muted"
+    )}
+  >
+    {selected ? (
+      <View className="bg-primary aspect-square h-[10px] w-[10px] rounded-full" />
+    ) : null}
+  </View>
+);
 
-function RadioGroupItemWithLabel({
+const RadioGroupItemWithLabel = ({
   value,
   label,
   disclaimer,
@@ -427,7 +131,7 @@ function RadioGroupItemWithLabel({
   isSelected: boolean;
   onSelect: (value: string) => void;
   testID?: string;
-}) {
+}) => {
   const handlePress = useCallback(() => {
     if (!disabled) {
       onSelect(value);
@@ -444,8 +148,8 @@ function RadioGroupItemWithLabel({
     >
       <RadioDot disabled={disabled} selected={isSelected} />
       {/* The badge wraps under a label too long to share the line with it. */}
-      <HStack className="flex-1 flex-wrap items-center justify-between gap-x-2 gap-y-1 p-0">
-        <VStack className="shrink items-start gap-0 p-0">
+      <View className="flex flex-1 flex-row flex-wrap items-center justify-between gap-x-2 gap-y-1 p-0">
+        <View className="flex shrink flex-col items-start justify-center gap-0 p-0">
           <Label
             disabled={disabled}
             nativeID={`label-for-${value}`}
@@ -453,19 +157,19 @@ function RadioGroupItemWithLabel({
           >
             {label}
           </Label>
-          {!!disclaimer && <Muted className="text-subhead">{disclaimer}</Muted>}
-        </VStack>
+          {!!disclaimer && <Muted>{disclaimer}</Muted>}
+        </View>
         {badge ? (
           <Badge variant="secondary">
             <Text>{badge}</Text>
           </Badge>
         ) : null}
-      </HStack>
+      </View>
     </Pressable>
   );
-}
+};
 
-function RadioGroupItemTileWithIcon({
+const RadioGroupItemTileWithIcon = ({
   value,
   label,
   icon,
@@ -481,7 +185,7 @@ function RadioGroupItemTileWithIcon({
   badge?: string;
   isSelected: boolean;
   onSelect: (value: string) => void;
-}) {
+}) => {
   const handlePress = useCallback(() => {
     if (!disabled) {
       onSelect(value);
@@ -519,9 +223,9 @@ function RadioGroupItemTileWithIcon({
       ) : null}
     </Pressable>
   );
-}
+};
 
-function RadioGroupItemTile({
+const RadioGroupItemTile = ({
   value,
   label,
   disabled,
@@ -535,7 +239,7 @@ function RadioGroupItemTile({
   isSelected: boolean;
   onSelect: (value: string) => void;
   testID?: string;
-}) {
+}) => {
   const handlePress = useCallback(() => {
     if (!disabled) {
       onSelect(value);
@@ -560,4 +264,291 @@ function RadioGroupItemTile({
       </Label>
     </Pressable>
   );
-}
+};
+
+const GoalOptions = ({
+  field: { onChange, value },
+}: PlanFieldProps<"goal">) => {
+  const { t } = useTranslation();
+
+  return (
+    <View className="flex flex-row items-stretch justify-stretch gap-4">
+      {goalOptions.map((option) => (
+        <RadioGroupItemTileWithIcon
+          disabled={false}
+          icon={goalSymbol(option)}
+          isSelected={option === value}
+          key={option}
+          label={t(`planner.goal.options.${option}`)}
+          onSelect={onChange}
+          value={option}
+        />
+      ))}
+    </View>
+  );
+};
+
+const ExperienceLevelOptions = ({
+  field: { onChange, value },
+}: PlanFieldProps<"experience_level">) => {
+  const labels = useChoiceLabels();
+
+  return (
+    <View className="flex flex-col items-stretch justify-stretch gap-4">
+      {experienceLevels.map((option) => (
+        <RadioGroupItemWithLabel
+          disabled={false}
+          disclaimer={labels.experienceLevelDescription(option)}
+          isSelected={option === value}
+          key={option}
+          label={labels.experienceLevel(option)}
+          onSelect={onChange}
+          testID={`experience-${option}`}
+          value={option}
+        />
+      ))}
+    </View>
+  );
+};
+
+const renderWorkoutDurationField = ({
+  field: { onChange, value },
+}: PlanFieldProps<"workout_duration">) => (
+  <Slider max={120} min={30} onValueChange={onChange} step={10} value={value} />
+);
+
+const PlaceOptions = ({
+  field: { onChange, value },
+}: PlanFieldProps<"place">) => {
+  const { t } = useTranslation();
+  const labels = useChoiceLabels();
+
+  return (
+    <View className="flex flex-row items-stretch justify-stretch gap-4">
+      {places.map((option) => {
+        const soon = soonPlaces.has(option);
+
+        return (
+          <RadioGroupItemWithLabel
+            badge={soon ? t("planner.place.soon") : undefined}
+            disabled={soon}
+            isSelected={option === value}
+            key={option}
+            label={labels.place(option)}
+            onSelect={onChange}
+            value={option}
+          />
+        );
+      })}
+    </View>
+  );
+};
+
+const renderFrequencyField = ({
+  field: { onChange, value },
+}: PlanFieldProps<"frequency">) => (
+  <View className="flex flex-row items-stretch justify-stretch gap-4">
+    {frequencyOptions.map((option) => (
+      <RadioGroupItemTile
+        disabled={false}
+        isSelected={option?.toString() === value?.toString()}
+        key={option}
+        label={option?.toString()}
+        onSelect={onChange}
+        testID={`frequency-${option}`}
+        value={option?.toString()}
+      />
+    ))}
+  </View>
+);
+
+const NoteField = ({
+  field: { onChange, value },
+  fieldState: { error },
+}: PlanFieldProps<"note">) => {
+  const { t } = useTranslation();
+
+  return (
+    <Textarea
+      className="h-48"
+      error={error?.message}
+      onChangeText={onChange}
+      placeholder={t("planner.note.placeholder")}
+      value={value}
+    />
+  );
+};
+
+// Controller's render prop must be stable; the fields read their text through
+// hooks, so each is a component behind one.
+const renderGoalField = (props: PlanFieldProps<"goal">) => (
+  <GoalOptions {...props} />
+);
+
+const renderExperienceLevelField = (
+  props: PlanFieldProps<"experience_level">
+) => <ExperienceLevelOptions {...props} />;
+
+const renderPlaceField = (props: PlanFieldProps<"place">) => (
+  <PlaceOptions {...props} />
+);
+
+const renderNoteField = (props: PlanFieldProps<"note">) => (
+  <NoteField {...props} />
+);
+
+const PlannerScreen = () => {
+  const form = useForm<PlanFormValues>({
+    defaultValues: {
+      place: "gym",
+      workout_duration: 60,
+    },
+    resolver: zodResolver(formSchema),
+  });
+
+  const workoutDuration = useWatch({
+    control: form.control,
+    name: "workout_duration",
+  });
+
+  const insets = useSafeAreaInsets();
+  const { t } = useTranslation();
+
+  return (
+    <>
+      <Stack.Screen
+        options={{
+          title: t("planner.title"),
+        }}
+      />
+
+      <KeyboardAwareScrollView
+        bottomOffset={24}
+        className="flex-1"
+        contentInsetAdjustmentBehavior="automatic"
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
+      >
+        <ScopedVariables variables={{ "--planner-bottom": insets.bottom }}>
+          <View className="p-md flex flex-col items-center justify-center gap-4 pb-(--planner-bottom)">
+            <VStack className="w-full items-stretch">
+              <View className="flex flex-col items-start justify-start gap-0">
+                <H4>{t("planner.goal.title")}</H4>
+                <Text variant="muted">{t("planner.goal.question")}</Text>
+              </View>
+
+              <Controller
+                control={form.control}
+                name="goal"
+                render={renderGoalField}
+              />
+              {form.formState.errors.goal ? (
+                <ErrorMessage>
+                  {form.formState.errors.goal.message}
+                </ErrorMessage>
+              ) : null}
+
+              <View className="flex flex-col items-start justify-start gap-0">
+                <H4>{t("planner.experience.title")}</H4>
+                <Text variant="muted">{t("planner.experience.question")}</Text>
+              </View>
+
+              <Controller
+                control={form.control}
+                name="experience_level"
+                render={renderExperienceLevelField}
+              />
+              {form.formState.errors.experience_level ? (
+                <ErrorMessage>
+                  {form.formState.errors.experience_level.message}
+                </ErrorMessage>
+              ) : null}
+
+              <View className="flex flex-col items-stretch justify-start gap-0">
+                <HStack className="items-center justify-between">
+                  <H4>{t("planner.duration.title")}</H4>
+                  <Text className="text-primary" variant="muted">
+                    {t("planner.duration.minutes", {
+                      count: workoutDuration,
+                    })}
+                  </Text>
+                </HStack>
+                <Text variant="muted">{t("planner.duration.question")}</Text>
+              </View>
+
+              <Controller
+                control={form.control}
+                name="workout_duration"
+                render={renderWorkoutDurationField}
+              />
+              {form.formState.errors.workout_duration ? (
+                <ErrorMessage>
+                  {form.formState.errors.workout_duration.message}
+                </ErrorMessage>
+              ) : null}
+
+              <View className="flex flex-col items-start justify-start gap-0">
+                <H4>{t("planner.place.title")}</H4>
+                <Text variant="muted">{t("planner.place.question")}</Text>
+              </View>
+
+              <Controller
+                control={form.control}
+                name="place"
+                render={renderPlaceField}
+              />
+              {form.formState.errors.place ? (
+                <ErrorMessage>
+                  {form.formState.errors.place.message}
+                </ErrorMessage>
+              ) : null}
+
+              <View className="flex flex-col items-start justify-start gap-0">
+                <H4>{t("planner.frequency.title")}</H4>
+                <Text variant="muted">{t("planner.frequency.question")}</Text>
+              </View>
+
+              <Controller
+                control={form.control}
+                name="frequency"
+                render={renderFrequencyField}
+              />
+              {form.formState.errors.frequency ? (
+                <ErrorMessage>
+                  {form.formState.errors.frequency.message}
+                </ErrorMessage>
+              ) : null}
+
+              <View className="flex flex-col items-start justify-start gap-0">
+                <H4>{t("planner.note.title")}</H4>
+                <Text variant="muted">{t("planner.note.question")}</Text>
+              </View>
+
+              <Controller
+                control={form.control}
+                name="note"
+                render={renderNoteField}
+              />
+
+              <View className="flex flex-col items-stretch justify-center gap-2">
+                <Button
+                  label={t("planner.submit")}
+                  onPress={form.handleSubmit((data) => {
+                    router.dismissTo({
+                      params: {
+                        initialMessage: buildPlanMessage(data, t),
+                      },
+                      pathname: "/(tabs)/arnold",
+                    });
+                  })}
+                />
+              </View>
+            </VStack>
+          </View>
+        </ScopedVariables>
+      </KeyboardAwareScrollView>
+    </>
+  );
+};
+
+export default PlannerScreen;

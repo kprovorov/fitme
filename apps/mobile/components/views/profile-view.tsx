@@ -2,6 +2,7 @@ import { useUser } from "@clerk/expo";
 import { Link, router } from "expo-router";
 import { useCallback } from "react";
 import { useTranslation } from "react-i18next";
+import { View } from "react-native";
 import RevenueCatUI from "react-native-purchases-ui";
 
 import { SymbolImage } from "~/components/symbol-image";
@@ -28,7 +29,7 @@ const presentPaywall = () => RevenueCatUI.presentPaywall();
 
 const openAppStoreReview = () => openUrl(APP_STORE_REVIEW_URL);
 
-export default function ProfileView() {
+const ProfileView = () => {
   const { user } = useUser();
   const { t } = useTranslation(undefined, { i18n });
 
@@ -62,7 +63,7 @@ export default function ProfileView() {
 
   return (
     !!user && (
-      <VStack className="grow items-stretch justify-between gap-4">
+      <VStack className="grow items-stretch justify-between">
         <HStack className="items-center justify-start">
           <Avatar alt={title}>
             <AvatarFallback>
@@ -76,27 +77,27 @@ export default function ProfileView() {
               )}
             </AvatarFallback>
           </Avatar>
-          <VStack className="shrink items-stretch gap-0">
-            <Text className="text-title-2-emphasized" numberOfLines={1}>
+          <View className="flex shrink flex-col items-stretch justify-center">
+            <Text numberOfLines={1} variant="h3">
               {title}
             </Text>
             {subtitle ? <Muted numberOfLines={1}>{subtitle}</Muted> : null}
-          </VStack>
+          </View>
         </HStack>
 
         <Card>
           <CardContent>
             {isPro ? (
-              <VStack className="items-stretch gap-2">
-                <HStack className="flex-1 justify-start gap-2">
+              <View className="flex flex-col items-stretch justify-center gap-2">
+                <View className="flex flex-1 flex-row items-center justify-start gap-2">
                   <SymbolImage
                     className="text-body-emphasized text-primary"
                     name="trophy.fill"
                   />
-                  <Text className="text-body-emphasized text-primary">
+                  <Text className="text-primary" variant="large">
                     {t("profile.pro.title")}
                   </Text>
-                </HStack>
+                </View>
                 <Muted>{t("profile.pro.description")}</Muted>
                 {!!managementURL && (
                   <Button
@@ -105,24 +106,22 @@ export default function ProfileView() {
                     variant="secondary"
                   />
                 )}
-              </VStack>
+              </View>
             ) : (
-              <VStack className="items-stretch gap-2">
-                <HStack className="flex-1 justify-start gap-2">
+              <View className="flex flex-col items-stretch justify-center gap-2">
+                <View className="flex flex-1 flex-row items-center justify-start gap-2">
                   <SymbolImage
                     className="text-body-emphasized text-foreground"
                     name="figure.volleyball"
                   />
-                  <Text className="text-body-emphasized text-foreground">
-                    {t("profile.free.title")}
-                  </Text>
-                </HStack>
+                  <Text variant="large">{t("profile.free.title")}</Text>
+                </View>
                 <Muted>{t("profile.free.description")}</Muted>
                 <Button
                   label={t("profile.free.upgrade")}
                   onPress={presentPaywall}
                 />
-              </VStack>
+              </View>
             )}
           </CardContent>
         </Card>
@@ -159,21 +158,23 @@ export default function ProfileView() {
 
         <MenuList>
           <MenuListItem onPress={openAppStoreReview}>
-            <HStack className="flex-1 justify-start gap-4">
+            <HStack className="flex-1 justify-start">
               <SymbolImage
                 className="text-foreground text-title-2"
                 name="heart"
               />
-              <VStack className="items-start gap-0">
-                <Text className="text-body-emphasized text-primary">
+              <View className="flex flex-col items-start justify-center">
+                <Text className="text-primary" variant="large">
                   {t("profile.rate.title")}
                 </Text>
                 <Text>{t("profile.rate.action")}</Text>
-              </VStack>
+              </View>
             </HStack>
           </MenuListItem>
         </MenuList>
       </VStack>
     )
   );
-}
+};
+
+export default ProfileView;

@@ -1,4 +1,6 @@
 import { reportError } from "@fitme/observability/node";
+import { defaultStackParser, NodeClient, withScope } from "@sentry/node";
+import type { Event } from "@sentry/node";
 import { DrizzleQueryError } from "drizzle-orm";
 import { Webhook } from "standardwebhooks";
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -10,20 +12,6 @@ import {
 } from "../arnold.js";
 import { createApp } from "../create-app.js";
 import type { AppDeps } from "../create-app.js";
-
-// Only what reportError sends; the rest (Hono request spans) stays real
-const sentry = vi.hoisted(() => ({
-  captureException: vi.fn(),
-  flush: vi.fn(() => Promise.resolve(true)),
-}));
-
-vi.mock<typeof import("@sentry/node")>(
-  import("@sentry/node"),
-  async (importOriginal) => ({
-    ...(await importOriginal<typeof import("@sentry/node")>()),
-    ...sentry,
-  })
-);
 
 // A Standard Webhooks secret, as Clerk issues them: "whsec_" + base64
 const SIGNING_SECRET = "whsec_MfKQ9r8GKYqrTwjUPD8ILPZIo2LaLaSw";
@@ -41,7 +29,7 @@ const userDeleted = (id = USER_ID) => ({
 
 /** Signs like Clerk (Svix): svix-id, svix-timestamp and svix-signature. */
 const signedRequest = (
-  event: unknown,
+  event: ReturnType<typeof userDeleted>,
   { secret = SIGNING_SECRET, messageId = "msg_1" } = {}
 ): Request => {
   const body = JSON.stringify(event);
@@ -95,12 +83,56 @@ const setup = (overrides: Partial<AppDeps["clerk"]> = {}) => {
 const spyOnRejectionLog = () =>
   vi.spyOn(console, "warn").mockReturnValue(undefined);
 
-afterEach(() => {
+const restoreMocks = () => {
   vi.clearAllMocks();
   vi.restoreAllMocks();
-});
+};
+
+/** The real cleanup over `env`, with two recorded sessions and Arnold faked. */
+const setupFromEnv = (env: Record<string, string | undefined>) => {
+  const requests: Request[] = [];
+
+  const fetch: typeof globalThis.fetch = (input, init) => {
+    const request = new Request(input, init);
+    requests.push(request);
+    const sessionId = request.url.split("/").at(-2);
+
+    return Promise.resolve(
+      Response.json({
+        ok: true,
+        previousSessionId: sessionId,
+        status: "reset",
+      })
+    );
+  };
+
+  const reported: unknown[] = [];
+
+  const app = createApp({
+    clerk: {
+      deleteArnoldConversations: deleteArnoldConversations({
+        listSessionIds: () => Promise.resolve(["wrun_a", "wrun_b"]),
+        resetSession: arnoldSessionResetter({
+          ...arnoldResetConfig(env),
+          fetch,
+        }),
+      }),
+      deleteUserData: () => Promise.resolve(),
+      signingSecret: SIGNING_SECRET,
+    },
+    reportError: (error) => {
+      reported.push(error);
+
+      return Promise.resolve();
+    },
+  });
+
+  return { app, reported, requests };
+};
 
 describe("pOST /clerk", () => {
+  afterEach(restoreMocks);
+
   it("rejects an unsigned request without deleting anything", async () => {
     const { app, deleted } = setup();
     const warn = spyOnRejectionLog();
@@ -112,7 +144,7 @@ describe("pOST /clerk", () => {
     });
 
     expect(response.status).toBe(401);
-    expect(deleted).toEqual([]);
+    expect(deleted).toStrictEqual([]);
     expect(warn).toHaveBeenCalledExactlyOnceWith(
       "Rejected Clerk webhook",
       expect.any(Error)
@@ -125,7 +157,7 @@ describe("pOST /clerk", () => {
     const response = await app.request(signedRequest(userDeleted()));
 
     expect(response.status).toBe(200);
-    expect(deleted).toEqual([USER_ID]);
+    expect(deleted).toStrictEqual([USER_ID]);
   });
 
   it("wipes the User's Arnold Conversations after their data", async () => {
@@ -134,7 +166,10 @@ describe("pOST /clerk", () => {
     const response = await app.request(signedRequest(userDeleted()));
 
     expect(response.status).toBe(200);
-    expect(steps).toEqual([`data:${USER_ID}`, `conversations:${USER_ID}`]);
+    expect(steps).toStrictEqual([
+      `data:${USER_ID}`,
+      `conversations:${USER_ID}`,
+    ]);
   });
 
   it("leaves the Conversations alone when the data deletion fails", async () => {
@@ -145,7 +180,7 @@ describe("pOST /clerk", () => {
     const response = await app.request(signedRequest(userDeleted()));
 
     expect(response.status).toBe(500);
-    expect(steps).toEqual([]);
+    expect(steps).toStrictEqual([]);
   });
 
   it("reports a failed Conversation wipe and answers 500 so Clerk retries", async () => {
@@ -158,10 +193,10 @@ describe("pOST /clerk", () => {
     const response = await app.request(signedRequest(userDeleted()));
 
     expect(response.status).toBe(500);
-    await expect(response.json()).resolves.toEqual({
+    await expect(response.json()).resolves.toStrictEqual({
       error: { code: "cleanup_failed", message: "User data cleanup failed" },
     });
-    expect(reported).toEqual([failure]);
+    expect(reported).toStrictEqual([failure]);
   });
 
   it("rejects an event signed with another secret", async () => {
@@ -173,7 +208,7 @@ describe("pOST /clerk", () => {
     );
 
     expect(response.status).toBe(401);
-    expect(deleted).toEqual([]);
+    expect(deleted).toStrictEqual([]);
     expect(warn).toHaveBeenCalledExactlyOnceWith(
       "Rejected Clerk webhook",
       expect.any(Error)
@@ -192,7 +227,7 @@ describe("pOST /clerk", () => {
     });
 
     expect(response.status).toBe(401);
-    expect(deleted).toEqual([]);
+    expect(deleted).toStrictEqual([]);
     expect(warn).toHaveBeenCalledExactlyOnceWith(
       "Rejected Clerk webhook",
       expect.any(Error)
@@ -209,10 +244,10 @@ describe("pOST /clerk", () => {
     const response = await app.request(signedRequest(userDeleted()));
 
     expect(response.status).toBe(500);
-    await expect(response.json()).resolves.toEqual({
+    await expect(response.json()).resolves.toStrictEqual({
       error: { code: "cleanup_failed", message: "User data cleanup failed" },
     });
-    expect(reported).toEqual([failure]);
+    expect(reported).toStrictEqual([failure]);
   });
 
   it("reports a failed deletion query without the deleted User's id", async () => {
@@ -226,7 +261,26 @@ describe("pOST /clerk", () => {
       })
     );
 
-    // The app's own reporter (@fitme/observability/node), Sentry faked
+    // Exercise the real reporter and Sentry client without network delivery.
+    const captured: { error: unknown; tags: Event["tags"] }[] = [];
+
+    const client = new NodeClient({
+      beforeSend: (event, hint) => {
+        captured.push({ error: hint.originalException, tags: event.tags });
+
+        return event;
+      },
+      dsn: "https://public@sentry.test/1",
+      integrations: [],
+      stackParser: defaultStackParser,
+      transport: () => ({
+        flush: () => Promise.resolve(true),
+        send: () => Promise.resolve({}),
+      }),
+    });
+
+    client.init();
+
     const app = createApp({
       clerk: {
         deleteArnoldConversations: () => Promise.resolve(),
@@ -236,23 +290,38 @@ describe("pOST /clerk", () => {
       reportError,
     });
 
-    const response = await app.request(signedRequest(userDeleted()));
+    const response = await withScope(async (scope) => {
+      scope.setClient(client);
+
+      try {
+        return await app.request(signedRequest(userDeleted()));
+      } finally {
+        await client.close();
+      }
+    });
 
     expect(response.status).toBe(500);
-    expect(sentry.captureException).toHaveBeenCalledOnce();
-    const [sent, hint] = sentry.captureException.mock.calls[0] ?? [];
-    expect(sent).toBeInstanceOf(Error);
-    expect((sent as Error).message).toBe(
-      "Database query failed (SQLSTATE 55P03)"
-    );
-    expect((sent as Error).cause).toBeUndefined();
-    expect(hint).toEqual({ tags: { sqlstate: "55P03" } });
-    const logged = log.mock.calls.flat();
-    expect(logged).toEqual([sent]);
+    expect(captured).toHaveLength(1);
+    const sent = captured[0]?.error;
+
+    if (!(sent instanceof Error)) {
+      throw new TypeError("Expected a captured Error");
+    }
 
     for (const leak of [USER_ID, "delete from", "lock timeout"]) {
-      expect((sent as Error).stack).not.toContain(leak);
+      expect(sent.stack).not.toContain(leak);
     }
+
+    expect({
+      cause: sent.cause,
+      message: sent.message,
+      tags: captured[0]?.tags,
+    }).toStrictEqual({
+      cause: undefined,
+      message: "Database query failed (SQLSTATE 55P03)",
+      tags: { sqlstate: "55P03" },
+    });
+    expect(log.mock.calls.flat()).toStrictEqual([sent]);
   });
 
   it("acknowledges other events without deleting anything", async () => {
@@ -263,7 +332,7 @@ describe("pOST /clerk", () => {
     );
 
     expect(response.status).toBe(200);
-    expect(steps).toEqual([]);
+    expect(steps).toStrictEqual([]);
   });
 
   it("accepts a replayed user.deleted event again", async () => {
@@ -274,71 +343,32 @@ describe("pOST /clerk", () => {
 
     // Both steps are idempotent, so there is no svix-id dedupe
     expect(response.status).toBe(200);
-    expect(deleted).toEqual([USER_ID, USER_ID]);
-    expect(steps.filter((step) => step.startsWith("conversations:"))).toEqual([
-      `conversations:${USER_ID}`,
-      `conversations:${USER_ID}`,
-    ]);
+    expect(deleted).toStrictEqual([USER_ID, USER_ID]);
+    expect(
+      steps.filter((step) => step.startsWith("conversations:"))
+    ).toStrictEqual([`conversations:${USER_ID}`, `conversations:${USER_ID}`]);
   });
 });
 
 describe("pOST /clerk without a signing secret", () => {
+  afterEach(restoreMocks);
+
   it("reports the misconfiguration and answers 500 so Clerk retries", async () => {
     const { app, deleted, reported } = setup({ signingSecret: undefined });
 
     const response = await app.request(signedRequest(userDeleted()));
 
     expect(response.status).toBe(500);
-    expect(deleted).toEqual([]);
+    expect(deleted).toStrictEqual([]);
     expect(reported).toHaveLength(1);
   });
 });
 
 describe("pOST /clerk resetting Arnold sessions from the environment", () => {
+  afterEach(restoreMocks);
+
   const ARNOLD_URL = "https://arnold.test";
   const RESET_SECRET = "reset-secret-0123456789abcdef0123456789abcdef";
-
-  /** The real cleanup over `env`, with two recorded sessions and Arnold faked. */
-  const setupFromEnv = (env: Record<string, string | undefined>) => {
-    const requests: Request[] = [];
-
-    const fetch: typeof globalThis.fetch = (input, init) => {
-      const request = new Request(input, init);
-      requests.push(request);
-      const sessionId = request.url.split("/").at(-2);
-
-      return Promise.resolve(
-        Response.json({
-          ok: true,
-          previousSessionId: sessionId,
-          status: "reset",
-        })
-      );
-    };
-
-    const reported: unknown[] = [];
-
-    const app = createApp({
-      clerk: {
-        deleteArnoldConversations: deleteArnoldConversations({
-          listSessionIds: () => Promise.resolve(["wrun_a", "wrun_b"]),
-          resetSession: arnoldSessionResetter({
-            ...arnoldResetConfig(env),
-            fetch,
-          }),
-        }),
-        deleteUserData: () => Promise.resolve(),
-        signingSecret: SIGNING_SECRET,
-      },
-      reportError: (error) => {
-        reported.push(error);
-
-        return Promise.resolve();
-      },
-    });
-
-    return { app, reported, requests };
-  };
 
   it("resets each recorded session with ARNOLD_URL and ARNOLD_RESET_SECRET", async () => {
     const { app, requests } = setupFromEnv({
@@ -349,16 +379,14 @@ describe("pOST /clerk resetting Arnold sessions from the environment", () => {
     const response = await app.request(signedRequest(userDeleted()));
 
     expect(response.status).toBe(200);
-    expect(requests.map((request) => request.url)).toEqual([
+    expect(requests.map((request) => request.url)).toStrictEqual([
       `${ARNOLD_URL}/eve/v1/session/wrun_a/reset`,
       `${ARNOLD_URL}/eve/v1/session/wrun_b/reset`,
     ]);
 
-    for (const request of requests) {
-      expect(request.headers.get("authorization")).toBe(
-        `Bearer ${RESET_SECRET}`
-      );
-    }
+    expect(
+      requests.map((request) => request.headers.get("authorization"))
+    ).toStrictEqual([`Bearer ${RESET_SECRET}`, `Bearer ${RESET_SECRET}`]);
   });
 
   it.each([
@@ -374,6 +402,6 @@ describe("pOST /clerk resetting Arnold sessions from the environment", () => {
 
     expect(response.status).toBe(500);
     expect(reported).toHaveLength(1);
-    expect(requests).toEqual([]);
+    expect(requests).toStrictEqual([]);
   });
 });

@@ -1,4 +1,4 @@
-const TRAILING_SLASH = /\/$/;
+const TRAILING_SLASH = /\/$/u;
 
 export const IS_E2E = process.env.EXPO_PUBLIC_E2E_ENABLED === "true";
 

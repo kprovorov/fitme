@@ -26,13 +26,13 @@ describe("invalid input", () => {
     });
 
     expect(response.status).toBe(400);
-    await expect(response.json()).resolves.toEqual({
+    await expect(response.json()).resolves.toStrictEqual({
       error: {
         code: "invalid_request",
         message: "limit: Too small: expected number to be >=1",
       },
     });
-    expect(reported).toEqual([]);
+    expect(reported).toStrictEqual([]);
   });
 
   it("lets valid input through", async () => {
@@ -41,6 +41,8 @@ describe("invalid input", () => {
     });
 
     expect(response.status).toBe(200);
-    await expect(response.json()).resolves.toEqual({ data: { limit: 20 } });
+    await expect(response.json()).resolves.toStrictEqual({
+      data: { limit: 20 },
+    });
   });
 });

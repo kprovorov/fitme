@@ -161,6 +161,8 @@ export const rememberPendingWeighedRefresh = (
     // server's own view of the saved system. An invalidation or a reset is
     // not (`invalidate` / `setState`), and neither is a failed read.
     if (event.type === "updated" && event.action.type === "success") {
+      // SAFETY: The query hash matches useProfileQuery and the update succeeded,
+      // so its cached data is Profile | null.
       consumePendingWeighedRefresh(
         client,
         event.query.state.data as Profile | null

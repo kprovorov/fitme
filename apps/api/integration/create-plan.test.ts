@@ -6,6 +6,7 @@ import { createFakeLibrary } from "@fitme/library-sdk/fake";
 import type { FakeLibrary } from "@fitme/library-sdk/fake";
 import { deleteTestUsers } from "@fitme/services/delete-test-users";
 import { createPlan } from "@fitme/services/plans";
+import type { CreatePlanOptions, NewPlan } from "@fitme/services/plans";
 import { eq } from "drizzle-orm";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 
@@ -122,7 +123,9 @@ const newPlan = (name: string) => ({
   ],
 });
 
-const post = async (userId: string, payload: unknown) => {
+type CreatePlanPayload = NewPlan & CreatePlanOptions;
+
+const post = async (userId: string, payload: CreatePlanPayload) => {
   const response = await app.request("/v1/plans", {
     body: JSON.stringify(payload),
     headers: { ...signedInAs(userId), "content-type": "application/json" },
@@ -148,39 +151,43 @@ const plansOf = (userId: string) =>
       .orderBy(plans.createdAt, plans.id)
   );
 
-beforeAll(async () => {
-  await withService((tx) =>
-    tx.insert(profiles).values({
-      age: 41,
-      gender: "male",
-      height: "70",
-      measurementSystem: "us",
-      userId: creator,
-      weight: "180",
-    })
-  );
-});
-
-beforeEach(() => {
-  library.failWith(null);
-  reported.length = 0;
-});
-
-afterAll(async () => {
-  await deleteTestUsers(users);
-});
-
 describe("pOST /v1/plans against the local stack", () => {
+  beforeAll(async () => {
+    await withService((tx) =>
+      tx.insert(profiles).values({
+        age: 41,
+        gender: "male",
+        height: "70",
+        measurementSystem: "us",
+        userId: creator,
+        weight: "180",
+      })
+    );
+  });
+
+  beforeEach(() => {
+    library.failWith(null);
+    reported.length = 0;
+  });
+
+  afterAll(async () => {
+    await deleteTestUsers(users);
+  });
+
   it("creates the Plan in full, active, in the User's weight unit, with a Cover per Workout, and reads it back the same", async () => {
     const { body, status } = await post(creator, newPlan("Created"));
 
-    expect(status).toBe(201);
-    expect(body.data).toMatchObject({
-      goal: "muscle-gain",
-      is_active: true,
-      name: "Created",
-      note: "Deload every fourth week",
-      weight_unit: "lbs",
+    expect({ body, status }).toMatchObject({
+      body: {
+        data: {
+          goal: "muscle-gain",
+          is_active: true,
+          name: "Created",
+          note: "Deload every fourth week",
+          weight_unit: "lbs",
+        },
+      },
+      status: 201,
     });
     expect(
       body.data.workouts.map(
@@ -202,7 +209,7 @@ describe("pOST /v1/plans against the local stack", () => {
           ]),
         ]
       )
-    ).toEqual([
+    ).toStrictEqual([
       [
         1,
         "Day A",
@@ -225,16 +232,15 @@ describe("pOST /v1/plans against the local stack", () => {
       body.data.workouts.map(
         (workout: { cover: string | null }) => workout.cover
       )
-    ).toEqual([LEGS_COVER, HINGE_COVER]);
-    await expect(get(`/v1/plans/${body.data.id}`, creator)).resolves.toEqual({
-      body,
-      status: 200,
+    ).toStrictEqual([LEGS_COVER, HINGE_COVER]);
+    expect({
+      byId: await get(`/v1/plans/${body.data.id}`, creator),
+      active: await get("/v1/plans/active", creator),
+    }).toStrictEqual({
+      byId: { body, status: 200 },
+      active: { body, status: 200 },
     });
-    await expect(get("/v1/plans/active", creator)).resolves.toEqual({
-      body,
-      status: 200,
-    });
-    expect(reported).toEqual([]);
+    expect(reported).toStrictEqual([]);
   });
 
   it("with activate: false, creates the Plan inactive and keeps the active Plan", async () => {
@@ -248,11 +254,10 @@ describe("pOST /v1/plans against the local stack", () => {
     });
 
     expect(status).toBe(201);
-    expect(created.data.is_active).toBe(false);
-    expect((await get("/v1/plans/active", keeper)).body.data.id).toBe(
-      active.id
-    );
-    await expect(plansOf(keeper)).resolves.toEqual([
+    expect(created.data.is_active).toBeFalsy();
+    const current = await get("/v1/plans/active", keeper);
+    expect(current.body.data.id).toBe(active.id);
+    await expect(plansOf(keeper)).resolves.toStrictEqual([
       { id: active.id, isActive: true, name: "Active" },
       { id: created.data.id, isActive: false, name: "Kept aside" },
     ]);
@@ -265,12 +270,12 @@ describe("pOST /v1/plans against the local stack", () => {
     const { body: answer, status } = await post(refused, payload);
 
     expect(status).toBe(400);
-    expect(answer.error).toEqual({
+    expect(answer.error).toStrictEqual({
       code: "unknown_exercises",
       message: "Unknown exercise_slug(s): made-up-press",
     });
-    await expect(plansOf(refused)).resolves.toEqual([]);
-    expect(reported).toEqual([]);
+    await expect(plansOf(refused)).resolves.toStrictEqual([]);
+    expect(reported).toStrictEqual([]);
   });
 
   it("answers a reported 503 library_unavailable during an outage, writing nothing", async () => {
@@ -281,7 +286,7 @@ describe("pOST /v1/plans against the local stack", () => {
 
     expect(status).toBe(503);
     expect(answer.error.code).toBe("library_unavailable");
-    await expect(plansOf(refused)).resolves.toEqual([]);
-    expect(reported).toEqual([outage]);
+    await expect(plansOf(refused)).resolves.toStrictEqual([]);
+    expect(reported).toStrictEqual([outage]);
   });
 });

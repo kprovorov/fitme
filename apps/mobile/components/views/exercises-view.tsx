@@ -35,6 +35,10 @@ const END_REACHED_THRESHOLD = 0.5;
 
 const exerciseKey = (exercise: ExerciseSummary) => exercise.slug;
 
+const noop = () => {
+  /* noop */
+};
+
 /**
  * The Library, searched and filtered by Muscle group: the Library tab and the
  * Exercise picker. It is the screen's scroll container, a virtualised list
@@ -44,9 +48,7 @@ const exerciseKey = (exercise: ExerciseSummary) => exercise.slug;
  * group shows as a chip under the pill; its × removes that group at once.
  */
 const ExercisesView = ({
-  onExercisePress = () => {
-    /* noop */
-  },
+  onExercisePress = noop,
   rowAccessibilityLabel,
   trailing,
   muscleChoiceKey,
@@ -129,8 +131,9 @@ const ExercisesView = ({
 
   const onRefresh = useCallback(() => {
     setRefreshing(true);
+
     // A refetch never rejects: a failure is the query's error state.
-    refetch().then(() => setRefreshing(false));
+    return refetch().then(() => setRefreshing(false));
   }, [refetch]);
 
   const retry = useCallback(() => {
@@ -179,9 +182,9 @@ const ExercisesView = ({
   const renderEmpty = () => {
     if (isError) {
       return (
-        <VStack className="gap-sm pt-lg items-center">
+        <View className="gap-sm pt-lg flex flex-col items-center justify-center">
           <H3 className="text-center">{t("library.loadErrorTitle")}</H3>
-          <Text className="text-muted-foreground text-center">
+          <Text className="text-center" variant="muted">
             {t("library.loadError")}
           </Text>
           <Button
@@ -190,19 +193,19 @@ const ExercisesView = ({
             onPress={retry}
             variant="secondary"
           />
-        </VStack>
+        </View>
       );
     }
 
     if (exercises) {
       return (
-        <VStack className="gap-sm pt-lg items-center">
+        <View className="gap-sm pt-lg flex flex-col items-center justify-center">
           <H3 className="text-center">{t("library.emptyTitle")}</H3>
-          <Text className="text-muted-foreground text-center">
+          <Text className="text-center" variant="muted">
             {t("library.empty")}
           </Text>
           <Button fill={false} label={t("library.showAll")} onPress={showAll} />
-        </VStack>
+        </View>
       );
     }
 
@@ -224,9 +227,11 @@ const ExercisesView = ({
 
     if (isLoadMoreError) {
       return (
-        <ErrorMessage className="pt-md text-center">
-          {t("library.loadMoreError")}
-        </ErrorMessage>
+        <View className="pt-md">
+          <ErrorMessage className="text-center">
+            {t("library.loadMoreError")}
+          </ErrorMessage>
+        </View>
       );
     }
 
@@ -245,7 +250,7 @@ const ExercisesView = ({
       ListEmptyComponent={renderEmpty()}
       ListFooterComponent={renderFooter() ?? undefined}
       ListHeaderComponent={
-        <VStack className="pb-sm items-stretch">
+        <VStack className="mb-sm items-stretch">
           <Button
             className="self-start"
             disabled={musclesDisabled}

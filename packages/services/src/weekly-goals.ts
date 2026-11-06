@@ -5,8 +5,6 @@ import type { Transaction } from "@fitme/db";
 import { asc, eq, sql } from "drizzle-orm";
 import type { SQL } from "drizzle-orm";
 
-import { jsonTimestamp } from "./json-timestamp";
-
 // The Weekly goal log was introduced by migration 20261031120000. No
 // service-recorded goal predates its release; caller-chosen log timestamps
 // must never move this trusted tracking boundary backwards.
@@ -94,7 +92,7 @@ export const listWeeklyGoalChanges = async (
   await tx
     .select({
       // NOT NULL, so never `null`
-      recorded_at: jsonTimestamp(weeklyGoalChanges.recordedAt) as SQL<string>,
+      recorded_at: sql<string>`to_json(${weeklyGoalChanges.recordedAt}) #>> '{}'`,
       target: knownTarget,
     })
     .from(weeklyGoalChanges)
@@ -118,13 +116,13 @@ export interface WeeklyGoals {
  * `now` and `trackingStartedAt` are clock seams for historical fixtures;
  * public callers never supply either one.
  */
-export async function getWeeklyGoals(
+export const getWeeklyGoals = async (
   tx: Transaction,
   userId: string,
   timeZone: string,
   now = new Date(),
   trackingStartedAt = new Date(TRACKING_RELEASED_AT)
-): Promise<WeeklyGoals> {
+): Promise<WeeklyGoals> => {
   const changes = await listWeeklyGoalChanges(tx, userId);
 
   if ((changes.at(-1)?.target ?? null) === null) {
@@ -198,4 +196,4 @@ export async function getWeeklyGoals(
   `);
 
   return { changes, streak: result.rows[0]?.streak ?? 0 };
-}
+};

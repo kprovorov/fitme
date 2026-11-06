@@ -128,63 +128,61 @@ const extras: Extra[] = [
   },
 ];
 
-function FeatureRow({
+const FeatureRow = ({
   feature,
   reversed,
 }: {
   feature: Feature;
   reversed: boolean;
-}) {
-  return (
-    <div className="grid items-center gap-10 md:grid-cols-2 md:gap-16">
-      <div
-        className={cn(
-          "flex flex-col items-start gap-5",
-          reversed && "md:order-last"
-        )}
-      >
-        <p className="text-footnote-emphasized text-muted-foreground uppercase">
-          {feature.eyebrow}
-        </p>
-        <h3 className="text-foreground text-title-2-emphasized text-balance">
-          {feature.title}
-        </h3>
-        <p className="text-body text-muted-foreground text-pretty">
-          {feature.description}
-        </p>
-        <ul className="flex flex-col gap-3">
-          {feature.points.map((point) => (
-            <li className="flex items-start gap-3" key={point}>
-              <IconCheck
-                aria-hidden="true"
-                className="text-primary mt-0.5 size-5 shrink-0"
-              />
-              <span>{point}</span>
-            </li>
-          ))}
-        </ul>
-      </div>
-      <div className="bg-secondary flex h-96 justify-center overflow-hidden rounded-3xl border px-6 pt-10 sm:h-112 md:px-10">
-        <div className="w-60 lg:w-72">
-          <PhoneShot
-            alt={feature.alt}
-            sizes="(min-width: 1024px) 288px, 240px"
-            src={feature.shot}
-          />
-        </div>
+}) => (
+  <div className="grid items-center gap-10 md:grid-cols-2 md:gap-16">
+    <div
+      className={cn(
+        "flex flex-col items-start gap-5",
+        reversed && "md:order-last"
+      )}
+    >
+      <p className="text-footnote-emphasized text-muted-foreground uppercase">
+        {feature.eyebrow}
+      </p>
+      <h3 className="text-foreground text-title-2-emphasized text-balance">
+        {feature.title}
+      </h3>
+      <p className="text-body text-muted-foreground text-pretty">
+        {feature.description}
+      </p>
+      <ul className="flex flex-col gap-3">
+        {feature.points.map((point) => (
+          <li className="flex items-start gap-3" key={point}>
+            <IconCheck
+              aria-hidden="true"
+              className="text-primary mt-0.5 size-5 shrink-0"
+            />
+            <span>{point}</span>
+          </li>
+        ))}
+      </ul>
+    </div>
+    <div className="bg-secondary flex h-96 justify-center overflow-hidden rounded-3xl border px-6 pt-10 sm:h-112 md:px-10">
+      <div className="w-60 lg:w-72">
+        <PhoneShot
+          alt={feature.alt}
+          sizes="(min-width: 1024px) 288px, 240px"
+          src={feature.shot}
+        />
       </div>
     </div>
-  );
-}
+  </div>
+);
 
-function Features() {
-  return (
-    <section
-      aria-labelledby="features-heading"
-      className="w-full scroll-mt-24"
-      id="features"
-    >
-      <Container className="flex flex-col gap-16 sm:gap-24">
+const Features = () => (
+  <section
+    aria-labelledby="features-heading"
+    className="w-full scroll-mt-24"
+    id="features"
+  >
+    <Container>
+      <div className="flex flex-col gap-16 sm:gap-24">
         <SectionHeading
           description="Plan, train, log and look back, all in one app built for the gym floor."
           eyebrow="Features"
@@ -212,9 +210,9 @@ function Features() {
             </li>
           ))}
         </ul>
-      </Container>
-    </section>
-  );
-}
+      </div>
+    </Container>
+  </section>
+);
 
 export { Features };

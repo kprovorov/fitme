@@ -1,9 +1,10 @@
 import { IconArrowRight } from "@tabler/icons-react";
+import Link from "next/link";
 
 import { Button } from "./button";
 
 // Compiled by the app's normal tsc/Next build, never imported at runtime.
-export function buttonTypecheckCases() {
+export const buttonTypecheckCases = () => {
   const valid = [
     <Button key="pill">Continue</Button>,
     <Button
@@ -24,7 +25,7 @@ export function buttonTypecheckCases() {
       variant="ghost"
     />,
     <Button asChild icon={IconArrowRight} key="link">
-      <a href="/support">Support</a>
+      <Link href="/support">Support</Link>
     </Button>,
   ];
 
@@ -35,7 +36,7 @@ export function buttonTypecheckCases() {
     </Button>,
     // @ts-expect-error A composed link cannot be disabled.
     <Button asChild disabled key="invalid-disabled-link">
-      <a href="/support">Support</a>
+      <Link href="/support">Support</Link>
     </Button>,
     // @ts-expect-error FIT-209 removes outline.
     <Button key="invalid-1" variant="outline">
@@ -93,4 +94,4 @@ export function buttonTypecheckCases() {
   ];
 
   return { invalid, valid };
-}
+};

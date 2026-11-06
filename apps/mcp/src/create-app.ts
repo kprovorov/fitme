@@ -6,7 +6,7 @@ import {
   reportError as reportToObservability,
 } from "@fitme/observability/node";
 import { Hono } from "hono";
-import type { MiddlewareHandler } from "hono";
+import type { ErrorHandler, MiddlewareHandler } from "hono";
 import { cors } from "hono/cors";
 import { HTTPException } from "hono/http-exception";
 import { logger } from "hono/logger";
@@ -59,9 +59,7 @@ export interface CreateAppOptions {
  */
 const refuseNonPost: MiddlewareHandler = async (c, next) => {
   if (c.req.method === "POST") {
-    await next();
-
-    return;
+    return await next();
   }
 
   return c.json(
@@ -76,13 +74,13 @@ const refuseNonPost: MiddlewareHandler = async (c, next) => {
   );
 };
 
-export function createApp({
+export const createApp = ({
   createLibrary,
   createServices,
   identifyUser = identifyObservedUser,
   logRequests = true,
   reportError,
-}: CreateAppOptions) {
+}: CreateAppOptions) => {
   const app = new Hono<{ Variables: AuthVariables }>();
 
   // First, so the request span covers every other middleware
@@ -127,7 +125,8 @@ export function createApp({
     requireClerkUser,
     async (c, next) => {
       identifyUser(c.get("clerkUser").userId);
-      await next();
+
+      return await next();
     },
     refuseNonPost,
     answerUnsupportedProtocolVersion
@@ -146,7 +145,7 @@ export function createApp({
     return streamableHttpHandler(() => createMcpServer({ context }))(c);
   });
 
-  app.onError(async (error, c) => {
+  const handleError: ErrorHandler = async (error, c) => {
     if (error instanceof HTTPException) {
       return c.json(
         { error: { code: "http_error", message: error.message } },
@@ -160,10 +159,12 @@ export function createApp({
       { error: { code: "internal_error", message: "Internal server error" } },
       500
     );
-  });
+  };
+
+  app.onError(handleError);
 
   return app;
-}
+};
 
 /** The app with the real reporter, for the Vercel entry and `pnpm start`. */
 export const createDefaultApp = () =>

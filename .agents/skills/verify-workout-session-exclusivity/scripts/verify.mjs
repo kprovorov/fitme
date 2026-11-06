@@ -1,3 +1,5 @@
+/// <reference lib="es2023.array" />
+
 import { execFileSync, spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
 import {
@@ -8,14 +10,13 @@ import {
   writeFileSync,
 } from "node:fs";
 import { tmpdir } from "node:os";
-import { dirname, join, resolve } from "node:path";
-import { fileURLToPath } from "node:url";
+import path from "node:path";
 import { parseArgs } from "node:util";
 
 import { replay } from "./replay.mjs";
 
-const skill = resolve(import.meta.dirname, "..");
-const root = resolve(skill, "../../..");
+const skill = path.resolve(import.meta.dirname, "..");
+const root = path.resolve(skill, "../../..");
 const migrationName = "20261029120000_one_open_session_per_user.sql";
 const migrationDir = "packages/supabase/supabase/migrations";
 
@@ -43,19 +44,19 @@ const { values } = parseArgs({
   },
 });
 
-const sourceRoot = resolve(values["source-root"]);
+const sourceRoot = path.resolve(values["source-root"]);
 
 const source = readFileSync(
-  join(sourceRoot, migrationDir, migrationName),
+  path.join(sourceRoot, migrationDir, migrationName),
   "utf-8"
 );
 
 const uncommented = source
-  .replaceAll(/--[^\n]*/g, "")
-  .replaceAll(/\/\*[\s\S]*?\*\//g, "");
+  .replaceAll(/--[^\n]*/gu, "")
+  .replaceAll(/\/\*[\s\S]*?\*\//gu, "");
 
 const declaration =
-  /CREATE\s+(UNIQUE\s+)?INDEX\s+workout_sessions_one_open_per_user_idx\s+ON\s+public\.workout_sessions\s*\(\s*(user_id|workout_id)\s*\)\s+WHERE\s+finished_at\s+IS\s+NULL\s*;/i.exec(
+  /CREATE\s+(?<unique>UNIQUE\s+)?INDEX\s+workout_sessions_one_open_per_user_idx\s+ON\s+public\.workout_sessions\s*\(\s*(?<key>user_id|workout_id)\s*\)\s+WHERE\s+finished_at\s+IS\s+NULL\s*;/iu.exec(
     uncommented
   );
 
@@ -67,7 +68,7 @@ if (!declaration) {
 
 const tail = uncommented.slice(declaration.index + declaration[0].length);
 
-if (!/^\s*END\s*\$\$\s*;\s*$/i.test(tail)) {
+if (!/^\s*END\s*\$\$\s*;\s*$/iu.test(tail)) {
   throw new Error(
     "Unexpected SQL after the covered index declaration; recheck the migration before trusting this model."
   );
@@ -75,19 +76,21 @@ if (!/^\s*END\s*\$\$\s*;\s*$/i.test(tail)) {
 
 // A later migration that mentions this table requires review before this
 // historical declaration can be treated as the current database contract.
-for (const name of readdirSync(join(sourceRoot, migrationDir)).sort()) {
+for (const name of readdirSync(
+  path.join(sourceRoot, migrationDir)
+).toSorted()) {
   if (name > migrationName && name.endsWith(".sql")) {
     const migration = readFileSync(
-      join(sourceRoot, migrationDir, name),
+      path.join(sourceRoot, migrationDir, name),
       "utf-8"
     );
 
     const sql = migration
-      .replaceAll(/--[^\n]*/g, "")
-      .replaceAll(/\/\*[\s\S]*?\*\//g, "");
+      .replaceAll(/--[^\n]*/gu, "")
+      .replaceAll(/\/\*[\s\S]*?\*\//gu, "");
 
     if (
-      /\bworkout_sessions\b|workout_sessions_one_open_per_user_idx/i.test(sql)
+      /\bworkout_sessions\b|workout_sessions_one_open_per_user_idx/iu.test(sql)
     ) {
       if (
         reviewedMigrations.get(name) ===
@@ -103,33 +106,37 @@ for (const name of readdirSync(join(sourceRoot, migrationDir)).sort()) {
   }
 }
 
-const keyMode = declaration[1]
-  ? declaration[2].toLowerCase() === "user_id"
-    ? "user"
-    : "workout"
-  : "none";
+let keyMode = "none";
 
-const out = mkdtempSync(join(tmpdir(), "fitme-session-proof-"));
+if (declaration.groups.unique) {
+  keyMode =
+    declaration.groups.key.toLowerCase() === "user_id" ? "user" : "workout";
+}
+
+const out = mkdtempSync(path.join(tmpdir(), "fitme-session-proof-"));
 
 writeFileSync(
-  join(out, "WorkoutSessions.tla"),
-  readFileSync(join(skill, "WorkoutSessions.tla"))
+  path.join(out, "WorkoutSessions.tla"),
+  readFileSync(path.join(skill, "WorkoutSessions.tla"))
 );
 
-writeFileSync(join(out, "view.mjs"), readFileSync(join(skill, "view.mjs")));
+writeFileSync(
+  path.join(out, "view.mjs"),
+  readFileSync(path.join(skill, "view.mjs"))
+);
 
 for (const [name, twoUsers] of [
   ["same-user", false],
   ["two-users", true],
 ]) {
   writeFileSync(
-    join(out, `${name}.cfg`),
+    path.join(out, `${name}.cfg`),
     `INIT Init\nNEXT Next\nCONSTANTS\n  KeyMode = "${keyMode}"\n  TwoUsers = ${String(twoUsers).toUpperCase()}\nINVARIANT OneOpenPerUser\n`
   );
 }
 
 writeFileSync(
-  join(out, "source.json"),
+  path.join(out, "source.json"),
   JSON.stringify({ index: declaration[0], keyMode, sourceRoot }, null, 2)
 );
 
@@ -140,7 +147,7 @@ if (values["prepare-only"]) {
 }
 
 const jar =
-  process.env.TLA2TOOLS ?? join(tmpdir(), "fitme-tla2tools-1.7.4.jar");
+  process.env.TLA2TOOLS ?? path.join(tmpdir(), "fitme-tla2tools-1.7.4.jar");
 
 if (!existsSync(jar)) {
   execFileSync(
@@ -189,7 +196,7 @@ for (const name of ["same-user", "two-users"]) {
   );
 
   const log = (result.stdout ?? "") + (result.stderr ?? "");
-  writeFileSync(join(out, `${name}.out`), log);
+  writeFileSync(path.join(out, `${name}.out`), log);
 
   if (result.error) {
     throw result.error;
@@ -211,7 +218,7 @@ for (const name of ["same-user", "two-users"]) {
   }
 
   console.log(
-    `${name}: ${violation ? "FAIL OneOpenPerUser" : "PASS"}; ${/\d+ states generated, [^\n]*/.exec(log)?.[0] ?? "see log"}`
+    `${name}: ${violation ? "FAIL OneOpenPerUser" : "PASS"}; ${/\d+ states generated, [^\n]*/u.exec(log)?.[0] ?? "see log"}`
   );
   failed ||= violation;
 }

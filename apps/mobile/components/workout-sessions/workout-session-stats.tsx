@@ -29,7 +29,7 @@ const SEGMENT_CLASS = {
 /** Past this text scale the three stats don't fit side by side. */
 const STACKED_FONT_SCALE = 1.4;
 
-function Stat({
+const Stat = ({
   label,
   stacked,
   value,
@@ -37,30 +37,24 @@ function Stat({
   label: string;
   stacked: boolean;
   value: string;
-}) {
-  return (
-    <View accessible className={cn("gap-1", !stacked && "flex-1")}>
-      <Text className="text-caption-1 text-muted-foreground">{label}</Text>
-      <Text
-        adjustsFontSizeToFit
-        className="text-mono-body-semibold"
-        numberOfLines={1}
-      >
-        {value}
-      </Text>
-    </View>
-  );
-}
+}) => (
+  <View accessible className={cn("gap-1", !stacked && "flex-1")}>
+    <Text variant="muted">{label}</Text>
+    <Text adjustsFontSizeToFit numberOfLines={1} variant="small">
+      {value}
+    </Text>
+  </View>
+);
 
 /**
  * Labelled values side by side, stacked once the text is too large: the
  * Workout Session's stats, and the Workout screen's planned ones.
  */
-export function StatRow({
+export const StatRow = ({
   stats,
 }: {
   stats: { label: string; value: string }[];
-}) {
+}) => {
   const { fontScale } = useWindowDimensions();
   const stacked = fontScale > STACKED_FONT_SCALE;
 
@@ -71,15 +65,13 @@ export function StatRow({
       ))}
     </View>
   );
-}
+};
 
 /**
  * Duration (ticking while the session runs), volume and logged sets, then one
  * progress segment per exercise.
  */
-export default function WorkoutSessionStats({
-  workoutSession,
-}: WorkoutSessionStatsProps) {
+const WorkoutSessionStats = ({ workoutSession }: WorkoutSessionStatsProps) => {
   const { t } = useTranslation();
   const i18n = useI18n();
   const isFinished = !!workoutSession.finished_at;
@@ -100,8 +92,8 @@ export default function WorkoutSessionStats({
 
   const volume = sessionVolume(workoutSession.exercises);
 
-  const progress = [...workoutSession.exercises]
-    .sort((a, b) => a.order - b.order)
+  const progress = workoutSession.exercises
+    .toSorted((a, b) => a.order - b.order)
     .map((exercise) => ({
       id: exercise.id,
       state: exerciseProgress(exercise.sets).state,
@@ -141,7 +133,7 @@ export default function WorkoutSessionStats({
               />
             ))}
           </View>
-          <Text className="text-caption-1 text-muted-foreground">
+          <Text variant="muted">
             {t("workoutSession.stats.exercisesDone", {
               count: progress.length,
               done: doneCount,
@@ -151,4 +143,6 @@ export default function WorkoutSessionStats({
       )}
     </View>
   );
-}
+};
+
+export default WorkoutSessionStats;

@@ -1,5 +1,6 @@
 import { useRouter } from "expo-router";
 import { useTranslation } from "react-i18next";
+import { View } from "react-native";
 
 import { Card } from "~/components/ui/card";
 import { DropdownMenu } from "~/components/ui/dropdown-menu";
@@ -32,7 +33,7 @@ interface WorkoutSessionExerciseCardProps {
  * An exercise of a workout session: its header (opening the exercise's
  * screen) above its sets, logged right here.
  */
-export default function WorkoutSessionExerciseCard({
+const WorkoutSessionExerciseCard = ({
   exercise: resolved,
   workoutSessionExercise,
   onDelete,
@@ -42,7 +43,7 @@ export default function WorkoutSessionExerciseCard({
   weightUnit,
   workoutId,
   sessionId,
-}: WorkoutSessionExerciseCardProps) {
+}: WorkoutSessionExerciseCardProps) => {
   const { t } = useTranslation();
   const router = useRouter();
 
@@ -81,32 +82,36 @@ export default function WorkoutSessionExerciseCard({
   ];
 
   return (
-    <Card className="gap-sm">
-      <ExerciseCardHeader
-        accessibilityHint={t("workoutSession.exercise.openHint")}
-        exercise={exercise}
-        onPress={canOpen ? handlePress : undefined}
-        trailing={
-          menuItems.length > 0 ? (
-            <DropdownMenu
-              accessibilityLabel={t("workoutSession.exercise.moreOptions", {
-                name: exercise.name,
-              })}
-              items={menuItems}
-              systemImage="ellipsis"
-            />
-          ) : (
-            canOpen && <OpenChevron />
-          )
-        }
-      />
-      <WorkoutSessionExerciseSetsTableView
-        exerciseId={workoutSessionExercise.id}
-        readOnly={readOnly}
-        sessionId={sessionId}
-        weightUnit={weightUnit}
-        workoutSessionExerciseSets={workoutSessionExercise.sets}
-      />
+    <Card>
+      <View className="gap-sm">
+        <ExerciseCardHeader
+          accessibilityHint={t("workoutSession.exercise.openHint")}
+          exercise={exercise}
+          onPress={canOpen ? handlePress : undefined}
+          trailing={
+            menuItems.length > 0 ? (
+              <DropdownMenu
+                accessibilityLabel={t("workoutSession.exercise.moreOptions", {
+                  name: exercise.name,
+                })}
+                items={menuItems}
+                systemImage="ellipsis"
+              />
+            ) : (
+              canOpen && <OpenChevron />
+            )
+          }
+        />
+        <WorkoutSessionExerciseSetsTableView
+          exerciseId={workoutSessionExercise.id}
+          readOnly={readOnly}
+          sessionId={sessionId}
+          weightUnit={weightUnit}
+          workoutSessionExerciseSets={workoutSessionExercise.sets}
+        />
+      </View>
     </Card>
   );
-}
+};
+
+export default WorkoutSessionExerciseCard;

@@ -1,3 +1,5 @@
+import { setTimeout } from "node:timers/promises";
+
 import { withService } from "@fitme/db";
 import type { Transaction } from "@fitme/db";
 import { sql } from "drizzle-orm";
@@ -11,7 +13,7 @@ const BACKOFF_MS = 25;
 const LOCK_NOT_AVAILABLE = "55P03";
 
 /** Whether `error` (or an error in its cause chain) is a refused NOWAIT lock. */
-const isLockNotAvailable = (error: unknown): boolean => {
+const isLockNotAvailable = (error: Error): boolean => {
   let current: unknown = error;
 
   while (current instanceof Error) {
@@ -39,9 +41,8 @@ const isLockNotAvailable = (error: unknown): boolean => {
 export const withUserTablesLocked = async <T>(
   fn: (tx: Transaction) => Promise<T>
 ): Promise<T> => {
-  for (let attempt = 1; ; attempt += 1) {
+  const runAttempt = async (attempt: number): Promise<T> => {
     try {
-      // biome-ignore lint/performance/noAwaitInLoops: retries one at a time
       return await withService(async (tx) => {
         await tx.execute(
           sql`lock table ${sql.join(USER_DATA_TABLES, sql`, `)} in share row exclusive mode nowait`
@@ -50,15 +51,21 @@ export const withUserTablesLocked = async <T>(
         return await fn(tx);
       });
     } catch (error) {
-      if (!isLockNotAvailable(error) || attempt === MAX_ATTEMPTS) {
+      if (
+        !(error instanceof Error) ||
+        !isLockNotAvailable(error) ||
+        attempt === MAX_ATTEMPTS
+      ) {
         throw error;
       }
     }
 
-    await new Promise((resolve) =>
-      setTimeout(resolve, BACKOFF_MS * (1 + Math.random()))
-    );
-  }
+    await setTimeout(BACKOFF_MS * (1 + Math.random()));
+
+    return await runAttempt(attempt + 1);
+  };
+
+  return await runAttempt(1);
 };
 
 /**
@@ -67,9 +74,19 @@ export const withUserTablesLocked = async <T>(
  */
 export const deleteTestUsers = async (userIds: string[]): Promise<void> => {
   await withUserTablesLocked(async (tx) => {
-    for (const userId of userIds) {
-      // biome-ignore lint/performance/noAwaitInLoops: one statement at a time on tx
-      await deleteUserData(tx, userId);
-    }
+    const users = userIds.values();
+
+    const deleteNextUser = async (): Promise<void> => {
+      const user = users.next();
+
+      if (user.done === true) {
+        return;
+      }
+
+      await deleteUserData(tx, user.value);
+      await deleteNextUser();
+    };
+
+    await deleteNextUser();
   });
 };

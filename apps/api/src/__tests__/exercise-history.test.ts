@@ -110,14 +110,14 @@ describe("gET /v1/workout-session-exercises", () => {
     const response = await get(app, `exercise_slug=${SLUG}`);
 
     expect(response.status).toBe(200);
-    await expect(response.json()).resolves.toEqual({
+    await expect(response.json()).resolves.toStrictEqual({
       data: [answered],
       hasMore: false,
       total: 1,
       weight_unit: "kg",
     });
-    expect(calls).toEqual([{ exerciseSlug: SLUG, limit: 20, offset: 0 }]);
-    expect(servicesFor).toEqual(["user_alice"]);
+    expect(calls).toStrictEqual([{ exerciseSlug: SLUG, limit: 20, offset: 0 }]);
+    expect(servicesFor).toStrictEqual(["user_alice"]);
   });
 
   it("passes limit and offset through, and says when more follow", async () => {
@@ -130,7 +130,7 @@ describe("gET /v1/workout-session-exercises", () => {
       hasMore: true,
       total: 5,
     });
-    expect(calls).toEqual([{ exerciseSlug: SLUG, limit: 1, offset: 1 }]);
+    expect(calls).toStrictEqual([{ exerciseSlug: SLUG, limit: 1, offset: 1 }]);
   });
 
   it("answers an empty page past the end, with the total", async () => {
@@ -140,7 +140,7 @@ describe("gET /v1/workout-session-exercises", () => {
     const response = await get(app, `exercise_slug=${SLUG}&offset=10`);
 
     expect(response.status).toBe(200);
-    await expect(response.json()).resolves.toEqual({
+    await expect(response.json()).resolves.toStrictEqual({
       data: [],
       hasMore: false,
       total: 3,
@@ -155,13 +155,13 @@ describe("gET /v1/workout-session-exercises", () => {
     const response = await get(app, "exercise_slug=never-done-this");
 
     expect(response.status).toBe(200);
-    await expect(response.json()).resolves.toEqual({
+    await expect(response.json()).resolves.toStrictEqual({
       data: [],
       hasMore: false,
       total: 0,
       weight_unit: "kg",
     });
-    expect(reported).toEqual([]);
+    expect(reported).toStrictEqual([]);
   });
 
   it("answers the weights in the User's weight unit", async () => {
@@ -176,14 +176,14 @@ describe("gET /v1/workout-session-exercises", () => {
   });
 
   it("never shows fields beyond the contract", async () => {
+    const entryWithExtraFields = {
+      ...entry,
+      sets: [{ ...entry.sets[0], rest_recommended: 90 }],
+      user_id: "user_alice",
+    };
+
     const { services } = listing({
-      entries: [
-        {
-          ...entry,
-          sets: [{ ...entry.sets[0], rest_recommended: 90 }],
-          user_id: "user_alice",
-        } as unknown as ExerciseHistoryEntry,
-      ],
+      entries: [entryWithExtraFields],
       total: 1,
     });
 
@@ -191,7 +191,7 @@ describe("gET /v1/workout-session-exercises", () => {
 
     const response = await get(app, `exercise_slug=${SLUG}`);
 
-    await expect(response.json()).resolves.toEqual({
+    await expect(response.json()).resolves.toStrictEqual({
       data: [{ ...answered, sets: [answered.sets[0]] }],
       hasMore: false,
       total: 1,
@@ -217,7 +217,7 @@ describe("gET /v1/workout-session-exercises", () => {
     const body = await response.json();
     expect(body.error.code).toBe("invalid_request");
     expect(body.error.message).toContain(`${field}:`);
-    expect(reported).toEqual([]);
+    expect(reported).toStrictEqual([]);
   });
 
   it("answers 401 without a token", async () => {
@@ -243,8 +243,9 @@ describe("gET /v1/workout-session-exercises", () => {
 
     expect(first.status).toBe(200);
     expect(second.status).toBe(429);
-    expect((await second.json()).error.code).toBe("rate_limited");
+    const body = await second.json();
+    expect(body.error.code).toBe("rate_limited");
     expect(Number(second.headers.get("Retry-After"))).toBeGreaterThan(0);
-    expect(reported).toEqual([]);
+    expect(reported).toStrictEqual([]);
   });
 });

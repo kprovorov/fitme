@@ -42,10 +42,10 @@ interface Month {
  * Entries grouped by the month they started in on the device's clock,
  * newest first (the query sorts them by start).
  */
-function groupByMonth(
+const groupByMonth = (
   { sessions, weightUnit }: WorkoutSessionHistory,
   translator: Translator
-): Month[] {
+): Month[] => {
   const months: Month[] = [];
 
   for (const entry of sessions) {
@@ -66,19 +66,15 @@ function groupByMonth(
   }
 
   return months;
-}
+};
 
 const keyExtractor = (month: Month) => month.key;
-
-const renderMonth = ({ item }: { item: Month }) => (
-  <MonthSection month={item} />
-);
 
 /**
  * A month of History: its heading, counting every finished entry (empty
  * completions too, unlike the overview's workouts), over a card of rows.
  */
-function MonthSection({ month }: { month: Month }) {
+const MonthSection = ({ month }: { month: Month }) => {
   const i18n = useI18n();
   const stacked = useStackedLayout();
 
@@ -90,24 +86,30 @@ function MonthSection({ month }: { month: Month }) {
         }
       >
         <H4 className={stacked ? undefined : "flex-1"}>{month.title}</H4>
-        <Text className="text-footnote text-muted-foreground">
+        <Text variant="muted">
           {formatCount(i18n, "entries", month.entries.length)}
         </Text>
       </View>
-      <Card className="gap-sm">
-        {month.entries.map((entry, index) => (
-          <Fragment key={entry.id}>
-            {index > 0 && <Separator />}
-            <WorkoutSessionHistoryRow
-              entry={entry}
-              weightUnit={month.weightUnit}
-            />
-          </Fragment>
-        ))}
+      <Card>
+        <View className="gap-sm">
+          {month.entries.map((entry, index) => (
+            <Fragment key={entry.id}>
+              {index > 0 && <Separator />}
+              <WorkoutSessionHistoryRow
+                entry={entry}
+                weightUnit={month.weightUnit}
+              />
+            </Fragment>
+          ))}
+        </View>
       </Card>
     </View>
   );
-}
+};
+
+const renderMonth = ({ item }: { item: Month }) => (
+  <MonthSection month={item} />
+);
 
 /**
  * Whether any of the reads failed with nothing read, and, when one of those
@@ -128,7 +130,7 @@ const failedRead = (
   return { waitSeconds: waits.find((wait) => wait !== null) ?? null };
 };
 
-export default function HistoryScreen() {
+const HistoryScreen = () => {
   const { t } = useTranslation();
   const [refreshing, setRefreshing] = useState(false);
   // LegendList takes no class names: resolve the spacing tokens to a style.
@@ -198,9 +200,12 @@ export default function HistoryScreen() {
     try {
       await Purchases.invalidateCustomerInfoCache();
       await refetchAll();
-    } finally {
+    } catch (refreshError) {
       setRefreshing(false);
+      throw refreshError;
     }
+
+    setRefreshing(false);
   }, [refetchAll]);
 
   const renderEmpty = () => {
@@ -224,7 +229,7 @@ export default function HistoryScreen() {
 
       return (
         <View className="gap-sm px-md pt-lg items-center">
-          <Text className="text-muted-foreground text-center">
+          <Text className="text-center" variant="muted">
             {waitSeconds === null
               ? t("history.loadError")
               : t("common.rateLimited", { seconds: waitSeconds })}
@@ -286,4 +291,6 @@ export default function HistoryScreen() {
       />
     </>
   );
-}
+};
+
+export default HistoryScreen;

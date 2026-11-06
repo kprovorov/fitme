@@ -38,7 +38,7 @@ let connection: Connection | undefined;
 const readConfig = () => {
   const connectionString = process.env[DATABASE_URL_ENV];
 
-  if (!connectionString) {
+  if (connectionString === undefined || connectionString === "") {
     throw new Error(`${DATABASE_URL_ENV} is not set`);
   }
 
@@ -46,7 +46,7 @@ const readConfig = () => {
     "application_name"
   );
 
-  if (!applicationName) {
+  if (applicationName === null || applicationName === "") {
     throw new Error(
       `${DATABASE_URL_ENV} must set application_name so database activity stays attributable`
     );
@@ -72,7 +72,9 @@ export const getConnection = (): Connection => {
 
   // An idle client that errors (the pooler or Postgres dropped it) is removed
   // from the pool; without a listener the error would crash the process.
-  pool.on("error", () => {});
+  pool.on("error", () => {
+    // The pool already removes the failed idle client; no further action is needed.
+  });
   // A no-op off Vercel.
   attachDatabasePool(pool);
   connection = { applicationName, db: drizzle({ client: pool, schema }), pool };

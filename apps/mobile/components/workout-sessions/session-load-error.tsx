@@ -17,17 +17,17 @@ interface SessionLoadErrorProps {
  * A Workout Session screen's read failing with nothing to show: the screen's
  * load error (or the wait, rate limited) and Try again.
  */
-export default function SessionLoadError({
+const SessionLoadError = ({
   error,
   message,
   onRetry,
-}: SessionLoadErrorProps) {
+}: SessionLoadErrorProps) => {
   const { t } = useTranslation();
   const waitSeconds = rateLimitedFor(error);
 
   return (
     <View className="gap-sm pt-lg items-center">
-      <Text className="text-muted-foreground text-center">
+      <Text className="text-center" variant="muted">
         {waitSeconds === null
           ? message
           : t("common.rateLimited", { seconds: waitSeconds })}
@@ -40,4 +40,6 @@ export default function SessionLoadError({
       />
     </View>
   );
-}
+};
+
+export default SessionLoadError;

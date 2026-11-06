@@ -2,8 +2,10 @@ import { useLocalSearchParams } from "expo-router";
 
 import WorkoutSessionScreen from "~/components/workout-sessions/workout-session-screen";
 
-export default function PlanWorkoutSessionRoute() {
-  const { sessionId } = useLocalSearchParams();
+const PlanWorkoutSessionRoute = () => {
+  const { sessionId } = useLocalSearchParams<{ sessionId: string }>();
 
-  return <WorkoutSessionScreen sessionId={sessionId as string} />;
-}
+  return <WorkoutSessionScreen sessionId={sessionId} />;
+};
+
+export default PlanWorkoutSessionRoute;

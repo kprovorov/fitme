@@ -39,10 +39,10 @@ interface WorkoutSessionHistoryRowProps {
  * how long it took, its logged sets and volume, opening its Workout Summary.
  * VoiceOver reads each record's Exercise and result after the rest.
  */
-export default function WorkoutSessionHistoryRow({
+const WorkoutSessionHistoryRow = ({
   entry,
   weightUnit,
-}: WorkoutSessionHistoryRowProps) {
+}: WorkoutSessionHistoryRowProps) => {
   const i18n = useI18n();
   const { t } = useTranslation();
   const stacked = useStackedLayout();
@@ -91,12 +91,8 @@ export default function WorkoutSessionHistoryRow({
 
   const dateTile = (
     <View className="border-continuous bg-secondary min-h-11 min-w-11 items-center justify-center rounded-xl px-1">
-      <Text className="text-caption-2-emphasized text-muted-foreground uppercase">
-        {formatDate(i18n, startedAt, "weekday")}
-      </Text>
-      <Text className="text-headline-emphasized">
-        {formatDate(i18n, startedAt, "dayOfMonth")}
-      </Text>
+      <Text variant="muted">{formatDate(i18n, startedAt, "weekday")}</Text>
+      <Text variant="large">{formatDate(i18n, startedAt, "dayOfMonth")}</Text>
     </View>
   );
 
@@ -131,19 +127,21 @@ export default function WorkoutSessionHistoryRow({
         )}
         <View className={stacked ? "gap-0.5" : "flex-1 gap-0.5"}>
           <View className="gap-xs flex-row flex-wrap items-center">
-            <Text className="text-body-emphasized shrink">{name}</Text>
+            <Text className="shrink" variant="large">
+              {name}
+            </Text>
             {records.length > 0 ? (
               <Badge icon="trophy.fill">
                 <Text>{t("history.personalRecord")}</Text>
               </Badge>
             ) : null}
           </View>
-          <Text className="text-footnote text-muted-foreground">
-            {details.join(" · ")}
-          </Text>
+          <Text variant="muted">{details.join(" · ")}</Text>
         </View>
         {stacked ? null : <Chevron />}
       </Pressable>
     </Link>
   );
-}
+};
+
+export default WorkoutSessionHistoryRow;

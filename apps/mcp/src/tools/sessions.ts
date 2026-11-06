@@ -24,7 +24,7 @@ const sessionNotFound = (sessionId: string) =>
 const workoutNotFound = (workoutId: string) =>
   `Workout ${workoutId} not found (its plan may have been deleted or belong to another user, or update_plan replaced it — get_plan returns the current workout ids).`;
 
-function registerSessionReadTools(server: McpServer, ctx: ToolContext) {
+const registerSessionReadTools = (server: McpServer, ctx: ToolContext) => {
   server.registerTool(
     "get_workout_session",
     {
@@ -91,7 +91,7 @@ function registerSessionReadTools(server: McpServer, ctx: ToolContext) {
       });
     })
   );
-}
+};
 
 const sessionInProgress = ({
   sessionId,
@@ -108,7 +108,7 @@ const sessionInProgress = ({
   return `${open}: a user has at most one open workout session. Finish it with finish_workout_session (or delete_workout_session) before starting another.`;
 };
 
-function registerSessionWriteTools(server: McpServer, ctx: ToolContext) {
+const registerSessionWriteTools = (server: McpServer, ctx: ToolContext) => {
   server.registerTool(
     "start_workout_session",
     {
@@ -246,9 +246,9 @@ function registerSessionWriteTools(server: McpServer, ctx: ToolContext) {
       return asJson({ deleted: true, sessionId });
     })
   );
-}
+};
 
-export function registerSessionTools(server: McpServer, ctx: ToolContext) {
+export const registerSessionTools = (server: McpServer, ctx: ToolContext) => {
   registerSessionReadTools(server, ctx);
   registerSessionWriteTools(server, ctx);
-}
+};

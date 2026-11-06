@@ -8,9 +8,11 @@ import { SCROLL_EDGE_EFFECTS } from "~/lib/constants";
 const GLASS = isLiquidGlassAvailable();
 const IS_ANDROID = process.env.EXPO_OS === "android";
 
-export default function StackLayout() {
+const StackLayout = () => {
   const { t } = useTranslation();
+  // SAFETY: The imported design tokens define --color-foreground as a hex color string.
   const appForeground = useCSSVariable("--color-foreground") as string;
+  // SAFETY: The imported design tokens define --color-background as a hex color string.
   const appBackground = useCSSVariable("--color-background") as string;
 
   return (
@@ -66,4 +68,6 @@ export default function StackLayout() {
       />
     </Stack>
   );
-}
+};
+
+export default StackLayout;

@@ -21,7 +21,13 @@ import { useProfileQuery } from "~/hooks/queries/profiles";
 import { i18n } from "~/lib/i18n";
 import { genderOf, measurementSystemOf } from "~/lib/profile";
 
-export default function EditProfileScreen() {
+const useDeviceMeasurementSystem = (): MeasurementSystem => {
+  const locales = useLocales();
+
+  return locales[0]?.measurementSystem ?? "metric";
+};
+
+const EditProfileScreen = () => {
   const queryClient = useQueryClient();
   const { t } = useTranslation(undefined, { i18n });
 
@@ -44,10 +50,7 @@ export default function EditProfileScreen() {
 
   // Stored values are in the profile's system; the device locale only matters
   // when there is no profile yet.
-  const locales = useLocales();
-
-  const deviceMeasurementSystem = (locales[0]?.measurementSystem ??
-    "metric") as MeasurementSystem;
+  const deviceMeasurementSystem = useDeviceMeasurementSystem();
 
   const measurementSystem: MeasurementSystem = profile
     ? measurementSystemOf(profile)
@@ -121,18 +124,20 @@ export default function EditProfileScreen() {
         </View>
       ) : null}
       {isLoadError ? (
-        <VStack className="flex-1 items-stretch justify-center gap-4 p-6">
-          <ErrorMessage className="text-center">
-            {loadWaitSeconds === null
-              ? t("editProfile.loadError")
-              : t("common.rateLimited", { seconds: loadWaitSeconds })}
-          </ErrorMessage>
-          <Button
-            label={t("common.tryAgain")}
-            onPress={handleRetry}
-            variant="secondary"
-          />
-        </VStack>
+        <View className="flex-1 p-6">
+          <VStack className="flex-1 items-stretch justify-center">
+            <ErrorMessage className="text-center">
+              {loadWaitSeconds === null
+                ? t("editProfile.loadError")
+                : t("common.rateLimited", { seconds: loadWaitSeconds })}
+            </ErrorMessage>
+            <Button
+              label={t("common.tryAgain")}
+              onPress={handleRetry}
+              variant="secondary"
+            />
+          </VStack>
+        </View>
       ) : null}
       {!!user && profile !== undefined && (
         <ProfileForm
@@ -158,4 +163,6 @@ export default function EditProfileScreen() {
       )}
     </>
   );
-}
+};
+
+export default EditProfileScreen;

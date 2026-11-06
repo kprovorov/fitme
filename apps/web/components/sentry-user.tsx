@@ -8,7 +8,7 @@ import { useEffect } from "react";
  * Keys browser events on the signed-in User's Clerk id, and nothing else;
  * cleared on sign-out.
  */
-export function SentryUser() {
+export const SentryUser = () => {
   const { isLoaded, userId } = useAuth();
 
   useEffect(() => {
@@ -20,4 +20,4 @@ export function SentryUser() {
   }, [isLoaded, userId]);
 
   return null;
-}
+};

@@ -10,22 +10,22 @@ const getClientConfig = async () => {
   return { body: await response.json(), response };
 };
 
-beforeEach(() => {
-  for (const name of [
-    "MIN_APP_VERSION",
-    "MIN_APP_VERSION_ANDROID",
-    "MIN_APP_VERSION_IOS",
-    "MIN_APP_VERSION_WEB",
-  ]) {
-    vi.stubEnv(name, undefined);
-  }
-});
-
-afterEach(() => {
-  vi.unstubAllEnvs();
-});
-
 describe("gET /v1/client-config", () => {
+  beforeEach(() => {
+    for (const name of [
+      "MIN_APP_VERSION",
+      "MIN_APP_VERSION_ANDROID",
+      "MIN_APP_VERSION_IOS",
+      "MIN_APP_VERSION_WEB",
+    ]) {
+      vi.stubEnv(name, undefined);
+    }
+  });
+
+  afterEach(() => {
+    vi.unstubAllEnvs();
+  });
+
   it("returns the configured minimum app version per platform", async () => {
     vi.stubEnv("MIN_APP_VERSION_IOS", "1.10.0");
     vi.stubEnv("MIN_APP_VERSION_ANDROID", "1.9.3");
@@ -34,7 +34,7 @@ describe("gET /v1/client-config", () => {
     const { body, response } = await getClientConfig();
 
     expect(response.status).toBe(200);
-    expect(body).toEqual({
+    expect(body).toStrictEqual({
       data: {
         minimumVersion: { android: "1.9.3", ios: "1.10.0", web: "1.8.0" },
       },
@@ -44,7 +44,7 @@ describe("gET /v1/client-config", () => {
   it("returns no minimum when no env is set", async () => {
     const { body } = await getClientConfig();
 
-    expect(body).toEqual({
+    expect(body).toStrictEqual({
       data: { minimumVersion: { android: null, ios: null, web: null } },
     });
   });
@@ -56,7 +56,7 @@ describe("gET /v1/client-config", () => {
 
     const { body } = await getClientConfig();
 
-    expect(body).toEqual({
+    expect(body).toStrictEqual({
       data: {
         minimumVersion: { android: "1.7.0", ios: "1.10.0", web: "1.7.0" },
       },
@@ -69,7 +69,7 @@ describe("gET /v1/client-config", () => {
 
     const { body } = await getClientConfig();
 
-    expect(body).toEqual({
+    expect(body).toStrictEqual({
       data: {
         minimumVersion: { android: "1.7.0", ios: "1.7.0", web: "1.7.0" },
       },
@@ -82,7 +82,7 @@ describe("gET /v1/client-config", () => {
 
     const { body } = await getClientConfig();
 
-    expect(body).toEqual({
+    expect(body).toStrictEqual({
       data: { minimumVersion: { android: null, ios: null, web: null } },
     });
   });

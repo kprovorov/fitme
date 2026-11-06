@@ -218,6 +218,7 @@ const indexLanguage = (served: ServedLanguage) => {
 };
 
 export const exerciseRoutes = (library: ServedLibrary) => {
+  // SAFETY: appLanguages defines every AppLanguage, and each entry gets an indexLanguage result.
   const indexes = Object.fromEntries(
     appLanguages.map((language) => [
       language,

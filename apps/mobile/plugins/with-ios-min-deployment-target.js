@@ -1,4 +1,4 @@
-const { withPodfile } = require("expo/config-plugins");
+import { withPodfile } from "expo/config-plugins";
 
 const MIN_IOS_VERSION = "15.1";
 
@@ -21,6 +21,7 @@ const buildHook = (minVersion) => `
 /**
  * Raises IPHONEOS_DEPLOYMENT_TARGET for every CocoaPods target to the given
  * minimum. Idempotent: runs only once per generated Podfile.
+ * @type {import("expo/config-plugins").ConfigPlugin<{ minVersion?: string } | undefined>}
  */
 const withIosMinDeploymentTarget = (
   config,
@@ -51,4 +52,4 @@ const withIosMinDeploymentTarget = (
     return podfileConfig;
   });
 
-module.exports = withIosMinDeploymentTarget;
+export default withIosMinDeploymentTarget;

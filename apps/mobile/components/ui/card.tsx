@@ -130,6 +130,7 @@ const CardTitle = ({
   ...props
 }: TextProps & { ref?: React.RefObject<TextRef | null> }) => (
   <Text
+    accessibilityRole="header"
     aria-level={3}
     className={cn(
       cardText[React.use(CardVariantContext)].titleClass,
@@ -137,7 +138,6 @@ const CardTitle = ({
       className
     )}
     ref={ref}
-    role="heading"
     {...props}
   />
 );

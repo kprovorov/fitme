@@ -17,7 +17,7 @@ import {
   useEffectEvent,
   useMemo,
   useRef,
-  useState,
+  useSyncExternalStore,
 } from "react";
 import { useTranslation } from "react-i18next";
 import RevenueCatUI from "react-native-purchases-ui";
@@ -65,7 +65,7 @@ const getArnoldToken = async () => (await getClerk().session?.getToken()) ?? "";
  * User, so reopening the screen resumes it, an answer still streaming
  * included.
  */
-function ArnoldRuntime({
+const ArnoldRuntime = ({
   canResume,
   children,
   userId,
@@ -74,8 +74,8 @@ function ArnoldRuntime({
   canResume: boolean;
   children: React.ReactNode;
   userId: string;
-}) {
-  const [saved] = useState(() => loadSavedArnoldConversation(userId));
+}) => {
+  const saved = useMemo(() => loadSavedArnoldConversation(userId), [userId]);
 
   const runtime = useEveAgentRuntime({
     // Resolved per request, reconnects included: Clerk tokens live ~60 s.
@@ -100,7 +100,7 @@ function ArnoldRuntime({
       {children}
     </AssistantRuntimeProvider>
   );
-}
+};
 
 /** The error state's text per kind of error, never the server's message. */
 const errorMessageKeys = {
@@ -109,9 +109,11 @@ const errorMessageKeys = {
   "pro-check-unavailable": "arnold.errors.proCheckUnavailable",
 } as const satisfies Record<ArnoldErrorKind, string>;
 
-type Composer = [string, React.Dispatch<React.SetStateAction<string>>];
+type Composer = ReturnType<typeof createStreamingStore>;
 
-function useArnoldChat(userId: string, [input, setInput]: Composer) {
+const useArnoldChat = (userId: string, composer: Composer) => {
+  const input = useSyncExternalStore(composer.subscribe, composer.get);
+  const setInput = composer.set;
   const aui = useAui();
   const { t } = useTranslation();
   const threadMessages = useAuiState((s) => s.thread.messages);
@@ -155,10 +157,12 @@ function useArnoldChat(userId: string, [input, setInput]: Composer) {
     resetSession();
   }, [isBusy, resetSession, userId]);
 
-  // An effect event, so the paywall opens once per error, not on every render
-  // (`useEveReset` returns a new function each time).
-  const handleError = useEffectEvent((error: unknown) => {
-    const action = arnoldErrorAction(error);
+  // Read the current reset callback without retriggering error handling:
+  // `useEveReset` returns a new function each time.
+  const resetFailedConversation = useEffectEvent(() => newConversation());
+
+  useEffect(() => {
+    const action = arnoldErrorAction(eveError);
 
     if (action === "none") {
       return;
@@ -167,18 +171,14 @@ function useArnoldChat(userId: string, [input, setInput]: Composer) {
     // The refused text goes back into the composer, to send again.
     const refused = lastSentRef.current;
     lastSentRef.current = "";
-    setInput((current) => current || refused);
+    composer.set(composer.get() || refused);
 
     if (action === "paywall") {
       RevenueCatUI.presentPaywall();
     } else if (action === "new-conversation") {
-      newConversation();
+      resetFailedConversation();
     }
-  });
-
-  useEffect(() => {
-    handleError(eveError);
-  }, [eveError]);
+  }, [composer, eveError]);
 
   // Sync streaming text to the store
   useEffect(() => {
@@ -242,9 +242,9 @@ function useArnoldChat(userId: string, [input, setInput]: Composer) {
     setInput,
     streamingStore,
   };
-}
+};
 
-function ArnoldChat({
+const ArnoldChat = ({
   composer,
   isPro,
   userId,
@@ -252,7 +252,7 @@ function ArnoldChat({
   composer: Composer;
   isPro: boolean | undefined;
   userId: string;
-}) {
+}) => {
   const chat = useArnoldChat(userId, composer);
   // The Attachments picked for the next message live outside this screen:
   // the "+" sheet, a screen away, picks them. They are this User's alone.
@@ -383,13 +383,13 @@ function ArnoldChat({
       </ChatProvider>
     </>
   );
-}
+};
 
-export default function ArnoldScreen() {
+const ArnoldScreen = () => {
   const { user } = useUser();
   const { data: isPro, isPending: isProPending } = useIsProQuery();
   // Above the runtime, so a remount after a purchase keeps the draft.
-  const composer = useState("");
+  const composer = useMemo(() => createStreamingStore(), []);
 
   // Wait for the entitlement: a free User's saved Conversation must not
   // resume, since every Arnold request checks Pro and a refusal is cached.
@@ -410,4 +410,6 @@ export default function ArnoldScreen() {
       <ArnoldChat composer={composer} isPro={isPro} userId={user.id} />
     </ArnoldRuntime>
   );
-}
+};
+
+export default ArnoldScreen;

@@ -9,8 +9,9 @@ import {
 } from "@fitme/db";
 import { deleteTestUsers } from "@fitme/services/delete-test-users";
 import { createPlan } from "@fitme/services/plans";
-import type { NewPlan } from "@fitme/services/plans";
+import type { NewPlan, PlanChanges } from "@fitme/services/plans";
 import { afterAll, describe, expect, it } from "vitest";
+import { z } from "zod";
 
 import { createApp } from "../src/create-app.js";
 import { createServicesFromEnv } from "../src/services.js";
@@ -25,7 +26,7 @@ const app = createApp({
   clerkJwtKey: clerk.jwtKey,
   createServices: createServicesFromEnv,
   identifyUser: () => {},
-  reportError: (error) => Promise.reject(error),
+  reportError: Promise.reject.bind(Promise),
 });
 
 /** A made-up id in Clerk's `user_…` format, unique per run. */
@@ -35,10 +36,6 @@ const testUserId = (label: string) =>
 const owner = testUserId("goalOwner");
 const intruder = testUserId("goalIntruder");
 const streakOwner = testUserId("streakOwner");
-
-afterAll(async () => {
-  await deleteTestUsers([owner, intruder, streakOwner]);
-});
 
 const newPlan = (frequency: number): NewPlan => ({
   description: "Weekly goal fixture",
@@ -72,7 +69,7 @@ const send = async (
   userId: string,
   method: string,
   path: string,
-  body?: unknown
+  body?: PlanChanges
 ) => {
   const response = await app.request(path, {
     method,
@@ -97,15 +94,21 @@ const send = async (
 const targets = async (userId: string) => {
   const { body, status } = await send(userId, "GET", "/v1/weekly-goals");
 
+  const { data } = z
+    .object({ data: z.array(z.object({ target: z.number().nullable() })) })
+    .parse(body);
+
   return {
     status,
-    targets: (body as { data: { target: number | null }[] }).data.map(
-      (change) => change.target
-    ),
+    targets: data.map((change) => change.target),
   };
 };
 
 describe("gET /v1/weekly-goals", () => {
+  afterAll(async () => {
+    await deleteTestUsers([owner, intruder, streakOwner]);
+  });
+
   it("reads a current-week streak through the real facade and keeps it User-owned", async () => {
     const created = await asUser(streakOwner, (tx) =>
       createPlan(tx, streakOwner, newPlan(1))
@@ -140,32 +143,36 @@ describe("gET /v1/weekly-goals", () => {
       });
     });
 
-    for (const zone of [
-      "Europe/Kyiv",
-      "GMT+1",
-      "GMT+05:30",
-      "GMT-03:30",
-      "UTC+12:45",
-    ]) {
-      // biome-ignore lint/performance/noAwaitInLoops: verify sequential fresh reads
-      const { body, status } = await send(
-        streakOwner,
-        "GET",
-        `/v1/weekly-goals?time_zone=${encodeURIComponent(zone)}`
-      );
+    const responses = await Promise.all(
+      ["Europe/Kyiv", "GMT+1", "GMT+05:30", "GMT-03:30", "UTC+12:45"].map(
+        (zone) =>
+          send(
+            streakOwner,
+            "GET",
+            `/v1/weekly-goals?time_zone=${encodeURIComponent(zone)}`
+          )
+      )
+    );
 
+    for (const { body, status } of responses) {
       expect(status).toBe(200);
       expect(body).toMatchObject({ data: [{ target: 1 }], streak: 1 });
     }
 
-    expect(
-      (await send(intruder, "GET", "/v1/weekly-goals?time_zone=Europe%2FKyiv"))
-        .body
-    ).toEqual({ data: [], streak: 0 });
+    const intruderResponse = await send(
+      intruder,
+      "GET",
+      "/v1/weekly-goals?time_zone=Europe%2FKyiv"
+    );
+
+    expect(intruderResponse.body).toStrictEqual({ data: [], streak: 0 });
   });
 
   it("follows the Plan writes the API serves, for their own User only", async () => {
-    await expect(targets(owner)).resolves.toEqual({ status: 200, targets: [] });
+    await expect(targets(owner)).resolves.toStrictEqual({
+      status: 200,
+      targets: [],
+    });
 
     const first = await asUser(owner, (tx) =>
       createPlan(tx, owner, newPlan(3))
@@ -175,30 +182,38 @@ describe("gET /v1/weekly-goals", () => {
       createPlan(tx, owner, newPlan(5), { activate: false })
     );
 
-    await expect(targets(owner)).resolves.toEqual({
+    await expect(targets(owner)).resolves.toStrictEqual({
       status: 200,
       targets: [3],
     });
 
-    expect(
-      (await send(owner, "POST", `/v1/plans/${second.id}/activate`)).status
-    ).toBe(200);
-    expect(
-      (await send(owner, "PATCH", `/v1/plans/${second.id}`, { frequency: 2 }))
-        .status
-    ).toBe(200);
-    expect((await send(owner, "DELETE", `/v1/plans/${second.id}`)).status).toBe(
-      204
+    const activated = await send(
+      owner,
+      "POST",
+      `/v1/plans/${second.id}/activate`
     );
-    expect(
-      (await send(owner, "POST", `/v1/plans/${first.id}/activate`)).status
-    ).toBe(200);
 
-    await expect(targets(owner)).resolves.toEqual({
+    const updated = await send(owner, "PATCH", `/v1/plans/${second.id}`, {
+      frequency: 2,
+    });
+
+    const deleted = await send(owner, "DELETE", `/v1/plans/${second.id}`);
+
+    const reactivated = await send(
+      owner,
+      "POST",
+      `/v1/plans/${first.id}/activate`
+    );
+
+    expect(
+      [activated, updated, deleted, reactivated].map(({ status }) => status)
+    ).toStrictEqual([200, 200, 204, 200]);
+
+    await expect(targets(owner)).resolves.toStrictEqual({
       status: 200,
       targets: [3, 5, 2, null, 3],
     });
-    await expect(targets(intruder)).resolves.toEqual({
+    await expect(targets(intruder)).resolves.toStrictEqual({
       status: 200,
       targets: [],
     });

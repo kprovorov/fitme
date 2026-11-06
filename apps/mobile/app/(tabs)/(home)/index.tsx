@@ -18,6 +18,7 @@ import { Button } from "~/components/ui/button";
 import { Text } from "~/components/ui/text";
 import { H1 } from "~/components/ui/typography";
 import { VStack } from "~/components/ui/vstack";
+import HomeView from "~/components/views/home-view";
 import {
   useActivePlanQuery,
   usePlanSummariesQuery,
@@ -31,9 +32,35 @@ const IS_E2E = process.env.EXPO_PUBLIC_E2E_ENABLED === "true";
 /** How often the tab reads its Plans again while it's open: every minute. */
 const REFRESH_INTERVAL_MS = 60_000;
 
-import HomeView from "~/components/views/home-view";
+const HomeProfileButton = () => {
+  const { t } = useTranslation();
+  const router = useRouter();
+  const openProfile = useCallback(() => router.push("/profile"), [router]);
 
-export default function HomeScreen() {
+  return (
+    <Pressable accessibilityRole="button" hitSlop={8} onPress={openProfile}>
+      <Text className="text-primary" variant="large">
+        {t("profile.title")}
+      </Text>
+    </Pressable>
+  );
+};
+
+const HomeHeaderTitle = () => {
+  const { t } = useTranslation();
+
+  return (
+    <View
+      accessibilityLabel={t("home.logo")}
+      accessibilityRole="image"
+      accessible
+    >
+      <Logo />
+    </View>
+  );
+};
+
+const HomeScreen = () => {
   const { t } = useTranslation();
   const { user } = useUser();
   const { data: profile } = useProfileQuery();
@@ -74,9 +101,12 @@ export default function HomeScreen() {
       }
 
       await Promise.all([refetchPlanReads(), refetchOpenSession()]);
-    } finally {
+    } catch (error) {
       setRefreshing(false);
+      throw error;
     }
+
+    setRefreshing(false);
   }, [refetchPlanReads, refetchOpenSession]);
 
   const router = useRouter();
@@ -119,7 +149,7 @@ export default function HomeScreen() {
 
     if (activePlanFailed || plansFailed) {
       return (
-        <VStack className="py-md flex-1">
+        <VStack className="my-md flex-1">
           <H1 className="text-center">{t("home.loadError.title")}</H1>
           <Text className="text-center">
             {waitSeconds === null
@@ -147,7 +177,7 @@ export default function HomeScreen() {
     }
 
     return (
-      <VStack className="py-md flex-1">
+      <VStack className="my-md flex-1">
         <H1 className="text-center">{t("home.empty.title")}</H1>
         <Text className="text-center">
           {plans.length > 0
@@ -181,30 +211,10 @@ export default function HomeScreen() {
           // Android's native stack has no header items, so Profile is a text
           // button there; iOS shows the items below and ignores this.
           headerRight:
-            Platform.OS === "android"
-              ? () => (
-                  <Pressable
-                    accessibilityRole="button"
-                    hitSlop={8}
-                    onPress={openProfile}
-                  >
-                    <Text className="text-body-emphasized text-primary">
-                      {t("profile.title")}
-                    </Text>
-                  </Pressable>
-                )
-              : undefined,
+            Platform.OS === "android" ? HomeProfileButton : undefined,
           // The Fitme logo in the title's place; `title` still names the tab
           // for the back button of the screens pushed over it.
-          headerTitle: () => (
-            <View
-              accessibilityLabel={t("home.logo")}
-              accessibilityRole="image"
-              accessible
-            >
-              <Logo />
-            </View>
-          ),
+          headerTitle: HomeHeaderTitle,
           headerTransparent: true,
           title: t("tabs.workout"),
           unstable_headerRightItems: () => [
@@ -234,4 +244,6 @@ export default function HomeScreen() {
       </ScrollView>
     </>
   );
-}
+};
+
+export default HomeScreen;

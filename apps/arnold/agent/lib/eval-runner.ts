@@ -24,10 +24,12 @@ const EVAL_RUNNER = {
  * it gets eve's local-dev principal with permission to stub tools. Anywhere
  * else it admits nobody, and the channel stays Clerk-only.
  */
-export const evalRunner =
-  (env: () => Env = () => process.env): AuthFn =>
-  () =>
-    isLocalEvalRun(env()) ? { ...EVAL_RUNNER, allowToolStubs: true } : null;
+export const evalRunner = (env: () => Env = () => process.env): AuthFn =>
+  function authenticateEvalRunner() {
+    return isLocalEvalRun(env())
+      ? { ...EVAL_RUNNER, allowToolStubs: true }
+      : null;
+  };
 
 type SessionAuth = SessionContext["session"]["auth"];
 

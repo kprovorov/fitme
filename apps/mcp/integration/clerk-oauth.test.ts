@@ -10,7 +10,7 @@ import { callError, callOk, pickExercises, planInput } from "./setup.js";
 import type { PlanDetail, PlanSummary } from "./setup.js";
 
 const secretKey = process.env.CLERK_DEV_SECRET_KEY;
-const RESOURCE_METADATA = /resource_metadata="([^"]+)"/;
+const RESOURCE_METADATA = /resource_metadata="(?<url>[^"]+)"/u;
 
 /**
  * The whole chain against the Clerk development instance and the local stack:
@@ -27,7 +27,7 @@ describe.skipIf(!secretKey)("clerk OAuth flow end to end", () => {
   const clients: Client[] = [];
 
   /** Runs the OAuth flow for `user` and connects with the token it yields. */
-  async function signIn(user: ClerkTestUser) {
+  const signIn = async (user: ClerkTestUser) => {
     if (!app) {
       throw new Error("No OAuth application.");
     }
@@ -43,12 +43,15 @@ describe.skipIf(!secretKey)("clerk OAuth flow end to end", () => {
       authProvider: provider,
     });
 
-    const error = await new Client({ name: "integration", version: "0.0.0" })
-      .connect(transport)
-      .then(
-        () => {},
-        (error_: unknown) => error_
+    let error: unknown;
+
+    try {
+      await new Client({ name: "integration", version: "0.0.0" }).connect(
+        transport
       );
+    } catch (error_) {
+      error = error_;
+    }
 
     if (!(error instanceof UnauthorizedError)) {
       throw new TypeError("The first connect did not start OAuth.", {
@@ -69,7 +72,7 @@ describe.skipIf(!secretKey)("clerk OAuth flow end to end", () => {
     clients.push(client);
 
     return { client, provider };
-  }
+  };
 
   beforeAll(async () => {
     clerk = clerkDev(String(secretKey));
@@ -123,12 +126,13 @@ describe.skipIf(!secretKey)("clerk OAuth flow end to end", () => {
 
     const metadataUrl = response.headers
       .get("WWW-Authenticate")
-      ?.match(RESOURCE_METADATA)?.[1];
+      ?.match(RESOURCE_METADATA)?.groups?.url;
 
     expect(metadataUrl).toBe(
       new URL("/.well-known/oauth-protected-resource", server.url).href
     );
-    const metadata = await (await fetch(String(metadataUrl))).json();
+    const metadataResponse = await fetch(String(metadataUrl));
+    const metadata = await metadataResponse.json();
     expect(metadata).toMatchObject({
       authorization_servers: [await clerk.frontendApiUrl()],
       resource: server.url.href,
@@ -136,22 +140,31 @@ describe.skipIf(!secretKey)("clerk OAuth flow end to end", () => {
   });
 
   it("gets a Clerk access token through the PKCE flow and calls user tools", async () => {
-    const [owner, other] = users as [ClerkTestUser, ClerkTestUser];
+    const [owner, other] = users;
+
+    if (!(owner && other)) {
+      throw new Error("The OAuth test users were not created.");
+    }
+
     const { client, provider } = await signIn(owner);
 
-    expect(provider.authorizationUrl?.origin).toBe(
-      new URL(await clerk.frontendApiUrl()).origin
-    );
-    expect(
-      provider.authorizationUrl?.searchParams.get("code_challenge_method")
-    ).toBe("S256");
     const accessToken = provider.tokens()?.access_token;
-    expect(accessToken).toBeTruthy();
+    expect({
+      authorizationOrigin: provider.authorizationUrl?.origin,
+      challengeMethod: provider.authorizationUrl?.searchParams.get(
+        "code_challenge_method"
+      ),
+      hasAccessToken: Boolean(accessToken),
+    }).toStrictEqual({
+      authorizationOrigin: new URL(await clerk.frontendApiUrl()).origin,
+      challengeMethod: "S256",
+      hasAccessToken: true,
+    });
     expect(decodeJwt(String(accessToken)).sub).toBe(owner.id);
 
-    await expect(callOk<PlanSummary[]>(client, "list_plans")).resolves.toEqual(
-      []
-    );
+    await expect(
+      callOk<PlanSummary[]>(client, "list_plans")
+    ).resolves.toStrictEqual([]);
 
     const plan = await callOk<PlanDetail>(
       client,
@@ -159,14 +172,12 @@ describe.skipIf(!secretKey)("clerk OAuth flow end to end", () => {
       planInput(await pickExercises(client), "OAuth plan")
     );
 
-    expect(
-      (await callOk<PlanSummary[]>(client, "list_plans")).map(({ id }) => id)
-    ).toEqual([plan.id]);
+    const plans = await callOk<PlanSummary[]>(client, "list_plans");
+    expect(plans.map(({ id }) => id)).toStrictEqual([plan.id]);
 
     const { client: otherClient } = await signIn(other);
-    await expect(
-      callOk<PlanSummary[]>(otherClient, "list_plans")
-    ).resolves.toEqual([]);
+    const otherPlans = await callOk<PlanSummary[]>(otherClient, "list_plans");
     await callError(otherClient, "get_plan", { planId: plan.id });
+    expect(otherPlans).toStrictEqual([]);
   });
 });

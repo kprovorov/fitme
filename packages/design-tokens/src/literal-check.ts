@@ -1,5 +1,5 @@
 import { readdirSync, readFileSync } from "node:fs";
-import { join, relative, sep } from "node:path";
+import nodePath from "node:path";
 import { fileURLToPath } from "node:url";
 
 import ts from "typescript";
@@ -73,18 +73,18 @@ const SKIPPED_DIRECTORIES = new Set([
   "node_modules",
 ]);
 
-const TEST_FILE = /\.(?:test|spec)\.tsx$/;
+const TEST_FILE = /\.(?:test|spec)\.tsx$/u;
 
 const HEX =
-  /(?<![\w&#/?=.%-])#(?:[0-9a-f]{8}|[0-9a-f]{6}|[0-9a-f]{3,4})(?![\w-])/gi;
+  /(?<![\w&#/?=.%-])#(?:[0-9a-f]{8}|[0-9a-f]{6}|[0-9a-f]{3,4})(?![\w-])/giu;
 
-const COLOR_FUNCTION = /(?<![\w-])(?:rgba?|hsla?)\([^)]*\)?/gi;
+const COLOR_FUNCTION = /(?<![\w-])(?:rgba?|hsla?)\([^)]*\)?/giu;
 
 const ARBITRARY_CLASS =
-  /(?<![\w-])-?(text|leading|rounded(?:-(?:[trblse]|tl|tr|br|bl|ss|se|es|ee))?|[pm][xytrblse]?|gap(?:-[xy])?|space-[xy])-\[([^\]\s]*)\]/g;
+  /(?<![\w-])-?(?<utility>text|leading|rounded(?:-(?:[trblse]|tl|tr|br|bl|ss|se|es|ee))?|[pm][xytrblse]?|gap(?:-[xy])?|space-[xy])-\[(?<value>[^\]\s]*)\]/gu;
 
 // A whole `var(--name)` or `--name`, nothing else: a fallback is a value
-const TOKEN_REFERENCE = /^(?:var\(--[\w-]+\)|--[\w-]+)$/;
+const TOKEN_REFERENCE = /^(?:var\(--[\w-]+\)|--[\w-]+)$/u;
 
 // Attributes whose value is an anchor or an id, never a color
 const ID_ATTRIBUTES = new Set(["href", "id", "nativeID", "testID"]);
@@ -93,7 +93,7 @@ const expandHex = (hex: string) => {
   const digits = hex.slice(1).toLowerCase();
 
   return digits.length <= 4
-    ? `#${[...digits].map((digit) => digit + digit).join("")}`
+    ? `#${digits.replaceAll(/./gsu, "$&$&")}`
     : `#${digits}`;
 };
 
@@ -185,11 +185,11 @@ const isStringLike = (node: ts.Node) =>
  * Finds the literals in one `.tsx` source. `path` is only used to name the
  * file in each finding.
  */
-export function checkSource(
+export const checkSource = (
   path: string,
   source: string,
   tokens: readonly Token[] = readTokens()
-): Finding[] {
+): Finding[] => {
   const file = ts.createSourceFile(
     path,
     source,
@@ -238,7 +238,8 @@ export function checkSource(
     }
 
     for (const match of text.matchAll(ARBITRARY_CLASS)) {
-      const [literal, utility = "", value = ""] = match;
+      const [literal] = match;
+      const { utility = "", value = "" } = match.groups ?? {};
 
       if (!TOKEN_REFERENCE.test(value)) {
         report(start + match.index, literal, classHint(utility, value, tokens));
@@ -256,15 +257,15 @@ export function checkSource(
 
   visit(file);
 
-  return findings.sort((a, b) => a.line - b.line || a.column - b.column);
-}
+  return findings.toSorted((a, b) => a.line - b.line || a.column - b.column);
+};
 
 /** Every checked `.tsx` file under `directory`, absolute, sorted. */
-export function collectFiles(directory: string): string[] {
+export const collectFiles = (directory: string): string[] => {
   const files: string[] = [];
 
   for (const entry of readdirSync(directory, { withFileTypes: true })) {
-    const path = join(directory, entry.name);
+    const path = nodePath.join(directory, entry.name);
 
     if (entry.isDirectory()) {
       if (!SKIPPED_DIRECTORIES.has(entry.name)) {
@@ -275,8 +276,8 @@ export function collectFiles(directory: string): string[] {
     }
   }
 
-  return files.sort();
-}
+  return files.toSorted();
+};
 
 /** The outcome of checking a set of files against the allowlist. */
 export interface CheckResult {
@@ -289,11 +290,11 @@ export interface CheckResult {
  * Checks `files` (repo-relative path → source). Findings in an allowlisted
  * file are dropped; an entry that drops nothing is stale.
  */
-export function checkFiles(
+export const checkFiles = (
   files: ReadonlyMap<string, string>,
   allowlist: readonly AllowlistEntry[] = ALLOWLIST,
   tokens: readonly Token[] = readTokens()
-): CheckResult {
+): CheckResult => {
   const allowed = new Set(allowlist.map((entry) => entry.path));
   const used = new Set<string>();
   const findings: Finding[] = [];
@@ -314,25 +315,31 @@ export function checkFiles(
     findings,
     staleEntries: allowlist.filter((entry) => !used.has(entry.path)),
   };
-}
+};
 
-const toPosix = (path: string) => path.split(sep).join("/");
+const toPosix = (path: string) => path.split(nodePath.sep).join("/");
 
 /** Reads every checked file of the repo at `root`. */
-export function readCheckedFiles(root: string): Map<string, string> {
+export const readCheckedFiles = (root: string): Map<string, string> => {
   const files = new Map<string, string>();
 
   for (const app of CHECKED_APPS) {
-    for (const path of collectFiles(join(root, app))) {
-      files.set(toPosix(relative(root, path)), readFileSync(path, "utf-8"));
+    for (const path of collectFiles(nodePath.join(root, app))) {
+      files.set(
+        toPosix(nodePath.relative(root, path)),
+        readFileSync(path, "utf-8")
+      );
     }
   }
 
   return files;
-}
+};
 
 /** Formats a result for the terminal: one line per literal. */
-export function formatResult({ findings, staleEntries }: CheckResult): string {
+export const formatResult = ({
+  findings,
+  staleEntries,
+}: CheckResult): string => {
   const lines = findings.map(
     ({ column, file, hint, line, literal }) =>
       `${file}:${line}:${column}  ${literal}  ${hint}`
@@ -345,7 +352,7 @@ export function formatResult({ findings, staleEntries }: CheckResult): string {
   }
 
   return lines.join("\n");
-}
+};
 
 if (import.meta.main) {
   const root = fileURLToPath(new URL("../../..", import.meta.url));

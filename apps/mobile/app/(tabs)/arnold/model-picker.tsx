@@ -16,7 +16,7 @@ import { useSelectedArnoldModel } from "~/hooks/arnold-model";
 // The app's instance, named so it's started wherever the sheet renders.
 import { i18n } from "~/lib/i18n";
 
-function ModelRow({
+const ModelRow = ({
   description,
   id,
   label,
@@ -28,7 +28,7 @@ function ModelRow({
   label: string;
   selected: boolean;
   onSelect: (id: string) => void;
-}) {
+}) => {
   const handlePress = useCallback(() => onSelect(id), [id, onSelect]);
 
   return (
@@ -52,9 +52,9 @@ function ModelRow({
       ) : null}
     </Pressable>
   );
-}
+};
 
-function NoModels({ isLoading }: { isLoading: boolean }) {
+const NoModels = ({ isLoading }: { isLoading: boolean }) => {
   const { t } = useTranslation(undefined, { i18n });
 
   if (isLoading) {
@@ -72,9 +72,9 @@ function NoModels({ isLoading }: { isLoading: boolean }) {
       {t("arnold.modelPicker.unavailable")}
     </Text>
   );
-}
+};
 
-export default function ModelPickerSheet() {
+const ModelPickerSheet = () => {
   const { t } = useTranslation(undefined, { i18n });
   const { isLoading, model, models, setSelectedId } = useSelectedArnoldModel();
   const insets = useSafeAreaInsets();
@@ -119,4 +119,6 @@ export default function ModelPickerSheet() {
       </View>
     </ScrollView>
   );
-}
+};
+
+export default ModelPickerSheet;

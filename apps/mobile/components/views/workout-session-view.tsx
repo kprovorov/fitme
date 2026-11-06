@@ -2,7 +2,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "expo-router";
 import { useCallback } from "react";
 import { useTranslation } from "react-i18next";
-import { Alert } from "react-native";
+import { Alert, View } from "react-native";
 
 import { useExercises } from "~/hooks/queries/library";
 import { useDeleteWorkoutSessionExerciseMutation } from "~/hooks/queries/workout-session-exercises";
@@ -13,7 +13,6 @@ import { segmentClient } from "~/lib/segment";
 import { sessionEditFailureMessage } from "~/lib/session-edit-failure";
 
 import { Button } from "../ui/button";
-import { VStack } from "../ui/vstack";
 import WorkoutSessionExerciseCard from "./workout-session-exercise-card";
 
 interface WorkoutSessionViewProps {
@@ -21,10 +20,16 @@ interface WorkoutSessionViewProps {
   workoutSession: WorkoutSession;
 }
 
-export default function WorkoutSessionView({
+interface ExercisePickerParams {
+  muscleGroup?: string;
+  replaceExerciseId: string;
+  workoutSessionId: string;
+}
+
+const WorkoutSessionView = ({
   workoutSession,
   sessionId,
-}: WorkoutSessionViewProps) {
+}: WorkoutSessionViewProps) => {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
 
@@ -81,20 +86,25 @@ export default function WorkoutSessionView({
       ? shownBySlug[exercise.exercise_slug]?.muscle_groups[0]
       : undefined;
 
+    const params: ExercisePickerParams = {
+      replaceExerciseId: exerciseId,
+      workoutSessionId: sessionId,
+    };
+
+    if (muscleGroup) {
+      params.muscleGroup = muscleGroup;
+    }
+
     router.push({
-      params: {
-        replaceExerciseId: exerciseId,
-        workoutSessionId: sessionId,
-        ...(muscleGroup ? { muscleGroup } : {}),
-      },
+      params,
       pathname: "/workout-sessions/[workoutSessionId]/exercise-picker",
     });
   };
 
   return (
-    <VStack className="gap-sm items-stretch justify-stretch">
-      {[...workoutSession.exercises]
-        .sort((a, b) => a.order - b.order)
+    <View className="gap-sm flex flex-col items-stretch justify-stretch">
+      {workoutSession.exercises
+        .toSorted((a, b) => a.order - b.order)
         .map((exercise) => (
           <WorkoutSessionExerciseCard
             exercise={shownBySlug[exercise.exercise_slug]}
@@ -125,6 +135,8 @@ export default function WorkoutSessionView({
           variant="secondary"
         />
       )}
-    </VStack>
+    </View>
   );
-}
+};
+
+export default WorkoutSessionView;

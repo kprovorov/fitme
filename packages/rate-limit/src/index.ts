@@ -1,3 +1,5 @@
+import { setTimeout as delay } from "node:timers/promises";
+
 import { Ratelimit } from "@upstash/ratelimit";
 import { Redis } from "@upstash/redis";
 import { waitUntil } from "@vercel/functions";
@@ -53,12 +55,14 @@ export const memoryRateLimiter = ({
 
       window.count += 1;
 
-      return window.count <= limit
-        ? { allowed: true }
-        : {
-            allowed: false,
-            retryAfterSeconds: secondsUntil(window.resetAt, time),
-          };
+      return await Promise.resolve<RateLimitResult>(
+        window.count <= limit
+          ? { allowed: true }
+          : {
+              allowed: false,
+              retryAfterSeconds: secondsUntil(window.resetAt, time),
+            }
+      );
     },
   };
 };
@@ -108,9 +112,13 @@ export const upstashRateLimiter = ({
       // The analytics write, after the response: a serverless instance that
       // freezes once it's answered would drop it otherwise.
       waitUntil(
-        pending.catch((error: unknown) => {
-          console.warn("Rate limit analytics write failed", error);
-        })
+        (async () => {
+          try {
+            await pending;
+          } catch (error) {
+            console.warn("Rate limit analytics write failed", error);
+          }
+        })()
       );
 
       return success
@@ -144,7 +152,7 @@ export const rateLimiterFromEnv = (
   const url = env.UPSTASH_REDIS_REST_URL;
   const token = env.UPSTASH_REDIS_REST_TOKEN;
 
-  if (url && token) {
+  if (url !== undefined && url !== "" && token !== undefined && token !== "") {
     return upstashRateLimiter({ ...options, token, url });
   }
 
@@ -158,18 +166,17 @@ export const rateLimiterFromEnv = (
 };
 
 const withTimeout = async <T>(promise: Promise<T>, ms: number) => {
-  let timer: ReturnType<typeof setTimeout> | undefined;
+  const controller = new AbortController();
 
-  const timeout = new Promise<never>((_, reject) => {
-    timer = setTimeout(() => {
-      reject(new Error(`Rate limiter timed out after ${ms} ms`));
-    }, ms);
-  });
+  const timeout = async (): Promise<never> => {
+    await delay(ms, undefined, { signal: controller.signal });
+    throw new Error(`Rate limiter timed out after ${ms} ms`);
+  };
 
   try {
-    return await Promise.race([promise, timeout]);
+    return await Promise.race([promise, timeout()]);
   } finally {
-    clearTimeout(timer);
+    controller.abort();
   }
 };
 
@@ -186,7 +193,7 @@ export const checkRateLimit = async ({
 }: {
   key: string;
   limiter: RateLimiter;
-  reportError: (error: unknown) => Promise<void>;
+  reportError: (error: Error) => Promise<void>;
   timeoutMs?: number;
 }): Promise<RateLimitResult> => {
   try {

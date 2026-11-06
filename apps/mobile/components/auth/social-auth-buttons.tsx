@@ -6,6 +6,7 @@ import {
 import { useCallback } from "react";
 import { useTranslation } from "react-i18next";
 import { useWindowDimensions, View } from "react-native";
+import { ScopedVariables, withUniwind } from "uniwind";
 
 import { Image } from "~/components/tw";
 import { Button } from "~/components/ui/button";
@@ -18,15 +19,11 @@ import type { useAuthOperation } from "./operation";
 
 type Operation = ReturnType<typeof useAuthOperation>;
 
-export function SocialAuthButtons(props: {
-  operation: Operation;
-  divider?: boolean;
-  providers: SocialProvider[];
-}) {
-  return props.providers.length ? <AvailableSocialButtons {...props} /> : null;
-}
+const googleLogo = require("~/assets/auth/google.svg");
 
-function AvailableSocialButtons({
+const StyledAppleAuthenticationButton = withUniwind(AppleAuthenticationButton);
+
+const AvailableSocialButtons = ({
   operation,
   providers,
   divider,
@@ -34,7 +31,7 @@ function AvailableSocialButtons({
   operation: Operation;
   providers: SocialProvider[];
   divider?: boolean;
-}) {
+}) => {
   const { t } = useTranslation();
   const start = useNativeSocialAuth();
   const { fontScale } = useWindowDimensions();
@@ -60,23 +57,23 @@ function AvailableSocialButtons({
   return (
     <View className="gap-xs">
       {apple ? (
-        <AppleAuthenticationButton
-          accessibilityLabel={t("auth.social.apple")}
-          accessibilityState={{
-            busy: operation.pending === "apple",
-            disabled: operation.pending !== null,
-          }}
-          buttonStyle={AppleAuthenticationButtonStyle.WHITE}
-          buttonType={AppleAuthenticationButtonType.CONTINUE}
-          cornerRadius={Math.max(25, 25 * fontScale)}
-          onPress={signInWithApple}
-          style={{
-            height: Math.max(50, 50 * fontScale),
-            opacity: operation.pending ? 0.5 : 1,
-            width: "100%",
-          }}
-          testID="auth-apple-button"
-        />
+        <ScopedVariables
+          variables={{ "--apple-button-height": Math.max(50, 50 * fontScale) }}
+        >
+          <StyledAppleAuthenticationButton
+            accessibilityLabel={t("auth.social.apple")}
+            accessibilityState={{
+              busy: operation.pending === "apple",
+              disabled: operation.pending !== null,
+            }}
+            buttonStyle={AppleAuthenticationButtonStyle.WHITE}
+            buttonType={AppleAuthenticationButtonType.CONTINUE}
+            className={`h-(--apple-button-height) w-full ${operation.pending ? "opacity-50" : "opacity-100"}`}
+            cornerRadius={Math.max(25, 25 * fontScale)}
+            onPress={signInWithApple}
+            testID="auth-apple-button"
+          />
+        </ScopedVariables>
       ) : null}
       {google ? (
         <Button
@@ -95,24 +92,26 @@ function AvailableSocialButtons({
         >
           <Image
             accessible={false}
+            className="size-5"
             contentFit="contain"
-            source={require("~/assets/auth/google.svg")}
-            style={{ height: 20, width: 20 }}
+            source={googleLogo}
           />
-          <Text className="text-body-emphasized">
-            {t("auth.social.google")}
-          </Text>
+          <Text variant="large">{t("auth.social.google")}</Text>
         </Button>
       ) : null}
       {divider ? (
         <View className="mt-xs gap-sm flex-row items-center">
           <Separator className="flex-1" />
-          <Text className="text-footnote text-muted-foreground">
-            {t("auth.or")}
-          </Text>
+          <Text variant="muted">{t("auth.or")}</Text>
           <Separator className="flex-1" />
         </View>
       ) : null}
     </View>
   );
-}
+};
+
+export const SocialAuthButtons = (props: {
+  operation: Operation;
+  divider?: boolean;
+  providers: SocialProvider[];
+}) => (props.providers.length ? <AvailableSocialButtons {...props} /> : null);

@@ -17,39 +17,39 @@ const uk = {
   tabs: { home: "Головна" },
 };
 
-describe(checkCatalogs, () => {
+describe("catalog validation", () => {
   it("passes matching catalogs", () => {
-    expect(checkCatalogs({ en, uk })).toEqual([]);
+    expect(checkCatalogs({ en, uk })).toStrictEqual([]);
   });
 
   it("fails a key in only one catalog", () => {
-    expect(checkCatalogs({ en: { ...en, extra: "Only English" }, uk })).toEqual(
-      ['"extra" is missing from uk']
-    );
+    expect(
+      checkCatalogs({ en: { ...en, extra: "Only English" }, uk })
+    ).toStrictEqual(['"extra" is missing from uk']);
     expect(
       checkCatalogs({
         en,
         uk: { ...uk, tabs: { ...uk.tabs, library: "Бібліотека" } },
       })
-    ).toEqual(['"tabs.library" is missing from en']);
+    ).toStrictEqual(['"tabs.library" is missing from en']);
   });
 
   it("fails a plural in only one catalog", () => {
-    expect(checkCatalogs({ en: { tabs: en.tabs }, uk })).toEqual([
+    expect(checkCatalogs({ en: { tabs: en.tabs }, uk })).toStrictEqual([
       '"counts.sets" is missing from en',
     ]);
   });
 
   it("fails a Ukrainian plural missing a form", () => {
     const { sets_few: _, ...counts } = uk.counts;
-    expect(checkCatalogs({ en, uk: { ...uk, counts } })).toEqual([
+    expect(checkCatalogs({ en, uk: { ...uk, counts } })).toStrictEqual([
       'uk: plural "counts.sets" has no "few" form',
     ]);
   });
 
   it("fails an English plural missing a form", () => {
     const { sets_one: _, ...counts } = en.counts;
-    expect(checkCatalogs({ en: { ...en, counts }, uk })).toEqual([
+    expect(checkCatalogs({ en: { ...en, counts }, uk })).toStrictEqual([
       'en: plural "counts.sets" has no "one" form',
     ]);
   });
@@ -60,7 +60,7 @@ describe(checkCatalogs, () => {
         en: { ...en, counts: { ...en.counts, sets_few: "{{count}} sets" } },
         uk,
       })
-    ).toEqual([
+    ).toStrictEqual([
       `en: plural "counts.sets" has a "few" form, which en doesn't use`,
     ]);
   });
@@ -68,7 +68,7 @@ describe(checkCatalogs, () => {
   it("fails a key that is a string in one catalog and a plural in another", () => {
     expect(
       checkCatalogs({ en: { ...en, counts: { sets: "Sets" } }, uk })
-    ).toEqual(['"counts.sets" is a string in en, a plural in uk']);
+    ).toStrictEqual(['"counts.sets" is a string in en, a plural in uk']);
   });
 
   it("fails a key that is both a string and a plural in one catalog", () => {
@@ -77,7 +77,7 @@ describe(checkCatalogs, () => {
         en: { ...en, counts: { ...en.counts, sets: "Sets" } },
         uk: { ...uk, counts: { ...uk.counts, sets: "Підходи" } },
       })
-    ).toEqual([
+    ).toStrictEqual([
       'en: "counts.sets" is both a string and a plural',
       'uk: "counts.sets" is both a string and a plural',
     ]);
@@ -96,7 +96,9 @@ describe(checkCatalogs, () => {
           },
         },
       })
-    ).toEqual(['uk: "counts.sets" uses {{cnt}} {{count}}, en uses {{count}}']);
+    ).toStrictEqual([
+      'uk: "counts.sets" uses {{cnt}} {{count}}, en uses {{count}}',
+    ]);
   });
 
   it("accepts a placeholder in some plural forms only, and formatted ones", () => {
@@ -108,7 +110,7 @@ describe(checkCatalogs, () => {
         },
         uk,
       })
-    ).toEqual([]);
+    ).toStrictEqual([]);
   });
 
   it("accepts an optional zero form in any language", () => {
@@ -117,44 +119,45 @@ describe(checkCatalogs, () => {
         en: { ...en, counts: { ...en.counts, sets_zero: "No sets" } },
         uk: { ...uk, counts: { ...uk.counts, sets_zero: "Жодного підходу" } },
       })
-    ).toEqual([]);
+    ).toStrictEqual([]);
   });
 
   it("fails a name with a dot, which i18next can't look up", () => {
     expect(
       checkCatalogs({ en: { counts: en.counts, "tabs.home": "Home" }, uk })
-    ).toEqual([
+    ).toStrictEqual([
       'en: "tabs.home" has a "." in a name',
       '"tabs.home" is missing from en',
     ]);
   });
 
   it("fails an empty section", () => {
-    expect(checkCatalogs({ en: { ...en, settings: {} }, uk })).toEqual([
+    expect(checkCatalogs({ en: { ...en, settings: {} }, uk })).toStrictEqual([
       'en: "settings" is an empty section',
     ]);
   });
 
   it("fails an empty value", () => {
-    expect(checkCatalogs({ en, uk: { ...uk, tabs: { home: "  " } } })).toEqual([
-      'uk: "tabs.home" is empty',
-    ]);
+    expect(
+      checkCatalogs({ en, uk: { ...uk, tabs: { home: "  " } } })
+    ).toStrictEqual(['uk: "tabs.home" is empty']);
   });
 
   it("fails a value that isn't a string", () => {
     expect(
       checkCatalogs({ en: { ...en, tabs: { home: ["Home"] } }, uk })
-    ).toEqual(['en: "tabs.home" is not a string']);
+    ).toStrictEqual(['en: "tabs.home" is not a string']);
   });
 });
 
-describe(pluralForms, () => {
-  it("matches each language's plural categories", () => {
-    for (const [language, forms] of Object.entries(pluralForms)) {
+describe("plural categories", () => {
+  it.each(Object.entries(pluralForms))(
+    "matches %s's plural categories",
+    (language, forms) => {
       const categories = new Intl.PluralRules(language).resolvedOptions()
         .pluralCategories;
 
-      expect([...forms].sort()).toEqual([...categories].sort());
+      expect(forms.toSorted()).toStrictEqual(categories.toSorted());
     }
-  });
+  );
 });

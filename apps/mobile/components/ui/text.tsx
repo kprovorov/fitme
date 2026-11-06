@@ -30,7 +30,9 @@ const TEXT_VARIANTS = {
 type TextVariant = keyof typeof TEXT_VARIANTS;
 
 const ROLE: Partial<Record<TextVariant, Role>> = {
+  // SAFETY: Platform.select confines this web ARIA role to web; native receives undefined.
   blockquote: Platform.select({ web: "blockquote" as Role }),
+  // SAFETY: Platform.select confines this web ARIA role to web; native receives undefined.
   code: Platform.select({ web: "code" as Role }),
   h1: "heading",
   h2: "heading",
@@ -57,12 +59,12 @@ type TextProps = React.ComponentProps<typeof RNText> & {
  * `AvatarFallback`) restyles the `Text` inside it through `TextClassContext`;
  * `className` still wins over both.
  */
-function Text({
+const Text = ({
   className,
   asChild = false,
   variant = "default",
   ...props
-}: TextProps) {
+}: TextProps) => {
   const textClass = React.useContext(TextClassContext);
   const Component = asChild ? Slot.Text : RNText;
 
@@ -79,7 +81,7 @@ function Text({
       {...props}
     />
   );
-}
+};
 
 export type { TextProps, TextVariant };
 

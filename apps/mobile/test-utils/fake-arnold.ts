@@ -19,7 +19,52 @@
  * `failNextSend` refuses or fails the next send.
  */
 
-import type { MessageStreamEvent } from "eve/client";
+import type {
+  MessageReceivedPart,
+  MessageStreamEvent,
+  MessageStreamEventMeta,
+} from "eve/client";
+import { z } from "zod";
+
+const clientContextSchema = z.record(z.string(), z.json());
+
+type ClientContext = z.infer<typeof clientContextSchema>;
+
+const sentPartSchema = z.discriminatedUnion("type", [
+  z.object({ text: z.string(), type: z.literal("text") }),
+  z.object({
+    data: z.string(),
+    filename: z.string().optional(),
+    mediaType: z.string(),
+    type: z.literal("file"),
+  }),
+]);
+
+const requestBodySchema = z.object({
+  clientContext: clientContextSchema.optional().catch(undefined),
+  message: z
+    .union([
+      z.string().transform((text): SentPart[] => [{ text, type: "text" }]),
+      z.array(sentPartSchema),
+    ])
+    .catch([])
+    .optional(),
+});
+
+type ArnoldRequestBody = z.infer<typeof requestBodySchema>;
+
+interface AcceptedResponse {
+  deliveryId?: string;
+  ok: true;
+  sessionId: string;
+  status: "accepted";
+}
+
+type ArnoldResponse =
+  | AcceptedResponse
+  | { code: string; error: string; ok: false }
+  | { ok: true; previousSessionId: string; status: "reset" }
+  | { ok: true; status: "no_active_session" | "no_active_turn" };
 
 /** The host the fake answers on; the app's `EXPO_PUBLIC_ARNOLD_URL` in tests. */
 export const FAKE_ARNOLD_URL = "http://arnold.test";
@@ -46,7 +91,7 @@ export type SentPart = SentFilePart | SentTextPart;
 /** One message the app sent Arnold. */
 export interface SentMessage {
   /** The turn's client context (`clientContext`): the model and language. */
-  clientContext?: Record<string, unknown>;
+  clientContext?: ClientContext;
   parts: SentPart[];
   sessionId: string;
   /** The message's text parts joined, for a test that only reads the text. */
@@ -86,61 +131,66 @@ interface FakeSession {
 const encoder = new TextEncoder();
 
 /** `/eve/v1/session/:sessionId`, with the control route it may carry. */
-const SESSION_ROUTE = /^\/eve\/v1\/session\/([^/]+)(\/[a-z]+)?$/;
+const SESSION_ROUTE =
+  /^\/eve\/v1\/session\/(?<sessionId>[^/]+)(?<action>\/[a-z]+)?$/u;
 
 let eventCount = 0;
 
-function meta(deliveryId?: string) {
+const meta = (deliveryId?: string): MessageStreamEventMeta => {
   eventCount += 1;
 
-  return {
+  const eventMeta: MessageStreamEventMeta = {
     at: new Date(Date.UTC(2026, 0, 1, 0, 0, eventCount)).toISOString(),
-    ...(deliveryId ? { deliveryIds: [deliveryId] } : {}),
     id: `evt_${String(eventCount).padStart(26, "0")}`,
   };
-}
 
-/** eve answers a file part's echo with its metadata only, never its bytes. */
-function receivedPart(part: SentPart) {
-  if (part.type === "text") {
-    return { text: part.text, type: "text" as const };
+  if (deliveryId) {
+    return { ...eventMeta, deliveryIds: [deliveryId] };
   }
 
-  return {
-    ...(part.filename ? { filename: part.filename } : {}),
-    mediaType: part.mediaType,
-    size: dataUrlByteLength(part.data),
-    type: "file" as const,
-  };
-}
+  return eventMeta;
+};
 
 /** The bytes a `data:…;base64,…` URL carries, 0 for anything else. */
-function dataUrlByteLength(data: string): number {
+const dataUrlByteLength = (data: string): number => {
   const base64 = data.startsWith("data:") ? data.split(",")[1] : undefined;
 
   if (base64 === undefined) {
     return 0;
   }
 
-  const padding = base64.endsWith("==") ? 2 : base64.endsWith("=") ? 1 : 0;
+  let padding = 0;
 
-  return Math.max(0, Math.floor((base64.length * 3) / 4) - padding);
-}
-
-function parseParts(message: unknown): SentPart[] {
-  if (typeof message === "string") {
-    return [{ text: message, type: "text" }];
+  if (base64.endsWith("==")) {
+    padding = 2;
+  } else if (base64.endsWith("=")) {
+    padding = 1;
   }
 
-  return Array.isArray(message) ? (message as SentPart[]) : [];
-}
+  return Math.max(0, Math.floor((base64.length * 3) / 4) - padding);
+};
 
-function json(body: unknown, status: number, headers?: HeadersInit) {
-  return new Response(JSON.stringify(body), {
-    headers: { "content-type": "application/json", ...headers },
-    status,
-  });
-}
+/** eve answers a file part's echo with its metadata only, never its bytes. */
+const receivedPart = (part: SentPart): MessageReceivedPart => {
+  if (part.type === "text") {
+    return { text: part.text, type: "text" };
+  }
+
+  const received: MessageReceivedPart = {
+    mediaType: part.mediaType,
+    size: dataUrlByteLength(part.data),
+    type: "file",
+  };
+
+  if (part.filename) {
+    return { ...received, filename: part.filename };
+  }
+
+  return received;
+};
+
+const json = (body: ArnoldResponse, status: number, headers?: HeadersInit) =>
+  Response.json(body, { headers, status });
 
 /**
  * The session stream's answer, with the fake's own stream as its body.
@@ -153,23 +203,52 @@ function json(body: unknown, status: number, headers?: HeadersInit) {
  * the stream directly: `openStreamBody` takes `ok`, `body`, `headers`,
  * `status` and `text()` off it and nothing else.
  */
-function streamResponse(
+const streamResponse = (
   body: ReadableStream<Uint8Array>,
-  headers: Record<string, string>
-): Response {
-  return {
+  headers: Headers
+): Response =>
+  // SAFETY: eve reads only these Response members; the body must bypass Node's
+  // Response wrapper, as documented above, to keep stream cancellation safe.
+  ({
     body,
-    headers: new Headers(headers),
+    headers,
     ok: true,
     status: 200,
     statusText: "OK",
     text: () => Promise.resolve(""),
-  } as unknown as Response;
-}
+  }) as Response;
 
-function errorResponse(status: number, code: string, message: string) {
-  return json({ code, error: message, ok: false }, status);
-}
+const errorResponse = (status: number, code: string, message: string) =>
+  json({ code, error: message, ok: false }, status);
+
+const newSession = (sessionId: string): FakeSession => {
+  const readers = new Set<() => void>();
+
+  return {
+    closed: false,
+    events: [],
+    notify: () => {
+      for (const flush of readers) {
+        flush();
+      }
+    },
+    readers,
+    sessionId,
+    turns: 0,
+  };
+};
+
+const readBody = (init: RequestInit): ArnoldRequestBody | undefined => {
+  const body = z.string().safeParse(init.body);
+
+  if (!body.success || body.data === "") {
+    return;
+  }
+
+  const parsed = requestBodySchema.safeParse(JSON.parse(body.data));
+
+  return parsed.success ? parsed.data : undefined;
+};
 
 class FakeArnold {
   baseUrl = FAKE_ARNOLD_URL;
@@ -198,7 +277,7 @@ class FakeArnold {
     }
 
     this.realFetch = globalThis.fetch;
-    globalThis.fetch = this.fetch as typeof globalThis.fetch;
+    globalThis.fetch = this.fetch;
   }
 
   get installed() {
@@ -241,7 +320,7 @@ class FakeArnold {
     input: RequestInfo | URL,
     init: RequestInit = {}
   ): Promise<Response> => {
-    const url = new URL(typeof input === "string" ? input : String(input));
+    const url = new URL(String(input));
 
     if (`${url.origin}` !== new URL(this.baseUrl).origin) {
       throw new Error(
@@ -251,7 +330,9 @@ class FakeArnold {
 
     const { epoch } = this;
     // Answers on a later macrotask, like a network response.
-    await new Promise((resolve) => setTimeout(resolve, 0));
+    const { promise, resolve } = Promise.withResolvers<undefined>();
+    setTimeout(resolve, 0);
+    await promise;
 
     // The test that sent it is over (`reset()`), so it records nothing and
     // creates nothing: its session is gone, as it is after a real reset.
@@ -276,9 +357,9 @@ class FakeArnold {
 
     const session = SESSION_ROUTE.exec(pathname);
 
-    if (session) {
-      const [, sessionId, action] = session;
-      const id = decodeURIComponent(sessionId as string);
+    if (session?.groups?.sessionId) {
+      const { sessionId, action } = session.groups;
+      const id = decodeURIComponent(sessionId);
 
       if (method === "POST" && action === undefined) {
         return this.send(id, init);
@@ -321,7 +402,7 @@ class FakeArnold {
     const session = newSession(sessionId);
     this.sessions.set(sessionId, session);
 
-    const accepted: Record<string, unknown> = {
+    const accepted: AcceptedResponse = {
       ok: true,
       sessionId,
       status: "accepted",
@@ -370,7 +451,9 @@ class FakeArnold {
     }
 
     const { code, status } =
-      typeof failure === "string" ? failureResponses[failure] : failure;
+      failure === "pro-check-unavailable" || failure === "pro-required"
+        ? failureResponses[failure]
+        : failure;
 
     return errorResponse(
       status,
@@ -397,30 +480,33 @@ class FakeArnold {
   }
 
   /** Records the message and appends the turn eve would stream back. */
-  private runTurn(session: FakeSession, body: Record<string, unknown>) {
-    const parts = parseParts(body.message);
+  private runTurn(session: FakeSession, body: ArnoldRequestBody) {
+    const parts = body.message ?? [];
 
     const text = parts
       .filter((part): part is SentTextPart => part.type === "text")
       .map((part) => part.text)
       .join("\n");
 
-    this.sent.push({
-      ...(isRecord(body.clientContext)
-        ? { clientContext: body.clientContext }
-        : {}),
+    const sent: SentMessage = {
       parts,
       sessionId: session.sessionId,
       text,
-    });
+    };
+
+    if (body.clientContext !== undefined) {
+      sent.clientContext = body.clientContext;
+    }
+
+    this.sent.push(sent);
     this.deliveryCount += 1;
     const deliveryId = `dlv_fake_${this.deliveryCount}`;
     const turnId = `turn_${session.turns}`;
     const first = session.turns === 0;
     session.turns += 1;
 
-    const append = (event: unknown) => {
-      session.events.push(event as MessageStreamEvent);
+    const append = (event: MessageStreamEvent) => {
+      session.events.push(event);
       session.notify();
     };
 
@@ -540,48 +626,17 @@ class FakeArnold {
       },
     });
 
-    const headers: Record<string, string> = {
+    const headers = new Headers({
       "content-type": "application/x-ndjson",
       "x-eve-stream-version": "26",
-    };
+    });
 
     if (url.searchParams.get("includeTailIndex") === "1") {
-      headers["x-eve-stream-tail-index"] = String(tailIndex);
+      headers.set("x-eve-stream-tail-index", String(tailIndex));
     }
 
     return streamResponse(body, headers);
   }
-}
-
-function newSession(sessionId: string): FakeSession {
-  const readers = new Set<() => void>();
-
-  return {
-    closed: false,
-    events: [],
-    notify: () => {
-      for (const flush of [...readers]) {
-        flush();
-      }
-    },
-    readers,
-    sessionId,
-    turns: 0,
-  };
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null && !Array.isArray(value);
-}
-
-function readBody(init: RequestInit): Record<string, unknown> | undefined {
-  if (typeof init.body !== "string" || init.body === "") {
-    return;
-  }
-
-  const parsed = JSON.parse(init.body) as unknown;
-
-  return isRecord(parsed) ? parsed : undefined;
 }
 
 export const fakeArnold = new FakeArnold();

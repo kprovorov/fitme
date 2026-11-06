@@ -24,13 +24,13 @@ interface GenderOptionProps {
   onValueChange?: (value: Gender) => void;
 }
 
-function GenderOption({
+const GenderOption = ({
   disabled,
   gender,
   isSelected,
   label,
   onValueChange,
-}: GenderOptionProps) {
+}: GenderOptionProps) => {
   const handlePress = useCallback(
     () => onValueChange?.(gender),
     [gender, onValueChange]
@@ -63,7 +63,7 @@ function GenderOption({
       <Text>{label}</Text>
     </Pressable>
   );
-}
+};
 
 /**
  * Side-by-side gender cards. Deliberately not a SwiftUI segmented `Picker` —

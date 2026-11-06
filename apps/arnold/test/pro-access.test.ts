@@ -1,3 +1,5 @@
+import { once } from "node:events";
+
 import { describe, expect, it, vi } from "vitest";
 
 import { createProCheck, PRO_CHECK_TTL_MS } from "../agent/lib/pro-access";
@@ -7,9 +9,26 @@ const HOUR_MS = 60 * 60 * 1000;
 
 const iso = (ms: number) => new Date(ms).toISOString();
 
+interface Entitlement {
+  expires_date: string | null;
+  grace_period_expires_date: string | null;
+  product_identifier: string;
+  purchase_date: string;
+}
+
 /** A RevenueCat v1 subscriber with the given entitlements. */
-const subscriber = (entitlements: Record<string, object> = {}) =>
+const subscriber = (entitlements: Record<string, Entitlement> = {}) =>
   Response.json({ subscriber: { entitlements } });
+
+const stalled = async (_url: string, { signal }: RequestInit) => {
+  if (!signal) {
+    throw new Error("Missing abort signal");
+  }
+
+  await once(signal, "abort");
+  const reason: unknown = signal.reason;
+  throw reason instanceof Error ? reason : new Error("Request aborted");
+};
 
 const pro = (expiresAt: number | null = NOW + HOUR_MS) => ({
   "Fitme Pro": {
@@ -23,7 +42,7 @@ const pro = (expiresAt: number | null = NOW + HOUR_MS) => ({
 const setup = (respond: () => Response | Promise<Response>) => {
   let now = NOW;
 
-  const fetch = vi.fn(
+  const fetch = vi.fn<(url: string, init?: RequestInit) => Promise<Response>>(
     async (_url: string, _init?: RequestInit) => await respond()
   );
 
@@ -42,19 +61,19 @@ const setup = (respond: () => Response | Promise<Response>) => {
   };
 };
 
-describe(createProCheck, () => {
+describe("pro access check", () => {
   it("asks RevenueCat about the User with the secret key", async () => {
     const { check, fetch } = setup(() => subscriber(pro()));
 
-    await expect(check("user_alice")).resolves.toBe(true);
-    expect(fetch).toHaveBeenCalledWith(
+    await expect(check("user_alice")).resolves.toBeTruthy();
+    expect(fetch.mock.calls[0]).toMatchObject([
       "https://api.revenuecat.com/v1/subscribers/user_alice",
-      expect.objectContaining({
-        headers: expect.objectContaining({
+      {
+        headers: {
           authorization: "Bearer sk_test_revenuecat",
-        }),
-      })
-    );
+        },
+      },
+    ]);
   });
 
   it("escapes the User id in the URL", async () => {
@@ -70,7 +89,7 @@ describe(createProCheck, () => {
   it("counts a lifetime entitlement as Pro", async () => {
     const { check } = setup(() => subscriber(pro(null)));
 
-    await expect(check("user_alice")).resolves.toBe(true);
+    await expect(check("user_alice")).resolves.toBeTruthy();
   });
 
   it("isn't Pro without the entitlement", async () => {
@@ -78,13 +97,13 @@ describe(createProCheck, () => {
       subscriber({ "Other Thing": pro()["Fitme Pro"] })
     );
 
-    await expect(check("user_alice")).resolves.toBe(false);
+    await expect(check("user_alice")).resolves.toBeFalsy();
   });
 
   it("isn't Pro once the entitlement expired", async () => {
     const { check } = setup(() => subscriber(pro(NOW - 1000)));
 
-    await expect(check("user_alice")).resolves.toBe(false);
+    await expect(check("user_alice")).resolves.toBeFalsy();
   });
 
   it("stays Pro during a billing grace period", async () => {
@@ -97,7 +116,7 @@ describe(createProCheck, () => {
       })
     );
 
-    await expect(check("user_alice")).resolves.toBe(true);
+    await expect(check("user_alice")).resolves.toBeTruthy();
   });
 
   it("throws when RevenueCat answers an error", async () => {
@@ -115,30 +134,27 @@ describe(createProCheck, () => {
   });
 
   it("gives up on a RevenueCat request that stalls", async () => {
-    const stalled = async (_url: string, init: RequestInit) =>
-      await new Promise<Response>((_resolve, reject) => {
-        init.signal?.addEventListener("abort", () => {
-          reject(init.signal?.reason);
-        });
-      });
-
     const check = createProCheck({
       fetch: stalled,
       secretKey: () => "sk_test_revenuecat",
       timeoutMs: 10,
     });
 
-    await expect(check("user_alice")).rejects.toThrow();
+    await expect(check("user_alice")).rejects.toThrow(
+      "The operation was aborted due to timeout"
+    );
   });
 
   it("throws on a body it can't read", async () => {
     const { check } = setup(() => Response.json({ nope: true }));
 
-    await expect(check("user_alice")).rejects.toThrow();
+    await expect(check("user_alice")).rejects.toThrow("subscriber");
   });
 
   it("throws without a secret key, before calling RevenueCat", async () => {
-    const fetch = vi.fn();
+    const fetch =
+      vi.fn<(url: string, init: RequestInit) => Promise<Response>>();
+
     const check = createProCheck({ fetch, secretKey: () => {} });
 
     await expect(check("user_alice")).rejects.toThrow("REVENUECAT_SECRET_KEY");
@@ -162,40 +178,42 @@ describe(createProCheck, () => {
   });
 
   it("picks up a lapsed subscription once the window passes", async () => {
-    let entitlements: Record<string, object> = pro();
+    let entitlements: Record<string, Entitlement> = pro();
     const { advance, check } = setup(() => subscriber(entitlements));
 
-    await expect(check("user_alice")).resolves.toBe(true);
+    await expect(check("user_alice")).resolves.toBeTruthy();
     entitlements = {};
-    await expect(check("user_alice")).resolves.toBe(true);
+    await expect(check("user_alice")).resolves.toBeTruthy();
     advance(PRO_CHECK_TTL_MS);
-    await expect(check("user_alice")).resolves.toBe(false);
+    await expect(check("user_alice")).resolves.toBeFalsy();
   });
 
   it("picks up a new subscription once the window passes", async () => {
-    let entitlements: Record<string, object> = {};
+    let entitlements: Record<string, Entitlement> = {};
     const { advance, check } = setup(() => subscriber(entitlements));
 
-    await expect(check("user_alice")).resolves.toBe(false);
+    await expect(check("user_alice")).resolves.toBeFalsy();
     entitlements = pro();
     advance(PRO_CHECK_TTL_MS);
-    await expect(check("user_alice")).resolves.toBe(true);
+    await expect(check("user_alice")).resolves.toBeTruthy();
   });
 
   it("doesn't cache a Pro answer past the entitlement's expiry", async () => {
     const { advance, check } = setup(() => subscriber(pro(NOW + 1000)));
 
-    await expect(check("user_alice")).resolves.toBe(true);
+    await expect(check("user_alice")).resolves.toBeTruthy();
     advance(1000);
-    await expect(check("user_alice")).resolves.toBe(false);
+    await expect(check("user_alice")).resolves.toBeFalsy();
   });
 
   it("doesn't cache a failure", async () => {
     const answers = [new Response("down", { status: 500 }), subscriber(pro())];
     const { check, fetch } = setup(() => answers.shift() ?? subscriber());
 
-    await expect(check("user_alice")).rejects.toThrow();
-    await expect(check("user_alice")).resolves.toBe(true);
+    await expect(check("user_alice")).rejects.toThrow(
+      "RevenueCat answered 500"
+    );
+    await expect(check("user_alice")).resolves.toBeTruthy();
     expect(fetch).toHaveBeenCalledTimes(2);
   });
 });

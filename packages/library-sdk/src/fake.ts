@@ -88,11 +88,14 @@ const toSummary = ({
  * (`servedEquipment` in `apps/library`): a repeat counted once, empty for an
  * Exercise given without any.
  */
-const servedEquipment = (needed: readonly Equipment[] = []) =>
-  knownEquipment.filter((item) => needed.includes(item));
+const servedEquipment = (needed: readonly Equipment[] = []) => {
+  const neededSet = new Set(needed);
+
+  return knownEquipment.filter((item) => neededSet.has(item));
+};
 
 const isMuscleGroup = (group: string): group is MuscleGroup =>
-  (knownMuscleGroups as readonly string[]).includes(group);
+  knownMuscleGroups.some((knownGroup) => knownGroup === group);
 
 /**
  * The muscle groups `muscleGroups` filters by, read as the API reads the
@@ -104,8 +107,8 @@ const parseMuscleGroups = ({
   muscleGroup,
   muscleGroups,
 }: ListExercisesParams): MuscleGroup[] | undefined => {
-  if (!muscleGroups?.length) {
-    return;
+  if (muscleGroups === undefined || muscleGroups.length === 0) {
+    return undefined;
   }
 
   if (muscleGroup !== undefined) {
@@ -131,8 +134,8 @@ const parseMuscleGroups = ({
 const parseEquipment = ({
   equipment,
 }: ListExercisesParams): Equipment[] | undefined => {
-  if (!equipment?.length) {
-    return;
+  if (equipment === undefined || equipment.length === 0) {
+    return undefined;
   }
 
   const needed = equipment.join(",").split(",");
@@ -198,7 +201,7 @@ const serveIn = (
 
       return { exercise, searchNames: [...new Set(names)] };
     })
-    .sort(
+    .toSorted(
       (a, b) =>
         collator.compare(a.exercise.name, b.exercise.name) ||
         collator.compare(a.exercise.slug, b.exercise.slug)
@@ -231,7 +234,7 @@ export const createFakeLibrary = (
 ): FakeLibrary => {
   const languages = Object.fromEntries(
     appLanguages.map((language) => [language, serveIn(exercises, language)])
-  ) as Record<AppLanguage, FakeLanguage>;
+  );
 
   const inLanguage = (language: AppLanguage = defaultAppLanguage) =>
     languages[language];
@@ -243,11 +246,7 @@ export const createFakeLibrary = (
       throw failure;
     }
 
-    try {
-      return compute();
-    } catch (error) {
-      return await Promise.reject(error);
-    }
+    return await compute();
   };
 
   return {
@@ -283,7 +282,9 @@ export const createFakeLibrary = (
 
         const matches = sorted.filter(
           (summary, i) =>
-            (!term || searchNames[i]?.some((name) => name.includes(term))) &&
+            (term === undefined ||
+              term === "" ||
+              searchNames[i]?.some((name) => name.includes(term))) &&
             (!groups ||
               groups.some((group) => summary.muscle_groups.includes(group))) &&
             (!needed || needed.some((item) => summary.equipment.includes(item)))

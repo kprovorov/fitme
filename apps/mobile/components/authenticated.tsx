@@ -6,7 +6,7 @@ interface AuthenticatedProps {
   children: React.ReactNode;
 }
 
-export default function Authenticated({ children }: AuthenticatedProps) {
+const Authenticated = ({ children }: AuthenticatedProps) => {
   const { isLoaded, isSignedIn } = useAuth();
 
   if (!isLoaded) {
@@ -22,4 +22,6 @@ export default function Authenticated({ children }: AuthenticatedProps) {
   }
 
   return children;
-}
+};
+
+export default Authenticated;

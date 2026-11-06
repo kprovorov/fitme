@@ -317,6 +317,7 @@ describe("native social results", () => {
 
   it("prevents concurrent attempts and ignores a result after leaving the screen", async () => {
     let finish: (value: NativeResult) => void = () => {};
+
     mockApple.mockImplementationOnce(
       () =>
         new Promise((resolve) => {

@@ -13,7 +13,7 @@ import { segmentClient } from "~/lib/segment";
  * sign-out clears the query cache and the Attachments picked for Arnold, and
  * logs out of RevenueCat.
  */
-export default function AuthSync() {
+const AuthSync = () => {
   const queryClient = useQueryClient();
   const { isLoaded, user } = useUser();
   const signedInUserId = useRef<string | null>(null);
@@ -94,4 +94,6 @@ export default function AuthSync() {
   }, [queryClient]);
 
   return null;
-}
+};
+
+export default AuthSync;

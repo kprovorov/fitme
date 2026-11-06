@@ -2,6 +2,8 @@ import type { Exercise, Library } from "@fitme/library-sdk";
 import { createFakeLibrary } from "@fitme/library-sdk/fake";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
+import type { CallToolRequest } from "@modelcontextprotocol/sdk/types.js";
+import type { JSONType } from "zod";
 
 import type { ToolContext } from "../context.js";
 import { createMcpServer } from "../server.js";
@@ -99,7 +101,7 @@ const NO_USER: ToolContext = {
   reportError: ignoreReports,
 };
 
-export async function connect(context: ToolContext = NO_USER) {
+export const connect = async (context: ToolContext = NO_USER) => {
   const server = createMcpServer({ context });
 
   const [clientTransport, serverTransport] =
@@ -112,7 +114,7 @@ export async function connect(context: ToolContext = NO_USER) {
   ]);
 
   return client;
-}
+};
 
 /**
  * Connects a client whose service-backed tools run on `faked` services and
@@ -127,15 +129,15 @@ export const connectWithServices = (
 export interface ToolOutcome {
   isError: boolean;
   /** Parsed JSON payload (only for successful results). */
-  json: Record<string, unknown>;
+  json: Record<string, JSONType>;
   text: string;
 }
 
-export async function call(
+export const call = async (
   client: Client,
   name: string,
-  args: Record<string, unknown> = {}
-): Promise<ToolOutcome> {
+  args: NonNullable<CallToolRequest["params"]["arguments"]> = {}
+): Promise<ToolOutcome> => {
   const result = await client.callTool({ arguments: args, name });
   const content = Array.isArray(result.content) ? result.content : [];
   const [first] = content;
@@ -143,4 +145,4 @@ export async function call(
   const isError = result.isError === true;
 
   return { isError, json: isError ? {} : JSON.parse(text), text };
-}
+};

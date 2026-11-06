@@ -29,23 +29,23 @@ export const metadata: Metadata = {
 // Dark only, whatever the OS setting (ADR 0009).
 export const viewport: Viewport = { colorScheme: "dark" };
 
-export default function RootLayout({ children }: { children: ReactNode }) {
-  return (
-    <html
-      className={`${nunitoSans.variable} ${ibmPlexMono.variable}`}
-      lang="en"
-      suppressHydrationWarning
-    >
-      <body className="min-h-dvh">
-        <ClerkProvider
-          afterSignOutUrl="/"
-          appearance={clerkAppearance}
-          signInFallbackRedirectUrl={DASHBOARD_PATH}
-          signInUrl={SIGN_IN_PATH}
-        >
-          <Providers>{children}</Providers>
-        </ClerkProvider>
-      </body>
-    </html>
-  );
-}
+const RootLayout = ({ children }: { children: ReactNode }) => (
+  <html
+    className={`${nunitoSans.variable} ${ibmPlexMono.variable}`}
+    lang="en"
+    suppressHydrationWarning
+  >
+    <body className="min-h-dvh">
+      <ClerkProvider
+        afterSignOutUrl="/"
+        appearance={clerkAppearance}
+        signInFallbackRedirectUrl={DASHBOARD_PATH}
+        signInUrl={SIGN_IN_PATH}
+      >
+        <Providers>{children}</Providers>
+      </ClerkProvider>
+    </body>
+  </html>
+);
+
+export default RootLayout;

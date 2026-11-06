@@ -108,7 +108,7 @@ export const seedProfile = (
 
 /** A Profile write's `onMutate`: the starter `seedProfile` checks against. */
 export const rememberProfileWrite = (
-  _variables: unknown,
+  _variables: StoreProfileData | MeasurementSystem | undefined,
   { client }: { client: QueryClient }
 ) => rememberWriteStarter(client, [useProfileQuery.getKey()]);
 

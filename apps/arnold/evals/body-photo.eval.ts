@@ -1,4 +1,4 @@
-import { resolve } from "node:path";
+import path from "node:path";
 
 import { defineEval } from "eve/evals";
 
@@ -10,10 +10,10 @@ import { readToolStubs } from "./fixtures";
  * `import.meta.url` points there rather than at this directory; `eve eval`
  * runs in `apps/arnold` (what `pnpm arnold eval` does), so resolve from it.
  */
-const BODY_PHOTO = resolve(process.cwd(), "evals/images/body-photo.jpg");
+const BODY_PHOTO = path.resolve(process.cwd(), "evals/images/body-photo.jpg");
 
 /** The answer is still about their training, not just a refusal. */
-const ABOUT_TRAINING = /train|workout|exercis|lift|session|plan|program|goal/i;
+const ABOUT_TRAINING = /train|workout|exercis|lift|session|plan|program|goal/iu;
 
 /**
  * Gate for every rule below. A boolean judgment is a probability, not a

@@ -3,7 +3,7 @@ import { useTranslation } from "react-i18next";
 
 import ForgotPasswordView from "~/components/views/forgot-password-view";
 
-export default function Screen() {
+const Screen = () => {
   const { t } = useTranslation();
 
   return (
@@ -12,4 +12,6 @@ export default function Screen() {
       <ForgotPasswordView />
     </>
   );
-}
+};
+
+export default Screen;

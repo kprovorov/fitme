@@ -51,6 +51,7 @@ const Picker = <TValue extends PickerValue>({
   const isWheel = variant === "wheel";
 
   const handleSelectionChange = useCallback(
+    // SAFETY: SwiftUI reports a selected option's tag, and every option tag is a TValue.
     (selection: TValue | null) => onValueChange?.(selection as TValue),
     [onValueChange]
   );

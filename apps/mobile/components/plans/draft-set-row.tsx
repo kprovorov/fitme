@@ -21,13 +21,12 @@ import {
 } from "~/lib/plan-draft";
 import type { DraftChange, DraftSet, DraftSetTarget } from "~/lib/plan-draft";
 import { decimalsOf, formatSetWeight, planTargetValue } from "~/lib/set-inputs";
-import { cn } from "~/lib/utils";
 
 /** A target cell: the three share the width the other columns leave. */
 const CELL_CLASS = "h-10 flex-1";
 
-/** A cell's input: the set table's number styling. */
-const INPUT_CLASS = "min-h-10 px-1 text-center text-mono-body";
+/** A cell's input: sized and aligned for the set table's numbers. */
+const INPUT_CLASS = "min-h-10 text-center";
 
 const TARGETS = ["reps", "weight", "rest"] as const;
 
@@ -41,7 +40,7 @@ const targetText = (value: number | null, target: DraftSetTarget) => {
 };
 
 /** One target's field: the row owns its text, this owns its press handler. */
-function TargetField({
+const TargetField = ({
   accessibilityLabel,
   isValid,
   onChangeTarget,
@@ -55,7 +54,7 @@ function TargetField({
   order: number;
   target: DraftSetTarget;
   text: string;
-}) {
+}) => {
   const change = useCallback(
     (typed: string) => onChangeTarget(target, typed),
     [onChangeTarget, target]
@@ -76,7 +75,7 @@ function TargetField({
       value={text}
     />
   );
-}
+};
 
 interface DraftSetRowProps {
   /** Whether the row can be removed: an Exercise keeps at least one set. */
@@ -100,14 +99,14 @@ interface DraftSetRowProps {
  * names the rule it broke under the row, so Save is never off with nothing
  * said.
  */
-export default function DraftSetRow({
+const DraftSetRow = ({
   canRemove,
   exerciseKey,
   onChange,
   order,
   set,
   workoutKey,
-}: DraftSetRowProps) {
+}: DraftSetRowProps) => {
   const { t } = useTranslation();
 
   // What the User typed, so a half-typed number isn't rewritten under them.
@@ -165,24 +164,26 @@ export default function DraftSetRow({
     weight: t("sets.row.weightInput", { order }),
   };
 
-  const messages = TARGETS.map(messageFor).filter(
-    (message): message is string => message !== null
-  );
+  const messages = TARGETS.flatMap((target) => {
+    const message = messageFor(target);
+
+    return message === null ? [] : [message];
+  });
 
   return (
     <View className="gap-1">
       <View className="gap-sm flex-row items-center">
-        <Text
-          adjustsFontSizeToFit
-          className={cn(
-            SET_NUMBER_COLUMN_CLASS,
-            "text-mono-body text-muted-foreground text-center"
-          )}
-          maxFontSizeMultiplier={SET_TABLE_MAX_FONT_SCALE}
-          numberOfLines={1}
-        >
-          {`#${order}`}
-        </Text>
+        <View className={SET_NUMBER_COLUMN_CLASS}>
+          <Text
+            adjustsFontSizeToFit
+            className="text-center"
+            maxFontSizeMultiplier={SET_TABLE_MAX_FONT_SCALE}
+            numberOfLines={1}
+            variant="muted"
+          >
+            {`#${order}`}
+          </Text>
+        </View>
         {TARGETS.map((target) => (
           <TargetField
             accessibilityLabel={labels[target]}
@@ -198,7 +199,6 @@ export default function DraftSetRow({
           <SetCheckCell onPress={remove}>
             <Button
               accessibilityLabel={t("planEditor.workout.removeSet", { order })}
-              contentColorClassName="text-muted-foreground"
               icon="minus.circle"
               onPress={remove}
               shape="circle"
@@ -216,4 +216,6 @@ export default function DraftSetRow({
       ))}
     </View>
   );
-}
+};
+
+export default DraftSetRow;

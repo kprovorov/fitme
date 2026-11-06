@@ -48,14 +48,14 @@ const questions: { answer: ReactNode; question: string }[] = [
   },
 ];
 
-function Faq() {
-  return (
-    <section
-      aria-labelledby="faq-heading"
-      className="w-full scroll-mt-24"
-      id="faq"
-    >
-      <Container className="grid gap-10 lg:grid-cols-[1fr_1.6fr] lg:gap-16">
+const Faq = () => (
+  <section
+    aria-labelledby="faq-heading"
+    className="w-full scroll-mt-24"
+    id="faq"
+  >
+    <Container>
+      <div className="grid gap-10 lg:grid-cols-[1fr_1.6fr] lg:gap-16">
         <div className="flex flex-col gap-6 lg:sticky lg:top-24 lg:self-start">
           <SectionHeading
             align="start"
@@ -89,9 +89,9 @@ function Faq() {
             </details>
           ))}
         </div>
-      </Container>
-    </section>
-  );
-}
+      </div>
+    </Container>
+  </section>
+);
 
 export { Faq };

@@ -6,7 +6,7 @@ import { QUERY_FAILED_MESSAGE } from "./sanitize";
  * read it.
  */
 export interface ScrubbableEvent {
-  breadcrumbs?: { data?: unknown; message?: string }[];
+  breadcrumbs?: { data?: object; message?: string }[];
   exception?: { values?: { value?: string }[] };
   request?: {
     cookies?: unknown;
@@ -46,17 +46,18 @@ const scrubRequest = ({
  * anywhere inside a longer text (`Error: Failed query: …`, a logged error after
  * other arguments).
  */
-const FAILED_QUERY = /\bFailed query:/;
+const FAILED_QUERY = /\bFailed query:/u;
 
-const isFailedQuery = (text: unknown) =>
-  typeof text === "string" && FAILED_QUERY.test(text);
+const isFailedQuery = (
+  text: NonNullable<ScrubbableEvent["breadcrumbs"]>[number]["message"]
+) => text !== undefined && FAILED_QUERY.test(text);
 
 /**
  * Every exception value of an event with a failed query: the others are its
  * cause chain (linked errors), whose Postgres message can echo input.
  */
 const scrubException = (exception: NonNullable<ScrubbableEvent["exception"]>) =>
-  exception.values?.some(({ value }) => isFailedQuery(value))
+  exception.values?.some(({ value }) => isFailedQuery(value)) === true
     ? {
         ...exception,
         values: exception.values.map((value) => ({
@@ -88,9 +89,14 @@ const scrubBreadcrumbs = (
  * replaced, and such a breadcrumb its message and data. Returns a
  * scrubbed copy.
  */
-export const scrubEvent = <T extends object>(event: T): T => {
-  const { breadcrumbs, exception, request, user, ...rest }: ScrubbableEvent =
-    event;
+export const scrubEvent = <T extends object>(event: T) => {
+  const {
+    breadcrumbs,
+    exception,
+    request,
+    user,
+    ...rest
+  }: T & ScrubbableEvent = event;
 
   return {
     ...rest,
@@ -98,5 +104,5 @@ export const scrubEvent = <T extends object>(event: T): T => {
     ...(exception && { exception: scrubException(exception) }),
     ...(request && { request: scrubRequest(request) }),
     ...(user?.id !== undefined && { user: { id: user.id } }),
-  } as T;
+  };
 };

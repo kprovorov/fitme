@@ -37,15 +37,17 @@ const ContextMenu = ({
   <SwiftUIHost className={className} matchContents>
     <SwiftUIContextMenu testID={testID}>
       <SwiftUIContextMenu.Items>
-        {items.map((item) => (
-          <SwiftUIButton
-            key={item.label}
-            label={item.label}
-            onPress={item.onPress}
-            role={item.destructive ? "destructive" : "default"}
-            systemImage={item.systemImage}
-          />
-        ))}
+        {items.map(
+          ({ destructive, label, onPress: handlePress, systemImage }) => (
+            <SwiftUIButton
+              key={label}
+              label={label}
+              onPress={handlePress}
+              role={destructive ? "destructive" : "default"}
+              systemImage={systemImage}
+            />
+          )
+        )}
       </SwiftUIContextMenu.Items>
       <SwiftUIContextMenu.Trigger>
         <RNHostView matchContents>{children}</RNHostView>

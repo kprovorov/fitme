@@ -29,8 +29,8 @@ const CONCURRENT_TRANSACTIONS = 300;
 const THROW_EVERY = 7;
 const SQL_ERROR_EVERY = 11;
 const BARE_QUERIES = 60;
-const RLS_VIOLATION = /row-level security/;
-const PERMISSION_DENIED = /permission denied/;
+const RLS_VIOLATION = /row-level security/u;
+const PERMISSION_DENIED = /permission denied/u;
 
 const identity = async (tx: Transaction) => {
   const { rows } = await tx.execute<{
@@ -57,226 +57,232 @@ const insertProfile = (tx: Transaction, userId: string) =>
     sql`insert into public.profiles (user_id, age, gender, height, weight) values (${userId}, 30, 'male', 180, 80)`
   );
 
-beforeAll(async () => {
-  await withService(async (tx) => {
-    await insertProfile(tx, userA);
-    await insertProfile(tx, userB);
-  });
-});
-
-afterAll(async () => {
-  await withService((tx) =>
-    tx.execute(sql`delete from public.profiles where user_id in ${everyUser}`)
-  );
-  await closeConnection();
-});
-
-describe(asUser, () => {
-  it("runs as the User through the pooler", async () => {
-    await expect(asUser(userA, identity)).resolves.toEqual({
-      login: "fitme",
-      role: "authenticated",
-      user_id: userA,
+describe("database doors", () => {
+  beforeAll(async () => {
+    await withService(async (tx) => {
+      await insertProfile(tx, userA);
+      await insertProfile(tx, userB);
     });
   });
 
-  it("limits reads to the User's rows", async () => {
-    await expect(
-      asUser(userA, async (tx) => await profileOwners(tx, [userA, userB]))
-    ).resolves.toEqual([userA]);
+  afterAll(async () => {
+    await withService((tx) =>
+      tx.execute(sql`delete from public.profiles where user_id in ${everyUser}`)
+    );
+    await closeConnection();
   });
 
-  it("lets the User write their own rows", async () => {
-    const updated = await asUser(writer, async (tx) => {
-      await insertProfile(tx, writer);
-
-      const update = await tx.execute(
-        sql`update public.profiles set weight = 81 where user_id = ${writer}`
-      );
-
-      return update.rowCount;
+  describe("asUser transactions", () => {
+    it("runs as the User through the pooler", async () => {
+      await expect(asUser(userA, identity)).resolves.toStrictEqual({
+        login: "fitme",
+        role: "authenticated",
+        user_id: userA,
+      });
     });
 
-    expect(updated).toBe(1);
-    await expect(
-      withService(async (tx) => await profileOwners(tx, [writer]))
-    ).resolves.toEqual([writer]);
-  });
-
-  it("refuses writes to another User's rows", async () => {
-    await expect(
-      asUser(userA, (tx) => insertProfile(tx, userB))
-    ).rejects.toMatchObject({
-      // Drizzle wraps the Postgres error
-      cause: { message: expect.stringMatching(RLS_VIOLATION) },
+    it("limits reads to the User's rows", async () => {
+      await expect(
+        asUser(userA, async (tx) => await profileOwners(tx, [userA, userB]))
+      ).resolves.toStrictEqual([userA]);
     });
 
-    const changed = await asUser(userA, async (tx) => {
-      const updated = await tx.execute(
-        sql`update public.profiles set updated_at = now() where user_id = ${userB}`
-      );
+    it("lets the User write their own rows", async () => {
+      const updated = await asUser(writer, async (tx) => {
+        await insertProfile(tx, writer);
 
-      const deleted = await tx.execute(
-        sql`delete from public.profiles where user_id = ${userB}`
-      );
-
-      return [updated.rowCount, deleted.rowCount];
-    });
-
-    expect(changed).toEqual([0, 0]);
-    await expect(
-      withService(async (tx) => await profileOwners(tx, [userB]))
-    ).resolves.toEqual([userB]);
-  });
-
-  it("rolls back when the callback throws", async () => {
-    const [rolledBack] = concurrentUsers;
-
-    await expect(
-      asUser(rolledBack, async (tx) => {
-        await insertProfile(tx, rolledBack);
-        throw new Error("abort");
-      })
-    ).rejects.toThrow("abort");
-
-    await expect(
-      withService(async (tx) => await profileOwners(tx, [rolledBack]))
-    ).resolves.toEqual([]);
-  });
-
-  it("rejects an empty User id", async () => {
-    await expect(asUser("", identity)).rejects.toThrow(
-      "asUser needs a User id"
-    );
-  });
-});
-
-describe(withService, () => {
-  it("runs as service_role, with no User", async () => {
-    await expect(withService(identity)).resolves.toEqual({
-      login: "fitme",
-      role: "service_role",
-      user_id: null,
-    });
-  });
-
-  it("sees every User's rows", async () => {
-    const owners = await withService(
-      async (tx) => await profileOwners(tx, [userA, userB])
-    );
-
-    expect(new Set(owners)).toEqual(new Set([userA, userB]));
-  });
-});
-
-describe("the generated schema", () => {
-  it("types asUser queries, still under RLS", async () => {
-    const rows = await asUser(userA, (tx) =>
-      tx
-        .select({ userId: profiles.userId })
-        .from(profiles)
-        .where(inArray(profiles.userId, [userA, userB]))
-    );
-
-    expect(new Set(rows.map((row) => row.userId))).toEqual(new Set([userA]));
-  });
-
-  it("gives transactions the relational query API", async () => {
-    const found = await asUser(userA, (tx) =>
-      tx.query.profiles.findFirst({
-        where: eq(profiles.userId, userA),
-      })
-    );
-
-    expect(found).toMatchObject({ userId: userA });
-  });
-});
-
-describe("on the pooler", () => {
-  const backendPids = new Set<number>();
-
-  it("never shows a concurrent transaction another User's id", async () => {
-    const mismatches: string[] = [];
-
-    const results = await Promise.allSettled(
-      Array.from({ length: CONCURRENT_TRANSACTIONS }, async (_, index) => {
-        const userId = concurrentUsers[index % concurrentUsers.length];
-
-        return await asUser(userId, async (tx) => {
-          const { rows } = await tx.execute<{
-            after: string | null;
-            before: string | null;
-            pid: number;
-          }>(
-            sql`select public.current_user_id() as before, pg_sleep(random() * 0.02), public.current_user_id() as after, pg_backend_pid() as pid`
-          );
-
-          const { after, before, pid } = rows[0];
-          backendPids.add(pid);
-
-          if (before !== userId || after !== userId) {
-            mismatches.push(`${userId} saw ${before} / ${after}`);
-          }
-
-          if (index % THROW_EVERY === 0) {
-            throw new Error("thrown");
-          }
-
-          if (index % SQL_ERROR_EVERY === 0) {
-            await tx.execute(sql`select 1 / 0`);
-          }
-
-          return userId;
-        });
-      })
-    );
-
-    const rejected = results.filter((result) => result.status === "rejected");
-
-    const expectedFailures = Array.from(
-      { length: CONCURRENT_TRANSACTIONS },
-      (_, index) => index
-    ).filter(
-      (index) => index % THROW_EVERY === 0 || index % SQL_ERROR_EVERY === 0
-    ).length;
-
-    expect(mismatches).toEqual([]);
-    expect(rejected).toHaveLength(expectedFailures);
-  });
-
-  it("leaves reused connections with the role reset and no claims", async () => {
-    const { pool } = getConnection();
-
-    const rows = await Promise.all(
-      Array.from({ length: BARE_QUERIES }, async () => {
-        const {
-          rows: [row],
-        } = await pool.query<{
-          claims: string | null;
-          pid: number;
-          role: string;
-        }>(
-          "select current_user as role, current_setting('request.jwt.claims', true) as claims, pg_backend_pid() as pid"
+        const update = await tx.execute(
+          sql`update public.profiles set weight = 81 where user_id = ${writer}`
         );
 
-        return row;
-      })
-    );
+        return update.rowCount;
+      });
 
-    for (const row of rows) {
-      expect(row.role).toBe("fitme");
-      expect(row.claims ?? "").toBe("");
-    }
+      expect(updated).toBe(1);
+      await expect(
+        withService(async (tx) => await profileOwners(tx, [writer]))
+      ).resolves.toStrictEqual([writer]);
+    });
 
-    // The bare queries ran on server connections the transactions used
-    expect(rows.some((row) => backendPids.has(row.pid))).toBe(true);
+    it("refuses writes to another User's rows", async () => {
+      const rlsViolationMessage: unknown = expect.stringMatching(RLS_VIOLATION);
+
+      await expect(
+        asUser(userA, (tx) => insertProfile(tx, userB))
+      ).rejects.toMatchObject({
+        // Drizzle wraps the Postgres error
+        cause: { message: rlsViolationMessage },
+      });
+
+      const changed = await asUser(userA, async (tx) => {
+        const updated = await tx.execute(
+          sql`update public.profiles set updated_at = now() where user_id = ${userB}`
+        );
+
+        const deleted = await tx.execute(
+          sql`delete from public.profiles where user_id = ${userB}`
+        );
+
+        return [updated.rowCount, deleted.rowCount];
+      });
+
+      expect(changed).toStrictEqual([0, 0]);
+      await expect(
+        withService(async (tx) => await profileOwners(tx, [userB]))
+      ).resolves.toStrictEqual([userB]);
+    });
+
+    it("rolls back when the callback throws", async () => {
+      const [rolledBack] = concurrentUsers;
+
+      await expect(
+        asUser(rolledBack, async (tx) => {
+          await insertProfile(tx, rolledBack);
+          throw new Error("abort");
+        })
+      ).rejects.toThrow("abort");
+
+      await expect(
+        withService(async (tx) => await profileOwners(tx, [rolledBack]))
+      ).resolves.toStrictEqual([]);
+    });
+
+    it("rejects an empty User id", async () => {
+      await expect(asUser("", identity)).rejects.toThrow(
+        "asUser needs a User id"
+      );
+    });
   });
 
-  it("denies the fitme login outside both doors", async () => {
-    const { pool } = getConnection();
+  describe("withService transactions", () => {
+    it("runs as service_role, with no User", async () => {
+      await expect(withService(identity)).resolves.toStrictEqual({
+        login: "fitme",
+        role: "service_role",
+        user_id: null,
+      });
+    });
 
-    await expect(
-      pool.query("select user_id from public.profiles limit 1")
-    ).rejects.toThrow(PERMISSION_DENIED);
+    it("sees every User's rows", async () => {
+      const owners = await withService(
+        async (tx) => await profileOwners(tx, [userA, userB])
+      );
+
+      expect(new Set(owners)).toStrictEqual(new Set([userA, userB]));
+    });
+  });
+
+  describe("the generated schema", () => {
+    it("types asUser queries, still under RLS", async () => {
+      const rows = await asUser(userA, (tx) =>
+        tx
+          .select({ userId: profiles.userId })
+          .from(profiles)
+          .where(inArray(profiles.userId, [userA, userB]))
+      );
+
+      expect(new Set(rows.map((row) => row.userId))).toStrictEqual(
+        new Set([userA])
+      );
+    });
+
+    it("gives transactions the relational query API", async () => {
+      const found = await asUser(userA, (tx) =>
+        tx.query.profiles.findFirst({
+          where: eq(profiles.userId, userA),
+        })
+      );
+
+      expect(found).toMatchObject({ userId: userA });
+    });
+  });
+
+  describe("on the pooler", () => {
+    const backendPids = new Set<number>();
+
+    it("never shows a concurrent transaction another User's id", async () => {
+      const mismatches: string[] = [];
+
+      const results = await Promise.allSettled(
+        Array.from({ length: CONCURRENT_TRANSACTIONS }, async (_, index) => {
+          const userId = concurrentUsers[index % concurrentUsers.length];
+
+          return await asUser(userId, async (tx) => {
+            const { rows } = await tx.execute<{
+              after: string | null;
+              before: string | null;
+              pid: number;
+            }>(
+              sql`select public.current_user_id() as before, pg_sleep(random() * 0.02), public.current_user_id() as after, pg_backend_pid() as pid`
+            );
+
+            const [{ after, before, pid }] = rows;
+            backendPids.add(pid);
+
+            if (before !== userId || after !== userId) {
+              mismatches.push(`${userId} saw ${before} / ${after}`);
+            }
+
+            if (index % THROW_EVERY === 0) {
+              throw new Error("thrown");
+            }
+
+            if (index % SQL_ERROR_EVERY === 0) {
+              await tx.execute(sql`select 1 / 0`);
+            }
+
+            return userId;
+          });
+        })
+      );
+
+      const rejected = results.filter((result) => result.status === "rejected");
+
+      const expectedFailures = Array.from(
+        { length: CONCURRENT_TRANSACTIONS },
+        (_, index) => index
+      ).filter(
+        (index) => index % THROW_EVERY === 0 || index % SQL_ERROR_EVERY === 0
+      ).length;
+
+      expect(mismatches).toStrictEqual([]);
+      expect(rejected).toHaveLength(expectedFailures);
+    });
+
+    it("leaves reused connections with the role reset and no claims", async () => {
+      const { pool } = getConnection();
+
+      const rows = await Promise.all(
+        Array.from({ length: BARE_QUERIES }, async () => {
+          const {
+            rows: [row],
+          } = await pool.query<{
+            claims: string | null;
+            pid: number;
+            role: string;
+          }>(
+            "select current_user as role, current_setting('request.jwt.claims', true) as claims, pg_backend_pid() as pid"
+          );
+
+          return row;
+        })
+      );
+
+      for (const row of rows) {
+        expect(row.role).toBe("fitme");
+        expect(row.claims ?? "").toBe("");
+      }
+
+      // The bare queries ran on server connections the transactions used
+      expect(rows.some((row) => backendPids.has(row.pid))).toBeTruthy();
+    });
+
+    it("denies the fitme login outside both doors", async () => {
+      const { pool } = getConnection();
+
+      await expect(
+        pool.query("select user_id from public.profiles limit 1")
+      ).rejects.toThrow(PERMISSION_DENIED);
+    });
   });
 });

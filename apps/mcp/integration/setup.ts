@@ -3,6 +3,7 @@ import { randomBytes } from "node:crypto";
 import type { Cover, Exercise } from "@fitme/library-sdk";
 import { createFakeLibrary } from "@fitme/library-sdk/fake";
 import type { Client } from "@modelcontextprotocol/sdk/client/index.js";
+import type { JSONType } from "zod";
 
 import {
   call,
@@ -89,7 +90,7 @@ export const createTestUser = (label: string): TestUser => ({
 });
 
 /** MCP client whose user tools run against the real stack as `user`. */
-export function connectAs(user: TestUser) {
+export const connectAs = (user: TestUser) => {
   const services = createServicesFromEnv(user.userId);
 
   if (!services) {
@@ -97,29 +98,31 @@ export function connectAs(user: TestUser) {
   }
 
   return connect(contextFor(services, ignoreReports, integrationLibrary()));
-}
+};
 
 /** Calls a tool and returns its JSON payload, failing on `isError`. */
-export async function callOk<T>(
+export const callOk = async <T>(
   client: Client,
   name: string,
-  args: Record<string, unknown> = {}
-): Promise<T> {
+  args: Record<string, JSONType> = {}
+): Promise<T> => {
   const outcome = await call(client, name, args);
 
   if (outcome.isError) {
     throw new TypeError(`${name} failed: ${outcome.text}`);
   }
 
+  // SAFETY: call parsed a successful tool response; integration callers choose
+  // T from that tool's response contract and assert its fields in the tests.
   return outcome.json as T;
-}
+};
 
 /** Calls a tool that must fail and returns its error text. */
-export async function callError(
+export const callError = async (
   client: Client,
   name: string,
-  args: Record<string, unknown> = {}
-): Promise<string> {
+  args: Record<string, JSONType> = {}
+): Promise<string> => {
   const outcome = await call(client, name, args);
 
   if (!outcome.isError) {
@@ -127,7 +130,7 @@ export async function callError(
   }
 
   return outcome.text;
-}
+};
 
 export interface ExerciseRow {
   muscle_groups: string[];
@@ -142,7 +145,7 @@ export interface ExercisePage {
 }
 
 /** Two library exercises to build plans from. */
-export async function pickExercises(client: Client) {
+export const pickExercises = async (client: Client) => {
   const page = await callOk<ExercisePage>(client, "list_exercises", {
     limit: 2,
   });
@@ -154,7 +157,7 @@ export async function pickExercises(client: Client) {
   }
 
   return [first, second] as const;
-}
+};
 
 export interface PlanSet {
   id: string;

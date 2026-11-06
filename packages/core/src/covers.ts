@@ -1,3 +1,5 @@
+/// <reference lib="es2023.array" />
+
 import type { MuscleGroup } from "./models";
 
 /** A Library Cover the picker can choose. */
@@ -36,7 +38,7 @@ export const rankMuscleGroups = (workout: CoverWorkout): MuscleGroup[] => {
 
   // Map keeps insertion order and the sort is stable, so ties stay first-met.
   return [...counts.entries()]
-    .sort(([, a], [, b]) => b - a)
+    .toSorted(([, a], [, b]) => b - a)
     .map(([group]) => group);
 };
 
@@ -61,12 +63,12 @@ const pickAtRandom = <T>(items: readonly T[], random: () => number): T => {
  * Among those it takes the Covers tagged with the Workout's most-trained
  * muscle group, then the next group, then any, and picks one at random.
  */
-export function pickCovers({
+export const pickCovers = ({
   covers,
   random = Math.random,
   usedCoverIds = [],
   workouts,
-}: PickCoversInput): (string | null)[] {
+}: PickCoversInput): (string | null)[] => {
   // A repeated id counts once, so it's never likelier to be picked.
   const options = [
     ...new Map(covers.map((option) => [option.id, option])).values(),
@@ -89,10 +91,11 @@ export function pickCovers({
   const usesOf = (option: CoverOption) => uses.get(option.id) ?? 0;
 
   return workouts.map((workout) => {
-    const fewestUses = options.reduce(
-      (fewest, option) => Math.min(fewest, usesOf(option)),
-      Number.POSITIVE_INFINITY
-    );
+    let fewestUses = Number.POSITIVE_INFINITY;
+
+    for (const option of options) {
+      fewestUses = Math.min(fewestUses, usesOf(option));
+    }
 
     const leastUsed = options.filter((option) => usesOf(option) === fewestUses);
 
@@ -109,4 +112,4 @@ export function pickCovers({
 
     return picked.id;
   });
-}
+};

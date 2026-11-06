@@ -13,7 +13,6 @@ import { Label } from "~/components/ui/label";
 import { Separator } from "~/components/ui/separator";
 import { Text } from "~/components/ui/text";
 import { H4 } from "~/components/ui/typography";
-import { VStack } from "~/components/ui/vstack";
 import ExerciseCardHeader from "~/components/views/exercise-card-header";
 import { shownExercise, useExercises } from "~/hooks/queries/library";
 import type { ShownExercise } from "~/hooks/queries/library";
@@ -40,9 +39,8 @@ import {
 } from "../forms/workout-exercise-set-form";
 
 /** The set table's column headings, lined up with `DraftSetRow`'s cells. */
-function SetColumns({ weightLabel }: { weightLabel: string }) {
+const SetColumns = ({ weightLabel }: { weightLabel: string }) => {
   const { t } = useTranslation();
-  const heading = "flex-1 text-center text-mono-footnote text-primary";
 
   return (
     <View
@@ -50,29 +48,32 @@ function SetColumns({ weightLabel }: { weightLabel: string }) {
       className="gap-sm flex-row items-center"
       importantForAccessibility="no-hide-descendants"
     >
-      <Text className={SET_NUMBER_COLUMN_CLASS} />
+      <View className={SET_NUMBER_COLUMN_CLASS} />
       <Text
-        className={heading}
+        className="flex-1 text-center"
         maxFontSizeMultiplier={SET_TABLE_MAX_FONT_SCALE}
+        variant="small"
       >
         {t("sets.columns.reps")}
       </Text>
       <Text
-        className={heading}
+        className="flex-1 text-center"
         maxFontSizeMultiplier={SET_TABLE_MAX_FONT_SCALE}
+        variant="small"
       >
         {weightLabel}
       </Text>
       <Text
-        className={heading}
+        className="flex-1 text-center"
         maxFontSizeMultiplier={SET_TABLE_MAX_FONT_SCALE}
+        variant="small"
       >
         {t("sets.columns.rest")}
       </Text>
-      <Text className={SET_CHECK_COLUMN_CLASS} />
+      <View className={SET_CHECK_COLUMN_CLASS} />
     </View>
   );
-}
+};
 
 interface DraftExerciseCardProps {
   exercise: DraftExercise;
@@ -90,7 +91,7 @@ interface DraftExerciseCardProps {
  * name while the Library hasn't resolved it), the menu that moves, replaces
  * or removes it, and its sets as rows with Add Set under them.
  */
-function DraftExerciseCard({
+const DraftExerciseCard = ({
   exercise,
   index,
   onChange,
@@ -99,7 +100,7 @@ function DraftExerciseCard({
   total,
   weightLabel,
   workoutKey,
-}: DraftExerciseCardProps) {
+}: DraftExerciseCardProps) => {
   const { t } = useTranslation();
   const { name } = shown;
 
@@ -163,48 +164,49 @@ function DraftExerciseCard({
   );
 
   return (
-    <Card className="gap-sm" testID={`draft-exercise-${index + 1}`}>
-      <ExerciseCardHeader
-        exercise={shown}
-        trailing={
-          <DropdownMenu
-            accessibilityLabel={t("planEditor.workout.exerciseActions", {
-              name,
-            })}
-            items={items}
-            systemImage="ellipsis"
-          />
-        }
-      />
-      <SetColumns weightLabel={weightLabel} />
-      {exercise.sets.map((set, at) => (
-        <DraftSetRow
-          canRemove={exercise.sets.length > 1}
-          exerciseKey={exercise.key}
-          key={set.key}
-          onChange={onChange}
-          order={at + 1}
-          set={set}
-          workoutKey={workoutKey}
+    <Card testID={`draft-exercise-${index + 1}`}>
+      <View className="gap-sm">
+        <ExerciseCardHeader
+          exercise={shown}
+          trailing={
+            <DropdownMenu
+              accessibilityLabel={t("planEditor.workout.exerciseActions", {
+                name,
+              })}
+              items={items}
+              systemImage="ellipsis"
+            />
+          }
         />
-      ))}
-      <Separator />
-      {/* The Workout Session's Add Set, so the same control reads the same
+        <SetColumns weightLabel={weightLabel} />
+        {exercise.sets.map((set, at) => (
+          <DraftSetRow
+            canRemove={exercise.sets.length > 1}
+            exerciseKey={exercise.key}
+            key={set.key}
+            onChange={onChange}
+            order={at + 1}
+            set={set}
+            workoutKey={workoutKey}
+          />
+        ))}
+        <Separator />
+        {/* The Workout Session's Add Set, so the same control reads the same
           one Screen away. */}
-      <Button
-        contentColorClassName="text-primary"
-        disabled={!canAddDraftSet(exercise)}
-        fill
-        icon="plus"
-        label={t("sets.addSet")}
-        onPress={addSet}
-        size="sm"
-        testID={`add-draft-set-${index + 1}`}
-        variant="ghost"
-      />
+        <Button
+          disabled={!canAddDraftSet(exercise)}
+          fill
+          icon="plus"
+          label={t("sets.addSet")}
+          onPress={addSet}
+          size="sm"
+          testID={`add-draft-set-${index + 1}`}
+          variant="ghost"
+        />
+      </View>
     </Card>
   );
-}
+};
 
 interface WorkoutEditorViewProps {
   onAddExercise: () => void;
@@ -221,13 +223,13 @@ interface WorkoutEditorViewProps {
  * into the draft (`onChange`), which the Plan editor's one Save sends; this
  * Screen has no Save of its own.
  */
-export default function WorkoutEditorView({
+const WorkoutEditorView = ({
   onAddExercise,
   onChange,
   onReplaceExercise,
   weightUnit,
   workout,
-}: WorkoutEditorViewProps) {
+}: WorkoutEditorViewProps) => {
   const { t } = useTranslation();
   const i18n = useI18n();
   const weightLabel = unitName(i18n, weightUnit);
@@ -254,8 +256,8 @@ export default function WorkoutEditorView({
   }
 
   return (
-    <VStack className="gap-lg items-stretch">
-      <VStack className="items-stretch gap-2">
+    <View className="gap-lg flex flex-col items-stretch justify-center">
+      <View className="flex flex-col items-stretch justify-center gap-2">
         <Label>{t("planEditor.workout.name")}</Label>
         <Input
           error={nameError}
@@ -264,14 +266,12 @@ export default function WorkoutEditorView({
           testID="workout-name"
           value={workout.name}
         />
-      </VStack>
+      </View>
 
-      <VStack className="gap-sm items-stretch">
+      <View className="gap-sm flex flex-col items-stretch justify-center">
         <H4>{t("planEditor.workout.exercises")}</H4>
         {workout.exercises.length > 0 ? (
-          <Text className="text-muted-foreground text-subhead">
-            {t("planEditor.workout.exercisesHint")}
-          </Text>
+          <Text variant="muted">{t("planEditor.workout.exercisesHint")}</Text>
         ) : null}
         {workout.exercises.length > 0 ? (
           workout.exercises.map((exercise, index) => (
@@ -291,9 +291,7 @@ export default function WorkoutEditorView({
             />
           ))
         ) : (
-          <Text className="text-muted-foreground">
-            {t("planEditor.workout.noExercises")}
-          </Text>
+          <Text variant="muted">{t("planEditor.workout.noExercises")}</Text>
         )}
         <Button
           className="self-start"
@@ -305,7 +303,9 @@ export default function WorkoutEditorView({
           testID="add-draft-exercise"
           variant="secondary"
         />
-      </VStack>
-    </VStack>
+      </View>
+    </View>
   );
-}
+};
+
+export default WorkoutEditorView;

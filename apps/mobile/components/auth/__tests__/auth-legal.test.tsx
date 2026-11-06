@@ -1,9 +1,9 @@
-import { beforeEach, expect, it, jest } from "@jest/globals";
+import { beforeEach, expect, jest, test } from "@jest/globals";
 import * as Sentry from "@sentry/react-native";
 import { fireEvent, render, screen } from "@testing-library/react-native";
 import * as WebBrowser from "expo-web-browser";
 import { Linking } from "react-native";
-import { beforeEach, expect, it } from "vitest";
+import { test, expect, beforeEach } from "vitest";
 
 import { PRIVACY_POLICY_URL, TERMS_URL } from "~/lib/external-links";
 

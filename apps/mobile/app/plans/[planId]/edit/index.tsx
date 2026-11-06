@@ -7,7 +7,7 @@ import {
   useRouter,
 } from "expo-router";
 import type { TFunction } from "i18next";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useId, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { ActivityIndicator, Alert, ScrollView, View } from "react-native";
 import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
@@ -18,7 +18,6 @@ import { Text } from "~/components/ui/text";
 import { useSavePlanMutation } from "~/hooks/mutations/plans";
 import {
   getPlanDraft,
-  newPlanDraftKey,
   rebasePlanDraft,
   startPlanDraft,
   updatePlanDraft,
@@ -44,8 +43,8 @@ import type { PlanDraft } from "~/lib/plan-draft";
  * (as every other Plan write does), a 429 the wait, and anything else the
  * generic error — never the API's own message.
  */
-const saveFailureMessage = (t: TFunction, error: unknown) => {
-  const code = error instanceof ApiError ? error.code : null;
+const saveFailureMessage = (t: TFunction, error: ApiError | null) => {
+  const code = error?.code ?? null;
 
   if (code === "not_found") {
     return t("plans.errors.notFound");
@@ -84,7 +83,7 @@ const saveFailureMessage = (t: TFunction, error: unknown) => {
  * keeps it, with what went wrong above the form, and a save the User typed
  * over while it was in flight keeps the editor open on what they typed.
  */
-export default function PlanEditorScreen() {
+const PlanEditorScreen = () => {
   const { planId, workoutId } = useLocalSearchParams<{
     planId: string;
     /** A Workout to open at once: "Edit Workout" on the Workout screen. */
@@ -96,7 +95,7 @@ export default function PlanEditorScreen() {
   const { t } = useTranslation();
 
   // One draft per opening, thrown away with the Screen.
-  const [draftKey] = useState(newPlanDraftKey);
+  const draftKey = useId();
   usePlanDraftOpening(draftKey);
 
   const {
@@ -187,7 +186,6 @@ export default function PlanEditorScreen() {
           {
             onPress: () => {
               setIsLeaving(true);
-              disablePrevention();
               repeat();
             },
             style: "destructive",
@@ -256,7 +254,9 @@ export default function PlanEditorScreen() {
       { body: savePlanBody(sent), id: planId },
       {
         onError: (error) => {
-          setSaveError(saveFailureMessage(t, error));
+          setSaveError(
+            saveFailureMessage(t, error instanceof ApiError ? error : null)
+          );
         },
         onSuccess: (saved) => {
           const current = getPlanDraft(draftKey)?.draft;
@@ -364,7 +364,7 @@ export default function PlanEditorScreen() {
       >
         {plan === null || isError ? (
           <View className="gap-sm pt-lg items-center">
-            <Text className="text-muted-foreground text-center">
+            <Text className="text-center" variant="muted">
               {message()}
             </Text>
             <Button
@@ -382,4 +382,6 @@ export default function PlanEditorScreen() {
       </ScrollView>
     </>
   );
-}
+};
+
+export default PlanEditorScreen;

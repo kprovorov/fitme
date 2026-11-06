@@ -6,7 +6,9 @@ import type { PublicApiFetch } from "../client";
 const BASE_URL = "https://api.test";
 
 const answering = (response: () => Response) => {
-  const fetch = vi.fn<PublicApiFetch>(async () => response());
+  const fetch = vi.fn<PublicApiFetch>(
+    async () => await Promise.resolve(response())
+  );
 
   return fetch;
 };
@@ -18,7 +20,7 @@ const clientWith = (
   createPublicApi({
     baseUrl: () => baseUrl,
     fetch,
-    token: async () => token,
+    token: async () => await Promise.resolve(token),
   });
 
 const patchProfile = async (api: ReturnType<typeof clientWith>) =>
@@ -44,12 +46,12 @@ const errorResponse = (
   code: string,
   headers: HeadersInit = {}
 ) =>
-  new Response(
-    JSON.stringify({ error: { code, message: `${code} message` } }),
-    { headers: { "Content-Type": "application/json", ...headers }, status }
+  Response.json(
+    { error: { code, message: `${code} message` } },
+    { headers, status }
   );
 
-describe(createPublicApi, () => {
+describe("public API client", () => {
   it("sends the body and the session token as the bearer", async () => {
     const fetch = answering(() =>
       Response.json({ data: { measurement_system: "us" } })
@@ -57,11 +59,11 @@ describe(createPublicApi, () => {
 
     const { data } = await patchProfile(clientWith(fetch));
 
-    expect(data).toEqual({ data: { measurement_system: "us" } });
-    const [url, init] = fetch.mock.calls[0];
+    expect(data).toStrictEqual({ data: { measurement_system: "us" } });
+    const [[url, init]] = fetch.mock.calls;
     expect(url).toBe(`${BASE_URL}/v1/profile`);
     expect(init.method).toBe("PATCH");
-    expect(JSON.parse(init.body as string)).toEqual({
+    await expect(new Response(init.body).json()).resolves.toStrictEqual({
       measurement_system: "us",
     });
     expect(new Headers(init.headers).get("Authorization")).toBe(
@@ -123,9 +125,7 @@ describe(createPublicApi, () => {
   it("throws for a network failure, with no status or code", async () => {
     const cause = new TypeError("Network request failed");
 
-    const fetch = vi.fn<PublicApiFetch>(async () => {
-      throw cause;
-    });
+    const fetch = vi.fn<PublicApiFetch>().mockRejectedValue(cause);
 
     const error = await rejection(patchProfile(clientWith(fetch)));
 
@@ -139,9 +139,7 @@ describe(createPublicApi, () => {
     const api = createPublicApi({
       baseUrl: () => BASE_URL,
       fetch,
-      token: async () => {
-        throw new Error("offline");
-      },
+      token: async () => await Promise.reject(new Error("offline")),
     });
 
     const error = await rejection(patchProfile(api));

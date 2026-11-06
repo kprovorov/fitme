@@ -236,32 +236,32 @@ const retirement = async (userId: string) =>
 let deletedRows: OwnedRows;
 let bystanderRows: OwnedRows;
 
-beforeAll(async () => {
-  deletedRows = await seedUser(deleted);
-  bystanderRows = await seedUser(bystander);
-  await recordArnoldSessionFor(deleted);
-  await recordArnoldSessionFor(bystander);
-});
-
-afterAll(async () => {
-  await withUserTablesLocked(async (tx) => {
-    await deleteUserData(tx, bystander);
-    await deleteUserData(tx, rekeyed);
-    await tx
-      .delete(arnoldSessions)
-      .where(inArray(arnoldSessions.userId, [deleted, bystander]));
+describe("deleteUserData integration", () => {
+  beforeAll(async () => {
+    deletedRows = await seedUser(deleted);
+    bystanderRows = await seedUser(bystander);
+    await recordArnoldSessionFor(deleted);
+    await recordArnoldSessionFor(bystander);
   });
-});
 
-describe(deleteUserData, () => {
+  afterAll(async () => {
+    await withUserTablesLocked(async (tx) => {
+      await deleteUserData(tx, bystander);
+      await deleteUserData(tx, rekeyed);
+      await tx
+        .delete(arnoldSessions)
+        .where(inArray(arnoldSessions.userId, [deleted, bystander]));
+    });
+  });
+
   it("removes every row the User owns, children included", async () => {
-    await expect(remaining(deletedRows)).resolves.toEqual(allRows(1));
+    await expect(remaining(deletedRows)).resolves.toStrictEqual(allRows(1));
 
     await withUserTablesLocked(async (tx) => {
       await deleteUserData(tx, deleted);
     });
 
-    await expect(remaining(deletedRows)).resolves.toEqual(allRows(0));
+    await expect(remaining(deletedRows)).resolves.toStrictEqual(allRows(0));
   });
 
   it("keeps the User's Arnold session ids, so their EVE sessions stay theirs", async () => {
@@ -273,16 +273,16 @@ describe(deleteUserData, () => {
           .from(arnoldSessions)
           .where(eq(arnoldSessions.sessionId, arnoldSessionId(deleted)))
       )
-    ).resolves.toEqual([{ userId: deleted }]);
+    ).resolves.toStrictEqual([{ userId: deleted }]);
   });
 
   it("leaves another User's rows untouched", async () => {
-    await expect(remaining(bystanderRows)).resolves.toEqual(allRows(1));
+    await expect(remaining(bystanderRows)).resolves.toStrictEqual(allRows(1));
     await expect(arnoldSessionsLeft(bystander)).resolves.toBe(1);
   });
 
   it("retires the id, so a later write as that User is refused", async () => {
-    await expect(retirement(deleted)).resolves.toEqual([
+    await expect(retirement(deleted)).resolves.toStrictEqual([
       expect.objectContaining({ rekeyedTo: null, userId: deleted }),
     ]);
 
@@ -309,9 +309,9 @@ describe(deleteUserData, () => {
       await deleteUserData(tx, deleted);
     });
 
-    await expect(retirement(deleted)).resolves.toEqual(before);
-    await expect(remaining(deletedRows)).resolves.toEqual(allRows(0));
-    await expect(remaining(bystanderRows)).resolves.toEqual(allRows(1));
+    await expect(retirement(deleted)).resolves.toStrictEqual(before);
+    await expect(remaining(deletedRows)).resolves.toStrictEqual(allRows(0));
+    await expect(remaining(bystanderRows)).resolves.toStrictEqual(allRows(1));
   });
 
   it("refuses an id that was rekeyed away, changing nothing", async () => {
@@ -329,10 +329,10 @@ describe(deleteUserData, () => {
       code: "55000",
       userId: legacy,
     });
-    await expect(retirement(legacy)).resolves.toEqual([
+    await expect(retirement(legacy)).resolves.toStrictEqual([
       expect.objectContaining({ rekeyedTo: rekeyed, userId: legacy }),
     ]);
-    await expect(remaining(legacyRows)).resolves.toEqual(allRows(1));
+    await expect(remaining(legacyRows)).resolves.toStrictEqual(allRows(1));
     await expect(
       withService((tx) =>
         tx
@@ -340,7 +340,7 @@ describe(deleteUserData, () => {
           .from(profiles)
           .where(eq(profiles.id, legacyRows.profile))
       )
-    ).resolves.toEqual([{ userId: rekeyed }]);
+    ).resolves.toStrictEqual([{ userId: rekeyed }]);
   });
 
   it("refuses every id along a rekey chain and deletes its current id", async () => {
@@ -360,14 +360,14 @@ describe(deleteUserData, () => {
         await deleteUserData(tx, chainB);
       })
     ).rejects.toMatchObject({ code: "55000", userId: chainB });
-    await expect(remaining(chainRows)).resolves.toEqual(allRows(1));
+    await expect(remaining(chainRows)).resolves.toStrictEqual(allRows(1));
 
     await withUserTablesLocked(async (tx) => {
       await deleteUserData(tx, chainC);
     });
 
-    await expect(remaining(chainRows)).resolves.toEqual(allRows(0));
-    await expect(remaining(bystanderRows)).resolves.toEqual(allRows(1));
+    await expect(remaining(chainRows)).resolves.toStrictEqual(allRows(0));
+    await expect(remaining(bystanderRows)).resolves.toStrictEqual(allRows(1));
   });
 
   it("rejects an empty id", async () => {

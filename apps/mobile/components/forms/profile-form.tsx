@@ -15,30 +15,43 @@ import { formatHeight, formatUnit, formatWeight } from "@fitme/i18n";
 import type { Translator } from "@fitme/i18n";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Stack } from "expo-router";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useReducer,
+  useRef,
+  useState,
+} from "react";
 import type { ReactNode } from "react";
 import { Controller, useController, useForm } from "react-hook-form";
 import type {
   Control,
   ControllerFieldState,
   ControllerRenderProps,
+  Resolver,
 } from "react-hook-form";
 import { useTranslation } from "react-i18next";
-import { Keyboard, Pressable, ScrollView } from "react-native";
+import {
+  Keyboard,
+  Pressable,
+  ScrollView,
+  Text as NativeText,
+  View,
+} from "react-native";
 import type { ScrollViewInstance } from "react-native";
 import Animated, {
   useAnimatedStyle,
-  useSharedValue,
   withTiming,
 } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import type { SFSymbol } from "sf-symbols-typescript";
+import { ScopedVariables } from "uniwind";
 import { z } from "zod";
 
 import { Button } from "~/components/ui/button";
 import { ErrorMessage } from "~/components/ui/error-message";
 import { GenderSwitch } from "~/components/ui/gender-switch";
-import { HStack } from "~/components/ui/hstack";
 import { Input } from "~/components/ui/input";
 import { Picker } from "~/components/ui/picker";
 import { Separator } from "~/components/ui/separator";
@@ -47,12 +60,13 @@ import { H4 } from "~/components/ui/typography";
 import { VStack } from "~/components/ui/vstack";
 import { numberInRange } from "~/lib/form-schemas";
 import { i18n as appI18n, useI18n } from "~/lib/i18n";
+import { cn } from "~/lib/utils";
 
 /**
  * What a failed save shows, in the App language: the wait when there were too
  * many requests, never the API's own message.
  */
-export const profileSaveErrorMessage = (t: Translator["t"], error: unknown) => {
+export const profileSaveErrorMessage = (t: Translator["t"], error: Error) => {
   const seconds = rateLimitedFor(error);
 
   return seconds === null
@@ -166,7 +180,7 @@ export interface ProfileFormProps {
   /** Overrides the submit button loading state, e.g. with a mutation's `isPending`. */
   isSubmitting?: boolean;
   measurementSystem: MeasurementSystem;
-  onSubmit: (values: ProfileFormValues) => unknown;
+  onSubmit: (values: ProfileFormValues) => void | Promise<void>;
   /** Renders an optional Name input above the other fields. */
   showName?: boolean;
   submitLabel: string;
@@ -174,7 +188,244 @@ export interface ProfileFormProps {
   submitTestID?: string;
 }
 
-export default function ProfileForm({
+const renderGenderField = ({
+  field: { onChange, value },
+}: {
+  field: ControllerRenderProps<ProfileFormValues, "gender">;
+}) => <GenderSwitch onValueChange={onChange} value={value} />;
+
+interface ParameterRowProps {
+  field: ProfileField;
+  hasError: boolean;
+  isFocused: boolean;
+  label: string;
+  onPress: (field: ProfileField) => void;
+  /** Formatted value, or `undefined` when not set yet. */
+  value?: string;
+}
+
+const ParameterRow = ({
+  field,
+  hasError,
+  isFocused,
+  label,
+  onPress,
+  value,
+}: ParameterRowProps) => {
+  const { t } = useTranslation();
+  const handlePress = useCallback(() => onPress(field), [field, onPress]);
+
+  return (
+    <Pressable onPress={handlePress}>
+      <View className="flex w-full flex-row items-center justify-between gap-4 p-3">
+        <Text>{label}</Text>
+        <NativeText
+          className={cn(
+            "text-body web:select-text",
+            isFocused && "text-primary",
+            !isFocused && hasError && "text-destructive",
+            !isFocused && !hasError && "text-muted-foreground"
+          )}
+        >
+          {value ?? t("profileForm.notSet")}
+        </NativeText>
+      </View>
+    </Pressable>
+  );
+};
+
+interface ParameterWheelProps {
+  control: Control<ProfileFormValues>;
+  field: ProfileField;
+  measurementSystem: MeasurementSystem;
+  /** Called after the field value changes, e.g. to re-validate it. */
+  onChange: () => void;
+}
+
+type WheelProps = Omit<ParameterWheelProps, "field">;
+
+/**
+ * A wheel's field value and setter. The native wheel only reports a selection
+ * the User scrolls to, so an unset field gets the default the wheel opens on
+ * as soon as it mounts; a stored value is never overwritten.
+ */
+const useWheelValue = (
+  control: Control<ProfileFormValues>,
+  name: ProfileField,
+  defaultValue: number,
+  onChange: () => void
+): [number, (value: number) => void] => {
+  const {
+    field: { onChange: setFieldValue, value },
+  } = useController({ control, name });
+
+  const setValue = useCallback(
+    (v: number) => {
+      setFieldValue(v);
+      onChange();
+    },
+    [onChange, setFieldValue]
+  );
+
+  const isUnset = value === undefined || value === null;
+
+  useEffect(() => {
+    if (isUnset) {
+      setValue(defaultValue);
+    }
+  }, [defaultValue, isUnset, setValue]);
+
+  return [value ?? defaultValue, setValue];
+};
+
+const AgeWheel = ({
+  control,
+  onChange,
+}: Omit<WheelProps, "measurementSystem">) => {
+  const [value, setAge] = useWheelValue(control, "age", DEFAULT_AGE, onChange);
+
+  return (
+    <Picker
+      onValueChange={setAge}
+      options={range(MIN_AGE, MAX_AGE).map((i) => ({
+        label: `${i}`,
+        value: i,
+      }))}
+      value={Math.round(value)}
+      variant="wheel"
+    />
+  );
+};
+
+const WeightWheel = ({ control, measurementSystem, onChange }: WheelProps) => {
+  const i18n = useI18n();
+  const isMetric = measurementSystem === "metric";
+
+  const [value, setWeight] = useWheelValue(
+    control,
+    "weight",
+    isMetric ? DEFAULT_WEIGHT_KG : DEFAULT_WEIGHT_LBS,
+    onChange
+  );
+
+  // Up to 1000 labels, each through the catalog: built once per language
+  // and system, not on every value change.
+  const options = useMemo(
+    () =>
+      range(1, isMetric ? 454 : 1000).map((i) => ({
+        label: formatWeight(i18n, i, measurementSystem),
+        value: i,
+      })),
+    [i18n, isMetric, measurementSystem]
+  );
+
+  return (
+    <Picker
+      onValueChange={setWeight}
+      options={options}
+      value={Math.round(value)}
+      variant="wheel"
+    />
+  );
+};
+
+const HeightWheel = ({ control, measurementSystem, onChange }: WheelProps) => {
+  const i18n = useI18n();
+  const { t } = useTranslation();
+  const isMetric = measurementSystem === "metric";
+
+  const [value, setHeight] = useWheelValue(
+    control,
+    "height",
+    isMetric ? DEFAULT_HEIGHT_CM : DEFAULT_HEIGHT_INCHES,
+    onChange
+  );
+
+  const { feet, inches } = inchesToFeetAndInches(value);
+
+  const handleFeetChange = useCallback(
+    (v: number) => setHeight(feetAndInchesToInches(v, inches)),
+    [inches, setHeight]
+  );
+
+  const handleInchesChange = useCallback(
+    (v: number) => setHeight(feetAndInchesToInches(feet, v)),
+    [feet, setHeight]
+  );
+
+  if (isMetric) {
+    return (
+      <Picker
+        onValueChange={setHeight}
+        options={range(30, 275).map((i) => ({
+          label: formatUnit(i18n, i, "cm"),
+          value: i,
+        }))}
+        value={Math.round(value)}
+        variant="wheel"
+      />
+    );
+  }
+
+  return (
+    <>
+      <Picker
+        onValueChange={handleFeetChange}
+        options={range(1, 9).map((i) => ({
+          label: t("profileForm.feet", { count: i }),
+          value: i,
+        }))}
+        value={feet}
+        variant="wheel"
+      />
+      <Picker
+        onValueChange={handleInchesChange}
+        options={range(0, 11).map((i) => ({
+          label: t("profileForm.inches", { count: i }),
+          value: i,
+        }))}
+        value={inches}
+        variant="wheel"
+      />
+    </>
+  );
+};
+
+/**
+ * Wheel picker(s) for a single profile parameter. Stored values may be
+ * fractional after a measurement system conversion, so the wheels show the
+ * nearest whole value while the form keeps the stored value until changed.
+ */
+const ParameterWheel = ({
+  control,
+  field,
+  measurementSystem,
+  onChange,
+}: ParameterWheelProps) => {
+  if (field === "age") {
+    return <AgeWheel control={control} onChange={onChange} />;
+  }
+
+  if (field === "weight") {
+    return (
+      <WeightWheel
+        control={control}
+        measurementSystem={measurementSystem}
+        onChange={onChange}
+      />
+    );
+  }
+
+  return (
+    <HeightWheel
+      control={control}
+      measurementSystem={measurementSystem}
+      onChange={onChange}
+    />
+  );
+};
+
+const ProfileForm = ({
   defaultValues,
   footer,
   heading,
@@ -185,15 +436,17 @@ export default function ProfileForm({
   submitLabel,
   submitSystemImage,
   submitTestID,
-}: ProfileFormProps) {
+}: ProfileFormProps) => {
   const insets = useSafeAreaInsets();
   const i18n = useI18n();
   const { t } = useTranslation();
 
   // The saved values the form starts from; later changes to `defaultValues`
   // don't reset the form either.
-  const [resolver] = useState(() =>
-    zodResolver(profileFormSchema(defaultValues))
+  const [resolver] = useReducer(
+    (initialResolver: Resolver<ProfileFormValues>) => initialResolver,
+    defaultValues,
+    (savedValues) => zodResolver(profileFormSchema(savedValues))
   );
 
   const form = useForm<ProfileFormValues>({
@@ -209,19 +462,14 @@ export default function ProfileForm({
 
   const [showWheel, setShowWheel] = useState(false);
 
-  const wheelHeight = useSharedValue(0);
-
   const animatedStyle = useAnimatedStyle(() => ({
-    height: wheelHeight.value,
+    height: withTiming(showWheel ? WHEEL_HEIGHT : 0, { duration: 150 }),
   }));
 
   const toggleWheel = useCallback(
     (show?: boolean) => {
       const next = show ?? !showWheel;
       setShowWheel(next);
-      wheelHeight.value = withTiming(next ? WHEEL_HEIGHT : 0, {
-        duration: 150,
-      });
 
       if (next) {
         // Small delay to ensure animation is complete
@@ -230,7 +478,7 @@ export default function ProfileForm({
         }, 160);
       }
     },
-    [showWheel, wheelHeight]
+    [showWheel]
   );
 
   const toggleField = useCallback(
@@ -331,41 +579,41 @@ export default function ProfileForm({
         <Pressable
           accessible={false}
           onPress={handleBackgroundPress}
-          style={{ flex: 1, width: "100%" }}
+          className="w-full flex-1"
         >
-          <VStack className="items-stretch justify-center gap-8 p-6">
+          <View className="flex flex-col items-stretch justify-center gap-8 p-6">
             {heading}
 
             {showName ? (
-              <VStack className="items-stretch gap-2">
+              <View className="flex flex-col items-stretch justify-center gap-2">
                 <H4>{t("profileForm.name")}</H4>
                 <Controller
                   control={form.control}
                   name="name"
                   render={renderNameField}
                 />
-              </VStack>
+              </View>
             ) : null}
 
-            <VStack className="items-stretch gap-2">
-              <VStack className="items-start justify-start gap-0">
+            <View className="flex flex-col items-stretch justify-center gap-2">
+              <View className="flex flex-col items-start justify-start gap-0">
                 <H4>{t("profileForm.gender")}</H4>
                 {form.formState.errors.gender ? (
                   <ErrorMessage>
                     {form.formState.errors.gender.message}
                   </ErrorMessage>
                 ) : null}
-              </VStack>
+              </View>
 
               <Controller
                 control={form.control}
                 name="gender"
                 render={renderGenderField}
               />
-            </VStack>
+            </View>
 
-            <VStack className="items-stretch gap-2">
-              <VStack className="items-start justify-start gap-0">
+            <View className="flex flex-col items-stretch justify-center gap-2">
+              <View className="flex flex-col items-start justify-start gap-0">
                 <H4>{t("profileForm.parameters")}</H4>
                 {PROFILE_FIELDS.map((field) => (
                   <VStack key={field}>
@@ -376,9 +624,9 @@ export default function ProfileForm({
                     ) : null}
                   </VStack>
                 ))}
-              </VStack>
+              </View>
 
-              <VStack className="bg-card items-stretch gap-0 rounded-lg">
+              <View className="bg-card flex flex-col items-stretch justify-center gap-0 rounded-lg">
                 <ParameterRow
                   field="age"
                   hasError={!!form.formState.errors.age}
@@ -419,29 +667,30 @@ export default function ProfileForm({
                       : undefined
                   }
                 />
-              </VStack>
-            </VStack>
+              </View>
+            </View>
 
             {footer}
-          </VStack>
+          </View>
         </Pressable>
       </ScrollView>
 
-      <VStack
-        className="items-stretch gap-1 p-6"
-        style={{ paddingBottom: Math.max(24, insets.bottom) }}
+      <ScopedVariables
+        variables={{ "--profile-footer-bottom": Math.max(24, insets.bottom) }}
       >
-        <Button
-          icon={submitSystemImage}
-          iconPosition="trailing"
-          isLoading={isFormSubmitting}
-          label={submitLabel}
-          onPress={form.handleSubmit(onSubmit)}
-          testID={submitTestID}
-        />
-      </VStack>
+        <View className="flex flex-col items-stretch justify-center gap-1 p-6 pb-(--profile-footer-bottom)">
+          <Button
+            icon={submitSystemImage}
+            iconPosition="trailing"
+            isLoading={isFormSubmitting}
+            label={submitLabel}
+            onPress={form.handleSubmit(onSubmit)}
+            testID={submitTestID}
+          />
+        </View>
+      </ScopedVariables>
       <Animated.View className="overflow-hidden" style={[animatedStyle]}>
-        <HStack className="flex-1 items-stretch justify-stretch gap-0 px-4">
+        <View className="flex flex-1 flex-row items-stretch justify-stretch gap-0 px-4">
           {activeWheel ? (
             // Remount per field: a reused native wheel keeps the previous selection
             <ParameterWheel
@@ -452,251 +701,10 @@ export default function ProfileForm({
               onChange={handleWheelChange}
             />
           ) : null}
-        </HStack>
+        </View>
       </Animated.View>
     </>
   );
-}
+};
 
-function renderGenderField({
-  field: { onChange, value },
-}: {
-  field: ControllerRenderProps<ProfileFormValues, "gender">;
-}) {
-  return <GenderSwitch onValueChange={onChange} value={value} />;
-}
-
-interface ParameterRowProps {
-  field: ProfileField;
-  hasError: boolean;
-  isFocused: boolean;
-  label: string;
-  onPress: (field: ProfileField) => void;
-  /** Formatted value, or `undefined` when not set yet. */
-  value?: string;
-}
-
-function ParameterRow({
-  field,
-  hasError,
-  isFocused,
-  label,
-  onPress,
-  value,
-}: ParameterRowProps) {
-  const { t } = useTranslation();
-  const handlePress = useCallback(() => onPress(field), [field, onPress]);
-
-  let valueClassName = "text-muted-foreground";
-
-  if (isFocused) {
-    valueClassName = "text-primary";
-  } else if (hasError) {
-    valueClassName = "text-destructive";
-  }
-
-  return (
-    <Pressable onPress={handlePress}>
-      <HStack className="w-full justify-between p-3">
-        <Text>{label}</Text>
-        <Text className={valueClassName}>
-          {value ?? t("profileForm.notSet")}
-        </Text>
-      </HStack>
-    </Pressable>
-  );
-}
-
-interface ParameterWheelProps {
-  control: Control<ProfileFormValues>;
-  field: ProfileField;
-  measurementSystem: MeasurementSystem;
-  /** Called after the field value changes, e.g. to re-validate it. */
-  onChange: () => void;
-}
-
-/**
- * Wheel picker(s) for a single profile parameter. Stored values may be
- * fractional after a measurement system conversion, so the wheels show the
- * nearest whole value while the form keeps the stored value until changed.
- */
-function ParameterWheel({
-  control,
-  field,
-  measurementSystem,
-  onChange,
-}: ParameterWheelProps) {
-  if (field === "age") {
-    return <AgeWheel control={control} onChange={onChange} />;
-  }
-
-  if (field === "weight") {
-    return (
-      <WeightWheel
-        control={control}
-        measurementSystem={measurementSystem}
-        onChange={onChange}
-      />
-    );
-  }
-
-  return (
-    <HeightWheel
-      control={control}
-      measurementSystem={measurementSystem}
-      onChange={onChange}
-    />
-  );
-}
-
-type WheelProps = Omit<ParameterWheelProps, "field">;
-
-/**
- * A wheel's field value and setter. The native wheel only reports a selection
- * the User scrolls to, so an unset field gets the default the wheel opens on
- * as soon as it mounts; a stored value is never overwritten.
- */
-function useWheelValue(
-  control: Control<ProfileFormValues>,
-  name: ProfileField,
-  defaultValue: number,
-  onChange: () => void
-): [number, (value: number) => void] {
-  const {
-    field: { onChange: setFieldValue, value },
-  } = useController({ control, name });
-
-  const setValue = useCallback(
-    (v: number) => {
-      setFieldValue(v);
-      onChange();
-    },
-    [onChange, setFieldValue]
-  );
-
-  const isUnset = value === undefined || value === null;
-
-  useEffect(() => {
-    if (isUnset) {
-      setValue(defaultValue);
-    }
-  }, [defaultValue, isUnset, setValue]);
-
-  return [value ?? defaultValue, setValue];
-}
-
-function AgeWheel({
-  control,
-  onChange,
-}: Omit<WheelProps, "measurementSystem">) {
-  const [value, setAge] = useWheelValue(control, "age", DEFAULT_AGE, onChange);
-
-  return (
-    <Picker
-      onValueChange={setAge}
-      options={range(MIN_AGE, MAX_AGE).map((i) => ({
-        label: `${i}`,
-        value: i,
-      }))}
-      value={Math.round(value)}
-      variant="wheel"
-    />
-  );
-}
-
-function WeightWheel({ control, measurementSystem, onChange }: WheelProps) {
-  const i18n = useI18n();
-  const isMetric = measurementSystem === "metric";
-
-  const [value, setWeight] = useWheelValue(
-    control,
-    "weight",
-    isMetric ? DEFAULT_WEIGHT_KG : DEFAULT_WEIGHT_LBS,
-    onChange
-  );
-
-  // Up to 1000 labels, each through the catalog: built once per language
-  // and system, not on every value change.
-  const { language } = i18n;
-
-  // biome-ignore lint/correctness/useExhaustiveDependencies: `language` stands for the instance's state, which `i18n` itself doesn't change with
-  const options = useMemo(
-    () =>
-      range(1, isMetric ? 454 : 1000).map((i) => ({
-        label: formatWeight(i18n, i, measurementSystem),
-        value: i,
-      })),
-    [i18n, isMetric, language, measurementSystem]
-  );
-
-  return (
-    <Picker
-      onValueChange={setWeight}
-      options={options}
-      value={Math.round(value)}
-      variant="wheel"
-    />
-  );
-}
-
-function HeightWheel({ control, measurementSystem, onChange }: WheelProps) {
-  const i18n = useI18n();
-  const { t } = useTranslation();
-  const isMetric = measurementSystem === "metric";
-
-  const [value, setHeight] = useWheelValue(
-    control,
-    "height",
-    isMetric ? DEFAULT_HEIGHT_CM : DEFAULT_HEIGHT_INCHES,
-    onChange
-  );
-
-  const { feet, inches } = inchesToFeetAndInches(value);
-
-  const handleFeetChange = useCallback(
-    (v: number) => setHeight(feetAndInchesToInches(v, inches)),
-    [inches, setHeight]
-  );
-
-  const handleInchesChange = useCallback(
-    (v: number) => setHeight(feetAndInchesToInches(feet, v)),
-    [feet, setHeight]
-  );
-
-  if (isMetric) {
-    return (
-      <Picker
-        onValueChange={setHeight}
-        options={range(30, 275).map((i) => ({
-          label: formatUnit(i18n, i, "cm"),
-          value: i,
-        }))}
-        value={Math.round(value)}
-        variant="wheel"
-      />
-    );
-  }
-
-  return (
-    <>
-      <Picker
-        onValueChange={handleFeetChange}
-        options={range(1, 9).map((i) => ({
-          label: t("profileForm.feet", { count: i }),
-          value: i,
-        }))}
-        value={feet}
-        variant="wheel"
-      />
-      <Picker
-        onValueChange={handleInchesChange}
-        options={range(0, 11).map((i) => ({
-          label: t("profileForm.inches", { count: i }),
-          value: i,
-        }))}
-        value={inches}
-        variant="wheel"
-      />
-    </>
-  );
-}
+export default ProfileForm;

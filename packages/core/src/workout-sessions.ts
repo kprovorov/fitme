@@ -26,49 +26,45 @@ const isExerciseTracked = (exercise: TrackableExercise): boolean =>
  * tracked). Finished sessions are never eligible. Exercise and set order is
  * irrelevant.
  */
-export function isWorkoutFullyTracked(
+export const isWorkoutFullyTracked = (
   session: TrackableWorkoutSession
-): boolean {
-  if (session.finished_at) {
+): boolean => {
+  if ((session.finished_at ?? "") !== "") {
     return false;
   }
 
   return (
     session.exercises.length > 0 && session.exercises.every(isExerciseTracked)
   );
-}
+};
 
 /**
  * The exercises with at least one set logged (`reps_completed` recorded; zero
  * counts), in their given order. A finished session's skipped exercises are
  * left out of its summary and history.
  */
-export function loggedExercises<T extends TrackableExercise>(
+export const loggedExercises = <T extends TrackableExercise>(
   exercises: T[]
-): T[] {
-  return exercises.filter((exercise) => exercise.sets.some(isSetTracked));
-}
+): T[] => exercises.filter((exercise) => exercise.sets.some(isSetTracked));
 
 /** How many sets of a session have no `reps_completed` recorded yet. */
-export function countUnloggedSets(
+export const countUnloggedSets = (
   session: Pick<TrackableWorkoutSession, "exercises">
-): number {
-  return session.exercises.reduce(
+): number =>
+  session.exercises.reduce(
     (total, exercise) =>
       total + exercise.sets.filter((set) => !isSetTracked(set)).length,
     0
   );
-}
 
 /** How many sets of a session have `reps_completed` recorded. */
-export function countLoggedSets(
+export const countLoggedSets = (
   session: Pick<TrackableWorkoutSession, "exercises">
-): number {
-  return session.exercises.reduce(
+): number =>
+  session.exercises.reduce(
     (total, exercise) => total + exercise.sets.filter(isSetTracked).length,
     0
   );
-}
 
 export type ExerciseProgressState = "done" | "in-progress" | "todo";
 
@@ -83,7 +79,7 @@ export interface ExerciseProgress {
  * one is logged, `in-progress` once some are, `todo` otherwise (an exercise
  * without sets included).
  */
-export function exerciseProgress(sets: TrackableSet[]): ExerciseProgress {
+export const exerciseProgress = (sets: TrackableSet[]): ExerciseProgress => {
   const total = sets.length;
   const logged = sets.filter(isSetTracked).length;
 
@@ -92,7 +88,7 @@ export function exerciseProgress(sets: TrackableSet[]): ExerciseProgress {
   }
 
   return { logged, state: logged > 0 ? "in-progress" : "todo", total };
-}
+};
 
 type ResultSet = Pick<
   WorkoutSessionExerciseSet,
@@ -103,22 +99,24 @@ type ResultSet = Pick<
  * Total weight moved: weight × reps over every logged set, in the unit the
  * weights are stored in. Sets without a weight count as zero.
  */
-export function sessionVolume(exercises: { sets: ResultSet[] }[]): number {
-  const volume = exercises.reduce(
-    (total, exercise) =>
-      total +
-      exercise.sets.reduce(
-        (sum, set) =>
-          isSetTracked(set)
-            ? sum + (set.weight_completed ?? 0) * (set.reps_completed ?? 0)
-            : sum,
-        0
-      ),
-    0
-  );
+export const sessionVolume = (exercises: { sets: ResultSet[] }[]): number => {
+  let volume = 0;
+
+  for (const exercise of exercises) {
+    let exerciseVolume = 0;
+
+    for (const set of exercise.sets) {
+      if (isSetTracked(set)) {
+        exerciseVolume +=
+          (set.weight_completed ?? 0) * (set.reps_completed ?? 0);
+      }
+    }
+
+    volume += exerciseVolume;
+  }
 
   return Math.round(volume * 100) / 100;
-}
+};
 
 /** A logged set's result: what was lifted, for how many reps. */
 export interface SetResult {
@@ -130,7 +128,7 @@ export interface SetResult {
  * The heaviest logged set (most reps breaks a tie), or `null` when nothing is
  * logged. Sets without a weight only win when no set has one.
  */
-export function bestSet(sets: ResultSet[]): SetResult | null {
+export const bestSet = (sets: ResultSet[]): SetResult | null => {
   let best: SetResult | null = null;
 
   for (const set of sets) {
@@ -156,20 +154,23 @@ export function bestSet(sets: ResultSet[]): SetResult | null {
   }
 
   return best;
-}
+};
 
 /** `17.5 × 12`, or `12 reps` for a set without weight. */
-export function formatSetResult({ reps, weight }: SetResult): string {
-  return weight ? `${weight} × ${reps}` : `${reps} reps`;
-}
+export const formatSetResult = ({ reps, weight }: SetResult): string =>
+  weight !== null && weight !== 0 && !Number.isNaN(weight)
+    ? `${weight} × ${reps}`
+    : `${reps} reps`;
 
 /** The recommended reps of some sets as `12` or a range `10–12`, or `null`. */
-export function formatRepRange(
+export const formatRepRange = (
   sets: Pick<WorkoutSessionExerciseSet, "reps_recommended">[]
-): string | null {
-  const reps = sets
-    .map((set) => set.reps_recommended)
-    .filter((value): value is number => value !== null && value > 0);
+): string | null => {
+  const reps = sets.flatMap((set) => {
+    const value = set.reps_recommended;
+
+    return value !== null && value > 0 ? [value] : [];
+  });
 
   if (reps.length === 0) {
     return null;
@@ -179,4 +180,4 @@ export function formatRepRange(
   const max = Math.max(...reps);
 
   return min === max ? `${min}` : `${min}–${max}`;
-}
+};

@@ -1,6 +1,6 @@
 import Constants from "expo-constants";
 import { useTranslation } from "react-i18next";
-import { Platform } from "react-native";
+import { Platform, View } from "react-native";
 
 import { Button } from "~/components/ui/button";
 import { Text } from "~/components/ui/text";
@@ -30,23 +30,27 @@ const openStore = () => {
 };
 
 /** Blocking screen for a build older than the minimum supported version. */
-export default function UpdateRequiredView() {
+const UpdateRequiredView = () => {
   const { t } = useTranslation();
 
   return (
-    <VStack className="bg-background p-lg flex-1 items-center justify-center gap-4">
-      <H3 className="text-center">{t("updateRequired.title")}</H3>
-      <Text className="text-body-emphasized text-muted-foreground text-center">
-        {t("updateRequired.description")}
-      </Text>
-      {STORE_URL ? (
-        <Button
-          icon="arrow.down.app"
-          iconPosition="trailing"
-          label={t("updateRequired.update")}
-          onPress={openStore}
-        />
-      ) : null}
-    </VStack>
+    <View className="bg-background p-lg flex-1">
+      <VStack className="flex-1">
+        <H3 className="text-center">{t("updateRequired.title")}</H3>
+        <Text className="text-center" variant="muted">
+          {t("updateRequired.description")}
+        </Text>
+        {STORE_URL ? (
+          <Button
+            icon="arrow.down.app"
+            iconPosition="trailing"
+            label={t("updateRequired.update")}
+            onPress={openStore}
+          />
+        ) : null}
+      </VStack>
+    </View>
   );
-}
+};
+
+export default UpdateRequiredView;

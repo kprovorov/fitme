@@ -31,13 +31,13 @@ interface StatProps {
 }
 
 /** One summary figure: a large value over its caption (Figma's StatItem). */
-function Stat({
+const Stat = ({
   accent = false,
   spokenValue,
   stacked,
   title,
   value,
-}: StatProps) {
+}: StatProps) => {
   const { t } = useTranslation();
 
   return (
@@ -57,7 +57,7 @@ function Stat({
       <Text className="text-footnote text-muted-foreground">{title}</Text>
     </View>
   );
-}
+};
 
 /**
  * The current calendar month's training, above History's list: qualifying
@@ -66,13 +66,13 @@ function Stat({
  * Weekly goal chart, with an active Plan only (`weeklyGoals` unread or
  * failed: none).
  */
-export default function HistoryMonthOverview({
+const HistoryMonthOverview = ({
   history,
   weeklyGoals,
 }: {
   history: WorkoutSessionHistory;
   weeklyGoals: WeeklyGoals | undefined;
-}) {
+}) => {
   const i18n = useI18n();
   const { t } = useTranslation();
   const totals = monthlyTotals(history.sessions);
@@ -141,4 +141,6 @@ export default function HistoryMonthOverview({
       ) : null}
     </View>
   );
-}
+};
+
+export default HistoryMonthOverview;

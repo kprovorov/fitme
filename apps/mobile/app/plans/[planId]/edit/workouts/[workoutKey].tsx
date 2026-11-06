@@ -20,7 +20,7 @@ import type { PlanDraft } from "~/lib/plan-draft";
  * Add and Replace open the builder's own Library picker, which writes the
  * picked Exercise's slug into the draft and comes back here.
  */
-export default function WorkoutEditorScreen() {
+const WorkoutEditorScreen = () => {
   const {
     draft: draftKey,
     planId,
@@ -77,7 +77,7 @@ export default function WorkoutEditorScreen() {
           contentInsetAdjustmentBehavior="automatic"
         >
           <View className="gap-sm pt-lg items-center">
-            <Text className="text-muted-foreground text-center">
+            <Text className="text-center" variant="muted">
               {t("plannedWorkout.gone")}
             </Text>
             <Button
@@ -113,4 +113,6 @@ export default function WorkoutEditorScreen() {
       </KeyboardAwareScrollView>
     </>
   );
-}
+};
+
+export default WorkoutEditorScreen;

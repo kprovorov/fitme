@@ -1,4 +1,6 @@
 import assert from "node:assert/strict";
+/// <reference types="node" />
+import { Buffer } from "node:buffer";
 import { spawnSync } from "node:child_process";
 import crypto from "node:crypto";
 import fs from "node:fs";
@@ -17,6 +19,7 @@ const SCRIPT = fileURLToPath(
 const WIDTH = 1320;
 const HEIGHT = 2868;
 
+/** @type {string[]} */
 const tempDirs = [];
 
 after(() => {
@@ -27,6 +30,7 @@ after(() => {
 
 // A PNG written by hand, so the fixtures don't depend on the decoder under
 // test: signature, IHDR, optional tRNS, one IDAT of all-black rows, IEND.
+/** @param {string} type PNG chunk type. */
 const chunk = (type, data = Buffer.alloc(0)) => {
   const length = Buffer.alloc(4);
   length.writeUInt32BE(data.length);
@@ -38,6 +42,8 @@ const chunk = (type, data = Buffer.alloc(0)) => {
 };
 
 const CHANNELS = { 0: 1, 2: 3, 3: 1, 4: 2, 6: 4 };
+
+/** @type {Map<string, Buffer>} */
 const pngCache = new Map();
 
 const png = ({
@@ -58,7 +64,7 @@ const png = ({
 
   const cached = pngCache.get(key);
 
-  if (cached) {
+  if (cached !== undefined) {
     return cached;
   }
 
@@ -105,6 +111,7 @@ const png = ({
 };
 
 // tree: { "iphone-6.9/en-US/01.png": Buffer | string, "some/dir/": null }
+/** @param {Record<string, Buffer | string | null>} tree Fixture paths and their contents. */
 const makeTree = (tree) => {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), "app-store-shots-"));
   tempDirs.push(dir);
@@ -118,12 +125,17 @@ const makeTree = (tree) => {
     }
 
     fs.mkdirSync(path.dirname(file), { recursive: true });
+    assert.notEqual(content, null);
     fs.writeFileSync(file, content);
   }
 
   return dir;
 };
 
+/**
+ * @param {string} set Screenshot set path.
+ * @param {number} count Number of images.
+ */
 const images = (set, count, bytes = png()) =>
   Object.fromEntries(
     Array.from({ length: count }, (_, i) => [
@@ -132,6 +144,7 @@ const images = (set, count, bytes = png()) =>
     ])
   );
 
+/** @param {string[]} args Command arguments. */
 const run = (...args) => {
   const child = spawnSync(process.execPath, [SCRIPT, ...args], {
     encoding: "utf-8",
@@ -161,10 +174,15 @@ const listingConfig = (locales = ["en-US", "uk"]) => {
 
 const DEFAULT_CONFIG = listingConfig();
 
+/** @param {string} dir Screenshot directory. */
 const check = (dir, config = DEFAULT_CONFIG) =>
   run("check", dir, "--config", config);
 
 // The expected texts that start no line of stderr: [] when each is reported.
+/**
+ * @param {{lines: string[]}} result Command output.
+ * @param {string[]} expected Expected diagnostic prefixes.
+ */
 const unreported = ({ lines }, expected) =>
   expected.filter((start) => !lines.some((line) => line.startsWith(start)));
 
@@ -287,6 +305,7 @@ describe("check rejects (numbering)", () => {
   });
 });
 
+/** @param {Buffer} bytes Image bytes. */
 const withImage = (bytes, set = EN) => ({
   ...images(set, 2),
   [`${set}/02.png`]: bytes,
@@ -327,7 +346,7 @@ describe("check rejects (images)", () => {
     const result = check(
       makeTree(
         withImage(
-          Buffer.from("\u00ff\u00d8\u00ff\u00e0 a JPEG really", "latin1")
+          Buffer.from("\u00FF\u00D8\u00FF\u00E0 a JPEG really", "latin1")
         )
       )
     );
@@ -687,6 +706,10 @@ const GIT_ENV = {
   GIT_CONFIG_NOSYSTEM: "1",
 };
 
+/**
+ * @param {string} cwd Repository directory.
+ * @param {string[]} args Command arguments.
+ */
 const git = (cwd, ...args) => {
   const child = spawnSync("git", args, {
     cwd,
@@ -706,6 +729,7 @@ const SCREENSHOTS = "marketing/app-store";
 const DELETED_UK =
   /^iphone-6\.9 \/ uk: Screenshot set deleted since HEAD, but uk is still a Listing locale in \S*store\.config\.json; .*would stay online as they are\. Replace the images instead, or remove uk from the listing config deliberately$/;
 
+/** @param {string[]} locales Listing locales. */
 const configJson = (locales) =>
   JSON.stringify({
     apple: {
@@ -714,6 +738,7 @@ const configJson = (locales) =>
     configVersion: 0,
   });
 
+/** @param {Record<string, Buffer | string | null>} tree Fixture paths and their contents. */
 const makeRepo = (tree, locales = ["en-US", "uk"]) => {
   const repo = makeTree({
     ...Object.fromEntries(
@@ -736,6 +761,7 @@ const makeRepo = (tree, locales = ["en-US", "uk"]) => {
   };
 };
 
+/** @param {{config: string, dir: string}} target Listing paths. */
 const checkAgainst = ({ config, dir }, base = "HEAD") =>
   run("check", dir, "--base", base, "--config", config);
 
@@ -910,6 +936,7 @@ const LISTING = {
   configVersion: 0,
 };
 
+/** @param {unknown} [content] Listing fixture content. */
 const listing = (content = LISTING) => {
   const dir = makeTree({});
   const config = path.join(dir, "apps", "mobile", "store.config.json");
@@ -919,16 +946,69 @@ const listing = (content = LISTING) => {
   return { config, staging: path.join(dir, "staging") };
 };
 
+/**
+ * @typedef {{config: string, staging: string}} PrepareTarget
+ * @param {string} dir Screenshot directory.
+ * @param {PrepareTarget} target Listing paths.
+ */
 const prepare = (dir, { config, staging }) =>
   run("prepare", staging, dir, "--config", config);
 
-const readConfig = (config) => JSON.parse(fs.readFileSync(config, "utf-8"));
+/**
+ * @param {unknown} value Value to inspect.
+ * @returns {value is Record<string, unknown>} Whether the value is an object.
+ */
+const isObject = (value) =>
+  value !== null && typeof value === "object" && !Array.isArray(value);
 
+/**
+ * @typedef {{apple: {info: Record<string, Record<string, unknown> & {screenshots?: Record<string, string[]>}>}}} PreparedConfig
+ * @param {string} config Listing config path.
+ * @returns {PreparedConfig} The generated listing config.
+ */
+const readConfig = (config) => {
+  /** @type {unknown} */
+  const value = JSON.parse(fs.readFileSync(config, "utf-8"));
+  assert.ok(isObject(value) && isObject(value.apple));
+  assert.ok(isObject(value.apple.info));
+
+  return {
+    ...value,
+    apple: {
+      ...value.apple,
+      info: Object.fromEntries(
+        Object.entries(value.apple.info).map(([locale, text]) => {
+          assert.ok(isObject(text));
+
+          if (text.screenshots === undefined) {
+            return [locale, text];
+          }
+
+          assert.ok(isObject(text.screenshots));
+
+          const screenshots = Object.fromEntries(
+            Object.entries(text.screenshots).map(([displayType, paths]) => {
+              assert.ok(Array.isArray(paths));
+              assert.ok(paths.every((p) => typeof p === "string"));
+
+              return [displayType, paths];
+            })
+          );
+
+          return [locale, { ...text, screenshots }];
+        })
+      ),
+    },
+  };
+};
+
+/** @param {Buffer} bytes Image bytes. */
 const sha8 = (bytes) =>
   crypto.createHash("sha256").update(bytes).digest("hex").slice(0, 8);
 
 // The same PNG with a fixed-length comment: valid, the same byte size as
 // every other variant, different bytes (and so a different sha256).
+/** @param {number} n Image variant number. */
 const variant = (n, base = png()) => {
   const iend = base.length - 12;
 
@@ -940,6 +1020,10 @@ const variant = (n, base = png()) => {
 };
 
 // A Screenshot set whose images all differ: position i holds variant(seed + i).
+/**
+ * @param {string} set Screenshot set path.
+ * @param {number} count Number of images.
+ */
 const distinctImages = (set, count, seed = 0) =>
   Object.fromEntries(
     Array.from({ length: count }, (_, i) => [
@@ -949,6 +1033,10 @@ const distinctImages = (set, count, seed = 0) =>
   );
 
 // The staged files a config entry names, resolved as EAS resolves them.
+/**
+ * @param {string} config Listing config path.
+ * @param {string[]} paths Staged image paths.
+ */
 const staged = (config, paths) =>
   paths.map((p) => path.resolve(path.dirname(config), p));
 
@@ -972,10 +1060,13 @@ describe("prepare", () => {
     assert.deepEqual(Object.keys(en), ["APP_IPHONE_67"]);
     assert.deepEqual(Object.keys(uk), ["APP_IPHONE_67"]);
 
-    for (const [set, paths] of [
+    /** @type {[string, string[]][]} */
+    const sets = [
       [EN, en.APP_IPHONE_67],
       [UK, uk.APP_IPHONE_67],
-    ]) {
+    ];
+
+    for (const [set, paths] of sets) {
       const files = staged(target.config, paths);
       assert.equal(
         files.length,
@@ -1004,12 +1095,14 @@ describe("prepare", () => {
   });
 });
 
+/** @param {string} config Listing config path. */
 const names = (config, locale = "en-US") =>
   readConfig(config).apple.info[locale].screenshots.APP_IPHONE_67.map((p) =>
     path.basename(p)
   );
 
 // Every file under a directory, relative to it; [] when it isn't there.
+/** @param {string} dir Screenshot directory. */
 const filesUnder = (dir) =>
   fs.existsSync(dir)
     ? fs
@@ -1076,6 +1169,7 @@ describe("prepare (names and order)", () => {
 
 describe("prepare writes nothing", () => {
   // What prepare left: the config's text and the staged files.
+  /** @param {PrepareTarget} target Listing paths. */
   const leftover = (target) => ({
     config: fs.readFileSync(target.config, "utf-8"),
     staged: filesUnder(target.staging),

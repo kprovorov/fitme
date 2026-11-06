@@ -48,7 +48,7 @@ const proUntil = (
 ): number | null => {
   const entitlement = body.subscriber.entitlements[proEntitlement];
 
-  if (!entitlement) {
+  if (entitlement === undefined) {
     return null;
   }
 
@@ -88,7 +88,7 @@ export const createProCheck = ({
 
     const key = secretKey();
 
-    if (!key) {
+    if (key === undefined || key === "") {
       throw new Error("Missing REVENUECAT_SECRET_KEY environment variable");
     }
 

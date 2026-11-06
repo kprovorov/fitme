@@ -319,10 +319,8 @@ const readHistoryPages = async (): Promise<
   let weightUnit: WorkoutSessionHistory["weightUnit"] | null = null;
   let consistent = true;
   let total: number | null = null;
-  let offset = 0;
 
-  for (;;) {
-    // biome-ignore lint/performance/noAwaitInLoops: each page's offset follows from the last one's
+  const readPage = async (offset: number): Promise<void> => {
     const { data } = await publicApi().GET("/v1/workout-sessions", {
       params: {
         query: { limit: HISTORY_PAGE_SIZE, offset, status: "finished" },
@@ -346,15 +344,17 @@ const readHistoryPages = async (): Promise<
     }
 
     if (!data.hasMore || data.data.length === 0) {
-      break;
+      return;
     }
 
-    offset += data.data.length;
-  }
+    await readPage(offset + data.data.length);
+  };
+
+  await readPage(0);
 
   return {
     consistent: consistent && sessions.size === total,
-    sessions: [...sessions.values()].sort(
+    sessions: [...sessions.values()].toSorted(
       (a, b) =>
         new Date(b.started_at).getTime() - new Date(a.started_at).getTime()
     ),
@@ -372,20 +372,24 @@ const readHistoryPages = async (): Promise<
  */
 export const fetchWorkoutSessionHistory =
   async (): Promise<WorkoutSessionHistory> => {
-    for (let attempt = 1; ; attempt += 1) {
-      // biome-ignore lint/performance/noAwaitInLoops: a read is retried only after the last one changed
+    const readAttempt = async (
+      attempt: number
+    ): Promise<WorkoutSessionHistory> => {
       const { consistent, ...history } = await readHistoryPages();
 
       if (consistent || attempt === HISTORY_READ_ATTEMPTS) {
         return history;
       }
-    }
+
+      return readAttempt(attempt + 1);
+    };
+
+    return await readAttempt(1);
   };
 
-export const useWorkoutSessionHistoryQuery = createQuery<
-  WorkoutSessionHistory,
-  void
->({
-  fetcher: fetchWorkoutSessionHistory,
-  queryKey: ["workout-sessions-history"],
-});
+export const useWorkoutSessionHistoryQuery = createQuery<WorkoutSessionHistory>(
+  {
+    fetcher: fetchWorkoutSessionHistory,
+    queryKey: ["workout-sessions-history"],
+  }
+);

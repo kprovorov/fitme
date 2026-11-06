@@ -1,5 +1,9 @@
-import { equipment as knownEquipment, muscleGroups } from "@fitme/core/models";
-import type { AppLanguage, Equipment, MuscleGroup } from "@fitme/core/models";
+import {
+  isAppLanguage,
+  equipment as knownEquipment,
+  muscleGroups,
+} from "@fitme/core/models";
+import type { AppLanguage } from "@fitme/core/models";
 
 import type { Cover, Exercise } from "..";
 
@@ -17,9 +21,9 @@ export const exercise = (
   overrides: Partial<StubExercise> = {}
 ): StubExercise => ({
   description: `About ${slug}.`,
-  equipment: ["barbell"] as Equipment[],
+  equipment: ["barbell"],
   instructions: `Do ${slug}.`,
-  muscle_groups: ["chest"] as MuscleGroup[],
+  muscle_groups: ["chest"],
   name: slug
     .split("-")
     .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
@@ -34,13 +38,17 @@ export const exercise = (
 export const cover = (id: string, overrides: Partial<Cover> = {}): Cover => ({
   id,
   image_url: `https://media.test/covers/${id}.jpg`,
-  muscle_groups: ["chest"] as MuscleGroup[],
+  muscle_groups: ["chest"],
   ...overrides,
 });
 
-const summary = ({ description, instructions, ...rest }: Exercise) => rest;
+const summary = ({
+  description: _description,
+  instructions: _instructions,
+  ...rest
+}: Exercise) => rest;
 
-const EXERCISE_PATH = /^\/exercises\/([^/]+)$/;
+const EXERCISE_PATH = /^\/exercises\/(?<slug>[^/]+)$/u;
 
 const invalidRequest = (message: string) =>
   Response.json(
@@ -65,7 +73,7 @@ const muscleGroupsRefusal = ({
     return invalidRequest("muscle_groups: can't be combined with muscle_group");
   }
 
-  return groups.every((group) => muscleGroups.includes(group as MuscleGroup))
+  return groups.every((group) => muscleGroups.some((known) => known === group))
     ? null
     : invalidRequest("muscle_groups: invalid muscle group");
 };
@@ -79,7 +87,9 @@ const equipmentRefusal = ({ equipment }: StubRequest) => {
     return null;
   }
 
-  return equipment.every((item) => knownEquipment.includes(item as Equipment))
+  return equipment.every((item) =>
+    knownEquipment.some((known) => known === item)
+  )
     ? null
     : invalidRequest("equipment: invalid equipment");
 };
@@ -113,7 +123,9 @@ const serveIn = (exercises: StubExercise[], language: string) => {
 
   return exercises
     .map(({ translations, ...english }) => {
-      const translation = translations?.[language as AppLanguage];
+      const translation = isAppLanguage(language)
+        ? translations?.[language]
+        : undefined;
 
       return {
         exercise: { ...english, ...translation },
@@ -122,7 +134,7 @@ const serveIn = (exercises: StubExercise[], language: string) => {
         ),
       };
     })
-    .sort(
+    .toSorted(
       (a, b) =>
         collator.compare(a.exercise.name, b.exercise.name) ||
         collator.compare(a.exercise.slug, b.exercise.slug)
@@ -183,22 +195,23 @@ export const stubApi = (
     }
 
     const groups =
-      request.muscleGroups ?? (request.muscleGroup && [request.muscleGroup]);
+      request.muscleGroups ??
+      (request.muscleGroup === null || request.muscleGroup === ""
+        ? null
+        : [request.muscleGroup]);
 
     const limit = Number(request.limit ?? 20);
     const offset = Number(request.offset ?? 0);
-    const term = request.search?.trim().toLowerCase();
+    const term = request.search?.trim().toLowerCase() ?? "";
 
     const matches = sorted.filter(
       ({ exercise: e, names }) =>
-        (!term || names.some((name) => name.includes(term))) &&
-        (!groups ||
-          groups.some((group) =>
-            e.muscle_groups.includes(group as MuscleGroup)
-          )) &&
+        (term === "" || names.some((name) => name.includes(term))) &&
+        (groups === null ||
+          e.muscle_groups.some((group) => groups.includes(group))) &&
         (!request.equipment ||
           request.equipment.some((item) =>
-            e.equipment.includes(item as Equipment)
+            e.equipment.some((known) => known === item)
           ))
     );
 
@@ -214,9 +227,9 @@ export const stubApi = (
   };
 
   const fetch = async (input: RequestInfo | URL, init?: RequestInit) => {
-    const url = new URL(String(input));
+    const url = new URL(input instanceof Request ? input.url : input);
     const params = url.searchParams;
-    const [, slug] = EXERCISE_PATH.exec(url.pathname) ?? [];
+    const slug = EXERCISE_PATH.exec(url.pathname)?.groups?.slug;
 
     const request: StubRequest = {
       authorization: new Headers(init?.headers).get("authorization"),

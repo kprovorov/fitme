@@ -5,7 +5,7 @@ import type { UserConfig } from "tsdown";
 const shared: UserConfig = {
   deps: {
     // Workspace packages are source-only, so inline them into the bundle.
-    alwaysBundle: [/^@fitme\//],
+    alwaysBundle: [/^@fitme\//u],
     // No package from node_modules may be inlined (workspace packages resolve
     // to source, so they don't count): a dependency of one must be declared in
     // package.json too, so it stays external and Vercel traces it instead.

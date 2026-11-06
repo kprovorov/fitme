@@ -62,8 +62,10 @@ describe("gET /v1/plans", () => {
     });
 
     expect(response.status).toBe(200);
-    await expect(response.json()).resolves.toEqual({ data: [summary, older] });
-    expect(servicesFor).toEqual(["user_alice"]);
+    await expect(response.json()).resolves.toStrictEqual({
+      data: [summary, older],
+    });
+    expect(servicesFor).toStrictEqual(["user_alice"]);
   });
 
   it("answers an empty list for a User without Plans", async () => {
@@ -76,7 +78,7 @@ describe("gET /v1/plans", () => {
     });
 
     expect(response.status).toBe(200);
-    await expect(response.json()).resolves.toEqual({ data: [] });
+    await expect(response.json()).resolves.toStrictEqual({ data: [] });
   });
 
   it("never shows fields beyond the contract", async () => {
@@ -101,7 +103,7 @@ describe("gET /v1/plans", () => {
       headers: signedInAs("user_alice"),
     });
 
-    await expect(response.json()).resolves.toEqual({ data: [summary] });
+    await expect(response.json()).resolves.toStrictEqual({ data: [summary] });
   });
 
   it("answers 401 without a session token", async () => {
@@ -189,11 +191,11 @@ describe("gET /v1/plans/{id}", () => {
     });
 
     expect(response.status).toBe(200);
-    await expect(response.json()).resolves.toEqual({
+    await expect(response.json()).resolves.toStrictEqual({
       data: { ...detail, weight_unit: "kg" },
     });
-    expect(asked).toEqual([planId]);
-    expect(reported).toEqual([]);
+    expect(asked).toStrictEqual([planId]);
+    expect(reported).toStrictEqual([]);
   });
 
   it.each(["kg", "lbs"] as const)(
@@ -227,10 +229,10 @@ describe("gET /v1/plans/{id}", () => {
     });
 
     expect(response.status).toBe(404);
-    await expect(response.json()).resolves.toEqual({
+    await expect(response.json()).resolves.toStrictEqual({
       error: { code: "not_found", message: "Plan not found" },
     });
-    expect(reported).toEqual([]);
+    expect(reported).toStrictEqual([]);
   });
 
   it("answers 400 invalid_request for an id that isn't a uuid", async () => {
@@ -243,8 +245,9 @@ describe("gET /v1/plans/{id}", () => {
     });
 
     expect(response.status).toBe(400);
-    expect((await response.json()).error.code).toBe("invalid_request");
-    expect(reported).toEqual([]);
+    const body = await response.json();
+    expect(body.error.code).toBe("invalid_request");
+    expect(reported).toStrictEqual([]);
   });
 });
 
@@ -261,7 +264,7 @@ describe("gET /v1/plans/active", () => {
     });
 
     expect(response.status).toBe(200);
-    await expect(response.json()).resolves.toEqual({
+    await expect(response.json()).resolves.toStrictEqual({
       data: { ...detail, weight_unit: "lbs" },
     });
   });
@@ -276,7 +279,7 @@ describe("gET /v1/plans/active", () => {
     });
 
     expect(response.status).toBe(200);
-    await expect(response.json()).resolves.toEqual({ data: null });
-    expect(reported).toEqual([]);
+    await expect(response.json()).resolves.toStrictEqual({ data: null });
+    expect(reported).toStrictEqual([]);
   });
 });

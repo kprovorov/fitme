@@ -2,6 +2,7 @@ import { useUser } from "@clerk/expo";
 import { Link, router, Stack } from "expo-router";
 import { useCallback } from "react";
 import { useTranslation } from "react-i18next";
+import { View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import Sign from "~/components/brand/sign";
@@ -11,7 +12,7 @@ import { H2 } from "~/components/ui/typography";
 import { VStack } from "~/components/ui/vstack";
 import { storage } from "~/lib/mmkv";
 
-export default function WelcomeScreen() {
+const WelcomeScreen = () => {
   const { user } = useUser();
   const { t } = useTranslation();
 
@@ -31,14 +32,14 @@ export default function WelcomeScreen() {
         }}
       />
       <SafeAreaView className="flex-1">
-        <VStack className="h-full items-center justify-center gap-8 p-6">
+        <View className="flex h-full flex-col items-center justify-center gap-8 p-6">
           <Sign height={100} width={100} />
-          <VStack className="gap-2">
+          <View className="flex flex-col items-center justify-center gap-2">
             <H2>{t("onboarding.welcome.title")}</H2>
             <Text className="text-center">
               {t("onboarding.welcome.description")}
             </Text>
-          </VStack>
+          </View>
           <VStack className="w-full items-stretch">
             <Link asChild href="/onboarding/profile">
               <Button
@@ -55,8 +56,10 @@ export default function WelcomeScreen() {
               variant="ghost"
             />
           </VStack>
-        </VStack>
+        </View>
       </SafeAreaView>
     </>
   );
-}
+};
+
+export default WelcomeScreen;

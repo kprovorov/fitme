@@ -1,4 +1,4 @@
-import type { PlanDetail } from "@fitme/services/plans";
+import type { PlanChanges, PlanDetail } from "@fitme/services/plans";
 import { describe, expect, it } from "vitest";
 
 import type { UserServices } from "../services.js";
@@ -8,7 +8,7 @@ const planId = "6f0c1d7e-3b1a-4d7e-9a43-2f6b0c1e5a10";
 const workoutId = "a1d6c0b2-7e3f-4f0a-9c1d-3b5e7a9c1d20";
 
 /** A Plan in full as the contract shows it, without its `weight_unit`. */
-const detail = {
+const detail: PlanDetail = {
   created_at: "2026-10-20T09:00:00+00:00",
   description: "Three full-body days",
   experience_level: "intermediate",
@@ -49,23 +49,35 @@ const detail = {
 };
 
 /** `detail` as the services return it, with fields the contract never shows. */
-const weighed = (plan: object = {}, weightUnit: "kg" | "lbs" = "kg") => ({
+const weighed = (
+  plan: Partial<PlanDetail> = {},
+  weightUnit: "kg" | "lbs" = "kg"
+) => ({
   value: {
     ...detail,
     deleted_at: null,
     user_id: "user_alice",
     ...plan,
-  } as unknown as PlanDetail,
+  },
   weightUnit,
 });
 
-const json = (method: string, body: unknown) => ({
+// Includes the extra field sent to check rejection of unknown metadata.
+interface PlanPatchBody extends PlanChanges {
+  owner?: string;
+}
+
+const json = (method: string, body: PlanPatchBody) => ({
   body: JSON.stringify(body),
   headers: { ...signedInAs("user_alice"), "content-type": "application/json" },
   method,
 });
 
-const patch = (services: Partial<UserServices>, body: unknown, id = planId) => {
+const patch = (
+  services: Partial<UserServices>,
+  body: PlanPatchBody,
+  id = planId
+) => {
   const harness = testApp({ services: fakeServices(services) });
 
   return {
@@ -94,12 +106,14 @@ describe("pATCH /v1/plans/{id}", () => {
     const answered = await response;
 
     expect(answered.status).toBe(200);
-    await expect(answered.json()).resolves.toEqual({
+    await expect(answered.json()).resolves.toStrictEqual({
       data: { ...detail, name: "Renamed", note: "Deload", weight_unit: "lbs" },
     });
-    expect(asked).toEqual([[planId, { name: "Renamed", note: "Deload" }]]);
-    expect(servicesFor).toEqual(["user_alice"]);
-    expect(reported).toEqual([]);
+    expect(asked).toStrictEqual([
+      [planId, { name: "Renamed", note: "Deload" }],
+    ]);
+    expect(servicesFor).toStrictEqual(["user_alice"]);
+    expect(reported).toStrictEqual([]);
   });
 
   it("takes every metadata field, and note null clears the note", async () => {
@@ -127,8 +141,10 @@ describe("pATCH /v1/plans/{id}", () => {
       changes
     );
 
-    expect((await response).status).toBe(200);
-    expect(asked).toEqual([changes]);
+    const answered = await response;
+
+    expect(answered.status).toBe(200);
+    expect(asked).toStrictEqual([changes]);
   });
 
   it.each([
@@ -146,15 +162,20 @@ describe("pATCH /v1/plans/{id}", () => {
       const answered = await response;
 
       expect(answered.status).toBe(400);
-      expect((await answered.json()).error.code).toBe("invalid_request");
-      expect(reported).toEqual([]);
+      const result = await answered.json();
+
+      expect(result.error.code).toBe("invalid_request");
+      expect(reported).toStrictEqual([]);
     }
   );
 
   it("names workouts in its 400", async () => {
     const { response } = patch({}, { name: "Renamed", workouts: [] });
 
-    expect((await (await response).json()).error.message).toContain("workouts");
+    const answered = await response;
+    const body = await answered.json();
+
+    expect(body.error.message).toContain("workouts");
   });
 
   it("answers 404 not_found, unreported, for a Plan the services don't find", async () => {
@@ -166,16 +187,18 @@ describe("pATCH /v1/plans/{id}", () => {
     const answered = await response;
 
     expect(answered.status).toBe(404);
-    await expect(answered.json()).resolves.toEqual({
+    await expect(answered.json()).resolves.toStrictEqual({
       error: { code: "not_found", message: "Plan not found" },
     });
-    expect(reported).toEqual([]);
+    expect(reported).toStrictEqual([]);
   });
 
   it("answers 400 invalid_request for an id that isn't a uuid", async () => {
     const { response } = patch({}, { name: "Renamed" }, "not-a-uuid");
 
-    expect((await response).status).toBe(400);
+    const answered = await response;
+
+    expect(answered.status).toBe(400);
   });
 
   it("answers 401 without a session token", async () => {
@@ -218,12 +241,12 @@ describe("pOST /v1/plans/{id}/activate", () => {
     const answered = await response;
 
     expect(answered.status).toBe(200);
-    await expect(answered.json()).resolves.toEqual({
+    await expect(answered.json()).resolves.toStrictEqual({
       data: { ...detail, is_active: true, weight_unit: "lbs" },
     });
-    expect(asked).toEqual([planId]);
-    expect(servicesFor).toEqual(["user_alice"]);
-    expect(reported).toEqual([]);
+    expect(asked).toStrictEqual([planId]);
+    expect(servicesFor).toStrictEqual(["user_alice"]);
+    expect(reported).toStrictEqual([]);
   });
 
   it("answers 404 not_found, unreported, for a Plan the services don't find", async () => {
@@ -234,10 +257,10 @@ describe("pOST /v1/plans/{id}/activate", () => {
     const answered = await response;
 
     expect(answered.status).toBe(404);
-    await expect(answered.json()).resolves.toEqual({
+    await expect(answered.json()).resolves.toStrictEqual({
       error: { code: "not_found", message: "Plan not found" },
     });
-    expect(reported).toEqual([]);
+    expect(reported).toStrictEqual([]);
   });
 
   it("answers 400 invalid_request for an id that isn't a uuid", async () => {
@@ -246,7 +269,9 @@ describe("pOST /v1/plans/{id}/activate", () => {
     const answered = await response;
 
     expect(answered.status).toBe(400);
-    expect((await answered.json()).error.code).toBe("invalid_request");
+    const body = await answered.json();
+
+    expect(body.error.code).toBe("invalid_request");
   });
 
   it("answers 401 without a session token", async () => {
@@ -297,9 +322,9 @@ describe("dELETE /v1/plans/{id}", () => {
 
     expect(answered.status).toBe(204);
     await expect(answered.text()).resolves.toBe("");
-    expect(asked).toEqual([planId]);
-    expect(servicesFor).toEqual(["user_alice"]);
-    expect(reported).toEqual([]);
+    expect(asked).toStrictEqual([planId]);
+    expect(servicesFor).toStrictEqual(["user_alice"]);
+    expect(reported).toStrictEqual([]);
   });
 
   it("answers 404 not_found, unreported, for a Plan the User never had", async () => {
@@ -310,16 +335,18 @@ describe("dELETE /v1/plans/{id}", () => {
     const answered = await response;
 
     expect(answered.status).toBe(404);
-    await expect(answered.json()).resolves.toEqual({
+    await expect(answered.json()).resolves.toStrictEqual({
       error: { code: "not_found", message: "Plan not found" },
     });
-    expect(reported).toEqual([]);
+    expect(reported).toStrictEqual([]);
   });
 
   it("answers 400 invalid_request for an id that isn't a uuid", async () => {
     const { response } = remove({}, "not-a-uuid");
 
-    expect((await response).status).toBe(400);
+    const answered = await response;
+
+    expect(answered.status).toBe(400);
   });
 
   it("answers 401 without a session token", async () => {

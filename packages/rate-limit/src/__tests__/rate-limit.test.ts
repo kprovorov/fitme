@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, assert, describe, expect, it, vi } from "vitest";
 
 import {
   checkRateLimit,
@@ -23,18 +23,37 @@ const fakeClock = (start = Date.UTC(2026, 9, 23)) => {
   };
 };
 
-const limitTimes = async (limiter: RateLimiter, key: string, times: number) => {
-  const results: boolean[] = [];
-
-  for (let i = 0; i < times; i += 1) {
-    // biome-ignore lint/performance/noAwaitInLoops: one at a time, so the results come back in the order they were counted
-    results.push((await limiter.limit(key)).allowed);
+const limitTimes = async (
+  limiter: RateLimiter,
+  key: string,
+  times: number
+): Promise<boolean[]> => {
+  if (times <= 0) {
+    return [];
   }
 
-  return results;
+  const result = await limiter.limit(key);
+  const remaining = await limitTimes(limiter, key, times - 1);
+
+  return [result.allowed, ...remaining];
 };
 
-describe(memoryRateLimiter, () => {
+const recorder = () => {
+  const reported: Error[] = [];
+
+  const reportError: Parameters<
+    typeof checkRateLimit
+  >[0]["reportError"] = async (cause) => {
+    assert.instanceOf(cause, Error);
+    reported.push(cause);
+
+    await Promise.resolve();
+  };
+
+  return { reportError, reported };
+};
+
+describe("memory rate limiter", () => {
   it("allows the limit within a window, then refuses with the seconds left", async () => {
     const clock = fakeClock();
     const limiter = memoryRateLimiter({ ...perMinute(3), now: clock.now });
@@ -42,8 +61,8 @@ describe(memoryRateLimiter, () => {
     const allowed = await limitTimes(limiter, "user_alice", 3);
     clock.advance(45_000);
 
-    expect(allowed).toEqual([true, true, true]);
-    await expect(limiter.limit("user_alice")).resolves.toEqual({
+    expect(allowed).toStrictEqual([true, true, true]);
+    await expect(limiter.limit("user_alice")).resolves.toStrictEqual({
       allowed: false,
       retryAfterSeconds: 15,
     });
@@ -56,7 +75,7 @@ describe(memoryRateLimiter, () => {
     await limiter.limit("user_alice");
     clock.advance(MINUTE_MS - 1);
 
-    await expect(limiter.limit("user_alice")).resolves.toEqual({
+    await expect(limiter.limit("user_alice")).resolves.toStrictEqual({
       allowed: false,
       retryAfterSeconds: 1,
     });
@@ -69,7 +88,7 @@ describe(memoryRateLimiter, () => {
     await limitTimes(limiter, "user_alice", 3);
     clock.advance(MINUTE_MS);
 
-    await expect(limitTimes(limiter, "user_alice", 3)).resolves.toEqual([
+    await expect(limitTimes(limiter, "user_alice", 3)).resolves.toStrictEqual([
       true,
       true,
       false,
@@ -88,12 +107,12 @@ describe(memoryRateLimiter, () => {
     await limiter.limit("user_alice");
     clock.advance(4000);
 
-    await expect(limiter.limit("user_alice")).resolves.toEqual({
+    await expect(limiter.limit("user_alice")).resolves.toStrictEqual({
       allowed: false,
       retryAfterSeconds: 6,
     });
     clock.advance(6000);
-    await expect(limiter.limit("user_alice")).resolves.toEqual({
+    await expect(limiter.limit("user_alice")).resolves.toStrictEqual({
       allowed: true,
     });
   });
@@ -104,16 +123,16 @@ describe(memoryRateLimiter, () => {
 
     await limitTimes(limiter, "user:user_alice", 2);
 
-    await expect(limiter.limit("user:user_bob")).resolves.toEqual({
+    await expect(limiter.limit("user:user_bob")).resolves.toStrictEqual({
       allowed: true,
     });
-    await expect(limiter.limit("client:abc")).resolves.toEqual({
+    await expect(limiter.limit("client:abc")).resolves.toStrictEqual({
       allowed: true,
     });
   });
 });
 
-describe(rateLimiterFromEnv, () => {
+describe("rate limiter from environment", () => {
   const options = { ...perMinute(120), prefix: "test:user" };
 
   it("refuses to start in production without Upstash", () => {
@@ -130,13 +149,17 @@ describe(rateLimiterFromEnv, () => {
         },
         options
       )
-    ).toThrow();
+    ).toThrow(
+      "UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN are required in production"
+    );
     expect(() =>
       rateLimiterFromEnv(
         { NODE_ENV: "production", UPSTASH_REDIS_REST_TOKEN: "token" },
         options
       )
-    ).toThrow();
+    ).toThrow(
+      "UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN are required in production"
+    );
   });
 
   it("uses the in-memory limiter with the given limit outside production without Upstash", async () => {
@@ -145,7 +168,7 @@ describe(rateLimiterFromEnv, () => {
       { ...perMinute(2), prefix: "test:user" }
     );
 
-    await expect(limitTimes(limiter, "user_alice", 3)).resolves.toEqual([
+    await expect(limitTimes(limiter, "user_alice", 3)).resolves.toStrictEqual([
       true,
       true,
       false,
@@ -158,7 +181,7 @@ describe(rateLimiterFromEnv, () => {
       { ...perMinute(2), prefix: "test:user" }
     );
 
-    await expect(limitTimes(limiter, "user_alice", 3)).resolves.toEqual([
+    await expect(limitTimes(limiter, "user_alice", 3)).resolves.toStrictEqual([
       true,
       true,
       false,
@@ -179,31 +202,21 @@ describe(rateLimiterFromEnv, () => {
   });
 });
 
-describe(checkRateLimit, () => {
+describe("rate limit checks", () => {
   afterEach(() => {
     vi.useRealTimers();
   });
 
-  const recorder = () => {
-    const reported: unknown[] = [];
-
-    return {
-      reportError: async (error: unknown) => {
-        reported.push(error);
-
-        return;
-      },
-      reported,
-    };
-  };
-
   it("answers the limiter's result for the key", async () => {
     const { reportError, reported } = recorder();
 
-    const limit = vi.fn<RateLimiter["limit"]>(async () => ({
-      allowed: false,
-      retryAfterSeconds: 30,
-    }));
+    const limit = vi.fn<RateLimiter["limit"]>(
+      async () =>
+        await Promise.resolve({
+          allowed: false,
+          retryAfterSeconds: 30,
+        })
+    );
 
     const result = await checkRateLimit({
       key: "user_alice",
@@ -211,9 +224,9 @@ describe(checkRateLimit, () => {
       reportError,
     });
 
-    expect(result).toEqual({ allowed: false, retryAfterSeconds: 30 });
+    expect(result).toStrictEqual({ allowed: false, retryAfterSeconds: 30 });
     expect(limit).toHaveBeenCalledWith("user_alice");
-    expect(reported).toEqual([]);
+    expect(reported).toStrictEqual([]);
   });
 
   it("allows and reports when the limiter throws", async () => {
@@ -223,19 +236,15 @@ describe(checkRateLimit, () => {
     const result = await checkRateLimit({
       key: "user_alice",
       limiter: {
-        limit: async () => {
-          throw outage;
-        },
+        limit: async () => await Promise.reject(outage),
       },
       reportError,
     });
 
-    expect(result).toEqual({ allowed: true });
+    expect(result).toStrictEqual({ allowed: true });
     expect(reported).toHaveLength(1);
-    expect((reported[0] as Error).message).toBe(
-      "Rate limiter failed, serving uncounted"
-    );
-    expect((reported[0] as Error).cause).toBe(outage);
+    expect(reported[0].message).toBe("Rate limiter failed, serving uncounted");
+    expect(reported[0].cause).toBe(outage);
   });
 
   it("allows and reports when the limiter takes over a second", async () => {
@@ -244,17 +253,17 @@ describe(checkRateLimit, () => {
 
     const pending = checkRateLimit({
       key: "user_alice",
-      limiter: { limit: async () => await new Promise(() => {}) },
+      limiter: { limit: async () => await Promise.race([]) },
       reportError,
     });
 
     await vi.advanceTimersByTimeAsync(999);
-    expect(reported).toEqual([]);
+    expect(reported).toStrictEqual([]);
     await vi.advanceTimersByTimeAsync(1);
 
-    await expect(pending).resolves.toEqual({ allowed: true });
+    await expect(pending).resolves.toStrictEqual({ allowed: true });
     expect(reported).toHaveLength(1);
-    expect((reported[0] as Error).cause).toEqual(
+    expect(reported[0].cause).toStrictEqual(
       new Error("Rate limiter timed out after 1000 ms")
     );
   });
@@ -265,15 +274,15 @@ describe(checkRateLimit, () => {
 
     const pending = checkRateLimit({
       key: "user_alice",
-      limiter: { limit: async () => await new Promise(() => {}) },
+      limiter: { limit: async () => await Promise.race([]) },
       reportError,
       timeoutMs: 50,
     });
 
     await vi.advanceTimersByTimeAsync(50);
 
-    await expect(pending).resolves.toEqual({ allowed: true });
-    expect((reported[0] as Error).cause).toEqual(
+    await expect(pending).resolves.toStrictEqual({ allowed: true });
+    expect(reported[0].cause).toStrictEqual(
       new Error("Rate limiter timed out after 50 ms")
     );
   });

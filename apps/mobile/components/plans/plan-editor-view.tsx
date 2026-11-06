@@ -50,7 +50,7 @@ interface PlanEditorViewProps {
   saveError?: string | null;
 }
 
-const DIGITS = /^\d+$/;
+const DIGITS = /^\d+$/u;
 
 /** The whole number `text` holds, or `null` when it holds none. */
 const wholeNumber = (text: string): number | null => {
@@ -69,7 +69,7 @@ const isOutside = (value: number | null, min: number, max: number) =>
   value === null || value < min || value > max;
 
 /** A field with its label above it, as every field of the editor has. */
-function Field({
+const Field = ({
   children,
   error,
   label,
@@ -78,20 +78,16 @@ function Field({
   /** Shown under the field, for one that can't show its own message. */
   error?: string;
   label: string;
-}) {
-  return (
-    <VStack className="items-stretch gap-2">
-      <Label>{label}</Label>
-      {children}
-      {error ? (
-        <Text className="text-destructive text-subhead">{error}</Text>
-      ) : null}
-    </VStack>
-  );
-}
+}) => (
+  <View className="flex flex-col items-stretch justify-center gap-2">
+    <Label>{label}</Label>
+    {children}
+    {error ? <ErrorMessage>{error}</ErrorMessage> : null}
+  </View>
+);
 
 /** A number the User types, kept as typed while the draft holds its value. */
-function NumberField({
+const NumberField = ({
   error,
   label,
   onChangeNumber,
@@ -106,7 +102,7 @@ function NumberField({
   /** Shown after the field (minutes), for a number that has one. */
   unit?: string;
   value: number | null;
-}) {
+}) => {
   // What the User typed, so a half-typed number isn't rewritten under them;
   // the draft keeps the value it parses to (`null` for none).
   const [text, setText] = useState(value === null ? "" : String(value));
@@ -133,20 +129,20 @@ function NumberField({
   return (
     <Field label={label}>
       {unit ? (
-        <HStack className="gap-sm items-start">
+        <HStack className="items-start">
           {field}
-          <Text className="text-muted-foreground text-subhead pt-3">
-            {unit}
-          </Text>
+          <View className="pt-3">
+            <Text variant="muted">{unit}</Text>
+          </View>
         </HStack>
       ) : (
         field
       )}
     </Field>
   );
-}
+};
 
-function WorkoutRow({
+const WorkoutRow = ({
   index,
   onChange,
   onOpen,
@@ -158,7 +154,7 @@ function WorkoutRow({
   onOpen: (workoutKey: string) => void;
   total: number;
   workout: DraftWorkout;
-}) {
+}) => {
   const { t } = useTranslation();
   const i18n = useI18n();
 
@@ -211,7 +207,7 @@ function WorkoutRow({
   // The menu is the row's sibling, not inside its Pressable, so a tap on it
   // opens the menu instead of the Workout.
   return (
-    <HStack className="items-center justify-between gap-2 pr-4">
+    <View className="flex flex-row items-center justify-between gap-2 pr-4">
       <Pressable
         accessibilityLabel={t("planEditor.openWorkout", {
           name: workout.name,
@@ -220,15 +216,13 @@ function WorkoutRow({
         className="flex-1 flex-row items-center gap-2 py-4 pl-4 active:opacity-80"
         onPress={open}
       >
-        <VStack className="flex-1 items-start gap-0">
-          <Text className="text-body-emphasized">{workout.name}</Text>
-          <Text className="text-muted-foreground text-subhead">
+        <View className="flex flex-1 flex-col items-start justify-center gap-0">
+          <Text variant="large">{workout.name}</Text>
+          <Text variant="muted">
             {formatCount(i18n, "exercises", workout.exercises.length)}
           </Text>
-          {problem ? (
-            <Text className="text-destructive text-subhead">{problem}</Text>
-          ) : null}
-        </VStack>
+          {problem ? <ErrorMessage>{problem}</ErrorMessage> : null}
+        </View>
         <SymbolImage
           className="text-body text-muted-foreground shrink-0"
           name="chevron.right"
@@ -241,9 +235,9 @@ function WorkoutRow({
         items={items}
         systemImage="ellipsis"
       />
-    </HStack>
+    </View>
   );
-}
+};
 
 /**
  * The Plan editor's form: the Plan's details, then its Workouts as rows in
@@ -251,13 +245,13 @@ function WorkoutRow({
  * goes straight into the draft (`onChange`), which is what Save sends; the
  * errors it shows are the bounds `isSavablePlanDraft` holds Save to.
  */
-export default function PlanEditorView({
+const PlanEditorView = ({
   draft,
   onAddWorkout,
   onChange,
   onOpenWorkout,
   saveError,
-}: PlanEditorViewProps) {
+}: PlanEditorViewProps) => {
   const { t } = useTranslation();
   const labels = useChoiceLabels();
 
@@ -338,10 +332,10 @@ export default function PlanEditorView({
   }
 
   return (
-    <VStack className="gap-lg items-stretch">
+    <View className="gap-lg flex flex-col items-stretch justify-center">
       {saveError ? <ErrorMessage>{saveError}</ErrorMessage> : null}
 
-      <VStack className="gap-md items-stretch">
+      <View className="gap-md flex flex-col items-stretch justify-center">
         <H4>{t("planEditor.details")}</H4>
         <Field label={t("planEditor.name")}>
           <Input
@@ -424,13 +418,11 @@ export default function PlanEditorView({
             value={draft.place ?? undefined}
           />
         </Field>
-      </VStack>
+      </View>
 
-      <VStack className="gap-sm items-stretch">
+      <VStack className="items-stretch">
         <H4>{t("planEditor.workouts")}</H4>
-        <Text className="text-muted-foreground text-subhead">
-          {t("planEditor.workoutsHint")}
-        </Text>
+        <Text variant="muted">{t("planEditor.workoutsHint")}</Text>
         {draft.workouts.length > 0 ? (
           <MenuList>
             {draft.workouts.map((workout, index) => (
@@ -447,9 +439,7 @@ export default function PlanEditorView({
             ))}
           </MenuList>
         ) : (
-          <Text className="text-muted-foreground">
-            {t("planEditor.noWorkouts")}
-          </Text>
+          <Text variant="muted">{t("planEditor.noWorkouts")}</Text>
         )}
         <Button
           className="self-start"
@@ -462,6 +452,8 @@ export default function PlanEditorView({
           variant="secondary"
         />
       </VStack>
-    </VStack>
+    </View>
   );
-}
+};
+
+export default PlanEditorView;

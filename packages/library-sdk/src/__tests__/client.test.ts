@@ -1,3 +1,6 @@
+/// <reference lib="es2023.array" />
+/// <reference lib="es2024.promise" />
+
 import { describe, expect, it } from "vitest";
 
 import {
@@ -11,7 +14,45 @@ import {
 import { cover, exercise, stubApi } from "./stub-api";
 
 const URL = "https://exercises.test";
-const token = async () => "secret-token";
+const token = async () => await Promise.resolve("secret-token");
+
+const failing = (respond: () => Response | Promise<Response>) =>
+  createLibrary({
+    fetch: stubApi([], respond).fetch,
+    token,
+    url: URL,
+  });
+
+const coversLibrary = (
+  respond?: Parameters<typeof stubApi>[1],
+  covers = [
+    cover("3f2b8a4e-6c1d-4e5f-9a7b-1c2d3e4f5a6b", {
+      muscle_groups: ["quadriceps", "glutes"],
+    }),
+    cover("0a1b2c3d-4e5f-6a7b-8c9d-0e1f2a3b4c5d"),
+  ]
+) => {
+  const api = stubApi([], respond, covers);
+
+  return {
+    api,
+    covers,
+    library: createLibrary({ fetch: api.fetch, token, url: URL }),
+  };
+};
+
+const hanging = async (
+  _input: RequestInfo | URL,
+  init?: RequestInit
+): Promise<Response> => {
+  const { promise, reject } = Promise.withResolvers<Response>();
+
+  init?.signal?.addEventListener("abort", () => {
+    reject(new DOMException("aborted", "AbortError"));
+  });
+
+  return await promise;
+};
 
 describe("lookup", () => {
   it("asks for 85 slugs in 3 requests of at most 40, in asked order, missing merged", async () => {
@@ -25,7 +66,7 @@ describe("lookup", () => {
     });
 
     // 80 known in reverse, 5 unknown spread across the chunks
-    const slugs = known.map((e) => e.slug).reverse();
+    const slugs = known.map((e) => e.slug).toReversed();
     slugs.splice(10, 0, "nope-a");
     slugs.splice(45, 0, "nope-b");
     slugs.splice(70, 0, "nope-c");
@@ -39,10 +80,10 @@ describe("lookup", () => {
       expect(request.slugs?.length).toBeLessThanOrEqual(40);
     }
 
-    expect(result.data.map((e) => e.slug)).toEqual(
+    expect(result.data.map((e) => e.slug)).toStrictEqual(
       slugs.filter((slug) => !slug.startsWith("nope"))
     );
-    expect(result.missing).toEqual([
+    expect(result.missing).toStrictEqual([
       "nope-a",
       "nope-b",
       "nope-c",
@@ -69,9 +110,16 @@ describe("lookup", () => {
     ]);
 
     expect(api.requests).toHaveLength(1);
-    expect(api.requests[0]?.slugs).toEqual(["squat", "bench-press", "nope"]);
-    expect(result.data.map((e) => e.slug)).toEqual(["squat", "bench-press"]);
-    expect(result.missing).toEqual(["nope"]);
+    expect(api.requests[0]?.slugs).toStrictEqual([
+      "squat",
+      "bench-press",
+      "nope",
+    ]);
+    expect(result.data.map((e) => e.slug)).toStrictEqual([
+      "squat",
+      "bench-press",
+    ]);
+    expect(result.missing).toStrictEqual(["nope"]);
   });
 
   it("answers no slugs without a request", async () => {
@@ -83,7 +131,7 @@ describe("lookup", () => {
       url: URL,
     });
 
-    await expect(library.lookup([])).resolves.toEqual({
+    await expect(library.lookup([])).resolves.toStrictEqual({
       data: [],
       missing: [],
     });
@@ -101,9 +149,9 @@ describe("lookup", () => {
 
     const result = await library.lookup(["", "squat,lunge", "squat"]);
 
-    expect(api.requests[0]?.slugs).toEqual(["squat"]);
-    expect(result.data.map((e) => e.slug)).toEqual(["squat"]);
-    expect(result.missing).toEqual(["", "squat,lunge"]);
+    expect(api.requests[0]?.slugs).toStrictEqual(["squat"]);
+    expect(result.data.map((e) => e.slug)).toStrictEqual(["squat"]);
+    expect(result.missing).toStrictEqual(["", "squat,lunge"]);
   });
 });
 
@@ -137,12 +185,12 @@ describe("list", () => {
       search: "bench",
       slugs: null,
     });
-    expect(page.data.map((e) => e.slug)).toEqual([
+    expect(page.data.map((e) => e.slug)).toStrictEqual([
       "decline-bench-press",
       "incline-bench-press",
     ]);
     expect(page.total).toBe(3);
-    expect(page.hasMore).toBe(false);
+    expect(page.hasMore).toBeFalsy();
   });
 
   it("sends no parameter it wasn't given, so the API's defaults apply", async () => {
@@ -156,7 +204,9 @@ describe("list", () => {
 
     const page = await library.list();
 
-    expect([...(api.requests[0]?.url.searchParams.keys() ?? [])]).toEqual([]);
+    expect([...(api.requests[0]?.url.searchParams.keys() ?? [])]).toStrictEqual(
+      []
+    );
     expect(page).toMatchObject({ hasMore: false, total: 1 });
   });
 });
@@ -197,8 +247,8 @@ describe("list by several muscle groups", () => {
     expect(api.requests[0]?.url.searchParams.get("muscle_groups")).toBe(
       "triceps,quadriceps"
     );
-    expect(api.requests[0]?.url.searchParams.has("muscle_group")).toBe(false);
-    expect(page.data.map((e) => e.slug)).toEqual([
+    expect(api.requests[0]?.url.searchParams.has("muscle_group")).toBeFalsy();
+    expect(page.data.map((e) => e.slug)).toStrictEqual([
       "bench-dip",
       "pushdown",
       "squat",
@@ -223,7 +273,7 @@ describe("list by several muscle groups", () => {
       offset: "1",
       search: "a",
     });
-    expect(page).toEqual({
+    expect(page).toStrictEqual({
       data: [expect.objectContaining({ name: "Тяга" })],
       hasMore: false,
       total: 2,
@@ -238,7 +288,7 @@ describe("list by several muscle groups", () => {
 
     const page = await library.list(params);
 
-    expect(api.requests[0]?.url.searchParams.has("muscle_groups")).toBe(false);
+    expect(api.requests[0]?.url.searchParams.has("muscle_groups")).toBeFalsy();
     expect(page.total).toBe(exercises.length);
   });
 
@@ -254,12 +304,13 @@ describe("list by several muscle groups", () => {
   it("surfaces the API's 400 for a value it refuses as invalid request", async () => {
     const { library } = libraryOver();
 
-    const error = await library
-      .list({ muscleGroup: "back", muscleGroups: ["chest"] })
-      .catch((error_: unknown) => error_);
+    const result = library.list({
+      muscleGroup: "back",
+      muscleGroups: ["chest"],
+    });
 
-    expect(error).toBeInstanceOf(LibraryInvalidRequestError);
-    expect(error).toMatchObject({
+    await expect(result).rejects.toBeInstanceOf(LibraryInvalidRequestError);
+    await expect(result).rejects.toMatchObject({
       message: "muscle_groups: can't be combined with muscle_group",
     });
   });
@@ -297,28 +348,41 @@ describe("equipment", () => {
     const batch = await library.lookup(["pull-up", "push-up"]);
     const one = await library.get("bench-press");
 
-    expect(page.data.map(({ equipment, slug }) => [slug, equipment])).toEqual([
+    expect(
+      page.data.map(({ equipment, slug }) => [slug, equipment])
+    ).toStrictEqual([
       ["bench-press", ["barbell", "bench"]],
       ["dumbbell-fly", ["dumbbell", "bench"]],
       ["pull-up", ["pull_up_bar", "bodyweight"]],
       ["push-up", ["bodyweight"]],
     ]);
-    expect(batch.data.map((e) => e.equipment)).toEqual([
+    expect(batch.data.map((e) => e.equipment)).toStrictEqual([
       ["pull_up_bar", "bodyweight"],
       ["bodyweight"],
     ]);
-    expect(one?.equipment).toEqual(["barbell", "bench"]);
+    expect(one?.equipment).toStrictEqual(["barbell", "bench"]);
   });
 
   it("takes a piece of Equipment it doesn't know, so a new one never breaks it", async () => {
-    const fresh = exercise("kettlebell-swing", {
-      equipment: ["kettlebell" as "barbell"],
-    });
+    const fresh = {
+      ...exercise("kettlebell-swing"),
+      equipment: ["kettlebell"],
+    };
 
-    const { library } = libraryOver([fresh]);
+    const api = stubApi([], ({ exerciseSlug }) =>
+      Response.json(
+        exerciseSlug === null
+          ? { data: [fresh], hasMore: false, total: 1 }
+          : fresh
+      )
+    );
 
-    await expect(library.get("kettlebell-swing")).resolves.toEqual(fresh);
-    expect((await library.list()).data[0]?.equipment).toEqual(["kettlebell"]);
+    const library = createLibrary({ fetch: api.fetch, token, url: URL });
+
+    await expect(library.get("kettlebell-swing")).resolves.toStrictEqual(fresh);
+    const page = await library.list();
+
+    expect(page.data[0]?.equipment).toStrictEqual(["kettlebell"]);
   });
 
   it("sends it comma-separated as equipment and answers Exercises with any of it", async () => {
@@ -329,7 +393,10 @@ describe("equipment", () => {
     expect(api.requests[0]?.url.searchParams.get("equipment")).toBe(
       "dumbbell,pull_up_bar"
     );
-    expect(page.data.map((e) => e.slug)).toEqual(["dumbbell-fly", "pull-up"]);
+    expect(page.data.map((e) => e.slug)).toStrictEqual([
+      "dumbbell-fly",
+      "pull-up",
+    ]);
   });
 
   it("narrows together with the muscle groups, the search and the language", async () => {
@@ -348,7 +415,7 @@ describe("equipment", () => {
       muscleGroups: ["chest", "back"],
       search: "ж",
     });
-    expect(page.data.map((e) => e.name)).toEqual(["Віджимання"]);
+    expect(page.data.map((e) => e.name)).toStrictEqual(["Віджимання"]);
   });
 
   it.each<[string, { equipment?: [] }]>([
@@ -359,19 +426,24 @@ describe("equipment", () => {
 
     const page = await library.list(params);
 
-    expect(api.requests[0]?.url.searchParams.has("equipment")).toBe(false);
+    expect(api.requests[0]?.url.searchParams.has("equipment")).toBeFalsy();
     expect(page.total).toBe(exercises.length);
   });
 
   it("surfaces the API's 400 for a value it refuses as invalid request", async () => {
     const { library } = libraryOver();
 
-    const error = await library
-      .list({ equipment: ["kettlebell" as "barbell"] })
-      .catch((error_: unknown) => error_);
+    const params: Parameters<typeof library.list>[0] = {};
 
-    expect(error).toBeInstanceOf(LibraryInvalidRequestError);
-    expect(error).toMatchObject({ message: "equipment: invalid equipment" });
+    // Inject an invalid runtime input to exercise the API refusal.
+    Reflect.set(params, "equipment", ["kettlebell"]);
+
+    const result = library.list(params);
+
+    await expect(result).rejects.toBeInstanceOf(LibraryInvalidRequestError);
+    await expect(result).rejects.toMatchObject({
+      message: "equipment: invalid equipment",
+    });
   });
 });
 
@@ -386,7 +458,9 @@ describe("get", () => {
       url: URL,
     });
 
-    await expect(library.get("barbell-back-squat")).resolves.toEqual(squat);
+    await expect(library.get("barbell-back-squat")).resolves.toStrictEqual(
+      squat
+    );
     expect(api.requests[0]?.url.pathname).toBe("/exercises/barbell-back-squat");
     expect(api.requests[0]?.authorization).toBe("Bearer secret-token");
   });
@@ -506,7 +580,7 @@ describe("language", () => {
 
     expect(api.requests[0]?.language).toBe("uk");
     expect(api.requests[0]?.search).toBe("прис");
-    expect(page.data.map((e) => e.name)).toEqual(["Присід"]);
+    expect(page.data.map((e) => e.name)).toStrictEqual(["Присід"]);
   });
 
   it("sends it on every request a lookup is split into", async () => {
@@ -519,13 +593,13 @@ describe("language", () => {
     );
 
     expect(api.requests).toHaveLength(3);
-    expect(api.requests.map((request) => request.language)).toEqual([
+    expect(api.requests.map((request) => request.language)).toStrictEqual([
       "uk",
       "uk",
       "uk",
     ]);
     expect(result.data[0]?.name).toBe("Присід");
-    expect(result.missing).toEqual([]);
+    expect(result.missing).toStrictEqual([]);
   });
 
   it("is never sent when not given, so the API answers in English", async () => {
@@ -538,7 +612,7 @@ describe("language", () => {
     expect(api.requests).toHaveLength(3);
 
     for (const request of api.requests) {
-      expect(request.url.searchParams.has("language")).toBe(false);
+      expect(request.url.searchParams.has("language")).toBeFalsy();
     }
 
     expect(found?.name).toBe("Squat");
@@ -557,7 +631,7 @@ describe("auth", () => {
     const rotating = async () => {
       calls += 1;
 
-      return `token-${calls}`;
+      return await Promise.resolve(`token-${calls}`);
     };
 
     const slugs = Array.from({ length: 85 }, (_, i) => `ex-${i}`);
@@ -572,7 +646,11 @@ describe("auth", () => {
     await library.lookup(slugs);
     await library.list();
 
-    expect(api.requests.map((r) => r.authorization).sort()).toEqual([
+    expect(
+      api.requests
+        .map((r) => r.authorization)
+        .toSorted((a, b) => (a ?? "").localeCompare(b ?? ""))
+    ).toStrictEqual([
       "Bearer token-1",
       "Bearer token-2",
       "Bearer token-3",
@@ -585,7 +663,7 @@ describe("auth", () => {
 
     const library = createLibrary({
       fetch: api.fetch,
-      token: async () => null,
+      token: async () => await Promise.resolve(null),
       url: URL,
     });
 
@@ -601,9 +679,7 @@ describe("auth", () => {
 
     const library = createLibrary({
       fetch: api.fetch,
-      token: async () => {
-        throw cause;
-      },
+      token: async () => await Promise.reject(cause),
       url: URL,
     });
 
@@ -634,23 +710,19 @@ describe("auth", () => {
 describe("errors", () => {
   const { equipment: _equipment, ...withoutEquipment } = exercise("squat");
 
-  const failing = (respond: () => Response | Promise<Response>) =>
-    createLibrary({
-      fetch: stubApi([], respond).fetch,
-      token,
-      url: URL,
-    });
-
   it("maps 401 to unauthorized", async () => {
     const library = failing(() =>
       Response.json(errorBody("unauthorized"), { status: 401 })
     );
 
-    const error = await library.list().catch((error_: unknown) => error_);
+    const result = library.list();
 
-    expect(error).toBeInstanceOf(LibraryUnauthorizedError);
-    expect(error).toBeInstanceOf(LibraryError);
-    expect(error).toMatchObject({ code: "unauthorized", status: 401 });
+    await expect(result).rejects.toBeInstanceOf(LibraryUnauthorizedError);
+    await expect(result).rejects.toBeInstanceOf(LibraryError);
+    await expect(result).rejects.toMatchObject({
+      code: "unauthorized",
+      status: 401,
+    });
   });
 
   it("maps 429 to rate limited, carrying Retry-After seconds", async () => {
@@ -661,12 +733,10 @@ describe("errors", () => {
       })
     );
 
-    const error = await library
-      .lookup(["squat"])
-      .catch((error_: unknown) => error_);
+    const result = library.lookup(["squat"]);
 
-    expect(error).toBeInstanceOf(LibraryRateLimitedError);
-    expect(error).toMatchObject({
+    await expect(result).rejects.toBeInstanceOf(LibraryRateLimitedError);
+    await expect(result).rejects.toMatchObject({
       code: "rate_limited",
       retryAfterSeconds: 17,
     });
@@ -685,18 +755,16 @@ describe("errors", () => {
   it.each([500, 502, 503, 504])("maps %i to unavailable", async (status) => {
     const library = failing(() => new Response("oops", { status }));
 
-    const error = await library.list().catch((error_: unknown) => error_);
+    const result = library.list();
 
-    expect(error).toBeInstanceOf(LibraryUnavailableError);
-    expect(error).toMatchObject({ code: "unavailable", status });
+    await expect(result).rejects.toBeInstanceOf(LibraryUnavailableError);
+    await expect(result).rejects.toMatchObject({ code: "unavailable", status });
   });
 
   it("maps a network failure to unavailable, keeping the cause", async () => {
     const cause = new TypeError("Network request failed");
 
-    const library = failing(async () => {
-      throw cause;
-    });
+    const library = failing(async () => await Promise.reject(cause));
 
     await expect(library.lookup(["squat"])).rejects.toMatchObject({
       cause,
@@ -705,13 +773,6 @@ describe("errors", () => {
   });
 
   it("maps a timeout to unavailable", async () => {
-    const hanging = async (_input: RequestInfo | URL, init?: RequestInit) =>
-      await new Promise<Response>((_resolve, reject) => {
-        init?.signal?.addEventListener("abort", () => {
-          reject(new DOMException("aborted", "AbortError"));
-        });
-      });
-
     const library = createLibrary({
       fetch: hanging,
       timeoutMs: 5,
@@ -792,12 +853,10 @@ describe("errors", () => {
       )
     );
 
-    const error = await library
-      .list({ limit: 51 })
-      .catch((error_: unknown) => error_);
+    const result = library.list({ limit: 51 });
 
-    expect(error).toBeInstanceOf(LibraryInvalidRequestError);
-    expect(error).toMatchObject({
+    await expect(result).rejects.toBeInstanceOf(LibraryInvalidRequestError);
+    await expect(result).rejects.toMatchObject({
       code: "invalid_request",
       message: "limit: Too big",
       status: 400,
@@ -827,28 +886,10 @@ describe("errors", () => {
 });
 
 describe("covers", () => {
-  const coversLibrary = (
-    respond?: Parameters<typeof stubApi>[1],
-    covers = [
-      cover("3f2b8a4e-6c1d-4e5f-9a7b-1c2d3e4f5a6b", {
-        muscle_groups: ["quadriceps", "glutes"],
-      }),
-      cover("0a1b2c3d-4e5f-6a7b-8c9d-0e1f2a3b4c5d"),
-    ]
-  ) => {
-    const api = stubApi([], respond, covers);
-
-    return {
-      api,
-      covers,
-      library: createLibrary({ fetch: api.fetch, token, url: URL }),
-    };
-  };
-
   it("answers every Cover from GET /covers, in the API's order, with the bearer", async () => {
     const { api, covers, library } = coversLibrary();
 
-    await expect(library.covers()).resolves.toEqual(covers);
+    await expect(library.covers()).resolves.toStrictEqual(covers);
     expect(api.requests).toHaveLength(1);
     expect(api.requests[0]?.path).toBe("/covers");
     expect(api.requests[0]?.url.search).toBe("");
@@ -858,17 +899,18 @@ describe("covers", () => {
   it("answers an empty list for a Library without Covers", async () => {
     const { library } = coversLibrary(undefined, []);
 
-    await expect(library.covers()).resolves.toEqual([]);
+    await expect(library.covers()).resolves.toStrictEqual([]);
   });
 
   it("takes a muscle group it doesn't know, so a new one never breaks it", async () => {
-    const fresh = cover("0a1b2c3d-4e5f-6a7b-8c9d-0e1f2a3b4c5d", {
-      muscle_groups: ["neck" as "chest"],
-    });
+    const fresh = {
+      ...cover("0a1b2c3d-4e5f-6a7b-8c9d-0e1f2a3b4c5d"),
+      muscle_groups: ["neck"],
+    };
 
-    const { library } = coversLibrary(undefined, [fresh]);
+    const { library } = coversLibrary(() => Response.json({ data: [fresh] }));
 
-    await expect(library.covers()).resolves.toEqual([fresh]);
+    await expect(library.covers()).resolves.toStrictEqual([fresh]);
   });
 
   it("maps 401 to unauthorized", async () => {
@@ -889,10 +931,10 @@ describe("covers", () => {
       })
     );
 
-    const error = await library.covers().catch((error_: unknown) => error_);
+    const result = library.covers();
 
-    expect(error).toBeInstanceOf(LibraryRateLimitedError);
-    expect(error).toMatchObject({ retryAfterSeconds: 9 });
+    await expect(result).rejects.toBeInstanceOf(LibraryRateLimitedError);
+    await expect(result).rejects.toMatchObject({ retryAfterSeconds: 9 });
   });
 
   it("maps a 5xx to unavailable", async () => {
@@ -909,9 +951,7 @@ describe("covers", () => {
   it("maps a network failure to unavailable, keeping the cause", async () => {
     const cause = new TypeError("Network request failed");
 
-    const { library } = coversLibrary(async () => {
-      throw cause;
-    });
+    const { library } = coversLibrary(async () => await Promise.reject(cause));
 
     await expect(library.covers()).rejects.toMatchObject({
       cause,
@@ -920,13 +960,6 @@ describe("covers", () => {
   });
 
   it("maps a timeout to unavailable", async () => {
-    const hanging = async (_input: RequestInfo | URL, init?: RequestInit) =>
-      await new Promise<Response>((_resolve, reject) => {
-        init?.signal?.addEventListener("abort", () => {
-          reject(new DOMException("aborted", "AbortError"));
-        });
-      });
-
     const library = createLibrary({
       fetch: hanging,
       timeoutMs: 5,
@@ -944,7 +977,7 @@ describe("covers", () => {
 
     const library = createLibrary({
       fetch: api.fetch,
-      token: async () => null,
+      token: async () => await Promise.resolve(null),
       url: URL,
     });
 
@@ -1004,7 +1037,7 @@ describe("url", () => {
 
     await library.get("squat");
 
-    expect(api.requests.map((request) => request.url.href)).toEqual([
+    expect(api.requests.map((request) => request.url.href)).toStrictEqual([
       `${URL}/exercises/squat`,
     ]);
   });

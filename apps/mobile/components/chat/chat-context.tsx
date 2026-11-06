@@ -31,7 +31,7 @@ const ChatContext = createContext<ChatContextValue | null>(null);
 
 export const ChatProvider = ChatContext.Provider;
 
-export function useChatContext() {
+export const useChatContext = () => {
   const ctx = use(ChatContext);
 
   if (!ctx) {
@@ -39,4 +39,4 @@ export function useChatContext() {
   }
 
   return ctx;
-}
+};

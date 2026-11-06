@@ -12,7 +12,6 @@ import { Dialog } from "~/components/ui/dialog";
 import { ErrorMessage } from "~/components/ui/error-message";
 import { Text } from "~/components/ui/text";
 import { H3, Muted } from "~/components/ui/typography";
-import { VStack } from "~/components/ui/vstack";
 import {
   closePlanUpdatePrompt,
   usePlanUpdatePrompt,
@@ -26,7 +25,11 @@ import {
   planUpdateProperties,
   planUpdateSlugs,
 } from "~/lib/plan-changes";
-import type { PlanUpdate, PlanUpdateChangeKind } from "~/lib/plan-changes";
+import type {
+  PlanUpdate,
+  PlanUpdateChange,
+  PlanUpdateChangeKind,
+} from "~/lib/plan-changes";
 import { segmentClient } from "~/lib/segment";
 
 /**
@@ -40,6 +43,24 @@ const CHANGE_SYMBOL: Record<PlanUpdateChangeKind, SFSymbol> = {
   add_sets: "plus.circle",
   remove_exercise: "minus.circle",
   replace_exercise: "arrow.left.arrow.right.circle",
+};
+
+// Changes have no API id; object identity distinguishes identical entries.
+const changeKeys = new WeakMap<PlanUpdateChange, number>();
+let nextChangeKey = 0;
+
+const getChangeKey = (change: PlanUpdateChange) => {
+  const existing = changeKeys.get(change);
+
+  if (existing !== undefined) {
+    return existing;
+  }
+
+  const key = nextChangeKey;
+  nextChangeKey += 1;
+  changeKeys.set(change, key);
+
+  return key;
 };
 
 interface PlanUpdateSheetProps {
@@ -62,7 +83,7 @@ interface PlanUpdateSheetProps {
  * moves on. It can't be swiped away: the User picks
  * Update plan or Keep plan as is.
  */
-export function PlanUpdateSheet({
+export const PlanUpdateSheet = ({
   hasFailed,
   isApplying,
   onKeep,
@@ -70,7 +91,7 @@ export function PlanUpdateSheet({
   open,
   preview,
   waitSeconds,
-}: PlanUpdateSheetProps) {
+}: PlanUpdateSheetProps) => {
   const i18n = useI18n();
   const { t } = useTranslation();
   const exercises = useExercises(planUpdateSlugs(preview?.changes ?? []));
@@ -101,7 +122,7 @@ export function PlanUpdateSheet({
     >
       {preview ? (
         <>
-          <VStack className="items-stretch gap-2">
+          <View className="flex flex-col items-stretch justify-center gap-2">
             <H3>{t("planUpdate.title")}</H3>
             <Muted>
               {t("planUpdate.description", {
@@ -109,9 +130,12 @@ export function PlanUpdateSheet({
                 workout: preview.workout?.name ?? "",
               })}
             </Muted>
-          </VStack>
-          <VStack className="items-stretch gap-3" testID="plan-update-changes">
-            {preview.changes.map((change, index) => {
+          </View>
+          <View
+            className="flex flex-col items-stretch justify-center gap-3"
+            testID="plan-update-changes"
+          >
+            {preview.changes.map((change) => {
               const line = formatPlanChange(
                 change,
                 preview.weight_unit,
@@ -124,19 +148,17 @@ export function PlanUpdateSheet({
                   accessibilityLabel={line.accessibilityLabel}
                   accessible
                   className="flex-row items-start gap-2"
-                  // Two changes can read the same (the same Exercise twice).
-                  // biome-ignore lint/suspicious/noArrayIndexKey: the list never reorders
-                  key={`${line.text}-${index}`}
+                  key={getChangeKey(change)}
                 >
                   <SymbolImage
                     className="text-body text-primary"
                     name={CHANGE_SYMBOL[change.kind]}
                   />
-                  <Text className="text-body flex-1">{line.text}</Text>
+                  <Text className="flex-1">{line.text}</Text>
                 </View>
               );
             })}
-          </VStack>
+          </View>
           {hasFailed ? (
             <ErrorMessage>
               {waitSeconds === null
@@ -144,7 +166,7 @@ export function PlanUpdateSheet({
                 : t("planUpdate.rateLimited", { seconds: waitSeconds })}
             </ErrorMessage>
           ) : null}
-          <VStack className="items-stretch gap-3">
+          <View className="flex flex-col items-stretch justify-center gap-3">
             <Button
               accessibilityHint={t("planUpdate.updateHint")}
               accessibilityLabel={updateLabel}
@@ -162,12 +184,12 @@ export function PlanUpdateSheet({
               testID="plan-update-decline"
               variant="secondary"
             />
-          </VStack>
+          </View>
         </>
       ) : null}
     </Dialog>
   );
-}
+};
 
 /**
  * Shows the "Update your plan?" question `useFinishWorkoutSession` asks after
@@ -176,7 +198,7 @@ export function PlanUpdateSheet({
  * a failed apply stays in the sheet with Retry. Keep plan as is opens the
  * Summary and applies nothing.
  */
-export function PlanUpdateSheetHost() {
+export const PlanUpdateSheetHost = () => {
   const prompt = usePlanUpdatePrompt();
   const queryClient = useQueryClient();
 
@@ -193,13 +215,13 @@ export function PlanUpdateSheetHost() {
   // The last question, kept so the content stays while the sheet slides away.
   const [lastPrompt, setLastPrompt] = useState<PlanUpdatePrompt | null>(prompt);
 
-  useEffect(() => {
-    answeredRef.current = false;
-    reset();
+  if (prompt && prompt !== lastPrompt) {
+    setLastPrompt(prompt);
+  }
 
-    if (prompt) {
-      setLastPrompt(prompt);
-    }
+  useEffect(() => {
+    answeredRef.current = prompt === null;
+    reset();
   }, [prompt, reset]);
 
   const close = useCallback((answered: PlanUpdatePrompt) => {
@@ -265,4 +287,4 @@ export function PlanUpdateSheetHost() {
       waitSeconds={applyError ? rateLimitedFor(applyError) : null}
     />
   );
-}
+};

@@ -145,13 +145,13 @@ export const addSetToExercise = async (
     workoutExerciseId
   );
 
-  if (requestKey) {
+  if (requestKey !== undefined && requestKey !== "") {
     const [repeated] = await tx
       .select({ id: workoutExerciseSets.id, order: workoutExerciseSets.order })
       .from(workoutExerciseSets)
       .where(and(inExercise, eq(workoutExerciseSets.requestKey, requestKey)));
 
-    if (repeated) {
+    if (repeated !== undefined) {
       return repeated;
     }
   }
@@ -244,7 +244,7 @@ export const addExerciseToWorkout = async (
 
   const inWorkout = eq(workoutExercises.workoutId, workoutId);
 
-  if (requestKey) {
+  if (requestKey !== undefined && requestKey !== "") {
     const [repeated] = await tx
       .select({
         id: workoutExercises.id,
@@ -259,7 +259,7 @@ export const addExerciseToWorkout = async (
       .where(and(inWorkout, eq(workoutExercises.requestKey, requestKey)))
       .groupBy(workoutExercises.id);
 
-    if (repeated) {
+    if (repeated !== undefined) {
       return repeated;
     }
   }
@@ -542,7 +542,7 @@ export const updateSetRecommendations = async (
       weightRecommended: workoutExerciseSets.weightRecommended,
     });
 
-  if (!updated) {
+  if (updated === undefined) {
     return null;
   }
 

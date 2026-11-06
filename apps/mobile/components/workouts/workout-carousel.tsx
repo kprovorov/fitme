@@ -5,6 +5,7 @@ import type {
   NativeSyntheticEvent,
   ScrollViewInstance,
 } from "react-native";
+import { ScopedVariables } from "uniwind";
 
 import type { FullPlan } from "~/hooks/queries/plans";
 import { useOpenWorkoutSessionQuery } from "~/hooks/queries/workout-sessions";
@@ -29,9 +30,8 @@ interface WorkoutCarouselProps {
  * out of the Workout tab's gutters, each card `sm` from the screen's edges
  * with the next one peeking, and dots under it mark the page.
  */
-export default function WorkoutCarousel({ plan }: WorkoutCarouselProps) {
+const WorkoutCarousel = ({ plan }: WorkoutCarouselProps) => {
   const { width } = useWindowDimensions();
-  const [page, setPage] = useState(0);
   const scrollView = useRef<ScrollViewInstance>(null);
   const { data: openSession } = useOpenWorkoutSessionQuery();
 
@@ -39,11 +39,17 @@ export default function WorkoutCarousel({ plan }: WorkoutCarouselProps) {
   const openWorkoutId =
     plan.workouts.find(({ id }) => id === openSession?.workout?.id)?.id ?? null;
 
+  const [position, setPosition] = useState({ openWorkoutId, page: 0 });
+
+  if (position.openWorkoutId !== openWorkoutId) {
+    setPosition({ openWorkoutId, page: openWorkoutId ? 0 : position.page });
+  }
+
   const isOpen = (workoutId: string) => Number(workoutId === openWorkoutId);
 
   // A copy: plan.workouts is the query cache's array, never sorted in place.
   // The rotation's first Workout is the Next one, after the open session's.
-  const workouts = [...plan.workouts].sort(
+  const workouts = plan.workouts.toSorted(
     (a, b) => isOpen(b.id) - isOpen(a.id) || a.order - b.order
   );
 
@@ -52,18 +58,20 @@ export default function WorkoutCarousel({ plan }: WorkoutCarouselProps) {
   useEffect(() => {
     if (openWorkoutId) {
       scrollView.current?.scrollTo({ animated: false, x: 0 });
-      setPage(0);
     }
   }, [openWorkoutId]);
   // The page scrolled to, kept in range when the Plan's Workouts change.
-  const shownPage = Math.min(page, workouts.length - 1);
+  const shownPage = Math.min(position.page, workouts.length - 1);
   const cardWidth = width - 2 * CARD_INSET;
   const pageWidth = cardWidth + CARD_GAP;
 
   const onScroll = ({
     nativeEvent,
   }: NativeSyntheticEvent<NativeScrollEvent>) => {
-    setPage(Math.round(nativeEvent.contentOffset.x / pageWidth));
+    setPosition({
+      openWorkoutId,
+      page: Math.round(nativeEvent.contentOffset.x / pageWidth),
+    });
   };
 
   return (
@@ -81,14 +89,19 @@ export default function WorkoutCarousel({ plan }: WorkoutCarouselProps) {
         testID="workout-carousel"
       >
         {workouts.map((workout) => (
-          <View key={workout.id} style={{ width: cardWidth }}>
-            <WorkoutCarouselCard
-              durationMinutes={plan.workout_duration}
-              planId={plan.id}
-              width={cardWidth}
-              workout={workout}
-            />
-          </View>
+          <ScopedVariables
+            key={workout.id}
+            variables={{ "--carousel-card-width": cardWidth }}
+          >
+            <View className="w-(--carousel-card-width)">
+              <WorkoutCarouselCard
+                durationMinutes={plan.workout_duration}
+                planId={plan.id}
+                width={cardWidth}
+                workout={workout}
+              />
+            </View>
+          </ScopedVariables>
         ))}
       </ScrollView>
       {workouts.length > 1 ? (
@@ -110,4 +123,6 @@ export default function WorkoutCarousel({ plan }: WorkoutCarouselProps) {
       ) : null}
     </View>
   );
-}
+};
+
+export default WorkoutCarousel;

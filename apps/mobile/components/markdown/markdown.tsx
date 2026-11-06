@@ -7,6 +7,8 @@ import ASTRenderer from "./ast-renderer";
 import type { MarkdownProps } from "./types";
 import { getKeyFromMarkdown, resolveReference } from "./utils";
 
+const DEFAULT_EXTENSIONS: NonNullable<MarkdownProps["extensions"]> = [];
+
 const Markdown = memo(
   ({
     markdown,
@@ -17,7 +19,7 @@ const Markdown = memo(
     mergeStyle,
     customBulletElement,
     onLinkPress,
-    extensions = [],
+    extensions = DEFAULT_EXTENSIONS,
   }: MarkdownProps) => {
     const tree = fromMarkdown(markdown, {
       extensions: [gfmTable()],

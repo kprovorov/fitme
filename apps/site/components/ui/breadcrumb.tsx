@@ -4,38 +4,34 @@ import type { ComponentProps } from "react";
 
 import { cn } from "@/lib/utils";
 
-function Breadcrumb({ ...props }: ComponentProps<"nav">) {
-  return <nav aria-label="breadcrumb" {...props} />;
-}
+const Breadcrumb = ({ ...props }: ComponentProps<"nav">) => (
+  <nav aria-label="Breadcrumb" {...props} />
+);
 
-function BreadcrumbList({ className, ...props }: ComponentProps<"ol">) {
-  return (
-    <ol
-      className={cn(
-        "text-muted-foreground text-subhead flex flex-wrap items-center gap-1.5 break-words sm:gap-2.5",
-        className
-      )}
-      {...props}
-    />
-  );
-}
+const BreadcrumbList = ({ className, ...props }: ComponentProps<"ol">) => (
+  <ol
+    className={cn(
+      "text-muted-foreground text-subhead flex flex-wrap items-center gap-1.5 break-words sm:gap-2.5",
+      className
+    )}
+    {...props}
+  />
+);
 
-function BreadcrumbItem({ className, ...props }: ComponentProps<"li">) {
-  return (
-    <li
-      className={cn("inline-flex items-center gap-1.5", className)}
-      {...props}
-    />
-  );
-}
+const BreadcrumbItem = ({ className, ...props }: ComponentProps<"li">) => (
+  <li
+    className={cn("inline-flex items-center gap-1.5", className)}
+    {...props}
+  />
+);
 
-function BreadcrumbLink({
+const BreadcrumbLink = ({
   asChild,
   className,
   ...props
 }: ComponentProps<"a"> & {
   asChild?: boolean;
-}) {
+}) => {
   const Comp = asChild ? Slot : "a";
 
   return (
@@ -44,47 +40,44 @@ function BreadcrumbLink({
       {...props}
     />
   );
-}
+};
 
-function BreadcrumbPage({ className, ...props }: ComponentProps<"span">) {
-  return (
-    <span
-      aria-current="page"
-      className={cn("text-foreground", className)}
-      {...props}
-    />
-  );
-}
+const BreadcrumbPage = ({ className, ...props }: ComponentProps<"span">) => (
+  <span
+    aria-current="page"
+    className={cn("text-foreground", className)}
+    {...props}
+  />
+);
 
-function BreadcrumbSeparator({
+const BreadcrumbSeparator = ({
   children,
   className,
   ...props
-}: ComponentProps<"li">) {
-  return (
-    <li
-      aria-hidden="true"
-      className={cn("[&>svg]:h-3.5 [&>svg]:w-3.5", className)}
-      role="presentation"
-      {...props}
-    >
-      {children ?? <IconChevronRight />}
-    </li>
-  );
-}
+}: ComponentProps<"li">) => (
+  <li
+    aria-hidden="true"
+    className={cn("[&>svg]:h-3.5 [&>svg]:w-3.5", className)}
+    role="presentation"
+    {...props}
+  >
+    {children ?? <IconChevronRight />}
+  </li>
+);
 
-function BreadcrumbEllipsis({ className, ...props }: ComponentProps<"span">) {
-  return (
-    <span
-      className={cn("flex h-9 w-9 items-center justify-center", className)}
-      role="presentation"
-      {...props}
-    >
-      <IconDots aria-hidden="true" className="size-4" />
-      <span className="sr-only">More</span>
-    </span>
-  );
-}
+const BreadcrumbEllipsis = ({
+  className,
+  ...props
+}: ComponentProps<"span">) => (
+  <span
+    className={cn("flex h-9 w-9 items-center justify-center", className)}
+    role="presentation"
+    {...props}
+  >
+    <IconDots aria-hidden="true" className="size-4" />
+    <span className="sr-only">More</span>
+  </span>
+);
 
 export {
   Breadcrumb,

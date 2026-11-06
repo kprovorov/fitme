@@ -1,5 +1,7 @@
 import { observeHono } from "@fitme/observability/node";
+import type { reportError } from "@fitme/observability/node";
 import { createRoute, OpenAPIHono, z } from "@hono/zod-openapi";
+import type { ErrorHandler } from "hono";
 import { cors } from "hono/cors";
 import { HTTPException } from "hono/http-exception";
 import { logger } from "hono/logger";
@@ -23,7 +25,7 @@ export interface AppDeps {
   /** Counts each User's requests; server callers are never counted. */
   rateLimiter: RateLimiter;
   /** Sends an error to Sentry (and the logs), resolving once it's delivered. */
-  reportError: (error: unknown) => Promise<void>;
+  reportError: typeof reportError;
 }
 
 const health = createRoute({
@@ -72,7 +74,7 @@ export const createApp = ({
       identifyUser(caller.userId);
     }
 
-    await next();
+    return await next();
   });
   app.openAPIRegistry.registerComponent("securitySchemes", BEARER_AUTH, {
     description:
@@ -95,7 +97,7 @@ export const createApp = ({
     c.json({ error: { code: "not_found", message: "Route not found" } }, 404)
   );
 
-  app.onError(async (error, c) => {
+  const handleError: ErrorHandler<AuthEnv> = async (error, c) => {
     if (error instanceof HTTPException) {
       return c.json(
         { error: { code: "http_error", message: error.message } },
@@ -109,7 +111,9 @@ export const createApp = ({
       { error: { code: "internal_error", message: "Internal server error" } },
       500
     );
-  });
+  };
+
+  app.onError(handleError);
 
   return app;
 };

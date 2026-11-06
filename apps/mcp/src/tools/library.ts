@@ -29,10 +29,10 @@ export type KnownExercises = ReadonlyMap<string, ExerciseSummary>;
  * Runs a call a tool can't answer without (a search, a write's slug check):
  * the library failing is reported, then shown as a `ToolError`.
  */
-export async function fromLibrary<T>(
+export const fromLibrary = async <T>(
   ctx: ToolContext,
   call: (library: Library) => Promise<T>
-): Promise<T> {
+): Promise<T> => {
   const library = ctx.getLibrary();
 
   try {
@@ -41,7 +41,7 @@ export async function fromLibrary<T>(
     await ctx.reportError(error);
     throw new ToolError(LIBRARY_UNAVAILABLE_MESSAGE, { cause: error });
   }
-}
+};
 
 const bySlug = (exercises: ExerciseSummary[]): KnownExercises =>
   new Map(exercises.map((exercise) => [exercise.slug, exercise]));
@@ -51,10 +51,10 @@ const bySlug = (exercises: ExerciseSummary[]): KnownExercises =>
  * open their transaction (ADR 0010): an unknown one is a `ToolError` naming
  * it, so nothing is written. Answers the Exercises, to name the result.
  */
-export async function requireKnownSlugs(
+export const requireKnownSlugs = async (
   ctx: ToolContext,
   slugs: string[]
-): Promise<KnownExercises> {
+): Promise<KnownExercises> => {
   const { data, missing } = await fromLibrary(ctx, (library) =>
     library.lookup(slugs)
   );
@@ -66,7 +66,7 @@ export async function requireKnownSlugs(
   }
 
   return bySlug(data);
-}
+};
 
 /**
  * Gives each Workout a write creates its Cover (ADR 0014): one `covers()`
@@ -76,11 +76,11 @@ export async function requireKnownSlugs(
  * Library tool error with nothing written; no Covers gives every Workout
  * `null`.
  */
-export async function withCovers<W extends { exercises: WithSlug[] }>(
+export const withCovers = async <W extends { exercises: WithSlug[] }>(
   ctx: ToolContext,
   workouts: W[],
   known: KnownExercises
-): Promise<(W & { cover: string | null })[]> {
+): Promise<(W & { cover: string | null })[]> => {
   const covers = await fromLibrary(ctx, (library) => library.covers());
 
   const picked = pickCovers({
@@ -99,19 +99,21 @@ export async function withCovers<W extends { exercises: WithSlug[] }>(
     ...workout,
     cover: picked[index] ?? null,
   }));
-}
+};
 
 /**
  * The Exercises a read shows, looked up after its transaction. Never fails
  * the read: with the library failing (reported) or not configured, every
  * Exercise gets a name derived from its slug.
  */
-export async function lookupForRead(
+export const lookupForRead = async (
   ctx: ToolContext,
   slugs: string[]
-): Promise<KnownExercises> {
+): Promise<KnownExercises> => {
   try {
-    return bySlug((await ctx.getLibrary().lookup(slugs)).data);
+    const result = await ctx.getLibrary().lookup(slugs);
+
+    return bySlug(result.data);
   } catch (error) {
     if (!(error instanceof ToolError)) {
       await ctx.reportError(error);
@@ -119,7 +121,7 @@ export async function lookupForRead(
 
     return new Map();
   }
-}
+};
 
 /** An Exercise as the tools show it: its slug, name and muscle groups. */
 const exerciseRef = (slug: string, known: KnownExercises) => {

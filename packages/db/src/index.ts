@@ -4,7 +4,24 @@ import { getConnection } from "./client";
 import type { Database } from "./client";
 
 // The generated tables (pnpm --filter @fitme/db schema:generate)
-export * from "./schema";
+export {
+  arnoldSessions,
+  personalRecordInitializations,
+  personalRecords,
+  plans,
+  privateSchema,
+  profiles,
+  retiredUserIdsInPrivate,
+  weeklyGoalChanges,
+  workoutExerciseSets,
+  workoutExercises,
+  workouts,
+  workoutSessionExerciseProgressInPrivate,
+  workoutSessionExercises,
+  workoutSessionExerciseSets,
+  workoutSessionProgress,
+  workoutSessions,
+} from "./schema";
 
 /**
  * The only two doors into Postgres (ADR 0003). Each opens a transaction on the

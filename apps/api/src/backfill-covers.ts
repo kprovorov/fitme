@@ -140,9 +140,9 @@ const coverPlan = async (
 
   const unknownSlugs = [
     ...new Set(
-      exercises
-        .map((exercise) => exercise.slug)
-        .filter((slug) => !known.has(slug))
+      exercises.flatMap((exercise) =>
+        known.has(exercise.slug) ? [] : [exercise.slug]
+      )
     ),
   ];
 
@@ -157,31 +157,37 @@ const coverPlan = async (
       workout.cover === null ? [] : [workout.cover]
     ),
     workouts: toCover.map((workout) => ({
-      exercises: exercises
-        .filter((exercise) => exercise.workoutId === workout.id)
-        .map((exercise) => ({ muscleGroups: known.get(exercise.slug) ?? [] })),
+      exercises: exercises.flatMap((exercise) =>
+        exercise.workoutId === workout.id
+          ? [{ muscleGroups: known.get(exercise.slug) ?? [] }]
+          : []
+      ),
     })),
   });
 
-  let covered = 0;
+  // Chain statements: a transaction's connection runs one at a time.
+  let writes = Promise.resolve(0);
 
   for (const [index, workout] of toCover.entries()) {
-    const cover = picks[index];
+    writes = writes.then(async (count) => {
+      const cover = picks[index];
 
-    if (!cover) {
-      continue;
-    }
+      if (!cover) {
+        return count;
+      }
 
-    // `cover is null` again: a Workout that got a Cover meanwhile keeps it.
-    // biome-ignore lint/performance/noAwaitInLoops: one transaction runs one statement at a time
-    const updated = await tx
-      .update(workouts)
-      .set({ cover })
-      .where(and(eq(workouts.id, workout.id), isNull(workouts.cover)))
-      .returning({ id: workouts.id });
+      // `cover is null` again: a Workout that got a Cover meanwhile keeps it.
+      const updated = await tx
+        .update(workouts)
+        .set({ cover })
+        .where(and(eq(workouts.id, workout.id), isNull(workouts.cover)))
+        .returning({ id: workouts.id });
 
-    covered += updated.length;
+      return count + updated.length;
+    });
   }
+
+  const covered = await writes;
 
   return { covered };
 };
@@ -255,32 +261,43 @@ export const backfillCovers = async ({
       coverPlan(tx, planId, { covers, dryRun, known, random })
     );
 
+  // Chain Plans to keep production load small and preserve lookup/picker order.
+  let processing = Promise.resolve(report);
+
   for (const planId of pending.planIds) {
-    // biome-ignore lint/performance/noAwaitInLoops: one Plan at a time keeps the load on production small
-    let result = await coverOnce(planId);
+    processing = processing.then(async () => {
+      let result = await coverOnce(planId);
 
-    if ("unknownSlugs" in result) {
-      await learnSlugs(library, known, result.unknownSlugs);
-      result = await coverOnce(planId);
-    }
+      if ("unknownSlugs" in result) {
+        await learnSlugs(library, known, result.unknownSlugs);
+        result = await coverOnce(planId);
+      }
 
-    if ("unknownSlugs" in result) {
-      log(`plan ${planId}: skipped, its Exercises changed during the run`);
-      continue;
-    }
+      if ("unknownSlugs" in result) {
+        log(`plan ${planId}: skipped, its Exercises changed during the run`);
 
-    if (result.covered === 0) {
-      continue;
-    }
+        return report;
+      }
 
-    report.plans.push({ covered: result.covered, planId });
+      if (result.covered === 0) {
+        return report;
+      }
 
-    if (!dryRun) {
-      report.written += result.covered;
-    }
+      report.plans.push({ covered: result.covered, planId });
 
-    log(`plan ${planId}: ${result.covered} ${dryRun ? "to cover" : "covered"}`);
+      if (!dryRun) {
+        report.written += result.covered;
+      }
+
+      log(
+        `plan ${planId}: ${result.covered} ${dryRun ? "to cover" : "covered"}`
+      );
+
+      return report;
+    });
   }
+
+  await processing;
 
   const total = report.plans.reduce((sum, plan) => sum + plan.covered, 0);
   log(

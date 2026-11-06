@@ -3,7 +3,7 @@ import type { MuscleGroup } from "@fitme/core";
 import type { ExerciseSummary } from "@fitme/library-sdk";
 import { useQueryClient } from "@tanstack/react-query";
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Alert } from "react-native";
 
@@ -24,7 +24,7 @@ import { segmentClient } from "~/lib/segment";
 import { sessionEditFailureMessage } from "~/lib/session-edit-failure";
 
 const isMuscleGroup = (value: string | undefined): value is MuscleGroup =>
-  (muscleGroups as readonly string[]).includes(value ?? "");
+  muscleGroups.some((group) => group === value);
 
 /**
  * The Exercise picker, a page sheet over an open Workout Session: adds the
@@ -33,7 +33,7 @@ const isMuscleGroup = (value: string | undefined): value is MuscleGroup =>
  * It searches from the native header search bar, empty on every open.
  * It closes once saved; a failure says so in an alert and keeps it open.
  */
-export default function ExercisePickerScreen() {
+const ExercisePickerScreen = () => {
   const { t } = useTranslation();
   const router = useRouter();
   const queryClient = useQueryClient();
@@ -54,7 +54,7 @@ export default function ExercisePickerScreen() {
 
   // Each opening starts over: the replaced Exercise's first Muscle group, or
   // none, and forgotten once closed.
-  const [muscleChoiceKey] = useState(newMuscleChoiceKey);
+  const muscleChoiceKey = useMemo(() => newMuscleChoiceKey(), []);
   useMuscleChoiceOpening(
     muscleChoiceKey,
     isMuscleGroup(muscleGroup) ? [muscleGroup] : []
@@ -164,10 +164,14 @@ export default function ExercisePickerScreen() {
 
       try {
         await save(exercise);
-      } finally {
+      } catch (error) {
         saving.current = false;
         setIsSaving(false);
+        throw error;
       }
+
+      saving.current = false;
+      setIsSaving(false);
     },
     [save]
   );
@@ -225,4 +229,6 @@ export default function ExercisePickerScreen() {
       />
     </>
   );
-}
+};
+
+export default ExercisePickerScreen;

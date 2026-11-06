@@ -99,7 +99,7 @@ export const deleteUserData = async (
       )
     );
 
-  if (rekeyed) {
+  if (rekeyed !== undefined) {
     throw new UserRekeyedError(userId);
   }
 

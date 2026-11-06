@@ -5,10 +5,10 @@ import exerciseShot from "@/public/screens/exercise-detail.png";
 import homeShot from "@/public/screens/home.png";
 import plannerShot from "@/public/screens/planner.png";
 
-function Hero() {
-  return (
-    <section aria-labelledby="hero-heading" className="w-full">
-      <Container className="flex flex-col items-center gap-12">
+const Hero = () => (
+  <section aria-labelledby="hero-heading" className="w-full">
+    <Container>
+      <div className="flex flex-col items-center gap-12">
         <div className="flex flex-col items-center gap-2 text-center">
           <h1 id="hero-heading">
             AI Workout Tracker & Fitness Coach for iPhone
@@ -49,9 +49,9 @@ function Hero() {
             />
           </div>
         </div>
-      </Container>
-    </section>
-  );
-}
+      </div>
+    </Container>
+  </section>
+);
 
 export { Hero };

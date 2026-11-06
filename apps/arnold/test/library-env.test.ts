@@ -24,38 +24,32 @@ describe("getLibrary", () => {
     vi.stubEnv("EXERCISES_URL", "https://library.test");
     const getLibrary = await freshGetLibrary();
 
-    const failure = await getLibrary()
-      .lookup(["bench-press"])
-      .catch((error: unknown) => error);
-
     // by shape: the fresh module graph has its own copy of the error classes
-    expect(failure).toMatchObject({
+    await expect(getLibrary().lookup(["bench-press"])).rejects.toMatchObject({
+      cause: new Error("LIBRARY_URL is not set"),
       code: "unavailable",
       name: "LibraryUnavailableError",
     });
-    expect((failure as Error).cause).toEqual(
-      new Error("LIBRARY_URL is not set")
-    );
   });
 
   it("calls LIBRARY_URL with LIBRARY_ARNOLD_SECRET as the bearer", async () => {
     vi.stubEnv("LIBRARY_URL", "https://library.test");
     vi.stubEnv("LIBRARY_ARNOLD_SECRET", "arnold-secret");
 
-    const fetch = vi.fn(async () =>
-      Response.json({ data: [], missing: ["bench-press"] })
-    );
+    const fetch = vi
+      .fn<typeof globalThis.fetch>()
+      .mockResolvedValue(Response.json({ data: [], missing: ["bench-press"] }));
 
     vi.stubGlobal("fetch", fetch);
     const getLibrary = await freshGetLibrary();
 
-    await expect(getLibrary().lookup(["bench-press"])).resolves.toEqual({
+    await expect(getLibrary().lookup(["bench-press"])).resolves.toStrictEqual({
       data: [],
       missing: ["bench-press"],
     });
-    const [url, init] = fetch.mock.calls[0] as unknown as [string, RequestInit];
+    const [[url, init]] = fetch.mock.calls;
     expect(url).toBe("https://library.test/exercises?slugs=bench-press");
-    expect(new Headers(init.headers).get("authorization")).toBe(
+    expect(new Headers(init?.headers).get("authorization")).toBe(
       "Bearer arnold-secret"
     );
   });

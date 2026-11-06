@@ -22,11 +22,7 @@ const minimumVersionForPlatform = (config: ClientConfig | undefined) => {
  * every return to the foreground. Until a check succeeds (offline, API down,
  * no `EXPO_PUBLIC_API_URL`) the app runs as normal.
  */
-export default function MinimumVersionGate({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+const MinimumVersionGate = ({ children }: { children: React.ReactNode }) => {
   const hasApi = getApiUrl() !== "";
   const { data, refetch } = useClientConfigQuery({ enabled: hasApi });
 
@@ -54,4 +50,6 @@ export default function MinimumVersionGate({
   }
 
   return children;
-}
+};
+
+export default MinimumVersionGate;

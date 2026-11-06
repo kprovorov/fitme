@@ -5,14 +5,14 @@ import { resolveObservabilityConfig } from "../index";
 const DSN = "https://key@o1.ingest.sentry.io/2";
 const SHA = "0123456789abcdef0123456789abcdef01234567";
 
-describe(resolveObservabilityConfig, () => {
+describe("observability configuration", () => {
   it("samples 20% of traces in production, tagged with the commit", () => {
     expect(
       resolveObservabilityConfig({
         dsn: DSN,
         env: { VERCEL_ENV: "production", VERCEL_GIT_COMMIT_SHA: SHA },
       })
-    ).toEqual({
+    ).toStrictEqual({
       dsn: DSN,
       enabled: true,
       environment: "production",
@@ -27,7 +27,7 @@ describe(resolveObservabilityConfig, () => {
         dsn: DSN,
         env: { VERCEL_ENV: "preview", VERCEL_GIT_COMMIT_SHA: SHA },
       })
-    ).toEqual({
+    ).toStrictEqual({
       dsn: DSN,
       enabled: true,
       environment: "preview",
@@ -46,7 +46,7 @@ describe(resolveObservabilityConfig, () => {
   });
 
   it("counts a run outside Vercel as development, with no release", () => {
-    expect(resolveObservabilityConfig({ dsn: DSN, env: {} })).toEqual({
+    expect(resolveObservabilityConfig({ dsn: DSN, env: {} })).toStrictEqual({
       dsn: DSN,
       enabled: true,
       environment: "development",

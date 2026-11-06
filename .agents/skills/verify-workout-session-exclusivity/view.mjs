@@ -1,23 +1,34 @@
 export const title = "A User has at most one open Workout Session";
 
+/** @param {{ rows: Record<string, string> }} v Model state. */
 export const state = (v) => {
-  const names = [
-    "existing orphan",
-    "first writer",
-    "second writer",
-    "third writer",
-  ];
+  /** @type {Record<string, string>} */
+  const names = {
+    0: "existing orphan",
+    1: "first writer",
+    2: "second writer",
+    3: "third writer",
+  };
 
-  const describe = (status) =>
-    Object.keys(v.rows)
-      .filter((s) => v.rows[s] === status)
-      .map((s) => names[s])
-      .join(", ") || "none";
+  /** @param {string} status Row status to describe. */
+  const describe = (status) => {
+    const matches = [];
+
+    for (const s of Object.keys(v.rows)) {
+      if (v.rows[s] === status) {
+        matches.push(names[s]);
+      }
+    }
+
+    return matches.join(", ") || "none";
+  };
 
   return `Open: ${describe("open")}; uncommitted: ${describe("pending")}`;
 };
 
+/** @param {string} action Model action label. */
 export const step = (action) => {
+  /** @type {Record<string, string>} */
   const labels = {
     ReadOpen: "a caller checks for an open Workout Session",
     Insert: "a writer inserts an uncommitted Workout Session",
@@ -30,5 +41,5 @@ export const step = (action) => {
     Done: "all writers have returned",
   };
 
-  return labels[action.replace(/\(.*/, "")] ?? action;
+  return labels[action.replace(/\(.*/u, "")] ?? action;
 };

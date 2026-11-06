@@ -10,7 +10,7 @@ import { useHeaderSearch } from "~/hooks/header-search";
 /** The Library tab's Muscle group choice: kept while the app runs. */
 const MUSCLE_CHOICE_KEY = "library";
 
-export default function LibraryScreen() {
+const LibraryScreen = () => {
   const { t } = useTranslation();
   const { onSearchChange, search, searchBarOptions } = useHeaderSearch();
 
@@ -43,4 +43,6 @@ export default function LibraryScreen() {
       />
     </>
   );
-}
+};
+
+export default LibraryScreen;

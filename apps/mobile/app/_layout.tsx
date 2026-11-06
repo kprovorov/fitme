@@ -1,6 +1,4 @@
 import "@/polyfills";
-// Starts the translations in the App language before anything renders.
-import "~/lib/i18n";
 import {
   NunitoSans_400Regular,
   NunitoSans_600SemiBold,
@@ -9,25 +7,26 @@ import {
 import { scrubEvent, tracePropagationTargets } from "@fitme/observability";
 import { PortalHost } from "@rn-primitives/portal";
 import * as Sentry from "@sentry/react-native";
-import "expo-dev-client";
 import { useFonts } from "expo-font";
+import "expo-dev-client";
 import { Stack } from "expo-router";
 import { getFocusedRouteNameFromRoute } from "expo-router/react-navigation";
 import * as SplashScreen from "expo-splash-screen";
 import { StatusBar } from "expo-status-bar";
 import { useEffect } from "react";
 import { useTranslation } from "react-i18next";
-import "react-native-reanimated";
 import { Platform } from "react-native";
+import "react-native-reanimated";
 import Purchases from "react-native-purchases";
 import { Uniwind } from "uniwind";
 
 import MinimumVersionGate from "~/components/minimum-version-gate";
+import Providers from "~/components/providers";
 
 import "../global.css";
-import Providers from "~/components/providers";
 import { PlanUpdateSheetHost } from "~/components/workout-sessions/plan-update-sheet";
 import { SCROLL_EDGE_EFFECTS } from "~/lib/constants";
+// Starts the translations in the App language before anything renders.
 import { useAppLanguageSync } from "~/lib/i18n";
 import { isTracedRequestUrl, templateRequestSpans } from "~/lib/request-spans";
 import { getTabTitle } from "~/lib/tabs";
@@ -96,7 +95,7 @@ if (!IS_E2E) {
   Purchases.configure({ apiKey: revenueCatApiKey ?? "" });
 }
 
-function RootLayout() {
+const RootLayout = () => {
   useAppLanguageSync();
   // Re-renders on a language change, so the back button titles follow it.
   useTranslation();
@@ -176,10 +175,10 @@ function RootLayout() {
       </MinimumVersionGate>
       <PlanUpdateSheetHost />
       <PortalHost />
-      <StatusBar style="auto" />
+      <StatusBar />
     </Providers>
   );
-}
+};
 
 // Captures render crashes and touch breadcrumbs, and traces app start.
 export default Sentry.wrap(RootLayout);

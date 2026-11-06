@@ -5,6 +5,7 @@ import {
   reportError,
 } from "@fitme/observability/node";
 import { createRoute, OpenAPIHono, z } from "@hono/zod-openapi";
+import type { ErrorHandler } from "hono";
 import { cors } from "hono/cors";
 import { HTTPException } from "hono/http-exception";
 import { logger } from "hono/logger";
@@ -32,7 +33,7 @@ export interface AppDeps {
   /** Counts each caller's requests (`rateLimiterFromEnv` unless given). */
   rateLimiter: RateLimiter;
   /** Reports an unhandled error before the 500 goes out. */
-  reportError: (error: unknown) => Promise<void>;
+  reportError: typeof reportError;
 }
 
 /**
@@ -106,7 +107,8 @@ export const createApp = (deps: Partial<AppDeps> = {}) => {
       return library;
     });
     c.set("reportError", report);
-    await next();
+
+    return await next();
   });
   // Before anything is served, unknown routes included.
   app.use(rateLimitCallers({ limiter: rateLimiter, reportError: report }));
@@ -121,7 +123,7 @@ export const createApp = (deps: Partial<AppDeps> = {}) => {
     c.json({ error: { code: "not_found", message: "Route not found" } }, 404)
   );
 
-  app.onError(async (error, c) => {
+  const handleError: ErrorHandler<ApiEnv> = async (error, c) => {
     if (error instanceof HTTPException) {
       return c.json(
         { error: { code: "http_error", message: error.message } },
@@ -135,7 +137,9 @@ export const createApp = (deps: Partial<AppDeps> = {}) => {
       { error: { code: "internal_error", message: "Internal server error" } },
       500
     );
-  });
+  };
+
+  app.onError(handleError);
 
   return app;
 };

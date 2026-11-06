@@ -1,6 +1,9 @@
-const NODE_MODULES = /node_modules/;
+const NODE_MODULES = /node_modules/u;
 
-module.exports = (api) => {
+/**
+ * @param {{ caller: (callback: (caller: { bundler?: string } | undefined) => boolean) => boolean, cache: (enabled: boolean) => void }} api Babel's configuration API.
+ */
+export default function babelConfig(api) {
   // Metro runs the React Compiler on the app's code (`reactCompiler` in
   // app.json), but babel-preset-expo only turns it on for Metro's caller, so
   // Jest would test uncompiled components. Run it in Jest too, so tests catch
@@ -19,4 +22,4 @@ module.exports = (api) => {
       : [],
     presets: [["babel-preset-expo"]],
   };
-};
+}

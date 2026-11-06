@@ -29,36 +29,42 @@ const clerkLoaded = (clerk: Clerk): Promise<void> => {
     return clerkLoading;
   }
 
-  const loading = new Promise<void>((resolve, reject) => {
-    const settle = (done: () => void) => {
+  const {
+    promise: loading,
+    resolve,
+    reject,
+  } = Promise.withResolvers<undefined>();
+
+  const timer = setTimeout(
+    () => reject(new Error("Clerk didn't load")),
+    CLERK_LOAD_TIMEOUT_MS
+  );
+
+  const onStatus = (status: Clerk["status"]) => {
+    if (status === "ready" || status === "degraded") {
       clearTimeout(timer);
-      queueMicrotask(() => clerk.off("status", onStatus));
-      done();
-    };
+      resolve(undefined);
+    }
+  };
 
-    const onStatus = (status: Clerk["status"]) => {
-      if (status === "ready" || status === "degraded") {
-        settle(resolve);
-      }
-    };
-
-    const timer = setTimeout(
-      () => settle(() => reject(new Error("Clerk didn't load"))),
-      CLERK_LOAD_TIMEOUT_MS
-    );
-
+  try {
     clerk.on("status", onStatus, { notify: true });
-  });
+  } catch (error) {
+    reject(error);
+  }
 
   clerkLoading = loading;
 
   const forget = () => {
+    clearTimeout(timer);
+    clerk.off("status", onStatus);
+
     if (clerkLoading === loading) {
       clerkLoading = null;
     }
   };
 
-  loading.then(forget, forget);
+  loading.then(forget).catch(forget);
 
   return loading;
 };
@@ -99,5 +105,5 @@ export const publicApi = createPublicApi({
  */
 export const globalApi = createPublicApi({
   baseUrl: getApiUrl,
-  token: async () => null,
+  token: () => Promise.resolve(null),
 });

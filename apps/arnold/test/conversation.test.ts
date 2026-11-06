@@ -36,13 +36,17 @@ describe("conversation owner", () => {
   });
 });
 
-describe(admitTurn, () => {
-  const deps = (owner: string | null = "user_alice") => ({
-    claim: vi.fn().mockResolvedValue(owner),
-    isEvalRun: () => false,
-    report: vi.fn().mockResolvedValue(undefined),
-  });
+const deps = (owner: string | null = "user_alice") => ({
+  claim: vi
+    .fn<Parameters<typeof admitTurn>[1]["claim"]>()
+    .mockResolvedValue(owner),
+  isEvalRun: () => false,
+  report: vi
+    .fn<Parameters<typeof admitTurn>[1]["report"]>()
+    .mockResolvedValue(undefined),
+});
 
+describe("turn admission", () => {
   it("records the session for its owner and lets the turn run", async () => {
     const { claim, isEvalRun, report } = deps();
 
@@ -51,7 +55,7 @@ describe(admitTurn, () => {
         { auth: { current: alice, initiator: alice }, sessionId: "wrun_1" },
         { claim, isEvalRun, report }
       )
-    ).resolves.toBe(true);
+    ).resolves.toBeTruthy();
     expect(claim).toHaveBeenCalledWith("wrun_1", "user_alice");
     expect(report).not.toHaveBeenCalled();
   });
@@ -64,7 +68,7 @@ describe(admitTurn, () => {
         { auth: { current: mallory, initiator: alice }, sessionId: "wrun_1" },
         { claim, isEvalRun, report }
       )
-    ).resolves.toBe(false);
+    ).resolves.toBeFalsy();
     expect(claim).not.toHaveBeenCalled();
   });
 
@@ -76,7 +80,7 @@ describe(admitTurn, () => {
         { auth: { current: alice, initiator: alice }, sessionId: "wrun_1" },
         { claim, isEvalRun, report }
       )
-    ).resolves.toBe(false);
+    ).resolves.toBeFalsy();
     expect(report).toHaveBeenCalledWith(expect.any(Error), {
       sessionId: "wrun_1",
     });
@@ -92,7 +96,7 @@ describe(admitTurn, () => {
         { auth: { current: alice, initiator: alice }, sessionId: "wrun_1" },
         { claim, isEvalRun, report }
       )
-    ).resolves.toBe(false);
+    ).resolves.toBeFalsy();
     expect(report).toHaveBeenCalledWith(failure, { sessionId: "wrun_1" });
   });
 });

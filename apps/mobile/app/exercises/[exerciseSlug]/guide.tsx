@@ -10,16 +10,15 @@ import { H4, Muted } from "~/components/ui/typography";
 import { useExercise, useExerciseDetailQuery } from "~/hooks/queries/library";
 
 /** A markdown list (`- step` or `1. step` lines) as plain steps. */
-const LIST_MARKER = /^\s*(?:[-*•]|\d+[.)])\s*/;
+const LIST_MARKER = /^\s*(?:[-*•]|\d+[.)])\s*/u;
 
-function instructionSteps(instructions: string): string[] {
-  return instructions
+const instructionSteps = (instructions: string): string[] =>
+  instructions
     .split("\n")
     .map((line) => line.replace(LIST_MARKER, "").trim())
     .filter((line) => line.length > 0);
-}
 
-export default function ExerciseGuideScreen() {
+const ExerciseGuideScreen = () => {
   const { t } = useTranslation();
   const { exerciseSlug } = useLocalSearchParams<{ exerciseSlug: string }>();
 
@@ -50,15 +49,11 @@ export default function ExerciseGuideScreen() {
               <ExerciseVideo url={exercise.video_url} />
             </View>
           ) : null}
-          {exercise.description ? (
-            <Muted className="text-body">{exercise.description}</Muted>
-          ) : null}
+          {exercise.description ? <Muted>{exercise.description}</Muted> : null}
           {steps.map((step, index) => (
             <View className="flex-row gap-3" key={step}>
-              <Text className="text-mono-body-semibold text-primary w-6">
-                {index + 1}
-              </Text>
-              <Text className="text-body flex-1">{step}</Text>
+              <Text className="w-6">{index + 1}</Text>
+              <Text className="flex-1">{step}</Text>
             </View>
           ))}
         </>
@@ -67,7 +62,7 @@ export default function ExerciseGuideScreen() {
 
     if (exercise === null) {
       return (
-        <Text className="pt-lg text-muted-foreground text-center">
+        <Text className="mt-lg text-center" variant="muted">
           {t("exercise.gone")}
         </Text>
       );
@@ -76,7 +71,7 @@ export default function ExerciseGuideScreen() {
     if (isError) {
       return (
         <View className="gap-sm pt-lg items-center">
-          <Text className="text-muted-foreground text-center">
+          <Text className="text-center" variant="muted">
             {t("exercise.loadError")}
           </Text>
           <Button
@@ -116,4 +111,6 @@ export default function ExerciseGuideScreen() {
       </ScrollView>
     </>
   );
-}
+};
+
+export default ExerciseGuideScreen;

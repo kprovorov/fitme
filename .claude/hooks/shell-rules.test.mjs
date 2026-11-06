@@ -1,3 +1,4 @@
+/// <reference types="node" />
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
 import { describe, test } from "node:test";
@@ -14,10 +15,14 @@ const ZSH_PATH_REASON = /zsh ties the lowercase `path` array to `PATH`/;
 const OUTPUT_FORMAT_REASON = /--output-format json/;
 const GITLEAKS_REASON = /gitleaks masks nothing without `--redact`/;
 
+/**
+ * @param {Parameters<typeof findShellRuleViolations>[0]} command The shell command.
+ * @param {Parameters<typeof findShellRuleViolations>[1]} [options] The rule options.
+ */
 const rulesBroken = (command, options) =>
   findShellRuleViolations(command, options).map((violation) => violation.rule);
 
-describe("timeout", () => {
+void describe("timeout", () => {
   for (const command of [
     "timeout 90 pnpm test",
     "gtimeout 60 pnpm test",
@@ -44,7 +49,7 @@ describe("timeout", () => {
   }
 });
 
-describe("cd", () => {
+void describe("cd", () => {
   for (const command of [
     "cd apps/mobile && pnpm test",
     "cd ../.. && pnpm install",
@@ -75,7 +80,7 @@ describe("cd", () => {
   }
 });
 
-describe("pkill and pgrep", () => {
+void describe("pkill and pgrep", () => {
   for (const command of [
     "pkill -f ultracite",
     "pkill -f 'tsx watch'",
@@ -105,7 +110,7 @@ describe("pkill and pgrep", () => {
   }
 });
 
-describe("sleep", () => {
+void describe("sleep", () => {
   for (const command of [
     "sleep 5",
     "sleep 30 && gh pr checks 12",
@@ -142,7 +147,7 @@ describe("sleep", () => {
   });
 });
 
-describe("text that isn't a command", () => {
+void describe("text that isn't a command", () => {
   for (const command of [
     "cat > notes.md <<'EOF'\ntimeout 90 pnpm test\ncd apps/mobile && pnpm test\npkill -f ultracite\nsleep 60\nEOF",
     "cat <<-EOF\n\tsleep 60\n\tEOF\necho ok",
@@ -182,7 +187,11 @@ describe("text that isn't a command", () => {
   });
 });
 
-describe("the PreToolUse hook", () => {
+void describe("the PreToolUse hook", () => {
+  /**
+   * @param {unknown} input The hook payload.
+   * @param {NodeJS.ProcessEnv} [env] The environment overrides.
+   */
   const runHook = (input, env) =>
     spawnSync(
       process.execPath,
@@ -224,6 +233,7 @@ describe("the PreToolUse hook", () => {
   });
 
   test("reads the project directory from CLAUDE_PROJECT_DIR", () => {
+    /** @param {string} command The shell command. */
     const scan = (command) =>
       runHook(
         { tool_input: { command }, tool_name: "Bash" },
@@ -235,7 +245,7 @@ describe("the PreToolUse hook", () => {
   });
 });
 
-describe("wrapped and compound commands", () => {
+void describe("wrapped and compound commands", () => {
   for (const [command, rules] of [
     ["env timeout 5 node x.js", ["timeout"]],
     ["sudo -n timeout 5 node x.js", ["timeout"]],
@@ -271,7 +281,7 @@ describe("wrapped and compound commands", () => {
   }
 });
 
-describe("heredocs inside substitutions", () => {
+void describe("heredocs inside substitutions", () => {
   test("allows an apostrophe and blocked words in the body", () => {
     const command = `git commit -m "$(cat <<'EOF'\nDon't run \`sleep 60\` or timeout 5.\nEOF\n)" && git push`;
     assert.deepEqual(rulesBroken(command), []);
@@ -283,7 +293,7 @@ describe("heredocs inside substitutions", () => {
   });
 });
 
-describe("self-matching patterns, introspection, continued lines and case patterns", () => {
+void describe("self-matching patterns, introspection, continued lines and case patterns", () => {
   for (const [command, rules] of [
     ["pkill -f 'node.*[0-9]'", ["pkill"]],
     ["pgrep -f 'v[i]test.*'", []],
@@ -305,7 +315,7 @@ describe("self-matching patterns, introspection, continued lines and case patter
   }
 });
 
-describe("expressions, function keywords and long wrapper options", () => {
+void describe("expressions, function keywords and long wrapper options", () => {
   for (const [command, rules] of [
     ['[[ "$status" == ok || timeout == "$status" ]]', []],
     ["(( timeout > 0 ))", []],
@@ -324,7 +334,7 @@ describe("expressions, function keywords and long wrapper options", () => {
   }
 });
 
-describe("loop headers, arrays, comments in substitutions and regex dialects", () => {
+void describe("loop headers, arrays, comments in substitutions and regex dialects", () => {
   for (const [command, rules] of [
     ["env -v sleep 60", ["sleep"]],
     ['for timeout in 1 2; do echo "$timeout"; done', []],
@@ -345,7 +355,7 @@ describe("loop headers, arrays, comments in substitutions and regex dialects", (
   }
 });
 
-describe("shifts, time options and named descriptors", () => {
+void describe("shifts, time options and named descriptors", () => {
   for (const [command, rules] of [
     ["x=$((1 <<\n2)); sleep 60", ["sleep"]],
     ["time -p sleep 60", ["sleep"]],
@@ -360,7 +370,7 @@ describe("shifts, time options and named descriptors", () => {
   }
 });
 
-describe("expansion hashes, escaped delimiters and append assignments", () => {
+void describe("expansion hashes, escaped delimiters and append assignments", () => {
   for (const [command, rules] of [
     // biome-ignore lint/suspicious/noTemplateCurlyInString: shell text, not a template.
     ['echo "${label:-hello # world}"; sleep 60', ["sleep"]],
@@ -375,7 +385,7 @@ describe("expansion hashes, escaped delimiters and append assignments", () => {
   }
 });
 
-describe("expansion shifts, timed groups and older-than options", () => {
+void describe("expansion shifts, timed groups and older-than options", () => {
   for (const [command, rules] of [
     // biome-ignore lint/suspicious/noTemplateCurlyInString: shell text, not a template.
     ['echo "${x:-a << b}"; sleep 60', ["sleep"]],
@@ -391,7 +401,7 @@ describe("expansion shifts, timed groups and older-than options", () => {
   }
 });
 
-describe("zsh word-splitting in loop headers", () => {
+void describe("zsh word-splitting in loop headers", () => {
   for (const command of [
     "for f in $files; do echo $f; done",
     // biome-ignore lint/suspicious/noTemplateCurlyInString: shell text, not a template.
@@ -428,7 +438,7 @@ describe("zsh word-splitting in loop headers", () => {
   });
 });
 
-describe("zsh's `path` variable", () => {
+void describe("zsh's `path` variable", () => {
   for (const command of [
     "local path=x",
     "path=apps/api; ls $path",
@@ -472,7 +482,7 @@ describe("zsh's `path` variable", () => {
   });
 });
 
-describe("the Supabase CLI's legacy output flag", () => {
+void describe("the Supabase CLI's legacy output flag", () => {
   for (const command of [
     "supabase status -o json",
     "supabase status --output json",
@@ -506,7 +516,7 @@ describe("the Supabase CLI's legacy output flag", () => {
   });
 });
 
-describe("prod secrets in a local shell", () => {
+void describe("prod secrets in a local shell", () => {
   for (const command of [
     "infisical secrets get X --env=prod",
     "infisical secrets get X --env prod",
@@ -539,7 +549,7 @@ describe("prod secrets in a local shell", () => {
   }
 });
 
-describe("printing env file values", () => {
+void describe("printing env file values", () => {
   for (const command of [
     "cat apps/api/.env",
     "cat .env.local",
@@ -584,7 +594,7 @@ describe("printing env file values", () => {
   }
 });
 
-describe("commands inside substitutions", () => {
+void describe("commands inside substitutions", () => {
   for (const [command, rules] of [
     ["x=$(cat apps/api/.env)", ["env-file"]],
     ['echo "values: $(grep KEY apps/api/.env)"', ["env-file"]],
@@ -607,7 +617,7 @@ describe("commands inside substitutions", () => {
   }
 });
 
-describe("gitleaks scanning a whole worktree or printing secrets", () => {
+void describe("gitleaks scanning a whole worktree or printing secrets", () => {
   for (const command of [
     // Unredacted: gitleaks masks nothing unless asked.
     "gitleaks dir apps/mobile",

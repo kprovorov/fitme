@@ -1,9 +1,9 @@
 import { beforeEach, describe, expect, it, jest } from "@jest/globals";
-
-import "~/test-utils/auth-ui";
 import { fireEvent, render, screen } from "@testing-library/react-native";
 import { router } from "expo-router";
 import { it, describe, expect, beforeEach } from "vitest";
+
+import "~/test-utils/auth-ui";
 
 import ResetPasswordView from "../reset-password-view";
 

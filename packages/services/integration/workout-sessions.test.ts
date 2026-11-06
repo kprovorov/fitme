@@ -34,7 +34,11 @@ const intruder = `user_svcSessIntruder${runId}`;
 const lifter = `user_svcSessLifter${runId}`;
 
 /** How PostgREST rendered timestamps, e.g. 2026-10-01T10:00:00.123+00:00. */
-const POSTGREST_TIMESTAMP = /^\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d(\.\d+)?\+00:00$/;
+const POSTGREST_TIMESTAMP =
+  /^\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d(?:\.\d+)?\+00:00$/u;
+
+const timestampMatcher: unknown = expect.stringMatching(POSTGREST_TIMESTAMP);
+const stringMatcher: unknown = expect.any(String);
 
 const benchSlug = `test-sess-bench-${runId}`;
 const squatSlug = `test-sess-squat-${runId}`;
@@ -183,413 +187,419 @@ const sessionExists = async (sessionId: string) =>
     return rows.length > 0;
   });
 
-beforeAll(async () => {
-  seeded = await seedOwner();
-  [{ id: intruderSessionId }] = await withService((tx) =>
-    tx
-      .insert(workoutSessions)
-      .values({ startedAt: "2026-10-03T10:00:00Z", userId: intruder })
-      .returning({ id: workoutSessions.id })
-  );
-});
-
-afterAll(async () => {
-  await deleteTestUsers([owner, intruder, lifter]);
-});
-
-describe(listWorkoutSessions, () => {
-  it("lists the User's sessions newest first with set counts", async () => {
-    const page = await asUser(
-      owner,
-      async (tx) =>
-        await listWorkoutSessions(tx, { limit: 20, offset: 0, status: "all" })
-    );
-
-    expect(page.total).toBe(2);
-    expect(page.sessions).toEqual([
-      {
-        completed_rep_count: 0,
-        exercise_count: 2,
-        finished_at: null,
-        id: seeded.openSessionId,
-        logged_set_count: 0,
-        personal_records: [],
-        plan: { id: seeded.planId, name: "Sessions plan" },
-        set_count: 3,
-        started_at: expect.stringMatching(POSTGREST_TIMESTAMP),
-        status: "in_progress",
-        volume: 0,
-        workout: { id: seeded.workoutId, name: "Day A" },
-      },
-      {
-        completed_rep_count: 8,
-        exercise_count: 1,
-        finished_at: "2026-10-01T11:00:00+00:00",
-        id: seeded.finishedSessionId,
-        logged_set_count: 1,
-        personal_records: [],
-        plan: { id: seeded.planId, name: "Sessions plan" },
-        set_count: 1,
-        started_at: "2026-10-01T10:00:00+00:00",
-        status: "finished",
-        volume: 480,
-        workout: { id: seeded.workoutId, name: "Day A" },
-      },
-    ]);
-  });
-
-  it("filters by status", async () => {
-    const [open, finished] = await asUser(owner, async (tx) => [
-      await listWorkoutSessions(tx, {
-        limit: 20,
-        offset: 0,
-        status: "in_progress",
-      }),
-      await listWorkoutSessions(tx, {
-        limit: 20,
-        offset: 0,
-        status: "finished",
-      }),
-    ]);
-
-    expect(open.sessions.map((session) => session.id)).toEqual([
-      seeded.openSessionId,
-    ]);
-    expect(open.total).toBe(1);
-    expect(finished.sessions.map((session) => session.id)).toEqual([
-      seeded.finishedSessionId,
-    ]);
-    expect(finished.total).toBe(1);
-  });
-
-  it("pages, and returns an empty page past the end with the total", async () => {
-    const [second, pastEnd] = await asUser(owner, async (tx) => [
-      await listWorkoutSessions(tx, { limit: 1, offset: 1, status: "all" }),
-      await listWorkoutSessions(tx, { limit: 10, offset: 5, status: "all" }),
-    ]);
-
-    expect(second.sessions.map((session) => session.id)).toEqual([
-      seeded.finishedSessionId,
-    ]);
-    expect(second.total).toBe(2);
-    expect(pastEnd).toEqual({ sessions: [], total: 2 });
-  });
-
-  it("totals each session's logged reps and weight × reps", async () => {
-    const [lifted, empty] = await withService(async (tx) => {
-      const sessions = await tx
+describe("workout sessions", () => {
+  beforeAll(async () => {
+    seeded = await seedOwner();
+    [{ id: intruderSessionId }] = await withService((tx) =>
+      tx
         .insert(workoutSessions)
-        .values([
-          {
-            finishedAt: "2026-10-05T11:00:00Z",
-            startedAt: "2026-10-05T10:00:00Z",
-            userId: lifter,
-          },
-          {
-            finishedAt: "2026-10-04T10:05:00Z",
-            startedAt: "2026-10-04T10:00:00Z",
-            userId: lifter,
-          },
-        ])
-        .returning({ id: workoutSessions.id });
+        .values({ startedAt: "2026-10-03T10:00:00Z", userId: intruder })
+        .returning({ id: workoutSessions.id })
+    );
+  });
 
-      const exercises = await tx
-        .insert(workoutSessionExercises)
-        .values(
-          sessions.map(({ id }) => ({
-            exerciseSlug: benchSlug,
-            order: 1,
-            workoutSessionId: id,
-          }))
-        )
-        .returning({ id: workoutSessionExercises.id });
+  afterAll(async () => {
+    await deleteTestUsers([owner, intruder, lifter]);
+  });
 
-      const logged = "2026-10-05T10:30:00Z";
-      await tx.insert(workoutSessionExerciseSets).values([
-        // No weight: reps count, volume doesn't.
+  describe("listing workout sessions", () => {
+    it("lists the User's sessions newest first with set counts", async () => {
+      const page = await asUser(
+        owner,
+        async (tx) =>
+          await listWorkoutSessions(tx, { limit: 20, offset: 0, status: "all" })
+      );
+
+      expect(page.total).toBe(2);
+      expect(page.sessions).toStrictEqual([
         {
-          loggedAt: logged,
-          order: 1,
-          repsCompleted: 10,
-          workoutSessionExerciseId: exercises[0].id,
+          completed_rep_count: 0,
+          exercise_count: 2,
+          finished_at: null,
+          id: seeded.openSessionId,
+          logged_set_count: 0,
+          personal_records: [],
+          plan: { id: seeded.planId, name: "Sessions plan" },
+          set_count: 3,
+          started_at: timestampMatcher,
+          status: "in_progress",
+          volume: 0,
+          workout: { id: seeded.workoutId, name: "Day A" },
         },
-        // Zero reps at a weight: no volume.
         {
-          loggedAt: logged,
-          order: 2,
-          repsCompleted: 0,
-          weightCompleted: "50.00",
-          workoutSessionExerciseId: exercises[0].id,
-        },
-        {
-          loggedAt: logged,
-          order: 3,
-          repsCompleted: 5,
-          weightCompleted: "20.50",
-          workoutSessionExerciseId: exercises[0].id,
-        },
-        // Never logged: a target only.
-        {
-          order: 4,
-          repsRecommended: 8,
-          weightRecommended: "60.00",
-          workoutSessionExerciseId: exercises[0].id,
-        },
-        // An empty completion: its one set logged at zero reps.
-        {
-          loggedAt: logged,
-          order: 1,
-          repsCompleted: 0,
-          weightCompleted: "40.00",
-          workoutSessionExerciseId: exercises[1].id,
+          completed_rep_count: 8,
+          exercise_count: 1,
+          finished_at: "2026-10-01T11:00:00+00:00",
+          id: seeded.finishedSessionId,
+          logged_set_count: 1,
+          personal_records: [],
+          plan: { id: seeded.planId, name: "Sessions plan" },
+          set_count: 1,
+          started_at: "2026-10-01T10:00:00+00:00",
+          status: "finished",
+          volume: 480,
+          workout: { id: seeded.workoutId, name: "Day A" },
         },
       ]);
-
-      return sessions;
     });
 
-    const page = await asUser(
-      lifter,
-      async (tx) =>
+    it("filters by status", async () => {
+      const [open, finished] = await asUser(owner, async (tx) => [
+        await listWorkoutSessions(tx, {
+          limit: 20,
+          offset: 0,
+          status: "in_progress",
+        }),
         await listWorkoutSessions(tx, {
           limit: 20,
           offset: 0,
           status: "finished",
-        })
-    );
-
-    expect(page.sessions).toEqual([
-      expect.objectContaining({
-        completed_rep_count: 15,
-        id: lifted.id,
-        logged_set_count: 3,
-        volume: 102.5,
-      }),
-      expect.objectContaining({
-        completed_rep_count: 0,
-        id: empty.id,
-        logged_set_count: 1,
-        volume: 0,
-      }),
-    ]);
-  });
-
-  it("never lists another User's sessions", async () => {
-    const page = await asUser(
-      intruder,
-      async (tx) =>
-        await listWorkoutSessions(tx, { limit: 20, offset: 0, status: "all" })
-    );
-
-    expect(page).toEqual({
-      sessions: [
-        expect.objectContaining({
-          id: intruderSessionId,
-          plan: null,
-          workout: null,
         }),
-      ],
-      total: 1,
+      ]);
+
+      expect(open.sessions.map((session) => session.id)).toStrictEqual([
+        seeded.openSessionId,
+      ]);
+      expect(open.total).toBe(1);
+      expect(finished.sessions.map((session) => session.id)).toStrictEqual([
+        seeded.finishedSessionId,
+      ]);
+      expect(finished.total).toBe(1);
     });
-  });
-});
 
-describe(getWorkoutSession, () => {
-  it("returns the session with its exercises and sets in order", async () => {
-    const session = await asUser(
-      owner,
-      async (tx) => await getWorkoutSession(tx, seeded.openSessionId)
-    );
+    it("pages, and returns an empty page past the end with the total", async () => {
+      const [second, pastEnd] = await asUser(owner, async (tx) => [
+        await listWorkoutSessions(tx, { limit: 1, offset: 1, status: "all" }),
+        await listWorkoutSessions(tx, { limit: 10, offset: 5, status: "all" }),
+      ]);
 
-    expect(session).toEqual({
-      exercises: [
-        {
-          exercise_slug: benchSlug,
-          id: expect.any(String),
-          order: 1,
-          sets: [
+      expect(second.sessions.map((session) => session.id)).toStrictEqual([
+        seeded.finishedSessionId,
+      ]);
+      expect(second.total).toBe(2);
+      expect(pastEnd).toStrictEqual({ sessions: [], total: 2 });
+    });
+
+    it("totals each session's logged reps and weight × reps", async () => {
+      const [lifted, empty] = await withService(async (tx) => {
+        const sessions = await tx
+          .insert(workoutSessions)
+          .values([
             {
-              id: seeded.openSetIds[0],
-              logged_at: null,
-              order: 1,
-              reps_completed: null,
-              reps_recommended: 8,
-              rest_recommended: 90,
-              weight_completed: null,
-              weight_recommended: 62.5,
+              finishedAt: "2026-10-05T11:00:00Z",
+              startedAt: "2026-10-05T10:00:00Z",
+              userId: lifter,
             },
-            expect.objectContaining({ id: seeded.openSetIds[1], order: 2 }),
-          ],
+            {
+              finishedAt: "2026-10-04T10:05:00Z",
+              startedAt: "2026-10-04T10:00:00Z",
+              userId: lifter,
+            },
+          ])
+          .returning({ id: workoutSessions.id });
+
+        const exercises = await tx
+          .insert(workoutSessionExercises)
+          .values(
+            sessions.map(({ id }) => ({
+              exerciseSlug: benchSlug,
+              order: 1,
+              workoutSessionId: id,
+            }))
+          )
+          .returning({ id: workoutSessionExercises.id });
+
+        const logged = "2026-10-05T10:30:00Z";
+        await tx.insert(workoutSessionExerciseSets).values([
+          // No weight: reps count, volume doesn't.
+          {
+            loggedAt: logged,
+            order: 1,
+            repsCompleted: 10,
+            workoutSessionExerciseId: exercises[0].id,
+          },
+          // Zero reps at a weight: no volume.
+          {
+            loggedAt: logged,
+            order: 2,
+            repsCompleted: 0,
+            weightCompleted: "50.00",
+            workoutSessionExerciseId: exercises[0].id,
+          },
+          {
+            loggedAt: logged,
+            order: 3,
+            repsCompleted: 5,
+            weightCompleted: "20.50",
+            workoutSessionExerciseId: exercises[0].id,
+          },
+          // Never logged: a target only.
+          {
+            order: 4,
+            repsRecommended: 8,
+            weightRecommended: "60.00",
+            workoutSessionExerciseId: exercises[0].id,
+          },
+          // An empty completion: its one set logged at zero reps.
+          {
+            loggedAt: logged,
+            order: 1,
+            repsCompleted: 0,
+            weightCompleted: "40.00",
+            workoutSessionExerciseId: exercises[1].id,
+          },
+        ]);
+
+        return sessions;
+      });
+
+      const page = await asUser(
+        lifter,
+        async (tx) =>
+          await listWorkoutSessions(tx, {
+            limit: 20,
+            offset: 0,
+            status: "finished",
+          })
+      );
+
+      expect(page.sessions).toStrictEqual([
+        expect.objectContaining({
+          completed_rep_count: 15,
+          id: lifted.id,
+          logged_set_count: 3,
+          volume: 102.5,
+        }),
+        expect.objectContaining({
+          completed_rep_count: 0,
+          id: empty.id,
+          logged_set_count: 1,
+          volume: 0,
+        }),
+      ]);
+    });
+
+    it("never lists another User's sessions", async () => {
+      const page = await asUser(
+        intruder,
+        async (tx) =>
+          await listWorkoutSessions(tx, { limit: 20, offset: 0, status: "all" })
+      );
+
+      expect(page).toStrictEqual({
+        sessions: [
+          expect.objectContaining({
+            id: intruderSessionId,
+            plan: null,
+            workout: null,
+          }),
+        ],
+        total: 1,
+      });
+    });
+  });
+
+  describe("reading a workout session", () => {
+    it("returns the session with its exercises and sets in order", async () => {
+      const session = await asUser(
+        owner,
+        async (tx) => await getWorkoutSession(tx, seeded.openSessionId)
+      );
+
+      expect(session).toStrictEqual({
+        exercises: [
+          {
+            exercise_slug: benchSlug,
+            id: stringMatcher,
+            order: 1,
+            sets: [
+              {
+                id: seeded.openSetIds[0],
+                logged_at: null,
+                order: 1,
+                reps_completed: null,
+                reps_recommended: 8,
+                rest_recommended: 90,
+                weight_completed: null,
+                weight_recommended: 62.5,
+              },
+              expect.objectContaining({ id: seeded.openSetIds[1], order: 2 }),
+            ],
+          },
+          {
+            exercise_slug: squatSlug,
+            id: stringMatcher,
+            order: 2,
+            sets: [
+              expect.objectContaining({
+                id: seeded.openSetIds[2],
+                weight_recommended: 100,
+              }),
+            ],
+          },
+        ],
+        finished_at: null,
+        id: seeded.openSessionId,
+        plan: { id: seeded.planId, name: "Sessions plan" },
+        started_at: "2026-10-02T10:00:00.123456+00:00",
+        status: "in_progress",
+        workout: { id: seeded.workoutId, name: "Day A" },
+      });
+    });
+
+    it("returns a finished session with its logged sets", async () => {
+      const session = await asUser(
+        owner,
+        async (tx) => await getWorkoutSession(tx, seeded.finishedSessionId)
+      );
+
+      expect(session).toMatchObject({
+        finished_at: "2026-10-01T11:00:00+00:00",
+        status: "finished",
+      });
+      expect(session?.exercises[0]?.sets).toStrictEqual([
+        expect.objectContaining({
+          logged_at: "2026-10-01T10:30:00+00:00",
+          reps_completed: 8,
+          weight_completed: 60,
+        }),
+      ]);
+    });
+
+    it("returns null for another User's session or an unknown id", async () => {
+      const [foreign, unknown] = await asUser(intruder, async (tx) => [
+        await getWorkoutSession(tx, seeded.openSessionId),
+        await getWorkoutSession(tx, randomUUID()),
+      ]);
+
+      expect(foreign).toBeNull();
+      expect(unknown).toBeNull();
+    });
+  });
+
+  describe("logging a set", () => {
+    it("logs a set in the User's open session and overwrites it when logged again", async () => {
+      const [setId] = seeded.openSetIds;
+      await asUser(
+        owner,
+        async (tx) =>
+          await logSet(tx, { repsCompleted: 5, setId, weightCompleted: 50 })
+      );
+
+      const result = await asUser(
+        owner,
+        async (tx) =>
+          await logSet(tx, { repsCompleted: 7, setId, weightCompleted: 62.5 })
+      );
+
+      expect(result).toStrictEqual({
+        set: {
+          id: setId,
+          logged_at: timestampMatcher,
+          order: 1,
+          reps_completed: 7,
+          reps_recommended: 8,
+          rest_recommended: 90,
+          weight_completed: 62.5,
+          weight_recommended: 62.5,
         },
-        {
-          exercise_slug: squatSlug,
-          id: expect.any(String),
-          order: 2,
-          sets: [
-            expect.objectContaining({
-              id: seeded.openSetIds[2],
-              weight_recommended: 100,
-            }),
-          ],
-        },
-      ],
-      finished_at: null,
-      id: seeded.openSessionId,
-      plan: { id: seeded.planId, name: "Sessions plan" },
-      started_at: "2026-10-02T10:00:00.123456+00:00",
-      status: "in_progress",
-      workout: { id: seeded.workoutId, name: "Day A" },
+        status: "logged",
+      });
+      await expect(setRow(setId)).resolves.toMatchObject({
+        repsCompleted: 7,
+        weightCompleted: "62.50",
+      });
     });
-  });
 
-  it("returns a finished session with its logged sets", async () => {
-    const session = await asUser(
-      owner,
-      async (tx) => await getWorkoutSession(tx, seeded.finishedSessionId)
-    );
+    it("leaves a set of a finished session as it was", async () => {
+      const result = await asUser(
+        owner,
+        async (tx) =>
+          await logSet(tx, {
+            repsCompleted: 1,
+            setId: seeded.finishedSetId,
+            weightCompleted: 1,
+          })
+      );
 
-    expect(session).toMatchObject({
-      finished_at: "2026-10-01T11:00:00+00:00",
-      status: "finished",
+      expect(result).toStrictEqual({
+        finishedAt: "2026-10-01T11:00:00+00:00",
+        sessionId: seeded.finishedSessionId,
+        status: "session_finished",
+      });
+      await expect(setRow(seeded.finishedSetId)).resolves.toMatchObject({
+        repsCompleted: 8,
+        weightCompleted: "60.00",
+      });
     });
-    expect(session?.exercises[0]?.sets).toEqual([
-      expect.objectContaining({
-        logged_at: "2026-10-01T10:30:00+00:00",
-        reps_completed: 8,
-        weight_completed: 60,
-      }),
-    ]);
-  });
 
-  it("returns null for another User's session or an unknown id", async () => {
-    const [foreign, unknown] = await asUser(intruder, async (tx) => [
-      await getWorkoutSession(tx, seeded.openSessionId),
-      await getWorkoutSession(tx, randomUUID()),
-    ]);
-
-    expect(foreign).toBeNull();
-    expect(unknown).toBeNull();
-  });
-});
-
-describe(logSet, () => {
-  it("logs a set in the User's open session and overwrites it when logged again", async () => {
-    const [setId] = seeded.openSetIds;
-    await asUser(
-      owner,
-      async (tx) =>
-        await logSet(tx, { repsCompleted: 5, setId, weightCompleted: 50 })
-    );
-
-    const result = await asUser(
-      owner,
-      async (tx) =>
-        await logSet(tx, { repsCompleted: 7, setId, weightCompleted: 62.5 })
-    );
-
-    expect(result).toEqual({
-      set: {
-        id: setId,
-        logged_at: expect.stringMatching(POSTGREST_TIMESTAMP),
-        order: 1,
-        reps_completed: 7,
-        reps_recommended: 8,
-        rest_recommended: 90,
-        weight_completed: 62.5,
-        weight_recommended: 62.5,
-      },
-      status: "logged",
-    });
-    await expect(setRow(setId)).resolves.toMatchObject({
-      repsCompleted: 7,
-      weightCompleted: "62.50",
-    });
-  });
-
-  it("leaves a set of a finished session as it was", async () => {
-    const result = await asUser(
-      owner,
-      async (tx) =>
+    it("finds no set for a plan set id or an unknown id", async () => {
+      const [planSet, unknown] = await asUser(owner, async (tx) => [
         await logSet(tx, {
           repsCompleted: 1,
-          setId: seeded.finishedSetId,
+          setId: seeded.planSetId,
           weightCompleted: 1,
-        })
-    );
+        }),
+        await logSet(tx, {
+          repsCompleted: 1,
+          setId: randomUUID(),
+          weightCompleted: 1,
+        }),
+      ]);
 
-    expect(result).toEqual({
-      finishedAt: "2026-10-01T11:00:00+00:00",
-      sessionId: seeded.finishedSessionId,
-      status: "session_finished",
+      expect(planSet).toStrictEqual({ status: "not_found" });
+      expect(unknown).toStrictEqual({ status: "not_found" });
     });
-    await expect(setRow(seeded.finishedSetId)).resolves.toMatchObject({
-      repsCompleted: 8,
-      weightCompleted: "60.00",
-    });
-  });
 
-  it("finds no set for a plan set id or an unknown id", async () => {
-    const [planSet, unknown] = await asUser(owner, async (tx) => [
-      await logSet(tx, {
-        repsCompleted: 1,
-        setId: seeded.planSetId,
-        weightCompleted: 1,
-      }),
-      await logSet(tx, {
-        repsCompleted: 1,
-        setId: randomUUID(),
-        weightCompleted: 1,
-      }),
-    ]);
+    it("never writes another User's set", async () => {
+      const [, setId] = seeded.openSetIds;
 
-    expect(planSet).toEqual({ status: "not_found" });
-    expect(unknown).toEqual({ status: "not_found" });
-  });
-
-  it("never writes another User's set", async () => {
-    const [, setId] = seeded.openSetIds;
-
-    const result = await asUser(
-      intruder,
-      async (tx) =>
-        await logSet(tx, { repsCompleted: 99, setId, weightCompleted: 999 })
-    );
-
-    expect(result).toEqual({ status: "not_found" });
-    await expect(setRow(setId)).resolves.toMatchObject({
-      loggedAt: null,
-      repsCompleted: null,
-      weightCompleted: null,
-    });
-  });
-});
-
-describe(deleteWorkoutSession, () => {
-  it("never deletes another User's session", async () => {
-    await expect(
-      asUser(
+      const result = await asUser(
         intruder,
-        async (tx) => await deleteWorkoutSession(tx, seeded.finishedSessionId)
-      )
-    ).resolves.toBe(false);
-    await expect(sessionExists(seeded.finishedSessionId)).resolves.toBe(true);
+        async (tx) =>
+          await logSet(tx, { repsCompleted: 99, setId, weightCompleted: 999 })
+      );
+
+      expect(result).toStrictEqual({ status: "not_found" });
+      await expect(setRow(setId)).resolves.toMatchObject({
+        loggedAt: null,
+        repsCompleted: null,
+        weightCompleted: null,
+      });
+    });
   });
 
-  it("deletes the User's session with its sets, then finds nothing", async () => {
-    await expect(
-      asUser(
-        owner,
-        async (tx) => await deleteWorkoutSession(tx, seeded.finishedSessionId)
-      )
-    ).resolves.toBe(true);
-    await expect(sessionExists(seeded.finishedSessionId)).resolves.toBe(false);
-    await expect(setRow(seeded.finishedSetId)).resolves.toBeUndefined();
+  describe("deleting a workout session", () => {
+    it("never deletes another User's session", async () => {
+      await expect(
+        asUser(
+          intruder,
+          async (tx) => await deleteWorkoutSession(tx, seeded.finishedSessionId)
+        )
+      ).resolves.toBeFalsy();
+      await expect(
+        sessionExists(seeded.finishedSessionId)
+      ).resolves.toBeTruthy();
+    });
 
-    await expect(
-      asUser(
-        owner,
-        async (tx) => await deleteWorkoutSession(tx, seeded.finishedSessionId)
-      )
-    ).resolves.toBe(false);
+    it("deletes the User's session with its sets, then finds nothing", async () => {
+      await expect(
+        asUser(
+          owner,
+          async (tx) => await deleteWorkoutSession(tx, seeded.finishedSessionId)
+        )
+      ).resolves.toBeTruthy();
+      await expect(
+        sessionExists(seeded.finishedSessionId)
+      ).resolves.toBeFalsy();
+      await expect(setRow(seeded.finishedSetId)).resolves.toBeUndefined();
+
+      await expect(
+        asUser(
+          owner,
+          async (tx) => await deleteWorkoutSession(tx, seeded.finishedSessionId)
+        )
+      ).resolves.toBeFalsy();
+    });
   });
 });

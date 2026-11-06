@@ -59,7 +59,7 @@ export const rateLimitUsers = ({
   timeoutMs = LIMITER_TIMEOUT_MS,
 }: {
   limiter: RateLimiter;
-  reportError: (error: unknown) => Promise<void>;
+  reportError: (error: Error) => Promise<void>;
   timeoutMs?: number;
 }) =>
   createMiddleware<AuthEnv>(async (c, next) => {
@@ -72,7 +72,12 @@ export const rateLimitUsers = ({
     const result = await checkRateLimit({
       key: caller.userId,
       limiter,
-      reportError,
+      reportError: (cause) =>
+        reportError(
+          cause instanceof Error
+            ? cause
+            : new Error("Rate limiter failed", { cause })
+        ),
       timeoutMs,
     });
 

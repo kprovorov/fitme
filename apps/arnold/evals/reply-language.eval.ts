@@ -7,24 +7,17 @@ const CYRILLIC = /\p{Script=Cyrillic}/gu;
 const LATIN = /\p{Script=Latin}/gu;
 
 // Letters Ukrainian has and Russian doesn't, so a Russian answer fails too.
-const UKRAINIAN_LETTERS = /[іїєґ]/i;
+const UKRAINIAN_LETTERS = /[іїєґ]/iu;
 
 const count = (text: string, pattern: RegExp) =>
   text.match(pattern)?.length ?? 0;
 
-const isUkrainian = (message: string | undefined) => {
-  const text = message ?? "";
+const isUkrainian = (message = "") =>
+  UKRAINIAN_LETTERS.test(message) &&
+  count(message, CYRILLIC) > count(message, LATIN);
 
-  return (
-    UKRAINIAN_LETTERS.test(text) && count(text, CYRILLIC) > count(text, LATIN)
-  );
-};
-
-const isEnglish = (message: string | undefined) => {
-  const text = message ?? "";
-
-  return count(text, LATIN) > 0 && count(text, CYRILLIC) === 0;
-};
+const isEnglish = (message = "") =>
+  count(message, LATIN) > 0 && count(message, CYRILLIC) === 0;
 
 export default defineEval({
   description:

@@ -28,38 +28,38 @@ const buttonVariants = cva(
     compoundVariants: [
       {
         className: "h-(--size-button-pill-sm) px-2.5",
-        shape: "pill",
+        layout: "pill",
         size: "sm",
       },
       {
         className: "h-(--size-button-pill-default) px-3",
-        shape: "pill",
+        layout: "pill",
         size: "default",
       },
       {
         className: "h-(--size-button-pill-lg) px-5",
-        shape: "pill",
+        layout: "pill",
         size: "lg",
       },
       {
         className: "size-(--size-button-circle-sm)",
-        shape: "circle",
+        layout: "circle",
         size: "sm",
       },
       {
         className: "size-(--size-button-circle-default)",
-        shape: "circle",
+        layout: "circle",
         size: "default",
       },
       {
         className: "size-(--size-button-circle-lg)",
-        shape: "circle",
+        layout: "circle",
         size: "lg",
       },
     ],
-    defaultVariants: { shape: "pill", size: "default", variant: "default" },
+    defaultVariants: { layout: "pill", size: "default", variant: "default" },
     variants: {
-      shape: { circle: "p-0", pill: "" },
+      layout: { circle: "p-0", pill: "" },
       size: {
         default: "text-body-emphasized",
         lg: "text-body-emphasized",
@@ -109,18 +109,18 @@ type CircleButtonProps = ButtonBaseProps & {
 
 type ButtonProps = PillButtonProps | ChildButtonProps | CircleButtonProps;
 
-function Button({
+const Button = ({
   asChild = false,
   children,
   className,
   icon,
   iconPosition = "leading",
-  shape = "pill",
+  shape: layout = "pill",
   size = "default",
   type,
   variant = "default",
   ...props
-}: ButtonProps) {
+}: ButtonProps) => {
   const Comp = asChild ? Slot : "button";
 
   const iconView = icon ? (
@@ -137,16 +137,16 @@ function Button({
 
   return (
     <Comp
-      className={cn(className, buttonVariants({ shape, size, variant }))}
+      className={cn(className, buttonVariants({ layout, size, variant }))}
       type={asChild ? undefined : (type ?? "button")}
       {...props}
     >
-      {shape === "circle" || iconPosition === "leading" ? iconView : null}
-      <Slottable>{shape === "pill" ? children : null}</Slottable>
-      {shape === "pill" && iconPosition === "trailing" ? iconView : null}
+      {layout === "circle" || iconPosition === "leading" ? iconView : null}
+      <Slottable>{layout === "pill" ? children : null}</Slottable>
+      {layout === "pill" && iconPosition === "trailing" ? iconView : null}
     </Comp>
   );
-}
+};
 
 export type {
   ButtonIcon,

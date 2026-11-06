@@ -65,7 +65,7 @@ const Field = ({
   ...props
 }: FieldProps) => {
   const [isFocused, setIsFocused] = useState(false);
-  const message = typeof error === "string" && error ? error : undefined;
+  const message = error && error !== true ? error : undefined;
   let state: FieldState = "default";
 
   if (error) {

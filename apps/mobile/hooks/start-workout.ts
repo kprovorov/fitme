@@ -36,7 +36,7 @@ export const nextWorkoutOf = <W extends { order: number }>(plan: {
   workouts: W[];
 }): W | undefined =>
   // A copy: plan.workouts is the query cache's array, never sorted in place.
-  [...plan.workouts].sort((a, b) => a.order - b.order)[0];
+  plan.workouts.toSorted((a, b) => a.order - b.order)[0];
 
 const alertStartFailed = (waitSeconds: number | null) => {
   Alert.alert(
@@ -70,9 +70,6 @@ const alertFinishFirst = (
   );
 };
 
-const isSessionInProgress = (error: unknown) =>
-  error instanceof ApiError && error.code === "session_in_progress";
-
 /**
  * Starts a Workout (or resumes its open Workout Session) through the Public
  * API, the way the Workout tab's cards and the Workout screen both do: the
@@ -93,13 +90,13 @@ const isSessionInProgress = (error: unknown) =>
  * it still asks the API, and the 409 alerts "Finish <Workout> first", its
  * Continue button handing the blocking session to `onContinueBlocking`.
  */
-export function useStartWorkout(
+export const useStartWorkout = (
   workoutId: string,
   onStarted: (sessionId: string) => void,
   {
     onContinueBlocking,
   }: { onContinueBlocking?: (open: OpenWorkoutSession) => void } = {}
-) {
+) => {
   const queryClient = useQueryClient();
   const { data: openSession } = useOpenWorkoutSessionQuery();
 
@@ -111,7 +108,7 @@ export function useStartWorkout(
         return;
       }
 
-      if (isSessionInProgress(error)) {
+      if (error instanceof ApiError && error.code === "session_in_progress") {
         await queryClient.invalidateQueries({
           queryKey: OPEN_WORKOUT_SESSION_QUERY_KEY,
         });
@@ -163,4 +160,4 @@ export function useStartWorkout(
     isStarting: isPending,
     startWorkout: () => mutate({ workoutId }),
   };
-}
+};

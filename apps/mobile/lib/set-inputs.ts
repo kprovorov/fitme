@@ -7,8 +7,8 @@ import { i18n } from "~/lib/i18n";
 
 // A plain decimal, `,` or `.` as the separator; nothing else is a number here
 // (`Number()` would also take `1e3`, `0x10` or `Infinity`).
-const DECIMAL_NUMBER = /^-?(?:\d+(?:[.,]\d*)?|[.,]\d+)$/;
-const SEPARATOR = /[.,]/;
+const DECIMAL_NUMBER = /^-?(?:\d+(?:[.,]\d*)?|[.,]\d+)$/u;
+const SEPARATOR = /[.,]/u;
 
 /** A set field's messages, read in the App language when the field is parsed. */
 interface FieldMessages {
@@ -20,6 +20,27 @@ interface FieldMessages {
    */
   tooHigh: (max: number) => string;
 }
+
+const rangeIssue = (
+  messages: FieldMessages,
+  max: number,
+  text: string,
+  value: number
+) => {
+  if (!DECIMAL_NUMBER.test(text)) {
+    return messages.notNumber();
+  }
+
+  if (value < 0) {
+    return messages.negative();
+  }
+
+  if (value > max) {
+    return messages.tooHigh(max);
+  }
+
+  return null;
+};
 
 /**
  * A set field's text as a number from 0 to `max`, or `null` when it's empty
@@ -51,27 +72,6 @@ const setNumberField = (
 
     return value;
   });
-
-const rangeIssue = (
-  messages: FieldMessages,
-  max: number,
-  text: string,
-  value: number
-) => {
-  if (!DECIMAL_NUMBER.test(text)) {
-    return messages.notNumber();
-  }
-
-  if (value < 0) {
-    return messages.negative();
-  }
-
-  if (value > max) {
-    return messages.tooHigh(max);
-  }
-
-  return null;
-};
 
 /** How many decimals `text` holds, for a field naming the rule it broke. */
 export const decimalsOf = (text: string) =>

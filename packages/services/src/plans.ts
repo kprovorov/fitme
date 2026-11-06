@@ -158,7 +158,10 @@ const findPlanSummaries = async (
   const rows = await tx.query.plans.findMany({
     ...planQuery,
     orderBy: (plan, { asc, desc }) => [desc(plan.createdAt), asc(plan.id)],
-    where: planId ? livePlanOf(userId, planId) : livePlansOf(userId),
+    where:
+      planId !== undefined && planId !== ""
+        ? livePlanOf(userId, planId)
+        : livePlansOf(userId),
     with: {
       workouts: {
         columns: { cover: true, id: true, name: true, order: true },
@@ -308,7 +311,7 @@ export const deletePlan = async (
     .where(livePlanOf(userId, planId))
     .returning({ id: plans.id, name: plans.name });
 
-  if (deleted) {
+  if (deleted !== undefined) {
     // The active Plan gone, the Weekly goal is too
     await recordWeeklyGoal(tx, userId);
 
@@ -326,9 +329,9 @@ export const deletePlan = async (
       )
     );
 
-  return existing
-    ? { alreadyDeleted: true, deleted: true, plan: existing }
-    : null;
+  return existing === undefined
+    ? null
+    : { alreadyDeleted: true, deleted: true, plan: existing };
 };
 
 /**
@@ -373,7 +376,7 @@ export const activatePlan = async (
     .from(plans)
     .where(livePlanOf(userId, planId));
 
-  if (!target) {
+  if (target === undefined) {
     return null;
   }
 
@@ -440,14 +443,7 @@ export interface NewPlan extends PlanMetadata {
   workouts: PlanWorkoutInput[];
 }
 
-/**
- * The plans columns for the metadata fields given. Drizzle leaves a column
- * whose value is `undefined` out of an UPDATE's SET (and an INSERT gives it
- * its default), so a field not given stays unchanged.
- */
-const metadataColumns = <M extends Partial<PlanMetadata>>(
-  metadata: M
-): {
+interface PlanMetadataColumns<M extends Partial<PlanMetadata>> {
   description: M["description"];
   experienceLevel: M["experience_level"];
   frequency: M["frequency"];
@@ -456,7 +452,16 @@ const metadataColumns = <M extends Partial<PlanMetadata>>(
   note: M["note"];
   place: M["place"];
   workoutDuration: M["workout_duration"];
-} => ({
+}
+
+/**
+ * The plans columns for the metadata fields given. Drizzle leaves a column
+ * whose value is `undefined` out of an UPDATE's SET (and an INSERT gives it
+ * its default), so a field not given stays unchanged.
+ */
+const metadataColumns = <M extends Partial<PlanMetadata>>(
+  metadata: M
+): PlanMetadataColumns<M> => ({
   description: metadata.description,
   experienceLevel: metadata.experience_level,
   frequency: metadata.frequency,
@@ -641,7 +646,7 @@ export const updatePlan = async (
     .where(livePlanOf(userId, planId))
     .returning({ id: plans.id });
 
-  if (!updated) {
+  if (updated === undefined) {
     return null;
   }
 
@@ -1090,7 +1095,7 @@ export const savePlan = async (
     .where(livePlanOf(userId, planId))
     .for("no key update");
 
-  if (!locked) {
+  if (locked === undefined) {
     return { status: "not_found" };
   }
 
@@ -1124,7 +1129,9 @@ export const savePlan = async (
       keptWorkoutIds.flatMap((id) => {
         const cover = tree.workoutCover.get(id);
 
-        return cover ? [cover] : [];
+        return cover !== undefined && cover !== null && cover !== ""
+          ? [cover]
+          : [];
       })
     ) ?? [];
 

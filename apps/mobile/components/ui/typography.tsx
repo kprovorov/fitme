@@ -18,7 +18,7 @@ type TypographyProps = SlottableTextProps & {
  * `Text`, these don't read `TextClassContext`, so an `H3` keeps its color
  * inside a `CardContent`.
  */
-function typography(variant: TextVariant, displayName: string) {
+const typography = (variant: TextVariant, displayName: string) => {
   const Component = ({
     className,
     asChild = false,
@@ -41,7 +41,7 @@ function typography(variant: TextVariant, displayName: string) {
   Component.displayName = displayName;
 
   return Component;
-}
+};
 
 const H1 = typography("h1", "H1");
 const H2 = typography("h2", "H2");

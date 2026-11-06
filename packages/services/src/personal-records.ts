@@ -34,54 +34,6 @@ export const lockPersonalRecordHistory = (tx: Transaction, userId: string) =>
     sql`select pg_advisory_xact_lock(hashtextextended(${`personal-records:${userId}`}, 0))`
   );
 
-/**
- * Explicit per-User initialization entry point, inside asUser. Atomic: an
- * interruption rolls back every award and completion, so retry starts safely.
- * No pagination, no inferred units/goals, and no automatic production caller.
- */
-export const initializePersonalRecords = async (
-  tx: Transaction,
-  userId: string
-): Promise<{ alreadyInitialized: boolean }> => {
-  // As in finish, queue behind account deletion before taking any row lock.
-  await tx.execute(sql`lock table ${workoutSessions} in row exclusive mode`);
-  await lockProfileUnits(tx, userId);
-  await lockPersonalRecordHistory(tx, userId);
-
-  const [completed] = await tx
-    .select({ userId: personalRecordInitializations.userId })
-    .from(personalRecordInitializations)
-    .where(eq(personalRecordInitializations.userId, userId));
-
-  if (completed) {
-    return { alreadyInitialized: true };
-  }
-
-  const sessions = await tx
-    .select({ id: workoutSessions.id })
-    .from(workoutSessions)
-    .where(
-      and(
-        eq(workoutSessions.userId, userId),
-        isNotNull(workoutSessions.finishedAt)
-      )
-    )
-    .orderBy(
-      asc(workoutSessions.finishedAt),
-      asc(workoutSessions.startedAt),
-      asc(workoutSessions.id)
-    );
-
-  for (const session of sessions) {
-    // biome-ignore lint/performance/noAwaitInLoops: one transaction, chronological replay
-    await awardPersonalRecords(tx, userId, session.id, true);
-  }
-
-  await tx.insert(personalRecordInitializations).values({ userId });
-
-  return { alreadyInitialized: false };
-};
-
 /** A Personal record a Workout Session earned; its weight in the User's unit. */
 export interface WorkoutSessionPersonalRecord {
   exercise_slug: string;
@@ -252,4 +204,58 @@ export const awardPersonalRecords = async (
   if (awards.length > 0) {
     await tx.insert(personalRecords).values(awards).onConflictDoNothing();
   }
+};
+
+/**
+ * Explicit per-User initialization entry point, inside asUser. Atomic: an
+ * interruption rolls back every award and completion, so retry starts safely.
+ * No pagination, no inferred units/goals, and no automatic production caller.
+ */
+export const initializePersonalRecords = async (
+  tx: Transaction,
+  userId: string
+): Promise<{ alreadyInitialized: boolean }> => {
+  // As in finish, queue behind account deletion before taking any row lock.
+  await tx.execute(sql`lock table ${workoutSessions} in row exclusive mode`);
+  await lockProfileUnits(tx, userId);
+  await lockPersonalRecordHistory(tx, userId);
+
+  const [completed] = await tx
+    .select({ userId: personalRecordInitializations.userId })
+    .from(personalRecordInitializations)
+    .where(eq(personalRecordInitializations.userId, userId));
+
+  if (completed !== undefined) {
+    return { alreadyInitialized: true };
+  }
+
+  const sessions = await tx
+    .select({ id: workoutSessions.id })
+    .from(workoutSessions)
+    .where(
+      and(
+        eq(workoutSessions.userId, userId),
+        isNotNull(workoutSessions.finishedAt)
+      )
+    )
+    .orderBy(
+      asc(workoutSessions.finishedAt),
+      asc(workoutSessions.startedAt),
+      asc(workoutSessions.id)
+    );
+
+  // Keep the replay chronological within this transaction.
+  let replay = Promise.resolve();
+
+  for (const session of sessions) {
+    replay = replay.then(
+      awardPersonalRecords.bind(undefined, tx, userId, session.id, true)
+    );
+  }
+
+  await replay;
+
+  await tx.insert(personalRecordInitializations).values({ userId });
+
+  return { alreadyInitialized: false };
 };

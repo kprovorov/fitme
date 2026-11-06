@@ -38,7 +38,7 @@ const setup = (recorded: string[], failing: string[] = []) => {
   return { listedFor, retired, wipe };
 };
 
-describe(deleteArnoldConversations, () => {
+describe("arnold conversation deletion", () => {
   it("resets every session recorded for the User", async () => {
     const { listedFor, retired, wipe } = setup([
       "wrun_a",
@@ -51,8 +51,8 @@ describe(deleteArnoldConversations, () => {
 
     await wipe(USER_ID);
 
-    expect(listedFor).toEqual([USER_ID]);
-    expect([...retired].sort()).toEqual([
+    expect(listedFor).toStrictEqual([USER_ID]);
+    expect([...retired].toSorted()).toStrictEqual([
       "wrun_a",
       "wrun_b",
       "wrun_c",
@@ -73,27 +73,32 @@ describe(deleteArnoldConversations, () => {
   it("resets the rest and fails when one session fails to reset", async () => {
     const { retired, wipe } = setup(["wrun_a", "wrun_b"], ["wrun_b"]);
 
-    const failure = await wipe(USER_ID).catch((error: unknown) => error);
+    const failure = await wipe(USER_ID).catch((error) => error);
 
     expect(failure).toBeInstanceOf(AggregateError);
-    expect((failure as AggregateError).message).toBe(
-      "Failed to reset 1 of 2 Arnold sessions"
-    );
-    expect((failure as AggregateError).cause).toEqual(
+
+    if (!(failure instanceof AggregateError)) {
+      throw new TypeError("Expected an AggregateError");
+    }
+
+    expect(failure.message).toBe("Failed to reset 1 of 2 Arnold sessions");
+    expect(failure.cause).toStrictEqual(
       new Error("Arnold unreachable for wrun_b")
     );
-    expect([...retired]).toEqual(["wrun_a"]);
+    expect([...retired]).toStrictEqual(["wrun_a"]);
   });
 
   it("finishes on a retry after a partial failure", async () => {
     const failing = ["wrun_b"];
     const { retired, wipe } = setup(["wrun_a", "wrun_b"], failing);
-    await expect(wipe(USER_ID)).rejects.toThrow();
+    await expect(wipe(USER_ID)).rejects.toThrow(
+      "Failed to reset 1 of 2 Arnold sessions"
+    );
 
     failing.length = 0;
     await wipe(USER_ID);
 
-    expect([...retired].sort()).toEqual(["wrun_a", "wrun_b"]);
+    expect([...retired].toSorted()).toStrictEqual(["wrun_a", "wrun_b"]);
   });
 });
 
@@ -110,7 +115,7 @@ const fakeFetch = (response: () => Response) => {
   return { fetch, requests };
 };
 
-describe(arnoldSessionResetter, () => {
+describe("arnold session reset requests", () => {
   it("posts the reset route with the reset secret", async () => {
     const { fetch, requests } = fakeFetch(() =>
       Response.json({ ok: true, previousSessionId: "wrun_a", status: "reset" })
@@ -127,7 +132,7 @@ describe(arnoldSessionResetter, () => {
     expect(request?.method).toBe("POST");
     expect(request?.url).toBe(`${ARNOLD_URL}/eve/v1/session/wrun_a/reset`);
     expect(request?.headers.get("authorization")).toBe(`Bearer ${SECRET}`);
-    await expect(request?.json()).resolves.toEqual({
+    await expect(request?.json()).resolves.toStrictEqual({
       reason: "Account deleted",
     });
   });
@@ -211,18 +216,18 @@ describe(arnoldSessionResetter, () => {
         secret: undefined,
       })("wrun_a")
     ).rejects.toThrow("ARNOLD_RESET_SECRET");
-    expect(requests).toEqual([]);
+    expect(requests).toStrictEqual([]);
   });
 });
 
-describe(arnoldResetConfig, () => {
+describe("arnold reset environment configuration", () => {
   it("reads ARNOLD_URL and ARNOLD_RESET_SECRET", () => {
     expect(
       arnoldResetConfig({
         ARNOLD_RESET_SECRET: SECRET,
         ARNOLD_URL,
       })
-    ).toEqual({ arnoldUrl: ARNOLD_URL, secret: SECRET });
+    ).toStrictEqual({ arnoldUrl: ARNOLD_URL, secret: SECRET });
   });
 
   it("ignores the pre-rename COACH_URL and COACH_RESET_SECRET", () => {
@@ -231,11 +236,11 @@ describe(arnoldResetConfig, () => {
         COACH_RESET_SECRET: SECRET,
         COACH_URL: ARNOLD_URL,
       })
-    ).toEqual({ arnoldUrl: undefined, secret: undefined });
+    ).toStrictEqual({ arnoldUrl: undefined, secret: undefined });
   });
 
   it("is unset without them", () => {
-    expect(arnoldResetConfig({})).toEqual({
+    expect(arnoldResetConfig({})).toStrictEqual({
       arnoldUrl: undefined,
       secret: undefined,
     });

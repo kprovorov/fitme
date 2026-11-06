@@ -20,7 +20,7 @@ const app = createApp({
   clerkJwtKey: clerk.jwtKey,
   createServices: createServicesFromEnv,
   identifyUser: () => {},
-  reportError: (error) => Promise.reject(error),
+  reportError: Promise.reject.bind(Promise),
 });
 
 /** A made-up id in Clerk's `user_…` format, unique per run. */
@@ -67,7 +67,7 @@ const send = async (
   userId: string,
   method: string,
   path: string,
-  payload?: unknown
+  payload?: Partial<NewPlan>
 ) => {
   const response = await app.request(path, {
     method,
@@ -88,22 +88,31 @@ const send = async (
 };
 
 /** The User's live Plans as `[id, is_active]`, newest first. */
-const activeFlags = async (userId: string) =>
-  (await send(userId, "GET", "/v1/plans")).body.data.map(
-    (plan: { id: string; is_active: boolean }) => [plan.id, plan.is_active]
-  );
+const activeFlags = async (userId: string) => {
+  const { body } = await send(userId, "GET", "/v1/plans");
 
-type Request = readonly [method: string, path: string, payload?: unknown];
+  return body.data.map((plan: { id: string; is_active: boolean }) => [
+    plan.id,
+    plan.is_active,
+  ]);
+};
+
+type Request = readonly [
+  method: string,
+  path: string,
+  payload?: Partial<NewPlan>,
+];
 
 /** Sends each request as `userId`, side by side: each one's status and error code. */
-const answersOf = async (userId: string, requests: Request[]) =>
-  (
-    await Promise.all(
-      requests.map(([method, path, payload]) =>
-        send(userId, method, path, payload)
-      )
+const answersOf = async (userId: string, requests: Request[]) => {
+  const answers = await Promise.all(
+    requests.map(([method, path, payload]) =>
+      send(userId, method, path, payload)
     )
-  ).map(({ body, status }) => [status, body?.error?.code]);
+  );
+
+  return answers.map(({ body, status }) => [status, body?.error?.code]);
+};
 
 /** What `answersOf` gives when every one of `count` requests found nothing. */
 const allNotFound = (count: number) =>
@@ -112,183 +121,203 @@ const allNotFound = (count: number) =>
 const workoutIds = (plan: { workouts: { id: string }[] }) =>
   plan.workouts.map((workout) => workout.id);
 
-let first: PlanDetail;
-let second: PlanDetail;
-let theirs: PlanDetail;
+describe("managing Plans against the local stack", () => {
+  let first: PlanDetail;
+  let second: PlanDetail;
+  let theirs: PlanDetail;
 
-beforeAll(async () => {
-  first = await seedPlan(owner, "First");
-  // Created last of the owner's, so it's the active one (createPlan activates)
-  second = await seedPlan(owner, "Second");
-  theirs = await seedPlan(intruder, "Theirs");
-});
+  beforeAll(async () => {
+    first = await seedPlan(owner, "First");
+    // Created last of the owner's, so it's the active one (createPlan activates)
+    second = await seedPlan(owner, "Second");
+    theirs = await seedPlan(intruder, "Theirs");
+  });
 
-afterAll(async () => {
-  await deleteTestUsers(users);
-});
+  afterAll(async () => {
+    await deleteTestUsers(users);
+  });
 
-describe("pATCH /v1/plans/{id} against the local stack", () => {
-  it("changes only the given fields and keeps every Workout and its id", async () => {
-    const { body, status } = await send(
-      owner,
-      "PATCH",
-      `/v1/plans/${first.id}`,
-      {
+  describe("pATCH /v1/plans/{id} against the local stack", () => {
+    it("changes only the given fields and keeps every Workout and its id", async () => {
+      const { body, status } = await send(
+        owner,
+        "PATCH",
+        `/v1/plans/${first.id}`,
+        {
+          frequency: 4,
+          name: "First, renamed",
+          note: null,
+        }
+      );
+
+      expect(status).toBe(200);
+      expect(body.data).toMatchObject({
+        description: "First description",
         frequency: 4,
+        goal: "muscle-gain",
+        id: first.id,
         name: "First, renamed",
         note: null,
+        weight_unit: "kg",
+        workout_duration: 60,
+      });
+      expect(workoutIds(body.data)).toStrictEqual(workoutIds(first));
+      const saved = await send(owner, "GET", `/v1/plans/${first.id}`);
+      expect(saved.body).toStrictEqual(body);
+    });
+
+    it("refuses workouts with 400 and changes nothing", async () => {
+      const { body: before } = await send(
+        owner,
+        "GET",
+        `/v1/plans/${second.id}`
+      );
+
+      const { body, status } = await send(
+        owner,
+        "PATCH",
+        `/v1/plans/${second.id}`,
+        { name: "Replaced", workouts: newPlan("Replaced").workouts }
+      );
+
+      expect(status).toBe(400);
+      expect(body.error.code).toBe("invalid_request");
+      const after = await send(owner, "GET", `/v1/plans/${second.id}`);
+      expect(after.body).toStrictEqual(before);
+    });
+  });
+
+  describe("pOST /v1/plans/{id}/activate against the local stack", () => {
+    it("makes the Plan active and every other Plan of the User inactive", async () => {
+      await expect(activeFlags(owner)).resolves.toStrictEqual([
+        [second.id, true],
+        [first.id, false],
+      ]);
+
+      const { body, status } = await send(
+        owner,
+        "POST",
+        `/v1/plans/${first.id}/activate`
+      );
+
+      expect({ body, status, workoutIds: workoutIds(body.data) }).toMatchObject(
+        {
+          body: { data: { id: first.id, is_active: true, weight_unit: "kg" } },
+          status: 200,
+          workoutIds: workoutIds(first),
+        }
+      );
+      await expect(activeFlags(owner)).resolves.toStrictEqual([
+        [second.id, false],
+        [first.id, true],
+      ]);
+      const active = await send(owner, "GET", "/v1/plans/active");
+      expect(active.body.data.id).toBe(first.id);
+
+      // Activating the active Plan again changes nothing
+      const repeated = await send(
+        owner,
+        "POST",
+        `/v1/plans/${first.id}/activate`
+      );
+
+      const flags = await activeFlags(owner);
+      expect({ flags, status: repeated.status }).toStrictEqual({
+        flags: [
+          [second.id, false],
+          [first.id, true],
+        ],
+        status: 200,
+      });
+    });
+  });
+
+  describe("dELETE /v1/plans/{id} against the local stack", () => {
+    it("answers 204, again on a repeat, then 404 everywhere, keeping its Workout Sessions", async () => {
+      const doomed = await seedPlan(owner, "Doomed");
+
+      const [workout] = doomed.workouts;
+
+      if (!workout) {
+        throw new Error("The Plan has no Workout");
       }
-    );
 
-    expect(status).toBe(200);
-    expect(body.data).toMatchObject({
-      description: "First description",
-      frequency: 4,
-      goal: "muscle-gain",
-      id: first.id,
-      name: "First, renamed",
-      note: null,
-      weight_unit: "kg",
-      workout_duration: 60,
+      const started = await asUser(owner, (tx) =>
+        startWorkoutSession(tx, workout.id)
+      );
+
+      if (started.status !== "started") {
+        throw new Error("The Workout Session didn't start");
+      }
+
+      const removed = await send(owner, "DELETE", `/v1/plans/${doomed.id}`);
+      const repeated = await send(owner, "DELETE", `/v1/plans/${doomed.id}`);
+      expect([removed, repeated]).toStrictEqual([
+        { body: null, status: 204 },
+        { body: null, status: 204 },
+      ]);
+
+      await expect(
+        answersOf(owner, [
+          ["GET", `/v1/plans/${doomed.id}`],
+          ["PATCH", `/v1/plans/${doomed.id}`, { name: "Back" }],
+          ["POST", `/v1/plans/${doomed.id}/activate`],
+        ])
+      ).resolves.toStrictEqual(allNotFound(3));
+      const flags = await activeFlags(owner);
+      const listed = flags.map(([id]: [string]) => id);
+      expect(listed).not.toContain(doomed.id);
+      // It was the active Plan (createPlan activates); deleting it clears that
+      const active = await send(owner, "GET", "/v1/plans/active");
+      expect(active.body).toStrictEqual({ data: null });
+
+      const session = await send(
+        owner,
+        "GET",
+        `/v1/workout-sessions/${started.session.id}`
+      );
+
+      expect(session).toMatchObject({
+        body: { data: { id: started.session.id } },
+        status: 200,
+      });
     });
-    expect(workoutIds(body.data)).toEqual(workoutIds(first));
-    expect((await send(owner, "GET", `/v1/plans/${first.id}`)).body).toEqual(
-      body
-    );
   });
 
-  it("refuses workouts with 400 and changes nothing", async () => {
-    const before = (await send(owner, "GET", `/v1/plans/${second.id}`)).body;
+  describe("changing Plans across Users", () => {
+    it("answers 404 for another User's Plan on every route and changes nothing of theirs", async () => {
+      const { body: before } = await send(
+        intruder,
+        "GET",
+        `/v1/plans/${theirs.id}`
+      );
 
-    const { body, status } = await send(
-      owner,
-      "PATCH",
-      `/v1/plans/${second.id}`,
-      { name: "Replaced", workouts: newPlan("Replaced").workouts }
-    );
+      const ownerBefore = await activeFlags(owner);
 
-    expect(status).toBe(400);
-    expect(body.error.code).toBe("invalid_request");
-    expect((await send(owner, "GET", `/v1/plans/${second.id}`)).body).toEqual(
-      before
-    );
-  });
-});
+      await expect(
+        answersOf(owner, [
+          ["PATCH", `/v1/plans/${theirs.id}`, { name: "Hijacked" }],
+          ["POST", `/v1/plans/${theirs.id}/activate`],
+          ["DELETE", `/v1/plans/${theirs.id}`],
+        ])
+      ).resolves.toStrictEqual(allNotFound(3));
 
-describe("pOST /v1/plans/{id}/activate against the local stack", () => {
-  it("makes the Plan active and every other Plan of the User inactive", async () => {
-    await expect(activeFlags(owner)).resolves.toEqual([
-      [second.id, true],
-      [first.id, false],
-    ]);
-
-    const { body, status } = await send(
-      owner,
-      "POST",
-      `/v1/plans/${first.id}/activate`
-    );
-
-    expect(status).toBe(200);
-    expect(body.data).toMatchObject({
-      id: first.id,
-      is_active: true,
-      weight_unit: "kg",
-    });
-    expect(workoutIds(body.data)).toEqual(workoutIds(first));
-    await expect(activeFlags(owner)).resolves.toEqual([
-      [second.id, false],
-      [first.id, true],
-    ]);
-    expect((await send(owner, "GET", "/v1/plans/active")).body.data.id).toBe(
-      first.id
-    );
-
-    // Activating the active Plan again changes nothing
-    expect(
-      (await send(owner, "POST", `/v1/plans/${first.id}/activate`)).status
-    ).toBe(200);
-    await expect(activeFlags(owner)).resolves.toEqual([
-      [second.id, false],
-      [first.id, true],
-    ]);
-  });
-});
-
-describe("dELETE /v1/plans/{id} against the local stack", () => {
-  it("answers 204, again on a repeat, then 404 everywhere, keeping its Workout Sessions", async () => {
-    const doomed = await seedPlan(owner, "Doomed");
-
-    const started = await asUser(owner, (tx) =>
-      startWorkoutSession(tx, doomed.workouts[0]?.id as string)
-    );
-
-    if (started.status !== "started") {
-      throw new Error("The Workout Session didn't start");
-    }
-
-    const removed = await send(owner, "DELETE", `/v1/plans/${doomed.id}`);
-    expect(removed).toEqual({ body: null, status: 204 });
-    await expect(
-      send(owner, "DELETE", `/v1/plans/${doomed.id}`)
-    ).resolves.toEqual({
-      body: null,
-      status: 204,
+      const after = await send(intruder, "GET", `/v1/plans/${theirs.id}`);
+      expect(after.body).toStrictEqual(before);
+      expect(before.data.is_active).toBeTruthy();
+      // A refused activation doesn't deactivate the caller's own Plans either
+      await expect(activeFlags(owner)).resolves.toStrictEqual(ownerBefore);
     });
 
-    await expect(
-      answersOf(owner, [
-        ["GET", `/v1/plans/${doomed.id}`],
-        ["PATCH", `/v1/plans/${doomed.id}`, { name: "Back" }],
-        ["POST", `/v1/plans/${doomed.id}/activate`],
-      ])
-    ).resolves.toEqual(allNotFound(3));
-    const listed = (await activeFlags(owner)).map(([id]: [string]) => id);
-    expect(listed).not.toContain(doomed.id);
-    // It was the active Plan (createPlan activates); deleting it clears that
-    expect((await send(owner, "GET", "/v1/plans/active")).body).toEqual({
-      data: null,
+    it("answers 404 for a Plan id nobody has, on every route", async () => {
+      const missing = randomUUID();
+      await expect(
+        answersOf(owner, [
+          ["PATCH", `/v1/plans/${missing}`, { name: "Nobody's" }],
+          ["POST", `/v1/plans/${missing}/activate`],
+          ["DELETE", `/v1/plans/${missing}`],
+        ])
+      ).resolves.toStrictEqual(allNotFound(3));
     });
-
-    const session = await send(
-      owner,
-      "GET",
-      `/v1/workout-sessions/${started.session.id}`
-    );
-
-    expect(session.status).toBe(200);
-    expect(session.body.data.id).toBe(started.session.id);
-  });
-});
-
-describe("changing Plans across Users", () => {
-  it("answers 404 for another User's Plan on every route and changes nothing of theirs", async () => {
-    const before = (await send(intruder, "GET", `/v1/plans/${theirs.id}`)).body;
-    const ownerBefore = await activeFlags(owner);
-
-    await expect(
-      answersOf(owner, [
-        ["PATCH", `/v1/plans/${theirs.id}`, { name: "Hijacked" }],
-        ["POST", `/v1/plans/${theirs.id}/activate`],
-        ["DELETE", `/v1/plans/${theirs.id}`],
-      ])
-    ).resolves.toEqual(allNotFound(3));
-
-    expect(
-      (await send(intruder, "GET", `/v1/plans/${theirs.id}`)).body
-    ).toEqual(before);
-    expect(before.data.is_active).toBe(true);
-    // A refused activation doesn't deactivate the caller's own Plans either
-    await expect(activeFlags(owner)).resolves.toEqual(ownerBefore);
-  });
-
-  it("answers 404 for a Plan id nobody has, on every route", async () => {
-    const missing = randomUUID();
-    await expect(
-      answersOf(owner, [
-        ["PATCH", `/v1/plans/${missing}`, { name: "Nobody's" }],
-        ["POST", `/v1/plans/${missing}/activate`],
-        ["DELETE", `/v1/plans/${missing}`],
-      ])
-    ).resolves.toEqual(allNotFound(3));
   });
 });

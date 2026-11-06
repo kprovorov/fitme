@@ -103,48 +103,44 @@ const CHECK_HIT_SLOP = 10;
  * VoiceOver skips it and reads the button. The Plan editor's set rows end in
  * the same column, so its remove button has the same target.
  */
-export function SetCheckCell({
+export const SetCheckCell = ({
   children,
   onPress,
 }: {
   children: ReactNode;
   onPress: () => void;
-}) {
-  return (
-    <View className={SET_CHECK_COLUMN_CLASS}>
-      <Pressable
-        accessible={false}
-        className="absolute inset-0"
-        hitSlop={CHECK_HIT_SLOP}
-        onPress={onPress}
-      />
-      {children}
-    </View>
-  );
-}
+}) => (
+  <View className={SET_CHECK_COLUMN_CLASS}>
+    <Pressable
+      accessible={false}
+      className="absolute inset-0"
+      hitSlop={CHECK_HIT_SLOP}
+      onPress={onPress}
+    />
+    {children}
+  </View>
+);
 
 /**
  * A logged value, shown dimmed in place of its input until the set is
  * edited: a ghost Input's box, with no stroke.
  */
-function LoggedValue({ value }: { value?: string }) {
-  return (
-    <View
-      className={cn(
-        CELL_CLASS,
-        "border-continuous items-center justify-center rounded-lg border border-transparent opacity-50"
-      )}
+const LoggedValue = ({ value }: { value?: string }) => (
+  <View
+    className={cn(
+      CELL_CLASS,
+      "border-continuous items-center justify-center rounded-lg border border-transparent opacity-50"
+    )}
+  >
+    <Text
+      className="text-mono-body"
+      maxFontSizeMultiplier={SET_TABLE_MAX_FONT_SCALE}
+      numberOfLines={1}
     >
-      <Text
-        className="text-foreground text-mono-body"
-        maxFontSizeMultiplier={SET_TABLE_MAX_FONT_SCALE}
-        numberOfLines={1}
-      >
-        {value}
-      </Text>
-    </View>
-  );
-}
+      {value}
+    </Text>
+  </View>
+);
 
 /**
  * A set row: `leading` cells, then REPS, KG and the check column, with any
@@ -154,7 +150,7 @@ function LoggedValue({ value }: { value?: string }) {
  * earlier one shows its inputs as dimmed ghost Inputs and nothing in the
  * check column.
  */
-export default function WorkoutSessionExerciseSetForm({
+const WorkoutSessionExerciseSetForm = ({
   onSubmit,
   onEdit,
   leading,
@@ -164,7 +160,7 @@ export default function WorkoutSessionExerciseSetForm({
   isDone,
   isEditing,
   setIndex,
-}: WorkoutSessionExerciseSetFormProps) {
+}: WorkoutSessionExerciseSetFormProps) => {
   const { t } = useTranslation();
 
   const form = useForm<
@@ -267,6 +263,41 @@ export default function WorkoutSessionExerciseSetForm({
 
   const { errors } = form.formState;
 
+  let checkCell: ReactNode;
+
+  if (showsLoggedValues) {
+    checkCell = (
+      <SetCheckCell onPress={startEditing}>
+        <Button
+          accessibilityHint={t("sets.row.editHint")}
+          accessibilityLabel={t("sets.row.edit", { order: setIndex })}
+          contentColorClassName="text-muted-foreground"
+          icon="pencil"
+          onPress={startEditing}
+          shape="circle"
+          size="sm"
+          testID={`edit-set-button-${setIndex}`}
+          variant="ghost"
+        />
+      </SetCheckCell>
+    );
+  } else if (disabled) {
+    checkCell = <View className={SET_CHECK_COLUMN_CLASS} />;
+  } else {
+    checkCell = (
+      <SetCheckCell onPress={submit}>
+        <Button
+          accessibilityLabel={t("sets.row.log", { order: setIndex })}
+          icon="checkmark"
+          onPress={submit}
+          shape="circle"
+          size="sm"
+          testID={`log-set-button-${setIndex}`}
+        />
+      </SetCheckCell>
+    );
+  }
+
   return (
     <View className="gap-1">
       <View className="gap-sm flex-row items-center">
@@ -290,34 +321,7 @@ export default function WorkoutSessionExerciseSetForm({
           />
         )}
 
-        {showsLoggedValues ? (
-          <SetCheckCell onPress={startEditing}>
-            <Button
-              accessibilityHint={t("sets.row.editHint")}
-              accessibilityLabel={t("sets.row.edit", { order: setIndex })}
-              contentColorClassName="text-muted-foreground"
-              icon="pencil"
-              onPress={startEditing}
-              shape="circle"
-              size="sm"
-              testID={`edit-set-button-${setIndex}`}
-              variant="ghost"
-            />
-          </SetCheckCell>
-        ) : disabled ? (
-          <View className={SET_CHECK_COLUMN_CLASS} />
-        ) : (
-          <SetCheckCell onPress={submit}>
-            <Button
-              accessibilityLabel={t("sets.row.log", { order: setIndex })}
-              icon="checkmark"
-              onPress={submit}
-              shape="circle"
-              size="sm"
-              testID={`log-set-button-${setIndex}`}
-            />
-          </SetCheckCell>
-        )}
+        {checkCell}
       </View>
       {errors.weight ? (
         <ErrorMessage>{errors.weight.message}</ErrorMessage>
@@ -326,4 +330,6 @@ export default function WorkoutSessionExerciseSetForm({
       {error ? <ErrorMessage>{error}</ErrorMessage> : null}
     </View>
   );
-}
+};
+
+export default WorkoutSessionExerciseSetForm;

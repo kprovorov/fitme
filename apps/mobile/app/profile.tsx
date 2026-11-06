@@ -11,7 +11,7 @@ import ProfileView from "~/components/views/profile-view";
 const IS_E2E = process.env.EXPO_PUBLIC_E2E_ENABLED === "true";
 
 // Pushed over the tabs from the first tab's header button.
-export default function ProfileScreen() {
+const ProfileScreen = () => {
   const { t } = useTranslation();
   const [refreshing, setRefreshing] = useState(false);
   const queryClient = useQueryClient();
@@ -37,7 +37,7 @@ export default function ProfileScreen() {
       }),
     ]);
     setRefreshing(false);
-  }, [queryClient.refetchQueries, user]);
+  }, [queryClient, user]);
 
   return (
     <>
@@ -64,4 +64,6 @@ export default function ProfileScreen() {
       </ScrollView>
     </>
   );
-}
+};
+
+export default ProfileScreen;

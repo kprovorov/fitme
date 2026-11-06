@@ -13,7 +13,12 @@ import ForgotPasswordForm from "~/components/forms/auth/forgot-password-form";
 import type { ForgotPasswordFormValues } from "~/components/forms/auth/forgot-password-form";
 import { ErrorMessage } from "~/components/ui/error-message";
 
-export default function ForgotPasswordView() {
+const ForgotPasswordView = () => {
+  const { signIn } = useSignIn();
+  const { t } = useTranslation();
+  const operation = useAuthOperation();
+  const { clearError: handleEdit } = operation;
+
   const requestCode = ({ email }: ForgotPasswordFormValues) =>
     operation.run("email", async (current) => {
       const { error } = await signIn.create({ identifier: email });
@@ -71,17 +76,15 @@ export default function ForgotPasswordView() {
     </AuthScreen>
   );
 
-  const { signIn } = useSignIn();
-  const { t } = useTranslation();
-  const operation = useAuthOperation();
-
   return (
     <ForgotPasswordForm
       disabled={operation.pending !== null}
-      onEdit={operation.clearError}
+      onEdit={handleEdit}
       onSubmit={requestCode}
     >
       {renderForm}
     </ForgotPasswordForm>
   );
-}
+};
+
+export default ForgotPasswordView;

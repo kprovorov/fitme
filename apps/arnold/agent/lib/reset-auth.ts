@@ -17,7 +17,7 @@ interface AccountDeletionResetOptions {
 // Anything shorter isn't a generated secret (`openssl rand -hex 32` is 64).
 const MIN_SECRET_LENGTH = 32;
 
-const RESET_ROUTE = /^\/eve\/v1\/session\/[^/]+\/reset$/;
+const RESET_ROUTE = /^\/eve\/v1\/session\/[^/]+\/reset$/u;
 
 const digest = (value: string) => createHash("sha256").update(value).digest();
 
@@ -33,11 +33,16 @@ export const accountDeletionReset = ({
   secret = () => process.env.ARNOLD_RESET_SECRET,
 }: AccountDeletionResetOptions = {}): AuthFn =>
   withAuthChallenges(
-    async (request) => {
+    (request) => {
       const expected = secret();
       const token = extractBearerToken(request.headers.get("authorization"));
 
-      if (!(expected && expected.length >= MIN_SECRET_LENGTH && token)) {
+      if (
+        expected === undefined ||
+        expected.length < MIN_SECRET_LENGTH ||
+        token === null ||
+        token === ""
+      ) {
         return null;
       }
 

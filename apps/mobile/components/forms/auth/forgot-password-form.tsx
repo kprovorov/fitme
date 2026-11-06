@@ -52,6 +52,8 @@ export default function ForgotPasswordForm({
     name: "email",
   });
 
+  const { onBlur: handleEmailBlur } = email;
+
   const changeEmail = useCallback(
     (value: string) => {
       email.onChange(value);
@@ -77,7 +79,7 @@ export default function ForgotPasswordForm({
       />
     ),
     fields: (
-      <VStack className="gap-sm items-stretch">
+      <VStack className="items-stretch">
         <Input
           accessibilityLabel={t("forgotPassword.emailPlaceholder")}
           autoCapitalize="none"
@@ -86,7 +88,7 @@ export default function ForgotPasswordForm({
           editable={!busy}
           error={emailState.error?.message}
           keyboardType="email-address"
-          onBlur={email.onBlur}
+          onBlur={handleEmailBlur}
           onChangeText={changeEmail}
           onSubmitEditing={submit}
           placeholder={t("forgotPassword.emailPlaceholder")}

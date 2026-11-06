@@ -40,18 +40,26 @@ const NO_CONVENTIONS: DeviceConventions = {
 // Per instance, so tests' instances never share the app's device.
 const conventionsByInstance = new WeakMap<object, DeviceConventions>();
 
+const isObject = (value: unknown): value is object =>
+  (typeof value === "object" && value !== null) || typeof value === "function";
+
 /**
  * Sets the device's region and clock for an instance's dates and numbers,
  * the catalogs' `{{…, number}}` placeholders included. Without them, the App
  * language's own conventions apply.
  */
-export function setDeviceConventions(
+export const setDeviceConventions = (
   translator: Translator,
   conventions: DeviceConventions
-): void {
-  const original = (translator as { __original?: object }).__original;
-  conventionsByInstance.set(original ?? translator, conventions);
-}
+): void => {
+  const original =
+    "__original" in translator ? translator.__original : undefined;
+
+  conventionsByInstance.set(
+    isObject(original) ? original : translator,
+    conventions
+  );
+};
 
 /**
  * The instance behind a translator. react-i18next's `useTranslation().i18n`
@@ -59,18 +67,17 @@ export function setDeviceConventions(
  * `useI18n()` a view inheriting from either.
  */
 const instanceOf = (translator: Translator): object => {
-  let current: object | null = translator;
+  let current: unknown = translator;
 
-  while (current) {
+  while (isObject(current)) {
     if (conventionsByInstance.has(current)) {
       return current;
     }
 
-    const original: object | undefined = (current as { __original?: object })
-      .__original;
+    const original = "__original" in current ? current.__original : undefined;
 
     current =
-      original && original !== current
+      isObject(original) && original !== current
         ? original
         : Object.getPrototypeOf(current);
   }
@@ -86,11 +93,11 @@ export const regionOf = (translator: Translator): string | null =>
   conventionsOf(translator).region;
 
 // A BCP 47 region subtag: two letters (`UA`) or three digits (`419`).
-const REGION = /^(?:[A-Z]{2}|\d{3})$/;
+const REGION = /^(?:[A-Z]{2}|\d{3})$/u;
 
 /** A language with a region, when the region is a usable one: `uk-UA`. */
 export const withRegion = (language: string, region: string | null): string =>
-  region && REGION.test(region) ? `${language}-${region}` : language;
+  region !== null && REGION.test(region) ? `${language}-${region}` : language;
 
 /**
  * The locale dates and numbers are written in: the App language plus the
@@ -173,11 +180,16 @@ export const formatDate = (
 export const formatTime = (translator: Translator, date: Date): string => {
   const { uses24hourClock } = conventionsOf(translator);
 
-  return dateFormat(formatLocale(translator), {
+  const options: Intl.DateTimeFormatOptions = {
     hour: "numeric",
     minute: "2-digit",
-    ...(uses24hourClock === null ? {} : { hour12: !uses24hourClock }),
-  }).format(date);
+  };
+
+  if (uses24hourClock !== null) {
+    options.hour12 = !uses24hourClock;
+  }
+
+  return dateFormat(formatLocale(translator), options).format(date);
 };
 
 /** `3 sets`, `3 підходи`, `5 підходів`: a count with its plural form. */

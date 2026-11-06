@@ -24,12 +24,12 @@ interface BlockedStartProps {
  * and a button continuing it. The Workout screen and the Next card on Home
  * both show it.
  */
-export function BlockedStart({
+export const BlockedStart = ({
   blockedBy,
   onContinue,
   size = "default",
   variant = "default",
-}: BlockedStartProps) {
+}: BlockedStartProps) => {
   const { t } = useTranslation();
   const name = blockedBy.workout?.name;
 
@@ -41,7 +41,7 @@ export function BlockedStart({
         size={size}
         testID="start-workout-button"
       />
-      <Text className="text-footnote text-muted-foreground text-center">
+      <Text className="text-center" variant="muted">
         {name
           ? t("startWorkout.finishFirstNamed", { name })
           : t("startWorkout.finishFirst")}
@@ -60,4 +60,4 @@ export function BlockedStart({
       />
     </View>
   );
-}
+};

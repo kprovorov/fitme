@@ -25,7 +25,7 @@ const app = createApp({
   clerkJwtKey: clerk.jwtKey,
   createServices: createServicesFromEnv,
   identifyUser: () => {},
-  reportError: (error) => Promise.reject(error),
+  reportError: Promise.reject.bind(Promise),
 });
 
 const runId = randomBytes(8).toString("hex");
@@ -102,7 +102,7 @@ const seedSession = async (
           weightRecommended: "45.00",
           workoutSessionExerciseId: exercise.id,
         }))
-        .reverse()
+        .toReversed()
     );
   }
 
@@ -210,17 +210,17 @@ const historyAs = async (userId: string, query: string) => {
 const ownerHistory = (extra = "") =>
   historyAs(owner, `exercise_slug=${pullUpSlug}${extra}`);
 
-beforeAll(async () => {
-  seeded = await seed();
-});
-
-afterAll(async () => {
-  await deleteTestUsers([owner, intruder]);
-});
-
 describe("gET /v1/workout-session-exercises against the local stack", () => {
+  beforeAll(async () => {
+    seeded = await seed();
+  });
+
+  afterAll(async () => {
+    await deleteTestUsers([owner, intruder]);
+  });
+
   it("lists the entries newest first, with the targets and the User's weight unit", async () => {
-    await expect(ownerHistory()).resolves.toEqual({
+    await expect(ownerHistory()).resolves.toStrictEqual({
       body: {
         data: [
           {
@@ -293,32 +293,42 @@ describe("gET /v1/workout-session-exercises against the local stack", () => {
     const second = await ownerHistory("&limit=2&offset=2");
 
     expect(first.body).toMatchObject({ hasMore: true, total: 3 });
-    expect(first.body.data.map((entry: { id: string }) => entry.id)).toEqual([
-      seeded.newestExerciseId,
-      seeded.bodyweightExerciseId,
-    ]);
+    expect(
+      first.body.data.map((entry: { id: string }) => entry.id)
+    ).toStrictEqual([seeded.newestExerciseId, seeded.bodyweightExerciseId]);
     expect(second.body).toMatchObject({ hasMore: false, total: 3 });
-    expect(second.body.data.map((entry: { id: string }) => entry.id)).toEqual([
-      seeded.loggedExerciseId,
-    ]);
+    expect(
+      second.body.data.map((entry: { id: string }) => entry.id)
+    ).toStrictEqual([seeded.loggedExerciseId]);
   });
 
   it("answers an empty page past the end, and for an Exercise the User never did", async () => {
-    expect((await ownerHistory("&offset=10")).body).toEqual({
+    const pastEnd = await ownerHistory("&offset=10");
+
+    expect(pastEnd.body).toStrictEqual({
       data: [],
       hasMore: false,
       total: 3,
       weight_unit: "lbs",
     });
-    expect(
-      (await historyAs(owner, `exercise_slug=never-done-${runId}`)).body
-    ).toEqual({ data: [], hasMore: false, total: 0, weight_unit: "lbs" });
+
+    const neverDone = await historyAs(
+      owner,
+      `exercise_slug=never-done-${runId}`
+    );
+
+    expect(neverDone.body).toStrictEqual({
+      data: [],
+      hasMore: false,
+      total: 0,
+      weight_unit: "lbs",
+    });
   });
 
   it("never shows another User's rows, each User seeing only their own", async () => {
     await expect(
       historyAs(intruder, `exercise_slug=${pullUpSlug}`)
-    ).resolves.toEqual({
+    ).resolves.toStrictEqual({
       body: {
         data: [
           expect.objectContaining({

@@ -4,7 +4,7 @@ import { useTranslation } from "react-i18next";
 import { parseVerificationIntent } from "~/components/auth/verification";
 import VerifyCodeView from "~/components/views/verify-code-view";
 
-export default function VerifyCodeScreen() {
+const VerifyCodeScreen = () => {
   const { t } = useTranslation();
   const params = useLocalSearchParams<{ purpose: string; source?: string }>();
   const intent = parseVerificationIntent(params);
@@ -22,4 +22,6 @@ export default function VerifyCodeScreen() {
       />
     </>
   );
-}
+};
+
+export default VerifyCodeScreen;

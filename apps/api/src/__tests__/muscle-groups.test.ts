@@ -12,7 +12,7 @@ describe("gET /v1/muscle-groups/:muscleGroup", () => {
     const response = await app.request(`/v1/muscle-groups/${muscleGroup}`);
 
     expect(response.status).toBe(200);
-    await expect(response.json()).resolves.toEqual({
+    await expect(response.json()).resolves.toStrictEqual({
       data: { id: muscleGroup, name: muscleGroupToName(muscleGroup) },
     });
   });
@@ -21,7 +21,7 @@ describe("gET /v1/muscle-groups/:muscleGroup", () => {
     const response = await app.request("/v1/muscle-groups/elbows");
 
     expect(response.status).toBe(404);
-    await expect(response.json()).resolves.toEqual({
+    await expect(response.json()).resolves.toStrictEqual({
       error: { code: "not_found", message: "Unknown muscle group" },
     });
   });

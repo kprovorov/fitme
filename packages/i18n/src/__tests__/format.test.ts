@@ -22,7 +22,7 @@ const uk = createI18n("uk");
 // Intl writes Ukrainian thousands with a no-break space.
 const NBSP = " ";
 
-describe(formatCount, () => {
+describe("count formatting", () => {
   const counts = [1, 2, 5, 11, 21, 22] as const;
 
   it.each<[CountKind, string[]]>([
@@ -97,7 +97,7 @@ describe(formatCount, () => {
       ],
     ],
   ])("counts %s in Ukrainian", (kind, expected) => {
-    expect(counts.map((count) => formatCount(uk, kind, count))).toEqual(
+    expect(counts.map((count) => formatCount(uk, kind, count))).toStrictEqual(
       expected
     );
   });
@@ -111,7 +111,7 @@ describe(formatCount, () => {
     ["minutes", "minute", "minutes"],
     ["entries", "entry", "entries"],
   ])("counts %s in English", (kind, one, other) => {
-    expect(counts.map((count) => formatCount(en, kind, count))).toEqual([
+    expect(counts.map((count) => formatCount(en, kind, count))).toStrictEqual([
       `1 ${one}`,
       `2 ${other}`,
       `5 ${other}`,
@@ -127,7 +127,7 @@ describe(formatCount, () => {
   });
 });
 
-describe(formatNumber, () => {
+describe("number formatting", () => {
   it("writes a number as the language does", () => {
     expect(formatNumber(en, 62.5)).toBe("62.5");
     expect(formatNumber(uk, 62.5)).toBe("62,5");
@@ -149,21 +149,27 @@ describe("units", () => {
     expect(formatUnit(uk, 62.5, unit)).toBe(ukValue);
   });
 
-  it("spells units out for VoiceOver, counted", () => {
+  it("spells English units out for VoiceOver, counted", () => {
     expect(spokenUnit(en, 1, "kg")).toBe("1 kilogram");
     expect(spokenUnit(en, 32.5, "kg")).toBe("32.5 kilograms");
     expect(spokenUnit(en, 225, "lbs")).toBe("225 pounds");
+  });
+
+  it("spells Ukrainian kilograms out for VoiceOver, counted", () => {
     expect(spokenUnit(uk, 1, "kg")).toBe("1 кілограм");
     expect(spokenUnit(uk, 2, "kg")).toBe("2 кілограми");
     expect(spokenUnit(uk, 5, "kg")).toBe("5 кілограмів");
     expect(spokenUnit(uk, 32.5, "kg")).toBe("32,5 кілограма");
+  });
+
+  it("spells other Ukrainian units out for VoiceOver, counted", () => {
     expect(spokenUnit(uk, 21, "lbs")).toBe("21 фунт");
     expect(spokenUnit(uk, 180, "cm")).toBe("180 сантиметрів");
     expect(spokenUnit(uk, 3, "in")).toBe("3 дюйми");
   });
 });
 
-describe(formatWeight, () => {
+describe("weight formatting", () => {
   it("uses the measurement system's unit, whatever the language", () => {
     expect(formatWeight(en, 70, "metric")).toBe("70 kg");
     expect(formatWeight(en, 155, "us")).toBe("155 lbs");
@@ -173,7 +179,7 @@ describe(formatWeight, () => {
   });
 });
 
-describe(formatHeight, () => {
+describe("height formatting", () => {
   it("shows metric heights in centimeters", () => {
     expect(formatHeight(en, 180, "metric")).toBe("180 cm");
     expect(formatHeight(uk, 180.5, "metric")).toBe("180,5 см");
@@ -187,7 +193,7 @@ describe(formatHeight, () => {
   });
 });
 
-describe(formatWorkoutDuration, () => {
+describe("workout duration formatting", () => {
   const start = "2026-10-29T10:00:00.000Z";
 
   it("shows minutes, then hours and minutes past an hour", () => {
@@ -212,7 +218,7 @@ describe(formatWorkoutDuration, () => {
   });
 });
 
-describe(formatDuration, () => {
+describe("duration formatting", () => {
   const MINUTE_MS = 60_000;
 
   it("shows hours and minutes, rounded to the minute", () => {
@@ -229,12 +235,15 @@ describe(formatDuration, () => {
   });
 });
 
-describe(formatCompactVolume, () => {
-  it("shows kilograms below a tonne, then tonnes to one decimal", () => {
+describe("compact volume formatting", () => {
+  it("shows kilograms below a tonne, then switches to tonnes", () => {
     expect(formatCompactVolume(en, 0, "kg")).toBe("0 kg");
     expect(formatCompactVolume(en, 999.4, "kg")).toBe("999 kg");
     expect(formatCompactVolume(en, 999.6, "kg")).toBe("1 t");
     expect(formatCompactVolume(en, 1000, "kg")).toBe("1 t");
+  });
+
+  it("localizes kilograms and tonnes to one decimal", () => {
     expect(formatCompactVolume(en, 136_249, "kg")).toBe("136.2 t");
     expect(formatCompactVolume(uk, 136_249, "kg")).toBe("136,2 т");
     expect(formatCompactVolume(uk, 850, "kg")).toBe("850 кг");
@@ -248,11 +257,14 @@ describe(formatCompactVolume, () => {
     expect(formatCompactVolume(uk, 300_420, "lbs")).toBe("300,4 тис. фунт");
   });
 
-  it("spells the compact volume out for VoiceOver", () => {
+  it("spells English kilograms and tonnes out for VoiceOver", () => {
     expect(spokenCompactVolume(en, 0, "kg")).toBe("0 kilograms");
     expect(spokenCompactVolume(en, 850, "kg")).toBe("850 kilograms");
     expect(spokenCompactVolume(en, 1000, "kg")).toBe("1 tonne");
     expect(spokenCompactVolume(en, 136_249, "kg")).toBe("136.2 tonnes");
+  });
+
+  it("spells Ukrainian and imperial compact volumes out for VoiceOver", () => {
     expect(spokenCompactVolume(uk, 5000, "kg")).toBe("5 тонн");
     expect(spokenCompactVolume(uk, 136_249, "kg")).toBe("136,2 тонни");
     expect(spokenCompactVolume(en, 300_420, "lbs")).toBe(

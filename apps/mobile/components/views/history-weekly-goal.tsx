@@ -72,7 +72,7 @@ const weekSlots = (week: GoalWeek, pips: number) =>
  * its goal, every column gets a line above for `+N` extras (Figma has none,
  * so a chart without extras stays its height).
  */
-function WeekColumn({
+const WeekColumn = ({
   pips,
   showExtras,
   week,
@@ -80,7 +80,7 @@ function WeekColumn({
   pips: number;
   showExtras: boolean;
   week: GoalWeek;
-}) {
+}) => {
   const { t } = useTranslation();
   const i18n = useI18n();
   const slots = weekSlots(week, pips);
@@ -126,18 +126,14 @@ function WeekColumn({
       </Text>
     </View>
   );
-}
+};
 
 /**
  * The Weekly goal under the month's totals: the goal, the weeks hit among the
  * completed, fully tracked ones (hidden until there is one) and the
  * eight-week chart. Informational: nothing in it is tappable.
  */
-export default function HistoryWeeklyGoal({
-  overview,
-}: {
-  overview: WeeklyGoalOverview;
-}) {
+const HistoryWeeklyGoal = ({ overview }: { overview: WeeklyGoalOverview }) => {
   const { t } = useTranslation();
   const i18n = useI18n();
   const stacked = useStackedLayout();
@@ -189,4 +185,6 @@ export default function HistoryWeeklyGoal({
       </View>
     </View>
   );
-}
+};
+
+export default HistoryWeeklyGoal;

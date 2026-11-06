@@ -30,8 +30,8 @@ import { OPEN_WORKOUT_SESSION_QUERY_KEY } from "~/hooks/queries/workout-sessions
  * or a 429 doesn't prove nothing changed (the answer can be lost after the
  * write commits), so it never says either way.
  */
-const failureMessage = (t: TFunction, error: unknown) => {
-  if (error instanceof ApiError && error.code === "not_found") {
+const failureMessage = (t: TFunction, error: ApiError | null) => {
+  if (error?.code === "not_found") {
     return t("plans.errors.notFound");
   }
 
@@ -42,9 +42,8 @@ const failureMessage = (t: TFunction, error: unknown) => {
     : t("plans.errors.rateLimited", { seconds: waitSeconds });
 };
 
-export default function PlanScreen() {
-  const { planId: planIdParam } = useLocalSearchParams();
-  const planId = planIdParam as string;
+const PlanScreen = () => {
+  const { planId } = useLocalSearchParams<{ planId: string }>();
   const queryClient = useQueryClient();
   const router = useRouter();
   const { t } = useTranslation();
@@ -62,7 +61,10 @@ export default function PlanScreen() {
   // shows the activated Plan from the answer.
   const { mutate: activatePlan } = useActivatePlanMutation({
     onError: (error) => {
-      Alert.alert(t("plans.activate.failed"), failureMessage(t, error));
+      Alert.alert(
+        t("plans.activate.failed"),
+        failureMessage(t, error instanceof ApiError ? error : null)
+      );
       refreshPlans();
     },
   });
@@ -80,7 +82,10 @@ export default function PlanScreen() {
 
   const { mutate: deletePlan } = useDeletePlanMutation({
     onError: (error) => {
-      Alert.alert(t("plans.archive.failed"), failureMessage(t, error));
+      Alert.alert(
+        t("plans.archive.failed"),
+        failureMessage(t, error instanceof ApiError ? error : null)
+      );
     },
     onSettled: refreshPlans,
     onSuccess: () => {
@@ -133,7 +138,7 @@ export default function PlanScreen() {
     if (plan === null) {
       return (
         <View className="gap-sm pt-lg items-center">
-          <Text className="text-muted-foreground text-center">
+          <Text className="text-center" variant="muted">
             {t("plans.errors.notFound")}
           </Text>
           <Button
@@ -151,7 +156,7 @@ export default function PlanScreen() {
 
       return (
         <View className="gap-sm pt-lg items-center">
-          <Text className="text-muted-foreground text-center">
+          <Text className="text-center" variant="muted">
             {waitSeconds === null
               ? t("plans.loadError")
               : t("common.rateLimited", { seconds: waitSeconds })}
@@ -282,4 +287,6 @@ export default function PlanScreen() {
       </ScrollView>
     </>
   );
-}
+};
+
+export default PlanScreen;

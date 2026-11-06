@@ -1,6 +1,7 @@
-import { Image } from "expo-image";
+import { Image as ExpoImage } from "expo-image";
 import { useTranslation } from "react-i18next";
-import { Pressable, StyleSheet, useWindowDimensions, View } from "react-native";
+import { Pressable, useWindowDimensions, View } from "react-native";
+import { withUniwind } from "uniwind";
 
 import ExerciseVideo, {
   CLIP_ASPECT_RATIO,
@@ -11,6 +12,8 @@ import { Text } from "~/components/ui/text";
 import type { ShownExercise } from "~/hooks/queries/library";
 import { useChoiceLabels } from "~/lib/choices";
 import { sizedThumbnailUrl } from "~/lib/exercise-media";
+
+const Image = withUniwind(ExpoImage);
 
 /**
  * Past this text scale the muscle groups go under the clip: over it, a few
@@ -30,11 +33,12 @@ interface SessionExerciseHeaderProps {
  * The thumbnail in place of a clip, sized for the render endpoint at the
  * window's width (a little over the box's), in device pixels.
  */
-function Thumbnail({ url }: { url: string }) {
+const Thumbnail = ({ url }: { url: string }) => {
   const { width } = useWindowDimensions();
 
   return (
     <Image
+      className="absolute inset-0"
       contentFit="cover"
       source={{
         uri: sizedThumbnailUrl(
@@ -43,13 +47,12 @@ function Thumbnail({ url }: { url: string }) {
           Math.round(width / CLIP_ASPECT_RATIO)
         ),
       }}
-      style={StyleSheet.absoluteFill}
     />
   );
-}
+};
 
 /** The muscle groups, as badges that wrap. */
-function MuscleGroups({ exercise }: { exercise: ShownExercise }) {
+const MuscleGroups = ({ exercise }: { exercise: ShownExercise }) => {
   const labels = useChoiceLabels();
 
   return (
@@ -61,17 +64,17 @@ function MuscleGroups({ exercise }: { exercise: ShownExercise }) {
       ))}
     </View>
   );
-}
+};
 
 /**
  * The exercise's description (two lines, opening the guide), then its
  * looping clip with "How to?" and its muscle groups over it, above the sets.
  */
-export default function SessionExerciseHeader({
+const SessionExerciseHeader = ({
   description,
   exercise,
   onOpenGuide,
-}: SessionExerciseHeaderProps) {
+}: SessionExerciseHeaderProps) => {
   const { t } = useTranslation();
   const { fontScale } = useWindowDimensions();
 
@@ -90,13 +93,11 @@ export default function SessionExerciseHeader({
           className="px-sm active:opacity-60"
           onPress={onOpenGuide}
         >
-          <Text className="text-body" numberOfLines={2}>
-            {description}
-          </Text>
+          <Text numberOfLines={2}>{description}</Text>
         </Pressable>
       ) : null}
       {description && !onOpenGuide ? (
-        <Text className="px-sm text-body" numberOfLines={2}>
+        <Text className="mx-sm" numberOfLines={2}>
           {description}
         </Text>
       ) : null}
@@ -105,7 +106,7 @@ export default function SessionExerciseHeader({
           {exercise.video_url ? (
             <ExerciseVideo url={exercise.video_url} />
           ) : (
-            <View style={{ aspectRatio: CLIP_ASPECT_RATIO }}>
+            <View className="aspect-4/3">
               {exercise.thumbnail_url ? (
                 <Thumbnail url={exercise.thumbnail_url} />
               ) : null}
@@ -137,4 +138,6 @@ export default function SessionExerciseHeader({
       ) : null}
     </>
   );
-}
+};
+
+export default SessionExerciseHeader;

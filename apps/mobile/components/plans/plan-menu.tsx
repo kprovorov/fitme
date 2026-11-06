@@ -7,14 +7,13 @@ import { DropdownMenu } from "../ui/dropdown-menu";
  * The Workout tab's Plan menu: a lime sliders button (Figma's ghost circle
  * Button) opening Manage Plans and Create Plan.
  */
-export default function PlanMenu() {
+const PlanMenu = () => {
   const { t } = useTranslation();
   const router = useRouter();
 
   return (
     <DropdownMenu
       accessibilityLabel={t("home.planMenu")}
-      iconColorClassName="text-primary"
       items={[
         {
           label: t("home.managePlans"),
@@ -30,4 +29,6 @@ export default function PlanMenu() {
       systemImage="slider.horizontal.3"
     />
   );
-}
+};
+
+export default PlanMenu;

@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import { exerciseNameFromSlug } from "..";
 
-describe(exerciseNameFromSlug, () => {
+describe("exercise names from slugs", () => {
   it.each([
     ["barbell-back-squat", "Barbell back squat"],
     ["pull-ups", "Pull ups"],

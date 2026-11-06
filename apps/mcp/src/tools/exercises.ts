@@ -22,7 +22,7 @@ const MAX_SEARCH_LENGTH = 100;
 /** The Library API's largest page; a bigger one takes two requests. */
 const LIBRARY_PAGE_SIZE = 50;
 
-export function registerExerciseTools(server: McpServer, ctx: ToolContext) {
+export const registerExerciseTools = (server: McpServer, ctx: ToolContext) => {
   server.registerTool(
     "list_exercises",
     {
@@ -76,6 +76,7 @@ export function registerExerciseTools(server: McpServer, ctx: ToolContext) {
       );
 
       const exercises = pages.flatMap((page) => page.data);
+      // SAFETY: The schema enforces limit >= 1, so parts and its Promise.all result contain at least one page.
       const [{ total }] = pages as [ExercisePage, ...ExercisePage[]];
 
       return asJson({
@@ -136,4 +137,4 @@ export function registerExerciseTools(server: McpServer, ctx: ToolContext) {
       return asJson({ entries, exerciseSlug, total });
     })
   );
-}
+};

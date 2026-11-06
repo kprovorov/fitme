@@ -1,13 +1,20 @@
 import { defineEval } from "eve/evals";
 import { satisfies } from "eve/evals/expect";
+import { z } from "zod";
 
 import { BENCH, INCLINE, ROW, readToolStubs, SQUAT } from "./fixtures";
 
 const LIBRARY_SLUGS = new Set([BENCH, INCLINE, ROW, SQUAT]);
 
-interface ProposedPlan {
-  workouts: { exercises: { exercise_slug: string }[] }[];
-}
+const proposedPlanSchema = z.object({
+  workouts: z.array(
+    z.object({
+      exercises: z.array(z.object({ exercise_slug: z.string() })),
+    })
+  ),
+});
+
+type ProposedPlan = z.infer<typeof proposedPlanSchema>;
 
 export default defineEval({
   description:
@@ -28,7 +35,7 @@ export default defineEval({
       (call) => call.name === "display_workout_plan"
     );
 
-    const proposed = display?.input as unknown as ProposedPlan | undefined;
+    const proposed = proposedPlanSchema.optional().parse(display?.input);
     t.check(
       proposed?.workouts ?? [],
       satisfies(

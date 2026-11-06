@@ -6,12 +6,32 @@
 // comments. The commands inside a substitution (`$(…)`, `` `…` ``, `<(…)`),
 // quoted or not, are checked as commands of their own.
 
+/**
+ * @typedef {{ type: "word", raw: string, value: string }} WordToken
+ * @typedef {WordToken | { type: "operator", value: string }} Token
+ * @typedef {{ delimiter: string, stripTabs: boolean }} Heredoc
+ * @typedef {{ comments: boolean, heredocs: Heredoc[] | null }} GroupContext
+ * @typedef {{ end: number, body?: string }} Substitution
+ * @typedef {{ background: boolean, operator: string | null, words: string[] }} SimpleCommand
+ * @typedef {{ closer: string | null, definition: boolean, casePart: string | null, commands: SimpleCommand[], list: SimpleCommand[], inLoopHeader?: boolean, loopHeader?: WordToken[] }} Frame
+ * @typedef {{ assignments: string[], commands: SimpleCommand[], everyCommand: string[][], loops: WordToken[][] }} Parsed
+ * @typedef {Parsed & { substitutions: string[] }} ParsedShell
+ * @typedef {{ background?: boolean, projectDir?: string }} Options
+ * @typedef {SimpleCommand & { line: string, name: string, projectDir?: string }} Command
+ * @typedef {{ rule: string, reason: string } & (
+ *   { scope?: "command", breaks: (command: Command) => boolean } |
+ *   { scope: "pipeline", breaks: (pipeline: Command[]) => boolean } |
+ *   { scope: "loop", breaks: (header: WordToken[]) => boolean } |
+ *   { scope: "parsed", breaks: (parsed: ParsedShell) => boolean }
+ * )} Check
+ */
+
 // `NAME=…`, `NAME+=…` or `NAME[i]=…`.
-const ASSIGNMENT = /^[A-Za-z_][A-Za-z0-9_]*(\[[^\]]*\])?\+?=/;
+const ASSIGNMENT = /^[A-Za-z_][A-Za-z0-9_]*(?:\[[^\]]*\])?\+?=/u;
 
 // `2>…` or `{fd}>…`: the descriptor a redirection opens, no command word.
-const FD_NUMBER = /^(\d+|\{[A-Za-z_][A-Za-z0-9_]*\})$/;
-const LEADING_TABS = /^\t+/;
+const FD_NUMBER = /^(?:\d+|\{[A-Za-z_][A-Za-z0-9_]*\})$/u;
+const LEADING_TABS = /^\t+/u;
 const WHITESPACE = new Set([" ", "\t"]);
 const QUOTES = new Set(["'", '"', "`"]);
 const AND_OR_PIPE = new Set(["&&", "||", "|"]);
@@ -32,13 +52,17 @@ const DELIMITER_END = new Set([
   ")",
 ]);
 
-class UnterminatedError extends Error {}
+const UNTERMINATED = new Error("unterminated quote or substitution");
 
+UNTERMINATED.name = "UnterminatedError";
+
+/** @type {() => never} */
 const unterminated = () => {
-  throw new UnterminatedError("unterminated quote or substitution");
+  throw UNTERMINATED;
 };
 
 // The index just past the `'…'` opened at `start`.
+/** @type {(source: string, start: number) => number} */
 const skipSingleQuoted = (source, start) => {
   const end = source.indexOf("'", start + 1);
 
@@ -47,6 +71,7 @@ const skipSingleQuoted = (source, start) => {
 
 // The index just past the `` `…` ``, or `$'…'` quote (backslash escapes, no
 // substitutions) opened at `start`.
+/** @type {(source: string, start: number) => number} */
 const skipEscaped = (source, start) => {
   const close = source[start];
   let index = start + 1;
@@ -62,34 +87,223 @@ const skipEscaped = (source, start) => {
   return unterminated();
 };
 
-// The index just past the `"…"` opened at `start`: a `$(…)`, `${…}` or
-// `` `…` `` inside it is skipped whole, so its own quotes don't end the string.
-const skipDoubleQuoted = (source, start) => {
-  let index = start + 1;
+const scanner = {
+  // The index just past the `"…"` opened at `start`: a `$(…)`, `${…}` or
+  // `` `…` `` inside it is skipped whole, so its own quotes don't end the string.
+  /**
+   * @param {string} source The shell source.
+   * @param {number} start The opening quote index.
+   * @returns {number} The position after the scanned construct.
+   */
+  skipDoubleQuoted(source, start) {
+    let index = start + 1;
 
-  while (index < source.length) {
-    const char = source[index];
+    while (index < source.length) {
+      const char = source[index];
 
-    if (char === '"') {
-      return index + 1;
+      if (char === '"') {
+        return index + 1;
+      }
+
+      if (char === "\\") {
+        index += 2;
+      } else if (char === "$" && "({".includes(source[index + 1])) {
+        index = this.skipGroup(source, index + 1);
+      } else if (char === "`") {
+        index = skipEscaped(source, index);
+      } else {
+        index += 1;
+      }
     }
 
-    if (char === "\\") {
-      index += 2;
-    } else if (char === "$" && "({".includes(source[index + 1])) {
-      index = skipGroup(source, index + 1);
-    } else if (char === "`") {
-      index = skipEscaped(source, index);
-    } else {
+    return unterminated();
+  },
+
+  /**
+   * @param {string} source The shell source.
+   * @param {number} start The opening quote index.
+   * @returns {number} The position after the scanned construct.
+   */
+  skipQuote(source, start) {
+    if (source[start] === "'") {
+      return skipSingleQuoted(source, start);
+    }
+
+    return source[start] === '"'
+      ? this.skipDoubleQuoted(source, start)
+      : skipEscaped(source, start);
+  },
+
+  // The index just past the heredoc body starting at `start`: the line equal
+  // to its delimiter included.
+  /**
+   * @param {string} source The shell source.
+   * @param {number} start The body start index.
+   * @param {Heredoc} heredoc The delimiter and tab handling.
+   * @returns {number} The position after the scanned construct.
+   */
+  skipHeredocBody(source, start, { delimiter, stripTabs }) {
+    let index = start;
+
+    while (index < source.length) {
+      const end = source.indexOf("\n", index);
+      const lineEnd = end === -1 ? source.length : end;
+      const line = source.slice(index, lineEnd);
+      index = Math.min(lineEnd + 1, source.length);
+
+      if ((stripTabs ? line.replace(LEADING_TABS, "") : line) === delimiter) {
+        break;
+      }
+    }
+
+    return index;
+  },
+
+  // The heredoc a `<<` at `start` opens, and the index just past its delimiter.
+  /**
+   * @param {string} source The shell source.
+   * @param {number} start The redirection start index.
+   * @returns {{ end: number, heredoc: Heredoc }} The position after the scanned construct.
+   */
+  readHeredoc(source, start) {
+    let index = start + 2;
+    const stripTabs = source[index] === "-";
+    index += stripTabs ? 1 : 0;
+
+    while (WHITESPACE.has(source[index])) {
       index += 1;
     }
-  }
 
-  return unterminated();
+    let delimiter = "";
+
+    while (index < source.length && !DELIMITER_END.has(source[index])) {
+      if (QUOTES.has(source[index])) {
+        const end = this.skipQuote(source, index);
+        delimiter += source.slice(index + 1, end - 1);
+        index = end;
+      } else if (source[index] === "\\") {
+        // `<<\EOF` quotes the delimiter: the backslash is removed.
+        delimiter += source[index + 1] ?? "";
+        index += 2;
+      } else {
+        delimiter += source[index];
+        index += 1;
+      }
+    }
+
+    return { end: index, heredoc: { delimiter, stripTabs } };
+  },
+
+  // Inside a group: the index just past the escape, quote, comment or heredoc
+  // at `index` (a newline skips the heredoc bodies it starts), or -1 for a plain
+  // character. `comments` and `heredocs` (null: none) come from the group.
+  /**
+   * @param {string} source The shell source.
+   * @param {number} index The current index.
+   * @param {GroupContext} context The group comments and heredocs.
+   * @returns {number} The position after the scanned construct.
+   */
+  skipInGroup(source, index, { comments, heredocs }) {
+    const char = source[index];
+
+    if (char === "\\") {
+      return index + 2;
+    }
+
+    if (comments && char === "#" && COMMENT_AFTER.has(source[index - 1])) {
+      // A comment runs to the end of its line, quotes and all.
+      const end = source.indexOf("\n", index);
+
+      return end === -1 ? source.length : end;
+    }
+
+    if (QUOTES.has(char)) {
+      return this.skipQuote(source, index);
+    }
+
+    const opensHeredoc =
+      heredocs !== null &&
+      source.startsWith("<<", index) &&
+      source[index + 2] !== "<";
+
+    if (opensHeredoc) {
+      const { end, heredoc } = this.readHeredoc(source, index);
+      heredocs.push(heredoc);
+
+      return end;
+    }
+
+    if (char === "\n") {
+      let next = index + 1;
+
+      for (const heredoc of heredocs?.splice(0) ?? []) {
+        next = this.skipHeredocBody(source, next, heredoc);
+      }
+
+      return next;
+    }
+
+    return -1;
+  },
+
+  // The index just past the `(…)` or `{…}` opened at `start`, nesting, quotes
+  // and heredoc bodies inside included.
+  /**
+   * @param {string} source The shell source.
+   * @param {number} start The opening group index.
+   * @returns {number} The position after the scanned construct.
+   */
+  skipGroup(source, start) {
+    const open = source[start];
+    const close = open === "(" ? ")" : "}";
+    const arithmetic = open === "(" && source[start + 1] === "(";
+
+    const context = {
+      // Only commands, in `$(…)` or `(…)`, have comments: in `${…}` and
+      // arithmetic a `#` is text.
+      comments: open === "(" && !arithmetic,
+      // Only commands have heredocs: in `${…}` and arithmetic, `<<` is text or
+      // a shift.
+      heredocs: open === "(" && !arithmetic ? [] : null,
+    };
+
+    let depth = 0;
+    let index = start;
+
+    while (index < source.length) {
+      const skipped = this.skipInGroup(source, index, context);
+
+      if (skipped === -1) {
+        const char = source[index];
+        depth += (char === open ? 1 : 0) - (char === close ? 1 : 0);
+        index += 1;
+
+        if (depth === 0) {
+          return index;
+        }
+      } else {
+        index = skipped;
+      }
+    }
+
+    return unterminated();
+  },
+};
+
+// The `$(…)`, `<(…)` or `>(…)` at `index`; arithmetic (`$((…))`) holds no
+// commands.
+/** @type {(raw: string, index: number) => Substitution} */
+const groupAt = (raw, index) => {
+  const end = scanner.skipGroup(raw, index + 1);
+
+  return raw[index + 2] === "("
+    ? { end }
+    : { body: raw.slice(index + 2, end - 1), end };
 };
 
 // The substitution or quote starting at `index` of a word as written: where
 // it ends, and the commands inside a substitution. Null for anything else.
+/** @type {(raw: string, index: number, inDouble: boolean) => Substitution | null} */
 const substitutionAt = (raw, index, inDouble) => {
   const char = raw[index];
   const following = raw[index + 1];
@@ -116,19 +330,10 @@ const substitutionAt = (raw, index, inDouble) => {
   return "$<>".includes(char) && following === "(" ? groupAt(raw, index) : null;
 };
 
-// The `$(…)`, `<(…)` or `>(…)` at `index`; arithmetic (`$((…))`) holds no
-// commands.
-const groupAt = (raw, index) => {
-  const end = skipGroup(raw, index + 1);
-
-  return raw[index + 2] === "("
-    ? { end }
-    : { body: raw.slice(index + 2, end - 1), end };
-};
-
 // The commands inside each substitution of a word as written: `$(…)`,
 // `` `…` ``, `<(…)` and `>(…)`, in or out of double quotes, never in single
 // quotes or arithmetic.
+/** @type {(raw: string) => string[]} */
 const substitutionsIn = (raw) => {
   const bodies = [];
   let inDouble = false;
@@ -152,152 +357,10 @@ const substitutionsIn = (raw) => {
   return bodies;
 };
 
-const skipQuote = (source, start) => {
-  if (source[start] === "'") {
-    return skipSingleQuoted(source, start);
-  }
-
-  return source[start] === '"'
-    ? skipDoubleQuoted(source, start)
-    : skipEscaped(source, start);
-};
-
-// The index just past the heredoc body starting at `start`: the line equal
-// to its delimiter included.
-const skipHeredocBody = (source, start, { delimiter, stripTabs }) => {
-  let index = start;
-
-  while (index < source.length) {
-    const end = source.indexOf("\n", index);
-    const lineEnd = end === -1 ? source.length : end;
-    const line = source.slice(index, lineEnd);
-    index = Math.min(lineEnd + 1, source.length);
-
-    if ((stripTabs ? line.replace(LEADING_TABS, "") : line) === delimiter) {
-      break;
-    }
-  }
-
-  return index;
-};
-
-// The heredoc a `<<` at `start` opens, and the index just past its delimiter.
-const readHeredoc = (source, start) => {
-  let index = start + 2;
-  const stripTabs = source[index] === "-";
-  index += stripTabs ? 1 : 0;
-
-  while (WHITESPACE.has(source[index])) {
-    index += 1;
-  }
-
-  let delimiter = "";
-
-  while (index < source.length && !DELIMITER_END.has(source[index])) {
-    if (QUOTES.has(source[index])) {
-      const end = skipQuote(source, index);
-      delimiter += source.slice(index + 1, end - 1);
-      index = end;
-    } else if (source[index] === "\\") {
-      // `<<\EOF` quotes the delimiter: the backslash is removed.
-      delimiter += source[index + 1] ?? "";
-      index += 2;
-    } else {
-      delimiter += source[index];
-      index += 1;
-    }
-  }
-
-  return { end: index, heredoc: { delimiter, stripTabs } };
-};
-
-// Inside a group: the index just past the escape, quote, comment or heredoc
-// at `index` (a newline skips the heredoc bodies it starts), or -1 for a plain
-// character. `comments` and `heredocs` (null: none) come from the group.
-const skipInGroup = (source, index, { comments, heredocs }) => {
-  const char = source[index];
-
-  if (char === "\\") {
-    return index + 2;
-  }
-
-  if (comments && char === "#" && COMMENT_AFTER.has(source[index - 1])) {
-    // A comment runs to the end of its line, quotes and all.
-    const end = source.indexOf("\n", index);
-
-    return end === -1 ? source.length : end;
-  }
-
-  if (QUOTES.has(char)) {
-    return skipQuote(source, index);
-  }
-
-  const opensHeredoc =
-    heredocs !== null &&
-    source.startsWith("<<", index) &&
-    source[index + 2] !== "<";
-
-  if (opensHeredoc) {
-    const { end, heredoc } = readHeredoc(source, index);
-    heredocs.push(heredoc);
-
-    return end;
-  }
-
-  if (char === "\n") {
-    let next = index + 1;
-
-    for (const heredoc of heredocs?.splice(0) ?? []) {
-      next = skipHeredocBody(source, next, heredoc);
-    }
-
-    return next;
-  }
-
-  return -1;
-};
-
-// The index just past the `(…)` or `{…}` opened at `start`, nesting, quotes
-// and heredoc bodies inside included.
-const skipGroup = (source, start) => {
-  const open = source[start];
-  const close = open === "(" ? ")" : "}";
-  const arithmetic = open === "(" && source[start + 1] === "(";
-
-  const context = {
-    // Only commands, in `$(…)` or `(…)`, have comments: in `${…}` and
-    // arithmetic a `#` is text.
-    comments: open === "(" && !arithmetic,
-    // Only commands have heredocs: in `${…}` and arithmetic, `<<` is text or
-    // a shift.
-    heredocs: open === "(" && !arithmetic ? [] : null,
-  };
-
-  let depth = 0;
-  let index = start;
-
-  while (index < source.length) {
-    const skipped = skipInGroup(source, index, context);
-
-    if (skipped === -1) {
-      const char = source[index];
-      depth += (char === open ? 1 : 0) - (char === close ? 1 : 0);
-      index += 1;
-
-      if (depth === 0) {
-        return index;
-      }
-    } else {
-      index = skipped;
-    }
-  }
-
-  return unterminated();
-};
-
 const EXPRESSION_START = new Set([" ", "\t", "\n"]);
 
 // The index just past the `[[ … ]]` opened at `start`, quotes inside skipped.
+/** @type {(source: string, start: number) => number} */
 const skipConditional = (source, start) => {
   let index = start + 2;
 
@@ -309,7 +372,7 @@ const skipConditional = (source, start) => {
     if (source[index] === "\\") {
       index += 2;
     } else if (QUOTES.has(source[index])) {
-      index = skipQuote(source, index);
+      index = scanner.skipQuote(source, index);
     } else {
       index += 1;
     }
@@ -330,12 +393,17 @@ const NEXT = {
 // quotes removed, redirections and their targets dropped, heredoc bodies and
 // comments skipped. Substitutions (`$(…)`, `` `…` ``, `<(…)`) stay opaque.
 class Lexer {
+  /** @param {string} source The shell source. */
   constructor(source) {
     this.source = source;
     this.index = 0;
+    /** @type {Token[]} */
     this.tokens = [];
+    /** @type {string[]} */
     this.substitutions = [];
+    /** @type {Heredoc[]} */
     this.heredocs = [];
+    /** @type {string | null} */
     this.word = null;
     this.wordStart = 0;
     this.next = NEXT.word;
@@ -351,6 +419,10 @@ class Lexer {
     return this.tokens;
   }
 
+  /**
+   * @param {string} char The char to process.
+   * @param {string | undefined} following The following to process.
+   */
   step(char, following) {
     if (char === "\\") {
       this.escape(following);
@@ -358,8 +430,12 @@ class Lexer {
       this.expression(char);
     } else if (QUOTES.has(char) || (char === "$" && following === "'")) {
       this.quote(char);
-    } else if ("$<>".includes(char) && "({".includes(following)) {
-      this.substitution(char, following);
+    } else if (
+      "$<>".includes(char) &&
+      following !== undefined &&
+      "({".includes(following)
+    ) {
+      this.substitution(char, following ?? "");
     } else if (char === "#" && this.word === null) {
       this.comment();
     } else if (WHITESPACE.has(char)) {
@@ -380,6 +456,10 @@ class Lexer {
   }
 
   // `[[ … ]]` or `(( … ))` at a word start: an expression, not commands.
+  /**
+   * @param {string} char The char to process.
+   * @param {string | undefined} following The following to process.
+   */
   startsExpression(char, following) {
     if (char === "(") {
       return following === "(";
@@ -392,20 +472,26 @@ class Lexer {
     );
   }
 
+  /**
+   * @param {string} char The char to process.
+   */
   expression(char) {
     const end =
       char === "("
-        ? skipGroup(this.source, this.index)
+        ? scanner.skipGroup(this.source, this.index)
         : skipConditional(this.source, this.index);
 
     this.append(this.source.slice(this.index, end));
     this.index = end;
   }
 
+  /**
+   * @param {string} char The char to process.
+   */
   parenthesis(char) {
-    if (char === "(" && this.word?.endsWith("=")) {
+    if (char === "(" && this.word?.endsWith("=") === true) {
       // `name=(…)`: an array assignment, its elements no commands.
-      const end = skipGroup(this.source, this.index);
+      const end = scanner.skipGroup(this.source, this.index);
       this.append(this.source.slice(this.index, end));
       this.index = end;
     } else {
@@ -413,6 +499,9 @@ class Lexer {
     }
   }
 
+  /**
+   * @param {string} text The text to process.
+   */
   append(text) {
     if (this.word === null) {
       this.wordStart = this.index;
@@ -445,12 +534,19 @@ class Lexer {
     this.word = null;
   }
 
+  /**
+   * @param {string} value The value to process.
+   * @param {number} length The length to process.
+   */
   operator(value, length) {
     this.flush();
     this.tokens.push({ type: "operator", value });
     this.index += length;
   }
 
+  /**
+   * @param {string | undefined} following The following to process.
+   */
   escape(following) {
     if (following !== "\n") {
       this.append(following ?? "");
@@ -459,6 +555,9 @@ class Lexer {
     this.index += 2;
   }
 
+  /**
+   * @param {string} char The char to process.
+   */
   quote(char) {
     // `$'…'` (ANSI-C quoting) takes backslash escapes, like a backquote.
     const start = char === "$" ? this.index + 1 : this.index;
@@ -466,7 +565,7 @@ class Lexer {
     const end =
       char === "$"
         ? skipEscaped(this.source, start)
-        : skipQuote(this.source, start);
+        : scanner.skipQuote(this.source, start);
 
     this.append(
       char === "`"
@@ -476,6 +575,10 @@ class Lexer {
     this.index = end;
   }
 
+  /**
+   * @param {string} char The char to process.
+   * @param {string} following The following to process.
+   */
   substitution(char, following) {
     if (char !== "$" && following === "{") {
       // `<{` / `>{` is a redirection followed by a word, not a substitution.
@@ -484,7 +587,7 @@ class Lexer {
       return;
     }
 
-    const end = skipGroup(this.source, this.index + 1);
+    const end = scanner.skipGroup(this.source, this.index + 1);
     this.append(this.source.slice(this.index, end));
     this.index = end;
   }
@@ -506,7 +609,7 @@ class Lexer {
     }
 
     for (const heredoc of this.heredocs.splice(0)) {
-      this.index = skipHeredocBody(this.source, this.index, heredoc);
+      this.index = scanner.skipHeredocBody(this.source, this.index, heredoc);
     }
   }
 
@@ -533,6 +636,10 @@ class Lexer {
     }
   }
 
+  /**
+   * @param {string} char The char to process.
+   * @param {string | undefined} following The following to process.
+   */
   control(char, following) {
     if (char === "&" && following === ">") {
       // `&>` / `&>>`: both streams to a file.
@@ -574,38 +681,43 @@ const COMMAND_PREFIXES = new Set(["!", "do", "elif", "else", "then"]);
 // tokens, raw text included. What sets a shell variable is kept apart too,
 // function bodies included (a helper runs once it's called): each simple
 // command's words and each leading `NAME=…` assignment.
-class Parser {
-  constructor() {
-    this.frames = [this.frame(null, false)];
-    this.assignments = [];
-    this.everyCommand = [];
-    this.loops = [];
-    this.words = [];
-    this.definesFunction = false;
-    this.skipsOperator = false;
-    this.skipsWord = false;
-    this.timed = false;
-  }
+/** @type {(closer: string | null, definition: boolean) => Frame} */
+const createFrame = (closer, definition) => ({
+  // Where a `case` is: its "subject", a "pattern" or a branch "body".
+  casePart: closer === "esac" ? "subject" : null,
+  closer,
+  commands: [],
+  definition,
+  list: [],
+});
 
-  frame(closer, definition) {
-    return {
-      // Where a `case` is: its "subject", a "pattern" or a branch "body".
-      casePart: closer === "esac" ? "subject" : null,
-      closer,
-      commands: [],
-      definition,
-      list: [],
-    };
-  }
+const createParser = () => ({
+  frames: [createFrame(null, false)],
+  /** @type {string[]} */
+  assignments: [],
+  /** @type {string[][]} */
+  everyCommand: [],
+  /** @type {WordToken[][]} */
+  loops: [],
+  /** @type {string[]} */
+  words: [],
+  definesFunction: false,
+  skipsOperator: false,
+  skipsWord: false,
+  timed: false,
 
   get inCaseHeader() {
     return this.top.casePart === "subject" || this.top.casePart === "pattern";
-  }
+  },
 
   get top() {
-    return this.frames.at(-1);
-  }
+    // A parser always keeps its root frame while reading commands.
+    return /** @type {Frame} */ (this.frames.at(-1));
+  },
 
+  /**
+   * @param {Token[]} tokens The tokens to process.
+   */
   run(tokens) {
     for (const [position, token] of tokens.entries()) {
       if (token.type === "word") {
@@ -629,8 +741,11 @@ class Parser {
       everyCommand: this.everyCommand,
       loops: this.loops,
     };
-  }
+  },
 
+  /**
+   * @param {WordToken} token The token to process.
+   */
   word(token) {
     const { value } = token;
     const { timed } = this;
@@ -638,7 +753,7 @@ class Parser {
 
     if (this.skipsWord) {
       this.skipsWord = false;
-    } else if (this.top.inLoopHeader) {
+    } else if (this.top.inLoopHeader === true) {
       this.loopHeaderWord(token);
     } else if (this.inCaseHeader) {
       this.caseWord(value);
@@ -652,7 +767,7 @@ class Parser {
       this.definesFunction = true;
       this.skipsWord = true;
     } else if (OPENERS.has(value)) {
-      this.open(OPENERS.get(value));
+      this.open(/** @type {string} */ (OPENERS.get(value)));
       // `for name in …; do`: the header names no command.
       this.top.inLoopHeader = LOOP_HEADERS.has(value);
       this.top.loopHeader = [];
@@ -663,27 +778,40 @@ class Parser {
     } else if (!COMMAND_PREFIXES.has(value)) {
       this.words.push(value);
     }
-  }
+  },
 
+  /**
+   * @param {WordToken} token The token to process.
+   */
   loopHeaderWord(token) {
+    // open() initialized the header before inLoopHeader was set.
+    const header = /** @type {WordToken[]} */ (this.top.loopHeader);
+
     if (token.value === "do") {
       this.top.inLoopHeader = false;
-      this.loops.push(this.top.loopHeader);
+      this.loops.push(header);
     } else {
-      this.top.loopHeader.push(token);
+      header.push(token);
     }
-  }
+  },
 
+  /**
+   * @param {string} value The value to process.
+   */
   caseWord(value) {
     if (this.top.casePart === "subject" && value === "in") {
       this.top.casePart = "pattern";
     } else if (this.top.casePart === "pattern" && value === "esac") {
       this.close();
     }
-  }
+  },
 
+  /**
+   * @param {string} value The value to process.
+   * @param {Token | undefined} following The following to process.
+   */
   operator(value, following) {
-    if (this.top.inLoopHeader) {
+    if (this.top.inLoopHeader === true) {
       return;
     }
 
@@ -718,8 +846,11 @@ class Parser {
     } else if (!AND_OR_PIPE.has(value)) {
       this.top.list = [];
     }
-  }
+  },
 
+  /**
+   * @param {Token | undefined} following The following to process.
+   */
   parenthesis(following) {
     const named = this.words.length === 1 || this.definesFunction;
 
@@ -734,23 +865,29 @@ class Parser {
 
     this.end("(");
     this.open(")");
-  }
+  },
 
+  /**
+   * @param {string} closer The closer to process.
+   */
   open(closer) {
-    this.frames.push(this.frame(closer, this.definesFunction));
+    this.frames.push(createFrame(closer, this.definesFunction));
     this.definesFunction = false;
-  }
+  },
 
   close() {
     this.end(null);
-    const frame = this.frames.pop();
+    const frame = /** @type {Frame} */ (this.frames.pop());
 
     if (!frame.definition) {
       this.top.commands.push(...frame.commands);
       this.top.list.push(...frame.commands);
     }
-  }
+  },
 
+  /**
+   * @param {string | null} operator The operator to process.
+   */
   end(operator) {
     if (this.words.length === 0 || this.definesFunction) {
       return;
@@ -761,8 +898,8 @@ class Parser {
     this.top.list.push(command);
     this.everyCommand.push(this.words);
     this.words = [];
-  }
-}
+  },
+});
 
 // Commands that run the command after them, each with its options taking a
 // value: `sudo -u me timeout 5 x` runs `timeout`.
@@ -804,9 +941,13 @@ const WRAPPERS = new Map([
 
 const INTROSPECTION = new Set(["-V", "-v"]);
 
-const commandName = (word) => word.split("/").at(-1);
+/** @type {(word: string) => string} */
+const commandName = (word) =>
+  // Splitting even an empty word yields at least one component.
+  /** @type {string} */ (word.split("/").at(-1));
 
 // The words of the command a simple command runs, past its wrappers.
+/** @type {(words: string[]) => string[]} */
 const unwrap = (words) => {
   let index = 0;
 
@@ -819,7 +960,10 @@ const unwrap = (words) => {
       return [];
     }
 
-    const valueOptions = WRAPPERS.get(commandName(words[index]));
+    const valueOptions = /** @type {Set<string>} */ (
+      WRAPPERS.get(commandName(words[index]))
+    );
+
     index += 1;
 
     while (
@@ -834,10 +978,11 @@ const unwrap = (words) => {
 };
 
 // `$VAR/…` may well be absolute: only a plain relative path is refused.
-const NOT_RELATIVE = /^[/~$]/;
+const NOT_RELATIVE = /^[/~$]/u;
 const CD_CHAINS = new Set(["&&", ";", "\n"]);
 
 // The directory `cd` changes to: its first operand, past options like `-P`.
+/** @type {(words: string[]) => string | undefined} */
 const cdTarget = (words) =>
   words.slice(1).find((word) => !word.startsWith("-"));
 
@@ -878,10 +1023,11 @@ const VALUE_LONG_OPTIONS = new Set([
 ]);
 
 // `-9`, `-KILL`, `-SIGTERM`: pkill's signal, not an option.
-const SIGNAL = /^-(\d+|[A-Z]{2,}[A-Z0-9+-]*)$/;
+const SIGNAL = /^-(?:\d+|[A-Z]{2,}[A-Z0-9+-]*)$/u;
 
-const POSIX_CLASS = /\[:([a-z]+):\]/g;
+const POSIX_CLASS = /\[:(?<name>[a-z]+):\]/gu;
 
+/** @type {Record<string, string>} */
 const POSIX_CLASSES = {
   alnum: "A-Za-z0-9",
   alpha: "A-Za-z",
@@ -902,14 +1048,16 @@ const POSIX_CLASSES = {
 // the shell itself. The bracket trick (`[u]ltracite`) is safe because it
 // doesn't. POSIX classes (`[:alpha:]`) are read as JavaScript ranges first;
 // a pattern JavaScript still can't read counts as matching, since pkill might.
+/** @type {(pattern: string, line: string) => boolean} */
 const matchesItself = (pattern, line) => {
   const translated = pattern.replaceAll(
     POSIX_CLASS,
+    /** @type {(match: string, name: string) => string} */
     (match, name) => POSIX_CLASSES[name] ?? match
   );
 
   try {
-    return new RegExp(translated).test(line);
+    return new RegExp(translated, "u").test(line);
   } catch {
     return true;
   }
@@ -917,6 +1065,7 @@ const matchesItself = (pattern, line) => {
 
 // One option word of pkill / pgrep: whether it asks for `-f`, and how many
 // of the following words it takes as its value.
+/** @type {(word: string) => { full: boolean, valueWords: number }} */
 const readOption = (word) => {
   if (word.startsWith("--")) {
     return {
@@ -928,7 +1077,9 @@ const readOption = (word) => {
   let full = false;
   const letters = word.slice(1);
 
-  for (const [position, letter] of letters.entries()) {
+  for (let position = 0; position < letters.length; position += 1) {
+    const letter = letters[position];
+
     if (VALUE_OPTIONS.has(letter)) {
       // `-u me` takes the next word, `-ume` holds its own value.
       return { full, valueWords: position === letters.length - 1 ? 1 : 0 };
@@ -940,10 +1091,12 @@ const readOption = (word) => {
   return { full, valueWords: 0 };
 };
 
+/** @type {(word: string) => boolean} */
 const isOption = (word) =>
   word.startsWith("-") && word.length > 1 && !SIGNAL.test(word);
 
 // Whether pkill / pgrep match the full command line (`-f`), and the pattern.
+/** @type {(words: string[]) => { full: boolean, pattern: string | undefined }} */
 const processMatch = (words) => {
   let full = false;
   let index = 1;
@@ -967,12 +1120,15 @@ const processMatch = (words) => {
 };
 
 const LONG_SLEEP_SECONDS = 5;
+
+/** @type {Record<string, number>} */
 const SLEEP_UNITS = { "": 1, d: 86_400, h: 3600, m: 60, s: 1 };
-const SLEEP_DURATION = /^(\d+(?:\.\d*)?|\.\d+)([smhd]?)$/;
+const SLEEP_DURATION = /^(?<duration>\d+(?:\.\d*)?|\.\d+)(?<unit>[smhd]?)$/u;
 const SLEEP_FOREVER = new Set(["inf", "infinity"]);
 
 // How long `sleep` waits: the sum of its operands (`sleep 1m 30`), skipping
 // any it can't read (`$DELAY`).
+/** @type {(words: string[]) => number} */
 const sleepSeconds = (words) => {
   let seconds = 0;
 
@@ -992,9 +1148,11 @@ const sleepSeconds = (words) => {
 };
 
 // `$name` or `${name}` alone: a scalar zsh never word-splits.
-const BARE_VARIABLE = /^\$([A-Za-z_][A-Za-z0-9_]*|\{[A-Za-z_][A-Za-z0-9_]*\})$/;
+const BARE_VARIABLE =
+  /^\$(?:[A-Za-z_][A-Za-z0-9_]*|\{[A-Za-z_][A-Za-z0-9_]*\})$/u;
 
 // `for name in $var`: the whole word list one bare, unquoted variable.
+/** @type {(header: WordToken[]) => boolean} */
 const loopsOverBareVariable = (header) => {
   const [, keyword, ...list] = header;
 
@@ -1007,7 +1165,7 @@ const loopsOverBareVariable = (header) => {
 
 // zsh ties the lowercase array `path` to `PATH`: setting it replaces the
 // command search path. `path+=(dir)` only appends, so it's left alone.
-const PATH_ASSIGNMENT = /^path(\[[^\]]*\])?=/;
+const PATH_ASSIGNMENT = /^path(?:\[[^\]]*\])?=/u;
 
 // Builtins whose operands name the variables they set (`local path=x`,
 // `typeset -a path`, `read -r path`).
@@ -1023,10 +1181,12 @@ const VARIABLE_SETTERS = new Set([
   "typeset",
 ]);
 
+/** @type {(word: string) => boolean} */
 const isPathVariable = (word) => word === "path" || PATH_ASSIGNMENT.test(word);
 
 // Whether anything sets zsh's `path`: a `path=…` assignment, a builtin
 // declaring it, or a `for` / `select` naming it as its loop variable.
+/** @type {(parsed: ParsedShell) => boolean} */
 const setsZshPath = ({ assignments, everyCommand, loops }) =>
   assignments.some((word) => PATH_ASSIGNMENT.test(word)) ||
   everyCommand.some(
@@ -1045,6 +1205,7 @@ const TOOL_ALIASES = new Map([["supabase", "db"]]);
 // The arguments a command gives `tool`, run directly, through a package
 // runner (`pnpm exec supabase status`) or a root alias (`pnpm db status`), or
 // null when it doesn't run it.
+/** @type {(name: string, words: string[], tool: string) => string[] | null} */
 const toolArguments = (name, words, tool) => {
   if (name === tool) {
     return words.slice(1);
@@ -1059,6 +1220,7 @@ const toolArguments = (name, words, tool) => {
   return index > 0 ? words.slice(index + 1) : null;
 };
 
+/** @type {(words: string[]) => string[]} */
 const beforeDoubleDash = (words) => {
   const end = words.indexOf("--");
 
@@ -1066,15 +1228,16 @@ const beforeDoubleDash = (words) => {
 };
 
 // The Supabase CLI's legacy `-o` / `--output` flag (not `--output-format`).
+/** @type {(word: string) => boolean} */
 const isLegacyOutputFlag = (word) =>
   word === "--output" ||
   word.startsWith("--output=") ||
   (word.startsWith("-o") && !word.startsWith("--"));
 
-const PROD_ENVIRONMENT = /^prod(uction)?$/;
+const PROD_ENVIRONMENT = /^prod(?:uction)?$/u;
 
 // Splits `--env=prod` into the flag and its value.
-const FIRST_EQUALS = /[=](.*)/s;
+const FIRST_EQUALS = /[=](?<value>.*)/su;
 const ENV_FLAGS = new Set(["--env", "-e"]);
 
 // Infisical options taking the next word as their value.
@@ -1100,6 +1263,7 @@ const INFISICAL_VALUELESS = new Set([
 
 // Whether `infisical …` handles the `prod` environment's values: `secrets`
 // (listing), `secrets get` / `set`, `export` or `run`, with `--env=prod`.
+/** @type {(args: string[]) => boolean} */
 const readsProdSecrets = (args) => {
   const words = beforeDoubleDash(args);
   let prod = false;
@@ -1199,6 +1363,7 @@ const GITLEAKS_HISTORY_SUBCOMMANDS = new Set(["detect", "git", "stdin"]);
 // One flag word of a `gitleaks …` command as the flag it sets, the value it
 // sets it to and how many following words it takes, or null for a word this
 // rule won't read.
+/** @type {(word: string, next: string | undefined) => { name: string, taken: number, value: string | true } | null} */
 const readGitleaksFlag = (word, next) => {
   const [name, value] = word.split(FIRST_EQUALS);
 
@@ -1242,7 +1407,9 @@ const readGitleaksFlag = (word, next) => {
 // null for a command holding a word this rule won't read. `--` only ends the
 // flags (gitleaks wraps no command of its own), so every word after it is a
 // positional. A repeated flag keeps its last value, as pflag does.
+/** @type {(args: string[]) => { flags: Map<string, string | true>, positionals: string[] } | null} */
 const readGitleaks = (args) => {
+  /** @type {Map<string, string | true>} */
   const flags = new Map();
   const positionals = [];
   let flagsEnded = false;
@@ -1272,10 +1439,11 @@ const readGitleaks = (args) => {
 // A path written plainly enough to read: no glob (`apps/*` is one word here
 // and several arguments to gitleaks, which then scans the working directory),
 // no variable, no substitution, no `~`.
-const PLAIN_PATH = /^\/?[\w.-]+(\/[\w.-]+)*\/?$/;
+const PLAIN_PATH = /^\/?[\w.-]+(?:\/[\w.-]+)*\/?$/u;
 
 // `path`'s components with its `.` and `..` segments resolved, or null when
 // it isn't plain enough to read or climbs above its own root.
+/** @type {(path: string) => string[] | null} */
 const pathComponents = (path) => {
   if (!PLAIN_PATH.test(path)) {
     return null;
@@ -1301,6 +1469,7 @@ const pathComponents = (path) => {
 // Whether `path` is an absolute path holding the project directory: that
 // directory itself or one above it, so scanning it walks the whole checkout.
 // `projectDir` is `CLAUDE_PROJECT_DIR` (.claude/settings.json).
+/** @type {(path: string, projectDir: string | undefined) => boolean} */
 const holdsProjectDir = (path, projectDir) => {
   if (projectDir === undefined || !path.startsWith("/")) {
     return false;
@@ -1320,6 +1489,7 @@ const holdsProjectDir = (path, projectDir) => {
 // Whether `path` certainly names one place inside the checkout. An empty
 // path (gitleaks reads it as `.`), `.`, `./.`, `apps/mobile/..`, `..` and `/`
 // all resolve to no component at all, so each is the whole checkout.
+/** @type {(path: string, projectDir: string | undefined) => boolean} */
 const namesOnePlace = (path, projectDir) => {
   const components = pathComponents(path);
 
@@ -1336,6 +1506,7 @@ const namesOnePlace = (path, projectDir) => {
 // named place: FIT-476 showed that the ways to spell "the working directory"
 // (an extra path, `./.`, a glob, an attached shorthand) outnumber the ones
 // worth listing.
+/** @type {(args: string[], projectDir: string | undefined) => boolean} */
 const leaksLocalSecrets = (args, projectDir) => {
   const read = readGitleaks(args);
 
@@ -1369,7 +1540,7 @@ const leaksLocalSecrets = (args, projectDir) => {
   if (subcommand === "detect" && flags.has("--no-git")) {
     const source = flags.get("--source");
 
-    return source === undefined || !namesOnePlace(source, projectDir);
+    return typeof source !== "string" || !namesOnePlace(source, projectDir);
   }
 
   return false;
@@ -1377,7 +1548,9 @@ const leaksLocalSecrets = (args, projectDir) => {
 
 // A `.env`, `.env.local`, `apps/api/.env.production` … but not the
 // committed `.env.example` files, which hold no secret.
-const ENV_FILE = /(^|\/)\.env(\.[^/]+)?$/;
+const ENV_FILE = /(?:^|\/)\.env(?:\.[^/]+)?$/u;
+
+/** @type {(word: string) => boolean} */
 const isEnvFile = (word) => ENV_FILE.test(word) && !word.endsWith(".example");
 
 const FILE_READERS = new Set([
@@ -1399,7 +1572,7 @@ const FILE_READERS = new Set([
 const GREPS = new Set(["egrep", "fgrep", "grep", "rg"]);
 
 // grep options after which no matched line is printed.
-const QUIET_GREP_LETTERS = /^-[A-Za-z]*[cLlq]/;
+const QUIET_GREP_LETTERS = /^-[A-Za-z]*[cLlq]/u;
 
 const QUIET_GREP_OPTIONS = new Set([
   "--count",
@@ -1410,16 +1583,17 @@ const QUIET_GREP_OPTIONS = new Set([
 ]);
 
 // `cut -d= -f1`, `cut -d '=' -f 1`, `cut --delimiter== --fields=1`.
-const CUT_EQUALS_DELIMITER = /(^| )(-d ?|--delimiter[= ])=( |$)/;
-const CUT_FIRST_FIELD = /(^| )(-f ?|--fields[= ])1( |$)/;
+const CUT_EQUALS_DELIMITER = /(?:^| )(?:-d ?|--delimiter[= ])=(?: |$)/u;
+const CUT_FIRST_FIELD = /(?:^| )(?:-f ?|--fields[= ])1(?: |$)/u;
 
 // `awk -F= '{print $1}'`, `awk -F '=' '{ print $1 }'`.
-const AWK_EQUALS_SEPARATOR = /(^| )-F ?=( |$)/;
-const AWK_FIRST_FIELD = /^\{ ?print \$1;? ?\}$/;
+const AWK_EQUALS_SEPARATOR = /(?:^| )-F ?=(?: |$)/u;
+const AWK_FIRST_FIELD = /^\{ ?print \$1;? ?\}$/u;
 
 // `s/=.*/…/`: a sed script dropping everything from the first `=`.
-const STRIPPING_SED_SCRIPT = /^s(.)=\.\*\1/;
+const STRIPPING_SED_SCRIPT = /^s(?<delimiter>.)=\.\*\k<delimiter>/u;
 
+/** @type {(command: Command) => boolean} */
 const printsLines = ({ name, words }) => {
   const options = words.slice(1).filter((word) => word.startsWith("-"));
 
@@ -1438,6 +1612,7 @@ const printsLines = ({ name, words }) => {
   );
 };
 
+/** @type {(command: Command) => boolean} */
 const readsEnvFile = (command) =>
   FILE_READERS.has(command.name) &&
   command.words.slice(1).some(isEnvFile) &&
@@ -1445,6 +1620,7 @@ const readsEnvFile = (command) =>
 
 // `cut -d= -f1`, `awk -F= '{print $1}'` or `sed 's/=.*/…/'`: names only,
 // values stripped.
+/** @type {(command: Command) => boolean} */
 const stripsValues = ({ name, words }) => {
   if (name === "sed") {
     return words.some((word) => STRIPPING_SED_SCRIPT.test(word));
@@ -1467,6 +1643,7 @@ const stripsValues = ({ name, words }) => {
 };
 
 // Splits the simple commands into pipelines: runs joined by `|`.
+/** @type {(commands: Command[]) => Command[][]} */
 const pipelines = (commands) => {
   const groups = [];
   let current = [];
@@ -1487,15 +1664,14 @@ const pipelines = (commands) => {
   return groups;
 };
 
-const WORD_SPLIT_REASON =
-  // biome-ignore lint/suspicious/noTemplateCurlyInString: shell text, not a template.
-  'AGENTS.md Shell: zsh doesn\'t word-split an unquoted `$var`, so `for x in $var` runs once with the whole list as one word: use an array (`files=(a b); for f in "${files[@]}"`), `${=var}`, or pipe NUL-separated names into `xargs -0` (`git ls-files -z`, `grep -rlZ`).';
+const WORD_SPLIT_REASON = `AGENTS.md Shell: zsh doesn't word-split an unquoted \`$var\`, so \`for x in $var\` runs once with the whole list as one word: use an array (\`files=(a b); for f in "\${files[@]}"\`), \`\${=var}\`, or pipe NUL-separated names into \`xargs -0\` (\`git ls-files -z\`, \`grep -rlZ\`).`;
 
 // Each rule: its name, the reason the agent is shown, and whether it's broken
 // by a simple command (`name` is the command run, past any wrapper), by a
 // pipeline (`scope: "pipeline"`, its simple commands) or by a `for` /
 // `select` header (`scope: "loop"`, its word tokens), or by the whole parsed
 // command (`scope: "parsed"`).
+/** @type {Check[]} */
 const CHECKS = [
   {
     breaks: setsZshPath,
@@ -1506,7 +1682,7 @@ const CHECKS = [
   },
   {
     breaks: ({ name, words, operator }) => {
-      if (name !== "cd" || !CD_CHAINS.has(operator)) {
+      if (name !== "cd" || operator === null || !CD_CHAINS.has(operator)) {
         return false;
       }
 
@@ -1593,14 +1769,15 @@ const CHECKS = [
   },
 ];
 
+/** @type {(command: string) => ParsedShell} */
 const parse = (command) => {
   try {
     const lexer = new Lexer(command.trimEnd());
-    const parsed = new Parser().run(lexer.run());
+    const parsed = createParser().run(lexer.run());
 
     return { ...parsed, substitutions: lexer.substitutions };
   } catch (error) {
-    if (error instanceof UnterminatedError) {
+    if (error === UNTERMINATED) {
       return {
         assignments: [],
         commands: [],
@@ -1616,6 +1793,7 @@ const parse = (command) => {
 
 // The names of the rules `command` breaks, its substitutions' commands
 // included.
+/** @type {(command: string, options: Options) => Set<string>} */
 const brokenRules = (command, options) => {
   const parsed = parse(command);
 
@@ -1636,17 +1814,22 @@ const brokenRules = (command, options) => {
         ];
   });
 
-  const scopes = {
-    command: commands,
-    loop: parsed.loops,
-    parsed: [parsed],
-    pipeline: pipelines(commands),
-  };
-
   const rules = new Set(
-    CHECKS.filter(({ breaks, scope = "command" }) =>
-      scopes[scope].some(breaks)
-    ).map(({ rule }) => rule)
+    CHECKS.flatMap((check) => {
+      let broken;
+
+      if (check.scope === "loop") {
+        broken = parsed.loops.some(check.breaks);
+      } else if (check.scope === "parsed") {
+        broken = check.breaks(parsed);
+      } else if (check.scope === "pipeline") {
+        broken = pipelines(commands).some(check.breaks);
+      } else {
+        broken = commands.some(check.breaks);
+      }
+
+      return broken ? [check.rule] : [];
+    })
   );
 
   for (const body of parsed.substitutions) {
@@ -1663,18 +1846,18 @@ const brokenRules = (command, options) => {
  * unparseable command (an unterminated quote) breaks none: the shell will
  * refuse it anyway.
  *
- * @param {string} command
+ * @param {string} command The Bash command to check.
  * @param {{ background?: boolean, projectDir?: string }} [options]
  *   `background`: the Bash tool runs the whole command in the background
  *   (`run_in_background`). `projectDir`: the checkout the hook runs in
  *   (`CLAUDE_PROJECT_DIR`), so an absolute path holding it is read as the
  *   whole checkout.
- * @returns {{ rule: string, reason: string }[]}
+ * @returns {{ rule: string, reason: string }[]} The broken rules and their reasons.
  */
 export const findShellRuleViolations = (command, options = {}) => {
   const rules = brokenRules(command, options);
 
-  return CHECKS.filter(({ rule }) => rules.has(rule)).map(
-    ({ reason, rule }) => ({ reason, rule })
+  return CHECKS.flatMap(({ reason, rule }) =>
+    rules.has(rule) ? [{ reason, rule }] : []
   );
 };

@@ -15,7 +15,7 @@ import { createLibraryFromEnv } from "../src/library.js";
  */
 
 /** A Plan id as Postgres accepts a uuid (`Id` in src/schemas.ts). */
-const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/iu;
 
 const run = async () => {
   const { values } = parseArgs({

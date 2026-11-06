@@ -42,10 +42,7 @@ export const reportWorkoutSetTracked = (event: SetTrackedEvent): void => {
  * and the suggestion is cleared when the last one unmounts, so it never
  * reappears when a screen is reopened.
  */
-export function useFinishWorkoutSuggestion(sessionId: string): {
-  dismiss: () => void;
-  isSuggested: boolean;
-} {
+export const useFinishWorkoutSuggestion = (sessionId: string) => {
   const suggestedSessionIds = useSyncExternalStore(
     controller.subscribe,
     controller.getSuggestedSessionIds
@@ -53,7 +50,13 @@ export function useFinishWorkoutSuggestion(sessionId: string): {
 
   const dismiss = useCallback(() => controller.dismiss(sessionId), [sessionId]);
 
-  useEffect(() => controller.watch(sessionId), [sessionId]);
+  useEffect(() => {
+    const unwatch = controller.watch(sessionId);
+
+    return () => {
+      unwatch();
+    };
+  }, [sessionId]);
 
   return { dismiss, isSuggested: suggestedSessionIds.has(sessionId) };
-}
+};

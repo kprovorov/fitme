@@ -11,7 +11,7 @@ import { storage } from "~/lib/mmkv";
  * or is in flight, or no `EXPO_PUBLIC_API_URL`); `isLoading` tells the two
  * apart.
  */
-export function useSelectedArnoldModel() {
+export const useSelectedArnoldModel = () => {
   const hasApi = getApiUrl() !== "";
   const { data: list, isFetching } = useArnoldModelsQuery({ enabled: hasApi });
   const [stored, setSelectedId] = useMMKVString(SELECTED_MODEL_KEY, storage);
@@ -22,4 +22,4 @@ export function useSelectedArnoldModel() {
     models: list?.models,
     setSelectedId,
   };
-}
+};

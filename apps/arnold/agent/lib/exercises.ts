@@ -5,8 +5,8 @@ import { z } from "zod";
 
 import { getLibrary } from "./library";
 
-const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-const SLUG_SEPARATORS = /[-_]+/g;
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/iu;
+const SLUG_SEPARATORS = /[-_]+/gu;
 
 /** Longer than any Exercise slug; only keeps a runaway input off the API. */
 const MAX_SLUG_LENGTH = 200;

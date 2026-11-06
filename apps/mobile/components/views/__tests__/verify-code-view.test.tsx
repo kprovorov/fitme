@@ -6,12 +6,11 @@ import {
   it,
   jest,
 } from "@jest/globals";
-
-import "~/test-utils/auth-ui";
 import { act, fireEvent, render, screen } from "@testing-library/react-native";
 import { router } from "expo-router";
 import { it, afterEach, describe, expect, beforeEach } from "vitest";
 
+import "~/test-utils/auth-ui";
 import { segmentClient } from "~/lib/segment";
 
 import VerifyCodeView from "../verify-code-view";

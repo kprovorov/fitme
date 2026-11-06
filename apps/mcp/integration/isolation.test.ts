@@ -40,6 +40,9 @@ describe("cross-user isolation against the local stack", () => {
 
   const ownerSetId = () => session.exercises[0]?.sets[0]?.id;
 
+  const asIntruder = <T>(fn: (tx: Transaction) => Promise<T>) =>
+    asUser(intruderUser.userId, fn);
+
   beforeAll(async () => {
     const ownerUser = createTestUser("owner");
     intruderUser = createTestUser("intruder");
@@ -67,7 +70,7 @@ describe("cross-user isolation against the local stack", () => {
   it("does not let another user see the owner's data", async () => {
     await expect(
       callOk<PlanSummary[]>(intruder, "list_plans")
-    ).resolves.toEqual([]);
+    ).resolves.toStrictEqual([]);
     await expect(
       callOk<SessionPage>(intruder, "list_workout_sessions")
     ).resolves.toMatchObject({ sessions: [], total: 0 });
@@ -78,9 +81,11 @@ describe("cross-user isolation against the local stack", () => {
     ).resolves.toMatchObject({ entries: [] });
 
     await callError(intruder, "get_plan", { planId: plan.id });
-    await callError(intruder, "get_workout_session", {
-      sessionId: session.id,
-    });
+    await expect(
+      callError(intruder, "get_workout_session", {
+        sessionId: session.id,
+      })
+    ).resolves.toBeTypeOf("string");
   });
 
   it("does not let another user change the owner's plan", async () => {
@@ -94,9 +99,11 @@ describe("cross-user isolation against the local stack", () => {
     });
     await callError(intruder, "activate_plan", { planId: plan.id });
     await callError(intruder, "delete_plan", { planId: plan.id });
-    await callError(intruder, "start_workout_session", {
-      workoutId: plan.workouts[1]?.id,
-    });
+    await expect(
+      callError(intruder, "start_workout_session", {
+        workoutId: plan.workouts[1]?.id,
+      })
+    ).resolves.toBeTypeOf("string");
   });
 
   it("does not let another user change the owner's session", async () => {
@@ -108,17 +115,16 @@ describe("cross-user isolation against the local stack", () => {
     await callError(intruder, "finish_workout_session", {
       sessionId: session.id,
     });
-    await callError(intruder, "delete_workout_session", {
-      sessionId: session.id,
-    });
+    await expect(
+      callError(intruder, "delete_workout_session", {
+        sessionId: session.id,
+      })
+    ).resolves.toBeTypeOf("string");
   });
 
   // The tools check ownership with a SELECT first, so also go straight to the
   // database as the intruder: the RLS write policies must refuse on their own.
   it("refuses the owner's ids in table writes", async () => {
-    const asIntruder = <T>(fn: (tx: Transaction) => Promise<T>) =>
-      asUser(intruderUser.userId, fn);
-
     const workoutId = plan.workouts[1]?.id ?? "";
 
     const updatedPlans = await asIntruder((tx) =>
@@ -129,7 +135,7 @@ describe("cross-user isolation against the local stack", () => {
         .returning({ id: plans.id })
     );
 
-    expect(updatedPlans).toEqual([]);
+    expect(updatedPlans).toStrictEqual([]);
 
     const updatedSets = await asIntruder((tx) =>
       tx
@@ -139,7 +145,7 @@ describe("cross-user isolation against the local stack", () => {
         .returning({ id: workoutSessionExerciseSets.id })
     );
 
-    expect(updatedSets).toEqual([]);
+    expect(updatedSets).toStrictEqual([]);
 
     const deletedSessions = await asIntruder((tx) =>
       tx
@@ -148,23 +154,20 @@ describe("cross-user isolation against the local stack", () => {
         .returning({ id: workoutSessions.id })
     );
 
-    expect(deletedSessions).toEqual([]);
+    expect(deletedSessions).toStrictEqual([]);
 
     // A session of the intruder's own that points at the owner's workout.
-    const inserted = await asIntruder((tx) =>
-      tx.insert(workoutSessions).values({
-        planId: plan.id,
-        startedAt: new Date().toISOString(),
-        userId: intruderUser.userId,
-        workoutId,
-      })
-    ).then(
-      () => {},
-      (error: unknown) => error
-    );
-
     // 42501: rejected by the policy's WITH CHECK, not by anything else.
-    expect(inserted).toMatchObject({ cause: { code: "42501" } });
+    await expect(
+      asIntruder((tx) =>
+        tx.insert(workoutSessions).values({
+          planId: plan.id,
+          startedAt: new Date().toISOString(),
+          userId: intruderUser.userId,
+          workoutId,
+        })
+      )
+    ).rejects.toMatchObject({ cause: { code: "42501" } });
   });
 
   it("keeps each user's active plan separate", async () => {
@@ -174,19 +177,21 @@ describe("cross-user isolation against the local stack", () => {
       planInput(exercises, "Intruder plan")
     );
 
-    expect(intruderPlan.is_active).toBe(true);
+    expect(intruderPlan.is_active).toBeTruthy();
 
     const ownerPlans = await callOk<PlanSummary[]>(owner, "list_plans");
-    expect(ownerPlans.map((item) => [item.id, item.is_active])).toEqual([
+    expect(ownerPlans.map((item) => [item.id, item.is_active])).toStrictEqual([
       [plan.id, true],
     ]);
-    await callError(owner, "get_plan", { planId: intruderPlan.id });
+    await expect(
+      callError(owner, "get_plan", { planId: intruderPlan.id })
+    ).resolves.toBeTypeOf("string");
   });
 
   it("leaves the owner's plan and session untouched", async () => {
     await expect(
       callOk(owner, "get_plan", { planId: plan.id })
-    ).resolves.toEqual(plan);
+    ).resolves.toStrictEqual(plan);
 
     const current = await callOk<SessionDetail>(owner, "get_workout_session", {
       sessionId: session.id,

@@ -22,11 +22,11 @@ describe("gET /v1/weekly-goals", () => {
     });
 
     expect(response.status).toBe(200);
-    await expect(response.json()).resolves.toEqual({
+    await expect(response.json()).resolves.toStrictEqual({
       data: changes,
       streak: 11,
     });
-    expect(servicesFor).toEqual(["user_alice"]);
+    expect(servicesFor).toStrictEqual(["user_alice"]);
   });
 
   it("answers an empty list before tracking started", async () => {
@@ -40,7 +40,10 @@ describe("gET /v1/weekly-goals", () => {
       headers: signedInAs("user_alice"),
     });
 
-    await expect(response.json()).resolves.toEqual({ data: [], streak: 0 });
+    await expect(response.json()).resolves.toStrictEqual({
+      data: [],
+      streak: 0,
+    });
   });
 
   it("never shows fields beyond the contract", async () => {
@@ -61,7 +64,7 @@ describe("gET /v1/weekly-goals", () => {
       headers: signedInAs("user_alice"),
     });
 
-    await expect(response.json()).resolves.toEqual({
+    await expect(response.json()).resolves.toStrictEqual({
       data: changes,
       streak: 11,
     });
@@ -80,17 +83,20 @@ describe("gET /v1/weekly-goals", () => {
       }),
     });
 
-    for (const path of [
+    const withTimezone = await app.request(
       "/v1/weekly-goals?time_zone=Europe%2FKyiv",
-      "/v1/weekly-goals",
-    ]) {
-      expect(
-        // biome-ignore lint/performance/noAwaitInLoops: ordered timezone requests
-        (await app.request(path, { headers: signedInAs("user_alice") })).status
-      ).toBe(200);
-    }
+      { headers: signedInAs("user_alice") }
+    );
 
-    expect(zones).toEqual(["Europe/Kyiv", "UTC"]);
+    expect(withTimezone.status).toBe(200);
+
+    const withoutTimezone = await app.request("/v1/weekly-goals", {
+      headers: signedInAs("user_alice"),
+    });
+
+    expect(withoutTimezone.status).toBe(200);
+
+    expect(zones).toStrictEqual(["Europe/Kyiv", "UTC"]);
 
     const invalid = await Promise.all(
       ["invalid", "%2B02%3A00", ""].map((zone) =>
@@ -100,7 +106,9 @@ describe("gET /v1/weekly-goals", () => {
       )
     );
 
-    expect(invalid.map((response) => response.status)).toEqual([400, 400, 400]);
+    expect(invalid.map((response) => response.status)).toStrictEqual([
+      400, 400, 400,
+    ]);
   });
 
   it("refuses a request without a session token", async () => {
@@ -109,7 +117,7 @@ describe("gET /v1/weekly-goals", () => {
     const response = await app.request("/v1/weekly-goals");
 
     expect(response.status).toBe(401);
-    expect(servicesFor).toEqual([]);
+    expect(servicesFor).toStrictEqual([]);
   });
 
   it.each(["GMT+1", "GMT+05:30", "GMT-03:30", "UTC+12:45"])(
@@ -133,11 +141,11 @@ describe("gET /v1/weekly-goals", () => {
       );
 
       expect(response.status).toBe(200);
-      await expect(response.json()).resolves.toEqual({
+      await expect(response.json()).resolves.toStrictEqual({
         data: changes,
         streak: 2,
       });
-      expect(zones).toEqual([zone]);
+      expect(zones).toStrictEqual([zone]);
     }
   );
 
@@ -152,7 +160,7 @@ describe("gET /v1/weekly-goals", () => {
       );
 
       expect(response.status).toBe(400);
-      expect(servicesFor).toEqual([]);
+      expect(servicesFor).toStrictEqual([]);
     }
   );
 

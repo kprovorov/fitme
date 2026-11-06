@@ -4,7 +4,7 @@ import * as Sentry from "@sentry/nextjs";
 import { DashboardView } from "~/components/dashboard/dashboard-view";
 import { isUnexpectedFailure, loadDashboard } from "~/lib/dashboard";
 
-export default async function DashboardPage() {
+const DashboardPage = async () => {
   // Resolve auth here, not inside `loadDashboard`'s token getter: the Public
   // API client turns anything thrown there into an `ApiError`, which would
   // swallow Next's dynamic-rendering bailout.
@@ -23,4 +23,6 @@ export default async function DashboardPage() {
   }
 
   return <DashboardView error={result.error} />;
-}
+};
+
+export default DashboardPage;

@@ -27,20 +27,22 @@ const choiceSections = {
 } satisfies Record<string, readonly string[]>;
 
 describe.each(appLanguages)("the %s catalog", (language) => {
-  const choices: Record<string, Record<string, unknown>> = catalogs[language]
-    .choices;
+  const choices: Record<
+    string,
+    (typeof catalogs)[typeof language]["choices"][keyof typeof choiceSections]
+  > = catalogs[language].choices;
 
   it("has a choices section for every enum the app shows, and no other", () => {
-    expect(Object.keys(choices).sort()).toEqual(
-      Object.keys(choiceSections).sort()
+    expect(Object.keys(choices).toSorted()).toStrictEqual(
+      Object.keys(choiceSections).toSorted()
     );
   });
 
   it.each(Object.entries(choiceSections))(
     "labels every %s id from core",
     (section, ids) => {
-      expect(Object.keys(choices[section] ?? {}).sort()).toEqual(
-        [...ids].sort()
+      expect(Object.keys(choices[section] ?? {}).toSorted()).toStrictEqual(
+        [...ids].toSorted()
       );
     }
   );

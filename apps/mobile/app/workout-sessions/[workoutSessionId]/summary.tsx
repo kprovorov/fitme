@@ -10,8 +10,11 @@ import SessionLoadError from "~/components/workout-sessions/session-load-error";
 import { useWorkoutSessionQuery } from "~/hooks/queries/workout-sessions";
 import { useI18n } from "~/lib/i18n";
 
-export default function WorkoutSessionSummaryScreen() {
-  const { workoutSessionId } = useLocalSearchParams();
+const WorkoutSessionSummaryScreen = () => {
+  const { workoutSessionId } = useLocalSearchParams<{
+    workoutSessionId: string;
+  }>();
+
   const router = useRouter();
   const i18n = useI18n();
   const { t } = useTranslation();
@@ -25,7 +28,7 @@ export default function WorkoutSessionSummaryScreen() {
     refetch,
   } = useWorkoutSessionQuery({
     variables: {
-      sessionId: workoutSessionId as string,
+      sessionId: workoutSessionId,
     },
   });
 
@@ -96,4 +99,6 @@ export default function WorkoutSessionSummaryScreen() {
       </ScrollView>
     </>
   );
-}
+};
+
+export default WorkoutSessionSummaryScreen;

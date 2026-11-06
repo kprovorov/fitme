@@ -16,7 +16,7 @@ import { VStack } from "../ui/vstack";
  * A failed refresh keeps the Plans shown; with none read yet a failure is
  * the load error (the wait for a 429) with Try Again.
  */
-export default function PlansListView() {
+const PlansListView = () => {
   const { data: plans, error, isError, refetch } = usePlanSummariesQuery();
   const { t } = useTranslation();
 
@@ -42,7 +42,7 @@ export default function PlansListView() {
 
       return (
         <View className="gap-sm pt-lg items-center">
-          <Text className="text-muted-foreground text-center">
+          <Text className="text-center" variant="muted">
             {waitSeconds === null
               ? t("plans.listLoadError")
               : t("common.rateLimited", { seconds: waitSeconds })}
@@ -72,4 +72,6 @@ export default function PlansListView() {
       </Link>
     </VStack>
   );
-}
+};
+
+export default PlansListView;

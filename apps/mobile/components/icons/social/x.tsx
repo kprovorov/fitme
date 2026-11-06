@@ -1,16 +1,10 @@
 import Svg, { Path } from "react-native-svg";
 import type { SvgProps } from "react-native-svg";
 
-export default function X({ ...props }: SvgProps) {
-  return (
-    <Svg
-      className="color-primary"
-      height="48"
-      viewBox="0 0 48 48"
-      width="48"
-      {...props}
-    >
-      <Path d="M37.3432 3.00024H44.3942L28.9127 20.6277L47 44.5397H32.8061L21.6931 30.0086L8.97068 44.5397H1.91969L18.3209 25.686L1 3.00024H15.5465L25.5865 16.2745L37.3432 3.00024ZM34.8754 40.4011H38.7841L13.4925 6.98558H9.29257L34.8754 40.4011Z" />
-    </Svg>
-  );
-}
+const X = ({ ...props }: SvgProps) => (
+  <Svg height="48" viewBox="0 0 48 48" width="48" {...props}>
+    <Path d="M37.34 3H44.39L28.91 20.63L47 44.54H32.81L21.69 30.01L8.97 44.54H1.92L18.32 25.69L1 3H15.55L25.59 16.27L37.34 3ZM34.88 40.4H38.78L13.49 6.99H9.29L34.88 40.4Z" />
+  </Svg>
+);
+
+export default X;

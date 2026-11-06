@@ -38,14 +38,18 @@ export const initObservability = ({
     return;
   }
 
-  Sentry.init({
+  const options: Sentry.NodeOptions = {
     ...sdkOptions(config),
     initialScope: { tags: { service } },
+  };
+
+  if (!tracing) {
     // Without tracing: no spans and no trace headers on outgoing requests
-    ...(tracing
-      ? {}
-      : { tracePropagationTargets: [], tracesSampleRate: undefined }),
-  });
+    options.tracePropagationTargets = [];
+    options.tracesSampleRate = undefined;
+  }
+
+  Sentry.init(options);
 };
 
 /**
@@ -101,7 +105,10 @@ interface ReportMissingEnvOptions {
   /** Defaults to `process.env`. */
   env?: Record<string, string | undefined>;
   /** Defaults to `reportError`. */
-  report?: (error: unknown, tags?: Record<string, string>) => Promise<void>;
+  report?: (
+    error: MissingEnvError,
+    tags?: Record<string, string>
+  ) => Promise<void>;
 }
 
 /**
@@ -120,9 +127,11 @@ export const reportMissingEnv = async (
     return [];
   }
 
-  const missing = required
-    .map((entry) => (typeof entry === "string" ? ([entry] as const) : entry))
-    .filter((names) => !names.some((name) => env[name]));
+  const missing = required.flatMap((entry) => {
+    const names = [entry].flat();
+
+    return names.some((name) => (env[name] ?? "") !== "") ? [] : [names];
+  });
 
   await Promise.all(
     missing.map(async ([name, ...fallbacks]) => {

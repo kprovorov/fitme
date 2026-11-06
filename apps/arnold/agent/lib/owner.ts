@@ -31,7 +31,7 @@ export const ownerOfTurn = (auth: SessionAuth): string | null => {
 export const requireConversationOwner = (auth: SessionAuth): string => {
   const owner = conversationOwner(auth);
 
-  if (!owner) {
+  if (owner === null || owner === "") {
     throw new Error("This Conversation has no signed-in owner");
   }
 

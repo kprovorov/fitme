@@ -109,7 +109,13 @@ export const sentryOtlpExport = ({
   headers: Record<string, string>;
   url: string;
 } | null => {
-  if (!(SENTRY_OTLP_TRACES_URL && SENTRY_DSN && URL.canParse(SENTRY_DSN))) {
+  if (
+    SENTRY_OTLP_TRACES_URL === undefined ||
+    SENTRY_OTLP_TRACES_URL === "" ||
+    SENTRY_DSN === undefined ||
+    SENTRY_DSN === "" ||
+    !URL.canParse(SENTRY_DSN)
+  ) {
     return null;
   }
 

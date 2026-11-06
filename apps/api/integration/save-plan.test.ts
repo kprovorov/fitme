@@ -6,7 +6,7 @@ import { createFakeLibrary } from "@fitme/library-sdk/fake";
 import type { FakeLibrary } from "@fitme/library-sdk/fake";
 import { deleteTestUsers } from "@fitme/services/delete-test-users";
 import { createPlan, getPlan } from "@fitme/services/plans";
-import type { PlanDetail } from "@fitme/services/plans";
+import type { PlanDetail, SavedPlan } from "@fitme/services/plans";
 import {
   finishWorkoutSession,
   logSet,
@@ -135,7 +135,7 @@ const unchanged = (plan: PlanDetail) => ({
   })),
 });
 
-const put = async (userId: string, planId: string, payload: unknown) => {
+const put = async (userId: string, planId: string, payload: SavedPlan) => {
   const response = await app.request(`/v1/plans/${planId}`, {
     body: JSON.stringify(payload),
     headers: { ...signedInAs(userId), "content-type": "application/json" },
@@ -200,16 +200,16 @@ const sessionOf = (workoutId: string, { open = false } = {}) =>
     return started.session.id;
   });
 
-beforeEach(() => {
-  library.failWith(null);
-  reported.length = 0;
-});
-
-afterAll(async () => {
-  await deleteTestUsers(users);
-});
-
 describe("pUT /v1/plans/{id} against the local stack", () => {
+  beforeEach(() => {
+    library.failWith(null);
+    reported.length = 0;
+  });
+
+  afterAll(async () => {
+    await deleteTestUsers(users);
+  });
+
   it("keeps the rows sent with their ids, creates the ones sent without, deletes the ones left out and orders them as sent", async () => {
     const plan = await created(owner, "Edited");
     const [dayA, dayB] = plan.workouts;
@@ -261,56 +261,26 @@ describe("pUT /v1/plans/{id} against the local stack", () => {
       ],
     });
 
-    expect(status).toBe(200);
-    expect(body.data).toMatchObject({
-      description: null,
-      experience_level: "advanced",
-      frequency: 2,
-      id: plan.id,
-      is_active: false,
-      name: "Edited again",
-      note: null,
-      place: "home",
-      weight_unit: "kg",
-      workout_duration: 45,
+    expect({ data: body.data, status }).toMatchObject({
+      data: {
+        description: null,
+        experience_level: "advanced",
+        frequency: 2,
+        id: plan.id,
+        is_active: false,
+        name: "Edited again",
+        note: null,
+        place: "home",
+        weight_unit: "kg",
+        workout_duration: 45,
+      },
+      status: 200,
     });
     const [pull, legs, dayC] = body.data.workouts;
-    expect([pull.id, pull.order, pull.name, pull.description]).toEqual([
-      dayB.id,
-      1,
-      "Pull day",
-      "",
-    ]);
-    expect(pull.exercises).toEqual([
-      {
-        exercise_slug: "barbell-deadlift",
-        id: dayB.exercises[0].id,
-        order: 1,
-        sets: [
-          {
-            id: dayB.exercises[0].sets[0].id,
-            order: 1,
-            reps_recommended: 5,
-            rest_recommended: 120,
-            weight_recommended: 125,
-          },
-          {
-            id: expect.any(String),
-            order: 2,
-            reps_recommended: 3,
-            rest_recommended: 120,
-            weight_recommended: 130,
-          },
-        ],
-      },
-    ]);
-    expect([legs.id, legs.order, legs.description]).toEqual([
-      dayA.id,
-      2,
-      "Squats only",
-    ]);
-    expect(
-      legs.exercises.map(
+    expect({
+      dayC: [dayC.order, dayC.name],
+      legs: [legs.id, legs.order, legs.description],
+      legsExercises: legs.exercises.map(
         (exercise: {
           exercise_slug: string;
           id: string;
@@ -322,21 +292,59 @@ describe("pUT /v1/plans/{id} against the local stack", () => {
           exercise.id === squat.id,
           exercise.sets.map((s) => [s.order, s.id === squat.sets[1].id]),
         ]
-      )
-    ).toEqual([
-      [1, "barbell-deadlift", false, [[1, false]]],
-      [2, "barbell-back-squat", true, [[1, true]]],
-    ]);
-    expect([dayC.order, dayC.name]).toEqual([3, "Day C"]);
-    const keptIds = [dayA.id, dayB.id, squat.id, bench.id];
-    expect(keptIds).not.toContain(dayC.id);
-    expect(JSON.stringify(body.data)).not.toContain(bench.id);
-    expect(JSON.stringify(body.data)).not.toContain(squat.sets[0].id);
-    await expect(request(`/v1/plans/${plan.id}`, owner)).resolves.toEqual({
-      body,
-      status: 200,
+      ),
+      pull: [pull.id, pull.order, pull.name, pull.description],
+      pullExercises: pull.exercises,
+    }).toStrictEqual({
+      dayC: [3, "Day C"],
+      legs: [dayA.id, 2, "Squats only"],
+      legsExercises: [
+        [1, "barbell-deadlift", false, [[1, false]]],
+        [2, "barbell-back-squat", true, [[1, true]]],
+      ],
+      pull: [dayB.id, 1, "Pull day", ""],
+      pullExercises: [
+        {
+          exercise_slug: "barbell-deadlift",
+          id: dayB.exercises[0].id,
+          order: 1,
+          sets: [
+            {
+              id: dayB.exercises[0].sets[0].id,
+              order: 1,
+              reps_recommended: 5,
+              rest_recommended: 120,
+              weight_recommended: 125,
+            },
+            {
+              id: expect.any(String),
+              order: 2,
+              reps_recommended: 3,
+              rest_recommended: 120,
+              weight_recommended: 130,
+            },
+          ],
+        },
+      ],
     });
-    expect(reported).toEqual([]);
+    const keptIds = [dayA.id, dayB.id, squat.id, bench.id];
+    const savedJson = JSON.stringify(body.data);
+    expect({
+      deletedExerciseIsPresent: savedJson.includes(bench.id),
+      deletedSetIsPresent: savedJson.includes(squat.sets[0].id),
+      newWorkoutIsKept: keptIds.includes(dayC.id),
+    }).toStrictEqual({
+      deletedExerciseIsPresent: false,
+      deletedSetIsPresent: false,
+      newWorkoutIsKept: false,
+    });
+    await expect(request(`/v1/plans/${plan.id}`, owner)).resolves.toStrictEqual(
+      {
+        body,
+        status: 200,
+      }
+    );
+    expect(reported).toStrictEqual([]);
   });
 
   it("saving the Plan unchanged changes nothing but updated_at", async () => {
@@ -345,7 +353,7 @@ describe("pUT /v1/plans/{id} against the local stack", () => {
     const { body, status } = await put(owner, plan.id, unchanged(plan));
 
     expect(status).toBe(200);
-    expect({ ...body.data, updated_at: plan.updated_at }).toEqual({
+    expect({ ...body.data, updated_at: plan.updated_at }).toStrictEqual({
       ...plan,
       weight_unit: "kg",
     });
@@ -531,10 +539,10 @@ describe("pUT /v1/plans/{id} against the local stack", () => {
     }
 
     expect(answers[0].body.error.message).toContain(foreign.workouts[0].id);
-    await expect(planOf(owner, plan.id)).resolves.toEqual(plan);
-    await expect(planOf(intruder, foreign.id)).resolves.toEqual(foreign);
-    await expect(planOf(owner, other.id)).resolves.toEqual(other);
-    expect(reported).toEqual([]);
+    await expect(planOf(owner, plan.id)).resolves.toStrictEqual(plan);
+    await expect(planOf(intruder, foreign.id)).resolves.toStrictEqual(foreign);
+    await expect(planOf(owner, other.id)).resolves.toStrictEqual(other);
+    expect(reported).toStrictEqual([]);
   });
 
   it("answers 404 not_found for another User's Plan and changes nothing of theirs", async () => {
@@ -544,7 +552,7 @@ describe("pUT /v1/plans/{id} against the local stack", () => {
 
     expect(status).toBe(404);
     expect(body.error.code).toBe("not_found");
-    await expect(planOf(owner, plan.id)).resolves.toEqual(plan);
+    await expect(planOf(owner, plan.id)).resolves.toStrictEqual(plan);
   });
 
   it("answers 404 not_found for a deleted Plan", async () => {
@@ -565,12 +573,12 @@ describe("pUT /v1/plans/{id} against the local stack", () => {
     const { body, status } = await put(owner, plan.id, saved);
 
     expect(status).toBe(400);
-    expect(body.error).toEqual({
+    expect(body.error).toStrictEqual({
       code: "unknown_exercises",
       message: "Unknown exercise_slug(s): made-up-press",
     });
-    await expect(planOf(owner, plan.id)).resolves.toEqual(plan);
-    expect(reported).toEqual([]);
+    await expect(planOf(owner, plan.id)).resolves.toStrictEqual(plan);
+    expect(reported).toStrictEqual([]);
   });
 
   it("answers a reported 503 library_unavailable during an outage and changes nothing", async () => {
@@ -582,7 +590,7 @@ describe("pUT /v1/plans/{id} against the local stack", () => {
 
     expect(status).toBe(503);
     expect(body.error.code).toBe("library_unavailable");
-    await expect(planOf(owner, plan.id)).resolves.toEqual(plan);
-    expect(reported).toEqual([outage]);
+    await expect(planOf(owner, plan.id)).resolves.toStrictEqual(plan);
+    expect(reported).toStrictEqual([outage]);
   });
 });

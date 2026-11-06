@@ -22,8 +22,8 @@ describe("gET /v1/profile", () => {
     });
 
     expect(response.status).toBe(200);
-    await expect(response.json()).resolves.toEqual({ data: profile });
-    expect(servicesFor).toEqual(["user_alice"]);
+    await expect(response.json()).resolves.toStrictEqual({ data: profile });
+    expect(servicesFor).toStrictEqual(["user_alice"]);
   });
 
   it("answers { data: null } before onboarding", async () => {
@@ -36,8 +36,8 @@ describe("gET /v1/profile", () => {
     });
 
     expect(response.status).toBe(200);
-    await expect(response.json()).resolves.toEqual({ data: null });
-    expect(reported).toEqual([]);
+    await expect(response.json()).resolves.toStrictEqual({ data: null });
+    expect(reported).toStrictEqual([]);
   });
 
   it("never shows fields beyond the contract", async () => {
@@ -56,18 +56,18 @@ describe("gET /v1/profile", () => {
       headers: signedInAs("user_alice"),
     });
 
-    await expect(response.json()).resolves.toEqual({ data: profile });
+    await expect(response.json()).resolves.toStrictEqual({ data: profile });
   });
 });
 
-/** `PATCH /v1/profile` as `userId` with a JSON body. */
+/** `PATCH /v1/profile` as `userId` with a serialized JSON body. */
 const patchProfile = (
   app: ReturnType<typeof testApp>["app"],
-  body: unknown,
+  body: string,
   userId = "user_alice"
 ) =>
   app.request("/v1/profile", {
-    body: JSON.stringify(body),
+    body,
     headers: { ...signedInAs(userId), "content-type": "application/json" },
     method: "PATCH",
   });
@@ -86,15 +86,15 @@ describe("pATCH /v1/profile", () => {
       }),
     });
 
-    const response = await patchProfile(app, { age: 31 });
+    const response = await patchProfile(app, JSON.stringify({ age: 31 }));
 
     expect(response.status).toBe(200);
-    await expect(response.json()).resolves.toEqual({
+    await expect(response.json()).resolves.toStrictEqual({
       data: { ...profile, age: 31 },
     });
-    expect(changes).toEqual([{ age: 31 }]);
-    expect(servicesFor).toEqual(["user_alice"]);
-    expect(reported).toEqual([]);
+    expect(changes).toStrictEqual([{ age: 31 }]);
+    expect(servicesFor).toStrictEqual(["user_alice"]);
+    expect(reported).toStrictEqual([]);
   });
 
   it("answers a new measurement system with the converted values and its units", async () => {
@@ -118,11 +118,14 @@ describe("pATCH /v1/profile", () => {
       }),
     });
 
-    const response = await patchProfile(app, { measurement_system: "us" });
+    const response = await patchProfile(
+      app,
+      JSON.stringify({ measurement_system: "us" })
+    );
 
     expect(response.status).toBe(200);
-    await expect(response.json()).resolves.toEqual({ data: converted });
-    expect(changes).toEqual([{ measurement_system: "us" }]);
+    await expect(response.json()).resolves.toStrictEqual({ data: converted });
+    expect(changes).toStrictEqual([{ measurement_system: "us" }]);
   });
 
   it("passes every field it accepts", async () => {
@@ -146,10 +149,10 @@ describe("pATCH /v1/profile", () => {
       weight: 60.25,
     };
 
-    const response = await patchProfile(app, every);
+    const response = await patchProfile(app, JSON.stringify(every));
 
     expect(response.status).toBe(200);
-    expect(changes).toEqual([every]);
+    expect(changes).toStrictEqual([every]);
   });
 
   it("answers 404 profile_not_found without a Profile, unreported", async () => {
@@ -157,13 +160,13 @@ describe("pATCH /v1/profile", () => {
       services: fakeServices({ updateProfile: () => Promise.resolve(null) }),
     });
 
-    const response = await patchProfile(app, { age: 31 });
+    const response = await patchProfile(app, JSON.stringify({ age: 31 }));
 
     expect(response.status).toBe(404);
-    await expect(response.json()).resolves.toEqual({
+    await expect(response.json()).resolves.toStrictEqual({
       error: { code: "profile_not_found", message: expect.any(String) },
     });
-    expect(reported).toEqual([]);
+    expect(reported).toStrictEqual([]);
   });
 
   it("never shows fields beyond the contract", async () => {
@@ -174,9 +177,9 @@ describe("pATCH /v1/profile", () => {
       }),
     });
 
-    const response = await patchProfile(app, { age: 30 });
+    const response = await patchProfile(app, JSON.stringify({ age: 30 }));
 
-    await expect(response.json()).resolves.toEqual({ data: profile });
+    await expect(response.json()).resolves.toStrictEqual({ data: profile });
   });
 
   it.each([
@@ -200,13 +203,13 @@ describe("pATCH /v1/profile", () => {
       services: fakeServices({}),
     });
 
-    const response = await patchProfile(app, body);
+    const response = await patchProfile(app, JSON.stringify(body));
 
     expect(response.status).toBe(400);
-    await expect(response.json()).resolves.toEqual({
+    await expect(response.json()).resolves.toStrictEqual({
       error: { code: "invalid_request", message: expect.any(String) },
     });
-    expect(reported).toEqual([]);
+    expect(reported).toStrictEqual([]);
   });
 
   it("answers 415 for a body that isn't JSON, unreported", async () => {
@@ -222,10 +225,10 @@ describe("pATCH /v1/profile", () => {
     });
 
     expect(response.status).toBe(415);
-    await expect(response.json()).resolves.toEqual({
+    await expect(response.json()).resolves.toStrictEqual({
       error: { code: "http_error", message: "Unsupported Media Type" },
     });
-    expect(reported).toEqual([]);
+    expect(reported).toStrictEqual([]);
   });
 
   it("answers 400 invalid_request without a body, unreported", async () => {
@@ -237,10 +240,10 @@ describe("pATCH /v1/profile", () => {
     });
 
     expect(response.status).toBe(400);
-    await expect(response.json()).resolves.toEqual({
+    await expect(response.json()).resolves.toStrictEqual({
       error: { code: "invalid_request", message: expect.any(String) },
     });
-    expect(reported).toEqual([]);
+    expect(reported).toStrictEqual([]);
   });
 
   it("answers 401 without a token", async () => {
@@ -256,10 +259,10 @@ describe("pATCH /v1/profile", () => {
   });
 });
 
-/** `PUT /v1/profile` as `user_alice` with a JSON body. */
-const putProfile = (app: ReturnType<typeof testApp>["app"], body: unknown) =>
+/** `PUT /v1/profile` as `user_alice` with a serialized JSON body. */
+const putProfile = (app: ReturnType<typeof testApp>["app"], body: string) =>
   app.request("/v1/profile", {
-    body: JSON.stringify(body),
+    body,
     headers: {
       ...signedInAs("user_alice"),
       "content-type": "application/json",
@@ -289,13 +292,13 @@ describe("pUT /v1/profile", () => {
       }),
     });
 
-    const response = await putProfile(app, wholeProfile);
+    const response = await putProfile(app, JSON.stringify(wholeProfile));
 
     expect(response.status).toBe(201);
-    await expect(response.json()).resolves.toEqual({ data: profile });
-    expect(given).toEqual([wholeProfile]);
-    expect(servicesFor).toEqual(["user_alice"]);
-    expect(reported).toEqual([]);
+    await expect(response.json()).resolves.toStrictEqual({ data: profile });
+    expect(given).toStrictEqual([wholeProfile]);
+    expect(servicesFor).toStrictEqual(["user_alice"]);
+    expect(reported).toStrictEqual([]);
   });
 
   it("answers 200 with the Profile it replaced", async () => {
@@ -315,16 +318,19 @@ describe("pUT /v1/profile", () => {
       }),
     });
 
-    const response = await putProfile(app, {
-      age: 31,
-      gender: "male",
-      height: 67,
-      measurement_system: "us",
-      weight: 140,
-    });
+    const response = await putProfile(
+      app,
+      JSON.stringify({
+        age: 31,
+        gender: "male",
+        height: 67,
+        measurement_system: "us",
+        weight: 140,
+      })
+    );
 
     expect(response.status).toBe(200);
-    await expect(response.json()).resolves.toEqual({ data: converted });
+    await expect(response.json()).resolves.toStrictEqual({ data: converted });
   });
 
   it("never shows fields beyond the contract", async () => {
@@ -338,9 +344,9 @@ describe("pUT /v1/profile", () => {
       }),
     });
 
-    const response = await putProfile(app, wholeProfile);
+    const response = await putProfile(app, JSON.stringify(wholeProfile));
 
-    await expect(response.json()).resolves.toEqual({ data: profile });
+    await expect(response.json()).resolves.toStrictEqual({ data: profile });
   });
 
   const { age: _age, ...withoutAge } = wholeProfile;
@@ -368,13 +374,13 @@ describe("pUT /v1/profile", () => {
   ])("answers 400 invalid_request for %s, writing nothing", async (_, body) => {
     const { app, reported } = testApp({ services: fakeServices({}) });
 
-    const response = await putProfile(app, body);
+    const response = await putProfile(app, JSON.stringify(body));
 
     expect(response.status).toBe(400);
-    await expect(response.json()).resolves.toEqual({
+    await expect(response.json()).resolves.toStrictEqual({
       error: { code: "invalid_request", message: expect.any(String) },
     });
-    expect(reported).toEqual([]);
+    expect(reported).toStrictEqual([]);
   });
 
   it("answers 415 for a body that isn't JSON, unreported", async () => {
@@ -390,7 +396,7 @@ describe("pUT /v1/profile", () => {
     });
 
     expect(response.status).toBe(415);
-    expect(reported).toEqual([]);
+    expect(reported).toStrictEqual([]);
   });
 
   it("answers 401 without a token", async () => {

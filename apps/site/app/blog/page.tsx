@@ -1,4 +1,3 @@
-import moment from "moment";
 import Image from "next/image";
 import Link from "next/link";
 
@@ -10,17 +9,22 @@ import {
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
 import { Container } from "@/components/ui/container";
-import { HStack } from "@/components/ui/hstack";
 import { VStack } from "@/components/ui/vstack";
 
 import { getBlogPosts } from "./utils";
 
-function Page() {
+const publishedDateFormatter = new Intl.DateTimeFormat("en-US", {
+  month: "long",
+  day: "numeric",
+  year: "numeric",
+});
+
+const Page = () => {
   const posts = getBlogPosts();
 
   return (
     <Container className="max-w-3xl">
-      <VStack className="items-start gap-8">
+      <div className="flex flex-col items-start justify-center gap-8">
         <Breadcrumb>
           <BreadcrumbList>
             <BreadcrumbItem>
@@ -37,11 +41,11 @@ function Page() {
           </BreadcrumbList>
         </Breadcrumb>
         <h1>Blog</h1>
-        <VStack className="gap-20">
+        <div className="flex flex-col items-center justify-center gap-20">
           {posts.map((post) => (
             <VStack className="w-full items-start" key={post.slug}>
-              <HStack className="text-subhead w-full justify-between">
-                <HStack className="justify-start gap-2">
+              <div className="text-subhead flex w-full items-center justify-between gap-3">
+                <div className="flex items-center justify-start gap-2">
                   <Image
                     alt="Kirill Provorov"
                     className="rounded-full"
@@ -57,11 +61,13 @@ function Page() {
                   >
                     @kprovorov
                   </a>
-                </HStack>
+                </div>
                 <span className="text-caption-1 text-muted-foreground">
-                  {moment(post.metadata.publishedAt).format("MMMM D, YYYY")}
+                  {publishedDateFormatter.format(
+                    new Date(`${post.metadata.publishedAt}T00:00:00`)
+                  )}
                 </span>
-              </HStack>
+              </div>
 
               <Link className="hover:underline" href={`/blog/${post.slug}`}>
                 <h2>{post.metadata.title}</h2>
@@ -78,10 +84,10 @@ function Page() {
               />
             </VStack>
           ))}
-        </VStack>
-      </VStack>
+        </div>
+      </div>
     </Container>
   );
-}
+};
 
 export default Page;

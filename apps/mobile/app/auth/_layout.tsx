@@ -8,9 +8,10 @@ import { invalidateAuthOperation } from "~/components/auth/operation";
 
 export const unstable_settings = { initialRouteName: "index" };
 
-export default function Layout() {
+const Layout = () => {
   const { isLoaded, isSignedIn } = useAuth();
   const pathname = usePathname();
+  // SAFETY: The imported design tokens define --color-foreground as a hex color string.
   const foreground = useCSSVariable("--color-foreground") as string;
   useLayoutEffect(() => {
     invalidateAuthOperation(pathname);
@@ -41,4 +42,6 @@ export default function Layout() {
       }}
     />
   );
-}
+};
+
+export default Layout;

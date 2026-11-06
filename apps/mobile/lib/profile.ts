@@ -10,9 +10,11 @@ interface ProfileChoices {
   measurement_system: string;
 }
 
+// SAFETY: measurementSystems contains only string literals; the widened view stays readonly.
 const isMeasurementSystem = (value: string): value is MeasurementSystem =>
   (measurementSystems as readonly string[]).includes(value);
 
+// SAFETY: genders contains only string literals; the widened view stays readonly.
 const isGender = (value: string): value is Gender =>
   (genders as readonly string[]).includes(value);
 

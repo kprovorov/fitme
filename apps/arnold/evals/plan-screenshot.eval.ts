@@ -1,7 +1,8 @@
-import { resolve } from "node:path";
+import path from "node:path";
 
 import { defineEval } from "eve/evals";
 import { satisfies } from "eve/evals/expect";
+import { z } from "zod";
 
 import { BENCH, INCLINE, ROW, readToolStubs, SQUAT } from "./fixtures";
 
@@ -16,7 +17,10 @@ import { BENCH, INCLINE, ROW, readToolStubs, SQUAT } from "./fixtures";
 // Resolved against the working directory, which `eve eval` runs from
 // apps/arnold: it compiles this file into node_modules/.cache, so
 // `import.meta.url` points there rather than at the source.
-const SCREENSHOT = resolve(process.cwd(), "evals/images/plan-screenshot.jpg");
+const SCREENSHOT = path.resolve(
+  process.cwd(),
+  "evals/images/plan-screenshot.jpg"
+);
 
 const LIBRARY_SLUGS = new Set([BENCH, INCLINE, ROW, SQUAT]);
 
@@ -31,11 +35,17 @@ const SCREENSHOT_SETS = new Map([
   [SQUAT, 5],
 ]);
 
-interface ProposedPlan {
-  workouts: { exercises: { exercise_slug: string; sets: number }[] }[];
-}
+const proposedPlanSchema = z.object({
+  workouts: z.array(
+    z.object({
+      exercises: z.array(
+        z.object({ exercise_slug: z.string(), sets: z.number() })
+      ),
+    })
+  ),
+});
 
-type Workouts = ProposedPlan["workouts"];
+type Workouts = z.infer<typeof proposedPlanSchema>["workouts"];
 
 const exercisesOf = (workouts: Workouts) =>
   workouts.flatMap(({ exercises }) => exercises);
@@ -98,7 +108,7 @@ export default defineEval({
       (call) => call.name === "display_workout_plan"
     );
 
-    const proposed = display?.input as unknown as ProposedPlan | undefined;
+    const proposed = proposedPlanSchema.optional().parse(display?.input);
     const workouts = proposed?.workouts ?? [];
 
     t.check(

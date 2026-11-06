@@ -1,3 +1,5 @@
+import { z } from "zod";
+
 /**
  * Spend caps for one Arnold turn: at most 20 model calls, and $1.00 of model
  * cost. eve's own usage limits are per session and ask the user to continue,
@@ -33,15 +35,15 @@ interface StepUsage {
   readonly outputTokens?: number;
 }
 
+const costUsdSchema = z.number().nonnegative();
+
 /** The USD cost a finished step reported, or `null` when it reported none. */
 export const reportedCostUsd = (
   usage: StepUsage | undefined
 ): number | null => {
-  const cost = usage?.costUsd;
+  const cost = costUsdSchema.safeParse(usage?.costUsd);
 
-  return typeof cost === "number" && Number.isFinite(cost) && cost >= 0
-    ? cost
-    : null;
+  return cost.success ? cost.data : null;
 };
 
 /**

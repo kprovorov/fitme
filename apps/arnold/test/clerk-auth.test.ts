@@ -1,7 +1,7 @@
 import { generateKeyPairSync, sign } from "node:crypto";
 
 import { routeAuth } from "eve/channels/auth";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { assert, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { clerkSession } from "../agent/lib/clerk-auth";
 
@@ -15,15 +15,28 @@ const jwtKey = signer.publicKey
 
 const stranger = generateKeyPairSync("rsa", { modulusLength: 2048 });
 
-const base64url = (value: object) =>
+interface TokenClaims {
+  exp?: number;
+  iat?: number;
+  iss?: string;
+  nbf?: number;
+  sub?: string;
+}
+
+interface TokenHeader {
+  alg: string;
+  kid: string;
+  typ: string;
+}
+
+type ClerkSessionOptions = Parameters<typeof clerkSession>[0];
+
+const base64url = (value: TokenClaims | TokenHeader) =>
   Buffer.from(JSON.stringify(value)).toString("base64url");
 
 const now = () => Math.floor(Date.now() / 1000);
 
-const clerkToken = (
-  claims: Record<string, unknown>,
-  privateKey = signer.privateKey
-) => {
+const clerkToken = (claims: TokenClaims, privateKey = signer.privateKey) => {
   const unsigned = `${base64url({ alg: "RS256", kid: "ins_test", typ: "JWT" })}.${base64url(
     {
       exp: now() + 60,
@@ -39,9 +52,14 @@ const clerkToken = (
   return `${unsigned}.${signature.toString("base64url")}`;
 };
 
+const aliceToken = () => `Bearer ${clerkToken({ sub: "user_alice" })}`;
+
 const request = (authorization?: string, path = "/eve/v1/session") =>
   new Request(`http://arnold.test${path}`, {
-    headers: authorization ? { authorization } : {},
+    headers:
+      authorization !== undefined && authorization !== ""
+        ? { authorization }
+        : {},
     method: "POST",
   });
 
@@ -49,18 +67,23 @@ const request = (authorization?: string, path = "/eve/v1/session") =>
 const fakeOwners = () => {
   const owners = new Map([["wrun_alice", "user_alice"]]);
 
-  return vi.fn(async (sessionId: string, userId: string) => {
-    if (!owners.has(sessionId)) {
-      owners.set(sessionId, userId);
-    }
+  return vi.fn<ClerkSessionOptions["claimSession"]>(
+    async (sessionId, userId) => {
+      if (!owners.has(sessionId)) {
+        owners.set(sessionId, userId);
+      }
 
-    return owners.get(sessionId) ?? null;
-  });
+      return await Promise.resolve(owners.get(sessionId) ?? null);
+    }
+  );
 };
 
 let claimSession = fakeOwners();
-let checkPro = vi.fn(async (_userId: string) => true);
-let report = vi.fn(async (_error: unknown, _tags: object) => {});
+let checkPro = vi.fn<ClerkSessionOptions["checkPro"]>().mockResolvedValue(true);
+
+let report = vi
+  .fn<ClerkSessionOptions["report"]>()
+  .mockResolvedValue(undefined);
 
 const auth = clerkSession({
   checkPro: async (userId) => await checkPro(userId),
@@ -72,13 +95,15 @@ const auth = clerkSession({
   },
 });
 
-beforeEach(() => {
+const resetAuthMocks = () => {
   claimSession = fakeOwners();
-  checkPro = vi.fn(async (_userId: string) => true);
-  report = vi.fn(async (_error: unknown, _tags: object) => {});
-});
+  checkPro = vi.fn<ClerkSessionOptions["checkPro"]>().mockResolvedValue(true);
+  report = vi.fn<ClerkSessionOptions["report"]>().mockResolvedValue(undefined);
+};
 
-describe(clerkSession, () => {
+describe("clerk session authentication", () => {
+  beforeEach(resetAuthMocks);
+
   it("makes the verified Clerk User the principal", async () => {
     const result = await routeAuth(
       request(`Bearer ${clerkToken({ sub: "user_alice" })}`),
@@ -96,11 +121,9 @@ describe(clerkSession, () => {
   it("answers 401 without a token", async () => {
     const result = await routeAuth(request(), auth);
 
-    expect(result).toBeInstanceOf(Response);
-    expect((result as Response).status).toBe(401);
-    expect((result as Response).headers.get("www-authenticate")).toContain(
-      "Bearer"
-    );
+    assert.instanceOf(result, Response);
+    expect(result.status).toBe(401);
+    expect(result.headers.get("www-authenticate")).toContain("Bearer");
   });
 
   it("answers 401 for a token signed by someone else", async () => {
@@ -109,7 +132,8 @@ describe(clerkSession, () => {
 
     const result = await routeAuth(request(`Bearer ${forged}`), auth);
 
-    expect((result as Response).status).toBe(401);
+    assert.instanceOf(result, Response);
+    expect(result.status).toBe(401);
   });
 
   it("answers 401 for an expired token", async () => {
@@ -124,7 +148,8 @@ describe(clerkSession, () => {
 
     const result = await routeAuth(request(`Bearer ${expired}`), auth);
 
-    expect((result as Response).status).toBe(401);
+    assert.instanceOf(result, Response);
+    expect(result.status).toBe(401);
   });
 
   it("answers 401 for something that isn't a JWT", async () => {
@@ -132,7 +157,8 @@ describe(clerkSession, () => {
 
     const result = await routeAuth(request("Bearer not-a-jwt"), auth);
 
-    expect((result as Response).status).toBe(401);
+    assert.instanceOf(result, Response);
+    expect(result.status).toBe(401);
   });
 
   it("fails closed when CLERK_JWT_KEY is missing", async () => {
@@ -168,8 +194,7 @@ describe(clerkSession, () => {
     await expect(send()).rejects.toThrow("CLERK_JWT_KEY");
     await expect(send()).rejects.toThrow("CLERK_JWT_KEY");
 
-    expect(report).toHaveBeenCalledOnce();
-    expect(report).toHaveBeenCalledWith(
+    expect(report).toHaveBeenCalledExactlyOnceWith(
       expect.objectContaining({
         message: "Missing CLERK_JWT_KEY environment variable",
         name: "MissingEnvError",
@@ -215,7 +240,8 @@ describe(clerkSession, () => {
       auth
     );
 
-    expect((result as Response).status).toBe(403);
+    assert.instanceOf(result, Response);
+    expect(result.status).toBe(403);
   });
 
   it("records an unowned session for its first caller, then refuses others", async () => {
@@ -236,7 +262,8 @@ describe(clerkSession, () => {
     );
 
     expect(alice).toMatchObject({ principalId: "user_alice" });
-    expect((mallory as Response).status).toBe(403);
+    assert.instanceOf(mallory, Response);
+    expect(mallory.status).toBe(403);
   });
 
   it("answers 403 when the session's owner can't be recorded", async () => {
@@ -250,12 +277,13 @@ describe(clerkSession, () => {
       auth
     );
 
-    expect((result as Response).status).toBe(403);
+    assert.instanceOf(result, Response);
+    expect(result.status).toBe(403);
   });
 });
 
 describe("clerkSession Pro check", () => {
-  const aliceToken = () => `Bearer ${clerkToken({ sub: "user_alice" })}`;
+  beforeEach(resetAuthMocks);
 
   it("lets a Pro User through, checked by their User id", async () => {
     const result = await routeAuth(request(aliceToken()), auth);
@@ -274,12 +302,9 @@ describe("clerkSession Pro check", () => {
     async (path) => {
       checkPro.mockResolvedValue(false);
 
-      const result = (await routeAuth(
-        request(aliceToken(), path),
-        auth
-      )) as Response;
+      const result = await routeAuth(request(aliceToken(), path), auth);
 
-      expect(result).toBeInstanceOf(Response);
+      assert.instanceOf(result, Response);
       expect(result.status).toBe(403);
       await expect(result.json()).resolves.toMatchObject({
         code: "arnold_pro_required",
@@ -293,12 +318,12 @@ describe("clerkSession Pro check", () => {
     const failure = new Error("RevenueCat answered 503");
     checkPro.mockRejectedValue(failure);
 
-    const result = (await routeAuth(
+    const result = await routeAuth(
       request(aliceToken(), "/eve/v1/session/wrun_alice"),
       auth
-    )) as Response;
+    );
 
-    expect(result).toBeInstanceOf(Response);
+    assert.instanceOf(result, Response);
     expect(result.status).toBe(503);
     await expect(result.json()).resolves.toMatchObject({
       code: "arnold_pro_check_unavailable",

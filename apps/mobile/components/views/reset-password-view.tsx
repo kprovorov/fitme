@@ -15,7 +15,12 @@ import type { ResetPasswordFormValues } from "~/components/forms/auth/reset-pass
 import { Button } from "~/components/ui/button";
 import { ErrorMessage } from "~/components/ui/error-message";
 
-export default function ResetPasswordView() {
+const ResetPasswordView = () => {
+  const { signIn } = useSignIn();
+  const { t } = useTranslation();
+  const operation = useAuthOperation();
+  const { clearError: handleEdit } = operation;
+
   const startOver = () =>
     router.replace(operation.error ? "/auth/login" : "/auth/forgot-password");
 
@@ -99,10 +104,6 @@ export default function ResetPasswordView() {
     </AuthScreen>
   );
 
-  const { signIn } = useSignIn();
-  const { t } = useTranslation();
-  const operation = useAuthOperation();
-
   if (
     signIn.status !== "needs_new_password" &&
     signIn.status !== "complete" &&
@@ -134,10 +135,12 @@ export default function ResetPasswordView() {
   return (
     <ResetPasswordForm
       disabled={operation.pending !== null}
-      onEdit={operation.clearError}
+      onEdit={handleEdit}
       onSubmit={submitPassword}
     >
       {renderForm}
     </ResetPasswordForm>
   );
-}
+};
+
+export default ResetPasswordView;

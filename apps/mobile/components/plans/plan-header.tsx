@@ -19,12 +19,14 @@ interface PlanHeaderProps {
  * `PlanOverview`): its name, its frequency and whichever of its goal and
  * place is set (ADR 0017) as lime badges, and its description. Not tappable.
  */
-export default function PlanHeader({ plan }: PlanHeaderProps) {
+const PlanHeader = ({ plan }: PlanHeaderProps) => {
   const labels = useChoiceLabels();
   const { t } = useTranslation();
   // The API answers these as the columns' text: an id this build doesn't
   // know shows as itself (`useChoiceLabels`) with the default symbol.
+  // SAFETY: Only passed to label and symbol lookups, both of which handle unknown goal ids.
   const goal = plan.goal as Goal | null;
+  // SAFETY: Only passed to label and symbol lookups, both of which handle unknown place ids.
   const place = plan.place as Place | null;
 
   return (
@@ -47,10 +49,10 @@ export default function PlanHeader({ plan }: PlanHeaderProps) {
         ) : null}
       </View>
       {plan.description?.trim() ? (
-        <Text className="text-muted-foreground text-subhead">
-          {plan.description}
-        </Text>
+        <Text variant="muted">{plan.description}</Text>
       ) : null}
     </View>
   );
-}
+};
+
+export default PlanHeader;

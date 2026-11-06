@@ -77,6 +77,8 @@ export default function ResetPasswordForm({
     [password, onEdit]
   );
 
+  const confirmPasswordRef = useRef<ElementRef<typeof TextInput>>(null);
+
   const focusConfirmpassword = useCallback(
     () => confirmPasswordRef.current?.focus(),
     []
@@ -93,7 +95,8 @@ export default function ResetPasswordForm({
     [confirmPassword, onEdit]
   );
 
-  const confirmPasswordRef = useRef<ElementRef<typeof TextInput>>(null);
+  const { onBlur: handlePasswordBlur } = password;
+  const { onBlur: handleConfirmPasswordBlur } = confirmPassword;
 
   return children({
     action: (
@@ -112,7 +115,7 @@ export default function ResetPasswordForm({
       />
     ),
     fields: (
-      <VStack className="gap-sm items-stretch">
+      <VStack className="items-stretch">
         <PasswordInput
           accessibilityHint={t("auth.password.minimum", {
             count: PASSWORD_MIN_LENGTH,
@@ -121,7 +124,7 @@ export default function ResetPasswordForm({
           autoComplete="new-password"
           editable={!busy}
           error={passwordState.error?.message}
-          onBlur={password.onBlur}
+          onBlur={handlePasswordBlur}
           onChangeText={changePassword}
           onSubmitEditing={focusConfirmpassword}
           passwordRules={`minlength: ${PASSWORD_MIN_LENGTH};`}
@@ -136,7 +139,7 @@ export default function ResetPasswordForm({
           autoComplete="new-password"
           editable={!busy}
           error={confirmPasswordState.error?.message}
-          onBlur={confirmPassword.onBlur}
+          onBlur={handleConfirmPasswordBlur}
           onChangeText={changeConfirmpassword}
           onSubmitEditing={submit}
           passwordRules={`minlength: ${PASSWORD_MIN_LENGTH};`}
@@ -148,7 +151,7 @@ export default function ResetPasswordForm({
           value={confirmPassword.value}
         />
         {passwordState.error ? null : (
-          <Text className="text-footnote text-muted-foreground">
+          <Text variant="muted">
             {t("auth.password.minimum", { count: PASSWORD_MIN_LENGTH })}
           </Text>
         )}

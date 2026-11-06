@@ -5,7 +5,7 @@ import { redirect } from "next/navigation";
 import { Button } from "~/components/ui/button";
 import { DASHBOARD_PATH, SIGN_IN_PATH } from "~/lib/routes";
 
-export default async function HomePage() {
+const HomePage = async () => {
   const { isAuthenticated } = await auth();
 
   if (isAuthenticated) {
@@ -24,4 +24,6 @@ export default async function HomePage() {
       </Button>
     </main>
   );
-}
+};
+
+export default HomePage;

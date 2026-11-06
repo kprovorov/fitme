@@ -7,9 +7,7 @@ import Instagram from "~/components/icons/social/instagram";
 import Threads from "~/components/icons/social/threads";
 import X from "~/components/icons/social/x";
 import { Button } from "~/components/ui/button";
-import { HStack } from "~/components/ui/hstack";
 import { P } from "~/components/ui/typography";
-import { VStack } from "~/components/ui/vstack";
 import { openUrl } from "~/lib/external-links";
 import { i18n } from "~/lib/i18n";
 
@@ -30,7 +28,8 @@ const openInstagram = () =>
 
 const openThreads = () => openUrl("https://www.threads.net/@fitmeprojectcom");
 
-export default function SupportScreen() {
+const SupportScreen = () => {
+  // SAFETY: The shared tokens define --color-primary as a color string in every theme.
   const primary = useCSSVariable("--color-primary") as string;
   const { t } = useTranslation(undefined, { i18n });
 
@@ -53,15 +52,14 @@ export default function SupportScreen() {
         contentInsetAdjustmentBehavior="automatic"
         showsVerticalScrollIndicator={false}
       >
-        <VStack className="items-start gap-0">
+        <View className="flex flex-col items-start justify-center">
           <P>{t("support.contact")}</P>
           <Button
-            contentColorClassName="text-primary"
             label={SUPPORT_EMAIL}
             onPress={openSupportEmail}
             variant="ghost"
           />
-          <HStack className="gap-0">
+          <View className="flex flex-row items-center justify-center">
             <Button
               accessibilityLabel={t("support.social.x")}
               onPress={openX}
@@ -89,9 +87,11 @@ export default function SupportScreen() {
                 <Threads fill={primary} height={16} width={16} />
               </View>
             </Button>
-          </HStack>
-        </VStack>
+          </View>
+        </View>
       </ScrollView>
     </>
   );
-}
+};
+
+export default SupportScreen;

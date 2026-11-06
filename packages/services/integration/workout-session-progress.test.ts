@@ -15,10 +15,6 @@ import { deleteTestUsers } from "./delete-test-users";
 
 const users: string[] = [];
 
-afterAll(async () => {
-  await deleteTestUsers(users);
-});
-
 const seed = async () => {
   const user = `user_progress${randomUUID().replaceAll("-", "")}`;
   users.push(user);
@@ -67,27 +63,31 @@ const addSet = async (user: string, exercise: string, reps: number | null) =>
     return set;
   });
 
-const counts = async (user: string) =>
-  Object.fromEntries(
-    (await progress(user)).map((row) => [
-      row.workoutSessionId,
-      row.completedSetCount,
-    ])
+const counts = async (user: string) => {
+  const rows = await progress(user);
+
+  return Object.fromEntries(
+    rows.map((row) => [row.workoutSessionId, row.completedSetCount])
   );
+};
 
 describe("server-maintained Workout Session qualification", () => {
+  afterAll(async () => {
+    await deleteTestUsers(users);
+  });
+
   it("tracks positive Set transitions, repeated edits, moves and deletes exactly once", async () => {
     const { user, sessions, exercises } = await seed();
     const [first, second] = sessions;
     const [exercise, destination] = exercises;
-    await expect(counts(user)).resolves.toEqual({
+    await expect(counts(user)).resolves.toStrictEqual({
       [first.id]: 0,
       [second.id]: 0,
     });
     const empty = await addSet(user, exercise.id, null);
     await addSet(user, exercise.id, 0);
     const positive = await addSet(user, exercise.id, 8);
-    await expect(counts(user)).resolves.toEqual({
+    await expect(counts(user)).resolves.toStrictEqual({
       [first.id]: 1,
       [second.id]: 0,
     });
@@ -101,7 +101,7 @@ describe("server-maintained Workout Session qualification", () => {
         .set({ repsCompleted: 4 })
         .where(eq(workoutSessionExerciseSets.id, empty.id));
     });
-    await expect(counts(user)).resolves.toEqual({
+    await expect(counts(user)).resolves.toStrictEqual({
       [first.id]: 2,
       [second.id]: 0,
     });
@@ -113,7 +113,7 @@ describe("server-maintained Workout Session qualification", () => {
         })
         .where(eq(workoutSessionExerciseSets.id, positive.id))
     );
-    await expect(counts(user)).resolves.toEqual({
+    await expect(counts(user)).resolves.toStrictEqual({
       [first.id]: 1,
       [second.id]: 1,
     });
@@ -128,7 +128,7 @@ describe("server-maintained Workout Session qualification", () => {
         .delete(workoutSessionExerciseSets)
         .where(eq(workoutSessionExerciseSets.id, positive.id))
     );
-    await expect(counts(user)).resolves.toEqual({
+    await expect(counts(user)).resolves.toStrictEqual({
       [first.id]: 0,
       [second.id]: 0,
     });
@@ -148,7 +148,7 @@ describe("server-maintained Workout Session qualification", () => {
         })
         .where(eq(workoutSessionExercises.id, exercise.id))
     );
-    await expect(counts(user)).resolves.toEqual({
+    await expect(counts(user)).resolves.toStrictEqual({
       [first.id]: 0,
       [second.id]: 2,
     });
@@ -157,7 +157,7 @@ describe("server-maintained Workout Session qualification", () => {
         .delete(workoutSessionExercises)
         .where(eq(workoutSessionExercises.id, exercise.id))
     );
-    await expect(counts(user)).resolves.toEqual({
+    await expect(counts(user)).resolves.toStrictEqual({
       [first.id]: 0,
       [second.id]: 0,
     });
@@ -165,7 +165,7 @@ describe("server-maintained Workout Session qualification", () => {
     await asUser(user, (tx) =>
       tx.delete(workoutSessions).where(eq(workoutSessions.id, second.id))
     );
-    await expect(counts(user)).resolves.toEqual({ [first.id]: 0 });
+    await expect(counts(user)).resolves.toStrictEqual({ [first.id]: 0 });
   });
 
   it("follows Session metadata and keeps qualification User-owned", async () => {
@@ -179,26 +179,27 @@ describe("server-maintained Workout Session qualification", () => {
         .set({ finishedAt: null, startedAt: "2026-10-30T10:00:00Z" })
         .where(eq(workoutSessions.id, sessions[0].id))
     );
+    const userProgress = await progress(user);
     expect(
-      (await progress(user)).find(
-        (row) => row.workoutSessionId === sessions[0].id
-      )
+      userProgress.find((row) => row.workoutSessionId === sessions[0].id)
     ).toMatchObject({
       completedSetCount: 1,
       finishedAt: null,
       startedAt: "2026-10-30 10:00:00+00",
     });
-    await expect(progress(intruder)).resolves.toEqual([]);
+    await expect(progress(intruder)).resolves.toStrictEqual([]);
     await withService((tx) =>
       tx
         .update(workoutSessions)
         .set({ userId: intruder })
         .where(eq(workoutSessions.id, sessions[0].id))
     );
-    expect(
-      (await progress(intruder)).map((row) => row.completedSetCount)
-    ).toEqual([1]);
-    expect((await progress(user)).map((row) => row.workoutSessionId)).toEqual([
+    const intruderProgress = await progress(intruder);
+    expect(intruderProgress.map((row) => row.completedSetCount)).toStrictEqual([
+      1,
+    ]);
+    const remainingProgress = await progress(user);
+    expect(remainingProgress.map((row) => row.workoutSessionId)).toStrictEqual([
       sessions[1].id,
     ]);
   });
@@ -215,7 +216,7 @@ describe("server-maintained Workout Session qualification", () => {
         throw new Error("roll back fixture");
       })
     ).rejects.toThrow("roll back fixture");
-    await expect(counts(user)).resolves.toEqual({
+    await expect(counts(user)).resolves.toStrictEqual({
       [sessions[0].id]: 0,
       [sessions[1].id]: 0,
     });
@@ -229,7 +230,7 @@ describe("server-maintained Workout Session qualification", () => {
         async () => await addSet(user, exercises[0].id, 8)
       )
     );
-    await expect(counts(user)).resolves.toEqual({
+    await expect(counts(user)).resolves.toStrictEqual({
       [sessions[0].id]: 8,
       [sessions[1].id]: 0,
     });
@@ -242,7 +243,7 @@ describe("server-maintained Workout Session qualification", () => {
           .where(eq(workoutSessionExercises.id, exercises[0].id))
       ),
     ]);
-    await expect(counts(user)).resolves.toEqual({
+    await expect(counts(user)).resolves.toStrictEqual({
       [sessions[0].id]: 0,
       [sessions[1].id]: 9,
     });
@@ -265,14 +266,17 @@ describe("server-maintained Workout Session qualification", () => {
           .where(eq(workoutSessionProgress.workoutSessionId, sessions[0].id))
       )
     ).rejects.toMatchObject({ cause: { code: "42501" } });
-    await asUser(user, async (tx) => {
-      const result = await tx.execute<{ allowed: boolean }>(
-        sql`select has_function_privilege(current_user, p.oid, 'execute') as allowed
+
+    const result = await asUser(
+      user,
+      async (tx) =>
+        await tx.execute<{ allowed: boolean }>(
+          sql`select has_function_privilege(current_user, p.oid, 'execute') as allowed
           from pg_catalog.pg_proc p join pg_catalog.pg_namespace n on n.oid = p.pronamespace
           where n.nspname = 'private' and p.proname = 'count_workout_session_progress'`
-      );
+        )
+    );
 
-      expect(result.rows[0].allowed).toBe(false);
-    });
+    expect(result.rows[0].allowed).toBeFalsy();
   });
 });

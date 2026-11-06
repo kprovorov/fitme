@@ -1,6 +1,6 @@
 import type { Node, Root, RootContentMap } from "mdast";
 import type { Extension } from "mdast-util-from-markdown";
-import type { ReactElement } from "react";
+import type { ReactElement, ReactNode } from "react";
 import type { ImageStyle, StyleProp, TextStyle, ViewStyle } from "react-native";
 
 // Style types
@@ -11,7 +11,7 @@ export type StyleMap = Record<string, NamedStyle>;
 // Utility types
 type ExpandUnion<T> = T extends infer U ? U : never;
 
-type Prettify<T> = { [K in keyof T]: T[K] } & {};
+type Prettify<T> = { [K in keyof T]: T[K] };
 
 // Node types
 type BaseNodeKeys = {
@@ -46,12 +46,10 @@ export interface RenderExtras {
 export type RenderFunction<K extends ValidNodeKey = ValidNodeKey> = (params: {
   node: NodeTypeMap[K];
   styles: StyleMap;
-  // biome-ignore lint/suspicious/noExplicitAny: rendered children are opaque React elements
-  children: any[];
+  children: ReactNode[];
   parentStack: Node[];
   extras?: RenderExtras;
-  // biome-ignore lint/suspicious/noExplicitAny: render functions return React elements with no common supertype
-}) => any;
+}) => ReactNode;
 
 export type RenderRules = {
   [K in ValidNodeKey]?: RenderFunction<K>;

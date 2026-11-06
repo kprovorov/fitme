@@ -33,7 +33,7 @@ export const WorkoutCover = z.string().nullable().openapi({
 });
 
 /** Lowercase letters and digits, words joined by single hyphens (apps/library's rule). */
-const EXERCISE_SLUG = /^[a-z0-9]+(-[a-z0-9]+)*$/;
+const EXERCISE_SLUG = /^[a-z0-9]+(?:-[a-z0-9]+)*$/u;
 
 /** An Exercise slug a write carries, checked against the Library before anything is written. */
 export const ExerciseSlug = z

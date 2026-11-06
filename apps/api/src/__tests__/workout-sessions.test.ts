@@ -86,14 +86,14 @@ describe("gET /v1/workout-sessions", () => {
     const response = await get(app, "/v1/workout-sessions");
 
     expect(response.status).toBe(200);
-    await expect(response.json()).resolves.toEqual({
+    await expect(response.json()).resolves.toStrictEqual({
       data: [summary, finishedSummary],
       hasMore: false,
       total: 2,
       weight_unit: "kg",
     });
-    expect(calls).toEqual([{ limit: 20, offset: 0, status: "all" }]);
-    expect(servicesFor).toEqual(["user_alice"]);
+    expect(calls).toStrictEqual([{ limit: 20, offset: 0, status: "all" }]);
+    expect(servicesFor).toStrictEqual(["user_alice"]);
   });
 
   it("passes status, limit and offset through, and says when more follow", async () => {
@@ -105,13 +105,15 @@ describe("gET /v1/workout-sessions", () => {
       "/v1/workout-sessions?status=in_progress&limit=1&offset=1"
     );
 
-    await expect(response.json()).resolves.toEqual({
+    await expect(response.json()).resolves.toStrictEqual({
       data: [summary],
       hasMore: true,
       total: 3,
       weight_unit: "kg",
     });
-    expect(calls).toEqual([{ limit: 1, offset: 1, status: "in_progress" }]);
+    expect(calls).toStrictEqual([
+      { limit: 1, offset: 1, status: "in_progress" },
+    ]);
   });
 
   it("returns Personal records with legacy stored Exercise slugs unchanged", async () => {
@@ -129,8 +131,9 @@ describe("gET /v1/workout-sessions", () => {
     const response = await get(app, "/v1/workout-sessions");
 
     expect(response.status).toBe(200);
-    expect((await response.json()).data[0].personal_records).toEqual([record]);
-    expect(reported).toEqual([]);
+    const body = await response.json();
+    expect(body.data[0].personal_records).toStrictEqual([record]);
+    expect(reported).toStrictEqual([]);
   });
 
   it("answers an empty page with the total past the end", async () => {
@@ -140,7 +143,7 @@ describe("gET /v1/workout-sessions", () => {
     const response = await get(app, "/v1/workout-sessions?offset=10");
 
     expect(response.status).toBe(200);
-    await expect(response.json()).resolves.toEqual({
+    await expect(response.json()).resolves.toStrictEqual({
       data: [],
       hasMore: false,
       total: 3,
@@ -164,12 +167,13 @@ describe("gET /v1/workout-sessions", () => {
     const body = await response.json();
     expect(body.error.code).toBe("invalid_request");
     expect(body.error.message).toContain(`${field}:`);
-    expect(reported).toEqual([]);
+    expect(reported).toStrictEqual([]);
   });
 
   it("never shows fields beyond the contract", async () => {
     const { services } = listing({
       sessions: [
+        // SAFETY: The typed summary supplies every required field; its non-null plan and workout only gain internal fields.
         {
           ...summary,
           plan: { ...summary.plan, deleted_at: null },
@@ -184,7 +188,7 @@ describe("gET /v1/workout-sessions", () => {
 
     const response = await get(app, "/v1/workout-sessions");
 
-    await expect(response.json()).resolves.toEqual({
+    await expect(response.json()).resolves.toStrictEqual({
       data: [summary],
       hasMore: false,
       total: 1,
@@ -198,7 +202,7 @@ describe("gET /v1/workout-sessions", () => {
 
     const response = await get(app, "/v1/workout-sessions?status=finished");
 
-    await expect(response.json()).resolves.toEqual({
+    await expect(response.json()).resolves.toStrictEqual({
       data: [expect.objectContaining({ completed_rep_count: 8, volume: 644 })],
       hasMore: false,
       total: 1,
@@ -216,7 +220,7 @@ describe("gET /v1/workout-sessions", () => {
 
     const response = await get(app, "/v1/workout-sessions");
 
-    await expect(response.json()).resolves.toEqual({
+    await expect(response.json()).resolves.toStrictEqual({
       data: [
         expect.objectContaining({ id: summary.id, personal_records: [] }),
         expect.objectContaining({
@@ -311,9 +315,9 @@ describe("gET /v1/workout-sessions/:id", () => {
     const response = await get(app, `/v1/workout-sessions/${SESSION_ID}`);
 
     expect(response.status).toBe(200);
-    await expect(response.json()).resolves.toEqual({ data: shown });
-    expect(asked).toEqual([SESSION_ID]);
-    expect(servicesFor).toEqual(["user_alice"]);
+    await expect(response.json()).resolves.toStrictEqual({ data: shown });
+    expect(asked).toStrictEqual([SESSION_ID]);
+    expect(servicesFor).toStrictEqual(["user_alice"]);
   });
 
   it("answers 404 not_found when the User has no such Workout Session, unreported", async () => {
@@ -326,10 +330,10 @@ describe("gET /v1/workout-sessions/:id", () => {
     const response = await get(app, `/v1/workout-sessions/${SESSION_ID}`);
 
     expect(response.status).toBe(404);
-    await expect(response.json()).resolves.toEqual({
+    await expect(response.json()).resolves.toStrictEqual({
       error: { code: "not_found", message: "Workout Session not found" },
     });
-    expect(reported).toEqual([]);
+    expect(reported).toStrictEqual([]);
   });
 
   it("answers 400 invalid_request for an id that isn't a uuid, unreported", async () => {
@@ -338,8 +342,9 @@ describe("gET /v1/workout-sessions/:id", () => {
     const response = await get(app, "/v1/workout-sessions/not-a-uuid");
 
     expect(response.status).toBe(400);
-    expect((await response.json()).error.code).toBe("invalid_request");
-    expect(reported).toEqual([]);
+    const body = await response.json();
+    expect(body.error.code).toBe("invalid_request");
+    expect(reported).toStrictEqual([]);
   });
 
   it("never shows internal fields", async () => {
@@ -368,7 +373,7 @@ describe("gET /v1/workout-sessions/:id", () => {
 
     const response = await get(app, `/v1/workout-sessions/${SESSION_ID}`);
 
-    await expect(response.json()).resolves.toEqual({
+    await expect(response.json()).resolves.toStrictEqual({
       data: { ...shown, exercises: [{ ...exercise, sets: [set] }] },
     });
   });

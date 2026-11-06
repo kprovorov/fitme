@@ -9,7 +9,7 @@ import { IS_E2E } from "~/lib/constants";
 import { i18n } from "~/lib/i18n";
 import { segmentClient } from "~/lib/segment";
 
-export const useLogoutMutation = createMutation<void, void>({
+export const useLogoutMutation = createMutation({
   mutationFn: async (): Promise<void> => {
     await getClerk().signOut();
 
@@ -23,7 +23,7 @@ export const useLogoutMutation = createMutation<void, void>({
 // Deletes the User in Clerk (the instance must allow Users to delete their
 // accounts), signs out and shows the login screen. Their rows are removed
 // afterwards by apps/webhooks when Clerk delivers user.deleted.
-export const useDeleteUserMutation = createMutation<void, void>({
+export const useDeleteUserMutation = createMutation({
   mutationFn: async (): Promise<void> => {
     const clerk = getClerk();
 

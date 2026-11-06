@@ -1,3 +1,6 @@
+/// <reference types="node" />
+/// <reference lib="es2023.array" />
+
 // Picks the local Supabase stacks Supabase CLI v2 left behind that
 // scripts/destroy-stale-stacks.sh destroys: the same rule as stale-stacks.mjs
 // (a checkout that no longer exists, or the given checkout), for the stacks v3
@@ -10,20 +13,51 @@
 // Prints one stack id per line on stdout, and what it picked on stderr.
 import fs from "node:fs";
 import path from "node:path";
-import { fileURLToPath } from "node:url";
 
+/** @param {string} file Stack state file. */
 const readState = (file) => {
   try {
-    return JSON.parse(fs.readFileSync(file, "utf-8"));
+    /** @type {unknown} */
+    const state = JSON.parse(fs.readFileSync(file, "utf-8"));
+
+    if (
+      !(state instanceof Object) ||
+      !("instances" in state) ||
+      !Array.isArray(state.instances) ||
+      !("identity" in state) ||
+      !(state.identity instanceof Object) ||
+      !("projectRoot" in state.identity)
+    ) {
+      return null;
+    }
+
+    /** @type {{instances: unknown[]}} */
+    const { instances } = state;
+
+    return {
+      projectRoot: String.prototype.valueOf.call(state.identity.projectRoot),
+      isV2: instances.some((instance) => {
+        const creation =
+          instance instanceof Object && "creation" in instance
+            ? instance.creation
+            : null;
+
+        return (
+          creation === null ||
+          creation === undefined ||
+          (creation instanceof Object && !("pin" in creation))
+        );
+      }),
+    };
   } catch {
     return null;
   }
 };
 
-const isV2 = (state) =>
-  Array.isArray(state?.instances) &&
-  state.instances.some((instance) => !("pin" in (instance?.creation ?? {})));
-
+/**
+ * @param {string} stateRoot Stack state directory.
+ * @param {{checkout?: string, exists?: (path: string) => boolean}} [options] Stack selection options.
+ */
 export const staleV2Stacks = (
   stateRoot,
   { checkout, exists = fs.existsSync } = {}
@@ -32,24 +66,25 @@ export const staleV2Stacks = (
     return [];
   }
 
-  const own = checkout && path.join(checkout, "packages/supabase");
+  const own =
+    checkout === undefined || checkout === ""
+      ? checkout
+      : path.join(checkout, "packages/supabase");
 
   return fs
     .readdirSync(stateRoot)
-    .sort()
-    .map((id) => ({
-      id,
-      state: readState(path.join(stateRoot, id, "state.json")),
-    }))
-    .filter(({ state }) => isV2(state))
-    .map(({ id, state }) => ({ id, projectRoot: state.identity?.projectRoot }))
-    .filter(
-      ({ projectRoot }) =>
-        typeof projectRoot === "string" &&
-        (projectRoot === own || !exists(projectRoot))
-    );
+    .toSorted()
+    .flatMap((id) => {
+      const state = readState(path.join(stateRoot, id, "state.json"));
+
+      return state !== null && state.isV2
+        ? [{ id, projectRoot: state.projectRoot }]
+        : [];
+    })
+    .filter(({ projectRoot }) => projectRoot === own || !exists(projectRoot));
 };
 
+/** @param {string[]} args Command-line arguments. */
 const main = ([stateRoot, checkout]) => {
   if (!stateRoot) {
     console.error(

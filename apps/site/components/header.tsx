@@ -7,10 +7,10 @@ import { MobileMenu } from "./mobile-menu";
 import { Button } from "./ui/button";
 import { Container } from "./ui/container";
 
-function Header() {
-  return (
-    <header className="bg-background/95 sticky top-0 z-50 w-full border-b">
-      <Container className="flex h-16 items-center justify-between gap-6">
+const Header = () => (
+  <header className="bg-background/95 sticky top-0 z-50 w-full border-b">
+    <Container>
+      <div className="flex h-16 items-center justify-between gap-6">
         <Link className="shrink-0" href="/">
           <Image alt="Fitme" height={30} priority src="/logo.svg" width={100} />
         </Link>
@@ -32,9 +32,9 @@ function Header() {
           </Button>
           <MobileMenu />
         </nav>
-      </Container>
-    </header>
-  );
-}
+      </div>
+    </Container>
+  </header>
+);
 
 export default Header;

@@ -1,20 +1,9 @@
 import { reportError as appReportError } from "@fitme/observability/node";
+import { defaultStackParser, NodeClient, withScope } from "@sentry/node";
 import { DrizzleQueryError } from "drizzle-orm";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, onTestFinished, vi } from "vitest";
 
 import { call, connectWithServices, recordingReporter } from "./harness.js";
-
-const sentry = vi.hoisted(() => ({
-  captureException: vi.fn(),
-  flush: vi.fn(() => Promise.resolve(true)),
-}));
-
-vi.mock<typeof import("@sentry/node")>(import("@sentry/node"), () => sentry);
-
-afterEach(() => {
-  vi.clearAllMocks();
-  vi.restoreAllMocks();
-});
 
 const metricProfile = {
   age: 30,
@@ -26,6 +15,11 @@ const metricProfile = {
 };
 
 describe("get_profile", () => {
+  afterEach(() => {
+    vi.clearAllMocks();
+    vi.restoreAllMocks();
+  });
+
   it("returns the Profile with its units", async () => {
     const client = await connectWithServices({
       getProfile: () => Promise.resolve(metricProfile),
@@ -33,8 +27,8 @@ describe("get_profile", () => {
 
     const outcome = await call(client, "get_profile");
 
-    expect(outcome.isError).toBe(false);
-    expect(outcome.json).toEqual(metricProfile);
+    expect(outcome.isError).toBeFalsy();
+    expect(outcome.json).toStrictEqual(metricProfile);
   });
 
   it("returns imperial units as the service reports them", async () => {
@@ -48,7 +42,9 @@ describe("get_profile", () => {
       getProfile: () => Promise.resolve(usProfile),
     });
 
-    expect((await call(client, "get_profile")).json).toEqual(usProfile);
+    const outcome = await call(client, "get_profile");
+
+    expect(outcome.json).toStrictEqual(usProfile);
   });
 
   it("answers a User without a Profile with a tool error, unreported", async () => {
@@ -61,15 +57,35 @@ describe("get_profile", () => {
 
     const outcome = await call(client, "get_profile");
 
-    expect(outcome.isError).toBe(true);
+    expect(outcome.isError).toBeTruthy();
     expect(outcome.text).toBe(
       "No profile found: the user has not completed onboarding in the Fitme app yet."
     );
-    expect(reported).toEqual([]);
+    expect(reported).toStrictEqual([]);
   });
 
   it("reports a database failure without its SQL, params or Postgres message", async () => {
     const log = vi.spyOn(console, "error").mockReturnValue(undefined);
+    const reported: { error: unknown; tags: unknown }[] = [];
+
+    const sentry = new NodeClient({
+      beforeSend: (event, hint) => {
+        reported.push({ error: hint.originalException, tags: event.tags });
+
+        return null;
+      },
+      dsn: "https://public@sentry.test/1",
+      integrations: [],
+      stackParser: defaultStackParser,
+      transport: () => ({
+        flush: () => Promise.resolve(true),
+        send: () => Promise.resolve({}),
+      }),
+    });
+
+    onTestFinished(async () => {
+      await sentry.close();
+    });
 
     const failure = new DrizzleQueryError(
       'insert into "plans" ("description") values ($1)',
@@ -80,34 +96,44 @@ describe("get_profile", () => {
       )
     );
 
-    // The app's own reporter (@fitme/observability/node), Sentry faked
+    // The app's own reporter, with a real Sentry client kept in memory.
     const client = await connectWithServices(
       { getProfile: () => Promise.reject(failure) },
-      appReportError
+      (error, tags) =>
+        withScope(async (scope) => {
+          scope.setClient(sentry);
+          await appReportError(error, tags);
+        })
     );
 
     const outcome = await call(client, "get_profile");
 
-    expect(outcome.isError).toBe(true);
-    expect(outcome.text).toBe(
-      'invalid input syntax for type uuid: "my knee hurts"'
-    );
-    expect(sentry.captureException).toHaveBeenCalledOnce();
-    const [sent, hint] = sentry.captureException.mock.calls[0] ?? [];
-    expect(sent).toBeInstanceOf(Error);
-    const { cause, message, stack } = sent as Error;
-    expect(message).toBe("Database query failed (SQLSTATE 22P02)");
-    expect(cause).toBeUndefined();
-    expect(log.mock.calls.flat()).toEqual([sent]);
+    expect(outcome).toMatchObject({
+      isError: true,
+      text: 'invalid input syntax for type uuid: "my knee hurts"',
+    });
+    expect(reported).toStrictEqual([
+      { error: expect.any(Error), tags: { sqlstate: "22P02" } },
+    ]);
+    const sent = reported[0]?.error;
 
-    for (const leak of ["insert into", "my knee hurts", "params"]) {
-      expect(stack).not.toContain(leak);
-      expect(JSON.stringify(sent)).not.toContain(leak);
+    if (!(sent instanceof Error)) {
+      throw new TypeError("Expected Sentry to receive an Error");
     }
+
+    const { cause, message, stack } = sent;
+    expect({ cause, logged: log.mock.calls.flat(), message }).toStrictEqual({
+      cause: undefined,
+      logged: [sent],
+      message: "Database query failed (SQLSTATE 22P02)",
+    });
+
+    expect(`${stack}\n${JSON.stringify(sent)}`).not.toMatch(
+      /insert into|my knee hurts|params/u
+    );
 
     // The frames still point at where the query failed
     expect(stack).toContain("profile.test.ts");
-    expect(hint).toEqual({ tags: { sqlstate: "22P02" } });
   });
 
   it("reports an unexpected failure and answers a tool error without its details", async () => {
@@ -121,8 +147,8 @@ describe("get_profile", () => {
 
     const outcome = await call(client, "get_profile");
 
-    expect(outcome.isError).toBe(true);
+    expect(outcome.isError).toBeTruthy();
     expect(outcome.text).toBe("The database request failed.");
-    expect(reported).toEqual([failure]);
+    expect(reported).toStrictEqual([failure]);
   });
 });

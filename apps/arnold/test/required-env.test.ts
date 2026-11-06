@@ -3,18 +3,16 @@ import { describe, expect, it, vi } from "vitest";
 
 import { REQUIRED_ENV } from "../agent/lib/required-env";
 
-describe(REQUIRED_ENV, () => {
+describe("required environment variables", () => {
   it("reports one error per variable on a production instance missing them all", async () => {
-    const report = vi.fn(
-      async (_error: unknown, _tags?: Record<string, string>) => {}
-    );
+    const report = vi.fn<() => Promise<void>>().mockResolvedValue(undefined);
 
     const missing = await reportMissingEnv(REQUIRED_ENV, {
       env: { VERCEL_ENV: "production" },
       report,
     });
 
-    expect(missing).toEqual([
+    expect(missing).toStrictEqual([
       "CLERK_JWT_KEY",
       "REVENUECAT_SECRET_KEY",
       "FITME_DATABASE_URL",
@@ -26,9 +24,7 @@ describe(REQUIRED_ENV, () => {
   });
 
   it("doesn't take the pre-rename COACH_RESET_SECRET for ARNOLD_RESET_SECRET", async () => {
-    const report = vi.fn(
-      async (_error: unknown, _tags?: Record<string, string>) => {}
-    );
+    const report = vi.fn<() => Promise<void>>().mockResolvedValue(undefined);
 
     const missing = await reportMissingEnv(REQUIRED_ENV, {
       env: { COACH_RESET_SECRET: "secret", VERCEL_ENV: "production" },

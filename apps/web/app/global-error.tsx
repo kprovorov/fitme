@@ -6,11 +6,7 @@ import { useEffect } from "react";
 
 // Replaces the root layout when it (or anything above a nested error
 // boundary) throws while rendering in the browser; reports the error.
-export default function GlobalError({
-  error,
-}: {
-  error: Error & { digest?: string };
-}) {
+const GlobalError = ({ error }: { error: Error & { digest?: string } }) => {
   useEffect(() => {
     Sentry.captureException(error);
   }, [error]);
@@ -23,4 +19,6 @@ export default function GlobalError({
       </body>
     </html>
   );
-}
+};
+
+export default GlobalError;

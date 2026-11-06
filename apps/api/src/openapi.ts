@@ -1,5 +1,5 @@
 import { writeFile } from "node:fs/promises";
-import { resolve } from "node:path";
+import path from "node:path";
 
 import { createApp } from "./create-app.js";
 
@@ -8,7 +8,7 @@ import { createApp } from "./create-app.js";
  * definitions. PR CI fails when the committed document is stale or has a
  * breaking change against the base branch.
  */
-const out = resolve(import.meta.dirname, "../openapi.json");
+const out = path.resolve(import.meta.dirname, "../openapi.json");
 
 const document = createApp({
   reportError: () => Promise.resolve(),

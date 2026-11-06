@@ -49,7 +49,7 @@ export const isUnexpectedFailure = ({ status }: ApiError): boolean =>
  * the same `is_active` keep the API's order.
  */
 const activeFirst = (plans: DashboardPlan[]): DashboardPlan[] =>
-  [...plans].sort(
+  plans.toSorted(
     (a, b) => Number(Boolean(b.is_active)) - Number(Boolean(a.is_active))
   );
 

@@ -16,7 +16,14 @@ import type { RegisterFormValues } from "~/components/forms/auth/register-form";
 import { ErrorMessage } from "~/components/ui/error-message";
 import { useAvailableSocialProviders } from "~/hooks/native-social-auth";
 
-export default function RegisterView() {
+const RegisterView = () => {
+  const { t } = useTranslation();
+  const { signUp } = useSignUp();
+  const operation = useAuthOperation();
+  const providers = useAvailableSocialProviders();
+  const busy = operation.pending !== null;
+  const handleEdit = operation.clearError;
+
   const submitEmail = (values: RegisterFormValues) =>
     operation.run("email", async (current) => {
       const { firstName, lastName } = splitName(values.name);
@@ -87,19 +94,11 @@ export default function RegisterView() {
     </AuthScreen>
   );
 
-  const { t } = useTranslation();
-  const { signUp } = useSignUp();
-  const operation = useAuthOperation();
-  const providers = useAvailableSocialProviders();
-  const busy = operation.pending !== null;
-
   return (
-    <RegisterForm
-      disabled={busy}
-      onEdit={operation.clearError}
-      onSubmit={submitEmail}
-    >
+    <RegisterForm disabled={busy} onEdit={handleEdit} onSubmit={submitEmail}>
       {renderForm}
     </RegisterForm>
   );
-}
+};
+
+export default RegisterView;

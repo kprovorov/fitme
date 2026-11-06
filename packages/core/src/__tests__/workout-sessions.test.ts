@@ -17,38 +17,38 @@ const session = (
   finished_at,
 });
 
-describe(isWorkoutFullyTracked, () => {
+describe("workout tracking completeness", () => {
   it("returns true when every set of every exercise has reps", () => {
-    expect(isWorkoutFullyTracked(session([[10, 8], [12]]))).toBe(true);
+    expect(isWorkoutFullyTracked(session([[10, 8], [12]]))).toBeTruthy();
   });
 
   it("returns false when the session has no exercises", () => {
-    expect(isWorkoutFullyTracked(session([]))).toBe(false);
+    expect(isWorkoutFullyTracked(session([]))).toBeFalsy();
   });
 
   it("returns false when an exercise has no sets", () => {
-    expect(isWorkoutFullyTracked(session([[10], []]))).toBe(false);
+    expect(isWorkoutFullyTracked(session([[10], []]))).toBeFalsy();
   });
 
   it("returns false when any set has null reps", () => {
-    expect(isWorkoutFullyTracked(session([[10, null], [12]]))).toBe(false);
+    expect(isWorkoutFullyTracked(session([[10, null], [12]]))).toBeFalsy();
   });
 
   it("treats zero reps as tracked", () => {
-    expect(isWorkoutFullyTracked(session([[0], [0, 5]]))).toBe(true);
+    expect(isWorkoutFullyTracked(session([[0], [0, 5]]))).toBeTruthy();
   });
 
   it("is independent of exercise and set order", () => {
     // Later sets tracked before earlier ones still leave the session incomplete.
-    expect(isWorkoutFullyTracked(session([[null, 8], [12]]))).toBe(false);
-    expect(isWorkoutFullyTracked(session([[12], [8, null]]))).toBe(false);
-    expect(isWorkoutFullyTracked(session([[12], [8, 10]]))).toBe(true);
+    expect(isWorkoutFullyTracked(session([[null, 8], [12]]))).toBeFalsy();
+    expect(isWorkoutFullyTracked(session([[12], [8, null]]))).toBeFalsy();
+    expect(isWorkoutFullyTracked(session([[12], [8, 10]]))).toBeTruthy();
   });
 
   it("returns false for a finished session", () => {
     expect(
       isWorkoutFullyTracked(session([[10], [12]], "2026-10-08T08:00:00Z"))
-    ).toBe(false);
+    ).toBeFalsy();
   });
 
   it("treats an undefined finish time as active", () => {
@@ -57,11 +57,11 @@ describe(isWorkoutFullyTracked, () => {
         exercises: [{ sets: [{ reps_completed: 1 }] }],
         finished_at: undefined,
       })
-    ).toBe(true);
+    ).toBeTruthy();
   });
 });
 
-describe(loggedExercises, () => {
+describe("exercises with logged sets", () => {
   it("keeps only exercises with at least one logged set", () => {
     const squat = {
       name: "squat",
@@ -71,17 +71,17 @@ describe(loggedExercises, () => {
     const bench = { name: "bench", sets: [{ reps_completed: null }] };
     const plank = { name: "plank", sets: [] };
 
-    expect(loggedExercises([squat, bench, plank])).toEqual([squat]);
+    expect(loggedExercises([squat, bench, plank])).toStrictEqual([squat]);
   });
 
   it("counts zero reps as logged", () => {
     const pullUp = { sets: [{ reps_completed: 0 }] };
 
-    expect(loggedExercises([pullUp])).toEqual([pullUp]);
+    expect(loggedExercises([pullUp])).toStrictEqual([pullUp]);
   });
 });
 
-describe(countUnloggedSets, () => {
+describe("unlogged set count", () => {
   it("counts every set without reps across exercises", () => {
     expect(
       countUnloggedSets(

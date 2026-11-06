@@ -1,3 +1,4 @@
+/// <reference types="node" />
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
 import {
@@ -8,9 +9,8 @@ import {
   writeFileSync,
 } from "node:fs";
 import { tmpdir } from "node:os";
-import { dirname, join, resolve } from "node:path";
+import { join, resolve } from "node:path";
 import test from "node:test";
-import { fileURLToPath } from "node:url";
 
 import { test } from "vitest";
 
@@ -82,7 +82,7 @@ for (const scenario of [
     } finally {
       rmSync(scratch, { force: true, recursive: true });
 
-      if (out) {
+      if (out !== undefined && out !== "") {
         rmSync(out, { force: true, recursive: true });
       }
     }

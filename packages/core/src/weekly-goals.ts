@@ -1,10 +1,11 @@
 import { qualifiesForProgress } from "./training-progress";
 import type { ProgressSession } from "./training-progress";
 
-const CALENDAR_OFFSET = /^(?:GMT|UTC)([+-])(\d{1,2})(?::?(\d{2}))?$/;
+const CALENDAR_OFFSET =
+  /^(?:GMT|UTC)(?<sign>[+-])(?<hours>\d{1,2})(?::?(?<minutes>\d{2}))?$/u;
 
 /** Expo's fixed-offset calendar IDs use the ISO sign: GMT+1 is east of UTC. */
-export function calendarOffsetMinutes(timeZone: string): number | null {
+export const calendarOffsetMinutes = (timeZone: string): number | null => {
   const match = CALENDAR_OFFSET.exec(timeZone);
 
   if (!match) {
@@ -19,7 +20,7 @@ export function calendarOffsetMinutes(timeZone: string): number | null {
   }
 
   return (match[1] === "-" ? -1 : 1) * (hours * 60 + minutes);
-}
+};
 
 /**
  * One change of the User's Weekly goal (ADR 0015), as the Public API answers
@@ -100,7 +101,7 @@ const goalOfWeek = (
 ): Pick<GoalWeek, "goal" | "kind"> => {
   const [first] = changes;
 
-  if (!first || first.at >= end) {
+  if (first === undefined || first.at >= end) {
     return { goal: null, kind: "unknown" };
   }
 
@@ -138,12 +139,12 @@ const goalOfWeek = (
  * `null` without an active Plan (no changes, or the last one `null`), when
  * History shows no goal at all.
  */
-export function weeklyGoalOverview(
+export const weeklyGoalOverview = (
   changes: WeeklyGoalChange[],
   sessions: ProgressSession[],
   now: Date = new Date(),
   weekCount = 8
-): WeeklyGoalOverview | null {
+): WeeklyGoalOverview | null => {
   const latest = changes.at(-1)?.target ?? null;
 
   if (latest === null) {
@@ -155,11 +156,13 @@ export function weeklyGoalOverview(
       at: new Date(change.recorded_at).getTime(),
       target: change.target,
     }))
-    .sort((a, b) => a.at - b.at);
+    .toSorted((a, b) => a.at - b.at);
 
-  const starts = sessions
-    .filter(qualifiesForProgress)
-    .map((session) => new Date(session.started_at).getTime());
+  const starts = sessions.flatMap((session) =>
+    qualifiesForProgress(session)
+      ? [new Date(session.started_at).getTime()]
+      : []
+  );
 
   const thisWeek = startOfGoalWeek(now);
   const weeks: GoalWeek[] = [];
@@ -190,4 +193,4 @@ export function weeklyGoalOverview(
     hitWeeks: eligible.filter((week) => week.hit).length,
     weeks,
   };
-}
+};

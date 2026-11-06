@@ -2,13 +2,13 @@ import { describe, expect, it } from "vitest";
 
 import { call, connect } from "./harness.js";
 
-const EXERCISE_ID = /exercise_?id/i;
+const EXERCISE_ID = /exercise_?id/iu;
 
 describe("tool registry", () => {
   it("lists every tool", async () => {
     const client = await connect();
     const { tools } = await client.listTools();
-    expect(tools.map((tool) => tool.name).sort()).toEqual([
+    expect(tools.map((tool) => tool.name).toSorted()).toStrictEqual([
       "activate_plan",
       "create_plan",
       "delete_plan",
@@ -48,18 +48,20 @@ describe("tool registry", () => {
     const hints = new Map(tools.map((tool) => [tool.name, tool.annotations]));
 
     for (const tool of tools) {
-      expect(tool.annotations, tool.name).toMatchObject({
+      expect(tool.annotations).toMatchObject({
         destructiveHint: expect.any(Boolean),
         openWorldHint: expect.any(Boolean),
         readOnlyHint: expect.any(Boolean),
       });
-
-      if (tool.annotations?.readOnlyHint) {
-        expect(tool.annotations.destructiveHint, tool.name).toBe(false);
-      }
     }
 
-    expect(hints.get("get_plan")?.readOnlyHint).toBe(true);
+    for (const readOnlyTool of tools.filter(
+      (tool) => tool.annotations?.readOnlyHint
+    )) {
+      expect(readOnlyTool.annotations?.destructiveHint).toBeFalsy();
+    }
+
+    expect(hints.get("get_plan")?.readOnlyHint).toBeTruthy();
     expect(hints.get("log_set")).toMatchObject({
       destructiveHint: true,
       readOnlyHint: false,
@@ -72,7 +74,7 @@ describe("tool registry", () => {
       destructiveHint: true,
       idempotentHint: false,
     });
-    expect(hints.get("start_workout_session")?.idempotentHint).toBe(false);
+    expect(hints.get("start_workout_session")?.idempotentHint).toBeFalsy();
   });
 });
 
@@ -81,14 +83,14 @@ describe("catalog tools", () => {
     const client = await connect();
 
     const ping = await call(client, "ping");
-    expect(ping.isError).toBe(false);
+    expect(ping.isError).toBeFalsy();
     expect(ping.json).toMatchObject({ ok: true, version: "0.2.0" });
 
     const group = await call(client, "describe_muscle_group", {
       muscleGroup: "lower-back",
     });
 
-    expect(group.json).toEqual({ id: "lower-back", name: "Lower Back" });
+    expect(group.json).toStrictEqual({ id: "lower-back", name: "Lower Back" });
   });
 
   it("lists every Equipment in core's order with its English name", async () => {
@@ -96,8 +98,8 @@ describe("catalog tools", () => {
 
     const result = await call(client, "list_equipment");
 
-    expect(result.isError).toBe(false);
-    expect(result.json).toEqual([
+    expect(result.isError).toBeFalsy();
+    expect(result.json).toStrictEqual([
       { id: "barbell", name: "Barbell" },
       { id: "dumbbell", name: "Dumbbell" },
       { id: "cable", name: "Cable" },

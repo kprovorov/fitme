@@ -496,12 +496,12 @@ export interface Database {
         ];
       };
     };
-    Views: Record<never, never>;
+    Views: Record<string, never>;
     Functions: {
       current_user_id: { Args: Record<PropertyKey, never>; Returns: string };
     };
-    Enums: Record<never, never>;
-    CompositeTypes: Record<never, never>;
+    Enums: Record<string, never>;
+    CompositeTypes: Record<string, never>;
   };
 }
 

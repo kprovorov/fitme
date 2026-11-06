@@ -37,10 +37,10 @@ const isSameLocalMonth = (date: Date, other: Date) =>
  * elapsed time measured between the two instants (so a daylight-saving
  * change in between doesn't stretch or shrink it).
  */
-export function monthlyTotals(
+export const monthlyTotals = (
   sessions: ProgressSession[],
   now: Date = new Date()
-): MonthlyTotals {
+): MonthlyTotals => {
   let elapsedMs = 0;
   let volume = 0;
   let workouts = 0;
@@ -66,4 +66,4 @@ export function monthlyTotals(
   }
 
   return { elapsedMs, volume: Math.round(volume * 100) / 100, workouts };
-}
+};

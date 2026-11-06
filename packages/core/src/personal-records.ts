@@ -46,10 +46,11 @@ const rankedResults = (sets: readonly RecordSet[]) => {
       reps !== null && reps > 0 && weight !== null ? [{ reps, weight }] : []
   );
 
-  const highestWeight = usable.reduce(
-    (highest, result) => Math.max(highest, result.weight),
-    0
-  );
+  let highestWeight = 0;
+
+  for (const result of usable) {
+    highestWeight = Math.max(highestWeight, result.weight);
+  }
 
   let best: RecordResult | null = null;
 

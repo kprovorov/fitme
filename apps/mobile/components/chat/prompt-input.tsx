@@ -14,14 +14,13 @@ import {
   TextInput,
   View,
 } from "react-native";
-import type {
-  PressableStateCallbackType,
-  StyleProp,
-  TextInputInstance,
-  ViewStyle,
-} from "react-native";
-import Animated, { FadeIn, FadeOut } from "react-native-reanimated";
-import { useCSSVariable } from "uniwind";
+import type { TextInputInstance } from "react-native";
+import Animated, {
+  createAnimatedComponent,
+  FadeIn,
+  FadeOut,
+} from "react-native-reanimated";
+import { ScopedVariables, useCSSVariable, withUniwind } from "uniwind";
 
 import { SymbolImage } from "@/components/symbol-image";
 import { TouchableGlass } from "@/components/touchable-glass";
@@ -32,65 +31,33 @@ import { useChatContext } from "./chat-context";
 import type { ChatAttachment } from "./chat-context";
 import { useConversationContext } from "./conversation";
 
-const AnimatedGlassContainer = Animated.createAnimatedComponent(GlassContainer);
+const AnimatedGlassContainer = withUniwind(
+  createAnimatedComponent(GlassContainer)
+);
 
-/**
- * Root container for the message composer. Positions itself at the bottom of
- * the `<Conversation />` using the shared conversation context. Children are
- * laid out in a horizontal row inside a glass container.
- */
-export function PromptInput({ children }: { children: ReactNode }) {
-  const { promptInputStyle, onPromptInputLayout } = useConversationContext();
-  const { errorMessage } = useChatContext();
+const StyledGlassView = withUniwind(GlassView);
+const StyledBlurView = withUniwind(BlurView);
 
-  return (
-    <Animated.View
-      onLayout={onPromptInputLayout}
-      style={[{ left: 0, position: "absolute", right: 0 }, promptInputStyle]}
-    >
-      {errorMessage ? <PromptInputError message={errorMessage} /> : null}
-      <PromptInputAttachments />
-      <AnimatedGlassContainer
-        spacing={8}
-        style={{
-          alignItems: "flex-end",
-          flex: 1,
-          flexDirection: "row",
-          gap: 10,
-          padding: 12,
-        }}
+const PromptInputError = ({ message }: { message: string }) => (
+  <Animated.View className="px-3 pb-2" entering={FadeIn.duration(200)}>
+    <View className="border-continuous bg-card flex-row items-center gap-2 rounded-xl px-3 py-2.5">
+      <View className="bg-destructive h-2 w-2 rounded-full" />
+      <Text
+        className="text-footnote text-muted-foreground flex-1"
+        numberOfLines={2}
       >
-        {children}
-      </AnimatedGlassContainer>
-    </Animated.View>
-  );
-}
-
-function PromptInputError({ message }: { message: string }) {
-  return (
-    <Animated.View className="px-3 pb-2" entering={FadeIn.duration(200)}>
-      <View
-        className="bg-card flex-row items-center gap-2 rounded-xl px-3 py-2.5"
-        style={{ borderCurve: "continuous" }}
-      >
-        <View className="bg-destructive h-2 w-2 rounded-full" />
-        <Text
-          className="text-footnote text-muted-foreground flex-1"
-          numberOfLines={2}
-        >
-          {message}
-        </Text>
-      </View>
-    </Animated.View>
-  );
-}
+        {message}
+      </Text>
+    </View>
+  </Animated.View>
+);
 
 /**
  * One picked Attachment: its thumbnail, read from the file on this device,
  * with an × on its corner. The × is a button of its own, so VoiceOver reads
  * the photo and then the way to drop it.
  */
-function PickedAttachment({
+const PickedAttachment = ({
   attachment,
   onRemove,
   position,
@@ -100,7 +67,7 @@ function PickedAttachment({
   onRemove?: (id: string) => void;
   position: number;
   total: number;
-}) {
+}) => {
   const { t } = useTranslation();
 
   const remove = useCallback(
@@ -145,49 +112,45 @@ function PickedAttachment({
       </Pressable>
     </View>
   );
-}
+};
 
 /** The material the composer is made of: glass, or a blur where there's none. */
-function ComposerSurface({
+const ComposerSurface = ({
   children,
+  className,
   isInteractive,
-  style,
 }: {
   children: ReactNode;
+  className: string;
   isInteractive?: boolean;
-  style: ViewStyle;
-}) {
-  if (isLiquidGlassAvailable()) {
-    return (
-      <GlassView
+}) => (
+  <ScopedVariables variables={{ "--composer-radius": 22 }}>
+    {isLiquidGlassAvailable() ? (
+      <StyledGlassView
+        className={cn(
+          "border-continuous rounded-(--composer-radius)",
+          className
+        )}
         glassEffectStyle="regular"
         isInteractive={isInteractive}
-        style={style}
       >
         {children}
-      </GlassView>
-    );
-  }
-
-  // The blur needs clipping to keep inside the rounded corners; the glass
-  // view draws its own.
-  return (
-    <BlurView
-      style={{ ...style, overflow: "hidden" }}
-      tint="systemChromeMaterial"
-    >
-      {children}
-    </BlurView>
-  );
-}
-
-const attachmentTrayStyle = {
-  borderCurve: "continuous",
-  borderRadius: 22,
-  flexDirection: "row",
-  gap: 8,
-  padding: 6,
-} as const satisfies ViewStyle;
+      </StyledGlassView>
+    ) : (
+      // The blur needs clipping to keep inside the rounded corners; the glass
+      // view draws its own.
+      <StyledBlurView
+        className={cn(
+          "border-continuous overflow-hidden rounded-(--composer-radius)",
+          className
+        )}
+        tint="systemChromeMaterial"
+      >
+        {children}
+      </StyledBlurView>
+    )}
+  </ScopedVariables>
+);
 
 /**
  * The Attachments picked for the next message, in a row above the text
@@ -195,7 +158,7 @@ const attachmentTrayStyle = {
  * draw a bar across the Conversation, and nothing picked renders nothing, so
  * the composer keeps its own height.
  */
-export function PromptInputAttachments() {
+export const PromptInputAttachments = () => {
   const { attachments, onRemoveAttachment } = useChatContext();
 
   if (!attachments?.length) {
@@ -210,7 +173,7 @@ export function PromptInputAttachments() {
     >
       {/* The composer's own material, so a message scrolling past behind
           the thumbnails is blurred rather than showing through the gaps. */}
-      <ComposerSurface style={attachmentTrayStyle}>
+      <ComposerSurface className="flex-row gap-2 p-1.5">
         {attachments.map((attachment, index) => (
           <PickedAttachment
             attachment={attachment}
@@ -223,64 +186,75 @@ export function PromptInputAttachments() {
       </ComposerSurface>
     </Animated.View>
   );
-}
+};
+
+/**
+ * Root container for the message composer. Positions itself at the bottom of
+ * the `<Conversation />` using the shared conversation context. Children are
+ * laid out in a horizontal row inside a glass container.
+ */
+export const PromptInput = ({ children }: { children: ReactNode }) => {
+  const { promptInputStyle, onPromptInputLayout } = useConversationContext();
+  const { errorMessage } = useChatContext();
+
+  return (
+    <Animated.View
+      onLayout={onPromptInputLayout}
+      className="absolute right-0 left-0"
+      style={promptInputStyle}
+    >
+      {errorMessage ? <PromptInputError message={errorMessage} /> : null}
+      <PromptInputAttachments />
+      <AnimatedGlassContainer
+        spacing={8}
+        className="flex-1 flex-row items-end gap-2.5 p-3"
+      >
+        {children}
+      </AnimatedGlassContainer>
+    </Animated.View>
+  );
+};
 
 /**
  * A circular glass button for actions (e.g. attachments, camera).
  */
-export function PromptInputAction(props: {
+export const PromptInputAction = (props: {
   accessibilityLabel: string;
   children: ReactNode;
   onPress?: () => void;
-}) {
-  return (
-    <TouchableGlass
-      accessibilityRole="button"
-      accessible
-      hitSlop={4}
-      {...props}
-      style={{
-        alignItems: "center",
-        borderRadius: 22,
-        height: 44,
-        justifyContent: "center",
-        width: 44,
-      }}
-    />
-  );
-}
+}) => (
+  <TouchableGlass
+    accessibilityRole="button"
+    accessible
+    hitSlop={4}
+    {...props}
+    className="h-11 w-11 items-center justify-center rounded-full"
+  />
+);
 
 /**
  * Glass-wrapped container for the textarea and submit button.
  */
-export function PromptInputBody({ children }: { children: ReactNode }) {
-  return (
-    <ComposerSurface isInteractive style={promptInputBodyStyle}>
-      {children}
-    </ComposerSurface>
-  );
-}
-
-const promptInputBodyStyle = {
-  borderCurve: "continuous",
-  borderRadius: 22,
-  flex: 1,
-  flexDirection: "row",
-} as const satisfies ViewStyle;
+export const PromptInputBody = ({ children }: { children: ReactNode }) => (
+  <ComposerSurface className="flex-1 flex-row" isInteractive>
+    {children}
+  </ComposerSurface>
+);
 
 /**
  * Auto-growing text input for composing messages. Reads/writes the current
  * input value from `ChatContext`.
  */
-export function PromptInputTextarea({
+export const PromptInputTextarea = ({
   placeholder,
   maxLength = 1000,
 }: {
   placeholder: string;
   maxLength?: number;
-}) {
+}) => {
   const { input, setInput } = useChatContext();
   const inputRef = useRef<TextInputInstance>(null);
+  // SAFETY: The foreground theme token is a CSS color string in every theme.
   const foreground = useCSSVariable("--color-foreground") as string;
 
   useEffect(() => {
@@ -304,28 +278,16 @@ export function PromptInputTextarea({
       value={input}
     />
   );
-}
-
-const submitButtonStyle = ({
-  pressed,
-}: PressableStateCallbackType): StyleProp<ViewStyle> => ({
-  alignItems: "center",
-  borderCurve: "continuous",
-  borderRadius: 17,
-  height: 34,
-  justifyContent: "center",
-  margin: 5,
-  opacity: pressed ? 0.7 : 1,
-  width: 34,
-});
+};
 
 /**
  * Submit button that sends the current input. Shows a spinner while the model
  * is generating. Reads state from `ChatContext`.
  */
-export function PromptInputSubmit() {
+export const PromptInputSubmit = () => {
   const { input, isGenerating, isLoading, onSend } = useChatContext();
   const { t } = useTranslation();
+  // SAFETY: The foreground theme token is a CSS color string in every theme.
   const foreground = useCSSVariable("--color-foreground") as string;
   const disabled = !input.trim() || isGenerating || isLoading;
 
@@ -333,10 +295,12 @@ export function PromptInputSubmit() {
     <Pressable
       accessibilityLabel={t("arnold.composer.send")}
       accessibilityRole="button"
-      className={disabled ? "bg-secondary" : "bg-foreground"}
+      className={cn(
+        "border-continuous m-1.25 h-8.5 w-8.5 items-center justify-center rounded-full active:opacity-70",
+        disabled ? "bg-secondary" : "bg-foreground"
+      )}
       disabled={disabled}
       onPress={onSend}
-      style={submitButtonStyle}
     >
       {isGenerating ? (
         <Animated.View entering={FadeIn} exiting={FadeOut}>
@@ -356,4 +320,4 @@ export function PromptInputSubmit() {
       )}
     </Pressable>
   );
-}
+};

@@ -1,6 +1,9 @@
+/// <reference lib="es2023.array" />
+
 import { defaultAppLanguage, isAppLanguage } from "@fitme/core/models";
 import type { AppLanguage } from "@fitme/core/models";
 import type { ModelMessage } from "ai";
+import { z } from "zod";
 
 // eve hands a turn's `clientContext` object to the model as a user-role
 // framework message of this kind: the prefix, then the object as JSON. A
@@ -10,15 +13,20 @@ import type { ModelMessage } from "ai";
 // eve is pinned exactly; check this format on every bump.
 const CLIENT_CONTEXT_KIND = "context.instruction";
 const CLIENT_CONTEXT_PREFIX = "Client context:\n";
+const clientContextSchema = z.record(z.string(), z.json());
+
+type ClientContext = z.infer<typeof clientContextSchema>;
 
 const clientContextTexts = (message: ModelMessage): string[] => {
-  const { kind } = message as { kind?: unknown };
-
-  if (message.role !== "user" || kind !== CLIENT_CONTEXT_KIND) {
+  if (
+    message.role !== "user" ||
+    !("kind" in message) ||
+    message.kind !== CLIENT_CONTEXT_KIND
+  ) {
     return [];
   }
 
-  if (typeof message.content === "string") {
+  if (!Array.isArray(message.content)) {
     return [message.content];
   }
 
@@ -27,17 +35,17 @@ const clientContextTexts = (message: ModelMessage): string[] => {
   );
 };
 
-const parseClientContext = (text: string): Record<string, unknown> | null => {
+const parseClientContext = (text: string): ClientContext | null => {
   if (!text.startsWith(CLIENT_CONTEXT_PREFIX)) {
     return null;
   }
 
   try {
-    const value: unknown = JSON.parse(text.slice(CLIENT_CONTEXT_PREFIX.length));
+    const context = clientContextSchema.safeParse(
+      JSON.parse(text.slice(CLIENT_CONTEXT_PREFIX.length))
+    );
 
-    return typeof value === "object" && value !== null && !Array.isArray(value)
-      ? (value as Record<string, unknown>)
-      : null;
+    return context.success ? context.data : null;
   } catch {
     return null;
   }
@@ -46,9 +54,9 @@ const parseClientContext = (text: string): Record<string, unknown> | null => {
 /** The latest client context object in a step's messages, or `null` without one. */
 export const latestClientContext = (
   messages: readonly ModelMessage[]
-): Record<string, unknown> | null => {
-  for (const message of [...messages].reverse()) {
-    for (const text of clientContextTexts(message).reverse()) {
+): ClientContext | null => {
+  for (const message of messages.toReversed()) {
+    for (const text of clientContextTexts(message).toReversed()) {
       const context = parseClientContext(text);
 
       if (context) {

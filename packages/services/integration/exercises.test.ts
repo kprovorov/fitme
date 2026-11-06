@@ -1,3 +1,5 @@
+/// <reference lib="es2023.array" />
+
 import { randomUUID } from "node:crypto";
 
 import {
@@ -102,7 +104,7 @@ const seedSession = async (
           weightRecommended: "70",
           workoutSessionExerciseId: sessionExercise.id,
         }))
-        .reverse()
+        .toReversed()
     );
 
     return {
@@ -126,44 +128,46 @@ let bodyweight: SeededSession;
 let newer: SeededSession;
 let intruders: SeededSession;
 
-beforeAll(async () => {
-  older = await seedSession(owner, "2026-10-01T10:00:00+00:00", [
-    logged(8, 75),
-    logged(7, 80),
-    unlogged,
-  ]);
-  // bodyweight: reps logged, no weight — counted all the same
-  bodyweight = await seedSession(owner, "2026-10-02T10:00:00+00:00", [
-    logged(12, null),
-  ]);
-  newer = await seedSession(owner, "2026-10-03T10:00:00+00:00", [
-    logged(5, 85),
-  ]);
-  // nothing logged at all: left out
-  await seedSession(owner, "2026-10-04T10:00:00+00:00", [unlogged, unlogged]);
-  intruders = await seedSession(intruder, "2026-10-05T10:00:00+00:00", [
-    logged(10, 200),
-  ]);
-});
+const history = async (userId: string, limit = 10, offset = 0) =>
+  await asUser(
+    userId,
+    async (tx) =>
+      await getExerciseHistory(tx, userId, {
+        exerciseSlug: alphaSlug,
+        limit,
+        offset,
+      })
+  );
 
-afterAll(async () => {
-  await deleteTestUsers([owner, intruder]);
-});
+describe("exercise history", () => {
+  beforeAll(async () => {
+    older = await seedSession(owner, "2026-10-01T10:00:00+00:00", [
+      logged(8, 75),
+      logged(7, 80),
+      unlogged,
+    ]);
+    // bodyweight: reps logged, no weight — counted all the same
+    bodyweight = await seedSession(owner, "2026-10-02T10:00:00+00:00", [
+      logged(12, null),
+    ]);
+    newer = await seedSession(owner, "2026-10-03T10:00:00+00:00", [
+      logged(5, 85),
+    ]);
+    // nothing logged at all: left out
+    await seedSession(owner, "2026-10-04T10:00:00+00:00", [unlogged, unlogged]);
+    intruders = await seedSession(intruder, "2026-10-05T10:00:00+00:00", [
+      logged(10, 200),
+    ]);
+  });
 
-describe(getExerciseHistory, () => {
-  const history = async (userId: string, limit = 10, offset = 0) =>
-    await asUser(
-      userId,
-      async (tx) =>
-        await getExerciseHistory(tx, userId, {
-          exerciseSlug: alphaSlug,
-          limit,
-          offset,
-        })
-    );
+  afterAll(async () => {
+    await deleteTestUsers([owner, intruder]);
+  });
 
   it("returns the User's entries newest first, with their logged sets in order and their targets", async () => {
-    await expect(history(owner)).resolves.toEqual({
+    const setId: unknown = expect.any(String);
+
+    await expect(history(owner)).resolves.toStrictEqual({
       entries: [
         {
           finished_at: "2026-10-03T10:00:00+00:00",
@@ -172,7 +176,7 @@ describe(getExerciseHistory, () => {
           session_id: newer.sessionId,
           sets: [
             {
-              id: expect.any(String),
+              id: setId,
               logged_at: null,
               order: 1,
               reps_completed: 5,
@@ -232,19 +236,19 @@ describe(getExerciseHistory, () => {
     const first = await history(owner, 2);
     const second = await history(owner, 2, 2);
 
-    expect(first.entries.map((entry) => entry.session_id)).toEqual([
+    expect(first.entries.map((entry) => entry.session_id)).toStrictEqual([
       newer.sessionId,
       bodyweight.sessionId,
     ]);
     expect(first.total).toBe(3);
-    expect(second.entries.map((entry) => entry.session_id)).toEqual([
+    expect(second.entries.map((entry) => entry.session_id)).toStrictEqual([
       older.sessionId,
     ]);
     expect(second.total).toBe(3);
   });
 
   it("answers an empty page past the end, with the total", async () => {
-    await expect(history(owner, 10, 10)).resolves.toEqual({
+    await expect(history(owner, 10, 10)).resolves.toStrictEqual({
       entries: [],
       total: 3,
     });
@@ -261,12 +265,12 @@ describe(getExerciseHistory, () => {
             offset: 0,
           })
       )
-    ).resolves.toEqual({ entries: [], total: 0 });
+    ).resolves.toStrictEqual({ entries: [], total: 0 });
   });
 
   it("never includes another User's Workout Sessions", async () => {
     const theirs = await history(intruder);
-    expect(theirs.entries.map((entry) => entry.session_id)).toEqual([
+    expect(theirs.entries.map((entry) => entry.session_id)).toStrictEqual([
       intruders.sessionId,
     ]);
     await expect(
@@ -279,7 +283,7 @@ describe(getExerciseHistory, () => {
             offset: 0,
           })
       )
-    ).resolves.toEqual({ entries: [], total: 0 });
+    ).resolves.toStrictEqual({ entries: [], total: 0 });
   });
 
   it("shows a Workout Session whose Plan and Workout are gone without them", async () => {

@@ -16,8 +16,10 @@ const USAGE = /Usage/;
 
 const SCRIPT = fileURLToPath(new URL("rewrite-env.mjs", import.meta.url));
 
+/** @type {string[]} */
 const tempDirs = [];
 
+/** @param {string} prefix Temporary directory name prefix. */
 const tempDir = (prefix) => {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), prefix));
   tempDirs.push(dir);
@@ -47,7 +49,7 @@ const stackOutput = (mcpUrl = "http://127.0.0.1:55321/mcp") =>
     "",
   ].join("\n");
 
-describe("parseStackOutput", () => {
+void describe("parseStackOutput", () => {
   test("reads the JSON line after any progress lines", () => {
     assert.deepEqual(parseStackOutput(stackOutput()), {
       ...stack,
@@ -60,7 +62,7 @@ describe("parseStackOutput", () => {
   });
 });
 
-describe("rewriteEnvText", () => {
+void describe("rewriteEnvText", () => {
   test("leaves the Data API's URL and key alone", () => {
     const before =
       "EXPO_PUBLIC_SUPABASE_URL=http://127.0.0.1:54321\nEXPO_PUBLIC_SUPABASE_ANON_KEY=old\nOTHER=1\n";
@@ -86,10 +88,14 @@ describe("rewriteEnvText", () => {
   });
 });
 
-describe("the CLI", () => {
+void describe("the CLI", () => {
   const checkout = () => {
     const root = tempDir("rewrite-env-");
 
+    /**
+     * @param {string} rel Path relative to the checkout.
+     * @param {string} text File contents.
+     */
     const write = (rel, text) => {
       fs.mkdirSync(path.dirname(path.join(root, rel)), { recursive: true });
       fs.writeFileSync(path.join(root, rel), text);
@@ -118,6 +124,10 @@ describe("the CLI", () => {
     return root;
   };
 
+  /**
+   * @param {string} root Checkout directory.
+   * @param {string} rel Path relative to the checkout.
+   */
   const read = (root, rel) => fs.readFileSync(path.join(root, rel), "utf-8");
 
   test("rewrites every app's and package's env files and prints the MCP URL", () => {

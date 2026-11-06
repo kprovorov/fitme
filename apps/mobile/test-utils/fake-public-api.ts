@@ -62,6 +62,7 @@ import type {
   MeasurementSystem,
   Place,
 } from "@fitme/core";
+import { z } from "zod";
 
 import { library, libraryExercise } from "./fake-library";
 
@@ -216,174 +217,191 @@ export const slugOf = (name: string) => name.toLowerCase().replaceAll(" ", "-");
 export const libraryExerciseNamed = (name: string) =>
   libraryExercise(slugOf(name), { name });
 
-class FakeRows {
-  profiles: ProfileRow[] = [];
-  plans: SeedPlan[] = [];
-  sessions: SessionRow[] = [];
-  exercises: ExerciseRow[] = [];
-  sets: SetRow[] = [];
-  /**
-   * The User's Weekly goal changes, oldest first, as `GET /v1/weekly-goals`
-   * answers them: seeded by the test (the fake's Plan writes don't record
-   * them; the services do, and their integration tests cover it).
-   */
-  weeklyGoalChanges: { recorded_at: string; target: number | null }[] = [];
-  personalRecords: PersonalRecordRow[] = [];
-  /** Server-calculated result; the real calculation is covered at the service seam. */
-  weeklyStreak = 0;
-  private nextId = 1;
+const nestedPlan = ({
+  deleted_at = null,
+  description,
+  // An explicit `null` is a detail this Plan leaves unset (ADR 0017); a
+  // default only fills in a field the test left out.
+  experience_level = "intermediate",
+  frequency = 3,
+  goal = "strength-performance",
+  id,
+  is_active = false,
+  name,
+  place = "gym",
+  workout_duration = 60,
+  workouts,
+}: SeedPlan) => ({
+  deleted_at,
+  description: description === undefined ? `About ${name}` : description,
+  experience_level,
+  frequency,
+  goal,
+  id,
+  is_active,
+  name,
+  place,
+  workout_duration,
+  workouts: workouts.map((workout, workoutIndex) => ({
+    cover: workout.cover ?? null,
+    exercises: workout.exercises.map((exercise, exerciseIndex) => {
+      const exerciseId = exercise.id ?? `${workout.id}-e${exerciseIndex + 1}`;
 
-  reset() {
-    this.profiles = [];
-    this.plans = [];
-    this.sessions = [];
-    this.exercises = [];
-    this.sets = [];
-    this.weeklyGoalChanges = [];
-    this.personalRecords = [];
-    this.weeklyStreak = 0;
-    this.nextId = 1;
-  }
-
-  id(prefix: string) {
-    const id = `${prefix}-${this.nextId}`;
-    this.nextId += 1;
-
-    return id;
-  }
-
-  /**
-   * Adds a session (of plan `plan-1`, unless `planId` says otherwise); its
-   * exercises get ids `<session>-e<n>` and their sets ids
-   * `<session>-e<n>-s<m>`, both counted from 1.
-   */
-  seed({
-    exercises,
-    finished = false,
-    id,
-    planId = "plan-1",
-    startedAt = "2026-10-08T10:00:00.000Z",
-    userId,
-    workoutId = `workout-of-${id}`,
-  }: SeedSession) {
-    this.sessions.push({
-      finished_at: finished ? "2026-10-08T11:00:00.000Z" : null,
-      id,
-      plan_id: planId,
-      started_at: startedAt,
-      ...(userId ? { user_id: userId } : {}),
-      workout_id: workoutId,
-      workoutName: `Workout ${id}`,
-    });
-    exercises.forEach(({ name, sets, slug }, exerciseIndex) => {
-      const exerciseId = `${id}-e${exerciseIndex + 1}`;
-      this.exercises.push({
-        exercise_slug: slug ?? slugOf(name),
+      return {
+        exercise_slug: exercise.slug,
         id: exerciseId,
         order: exerciseIndex + 1,
-        workout_session_id: id,
-      });
-      sets.forEach((reps, setIndex) => {
-        this.sets.push({
-          id: `${exerciseId}-s${setIndex + 1}`,
-          logged_at: reps === null ? null : "2026-10-08T10:30:00.000Z",
+        sets: (Array.isArray(exercise.sets)
+          ? exercise.sets
+          : Array.from({ length: exercise.sets }, () => DEFAULT_PLAN_SET)
+        ).map((set: SeedPlanSet, setIndex) => ({
+          ...set,
+          id: set.id ?? `${workout.id}-e${exerciseIndex + 1}-s${setIndex + 1}`,
           order: setIndex + 1,
-          reps_completed: reps,
-          reps_recommended: 10,
-          rest_recommended: null,
-          weight_completed: null,
-          weight_recommended: null,
-          workout_session_exercise_id: exerciseId,
-        });
-      });
-    });
-  }
+        })),
+        workout_id: workout.id,
+      };
+    }),
+    id: workout.id,
+    name: workout.name,
+    order: workout.order ?? workoutIndex + 1,
+    plan_id: id,
+  })),
+});
 
-  /** Adds a Profile (metric, unless `overrides` say otherwise). */
-  seedProfile(userId: string, overrides: Partial<ProfileRow> = {}) {
-    this.profiles.push({
-      age: 30,
-      gender: "female",
-      height: 170,
-      measurement_system: "metric",
-      user_id: userId,
-      weight: 60,
-      ...overrides,
-    });
-  }
+const createFakeRows = () => {
+  const profiles: ProfileRow[] = [];
+  const plans: SeedPlan[] = [];
+  const sessions: SessionRow[] = [];
+  const initialExercises: ExerciseRow[] = [];
+  const initialSets: SetRow[] = [];
 
-  profile(userId: string) {
-    return this.profiles.find((profile) => profile.user_id === userId);
-  }
+  const weeklyGoalChanges: { recorded_at: string; target: number | null }[] =
+    [];
 
-  /** Adds a Plan; its Workout Exercises get ids `<workout>-e<n>`. */
-  seedPlan(plan: SeedPlan) {
-    this.plans.push(plan);
-  }
+  const personalRecords: PersonalRecordRow[] = [];
+  let nextId = 1;
 
-  session(id: string) {
-    return this.sessions.find((session) => session.id === id);
-  }
+  return {
+    profiles,
+    plans,
+    sessions,
+    exercises: initialExercises,
+    sets: initialSets,
+    /**
+     * The User's Weekly goal changes, oldest first, as `GET /v1/weekly-goals`
+     * answers them: seeded by the test (the fake's Plan writes don't record
+     * them; the services do, and their integration tests cover it).
+     */
+    weeklyGoalChanges,
+    personalRecords,
+    /** Server-calculated result; the real calculation is covered at the service seam. */
+    weeklyStreak: 0,
 
-  nestedPlan({
-    deleted_at = null,
-    description,
-    // An explicit `null` is a detail this Plan leaves unset (ADR 0017); a
-    // default only fills in a field the test left out.
-    experience_level = "intermediate",
-    frequency = 3,
-    goal = "strength-performance",
-    id,
-    is_active = false,
-    name,
-    place = "gym",
-    workout_duration = 60,
-    workouts,
-  }: SeedPlan) {
-    return {
-      deleted_at,
-      description: description === undefined ? `About ${name}` : description,
-      experience_level,
-      frequency,
-      goal,
+    reset() {
+      this.profiles = [];
+      this.plans = [];
+      this.sessions = [];
+      this.exercises = [];
+      this.sets = [];
+      this.weeklyGoalChanges = [];
+      this.personalRecords = [];
+      this.weeklyStreak = 0;
+      nextId = 1;
+    },
+
+    id(prefix: string) {
+      const id = `${prefix}-${nextId}`;
+      nextId += 1;
+
+      return id;
+    },
+
+    /**
+     * Adds a session (of plan `plan-1`, unless `planId` says otherwise); its
+     * exercises get ids `<session>-e<n>` and their sets ids
+     * `<session>-e<n>-s<m>`, both counted from 1.
+     */
+    seed({
+      exercises,
+      finished = false,
       id,
-      is_active,
-      name,
-      place,
-      workout_duration,
-      workouts: workouts.map((workout, workoutIndex) => ({
-        cover: workout.cover ?? null,
-        exercises: workout.exercises.map((exercise, exerciseIndex) => {
-          const exerciseId =
-            exercise.id ?? `${workout.id}-e${exerciseIndex + 1}`;
+      planId = "plan-1",
+      startedAt = "2026-10-08T10:00:00.000Z",
+      userId,
+      workoutId = `workout-of-${id}`,
+    }: SeedSession) {
+      const session: SessionRow = {
+        finished_at: finished ? "2026-10-08T11:00:00.000Z" : null,
+        id,
+        plan_id: planId,
+        started_at: startedAt,
+        workout_id: workoutId,
+        workoutName: `Workout ${id}`,
+      };
 
-          return {
-            exercise_slug: exercise.slug,
-            id: exerciseId,
-            order: exerciseIndex + 1,
-            sets: (typeof exercise.sets === "number"
-              ? Array.from({ length: exercise.sets }, () => DEFAULT_PLAN_SET)
-              : exercise.sets
-            ).map((set: SeedPlanSet, setIndex) => ({
-              ...set,
-              id:
-                set.id ??
-                `${workout.id}-e${exerciseIndex + 1}-s${setIndex + 1}`,
-              order: setIndex + 1,
-            })),
-            workout_id: workout.id,
-          };
-        }),
-        id: workout.id,
-        name: workout.name,
-        order: workout.order ?? workoutIndex + 1,
-        plan_id: id,
-      })),
-    };
-  }
-}
+      if (userId) {
+        session.user_id = userId;
+      }
 
-export const backend = new FakeRows();
+      this.sessions.push(session);
+
+      for (const [exerciseIndex, { name, sets, slug }] of exercises.entries()) {
+        const exerciseId = `${id}-e${exerciseIndex + 1}`;
+        this.exercises.push({
+          exercise_slug: slug ?? slugOf(name),
+          id: exerciseId,
+          order: exerciseIndex + 1,
+          workout_session_id: id,
+        });
+
+        for (const [setIndex, reps] of sets.entries()) {
+          this.sets.push({
+            id: `${exerciseId}-s${setIndex + 1}`,
+            logged_at: reps === null ? null : "2026-10-08T10:30:00.000Z",
+            order: setIndex + 1,
+            reps_completed: reps,
+            reps_recommended: 10,
+            rest_recommended: null,
+            weight_completed: null,
+            weight_recommended: null,
+            workout_session_exercise_id: exerciseId,
+          });
+        }
+      }
+    },
+
+    /** Adds a Profile (metric, unless `overrides` say otherwise). */
+    seedProfile(userId: string, overrides: Partial<ProfileRow> = {}) {
+      this.profiles.push({
+        age: 30,
+        gender: "female",
+        height: 170,
+        measurement_system: "metric",
+        user_id: userId,
+        weight: 60,
+        ...overrides,
+      });
+    },
+
+    profile(userId: string) {
+      return this.profiles.find((profile) => profile.user_id === userId);
+    },
+
+    /** Adds a Plan; its Workout Exercises get ids `<workout>-e<n>`. */
+    seedPlan(plan: SeedPlan) {
+      this.plans.push(plan);
+    },
+
+    session(id: string) {
+      return this.sessions.find((session) => session.id === id);
+    },
+
+    nestedPlan,
+  };
+};
+
+export const backend = createFakeRows();
 
 export const FAKE_PUBLIC_API_URL = "https://api.test";
 export const FAKE_SESSION_TOKEN = "test-session-token";
@@ -424,7 +442,7 @@ const matchesQuery = (
 
 export interface ReceivedRequest {
   authorization: string | null;
-  body: unknown;
+  body: RequestBody;
   /** The path as sent, e.g. `/v1/workout-sessions/s1/finish`. */
   path: string;
   /** The query string's parameters, e.g. `{ status: "in_progress" }`. */
@@ -456,7 +474,7 @@ const unitsOf = (system: string) =>
     ? { height: "in", weight: "lbs" }
     : { height: "cm", weight: "kg" };
 
-const json = (status: number, body: unknown, headers: HeadersInit = {}) =>
+const json = <T>(status: number, body: T, headers: HeadersInit = {}) =>
   new Response(body === null ? null : JSON.stringify(body), {
     headers: { "Content-Type": "application/json", ...headers },
     status,
@@ -469,6 +487,8 @@ const error = (
   headers?: HeadersInit
 ) => json(status, { error: { code, message } }, headers);
 
+const notFound = (what: string) => error(404, "not_found", `${what} not found`);
+
 const profileBody = (profile: ProfileRow) => {
   const { user_id: _userId, ...fields } = profile;
 
@@ -480,7 +500,7 @@ const convertPlanSets = (factor: number) => {
   for (const plan of backend.plans) {
     for (const workout of plan.workouts) {
       for (const exercise of workout.exercises) {
-        if (typeof exercise.sets === "number") {
+        if (!Array.isArray(exercise.sets)) {
           // The shorthand's sets have no weight to convert.
           continue;
         }
@@ -528,21 +548,41 @@ const hasAtMostBodyDecimals = (value: number) => {
   return Math.abs(scaled - Math.round(scaled)) < 1e-9;
 };
 
-const isBodyValue = (value: unknown, max: number) =>
+const requestBodySchema = z.json();
+
+type RequestBody = z.infer<typeof requestBodySchema> | undefined;
+
+type Body = Record<string, RequestBody>;
+
+const isObject = <T>(value: T): value is T & Body =>
+  typeof value === "object" && value !== null && !Array.isArray(value);
+
+const isInteger = (value: unknown, min: number, max: number): value is number =>
+  typeof value === "number" &&
+  Number.isInteger(value) &&
+  value >= min &&
+  value <= max;
+
+const isText = (value: unknown, max: number, min = 0): value is string =>
+  typeof value === "string" &&
+  value.trim().length >= min &&
+  value.length <= max;
+
+const isBodyValue = (value: unknown, max: number): value is number =>
   typeof value === "number" &&
   value > 0 &&
   value <= max &&
   hasAtMostBodyDecimals(value);
 
 /** The first field `PATCH /v1/profile`'s bounds refuse, if any. */
-const invalidProfileField = (changes: Partial<ProfileRow>) => {
+const invalidProfileField = (changes: Body) => {
   if (changes.age !== undefined && !isInteger(changes.age, MIN_AGE, MAX_AGE)) {
     return "age";
   }
 
   if (
     changes.gender !== undefined &&
-    !(genders as readonly string[]).includes(changes.gender)
+    !genders.some((gender) => gender === changes.gender)
   ) {
     return "gender";
   }
@@ -565,7 +605,7 @@ const invalidProfileField = (changes: Partial<ProfileRow>) => {
 };
 
 /** The 400 for Profile fields out of `PATCH /v1/profile`'s bounds, if any. */
-const profileFieldsError = (changes: Partial<ProfileRow>) => {
+const profileFieldsError = (changes: Body) => {
   const invalid = invalidProfileField(changes);
 
   if (invalid) {
@@ -576,7 +616,7 @@ const profileFieldsError = (changes: Partial<ProfileRow>) => {
 
   if (
     system !== undefined &&
-    !measurementSystems.includes(system as MeasurementSystem)
+    !measurementSystems.some((option) => option === system)
   ) {
     return error(400, "invalid_request", "measurement_system: Invalid option");
   }
@@ -584,13 +624,33 @@ const profileFieldsError = (changes: Partial<ProfileRow>) => {
   return null;
 };
 
+const profileChangesSchema = z.strictObject({
+  age: z.number().optional(),
+  gender: z.enum(genders).optional(),
+  height: z.number().optional(),
+  measurement_system: z.enum(measurementSystems).optional(),
+  weight: z.number().optional(),
+});
+
+const startSessionSchema = z.strictObject({ workout_id: z.string() });
+const sessionExerciseSchema = z.strictObject({ exercise_slug: z.string() });
+
+const completedSetSchema = z.strictObject({
+  reps_completed: z.number().refine(Number.isInteger),
+  weight_completed: z.union([
+    z.number(),
+    z.literal(Infinity),
+    z.literal(-Infinity),
+  ]),
+});
+
 /** Applies `changes` to `profile`, converting to a new system first. */
 const applyProfileChanges = (
   profile: ProfileRow,
-  changes: Partial<ProfileRow>
+  changes: z.infer<typeof profileChangesSchema>
 ) => {
   if (changes.measurement_system !== undefined) {
-    convert(profile, changes.measurement_system as MeasurementSystem);
+    convert(profile, changes.measurement_system);
   }
 
   Object.assign(profile, changes);
@@ -603,18 +663,16 @@ const getProfile = (): Response => {
   return json(200, { data: profile ? profileBody(profile) : null });
 };
 
-const patchProfile = (body: unknown): Response => {
+const patchProfile = (body: RequestBody): Response => {
   if (
-    typeof body !== "object" ||
-    body === null ||
+    !isObject(body) ||
     Object.keys(body).length === 0 ||
     Object.keys(body).some((key) => !PROFILE_FIELDS.has(key))
   ) {
     return error(400, "invalid_request", "Invalid profile changes");
   }
 
-  const changes = body as Partial<ProfileRow>;
-  const invalid = profileFieldsError(changes);
+  const invalid = profileFieldsError(body);
 
   if (invalid) {
     return invalid;
@@ -626,6 +684,7 @@ const patchProfile = (body: unknown): Response => {
     return error(404, "profile_not_found", "Profile not found");
   }
 
+  const changes = profileChangesSchema.parse(body);
   applyProfileChanges(profile, changes);
 
   return json(200, { data: profileBody(profile) });
@@ -635,7 +694,7 @@ const patchProfile = (body: unknown): Response => {
  * `PUT /v1/profile`: every field required, with the PATCH bounds; creates the
  * Profile (201) or replaces it as a PATCH with every field would (200).
  */
-const putProfile = (body: unknown): Response => {
+const putProfile = (body: RequestBody): Response => {
   if (
     !isObject(body) ||
     Object.keys(body).length !== PROFILE_FIELDS.size ||
@@ -644,13 +703,13 @@ const putProfile = (body: unknown): Response => {
     return error(400, "invalid_request", "Invalid profile");
   }
 
-  const whole = body as unknown as Omit<ProfileRow, "user_id">;
-  const invalid = profileFieldsError(whole);
+  const invalid = profileFieldsError(body);
 
   if (invalid) {
     return invalid;
   }
 
+  const whole = profileChangesSchema.required().parse(body);
   const existing = backend.profile(FAKE_USER_ID);
 
   if (existing) {
@@ -664,21 +723,6 @@ const putProfile = (body: unknown): Response => {
 
   return json(201, { data: profileBody(created) });
 };
-
-type Body = Record<string, unknown>;
-
-const isObject = (value: unknown): value is Body =>
-  typeof value === "object" && value !== null && !Array.isArray(value);
-
-const isInteger = (value: unknown, min: number, max: number) =>
-  Number.isInteger(value) &&
-  (value as number) >= min &&
-  (value as number) <= max;
-
-const isText = (value: unknown, max: number, min = 0) =>
-  typeof value === "string" &&
-  value.trim().length >= min &&
-  value.length <= max;
 
 /** The fields of `body` the route's strict schema doesn't know. */
 const unknownFields = (body: Body, fields: readonly string[]) =>
@@ -742,24 +786,25 @@ const PLAN_FIELDS = [
 
 /** A Plan's details as its writes take them, but its description. */
 const hasPlanDetails = (body: Body) =>
-  (experienceLevels as readonly unknown[]).includes(body.experience_level) &&
+  experienceLevels.some((level) => level === body.experience_level) &&
   isInteger(body.frequency, MIN_FREQUENCY, MAX_FREQUENCY) &&
-  (goals as readonly unknown[]).includes(body.goal) &&
+  goals.some((goal) => goal === body.goal) &&
   isText(body.name, MAX_PLAN_NAME_LENGTH, 1) &&
   (body.note === undefined ||
     body.note === null ||
     isText(body.note, MAX_PLAN_TEXT_LENGTH)) &&
-  (places as readonly unknown[]).includes(body.place) &&
+  places.some((place) => place === body.place) &&
   isInteger(body.workout_duration, 1, MAX_WORKOUT_DURATION_MINUTES);
 
 /** `POST /v1/plans`'s schema (`apps/api/src/routes/plans.ts`), the bounds included. */
 const isNewPlan = (
-  body: unknown
-): body is Body & {
-  activate?: boolean;
-  name: string;
-  workouts: NewPlanWorkout[];
-} =>
+  body: RequestBody
+): body is RequestBody &
+  Body & {
+    activate?: boolean;
+    name: string;
+    workouts: NewPlanWorkout[];
+  } =>
   isObject(body) &&
   unknownFields(body, PLAN_FIELDS).length === 0 &&
   (body.activate === undefined || typeof body.activate === "boolean") &&
@@ -769,7 +814,7 @@ const isNewPlan = (
   body.workouts.every(isPlanWorkout);
 
 /** An optional id, as `PUT /v1/plans/{id}`'s body sends a kept row's. */
-const isOptionalId = (id: unknown) =>
+const isOptionalId = (id: unknown): id is string | undefined =>
   id === undefined || (typeof id === "string" && id !== "");
 
 /** A row's fields without its `id`, for the checks the create shares. */
@@ -792,7 +837,9 @@ interface SavedPlanWorkout {
   name: string;
 }
 
-const isSavedPlanExercise = (exercise: unknown) =>
+const isSavedPlanExercise = (
+  exercise: unknown
+): exercise is SavedPlanExercise =>
   isObject(exercise) &&
   isOptionalId(exercise.id) &&
   unknownFields(exercise, ["exercise_slug", "id", "sets"]).length === 0 &&
@@ -803,7 +850,7 @@ const isSavedPlanExercise = (exercise: unknown) =>
     (set) => isObject(set) && isOptionalId(set.id) && isPlanSet(withoutId(set))
   );
 
-const isSavedPlanWorkout = (workout: unknown) =>
+const isSavedPlanWorkout = (workout: unknown): workout is SavedPlanWorkout =>
   isObject(workout) &&
   isOptionalId(workout.id) &&
   unknownFields(workout, ["description", "exercises", "id", "name"]).length ===
@@ -819,13 +866,14 @@ const isSavedPlanWorkout = (workout: unknown) =>
  * row with an optional id, the descriptions optional.
  */
 const isSavedPlan = (
-  body: unknown
-): body is Body & {
-  description?: string;
-  frequency: number;
-  name: string;
-  workouts: SavedPlanWorkout[];
-} =>
+  body: RequestBody
+): body is RequestBody &
+  Body & {
+    description?: string;
+    frequency: number;
+    name: string;
+    workouts: SavedPlanWorkout[];
+  } =>
   isObject(body) &&
   unknownFields(body, PLAN_FIELDS).length === 0 &&
   body.activate === undefined &&
@@ -843,6 +891,9 @@ const isOwn = (plan: SeedPlan) =>
 /** The User's Plan with that id, live or deleted; never another User's. */
 const ownPlan = (planId: string) =>
   backend.plans.find((plan) => plan.id === planId && isOwn(plan));
+
+const weightUnit = () =>
+  unitsOf(backend.profile(FAKE_USER_ID)?.measurement_system ?? "metric").weight;
 
 /**
  * A Plan in full, as `GET /v1/plans/{id}` answers it: Workouts in rotation
@@ -864,7 +915,7 @@ const planBody = (plan: SeedPlan) => {
     updated_at: PLAN_CREATED_AT,
     weight_unit: weightUnit(),
     workouts: workouts
-      .sort((a, b) => a.order - b.order)
+      .toSorted((a, b) => a.order - b.order)
       .map(({ exercises, plan_id: _plan, ...workout }) => ({
         ...workout,
         description: "",
@@ -896,7 +947,7 @@ const listPlans = (): Response =>
   json(200, {
     data: backend.plans
       .filter((plan) => isOwn(plan) && !plan.deleted_at)
-      .reverse()
+      .toReversed()
       .map(planSummaryBody),
   });
 
@@ -914,7 +965,7 @@ const getActivePlan = (): Response => {
 };
 
 /** A live Plan of the User's in full; 404 for a missing, deleted or another User's. */
-const getPlan = (_body: unknown, planId: string): Response => {
+const getPlan = (_body: RequestBody, planId: string): Response => {
   const plan = ownPlan(planId);
 
   if (!plan || plan.deleted_at) {
@@ -929,7 +980,7 @@ const getPlan = (_body: unknown, planId: string): Response => {
  * `failWith` for an outage), then saves the Plan into the fake backend's
  * rows, active unless `activate: false`.
  */
-const createPlan = async (body: unknown): Promise<Response> => {
+const createPlan = async (body: RequestBody): Promise<Response> => {
   if (!isNewPlan(body)) {
     return error(400, "invalid_request", "Invalid plan");
   }
@@ -1040,7 +1091,10 @@ const invalidPlanIds = (plan: SeedPlan, workouts: SavedPlanWorkout[]) => {
  * one left out is gone. New Workouts get no Cover, as the fake's creates
  * don't; whether it's active doesn't change.
  */
-const savePlan = async (body: unknown, planId: string): Promise<Response> => {
+const savePlan = async (
+  body: RequestBody,
+  planId: string
+): Promise<Response> => {
   if (!isSavedPlan(body)) {
     return error(400, "invalid_request", "Invalid plan");
   }
@@ -1121,7 +1175,7 @@ const savePlan = async (body: unknown, planId: string): Promise<Response> => {
 };
 
 /** The Plan becomes active, every other one of the User inactive. */
-const activatePlan = (_body: unknown, planId: string): Response => {
+const activatePlan = (_body: RequestBody, planId: string): Response => {
   const plan = ownPlan(planId);
 
   if (!plan || plan.deleted_at) {
@@ -1136,7 +1190,7 @@ const activatePlan = (_body: unknown, planId: string): Response => {
 };
 
 /** A soft delete; a Plan already deleted answers 204 again. */
-const deletePlan = (_body: unknown, planId: string): Response => {
+const deletePlan = (_body: RequestBody, planId: string): Response => {
   const plan = ownPlan(planId);
 
   if (!plan) {
@@ -1153,8 +1207,6 @@ const FINISHED_AT = "2026-10-08T11:00:00.000Z";
 const LOGGED_AT = "2026-10-08T10:45:00.000Z";
 const STARTED_AT = "2026-10-08T10:00:00.000Z";
 
-const notFound = (what: string) => error(404, "not_found", `${what} not found`);
-
 /** The User's Workout Session with that id; never another User's. */
 const ownSession = (sessionId: string) => {
   const session = backend.session(sessionId);
@@ -1163,9 +1215,6 @@ const ownSession = (sessionId: string) => {
     ? session
     : undefined;
 };
-
-const weightUnit = () =>
-  unitsOf(backend.profile(FAKE_USER_ID)?.measurement_system ?? "metric").weight;
 
 const setBody = ({ workout_session_exercise_id: _exercise, ...set }: SetRow) =>
   set;
@@ -1177,14 +1226,14 @@ const sessionBody = (session: SessionRow) => {
   return {
     exercises: backend.exercises
       .filter((exercise) => exercise.workout_session_id === session.id)
-      .sort((a, b) => a.order - b.order)
+      .toSorted((a, b) => a.order - b.order)
       .map(({ exercise_slug, id, order }) => ({
         exercise_slug,
         id,
         order,
         sets: backend.sets
           .filter((set) => set.workout_session_exercise_id === id)
-          .sort((a, b) => a.order - b.order)
+          .toSorted((a, b) => a.order - b.order)
           .map(setBody),
       })),
     finished_at: session.finished_at,
@@ -1211,7 +1260,7 @@ const SUMMARY_LIMITS = { default: 20, max: 50 } as const;
  * them; an offset past the end is an empty page.
  */
 const listSessions = (
-  _body: unknown,
+  _body: RequestBody,
   _id: string,
   query: URLSearchParams
 ): Response => {
@@ -1236,7 +1285,7 @@ const listSessions = (
         status === "all" ||
         (status === "finished") === (session.finished_at !== null)
     )
-    .sort(
+    .toSorted(
       (a, b) =>
         b.started_at.localeCompare(a.started_at) || a.id.localeCompare(b.id)
     );
@@ -1257,7 +1306,7 @@ const listSessions = (
       personal_records: backend.personalRecords
         .filter((record) => record.workout_session_id === session.id)
         .map(({ workout_session_id: _session, ...record }) => record)
-        .sort((a, b) => a.exercise_slug.localeCompare(b.exercise_slug)),
+        .toSorted((a, b) => a.exercise_slug.localeCompare(b.exercise_slug)),
       set_count: sets.length,
       volume: round2(
         sets.reduce(
@@ -1281,7 +1330,7 @@ const listSessions = (
  * `getWorkoutSession`: the User's Workout Session in full; 404 for a missing
  * or another User's.
  */
-const getSession = (_body: unknown, sessionId: string): Response => {
+const getSession = (_body: RequestBody, sessionId: string): Response => {
   const session = ownSession(sessionId);
 
   return session
@@ -1307,15 +1356,14 @@ const findWorkout = (workoutId: string) => {
  * User has at most one), or starts one copying the Workout's Exercises and
  * sets (201), as `backend.nestedPlan` shows them.
  */
-const startSession = (body: unknown): Response => {
-  const workoutId = (body as { workout_id?: unknown } | undefined)?.workout_id;
+const startSession = (body: RequestBody): Response => {
+  const parsed = startSessionSchema.safeParse(body);
 
-  if (
-    typeof workoutId !== "string" ||
-    Object.keys(body as object).length !== 1
-  ) {
+  if (!parsed.success) {
     return error(400, "invalid_request", "workout_id: Required");
   }
+
+  const { workout_id: workoutId } = parsed.data;
 
   const found = findWorkout(workoutId);
 
@@ -1437,7 +1485,7 @@ const awardPersonalRecords = (sessionId: string) => {
  * records it earned and moves its Workout to the end of its Plan's rotation;
  * a repeat changes nothing.
  */
-const finishSession = (_body: unknown, sessionId: string): Response => {
+const finishSession = (_body: RequestBody, sessionId: string): Response => {
   const session = backend.session(sessionId);
 
   if (!session) {
@@ -1464,19 +1512,14 @@ const finishSession = (_body: unknown, sessionId: string): Response => {
 };
 
 /** `logSet`: only a set of an open Workout Session, with the server's time. */
-const logSet = (body: unknown, setId: string): Response => {
-  const { reps_completed, weight_completed, ...rest } = (body ?? {}) as {
-    reps_completed?: unknown;
-    weight_completed?: unknown;
-  };
+const logSet = (body: RequestBody, setId: string): Response => {
+  const parsed = completedSetSchema.safeParse(body);
 
-  if (
-    !Number.isInteger(reps_completed) ||
-    typeof weight_completed !== "number" ||
-    Object.keys(rest).length > 0
-  ) {
+  if (!parsed.success) {
     return error(400, "invalid_request", "Invalid set");
   }
+
+  const { reps_completed, weight_completed } = parsed.data;
 
   const set = backend.sets.find(({ id }) => id === setId);
 
@@ -1541,18 +1584,18 @@ const refuseFinished = (session: SessionRow) =>
  * open Workout Session's last one (the highest `order` + 1).
  */
 const addSessionExercise = async (
-  body: unknown,
+  body: RequestBody,
   sessionId: string
 ): Promise<Response> => {
-  if (
-    !isObject(body) ||
-    typeof body.exercise_slug !== "string" ||
-    unknownFields(body, ["exercise_slug"]).length > 0
-  ) {
+  const parsed = sessionExerciseSchema.safeParse(body);
+
+  if (!parsed.success) {
     return error(400, "invalid_request", "exercise_slug: Required");
   }
 
-  const refusal = await refuseUnknownSlug(body.exercise_slug);
+  const { exercise_slug: exerciseSlug } = parsed.data;
+
+  const refusal = await refuseUnknownSlug(exerciseSlug);
 
   if (refusal) {
     return refusal;
@@ -1578,7 +1621,7 @@ const addSessionExercise = async (
   );
 
   const exercise = {
-    exercise_slug: body.exercise_slug,
+    exercise_slug: exerciseSlug,
     id: backend.id("added-exercise"),
     order: last + 1,
     workout_session_id: sessionId,
@@ -1625,6 +1668,16 @@ type IndexedChange = PlanUpdateChange & { index: number };
 
 const hasRepeat = (orders: number[]) => new Set(orders).size !== orders.length;
 
+const logged = (sets: SetRow[]) =>
+  sets.filter((set) => set.reps_completed !== null);
+
+const toSet = (set: SetRow, rest: number): PlanUpdateSet => ({
+  // SAFETY: callers select only logged sets, whose reps_completed is non-null.
+  reps: set.reps_completed as number,
+  rest,
+  weight: set.weight_completed ?? 0,
+});
+
 /**
  * `previewPlanUpdate`'s changes (`packages/services/src/plan-update.ts`),
  * matching the Workout Session's Exercises to the Workout's by `order`, each
@@ -1637,7 +1690,7 @@ const planUpdateChanges = (session: SessionRow, workout: PlannedWorkout) => {
       order: exercise.order,
       sets: backend.sets
         .filter((set) => set.workout_session_exercise_id === exercise.id)
-        .sort((a, b) => a.order - b.order),
+        .toSorted((a, b) => a.order - b.order),
       slug: exercise.exercise_slug,
     }));
 
@@ -1660,16 +1713,7 @@ const planUpdateChanges = (session: SessionRow, workout: PlannedWorkout) => {
 
   const orders = [
     ...new Set([...sessionExercises, ...planExercises].map((e) => e.order)),
-  ].sort((a, b) => a - b);
-
-  const logged = (sets: SetRow[]) =>
-    sets.filter((set) => set.reps_completed !== null);
-
-  const toSet = (set: SetRow, rest: number): PlanUpdateSet => ({
-    reps: set.reps_completed as number,
-    rest,
-    weight: set.weight_completed ?? 0,
-  });
+  ].toSorted((a, b) => a - b);
 
   return orders.flatMap((order): IndexedChange[] => {
     const played = sessionExercises.find((e) => e.order === order);
@@ -1797,7 +1841,7 @@ const applyPlanUpdateChanges = (
  */
 const planUpdate =
   (apply: boolean) =>
-  (_body: unknown, sessionId: string): Response => {
+  (_body: RequestBody, sessionId: string): Response => {
     const session = backend.session(sessionId);
 
     if (!session) {
@@ -1868,7 +1912,7 @@ const HISTORY_LIMITS = { default: 20, max: 50 } as const;
  * empty page); `limit` (1–50, default 20) and `offset` as the API reads them.
  */
 const listExerciseHistory = (
-  _body: unknown,
+  _body: RequestBody,
   _id: string,
   query: URLSearchParams
 ): Response => {
@@ -1901,12 +1945,12 @@ const listExerciseHistory = (
             set.workout_session_exercise_id === exercise.id &&
             set.reps_completed !== null
         )
-        .sort((a, b) => a.order - b.order || a.id.localeCompare(b.id));
+        .toSorted((a, b) => a.order - b.order || a.id.localeCompare(b.id));
 
       // An entry with no logged set never shows, nor counts in `total`.
       return session && sets.length > 0 ? [{ exercise, session, sets }] : [];
     })
-    .sort(
+    .toSorted(
       (a, b) =>
         b.session.started_at.localeCompare(a.session.started_at) ||
         b.session.id.localeCompare(a.session.id) ||
@@ -1945,7 +1989,7 @@ const listExerciseHistory = (
  * `removeExerciseFromWorkoutSession`: deletes the Exercise and its sets,
  * leaving the others' `order` (the gap stays); 204 whether or not it matched.
  */
-const removeSessionExercise = (_body: unknown, exerciseId: string) => {
+const removeSessionExercise = (_body: RequestBody, exerciseId: string) => {
   const exercise = backend.exercises.find(({ id }) => id === exerciseId);
   const session = exercise && backend.session(exercise.workout_session_id);
 
@@ -1972,18 +2016,18 @@ const removeSessionExercise = (_body: unknown, exerciseId: string) => {
  * set's targets, keeping what was logged.
  */
 const replaceSessionExercise = async (
-  body: unknown,
+  body: RequestBody,
   exerciseId: string
 ): Promise<Response> => {
-  if (
-    !isObject(body) ||
-    typeof body.exercise_slug !== "string" ||
-    unknownFields(body, ["exercise_slug"]).length > 0
-  ) {
+  const parsed = sessionExerciseSchema.safeParse(body);
+
+  if (!parsed.success) {
     return error(400, "invalid_request", "exercise_slug: Required");
   }
 
-  const refusal = await refuseUnknownSlug(body.exercise_slug);
+  const { exercise_slug: exerciseSlug } = parsed.data;
+
+  const refusal = await refuseUnknownSlug(exerciseSlug);
 
   if (refusal) {
     return refusal;
@@ -2002,11 +2046,11 @@ const replaceSessionExercise = async (
     return notOpen;
   }
 
-  exercise.exercise_slug = body.exercise_slug;
+  exercise.exercise_slug = exerciseSlug;
 
   const sets = backend.sets
     .filter((set) => set.workout_session_exercise_id === exerciseId)
-    .sort((a, b) => a.order - b.order);
+    .toSorted((a, b) => a.order - b.order);
 
   for (const set of sets) {
     Object.assign(set, { reps_recommended: 0, weight_recommended: 0 });
@@ -2023,21 +2067,14 @@ const replaceSessionExercise = async (
  * `addSetToWorkoutSessionExercise`: appends a set logged with the server's
  * time and no targets, after the Workout Session Exercise's last one.
  */
-const addSessionSet = (body: unknown, exerciseId: string): Response => {
-  if (!isObject(body)) {
+const addSessionSet = (body: RequestBody, exerciseId: string): Response => {
+  const parsed = completedSetSchema.safeParse(body);
+
+  if (!parsed.success) {
     return error(400, "invalid_request", "Invalid set");
   }
 
-  const { reps_completed, weight_completed } = body;
-
-  if (
-    typeof reps_completed !== "number" ||
-    !Number.isInteger(reps_completed) ||
-    typeof weight_completed !== "number" ||
-    unknownFields(body, ["reps_completed", "weight_completed"]).length > 0
-  ) {
-    return error(400, "invalid_request", "Invalid set");
-  }
+  const { reps_completed, weight_completed } = parsed.data;
 
   const exercise = backend.exercises.find(({ id }) => id === exerciseId);
   const session = exercise && backend.session(exercise.workout_session_id);
@@ -2094,7 +2131,7 @@ const listArnoldModels = () =>
   });
 
 type Handler = (
-  body: unknown,
+  body: RequestBody,
   id: string,
   query: URLSearchParams
 ) => Promise<Response> | Response;
@@ -2110,122 +2147,122 @@ const ROUTES: {
   {
     handler: listArnoldModels,
     isPublic: true,
-    path: /^\/v1\/arnold\/models$/,
+    path: /^\/v1\/arnold\/models$/u,
     route: "GET /v1/arnold/models",
   },
   {
     handler: getProfile,
-    path: /^\/v1\/profile$/,
+    path: /^\/v1\/profile$/u,
     route: "GET /v1/profile",
   },
   {
     handler: patchProfile,
-    path: /^\/v1\/profile$/,
+    path: /^\/v1\/profile$/u,
     route: "PATCH /v1/profile",
   },
   {
     handler: putProfile,
-    path: /^\/v1\/profile$/,
+    path: /^\/v1\/profile$/u,
     route: "PUT /v1/profile",
   },
   {
     handler: listPlans,
-    path: /^\/v1\/plans$/,
+    path: /^\/v1\/plans$/u,
     route: "GET /v1/plans",
   },
   {
     handler: createPlan,
-    path: /^\/v1\/plans$/,
+    path: /^\/v1\/plans$/u,
     route: "POST /v1/plans",
   },
   {
     handler: getActivePlan,
-    path: /^\/v1\/plans\/active$/,
+    path: /^\/v1\/plans\/active$/u,
     route: "GET /v1/plans/active",
   },
   {
     handler: activatePlan,
-    path: /^\/v1\/plans\/(?<id>[^/]+)\/activate$/,
+    path: /^\/v1\/plans\/(?<id>[^/]+)\/activate$/u,
     route: "POST /v1/plans/{id}/activate",
   },
   {
     handler: deletePlan,
-    path: /^\/v1\/plans\/(?<id>[^/]+)$/,
+    path: /^\/v1\/plans\/(?<id>[^/]+)$/u,
     route: "DELETE /v1/plans/{id}",
   },
   {
     handler: getPlan,
-    path: /^\/v1\/plans\/(?<id>[^/]+)$/,
+    path: /^\/v1\/plans\/(?<id>[^/]+)$/u,
     route: "GET /v1/plans/{id}",
   },
   {
     handler: savePlan,
-    path: /^\/v1\/plans\/(?<id>[^/]+)$/,
+    path: /^\/v1\/plans\/(?<id>[^/]+)$/u,
     route: "PUT /v1/plans/{id}",
   },
   {
     handler: listWeeklyGoals,
-    path: /^\/v1\/weekly-goals$/,
+    path: /^\/v1\/weekly-goals$/u,
     route: "GET /v1/weekly-goals",
   },
   {
     handler: listSessions,
-    path: /^\/v1\/workout-sessions$/,
+    path: /^\/v1\/workout-sessions$/u,
     route: "GET /v1/workout-sessions",
   },
   {
     handler: startSession,
-    path: /^\/v1\/workout-sessions$/,
+    path: /^\/v1\/workout-sessions$/u,
     route: "POST /v1/workout-sessions",
   },
   {
     handler: getSession,
-    path: /^\/v1\/workout-sessions\/(?<id>[^/]+)$/,
+    path: /^\/v1\/workout-sessions\/(?<id>[^/]+)$/u,
     route: "GET /v1/workout-sessions/{id}",
   },
   {
     handler: finishSession,
-    path: /^\/v1\/workout-sessions\/(?<id>[^/]+)\/finish$/,
+    path: /^\/v1\/workout-sessions\/(?<id>[^/]+)\/finish$/u,
     route: "POST /v1/workout-sessions/{id}/finish",
   },
   {
     handler: addSessionExercise,
-    path: /^\/v1\/workout-sessions\/(?<id>[^/]+)\/exercises$/,
+    path: /^\/v1\/workout-sessions\/(?<id>[^/]+)\/exercises$/u,
     route: "POST /v1/workout-sessions/{id}/exercises",
   },
   {
     handler: planUpdate(false),
-    path: /^\/v1\/workout-sessions\/(?<id>[^/]+)\/plan-update$/,
+    path: /^\/v1\/workout-sessions\/(?<id>[^/]+)\/plan-update$/u,
     route: "GET /v1/workout-sessions/{id}/plan-update",
   },
   {
     handler: planUpdate(true),
-    path: /^\/v1\/workout-sessions\/(?<id>[^/]+)\/plan-update$/,
+    path: /^\/v1\/workout-sessions\/(?<id>[^/]+)\/plan-update$/u,
     route: "POST /v1/workout-sessions/{id}/plan-update",
   },
   {
     handler: listExerciseHistory,
-    path: /^\/v1\/workout-session-exercises$/,
+    path: /^\/v1\/workout-session-exercises$/u,
     route: "GET /v1/workout-session-exercises",
   },
   {
     handler: removeSessionExercise,
-    path: /^\/v1\/workout-session-exercises\/(?<id>[^/]+)$/,
+    path: /^\/v1\/workout-session-exercises\/(?<id>[^/]+)$/u,
     route: "DELETE /v1/workout-session-exercises/{id}",
   },
   {
     handler: replaceSessionExercise,
-    path: /^\/v1\/workout-session-exercises\/(?<id>[^/]+)$/,
+    path: /^\/v1\/workout-session-exercises\/(?<id>[^/]+)$/u,
     route: "PUT /v1/workout-session-exercises/{id}",
   },
   {
     handler: addSessionSet,
-    path: /^\/v1\/workout-session-exercises\/(?<id>[^/]+)\/sets$/,
+    path: /^\/v1\/workout-session-exercises\/(?<id>[^/]+)\/sets$/u,
     route: "POST /v1/workout-session-exercises/{id}/sets",
   },
   {
     handler: logSet,
-    path: /^\/v1\/workout-session-sets\/(?<id>[^/]+)$/,
+    path: /^\/v1\/workout-session-sets\/(?<id>[^/]+)$/u,
     route: "PATCH /v1/workout-session-sets/{id}",
   },
 ];
@@ -2288,18 +2325,15 @@ class FakePublicApi {
    * the returned function is called, like a slow connection.
    */
   pause(route: Route, query?: QueryMatch) {
-    let resume!: () => void;
-
-    const resumed = new Promise<void>((resolve) => {
-      resume = resolve;
-    });
+    const { promise: resumed, resolve: resume } =
+      Promise.withResolvers<undefined>();
 
     const pause = { query, resumed, route };
     this.pauses.push(pause);
 
     return () => {
       this.pauses = this.pauses.filter((other) => other !== pause);
-      resume();
+      resume(undefined);
     };
   }
 
@@ -2331,9 +2365,12 @@ class FakePublicApi {
     const { route } = matched;
     const authorization = new Headers(init.headers).get("Authorization");
 
+    const encoded = z.string().safeParse(init.body);
+
+    // SAFETY: JSON.parse decodes the string into the RequestBody JSON value contract.
     const body =
-      typeof init.body === "string" && init.body !== ""
-        ? (JSON.parse(init.body) as unknown)
+      encoded.success && encoded.data !== ""
+        ? (JSON.parse(encoded.data) as RequestBody)
         : undefined;
 
     const query = Object.fromEntries(searchParams);
@@ -2343,7 +2380,9 @@ class FakePublicApi {
       held.route === route && matchesQuery(query, held.query);
 
     // Answers on a later macrotask, like a network response.
-    await new Promise((resolve) => setTimeout(resolve, 0));
+    const { promise, resolve } = Promise.withResolvers<undefined>();
+    setTimeout(resolve, 0);
+    await promise;
     await this.pauses.find(matches)?.resumed;
 
     const queued = this.failures.find(matches);
@@ -2384,7 +2423,7 @@ class FakePublicApi {
   private answer(
     { handler, id, isPublic, route }: ReturnType<typeof match>,
     authorization: string | null,
-    body: unknown,
+    body: RequestBody,
     query: URLSearchParams
   ) {
     if (!handler) {

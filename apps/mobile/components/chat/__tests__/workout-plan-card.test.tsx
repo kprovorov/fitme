@@ -294,7 +294,7 @@ describe(WorkoutPlanCard, () => {
       frequency: number;
       workout_duration: number;
       workouts: {
-        exercises: Array<{ sets: unknown[] }>;
+        exercises: { sets: unknown[] }[];
         name: string;
       }[];
     };

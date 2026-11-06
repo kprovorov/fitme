@@ -9,13 +9,12 @@ import {
   ZStack,
 } from "@expo/ui/swift-ui";
 import type { ButtonRole } from "@expo/ui/swift-ui";
+import * as swiftUIModifiers from "@expo/ui/swift-ui/modifiers";
 import {
   accessibilityHint as accessibilityHintModifier,
   accessibilityLabel as accessibilityLabelModifier,
   background,
-  buttonBorderShape,
   buttonStyle,
-  contentShape,
   controlSize,
   disabled as disabledModifier,
   fixedSize,
@@ -24,7 +23,6 @@ import {
   frame,
   opacity,
   padding,
-  shapes,
   tint,
 } from "@expo/ui/swift-ui/modifiers";
 import type { ViewModifier } from "@expo/ui/swift-ui/modifiers";
@@ -50,7 +48,7 @@ type ButtonVariant = "default" | "secondary" | "destructive" | "ghost";
 
 type ButtonSize = "sm" | "default" | "lg";
 
-type ButtonShape = "pill" | "circle";
+type ButtonGeometry = "pill" | "circle";
 
 type ButtonIconPosition = "leading" | "trailing";
 
@@ -108,7 +106,7 @@ const LABEL_FONT_CLASS: Record<ButtonSize, string> = {
  * content is sized to land the button on it (`frameModifiers`); a ghost button
  * has no style, so it takes the token itself.
  */
-const SIZE_CLASS: Record<ButtonShape, Record<ButtonSize, string>> = {
+const SIZE_CLASS: Record<ButtonGeometry, Record<ButtonSize, string>> = {
   circle: {
     default: "size-button-circle-default",
     lg: "size-button-circle-lg",
@@ -173,13 +171,13 @@ interface ButtonBaseProps {
 }
 
 /** A capsule with a label, and optionally an icon before or after it. */
-interface PillBaseProps extends ButtonBaseProps {
+interface PillBaseProps
+  extends ButtonBaseProps, Partial<Record<"shape", "pill">> {
   /** VoiceOver label, when the visible one doesn't say enough. */
   accessibilityLabel?: string;
   /** SF Symbol drawn next to the label. */
   icon?: SFSymbol;
   iconPosition?: ButtonIconPosition;
-  shape?: "pill";
 }
 
 /**
@@ -200,14 +198,13 @@ type PillButtonProps = PillBaseProps &
   );
 
 /** An icon on its own. It has no visible text, so VoiceOver needs a label. */
-interface CircleButtonProps extends ButtonBaseProps {
+interface CircleButtonProps extends ButtonBaseProps, Record<"shape", "circle"> {
   accessibilityLabel: string;
   children?: never;
   /** SF Symbol, the circle's only content. */
   icon: SFSymbol;
   iconPosition?: never;
   label?: never;
-  shape: "circle";
 }
 
 type ButtonProps = PillButtonProps | CircleButtonProps;
@@ -217,10 +214,10 @@ type ButtonProps = PillButtonProps | CircleButtonProps;
  * variant's. SwiftUI's prominent button styles force a white label; the app's
  * lime primary needs a dark one, so the content always states its own color.
  */
-function useContentColor(
+const useContentColor = (
   variant: ButtonVariant,
   colorClassName: string | undefined
-): string {
+): string => {
   const theme = useSwiftUITheme();
   // A Button can drop its color class (a set row's muted pencil turning into
   // its ✓), so this answers nothing once it has none.
@@ -235,10 +232,10 @@ function useContentColor(
       secondary: theme.secondaryForeground,
     }[variant]
   );
-}
+};
 
 /** The button's own modifiers: native style, shape, size, state and labels. */
-function buttonModifiers({
+const buttonModifiers = ({
   accessibilityHint,
   accessibilityLabel,
   disabled,
@@ -256,7 +253,7 @@ function buttonModifiers({
   size: ButtonSize;
   tintColor: string;
   variant: ButtonVariant;
-}): ViewModifier[] {
+}): ViewModifier[] => {
   const styles = GLASS_ENABLED ? GLASS_BUTTON_STYLE : SOLID_BUTTON_STYLE;
 
   // A painted circle draws its own fill, so the button itself stays plain.
@@ -268,7 +265,7 @@ function buttonModifiers({
     style,
     ...(paintsCircle
       ? []
-      : [buttonBorderShape(isCircle ? "circle" : "capsule")]),
+      : [swiftUIModifiers.buttonBorderShape(isCircle ? "circle" : "capsule")]),
     controlSize(SWIFT_UI_CONTROL_SIZE[size]),
     tint(tintColor),
     ...(disabled ? [disabledModifier(true)] : []),
@@ -279,7 +276,7 @@ function buttonModifiers({
       ? [accessibilityHintModifier(accessibilityHint)]
       : []),
   ];
-}
+};
 
 /**
  * Sizes the content so the button lands on the token. A native style pads
@@ -292,7 +289,7 @@ function buttonModifiers({
  * a circle can't get its shape from the style, so it's framed at the token's
  * diameter and paints its own circle (`fill`; none for ghost).
  */
-function frameModifiers({
+const frameModifiers = ({
   fill,
   hasText,
   isCircle,
@@ -308,7 +305,7 @@ function frameModifiers({
   size: ButtonSize;
   tokenHeight: number | undefined;
   variant: ButtonVariant;
-}): ViewModifier[] {
+}): ViewModifier[] => {
   if (tokenHeight === undefined) {
     return [];
   }
@@ -332,11 +329,14 @@ function frameModifiers({
   return isCircle
     ? [
         frame({ height: tokenHeight, width: tokenHeight }),
-        ...(fill ? [background(fill, shapes.circle())] : []),
-        contentShape(shapes.circle()),
+        ...(fill ? [background(fill, swiftUIModifiers.shapes.circle())] : []),
+        swiftUIModifiers.contentShape(swiftUIModifiers.shapes.circle()),
       ]
-    : [frame({ minHeight: tokenHeight }), contentShape(shapes.capsule())];
-}
+    : [
+        frame({ minHeight: tokenHeight }),
+        swiftUIModifiers.contentShape(swiftUIModifiers.shapes.capsule()),
+      ];
+};
 
 const Button = (props: ButtonProps) => {
   const {
@@ -352,21 +352,21 @@ const Button = (props: ButtonProps) => {
     isLoading = false,
     label: labelProp,
     onPress,
-    shape = "pill",
     size = "default",
     testID,
     variant = "default",
   } = props;
 
-  const isCircle = shape === "circle";
+  const geometry = props.shape ?? "pill";
+  const isCircle = geometry === "circle";
   const paintsCircle = isCircle && !NATIVE_CIRCLE_ENABLED;
 
   const theme = useSwiftUITheme();
   const labelFont = useSwiftUIFont(LABEL_FONT_CLASS[size]);
 
-  const tokenHeight = useResolveClassNames(SIZE_CLASS[shape][size]).height as
-    | number
-    | undefined;
+  // SAFETY: SIZE_CLASS uses only button size tokens with numeric pixel heights.
+  const tokenHeight = useResolveClassNames(SIZE_CLASS[geometry][size])
+    .height as number | undefined;
 
   const contentColor = useContentColor(variant, contentColorClassName);
 
@@ -546,7 +546,7 @@ Button.displayName = "Button";
 export type {
   ButtonIconPosition,
   ButtonProps,
-  ButtonShape,
+  ButtonGeometry as "ButtonShape",
   ButtonSize,
   ButtonVariant,
   CircleButtonProps,

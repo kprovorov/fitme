@@ -3,7 +3,7 @@ import { createHash, timingSafeEqual } from "node:crypto";
 import { verifyToken } from "@clerk/backend";
 import { TokenVerificationError } from "@clerk/backend/errors";
 import { createMiddleware } from "hono/factory";
-import type { z } from "zod";
+import { z } from "zod";
 
 import type { ErrorResponse } from "./schemas";
 
@@ -41,7 +41,7 @@ export const serverSecretsFromEnv = (
 /** The OpenAPI security scheme every content route declares. */
 export const BEARER_AUTH = "bearerAuth";
 
-const BEARER = /^Bearer (\S+)$/i;
+const BEARER = /^Bearer (?<token>\S+)$/iu;
 
 // Anything shorter isn't a generated secret (`openssl rand -hex 32` is 64).
 const MIN_SECRET_LENGTH = 32;
@@ -63,14 +63,14 @@ const verifyClerkToken = async (token: string, jwtKey: string) => {
 
     // Only a session token carries its session (`sid`): a JWT template's
     // token doesn't, and stays valid after the session ends.
-    if (typeof sid !== "string") {
-      return "no-session";
+    if (!z.string().safeParse(sid).success) {
+      return { success: false as const, reason: "no-session" };
     }
 
-    return { userId: sub };
+    return { success: true as const, userId: sub };
   } catch (error) {
     if (error instanceof TokenVerificationError) {
-      return error.reason;
+      return { success: false as const, reason: error.reason };
     }
 
     throw error;
@@ -97,7 +97,7 @@ export const requireCaller = ({ clerkJwtKeys, serverSecrets }: AuthConfig) => {
   });
 
   return createMiddleware<AuthEnv>(async (c, next) => {
-    const token = c.req.header("authorization")?.match(BEARER)?.[1];
+    const token = c.req.header("authorization")?.match(BEARER)?.groups?.token;
 
     if (token) {
       // Compared as digests: equal length, constant time.
@@ -117,7 +117,7 @@ export const requireCaller = ({ clerkJwtKeys, serverSecrets }: AuthConfig) => {
         jwtKeys.map((jwtKey) => verifyClerkToken(token, jwtKey))
       );
 
-      const verified = results.find((result) => typeof result !== "string");
+      const verified = results.find((result) => result.success);
 
       if (verified) {
         c.set("caller", { type: "user", userId: verified.userId });
@@ -127,9 +127,8 @@ export const requireCaller = ({ clerkJwtKeys, serverSecrets }: AuthConfig) => {
 
       // A wrong Clerk key fails every token the same way a forged one does,
       // so log why: a burst of these points at the keys.
-      console.warn(
-        `Rejected bearer token: ${results.join(", ") || "no Clerk key"}`
-      );
+      const reasons = results.map((result) => result.reason).join(", ");
+      console.warn(`Rejected bearer token: ${reasons || "no Clerk key"}`);
     }
 
     return c.json(unauthorized, 401);

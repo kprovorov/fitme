@@ -12,7 +12,8 @@ import {
   unauthorizedResponse,
 } from "../schemas.js";
 
-const IANA_TIME_ZONE = /^[A-Za-z_]+(?:\/[A-Za-z0-9_+-]+)*$/;
+const IANA_TIME_ZONE = /^[A-Za-z_]+(?:\/[A-Za-z0-9_+-]+)*$/u;
+const timeZoneFormatters = new Map<string, Intl.DateTimeFormat>();
 
 const WeeklyGoalChange = z
   .object({
@@ -68,9 +69,14 @@ const listWeeklyGoals = createRoute({
           }
 
           try {
-            new Intl.DateTimeFormat("en", {
-              timeZone: value,
-            }).resolvedOptions();
+            const formatter =
+              timeZoneFormatters.get(value) ??
+              new Intl.DateTimeFormat("en", {
+                timeZone: value,
+              });
+
+            timeZoneFormatters.set(value, formatter);
+            formatter.resolvedOptions();
 
             return true;
           } catch {

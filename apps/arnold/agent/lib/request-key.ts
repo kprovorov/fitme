@@ -1,8 +1,20 @@
 import { createHash } from "node:crypto";
 
+import type {
+  WorkoutExerciseInput,
+  WorkoutExerciseSetInput,
+} from "@fitme/core";
 import type { ToolContext } from "eve/tools";
 
-const sha256 = (value: unknown) =>
+type WorkoutEditInput =
+  | (WorkoutExerciseInput & { workout_id: string })
+  | (WorkoutExerciseSetInput & { workout_exercise_id: string });
+
+type RequestKeyPayload =
+  | [string, string, number, string, WorkoutEditInput]
+  | [string, number];
+
+const sha256 = (value: RequestKeyPayload) =>
   createHash("sha256").update(JSON.stringify(value)).digest("hex");
 
 /**
@@ -29,7 +41,10 @@ const attempts = new WeakMap<object, Map<string, string[]>>();
  * re-run whose model asks with different input appends again, as `ai-agent`
  * always did.
  */
-export const requestKey = (ctx: ToolContext, input: unknown): string => {
+export const requestKey = (
+  ctx: ToolContext,
+  input: WorkoutEditInput
+): string => {
   const call = sha256([
     ctx.session.id,
     ctx.session.turn.id,

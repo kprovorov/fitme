@@ -35,24 +35,24 @@ export const viewport: Viewport = {
   colorScheme: "dark",
 };
 
-export default function RootLayout({
+const RootLayout = ({
   children,
 }: Readonly<{
   children: React.ReactNode;
-}>) {
-  return (
-    <html
-      className={`${nunitoSans.variable} motion-safe:scroll-smooth`}
-      lang="en"
-    >
-      <GoogleTagManager gtmId={process.env.NEXT_PUBLIC_GTM_ID || ""} />
-      <body className="antialiased">
-        <Header />
-        <MainBox>{children}</MainBox>
-        <Footer />
-        <Analytics />
-        <SpeedInsights />
-      </body>
-    </html>
-  );
-}
+}>) => (
+  <html
+    className={`${nunitoSans.variable} motion-safe:scroll-smooth`}
+    lang="en"
+  >
+    <GoogleTagManager gtmId={process.env.NEXT_PUBLIC_GTM_ID || ""} />
+    <body className="antialiased">
+      <Header />
+      <MainBox>{children}</MainBox>
+      <Footer />
+      <Analytics />
+      <SpeedInsights />
+    </body>
+  </html>
+);
+
+export default RootLayout;

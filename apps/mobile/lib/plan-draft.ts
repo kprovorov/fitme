@@ -174,8 +174,7 @@ const newDraftKey = (): string => {
 const choice = <TChoice extends string>(
   choices: readonly TChoice[],
   value: string | null
-): TChoice | null =>
-  choices.includes(value as TChoice) ? (value as TChoice) : null;
+): TChoice | null => choices.find((candidate) => candidate === value) ?? null;
 
 const draftWorkout = (workout: PlanWorkout): DraftWorkout => ({
   description: workout.description,
@@ -331,21 +330,44 @@ export const savePlanBody = (draft: SavablePlanDraft): SavedPlanBody => ({
   note: draft.note,
   place: draft.place,
   workout_duration: draft.workoutDuration,
-  workouts: draft.workouts.map((workout) => ({
-    ...textOrNothing(workout.description),
-    exercises: workout.exercises.map((exercise) => ({
-      exercise_slug: exercise.exerciseSlug,
-      ...(exercise.id === undefined ? {} : { id: exercise.id }),
-      sets: exercise.sets.map((set) => ({
-        ...(set.id === undefined ? {} : { id: set.id }),
-        reps_recommended: set.reps,
-        rest_recommended: set.rest,
-        weight_recommended: set.weight,
-      })),
-    })),
-    ...(workout.id === undefined ? {} : { id: workout.id }),
-    name: workout.name.trim(),
-  })),
+  workouts: draft.workouts.map((workout) => {
+    const savedWorkout: SavedPlanBody["workouts"][number] = {
+      ...textOrNothing(workout.description),
+      exercises: workout.exercises.map((exercise) => {
+        const savedExercise: SavedPlanBody["workouts"][number]["exercises"][number] =
+          {
+            exercise_slug: exercise.exerciseSlug,
+            sets: exercise.sets.map((set) => {
+              const savedSet: SavedPlanBody["workouts"][number]["exercises"][number]["sets"][number] =
+                {
+                  reps_recommended: set.reps,
+                  rest_recommended: set.rest,
+                  weight_recommended: set.weight,
+                };
+
+              if (set.id !== undefined) {
+                savedSet.id = set.id;
+              }
+
+              return savedSet;
+            }),
+          };
+
+        if (exercise.id !== undefined) {
+          savedExercise.id = exercise.id;
+        }
+
+        return savedExercise;
+      }),
+      name: workout.name.trim(),
+    };
+
+    if (workout.id !== undefined) {
+      savedWorkout.id = workout.id;
+    }
+
+    return savedWorkout;
+  }),
 });
 
 /**
@@ -365,27 +387,27 @@ const savedIdsByKey = (
     return ids;
   }
 
-  sent.workouts.forEach((workout, at) => {
+  for (const [at, workout] of sent.workouts.entries()) {
     const savedWorkout = saved.workouts[at];
     ids.set(workout.key, savedWorkout.id);
 
     if (savedWorkout.exercises.length !== workout.exercises.length) {
-      return;
+      continue;
     }
 
-    workout.exercises.forEach((exercise, index) => {
+    for (const [index, exercise] of workout.exercises.entries()) {
       const savedExercise = savedWorkout.exercises[index];
       ids.set(exercise.key, savedExercise.id);
 
       if (savedExercise.sets.length !== exercise.sets.length) {
-        return;
+        continue;
       }
 
-      exercise.sets.forEach((set, position) => {
+      for (const [position, set] of exercise.sets.entries()) {
         ids.set(set.key, savedExercise.sets[position].id);
-      });
-    });
-  });
+      }
+    }
+  }
 
   return ids;
 };
@@ -497,10 +519,7 @@ export const canAddDraftWorkout = (draft: PlanDraft) =>
  * rotation, and its key, so the caller can open it. The Plan's cap is the
  * caller's to check (`canAddDraftWorkout` disables Add).
  */
-export const addDraftWorkout = (
-  draft: PlanDraft,
-  name: string
-): { draft: PlanDraft; key: string } => {
+export const addDraftWorkout = (draft: PlanDraft, name: string) => {
   const workout: DraftWorkout = {
     description: "",
     exercises: [],

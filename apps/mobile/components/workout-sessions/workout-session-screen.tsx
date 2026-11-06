@@ -14,7 +14,6 @@ import { WorkoutSessionFinishSuggestion } from "~/components/workout-sessions/wo
 import WorkoutSessionStats from "~/components/workout-sessions/workout-session-stats";
 import { useFinishWorkoutSession } from "~/hooks/finish-workout-session";
 import { useWorkoutSessionQuery } from "~/hooks/queries/workout-sessions";
-import { cn } from "~/lib/utils";
 
 /** Space kept between a focused set input and the keyboard. */
 const KEYBOARD_BOTTOM_OFFSET = 62;
@@ -31,9 +30,7 @@ interface WorkoutSessionScreenProps {
  * card per exercise whose sets are logged right there. Both session routes
  * (from a plan, and `/workout-sessions/:id`) render it.
  */
-export default function WorkoutSessionScreen({
-  sessionId,
-}: WorkoutSessionScreenProps) {
+const WorkoutSessionScreen = ({ sessionId }: WorkoutSessionScreenProps) => {
   const { t } = useTranslation();
   const insets = useSafeAreaInsets();
   const { fontScale } = useWindowDimensions();
@@ -62,27 +59,31 @@ export default function WorkoutSessionScreen({
     if (workoutSession) {
       return (
         <>
-          <Card className="gap-sm" variant="ghost">
-            <View
-              className={
-                stacked ? "gap-sm items-start" : "gap-sm flex-row items-center"
-              }
-            >
-              <H4 className={cn("text-primary", !stacked && "flex-1")}>
-                {workoutSession.workout?.name}
-              </H4>
-              {canFinish ? (
-                <Button
-                  fill={false}
-                  isLoading={isFinishing}
-                  label={t("workoutSession.finish")}
-                  onPress={confirmFinish}
-                  size="sm"
-                  testID="finish-workout-button"
-                />
-              ) : null}
+          <Card variant="ghost">
+            <View className="gap-sm">
+              <View
+                className={
+                  stacked
+                    ? "gap-sm items-start"
+                    : "gap-sm flex-row items-center"
+                }
+              >
+                <H4 className={stacked ? undefined : "flex-1"}>
+                  {workoutSession.workout?.name}
+                </H4>
+                {canFinish ? (
+                  <Button
+                    fill={false}
+                    isLoading={isFinishing}
+                    label={t("workoutSession.finish")}
+                    onPress={confirmFinish}
+                    size="sm"
+                    testID="finish-workout-button"
+                  />
+                ) : null}
+              </View>
+              <WorkoutSessionStats workoutSession={workoutSession} />
             </View>
-            <WorkoutSessionStats workoutSession={workoutSession} />
           </Card>
           <WorkoutSessionView
             sessionId={sessionId}
@@ -136,4 +137,6 @@ export default function WorkoutSessionScreen({
       />
     </>
   );
-}
+};
+
+export default WorkoutSessionScreen;

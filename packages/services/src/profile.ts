@@ -64,7 +64,7 @@ export const getProfile = async (
     .from(profiles)
     .where(eq(profiles.userId, userId));
 
-  if (!profile) {
+  if (profile === undefined) {
     return null;
   }
 
@@ -97,7 +97,7 @@ export const lockProfileUnits = async (
     .where(eq(profiles.userId, userId))
     .for("share");
 
-  return profile ? unitsFor(profile.measurementSystem) : null;
+  return profile === undefined ? null : unitsFor(profile.measurementSystem);
 };
 
 /** Fields of a Profile to change; omitted ones stay as they are. */
@@ -229,7 +229,7 @@ export const updateProfile = async (
   const { measurement_system: newSystem } = changes;
 
   if (newSystem !== undefined && !isKnownSystem(newSystem)) {
-    throw new Error(`Invalid measurement system: ${newSystem}`);
+    throw new Error(`Invalid measurement system: ${String(newSystem)}`);
   }
 
   // A no-op UPDATE: row-locks the Profile (taking the table lock the writes
@@ -242,7 +242,7 @@ export const updateProfile = async (
     .where(eq(profiles.userId, userId))
     .returning({ measurementSystem: profiles.measurementSystem });
 
-  if (!current) {
+  if (current === undefined) {
     return null;
   }
 
@@ -301,7 +301,7 @@ export const replaceProfile = async (
 ): Promise<{ created: boolean; profile: ProfileWithUnits }> => {
   if (!isKnownSystem(profile.measurement_system)) {
     throw new Error(
-      `Invalid measurement system: ${profile.measurement_system}`
+      `Invalid measurement system: ${String(profile.measurement_system)}`
     );
   }
 

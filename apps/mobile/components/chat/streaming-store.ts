@@ -5,7 +5,7 @@ export interface StreamingStore {
   subscribe: (listener: () => void) => () => void;
 }
 
-export function createStreamingStore(): StreamingStore {
+export const createStreamingStore = (): StreamingStore => {
   let text = "";
   const listeners = new Set<() => void>();
 
@@ -24,4 +24,4 @@ export function createStreamingStore(): StreamingStore {
       return () => listeners.delete(listener);
     },
   };
-}
+};

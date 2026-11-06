@@ -1,10 +1,9 @@
 import { afterEach, describe, expect, it, jest } from "@jest/globals";
-
-import "~/test-utils/auth-ui";
 import { fireEvent, render, screen } from "@testing-library/react-native";
 import { Keyboard, Pressable, Text, TextInput } from "react-native";
 import { afterEach, describe, expect, it } from "vitest";
 
+import "~/test-utils/auth-ui";
 import { AuthScreen } from "~/components/auth/auth-screen";
 
 afterEach(() => {

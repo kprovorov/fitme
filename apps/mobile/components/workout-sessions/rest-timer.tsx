@@ -11,6 +11,7 @@ import Animated, {
   FadeOutDown,
   useReducedMotion,
 } from "react-native-reanimated";
+import { ScopedVariables } from "uniwind";
 
 import { Button } from "~/components/ui/button";
 import { Text } from "~/components/ui/text";
@@ -42,13 +43,13 @@ const EXIT_MS = 150;
  * A countdown floating above the sets after one is logged: adds or removes 15
  * seconds, skips, and taps the phone when the rest is over.
  */
-export default function RestTimer({
+const RestTimer = ({
   bottomInset,
   onAdjust,
   onEnd,
   onLayout,
   rest,
-}: RestTimerProps) {
+}: RestTimerProps) => {
   const { t } = useTranslation();
   // Reduced motion keeps the fade and drops the slide.
   const reduceMotion = useReducedMotion();
@@ -78,64 +79,66 @@ export default function RestTimer({
   const fraction = Math.min(1, remaining / (rest.duration * 1000));
 
   return (
-    <Animated.View
-      className="inset-x-sm absolute"
-      entering={entering}
-      exiting={exiting}
-      onLayout={onLayout}
-      style={{ bottom: bottomInset + 8 }}
+    <ScopedVariables
+      variables={{
+        "--rest-bottom": bottomInset + 8,
+        "--rest-progress": `${fraction * 100}%`,
+      }}
     >
-      <View className="border-border border-continuous bg-secondary overflow-hidden rounded-3xl border">
-        <View className="bg-foreground/10 h-0.5">
-          <View
-            className="bg-primary h-0.5 w-full"
-            style={{
-              transform: [{ scaleX: fraction }],
-              transformOrigin: "left",
-            }}
-          />
-        </View>
-        <View className="flex-row flex-wrap items-center gap-2 py-2.5 pr-3 pl-5">
-          <View
-            accessibilityLabel={t("sets.rest.left", { clock })}
-            accessibilityLiveRegion="polite"
-            accessible
-            className="min-w-24 flex-1"
-          >
-            <Text className="text-footnote text-muted-foreground">
-              {rest.nextSetOrder
-                ? t("sets.rest.thenSet", { order: rest.nextSetOrder })
-                : t("sets.rest.title")}
-            </Text>
-            <Text className="text-mono-title-2-semibold">{clock}</Text>
+      <Animated.View
+        className="inset-x-sm absolute bottom-(--rest-bottom)"
+        entering={entering}
+        exiting={exiting}
+        onLayout={onLayout}
+      >
+        <View className="border-border border-continuous bg-secondary overflow-hidden rounded-3xl border">
+          <View className="bg-foreground/10 h-0.5">
+            <View className="bg-primary h-0.5 w-full origin-left scale-x-(--rest-progress)" />
           </View>
-          <Button
-            accessibilityLabel={t("sets.rest.less", {
-              count: ADJUST_STEP_SECONDS,
-            })}
-            fill={false}
-            label={`−${ADJUST_STEP_SECONDS}`}
-            onPress={lessRest}
-            variant="secondary"
-          />
-          <Button
-            accessibilityLabel={t("sets.rest.more", {
-              count: ADJUST_STEP_SECONDS,
-            })}
-            fill={false}
-            label={`+${ADJUST_STEP_SECONDS}`}
-            onPress={moreRest}
-            variant="secondary"
-          />
-          <Button
-            accessibilityLabel={t("sets.rest.skipRest")}
-            fill={false}
-            label={t("sets.rest.skip")}
-            onPress={onEnd}
-            variant="secondary"
-          />
+          <View className="flex-row flex-wrap items-center gap-2 py-2.5 pr-3 pl-5">
+            <View
+              accessibilityLabel={t("sets.rest.left", { clock })}
+              accessibilityLiveRegion="polite"
+              accessible
+              className="min-w-24 flex-1"
+            >
+              <Text className="text-footnote" variant="muted">
+                {rest.nextSetOrder
+                  ? t("sets.rest.thenSet", { order: rest.nextSetOrder })
+                  : t("sets.rest.title")}
+              </Text>
+              <Text className="text-mono-title-2-semibold">{clock}</Text>
+            </View>
+            <Button
+              accessibilityLabel={t("sets.rest.less", {
+                count: ADJUST_STEP_SECONDS,
+              })}
+              fill={false}
+              label={`−${ADJUST_STEP_SECONDS}`}
+              onPress={lessRest}
+              variant="secondary"
+            />
+            <Button
+              accessibilityLabel={t("sets.rest.more", {
+                count: ADJUST_STEP_SECONDS,
+              })}
+              fill={false}
+              label={`+${ADJUST_STEP_SECONDS}`}
+              onPress={moreRest}
+              variant="secondary"
+            />
+            <Button
+              accessibilityLabel={t("sets.rest.skipRest")}
+              fill={false}
+              label={t("sets.rest.skip")}
+              onPress={onEnd}
+              variant="secondary"
+            />
+          </View>
         </View>
-      </View>
-    </Animated.View>
+      </Animated.View>
+    </ScopedVariables>
   );
-}
+};
+
+export default RestTimer;

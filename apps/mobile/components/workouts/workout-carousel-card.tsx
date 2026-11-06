@@ -1,10 +1,9 @@
 import { rankMuscleGroups } from "@fitme/core/covers";
 import { formatCount } from "@fitme/i18n";
-import { Image } from "expo-image";
 import { useRouter } from "expo-router";
 import { useCallback, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { StyleSheet, useWindowDimensions, View } from "react-native";
+import { useWindowDimensions, View } from "react-native";
 
 import { useCovers, useExercises } from "~/hooks/queries/library";
 import type { PlanWorkout } from "~/hooks/queries/plans";
@@ -19,6 +18,7 @@ import { sizedThumbnailUrl } from "~/lib/exercise-media";
 import { useI18n } from "~/lib/i18n";
 
 import { SymbolImage } from "../symbol-image";
+import { Image } from "../tw";
 import { Badge } from "../ui/badge";
 import { Button } from "../ui/button";
 import { Card } from "../ui/card";
@@ -33,9 +33,6 @@ export const SHOWN_MUSCLE_GROUPS = 3;
 
 /** The card's height (`min-h-100`), which its Cover is sized for. */
 const CARD_HEIGHT = 400;
-
-/** The Cover at 80% opacity, filling the card (Figma's background slot). */
-const coverStyle = { ...StyleSheet.absoluteFill, opacity: 0.8 };
 
 interface WorkoutCarouselCardProps {
   /** The Plan's Workout duration in minutes, `null` when it's unset. */
@@ -53,7 +50,7 @@ interface WorkoutCarouselCardProps {
  * the list doesn't have, no list yet or at all, or an image that fails to
  * load.
  */
-function WorkoutCover({
+const WorkoutCover = ({
   coverId,
   testID,
   width,
@@ -61,7 +58,7 @@ function WorkoutCover({
   coverId: string | null;
   testID: string;
   width: number;
-}) {
+}) => {
   const covers = useCovers();
   const [failedUrl, setFailedUrl] = useState<string>();
   const imageUrl = coverId ? covers.get(coverId)?.image_url : undefined;
@@ -78,14 +75,14 @@ function WorkoutCover({
 
   return (
     <Image
+      className="absolute inset-0 opacity-80"
       contentFit="cover"
       onError={onError}
       source={{ uri }}
-      style={coverStyle}
       testID={testID}
     />
   );
-}
+};
 
 /**
  * A Workout on the Workout tab's carousel (Figma `WorkoutCard`): its muscle
@@ -95,12 +92,12 @@ function WorkoutCover({
  * `useStartWorkout`), or Continue (its open Workout Session) when it has
  * one. The card itself isn't a tap target.
  */
-export default function WorkoutCarouselCard({
+const WorkoutCarouselCard = ({
   durationMinutes,
   planId,
   width,
   workout,
-}: WorkoutCarouselCardProps) {
+}: WorkoutCarouselCardProps) => {
   const router = useRouter();
   const { t } = useTranslation();
   const i18n = useI18n();
@@ -129,7 +126,7 @@ export default function WorkoutCarouselCard({
     }
   };
 
-  const exercises = [...workout.exercises].sort((a, b) => a.order - b.order);
+  const exercises = workout.exercises.toSorted((a, b) => a.order - b.order);
 
   const shownBySlug = useExercises(
     exercises.map(({ exercise_slug }) => exercise_slug)
@@ -271,4 +268,6 @@ export default function WorkoutCarouselCard({
       </View>
     </Card>
   );
-}
+};
+
+export default WorkoutCarouselCard;

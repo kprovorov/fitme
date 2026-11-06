@@ -1,7 +1,8 @@
 import { verifyToken } from "@clerk/backend";
 import { TokenVerificationError } from "@clerk/backend/errors";
 import type { Library } from "@fitme/library-sdk";
-import type { z } from "@hono/zod-openapi";
+import type { reportError } from "@fitme/observability/node";
+import { z } from "@hono/zod-openapi";
 import { createMiddleware } from "hono/factory";
 
 import type { ErrorResponse } from "./schemas.js";
@@ -28,7 +29,7 @@ export interface ApiEnv {
     /** The caller's services, built on first use (a 500 when unconfigured). */
     getServices: () => UserServices;
     /** Reports an error a route answers on its own (a 503, say). */
-    reportError: (error: unknown) => Promise<void>;
+    reportError: typeof reportError;
   };
 }
 
@@ -38,7 +39,13 @@ export const BEARER_AUTH = "bearerAuth";
 /** The `security` of a User-data route: a Clerk session token as a bearer. */
 export const bearerSecurity = [{ [BEARER_AUTH]: [] }];
 
-const BEARER = /^Bearer (\S+)$/i;
+const BEARER = /^Bearer (?<token>\S+)$/iu;
+
+const sessionId = z.string();
+
+type SessionTokenVerification =
+  | { valid: true; userId: string }
+  | { valid: false; reason: string };
 
 const unauthorized = {
   error: {
@@ -48,21 +55,24 @@ const unauthorized = {
 } satisfies z.infer<typeof ErrorResponse>;
 
 /** The User id (`sub`) of a Clerk session token verified by `jwtKey`, or why it was rejected. */
-const verifySessionToken = async (token: string, jwtKey: string) => {
+const verifySessionToken = async (
+  token: string,
+  jwtKey: string
+): Promise<SessionTokenVerification> => {
   try {
     // Networkless: checks the signature, `exp`, `nbf` and `iat`, and requires a `sub`.
     const { sid, sub } = await verifyToken(token, { jwtKey });
 
     // Only a session token carries its session (`sid`): a JWT template's
     // token doesn't, and stays valid after the session ends.
-    if (typeof sid !== "string") {
-      return "no-session";
+    if (!sessionId.safeParse(sid).success) {
+      return { valid: false, reason: "no-session" };
     }
 
-    return { userId: sub };
+    return { valid: true, userId: sub };
   } catch (error) {
     if (error instanceof TokenVerificationError) {
-      return error.reason;
+      return { valid: false, reason: error.reason };
     }
 
     throw error;
@@ -88,7 +98,7 @@ export const requireCaller = ({
       throw new Error("Missing CLERK_JWT_KEY environment variable");
     }
 
-    const token = c.req.header("authorization")?.match(BEARER)?.[1];
+    const token = c.req.header("authorization")?.match(BEARER)?.groups?.token;
 
     if (!token) {
       return c.json(unauthorized, 401);
@@ -96,10 +106,10 @@ export const requireCaller = ({
 
     const result = await verifySessionToken(token, clerkJwtKey);
 
-    if (typeof result === "string") {
+    if (!result.valid) {
       // A wrong CLERK_JWT_KEY fails every token the same way a forged one
       // does, so log why: a burst of these points at the key.
-      console.warn(`Rejected Clerk token: ${result}`);
+      console.warn(`Rejected Clerk token: ${result.reason}`);
 
       return c.json(unauthorized, 401);
     }
@@ -116,7 +126,8 @@ export const requireCaller = ({
 
       return services;
     });
-    await next();
+
+    return await next();
   });
 
 /**
@@ -137,5 +148,5 @@ export const requires = (permission: Permission) =>
       throw new Error(`Caller lacks the ${permission} permission`);
     }
 
-    await next();
+    return await next();
   });

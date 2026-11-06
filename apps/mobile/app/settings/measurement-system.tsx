@@ -13,7 +13,6 @@ import { AlertDialog } from "~/components/ui/alert-dialog";
 import { Button } from "~/components/ui/button";
 import { ErrorMessage } from "~/components/ui/error-message";
 import { RadioGroup } from "~/components/ui/radio-group";
-import { VStack } from "~/components/ui/vstack";
 import { seedProfile } from "~/hooks/mutations/profiles";
 import { useProfileQuery } from "~/hooks/queries/profiles";
 import type { Profile } from "~/hooks/queries/profiles";
@@ -64,6 +63,7 @@ const readSavedSystem = async (
     const reconciled = queryClient.getQueryState(useProfileQuery.getKey());
 
     if (reconciled?.status === "success" && !reconciled.isInvalidated) {
+      // SAFETY: This successful entry uses useProfileQuery's key, whose cached data is Profile | null.
       return {
         saved: measurementSystemOf(reconciled.data as Profile | null),
       };
@@ -128,7 +128,7 @@ const alertSwitchResult = (
   }
 };
 
-export default function MeasurementSystemScreen() {
+const MeasurementSystemScreen = () => {
   const queryClient = useQueryClient();
   const labels = useChoiceLabels();
   const { t } = useTranslation(undefined, { i18n });
@@ -283,7 +283,7 @@ export default function MeasurementSystemScreen() {
         </View>
       )}
       {!isLoaded && isProfileError && (
-        <VStack className="flex-1 items-stretch justify-center gap-4 p-6">
+        <View className="flex flex-1 flex-col items-stretch justify-center gap-4 p-6">
           <ErrorMessage className="text-center">
             {loadWaitSeconds === null
               ? t("measurementSystem.loadError")
@@ -294,7 +294,7 @@ export default function MeasurementSystemScreen() {
             onPress={handleRetry}
             variant="secondary"
           />
-        </VStack>
+        </View>
       )}
       {savedSystem !== undefined && (
         <View className="flex-1">
@@ -332,4 +332,6 @@ export default function MeasurementSystemScreen() {
       )}
     </>
   );
-}
+};
+
+export default MeasurementSystemScreen;

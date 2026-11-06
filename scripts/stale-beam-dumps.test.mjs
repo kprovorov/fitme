@@ -14,6 +14,7 @@ const REMOVED = /Removed 2 BEAM perf\/jit dump/;
 
 const SCRIPT = fileURLToPath(new URL("stale-beam-dumps.mjs", import.meta.url));
 
+/** @type {string[]} */
 const tempDirs = [];
 
 const tempDir = () => {
@@ -29,13 +30,17 @@ after(() => {
   }
 });
 
+/**
+ * @param {string} dir Directory to write in.
+ * @param {...string} names Files to create.
+ */
 const touch = (dir, ...names) => {
   for (const name of names) {
     fs.writeFileSync(path.join(dir, name), "x");
   }
 };
 
-describe("removeStaleBeamDumps", () => {
+void describe("removeStaleBeamDumps", () => {
   test("removes the perf maps and jit dumps of dead pids, keeps live ones", () => {
     const dir = tempDir();
     touch(dir, "perf-100.map", "jit-100.dump", "perf-200.map", "jit-200.dump");
@@ -75,6 +80,7 @@ describe("removeStaleBeamDumps", () => {
     const dir = tempDir();
     touch(dir, "perf-100.map", "perf-101.map");
 
+    /** @param {string} file Dump to remove. */
     const unlink = (file) => {
       if (file.endsWith("perf-100.map")) {
         throw Object.assign(new Error("not permitted"), { code: "EPERM" });
@@ -99,16 +105,18 @@ describe("removeStaleBeamDumps", () => {
   });
 });
 
-describe("isAlive", () => {
+void describe("isAlive", () => {
   test("is true for this process and false for an exited one", async () => {
     assert.equal(isAlive(process.pid), true);
     const child = spawn(process.execPath, ["-e", ""]);
-    await new Promise((resolve) => child.on("exit", resolve));
+    await new Promise((resolve) => {
+      child.on("exit", resolve);
+    });
     assert.equal(isAlive(child.pid), false);
   });
 });
 
-describe("the script", () => {
+void describe("the script", () => {
   test("removes the dead pids' files in the given directory", () => {
     const dir = tempDir();
     // A pid no process has: above Linux's and macOS's pid_max.

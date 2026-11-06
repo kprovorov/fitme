@@ -22,12 +22,12 @@ interface ExerciseCardHeaderProps {
 }
 
 /** The Exercise's thumbnail and name, opening its screen when it can. */
-export default function ExerciseCardHeader({
+const ExerciseCardHeader = ({
   accessibilityHint,
   exercise,
   onPress,
   trailing,
-}: ExerciseCardHeaderProps) {
+}: ExerciseCardHeaderProps) => {
   const { fontScale } = useWindowDimensions();
   const labels = useChoiceLabels();
   const stacked = fontScale > STACKED_FONT_SCALE;
@@ -48,9 +48,9 @@ export default function ExerciseCardHeader({
       >
         <ExerciseImage exercise={exercise} radius={10} size={50} />
         <View className={stacked ? "gap-1" : "flex-1 gap-1"}>
-          <Text className="text-body-emphasized">{exercise.name}</Text>
+          <Text variant="large">{exercise.name}</Text>
           {exercise.muscle_groups.length > 0 && (
-            <Text className="text-footnote text-muted-foreground">
+            <Text variant="muted">
               {exercise.muscle_groups.map(labels.muscleGroup).join(", ")}
             </Text>
           )}
@@ -59,14 +59,14 @@ export default function ExerciseCardHeader({
       {trailing}
     </View>
   );
-}
+};
+
+export default ExerciseCardHeader;
 
 /** Shown beside an Exercise that opens its screen. */
-export function OpenChevron() {
-  return (
-    <SymbolImage
-      className="text-footnote-emphasized text-muted-foreground/60"
-      name="chevron.right"
-    />
-  );
-}
+export const OpenChevron = () => (
+  <SymbolImage
+    className="text-footnote-emphasized text-muted-foreground/60"
+    name="chevron.right"
+  />
+);

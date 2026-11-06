@@ -1,4 +1,4 @@
-const VERSION_PATTERN = /^\d+\.\d+\.\d+$/;
+const VERSION_PATTERN = /^\d+\.\d+\.\d+$/u;
 
 /** `app.json`'s committed version; release builds get the tag's version. */
 const DEV_PLACEHOLDER_VERSION = "0.0.0";

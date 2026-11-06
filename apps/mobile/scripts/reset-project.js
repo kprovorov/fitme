@@ -1,13 +1,16 @@
 #!/usr/bin/env node
 
+/// <reference types="node" />
+
 /**
  * This script is used to reset the project to a blank state.
  * It moves the /app, /components, /hooks, /scripts, and /constants directories to /app-example and creates a new /app directory with an index.tsx and _layout.tsx file.
  * You can remove the `reset-project` script from package.json and safely delete this file after running it.
  */
 
-const fs = require("node:fs");
-const path = require("node:path");
+import fs from "node:fs";
+import path from "node:path";
+import process from "node:process";
 
 const root = process.cwd();
 const oldDirs = ["app", "components", "hooks", "constants", "scripts"];
@@ -39,6 +42,19 @@ export default function RootLayout() {
 }
 `;
 
+/** @param {string} dir Directory to move into app-example. */
+const moveDirectory = async (dir) => {
+  const oldDirPath = path.join(root, dir);
+  const targetDirPath = path.join(root, newDir, dir);
+
+  if (fs.existsSync(oldDirPath)) {
+    await fs.promises.rename(oldDirPath, targetDirPath);
+    console.log(`➡️ /${dir} moved to /${newDir}/${dir}.`);
+  } else {
+    console.log(`➡️ /${dir} does not exist, skipping.`);
+  }
+};
+
 const moveDirectories = async () => {
   try {
     // Create the app-example directory
@@ -46,18 +62,13 @@ const moveDirectories = async () => {
     console.log(`📁 /${newDir} directory created.`);
 
     // Move old directories to new app-example directory
-    for (const dir of oldDirs) {
-      const oldDirPath = path.join(root, dir);
-      const targetDirPath = path.join(root, newDir, dir);
+    let moves = Promise.resolve();
 
-      if (fs.existsSync(oldDirPath)) {
-        // biome-ignore lint/performance/noAwaitInLoops: moves run one at a time so each log line follows its own move and a failure stops the rest
-        await fs.promises.rename(oldDirPath, targetDirPath);
-        console.log(`➡️ /${dir} moved to /${newDir}/${dir}.`);
-      } else {
-        console.log(`➡️ /${dir} does not exist, skipping.`);
-      }
+    for (const dir of oldDirs) {
+      moves = moves.then(moveDirectory.bind(null, dir));
     }
+
+    await moves;
 
     // Create new /app directory
     const newAppDirPath = path.join(root, newAppDir);
@@ -79,8 +90,8 @@ const moveDirectories = async () => {
       "1. Run `npx expo start` to start a development server.\n2. Edit app/index.tsx to edit the main screen.\n3. Delete the /app-example directory when you're done referencing it."
     );
   } catch (error) {
-    console.error(`Error during script execution: ${error}`);
+    console.error(`Error during script execution: ${String(error)}`);
   }
 };
 
-moveDirectories();
+void moveDirectories();

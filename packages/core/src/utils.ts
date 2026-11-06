@@ -1,45 +1,45 @@
 import type { Equipment, MuscleGroup } from "./models";
 
-export function handleSupabaseError(
-  error: Error | { message?: string } | unknown,
+export const handleSupabaseError = (
+  error: unknown,
   setMessage: (message: string) => void = () => {
     /* noop */
   }
-) {
-  const message =
-    error instanceof Error
-      ? error.message
-      : typeof error === "object" && error !== null && "message" in error
-        ? String(error.message)
-        : undefined;
+) => {
+  let message: string | undefined;
+
+  if (error instanceof Error) {
+    ({ message } = error);
+  } else if (
+    typeof error === "object" &&
+    error !== null &&
+    "message" in error
+  ) {
+    message = String(error.message);
+  }
 
   setMessage(message ?? "Something went wrong. Please try again later.");
-}
+};
 
-export function range(from: number, to: number): number[] {
-  return Array.from({ length: to - from + 1 }, (_, i) => from + i);
-}
+export const range = (from: number, to: number): number[] =>
+  Array.from({ length: to - from + 1 }, (_, i) => from + i);
 
 const INCHES_PER_FOOT = 12;
 
 /** Splits a total height in inches into whole feet and inches, rounding to the nearest inch. */
-export function inchesToFeetAndInches(totalInches: number): {
-  feet: number;
-  inches: number;
-} {
+export const inchesToFeetAndInches = (totalInches: number) => {
   const rounded = Math.round(totalInches);
 
   return {
     feet: Math.floor(rounded / INCHES_PER_FOOT),
     inches: rounded % INCHES_PER_FOOT,
   };
-}
+};
 
-export function feetAndInchesToInches(feet: number, inches: number): number {
-  return feet * INCHES_PER_FOOT + inches;
-}
+export const feetAndInchesToInches = (feet: number, inches: number): number =>
+  feet * INCHES_PER_FOOT + inches;
 
-export function muscleGroupToName(muscleGroup: MuscleGroup): string {
+export const muscleGroupToName = (muscleGroup: MuscleGroup): string => {
   switch (muscleGroup) {
     case "chest": {
       return "Chest";
@@ -113,10 +113,10 @@ export function muscleGroupToName(muscleGroup: MuscleGroup): string {
       return muscleGroup;
     }
   }
-}
+};
 
 /** The English name of a piece of Equipment, for the servers (MCP, Arnold). */
-export function equipmentToName(item: Equipment): string {
+export const equipmentToName = (item: Equipment): string => {
   switch (item) {
     case "barbell": {
       return "Barbell";
@@ -158,4 +158,4 @@ export function equipmentToName(item: Equipment): string {
       return item;
     }
   }
-}
+};

@@ -7,19 +7,27 @@ import {
   libraryLanguage,
 } from "../agent/lib/client-context";
 
+type ClientContextFixture =
+  | { language?: string | number; model?: string }
+  | string[];
+
+type EveUserMessage = ModelMessage & { kind: "context.instruction" | "user" };
+
 // How eve hands a turn's `clientContext` object to the model and to tools: a
 // user-role framework message holding "Client context:" and the JSON object.
-const clientContext = (value: unknown): ModelMessage =>
-  ({
-    content: `Client context:\n${JSON.stringify(value)}`,
-    kind: "context.instruction",
-    role: "user",
-  }) as ModelMessage;
+const clientContext = (value: ClientContextFixture): EveUserMessage => ({
+  content: `Client context:\n${JSON.stringify(value)}`,
+  kind: "context.instruction",
+  role: "user",
+});
 
-const userSays = (text: string): ModelMessage =>
-  ({ content: text, kind: "user", role: "user" }) as ModelMessage;
+const userSays = (text: string): EveUserMessage => ({
+  content: text,
+  kind: "user",
+  role: "user",
+});
 
-describe(latestClientContext, () => {
+describe("latest client context", () => {
   it("reads the latest client context object", () => {
     expect(
       latestClientContext([
@@ -27,7 +35,7 @@ describe(latestClientContext, () => {
         userSays("hi"),
         clientContext({ language: "uk", model: "openai/gpt-5.5" }),
       ])
-    ).toEqual({ language: "uk", model: "openai/gpt-5.5" });
+    ).toStrictEqual({ language: "uk", model: "openai/gpt-5.5" });
   });
 
   it("ignores a User typing a client context, and one that isn't an object", () => {
@@ -40,7 +48,7 @@ describe(latestClientContext, () => {
   });
 });
 
-describe(appLanguage, () => {
+describe("app language", () => {
   it("is the client context's App language", () => {
     expect(
       appLanguage([clientContext({ language: "uk" }), userSays("hi")])

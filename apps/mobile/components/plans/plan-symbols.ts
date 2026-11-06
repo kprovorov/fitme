@@ -2,7 +2,7 @@ import type { Goal, Place } from "@fitme/core";
 import type { SFSymbol } from "sf-symbols-typescript";
 
 /** The SF Symbol for a Plan's goal, on Plan cards and the planner's tiles. */
-export function goalSymbol(goal: Goal): SFSymbol {
+export const goalSymbol = (goal: Goal): SFSymbol => {
   if (goal === "muscle-gain") {
     return "figure.strengthtraining.traditional";
   }
@@ -12,12 +12,11 @@ export function goalSymbol(goal: Goal): SFSymbol {
   }
 
   return "waveform.path.ecg";
-}
+};
 
 /** The SF Symbol for where a Plan is trained. */
-export function placeSymbol(place: Place): SFSymbol {
-  return place === "gym" ? "dumbbell" : "house";
-}
+export const placeSymbol = (place: Place): SFSymbol =>
+  place === "gym" ? "dumbbell" : "house";
 
 /** The Plan's experience level. */
 export const LEVEL_SYMBOL: SFSymbol = "chart.bar.fill";

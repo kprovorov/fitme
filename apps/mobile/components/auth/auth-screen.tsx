@@ -8,10 +8,14 @@ import {
 } from "react-native";
 import {
   KeyboardAwareScrollView,
-  KeyboardStickyView,
+  KeyboardStickyView as NativeKeyboardStickyView,
   useKeyboardState,
 } from "react-native-keyboard-controller";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { withUniwind } from "uniwind";
+
+const KeyboardStickyView = withUniwind(NativeKeyboardStickyView);
+const handleDismissKeyboard = () => Keyboard.dismiss();
 
 export interface AuthFormParts {
   action: ReactElement;
@@ -35,7 +39,7 @@ const SPACING = {
   md: { className: "grow items-stretch gap-md", top: 24 },
 } as const;
 
-export function AuthScreen({
+export const AuthScreen = ({
   action,
   children,
   footer,
@@ -49,7 +53,7 @@ export function AuthScreen({
   bottomAction?: boolean;
   spacing?: keyof typeof SPACING;
   welcome?: boolean;
-}) {
+}) => {
   const insets = useSafeAreaInsets();
   const headerHeight = useHeaderHeight();
   const { height } = useWindowDimensions();
@@ -77,7 +81,10 @@ export function AuthScreen({
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
       >
-        <TouchableWithoutFeedback accessible={false} onPress={Keyboard.dismiss}>
+        <TouchableWithoutFeedback
+          accessible={false}
+          onPress={handleDismissKeyboard}
+        >
           <View className={SPACING[spacing].className}>
             {children}
             {bottomAction ? <View className="grow" /> : null}
@@ -89,12 +96,10 @@ export function AuthScreen({
         </TouchableWithoutFeedback>
       </KeyboardAwareScrollView>
       {sticky ? (
-        <KeyboardStickyView
-          style={{ bottom: 0, left: 0, position: "absolute", right: 0 }}
-        >
+        <KeyboardStickyView className="absolute inset-x-0 bottom-0">
           <View className="bg-background px-sm py-sm">{action}</View>
         </KeyboardStickyView>
       ) : null}
     </View>
   );
-}
+};

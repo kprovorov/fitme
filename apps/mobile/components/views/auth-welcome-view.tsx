@@ -19,9 +19,10 @@ const FEATURES = [
   { icon: "play.circle.fill", key: "auth.intro.guides" },
 ] as const;
 
-export default function AuthWelcomeView() {
-  const goToLogin = () => router.push("/auth/login");
-  const continueWithEmail = () => router.push("/auth/register");
+const goToLogin = () => router.push("/auth/login");
+const continueWithEmail = () => router.push("/auth/register");
+
+const AuthWelcomeView = () => {
   const { t } = useTranslation();
   const operation = useAuthOperation();
   const busy = operation.pending !== null;
@@ -46,9 +47,7 @@ export default function AuthWelcomeView() {
               onPress={continueWithEmail}
               testID="continue-email-button"
             >
-              <Text className="text-body-emphasized">
-                {t("auth.intro.email")}
-              </Text>
+              <Text variant="large">{t("auth.intro.email")}</Text>
             </Pressable>
           ) : (
             <Button
@@ -91,7 +90,7 @@ export default function AuthWelcomeView() {
                 name={feature.icon}
               />
             </View>
-            <Text className="text-body-emphasized flex-1">
+            <Text className="flex-1" variant="large">
               {t(feature.key)}
             </Text>
           </View>
@@ -99,4 +98,6 @@ export default function AuthWelcomeView() {
       </View>
     </AuthScreen>
   );
-}
+};
+
+export default AuthWelcomeView;

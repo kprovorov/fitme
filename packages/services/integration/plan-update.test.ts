@@ -72,6 +72,27 @@ interface Seeded {
 const times = <T>(n: number, make: (i: number) => T) =>
   Array.from({ length: n }, (_, i) => make(i + 1));
 
+/** Keep dependent writes and reads ordered on a single transaction. */
+const inSequence = async <T>(
+  values: Iterable<T>,
+  visit: (value: T) => Promise<void>
+) => {
+  const iterator = values[Symbol.iterator]();
+
+  const visitNext = async (): Promise<void> => {
+    const entry = iterator.next();
+
+    if (entry.done === true) {
+      return;
+    }
+
+    await visit(entry.value);
+    await visitNext();
+  };
+
+  await visitNext();
+};
+
 const seed = async (fixture: Fixture): Promise<Seeded> =>
   await withService(async (tx) => {
     const userId = fixture.userId ?? owner;
@@ -79,7 +100,7 @@ const seed = async (fixture: Fixture): Promise<Seeded> =>
     const [plan] = await tx
       .insert(plans)
       .values({
-        deletedAt: fixture.planDeleted ? "2026-10-01T00:00:00Z" : null,
+        deletedAt: fixture.planDeleted === true ? "2026-10-01T00:00:00Z" : null,
         frequency: 3,
         goal: "strength",
         name: "PPL",
@@ -93,66 +114,71 @@ const seed = async (fixture: Fixture): Promise<Seeded> =>
       .values({ description: "", name: "Push Day", order: 1, planId: plan.id })
       .returning({ id: workouts.id });
 
-    for (const [index, exercise] of fixture.planExercises.entries()) {
-      // biome-ignore lint/performance/noAwaitInLoops: one statement at a time on tx
-      const [row] = await tx
-        .insert(workoutExercises)
-        .values({
-          exerciseSlug: exercise.slug,
-          order: exercise.order ?? index + 1,
-          workoutId: workout.id,
-        })
-        .returning({ id: workoutExercises.id });
+    await inSequence(
+      fixture.planExercises.entries(),
+      async ([index, exercise]) => {
+        const [row] = await tx
+          .insert(workoutExercises)
+          .values({
+            exerciseSlug: exercise.slug,
+            order: exercise.order ?? index + 1,
+            workoutId: workout.id,
+          })
+          .returning({ id: workoutExercises.id });
 
-      if (exercise.sets.length > 0) {
-        await tx.insert(workoutExerciseSets).values(
-          exercise.sets.map((set, setIndex) => ({
-            order: setIndex + 1,
-            repsRecommended: set.reps,
-            restRecommended: set.rest,
-            weightRecommended: String(set.weight),
-            workoutExerciseId: row.id,
-          }))
-        );
+        if (exercise.sets.length > 0) {
+          await tx.insert(workoutExerciseSets).values(
+            exercise.sets.map((set, setIndex) => ({
+              order: setIndex + 1,
+              repsRecommended: set.reps,
+              restRecommended: set.rest,
+              weightRecommended: String(set.weight),
+              workoutExerciseId: row.id,
+            }))
+          );
+        }
       }
-    }
+    );
 
     const [session] = await tx
       .insert(workoutSessions)
       .values({
         finishedAt: (fixture.finished ?? true) ? "2026-10-20T11:00:00Z" : null,
-        planChangesAppliedAt: fixture.applied ? "2026-10-20T11:01:00Z" : null,
+        planChangesAppliedAt:
+          fixture.applied === true ? "2026-10-20T11:01:00Z" : null,
         planId: plan.id,
         startedAt: "2026-10-20T10:00:00Z",
         userId,
-        workoutId: fixture.workoutGone ? null : workout.id,
+        workoutId: fixture.workoutGone === true ? null : workout.id,
       })
       .returning({ id: workoutSessions.id });
 
-    for (const [index, exercise] of fixture.sessionExercises.entries()) {
-      // biome-ignore lint/performance/noAwaitInLoops: one statement at a time on tx
-      const [row] = await tx
-        .insert(workoutSessionExercises)
-        .values({
-          exerciseSlug: exercise.slug,
-          order: exercise.order ?? index + 1,
-          workoutSessionId: session.id,
-        })
-        .returning({ id: workoutSessionExercises.id });
+    await inSequence(
+      fixture.sessionExercises.entries(),
+      async ([index, exercise]) => {
+        const [row] = await tx
+          .insert(workoutSessionExercises)
+          .values({
+            exerciseSlug: exercise.slug,
+            order: exercise.order ?? index + 1,
+            workoutSessionId: session.id,
+          })
+          .returning({ id: workoutSessionExercises.id });
 
-      if (exercise.sets.length > 0) {
-        await tx.insert(workoutSessionExerciseSets).values(
-          exercise.sets.map((set, setIndex) => ({
-            order: setIndex + 1,
-            repsCompleted: set.reps ?? null,
-            repsRecommended: set.recommended ?? null,
-            weightCompleted:
-              set.weight === undefined ? null : String(set.weight),
-            workoutSessionExerciseId: row.id,
-          }))
-        );
+        if (exercise.sets.length > 0) {
+          await tx.insert(workoutSessionExerciseSets).values(
+            exercise.sets.map((set, setIndex) => ({
+              order: setIndex + 1,
+              repsCompleted: set.reps ?? null,
+              repsRecommended: set.recommended ?? null,
+              weightCompleted:
+                set.weight === undefined ? null : String(set.weight),
+              workoutSessionExerciseId: row.id,
+            }))
+          );
+        }
       }
-    }
+    );
 
     return { planId: plan.id, sessionId: session.id, workoutId: workout.id };
   });
@@ -220,8 +246,10 @@ const rowsOf = async (seeded: Seeded) =>
         order: exercise.order,
         sets: sets
           .filter((set) => set.exerciseId === exercise.id)
-          .map(({ exerciseId: _, weight, ...set }) => ({
-            ...set,
+          .map(({ order, reps, rest, weight }) => ({
+            order,
+            reps,
+            rest,
             weight: Number(weight),
           })),
         slug: exercise.slug,
@@ -238,16 +266,21 @@ const run = async (fixture: Fixture) => {
   const seeded = await seed(fixture);
   const before = await rowsOf(seeded);
   const idsBefore = await exerciseIdsOf(seeded);
-  const answers: (PlanUpdate | null)[] = [];
+  const answers: PlanUpdate[] = [];
   const rows: Awaited<ReturnType<typeof rowsOf>>[] = [];
 
-  for (const apply of [false, true, false, true]) {
-    // biome-ignore lint/performance/noAwaitInLoops: each step reads the last one's writes
-    answers.push(await viaService(seeded.sessionId, apply, fixture.userId));
-    rows.push(await rowsOf(seeded));
-  }
+  await inSequence([false, true, false, true], async (apply) => {
+    const answer = await viaService(seeded.sessionId, apply, fixture.userId);
 
-  return { answers: answers as PlanUpdate[], before, idsBefore, rows, seeded };
+    if (answer === null) {
+      throw new Error("Expected a Plan Update for the seeded Workout Session");
+    }
+
+    answers.push(answer);
+    rows.push(await rowsOf(seeded));
+  });
+
+  return { answers, before, idsBefore, rows, seeded };
 };
 
 /** A Plan set's row as `rowsOf` reads it. */
@@ -404,44 +437,49 @@ const mainAppliedRows = {
   ],
 };
 
-beforeAll(async () => {
-  await withService((tx) =>
-    tx.insert(profiles).values({
-      age: 30,
-      gender: "male",
-      height: "70",
-      measurementSystem: "us",
-      userId: owner,
-      weight: "180",
-    })
-  );
-});
+describe("plan Update", () => {
+  beforeAll(async () => {
+    await withService((tx) =>
+      tx.insert(profiles).values({
+        age: 30,
+        gender: "male",
+        height: "70",
+        measurementSystem: "us",
+        userId: owner,
+        weight: "180",
+      })
+    );
+  });
 
-afterAll(async () => {
-  await deleteTestUsers([owner, unprofiled, intruder]);
-});
+  afterAll(async () => {
+    await deleteTestUsers([owner, unprofiled, intruder]);
+  });
 
-describe("plan Update: previewing and applying", () => {
   it("offers and applies every change kind", async () => {
     const { answers, before, idsBefore, rows, seeded } = await run(main);
     const [preview, applied, after, again] = answers;
-    expect(preview).toEqual({
+    expect(preview).toStrictEqual({
       changes: mainChanges,
       plan: { id: seeded.planId, name: "PPL" },
       weight_unit: "lbs",
       workout: { cover: null, id: seeded.workoutId, name: "Push Day" },
     });
-    expect(rows[0]).toEqual(before);
+    expect(rows).toStrictEqual([
+      before,
+      mainAppliedRows,
+      mainAppliedRows,
+      mainAppliedRows,
+    ]);
 
-    expect(applied).toEqual(preview);
-    expect(rows[1]).toEqual(mainAppliedRows);
+    expect(applied).toStrictEqual(preview);
     // The replacement keeps its Workout Exercise row
-    expect((await exerciseIdsOf(seeded)).get(1)).toBe(idsBefore.get(1));
+    const idsAfter = await exerciseIdsOf(seeded);
+    expect(idsAfter.get(1)).toBe(idsBefore.get(1));
 
-    expect(after).toEqual({ ...preview, changes: [] });
-    expect(again).toEqual({ ...preview, changes: [] });
-    expect(rows[2]).toEqual(mainAppliedRows);
-    expect(rows[3]).toEqual(mainAppliedRows);
+    expect([after, again]).toStrictEqual([
+      { ...preview, changes: [] },
+      { ...preview, changes: [] },
+    ]);
   });
 
   it("caps each Workout Exercise at 20 sets", async () => {
@@ -481,7 +519,7 @@ describe("plan Update: previewing and applying", () => {
         kind: change.kind,
         sets: "sets" in change ? change.sets.length : 0,
       }))
-    ).toEqual([
+    ).toStrictEqual([
       { kind: "add_sets", sets: 1 },
       { kind: "replace_exercise", sets: 20 },
       { kind: "add_exercise", sets: 20 },
@@ -489,9 +527,9 @@ describe("plan Update: previewing and applying", () => {
     expect(answers[0].changes[0]).toMatchObject({
       sets: [{ reps: 5, weight: 100 }],
     });
-    expect(rows[1].exercises.map((exercise) => exercise.sets.length)).toEqual([
-      20, 20, 20,
-    ]);
+    expect(
+      rows[1].exercises.map((exercise) => exercise.sets.length)
+    ).toStrictEqual([20, 20, 20]);
   });
 
   it("offers a replacement for the last Exercise deleted and another added", async () => {
@@ -515,7 +553,7 @@ describe("plan Update: previewing and applying", () => {
       ],
     });
 
-    expect(answers[0].changes).toEqual([
+    expect(answers[0].changes).toStrictEqual([
       {
         exercise_slug: "test-cable-fly",
         kind: "replace_exercise",
@@ -523,12 +561,13 @@ describe("plan Update: previewing and applying", () => {
         sets: [{ reps: 15, weight: 20 }],
       },
     ]);
-    expect(rows[1].exercises).toEqual([
+    expect(rows[1].exercises).toStrictEqual([
       { order: 1, sets: [planSet(1, 5, 100, 180)], slug: "test-squat" },
       { order: 2, sets: [planSet(1, 15, 20, 75)], slug: "test-cable-fly" },
     ]);
     // The slot keeps its Workout Exercise row
-    expect((await exerciseIdsOf(seeded)).get(2)).toBe(idsBefore.get(2));
+    const idsAfter = await exerciseIdsOf(seeded);
+    expect(idsAfter.get(2)).toBe(idsBefore.get(2));
   });
 
   it("offers nothing never logged or logged off target", async () => {
@@ -550,13 +589,12 @@ describe("plan Update: previewing and applying", () => {
       ],
     });
 
-    for (const answer of answers) {
-      expect(answer.changes).toEqual([]);
-    }
-
-    for (const after of rows) {
-      expect(after.exercises).toEqual(before.exercises);
-    }
+    expect(answers.map((answer) => answer.changes)).toStrictEqual(
+      answers.map(() => [])
+    );
+    expect(rows.map((after) => after.exercises)).toStrictEqual(
+      rows.map(() => before.exercises)
+    );
   });
 
   it("offers the sets added after switching back to the original Exercise", async () => {
@@ -576,14 +614,14 @@ describe("plan Update: previewing and applying", () => {
       ],
     });
 
-    expect(answers[0].changes).toEqual([
+    expect(answers[0].changes).toStrictEqual([
       {
         exercise_slug: "test-squat",
         kind: "add_sets",
         sets: [{ reps: 4, weight: 100 }],
       },
     ]);
-    expect(rows[1].exercises).toEqual([
+    expect(rows[1].exercises).toStrictEqual([
       {
         order: 1,
         sets: [planSet(1, 5, 100, 180), planSet(2, 4, 100, 180)],
@@ -667,17 +705,24 @@ describe("plan Update: previewing and applying", () => {
     "offers and applies nothing for %s",
     async (_, fixture: Fixture) => {
       const { answers, before, rows } = await run(fixture);
-      const named = !(fixture.planDeleted || fixture.workoutGone);
 
-      for (const answer of answers) {
-        expect(answer.changes).toEqual([]);
-        expect(answer.plan === null).toBe(!named);
-        expect(answer.workout === null).toBe(!named);
-      }
+      const named =
+        fixture.planDeleted !== true && fixture.workoutGone !== true;
 
-      for (const after of rows) {
-        expect(after).toEqual(before);
-      }
+      expect(
+        answers.map((answer) => ({
+          changes: answer.changes,
+          planIsNull: answer.plan === null,
+          workoutIsNull: answer.workout === null,
+        }))
+      ).toStrictEqual(
+        answers.map(() => ({
+          changes: [],
+          planIsNull: !named,
+          workoutIsNull: !named,
+        }))
+      );
+      expect(rows).toStrictEqual(rows.map(() => before));
     }
   );
 
@@ -698,7 +743,7 @@ describe("plan Update: previewing and applying", () => {
       ],
     });
 
-    expect(answers[0].changes.map((change) => change.kind)).toEqual([
+    expect(answers[0].changes.map((change) => change.kind)).toStrictEqual([
       "replace_exercise",
       ...times(49, () => "add_exercise"),
     ]);
@@ -712,32 +757,31 @@ describe("plan Update: previewing and applying", () => {
   it("answers kg for a User without a Profile", async () => {
     const { answers, rows } = await run({ ...main, userId: unprofiled });
     const [preview] = answers;
-    expect(preview.changes).toEqual(mainChanges);
+
+    expect(preview.changes).toStrictEqual(mainChanges);
     expect(preview.weight_unit).toBe("kg");
-    expect(rows[1]).toEqual(mainAppliedRows);
+    expect(rows[1]).toStrictEqual(mainAppliedRows);
   });
 
   it("finds no other User's Workout Session, and changes nothing", async () => {
     const seeded = await seed(main);
     const before = await rowsOf(seeded);
 
-    for (const apply of [false, true]) {
-      // biome-ignore lint/performance/noAwaitInLoops: one call at a time
-      await expect(
-        viaService(seeded.sessionId, apply, intruder)
-      ).resolves.toBeNull();
-    }
+    await expect(
+      viaService(seeded.sessionId, false, intruder)
+    ).resolves.toBeNull();
+    await expect(
+      viaService(seeded.sessionId, true, intruder)
+    ).resolves.toBeNull();
 
-    await expect(rowsOf(seeded)).resolves.toEqual(before);
+    await expect(rowsOf(seeded)).resolves.toStrictEqual(before);
   });
 
   it("finds no Workout Session that doesn't exist", async () => {
     await expect(viaService(randomUUID(), false)).resolves.toBeNull();
     await expect(viaService(randomUUID(), true)).resolves.toBeNull();
   });
-});
 
-describe("plan Update: applying", () => {
   it("writes once when two applies run at once", async () => {
     const copy = await seed(main);
     const expected = await seed(main);
@@ -749,14 +793,16 @@ describe("plan Update: applying", () => {
     ]);
 
     const changeCounts = answers.map((answer) => answer?.changes.length);
-    expect([...changeCounts].sort()).toEqual([0, 5]);
-    await expect(rowsOf(copy)).resolves.toEqual(await rowsOf(expected));
+    expect(changeCounts.toSorted((a, b) => (a ?? 0) - (b ?? 0))).toStrictEqual([
+      0, 5,
+    ]);
+    await expect(rowsOf(copy)).resolves.toStrictEqual(await rowsOf(expected));
   });
 
   it("writes nothing in preview", async () => {
     const copy = await seed(main);
     const before = await rowsOf(copy);
     await viaService(copy.sessionId, false);
-    await expect(rowsOf(copy)).resolves.toEqual(before);
+    await expect(rowsOf(copy)).resolves.toStrictEqual(before);
   });
 });

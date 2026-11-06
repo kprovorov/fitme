@@ -3,7 +3,7 @@ import { useTranslation } from "react-i18next";
 
 import LoginView from "~/components/views/login-view";
 
-export default function Screen() {
+const Screen = () => {
   const { t } = useTranslation();
 
   return (
@@ -12,4 +12,6 @@ export default function Screen() {
       <LoginView />
     </>
   );
-}
+};
+
+export default Screen;

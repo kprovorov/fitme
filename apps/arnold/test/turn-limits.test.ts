@@ -12,13 +12,13 @@ import {
 /** A step's usage with token counts but no cost. */
 const tokensOnly = { inputTokens: 10, outputTokens: 5 };
 
-describe(turnLimitReached, () => {
+describe("turn limits", () => {
   it("lets the first 20 model calls of a turn run", () => {
-    expect(MAX_STEPS_PER_TURN).toBe(20);
-
     for (let stepIndex = 0; stepIndex < MAX_STEPS_PER_TURN; stepIndex += 1) {
       expect(turnLimitReached({ stepIndex, turnId: "t1" }, null)).toBeNull();
     }
+
+    expect(MAX_STEPS_PER_TURN).toBe(20);
   });
 
   it("stops the 21st model call", () => {
@@ -31,8 +31,12 @@ describe(turnLimitReached, () => {
     const once = addStepCost(null, "t1", { costUsd: 0.25 });
     const twice = addStepCost(once, "t1", { costUsd: 0.5 });
 
-    expect(twice).toEqual({ costUsd: 0.75, turnId: "t1", unpriced: false });
-    expect(addStepCost(twice, "t2", { costUsd: 0.1 })).toEqual({
+    expect(twice).toStrictEqual({
+      costUsd: 0.75,
+      turnId: "t1",
+      unpriced: false,
+    });
+    expect(addStepCost(twice, "t2", { costUsd: 0.1 })).toStrictEqual({
       costUsd: 0.1,
       turnId: "t2",
       unpriced: false,
@@ -79,7 +83,7 @@ describe(turnLimitReached, () => {
   });
 });
 
-describe(reportedCostUsd, () => {
+describe("reported step cost", () => {
   it("is the step's reported cost, free steps included", () => {
     expect(reportedCostUsd({ costUsd: 0.0123 })).toBe(0.0123);
     expect(reportedCostUsd({ costUsd: 0 })).toBe(0);
@@ -93,7 +97,7 @@ describe(reportedCostUsd, () => {
   });
 });
 
-describe(missingCostError, () => {
+describe("missing cost errors", () => {
   it("reports a step that reported no cost", () => {
     const error = missingCostError({ stepIndex: 3, usage: tokensOnly });
 

@@ -1,4 +1,5 @@
 import { jest } from "@jest/globals";
+import type * as ReactNative from "react-native";
 
 import type { NativeAuthConfig } from "~/components/auth/provider-config";
 
@@ -9,8 +10,7 @@ jest.mock("react-native-keyboard-controller", () =>
 );
 
 jest.mock("react-native-safe-area-context", () => {
-  const { View } =
-    jest.requireActual<typeof import("react-native")>("react-native");
+  const { View } = jest.requireActual<typeof ReactNative>("react-native");
 
   return {
     SafeAreaView: View,
@@ -20,7 +20,7 @@ jest.mock("react-native-safe-area-context", () => {
 
 jest.mock("expo-apple-authentication", () => {
   const { Pressable, Text } =
-    jest.requireActual<typeof import("react-native")>("react-native");
+    jest.requireActual<typeof ReactNative>("react-native");
 
   return {
     AppleAuthenticationButton: ({
@@ -50,8 +50,7 @@ jest.mock("expo-apple-authentication", () => {
 });
 
 jest.mock("~/components/tw", () => ({
-  Image:
-    jest.requireActual<typeof import("react-native")>("react-native").Image,
+  Image: jest.requireActual<typeof ReactNative>("react-native").Image,
 }));
 
 let mockProviderConfig: NativeAuthConfig = {
@@ -62,9 +61,9 @@ let mockProviderConfig: NativeAuthConfig = {
   googleWebClientId: "",
 };
 
-export function setAuthProviderConfig(config: NativeAuthConfig) {
+export const setAuthProviderConfig = (config: NativeAuthConfig) => {
   mockProviderConfig = config;
-}
+};
 
 jest.mock("~/components/auth/provider-config", () => ({
   nativeAuthConfig: () => mockProviderConfig,

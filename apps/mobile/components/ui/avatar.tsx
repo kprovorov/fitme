@@ -1,4 +1,12 @@
-import * as AvatarPrimitive from "@rn-primitives/avatar";
+import type {
+  FallbackProps,
+  FallbackRef,
+  ImageProps,
+  ImageRef,
+  RootProps,
+  RootRef,
+} from "@rn-primitives/avatar";
+import { Fallback, Image, Root } from "@rn-primitives/avatar";
 import type * as React from "react";
 
 import { TextClassContext } from "~/components/ui/text";
@@ -8,10 +16,10 @@ const Avatar = ({
   className,
   ref,
   ...props
-}: AvatarPrimitive.RootProps & {
-  ref?: React.RefObject<AvatarPrimitive.RootRef | null>;
+}: RootProps & {
+  ref?: React.RefObject<RootRef | null>;
 }) => (
-  <AvatarPrimitive.Root
+  <Root
     className={cn(
       "relative flex size-12 shrink-0 overflow-hidden rounded-full",
       className
@@ -21,23 +29,23 @@ const Avatar = ({
   />
 );
 
-Avatar.displayName = AvatarPrimitive.Root.displayName;
+Avatar.displayName = Root.displayName;
 
 const AvatarImage = ({
   className,
   ref,
   ...props
-}: AvatarPrimitive.ImageProps & {
-  ref?: React.RefObject<AvatarPrimitive.ImageRef | null>;
+}: ImageProps & {
+  ref?: React.RefObject<ImageRef | null>;
 }) => (
-  <AvatarPrimitive.Image
+  <Image
     className={cn("aspect-square size-full", className)}
     ref={ref}
     {...props}
   />
 );
 
-AvatarImage.displayName = AvatarPrimitive.Image.displayName;
+AvatarImage.displayName = Image.displayName;
 
 /**
  * Shown until the image loads, or instead of it: a `muted` circle whose `Text`
@@ -47,11 +55,11 @@ const AvatarFallback = ({
   className,
   ref,
   ...props
-}: AvatarPrimitive.FallbackProps & {
-  ref?: React.RefObject<AvatarPrimitive.FallbackRef | null>;
+}: FallbackProps & {
+  ref?: React.RefObject<FallbackRef | null>;
 }) => (
   <TextClassContext.Provider value="text-headline text-muted-foreground">
-    <AvatarPrimitive.Fallback
+    <Fallback
       className={cn(
         "bg-muted flex size-full items-center justify-center rounded-full",
         className
@@ -62,6 +70,6 @@ const AvatarFallback = ({
   </TextClassContext.Provider>
 );
 
-AvatarFallback.displayName = AvatarPrimitive.Fallback.displayName;
+AvatarFallback.displayName = Fallback.displayName;
 
 export { Avatar, AvatarFallback, AvatarImage };

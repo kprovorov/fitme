@@ -15,7 +15,7 @@ export const clerk = clerkInstance();
 /** `Authorization: Bearer` with a session token for `userId` from the trusted instance. */
 export const signedInAs = (
   userId: string,
-  claims: Record<string, unknown> = {}
+  claims: Parameters<typeof clerkToken>[1] = {}
 ) => ({
   authorization: `Bearer ${clerkToken(clerk.privateKey, { sub: userId, ...claims })}`,
 });
@@ -25,8 +25,10 @@ export const signedInAs = (
  * the request (and so the test) with a reported 500.
  */
 export const fakeServices = (faked: Partial<UserServices>): UserServices =>
+  // SAFETY: Supplied methods match UserServices; the proxy replaces missing methods with a throwing fallback.
   new Proxy(faked as UserServices, {
     get: (target, method: string) =>
+      // SAFETY: Service callers use UserServices keys; missing methods use the throwing fallback below.
       target[method as keyof UserServices] ??
       (() => {
         throw new Error(`Unfaked service method: ${method}`);

@@ -1,4 +1,6 @@
-import pg from "pg";
+import { setTimeout } from "node:timers/promises";
+
+import { Client } from "pg";
 import type { TestProject } from "vitest/node";
 
 import { checkMigrationsApplied } from "./check-migrations";
@@ -18,20 +20,22 @@ const DEADLINE_MS = 90_000;
 const REFUSED_GRACE_MS = 5000;
 const RETRY_DELAY_MS = 1000;
 
-const errorCode = (error: unknown): string | undefined =>
-  error instanceof Error && "code" in error && typeof error.code === "string"
-    ? error.code
-    : undefined;
+interface PoolerError extends Error {
+  code: string;
+}
+
+const isPoolerError = (error: unknown): error is PoolerError =>
+  error instanceof Error && "code" in error && typeof error.code === "string";
 
 /**
  * A wrong login, password or database in the URL: retrying won't help, and
  * Postgres' own message says what's wrong.
  */
-const isConfigError = (error: unknown): boolean => {
-  const code = errorCode(error);
+const isConfigError = (code: string | undefined): boolean =>
+  code !== undefined && (code.startsWith("28") || code === "3D000");
 
-  return code !== undefined && (code.startsWith("28") || code === "3D000");
-};
+const isConfiguredDatabaseUrl = (url: unknown): url is string =>
+  typeof url === "string" && url !== "";
 
 /** The URL without its password, for messages. */
 const redact = (url: string): string => {
@@ -46,7 +50,7 @@ const redact = (url: string): string => {
 };
 
 const selectOne = async (url: string, timeoutMs: number): Promise<void> => {
-  const client = new pg.Client({
+  const client = new Client({
     connectionString: url,
     connectionTimeoutMillis: timeoutMs,
     query_timeout: timeoutMs,
@@ -56,7 +60,7 @@ const selectOne = async (url: string, timeoutMs: number): Promise<void> => {
     await client.connect();
     await client.query("select 1");
   } finally {
-    await client.end().catch(() => {});
+    await client.end().catch(() => null);
   }
 };
 
@@ -74,13 +78,14 @@ export const waitForPooler = async (url: string): Promise<void> => {
     try {
       await selectOne(url, Math.max(left, 1));
     } catch (error) {
-      if (isConfigError(error)) {
+      const code = isPoolerError(error) ? error.code : undefined;
+
+      if (isConfigError(code)) {
         throw error;
       }
 
       const stackDown =
-        errorCode(error) === "ECONNREFUSED" &&
-        Date.now() - started >= REFUSED_GRACE_MS;
+        code === "ECONNREFUSED" && Date.now() - started >= REFUSED_GRACE_MS;
 
       if (stackDown || Date.now() - started + RETRY_DELAY_MS >= DEADLINE_MS) {
         throw new Error(
@@ -89,11 +94,9 @@ export const waitForPooler = async (url: string): Promise<void> => {
         );
       }
 
-      await new Promise((resolve) => setTimeout(resolve, RETRY_DELAY_MS));
+      await setTimeout(RETRY_DELAY_MS);
 
       await attempt();
-
-      return;
     }
   };
 
@@ -110,13 +113,16 @@ export default async function setup(project: TestProject): Promise<void> {
   const url =
     project.config.env?.FITME_DATABASE_URL ?? process.env.FITME_DATABASE_URL;
 
-  if (typeof url !== "string" || url === "") {
+  if (!isConfiguredDatabaseUrl(url)) {
     throw new Error("No FITME_DATABASE_URL for the integration suite");
   }
 
   await waitForPooler(url);
 
-  if (!process.env.FITME_DATABASE_URL) {
+  if (
+    process.env.FITME_DATABASE_URL === undefined ||
+    process.env.FITME_DATABASE_URL === ""
+  ) {
     await checkMigrationsApplied(localAdminDatabaseUrl());
   }
 }

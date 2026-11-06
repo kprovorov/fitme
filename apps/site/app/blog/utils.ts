@@ -1,8 +1,8 @@
 import fs from "node:fs";
 import path from "node:path";
 
-const FRONTMATTER_REGEX = /---\s*([\s\S]*?)\s*---/;
-const QUOTED_VALUE_REGEX = /^['"](.*)['"]$/;
+const FRONTMATTER_REGEX = /---\s*(?<frontMatter>[\s\S]*?)\s*---/u;
+const QUOTED_VALUE_REGEX = /^['"](?<value>.*)['"]$/u;
 
 interface Metadata {
   publishedAt: string;
@@ -16,7 +16,7 @@ export interface BlogPost {
   slug: string;
 }
 
-function parseFrontmatter(fileContent: string) {
+const parseFrontmatter = (fileContent: string) => {
   const [, frontMatterBlock] = fileContent.match(FRONTMATTER_REGEX) ?? [];
 
   if (frontMatterBlock === undefined) {
@@ -24,7 +24,7 @@ function parseFrontmatter(fileContent: string) {
   }
 
   const content = fileContent.replace(FRONTMATTER_REGEX, "").trim();
-  const metadata: Partial<Metadata> = {};
+  const metadata: Partial<Metadata> & Record<string, string> = {};
 
   for (const line of frontMatterBlock.trim().split("\n")) {
     const [key, ...valueParts] = line.split(": ");
@@ -32,33 +32,30 @@ function parseFrontmatter(fileContent: string) {
     const value = valueParts
       .join(": ")
       .trim()
-      .replace(QUOTED_VALUE_REGEX, "$1");
+      .replace(QUOTED_VALUE_REGEX, "$<value>");
 
-    metadata[key.trim() as keyof Metadata] = value;
+    metadata[key.trim()] = value;
   }
 
+  // SAFETY: Repository-owned blog frontmatter supplies title, publishedAt and summary; each value is parsed as a string.
   return { content, metadata: metadata as Metadata };
-}
+};
 
-function getMDXFiles(dir: string) {
-  return fs.readdirSync(dir).filter((file) => path.extname(file) === ".mdx");
-}
+const getMDXFiles = (dir: string) =>
+  fs.readdirSync(dir).filter((file) => path.extname(file) === ".mdx");
 
-function readMDXFile(filePath: string) {
+const readMDXFile = (filePath: string) => {
   const rawContent = fs.readFileSync(filePath, "utf-8");
 
   return parseFrontmatter(rawContent);
-}
+};
 
-function getMDXData(dir: string): BlogPost[] {
-  return getMDXFiles(dir).map((file) => {
+const getMDXData = (dir: string): BlogPost[] =>
+  getMDXFiles(dir).map((file) => {
     const { metadata, content } = readMDXFile(path.join(dir, file));
     const slug = path.basename(file, path.extname(file));
 
     return { content, metadata, slug };
   });
-}
 
-export function getBlogPosts() {
-  return getMDXData(path.join(process.cwd(), "blog"));
-}
+export const getBlogPosts = () => getMDXData(path.join(process.cwd(), "blog"));

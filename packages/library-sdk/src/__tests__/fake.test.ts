@@ -1,3 +1,5 @@
+/// <reference lib="es2023.array" />
+
 import type { AppLanguage, Equipment } from "@fitme/core/models";
 import { describe, expect, it } from "vitest";
 
@@ -106,7 +108,7 @@ const covers = [
 
 const real = createLibrary({
   fetch: stubApi(exercises, undefined, covers).fetch,
-  token: async () => "secret",
+  token: async () => await Promise.resolve("secret"),
   url: "https://exercises.test",
 });
 
@@ -185,37 +187,48 @@ describe.each<[string, AppLanguage | undefined]>([
   ])("list with %s", async (_, params) => {
     const asked = language ? { ...params, language } : params;
 
-    await expect(fake.list(asked)).resolves.toEqual(await real.list(asked));
+    await expect(fake.list(asked)).resolves.toStrictEqual(
+      await real.list(asked)
+    );
   });
 
-  it.each<[string, ListExercisesParams]>([
-    ["an unknown muscle group", { muscleGroups: ["chest", "neck" as "chest"] }],
-    ["an empty muscle group", { muscleGroups: ["chest", "" as "chest"] }],
+  it.each<
+    [
+      string,
+      { equipment?: string[]; muscleGroup?: string; muscleGroups?: string[] },
+    ]
+  >([
+    ["an unknown muscle group", { muscleGroups: ["chest", "neck"] }],
+    ["an empty muscle group", { muscleGroups: ["chest", ""] }],
     [
       "muscleGroup and muscleGroups together",
       { muscleGroup: "chest", muscleGroups: ["triceps"] },
     ],
     [
       "an unknown piece of Equipment",
-      { equipment: ["dumbbell", "kettlebell" as "dumbbell"] },
+      { equipment: ["dumbbell", "kettlebell"] },
     ],
-    [
-      "an empty piece of Equipment",
-      { equipment: ["dumbbell", "" as "dumbbell"] },
-    ],
+    ["an empty piece of Equipment", { equipment: ["dumbbell", ""] }],
   ])("list refusing %s", async (_, params) => {
-    const asked = language ? { ...params, language } : params;
-    const fakeError = await fake.list(asked).catch((error: unknown) => error);
+    const asked: ListExercisesParams = language ? { language } : {};
+    // Inject invalid runtime filters to exercise validation beyond the typed API.
+    Object.assign(asked, params);
 
-    expect(fakeError).toBeInstanceOf(LibraryInvalidRequestError);
-    expect(fakeError).toEqual(
-      await real.list(asked).catch((error: unknown) => error)
+    const [fakeResult, realResult] = await Promise.allSettled([
+      fake.list(asked),
+      real.list(asked),
+    ]);
+
+    expect(fakeResult).toHaveProperty(
+      "reason",
+      expect.any(LibraryInvalidRequestError)
     );
+    expect(fakeResult).toStrictEqual(realResult);
   });
 
   it("lookup across chunks, with repeats and missing slugs", async () => {
     const slugs = [
-      ...exercises.map((e) => e.slug).reverse(),
+      ...exercises.map((e) => e.slug).toReversed(),
       "nope",
       "squat",
       "",
@@ -225,12 +238,12 @@ describe.each<[string, AppLanguage | undefined]>([
 
     const answer = await fake.lookup(slugs, { language });
 
-    expect(answer).toEqual(await real.lookup(slugs, { language }));
-    expect(answer.missing).toEqual(["nope", "", "a,b"]);
+    expect(answer).toStrictEqual(await real.lookup(slugs, { language }));
+    expect(answer.missing).toStrictEqual(["nope", "", "a,b"]);
   });
 
   it.each(["squat", "100-percent_curl", "nope", ""])("get %j", async (slug) => {
-    await expect(fake.get(slug, { language })).resolves.toEqual(
+    await expect(fake.get(slug, { language })).resolves.toStrictEqual(
       await real.get(slug, { language })
     );
   });
@@ -238,7 +251,7 @@ describe.each<[string, AppLanguage | undefined]>([
   it("answers summaries only, without description or instructions", async () => {
     const { data } = await fake.lookup(["squat"], { language });
 
-    expect(Object.keys(data[0] ?? {}).sort()).toEqual([
+    expect(Object.keys(data[0] ?? {}).toSorted()).toStrictEqual([
       "equipment",
       "muscle_groups",
       "name",
@@ -253,21 +266,23 @@ describe("covers", () => {
   it("answers every Cover like the real client, in the order given", async () => {
     const answer = await fake.covers();
 
-    expect(answer).toEqual(await real.covers());
-    expect(answer.map((c) => c.id)).toEqual(covers.map((c) => c.id));
+    expect(answer).toStrictEqual(await real.covers());
+    expect(answer.map((c) => c.id)).toStrictEqual(covers.map((c) => c.id));
   });
 
   it("answers an empty list like the real client without Covers", async () => {
     const empty = createLibrary({
       fetch: stubApi(exercises).fetch,
-      token: async () => "secret",
+      token: async () => await Promise.resolve("secret"),
       url: "https://exercises.test",
     });
 
-    await expect(createFakeLibrary(exercises).covers()).resolves.toEqual(
+    await expect(createFakeLibrary(exercises).covers()).resolves.toStrictEqual(
       await empty.covers()
     );
-    await expect(createFakeLibrary(exercises).covers()).resolves.toEqual([]);
+    await expect(createFakeLibrary(exercises).covers()).resolves.toStrictEqual(
+      []
+    );
   });
 
   it("answers copies, so a caller changing one leaves the fake alone", async () => {
@@ -275,7 +290,7 @@ describe("covers", () => {
     const [first] = await library.covers();
     first?.muscle_groups.push("abs");
 
-    await expect(library.covers()).resolves.toEqual(covers);
+    await expect(library.covers()).resolves.toStrictEqual(covers);
   });
 });
 
@@ -296,8 +311,11 @@ describe("equipment", () => {
     await expect(library.get("sit-up")).resolves.toMatchObject({
       equipment: [],
     });
-    expect((await library.lookup(["sit-up"])).data[0]?.equipment).toEqual([]);
-    expect((await library.list()).data[0]?.equipment).toEqual([]);
+    const lookup = await library.lookup(["sit-up"]);
+    const list = await library.list();
+
+    expect(lookup.data[0]?.equipment).toStrictEqual([]);
+    expect(list.data[0]?.equipment).toStrictEqual([]);
     await expect(
       library.list({ equipment: ["bodyweight"] })
     ).resolves.toMatchObject({
@@ -310,15 +328,13 @@ describe("equipment", () => {
     async (language) => {
       const inCoreOrder = ["bench", "pull_up_bar", "bodyweight"];
 
-      expect(
-        (await outOfOrder.get("pull-up", { language }))?.equipment
-      ).toEqual(inCoreOrder);
-      expect(
-        (await outOfOrder.lookup(["pull-up"], { language })).data[0]?.equipment
-      ).toEqual(inCoreOrder);
-      expect((await outOfOrder.list({ language })).data[0]?.equipment).toEqual(
-        inCoreOrder
-      );
+      const found = await outOfOrder.get("pull-up", { language });
+      const lookup = await outOfOrder.lookup(["pull-up"], { language });
+      const list = await outOfOrder.list({ language });
+
+      expect(found?.equipment).toStrictEqual(inCoreOrder);
+      expect(lookup.data[0]?.equipment).toStrictEqual(inCoreOrder);
+      expect(list.data[0]?.equipment).toStrictEqual(inCoreOrder);
     }
   );
 });
@@ -330,7 +346,7 @@ describe("language", () => {
       instructions: "Виконуй Присід.",
       name: "Присід",
     });
-    await expect(fake.get("row-a", { language: "uk" })).resolves.toEqual(
+    await expect(fake.get("row-a", { language: "uk" })).resolves.toStrictEqual(
       await fake.get("row-a")
     );
   });
@@ -338,43 +354,58 @@ describe("language", () => {
   it("sorts by the Ukrainian name with Ukrainian collation", async () => {
     const { data } = await fake.list({ language: "uk", muscleGroup: "abs" });
 
-    expect(data.map((e) => e.name)).toEqual([
+    expect(data.map((e) => e.name)).toStrictEqual([
       "Ирій скручування",
       "Іспит планка",
     ]);
   });
 
   it("answers English without a language", async () => {
-    expect((await fake.get("squat"))?.name).toBe("Squat");
-    expect((await fake.list({ search: "присід" })).total).toBe(0);
+    const found = await fake.get("squat");
+    const list = await fake.list({ search: "присід" });
+
+    expect(found?.name).toBe("Squat");
+    expect(list.total).toBe(0);
   });
 });
 
 describe("failing", () => {
-  it.each([
-    new LibraryUnauthorizedError(),
-    new LibraryRateLimitedError(30),
-    new LibraryUnavailableError(),
-  ])("fails every call with $name until told to stop", async (error) => {
-    const library = createFakeLibrary(exercises, { covers });
+  describe.each([
+    { failure: new LibraryUnauthorizedError() },
+    { failure: new LibraryRateLimitedError(30) },
+    { failure: new LibraryUnavailableError() },
+  ])("with $failure.name", ({ failure }) => {
+    it("fails every call", async () => {
+      const library = createFakeLibrary(exercises, { covers });
 
-    library.failWith(error);
+      library.failWith(failure);
 
-    await expect(library.list()).rejects.toBe(error);
-    await expect(library.lookup(["squat"])).rejects.toBe(error);
-    await expect(library.get("squat")).rejects.toBe(error);
-    await expect(library.covers()).rejects.toBe(error);
+      await expect(library.list()).rejects.toBe(failure);
+      await expect(library.lookup(["squat"])).rejects.toBe(failure);
+      await expect(library.get("squat")).rejects.toBe(failure);
+      await expect(library.covers()).rejects.toBe(failure);
+    });
 
-    library.failWith(null);
+    it("answers again when told to stop failing", async () => {
+      const library = createFakeLibrary(exercises, { covers });
 
-    expect((await library.lookup(["squat"])).data).toHaveLength(1);
-    await expect(library.covers()).resolves.toEqual(covers);
+      library.failWith(failure);
+      await expect(library.lookup(["squat"])).rejects.toBe(failure);
+      library.failWith(null);
+
+      const lookup = await library.lookup(["squat"]);
+
+      expect(lookup.data).toHaveLength(1);
+      await expect(library.covers()).resolves.toStrictEqual(covers);
+    });
   });
 
   it("answers get with empty texts for an Exercise given as a summary", async () => {
     const { description: _, instructions: __, ...squat } = exercise("squat");
 
-    await expect(createFakeLibrary([squat]).get("squat")).resolves.toEqual({
+    await expect(
+      createFakeLibrary([squat]).get("squat")
+    ).resolves.toStrictEqual({
       ...squat,
       description: "",
       instructions: "",

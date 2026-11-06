@@ -1,11 +1,10 @@
-import type { Node, Root } from "mdast";
+import type { List, Node, Root, Table, TableRow } from "mdast";
 import type { ReactElement, ReactNode } from "react";
 
 import defaultRenderRules from "./render-rules";
 import type {
   ASTRendererOptions,
   ListBulletStyle,
-  NodeTypeMap,
   RenderExtras,
   RenderFunction,
   RenderRules,
@@ -70,9 +69,10 @@ export default class ASTRenderer {
     if (!fn) {
       console.warn(`Missing render rule for node type: ${type}`);
 
-      return (this._renderRules.unknown ?? (() => null)) as RenderFunction;
+      return this._renderRules.unknown ?? (() => null);
     }
 
+    // SAFETY: The rule is selected by node.type and called with that same node below.
     return fn as RenderFunction;
   }
 
@@ -83,6 +83,7 @@ export default class ASTRenderer {
     extras?: RenderExtras
   ): ReactNode {
     const children: ReactNode[] = [];
+    // SAFETY: mdast types are renderer keys; unrecognized types use the unknown rule.
     const type = node.type as ValidNodeKey;
 
     let currentExtras = extras;
@@ -96,7 +97,8 @@ export default class ASTRenderer {
 
     if ("children" in node && Array.isArray(node.children)) {
       if (type === "list") {
-        const listNode = node as import("mdast").List;
+        // SAFETY: node.type is "list" and its children were checked above.
+        const listNode = node as List;
         const start = listNode.start ?? 1;
         const ordered = listNode.ordered ?? false;
 
@@ -124,7 +126,8 @@ export default class ASTRenderer {
         }
       } else if (type === "table") {
         // Handle table with header row detection
-        const tableNode = node as import("mdast").Table;
+        // SAFETY: node.type is "table" and its children were checked above.
+        const tableNode = node as Table;
 
         for (let i = 0; i < tableNode.children.length; i += 1) {
           const rowNode = tableNode.children[i];
@@ -140,7 +143,8 @@ export default class ASTRenderer {
         }
       } else if (type === "tableRow") {
         // Handle table row with cell rendering
-        const tableRowNode = node as import("mdast").TableRow;
+        // SAFETY: node.type is "tableRow" and its children were checked above.
+        const tableRowNode = node as TableRow;
 
         for (let i = 0; i < tableRowNode.children.length; i += 1) {
           const cellNode = tableRowNode.children[i];
@@ -167,7 +171,7 @@ export default class ASTRenderer {
     return renderFunction({
       children,
       extras: currentExtras,
-      node: node as NodeTypeMap[typeof type],
+      node,
       parentStack,
       styles: this._styles,
     });

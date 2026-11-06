@@ -53,13 +53,13 @@ const MenuListItem = ({
 }) & { ref?: React.RefObject<React.ElementRef<typeof Pressable> | null> }) => (
   <TextClassContext.Provider value="web:pointer-events-none">
     <Pressable
+      accessibilityRole="button"
       className={cn(
         "active:bg-accent flex-1 flex-row items-center justify-between gap-2 p-4",
         props.disabled && "web:pointer-events-none opacity-50",
         className
       )}
       ref={ref}
-      role="button"
       {...props}
     >
       {children}

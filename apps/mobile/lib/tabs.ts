@@ -34,7 +34,7 @@ const TAB_SYMBOLS: Record<TabRouteName, TabSymbol> = {
   library: { symbol: "book" },
 };
 
-const deviceIosMajor = () => Number.parseInt(String(Platform.Version), 10);
+const deviceIosMajor = () => Math.trunc(Number(String(Platform.Version)));
 
 /** The tab's SF Symbol on this device's iOS (`iosMajor` for tests). */
 export const getTabSymbol = (

@@ -7,8 +7,8 @@ const STACKED_FONT_SCALE = 1.4;
  * Whether the text is large enough (an accessibility size) that content laid
  * out side by side should stack instead.
  */
-export function useStackedLayout(): boolean {
+export const useStackedLayout = (): boolean => {
   const { fontScale } = useWindowDimensions();
 
   return fontScale > STACKED_FONT_SCALE;
-}
+};

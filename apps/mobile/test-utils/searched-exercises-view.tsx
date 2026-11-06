@@ -12,9 +12,9 @@ import { TextInput } from "react-native";
 
 import ExercisesView from "~/components/views/exercises-view";
 
-export function SearchedExercisesView(
+export const SearchedExercisesView = (
   props: Omit<ComponentProps<typeof ExercisesView>, "onSearchChange" | "search">
-) {
+) => {
   const { t } = useTranslation();
   const [search, setSearch] = useState("");
 
@@ -28,4 +28,4 @@ export function SearchedExercisesView(
       <ExercisesView {...props} onSearchChange={setSearch} search={search} />
     </>
   );
-}
+};

@@ -49,12 +49,12 @@ interface ClerkSessionOptions {
    * CLERK_JWT_KEY (a `MissingEnvError` tagged `component: clerk-auth` and
    * `env_var`, like the startup check's).
    */
-  report: (error: unknown, tags: Record<string, string>) => Promise<void>;
+  report: (error: Error, tags: Record<string, string>) => Promise<void>;
 }
 
 // Every route that addresses one session: messages, stream, cancel, clear,
 // compact, reset, stubs and subagent streams.
-const SESSION_ROUTE = /\/eve\/v1\/session\/([^/]+)/;
+const SESSION_ROUTE = /\/eve\/v1\/session\/(?<sessionId>[^/]+)/u;
 
 /**
  * Route auth for Arnold's channel: accepts a request only with a valid Clerk
@@ -92,7 +92,7 @@ export const clerkSession = ({
   const requireKey = async (): Promise<string> => {
     const key = jwtKey();
 
-    if (key) {
+    if (key !== undefined && key !== "") {
       return key;
     }
 
@@ -115,7 +115,7 @@ export const clerkSession = ({
     async (request) => {
       const token = extractBearerToken(request.headers.get("authorization"));
 
-      if (!token) {
+      if (token === null || token === "") {
         return null;
       }
 
@@ -142,7 +142,12 @@ export const clerkSession = ({
       try {
         isPro = await checkPro(userId);
       } catch (error) {
-        await report(error, { path: new URL(request.url).pathname, userId });
+        const failure =
+          error instanceof Error
+            ? error
+            : new Error("Pro check unavailable", { cause: error });
+
+        await report(failure, { path: new URL(request.url).pathname, userId });
         throw new ProCheckUnavailableError("Pro check unavailable", {
           cause: error,
         });
@@ -155,9 +160,10 @@ export const clerkSession = ({
         });
       }
 
-      const sessionId = SESSION_ROUTE.exec(new URL(request.url).pathname)?.[1];
+      const sessionId = SESSION_ROUTE.exec(new URL(request.url).pathname)
+        ?.groups?.sessionId;
 
-      if (sessionId) {
+      if (sessionId !== undefined && sessionId !== "") {
         const owner = await claimSession(decodeURIComponent(sessionId), userId);
 
         if (owner !== userId) {
