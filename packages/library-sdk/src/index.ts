@@ -1,8 +1,5 @@
-export {
-  createLibrary,
-  type LibraryOptions,
-  MAX_LOOKUP_SLUGS,
-} from "./client";
+export { createLibrary, type LibraryOptions, MAX_LOOKUP_SLUGS } from "./client";
+
 export {
   LibraryError,
   type LibraryErrorCode,
@@ -11,7 +8,9 @@ export {
   LibraryUnauthorizedError,
   LibraryUnavailableError,
 } from "./errors";
+
 export { exerciseNameFromSlug } from "./name";
+
 export type {
   Cover,
   Exercise,

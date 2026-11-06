@@ -1,6 +1,8 @@
 import { afterEach, describe, expect, it } from "@jest/globals";
 import type { MessageStreamEvent } from "eve/client";
+
 import { storage } from "~/lib/mmkv";
+
 import {
   arnoldErrorAction,
   arnoldErrorKind,
@@ -175,6 +177,7 @@ describe("arnoldErrorKind", () => {
 
 describe("saved Arnold Conversation", () => {
   const session = { sessionId: "ses_1", streamIndex: 4 };
+
   const events = [
     { meta: { id: "evt_1" }, type: "session.started" },
   ] as unknown as MessageStreamEvent[];

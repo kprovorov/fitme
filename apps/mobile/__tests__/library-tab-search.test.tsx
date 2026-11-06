@@ -8,9 +8,11 @@
 import { LibraryRateLimitedError } from "@fitme/library-sdk";
 import type { FakeLibrary } from "@fitme/library-sdk/fake";
 import { beforeEach, describe, expect, it, jest } from "@jest/globals";
-import { type QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { QueryClientProvider } from "@tanstack/react-query";
+import type { QueryClient } from "@tanstack/react-query";
 import { act, fireEvent, render, screen } from "@testing-library/react-native";
 import { router } from "expo-router";
+
 import LibraryScreen from "~/app/(tabs)/library/index";
 import { storage } from "~/lib/mmkv";
 import { libraryExercise, serveLibrary } from "~/test-utils/fake-library";
@@ -30,11 +32,14 @@ jest.mock("expo-router", () => ({
   },
   useRouter: () => ({ push: jest.fn() }),
 }));
+
 jest.mock("~/components/ui/button", () =>
   jest.requireActual("~/test-utils/button-stub")
 );
+
 // A thumbnail shows as nothing.
 jest.mock("~/components/exercises/exercise-image", () => () => null);
+
 jest.mock("~/components/symbol-image", () => ({ SymbolImage: () => null }));
 
 let fake: FakeLibrary;
@@ -178,6 +183,7 @@ describe("the Library tab's header search", () => {
   it("keeps the last results, with no error, when rate limited", async () => {
     // Fake timers: the 429 holds the next request back for 30 s.
     jest.useFakeTimers();
+
     try {
       client = createTestQueryClient();
       await render(

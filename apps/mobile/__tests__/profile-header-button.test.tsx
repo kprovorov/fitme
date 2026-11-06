@@ -12,6 +12,7 @@ import { QueryClientProvider } from "@tanstack/react-query";
 import { fireEvent, render, screen } from "@testing-library/react-native";
 import type { ReactNode } from "react";
 import { Platform, Pressable, Text } from "react-native";
+
 import HomeScreen from "~/app/(tabs)/(home)/index";
 import ProfileScreen from "~/app/profile";
 import { setDeviceLanguages } from "~/test-utils/device-locales";
@@ -122,15 +123,20 @@ jest.mock("~/lib/clerk", () => ({
 jest.mock("~/lib/segment", () => ({
   segmentClient: { reset: jest.fn(), track: jest.fn() },
 }));
+
 jest.mock("~/hooks/revenueCat", () => ({
   useCustomerInfoQuery: () => ({ data: undefined }),
   useIsProQuery: () => ({ data: false }),
 }));
+
 jest.mock("~/components/exercises/exercise-image", () => () => null);
+
 jest.mock("~/components/symbol-image", () => ({ SymbolImage: () => null }));
+
 jest.mock("~/components/ui/button", () =>
   jest.requireActual("~/test-utils/button-stub")
 );
+
 jest.mock("~/components/ui/dropdown-menu", () =>
   jest.requireActual("~/test-utils/dropdown-menu-stub")
 );
@@ -157,7 +163,7 @@ beforeEach(() => {
   });
 });
 
-describe("Profile from the first tab's header", () => {
+describe("profile from the first tab's header", () => {
   it("pushes Profile from a person button in the header", async () => {
     await mount(<HomeScreen />);
 
@@ -172,14 +178,17 @@ describe("Profile from the first tab's header", () => {
   it("offers a Profile text button on Android, which has no header items", async () => {
     const os = Platform.OS;
     Platform.OS = "android";
+
     try {
       await mount(<HomeScreen />);
 
       const buttons = screen.getAllByRole("button", { name: "Profile" });
+
       // The text button, beside the iOS-only item the stand-in also draws.
       const textButton = buttons.find(
         (button) => button.props.testID !== "header-person.fill"
       );
+
       expect(textButton).toBeDefined();
       fireEvent.press(textButton as NonNullable<typeof textButton>);
       expect(mockPush).toHaveBeenCalledWith("/profile");
@@ -208,7 +217,7 @@ describe("Profile from the first tab's header", () => {
   });
 });
 
-describe("The first tab's header and Plan menu", () => {
+describe("the first tab's header and Plan menu", () => {
   it("shows the Fitme logo as the title, with a spoken label", async () => {
     await mount(<HomeScreen />);
 

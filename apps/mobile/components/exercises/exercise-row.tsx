@@ -3,6 +3,7 @@ import type React from "react";
 import { useCallback } from "react";
 import { View } from "react-native";
 import type { SFSymbol } from "sf-symbols-typescript";
+
 import ExerciseImage from "~/components/exercises/exercise-image";
 import { SymbolImage } from "~/components/symbol-image";
 import { MenuListItem } from "~/components/ui/menu-list";
@@ -15,31 +16,27 @@ import { cn } from "~/lib/utils";
  * The accent symbol ending a row, saying what tapping it does: the chevron
  * opening the Exercise, the picker's "+" or swap.
  */
-export function ExerciseRowSymbol({ name }: { name: SFSymbol }) {
-  return (
-    <SymbolImage
-      className="shrink-0 text-body-emphasized text-primary"
-      name={name}
-    />
-  );
-}
+export const ExerciseRowSymbol = ({ name }: { name: SFSymbol }) => (
+  <SymbolImage
+    className="text-body-emphasized text-primary shrink-0"
+    name={name}
+  />
+);
 
 /** The accent chevron ending a row that opens the Exercise. */
-export function ExerciseRowChevron() {
-  return <ExerciseRowSymbol name="chevron.right" />;
-}
+export const ExerciseRowChevron = () => (
+  <ExerciseRowSymbol name="chevron.right" />
+);
 
 /**
  * The line between two rows, inset like a `MenuList`'s, on the rows' card
  * surface, carrying the group's side stroke through.
  */
-export function ExerciseRowSeparator() {
-  return (
-    <View className="border-border border-x bg-card">
-      <Separator className="mx-sm w-auto" />
-    </View>
-  );
-}
+export const ExerciseRowSeparator = () => (
+  <View className="border-border bg-card border-x">
+    <Separator className="mx-sm w-auto" />
+  </View>
+);
 
 interface ExerciseRowProps {
   // What VoiceOver reads for the row instead of its text ("Add Bench Press").
@@ -58,15 +55,16 @@ interface ExerciseRowProps {
  * draw a `Card`: its fill and its `border` stroke, the first row rounding the
  * group's top corners and the last its bottom ones.
  */
-export function ExerciseRow({
+export const ExerciseRow = ({
   accessibilityLabel,
   exercise,
   isFirst,
   isLast,
   onExercisePress,
   trailing,
-}: ExerciseRowProps) {
+}: ExerciseRowProps) => {
   const labels = useChoiceLabels();
+
   // The press never waits on what picking does (the picker's save).
   const handlePress = useCallback(() => {
     onExercisePress(exercise);
@@ -75,21 +73,20 @@ export function ExerciseRow({
   return (
     <View
       className={cn(
-        "overflow-hidden border-border border-continuous border-x bg-card",
+        "border-border border-continuous bg-card overflow-hidden border-x",
         isFirst && "rounded-t-card border-t",
         isLast && "rounded-b-card border-b"
       )}
     >
       <MenuListItem
         accessibilityLabel={accessibilityLabel}
-        className="gap-sm p-sm"
         onPress={handlePress}
       >
         <ExerciseImage exercise={exercise} radius={8} size={50} />
         <View className="flex-1">
-          <Text className="text-body-emphasized">{exercise.name}</Text>
+          <Text variant="large">{exercise.name}</Text>
           {exercise.muscle_groups.length > 0 && (
-            <Text className="text-footnote text-muted-foreground">
+            <Text variant="muted">
               {exercise.muscle_groups.map(labels.muscleGroup).join(", ")}
             </Text>
           )}
@@ -98,4 +95,4 @@ export function ExerciseRow({
       </MenuListItem>
     </View>
   );
-}
+};

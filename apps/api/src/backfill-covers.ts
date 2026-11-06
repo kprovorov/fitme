@@ -1,13 +1,10 @@
-import { type MuscleGroup, pickCovers } from "@fitme/core";
-import {
-  plans,
-  type Transaction,
-  withService,
-  workoutExercises,
-  workouts,
-} from "@fitme/db";
+import { pickCovers } from "@fitme/core";
+import type { MuscleGroup } from "@fitme/core";
+import { plans, withService, workoutExercises, workouts } from "@fitme/db";
+import type { Transaction } from "@fitme/db";
 import type { Library } from "@fitme/library-sdk";
-import { and, asc, eq, inArray, isNull, type SQL, sql } from "drizzle-orm";
+import { and, asc, eq, inArray, isNull, sql } from "drizzle-orm";
+import type { SQL } from "drizzle-orm";
 
 /** The Library answered no Covers: there is nothing to assign. */
 export class NoCoversError extends Error {
@@ -21,7 +18,7 @@ export class NoCoversError extends Error {
 
 /** How many Workouts of each Plan got (or, on a dry run, would get) a Cover. */
 export interface BackfillReport {
-  plans: Array<{ covered: number; planId: string }>;
+  plans: { covered: number; planId: string }[];
   /** Workouts written; always 0 on a dry run. */
   written: number;
 }
@@ -57,10 +54,13 @@ const listPending = async (tx: Transaction, planIds?: readonly string[]) => {
     .leftJoin(workoutExercises, eq(workoutExercises.workoutId, workouts.id))
     .where(uncovered(planIds))
     .orderBy(asc(plans.id));
+
   const ids = [...new Set(rows.map((row) => row.planId))];
+
   const slugs = [
     ...new Set(rows.flatMap((row) => (row.slug === null ? [] : [row.slug]))),
   ];
+
   return { planIds: ids, slugs };
 };
 
@@ -95,29 +95,35 @@ const coverPlan = async (
     // like they do; then the Plan row before its Workouts' rows, the order
     // updatePlan and finishWorkoutSession lock in, so neither deadlocks with it
     await tx.execute(sql`lock table ${workouts} in row exclusive mode`);
+
     const [plan] = await tx
       .select({ id: plans.id })
       .from(plans)
       .where(and(eq(plans.id, planId), isNull(plans.deletedAt)))
       .for("no key update");
+
     if (!plan) {
       return { covered: 0 };
     }
   }
+
   const select = tx
     .select({ cover: workouts.cover, id: workouts.id })
     .from(workouts)
     .innerJoin(plans, eq(plans.id, workouts.planId))
     .where(and(eq(plans.id, planId), isNull(plans.deletedAt)))
     .orderBy(asc(workouts.order), asc(workouts.id));
+
   const planWorkouts = dryRun
     ? await select
     : await select.for("no key update", { of: workouts });
 
   const toCover = planWorkouts.filter((workout) => workout.cover === null);
+
   if (dryRun || toCover.length === 0) {
     return { covered: toCover.length };
   }
+
   const exercises = await tx
     .select({
       slug: workoutExercises.exerciseSlug,
@@ -131,13 +137,15 @@ const coverPlan = async (
       )
     )
     .orderBy(asc(workoutExercises.order), asc(workoutExercises.id));
+
   const unknownSlugs = [
     ...new Set(
-      exercises
-        .map((exercise) => exercise.slug)
-        .filter((slug) => !known.has(slug))
+      exercises.flatMap((exercise) =>
+        known.has(exercise.slug) ? [] : [exercise.slug]
+      )
     ),
   ];
+
   if (unknownSlugs.length > 0) {
     return { unknownSlugs };
   }
@@ -149,27 +157,38 @@ const coverPlan = async (
       workout.cover === null ? [] : [workout.cover]
     ),
     workouts: toCover.map((workout) => ({
-      exercises: exercises
-        .filter((exercise) => exercise.workoutId === workout.id)
-        .map((exercise) => ({ muscleGroups: known.get(exercise.slug) ?? [] })),
+      exercises: exercises.flatMap((exercise) =>
+        exercise.workoutId === workout.id
+          ? [{ muscleGroups: known.get(exercise.slug) ?? [] }]
+          : []
+      ),
     })),
   });
 
-  let covered = 0;
+  // Chain statements: a transaction's connection runs one at a time.
+  let writes = Promise.resolve(0);
+
   for (const [index, workout] of toCover.entries()) {
-    const cover = picks[index];
-    if (!cover) {
-      continue;
-    }
-    // `cover is null` again: a Workout that got a Cover meanwhile keeps it.
-    // biome-ignore lint/performance/noAwaitInLoops: one transaction runs one statement at a time
-    const updated = await tx
-      .update(workouts)
-      .set({ cover })
-      .where(and(eq(workouts.id, workout.id), isNull(workouts.cover)))
-      .returning({ id: workouts.id });
-    covered += updated.length;
+    writes = writes.then(async (count) => {
+      const cover = picks[index];
+
+      if (!cover) {
+        return count;
+      }
+
+      // `cover is null` again: a Workout that got a Cover meanwhile keeps it.
+      const updated = await tx
+        .update(workouts)
+        .set({ cover })
+        .where(and(eq(workouts.id, workout.id), isNull(workouts.cover)))
+        .returning({ id: workouts.id });
+
+      return count + updated.length;
+    });
   }
+
+  const covered = await writes;
+
   return { covered };
 };
 
@@ -182,10 +201,13 @@ const learnSlugs = async (
   if (slugs.length === 0) {
     return;
   }
+
   const { data, missing } = await library.lookup(slugs);
+
   for (const exercise of data) {
     known.set(exercise.slug, exercise.muscle_groups);
   }
+
   // A slug the Library doesn't know trains nothing: the picker falls back to
   // any Cover for it
   for (const slug of missing) {
@@ -215,9 +237,11 @@ export const backfillCovers = async ({
   random,
 }: BackfillOptions): Promise<BackfillReport> => {
   const libraryCovers = await library.covers();
+
   if (libraryCovers.length === 0) {
     throw new NoCoversError();
   }
+
   const covers = libraryCovers.map((cover) => ({
     id: cover.id,
     muscleGroups: cover.muscle_groups,
@@ -225,39 +249,60 @@ export const backfillCovers = async ({
 
   const pending = await withService((tx) => listPending(tx, planIds));
   const known: MuscleGroupsBySlug = new Map();
+
   if (!dryRun) {
     await learnSlugs(library, known, pending.slugs);
   }
 
   const report: BackfillReport = { plans: [], written: 0 };
+
   const coverOnce = (planId: string) =>
     withService((tx) =>
       coverPlan(tx, planId, { covers, dryRun, known, random })
     );
+
+  // Chain Plans to keep production load small and preserve lookup/picker order.
+  let processing = Promise.resolve(report);
+
   for (const planId of pending.planIds) {
-    // biome-ignore lint/performance/noAwaitInLoops: one Plan at a time keeps the load on production small
-    let result = await coverOnce(planId);
-    if ("unknownSlugs" in result) {
-      await learnSlugs(library, known, result.unknownSlugs);
-      result = await coverOnce(planId);
-    }
-    if ("unknownSlugs" in result) {
-      log(`plan ${planId}: skipped, its Exercises changed during the run`);
-      continue;
-    }
-    if (result.covered === 0) {
-      continue;
-    }
-    report.plans.push({ covered: result.covered, planId });
-    if (!dryRun) {
-      report.written += result.covered;
-    }
-    log(`plan ${planId}: ${result.covered} ${dryRun ? "to cover" : "covered"}`);
+    processing = processing.then(async () => {
+      let result = await coverOnce(planId);
+
+      if ("unknownSlugs" in result) {
+        await learnSlugs(library, known, result.unknownSlugs);
+        result = await coverOnce(planId);
+      }
+
+      if ("unknownSlugs" in result) {
+        log(`plan ${planId}: skipped, its Exercises changed during the run`);
+
+        return report;
+      }
+
+      if (result.covered === 0) {
+        return report;
+      }
+
+      report.plans.push({ covered: result.covered, planId });
+
+      if (!dryRun) {
+        report.written += result.covered;
+      }
+
+      log(
+        `plan ${planId}: ${result.covered} ${dryRun ? "to cover" : "covered"}`
+      );
+
+      return report;
+    });
   }
+
+  await processing;
 
   const total = report.plans.reduce((sum, plan) => sum + plan.covered, 0);
   log(
     `${dryRun ? "Dry run: would cover" : "Covered"} ${total} Workouts in ${report.plans.length} Plans`
   );
+
   return report;
 };

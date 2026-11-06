@@ -1,12 +1,14 @@
 import { muscleGroups } from "@fitme/core/models";
 import { defineTool } from "eve/tools";
 import { z } from "zod";
+
 import { libraryLanguage } from "../lib/client-context";
 import { libraryUnavailable, onLibraryFailure } from "../lib/exercises";
 import { getLibrary } from "../lib/library";
 import { requireConversationOwner } from "../lib/owner";
 
 const MAX_RESULTS = 8;
+
 /** The Library API's limit on `search`. */
 const MAX_SEARCH_LENGTH = 100;
 
@@ -15,6 +17,7 @@ export default defineTool({
     "Search the exercise library by name or muscle group. Returns each exercise's exercise_slug, the only way to refer to an exercise in other tools.",
   async execute({ muscle_group, query }, ctx) {
     requireConversationOwner(ctx.session.auth);
+
     try {
       const page = await getLibrary().list({
         language: libraryLanguage(ctx.messages),
@@ -22,6 +25,7 @@ export default defineTool({
         muscleGroup: muscle_group,
         search: query,
       });
+
       return page.data.map(({ muscle_groups, name, slug }) => ({
         exercise_slug: slug,
         muscle_groups,

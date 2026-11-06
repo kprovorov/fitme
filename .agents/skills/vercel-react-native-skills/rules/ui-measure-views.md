@@ -7,10 +7,7 @@ tags: layout, measurement, onLayout, useLayoutEffect
 
 ## Measuring View Dimensions
 
-Use both `useLayoutEffect` (synchronous) and `onLayout` (for updates). The sync
-measurement gives you the initial size immediately; `onLayout` keeps it current
-when the view changes. For non-primitive states, use a dispatch updater to
-compare values and avoid unnecessary re-renders.
+Use both `useLayoutEffect` (synchronous) and `onLayout` (for updates). The sync measurement gives you the initial size immediately; `onLayout` keeps it current when the view changes. For non-primitive states, use a dispatch updater to compare values and avoid unnecessary re-renders.
 
 **Height only:**
 

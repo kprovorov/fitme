@@ -8,7 +8,8 @@
  * `ref` answers `clearText` / `setText` like the native bar. Use it as
  * `Stack.Screen` in a `jest.mock("expo-router", …)` factory through `jest.requireActual("~/test-utils/stack-screen-stub")`.
  */
-import { type Ref, useImperativeHandle, useState } from "react";
+import { useImperativeHandle, useState } from "react";
+import type { Ref } from "react";
 import { Pressable, Text, TextInput } from "react-native";
 import type { SearchBarCommands, SearchBarProps } from "react-native-screens";
 
@@ -22,26 +23,38 @@ export const SearchBar = ({
   options: SearchBarProps & { ref?: Ref<SearchBarCommands> };
 }) => {
   const [text, setText] = useState("");
+
   const change = (next: string) => {
     setText(next);
+    // SAFETY: The header search handler reads only nativeEvent.text, supplied here.
     options.onChangeText?.({ nativeEvent: { text: next } } as Parameters<
       NonNullable<SearchBarProps["onChangeText"]>
     >[0]);
   };
+
   useImperativeHandle(options.ref, () => ({
-    blur: () => undefined,
+    blur: () => {
+      // The stand-in has no native focus to release.
+    },
     cancelSearch: () => setText(""),
     clearText: () => setText(""),
-    focus: () => undefined,
+    focus: () => {
+      // The stand-in has no native focus to acquire.
+    },
     setText,
-    toggleCancelButton: () => undefined,
+    toggleCancelButton: () => {
+      // The stand-in always renders its Cancel button.
+    },
   }));
+
   const cancel = () => {
     setText("");
+    // SAFETY: The header search cancel handler ignores the event argument.
     options.onCancelButtonPress?.(
       {} as Parameters<NonNullable<SearchBarProps["onCancelButtonPress"]>>[0]
     );
   };
+
   return (
     <>
       <TextInput

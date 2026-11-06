@@ -15,6 +15,7 @@ import {
 } from "@testing-library/react-native";
 import type { ReactElement, ReactNode } from "react";
 import type { RefreshControlProps } from "react-native";
+
 import HomeScreen from "~/app/(tabs)/(home)/index";
 import HistoryScreen from "~/app/(tabs)/history/index";
 import WorkoutScreen from "~/app/plans/[planId]/workouts/[workoutId]/index";
@@ -55,6 +56,7 @@ jest.mock("@legendapp/list/react-native", () => ({
   }) => {
     const { ScrollView } =
       jest.requireActual<typeof import("react-native")>("react-native");
+
     return (
       <ScrollView refreshControl={refreshControl}>
         {ListEmptyComponent}
@@ -84,17 +86,24 @@ jest.mock("~/lib/clerk", () => ({
     ).FAKE_USER_ID,
 }));
 
-jest.mock("~/lib/segment", () => ({ segmentClient: { track: jest.fn() } }));
+jest.mock("~/lib/segment", () => ({
+  segmentClient: { track: jest.fn() },
+}));
+
 jest.mock("~/components/exercises/exercise-image", () => () => null);
+
 jest.mock("~/components/symbol-image", () => ({ SymbolImage: () => null }));
+
 jest.mock("~/components/ui/dropdown-menu", () =>
   jest.requireActual("~/test-utils/dropdown-menu-stub")
 );
+
 jest.mock("~/components/ui/button", () =>
   jest.requireActual("~/test-utils/button-stub")
 );
 
 const LIST = "GET /v1/workout-sessions";
+
 /** The open Workout Session's read of the list. */
 const IN_PROGRESS = { limit: "1", status: "in_progress" };
 
@@ -153,7 +162,7 @@ beforeEach(() => {
   });
 });
 
-describe("The Open Workout Session", () => {
+describe("the Open Workout Session", () => {
   it("is the same on the Workout tab, the Workout screen and History, from one read", async () => {
     await mountAll();
 
@@ -188,9 +197,11 @@ describe("The Open Workout Session", () => {
     await mountAll();
 
     const open = backend.session("open-session");
+
     if (open) {
       open.finished_at = "2026-10-29T10:00:00.000Z";
     }
+
     await act(() =>
       queryClient.invalidateQueries({
         queryKey: OPEN_WORKOUT_SESSION_QUERY_KEY,
@@ -213,7 +224,7 @@ describe("The Open Workout Session", () => {
   });
 });
 
-describe("The Open Workout Session's failed reads", () => {
+describe("the Open Workout Session's failed reads", () => {
   it("keep the last answer on every screen when a refresh fails", async () => {
     await mountAll();
     fakePublicApi.failNext(LIST, { status: 500 }, IN_PROGRESS);
@@ -247,6 +258,7 @@ describe("The Open Workout Session's failed reads", () => {
     for (const _screen of ["Workout tab", "Workout screen", "History"]) {
       fakePublicApi.failNext(LIST, { status: 500 }, IN_PROGRESS);
     }
+
     await mountAll();
 
     // The Workout screen and History don't guess: their load errors.

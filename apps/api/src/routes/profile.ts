@@ -7,7 +7,9 @@ import {
 } from "@fitme/core/limits";
 import { genders, measurementSystems } from "@fitme/core/models";
 import { createRoute, OpenAPIHono, z } from "@hono/zod-openapi";
-import { type ApiEnv, bearerSecurity, requires } from "../auth.js";
+
+import { bearerSecurity, requires } from "../auth.js";
+import type { ApiEnv } from "../auth.js";
 import {
   ErrorResponse,
   errorResponse,
@@ -193,6 +195,7 @@ export const profile = new OpenAPIHono<ApiEnv>({
 })
   .openapi(getProfile, async (c) => {
     const found = await c.var.getServices().getProfile();
+
     // Parsed through the contract, so fields beyond it never go out.
     return c.json(ProfileResponse.parse({ data: found }), 200);
   })
@@ -200,6 +203,7 @@ export const profile = new OpenAPIHono<ApiEnv>({
     const updated = await c.var
       .getServices()
       .updateProfile(c.req.valid("json"));
+
     if (!updated) {
       return c.json(
         {
@@ -211,15 +215,19 @@ export const profile = new OpenAPIHono<ApiEnv>({
         404
       );
     }
+
     return c.json(UpdatedProfileResponse.parse({ data: updated }), 200);
   })
   .openapi(replaceProfile, async (c) => {
     const { created, profile: written } = await c.var
       .getServices()
       .replaceProfile(c.req.valid("json"));
+
     const body = UpdatedProfileResponse.parse({ data: written });
+
     if (created) {
       return c.json(body, 201);
     }
+
     return c.json(body, 200);
   });

@@ -2,12 +2,9 @@ import * as Slot from "@rn-primitives/slot";
 import type { SlottableTextProps, TextRef } from "@rn-primitives/types";
 import type * as React from "react";
 import { Text as RNText } from "react-native";
-import {
-  ARIA_LEVEL,
-  ROLE,
-  TEXT_VARIANTS,
-  type TextVariant,
-} from "~/components/ui/text";
+
+import { ARIA_LEVEL, ROLE, TEXT_VARIANTS } from "~/components/ui/text";
+import type { TextVariant } from "~/components/ui/text";
 import { cn } from "~/lib/utils";
 
 type TypographyProps = SlottableTextProps & {
@@ -21,7 +18,7 @@ type TypographyProps = SlottableTextProps & {
  * `Text`, these don't read `TextClassContext`, so an `H3` keeps its color
  * inside a `CardContent`.
  */
-function typography(variant: TextVariant, displayName: string) {
+const typography = (variant: TextVariant, displayName: string) => {
   const Component = ({
     className,
     asChild = false,
@@ -29,6 +26,7 @@ function typography(variant: TextVariant, displayName: string) {
     ...props
   }: TypographyProps) => {
     const Root = asChild ? Slot.Text : RNText;
+
     return (
       <Root
         aria-level={ARIA_LEVEL[variant]}
@@ -39,9 +37,11 @@ function typography(variant: TextVariant, displayName: string) {
       />
     );
   };
+
   Component.displayName = displayName;
+
   return Component;
-}
+};
 
 const H1 = typography("h1", "H1");
 const H2 = typography("h2", "H2");

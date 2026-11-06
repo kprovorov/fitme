@@ -19,41 +19,39 @@ const steps = [
   },
 ];
 
-function HowItWorks() {
-  return (
-    <section
-      aria-labelledby="how-it-works-heading"
-      className="w-full scroll-mt-24"
-      id="how-it-works"
-    >
-      <Container className="flex flex-col gap-12">
-        <SectionHeading
-          eyebrow="How it works"
-          id="how-it-works-heading"
-          title="From goal to first workout in minutes"
-        />
-        <ol className="grid gap-4 md:grid-cols-3">
-          {steps.map((step, index) => (
-            <li
-              className="flex flex-col gap-3 rounded-2xl border bg-secondary p-6"
-              key={step.title}
+const HowItWorks = () => (
+  <section
+    aria-labelledby="how-it-works-heading"
+    className="w-full scroll-mt-24"
+    id="how-it-works"
+  >
+    <Container className="flex flex-col">
+      <SectionHeading
+        eyebrow="How it works"
+        id="how-it-works-heading"
+        title="From goal to first workout in minutes"
+      />
+      <ol className="mt-12 grid gap-4 md:grid-cols-3">
+        {steps.map((step, index) => (
+          <li
+            className="bg-secondary flex flex-col gap-3 rounded-2xl border p-6"
+            key={step.title}
+          >
+            <span
+              aria-hidden="true"
+              className="border-primary/40 text-body-emphasized text-primary flex size-9 items-center justify-center rounded-full border"
             >
-              <span
-                aria-hidden="true"
-                className="flex size-9 items-center justify-center rounded-full border border-primary/40 text-body-emphasized text-primary"
-              >
-                {index + 1}
-              </span>
-              <h3 className="text-foreground text-title-3-emphasized">
-                {step.title}
-              </h3>
-              <p className="text-muted-foreground">{step.description}</p>
-            </li>
-          ))}
-        </ol>
-      </Container>
-    </section>
-  );
-}
+              {index + 1}
+            </span>
+            <h3 className="text-foreground text-title-3-emphasized">
+              {step.title}
+            </h3>
+            <p className="text-muted-foreground">{step.description}</p>
+          </li>
+        ))}
+      </ol>
+    </Container>
+  </section>
+);
 
 export { HowItWorks };

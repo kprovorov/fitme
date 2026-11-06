@@ -21,16 +21,16 @@
  * and call `resetStubRouter()` before each test.
  */
 import {
-  type ComponentType,
   cloneElement,
   createContext,
-  type ReactElement,
-  type Ref,
   useContext,
   useSyncExternalStore,
 } from "react";
+import type { ComponentType, ReactElement, Ref } from "react";
 import { Pressable, Text } from "react-native";
 import type { SearchBarCommands, SearchBarProps } from "react-native-screens";
+import { z } from "zod";
+
 import { SearchBar } from "~/test-utils/stack-screen-stub";
 
 type Params = Record<string, string>;
@@ -38,6 +38,14 @@ type Params = Record<string, string>;
 type Href =
   | string
   | { params?: Record<string, string | undefined>; pathname: string };
+
+const hrefSchema = z.union([
+  z.string().transform((pathname) => ({ params: {}, pathname })),
+  z.object({
+    params: z.record(z.string(), z.string().optional()).default({}),
+    pathname: z.string(),
+  }),
+]);
 
 interface PushedRoute {
   key: number;
@@ -51,23 +59,25 @@ let nextKey = 0;
 
 const setRoutes = (next: PushedRoute[]) => {
   routes = next;
+
   for (const listener of listeners) {
     listener();
   }
 };
 
 const toRoute = (href: Href): PushedRoute => {
+  const { params: inputParams, pathname } = hrefSchema.parse(href);
   nextKey += 1;
-  if (typeof href === "string") {
-    return { key: nextKey, params: {}, pathname: href };
-  }
+
   const params: Params = {};
-  for (const [name, value] of Object.entries(href.params ?? {})) {
+
+  for (const [name, value] of Object.entries(inputParams)) {
     if (value !== undefined) {
       params[name] = value;
     }
   }
-  return { key: nextKey, params, pathname: href.pathname };
+
+  return { key: nextKey, params, pathname };
 };
 
 /** `useRouter()`'s answer: pushes and pops the routes over the screen. */
@@ -86,6 +96,7 @@ export const resetStubRouter = () => setRoutes([]);
 
 const subscribe = (listener: () => void) => {
   listeners.add(listener);
+
   return () => {
     listeners.delete(listener);
   };
@@ -96,16 +107,14 @@ const subscribe = (listener: () => void) => {
  * route, as the real one does. A route the test names in `<PushedRoutes>`
  * is then mounted over the screen.
  */
-export function LinkStub({
+export const LinkStub = ({
   children,
   href,
 }: {
   asChild?: boolean;
   children: ReactElement<{ onPress?: () => void }>;
   href: Href;
-}) {
-  return cloneElement(children, { onPress: () => stubRouter.push(href) });
-}
+}) => cloneElement(children, { onPress: () => stubRouter.push(href) });
 
 const RouteParams = createContext<Params | null>(null);
 
@@ -113,21 +122,23 @@ const RouteParams = createContext<Params | null>(null);
 export const useStubParams = (base: Params) => useContext(RouteParams) ?? base;
 
 /** Mounts each pushed route named in `screens` (by pathname) with its params. */
-export function PushedRoutes({
+export const PushedRoutes = ({
   screens,
 }: {
   screens: Record<string, ComponentType>;
-}) {
+}) => {
   const pushed = useSyncExternalStore(subscribe, pushedRoutes);
+
   return pushed.map((route) => {
     const Screen = screens[route.pathname];
+
     return Screen ? (
       <RouteParams.Provider key={route.key} value={route.params}>
         <Screen />
       </RouteParams.Provider>
     ) : null;
   });
-}
+};
 
 interface HeaderItem {
   accessibilityLabel?: string;
@@ -145,14 +156,18 @@ const HeaderButton = ({
 }: {
   item: HeaderItem;
   role?: "button" | "menuitem";
-}) => (
-  <Pressable
-    accessibilityLabel={item.accessibilityLabel ?? item.label}
-    accessibilityRole={role}
-    disabled={item.disabled}
-    onPress={item.onPress}
-  />
-);
+}) => {
+  const { onPress: handlePress } = item;
+
+  return (
+    <Pressable
+      accessibilityLabel={item.accessibilityLabel ?? item.label}
+      accessibilityRole={role}
+      disabled={item.disabled}
+      onPress={handlePress}
+    />
+  );
+};
 
 /**
  * A header menu: its own button, named by its label, and each of its items
@@ -181,7 +196,7 @@ const HeaderItems = ({ items }: { items: HeaderItem[] }) =>
  * `<Stack.Screen>`: its title as a header, its left and right items as
  * buttons, and its search bar.
  */
-export function StackScreenStub({
+export const StackScreenStub = ({
   options,
 }: {
   options?: {
@@ -190,17 +205,15 @@ export function StackScreenStub({
     unstable_headerLeftItems?: () => HeaderItem[];
     unstable_headerRightItems?: () => HeaderItem[];
   };
-}) {
-  return (
-    <>
-      <HeaderItems items={options?.unstable_headerLeftItems?.() ?? []} />
-      {options?.title ? (
-        <Text accessibilityRole="header">{options.title}</Text>
-      ) : null}
-      <HeaderItems items={options?.unstable_headerRightItems?.() ?? []} />
-      {options?.headerSearchBarOptions ? (
-        <SearchBar options={options.headerSearchBarOptions} />
-      ) : null}
-    </>
-  );
-}
+}) => (
+  <>
+    <HeaderItems items={options?.unstable_headerLeftItems?.() ?? []} />
+    {options?.title ? (
+      <Text accessibilityRole="header">{options.title}</Text>
+    ) : null}
+    <HeaderItems items={options?.unstable_headerRightItems?.() ?? []} />
+    {options?.headerSearchBarOptions ? (
+      <SearchBar options={options.headerSearchBarOptions} />
+    ) : null}
+  </>
+);

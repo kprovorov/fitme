@@ -1,15 +1,15 @@
 import { describe, expect, it, vi } from "vitest";
-import {
-  ApiError,
-  createPublicApi,
-  type PublicApiFetch,
-  rateLimitedFor,
-} from "../client";
+
+import { ApiError, createPublicApi, rateLimitedFor } from "../client";
+import type { PublicApiFetch } from "../client";
 
 const BASE_URL = "https://api.test";
 
 const answering = (response: () => Response) => {
-  const fetch = vi.fn<PublicApiFetch>(async () => response());
+  const fetch = vi.fn<PublicApiFetch>(
+    async () => await Promise.resolve(response())
+  );
+
   return fetch;
 };
 
@@ -20,11 +20,11 @@ const clientWith = (
   createPublicApi({
     baseUrl: () => baseUrl,
     fetch,
-    token: async () => token,
+    token: async () => await Promise.resolve(token),
   });
 
-const patchProfile = (api: ReturnType<typeof clientWith>) =>
-  api().PATCH("/v1/profile", { body: { measurement_system: "us" } });
+const patchProfile = async (api: ReturnType<typeof clientWith>) =>
+  await api().PATCH("/v1/profile", { body: { measurement_system: "us" } });
 
 /** The `ApiError` `promise` rejects with; anything else fails the test. */
 const rejection = async (promise: Promise<unknown>): Promise<ApiError> => {
@@ -34,8 +34,10 @@ const rejection = async (promise: Promise<unknown>): Promise<ApiError> => {
     if (error instanceof ApiError) {
       return error;
     }
+
     throw error;
   }
+
   throw new Error("Expected the call to reject with an ApiError");
 };
 
@@ -44,12 +46,12 @@ const errorResponse = (
   code: string,
   headers: HeadersInit = {}
 ) =>
-  new Response(
-    JSON.stringify({ error: { code, message: `${code} message` } }),
-    { headers: { "Content-Type": "application/json", ...headers }, status }
+  Response.json(
+    { error: { code, message: `${code} message` } },
+    { headers, status }
   );
 
-describe("createPublicApi", () => {
+describe("public API client", () => {
   it("sends the body and the session token as the bearer", async () => {
     const fetch = answering(() =>
       Response.json({ data: { measurement_system: "us" } })
@@ -57,11 +59,11 @@ describe("createPublicApi", () => {
 
     const { data } = await patchProfile(clientWith(fetch));
 
-    expect(data).toEqual({ data: { measurement_system: "us" } });
-    const [url, init] = fetch.mock.calls[0] as Parameters<PublicApiFetch>;
+    expect(data).toStrictEqual({ data: { measurement_system: "us" } });
+    const [[url, init]] = fetch.mock.calls;
     expect(url).toBe(`${BASE_URL}/v1/profile`);
     expect(init.method).toBe("PATCH");
-    expect(JSON.parse(init.body as string)).toEqual({
+    await expect(new Response(init.body).json()).resolves.toStrictEqual({
       measurement_system: "us",
     });
     expect(new Headers(init.headers).get("Authorization")).toBe(
@@ -122,7 +124,8 @@ describe("createPublicApi", () => {
 
   it("throws for a network failure, with no status or code", async () => {
     const cause = new TypeError("Network request failed");
-    const fetch = vi.fn<PublicApiFetch>(() => Promise.reject(cause));
+
+    const fetch = vi.fn<PublicApiFetch>().mockRejectedValue(cause);
 
     const error = await rejection(patchProfile(clientWith(fetch)));
 
@@ -132,10 +135,11 @@ describe("createPublicApi", () => {
 
   it("throws for a token that can't be resolved, without a request", async () => {
     const fetch = answering(() => new Response(null, { status: 204 }));
+
     const api = createPublicApi({
       baseUrl: () => BASE_URL,
       fetch,
-      token: () => Promise.reject(new Error("offline")),
+      token: async () => await Promise.reject(new Error("offline")),
     });
 
     const error = await rejection(patchProfile(api));
@@ -148,7 +152,7 @@ describe("createPublicApi", () => {
     const fetch = answering(() => new Response(null, { status: 204 }));
 
     const error = await rejection(
-      (async () => patchProfile(clientWith(fetch, { baseUrl: "" })))()
+      (async () => await patchProfile(clientWith(fetch, { baseUrl: "" })))()
     );
 
     expect(error.status).toBeNull();

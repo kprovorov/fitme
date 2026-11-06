@@ -1,14 +1,18 @@
 import { describe, expect, it, jest } from "@jest/globals";
 import { fireEvent, render, screen } from "@testing-library/react-native";
+
 import type { ShownExercise } from "~/hooks/queries/library";
+
 import SessionExerciseHeader from "../session-exercise-header";
 
 jest.mock("~/components/ui/button", () =>
   jest.requireActual("~/test-utils/button-stub")
 );
+
 jest.mock("~/components/exercises/exercise-video", () => {
   const { View } =
     jest.requireActual<typeof import("react-native")>("react-native");
+
   return ({ url }: { url: string }) => (
     <View testID="exercise-video" {...{ url }} />
   );
@@ -94,6 +98,7 @@ describe("SessionExerciseHeader", () => {
       thumbnail_url: null,
       video_url: null,
     };
+
     await render(
       <SessionExerciseHeader description={null} exercise={unknown} />
     );

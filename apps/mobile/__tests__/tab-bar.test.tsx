@@ -15,7 +15,9 @@ jest.mock("@clerk/expo", () => ({
   useAuth: () => ({ isLoaded: true, isSignedIn: true }),
 }));
 
-jest.mock("expo-router", () => ({ Redirect: () => null }));
+jest.mock("expo-router", () => ({
+  Redirect: () => null,
+}));
 
 jest.mock("expo-router/native-tabs", () =>
   jest.requireActual("~/test-utils/native-tabs-stub")
@@ -23,6 +25,7 @@ jest.mock("expo-router/native-tabs", () =>
 
 function App() {
   useAppLanguageSync();
+
   return <TabLayout />;
 }
 

@@ -15,6 +15,8 @@ export const sizedThumbnailUrl = (
   if (!url.includes(RENDER_ENDPOINT)) {
     return url;
   }
+
   const pixels = PixelRatio.getPixelSizeForLayoutSize;
+
   return `${url}${url.includes("?") ? "&" : "?"}width=${pixels(width)}&height=${pixels(height)}`;
 };

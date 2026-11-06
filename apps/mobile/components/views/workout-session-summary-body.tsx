@@ -1,5 +1,6 @@
 import type { MuscleGroup } from "@fitme/core";
-import Svg, { G, Path, type SvgProps } from "react-native-svg";
+import Svg, { G, Path } from "react-native-svg";
+import type { SvgProps } from "react-native-svg";
 import { useCSSVariable } from "uniwind";
 
 interface MuscleRegion {
@@ -197,6 +198,7 @@ const BACK_REGIONS: MuscleRegion[] = [
     ],
   },
 ];
+
 // "back" has no path of its own in the source artwork — generic back exercises
 // (rows, pulldowns) are represented by lighting up the lats region.
 const GROUP_SYNONYMS: Partial<Record<MuscleGroup, MuscleGroup[]>> = {
@@ -207,12 +209,13 @@ interface BodyDiagramProps extends Omit<SvgProps, "viewBox"> {
   groups: ReadonlySet<MuscleGroup>;
 }
 
-function isActive(groups: ReadonlySet<MuscleGroup>, group: MuscleGroup) {
+const isActive = (groups: ReadonlySet<MuscleGroup>, group: MuscleGroup) => {
   if (groups.has("full-body") || groups.has(group)) {
     return true;
   }
+
   return (GROUP_SYNONYMS[group] ?? []).some((synonym) => groups.has(synonym));
-}
+};
 
 interface Fills {
   active: string;
@@ -226,19 +229,19 @@ const INACTIVE_OPACITY = 0.44;
 const SILHOUETTE_OPACITY = 0.26;
 
 /** Worked muscles in the brand lime, the rest in the muted text color. */
-function useFills(): Fills {
-  return {
-    active: useCSSVariable("--color-primary") as string,
-    inactive: useCSSVariable("--color-muted-foreground") as string,
-  };
-}
+const useFills = (): Fills => ({
+  // SAFETY: tokens.css defines --color-primary as a color string in every theme.
+  active: useCSSVariable("--color-primary") as string,
+  // SAFETY: tokens.css defines --color-muted-foreground as a color string in every theme.
+  inactive: useCSSVariable("--color-muted-foreground") as string,
+});
 
-function renderRegions(
+const renderRegions = (
   regions: MuscleRegion[],
   groups: ReadonlySet<MuscleGroup>,
   fills: Fills
-) {
-  return regions.flatMap((region) =>
+) =>
+  regions.flatMap((region) =>
     region.paths.map((d) => (
       <Path
         clipRule="evenodd"
@@ -250,12 +253,11 @@ function renderRegions(
       />
     ))
   );
-}
 
-export function WorkoutSessionSummaryBodyFront({
+export const WorkoutSessionSummaryBodyFront = ({
   groups,
   ...props
-}: BodyDiagramProps) {
+}: BodyDiagramProps) => {
   const fills = useFills();
 
   return (
@@ -282,12 +284,12 @@ export function WorkoutSessionSummaryBodyFront({
       </G>
     </Svg>
   );
-}
+};
 
-export function WorkoutSessionSummaryBodyBack({
+export const WorkoutSessionSummaryBodyBack = ({
   groups,
   ...props
-}: BodyDiagramProps) {
+}: BodyDiagramProps) => {
   const fills = useFills();
 
   return (
@@ -304,4 +306,4 @@ export function WorkoutSessionSummaryBodyBack({
       </G>
     </Svg>
   );
-}
+};

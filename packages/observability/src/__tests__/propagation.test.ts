@@ -1,11 +1,12 @@
 import { describe, expect, it } from "vitest";
+
 import { tracePropagationTargets } from "../index";
 
 // How Sentry applies the list: a URL gets trace headers when any target matches
 const propagatesTo = (url: string) =>
   tracePropagationTargets.some((target) => target.test(url));
 
-describe("tracePropagationTargets", () => {
+describe("trace header propagation", () => {
   it.each([
     "https://api.fitmeproject.com/v1/client-config",
     "https://app.fitmeproject.com/dashboard",
@@ -17,7 +18,7 @@ describe("tracePropagationTargets", () => {
     "http://127.0.0.1:3005/eve/v1/health",
     "/api/plans",
   ])("propagates to %s", (url) => {
-    expect(propagatesTo(url)).toBe(true);
+    expect(propagatesTo(url)).toBeTruthy();
   });
 
   it.each([
@@ -40,6 +41,6 @@ describe("tracePropagationTargets", () => {
     "http://localhost.evil.example/",
     "//evil.example/path",
   ])("does not propagate to %s", (url) => {
-    expect(propagatesTo(url)).toBe(false);
+    expect(propagatesTo(url)).toBeFalsy();
   });
 });

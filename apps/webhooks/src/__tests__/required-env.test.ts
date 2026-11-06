@@ -1,19 +1,18 @@
 import { reportMissingEnv } from "@fitme/observability/node";
 import { describe, expect, it, vi } from "vitest";
+
 import { REQUIRED_ENV } from "../required-env";
 
-describe("REQUIRED_ENV", () => {
+describe("required environment variables", () => {
   it("reports one error per variable on a production instance missing them all", async () => {
-    const report = vi.fn((_error: unknown, _tags?: Record<string, string>) =>
-      Promise.resolve()
-    );
+    const report = vi.fn<() => Promise<void>>(() => Promise.resolve());
 
     const missing = await reportMissingEnv(REQUIRED_ENV, {
       env: { VERCEL_ENV: "production" },
       report,
     });
 
-    expect(missing).toEqual([
+    expect(missing).toStrictEqual([
       "CLERK_WEBHOOK_SIGNING_SECRET",
       "FITME_DATABASE_URL",
       "ARNOLD_URL",
@@ -23,9 +22,7 @@ describe("REQUIRED_ENV", () => {
   });
 
   it("doesn't take the pre-rename COACH_URL and COACH_RESET_SECRET", async () => {
-    const report = vi.fn((_error: unknown, _tags?: Record<string, string>) =>
-      Promise.resolve()
-    );
+    const report = vi.fn<() => Promise<void>>(() => Promise.resolve());
 
     const missing = await reportMissingEnv(REQUIRED_ENV, {
       env: {
@@ -38,6 +35,6 @@ describe("REQUIRED_ENV", () => {
       report,
     });
 
-    expect(missing).toEqual(["ARNOLD_URL", "ARNOLD_RESET_SECRET"]);
+    expect(missing).toStrictEqual(["ARNOLD_URL", "ARNOLD_RESET_SECRET"]);
   });
 });

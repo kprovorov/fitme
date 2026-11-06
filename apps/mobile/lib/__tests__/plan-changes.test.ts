@@ -1,11 +1,12 @@
 import { createI18n } from "@fitme/i18n";
 import { describe, expect, it } from "@jest/globals";
+
 import {
   countPlanChanges,
   formatPlanChange,
-  type PlanUpdateChange,
   planUpdateSlugs,
 } from "../plan-changes";
+import type { PlanUpdateChange } from "../plan-changes";
 
 const NAMES: Record<string, string> = {
   "bench-press": "Bench Press",
@@ -65,6 +66,7 @@ describe("formatPlanChange", () => {
       kind: "add_sets",
       sets: Array.from({ length: count }, () => ({ reps: 5, weight: 100 })),
     });
+
     expect(formatPlanChange(addSets(1), "kg", nameOf, i18n).text).toBe(
       "Add 1 set to Squat · 5×100 kg"
     );
@@ -176,6 +178,7 @@ describe("formatPlanChange in Ukrainian", () => {
       nameOf,
       uk
     );
+
     expect(line.text).toBe(
       `${change} · ${Array.from({ length: count }, () => "5×62,5").join(", ")} кг`
     );

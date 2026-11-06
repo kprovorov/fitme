@@ -1,6 +1,7 @@
 import { ApiError } from "@fitme/api-client";
 import type { WeeklyGoalChange } from "@fitme/core";
 import { createQuery } from "react-query-kit";
+
 import { publicApi } from "~/lib/public-api";
 
 export const WEEKLY_GOALS_QUERY_KEY = ["weekly-goals"];
@@ -25,9 +26,11 @@ export const useWeeklyGoalsQuery = createQuery<
     const { data } = await publicApi().GET("/v1/weekly-goals", {
       params: { query: { time_zone: timeZone } },
     });
+
     if (!data) {
       throw new ApiError("Public API answered without Weekly goals");
     }
+
     return { changes: data.data, streak: data.streak ?? 0 };
   },
   queryKey: WEEKLY_GOALS_QUERY_KEY,

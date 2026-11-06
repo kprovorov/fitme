@@ -1,4 +1,5 @@
-import Image, { type StaticImageData } from "next/image";
+import Image from "next/image";
+import type { StaticImageData } from "next/image";
 
 import { cn } from "@/lib/utils";
 
@@ -12,23 +13,21 @@ interface PhoneShotProps {
 }
 
 /** A framed iPhone screenshot from `public/screens` (transparent PNG, frame drawn in). */
-function PhoneShot({
+const PhoneShot = ({
   alt,
   className,
   priority,
   sizes = "(min-width: 1024px) 300px, 260px",
   src,
-}: PhoneShotProps) {
-  return (
-    <Image
-      alt={alt}
-      className={cn("h-auto w-full select-none", className)}
-      draggable={false}
-      priority={priority}
-      sizes={sizes}
-      src={src}
-    />
-  );
-}
+}: PhoneShotProps) => (
+  <Image
+    alt={alt}
+    className={cn("h-auto w-full select-none", className)}
+    draggable={false}
+    priority={priority}
+    sizes={sizes}
+    src={src}
+  />
+);
 
 export { PhoneShot };

@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
-import { parseTokens, readTokens, type TokenKind } from "../index";
+
+import { parseTokens, readTokens } from "../index";
+import type { TokenKind } from "../index";
 
 const tokens = readTokens();
 
@@ -28,10 +30,10 @@ const COLORS = [
   "ring",
 ];
 
-const HEX = /^#([0-9a-f]{6}|[0-9a-f]{8})$/;
+const HEX = /^#(?:[0-9a-f]{6}|[0-9a-f]{8})$/u;
 
 // Apple HIG text styles, iOS at the default Large size: [size, line height] in pt
-const HIG_STYLES: Record<string, [number, number]> = {
+const HIG_STYLES = {
   body: [17, 22],
   callout: [16, 21],
   "caption-1": [12, 16],
@@ -43,12 +45,12 @@ const HIG_STYLES: Record<string, [number, number]> = {
   "title-1": [28, 34],
   "title-2": [22, 28],
   "title-3": [20, 25],
-};
+} satisfies Record<string, [number, number]>;
 
 describe("colors", () => {
   it("defines exactly the 19 color tokens", () => {
     const names = tokens.filter((t) => t.kind === "color").map((t) => t.name);
-    expect(names.sort()).toEqual([...COLORS].sort());
+    expect(names.toSorted()).toStrictEqual(COLORS.toSorted());
   });
 
   it.each(COLORS)("%s is 6- or 8-digit lowercase hex", (name) => {
@@ -64,22 +66,26 @@ describe("colors", () => {
 type RGB = [number, number, number];
 
 /** A color token as its [r, g, b] channels (0–255) and its alpha (0–1). */
-const channels = (name: string): { alpha: number; rgb: RGB } => {
+const channels = (name: string) => {
   const hex = tokenValue("color", name)?.slice(1) ?? "";
+
   const channel = (index: number) =>
     Number.parseInt(hex.slice(index, index + 2), 16);
+
   return {
     alpha: hex.length === 8 ? channel(6) / 255 : 1,
-    rgb: [channel(0), channel(2), channel(4)],
+    rgb: [channel(0), channel(2), channel(4)] satisfies RGB,
   };
 };
 
 /** An opaque color token: something else is drawn on it. */
 const solid = (name: string): RGB => {
   const { alpha, rgb } = channels(name);
+
   if (alpha !== 1) {
     throw new Error(`${name} isn't opaque, so it can't be a surface`);
   }
+
   return rgb;
 };
 
@@ -87,27 +93,35 @@ const solid = (name: string): RGB => {
 const drawnOn = (name: string, surface: string): RGB => {
   const { alpha, rgb } = channels(name);
   const under = solid(surface);
-  return rgb.map(
-    (value, index) => value * alpha + under[index] * (1 - alpha)
-  ) as RGB;
+
+  const blend = (index: 0 | 1 | 2) =>
+    rgb[index] * alpha + under[index] * (1 - alpha);
+
+  return [blend(0), blend(1), blend(2)];
 };
 
 // WCAG 2 relative luminance and contrast ratio
 const luminance = (rgb: RGB) => {
   const [r, g, b] = rgb.map((value) => {
     const c = value / 255;
-    return c <= 0.040_45 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4;
+
+    return c <= 0.04045 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4;
   });
+
   return 0.2126 * r + 0.7152 * g + 0.0722 * b;
 };
 
 const contrast = (a: RGB, b: RGB) => {
-  const [lighter, darker] = [luminance(a), luminance(b)].sort((x, y) => y - x);
+  const [lighter, darker] = [luminance(a), luminance(b)].toSorted(
+    (x, y) => y - x
+  );
+
   return (lighter + 0.05) / (darker + 0.05);
 };
 
 // WCAG 1.4.11: a UI component's boundary (a field stroke, a focus ring)
 const COMPONENT_BOUNDARY = 3;
+
 // WCAG 1.4.3, AA: body-size text
 const TEXT_AA = 4.5;
 
@@ -152,7 +166,7 @@ describe("type", () => {
 
   it("defines the font roles", () => {
     const fonts = tokens.filter((t) => t.kind === "font").map((t) => t.name);
-    expect(fonts).toEqual([
+    expect(fonts).toStrictEqual([
       "nunito-sans-regular",
       "nunito-sans-semibold",
       "nunito-sans-bold",
@@ -206,7 +220,7 @@ describe("size", () => {
   });
 });
 
-describe("parseTokens", () => {
+describe("token parsing", () => {
   it("ignores comments and anything outside @theme", () => {
     const css = `
       :root { --color-stray: #000000; }
@@ -215,7 +229,8 @@ describe("parseTokens", () => {
         --color-primary: #c0ff38;
       }
     `;
-    expect(parseTokens(css)).toEqual([
+
+    expect(parseTokens(css)).toStrictEqual([
       {
         kind: "color",
         name: "primary",
@@ -252,6 +267,7 @@ describe("parseTokens", () => {
       --color-primary: #c0ff38;
       --Color-background: #1f1d20;
     }`;
+
     expect(() => parseTokens(css)).toThrow(
       "Malformed token name --Color-background"
     );
@@ -267,7 +283,7 @@ describe("parseTokens", () => {
   );
 
   it("accepts a last declaration without a semicolon", () => {
-    expect(parseTokens("@theme { --radius-2xl: 1rem }")).toEqual([
+    expect(parseTokens("@theme { --radius-2xl: 1rem }")).toStrictEqual([
       { kind: "radius", name: "2xl", value: "1rem", variable: "--radius-2xl" },
     ]);
   });

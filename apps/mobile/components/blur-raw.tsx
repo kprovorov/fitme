@@ -2,28 +2,25 @@
 
 import type { BlurViewProps } from "expo-blur";
 import { NativeBlurView } from "expo-blur/build/NativeBlurModule";
-import { StyleSheet } from "react-native";
+import { withUniwind } from "uniwind";
 
-export function BlurViewRawBackdrop({
+const StyledNativeBlurView = withUniwind(NativeBlurView);
+
+export const BlurViewRawBackdrop = ({
   tint = "default",
   intensity = 50,
   blurReductionFactor = 4,
   experimentalBlurMethod = "none",
-  style,
-  children,
+  style: _style,
+  children: _children,
   ...props
-}: BlurViewProps) {
-  return (
-    <NativeBlurView
-      blurReductionFactor={blurReductionFactor}
-      experimentalBlurMethod={experimentalBlurMethod}
-      intensity={intensity}
-      style={{
-        ...StyleSheet.absoluteFill,
-        overflow: "hidden",
-      }}
-      tint={tint}
-      {...props}
-    />
-  );
-}
+}: BlurViewProps) => (
+  <StyledNativeBlurView
+    blurReductionFactor={blurReductionFactor}
+    className="absolute inset-0 overflow-hidden"
+    experimentalBlurMethod={experimentalBlurMethod}
+    intensity={intensity}
+    tint={tint}
+    {...props}
+  />
+);

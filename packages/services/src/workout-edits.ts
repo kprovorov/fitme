@@ -1,11 +1,13 @@
 import {
   plans,
-  type Transaction,
   workoutExerciseSets,
   workoutExercises,
   workouts,
 } from "@fitme/db";
-import { and, asc, count, eq, inArray, max, type SQL, sql } from "drizzle-orm";
+import type { Transaction } from "@fitme/db";
+import { and, asc, count, eq, inArray, max, sql } from "drizzle-orm";
+import type { SQL } from "drizzle-orm";
+
 import type { PlanSet, PlanSetInput } from "./plans";
 
 /**
@@ -66,6 +68,7 @@ const lockWorkout = async (
     .innerJoin(plans, eq(plans.id, workouts.planId))
     .where(and(eq(workouts.id, workoutId), eq(plans.userId, userId)))
     .for("no key update", { of: workouts });
+
   return row?.id;
 };
 
@@ -87,6 +90,7 @@ const lockWorkoutByExercise = async (
       and(eq(workoutExercises.id, workoutExerciseId), eq(plans.userId, userId))
     )
     .for("no key update", { of: workouts });
+
   return row?.id;
 };
 
@@ -105,6 +109,7 @@ const lockWorkoutExercise = async (
       and(eq(workoutExercises.id, workoutExerciseId), eq(plans.userId, userId))
     )
     .for("no key update", { of: workoutExercises });
+
   return row?.id;
 };
 
@@ -130,22 +135,27 @@ export const addSetToExercise = async (
   }: { requestKey?: string; set: PlanSetInput; workoutExerciseId: string }
 ): Promise<AddedSet | null> => {
   await lockEditedTables(tx);
+
   if (!(await lockWorkoutExercise(tx, userId, workoutExerciseId))) {
     return null;
   }
+
   const inExercise = eq(
     workoutExerciseSets.workoutExerciseId,
     workoutExerciseId
   );
-  if (requestKey) {
+
+  if (requestKey !== undefined && requestKey !== "") {
     const [repeated] = await tx
       .select({ id: workoutExerciseSets.id, order: workoutExerciseSets.order })
       .from(workoutExerciseSets)
       .where(and(inExercise, eq(workoutExerciseSets.requestKey, requestKey)));
-    if (repeated) {
+
+    if (repeated !== undefined) {
       return repeated;
     }
   }
+
   const [{ last, sets }] = await tx
     .select({
       last: max(workoutExerciseSets.order),
@@ -153,9 +163,11 @@ export const addSetToExercise = async (
     })
     .from(workoutExerciseSets)
     .where(inExercise);
+
   if (sets >= MAX_SETS_PER_EXERCISE) {
     throw new TooManySetsError(MAX_SETS_PER_EXERCISE);
   }
+
   const [added] = await tx
     .insert(workoutExerciseSets)
     .values({
@@ -170,6 +182,7 @@ export const addSetToExercise = async (
       id: workoutExerciseSets.id,
       order: workoutExerciseSets.order,
     });
+
   return added;
 };
 
@@ -182,6 +195,7 @@ const insertSets = async (
   if (sets.length === 0) {
     return;
   }
+
   await tx.insert(workoutExerciseSets).values(
     sets.map((set, index) => ({
       order: index + 1,
@@ -223,11 +237,14 @@ export const addExerciseToWorkout = async (
   }
 ): Promise<AddedExercise | null> => {
   await lockEditedTables(tx);
+
   if (!(await lockWorkout(tx, userId, workoutId))) {
     return null;
   }
+
   const inWorkout = eq(workoutExercises.workoutId, workoutId);
-  if (requestKey) {
+
+  if (requestKey !== undefined && requestKey !== "") {
     const [repeated] = await tx
       .select({
         id: workoutExercises.id,
@@ -241,14 +258,17 @@ export const addExerciseToWorkout = async (
       )
       .where(and(inWorkout, eq(workoutExercises.requestKey, requestKey)))
       .groupBy(workoutExercises.id);
-    if (repeated) {
+
+    if (repeated !== undefined) {
       return repeated;
     }
   }
+
   const [{ last }] = await tx
     .select({ last: max(workoutExercises.order) })
     .from(workoutExercises)
     .where(inWorkout);
+
   const [added] = await tx
     .insert(workoutExercises)
     .values({
@@ -258,7 +278,9 @@ export const addExerciseToWorkout = async (
       workoutId,
     })
     .returning({ id: workoutExercises.id, order: workoutExercises.order });
+
   await insertSets(tx, added.id, sets);
+
   return { ...added, setsAdded: sets.length };
 };
 
@@ -293,22 +315,27 @@ export const removeExerciseFromWorkout = async (
 ): Promise<boolean> => {
   await lockEditedTables(tx);
   const workoutId = await lockWorkoutByExercise(tx, userId, workoutExerciseId);
+
   if (!workoutId) {
     return false;
   }
+
   // Its sets go with it (ON DELETE CASCADE)
   const removed = await tx
     .delete(workoutExercises)
     .where(eq(workoutExercises.id, workoutExerciseId))
     .returning({ id: workoutExercises.id });
+
   if (removed.length === 0) {
     return false;
   }
+
   await renumber(
     tx,
     workoutExercises,
     eq(workoutExercises.workoutId, workoutId)
   );
+
   return true;
 };
 
@@ -326,9 +353,11 @@ const isAlreadyReplaced = async (
     .select({ exerciseSlug: workoutExercises.exerciseSlug })
     .from(workoutExercises)
     .where(eq(workoutExercises.id, workoutExerciseId));
+
   if (current?.exerciseSlug !== exerciseSlug) {
     return false;
   }
+
   // The weights as numeric(8,2) stores them, rounded by Postgres, not JS
   const {
     rows: [{ weights }],
@@ -338,6 +367,7 @@ const isAlreadyReplaced = async (
       sql`, `
     )}]::text[] as weights
   `);
+
   const currentSets = await tx
     .select({
       order: workoutExerciseSets.order,
@@ -348,6 +378,7 @@ const isAlreadyReplaced = async (
     .from(workoutExerciseSets)
     .where(eq(workoutExerciseSets.workoutExerciseId, workoutExerciseId))
     .orderBy(asc(workoutExerciseSets.order), asc(workoutExerciseSets.id));
+
   return (
     currentSets.length === sets.length &&
     currentSets.every(
@@ -383,12 +414,15 @@ export const replaceExerciseInWorkout = async (
   }
 ): Promise<boolean> => {
   await lockEditedTables(tx);
+
   if (!(await lockWorkoutExercise(tx, userId, workoutExerciseId))) {
     return false;
   }
+
   if (await isAlreadyReplaced(tx, workoutExerciseId, newExerciseSlug, sets)) {
     return true;
   }
+
   await tx
     .update(workoutExercises)
     .set({
@@ -400,6 +434,7 @@ export const replaceExerciseInWorkout = async (
     .delete(workoutExerciseSets)
     .where(eq(workoutExerciseSets.workoutExerciseId, workoutExerciseId));
   await insertSets(tx, workoutExerciseId, sets);
+
   return true;
 };
 
@@ -423,6 +458,7 @@ const lockWorkoutExerciseBySet = async (
     .innerJoin(plans, eq(plans.id, workouts.planId))
     .where(and(eq(workoutExerciseSets.id, setId), eq(plans.userId, userId)))
     .for("no key update", { of: workoutExercises });
+
   return row?.id;
 };
 
@@ -439,21 +475,26 @@ export const removeSetFromExercise = async (
 ): Promise<boolean> => {
   await lockEditedTables(tx);
   const workoutExerciseId = await lockWorkoutExerciseBySet(tx, userId, setId);
+
   if (!workoutExerciseId) {
     return false;
   }
+
   const removed = await tx
     .delete(workoutExerciseSets)
     .where(eq(workoutExerciseSets.id, setId))
     .returning({ id: workoutExerciseSets.id });
+
   if (removed.length === 0) {
     return false;
   }
+
   await renumber(
     tx,
     workoutExerciseSets,
     eq(workoutExerciseSets.workoutExerciseId, workoutExerciseId)
   );
+
   return true;
 };
 
@@ -500,9 +541,11 @@ export const updateSetRecommendations = async (
       restRecommended: workoutExerciseSets.restRecommended,
       weightRecommended: workoutExerciseSets.weightRecommended,
     });
-  if (!updated) {
+
+  if (updated === undefined) {
     return null;
   }
+
   return {
     id: updated.id,
     order: updated.order,

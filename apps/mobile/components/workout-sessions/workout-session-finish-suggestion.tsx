@@ -1,7 +1,9 @@
 import { useIsFocused } from "expo-router";
 import { useEffect } from "react";
+
 import { useFinishWorkoutSession } from "~/hooks/finish-workout-session";
 import { useFinishWorkoutSuggestion } from "~/hooks/finish-workout-suggestion";
+
 import { FinishWorkoutSuggestionDialog } from "./finish-workout-suggestion-dialog";
 
 interface WorkoutSessionFinishSuggestionProps {
@@ -19,15 +21,17 @@ interface WorkoutSessionFinishSuggestionProps {
  * the user is and only once. Finish behaves like the header's Finish button;
  * Keep Training and dismissing just close it and leave the session active.
  */
-export function WorkoutSessionFinishSuggestion({
+export const WorkoutSessionFinishSuggestion = ({
   isFinished,
   screensAboveSession,
   sessionId,
-}: WorkoutSessionFinishSuggestionProps) {
+}: WorkoutSessionFinishSuggestionProps) => {
   const { dismiss, isSuggested } = useFinishWorkoutSuggestion(sessionId);
+
   const { finish, isFinishing } = useFinishWorkoutSession(sessionId, {
     screensAboveSession,
   });
+
   const isFocused = useIsFocused();
 
   // Finished some other way meanwhile: drop the suggestion for good.
@@ -45,4 +49,4 @@ export function WorkoutSessionFinishSuggestion({
       open={isSuggested && isFocused && !isFinished}
     />
   );
-}
+};

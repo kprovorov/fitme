@@ -1,7 +1,9 @@
 import type { ViewRef } from "@rn-primitives/types";
 import type React from "react";
-import { Pressable, View, type ViewProps } from "react-native";
+import { Pressable, View } from "react-native";
+import type { ViewProps } from "react-native";
 import type { SFSymbol } from "sf-symbols-typescript";
+
 import { SymbolImage } from "~/components/symbol-image";
 import { TextClassContext } from "~/components/ui/text";
 import { cn } from "~/lib/utils";
@@ -18,7 +20,7 @@ const MenuList = ({
 }: ViewProps & { ref?: React.RefObject<ViewRef | null> }) => (
   <View
     className={cn(
-      "overflow-hidden rounded-card border-continuous bg-card",
+      "rounded-card border-continuous bg-card overflow-hidden",
       className
     )}
     ref={ref}
@@ -51,25 +53,26 @@ const MenuListItem = ({
 }) & { ref?: React.RefObject<React.ElementRef<typeof Pressable> | null> }) => (
   <TextClassContext.Provider value="web:pointer-events-none">
     <Pressable
+      accessibilityRole="button"
       className={cn(
-        "flex-1 flex-row items-center justify-between gap-2 p-4 active:bg-accent",
+        "active:bg-accent flex-1 flex-row items-center justify-between gap-2 p-4",
         props.disabled && "web:pointer-events-none opacity-50",
         className
       )}
       ref={ref}
-      role="button"
       {...props}
     >
       {children}
       {icon ? (
         <SymbolImage
-          className="shrink-0 text-body text-muted-foreground"
+          className="text-body text-muted-foreground shrink-0"
           name={ICON_SYMBOLS[icon]}
         />
       ) : null}
     </Pressable>
   </TextClassContext.Provider>
 );
+
 MenuListItem.displayName = "MenuListItem";
 
 export { MenuList, MenuListItem };

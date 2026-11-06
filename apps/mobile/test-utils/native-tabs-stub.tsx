@@ -7,6 +7,7 @@
  */
 import type { ReactNode } from "react";
 import { Text, View } from "react-native";
+import { z } from "zod";
 
 interface ChildrenProps {
   children?: ReactNode;
@@ -22,10 +23,21 @@ interface TriggerProps extends ChildrenProps {
 
 const Label = ({ children }: ChildrenProps) => <Text>{children}</Text>;
 
-const symbolName = (sf: IconProps["sf"]) =>
-  typeof sf === "object" ? `${sf.default}|${sf.selected}` : sf;
+const symbolName = z
+  .union([
+    z.string(),
+    z
+      .object({
+        default: z.string().optional(),
+        selected: z.string().optional(),
+      })
+      .transform((sf) => `${sf.default}|${sf.selected}`),
+  ])
+  .optional();
 
-const Icon = ({ sf }: IconProps) => <View testID={`sf:${symbolName(sf)}`} />;
+const Icon = ({ sf }: IconProps) => (
+  <View testID={`sf:${symbolName.parse(sf)}`} />
+);
 
 const Trigger = Object.assign(
   ({ children, name }: TriggerProps) => (

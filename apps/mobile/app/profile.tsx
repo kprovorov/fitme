@@ -5,12 +5,13 @@ import { useCallback, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { RefreshControl, ScrollView } from "react-native";
 import Purchases from "react-native-purchases";
+
 import ProfileView from "~/components/views/profile-view";
 
 const IS_E2E = process.env.EXPO_PUBLIC_E2E_ENABLED === "true";
 
 // Pushed over the tabs from the first tab's header button.
-export default function ProfileScreen() {
+const ProfileScreen = () => {
   const { t } = useTranslation();
   const [refreshing, setRefreshing] = useState(false);
   const queryClient = useQueryClient();
@@ -18,9 +19,11 @@ export default function ProfileScreen() {
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
+
     if (!IS_E2E) {
       await Purchases.invalidateCustomerInfoCache();
     }
+
     await Promise.all([
       user?.reload(),
       queryClient.refetchQueries({
@@ -34,7 +37,7 @@ export default function ProfileScreen() {
       }),
     ]);
     setRefreshing(false);
-  }, [queryClient.refetchQueries, user]);
+  }, [queryClient, user]);
 
   return (
     <>
@@ -61,4 +64,6 @@ export default function ProfileScreen() {
       </ScrollView>
     </>
   );
-}
+};
+
+export default ProfileScreen;

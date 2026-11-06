@@ -15,20 +15,19 @@ import {
   it,
   jest,
 } from "@jest/globals";
-import { type QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { QueryClientProvider } from "@tanstack/react-query";
+import type { QueryClient } from "@tanstack/react-query";
 import { act, fireEvent, render, screen } from "@testing-library/react-native";
 import { Alert } from "react-native";
+
 import HistorySessionScreen from "~/app/workout-sessions/[workoutSessionId]";
 import ExercisePickerScreen from "~/app/workout-sessions/[workoutSessionId]/exercise-picker";
 import { i18n } from "~/lib/i18n";
 import { storage } from "~/lib/mmkv";
 import { setDeviceLanguages } from "~/test-utils/device-locales";
 import { libraryExercise, serveLibrary } from "~/test-utils/fake-library";
-import {
-  backend,
-  type Failure,
-  fakePublicApi,
-} from "~/test-utils/fake-public-api";
+import { backend, fakePublicApi } from "~/test-utils/fake-public-api";
+import type { Failure } from "~/test-utils/fake-public-api";
 import { InAppLanguage } from "~/test-utils/in-app-language";
 import {
   createTestQueryClient,
@@ -43,10 +42,12 @@ jest.mock("~/lib/clerk", () => ({
     typeof import("~/test-utils/signed-in-user")
   >("~/test-utils/signed-in-user").getCurrentUserId,
 }));
+
 jest.mock("expo-router", () => {
   const stub = jest.requireActual<typeof import("~/test-utils/router-stub")>(
     "~/test-utils/router-stub"
   );
+
   return {
     Link: ({ children }: { children: unknown }) => children,
     Stack: { Screen: stub.StackScreenStub },
@@ -64,39 +65,54 @@ jest.mock(
       "~/test-utils/fake-library"
     ).libraryModule
 );
+
 jest.mock("~/hooks/queries/profiles", () => ({
   useProfileQuery: () => ({ data: { measurement_system: "metric" } }),
 }));
+
 jest.mock("@sentry/react-native", () => ({ captureException: jest.fn() }));
-jest.mock("~/lib/segment", () => ({ segmentClient: { track: jest.fn() } }));
+
+jest.mock("~/lib/segment", () => ({
+  segmentClient: { track: jest.fn() },
+}));
+
 jest.mock("react-native-safe-area-context", () => ({
   useSafeAreaInsets: () => ({ bottom: 0, left: 0, right: 0, top: 0 }),
 }));
+
 jest.mock("react-native-keyboard-controller", () => {
   const { ScrollView } =
     jest.requireActual<typeof import("react-native")>("react-native");
+
   return { KeyboardAwareScrollView: ScrollView };
 });
+
 jest.mock("~/components/exercises/exercise-image", () => () => null);
+
 jest.mock("~/components/symbol-image", () => ({ SymbolImage: () => null }));
+
 jest.mock("~/components/workout-sessions/rest-timer", () => () => null);
+
 jest.mock("~/components/ui/button", () =>
   jest.requireActual("~/test-utils/button-stub")
 );
+
 jest.mock("~/components/ui/dialog", () =>
   jest.requireActual("~/test-utils/dialog-stub")
 );
+
 // The card's menu shows each item as a button named by its label.
 jest.mock("~/components/ui/dropdown-menu", () => {
   const { Pressable } =
     jest.requireActual<typeof import("react-native")>("react-native");
+
   return {
     DropdownMenu: ({
       accessibilityLabel,
       items,
     }: {
       accessibilityLabel: string;
-      items: Array<{ label: string; onPress?: () => void }>;
+      items: { label: string; onPress?: () => void }[];
     }) =>
       items.map((item) => (
         <Pressable
@@ -164,6 +180,7 @@ const pressAndSettle = async (
 
 const firstOf = async (find: Promise<unknown[]>) => {
   const [first] = await find;
+
   return first as Parameters<typeof fireEvent.press>[0];
 };
 
@@ -180,7 +197,7 @@ beforeEach(() => {
     }),
     libraryExercise("lunge", { translations: { uk: { name: "Випади" } } }),
   ]);
-  jest.spyOn(Alert, "alert").mockImplementation(() => undefined);
+  jest.spyOn(Alert, "alert").mockReturnValue(undefined);
   // Squat: one set of 10 logged at 62.5 kg, one to go; Lunge: not started.
   backend.seed({
     exercises: [
@@ -211,8 +228,8 @@ describe("an open Workout Session in Ukrainian", () => {
     expect(screen.getByText("1/3")).toBeTruthy();
     expect(screen.getByText("Виконано 0 з 2 вправ")).toBeTruthy();
 
-    expect(await screen.findByText("Присідання")).toBeTruthy();
-    expect(await screen.findByText("Випади")).toBeTruthy();
+    await expect(screen.findByText("Присідання")).resolves.toBeTruthy();
+    await expect(screen.findByText("Випади")).resolves.toBeTruthy();
     expect(screen.getAllByLabelText("Замінити")).toHaveLength(2);
     expect(screen.getAllByLabelText("Видалити")).toHaveLength(2);
     expect(screen.getAllByHintText("Інші дії для «Присідання»")).toHaveLength(

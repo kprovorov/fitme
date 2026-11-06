@@ -3,6 +3,7 @@ import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 import { useCallback, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Pressable, ScrollView, View } from "react-native";
+
 import { SymbolImage } from "~/components/symbol-image";
 import { Separator } from "~/components/ui/separator";
 import { Text } from "~/components/ui/text";
@@ -15,7 +16,7 @@ import { useChoiceLabels } from "~/lib/choices";
 // The app's instance, named so it's started wherever the sheet renders.
 import { i18n } from "~/lib/i18n";
 
-function MuscleGroupRow({
+const MuscleGroupRow = ({
   checked,
   group,
   label,
@@ -25,7 +26,7 @@ function MuscleGroupRow({
   group: MuscleGroup;
   label: string;
   onToggle: (group: MuscleGroup) => void;
-}) {
+}) => {
   const handlePress = useCallback(() => onToggle(group), [group, onToggle]);
 
   return (
@@ -33,7 +34,7 @@ function MuscleGroupRow({
       accessibilityLabel={label}
       accessibilityRole="checkbox"
       accessibilityState={{ checked }}
-      className="flex-row items-center gap-3 py-3 active:bg-muted"
+      className="active:bg-muted flex-row items-center gap-3 py-3"
       onPress={handlePress}
     >
       <SymbolImage
@@ -44,10 +45,10 @@ function MuscleGroupRow({
         }
         name={checked ? "checkmark.circle.fill" : "circle"}
       />
-      <Text className="flex-1 text-body">{label}</Text>
+      <Text className="flex-1">{label}</Text>
     </Pressable>
   );
-}
+};
 
 /**
  * The Muscles sheet, over the Library tab or the Exercise picker: every
@@ -56,11 +57,12 @@ function MuscleGroupRow({
  * ✓ hands it back to the opener and closes, Reset clears it without applying
  * it, and swiping the sheet away discards it.
  */
-export default function MusclesSheet() {
+const MusclesSheet = () => {
   const { t } = useTranslation(undefined, { i18n });
   const labels = useChoiceLabels();
   const router = useRouter();
   const { choice } = useLocalSearchParams<{ choice: string }>();
+
   const [draft, setDraft] = useState<readonly MuscleGroup[]>(() =>
     getMuscleChoice(choice)
   );
@@ -80,6 +82,7 @@ export default function MusclesSheet() {
     router.back();
   }, [choice, draft, router]);
 
+  const draftSet = new Set(draft);
   const lastIndex = choosableMuscleGroups.length - 1;
 
   return (
@@ -113,7 +116,7 @@ export default function MusclesSheet() {
         {choosableMuscleGroups.map((group, index) => (
           <View key={group}>
             <MuscleGroupRow
-              checked={draft.includes(group)}
+              checked={draftSet.has(group)}
               group={group}
               label={labels.muscleGroup(group)}
               onToggle={toggle}
@@ -124,4 +127,6 @@ export default function MusclesSheet() {
       </ScrollView>
     </>
   );
-}
+};
+
+export default MusclesSheet;

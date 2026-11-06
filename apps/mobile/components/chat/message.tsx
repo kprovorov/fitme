@@ -1,6 +1,8 @@
 import type { ReactNode } from "react";
 import { Text } from "react-native";
 import Animated, { FadeIn, FadeOut } from "react-native-reanimated";
+import { z } from "zod";
+
 import { ChatMarkdown } from "@/components/markdown";
 
 /**
@@ -8,24 +10,25 @@ import { ChatMarkdown } from "@/components/markdown";
  * role – user messages render as right-aligned blue bubbles, assistant messages
  * render full-width.
  */
-export function Message({
+export const Message = ({
   from,
   children,
 }: {
   from: "user" | "assistant";
   children: ReactNode;
-}) {
+}) => {
   if (from === "user") {
+    const text = z.string().safeParse(children);
+
     return (
       <Animated.View
-        className="mb-2 max-w-[80%] self-end rounded-2xl bg-primary p-3 dark:bg-user-bubble"
+        className="bg-primary border-continuous mb-2 max-w-[80%] self-end rounded-2xl p-3"
         entering={FadeIn.duration(200)}
         exiting={FadeOut.duration(150)}
-        style={{ borderCurve: "continuous" }}
       >
-        {typeof children === "string" ? (
-          <Text className="text-black text-body dark:text-black" selectable>
-            {children}
+        {text.success ? (
+          <Text className="text-body text-black dark:text-black" selectable>
+            {text.data}
           </Text>
         ) : (
           children
@@ -43,12 +46,12 @@ export function Message({
       {children}
     </Animated.View>
   );
-}
+};
 
 /**
  * Renders markdown content for an assistant message. Wraps `<ChatMarkdown />`
  * with appropriate defaults.
  */
-export function MessageResponse({ children }: { children: string }) {
-  return <ChatMarkdown>{children || "..."}</ChatMarkdown>;
-}
+export const MessageResponse = ({ children }: { children: string }) => (
+  <ChatMarkdown>{children || "..."}</ChatMarkdown>
+);

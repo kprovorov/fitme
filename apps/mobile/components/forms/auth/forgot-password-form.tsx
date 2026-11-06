@@ -1,9 +1,11 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import type { TFunction } from "i18next";
 import { useCallback, useMemo } from "react";
-import { type FieldErrors, useController, useForm } from "react-hook-form";
+import { useController, useForm } from "react-hook-form";
+import type { FieldErrors } from "react-hook-form";
 import { useTranslation } from "react-i18next";
 import { z } from "zod";
+
 import type { AuthFormLayout } from "~/components/auth/auth-screen";
 import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
@@ -11,6 +13,7 @@ import { VStack } from "~/components/ui/vstack";
 
 const createFormSchema = (t: TFunction) =>
   z.object({ email: z.email({ error: t("forgotPassword.invalidEmail") }) });
+
 export type ForgotPasswordFormValues = z.infer<
   ReturnType<typeof createFormSchema>
 >;
@@ -19,6 +22,7 @@ interface ForgotPasswordFormProps extends AuthFormLayout {
   errors?: FieldErrors<ForgotPasswordFormValues>;
   onSubmit: (values: ForgotPasswordFormValues) => Promise<void>;
 }
+
 export default function ForgotPasswordForm({
   children,
   disabled,
@@ -28,21 +32,28 @@ export default function ForgotPasswordForm({
 }: ForgotPasswordFormProps) {
   const { t } = useTranslation();
   const schema = useMemo(() => createFormSchema(t), [t]);
+
   const { control, handleSubmit, formState } =
     useForm<ForgotPasswordFormValues>({
       defaultValues: { email: "" },
       errors,
       resolver: zodResolver(schema),
     });
+
   const busy = !!disabled || formState.isSubmitting;
+
   const submit = useCallback(
     () => handleSubmit(onSubmit)(),
     [handleSubmit, onSubmit]
   );
+
   const { field: email, fieldState: emailState } = useController({
     control,
     name: "email",
   });
+
+  const { onBlur: handleEmailBlur } = email;
+
   const changeEmail = useCallback(
     (value: string) => {
       email.onChange(value);
@@ -50,6 +61,7 @@ export default function ForgotPasswordForm({
     },
     [email, onEdit]
   );
+
   return children({
     action: (
       <Button
@@ -67,7 +79,7 @@ export default function ForgotPasswordForm({
       />
     ),
     fields: (
-      <VStack className="items-stretch gap-sm">
+      <VStack className="items-stretch">
         <Input
           accessibilityLabel={t("forgotPassword.emailPlaceholder")}
           autoCapitalize="none"
@@ -76,7 +88,7 @@ export default function ForgotPasswordForm({
           editable={!busy}
           error={emailState.error?.message}
           keyboardType="email-address"
-          onBlur={email.onBlur}
+          onBlur={handleEmailBlur}
           onChangeText={changeEmail}
           onSubmitEditing={submit}
           placeholder={t("forgotPassword.emailPlaceholder")}

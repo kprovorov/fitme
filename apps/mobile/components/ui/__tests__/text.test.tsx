@@ -1,7 +1,9 @@
 import { describe, expect, it } from "@jest/globals";
 import { render, screen } from "@testing-library/react-native";
 import type * as React from "react";
-import { Text, TextClassContext, type TextVariant } from "../text";
+
+import { Text, TextClassContext } from "../text";
+import type { TextVariant } from "../text";
 import {
   BlockQuote,
   Code,
@@ -83,7 +85,7 @@ describe("Text", () => {
   });
 });
 
-describe("Typography", () => {
+describe("typography", () => {
   it.each(HEADINGS)(
     "renders %s's component as a heading of level %i",
     async (_variant, Heading, level) => {

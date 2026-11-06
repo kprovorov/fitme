@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, jest } from "@jest/globals";
 import * as Sentry from "@sentry/react-native";
 import * as WebBrowser from "expo-web-browser";
 import { Linking } from "react-native";
+
 import { openUrl, openWebPage, TERMS_URL } from "../external-links";
 
 jest.mock("expo-web-browser", () => ({
@@ -69,6 +70,7 @@ describe("openUrl", () => {
     const failure = new Error(
       "Unable to open URL: mailto:support@fitmeproject.com"
     );
+
     openURL.mockRejectedValue(failure);
 
     await expect(

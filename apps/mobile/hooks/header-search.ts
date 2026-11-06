@@ -13,11 +13,11 @@ import type { SearchBarCommands, SearchBarProps } from "react-native-screens";
  * searching, keeping the title and Close. Otherwise (the Library tab) the bar
  * is hidden until the User pulls the list down.
  */
-export function useHeaderSearch({
+export const useHeaderSearch = ({
   inSheet = false,
 }: {
   inSheet?: boolean;
-} = {}) {
+} = {}) => {
   const { t } = useTranslation();
   const placeholder = t("library.search");
   const searchBar = useRef<SearchBarCommands | null>(null);
@@ -27,6 +27,7 @@ export function useHeaderSearch({
 
   const onSearchChange = useCallback((text: string) => {
     setSearch(text);
+
     if (text === "") {
       searchBar.current?.clearText();
     }
@@ -48,4 +49,4 @@ export function useHeaderSearch({
   );
 
   return { onSearchChange, search, searchBarOptions };
-}
+};

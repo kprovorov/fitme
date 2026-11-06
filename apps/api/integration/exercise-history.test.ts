@@ -1,4 +1,5 @@
 import { randomBytes } from "node:crypto";
+
 import {
   plans,
   profiles,
@@ -10,6 +11,7 @@ import {
 } from "@fitme/db";
 import { deleteTestUsers } from "@fitme/services/delete-test-users";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
+
 import { createApp } from "../src/create-app.js";
 import { createServicesFromEnv } from "../src/services.js";
 import { clerk, signedInAs } from "../src/test/harness.js";
@@ -22,8 +24,8 @@ import { clerk, signedInAs } from "../src/test/harness.js";
 const app = createApp({
   clerkJwtKey: clerk.jwtKey,
   createServices: createServicesFromEnv,
-  identifyUser: () => undefined,
-  reportError: (error) => Promise.reject(error),
+  identifyUser: () => {},
+  reportError: Promise.reject.bind(Promise),
 });
 
 const runId = randomBytes(8).toString("hex");
@@ -80,10 +82,12 @@ const seedSession = async (
       workoutId,
     })
     .returning({ id: workoutSessions.id });
+
   const [exercise] = await tx
     .insert(workoutSessionExercises)
     .values({ exerciseSlug: slug, order: 1, workoutSessionId: session.id })
     .returning({ id: workoutSessionExercises.id });
+
   if (sets.length > 0) {
     // inserted out of order, so the read must sort by `order`
     await tx.insert(workoutSessionExerciseSets).values(
@@ -98,9 +102,10 @@ const seedSession = async (
           weightRecommended: "45.00",
           workoutSessionExerciseId: exercise.id,
         }))
-        .reverse()
+        .toReversed()
     );
   }
+
   return { exerciseId: exercise.id, sessionId: session.id };
 };
 
@@ -115,6 +120,7 @@ const seed = (): Promise<Seeded> =>
       userId: owner,
       weight: "180",
     });
+
     const [plan] = await tx
       .insert(plans)
       .values({
@@ -125,10 +131,12 @@ const seed = (): Promise<Seeded> =>
         userId: owner,
       })
       .returning({ id: plans.id });
+
     const [workout] = await tx
       .insert(workouts)
       .values({ description: "A", name: "Day A", order: 1, planId: plan.id })
       .returning({ id: workouts.id });
+
     const seedOwner = (startedAt: string, sets: SeedSet[], slug = pullUpSlug) =>
       seedSession(tx, {
         planId: plan.id,
@@ -144,23 +152,28 @@ const seed = (): Promise<Seeded> =>
       { reps: 8, weight: 45 },
       { reps: null, weight: null },
     ]);
+
     // bodyweight: logged reps, no weight
     const bodyweight = await seedOwner("2026-10-02T10:00:00Z", [
       { reps: 12, weight: null },
     ]);
+
     const newest = await seedOwner("2026-10-03T10:00:00Z", [
       { reps: 6, weight: 50 },
     ]);
+
     // nothing logged at all: left out of the page and the total
     const unlogged = await seedOwner("2026-10-04T10:00:00Z", [
       { reps: null, weight: null },
     ]);
+
     // another Exercise of the owner's, never in this history
     await seedOwner(
       "2026-10-05T10:00:00Z",
       [{ reps: 5, weight: 95 }],
       otherSlug
     );
+
     const theirs = await seedSession(tx, {
       planId: null,
       sets: [{ reps: 20, weight: 200 }],
@@ -190,23 +203,24 @@ const historyAs = async (userId: string, query: string) => {
   const response = await app.request(`/v1/workout-session-exercises?${query}`, {
     headers: signedInAs(userId),
   });
+
   return { body: await response.json(), status: response.status };
 };
 
 const ownerHistory = (extra = "") =>
   historyAs(owner, `exercise_slug=${pullUpSlug}${extra}`);
 
-beforeAll(async () => {
-  seeded = await seed();
-});
+describe("gET /v1/workout-session-exercises against the local stack", () => {
+  beforeAll(async () => {
+    seeded = await seed();
+  });
 
-afterAll(async () => {
-  await deleteTestUsers([owner, intruder]);
-});
+  afterAll(async () => {
+    await deleteTestUsers([owner, intruder]);
+  });
 
-describe("GET /v1/workout-session-exercises against the local stack", () => {
   it("lists the entries newest first, with the targets and the User's weight unit", async () => {
-    expect(await ownerHistory()).toEqual({
+    await expect(ownerHistory()).resolves.toStrictEqual({
       body: {
         data: [
           {
@@ -279,30 +293,42 @@ describe("GET /v1/workout-session-exercises against the local stack", () => {
     const second = await ownerHistory("&limit=2&offset=2");
 
     expect(first.body).toMatchObject({ hasMore: true, total: 3 });
-    expect(first.body.data.map((entry: { id: string }) => entry.id)).toEqual([
-      seeded.newestExerciseId,
-      seeded.bodyweightExerciseId,
-    ]);
+    expect(
+      first.body.data.map((entry: { id: string }) => entry.id)
+    ).toStrictEqual([seeded.newestExerciseId, seeded.bodyweightExerciseId]);
     expect(second.body).toMatchObject({ hasMore: false, total: 3 });
-    expect(second.body.data.map((entry: { id: string }) => entry.id)).toEqual([
-      seeded.loggedExerciseId,
-    ]);
+    expect(
+      second.body.data.map((entry: { id: string }) => entry.id)
+    ).toStrictEqual([seeded.loggedExerciseId]);
   });
 
   it("answers an empty page past the end, and for an Exercise the User never did", async () => {
-    expect((await ownerHistory("&offset=10")).body).toEqual({
+    const pastEnd = await ownerHistory("&offset=10");
+
+    expect(pastEnd.body).toStrictEqual({
       data: [],
       hasMore: false,
       total: 3,
       weight_unit: "lbs",
     });
-    expect(
-      (await historyAs(owner, `exercise_slug=never-done-${runId}`)).body
-    ).toEqual({ data: [], hasMore: false, total: 0, weight_unit: "lbs" });
+
+    const neverDone = await historyAs(
+      owner,
+      `exercise_slug=never-done-${runId}`
+    );
+
+    expect(neverDone.body).toStrictEqual({
+      data: [],
+      hasMore: false,
+      total: 0,
+      weight_unit: "lbs",
+    });
   });
 
   it("never shows another User's rows, each User seeing only their own", async () => {
-    expect(await historyAs(intruder, `exercise_slug=${pullUpSlug}`)).toEqual({
+    await expect(
+      historyAs(intruder, `exercise_slug=${pullUpSlug}`)
+    ).resolves.toStrictEqual({
       body: {
         data: [
           expect.objectContaining({

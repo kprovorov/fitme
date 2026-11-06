@@ -1,5 +1,6 @@
 import { routeAuth } from "eve/channels/auth";
 import { afterEach, describe, expect, it, vi } from "vitest";
+
 import { accountDeletionReset } from "../agent/lib/reset-auth";
 
 const SECRET = "reset-secret-0123456789abcdef0123456789abcdef";
@@ -10,13 +11,22 @@ const request = (
   method = "POST"
 ) =>
   new Request(`http://arnold.test${path}`, {
-    headers: authorization ? { authorization } : {},
+    headers:
+      authorization !== undefined && authorization !== ""
+        ? { authorization }
+        : {},
     method,
   });
 
 const auth = accountDeletionReset({ secret: () => SECRET });
 
-describe("accountDeletionReset", () => {
+const resetWith = async (secret: string) =>
+  await routeAuth(
+    request(`Bearer ${secret}`, "/eve/v1/session/wrun_alice/reset"),
+    accountDeletionReset()
+  );
+
+describe("account deletion reset authentication", () => {
   it("lets the reset secret reset a session as a service principal", async () => {
     const result = await routeAuth(
       request(`Bearer ${SECRET}`, "/eve/v1/session/wrun_alice/reset"),
@@ -43,7 +53,7 @@ describe("accountDeletionReset", () => {
       auth
     );
 
-    expect((result as Response).status).toBe(403);
+    expect(result).toMatchObject({ status: 403 });
   });
 
   it("answers 401 for a wrong secret", async () => {
@@ -52,7 +62,7 @@ describe("accountDeletionReset", () => {
       auth
     );
 
-    expect((result as Response).status).toBe(401);
+    expect(result).toMatchObject({ status: 401 });
   });
 
   it("accepts nothing when the secret is unset", async () => {
@@ -63,7 +73,7 @@ describe("accountDeletionReset", () => {
       unconfigured
     );
 
-    expect((result as Response).status).toBe(401);
+    expect(result).toMatchObject({ status: 401 });
   });
 
   it("accepts nothing when the secret is too short to be one", async () => {
@@ -74,7 +84,7 @@ describe("accountDeletionReset", () => {
       weak
     );
 
-    expect((result as Response).status).toBe(401);
+    expect(result).toMatchObject({ status: 401 });
   });
 });
 
@@ -83,26 +93,22 @@ describe("accountDeletionReset's secret from the environment", () => {
     vi.unstubAllEnvs();
   });
 
-  const resetWith = (secret: string) =>
-    routeAuth(
-      request(`Bearer ${secret}`, "/eve/v1/session/wrun_alice/reset"),
-      accountDeletionReset()
-    );
-
   it("accepts ARNOLD_RESET_SECRET", async () => {
     vi.stubEnv("ARNOLD_RESET_SECRET", SECRET);
     vi.stubEnv("COACH_RESET_SECRET", `old-${SECRET}`);
 
-    expect(await resetWith(SECRET)).toMatchObject({
+    await expect(resetWith(SECRET)).resolves.toMatchObject({
       principalId: "account-deletion",
     });
-    expect(((await resetWith(`old-${SECRET}`)) as Response).status).toBe(401);
+    await expect(resetWith(`old-${SECRET}`)).resolves.toMatchObject({
+      status: 401,
+    });
   });
 
   it("ignores the pre-rename COACH_RESET_SECRET", async () => {
     vi.stubEnv("ARNOLD_RESET_SECRET", "");
     vi.stubEnv("COACH_RESET_SECRET", SECRET);
 
-    expect(((await resetWith(SECRET)) as Response).status).toBe(401);
+    await expect(resetWith(SECRET)).resolves.toMatchObject({ status: 401 });
   });
 });

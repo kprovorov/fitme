@@ -6,6 +6,8 @@ import type {
 import { LibraryUnavailableError } from "@fitme/library-sdk";
 import { DrizzleQueryError } from "drizzle-orm";
 import { describe, expect, it, vi } from "vitest";
+
+import type { UserServices } from "../services.js";
 import { ToolError } from "../tools/helpers.js";
 import {
   BENCH,
@@ -22,8 +24,12 @@ import {
 
 const UNAVAILABLE = "Library unavailable, try again.";
 
-const summary = ({ description: _, instructions: __, ...rest }: Exercise) =>
-  rest;
+const summary = (exercise: Exercise) =>
+  Object.fromEntries(
+    Object.entries(exercise).filter(
+      ([key]) => key !== "description" && key !== "instructions"
+    )
+  );
 
 /** A made-up Exercise, named from its slug. */
 const drill = (n: number): Exercise => ({
@@ -37,19 +43,23 @@ const drill = (n: number): Exercise => ({
 const spiedLibrary = (exercises: Exercise[]) => {
   const library = fakeLibrary(exercises);
   const lists: ListExercisesParams[] = [];
+
   const spied: Library = {
     ...library,
     list: (params = {}) => {
       lists.push(params);
+
       return library.list(params);
     },
   };
+
   return { library: spied, lists };
 };
 
 const downLibrary = () => {
   const library = fakeLibrary();
   library.failWith(new LibraryUnavailableError({ status: 503 }));
+
   return library;
 };
 
@@ -64,11 +74,13 @@ const queryFailure = (message: string) =>
 describe("list_exercises", () => {
   it("searches the library with the trimmed search, muscle group and page", async () => {
     const press = { ...BENCH, name: "Overhead Press", slug: "overhead-press" };
+
     const incline = {
       ...BENCH,
       name: "Incline Bench Press",
       slug: "incline-bench-press",
     };
+
     const { library, lists } = spiedLibrary([BENCH, SQUAT, press, incline]);
     const client = await connectWithServices({}, undefined, library);
 
@@ -79,11 +91,11 @@ describe("list_exercises", () => {
       search: "  PRESS  ",
     });
 
-    expect(lists).toEqual([
+    expect(lists).toStrictEqual([
       { limit: 1, muscleGroup: "chest", offset: 1, search: "PRESS" },
     ]);
-    expect(result.isError).toBe(false);
-    expect(result.json).toEqual({
+    expect(result.isError).toBeFalsy();
+    expect(result.json).toStrictEqual({
       exercises: [summary(incline)],
       hasMore: true,
       limit: 1,
@@ -98,8 +110,10 @@ describe("list_exercises", () => {
 
     const result = await call(client, "list_exercises");
 
-    expect(lists).toEqual([{ limit: 20, offset: 0 }]);
-    expect(result.json).toEqual({
+    expect(lists).toStrictEqual([
+      { limit: 20, muscleGroup: undefined, offset: 0, search: undefined },
+    ]);
+    expect(result.json).toStrictEqual({
       exercises: [summary(SQUAT), summary(BENCH)],
       hasMore: false,
       limit: 20,
@@ -118,9 +132,9 @@ describe("list_exercises", () => {
       offset: 5,
     });
 
-    expect(lists).toEqual([
-      { limit: 50, offset: 5 },
-      { limit: 50, offset: 55 },
+    expect(lists).toStrictEqual([
+      { limit: 50, muscleGroup: undefined, offset: 5, search: undefined },
+      { limit: 50, muscleGroup: undefined, offset: 55, search: undefined },
     ]);
     expect(result.json).toMatchObject({
       hasMore: true,
@@ -128,9 +142,12 @@ describe("list_exercises", () => {
       offset: 5,
       total: 120,
     });
+
+    // SAFETY: The fake library returns the drill fixtures above, each with a string slug.
     const slugs = (result.json.exercises as { slug: string }[]).map(
       (e) => e.slug
     );
+
     expect(slugs).toHaveLength(100);
     expect(slugs[0]).toBe("drill-005");
     expect(slugs.at(-1)).toBe("drill-104");
@@ -138,6 +155,7 @@ describe("list_exercises", () => {
 
   it("answers the last page when it ends inside the first part", async () => {
     const drills = Array.from({ length: 30 }, (_, i) => drill(i));
+
     const client = await connectWithServices(
       {},
       undefined,
@@ -165,8 +183,8 @@ describe("list_exercises", () => {
 
     const result = await call(client, "list_exercises", { offset: 40 });
 
-    expect(result.isError).toBe(false);
-    expect(result.json).toEqual({
+    expect(result.isError).toBeFalsy();
+    expect(result.json).toStrictEqual({
       exercises: [],
       hasMore: false,
       limit: 20,
@@ -180,14 +198,16 @@ describe("list_exercises", () => {
     const { reportError, reported } = recordingReporter();
     const client = await connectWithServices({}, reportError, library);
 
-    expect((await call(client, "list_exercises", { limit: 101 })).isError).toBe(
-      true
-    );
-    expect(
-      (await call(client, "list_exercises", { muscleGroup: "wings" })).isError
-    ).toBe(true);
-    expect(lists).toEqual([]);
-    expect(reported).toEqual([]);
+    const tooMany = await call(client, "list_exercises", { limit: 101 });
+    expect(tooMany.isError).toBeTruthy();
+
+    const unknownMuscleGroup = await call(client, "list_exercises", {
+      muscleGroup: "wings",
+    });
+
+    expect(unknownMuscleGroup.isError).toBeTruthy();
+    expect(lists).toStrictEqual([]);
+    expect(reported).toStrictEqual([]);
   });
 
   it("fails and reports when the library is unavailable", async () => {
@@ -196,13 +216,14 @@ describe("list_exercises", () => {
 
     const result = await call(client, "list_exercises");
 
-    expect(result.isError).toBe(true);
+    expect(result.isError).toBeTruthy();
     expect(result.text).toBe(UNAVAILABLE);
-    expect(reported).toEqual([expect.any(LibraryUnavailableError)]);
+    expect(reported).toStrictEqual([expect.any(LibraryUnavailableError)]);
   });
 
   it("says so, unreported, when the library isn't configured", async () => {
     const { reportError, reported } = recordingReporter();
+
     const client = await connect({
       ...contextFor(fakeServices({}), reportError),
       getLibrary: () => {
@@ -212,9 +233,9 @@ describe("list_exercises", () => {
 
     const result = await call(client, "list_exercises");
 
-    expect(result.isError).toBe(true);
+    expect(result.isError).toBeTruthy();
     expect(result.text).toBe("Not configured for the Library.");
-    expect(reported).toEqual([]);
+    expect(reported).toStrictEqual([]);
   });
 });
 
@@ -226,8 +247,8 @@ describe("get_exercise", () => {
       exerciseSlug: BENCH.slug,
     });
 
-    expect(result.isError).toBe(false);
-    expect(result.json).toEqual(BENCH);
+    expect(result.isError).toBeFalsy();
+    expect(result.json).toStrictEqual(BENCH);
   });
 
   it("carries the Exercise's Equipment as ids", async () => {
@@ -241,7 +262,7 @@ describe("get_exercise", () => {
       exerciseSlug: BENCH.slug,
     });
 
-    expect(result.isError).toBe(false);
+    expect(result.isError).toBeFalsy();
     expect(result.json).toMatchObject({ equipment: ["barbell", "bench"] });
   });
 
@@ -252,7 +273,7 @@ describe("get_exercise", () => {
       exerciseSlug: "nope-press",
     });
 
-    expect(result.isError).toBe(true);
+    expect(result.isError).toBeTruthy();
     expect(result.text).toBe(
       "Exercise nope-press not found. Use list_exercises to look up valid Exercise slugs."
     );
@@ -266,7 +287,7 @@ describe("get_exercise", () => {
       exerciseSlug: BENCH.slug,
     });
 
-    expect(result.isError).toBe(true);
+    expect(result.isError).toBeTruthy();
     expect(result.text).toBe(UNAVAILABLE);
     expect(reported).toHaveLength(1);
   });
@@ -278,7 +299,7 @@ describe("get_exercise", () => {
       exerciseId: "55555555-5555-4555-8555-555555555555",
     });
 
-    expect(result.isError).toBe(true);
+    expect(result.isError).toBeTruthy();
   });
 });
 
@@ -331,8 +352,9 @@ describe("get_exercise_history", () => {
 
   it("returns the service's entries for the Exercise slug, with the total", async () => {
     const getExerciseHistory = vi
-      .fn()
+      .fn<UserServices["getExerciseHistory"]>()
       .mockResolvedValue({ entries: [entry], total: 1 });
+
     const client = await connectWithServices({ getExerciseHistory });
 
     const result = await call(client, "get_exercise_history", {
@@ -345,8 +367,8 @@ describe("get_exercise_history", () => {
       limit: 3,
       offset: 0,
     });
-    expect(result.isError).toBe(false);
-    expect(result.json).toEqual({
+    expect(result.isError).toBeFalsy();
+    expect(result.json).toStrictEqual({
       entries: [entry],
       exerciseSlug: BENCH.slug,
       total: 1,
@@ -355,8 +377,9 @@ describe("get_exercise_history", () => {
 
   it("returns a bodyweight set, with no weight and its set targets", async () => {
     const getExerciseHistory = vi
-      .fn()
+      .fn<UserServices["getExerciseHistory"]>()
       .mockResolvedValue({ entries: [bodyweightEntry, entry], total: 2 });
+
     const client = await connectWithServices({ getExerciseHistory });
 
     const result = await call(client, "get_exercise_history", {
@@ -364,7 +387,7 @@ describe("get_exercise_history", () => {
     });
 
     // the bodyweight set is there with no weight, and every set its targets
-    expect(result.json).toEqual({
+    expect(result.json).toStrictEqual({
       entries: [bodyweightEntry, entry],
       exerciseSlug: BENCH.slug,
       total: 2,
@@ -373,26 +396,32 @@ describe("get_exercise_history", () => {
 
   it("asks for 10 entries by default and rejects more than 50", async () => {
     const getExerciseHistory = vi
-      .fn()
+      .fn<UserServices["getExerciseHistory"]>()
       .mockResolvedValue({ entries: [], total: 0 });
+
     const client = await connectWithServices({ getExerciseHistory });
 
-    expect(
-      (await call(client, "get_exercise_history", { exerciseSlug: BENCH.slug }))
-        .json
-    ).toEqual({ entries: [], exerciseSlug: BENCH.slug, total: 0 });
-    expect(getExerciseHistory).toHaveBeenCalledWith({
+    const result = await call(client, "get_exercise_history", {
       exerciseSlug: BENCH.slug,
-      limit: 10,
-      offset: 0,
+    });
+
+    expect(result.json).toStrictEqual({
+      entries: [],
+      exerciseSlug: BENCH.slug,
+      total: 0,
     });
 
     const tooMany = await call(client, "get_exercise_history", {
       exerciseSlug: BENCH.slug,
       limit: 51,
     });
-    expect(tooMany.isError).toBe(true);
-    expect(getExerciseHistory).toHaveBeenCalledOnce();
+
+    expect(tooMany.isError).toBeTruthy();
+    expect(getExerciseHistory).toHaveBeenCalledExactlyOnceWith({
+      exerciseSlug: BENCH.slug,
+      limit: 10,
+      offset: 0,
+    });
   });
 
   it("reports database errors as tool errors without the SQL", async () => {
@@ -404,7 +433,7 @@ describe("get_exercise_history", () => {
       exerciseSlug: BENCH.slug,
     });
 
-    expect(result.isError).toBe(true);
+    expect(result.isError).toBeTruthy();
     expect(result.text).toBe("deadlock");
   });
 });

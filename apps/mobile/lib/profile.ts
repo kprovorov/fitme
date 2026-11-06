@@ -1,9 +1,5 @@
-import {
-  type Gender,
-  genders,
-  type MeasurementSystem,
-  measurementSystems,
-} from "@fitme/core";
+import { genders, measurementSystems } from "@fitme/core";
+import type { Gender, MeasurementSystem } from "@fitme/core";
 
 /**
  * The fields of a Profile from `GET /v1/profile` (or a write's answer) that
@@ -14,9 +10,11 @@ interface ProfileChoices {
   measurement_system: string;
 }
 
+// SAFETY: measurementSystems contains only string literals; the widened view stays readonly.
 const isMeasurementSystem = (value: string): value is MeasurementSystem =>
   (measurementSystems as readonly string[]).includes(value);
 
+// SAFETY: genders contains only string literals; the widened view stays readonly.
 const isGender = (value: string): value is Gender =>
   (genders as readonly string[]).includes(value);
 

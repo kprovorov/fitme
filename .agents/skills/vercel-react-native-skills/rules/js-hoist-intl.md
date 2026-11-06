@@ -7,9 +7,7 @@ tags: javascript, intl, optimization, memoization
 
 ## Hoist Intl Formatter Creation
 
-Don't create `Intl.DateTimeFormat`, `Intl.NumberFormat`, or
-`Intl.RelativeTimeFormat` inside render or loops. These are expensive to
-instantiate. Hoist to module scope when the locale/options are static.
+Don't create `Intl.DateTimeFormat`, `Intl.NumberFormat`, or `Intl.RelativeTimeFormat` inside render or loops. These are expensive to instantiate. Hoist to module scope when the locale/options are static.
 
 **Incorrect (new formatter every render):**
 
@@ -41,7 +39,7 @@ function Price({ amount }: { amount: number }) {
 ```tsx
 const dateFormatter = useMemo(
   () => new Intl.DateTimeFormat(locale, { dateStyle: "medium" }),
-  [locale],
+  [locale]
 );
 ```
 
@@ -57,5 +55,4 @@ const relativeFormatter = new Intl.RelativeTimeFormat("en-US", {
 });
 ```
 
-Creating `Intl` objects is significantly more expensive than `RegExp` or plain
-objects—each instantiation parses locale data and builds internal lookup tables.
+Creating `Intl` objects is significantly more expensive than `RegExp` or plain objects—each instantiation parses locale data and builds internal lookup tables.

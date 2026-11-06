@@ -156,8 +156,7 @@ Rebased validation passed: the mutation command caught both broken indexes in TL
 
 ## Initial validation, 2026-10-31
 
-Source commit: `b03f80f8ead38a2ccc6aef1f33473134dfee4e0c`.
-Tools used: TLC 1.7.4 (TLC2 2.19), OpenJDK Temurin 27, PostgreSQL 17.11, Node 26.13.0.
+Source commit: `b03f80f8ead38a2ccc6aef1f33473134dfee4e0c`. Tools used: TLC 1.7.4 (TLC2 2.19), OpenJDK Temurin 27, PostgreSQL 17.11, Node 26.13.0.
 
 The property is **at most one committed open Workout Session per User**, including sessions with no remaining Workout. No violation was found in the current design within the model's stated bounds. Product code and migrations were unchanged.
 

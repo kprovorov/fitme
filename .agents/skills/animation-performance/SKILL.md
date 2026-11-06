@@ -185,11 +185,11 @@ Framer Motion gives you things CSS can't: real springs, shared layout animations
 
 List every animation in scope with its driver and properties:
 
-| Element | Driver | Properties | Plays during |
-| --- | --- | --- | --- |
-| Tab indicator | `motion/react` `layoutId` | layout | route change |
-| Drawer | CSS transition | `transform` | user drag |
-| Card hover | CSS transition | `all` | hover |
+| Element       | Driver                    | Properties  | Plays during |
+| ------------- | ------------------------- | ----------- | ------------ |
+| Tab indicator | `motion/react` `layoutId` | layout      | route change |
+| Drawer        | CSS transition            | `transform` | user drag    |
+| Card hover    | CSS transition            | `all`       | hover        |
 
 Expand `transition: all` and Motion shorthands into what they actually animate.
 

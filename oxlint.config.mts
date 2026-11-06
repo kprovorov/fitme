@@ -21,7 +21,6 @@ export default defineConfig({
     antiSlop,
     core,
     drizzle,
-    jest,
     next,
     nextJsPlugins,
     react,
@@ -29,11 +28,35 @@ export default defineConfig({
     shadcn,
     tanstack,
     tanstackJsPlugins,
-    vitest,
     jsPlugins,
   ],
-  ignorePatterns: core.ignorePatterns,
+  // CI regenerates these files; lint fixes must not rewrite their public types.
+  ignorePatterns: [
+    ...core.ignorePatterns,
+    "apps/mobile/uniwind-types.d.ts",
+    "packages/api-client/src/schema.ts",
+    "packages/db/src/{schema,relations}.ts",
+    "packages/supabase/src/database.types.ts",
+  ],
   jsPlugins: [...jsPlugins.jsPlugins, ...shadcn.jsPlugins],
   settings: jsPluginSettings,
   options: { typeAware: true },
+  overrides: [
+    ...(jest.overrides ?? []).map((override) => ({
+      ...override,
+      files: override.files.map((pattern) => `apps/mobile/${pattern}`),
+      rules: {
+        ...override.rules,
+        "jest/no-untyped-mock-factory": "off",
+        "jest/prefer-mock-promise-shorthand": "off",
+      },
+    })),
+    ...(vitest.overrides ?? []).map((override) => ({
+      ...override,
+      files: override.files.flatMap((pattern) => [
+        `apps/{api,arnold,library,mcp,web,webhooks}/${pattern}`,
+        `packages/${pattern}`,
+      ]),
+    })),
+  ],
 });

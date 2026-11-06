@@ -1,10 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { View } from "react-native";
+
 import { Button } from "~/components/ui/button";
 import { Dialog } from "~/components/ui/dialog";
 import { HStack } from "~/components/ui/hstack";
 import { Text } from "~/components/ui/text";
 import { H3 } from "~/components/ui/typography";
-import { VStack } from "~/components/ui/vstack";
 import { useI18n } from "~/lib/i18n";
 
 interface FinishWorkoutSuggestionDialogProps {
@@ -49,7 +50,22 @@ const FinishWorkoutSuggestionDialog = ({
   // seen as a duplicate.
   const choiceMadeRef = useRef<boolean>(false);
   const [isFinishPending, setIsFinishPending] = useState(false);
+  const [previousProps, setPreviousProps] = useState({ open, isFinishing });
   const openRef = useRef(open);
+
+  if (
+    previousProps.open !== open ||
+    previousProps.isFinishing !== isFinishing
+  ) {
+    setPreviousProps({ open, isFinishing });
+
+    if (
+      open &&
+      (!previousProps.open || (previousProps.isFinishing && !isFinishing))
+    ) {
+      setIsFinishPending(false);
+    }
+  }
 
   useEffect(() => {
     openRef.current = open;
@@ -57,7 +73,6 @@ const FinishWorkoutSuggestionDialog = ({
     // Every presentation starts fresh.
     if (open) {
       choiceMadeRef.current = false;
-      setIsFinishPending(false);
     }
   }, [open]);
 
@@ -69,7 +84,6 @@ const FinishWorkoutSuggestionDialog = ({
 
     if (finishSettled && openRef.current) {
       choiceMadeRef.current = false;
-      setIsFinishPending(false);
     }
   }, [isFinishing]);
 
@@ -77,6 +91,7 @@ const FinishWorkoutSuggestionDialog = ({
     if (choiceMadeRef.current) {
       return;
     }
+
     choiceMadeRef.current = true;
     // Bridges the gap until the caller's `isFinishing` turns `true`.
     setIsFinishPending(true);
@@ -89,6 +104,7 @@ const FinishWorkoutSuggestionDialog = ({
     };
 
     let result: unknown;
+
     try {
       result = onFinish();
     } catch (error) {
@@ -107,6 +123,7 @@ const FinishWorkoutSuggestionDialog = ({
     if (choiceMadeRef.current) {
       return;
     }
+
     choiceMadeRef.current = true;
     onKeepTraining();
   }, [onKeepTraining]);
@@ -145,15 +162,15 @@ const FinishWorkoutSuggestionDialog = ({
           variant="ghost"
         />
       </HStack>
-      <VStack className="items-stretch gap-2">
+      <View className="flex flex-col items-stretch justify-center gap-2">
         <H3 className="text-center">
           {i18n.t("finishWorkout.suggestion.title")}
         </H3>
-        <Text className="text-center text-muted-foreground">
+        <Text className="text-center" variant="muted">
           {i18n.t("finishWorkout.suggestion.description")}
         </Text>
-      </VStack>
-      <VStack className="items-stretch gap-3">
+      </View>
+      <View className="flex flex-col items-stretch justify-center gap-3">
         <Button
           accessibilityHint={i18n.t("finishWorkout.suggestion.finishHint")}
           accessibilityLabel={i18n.t("finishWorkout.suggestion.finish")}
@@ -175,7 +192,7 @@ const FinishWorkoutSuggestionDialog = ({
           testID="finish-workout-suggestion-keep-training"
           variant="secondary"
         />
-      </VStack>
+      </View>
     </Dialog>
   );
 };
@@ -183,4 +200,5 @@ const FinishWorkoutSuggestionDialog = ({
 FinishWorkoutSuggestionDialog.displayName = "FinishWorkoutSuggestionDialog";
 
 export type { FinishWorkoutSuggestionDialogProps };
+
 export { FinishWorkoutSuggestionDialog };

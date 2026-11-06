@@ -1,4 +1,3 @@
-import "~/test-utils/auth-ui";
 /**
  * The emailed-code screen (every purpose) and the forgot and reset password
  * screens on a Ukrainian device: every string the app writes is Ukrainian.
@@ -15,6 +14,8 @@ import {
 } from "@jest/globals";
 import { act, fireEvent, render, screen } from "@testing-library/react-native";
 import type { ReactNode } from "react";
+
+import "~/test-utils/auth-ui";
 import ForgotPasswordView from "~/components/views/forgot-password-view";
 import ResetPasswordView from "~/components/views/reset-password-view";
 import VerifyCodeView from "~/components/views/verify-code-view";
@@ -37,8 +38,8 @@ const mockSignUp = {
 };
 
 const mockSignIn = {
-  create: jest.fn(
-    (): Promise<{ error: unknown }> => Promise.resolve({ error: null })
+  create: jest.fn((): Promise<{ error: unknown }> =>
+    Promise.resolve({ error: null })
   ),
   finalize: jest.fn(() => Promise.resolve({ error: null })),
   id: "sia_uk",
@@ -60,25 +61,34 @@ const mockSignIn = {
 
 jest.mock("@clerk/expo", () => {
   const { useState } = jest.requireActual<typeof import("react")>("react");
+
   return {
     isClerkAPIResponseError: () => false,
     useAuth: () => ({ isSignedIn: false }),
     useSignIn: () => {
       const [fetchStatus] = useState("idle");
+
       return { fetchStatus, signIn: mockSignIn };
     },
     useSignUp: () => {
       const [fetchStatus] = useState("idle");
+
       return { fetchStatus, signUp: mockSignUp };
     },
   };
 });
+
 jest.mock("@clerk/expo/token-cache", () => ({ tokenCache: {} }));
+
 jest.mock("expo-router", () => ({
   Link: ({ children }: { children: unknown }) => children,
   router: { push: jest.fn(), replace: jest.fn() },
 }));
-jest.mock("~/lib/segment", () => ({ segmentClient: { track: jest.fn() } }));
+
+jest.mock("~/lib/segment", () => ({
+  segmentClient: { track: jest.fn() },
+}));
+
 jest.mock("~/components/ui/button", () =>
   jest.requireActual("~/test-utils/button-stub")
 );
@@ -199,9 +209,9 @@ describe("the forgot password screen in Ukrainian", () => {
   });
 
   it("says something went wrong when the request fails outside Clerk", async () => {
-    mockSignIn.create.mockImplementationOnce(() =>
-      Promise.resolve({ error: new TypeError("Network request failed") })
-    );
+    mockSignIn.create.mockResolvedValueOnce({
+      error: new TypeError("Network request failed"),
+    });
     await renderInUkrainian(<ForgotPasswordView />);
 
     await fireEvent.changeText(
@@ -222,6 +232,7 @@ describe("the reset password screen in Ukrainian", () => {
   beforeEach(() => {
     mockSignIn.status = "needs_new_password";
   });
+
   const submitPasswords = async (password: string, confirmation: string) => {
     await fireEvent.changeText(
       screen.getByPlaceholderText("Новий пароль"),
@@ -263,6 +274,7 @@ describe("the reset password screen in Ukrainian", () => {
     mockSignIn.resetPasswordEmailCode.submitPassword.mockImplementationOnce(
       () => {
         mockSignIn.status = "needs_second_factor";
+
         return Promise.resolve({ error: null });
       }
     );

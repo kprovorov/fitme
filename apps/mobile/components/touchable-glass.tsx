@@ -1,33 +1,36 @@
 import { isLiquidGlassAvailable } from "expo-glass-effect";
 import type React from "react";
 import { useCallback, useState } from "react";
-import { TouchableWithoutFeedback, type ViewProps } from "react-native";
+import { TouchableWithoutFeedback } from "react-native";
+import type { ViewProps } from "react-native";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import Animated from "react-native-reanimated";
 import { scheduleOnRN } from "react-native-worklets";
+
 import { BlurViewRawBackdrop } from "./blur-raw";
 import { AppleGlassView } from "./tw";
+import type { FallbackAppleGlassViewProps } from "./tw";
 
-type GlassViewProps = React.ComponentProps<typeof AppleGlassView>;
+type GlassViewProps = FallbackAppleGlassViewProps;
 
-type TouchableGlassProps = GlassViewProps & {
+type TouchableGlassProps = Omit<GlassViewProps, "children"> & {
+  children?: React.ReactNode;
   onPress?: () => void;
   onPressIn?: () => void;
   onPressOut?: () => void;
   disabled?: boolean;
 };
 
-type ViewOnlyProps = ViewProps & { className?: string };
-
-function TouchableGlassNative({
+const createTapGesture = ({
   onPress,
   onPressIn,
   onPressOut,
   disabled,
-  ref,
-  ...rest
-}: TouchableGlassProps) {
-  const tap = Gesture.Tap()
+}: Pick<
+  TouchableGlassProps,
+  "onPress" | "onPressIn" | "onPressOut" | "disabled"
+>) =>
+  Gesture.Tap()
     .enabled(!disabled)
     .onBegin(() => {
       if (onPressIn) {
@@ -45,7 +48,16 @@ function TouchableGlassNative({
       }
     });
 
-  // TODO: Add iOS 18 bounce effect on blur.
+const TouchableGlassNative = ({
+  onPress,
+  onPressIn,
+  onPressOut,
+  disabled,
+  ref,
+  ...rest
+}: TouchableGlassProps) => {
+  const tap = createTapGesture({ onPress, onPressIn, onPressOut, disabled });
+
   return (
     <GestureDetector gesture={tap}>
       <AppleGlassView
@@ -56,9 +68,9 @@ function TouchableGlassNative({
       />
     </GestureDetector>
   );
-}
+};
 
-function TouchableGlassFallback({
+const TouchableGlassFallback = ({
   onPress,
   onPressIn,
   onPressOut,
@@ -69,35 +81,34 @@ function TouchableGlassFallback({
   style,
   className,
   ...rest
-}: TouchableGlassProps) {
-  // Pick only View-compatible props, stripping glass-specific ones
-  const {
-    fallbackTint,
-    fallbackIntensity,
-    glassEffectStyle,
-    tintColor,
-    isInteractive,
-    colorScheme,
-    animatedProps,
-    ...viewProps
-  } = rest as Record<string, unknown>;
-  const safeViewProps = viewProps as ViewOnlyProps;
+}: TouchableGlassProps) => {
+  // Keep glass-only props off the fallback's native view.
+  const viewProps = { ...rest };
+  delete viewProps.fallbackTint;
+  delete viewProps.fallbackIntensity;
+  delete viewProps.glassEffectStyle;
+  delete viewProps.tintColor;
+  delete viewProps.isInteractive;
+  delete viewProps.colorScheme;
+  delete viewProps.animatedProps;
   const [pressed, setPressed] = useState(false);
+
   const onTouchBegin = useCallback(() => {
     setPressed(true);
     onPressIn?.();
   }, [onPressIn]);
+
   const onTouchEnd = useCallback(() => {
     setPressed(false);
     onPressOut?.();
   }, [onPressOut]);
+
   const onTouchEndSuccess = useCallback(() => {
     setPressed(false);
     onPress?.();
     onPressOut?.();
   }, [onPress, onPressOut]);
 
-  // TODO: Add iOS 18 bounce effect on blur.
   return (
     <TouchableWithoutFeedback
       className="contents"
@@ -109,7 +120,8 @@ function TouchableGlassFallback({
       <Animated.View
         className={className}
         ref={ref}
-        {...safeViewProps}
+        // SAFETY: Glass-only and animated props were removed above; this fallback forwards native View props.
+        {...(viewProps as ViewProps)}
         style={[
           {
             overflow: "hidden",
@@ -123,11 +135,11 @@ function TouchableGlassFallback({
         ]}
       >
         <BlurViewRawBackdrop />
-        {children as React.ReactNode}
+        {children}
       </Animated.View>
     </TouchableWithoutFeedback>
   );
-}
+};
 
 export const TouchableGlass = isLiquidGlassAvailable()
   ? TouchableGlassNative

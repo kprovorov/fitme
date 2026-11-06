@@ -1,4 +1,5 @@
-import { generateKeyPairSync, type KeyObject, sign } from "node:crypto";
+import { generateKeyPairSync, sign } from "node:crypto";
+import type { KeyObject } from "node:crypto";
 
 /**
  * A stand-in for a Clerk instance's signing key: the API only ever sees its
@@ -8,13 +9,29 @@ export const clerkInstance = () => {
   const { privateKey, publicKey } = generateKeyPairSync("rsa", {
     modulusLength: 2048,
   });
+
   return {
     jwtKey: publicKey.export({ format: "pem", type: "spki" }).toString(),
     privateKey,
   };
 };
 
-const base64url = (value: object) =>
+interface ClerkTokenHeader {
+  alg: string;
+  kid: string;
+  typ: string;
+}
+
+interface ClerkSessionClaims {
+  exp?: number;
+  iat?: number;
+  iss?: string;
+  nbf?: number;
+  sid?: string;
+  sub?: string;
+}
+
+const base64url = (value: ClerkTokenHeader | ClerkSessionClaims) =>
   Buffer.from(JSON.stringify(value)).toString("base64url");
 
 const now = () => Math.floor(Date.now() / 1000);
@@ -22,7 +39,7 @@ const now = () => Math.floor(Date.now() / 1000);
 /** A Clerk session token signed with `privateKey`; `claims` override the defaults. */
 export const clerkToken = (
   privateKey: KeyObject,
-  claims: Record<string, unknown>
+  claims: ClerkSessionClaims
 ) => {
   const unsigned = `${base64url({ alg: "RS256", kid: "ins_test", typ: "JWT" })}.${base64url(
     {
@@ -34,6 +51,8 @@ export const clerkToken = (
       ...claims,
     }
   )}`;
+
   const signature = sign("RSA-SHA256", Buffer.from(unsigned), privateKey);
+
   return `${unsigned}.${signature.toString("base64url")}`;
 };

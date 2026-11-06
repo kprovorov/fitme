@@ -9,6 +9,7 @@ import { QueryClientProvider } from "@tanstack/react-query";
 import { fireEvent, render, screen } from "@testing-library/react-native";
 import type { ReactNode } from "react";
 import { Pressable, Text } from "react-native";
+
 import HomeScreen from "~/app/(tabs)/(home)/index";
 import { setDeviceLanguages } from "~/test-utils/device-locales";
 import { libraryExercise, serveLibrary } from "~/test-utils/fake-library";
@@ -79,15 +80,22 @@ jest.mock("~/lib/clerk", () => ({
     ).FAKE_USER_ID,
 }));
 
-jest.mock("~/lib/segment", () => ({ segmentClient: { track: jest.fn() } }));
+jest.mock("~/lib/segment", () => ({
+  segmentClient: { track: jest.fn() },
+}));
+
 jest.mock("~/hooks/revenueCat", () => ({
   useIsProQuery: () => ({ data: false }),
 }));
+
 jest.mock("~/components/exercises/exercise-image", () => () => null);
+
 jest.mock("~/components/symbol-image", () => ({ SymbolImage: () => null }));
+
 jest.mock("~/components/ui/dropdown-menu", () =>
   jest.requireActual("~/test-utils/dropdown-menu-stub")
 );
+
 jest.mock("~/components/ui/button", () =>
   jest.requireActual("~/test-utils/button-stub")
 );
@@ -135,7 +143,7 @@ const seedActivePlan = () =>
     ],
   });
 
-describe("Home in Ukrainian", () => {
+describe("home in Ukrainian", () => {
   it("shows its tab title and the Plan actions behind the sliders button", async () => {
     seedActivePlan();
     await mount();

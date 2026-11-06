@@ -8,17 +8,17 @@ Two environments: `dev` (local development, the values in the local env files, a
 
 One folder per app, the same in both environments. A value two apps share sits at the folder root and each app's folder references it (`${prod.LIBRARY_ARNOLD_SECRET}`, `${prod.FITME_DATABASE_URL_BASE}?application_name=api`), so it changes in one place.
 
-| Folder      | App              | Local file                  | Vercel project   | Sync            |
-| ----------- | ---------------- | --------------------------- | ---------------- | --------------- |
-| `/Api`      | `apps/api`       | `apps/api/.env`             | `fitme-api`      | `api-sync`      |
-| `/Arnold`   | `apps/arnold`    | `apps/arnold/.env.local`    | `fitme-arnold`   | `arnold-sync`   |
-| `/Library`  | `apps/library`   | `apps/library/.env`         | `fitme-library`  | `library-sync`  |
-| `/Mcp`      | `apps/mcp`       | `apps/mcp/.env`             | `fitme-mcp`      | `mcp-sync`      |
-| `/Mobile`   | `apps/mobile`    | `apps/mobile/.env`          | (EAS, not synced)| none            |
-| `/Site`     | `apps/site`      | `apps/site/.env.local`      | `fitme-site`     | `site-sync`     |
-| `/Web`      | `apps/web`       | `apps/web/.env.local`       | `fitme-web`      | `web-sync`      |
-| `/Webhooks` | `apps/webhooks`  | `apps/webhooks/.env`        | `fitme-webhooks` | `webhooks-sync` |
-| `/GitHub`   | GitHub Actions   | none                        | none             | `github-repo-sync` (`dev`), `github-production-sync` (`prod`) |
+| Folder | App | Local file | Vercel project | Sync |
+| --- | --- | --- | --- | --- |
+| `/Api` | `apps/api` | `apps/api/.env` | `fitme-api` | `api-sync` |
+| `/Arnold` | `apps/arnold` | `apps/arnold/.env.local` | `fitme-arnold` | `arnold-sync` |
+| `/Library` | `apps/library` | `apps/library/.env` | `fitme-library` | `library-sync` |
+| `/Mcp` | `apps/mcp` | `apps/mcp/.env` | `fitme-mcp` | `mcp-sync` |
+| `/Mobile` | `apps/mobile` | `apps/mobile/.env` | (EAS, not synced) | none |
+| `/Site` | `apps/site` | `apps/site/.env.local` | `fitme-site` | `site-sync` |
+| `/Web` | `apps/web` | `apps/web/.env.local` | `fitme-web` | `web-sync` |
+| `/Webhooks` | `apps/webhooks` | `apps/webhooks/.env` | `fitme-webhooks` | `webhooks-sync` |
+| `/GitHub` | GitHub Actions | none | none | `github-repo-sync` (`dev`), `github-production-sync` (`prod`) |
 
 `/GitHub` follows the environments too: `dev` `/GitHub` holds what CI uses against the development side (`CLERK_DEV_SECRET_KEY`, `SUPABASE_ACCESS_TOKEN`) and syncs to the repository secrets; `prod` `/GitHub` holds the release credentials (`EXPO_TOKEN`, `LINEAR_ACCESS_KEY`) and syncs to the GitHub `production` environment, which only the release and mobile build workflows use. `SUPABASE_ACCESS_TOKEN` is only for the E2E workflow and must be a scoped personal access token, never a classic one: **Development Branches** read-write (create, get, list, delete the preview branch), **API Keys** read (`branches get`), **Auth Config** read-write (the branch's Clerk third-party auth) and **Database** read-write (`/database/query`: migrations and the `fitme` password), on the organization (each preview branch is a new project, which a project-scoped token may not reach). Database read-write still reaches the production database, so treat it as a production credential. It stays a repository secret because E2E runs from feature branches and the `production` environment only allows `main` and `v*` tags. GitHub can't export a secret, so each goes into Infisical by hand (or is regenerated); until then GitHub keeps its own value. The GitHub syncs (through the `github` App Connection) run like the Vercel ones: `overwrite-destination`, no deletion, subfolders not included. `CLERK_DEV_SECRET_KEY` is synced already.
 

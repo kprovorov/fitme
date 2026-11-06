@@ -1,4 +1,5 @@
 import { describe, expect, it } from "@jest/globals";
+
 import { cn, TEXT_STYLES } from "../utils";
 
 describe("cn", () => {
@@ -38,7 +39,7 @@ describe("cn", () => {
     expect(cn("text-sm", "text-caption-1")).toBe("text-caption-1");
     expect(
       cn(
-        "font-nunito-sans-bold font-semibold leading-none tracking-tight",
+        "font-nunito-sans-bold leading-none font-semibold tracking-tight",
         "text-body-emphasized"
       )
     ).toBe("text-body-emphasized");
@@ -50,7 +51,7 @@ describe("cn", () => {
 
   it("merges spacing and radius tokens next to a text style", () => {
     expect(
-      cn("rounded-none p-0 text-body", "rounded-card p-sm text-body-emphasized")
+      cn("text-body rounded-none p-0", "rounded-card p-sm text-body-emphasized")
     ).toBe("rounded-card p-sm text-body-emphasized");
   });
 

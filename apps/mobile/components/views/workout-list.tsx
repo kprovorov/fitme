@@ -1,5 +1,7 @@
+import { View } from "react-native";
+
 import type { PlanWorkout } from "~/hooks/queries/plans";
-import { VStack } from "../ui/vstack";
+
 import WorkoutCard from "./workout-card";
 
 interface WorkoutListProps {
@@ -8,12 +10,12 @@ interface WorkoutListProps {
   workouts: PlanWorkout[];
 }
 
-export default function WorkoutList({ planId, workouts }: WorkoutListProps) {
-  return (
-    <VStack className="flex-1 items-stretch gap-sm">
-      {workouts.map((workout) => (
-        <WorkoutCard key={workout.id} planId={planId} workout={workout} />
-      ))}
-    </VStack>
-  );
-}
+const WorkoutList = ({ planId, workouts }: WorkoutListProps) => (
+  <View className="gap-sm flex flex-1 flex-col items-stretch justify-center">
+    {workouts.map((workout) => (
+      <WorkoutCard key={workout.id} planId={planId} workout={workout} />
+    ))}
+  </View>
+);
+
+export default WorkoutList;

@@ -1,8 +1,10 @@
-import { type MuscleGroup, muscleGroups } from "@fitme/core";
+import { muscleGroups } from "@fitme/core";
+import type { MuscleGroup } from "@fitme/core";
 import type { ExerciseSummary } from "@fitme/library-sdk";
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useMemo, useRef } from "react";
 import { useTranslation } from "react-i18next";
+
 import { ExerciseRowSymbol } from "~/components/exercises/exercise-row";
 import ExercisesView from "~/components/views/exercises-view";
 import { useHeaderSearch } from "~/hooks/header-search";
@@ -14,7 +16,7 @@ import { updatePlanDraft } from "~/hooks/plan-draft";
 import { addDraftExercise, replaceDraftExercise } from "~/lib/plan-draft";
 
 const isMuscleGroup = (value: string | undefined): value is MuscleGroup =>
-  (muscleGroups as readonly string[]).includes(value ?? "");
+  muscleGroups.some((group) => group === value);
 
 /**
  * The Plan builder's Library picker, pushed over the Workout editor: it
@@ -27,12 +29,14 @@ const isMuscleGroup = (value: string | undefined): value is MuscleGroup =>
  * the two share `ExercisesView`: the same header search bar, Muscles pill
  * and sheet, paging and rate-limit behaviour.
  */
-export default function PlanExercisePickerScreen() {
+const PlanExercisePickerScreen = () => {
   const { t } = useTranslation();
   const router = useRouter();
+
   const { onSearchChange, search, searchBarOptions } = useHeaderSearch({
     inSheet: true,
   });
+
   const {
     draft: draftKey,
     muscleGroup,
@@ -46,7 +50,7 @@ export default function PlanExercisePickerScreen() {
   }>();
 
   // Each opening starts over, and is forgotten once closed.
-  const [muscleChoiceKey] = useState(newMuscleChoiceKey);
+  const muscleChoiceKey = useMemo(() => newMuscleChoiceKey(), []);
   useMuscleChoiceOpening(
     muscleChoiceKey,
     isMuscleGroup(muscleGroup) ? [muscleGroup] : []
@@ -62,6 +66,7 @@ export default function PlanExercisePickerScreen() {
       if (left.current) {
         return;
       }
+
       left.current = true;
       updatePlanDraft(draftKey, (draft) =>
         replaceExerciseKey
@@ -109,4 +114,6 @@ export default function PlanExercisePickerScreen() {
       />
     </>
   );
-}
+};
+
+export default PlanExercisePickerScreen;

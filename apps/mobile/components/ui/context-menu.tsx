@@ -5,6 +5,7 @@ import {
 } from "@expo/ui/swift-ui";
 import type * as React from "react";
 import type { SFSymbol } from "sf-symbols-typescript";
+
 import { SwiftUIHost } from "~/components/ui/swift-ui";
 
 interface ContextMenuItem {
@@ -36,15 +37,17 @@ const ContextMenu = ({
   <SwiftUIHost className={className} matchContents>
     <SwiftUIContextMenu testID={testID}>
       <SwiftUIContextMenu.Items>
-        {items.map((item) => (
-          <SwiftUIButton
-            key={item.label}
-            label={item.label}
-            onPress={item.onPress}
-            role={item.destructive ? "destructive" : "default"}
-            systemImage={item.systemImage}
-          />
-        ))}
+        {items.map(
+          ({ destructive, label, onPress: handlePress, systemImage }) => (
+            <SwiftUIButton
+              key={label}
+              label={label}
+              onPress={handlePress}
+              role={destructive ? "destructive" : "default"}
+              systemImage={systemImage}
+            />
+          )
+        )}
       </SwiftUIContextMenu.Items>
       <SwiftUIContextMenu.Trigger>
         <RNHostView matchContents>{children}</RNHostView>
@@ -56,4 +59,5 @@ const ContextMenu = ({
 ContextMenu.displayName = "ContextMenu";
 
 export type { ContextMenuItem, ContextMenuProps };
+
 export { ContextMenu };

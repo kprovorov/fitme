@@ -3,6 +3,7 @@
 Build your own auth UI with `useSignIn()` / `useSignUp()`. Works everywhere including Expo Go and web. Use when the developer wants their own UI, needs Expo Go, or asked for a specific strategy like SMS.
 
 > Canonical docs — each has an Expo tab with a full working example; fetch the relevant one to re-verify if the installed SDK is newer than 3.6.x:
+>
 > - Email/password: https://clerk.com/docs/guides/development/custom-flows/authentication/email-password
 > - Email/SMS OTP: https://clerk.com/docs/guides/development/custom-flows/authentication/email-sms-otp
 > - Combined sign-in-or-up: https://clerk.com/docs/guides/development/custom-flows/authentication/sign-in-or-up
@@ -42,38 +43,40 @@ const navigateAfterAuth = ({ session, decorateUrl }) => {
   if (session?.currentTask) {
     // Route to your session-task UI instead of home.
     // https://clerk.com/docs/guides/development/custom-flows/authentication/session-tasks
-    return
+    return;
   }
-  const url = decorateUrl('/')
-  if (url.startsWith('http')) window.location.href = url // Expo web
-  else router.push(url as Href)
-}
+  const url = decorateUrl("/");
+  if (url.startsWith("http")) window.location.href = url; // Expo web
+  else router.push(url as Href);
+};
 
 // on status === 'complete':
-await signIn.finalize({ navigate: navigateAfterAuth }) // same shape for signUp.finalize
+await signIn.finalize({ navigate: navigateAfterAuth }); // same shape for signUp.finalize
 ```
 
 ## Email + password (sign-in)
 
 ```tsx
-import { useSignIn } from '@clerk/expo'
+import { useSignIn } from "@clerk/expo";
 
-const { signIn, errors, fetchStatus } = useSignIn()
+const { signIn, errors, fetchStatus } = useSignIn();
 
 const handleSubmit = async () => {
-  const { error } = await signIn.password({ emailAddress, password })
-  if (error) return // surface errors.fields.identifier / errors.fields.password in the UI
+  const { error } = await signIn.password({ emailAddress, password });
+  if (error) return; // surface errors.fields.identifier / errors.fields.password in the UI
 
-  if (signIn.status === 'complete') {
-    await signIn.finalize({ navigate: navigateAfterAuth })
-  } else if (signIn.status === 'needs_second_factor') {
+  if (signIn.status === "complete") {
+    await signIn.finalize({ navigate: navigateAfterAuth });
+  } else if (signIn.status === "needs_second_factor") {
     // MFA step — see below
-  } else if (signIn.status === 'needs_client_trust') {
+  } else if (signIn.status === "needs_client_trust") {
     // New-device verification: send a code, then verify with signIn.mfa.verifyEmailCode
-    const emailFactor = signIn.supportedSecondFactors?.find((f) => f.strategy === 'email_code')
-    if (emailFactor) await signIn.mfa.sendEmailCode()
+    const emailFactor = signIn.supportedSecondFactors?.find(
+      (f) => f.strategy === "email_code"
+    );
+    if (emailFactor) await signIn.mfa.sendEmailCode();
   }
-}
+};
 ```
 
 Sign-up mirror: `signUp.password({ emailAddress, password })`, then `signUp.verifications.sendEmailCode()`, collect the code, `signUp.verifications.verifyEmailCode({ code })`, then `signUp.finalize(...)`. Show the verify step when `signUp.status === 'missing_requirements' && signUp.unverifiedFields.includes('email_address')`.
@@ -85,17 +88,18 @@ Requires **Phone number** + **SMS verification code** enabled in the dashboard (
 Sign-up:
 
 ```tsx
-const { signUp, errors, fetchStatus } = useSignUp()
+const { signUp, errors, fetchStatus } = useSignUp();
 
 const handleSubmit = async () => {
-  const { error } = await signUp.create({ phoneNumber }) // E.164, e.g. +15551234567
-  if (!error) await signUp.verifications.sendPhoneCode()
-}
+  const { error } = await signUp.create({ phoneNumber }); // E.164, e.g. +15551234567
+  if (!error) await signUp.verifications.sendPhoneCode();
+};
 
 const handleVerify = async () => {
-  await signUp.verifications.verifyPhoneCode({ code })
-  if (signUp.status === 'complete') await signUp.finalize({ navigate: navigateAfterAuth })
-}
+  await signUp.verifications.verifyPhoneCode({ code });
+  if (signUp.status === "complete")
+    await signUp.finalize({ navigate: navigateAfterAuth });
+};
 
 // Show the code input when:
 // signUp.status === 'missing_requirements' && signUp.unverifiedFields.includes('phone_number') && signUp.missingFields.length === 0
@@ -105,18 +109,19 @@ const handleVerify = async () => {
 Sign-in:
 
 ```tsx
-const { signIn, errors, fetchStatus } = useSignIn()
+const { signIn, errors, fetchStatus } = useSignIn();
 
 const handleSubmit = async () => {
   // Creates the sign-in attempt AND sends the SMS in one call — no signIn.create() needed
-  const { error } = await signIn.phoneCode.sendCode({ phoneNumber })
-  if (error) return // surface errors.fields
-}
+  const { error } = await signIn.phoneCode.sendCode({ phoneNumber });
+  if (error) return; // surface errors.fields
+};
 
 const handleVerify = async () => {
-  await signIn.phoneCode.verifyCode({ code })
-  if (signIn.status === 'complete') await signIn.finalize({ navigate: navigateAfterAuth })
-}
+  await signIn.phoneCode.verifyCode({ code });
+  if (signIn.status === "complete")
+    await signIn.finalize({ navigate: navigateAfterAuth });
+};
 
 // Resend: signIn.phoneCode.sendCode() with no args — the sign-in already exists
 ```
@@ -128,16 +133,20 @@ Email OTP is the same shape: `emailCode.sendCode({ emailAddress })` (also self-c
 Attempt sign-in; on `form_identifier_not_found`, switch to sign-up with the same credentials:
 
 ```tsx
-const { error } = await signIn.password({ emailAddress, password })
+const { error } = await signIn.password({ emailAddress, password });
 if (error) {
-  if (error.errors[0].code === 'form_identifier_not_found') {
-    const { error: signUpError } = await signUp.password({ emailAddress, password })
-    if (signUpError) return
-    await signUp.verifications.sendEmailCode()
-    if (signUp.unverifiedFields?.includes('email_address')) setShowCodeStep(true)
-    return
+  if (error.errors[0].code === "form_identifier_not_found") {
+    const { error: signUpError } = await signUp.password({
+      emailAddress,
+      password,
+    });
+    if (signUpError) return;
+    await signUp.verifications.sendEmailCode();
+    if (signUp.unverifiedFields?.includes("email_address"))
+      setShowCodeStep(true);
+    return;
   }
-  return // real error — surface errors.fields
+  return; // real error — surface errors.fields
 }
 // continue sign-in path (complete / needs_second_factor / needs_client_trust)
 ```
@@ -149,7 +158,7 @@ For the OTP-only variant, do the same with `signIn.phoneCode` / `signUp.create({
 When `signIn.status === 'needs_second_factor'`, check `signIn.supportedSecondFactors` and use `signIn.mfa`:
 
 | Factor | Send | Verify |
-|--------|------|--------|
+| --- | --- | --- |
 | SMS code | `signIn.mfa.sendPhoneCode()` | `signIn.mfa.verifyPhoneCode({ code })` |
 | Email code | `signIn.mfa.sendEmailCode()` | `signIn.mfa.verifyEmailCode({ code })` |
 | TOTP (authenticator app) | — | `signIn.mfa.verifyTOTP({ code })` |

@@ -1,16 +1,16 @@
 import { observeHono } from "@fitme/observability/node";
+import type { reportError } from "@fitme/observability/node";
 import { createRoute, OpenAPIHono, z } from "@hono/zod-openapi";
+import type { ErrorHandler } from "hono";
 import { cors } from "hono/cors";
 import { HTTPException } from "hono/http-exception";
 import { logger } from "hono/logger";
-import {
-  type AuthConfig,
-  type AuthEnv,
-  BEARER_AUTH,
-  requireCaller,
-} from "./auth";
+
+import { BEARER_AUTH, requireCaller } from "./auth";
+import type { AuthConfig, AuthEnv } from "./auth";
 import { deviceCache } from "./cache";
-import { type RateLimiter, rateLimitUsers } from "./rate-limit";
+import { rateLimitUsers } from "./rate-limit";
+import type { RateLimiter } from "./rate-limit";
 import { coverRoutes } from "./routes/covers";
 import { exerciseRoutes } from "./routes/exercises";
 import type { ServedLibrary } from "./served-library";
@@ -25,7 +25,7 @@ export interface AppDeps {
   /** Counts each User's requests; server callers are never counted. */
   rateLimiter: RateLimiter;
   /** Sends an error to Sentry (and the logs), resolving once it's delivered. */
-  reportError: (error: unknown) => Promise<void>;
+  reportError: typeof reportError;
 }
 
 const health = createRoute({
@@ -69,10 +69,12 @@ export const createApp = ({
   // A User is known by their Clerk id only; a server caller is no User.
   app.use(async (c, next) => {
     const caller = c.get("caller");
+
     if (caller.type === "user") {
       identifyUser(caller.userId);
     }
-    await next();
+
+    return await next();
   });
   app.openAPIRegistry.registerComponent("securitySchemes", BEARER_AUTH, {
     description:
@@ -95,19 +97,23 @@ export const createApp = ({
     c.json({ error: { code: "not_found", message: "Route not found" } }, 404)
   );
 
-  app.onError(async (error, c) => {
+  const handleError: ErrorHandler<AuthEnv> = async (error, c) => {
     if (error instanceof HTTPException) {
       return c.json(
         { error: { code: "http_error", message: error.message } },
         error.status
       );
     }
+
     await reportError(error);
+
     return c.json(
       { error: { code: "internal_error", message: "Internal server error" } },
       500
     );
-  });
+  };
+
+  app.onError(handleError);
 
   return app;
 };

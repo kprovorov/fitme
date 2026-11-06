@@ -2,6 +2,7 @@ import { describe, expect, it, jest } from "@jest/globals";
 import { render, screen } from "@testing-library/react-native";
 import type * as React from "react";
 import { Text } from "react-native";
+
 import { AlertDialog } from "~/components/ui/alert-dialog";
 import { ContextMenu } from "~/components/ui/context-menu";
 import { Dialog } from "~/components/ui/dialog";
@@ -28,6 +29,7 @@ jest.mock("@expo/ui/swift-ui/modifiers", () => {
   const modifier =
     (type: string) =>
     (...args: unknown[]) => ({ args, type });
+
   return {
     accessibilityLabel: modifier("accessibilityLabel"),
     contentShape: modifier("contentShape"),
@@ -49,6 +51,7 @@ jest.mock("@expo/ui/swift-ui/modifiers", () => {
 jest.mock("@expo/ui/swift-ui", () => {
   const { Text: RNText, View } =
     jest.requireActual<typeof import("react-native")>("react-native");
+
   const { isValidElement } =
     jest.requireActual<typeof import("react")>("react");
 
@@ -72,6 +75,7 @@ jest.mock("@expo/ui/swift-ui", () => {
     }) => {
       const content =
         typeof children === "string" ? <RNText>{children}</RNText> : children;
+
       return (
         <View
           testID={`native-${name}`}
@@ -119,6 +123,7 @@ jest.mock("@expo/ui/swift-ui", () => {
 jest.mock("react-native-reanimated", () => {
   const { View } =
     jest.requireActual<typeof import("react-native")>("react-native");
+
   return {
     __esModule: true,
     default: { View },
@@ -134,10 +139,12 @@ const mockColorClass = /^text-[a-z-]+$/;
 
 jest.mock("uniwind", () => {
   const actual = jest.requireActual<typeof import("uniwind")>("uniwind");
+
   return {
     ...actual,
     useResolveClassNames: (className: string) => {
       const resolved = actual.useResolveClassNames(className);
+
       return mockColorClass.test(className) ? { color: className } : resolved;
     },
   };

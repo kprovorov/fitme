@@ -36,11 +36,7 @@
             "description": "How many Exercises match, across every page."
           }
         },
-        "required": [
-          "data",
-          "hasMore",
-          "total"
-        ]
+        "required": ["data", "hasMore", "total"]
       },
       "ExerciseSummary": {
         "type": "object",
@@ -138,15 +134,10 @@
               "type": "string"
             },
             "description": "The asked Exercise slugs no Exercise has, in asked order.",
-            "example": [
-              "no-such-exercise"
-            ]
+            "example": ["no-such-exercise"]
           }
         },
-        "required": [
-          "data",
-          "missing"
-        ]
+        "required": ["data", "missing"]
       },
       "Error": {
         "type": "object",
@@ -162,24 +153,14 @@
                 "type": "string"
               }
             },
-            "required": [
-              "code",
-              "message"
-            ]
+            "required": ["code", "message"]
           }
         },
-        "required": [
-          "error"
-        ]
+        "required": ["error"]
       },
       "Language": {
         "type": "string",
-        "enum": [
-          "en",
-          "uk",
-          "es",
-          "ca"
-        ]
+        "enum": ["en", "uk", "es", "ca"]
       },
       "Exercise": {
         "type": "object",
@@ -246,9 +227,7 @@
             "description": "Every Cover in the Library, unpaged."
           }
         },
-        "required": [
-          "data"
-        ]
+        "required": ["data"]
       },
       "Cover": {
         "type": "object",
@@ -272,11 +251,7 @@
             "description": "The muscle groups the Cover suits."
           }
         },
-        "required": [
-          "id",
-          "image_url",
-          "muscle_groups"
-        ]
+        "required": ["id", "image_url", "muscle_groups"]
       }
     },
     "parameters": {}
@@ -297,9 +272,7 @@
                       "type": "boolean"
                     }
                   },
-                  "required": [
-                    "ok"
-                  ]
+                  "required": ["ok"]
                 }
               }
             }

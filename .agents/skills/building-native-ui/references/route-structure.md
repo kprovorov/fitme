@@ -121,9 +121,9 @@ app/
 This requires a specialized layout with explicit anchor routes:
 
 ```tsx
+import Stack from "expo-router/stack";
 // app/(index,settings)/_layout.tsx
 import { useMemo } from "react";
-import Stack from "expo-router/stack";
 
 export const unstable_settings = {
   index: { anchor: "index" },

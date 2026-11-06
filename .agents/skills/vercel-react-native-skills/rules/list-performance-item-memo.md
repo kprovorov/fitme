@@ -7,9 +7,7 @@ tags: lists, performance, memo, primitives
 
 ## Pass Primitives to List Items for Memoization
 
-When possible, pass only primitive values (strings, numbers, booleans) as props
-to list item components. Primitives enable shallow comparison in `memo()` to
-work correctly, skipping re-renders when values haven't changed.
+When possible, pass only primitive values (strings, numbers, booleans) as props to list item components. Primitives enable shallow comparison in `memo()` to work correctly, skipping re-renders when values haven't changed.
 
 **Incorrect (object prop requires deep comparison):**
 
@@ -78,5 +76,4 @@ const UserRow = memo(function UserRow({ id, name }: Props) {
 
 Primitive props make memoization predictable and effective.
 
-**Note:** If you have the React Compiler enabled, you do not need to use
-`memo()` or `useCallback()`, but the object references still apply.
+**Note:** If you have the React Compiler enabled, you do not need to use `memo()` or `useCallback()`, but the object references still apply.

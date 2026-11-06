@@ -7,9 +7,7 @@ tags: images, gallery, lightbox, expo-image, ui
 
 ## Use Galeria for Image Galleries and Lightbox
 
-For image galleries with lightbox (tap to fullscreen), use `@nandorojo/galeria`.
-It provides native shared element transitions with pinch-to-zoom, double-tap
-zoom, and pan-to-close. Works with any image component including `expo-image`.
+For image galleries with lightbox (tap to fullscreen), use `@nandorojo/galeria`. It provides native shared element transitions with pinch-to-zoom, double-tap zoom, and pan-to-close. Works with any image component including `expo-image`.
 
 **Incorrect (custom modal implementation):**
 
@@ -97,7 +95,6 @@ function Avatar({ url }: { url: string }) {
 </Galeria>
 ```
 
-Works with `expo-image`, `SolitoImage`, `react-native` Image, or any image
-component.
+Works with `expo-image`, `SolitoImage`, `react-native` Image, or any image component.
 
 Reference: [Galeria](https://github.com/nandorojo/galeria)

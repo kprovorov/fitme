@@ -3,19 +3,25 @@ import type {
   ThreadMessage,
   ToolCallMessagePart,
 } from "@assistant-ui/react-native";
-import { LegendList, type LegendListRef } from "@legendapp/list/react-native";
+import { LegendList } from "@legendapp/list/react-native";
+import type {
+  LegendListProps,
+  LegendListRef,
+} from "@legendapp/list/react-native";
 import { isLiquidGlassAvailable } from "expo-glass-effect";
 import {
   createContext,
-  type ReactNode,
   use,
   useCallback,
   useImperativeHandle,
+  useMemo,
   useRef,
   useState,
 } from "react";
+import type { ReactNode } from "react";
 import { useTranslation } from "react-i18next";
-import { type LayoutChangeEvent, Text, View } from "react-native";
+import { Text, View } from "react-native";
+import type { LayoutChangeEvent, ViewStyle } from "react-native";
 import { useKeyboardHandler } from "react-native-keyboard-controller";
 import Animated, {
   runOnJS,
@@ -25,20 +31,25 @@ import Animated, {
   useSharedValue,
   withTiming,
 } from "react-native-reanimated";
+import type { AnimatedStyle } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import type { SFSymbol } from "sf-symbols-typescript";
+
 import { SymbolImage } from "@/components/symbol-image";
+
 import { TouchableGlass } from "../touchable-glass";
 import { KeyboardGestureArea } from "../tw";
 import { useChatContext } from "./chat-context";
 import { Message, MessageResponse } from "./message";
 import { messageText } from "./message-text";
 import { StreamingMessage } from "./streaming-message";
-import { type WorkoutPlan, WorkoutPlanCard } from "./workout-plan-card";
+import type { StreamingStore } from "./streaming-store";
+import { WorkoutPlanCard } from "./workout-plan-card";
+import type { WorkoutPlan } from "./workout-plan-card";
 
 const IS_GLASS = isLiquidGlassAvailable();
 
-type AnimatableLegendListProps = React.ComponentProps<typeof LegendList> & {
+type AnimatableLegendListProps = LegendListProps<ThreadMessage> & {
   ref?: React.Ref<LegendListRef>;
 };
 
@@ -47,11 +58,16 @@ type AnimatableLegendListProps = React.ComponentProps<typeof LegendList> & {
  * (4.5+) cannot resolve to a host view. Expose `getAnimatableRef` so the
  * animated wrapper targets the underlying ScrollView instead.
  */
-function AnimatableLegendList({ ref, ...props }: AnimatableLegendListProps) {
+const AnimatableLegendList = ({ ref, ...props }: AnimatableLegendListProps) => {
   const listRef = useRef<LegendListRef>(null);
 
-  useImperativeHandle(ref, () => {
-    const list = listRef.current as LegendListRef;
+  useImperativeHandle<LegendListRef | null, LegendListRef | null>(ref, () => {
+    const list = listRef.current;
+
+    if (!list) {
+      return null;
+    }
+
     return {
       ...list,
       getAnimatableRef: () => list.getNativeScrollRef(),
@@ -59,47 +75,110 @@ function AnimatableLegendList({ ref, ...props }: AnimatableLegendListProps) {
   }, []);
 
   return <LegendList {...props} ref={listRef} />;
-}
+};
 
 const AnimatedLegendList =
   Animated.createAnimatedComponent(AnimatableLegendList);
 
-const messageKeyExtractor = (item: unknown) => (item as ThreadMessage).id;
-
-// biome-ignore lint/suspicious/noExplicitAny: Reanimated animated styles are opaque worklet objects with no exported type
-type AnimatedStyle = any;
+const messageKeyExtractor = (item: ThreadMessage) => item.id;
 
 interface ConversationContextValue {
   /** Prompt input reports its measured height through this callback. */
   onPromptInputLayout: (e: LayoutChangeEvent) => void;
   /** Animated style that positions the prompt input above the keyboard. */
-  promptInputStyle: AnimatedStyle;
+  promptInputStyle: AnimatedStyle<ViewStyle>;
   /** Animated style for the scroll-to-bottom button. */
-  scrollButtonStyle: AnimatedStyle;
+  scrollButtonStyle: AnimatedStyle<ViewStyle>;
   scrollToBottom: () => void;
 }
 
 const ConversationCtx = createContext<ConversationContextValue | null>(null);
 
-export function useConversationContext() {
+export const useConversationContext = () => {
   const ctx = use(ConversationCtx);
+
   if (!ctx) {
     throw new Error(
       "useConversationContext must be used within <Conversation>"
     );
   }
-  return ctx;
-}
 
-export function Conversation({
+  return ctx;
+};
+
+const ConversationMessage = ({
+  item,
+  isStreaming,
+  streamingStore,
+}: {
+  item: ThreadMessage;
+  isStreaming: boolean;
+  streamingStore: StreamingStore;
+}) => {
+  if (item.role === "user") {
+    return <Message from="user">{messageText(item)}</Message>;
+  }
+
+  if (item.role !== "assistant") {
+    return null;
+  }
+
+  if (isStreaming) {
+    return (
+      <Message from="assistant">
+        <StreamingMessage store={streamingStore} />
+      </Message>
+    );
+  }
+
+  // Content-based keys survive reordering; counts distinguish identical text.
+  const occurrences = new Map<string, number>();
+
+  const textParts = item.content
+    .filter(
+      (part): part is TextMessagePart => part.type === "text" && !!part.text
+    )
+    .map((part) => {
+      const occurrence = occurrences.get(part.text) ?? 0;
+      occurrences.set(part.text, occurrence + 1);
+
+      return { id: JSON.stringify([part.text, occurrence]), text: part.text };
+    });
+
+  return (
+    <Message from="assistant">
+      {textParts.map((part) => (
+        <MessageResponse key={part.id}>{part.text}</MessageResponse>
+      ))}
+      {item.content
+        .filter(
+          (part): part is ToolCallMessagePart =>
+            part.type === "tool-call" &&
+            part.toolName === "display_workout_plan" &&
+            part.result !== undefined &&
+            !part.isError
+        )
+        .map((tool) => {
+          // SAFETY: A successful display_workout_plan returns the server's
+          // schema-validated WorkoutPlan input unchanged.
+          const plan = tool.result as WorkoutPlan;
+
+          return <WorkoutPlanCard key={tool.toolCallId} plan={plan} />;
+        })}
+    </Message>
+  );
+};
+
+export const Conversation = ({
   children,
   emptyState,
 }: {
   children?: ReactNode;
   /** Shown while there are no messages. */
   emptyState: ReactNode;
-}) {
+}) => {
   const { messages, isGenerating, streamingStore } = useChatContext();
+
   const listRef = useRef<LegendListRef>(null);
   const insets = useSafeAreaInsets();
 
@@ -130,24 +209,29 @@ export function Conversation({
 
   const bottomInset = useDerivedValue(() => {
     const keyboard = Math.abs(keyboardHeight.value);
+
     return composerHeight.value + Math.max(insets.bottom, keyboard);
   });
 
   const isAtBottom = useDerivedValue(() => {
     const maxScrollY =
       totalContentHeight.value - scrollViewHeight.value + bottomInset.value;
+
     if (maxScrollY <= 0) {
       return true;
     }
+
     return maxScrollY - scrollY.value <= SCROLL_THRESHOLD;
   });
 
   const shouldShowScrollButton = useDerivedValue(() => {
     const maxScrollY =
       totalContentHeight.value - scrollViewHeight.value + bottomInset.value;
+
     if (maxScrollY <= 50) {
       return false;
     }
+
     return !isAtBottom.value;
   });
 
@@ -155,14 +239,14 @@ export function Conversation({
 
   const onScrollViewLayout = useCallback(
     (e: LayoutChangeEvent) => {
-      scrollViewHeight.value = e.nativeEvent.layout.height;
+      scrollViewHeight.set(e.nativeEvent.layout.height);
     },
     [scrollViewHeight]
   );
 
   const onScroll = useCallback(
     (event: { nativeEvent: { contentOffset: { y: number } } }) => {
-      scrollY.value = event.nativeEvent.contentOffset.y;
+      scrollY.set(event.nativeEvent.contentOffset.y);
     },
     [scrollY]
   );
@@ -172,12 +256,12 @@ export function Conversation({
       const wasAtBottom = isAtBottom.value;
       const heightIncreased = height > lastContentHeight.value;
 
-      totalContentHeight.value = height;
-      lastContentHeight.value = height;
+      totalContentHeight.set(height);
+      lastContentHeight.set(height);
       // Derive message-only height by subtracting the last known footer height.
       // This is stable: when the footer resizes, totalContent changes but
       // messagesOnly stays the same, breaking the feedback loop.
-      messagesOnlyHeight.value = height - currentFooterHeight.value;
+      messagesOnlyHeight.set(height - currentFooterHeight.value);
 
       if (wasAtBottom && heightIncreased && listRef.current) {
         requestAnimationFrame(() => {
@@ -192,9 +276,7 @@ export function Conversation({
       bottomInset,
       currentFooterHeight,
       isAtBottom,
-      lastContentHeight, // Derive message-only height by subtracting the last known footer height.
-      // This is stable: when the footer resizes, totalContent changes but
-      // messagesOnly stays the same, breaking the feedback loop.
+      lastContentHeight,
       messagesOnlyHeight,
       totalContentHeight,
     ]
@@ -212,9 +294,10 @@ export function Conversation({
       onEnd: (e) => {
         "worklet";
         const shouldScroll = e.height > 0 && !wasInteractive.value;
-        keyboardHeight.value = e.height;
-        keyboardHeightForInset.value = withTiming(e.height, { duration: 250 });
-        wasInteractive.value = false;
+        keyboardHeight.set(e.height);
+        keyboardHeightForInset.set(withTiming(e.height, { duration: 250 }));
+        wasInteractive.set(false);
+
         if (shouldScroll) {
           runOnJS(scrollToBottom)();
         }
@@ -224,19 +307,20 @@ export function Conversation({
         // Only update prompt input position, not contentInset.
         // Changing contentInset during an active gesture causes a jump
         // when the user has overscrolled past the bottom.
-        keyboardHeight.value = e.height;
-        wasInteractive.value = true;
+        keyboardHeight.set(e.height);
+        wasInteractive.set(true);
       },
       onMove: (e) => {
         "worklet";
-        keyboardHeight.value = e.height;
-        keyboardHeightForInset.value = e.height;
+        keyboardHeight.set(e.height);
+        keyboardHeightForInset.set(e.height);
       },
       onStart: (e) => {
         "worklet";
+
         // Track if keyboard is opening from a tap (not from interactive dismiss)
         if (e.height > 0 && !wasInteractive.value) {
-          wasInteractive.value = false;
+          wasInteractive.set(false);
         }
       },
     },
@@ -248,6 +332,7 @@ export function Conversation({
 
   const footerSpacerStyle = useAnimatedStyle(() => {
     const scrollHeight = scrollViewHeight.value;
+
     if (scrollHeight <= 0) {
       return { height: 0 };
     }
@@ -257,7 +342,8 @@ export function Conversation({
     const blankSpace = scrollHeight - messagesOnlyHeight.value - bottom;
     const footerHeight = Math.max(0, blankSpace - topPadding);
 
-    currentFooterHeight.value = footerHeight;
+    currentFooterHeight.set(footerHeight);
+
     return { height: footerHeight };
   });
 
@@ -285,6 +371,7 @@ export function Conversation({
   const listAnimatedProps = useAnimatedProps(() => {
     const keyboard = Math.abs(keyboardHeightForInset.value);
     const bottom = composerHeight.value + Math.max(insets.bottom, keyboard);
+
     return {
       contentInset: { bottom, left: 0, right: 0, top: topPadding },
       scrollIndicatorInsets: { bottom, left: 0, right: 0, top: 0 },
@@ -294,7 +381,7 @@ export function Conversation({
   const onPromptInputLayout = useCallback(
     (e: LayoutChangeEvent) => {
       const h = e.nativeEvent.layout.height;
-      composerHeight.value = h;
+      composerHeight.set(h);
       setComposerOffsetHeight(h);
     },
     [composerHeight]
@@ -303,65 +390,33 @@ export function Conversation({
   // -- Message rendering ---------------------------------------------------
 
   const renderItem = useCallback(
-    ({ item }: { item: ThreadMessage }) => {
-      if (item.role === "user") {
-        return <Message from="user">{messageText(item)}</Message>;
-      }
-
-      if (item.role !== "assistant") {
-        return null;
-      }
-
-      if (isGenerating && item === messages.at(-1)) {
-        return (
-          <Message from="assistant">
-            <StreamingMessage store={streamingStore} />
-          </Message>
-        );
-      }
-
-      return (
-        <Message from="assistant">
-          {item.content
-            .filter((p): p is TextMessagePart => p.type === "text" && !!p.text)
-            .map((part, i) => {
-              // biome-ignore lint/suspicious/noArrayIndexKey: text parts have no stable ID
-              return <MessageResponse key={i}>{part.text}</MessageResponse>;
-            })}
-          {item.content
-            .filter(
-              (p): p is ToolCallMessagePart =>
-                p.type === "tool-call" &&
-                p.toolName === "display_workout_plan" &&
-                p.result !== undefined &&
-                !p.isError
-            )
-            .map((tool) => (
-              <WorkoutPlanCard
-                key={tool.toolCallId}
-                plan={tool.result as WorkoutPlan}
-              />
-            ))}
-        </Message>
-      );
-    },
+    ({ item }: { item: ThreadMessage }) => (
+      <ConversationMessage
+        isStreaming={isGenerating && item === messages.at(-1)}
+        item={item}
+        streamingStore={streamingStore}
+      />
+    ),
     [isGenerating, messages, streamingStore]
   );
 
   // -- Context value -------------------------------------------------------
 
-  const contextValue: ConversationContextValue = {
-    onPromptInputLayout,
-    promptInputStyle,
-    scrollButtonStyle,
-    scrollToBottom,
-  };
+  const contextValue = useMemo<ConversationContextValue>(
+    () => ({
+      onPromptInputLayout,
+      promptInputStyle,
+      scrollButtonStyle,
+      scrollToBottom,
+    }),
+    [onPromptInputLayout, promptInputStyle, scrollButtonStyle, scrollToBottom]
+  );
 
   // -- Render --------------------------------------------------------------
 
   return (
     <ConversationCtx value={contextValue}>
-      <View className="flex-1 bg-background">
+      <View className="bg-background flex-1">
         <KeyboardGestureArea
           className="flex-1"
           interpolator="ios"
@@ -392,8 +447,7 @@ export function Conversation({
             onScroll={onScroll}
             recycleItems={false}
             ref={listRef}
-            // biome-ignore lint/suspicious/noExplicitAny: LegendList renderItem type doesn't match UIMessage callback
-            renderItem={renderItem as any}
+            renderItem={renderItem}
             scrollEventThrottle={16}
           />
         </KeyboardGestureArea>
@@ -402,9 +456,9 @@ export function Conversation({
       </View>
     </ConversationCtx>
   );
-}
+};
 
-export function ConversationScrollButton() {
+export const ConversationScrollButton = () => {
   const { scrollToBottom, scrollButtonStyle } = useConversationContext();
   const { t } = useTranslation();
 
@@ -422,16 +476,16 @@ export function ConversationScrollButton() {
         onPress={scrollToBottom}
       >
         <SymbolImage
-          className="mt-1 text-footnote text-muted-foreground dark:text-muted-foreground"
+          className="text-footnote text-muted-foreground dark:text-muted-foreground mt-1"
           name="chevron.down"
           sfEffect={{ effect: "wiggle", repeat: -1 }}
         />
       </TouchableGlass>
     </Animated.View>
   );
-}
+};
 
-export function ConversationEmptyState({
+export const ConversationEmptyState = ({
   title,
   description,
   icon = "bubble.left.and.bubble.right",
@@ -439,21 +493,19 @@ export function ConversationEmptyState({
   title: string;
   description?: string;
   icon?: SFSymbol;
-}) {
-  return (
-    <View className="flex-1 items-center justify-center gap-2">
-      <SymbolImage
-        className="text-large-title text-muted-foreground"
-        name={icon}
-      />
-      <Text className="text-center text-foreground text-title-2-emphasized dark:text-foreground">
-        {title}
+}) => (
+  <View className="flex-1 items-center justify-center gap-2">
+    <SymbolImage
+      className="text-large-title text-muted-foreground"
+      name={icon}
+    />
+    <Text className="text-foreground text-title-2-emphasized dark:text-foreground text-center">
+      {title}
+    </Text>
+    {description ? (
+      <Text className="text-muted-foreground text-subhead dark:text-muted-foreground text-center">
+        {description}
       </Text>
-      {description ? (
-        <Text className="text-center text-muted-foreground text-subhead dark:text-muted-foreground">
-          {description}
-        </Text>
-      ) : null}
-    </View>
-  );
-}
+    ) : null}
+  </View>
+);

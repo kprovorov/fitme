@@ -1,9 +1,11 @@
 import { mkdir, writeFile } from "node:fs/promises";
-import { dirname, resolve } from "node:path";
+import path from "node:path";
+
 import { get } from "@vercel/blob";
+
 import { generateLibraryModule } from "./build/library-module";
 
-const APP_ROOT = resolve(import.meta.dirname, "..");
+const APP_ROOT = path.resolve(import.meta.dirname, "..");
 
 /**
  * Generates src/generated/library.ts, the Library the API serves,
@@ -12,7 +14,7 @@ const APP_ROOT = resolve(import.meta.dirname, "..");
  * build, dev server, typecheck and test run; fails (exit code 1) on a missing
  * or invalid bundle.
  */
-const out = resolve(import.meta.dirname, "generated/library.ts");
+const out = path.resolve(import.meta.dirname, "generated/library.ts");
 
 const result = await generateLibraryModule({
   appRoot: APP_ROOT,
@@ -21,11 +23,13 @@ const result = await generateLibraryModule({
 });
 
 if (result.ok) {
-  await mkdir(dirname(out), { recursive: true });
+  await mkdir(path.dirname(out), { recursive: true });
   await writeFile(out, result.source);
+
   // The build log names the deployment's content: its source, size and hash.
   const exercises =
     result.exercises === 1 ? "1 Exercise" : `${result.exercises} Exercises`;
+
   const covers = result.covers === 1 ? "1 Cover" : `${result.covers} Covers`;
   console.log(
     `generated ${out} from ${result.bundle}: ${exercises}, ${covers}, library hash ${result.hash}`
@@ -35,8 +39,10 @@ if (result.ok) {
   console.error(
     `can't generate the Library: ${count} problem${count === 1 ? "" : "s"}\n`
   );
+
   for (const problem of result.problems) {
     console.error(`  ${problem}`);
   }
+
   process.exitCode = 1;
 }

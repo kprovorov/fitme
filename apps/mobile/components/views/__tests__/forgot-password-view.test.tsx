@@ -1,7 +1,9 @@
-import "~/test-utils/auth-ui";
 import { beforeEach, describe, expect, it, jest } from "@jest/globals";
 import { fireEvent, render, screen } from "@testing-library/react-native";
 import { router } from "expo-router";
+
+import "~/test-utils/auth-ui";
+
 import ForgotPasswordView from "../forgot-password-view";
 
 const KNOWN_EMAIL = "known@example.com";
@@ -32,11 +34,14 @@ jest.mock("@clerk/expo", () => ({
     error.isClerkApiError === true,
   useSignIn: () => ({ fetchStatus: "idle", signIn: mockSignIn }),
 }));
+
 jest.mock("@clerk/expo/token-cache", () => ({ tokenCache: {} }));
+
 jest.mock("expo-router", () => ({
   Link: ({ children }: { children: unknown }) => children,
   router: { push: jest.fn() },
 }));
+
 jest.mock("~/components/ui/button", () =>
   jest.requireActual("~/test-utils/button-stub")
 );

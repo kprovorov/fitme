@@ -7,11 +7,13 @@ import { useTranslation } from "react-i18next";
 import { Pressable, Text, View } from "react-native";
 import Animated, { FadeIn } from "react-native-reanimated";
 import type { SFSymbol } from "sf-symbols-typescript";
+
 import { SymbolImage } from "@/components/symbol-image";
 import { Button } from "@/components/ui/button";
 import { ErrorMessage } from "@/components/ui/error-message";
 import { Text as UIText } from "@/components/ui/text";
-import { type ShownExercise, useExercises } from "@/hooks/queries/library";
+import { useExercises } from "@/hooks/queries/library";
+import type { ShownExercise } from "@/hooks/queries/library";
 import { useCreatePlanMutation } from "@/hooks/queries/plans";
 import { useChoiceLabels } from "~/lib/choices";
 import { i18n, useI18n } from "~/lib/i18n";
@@ -20,10 +22,8 @@ import {
   hasExercisesWithoutSlugs,
   planCardBody,
   planCardGoal,
-  type WorkoutDay,
-  type WorkoutExercise,
-  type WorkoutPlan,
 } from "~/lib/plan-card";
+import type { WorkoutDay, WorkoutExercise, WorkoutPlan } from "~/lib/plan-card";
 
 export type { WorkoutPlan } from "~/lib/plan-card";
 
@@ -36,46 +36,64 @@ const GOAL_ICONS: Record<WorkoutPlan["goal"], SFSymbol> = {
 };
 
 /** What the card says when saving failed, by the Public API's answer. */
-const saveErrorMessage = (t: TFunction, error: unknown) => {
+const saveErrorMessage = (t: TFunction, error: ApiError | null) => {
   const seconds = rateLimitedFor(error);
+
   if (seconds !== null) {
     return t("arnold.planCard.errors.rateLimited", { seconds });
   }
-  const code = error instanceof ApiError ? error.code : null;
+
+  const code = error?.code;
+
   if (code === "unknown_exercises") {
     return t("arnold.planCard.errors.unknownExercises");
   }
+
   if (code === "library_unavailable") {
     return t("arnold.planCard.errors.libraryUnavailable");
   }
+
   return t("arnold.planCard.errors.generic");
 };
 
-function PlanTag({ icon, label }: { icon: SFSymbol; label: string }) {
-  return (
-    <View className="flex-row items-center gap-1.5 rounded-full bg-muted/40 px-3 py-1.5">
-      <SymbolImage
-        className="text-footnote text-muted-foreground"
-        name={icon}
-      />
-      <Text className="text-footnote text-muted-foreground">{label}</Text>
-    </View>
-  );
-}
+const exerciseKeys = new WeakMap<WorkoutExercise, number>();
+let nextExerciseKey = 0;
 
-function ExerciseRow({
+const exerciseKey = (exercise: WorkoutExercise): number => {
+  const existing = exerciseKeys.get(exercise);
+
+  if (existing !== undefined) {
+    return existing;
+  }
+
+  const key = nextExerciseKey;
+  nextExerciseKey += 1;
+  exerciseKeys.set(exercise, key);
+
+  return key;
+};
+
+const PlanTag = ({ icon, label }: { icon: SFSymbol; label: string }) => (
+  <View className="bg-muted/40 flex-row items-center gap-1.5 rounded-full px-3 py-1.5">
+    <SymbolImage className="text-footnote text-muted-foreground" name={icon} />
+    <Text className="text-footnote text-muted-foreground">{label}</Text>
+  </View>
+);
+
+const ExerciseRow = ({
   exercise,
   shown,
 }: {
   exercise: WorkoutExercise;
   /** The Exercise as resolved by `useExercises`, if it has a slug. */
   shown: ShownExercise | undefined;
-}) {
+}) => {
   const { t } = useTranslation(undefined, { i18n });
   const translator = useI18n();
   // The Library's name once resolved, otherwise Arnold's.
   const isResolved = !!shown?.isResolved;
   const name = shown?.isResolved ? shown.name : exercise.name;
+
   const handlePress = useCallback(
     () => router.push(`/exercises/${exercise.exercise_slug}`),
     [exercise.exercise_slug]
@@ -84,17 +102,17 @@ function ExerciseRow({
   return (
     <Pressable
       accessibilityRole={isResolved ? "button" : undefined}
-      className="flex-row items-center border-border/15 border-b py-3 active:opacity-60"
+      className="border-border/15 flex-row items-center border-b py-3 active:opacity-60"
       disabled={!isResolved}
       onPress={handlePress}
     >
       <Text
         accessibilityLabel={formatCount(translator, "sets", exercise.sets)}
-        className="w-8 text-primary text-subhead-emphasized"
+        className="text-primary text-subhead-emphasized w-8"
       >
         {t("arnold.planCard.setCount", { count: exercise.sets })}
       </Text>
-      <Text className="flex-1 text-foreground text-subhead" numberOfLines={1}>
+      <Text className="text-foreground text-subhead flex-1" numberOfLines={1}>
         {name}
       </Text>
       {isResolved ? (
@@ -105,25 +123,27 @@ function ExerciseRow({
       ) : null}
     </Pressable>
   );
-}
+};
 
-function WorkoutDaySection({
+const WorkoutDaySection = ({
   workout,
   last,
 }: {
   workout: WorkoutDay;
   last: boolean;
-}) {
+}) => {
   const translator = useI18n();
+
   const shownBySlug = useExercises(
     workout.exercises.flatMap(({ exercise_slug }) =>
       exercise_slug ? [exercise_slug] : []
     )
   );
+
   return (
     <View className={last ? "" : "mb-6"}>
       <View className="mb-2 flex-row items-center justify-between">
-        <Text className="flex-1 pr-2 text-primary text-subhead-emphasized">
+        <Text className="text-primary text-subhead-emphasized flex-1 pr-2">
           {workout.name}
         </Text>
         <View
@@ -133,7 +153,7 @@ function WorkoutDaySection({
             workout.exercises.length
           )}
           accessible
-          className="flex-row items-center gap-1 rounded-full bg-muted/40 px-2.5 py-1"
+          className="bg-muted/40 flex-row items-center gap-1 rounded-full px-2.5 py-1"
         >
           <SymbolImage
             className="text-footnote-emphasized text-foreground"
@@ -144,24 +164,23 @@ function WorkoutDaySection({
           </Text>
         </View>
       </View>
-      <View className="mb-1 border-border/20 border-b" />
-      {workout.exercises.map((ex, index) => (
+      <View className="border-border/20 mb-1 border-b" />
+      {workout.exercises.map((ex) => (
         <ExerciseRow
           exercise={ex}
-          // The same Exercise can appear twice in a Workout.
-          // biome-ignore lint/suspicious/noArrayIndexKey: the list never reorders
-          key={`${ex.exercise_slug}-${index}`}
+          key={exerciseKey(ex)}
           shown={ex.exercise_slug ? shownBySlug[ex.exercise_slug] : undefined}
         />
       ))}
     </View>
   );
-}
+};
 
-export function WorkoutPlanCard({ plan }: { plan: WorkoutPlan }) {
+export const WorkoutPlanCard = ({ plan }: { plan: WorkoutPlan }) => {
   const { t } = useTranslation(undefined, { i18n });
   const labels = useChoiceLabels();
   const [saved, setSaved] = useState(false);
+
   const {
     error: saveError,
     isPending: isSaving,
@@ -173,9 +192,11 @@ export function WorkoutPlanCard({ plan }: { plan: WorkoutPlan }) {
 
   const handleSave = useCallback(() => {
     const body = planCardBody(plan);
+
     if (!body) {
       return;
     }
+
     createPlan(body, { onSuccess: () => setSaved(true) });
   }, [createPlan, plan]);
 
@@ -184,12 +205,11 @@ export function WorkoutPlanCard({ plan }: { plan: WorkoutPlan }) {
 
   return (
     <Animated.View
-      className="mt-1 overflow-hidden rounded-2xl border border-border/20 bg-secondary/60"
+      className="border-border/20 bg-secondary/60 border-continuous mt-1 overflow-hidden rounded-2xl border"
       entering={FadeIn.duration(300)}
-      style={{ borderCurve: "continuous" }}
     >
       <View className="border-border/20 border-b px-4 pt-4 pb-3">
-        <Text className="mb-3 text-foreground text-title-3-emphasized">
+        <Text className="text-foreground text-title-3-emphasized mb-3">
           {plan.name}
         </Text>
         <View className="flex-row flex-wrap gap-2">
@@ -219,7 +239,7 @@ export function WorkoutPlanCard({ plan }: { plan: WorkoutPlan }) {
 
       <View className="border-border/20 border-t px-4 pt-3 pb-4">
         {hasInvalidExercises && (
-          <View className="mb-3 rounded-xl bg-destructive/10 px-3 py-2.5">
+          <View className="bg-destructive/10 mb-3 rounded-xl px-3 py-2.5">
             <UIText className="text-destructive text-footnote">
               {t("arnold.planCard.unmatchedExercises")}
             </UIText>
@@ -227,7 +247,10 @@ export function WorkoutPlanCard({ plan }: { plan: WorkoutPlan }) {
         )}
         {saveError && !saved ? (
           <ErrorMessage className="mb-3">
-            {saveErrorMessage(t, saveError)}
+            {saveErrorMessage(
+              t,
+              saveError instanceof ApiError ? saveError : null
+            )}
           </ErrorMessage>
         ) : null}
         <Button
@@ -240,4 +263,4 @@ export function WorkoutPlanCard({ plan }: { plan: WorkoutPlan }) {
       </View>
     </Animated.View>
   );
-}
+};

@@ -16,6 +16,7 @@ import {
 import { QueryClientProvider } from "@tanstack/react-query";
 import { render, screen } from "@testing-library/react-native";
 import type { ReactNode } from "react";
+
 import WorkoutSessionSummaryScreen from "~/app/workout-sessions/[workoutSessionId]/summary";
 import type {
   WorkoutSession,
@@ -38,6 +39,7 @@ jest.mock("expo-router", () => ({
     Screen: ({ options }: { options: { title?: string } }) => {
       const { Text } =
         jest.requireActual<typeof import("react-native")>("react-native");
+
       return options.title ? <Text>{options.title}</Text> : null;
     },
   },
@@ -62,12 +64,15 @@ jest.mock("react-native-safe-area-context", () => ({
 }));
 
 jest.mock("~/components/exercises/exercise-image", () => () => null);
+
 // The body diagram reads theme colors uniwind has no stylesheet for in Jest.
 jest.mock("~/components/views/workout-session-summary-body", () => ({
   WorkoutSessionSummaryBodyBack: () => null,
   WorkoutSessionSummaryBodyFront: () => null,
 }));
+
 jest.mock("~/components/symbol-image", () => ({ SymbolImage: () => null }));
+
 jest.mock("~/components/ui/button", () =>
   jest.requireActual("~/test-utils/button-stub")
 );
@@ -103,6 +108,7 @@ const session = (
   exercises: WorkoutSessionExercise[]
 ): WorkoutSession => {
   const finishedAt = new Date(start.getTime() + minutes * 60_000);
+
   return {
     exercises,
     finished_at: finishedAt.toISOString(),
@@ -164,7 +170,7 @@ afterEach(async () => {
   setDeviceConventions(i18n, { region: "US", uses24hourClock: false });
 });
 
-describe("The Workout Summary in Ukrainian", () => {
+describe("the Workout Summary in Ukrainian", () => {
   it("shows its stats with their units and plural forms", async () => {
     await mount(<WorkoutSessionSummaryScreen />);
 

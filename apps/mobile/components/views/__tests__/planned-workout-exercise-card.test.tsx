@@ -1,7 +1,9 @@
 import { beforeEach, describe, expect, it, jest } from "@jest/globals";
 import { fireEvent, render, screen } from "@testing-library/react-native";
+
 import type { ShownExercise } from "~/hooks/queries/library";
 import type { PlanExercise, PlanSet } from "~/hooks/queries/plans";
+
 import PlannedWorkoutExerciseCard from "../planned-workout-exercise-card";
 
 const mockPush = jest.fn();
@@ -9,8 +11,11 @@ const mockPush = jest.fn();
 jest.mock("expo-router", () => ({
   useRouter: () => ({ push: mockPush }),
 }));
+
 jest.mock("~/components/exercises/exercise-image", () => () => null);
+
 jest.mock("~/components/symbol-image", () => ({ SymbolImage: () => null }));
+
 jest.mock("~/components/ui/button", () =>
   jest.requireActual("~/test-utils/button-stub")
 );
@@ -46,6 +51,7 @@ const workoutExercise = (
 // A row's set number cell.
 const SET_NUMBER = /^#\d$/;
 const ANY_VALUE = /.*/;
+
 // The header reads the name, then the muscle groups.
 const BENCH_PRESS = /^Bench Press/;
 
@@ -76,14 +82,17 @@ describe("PlannedWorkoutExerciseCard", () => {
     expect(
       screen.getAllByText(SET_NUMBER).map((cell) => cell.props.children)
     ).toEqual(["#1", "#2", "#3"]);
+
     for (const header of ["#", "target", "rest"]) {
       expect(
         screen.getByText(header, { includeHiddenElements: true })
       ).toBeTruthy();
     }
+
     for (const text of ["12×45kg", "10×50,5kg", "8×45kg", "1:30", "0:45"]) {
       expect(screen.getByText(text)).toBeTruthy();
     }
+
     // No rest reads as none, not as a zero clock.
     expect(screen.queryByText("0:00")).toBeNull();
     // VoiceOver reads each set as one sentence.

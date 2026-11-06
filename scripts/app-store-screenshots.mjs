@@ -1,3 +1,6 @@
+/// <reference types="node" />
+/// <reference lib="es2023.array" />
+
 // The App Store screenshots: checks the Screenshot sets committed under
 // marketing/screenshots/app-store/, laid out as <device>/<Listing locale>/NN.png
 // (see that directory's README), and that they agree with the Store listing
@@ -12,7 +15,7 @@
 //        apps/mobile/store.config.json; --base, a pull request's base, also
 //        fails a Screenshot set deleted since then, and without it that rule
 //        doesn't run)
-import { constants as bufferConstants } from "node:buffer";
+import { Buffer, constants as bufferConstants } from "node:buffer";
 import { spawnSync } from "node:child_process";
 import crypto from "node:crypto";
 import fs from "node:fs";
@@ -21,12 +24,24 @@ import { fileURLToPath } from "node:url";
 import { parseArgs } from "node:util";
 import zlib from "node:zlib";
 
+/**
+ * @typedef {{displayType: string, height: number, width: number}} Device
+ * @typedef {{data: Buffer, type: string}} PngChunk
+ * @typedef {{height: number, interlace: number, width: number}} PngDimensions
+ * @typedef {PngDimensions & {bitDepth: number, colorType: number, channels: number}} PngHeader
+ * @typedef {{file: string, label: string}} ConfigFile
+ * @typedef {{device: string, dir: string, locale: string, numbers: number[]}} ScreenshotSet
+ * @typedef {Record<string, unknown>} JsonObject
+ * @typedef {{config: JsonObject, localeText: Map<string, JsonObject | null>, locales: Set<string>}} Listing
+ */
+
 const DEFAULT_DIR = fileURLToPath(
   new URL("../marketing/screenshots/app-store", import.meta.url)
 );
 
 // Shown as the repo-relative path in messages, read through the absolute one.
 const DEFAULT_CONFIG = "apps/mobile/store.config.json";
+
 const DEFAULT_CONFIG_FILE = fileURLToPath(
   new URL(`../${DEFAULT_CONFIG}`, import.meta.url)
 );
@@ -44,6 +59,7 @@ const PRIMARY_LOCALE = "en-US";
 // Device folder → Apple display type and the one size its images have, in
 // portrait. A new device size is a new entry, once the pinned EAS CLI's Apple
 // utilities know its display type.
+/** @type {Record<string, Device>} */
 const DEVICES = {
   "iphone-6.9": { displayType: "APP_IPHONE_67", height: 2868, width: 1320 },
 };
@@ -51,38 +67,51 @@ const DEVICES = {
 const KNOWN_DEVICES = `known: ${Object.keys(DEVICES).join(", ")}`;
 
 const MAX_IMAGES = 10;
-const IMAGE_NAME = /^(\d{2})\.png$/;
+const IMAGE_NAME = /^(?<number>\d{2})\.png$/u;
+
 // The README lives beside the device folders; Finder litters every folder it
 // opens with .DS_Store (git-ignored, so never in a commit).
 const ROOT_FILES = new Set(["README.md"]);
 const IGNORED = new Set([".DS_Store"]);
 
+/** @param {string} dir Screenshot directory. */
 const entries = (dir) =>
   fs
     .readdirSync(dir, { withFileTypes: true })
     .filter((entry) => !IGNORED.has(entry.name))
-    .sort((a, b) => (a.name < b.name ? -1 : Number(a.name > b.name)));
+    .toSorted((a, b) => (a.name < b.name ? -1 : Number(a.name > b.name)));
 
 const PNG_SIGNATURE = Buffer.from([
   0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a,
 ]);
 
 // Colour type → channels per pixel and the bit depths the PNG spec allows.
+/** @type {Record<number, {bitDepths: number[], channels: number}>} */
 const COLOR_TYPES = {
-  0: { bitDepths: [1, 2, 4, 8, 16], channels: 1 }, // greyscale
-  2: { bitDepths: [8, 16], channels: 3 }, // RGB
-  3: { bitDepths: [1, 2, 4, 8], channels: 1 }, // palette
-  4: { bitDepths: [8, 16], channels: 2 }, // greyscale + alpha
-  6: { bitDepths: [8, 16], channels: 4 }, // RGB + alpha
+  // greyscale
+  0: { bitDepths: [1, 2, 4, 8, 16], channels: 1 },
+  // RGB
+  2: { bitDepths: [8, 16], channels: 3 },
+  // palette
+  3: { bitDepths: [1, 2, 4, 8], channels: 1 },
+  // greyscale + alpha
+  4: { bitDepths: [8, 16], channels: 2 },
+  // RGB + alpha
+  6: { bitDepths: [8, 16], channels: 4 },
 };
+
 const ALPHA_COLOR_TYPES = new Set([4, 6]);
 const MAX_FILTER_TYPE = 4;
+
 // The PNG spec's limit on width and height.
 const MAX_DIMENSION = 2 ** 31 - 1;
+
 // The chunks a decoder must understand; any other critical one (its type
 // starting with a capital) means the image can't be decoded.
 const CRITICAL_CHUNKS = new Set(["IHDR", "PLTE", "IDAT", "IEND"]);
-const isCritical = (type) => type[0] === type[0].toUpperCase();
+
+/** @param {string} type PNG chunk type. */
+const isCritical = (type) => type.startsWith(type[0].toUpperCase());
 
 // Adam7: each pass's first column and row, and its column and row step.
 const ADAM7 = [
@@ -95,11 +124,22 @@ const ADAM7 = [
   [0, 1, 1, 2],
 ];
 
-class PngError extends Error {}
-// Not even a PNG: the bytes under the .png name are something else.
-class NotPngError extends PngError {}
+class PngError extends Error {
+  /**
+   * @param {string} message Decoder failure.
+   * @param {ErrorOptions & {notPng?: boolean}} [options] Error cause and signature failure.
+   */
+  constructor(message, options) {
+    super(message, options);
+    this.name = "PngError";
+    this.notPng = options?.notPng ?? false;
+  }
+}
 
 // The sub-images the scanlines come in: the whole image, or Adam7's passes.
+/**
+ * @param {PngDimensions} dimensions PNG dimensions and interlace method.
+ */
 const passes = ({ height, interlace, width }) =>
   interlace === 0
     ? [{ height, width }]
@@ -108,53 +148,76 @@ const passes = ({ height, interlace, width }) =>
         width: Math.max(0, Math.ceil((width - x0) / dx)),
       }));
 
+/**
+ * @param {Buffer} bytes PNG file bytes.
+ */
 const readChunks = (bytes) => {
+  /** @type {PngChunk[]} */
   const chunks = [];
   let offset = PNG_SIGNATURE.length;
+
   while (chunks.at(-1)?.type !== "IEND") {
     if (offset + 12 > bytes.length) {
       throw new PngError("it ends before its IEND chunk");
     }
+
     const length = bytes.readUInt32BE(offset);
     const end = offset + 12 + length;
+
     if (end > bytes.length) {
       throw new PngError("it ends inside a chunk");
     }
+
     const body = bytes.subarray(offset + 4, end - 4);
+
     if (zlib.crc32(body) !== bytes.readUInt32BE(end - 4)) {
       throw new PngError("a chunk's CRC doesn't match");
     }
+
     chunks.push({
       data: body.subarray(4),
       type: body.subarray(0, 4).toString("latin1"),
     });
     offset = end;
   }
+
   if (offset !== bytes.length) {
     throw new PngError("it has data after its IEND chunk");
   }
+
   const unknown = chunks.find(
     ({ type }) => isCritical(type) && !CRITICAL_CHUNKS.has(type)
   );
+
   if (unknown) {
     throw new PngError(`an unknown critical chunk (${unknown.type})`);
   }
+
   if (chunks.filter(({ type }) => type === "IHDR").length > 1) {
     throw new PngError("more than one IHDR chunk");
   }
+
   const idat = chunks.flatMap(({ type }, i) => (type === "IDAT" ? [i] : []));
+
   if (idat.some((index, i) => i > 0 && index !== idat[i - 1] + 1)) {
     throw new PngError("its IDAT chunks aren't consecutive");
   }
+
   return chunks;
 };
 
+/**
+ * @param {PngChunk[]} chunks Decoded PNG chunks.
+ */
 const readHeader = (chunks) => {
   const [first] = chunks;
+
   if (first.type !== "IHDR" || first.data.length !== 13) {
     throw new PngError("it doesn't start with an IHDR chunk");
   }
+
   const { data } = first;
+
   const header = {
     bitDepth: data[8],
     colorType: data[9],
@@ -162,7 +225,9 @@ const readHeader = (chunks) => {
     interlace: data[12],
     width: data.readUInt32BE(0),
   };
+
   const format = COLOR_TYPES[header.colorType];
+
   if (
     !format?.bitDepths.includes(header.bitDepth) ||
     data[10] !== 0 ||
@@ -175,12 +240,17 @@ const readHeader = (chunks) => {
   ) {
     throw new PngError("its IHDR chunk is invalid");
   }
+
   return { ...header, channels: format.channels };
 };
 
 // Inflates the image data and walks every scanline, so a PNG whose pixels are
 // cut short, run long or carry an unknown filter type fails, not just one
 // whose chunks are broken.
+/**
+ * @param {PngChunk[]} chunks Decoded PNG chunks.
+ * @param {PngHeader} header Validated PNG header.
+ */
 const decodeImageData = (chunks, header) => {
   // Each sub-image's scanlines: a filter-type byte, then the packed pixels.
   const scanlines = passes(header)
@@ -189,17 +259,22 @@ const decodeImageData = (chunks, header) => {
       count: height,
       length: 1 + Math.ceil((width * header.channels * header.bitDepth) / 8),
     }));
+
   const expected = scanlines.reduce(
     (sum, { count, length }) => sum + count * length,
     0
   );
+
   const data = Buffer.concat(
     chunks.filter((c) => c.type === "IDAT").map((c) => c.data)
   );
+
   if (data.length === 0) {
     throw new PngError("it has no image data");
   }
+
   let raw;
+
   try {
     raw = zlib.inflateSync(data, {
       maxOutputLength: Math.min(expected + 1, bufferConstants.MAX_LENGTH),
@@ -208,19 +283,24 @@ const decodeImageData = (chunks, header) => {
     if (error.code === "ERR_BUFFER_TOO_LARGE") {
       throw new PngError("its image data is too long", { cause: error });
     }
+
     throw new PngError("its image data doesn't inflate", { cause: error });
   }
+
   if (raw.length !== expected) {
     throw new PngError(
       `its image data is ${raw.length < expected ? "short" : "too long"}`
     );
   }
+
   let offset = 0;
+
   for (const { count, length } of scanlines) {
     for (let row = 0; row < count; row += 1) {
       if (raw[offset] > MAX_FILTER_TYPE) {
         throw new PngError("a scanline has an unknown filter type");
       }
+
       offset += length;
     }
   }
@@ -228,27 +308,39 @@ const decodeImageData = (chunks, header) => {
 
 // A palette image needs exactly one PLTE chunk before its image data, of 1 to
 // 2^bitDepth RGB entries; greyscale images may not carry one.
+/**
+ * @param {PngChunk[]} chunks Decoded PNG chunks.
+ * @param {Pick<PngHeader, "bitDepth" | "colorType">} header Validated PNG header.
+ */
 const checkPalette = (chunks, { bitDepth, colorType }) => {
   const palettes = chunks.filter(({ type }) => type === "PLTE");
+
   if (palettes.length === 0) {
     if (colorType === 3) {
       throw new PngError("a palette image without a PLTE chunk");
     }
+
     return;
   }
+
   if (colorType === 0 || colorType === 4) {
     throw new PngError("a greyscale image with a PLTE chunk");
   }
+
   if (palettes.length > 1) {
     throw new PngError("more than one PLTE chunk");
   }
+
   const [palette] = palettes;
   const firstImageData = chunks.findIndex(({ type }) => type === "IDAT");
+
   if (firstImageData !== -1 && chunks.indexOf(palette) > firstImageData) {
     throw new PngError("its PLTE chunk comes after its image data");
   }
+
   const paletteEntries = palette.data.length / 3;
   const maxEntries = Math.min(256, 2 ** bitDepth);
+
   if (
     !Number.isInteger(paletteEntries) ||
     paletteEntries < 1 ||
@@ -262,14 +354,19 @@ const checkPalette = (chunks, { bitDepth, colorType }) => {
 
 // Decodes a PNG fully; answers its size and whether it has an alpha channel
 // or a transparency chunk, or throws a PngError saying why it doesn't decode.
+/**
+ * @param {Buffer} bytes PNG file bytes.
+ */
 const readPng = (bytes) => {
   if (!bytes.subarray(0, 8).equals(PNG_SIGNATURE)) {
-    throw new NotPngError("no PNG signature");
+    throw new PngError("no PNG signature", { notPng: true });
   }
+
   const chunks = readChunks(bytes);
   const header = readHeader(chunks);
   checkPalette(chunks, header);
   decodeImageData(chunks, header);
+
   return {
     alpha: ALPHA_COLOR_TYPES.has(header.colorType),
     height: header.height,
@@ -278,22 +375,30 @@ const readPng = (bytes) => {
   };
 };
 
+/**
+ * @param {{device: Device, file: string, label: string, problems: string[]}} options Inputs for this operation.
+ */
 const checkImage = ({ device, file, label, problems }) => {
   let image;
+
   try {
     image = readPng(fs.readFileSync(file));
   } catch (error) {
     if (!(error instanceof PngError)) {
       throw error;
     }
+
     problems.push(
-      error instanceof NotPngError
+      error.notPng
         ? `${label}: not a PNG (${error.message})`
         : `${label}: doesn't decode as a PNG (${error.message})`
     );
+
     return;
   }
+
   const { height, width } = device;
+
   if (image.width !== width || image.height !== height) {
     problems.push(
       image.width === height && image.height === width
@@ -301,11 +406,13 @@ const checkImage = ({ device, file, label, problems }) => {
         : `${label}: ${image.width}×${image.height}, needs exactly ${width}×${height} (portrait)`
     );
   }
+
   if (image.alpha) {
     problems.push(
       `${label}: has an alpha channel (even fully opaque, export without one)`
     );
   }
+
   if (image.transparency) {
     problems.push(
       `${label}: has transparency (a tRNS chunk), export fully opaque`
@@ -313,21 +420,31 @@ const checkImage = ({ device, file, label, problems }) => {
   }
 };
 
+/**
+ * @param {number} number Screenshot sequence number.
+ */
 const imageName = (number) => `${String(number).padStart(2, "0")}.png`;
 
 // One Screenshot set: its names and numbering, then each image against its
 // device's size (a DEVICES entry). Answers the image numbers it found.
+/**
+ * @param {{device: Device, dir: string, label: string, problems: string[]}} options Inputs for this operation.
+ */
 const checkSet = ({ device, dir, label, problems }) => {
+  /** @type {number[]} */
   const numbers = [];
+
   for (const entry of entries(dir)) {
     const match = IMAGE_NAME.exec(entry.name);
-    const number = match ? Number(match[1]) : 0;
+    const number = match ? Number(match.groups.number) : 0;
+
     if (!entry.isFile() || number < 1) {
       problems.push(
         `${label} / ${entry.name}: not an image name (a Screenshot set holds only 01.png, 02.png, … in display order)`
       );
       continue;
     }
+
     numbers.push(number);
     checkImage({
       device,
@@ -336,17 +453,22 @@ const checkSet = ({ device, dir, label, problems }) => {
       problems,
     });
   }
+
   if (numbers.length === 0) {
     problems.push(
       `${label}: empty Screenshot set (it needs 1 to ${MAX_IMAGES} images)`
     );
+
     return numbers;
   }
+
   if (numbers.length > MAX_IMAGES) {
     problems.push(`${label}: ${numbers.length} images, at most ${MAX_IMAGES}`);
   }
+
   const present = new Set(numbers);
   const last = Math.max(...numbers);
+
   for (let number = 1; number < last; number += 1) {
     if (!present.has(number)) {
       problems.push(
@@ -354,115 +476,202 @@ const checkSet = ({ device, dir, label, problems }) => {
       );
     }
   }
+
   return numbers;
 };
 
 // Every key named `screenshots`, as a dotted path: the folders are the only
 // definition of the Screenshot sets, and release writes these entries.
+/**
+ * @param {unknown} value Parsed JSON value.
+ * @param {string[]} [at] Path to this JSON value.
+ * @returns {string[]} Dotted paths to screenshot entries.
+ */
 const screenshotEntries = (value, at = []) => {
-  if (value === null || typeof value !== "object") {
+  if (!(value instanceof Object)) {
     return [];
   }
-  return Object.entries(value).flatMap(([key, child]) => [
+
+  /** @type {[string, unknown][]} */
+  const children = Object.entries(value);
+
+  return children.flatMap(([key, child]) => [
     ...(key === "screenshots" ? [[...at, key].join(".")] : []),
     ...screenshotEntries(child, [...at, key]),
   ]);
 };
 
+/**
+ * @param {unknown} value Parsed JSON value.
+ * @returns {value is JsonObject} Whether JSON supplies a writable text object.
+ */
+const isListingObject = (value) =>
+  value instanceof Object && !Array.isArray(value);
+
+// Decode JSON once: downstream code works with Listing locales and their
+// writable text objects, while preserving every unrecognised listing field.
+/** @param {string} text Listing config JSON. */
+const parseListing = (text) => {
+  /** @type {unknown} */
+  const value = JSON.parse(text);
+  const config = isListingObject(value) ? value : null;
+  const apple = isListingObject(config?.apple) ? config.apple : null;
+  const info = isListingObject(apple?.info) ? apple.info : null;
+
+  /** @type {Map<string, JsonObject | null>} */
+  const localeText = new Map(
+    Object.entries(info ?? {}).map(([locale, entry]) => [
+      locale,
+      isListingObject(entry) ? entry : null,
+    ])
+  );
+
+  return {
+    config,
+    info,
+    localeText,
+    screenshotPaths: screenshotEntries(value),
+  };
+};
+
 // The Store listing config: answers it parsed, with its Listing locales (the
 // keys of apple.info, App Store Connect's own codes), or null when it can't
 // say.
+/**
+ * @param {ConfigFile & {problems: string[]}} options Inputs for this operation.
+ * @returns {Listing | null} The listing, or null after a reported failure.
+ */
 const readListingConfig = ({ file, label, problems }) => {
   let text;
+
   try {
-    text = fs.readFileSync(file, "utf8");
+    text = fs.readFileSync(file, "utf-8");
   } catch (error) {
     if (error.code !== "ENOENT") {
       throw error;
     }
+
     problems.push(`${label}: no such listing config`);
+
     return null;
   }
-  let config;
+
+  let parsed;
+
   try {
-    config = JSON.parse(text);
+    parsed = parseListing(text);
   } catch (error) {
     problems.push(`${label}: not valid JSON (${error.message})`);
+
     return null;
   }
-  for (const entry of screenshotEntries(config)) {
+
+  for (const entry of parsed.screenshotPaths) {
     problems.push(
       `${label}: ${entry}: a hand-written screenshots entry (the Screenshot set folders are the only definition; release writes these entries)`
     );
   }
-  const info = config?.apple?.info;
-  if (info === null || typeof info !== "object" || Array.isArray(info)) {
+
+  const { config, info, localeText } = parsed;
+
+  if (config === null || info === null) {
     problems.push(
       `${label}: no apple.info object (the listing text per Listing locale)`
     );
+
     return null;
   }
-  return { config, locales: new Set(Object.keys(info)) };
+
+  return { config, localeText, locales: new Set(Object.keys(info)) };
 };
 
 // One device folder: its Listing locale folders, each one checked against the
 // listing config's Listing locales (`listing` null when the config can't say)
 // and as a Screenshot set, plus the required en-US one. Answers its Screenshot
 // sets ({ device, locale, dir, numbers }, its image numbers ascending).
+/**
+ * @param {{dir: string, listing: {listed: string, locales: Set<string>} | null, name: string, problems: string[]}} options Inputs for this operation.
+ */
 const checkDevice = ({ dir, listing, name, problems }) => {
+  /** @type {ScreenshotSet[]} */
   const sets = [];
   let hasPrimary = false;
+
   for (const locale of entries(dir)) {
     const label = `${name} / ${locale.name}`;
+
     if (!locale.isDirectory()) {
       problems.push(
         `${label}: not a Listing locale folder (a device folder holds one folder per Listing locale)`
       );
       continue;
     }
+
     hasPrimary ||= locale.name === PRIMARY_LOCALE;
+
     if (listing && !listing.locales.has(locale.name)) {
       problems.push(
         `${label}: Listing locale not in the listing config (${listing.listed})`
       );
     }
+
     const setDir = path.join(dir, locale.name);
+
     const numbers = checkSet({
       device: DEVICES[name],
       dir: setDir,
       label,
       problems,
-    }).sort((a, b) => a - b);
+    }).toSorted((a, b) => a - b);
+
     sets.push({ device: name, dir: setDir, locale: locale.name, numbers });
   }
+
   if (!hasPrimary) {
     problems.push(
       `${name} / ${PRIMARY_LOCALE}: missing (every device folder needs an ${PRIMARY_LOCALE} Screenshot set)`
     );
   }
+
   return sets;
 };
 
+/**
+ * @param {string} cwd Git working directory.
+ * @param {string[]} args Command arguments.
+ */
 const git = (cwd, args) => {
-  const child = spawnSync("git", args, { cwd, encoding: "utf8" });
+  const child = spawnSync("git", args, { cwd, encoding: "utf-8" });
+
   if (child.error) {
     throw new Error(`git didn't run (${child.error.message})`, {
       cause: child.error,
     });
   }
+
   if (child.status !== 0) {
-    throw new Error(child.stderr.trim() || `git exited ${child.status}`);
+    throw new Error(
+      child.stderr.trim() === ""
+        ? `git exited ${child.status}`
+        : child.stderr.trim()
+    );
   }
+
   return child.stdout;
 };
 
 // The Screenshot sets committed at ref, as "<device>/<Listing locale>" (only
 // known devices: no other folder was ever uploaded). Git tracks no empty
 // folders, so a set there holds at least one file.
+/**
+ * @param {string} dir Screenshot directory.
+ * @param {string} ref Git revision.
+ */
 const setsAt = (dir, ref) => {
   const prefix = git(dir, ["rev-parse", "--show-prefix"]).trim();
   const top = git(dir, ["rev-parse", "--show-toplevel"]).trim();
   git(top, ["rev-parse", "--verify", `${ref}^{commit}`]);
+
   const files = git(top, [
     "ls-tree",
     "-r",
@@ -470,15 +679,20 @@ const setsAt = (dir, ref) => {
     "--name-only",
     `${ref}^{commit}`,
     "--",
-    prefix || ".",
+    prefix === "" ? "." : prefix,
   ]);
+
+  /** @type {Set<string>} */
   const sets = new Set();
+
   for (const file of files.split("\0")) {
     const parts = file.slice(prefix.length).split("/");
+
     if (parts.length >= 3 && Object.hasOwn(DEVICES, parts[0])) {
       sets.add(`${parts[0]}/${parts[1]}`);
     }
   }
+
   return sets;
 };
 
@@ -486,23 +700,34 @@ const setsAt = (dir, ref) => {
 // entries is skipped), so deleting a set's folder while its Listing locale is
 // still pushed would leave its screenshots online. A base it can't read fails,
 // never skips the rule.
+/**
+ * @param {{base: string, configLabel: string, dir: string, locales: Set<string>, problems: string[]}} options Inputs for this operation.
+ */
 const checkDeletedSets = ({ base, configLabel, dir, locales, problems }) => {
   if (base.startsWith("-")) {
     problems.push(`--base ${base}: not a Git ref`);
+
     return;
   }
+
   let sets;
+
   try {
     sets = setsAt(dir, base);
   } catch (error) {
     problems.push(
       `--base ${base}: can't read the Screenshot sets at it (${error.message})`
     );
+
     return;
   }
-  for (const set of [...sets].sort()) {
+
+  for (const set of [...sets].toSorted((a, b) =>
+    a < b ? -1 : Number(a > b)
+  )) {
     const [device, locale] = set.split("/");
     const gone = !fs.statSync(path.join(dir, set), { throwIfNoEntry: false });
+
     if (gone && locales.has(locale)) {
       problems.push(
         `${device} / ${locale}: Screenshot set deleted since ${base}, but ${locale} is still a Listing locale in ${configLabel}; the upload never clears a remote set, so its screenshots would stay online as they are. Replace the images instead, or remove ${locale} from the listing config deliberately`
@@ -513,36 +738,49 @@ const checkDeletedSets = ({ base, configLabel, dir, locales, problems }) => {
 
 // Every Screenshot set on disk (checkDevice's, in folder order), the parsed
 // listing config (null when it can't be read), and the problems found.
+/**
+ * @param {{base?: string, config: ConfigFile, dir: string}} options Inputs for this operation.
+ */
 const checkScreenshots = ({ base, config, dir }) => {
+  /** @type {string[]} */
   const problems = [];
+  /** @type {ScreenshotSet[]} */
   const sets = [];
   const read = readListingConfig({ ...config, problems });
   const locales = read?.locales;
+
   const listing = read && {
     listed: `${config.label} lists ${[...locales].join(", ") || "none"}`,
-    locales,
+    locales: read.locales,
   };
+
   const result = () => ({
     imageCount: sets.reduce((sum, set) => sum + set.numbers.length, 0),
-    listing: read?.config ?? null,
+    listing: read,
     problems,
     sets,
   });
-  if (!fs.statSync(dir, { throwIfNoEntry: false })?.isDirectory()) {
+
+  if (fs.statSync(dir, { throwIfNoEntry: false })?.isDirectory() !== true) {
     problems.push(`${dir}: no such directory`);
+
     return result();
   }
+
   for (const device of entries(dir)) {
     if (!device.isDirectory()) {
       if (!ROOT_FILES.has(device.name)) {
         problems.push(`${device.name}: not a device folder (${KNOWN_DEVICES})`);
       }
+
       continue;
     }
+
     if (!Object.hasOwn(DEVICES, device.name)) {
       problems.push(`${device.name}: unknown device folder (${KNOWN_DEVICES})`);
       continue;
     }
+
     sets.push(
       ...checkDevice({
         dir: path.join(dir, device.name),
@@ -552,6 +790,7 @@ const checkScreenshots = ({ base, config, dir }) => {
       })
     );
   }
+
   // Without the config's Listing locales the rule can't tell; the config's own
   // problem already fails the check.
   if (base !== undefined && locales) {
@@ -563,9 +802,13 @@ const checkScreenshots = ({ base, config, dir }) => {
       problems,
     });
   }
+
   return result();
 };
 
+/**
+ * @param {string[]} args Command arguments.
+ */
 const parse = (args) => {
   try {
     return parseArgs({
@@ -578,32 +821,43 @@ const parse = (args) => {
   }
 };
 
+/**
+ * @param {number} n Item count.
+ * @param {string} noun Singular item name.
+ */
 const plural = (n, noun) => `${n} ${n === 1 ? noun : `${noun}s`}`;
 
+/**
+ * @param {string[]} problems Validation failures.
+ */
 const report = (problems) => {
   for (const problem of problems) {
     console.error(problem);
   }
+
   return problems.length > 0 ? 1 : 0;
 };
 
+/**
+ * @param {{base?: string, config: ConfigFile, dir: string}} options Inputs for this operation.
+ */
 const check = ({ base, config, dir }) => {
   const { imageCount, problems, sets } = checkScreenshots({
     base,
     config,
     dir,
   });
+
   if (report(problems)) {
     return 1;
   }
+
   console.log(
     `${plural(sets.length, "Screenshot set")}, ${plural(imageCount, "image")}: all pass.`
   );
+
   return 0;
 };
-
-const isObject = (value) =>
-  typeof value === "object" && value !== null && !Array.isArray(value);
 
 // The upload name's hash part: the first 8 hex of the image's sha256.
 const HASH_LENGTH = 8;
@@ -611,18 +865,25 @@ const HASH_LENGTH = 8;
 // Copies one Screenshot set into <staging>/<device>/<Listing locale>/ as
 // NN-<hash>.png and answers the staged paths in display order, relative to
 // appDir, which EAS resolves them from.
+/**
+ * @param {{appDir: string, set: ScreenshotSet, staging: string}} options Inputs for this operation.
+ */
 const stageSet = ({ appDir, set, staging }) => {
   const target = path.join(staging, set.device, set.locale);
   fs.mkdirSync(target, { recursive: true });
+
   return set.numbers.map((number) => {
     const name = imageName(number);
     const bytes = fs.readFileSync(path.join(set.dir, name));
     const hash = crypto.createHash("sha256").update(bytes).digest("hex");
+
     const file = path.join(
       target,
       `${path.basename(name, ".png")}-${hash.slice(0, HASH_LENGTH)}.png`
     );
+
     fs.writeFileSync(file, bytes);
+
     return path.relative(appDir, path.resolve(file)).split(path.sep).join("/");
   });
 };
@@ -633,33 +894,42 @@ const stageSet = ({ appDir, set, staging }) => {
 // remote screenshot whose basename and byte size match, so a replaced image
 // must get a new basename. Nothing is written when a problem is found, and
 // nothing at all without Screenshot sets.
+/**
+ * @param {{config: ConfigFile, dir: string, staging: string}} options Inputs for this operation.
+ */
 const prepare = ({ config, dir, staging }) => {
   const { imageCount, listing, problems, sets } = checkScreenshots({
     config,
     dir,
   });
-  const info = listing?.apple.info;
+
   // check accepts any listing text; prepare needs an object to add to.
   for (const { locale } of sets) {
-    if (info && Object.hasOwn(info, locale) && !isObject(info[locale])) {
+    if (listing?.localeText.get(locale) === null) {
       problems.push(
         `${config.label}: apple.info.${locale}: not an object of listing text`
       );
     }
   }
+
   if (report(problems)) {
     return 1;
   }
+
   if (sets.length === 0) {
     console.log(
       "No Screenshot sets: nothing staged, the listing config is as it was."
     );
+
     return 0;
   }
+
   // EAS resolves screenshot paths from the mobile app's directory, the one
   // holding the listing config.
   const appDir = path.dirname(path.resolve(config.file));
+  /** @type {Record<string, Record<string, string[]>>} */
   const screenshots = {};
+
   for (const set of sets) {
     screenshots[set.locale] ??= {};
     screenshots[set.locale][DEVICES[set.device].displayType] = stageSet({
@@ -668,24 +938,36 @@ const prepare = ({ config, dir, staging }) => {
       staging,
     });
   }
+
   for (const [locale, entry] of Object.entries(screenshots)) {
-    info[locale].screenshots = entry;
+    const text = listing.localeText.get(locale);
+
+    if (text) {
+      text.screenshots = entry;
+    }
   }
-  fs.writeFileSync(config.file, `${JSON.stringify(listing, null, 2)}\n`);
+
+  fs.writeFileSync(config.file, `${JSON.stringify(listing.config, null, 2)}\n`);
   console.log(
     `${plural(sets.length, "Screenshot set")}, ${plural(imageCount, "image")}: staged in ${staging}, entries written to ${config.label}.`
   );
+
   return 0;
 };
 
+/**
+ * @param {string[]} args Command arguments.
+ */
 const main = (args) => {
   const parsed = parse(args);
   const [command, ...rest] = parsed?.positionals ?? [];
   const { base, config: configArg } = parsed?.values ?? {};
+
   const config =
     configArg === undefined
       ? { file: DEFAULT_CONFIG_FILE, label: DEFAULT_CONFIG }
       : { file: configArg, label: configArg };
+
   if (configArg === "") {
     // falls through to the usage below
   } else if (command === "check" && rest.length <= 1) {
@@ -698,12 +980,15 @@ const main = (args) => {
   ) {
     // No base ref: the deleted set rule is the pull request's.
     const [staging, dir = DEFAULT_DIR] = rest;
+
     return prepare({ config, dir, staging });
   }
+
   console.error(USAGE);
+
   return 2;
 };
 
-if (process.argv[1] === fileURLToPath(import.meta.url)) {
+if (process.argv[1] === import.meta.filename) {
   process.exitCode = main(process.argv.slice(2));
 }

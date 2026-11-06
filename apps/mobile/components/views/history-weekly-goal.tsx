@@ -1,8 +1,10 @@
 import type { GoalWeek, WeeklyGoalOverview } from "@fitme/core";
-import { formatCount, formatDate, type Translator } from "@fitme/i18n";
+import { formatCount, formatDate } from "@fitme/i18n";
+import type { Translator } from "@fitme/i18n";
 import type { TFunction } from "i18next";
 import { useTranslation } from "react-i18next";
 import { View } from "react-native";
+
 import { Text } from "~/components/ui/text";
 import { useStackedLayout } from "~/hooks/stacked-layout";
 import { useI18n } from "~/lib/i18n";
@@ -13,9 +15,11 @@ const status = (t: TFunction, week: GoalWeek): string => {
   if (week.hit) {
     return t("history.weeklyGoal.goalMet");
   }
+
   if (week.current) {
     return t("history.weeklyGoal.inProgress");
   }
+
   // A first partial week's miss is never held against the User
   return week.kind === "firstPartial"
     ? t("history.weeklyGoal.firstWeek")
@@ -29,6 +33,7 @@ const weekLabel = (t: TFunction, i18n: Translator, week: GoalWeek) => {
     : t("history.weeklyGoal.weekOf", {
         date: formatDate(i18n, week.start, "dayMonth"),
       });
+
   const details =
     week.goal === null
       ? [
@@ -49,6 +54,7 @@ const weekLabel = (t: TFunction, i18n: Translator, week: GoalWeek) => {
             : []),
           status(t, week),
         ];
+
   return t("history.weeklyGoal.weekLabel", {
     details: details.join(", "),
     week: name,
@@ -66,7 +72,7 @@ const weekSlots = (week: GoalWeek, pips: number) =>
  * its goal, every column gets a line above for `+N` extras (Figma has none,
  * so a chart without extras stays its height).
  */
-function WeekColumn({
+const WeekColumn = ({
   pips,
   showExtras,
   week,
@@ -74,28 +80,29 @@ function WeekColumn({
   pips: number;
   showExtras: boolean;
   week: GoalWeek;
-}) {
+}) => {
   const { t } = useTranslation();
   const i18n = useI18n();
   const slots = weekSlots(week, pips);
   const filled = Math.min(week.count, slots);
   const extra = week.count - slots;
+
   return (
     <View
       accessibilityLabel={weekLabel(t, i18n, week)}
       accessible
-      className="min-w-9 items-center gap-xs"
+      className="gap-xs min-w-9 items-center"
     >
       {showExtras ? (
         <Text
           className={cn(
-            "text-center text-caption-2-emphasized",
+            "text-caption-2-emphasized text-center",
             week.goal === null ? "text-muted-foreground" : "text-primary"
           )}
         >
           {extra > 0
             ? t("history.weeklyGoal.extra", { count: extra })
-            : "\u00a0"}
+            : "\u00A0"}
         </Text>
       ) : null}
       <View className="w-9 gap-1">
@@ -119,23 +126,20 @@ function WeekColumn({
       </Text>
     </View>
   );
-}
+};
 
 /**
  * The Weekly goal under the month's totals: the goal, the weeks hit among the
  * completed, fully tracked ones (hidden until there is one) and the
  * eight-week chart. Informational: nothing in it is tappable.
  */
-export default function HistoryWeeklyGoal({
-  overview,
-}: {
-  overview: WeeklyGoalOverview;
-}) {
+const HistoryWeeklyGoal = ({ overview }: { overview: WeeklyGoalOverview }) => {
   const { t } = useTranslation();
   const i18n = useI18n();
   const stacked = useStackedLayout();
   // Columns as tall as the biggest goal on show, so every pip is one size.
   const pips = Math.max(...overview.weeks.map((week) => week.goal ?? 0), 1);
+
   const showExtras = overview.weeks.some(
     (week) => week.count > weekSlots(week, pips)
   );
@@ -146,7 +150,7 @@ export default function HistoryWeeklyGoal({
         className={
           stacked
             ? "gap-1"
-            : "flex-row flex-wrap items-center justify-between gap-x-sm gap-y-1"
+            : "gap-x-sm flex-row flex-wrap items-center justify-between gap-y-1"
         }
       >
         <Text className="text-footnote text-muted-foreground">
@@ -166,7 +170,7 @@ export default function HistoryWeeklyGoal({
       <View
         className={
           stacked
-            ? "flex-row flex-wrap justify-start gap-sm"
+            ? "gap-sm flex-row flex-wrap justify-start"
             : "flex-row justify-between"
         }
       >
@@ -181,4 +185,6 @@ export default function HistoryWeeklyGoal({
       </View>
     </View>
   );
-}
+};
+
+export default HistoryWeeklyGoal;

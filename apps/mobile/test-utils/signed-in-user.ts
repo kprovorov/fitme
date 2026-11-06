@@ -27,5 +27,6 @@ export const getCurrentUserId = (): string => {
   if (!currentUserId) {
     throw new Error("Not authenticated");
   }
+
   return currentUserId;
 };

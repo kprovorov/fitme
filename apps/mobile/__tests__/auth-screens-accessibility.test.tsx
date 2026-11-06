@@ -1,12 +1,14 @@
-import "~/test-utils/auth-ui";
 import { afterEach, describe, expect, it, jest } from "@jest/globals";
 import { fireEvent, render, screen } from "@testing-library/react-native";
 import { Keyboard, Pressable, Text, TextInput } from "react-native";
+
+import "~/test-utils/auth-ui";
 import { AuthScreen } from "~/components/auth/auth-screen";
 
 afterEach(() => {
   jest.restoreAllMocks();
 });
+
 describe("auth screen accessibility", () => {
   const show = () =>
     render(
@@ -21,8 +23,10 @@ describe("auth screen accessibility", () => {
         <TextInput accessibilityLabel="Code" testID="code" />
       </AuthScreen>
     );
+
   it("keeps fields and actions as separate accessibility elements", async () => {
     await show();
+
     for (const target of [
       screen.getByTestId("code"),
       screen.getByTestId("submit"),
@@ -31,9 +35,11 @@ describe("auth screen accessibility", () => {
         expect(node.props.accessible).not.toBe(true);
       }
     }
+
     expect(screen.getByRole("button", { name: "Continue" })).toBeTruthy();
     expect(screen.getByLabelText("Code")).toBeTruthy();
   });
+
   it("dismisses the keyboard on a background tap", async () => {
     const dismiss = jest.spyOn(Keyboard, "dismiss");
     await show();

@@ -1,17 +1,15 @@
-import { ApiError, type components } from "@fitme/api-client";
+import { ApiError } from "@fitme/api-client";
+import type { components } from "@fitme/api-client";
 import type {
   InvalidateQueryFilters,
   QueryClient,
 } from "@tanstack/react-query";
 import { createMutation, createQuery } from "react-query-kit";
+
 import type { PlanUpdate } from "~/lib/plan-changes";
 import { publicApi } from "~/lib/public-api";
-import {
-  rememberWriteStarter,
-  type SeedResult,
-  seedWriteAnswer,
-  type WriteStarter,
-} from "~/lib/write-answers";
+import { rememberWriteStarter, seedWriteAnswer } from "~/lib/write-answers";
+import type { SeedResult, WriteStarter } from "~/lib/write-answers";
 
 /**
  * A Workout Session in full, as `GET /v1/workout-sessions/{id}` answers it:
@@ -53,9 +51,11 @@ export const fetchWorkoutSession = async (
   const { data } = await publicApi().GET("/v1/workout-sessions/{id}", {
     params: { path: { id: sessionId } },
   });
+
   if (!data) {
     throw new ApiError("Public API answered without a Workout Session");
   }
+
   return data.data;
 };
 
@@ -114,9 +114,11 @@ export const useCreateWorkoutSessionMutation = createMutation<
     const { data } = await publicApi().POST("/v1/workout-sessions", {
       body: { workout_id: workoutId },
     });
+
     if (!data) {
       throw new ApiError("Public API answered without a Workout Session");
     }
+
     return data.data;
   },
   // Which session it answers isn't known yet: every Workout Session read
@@ -166,9 +168,11 @@ export const fetchOpenWorkoutSession =
     const { data } = await publicApi().GET("/v1/workout-sessions", {
       params: { query: { limit: 1, status: "in_progress" } },
     });
+
     if (!data) {
       throw new ApiError("Public API answered without Workout Sessions");
     }
+
     return data.data[0] ?? null;
   };
 
@@ -195,6 +199,7 @@ export const useOwnOpenWorkoutSession = (
   workoutId: string
 ): OpenWorkoutSession | null => {
   const { data: openSession } = useOpenWorkoutSessionQuery();
+
   return openSession && openSession.workout?.id === workoutId
     ? openSession
     : null;
@@ -227,9 +232,11 @@ export const useFinishWorkoutSessionMutation = createMutation<
       "/v1/workout-sessions/{id}/finish",
       { params: { path: { id: sessionId } } }
     );
+
     if (!data) {
       throw new ApiError("Public API answered without a Workout Session");
     }
+
     return data.data;
   },
   mutationKey: FINISH_WORKOUT_SESSION_MUTATION_KEY,
@@ -243,6 +250,7 @@ const planUpdateOf = (answer: { data: PlanUpdate } | undefined): PlanUpdate => {
   if (!answer) {
     throw new ApiError("Public API answered without a Plan Update");
   }
+
   return answer.data;
 };
 
@@ -259,6 +267,7 @@ export const fetchPlanUpdate = async (
     "/v1/workout-sessions/{id}/plan-update",
     { params: { path: { id: sessionId } } }
   );
+
   return planUpdateOf(data);
 };
 
@@ -281,6 +290,7 @@ export const useApplyPlanUpdateMutation = createMutation<
       "/v1/workout-sessions/{id}/plan-update",
       { params: { path: { id: sessionId } } }
     );
+
     return planUpdateOf(data);
   },
 });
@@ -309,17 +319,18 @@ const readHistoryPages = async (): Promise<
   let weightUnit: WorkoutSessionHistory["weightUnit"] | null = null;
   let consistent = true;
   let total: number | null = null;
-  let offset = 0;
-  for (;;) {
-    // biome-ignore lint/performance/noAwaitInLoops: each page's offset follows from the last one's
+
+  const readPage = async (offset: number): Promise<void> => {
     const { data } = await publicApi().GET("/v1/workout-sessions", {
       params: {
         query: { limit: HISTORY_PAGE_SIZE, offset, status: "finished" },
       },
     });
+
     if (!data) {
       throw new ApiError("Public API answered without Workout Sessions");
     }
+
     // Another unit or total: the measurement system changed, or a session
     // was finished or deleted (shifting the rest by one), between two pages.
     consistent &&=
@@ -327,17 +338,23 @@ const readHistoryPages = async (): Promise<
       (total === null || data.total === total);
     weightUnit = data.weight_unit;
     ({ total } = data);
+
     for (const session of data.data) {
       sessions.set(session.id, session);
     }
+
     if (!data.hasMore || data.data.length === 0) {
-      break;
+      return;
     }
-    offset += data.data.length;
-  }
+
+    await readPage(offset + data.data.length);
+  };
+
+  await readPage(0);
+
   return {
     consistent: consistent && sessions.size === total,
-    sessions: [...sessions.values()].sort(
+    sessions: [...sessions.values()].toSorted(
       (a, b) =>
         new Date(b.started_at).getTime() - new Date(a.started_at).getTime()
     ),
@@ -355,19 +372,24 @@ const readHistoryPages = async (): Promise<
  */
 export const fetchWorkoutSessionHistory =
   async (): Promise<WorkoutSessionHistory> => {
-    for (let attempt = 1; ; attempt += 1) {
-      // biome-ignore lint/performance/noAwaitInLoops: a read is retried only after the last one changed
+    const readAttempt = async (
+      attempt: number
+    ): Promise<WorkoutSessionHistory> => {
       const { consistent, ...history } = await readHistoryPages();
+
       if (consistent || attempt === HISTORY_READ_ATTEMPTS) {
         return history;
       }
-    }
+
+      return readAttempt(attempt + 1);
+    };
+
+    return await readAttempt(1);
   };
 
-export const useWorkoutSessionHistoryQuery = createQuery<
-  WorkoutSessionHistory,
-  void
->({
-  fetcher: fetchWorkoutSessionHistory,
-  queryKey: ["workout-sessions-history"],
-});
+export const useWorkoutSessionHistoryQuery = createQuery<WorkoutSessionHistory>(
+  {
+    fetcher: fetchWorkoutSessionHistory,
+    queryKey: ["workout-sessions-history"],
+  }
+);

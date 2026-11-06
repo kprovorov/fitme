@@ -1,10 +1,12 @@
 import { readFileSync } from "node:fs";
-import { join } from "node:path";
+import path from "node:path";
+
 import {
   unstable_doesMiddlewareMatch,
   unstable_getResponseFromNextConfig,
 } from "next/experimental/testing/server";
 import { describe, expect, it } from "vitest";
+
 import nextConfig from "../next.config";
 import { config } from "../proxy";
 
@@ -18,33 +20,39 @@ describe("apple-app-site-association", () => {
         config,
         url: `https://app.fitmeproject.com${AASA_PATH}`,
       })
-    ).toBe(false);
+    ).toBeFalsy();
   });
 
-  it("leaves every other page behind the proxy", () => {
-    for (const path of ["/", "/dashboard", "/well-known", "/api/x"]) {
+  it.each(["/", "/dashboard", "/well-known", "/api/x"])(
+    "leaves %s behind the proxy",
+    (pathname) => {
       expect(
         unstable_doesMiddlewareMatch({
           config,
-          url: `https://app.fitmeproject.com${path}`,
+          url: `https://app.fitmeproject.com${pathname}`,
         })
-      ).toBe(true);
+      ).toBeTruthy();
     }
-  });
+  );
 
   it("is served as JSON", async () => {
     const response = await unstable_getResponseFromNextConfig({
       nextConfig,
       url: `https://app.fitmeproject.com${AASA_PATH}`,
     });
+
     expect(response.headers.get("content-type")).toBe("application/json");
   });
 
   it("names the iOS app for password AutoFill and Handoff", () => {
     const file = JSON.parse(
-      readFileSync(join(import.meta.dirname, "../public", AASA_PATH), "utf8")
+      readFileSync(
+        path.join(import.meta.dirname, "../public", AASA_PATH),
+        "utf-8"
+      )
     );
-    expect(file).toEqual({
+
+    expect(file).toStrictEqual({
       activitycontinuation: { apps: [APP_ID] },
       webcredentials: { apps: [APP_ID] },
     });

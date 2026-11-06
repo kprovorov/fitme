@@ -3,6 +3,7 @@ import type {
   TraceCaptureContext,
 } from "eve/instrumentation/otel";
 import { describe, expect, it } from "vitest";
+
 import {
   arnoldTracePolicy,
   sentryExportPolicy,
@@ -17,12 +18,12 @@ const span: SpanExportContext = {
   traceId: "trace",
 };
 
-const keeps = (key: string, value: unknown = "x") =>
+const keeps = (key: string, value: string | number = "x") =>
   sentryExportPolicy.attribute?.({ key, span, value });
 
-describe("sentryExportPolicy", () => {
+describe("sentry span export policy", () => {
   it("keeps every span, redacting its inputs and outputs", () => {
-    expect(sentryExportPolicy.span?.(span)).toEqual({
+    expect(sentryExportPolicy.span?.(span)).toStrictEqual({
       inputs: true,
       outputs: true,
       redact: true,
@@ -51,7 +52,7 @@ describe("sentryExportPolicy", () => {
     "ai.response.msToFinish",
     "error.type",
   ])("keeps the metadata attribute %s", (key) => {
-    expect(keeps(key, 1)).toEqual({ emit: true });
+    expect(keeps(key, 1)).toStrictEqual({ emit: true });
   });
 
   it.each([
@@ -74,13 +75,13 @@ describe("sentryExportPolicy", () => {
     "ai.settings.context.fitme.note",
     "some.future.content",
   ])("drops %s", (key) => {
-    expect(keeps(key, "I hurt my knee, what should I train?")).toEqual({
+    expect(keeps(key, "I hurt my knee, what should I train?")).toStrictEqual({
       emit: false,
     });
   });
 });
 
-describe("arnoldTracePolicy", () => {
+describe("arnold trace capture policy", () => {
   const trace: Omit<TraceCaptureContext, "environment"> = {
     agentName: "arnold",
     audience: "public",
@@ -91,7 +92,7 @@ describe("arnoldTracePolicy", () => {
   it.each(["preview", "production"] as const)(
     "records no content in %s, whatever the audience",
     (environment) => {
-      expect(arnoldTracePolicy({ ...trace, environment })).toEqual({
+      expect(arnoldTracePolicy({ ...trace, environment })).toStrictEqual({
         emit: true,
         recordInputs: false,
         recordOutputs: false,
@@ -100,24 +101,24 @@ describe("arnoldTracePolicy", () => {
   );
 
   it("records content in local development", () => {
-    expect(arnoldTracePolicy({ ...trace, environment: "development" })).toEqual(
-      {
-        emit: true,
-        recordInputs: true,
-        recordOutputs: true,
-      }
-    );
+    expect(
+      arnoldTracePolicy({ ...trace, environment: "development" })
+    ).toStrictEqual({
+      emit: true,
+      recordInputs: true,
+      recordOutputs: true,
+    });
   });
 });
 
-describe("sentryOtlpExport", () => {
+describe("sentry OTLP export configuration", () => {
   const url = "https://o1.ingest.us.sentry.io/api/2/integration/otlp/v1/traces";
   const dsn = "https://publickey@o1.ingest.us.sentry.io/2";
 
   it("exports to SENTRY_OTLP_TRACES_URL with the DSN's public key", () => {
     expect(
       sentryOtlpExport({ SENTRY_DSN: dsn, SENTRY_OTLP_TRACES_URL: url })
-    ).toEqual({
+    ).toStrictEqual({
       headers: { "x-sentry-auth": "sentry sentry_key=publickey" },
       url,
     });

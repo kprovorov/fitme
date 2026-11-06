@@ -1,7 +1,8 @@
 import { describe, expect, it } from "vitest";
+
 import { scrubEvent } from "../index";
 
-describe("scrubEvent", () => {
+describe("event scrubbing", () => {
   it("removes auth and cookie headers, cookies, the body and non-id user fields", () => {
     const event = {
       message: "boom",
@@ -26,7 +27,7 @@ describe("scrubEvent", () => {
       },
     };
 
-    expect(scrubEvent(event)).toEqual({
+    expect(scrubEvent(event)).toStrictEqual({
       message: "boom",
       request: {
         headers: { "content-type": "application/json" },
@@ -40,13 +41,13 @@ describe("scrubEvent", () => {
   it("drops a user without an id", () => {
     const event = { user: { email: "someone@example.com" } };
 
-    expect(scrubEvent(event)).toEqual({});
+    expect(scrubEvent(event)).toStrictEqual({});
   });
 
   it("leaves an event without request or user as it is", () => {
     const event = { message: "boom" };
 
-    expect(scrubEvent(event)).toEqual({ message: "boom" });
+    expect(scrubEvent(event)).toStrictEqual({ message: "boom" });
   });
 });
 
@@ -67,7 +68,7 @@ describe("scrubEvent's query backstop", () => {
       },
     };
 
-    expect(scrubEvent(event)).toEqual({
+    expect(scrubEvent(event)).toStrictEqual({
       exception: {
         values: [
           { type: "error", value: "Database query failed" },
@@ -91,7 +92,7 @@ describe("scrubEvent's query backstop", () => {
       ],
     };
 
-    expect(scrubEvent(event)).toEqual({
+    expect(scrubEvent(event)).toStrictEqual({
       breadcrumbs: [
         { category: "console", message: "starting" },
         {
@@ -110,6 +111,6 @@ describe("scrubEvent's query backstop", () => {
       exception: { values: [{ type: "Error", value: "boom" }] },
     };
 
-    expect(scrubEvent(event)).toEqual(event);
+    expect(scrubEvent(event)).toStrictEqual(event);
   });
 });

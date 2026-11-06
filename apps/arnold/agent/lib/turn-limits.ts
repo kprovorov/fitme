@@ -1,3 +1,5 @@
+import { z } from "zod";
+
 /**
  * Spend caps for one Arnold turn: at most 20 model calls, and $1.00 of model
  * cost. eve's own usage limits are per session and ask the user to continue,
@@ -33,14 +35,15 @@ interface StepUsage {
   readonly outputTokens?: number;
 }
 
+const costUsdSchema = z.number().nonnegative();
+
 /** The USD cost a finished step reported, or `null` when it reported none. */
 export const reportedCostUsd = (
   usage: StepUsage | undefined
 ): number | null => {
-  const cost = usage?.costUsd;
-  return typeof cost === "number" && Number.isFinite(cost) && cost >= 0
-    ? cost
-    : null;
+  const cost = costUsdSchema.safeParse(usage?.costUsd);
+
+  return cost.success ? cost.data : null;
 };
 
 /**
@@ -54,10 +57,13 @@ export const missingCostError = (step: {
   if (reportedCostUsd(step.usage) !== null) {
     return null;
   }
+
   const error = new Error(
     `step ${step.stepIndex} reported no cost; the turn stops before its next model call`
   );
+
   error.name = "Arnold step cost missing";
+
   return error;
 };
 
@@ -69,7 +75,9 @@ export const addStepCost = (
 ): TurnSpend => {
   const soFar =
     spend?.turnId === turnId ? spend : { costUsd: 0, turnId, unpriced: false };
+
   const cost = reportedCostUsd(usage);
+
   return {
     costUsd: soFar.costUsd + (cost ?? 0),
     turnId,
@@ -89,14 +97,18 @@ export const turnLimitReached = (
   if (step.stepIndex >= MAX_STEPS_PER_TURN) {
     return "steps";
   }
+
   if (spend?.turnId !== step.turnId) {
     return null;
   }
+
   if (spend.unpriced) {
     return "unpriced";
   }
+
   if (spend.costUsd >= MAX_TURN_COST_USD) {
     return "budget";
   }
+
   return null;
 };

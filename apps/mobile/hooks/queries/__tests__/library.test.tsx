@@ -10,6 +10,7 @@ import {
 import { QueryClientProvider } from "@tanstack/react-query";
 import { act, renderHook, waitFor } from "@testing-library/react-native";
 import type { ReactNode } from "react";
+
 import { i18n } from "~/lib/i18n";
 import { storage } from "~/lib/mmkv";
 import {
@@ -18,6 +19,7 @@ import {
   serveLibrary,
 } from "~/test-utils/fake-library";
 import { createTestQueryClient } from "~/test-utils/query-client";
+
 import { useExerciseDetailQuery, useExercises } from "../library";
 
 jest.mock(
@@ -31,6 +33,7 @@ jest.mock(
 /** A fresh query cache, as after a restart of the app. */
 const newWrapper = () => {
   const client = createTestQueryClient();
+
   return ({ children }: { children: ReactNode }) => (
     <QueryClientProvider client={client}>{children}</QueryClientProvider>
   );
@@ -56,15 +59,19 @@ const BENCH_PRESS_UK = {
 /** Resolves Bench Press's row and detail in `language`, each on a fresh cache. */
 const resolveBenchPressIn = async (language: string) => {
   await i18n.changeLanguage(language);
+
   const rows = await renderHook(() => useExercises(["bench-press"]), {
     wrapper: newWrapper(),
   });
+
   await waitFor(() =>
     expect(rows.result.current["bench-press"].isResolved).toBe(true)
   );
+
   const detail = await renderHook(() => useExerciseDetailQuery("bench-press"), {
     wrapper: newWrapper(),
   });
+
   await waitFor(() => expect(detail.result.current.data).toBeTruthy());
   await rows.unmount();
   await detail.unmount();
@@ -73,12 +80,15 @@ const resolveBenchPressIn = async (language: string) => {
 /** Bench Press's row and detail in `language` on a fresh cache, not waited for. */
 const showBenchPressIn = async (language: string) => {
   await i18n.changeLanguage(language);
+
   const rows = await renderHook(() => useExercises(["bench-press"]), {
     wrapper: newWrapper(),
   });
+
   const detail = await renderHook(() => useExerciseDetailQuery("bench-press"), {
     wrapper: newWrapper(),
   });
+
   return {
     detail: detail.result.current.data,
     row: rows.result.current["bench-press"],
@@ -122,6 +132,7 @@ describe("the MMKV cache", () => {
     const rows = await renderHook(() => useExercises(["bench-press"]), {
       wrapper: newWrapper(),
     });
+
     await waitFor(() =>
       expect(rows.result.current["bench-press"].isResolved).toBe(true)
     );
@@ -147,6 +158,7 @@ describe("the MMKV cache", () => {
         translations: { uk: BENCH_PRESS_UK },
       }),
     ]);
+
     await resolveBenchPressIn("en");
     await resolveBenchPressIn("uk");
 
@@ -179,11 +191,14 @@ describe("the App language", () => {
       }),
       libraryExercise("squat"),
     ]);
+
     const lookup = jest.spyOn(fake, "lookup");
+
     const { result } = await renderHook(
       () => useExercises(["bench-press", "squat"]),
       { wrapper: newWrapper() }
     );
+
     await waitFor(() =>
       expect(result.current["bench-press"].name).toBe("Bench Press")
     );
@@ -208,11 +223,14 @@ describe("useExercises", () => {
       { length: 100 },
       (_, index) => `exercise-${index}`
     );
+
     const asked: string[][] = [];
+
     const fetch = jest.fn((url: string | URL | Request) => {
       const match = String(url).match(SLUGS_PATTERN);
       const batch = decodeURIComponent(match?.[1] ?? "").split(",");
       asked.push(batch);
+
       return Promise.resolve(
         new Response(
           JSON.stringify({
@@ -223,6 +241,7 @@ describe("useExercises", () => {
         )
       );
     });
+
     library.current = createLibrary({
       fetch: fetch as typeof globalThis.fetch,
       token: () => Promise.resolve("session-token"),
@@ -245,15 +264,18 @@ describe("useExercises", () => {
     // Held timers keep the first lookup queued while the client changes, as a
     // test's unanswered lookup is when the next test swaps in its own client.
     jest.useFakeTimers();
+
     try {
       const earlier = serveLibrary([libraryExercise("stray-move")]);
       const earlierLookup = jest.spyOn(earlier, "lookup");
+
       const earlierRows = await renderHook(() => useExercises(["stray-move"]), {
         wrapper: newWrapper(),
       });
 
       const later = serveLibrary([libraryExercise("bench-press")]);
       const laterLookup = jest.spyOn(later, "lookup");
+
       const laterRows = await renderHook(() => useExercises(["bench-press"]), {
         wrapper: newWrapper(),
       });
@@ -280,9 +302,11 @@ describe("useExercises", () => {
     const fake = serveLibrary([
       libraryExercise("barbell-back-squat", { name: "Back Squat" }),
     ]);
+
     const first = await renderHook(() => useExercises(["barbell-back-squat"]), {
       wrapper: newWrapper(),
     });
+
     await waitFor(() =>
       expect(first.result.current["barbell-back-squat"].isResolved).toBe(true)
     );
@@ -290,6 +314,7 @@ describe("useExercises", () => {
 
     fake.failWith(new LibraryUnavailableError());
     const lookup = jest.spyOn(fake, "lookup");
+
     const { result } = await renderHook(
       () => useExercises(["barbell-back-squat"]),
       { wrapper: newWrapper() }
@@ -351,16 +376,19 @@ describe("useExercises", () => {
 describe("useExerciseDetailQuery", () => {
   it("shows an Exercise seen before from MMKV while offline", async () => {
     const fake = serveLibrary([libraryExercise("bench-press")]);
+
     const first = await renderHook(
       () => useExerciseDetailQuery("bench-press"),
       {
         wrapper: newWrapper(),
       }
     );
+
     await waitFor(() => expect(first.result.current.data).toBeTruthy());
     await first.unmount();
 
     fake.failWith(new LibraryUnavailableError());
+
     const { result } = await renderHook(
       () => useExerciseDetailQuery("bench-press"),
       { wrapper: newWrapper() }

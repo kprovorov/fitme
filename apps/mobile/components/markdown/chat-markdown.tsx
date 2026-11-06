@@ -1,9 +1,11 @@
 import { Text, View } from "react-native";
 import { useCSSVariable, useResolveClassNames } from "uniwind";
+
 import { Table, TableCell, TableHead, TableRow } from "~/components/ui/table";
 import { Text as StyledText } from "~/components/ui/text";
 import { openWebPage } from "~/lib/external-links";
 import { cn } from "~/lib/utils";
+
 import Markdown from "./markdown";
 
 // Read in this order: text, rules, quiet fills (quotes, code, images), links
@@ -18,13 +20,13 @@ const VAR_NAMES = [
  * Convert single newlines to hard breaks (two trailing spaces) so they render
  * the same way they appear during streaming. Skips fenced code blocks.
  */
-function preserveNewlines(md: string): string {
-  return md.replace(/(```[\s\S]*?```)|(\n)/g, (match, codeBlock) =>
-    codeBlock ? match : "  \n"
+const preserveNewlines = (md: string): string =>
+  md.replaceAll(/```[\s\S]*?```|\n/gu, (match) =>
+    match === "\n" ? "  \n" : match
   );
-}
 
-export function ChatMarkdown({ children }: { children: string }) {
+export const ChatMarkdown = ({ children }: { children: string }) => {
+  // SAFETY: VAR_NAMES contains only theme color tokens, which resolve to CSS color strings.
   const [text, border, muted, link] = useCSSVariable(VAR_NAMES) as string[];
 
   // Type comes from the text styles: Callout for the message, titles for
@@ -39,7 +41,6 @@ export function ChatMarkdown({ children }: { children: string }) {
   const heading6 = useResolveClassNames("text-footnote-emphasized");
   const code = useResolveClassNames("text-mono-footnote");
   const inlineCode = useResolveClassNames("text-mono-subhead");
-  const bullet = useResolveClassNames("text-body");
 
   // Only overrides — defaults from utils.ts are merged automatically
   const markdownStyles = {
@@ -76,12 +77,6 @@ export function ChatMarkdown({ children }: { children: string }) {
     // Only the color: a link takes its type from the paragraph, heading or
     // emphasis around it. Lime, like every other accent in the app
     link: { color: link },
-    listBullet: {
-      ...bullet,
-      color: text,
-      fontVariant: ["tabular-nums" as const],
-      marginRight: 8,
-    },
     paragraph: { ...body, color: text, marginVertical: 8 },
     strong: { fontFamily: bold.fontFamily, fontWeight: bold.fontWeight },
     // Leaf text inherits its type and color from its paragraph, heading,
@@ -96,31 +91,29 @@ export function ChatMarkdown({ children }: { children: string }) {
       markdown={preserveNewlines(children)}
       onLinkPress={openWebPage}
       renderRules={{
-        listItem: ({ node, styles, children: itemChildren, extras }) => (
-          // biome-ignore lint/suspicious/noExplicitAny: StyleMap values are NamedStyle which requires cast for View/Text style props
-          <View key={node.key} style={styles.listItem as any}>
-            {extras?.customListStyleType ? (
-              extras.customListStyleType
-            ) : (
+        listItem: ({ node, children: itemChildren, extras }) => (
+          <View
+            className="flex-row items-baseline justify-start gap-2"
+            key={node.key}
+          >
+            {extras?.customListStyleType || (
               <Text
-                style={[
-                  // biome-ignore lint/suspicious/noExplicitAny: StyleMap values are NamedStyle which requires cast for Text style prop
-                  styles.listBullet as any,
-                  extras?.ordered ? inlineCode : undefined,
-                ]}
+                className={cn(
+                  "text-foreground mr-2 tabular-nums",
+                  extras?.ordered ? "text-mono-subhead" : "text-body"
+                )}
               >
-                {extras?.listStyleType as string}
+                {extras?.listStyleType}
               </Text>
             )}
-            {/* biome-ignore lint/suspicious/noExplicitAny: StyleMap values are NamedStyle which requires cast for View style prop */}
-            <View style={styles.listItemContent as any}>{itemChildren}</View>
+            <View className="flex-1 flex-wrap">{itemChildren}</View>
           </View>
         ),
         // Tables are the Table Primitive, so they take its border and text
         // styles: a header row on `muted`, Subhead cells
         table: ({ node, children: rows }) => (
           <Table
-            className="my-2 overflow-hidden rounded-lg border border-border border-continuous"
+            className="border-border border-continuous my-2 overflow-hidden rounded-lg border"
             key={node.key}
           >
             {rows}
@@ -130,6 +123,7 @@ export function ChatMarkdown({ children }: { children: string }) {
         // they don't double the table's own border at the right and bottom
         tableCell: ({ node, children: content, extras }) => {
           const Cell = extras?.isHeader ? TableHead : TableCell;
+
           return (
             <Cell
               className={cn(
@@ -145,7 +139,7 @@ export function ChatMarkdown({ children }: { children: string }) {
         tableRow: ({ node, children: cells, extras }) => (
           <TableRow
             className={
-              extras?.isHeader ? "border-b-0 bg-muted" : "border-t border-b-0"
+              extras?.isHeader ? "bg-muted border-b-0" : "border-t border-b-0"
             }
             key={node.key}
           >
@@ -156,4 +150,4 @@ export function ChatMarkdown({ children }: { children: string }) {
       styles={markdownStyles}
     />
   );
-}
+};

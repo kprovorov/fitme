@@ -9,6 +9,7 @@ import { QueryClientProvider } from "@tanstack/react-query";
 import { fireEvent, render, screen } from "@testing-library/react-native";
 import type { ReactNode } from "react";
 import { Alert, Pressable, Text, View } from "react-native";
+
 import LegalScreen from "~/app/legal";
 import SettingsScreen from "~/app/settings";
 import SupportScreen from "~/app/support";
@@ -26,6 +27,7 @@ import { createTestQueryClient, settle } from "~/test-utils/query-client";
 jest.mock("expo-router", () => {
   const { Text: MockText } =
     jest.requireActual<typeof import("react-native")>("react-native");
+
   return {
     Link: ({ children }: { children: ReactNode }) => children,
     router: { replace: jest.fn() },
@@ -122,10 +124,11 @@ const mount = async (element: ReactNode) => {
     </QueryClientProvider>
   );
   await settle(client);
+
   return client;
 };
 
-describe("Profile and Settings on a Ukrainian device", () => {
+describe("profile and Settings on a Ukrainian device", () => {
   beforeEach(() => {
     setDeviceLanguages(["uk-UA"]);
     jest.clearAllMocks();
@@ -138,6 +141,7 @@ describe("Profile and Settings on a Ukrainian device", () => {
     expect(screen.getByText("Тарас Шевченко")).toBeTruthy();
     expect(screen.getByText("У вас безкоштовний план")).toBeTruthy();
     expect(screen.getByText("Перейти на Pro")).toBeTruthy();
+
     for (const item of [
       "Редагувати профіль",
       "Налаштування",
@@ -149,6 +153,7 @@ describe("Profile and Settings on a Ukrainian device", () => {
     ]) {
       expect(screen.getByText(item)).toBeTruthy();
     }
+
     expect(screen.queryByText("Settings")).toBeNull();
   });
 
@@ -176,6 +181,7 @@ describe("Profile and Settings on a Ukrainian device", () => {
     const alert = jest.spyOn(Alert, "alert").mockImplementation(() => {
       // The native alert isn't shown under Jest.
     });
+
     const client = await mount(<SettingsScreen />);
 
     await fireEvent.press(screen.getByText("Видалити"));
@@ -214,6 +220,7 @@ describe("Profile and Settings on a Ukrainian device", () => {
       screen.getByText("Пишіть нам будь-коли, якщо маєте запитання чи відгуки")
     ).toBeTruthy();
     expect(screen.getByText("support@fitmeproject.com")).toBeTruthy();
+
     for (const label of ["Fitme в X", "Fitme в Instagram", "Fitme в Threads"]) {
       expect(screen.getByLabelText(label)).toBeTruthy();
     }

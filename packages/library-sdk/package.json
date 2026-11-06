@@ -4,12 +4,12 @@
   "private": true,
   "description": "The Library API client shared by Arnold, MCP and the mobile app, plus an in-memory fake for their tests.",
   "type": "module",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
   "exports": {
     ".": "./src/index.ts",
     "./fake": "./src/fake.ts"
   },
-  "main": "./src/index.ts",
-  "types": "./src/index.ts",
   "scripts": {
     "test": "vitest run",
     "test:watch": "vitest",

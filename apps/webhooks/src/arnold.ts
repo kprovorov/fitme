@@ -23,16 +23,26 @@ export const deleteArnoldConversations =
   async (userId: string): Promise<void> => {
     const sessionIds = await listSessionIds(userId);
     const failures: unknown[] = [];
-    for (let start = 0; start < sessionIds.length; start += RESET_BATCH_SIZE) {
+
+    const resetBatch = async (start: number): Promise<void> => {
+      if (start >= sessionIds.length) {
+        return;
+      }
+
       const batch = sessionIds.slice(start, start + RESET_BATCH_SIZE);
-      // biome-ignore lint/performance/noAwaitInLoops: batches of five so a User with many sessions doesn't flood Arnold
       const results = await Promise.allSettled(batch.map(resetSession));
+
       for (const result of results) {
         if (result.status === "rejected") {
           failures.push(result.reason);
         }
       }
-    }
+
+      await resetBatch(start + RESET_BATCH_SIZE);
+    };
+
+    await resetBatch(0);
+
     if (failures.length > 0) {
       throw new AggregateError(
         failures,
@@ -63,24 +73,31 @@ export const arnoldResetConfig = (
 
 const RESET_TIMEOUT_MS = 20_000;
 
+type ArnoldResetAnswer =
+  | { ok: true; status: "reset"; previousSessionId: string }
+  | { ok: true; status: "no_active_session" };
+
+const isArnoldResetAnswer = (body: unknown): body is ArnoldResetAnswer =>
+  body !== null &&
+  typeof body === "object" &&
+  "ok" in body &&
+  body.ok === true &&
+  "status" in body &&
+  (body.status === "no_active_session" ||
+    (body.status === "reset" &&
+      "previousSessionId" in body &&
+      typeof body.previousSessionId === "string"));
+
 /**
- * Whether `body` is eve's success answer for resetting `sessionId`:
+ * Whether `answer` is eve's success answer for resetting `sessionId`:
  * `{ ok: true, status: "reset", previousSessionId: sessionId }` or
  * `{ ok: true, status: "no_active_session" }`. Anything else (a proxy, a
  * misrouted ARNOLD_URL) leaves the session possibly live.
  */
-const isResetDone = (body: unknown, sessionId: string): boolean => {
-  if (!body || typeof body !== "object") {
-    return false;
-  }
-  const answer = body as Record<string, unknown>;
-  if (answer.ok !== true) {
-    return false;
-  }
-  return answer.status === "reset"
+const isResetDone = (answer: ArnoldResetAnswer, sessionId: string): boolean =>
+  answer.status === "reset"
     ? answer.previousSessionId === sessionId
     : answer.status === "no_active_session";
-};
 
 /**
  * Resets one Arnold session through Arnold's eve channel
@@ -98,13 +115,16 @@ export const arnoldSessionResetter =
     if (!arnoldUrl) {
       throw new Error("Missing ARNOLD_URL environment variable");
     }
+
     if (!secret) {
       throw new Error("Missing ARNOLD_RESET_SECRET environment variable");
     }
+
     const url = new URL(
       `eve/v1/session/${encodeURIComponent(sessionId)}/reset`,
       arnoldUrl.endsWith("/") ? arnoldUrl : `${arnoldUrl}/`
     );
+
     const response = await fetch(url, {
       body: JSON.stringify({ reason: "Account deleted" }),
       headers: {
@@ -114,8 +134,16 @@ export const arnoldSessionResetter =
       method: "POST",
       signal: AbortSignal.timeout(RESET_TIMEOUT_MS),
     });
+
     const body: unknown = await response.json().catch(() => null);
-    if (!(response.ok && isResetDone(body, sessionId))) {
+
+    if (
+      !(
+        response.ok &&
+        isArnoldResetAnswer(body) &&
+        isResetDone(body, sessionId)
+      )
+    ) {
       throw new Error(
         `Arnold session ${sessionId} reset failed: HTTP ${response.status} ${JSON.stringify(body)}`
       );

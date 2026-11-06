@@ -9,9 +9,7 @@ tags: tag1, tag2
 
 **Impact: HIGH (Fewer re-renders and faster lists)**
 
-When passing callback functions to list items, create a single instance of the
-callback at the root of the list. Items should then call it with a unique
-identifier.
+When passing callback functions to list items, create a single instance of the callback at the root of the list. Items should then call it with a unique identifier.
 
 **Incorrect (creates a new callback on each render):**
 

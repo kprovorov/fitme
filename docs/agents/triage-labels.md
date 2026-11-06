@@ -2,13 +2,13 @@
 
 The skills speak in terms of five canonical triage roles. This file maps those roles to what this repo's Linear workspace actually uses: Linear's native **Triage** status for `needs-triage`, and workspace-level labels for the rest.
 
-| Label in mattpocock/skills | In our tracker                       | Meaning                                  |
-| -------------------------- | ------------------------------------ | ---------------------------------------- |
-| `needs-triage`             | `Triage` status, no state label      | Maintainer needs to evaluate this issue  |
-| `needs-info`               | `needs-info` label (stays in Triage) | Waiting on reporter for more information |
-| `ready-for-agent`          | `ready-for-agent` label              | Fully specified, ready for an AFK agent  |
-| `ready-for-human`          | `ready-for-human` label              | Requires human implementation            |
-| `wontfix`                  | `wontfix` label + `Canceled` status  | Will not be actioned                     |
+| Label in mattpocock/skills | In our tracker | Meaning |
+| --- | --- | --- |
+| `needs-triage` | `Triage` status, no state label | Maintainer needs to evaluate this issue |
+| `needs-info` | `needs-info` label (stays in Triage) | Waiting on reporter for more information |
+| `ready-for-agent` | `ready-for-agent` label | Fully specified, ready for an AFK agent |
+| `ready-for-human` | `ready-for-human` label | Requires human implementation |
+| `wontfix` | `wontfix` label + `Canceled` status | Will not be actioned |
 
 When a skill mentions a role (e.g. "apply the AFK-ready triage label"), use the corresponding entry from this table:
 

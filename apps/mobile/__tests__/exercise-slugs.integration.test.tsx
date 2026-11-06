@@ -8,9 +8,11 @@
  * swapped for plain stand-ins.
  */
 import { beforeEach, describe, expect, it, jest } from "@jest/globals";
-import { type QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { QueryClientProvider } from "@tanstack/react-query";
+import type { QueryClient } from "@tanstack/react-query";
 import { act, fireEvent, render, screen } from "@testing-library/react-native";
 import type { ReactNode } from "react";
+
 import PlanScreen from "~/app/plans/[planId]/index";
 import WorkoutScreen from "~/app/plans/[planId]/workouts/[workoutId]/index";
 import PlanSessionExerciseScreen from "~/app/plans/[planId]/workouts/[workoutId]/sessions/[sessionId]/exercises/[exerciseId]/index";
@@ -43,9 +45,11 @@ jest.mock("~/lib/clerk", () => ({
 jest.mock("expo-router", () => {
   const { View } =
     jest.requireActual<typeof import("react-native")>("react-native");
+
   const stub = jest.requireActual<typeof import("~/test-utils/router-stub")>(
     "~/test-utils/router-stub"
   );
+
   return {
     // A link shows as a view naming where it goes.
     Link: ({ children, href }: { children: ReactNode; href: string }) => (
@@ -72,43 +76,59 @@ jest.mock(
       "~/test-utils/fake-library"
     ).libraryModule
 );
+
 jest.mock("~/hooks/queries/profiles", () => ({
   useProfileQuery: () => ({ data: { measurement_system: "metric" } }),
 }));
+
 jest.mock("@sentry/react-native", () => ({ captureException: jest.fn() }));
-jest.mock("~/lib/segment", () => ({ segmentClient: { track: jest.fn() } }));
+
+jest.mock("~/lib/segment", () => ({
+  segmentClient: { track: jest.fn() },
+}));
+
 jest.mock("react-native-safe-area-context", () => ({
   useSafeAreaInsets: () => ({ bottom: 0, left: 0, right: 0, top: 0 }),
 }));
+
 jest.mock("react-native-keyboard-controller", () => {
   const { ScrollView } =
     jest.requireActual<typeof import("react-native")>("react-native");
+
   return { KeyboardAwareScrollView: ScrollView };
 });
+
 // A thumbnail shows as a view naming its image, or `none`.
 jest.mock("~/components/exercises/exercise-image", () => {
   const { View } =
     jest.requireActual<typeof import("react-native")>("react-native");
+
   return ({ exercise }: { exercise: { thumbnail_url: string | null } }) => (
     <View testID={`thumbnail:${exercise.thumbnail_url ?? "none"}`} />
   );
 });
+
 jest.mock("~/components/symbol-image", () => ({ SymbolImage: () => null }));
+
 jest.mock("~/components/workout-sessions/rest-timer", () => () => null);
+
 jest.mock("~/components/ui/button", () =>
   jest.requireActual("~/test-utils/button-stub")
 );
+
 jest.mock("~/components/ui/dialog", () =>
   jest.requireActual("~/test-utils/dialog-stub")
 );
+
 jest.mock("~/components/ui/dropdown-menu", () => {
   const { Pressable } =
     jest.requireActual<typeof import("react-native")>("react-native");
+
   return {
     DropdownMenu: ({
       items,
     }: {
-      items: Array<{ label: string; onPress?: () => void }>;
+      items: { label: string; onPress?: () => void }[];
     }) =>
       items.map((item) => (
         <Pressable
@@ -198,7 +218,7 @@ describe("a Plan", () => {
   it("shows each Workout's Exercises as thumbnails, a blank one for a slug the library doesn't know, and opens the Workout", async () => {
     await renderScreen(PlanScreen, { planId: "plan-1" });
 
-    expect(await screen.findByText("Leg Day")).toBeTruthy();
+    await expect(screen.findByText("Leg Day")).resolves.toBeTruthy();
     expect(
       screen.getByTestId("thumbnail:https://media.test/render/squat.jpg")
     ).toBeTruthy();
@@ -226,8 +246,8 @@ describe("a Workout Session", () => {
     seedSession();
     await renderScreen(HistorySessionScreen, { workoutSessionId: "s1" });
 
-    expect(await screen.findByText("Squat")).toBeTruthy();
-    expect(await screen.findByText("Chest")).toBeTruthy();
+    await expect(screen.findByText("Squat")).resolves.toBeTruthy();
+    await expect(screen.findByText("Chest")).resolves.toBeTruthy();
     expect(screen.getByText("Mystery move")).toBeTruthy();
     expect(
       screen.getByTestId("thumbnail:https://media.test/render/squat.jpg")
@@ -244,7 +264,7 @@ describe("a Workout Session", () => {
       workoutId: "workout-of-s1",
     });
 
-    expect(await screen.findByText("12")).toBeTruthy();
+    await expect(screen.findByText("12")).resolves.toBeTruthy();
     expect(screen.queryByRole("button", { name: "How to?" })).toBeNull();
   });
 
@@ -257,9 +277,9 @@ describe("a Workout Session", () => {
       workoutId: "workout-of-s1",
     });
 
-    expect(
-      await screen.findByRole("button", { name: "How to?" })
-    ).toBeEnabled();
+    await expect(
+      screen.findByRole("button", { name: "How to?" })
+    ).resolves.toBeEnabled();
   });
 
   it("adds an Exercise by its slug", async () => {
@@ -279,7 +299,7 @@ describe("a Workout Session", () => {
       order: 3,
       workout_session_id: "s1",
     });
-    expect(await screen.findByText("Lunge")).toBeTruthy();
+    await expect(screen.findByText("Lunge")).resolves.toBeTruthy();
   });
 
   it("replaces an Exercise by its slug", async () => {
@@ -288,9 +308,11 @@ describe("a Workout Session", () => {
 
     const [replaceSquat] = await screen.findAllByLabelText("Replace");
     await fireEvent.press(replaceSquat as NonNullable<typeof replaceSquat>);
+
     const replaceWithLunge = await screen.findByRole("button", {
       name: "Replace with Lunge",
     });
+
     await act(async () => {
       await fireEvent.press(replaceWithLunge);
     });
@@ -300,7 +322,7 @@ describe("a Workout Session", () => {
       exercise_slug: "lunge",
       id: "s1-e1",
     });
-    expect(await screen.findByText("Lunge")).toBeTruthy();
+    await expect(screen.findByText("Lunge")).resolves.toBeTruthy();
     expect(screen.queryByText("Squat")).toBeNull();
   });
 });
@@ -310,7 +332,7 @@ describe("a Workout Session's summary", () => {
     seedSession(true);
     await renderScreen(SummaryScreen, { workoutSessionId: "s1" });
 
-    expect(await screen.findByText("Squat")).toBeTruthy();
+    await expect(screen.findByText("Squat")).resolves.toBeTruthy();
     expect(screen.getByText("Mystery move")).toBeTruthy();
     expect(
       screen.getByTestId("thumbnail:https://media.test/render/squat.jpg")

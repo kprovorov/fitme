@@ -1,11 +1,12 @@
 import { NativeTabs } from "expo-router/native-tabs";
 import { ThemeProvider } from "expo-router/react-navigation";
 import { useTranslation } from "react-i18next";
+
 import Authenticated from "~/components/authenticated";
 import { useNavigationTheme } from "~/hooks/navigation-theme";
 import { getTabSymbol, TAB_TITLE_KEYS } from "~/lib/tabs";
 
-export default function TabLayout() {
+const TabLayout = () => {
   const navigationTheme = useNavigationTheme();
   const { t } = useTranslation();
 
@@ -48,4 +49,6 @@ export default function TabLayout() {
       </ThemeProvider>
     </Authenticated>
   );
-}
+};
+
+export default TabLayout;

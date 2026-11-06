@@ -1,14 +1,14 @@
 import {
-  type AppLanguage,
   appLanguages,
   defaultAppLanguage,
-  type Equipment,
   isEquipment,
   equipment as knownEquipment,
   muscleGroups as knownMuscleGroups,
-  type MuscleGroup,
 } from "@fitme/core/models";
-import { type LibraryError, LibraryInvalidRequestError } from "./errors";
+import type { AppLanguage, Equipment, MuscleGroup } from "@fitme/core/models";
+
+import { LibraryInvalidRequestError } from "./errors";
+import type { LibraryError } from "./errors";
 import type {
   Cover,
   Exercise,
@@ -88,11 +88,14 @@ const toSummary = ({
  * (`servedEquipment` in `apps/library`): a repeat counted once, empty for an
  * Exercise given without any.
  */
-const servedEquipment = (needed: readonly Equipment[] = []) =>
-  knownEquipment.filter((item) => needed.includes(item));
+const servedEquipment = (needed: readonly Equipment[] = []) => {
+  const neededSet = new Set(needed);
+
+  return knownEquipment.filter((item) => neededSet.has(item));
+};
 
 const isMuscleGroup = (group: string): group is MuscleGroup =>
-  (knownMuscleGroups as readonly string[]).includes(group);
+  knownMuscleGroups.some((knownGroup) => knownGroup === group);
 
 /**
  * The muscle groups `muscleGroups` filters by, read as the API reads the
@@ -104,18 +107,22 @@ const parseMuscleGroups = ({
   muscleGroup,
   muscleGroups,
 }: ListExercisesParams): MuscleGroup[] | undefined => {
-  if (!muscleGroups?.length) {
-    return;
+  if (muscleGroups === undefined || muscleGroups.length === 0) {
+    return undefined;
   }
+
   if (muscleGroup !== undefined) {
     throw new LibraryInvalidRequestError(
       "muscle_groups: can't be combined with muscle_group"
     );
   }
+
   const groups = muscleGroups.join(",").split(",");
+
   if (!groups.every(isMuscleGroup)) {
     throw new LibraryInvalidRequestError("muscle_groups: invalid muscle group");
   }
+
   return groups;
 };
 
@@ -127,13 +134,16 @@ const parseMuscleGroups = ({
 const parseEquipment = ({
   equipment,
 }: ListExercisesParams): Equipment[] | undefined => {
-  if (!equipment?.length) {
-    return;
+  if (equipment === undefined || equipment.length === 0) {
+    return undefined;
   }
+
   const needed = equipment.join(",").split(",");
+
   if (!needed.every(isEquipment)) {
     throw new LibraryInvalidRequestError("equipment: invalid equipment");
   }
+
   return needed;
 };
 
@@ -146,11 +156,13 @@ const validate = ({ limit, offset, search }: ListExercisesParams) => {
       `limit: must be an integer from 1 to ${MAX_LIMIT}`
     );
   }
+
   if (offset !== undefined && !(Number.isInteger(offset) && offset >= 0)) {
     throw new LibraryInvalidRequestError(
       "offset: must be a non-negative integer"
     );
   }
+
   if (search !== undefined && search.trim().length > MAX_SEARCH) {
     throw new LibraryInvalidRequestError(
       `search: at most ${MAX_SEARCH} characters`
@@ -168,9 +180,11 @@ const serveIn = (
   language: AppLanguage
 ): FakeLanguage => {
   const collator = new Intl.Collator(language);
+
   const served = exercises
     .map(({ translations, ...english }) => {
       const translation = translations?.[language];
+
       const exercise: Exercise = {
         description: "",
         instructions: "",
@@ -182,15 +196,19 @@ const serveIn = (
           name: translation.name,
         }),
       };
+
       const names = [exercise.name.toLowerCase(), english.name.toLowerCase()];
+
       return { exercise, searchNames: [...new Set(names)] };
     })
-    .sort(
+    .toSorted(
       (a, b) =>
         collator.compare(a.exercise.name, b.exercise.name) ||
         collator.compare(a.exercise.slug, b.exercise.slug)
     );
+
   const sorted = served.map(({ exercise }) => toSummary(exercise));
+
   return {
     bySlug: new Map(sorted.map((summary) => [summary.slug, summary])),
     full: new Map(served.map(({ exercise }) => [exercise.slug, exercise])),
@@ -216,26 +234,25 @@ export const createFakeLibrary = (
 ): FakeLibrary => {
   const languages = Object.fromEntries(
     appLanguages.map((language) => [language, serveIn(exercises, language)])
-  ) as Record<AppLanguage, FakeLanguage>;
+  );
+
   const inLanguage = (language: AppLanguage = defaultAppLanguage) =>
     languages[language];
+
   let failure: LibraryError | null = null;
 
-  const orFail = <T>(compute: () => T): Promise<T> => {
+  const orFail = async <T>(compute: () => T): Promise<T> => {
     if (failure) {
-      return Promise.reject(failure);
+      throw failure;
     }
-    try {
-      return Promise.resolve(compute());
-    } catch (error) {
-      return Promise.reject(error);
-    }
+
+    return await compute();
   };
 
   return {
     // copies, as the client answers fresh objects on every call
-    covers: () =>
-      orFail(() =>
+    covers: async () =>
+      await orFail(() =>
         covers.map(({ id, image_url, muscle_groups }) => ({
           id,
           image_url,
@@ -247,27 +264,34 @@ export const createFakeLibrary = (
       failure = error;
     },
 
-    get: (slug, { language } = {}) =>
-      orFail(() => inLanguage(language).full.get(slug) ?? null),
+    get: async (slug, { language } = {}) =>
+      await orFail(() => inLanguage(language).full.get(slug) ?? null),
 
-    list: (params = {}) =>
-      orFail((): ExercisePage => {
+    list: async (params = {}) =>
+      await orFail((): ExercisePage => {
         validate(params);
+
         const groups =
           parseMuscleGroups(params) ??
           (params.muscleGroup && [params.muscleGroup]);
+
         const needed = parseEquipment(params);
         const { language, limit = DEFAULT_LIMIT, offset = 0, search } = params;
         const { searchNames, sorted } = inLanguage(language);
         const term = search?.trim().toLowerCase();
+
         const matches = sorted.filter(
           (summary, i) =>
-            (!term || searchNames[i]?.some((name) => name.includes(term))) &&
+            (term === undefined ||
+              term === "" ||
+              searchNames[i]?.some((name) => name.includes(term))) &&
             (!groups ||
               groups.some((group) => summary.muscle_groups.includes(group))) &&
             (!needed || needed.some((item) => summary.equipment.includes(item)))
         );
+
         const data = matches.slice(offset, offset + limit);
+
         return {
           data,
           hasMore: offset + data.length < matches.length,
@@ -275,10 +299,11 @@ export const createFakeLibrary = (
         };
       }),
 
-    lookup: (slugs, { language } = {}) =>
-      orFail(() => {
+    lookup: async (slugs, { language } = {}) =>
+      await orFail(() => {
         const { bySlug } = inLanguage(language);
         const unique = [...new Set(slugs)];
+
         return {
           data: unique.flatMap((slug) => bySlug.get(slug) ?? []),
           missing: unique.filter((slug) => !bySlug.has(slug)),

@@ -1,4 +1,6 @@
 import { tracePropagationTargets } from "@fitme/observability";
+import type { TransactionEvent } from "@sentry/react-native";
+import { z } from "zod";
 
 /**
  * Whether Sentry should record an `http.client` span for `url`: every host we
@@ -16,46 +18,47 @@ const HTTP_CLIENT_OP = "http.client";
 
 /** A path segment that is a row id, as every `/v1` route takes one. */
 const ROW_ID =
-  /\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\b/gi;
+  /\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\b/giu;
 
 /**
  * The Library's `GET /exercises/<slug>`: the one variable segment that isn't a
  * row id. `workout-session-exercises/…` has no slash before `exercises`, so
  * the Public API's routes never match.
  */
-const EXERCISE_SLUG = /\/exercises\/[^/?#\s]+/g;
+const EXERCISE_SLUG = /\/exercises\/[^/?#\s]+/gu;
 
 /** Arnold's `/eve/v1/session/<id>…`, whose eve session id is no uuid. */
-const EVE_SESSION = /\/session\/[^/?#\s]+/g;
+const EVE_SESSION = /\/session\/[^/?#\s]+/gu;
 
 /** The span attributes that carry the request URL, query string and all. */
-const URL_ATTRIBUTES = ["http.url", "url", "url.full"];
+const URL_ATTRIBUTES = new Set(["http.url", "url", "url.full"]);
+const urlAttributeSchema = z.string();
 
 /**
  * The attributes that are only a query string or a fragment: dropped whole,
  * since the Library's `?search=` is what the User typed.
  */
-const QUERY_ATTRIBUTES = [
+const QUERY_ATTRIBUTES = new Set([
   "http.fragment",
   "http.query",
   "url.fragment",
   "url.query",
-];
+]);
 
 /** The route a URL belongs to: its row ids, slugs and session ids templated. */
 const templated = (url: string): string =>
   url
-    .replace(ROW_ID, "/{id}")
-    .replace(EXERCISE_SLUG, "/exercises/{slug}")
-    .replace(EVE_SESSION, "/session/{id}");
+    .replaceAll(ROW_ID, "/{id}")
+    .replaceAll(EXERCISE_SLUG, "/exercises/{slug}")
+    .replaceAll(EVE_SESSION, "/session/{id}");
 
 /** Everything after the path: a query string, a fragment, or both. */
-const QUERY_AND_FRAGMENT = /[?#].*$/;
+const QUERY_AND_FRAGMENT = /[?#].*$/u;
 
 /** The parts of a transaction event this module reads. */
 export interface SpannedEvent {
   spans?: {
-    data?: Record<string, unknown>;
+    data?: NonNullable<TransactionEvent["spans"]>[number]["data"];
     description?: string;
     op?: string;
   }[];
@@ -66,19 +69,25 @@ type RequestSpan = NonNullable<SpannedEvent["spans"]>[number];
 const templateRequestSpan = (span: RequestSpan) => {
   const data = Object.fromEntries(
     Object.entries(span.data ?? {}).flatMap(([name, value]) => {
-      if (QUERY_ATTRIBUTES.includes(name)) {
+      if (QUERY_ATTRIBUTES.has(name)) {
         return [];
       }
+
+      const url = URL_ATTRIBUTES.has(name)
+        ? urlAttributeSchema.safeParse(value)
+        : undefined;
+
       return [
         [
           name,
-          URL_ATTRIBUTES.includes(name) && typeof value === "string"
-            ? templated(value.replace(QUERY_AND_FRAGMENT, ""))
+          url?.success
+            ? templated(url.data.replace(QUERY_AND_FRAGMENT, ""))
             : value,
         ],
       ];
     })
   );
+
   return {
     ...span,
     data,

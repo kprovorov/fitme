@@ -61,27 +61,27 @@ Every Token lives in one file, `packages/design-tokens/src/tokens.css` (`@fitme/
 
 ## Color
 
-| Token                    | Value       | Use                                                                    |
-| ------------------------ | ----------- | ---------------------------------------------------------------------- |
-| `background`             | `#1f1d20`   | Screen background                                                      |
-| `foreground`             | `#fafafa`   | Body text                                                              |
-| `card`                   | `#171717`   | Card surface (`Card`, `MenuList`)                                      |
-| `card-foreground`        | `#fafafa`   | Text on `card`                                                         |
-| `popover`                | `#171717`   | Menus and popovers (shadcn set; unused on mobile so far)               |
-| `popover-foreground`     | `#fafafa`   | Text on `popover` (unused on mobile so far)                            |
-| `primary`                | `#c0ff38`   | The brand (lime): H1, H2, card titles, the main action, the active tab |
-| `primary-foreground`     | `#0a0a0a`   | Text on a lime fill (dark, not white)                                  |
-| `secondary`              | `#27272a`   | Secondary surfaces and buttons                                         |
-| `secondary-foreground`   | `#fafafa`   | Text on `secondary`                                                    |
-| `muted`                  | `#262626`   | Quiet surfaces                                                         |
-| `muted-foreground`       | `#a1a1a1`   | Secondary text: captions, metadata, hints                              |
-| `accent`                 | `#262626`   | Pressed and hover highlights                                           |
-| `accent-foreground`      | `#fafafa`   | Text on `accent`                                                       |
-| `destructive`            | `#ff6467`   | Delete and error, nothing else                                         |
-| `destructive-foreground` | `#0a0a0a`   | Text on a `destructive` fill (shadcn set; no Primitive draws one)      |
-| `border`                 | `#ffffff1a` | Separators and row dividers (`border-border`, often `border-hairline`) |
-| `input`                  | `#ffffff57` | Field stroke (`Input`, `Textarea`)                                     |
-| `ring`                   | `#fafafa`   | Focused field stroke (`Input`, `Textarea`), web and site focus ring    |
+| Token | Value | Use |
+| --- | --- | --- |
+| `background` | `#1f1d20` | Screen background |
+| `foreground` | `#fafafa` | Body text |
+| `card` | `#171717` | Card surface (`Card`, `MenuList`) |
+| `card-foreground` | `#fafafa` | Text on `card` |
+| `popover` | `#171717` | Menus and popovers (shadcn set; unused on mobile so far) |
+| `popover-foreground` | `#fafafa` | Text on `popover` (unused on mobile so far) |
+| `primary` | `#c0ff38` | The brand (lime): H1, H2, card titles, the main action, the active tab |
+| `primary-foreground` | `#0a0a0a` | Text on a lime fill (dark, not white) |
+| `secondary` | `#27272a` | Secondary surfaces and buttons |
+| `secondary-foreground` | `#fafafa` | Text on `secondary` |
+| `muted` | `#262626` | Quiet surfaces |
+| `muted-foreground` | `#a1a1a1` | Secondary text: captions, metadata, hints |
+| `accent` | `#262626` | Pressed and hover highlights |
+| `accent-foreground` | `#fafafa` | Text on `accent` |
+| `destructive` | `#ff6467` | Delete and error, nothing else |
+| `destructive-foreground` | `#0a0a0a` | Text on a `destructive` fill (shadcn set; no Primitive draws one) |
+| `border` | `#ffffff1a` | Separators and row dividers (`border-border`, often `border-hairline`) |
+| `input` | `#ffffff57` | Field stroke (`Input`, `Textarea`) |
+| `ring` | `#fafafa` | Focused field stroke (`Input`, `Textarea`), web and site focus ring |
 
 - **Contrast.** Three values deliberately differ from the palette mobile shipped with (FIT-215), which fell short of WCAG: `input` went from `#ffffff26` (about 1.6:1) to `#ffffff57`, at least 3:1 on `background` and `card` (1.4.11, component boundaries); `ring` went from `#737373` to `#fafafa`, so focus still shows next to the stronger `input` stroke (about 5:1 against it); and `destructive-foreground` went from `#fafafa` (2.8:1 on `destructive`) to `#0a0a0a` (6.9:1, AA for text), like `primary-foreground` on the lime. `destructive` itself stays, so error text in `destructive` keeps about 5.8:1 on `background` and 6.2:1 on `card`. No red can carry white text at 4.5:1 and also be error text at 4.5:1, and dark text on red doesn't look right, so nothing draws on a `destructive` fill (FIT-248): the destructive `Button` and `Badge` are `destructive` text on `secondary` (about 5.2:1), as iOS draws a destructive role in a bordered or glass style. `destructive-foreground` is kept on purpose, for the shadcn / react-native-reusables set, with its floor. The contrast tests in `packages/design-tokens/src/__tests__/tokens.test.ts` hold these floors: a Token change that drops below one fails them. On iOS the destructive Button is the prominent style tinted `secondary`, which fills with the tint itself, so glass, the solid fallback, web and site all put the label on `secondary` (measured 5.16:1 on iOS). Regular glass and `bordered` draw their own lighter grey (about 3.8:1 and 2.6:1 under the red label), so destructive never uses them.
 - In `className` use token names only (`text-muted-foreground`, `bg-background`). No hex, `rgb()` or `hsl()` in `className` or `style`.
@@ -95,42 +95,42 @@ Every Token lives in one file, `packages/design-tokens/src/tokens.css` (`@fitme/
 
 Text is set in Apple's HIG text styles (iOS, default Large size), one utility per style from `@fitme/design-tokens`. Each sets the family, weight, size and line height together, with letter spacing 0 (Apple's tracking is tuned for SF Pro, not Nunito Sans). `text-<style>` is the HIG's Regular weight and `text-<style>-emphasized` its Emphasized weight, in Nunito Sans. The same class names work on mobile, web and site; each app maps the font roles (`--font-nunito-sans-regular` / `-semibold` / `-bold`, `--font-ibm-plex-mono` / `-semibold`) to the font it loads (mobile: the bundled font files, in `global.css`).
 
-| Class                                       | Size / line height (pt) | Regular  | Emphasized |
-| ------------------------------------------- | ----------------------- | -------- | ---------- |
-| `text-large-title` / `-emphasized`          | 34 / 41                 | Regular  | Bold       |
-| `text-title-1` / `-emphasized`              | 28 / 34                 | Regular  | Bold       |
-| `text-title-2` / `-emphasized`              | 22 / 28                 | Regular  | Bold       |
-| `text-title-3` / `-emphasized`              | 20 / 25                 | Regular  | Semibold   |
-| `text-headline` / `-emphasized`             | 17 / 22                 | Semibold | Semibold   |
-| `text-body` / `-emphasized`                 | 17 / 22                 | Regular  | Semibold   |
-| `text-callout` / `-emphasized`              | 16 / 21                 | Regular  | Semibold   |
-| `text-subhead` / `-emphasized`              | 15 / 20                 | Regular  | Semibold   |
-| `text-footnote` / `-emphasized`             | 13 / 18                 | Regular  | Semibold   |
-| `text-caption-1` / `-emphasized`            | 12 / 16                 | Regular  | Semibold   |
-| `text-caption-2` / `-emphasized`            | 11 / 13                 | Regular  | Semibold   |
+| Class | Size / line height (pt) | Regular | Emphasized |
+| --- | --- | --- | --- |
+| `text-large-title` / `-emphasized` | 34 / 41 | Regular | Bold |
+| `text-title-1` / `-emphasized` | 28 / 34 | Regular | Bold |
+| `text-title-2` / `-emphasized` | 22 / 28 | Regular | Bold |
+| `text-title-3` / `-emphasized` | 20 / 25 | Regular | Semibold |
+| `text-headline` / `-emphasized` | 17 / 22 | Semibold | Semibold |
+| `text-body` / `-emphasized` | 17 / 22 | Regular | Semibold |
+| `text-callout` / `-emphasized` | 16 / 21 | Regular | Semibold |
+| `text-subhead` / `-emphasized` | 15 / 20 | Regular | Semibold |
+| `text-footnote` / `-emphasized` | 13 / 18 | Regular | Semibold |
+| `text-caption-1` / `-emphasized` | 12 / 16 | Regular | Semibold |
+| `text-caption-2` / `-emphasized` | 11 / 13 | Regular | Semibold |
 
 Mono is IBM Plex Mono, for numbers that line up in columns (reps, weights, timers, stats): `text-mono-<style>` (Regular) and `text-mono-<style>-semibold` at five of the sizes above, `title-2`, `body`, `subhead`, `footnote` and `caption-1`. Those are the only Mono styles: mobile bundles IBM Plex Mono Regular and SemiBold only.
 
 Each text Primitive is one HIG style and one color. `H1`–`H4`, `P`, `Muted` and the rest in `components/ui/typography` are the same map as `Text`'s `variant` (`H1` is `variant="h1"`, `Muted` is `variant="muted"`), `TEXT_VARIANTS` in `components/ui/text.tsx`:
 
-| Role                                   | Class                                           | Color              | Primitive                                    |
-| -------------------------------------- | ----------------------------------------------- | ------------------ | -------------------------------------------- |
-| Hero or empty-state title              | `text-large-title-emphasized`                   | `primary`          | `H1` (`components/ui/typography`)            |
-| Section title                          | `text-title-1-emphasized`                       | `primary`          | `H2`                                         |
-| Card or group title                    | `text-title-2-emphasized`                       | `foreground`       | `H3` (`CardTitle` too, in `primary`)         |
-| Row title, emphasized line             | `text-title-3-emphasized`                       | `foreground`       | `H4`                                         |
-| Intro line under a title               | `text-title-2`                                  | `muted-foreground` | `Lead`                                       |
-| Strong line in running text            | `text-headline`                                 | `foreground`       | `Large`                                      |
-| Body                                   | `text-body`                                     | `foreground`       | `Text` (`components/ui/text`), `P`           |
-| Quote                                  | `text-body`, with a `border` rule on the left   | `foreground`       | `BlockQuote`                                 |
-| Small strong label                     | `text-subhead-emphasized`                       | `foreground`       | `Small`                                      |
-| Secondary line                         | `text-subhead`                                  | `muted-foreground` | `Muted`                                      |
-| Inline code                            | `text-mono-subhead-semibold`, on `muted`        | `foreground`       | `Code`                                       |
-| Button label                           | `text-subhead-emphasized`, `text-body-emphasized`                       | by `variant`       | `Button` (by `size`)                         |
-| Badge label                            | `text-footnote-emphasized`                      | by `variant`       | `Badge`                                      |
-| Table header / cell                    | `text-subhead-emphasized` / `text-subhead`      | `foreground`       | `TableHead` / `TableCell`                    |
-| Metadata, captions                     | `text-footnote`, `text-caption-1`               |                    | `Text` with the class                        |
-| Numbers in columns                     | `text-mono-body` (headers `-semibold`, or Regular in `primary`) |      | `Text` with the class                        |
+| Role | Class | Color | Primitive |
+| --- | --- | --- | --- |
+| Hero or empty-state title | `text-large-title-emphasized` | `primary` | `H1` (`components/ui/typography`) |
+| Section title | `text-title-1-emphasized` | `primary` | `H2` |
+| Card or group title | `text-title-2-emphasized` | `foreground` | `H3` (`CardTitle` too, in `primary`) |
+| Row title, emphasized line | `text-title-3-emphasized` | `foreground` | `H4` |
+| Intro line under a title | `text-title-2` | `muted-foreground` | `Lead` |
+| Strong line in running text | `text-headline` | `foreground` | `Large` |
+| Body | `text-body` | `foreground` | `Text` (`components/ui/text`), `P` |
+| Quote | `text-body`, with a `border` rule on the left | `foreground` | `BlockQuote` |
+| Small strong label | `text-subhead-emphasized` | `foreground` | `Small` |
+| Secondary line | `text-subhead` | `muted-foreground` | `Muted` |
+| Inline code | `text-mono-subhead-semibold`, on `muted` | `foreground` | `Code` |
+| Button label | `text-subhead-emphasized`, `text-body-emphasized` | by `variant` | `Button` (by `size`) |
+| Badge label | `text-footnote-emphasized` | by `variant` | `Badge` |
+| Table header / cell | `text-subhead-emphasized` / `text-subhead` | `foreground` | `TableHead` / `TableCell` |
+| Metadata, captions | `text-footnote`, `text-caption-1` |  | `Text` with the class |
+| Numbers in columns | `text-mono-body` (headers `-semibold`, or Regular in `primary`) |  | `Text` with the class |
 
 - Text gets exactly one text style. No `font-*` weight or family class, `leading-*` or `tracking-*` next to it, and no `font-bold` to make a label heavier: pick the `-emphasized` style. Hierarchy within one role comes from Regular vs Emphasized and `text-muted-foreground`, not from another size.
 - Headings come from `H1`–`H4`: they carry the style, the color and the heading role for VoiceOver. Don't rebuild one from `Text` and classes. `Text`'s `variant="h1"` gives the same style and role, but `Text` also takes the text style of the Primitive it sits in (`TextClassContext`), which a heading shouldn't, so use `H1`–`H4`.
@@ -144,14 +144,14 @@ Each text Primitive is one HIG style and one color. `H1`–`H4`, `P`, `Muted` an
 
 Button heights are Apple's iOS 27 kit's (`Button - Liquid Glass`: Small, Medium, Large), as the Figma Button set's `Size` variables are (FIT-366, FIT-368). A circle's diameter equals its pill's height, as in the kit. Our labels are taller than the kit's, so a native style would grow around them. The mobile `Button` (`frameModifiers` in `components/ui/button.tsx`) trims a text label by how far its line box overhangs the kit's (`LABEL_OVERHANG`, negative vertical padding: it draws unclipped and centered, and the button still grows with Dynamic Type or a wrapped label), and frames an icon (square, in a circle) or hosted views at the token minus the padding the style adds (`NATIVE_PADDING`: 10 / 14 / 30 pt, the same for pills and circles, Liquid Glass and iOS 27's solid styles; the solid styles before iOS 26 weren't measured). A `ghost` Button and a painted circle (below iOS 17) have no style to pad them, so they take the token itself. Web and site take the tokens as they are (`Size/button-pill-default` in Figma).
 
-| Token                          | Value | `Button`                                   | Measured on iOS 27 (pt) |
-| ------------------------------ | ----- | ------------------------------------------ | ----------------------- |
-| `--size-button-pill-sm`        | 28px  | `size="sm"` (`controlSize(.small)`, Small) | 28.00                   |
-| `--size-button-pill-default`   | 34px  | `size="default"` (`.regular`, Medium)      | 34.00                   |
-| `--size-button-pill-lg`        | 50px  | `size="lg"` (`.large`, Large)              | 50.00                   |
-| `--size-button-circle-sm`      | 28px  | `shape="circle" size="sm"`                 | 28.00                   |
-| `--size-button-circle-default` | 34px  | `shape="circle"`                           | 34.00                   |
-| `--size-button-circle-lg`      | 50px  | `shape="circle" size="lg"`                 | 50.00                   |
+| Token | Value | `Button` | Measured on iOS 27 (pt) |
+| --- | --- | --- | --- |
+| `--size-button-pill-sm` | 28px | `size="sm"` (`controlSize(.small)`, Small) | 28.00 |
+| `--size-button-pill-default` | 34px | `size="default"` (`.regular`, Medium) | 34.00 |
+| `--size-button-pill-lg` | 50px | `size="lg"` (`.large`, Large) | 50.00 |
+| `--size-button-circle-sm` | 28px | `shape="circle" size="sm"` | 28.00 |
+| `--size-button-circle-default` | 34px | `shape="circle"` | 34.00 |
+| `--size-button-circle-lg` | 50px | `shape="circle" size="lg"` | 50.00 |
 
 On iOS 27 `.large` and `.extraLarge` draw the same box. Web and site pills take the kit's horizontal padding: `px-2.5`, `px-3`, `px-5`. Re-measure `NATIVE_PADDING` and `LABEL_OVERHANG` when the label fonts, the control sizes or the iOS version change: render every size, shape and variant in a throwaway `__DEV__` screen, with Liquid Glass and with the solid styles (`GLASS_ENABLED` forced off), log the `onLayout` height of a `View` around each Button, and fix the values until each one lands on its token. The heights themselves change only with the kit: then update `tokens.css`, the Figma `Size` variables and this table together.
 
@@ -164,7 +164,7 @@ No `.tsx` file in mobile, web or site hardcodes a color or an off-scale size, an
 
 What it leaves alone, and why:
 
-- Comments, JSX text (copy like "Order #1"), URL fragments (`page#faq`), and the whole value of `href`, `id`, `testID` and `nativeID`, wrapped in `{…}` or built from a template too (`` href={`${path}#add`} ``): URLs, anchors and ids are never style, so no rule applies to them (`href="/colors/rgb(1,2,3)"`, `testID="rounded-[10px]"` pass). It reads the code through TypeScript's parser, so only real string literals count (quoted strings, JSX attribute values, the static parts of template literals).
+- Comments, JSX text (copy like "Order #1"), URL fragments (`page#faq`), and the whole value of `href`, `id`, `testID` and `nativeID`, wrapped in `{…}` or built from a template too (``href={`${path}#add`}``): URLs, anchors and ids are never style, so no rule applies to them (`href="/colors/rgb(1,2,3)"`, `testID="rounded-[10px]"` pass). It reads the code through TypeScript's parser, so only real string literals count (quoted strings, JSX attribute values, the static parts of template literals).
 - Token references: the CSS-variable shorthand in parentheses (`h-(--size-button-pill-default)`) has no brackets, and a bracket that holds exactly one variable (`[var(--x)]`, `[--x]`) names a token, not a value. A fallback (`p-[var(--x,13px)]`) hides a value, so it fails.
 - Other arbitrary utilities (`w-[…]`, `h-[…]`, `max-w-[80%]`, `grid-cols-[…]`, `ring-[…]`): sizes the scales don't cover; prefer a numeric step where one fits.
 - Tests (`__tests__/`, `*.test.tsx`), native projects and build output: fixtures and generated code, not UI. `.ts` files aren't read either, so a color constant in one isn't caught: native props read the tokens through `useCSSVariable` or `useResolveClassNames` instead (see [Color](#color)), never a TypeScript copy.
@@ -260,14 +260,14 @@ Copy patterns from these:
 
 The project skills in `.claude/skills/`, by when to load them:
 
-| When                             | Mobile                                                                                       | Web and site                                                                                     |
-| -------------------------------- | -------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------ |
-| Unsure what it should look like  | `prototype`, rebuilt in React Native (see below)                                             | `prototype`                                                                                      |
-| Building                         | `building-native-ui`, `uniwind`, `vercel-react-native-skills`                                | `frontend-design`, `pick-ui-library`                                                             |
-| Adding motion, gestures, haptics | `animate-expo`                                                                               | `animate`, `animation-performance`                                                               |
-| Stress-testing the states        | `break-ui`, data catalog only (see below)                                                    | `break-ui`                                                                                       |
-| Polish and review                | `animate-expo`'s "Never ship" list; `apple-design` and `emil-design-eng` for principles only | `web-design-guidelines`, `emil-design-eng`, `apple-design`, `review-animations`, `mobile-native` |
-| Auditing motion across the app   | `find-animation-opportunities`, `improve-animations`                                         | same                                                                                             |
+| When | Mobile | Web and site |
+| --- | --- | --- |
+| Unsure what it should look like | `prototype`, rebuilt in React Native (see below) | `prototype` |
+| Building | `building-native-ui`, `uniwind`, `vercel-react-native-skills` | `frontend-design`, `pick-ui-library` |
+| Adding motion, gestures, haptics | `animate-expo` | `animate`, `animation-performance` |
+| Stress-testing the states | `break-ui`, data catalog only (see below) | `break-ui` |
+| Polish and review | `animate-expo`'s "Never ship" list; `apple-design` and `emil-design-eng` for principles only | `web-design-guidelines`, `emil-design-eng`, `apple-design`, `review-animations`, `mobile-native` |
+| Auditing motion across the app | `find-animation-opportunities`, `improve-animations` | same |
 
 - `prototype`, `pick-ui-library` and `review-animations` only run when asked for by name. `frontend-design` is a plugin skill, not in the repo. `web-design-guidelines` fetches its rules from GitHub, so it needs web access. `animation-vocabulary` turns a described effect into its name, for prompting; `ask-sonner` covers toasts on the web.
 - `apple-design`, `emil-design-eng` and `review-animations` are written for the web: all their code is CSS and Framer Motion. On mobile take their principles and build them with `animate-expo`.

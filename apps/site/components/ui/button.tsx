@@ -1,61 +1,65 @@
 import { Slot, Slottable } from "@radix-ui/react-slot";
 import { cva } from "class-variance-authority";
-import {
-  type ComponentProps,
-  type ComponentType,
-  createElement,
-  isValidElement,
-  type ReactElement,
-  type ReactNode,
-  type SVGProps,
+import { createElement, isValidElement } from "react";
+import type {
+  ComponentProps,
+  ComponentType,
+  ReactElement,
+  ReactNode,
+  SVGProps,
 } from "react";
+
 import { cn } from "@/lib/utils";
 
 type ButtonVariant = "default" | "secondary" | "destructive" | "ghost";
+
 type ButtonSize = "sm" | "default" | "lg";
-type ButtonShape = "pill" | "circle";
+
+type ButtonLayout = "pill" | "circle";
+
 type ButtonIconPosition = "leading" | "trailing";
+
 // Pass a Tabler component or an already made icon.
 type ButtonIcon = ComponentType<SVGProps<SVGSVGElement>> | ReactElement;
 
 const buttonVariants = cva(
-  "inline-flex shrink-0 items-center justify-center gap-2 whitespace-nowrap rounded-full transition-colors focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:pointer-events-none disabled:opacity-50",
+  "focus-visible:ring-ring focus-visible:ring-offset-background inline-flex shrink-0 items-center justify-center gap-2 rounded-full whitespace-nowrap transition-colors focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-hidden disabled:pointer-events-none disabled:opacity-50",
   {
     compoundVariants: [
       {
         className: "h-(--size-button-pill-sm) px-2.5",
-        shape: "pill",
+        layout: "pill",
         size: "sm",
       },
       {
         className: "h-(--size-button-pill-default) px-3",
-        shape: "pill",
+        layout: "pill",
         size: "default",
       },
       {
         className: "h-(--size-button-pill-lg) px-5",
-        shape: "pill",
+        layout: "pill",
         size: "lg",
       },
       {
         className: "size-(--size-button-circle-sm)",
-        shape: "circle",
+        layout: "circle",
         size: "sm",
       },
       {
         className: "size-(--size-button-circle-default)",
-        shape: "circle",
+        layout: "circle",
         size: "default",
       },
       {
         className: "size-(--size-button-circle-lg)",
-        shape: "circle",
+        layout: "circle",
         size: "lg",
       },
     ],
-    defaultVariants: { shape: "pill", size: "default", variant: "default" },
+    defaultVariants: { layout: "pill", size: "default", variant: "default" },
     variants: {
-      shape: { circle: "p-0", pill: "" },
+      layout: { circle: "p-0", pill: "" },
       size: {
         default: "text-body-emphasized",
         lg: "text-body-emphasized",
@@ -64,7 +68,7 @@ const buttonVariants = cva(
       variant: {
         default: "bg-primary text-primary-foreground",
         destructive: "bg-secondary text-destructive",
-        ghost: "bg-transparent text-foreground hover:bg-muted",
+        ghost: "text-foreground hover:bg-muted bg-transparent",
         secondary: "bg-secondary text-secondary-foreground",
       },
     },
@@ -105,19 +109,20 @@ type CircleButtonProps = ButtonBaseProps & {
 
 type ButtonProps = PillButtonProps | ChildButtonProps | CircleButtonProps;
 
-function Button({
+const Button = ({
   asChild = false,
   children,
   className,
   icon,
   iconPosition = "leading",
-  shape = "pill",
+  shape: layout = "pill",
   size = "default",
   type,
   variant = "default",
   ...props
-}: ButtonProps) {
+}: ButtonProps) => {
   const Comp = asChild ? Slot : "button";
+
   const iconView = icon ? (
     <span
       aria-hidden="true"
@@ -132,26 +137,27 @@ function Button({
 
   return (
     <Comp
-      className={cn(className, buttonVariants({ shape, size, variant }))}
+      className={cn(className, buttonVariants({ layout, size, variant }))}
       type={asChild ? undefined : (type ?? "button")}
       {...props}
     >
-      {shape === "circle" || iconPosition === "leading" ? iconView : null}
-      <Slottable>{shape === "pill" ? children : null}</Slottable>
-      {shape === "pill" && iconPosition === "trailing" ? iconView : null}
+      {layout === "circle" || iconPosition === "leading" ? iconView : null}
+      <Slottable>{layout === "pill" ? children : null}</Slottable>
+      {layout === "pill" && iconPosition === "trailing" ? iconView : null}
     </Comp>
   );
-}
+};
 
 export type {
   ButtonIcon,
   ButtonIconPosition,
+  ButtonLayout,
   ButtonProps,
-  ButtonShape,
   ButtonSize,
   ButtonVariant,
   ChildButtonProps,
   CircleButtonProps,
   PillButtonProps,
 };
+
 export { Button };

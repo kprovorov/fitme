@@ -2,38 +2,52 @@ import { useSignIn } from "@clerk/expo";
 import { router } from "expo-router";
 import { useTranslation } from "react-i18next";
 import { View } from "react-native";
+
 import { AuthHeader } from "~/components/auth/auth-header";
 import { AuthSwitch } from "~/components/auth/auth-links";
-import { type AuthFormParts, AuthScreen } from "~/components/auth/auth-screen";
+import { AuthScreen } from "~/components/auth/auth-screen";
+import type { AuthFormParts } from "~/components/auth/auth-screen";
 import { getAuthErrorMessage } from "~/components/auth/error";
 import { useAuthOperation } from "~/components/auth/operation";
-import ForgotPasswordForm, {
-  type ForgotPasswordFormValues,
-} from "~/components/forms/auth/forgot-password-form";
+import ForgotPasswordForm from "~/components/forms/auth/forgot-password-form";
+import type { ForgotPasswordFormValues } from "~/components/forms/auth/forgot-password-form";
 import { ErrorMessage } from "~/components/ui/error-message";
-export default function ForgotPasswordView() {
+
+const ForgotPasswordView = () => {
+  const { signIn } = useSignIn();
+  const { t } = useTranslation();
+  const operation = useAuthOperation();
+  const { clearError: handleEdit } = operation;
+
   const requestCode = ({ email }: ForgotPasswordFormValues) =>
     operation.run("email", async (current) => {
       const { error } = await signIn.create({ identifier: email });
+
       if (!current()) {
         return;
       }
+
       if (error) {
         return getAuthErrorMessage(error);
       }
+
       const { error: sendError } =
         await signIn.resetPasswordEmailCode.sendCode();
+
       if (!current()) {
         return;
       }
+
       if (sendError) {
         return getAuthErrorMessage(sendError);
       }
+
       router.push({
         params: { purpose: "reset-password" },
         pathname: "/auth/verify-code",
       });
     });
+
   const renderForm = ({ action, fields }: AuthFormParts) => (
     <AuthScreen
       action={
@@ -61,16 +75,16 @@ export default function ForgotPasswordView() {
       {fields}
     </AuthScreen>
   );
-  const { signIn } = useSignIn();
-  const { t } = useTranslation();
-  const operation = useAuthOperation();
+
   return (
     <ForgotPasswordForm
       disabled={operation.pending !== null}
-      onEdit={operation.clearError}
+      onEdit={handleEdit}
       onSubmit={requestCode}
     >
       {renderForm}
     </ForgotPasswordForm>
   );
-}
+};
+
+export default ForgotPasswordView;

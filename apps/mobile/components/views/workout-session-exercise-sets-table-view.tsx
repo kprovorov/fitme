@@ -1,22 +1,22 @@
 import { unitName } from "@fitme/i18n";
-import { type ReactNode, useState } from "react";
+import { useState } from "react";
+import type { ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { View } from "react-native";
+
 import type { SavedWorkoutSessionExerciseSet } from "~/hooks/queries/workout-session-exercise-sets";
 import type {
   WorkoutSession,
   WorkoutSessionSet,
 } from "~/hooks/queries/workout-sessions";
 import { cn } from "~/lib/utils";
+
 import {
   SET_CHECK_COLUMN_CLASS,
-  SET_NUMBER_COLUMN_CLASS,
   SET_TABLE_MAX_FONT_SCALE,
-  SET_TARGET_COLUMN_CLASS,
 } from "../forms/workout-exercise-set-form";
 import { Button } from "../ui/button";
 import { Text } from "../ui/text";
-import { VStack } from "../ui/vstack";
 import WorkoutSessionExerciseSetRowView from "./workout-session-exercise-set-row-view";
 
 interface WorkoutSessionExerciseSetsTableViewProps {
@@ -41,33 +41,31 @@ interface LocalSet {
   order: number;
 }
 
-function ColumnLabel({
+const ColumnLabel = ({
   children,
   className,
 }: {
   children: ReactNode;
   className?: string;
-}) {
-  return (
-    <Text
-      adjustsFontSizeToFit
-      className={cn("text-center text-mono-body text-primary", className)}
-      maxFontSizeMultiplier={SET_TABLE_MAX_FONT_SCALE}
-      numberOfLines={1}
-    >
-      {children}
-    </Text>
-  );
-}
+}) => (
+  <Text
+    adjustsFontSizeToFit
+    className={cn("text-center", className)}
+    maxFontSizeMultiplier={SET_TABLE_MAX_FONT_SCALE}
+    numberOfLines={1}
+  >
+    {children}
+  </Text>
+);
 
-export default function WorkoutSessionExerciseSetsTableView({
+const WorkoutSessionExerciseSetsTableView = ({
   exerciseId,
   onSetLogged,
   workoutSessionExerciseSets,
   readOnly = false,
   sessionId,
   weightUnit,
-}: WorkoutSessionExerciseSetsTableViewProps) {
+}: WorkoutSessionExerciseSetsTableViewProps) => {
   const { i18n, t } = useTranslation();
   const weightLabel = unitName(i18n, weightUnit);
   const [localSets, setLocalSets] = useState<LocalSet[]>([]);
@@ -79,22 +77,30 @@ export default function WorkoutSessionExerciseSetsTableView({
 
   const handleAddSet = () => {
     const newOrder = maxOrder + localSets.length + 1;
+
     const newLocalSet: LocalSet = {
       id: `local-${Date.now()}-${newOrder}`,
       order: newOrder,
     };
+
     setLocalSets([...localSets, newLocalSet]);
   };
 
   const handleSetLogged = (set: SavedWorkoutSessionExerciseSet) => {
-    const pendingOrders = [
-      ...workoutSessionExerciseSets
-        .filter((other) => other.id !== set.id && other.reps_completed === null)
-        .map((other) => other.order),
-      ...localSets
-        .filter((local) => local.order !== set.order)
-        .map((local) => local.order),
-    ];
+    const pendingOrders: number[] = [];
+
+    for (const other of workoutSessionExerciseSets) {
+      if (other.id !== set.id && other.reps_completed === null) {
+        pendingOrders.push(other.order);
+      }
+    }
+
+    for (const local of localSets) {
+      if (local.order !== set.order) {
+        pendingOrders.push(local.order);
+      }
+    }
+
     onSetLogged?.(
       set,
       pendingOrders.length > 0 ? Math.min(...pendingOrders) : null
@@ -105,31 +111,31 @@ export default function WorkoutSessionExerciseSetsTableView({
     if (!localId) {
       return;
     }
+
     setLocalSets(localSets.filter((set) => set.id !== localId));
   };
 
   return (
-    <VStack className="items-stretch gap-sm">
+    <View className="gap-sm flex flex-col items-stretch justify-center">
       <View
         accessibilityElementsHidden
-        className="flex-row items-center gap-sm"
+        className="gap-sm flex-row items-center"
         importantForAccessibility="no-hide-descendants"
       >
-        <ColumnLabel className={SET_NUMBER_COLUMN_CLASS}>#</ColumnLabel>
-        <ColumnLabel className={SET_TARGET_COLUMN_CLASS}>
-          {t("sets.columns.target")}
-        </ColumnLabel>
+        <ColumnLabel className="w-7">#</ColumnLabel>
+        <ColumnLabel className="w-20">{t("sets.columns.target")}</ColumnLabel>
         <ColumnLabel className="flex-1">{t("sets.columns.reps")}</ColumnLabel>
         <ColumnLabel className="flex-1">{weightLabel}</ColumnLabel>
         <View className={SET_CHECK_COLUMN_CLASS} />
       </View>
 
-      {[...workoutSessionExerciseSets]
-        .sort((a, b) => a.order - b.order)
+      {workoutSessionExerciseSets
+        .toSorted((a, b) => a.order - b.order)
         .map((workoutSessionExerciseSet, index, sorted) => {
           const locked = sorted
             .slice(0, index)
             .some((s) => s.reps_completed === null);
+
           return (
             <WorkoutSessionExerciseSetRowView
               exerciseId={exerciseId}
@@ -148,7 +154,9 @@ export default function WorkoutSessionExerciseSetsTableView({
           const allExistingDone = workoutSessionExerciseSets.every(
             (s) => s.reps_completed !== null
           );
+
           const locked = !allExistingDone || index > 0;
+
           return (
             <WorkoutSessionExerciseSetRowView
               exerciseId={exerciseId}
@@ -167,7 +175,6 @@ export default function WorkoutSessionExerciseSetsTableView({
 
       {!readOnly && (
         <Button
-          contentColorClassName="text-primary"
           fill
           icon="plus"
           label={t("sets.addSet")}
@@ -176,6 +183,8 @@ export default function WorkoutSessionExerciseSetsTableView({
           variant="ghost"
         />
       )}
-    </VStack>
+    </View>
   );
-}
+};
+
+export default WorkoutSessionExerciseSetsTableView;

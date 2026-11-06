@@ -1,13 +1,13 @@
 import {
   checkRateLimit,
   LIMITER_TIMEOUT_MS,
-  type RateLimiter,
-  type RateLimiterOptions,
   memoryRateLimiter as sharedMemoryRateLimiter,
   rateLimiterFromEnv as sharedRateLimiterFromEnv,
 } from "@fitme/rate-limit";
+import type { RateLimiter, RateLimiterOptions } from "@fitme/rate-limit";
 import { createMiddleware } from "hono/factory";
 import type { z } from "zod";
+
 import type { AuthEnv } from "./auth";
 import type { ErrorResponse } from "./schemas";
 
@@ -59,23 +59,33 @@ export const rateLimitUsers = ({
   timeoutMs = LIMITER_TIMEOUT_MS,
 }: {
   limiter: RateLimiter;
-  reportError: (error: unknown) => Promise<void>;
+  reportError: (error: Error) => Promise<void>;
   timeoutMs?: number;
 }) =>
   createMiddleware<AuthEnv>(async (c, next) => {
     const caller = c.get("caller");
+
     if (caller.type !== "user") {
       return next();
     }
+
     const result = await checkRateLimit({
       key: caller.userId,
       limiter,
-      reportError,
+      reportError: (cause) =>
+        reportError(
+          cause instanceof Error
+            ? cause
+            : new Error("Rate limiter failed", { cause })
+        ),
       timeoutMs,
     });
+
     if (!result.allowed) {
       c.header("Retry-After", String(result.retryAfterSeconds));
+
       return c.json(tooManyRequests, 429);
     }
+
     return next();
   });

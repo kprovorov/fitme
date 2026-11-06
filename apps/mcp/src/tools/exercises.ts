@@ -2,6 +2,7 @@ import { muscleGroups } from "@fitme/core";
 import type { ExercisePage } from "@fitme/library-sdk";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
+
 import type { ToolContext } from "../context.js";
 import {
   asJson,
@@ -17,10 +18,11 @@ import { DEFAULT_PAGE_SIZE, MAX_PAGE_SIZE } from "./limits.js";
 const DEFAULT_HISTORY_LIMIT = 10;
 const MAX_HISTORY_LIMIT = 50;
 const MAX_SEARCH_LENGTH = 100;
+
 /** The Library API's largest page; a bigger one takes two requests. */
 const LIBRARY_PAGE_SIZE = 50;
 
-export function registerExerciseTools(server: McpServer, ctx: ToolContext) {
+export const registerExerciseTools = (server: McpServer, ctx: ToolContext) => {
   server.registerTool(
     "list_exercises",
     {
@@ -66,13 +68,17 @@ export function registerExerciseTools(server: McpServer, ctx: ToolContext) {
           offset: offset + i * LIBRARY_PAGE_SIZE,
         })
       );
+
       const pages = await fromLibrary(ctx, (library) =>
         Promise.all(
           parts.map((part) => library.list({ ...part, muscleGroup, search }))
         )
       );
+
       const exercises = pages.flatMap((page) => page.data);
+      // SAFETY: The schema enforces limit >= 1, so parts and its Promise.all result contain at least one page.
       const [{ total }] = pages as [ExercisePage, ...ExercisePage[]];
+
       return asJson({
         exercises,
         hasMore: offset + exercises.length < total,
@@ -127,7 +133,8 @@ export function registerExerciseTools(server: McpServer, ctx: ToolContext) {
         limit,
         offset: 0,
       });
+
       return asJson({ entries, exerciseSlug, total });
     })
   );
-}
+};

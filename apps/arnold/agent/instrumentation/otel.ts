@@ -1,5 +1,6 @@
 import { resolveObservabilityConfig } from "@fitme/observability";
 import { otel } from "eve/instrumentation/otel";
+
 import { arnoldTracePolicy } from "../lib/trace-export";
 
 // Process-wide trace settings, shared by every destination (Sentry, Vercel

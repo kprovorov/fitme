@@ -1,22 +1,20 @@
 import { rateLimitedFor } from "@fitme/api-client";
 import { formatCount, formatDate, formatNumber, unitName } from "@fitme/i18n";
 import { isThisYear } from "date-fns";
-import {
-  type ReactNode,
-  type Ref,
-  useCallback,
-  useImperativeHandle,
-} from "react";
+import { useCallback, useImperativeHandle } from "react";
+import type { ReactNode, Ref } from "react";
 import { useTranslation } from "react-i18next";
 import { ActivityIndicator, View } from "react-native";
-import {
-  type ExerciseHistoryEntry,
-  type ExerciseHistorySet,
-  useExerciseHistoryQuery,
+
+import { useExerciseHistoryQuery } from "~/hooks/queries/exercises";
+import type {
+  ExerciseHistoryEntry,
+  ExerciseHistorySet,
 } from "~/hooks/queries/exercises";
 import { useI18n } from "~/lib/i18n";
 import { formatSetTarget, formatSetWeight } from "~/lib/set-inputs";
 import { cn } from "~/lib/utils";
+
 import {
   SET_CHECK_COLUMN_CLASS,
   SET_NUMBER_COLUMN_CLASS,
@@ -59,7 +57,7 @@ interface ExerciseHistoryViewProps {
  * A cell of the table, in the Log Table's columns: `#` and target at fixed
  * widths, reps and weight sharing the rest, then the check column's spacer.
  */
-function Cell({
+const Cell = ({
   children,
   className,
   header = false,
@@ -67,60 +65,56 @@ function Cell({
   children: ReactNode;
   className: string;
   header?: boolean;
-}) {
-  return (
+}) => (
+  <View className={className}>
     <Text
       adjustsFontSizeToFit
       className={cn(
         "text-center",
-        header
-          ? "text-mono-body-semibold text-primary"
-          : "text-foreground text-mono-body",
-        className
+        header ? "text-mono-body-semibold text-primary" : "text-mono-body"
       )}
       maxFontSizeMultiplier={SET_TABLE_MAX_FONT_SCALE}
       numberOfLines={1}
     >
       {children}
     </Text>
-  );
-}
+  </View>
+);
 
-function Row({
+const Row = ({
   accessibilityLabel,
   children,
 }: {
   /** What VoiceOver reads for the row, as one element. */
   accessibilityLabel?: string;
   children: ReactNode;
-}) {
-  return (
-    <View
-      accessibilityLabel={accessibilityLabel}
-      accessible={!!accessibilityLabel}
-      className="h-10 flex-row items-center gap-sm"
-    >
-      {children}
-      <View className={SET_CHECK_COLUMN_CLASS} />
-    </View>
-  );
-}
+}) => (
+  <View
+    accessibilityLabel={accessibilityLabel}
+    accessible={!!accessibilityLabel}
+    className="gap-sm h-10 flex-row items-center"
+  >
+    {children}
+    <View className={SET_CHECK_COLUMN_CLASS} />
+  </View>
+);
 
 /** One past session: its date, then its logged sets as a table. */
-function SessionTable({
+const SessionTable = ({
   entry,
   weightLabel,
 }: {
   entry: ExerciseHistoryEntry;
   weightLabel: string;
-}) {
+}) => {
   const { t } = useTranslation();
   const i18n = useI18n();
-  const logged = [...entry.sets].sort((a, b) => a.order - b.order);
+  const logged = entry.sets.toSorted((a, b) => a.order - b.order);
   const date = new Date(entry.session.started_at);
+
   return (
     <View>
-      <Text className="text-muted-foreground text-subhead">
+      <Text variant="muted">
         {/* `21 October`, with the year once it's not this one. */}
         {formatDate(i18n, date, isThisYear(date) ? "dayMonth" : "dayMonthYear")}
       </Text>
@@ -146,11 +140,13 @@ function SessionTable({
         </View>
         {logged.map((set: ExerciseHistorySet) => {
           const target = formatSetTarget(set, weightLabel);
+
           // Bodyweight sets log no weight.
           const weight =
             set.weight_completed === null
               ? null
               : formatSetWeight(set.weight_completed);
+
           const loggedText = [
             formatCount(i18n, "reps", set.reps_completed),
             // Spoken in the App language's decimals: "50.5" / "50,5".
@@ -160,6 +156,7 @@ function SessionTable({
           ]
             .filter(Boolean)
             .join(", ");
+
           return (
             <Row
               accessibilityLabel={[
@@ -184,7 +181,7 @@ function SessionTable({
       </View>
     </View>
   );
-}
+};
 
 /**
  * Progress: the Exercise's past Workout Sessions read through `GET
@@ -195,11 +192,11 @@ function SessionTable({
  * `ref`). A failed refresh keeps the pages already read; with none read it
  * shows its load error, a 429 the wait, and Try again reads it again.
  */
-export default function ExerciseHistoryView({
+const ExerciseHistoryView = ({
   exerciseSlug,
   excludeId,
   ref,
-}: ExerciseHistoryViewProps) {
+}: ExerciseHistoryViewProps) => {
   const {
     data,
     error,
@@ -210,6 +207,7 @@ export default function ExerciseHistoryView({
     isFetchingNextPage,
     refetch,
   } = useExerciseHistoryQuery({ variables: { exerciseSlug } });
+
   const { t } = useTranslation();
   const i18n = useI18n();
 
@@ -226,16 +224,19 @@ export default function ExerciseHistoryView({
         // A request in flight is never sent again.
         return;
       }
+
       if (loadMoreFailed) {
         // Only the User's own gesture asks again, and a rate-limited one not
         // before `Retry-After` has passed.
         const waited =
           waitSeconds === null ||
           Date.now() >= errorUpdatedAt + waitSeconds * MS_PER_SECOND;
+
         if (trigger !== "drag-end" || !waited) {
           return;
         }
       }
+
       fetchNextPage({ cancelRefetch: false });
     },
     [
@@ -257,42 +258,55 @@ export default function ExerciseHistoryView({
   // Each entry keeps its own page's unit: a measurement system switched
   // elsewhere (Arnold, MCP, another device) between two page reads converts
   // every stored weight, so a later page comes back in the other unit.
-  const entries = pages.flatMap((page) =>
-    page.data
-      .filter((entry) => entry.id !== excludeId)
-      .map((entry) => ({ entry, weightUnit: page.weight_unit }))
-  );
+  const entries = pages.flatMap((page) => {
+    const pageEntries = [];
+
+    for (const entry of page.data) {
+      if (entry.id !== excludeId) {
+        pageEntries.push({ entry, weightUnit: page.weight_unit });
+      }
+    }
+
+    return pageEntries;
+  });
 
   if (pages.length === 0) {
     // Nothing read: the load error, or nothing at all while it's in flight.
     return isError ? (
-      <Card className="gap-sm" variant="ghost">
-        <CardTitle>{t("exerciseHistory.title")}</CardTitle>
-        <SessionLoadError
-          error={error}
-          message={t("exerciseHistory.loadError")}
-          onRetry={retry}
-        />
+      <Card variant="ghost">
+        <View className="gap-sm">
+          <CardTitle>{t("exerciseHistory.title")}</CardTitle>
+          <SessionLoadError
+            error={error}
+            message={t("exerciseHistory.loadError")}
+            onRetry={retry}
+          />
+        </View>
       </Card>
     ) : null;
   }
+
   if (entries.length === 0) {
     return null;
   }
 
   return (
-    <Card className="gap-sm" variant="ghost">
-      <CardTitle>{t("exerciseHistory.title")}</CardTitle>
-      {entries.map(({ entry, weightUnit }) => (
-        <SessionTable
-          entry={entry}
-          key={entry.id}
-          weightLabel={unitName(i18n, weightUnit)}
-        />
-      ))}
-      {isFetchingNextPage ? (
-        <ActivityIndicator colorClassName="accent-foreground" />
-      ) : null}
+    <Card variant="ghost">
+      <View className="gap-sm">
+        <CardTitle>{t("exerciseHistory.title")}</CardTitle>
+        {entries.map(({ entry, weightUnit }) => (
+          <SessionTable
+            entry={entry}
+            key={entry.id}
+            weightLabel={unitName(i18n, weightUnit)}
+          />
+        ))}
+        {isFetchingNextPage ? (
+          <ActivityIndicator colorClassName="accent-foreground" />
+        ) : null}
+      </View>
     </Card>
   );
-}
+};
+
+export default ExerciseHistoryView;

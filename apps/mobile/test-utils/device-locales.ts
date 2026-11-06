@@ -21,6 +21,7 @@ const ENGLISH_DEVICE = ["en-US"];
 /** A `Locale` as the device reports it, for a language tag like `uk-UA`. */
 const toLocale = (languageTag: string): Locale => {
   const [languageCode = null, regionCode = null] = languageTag.split("-");
+
   return {
     currencyCode: null,
     currencySymbol: null,
@@ -41,13 +42,16 @@ const toLocale = (languageTag: string): Locale => {
 
 let locales: Locale[] = ENGLISH_DEVICE.map(toLocale);
 let uses24hourClock = false;
+
 let calendars: [Calendar, ...Calendar[]] = [
   { calendar: null, firstWeekday: 1, timeZone: "UTC", uses24hourClock },
 ];
+
 const listeners = new Set<() => void>();
 
 const subscribe = (listener: () => void) => {
   listeners.add(listener);
+
   return () => {
     listeners.delete(listener);
   };
@@ -58,30 +62,32 @@ const subscribe = (listener: () => void) => {
  * `["ru-RU", "uk-UA"]`), and tells every mounted `useLocales()`. Wrap a
  * change during a test in `act`.
  */
-export function setDeviceLanguages(languageTags: readonly string[]): void {
+export const setDeviceLanguages = (languageTags: readonly string[]): void => {
   locales = languageTags.map(toLocale);
+
   for (const listener of listeners) {
     listener();
   }
-}
+};
 
 /**
  * Sets the device's clock (`true` for 24-hour) and tells every mounted
  * `useCalendars()`. Wrap a change during a test in `act`.
  */
-export function setDevice24HourClock(enabled: boolean): void {
+export const setDevice24HourClock = (enabled: boolean): void => {
   uses24hourClock = enabled;
   calendars = [{ ...calendars[0], uses24hourClock }];
+
   for (const listener of listeners) {
     listener();
   }
-}
+};
 
 /** Back to the English device on a 12-hour clock every test starts on. */
-export function resetDeviceLanguages(): void {
+export const resetDeviceLanguages = (): void => {
   setDeviceLanguages(ENGLISH_DEVICE);
   setDevice24HourClock(false);
-}
+};
 
 const getLocales = (): Locale[] => locales;
 const getCalendars = (): [Calendar, ...Calendar[]] => calendars;

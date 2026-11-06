@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
+
 import { admitTurn } from "../agent/lib/conversation";
 import { conversationOwner, ownerOfTurn } from "../agent/lib/owner";
 
@@ -35,22 +36,26 @@ describe("conversation owner", () => {
   });
 });
 
-describe("admitTurn", () => {
-  const deps = (owner: string | null = "user_alice") => ({
-    claim: vi.fn().mockResolvedValue(owner),
-    isEvalRun: () => false,
-    report: vi.fn().mockResolvedValue(undefined),
-  });
+const deps = (owner: string | null = "user_alice") => ({
+  claim: vi
+    .fn<Parameters<typeof admitTurn>[1]["claim"]>()
+    .mockResolvedValue(owner),
+  isEvalRun: () => false,
+  report: vi
+    .fn<Parameters<typeof admitTurn>[1]["report"]>()
+    .mockResolvedValue(undefined),
+});
 
+describe("turn admission", () => {
   it("records the session for its owner and lets the turn run", async () => {
     const { claim, isEvalRun, report } = deps();
 
-    expect(
-      await admitTurn(
+    await expect(
+      admitTurn(
         { auth: { current: alice, initiator: alice }, sessionId: "wrun_1" },
         { claim, isEvalRun, report }
       )
-    ).toBe(true);
+    ).resolves.toBeTruthy();
     expect(claim).toHaveBeenCalledWith("wrun_1", "user_alice");
     expect(report).not.toHaveBeenCalled();
   });
@@ -58,24 +63,24 @@ describe("admitTurn", () => {
   it("refuses a turn someone else sends to the owner's session", async () => {
     const { claim, isEvalRun, report } = deps();
 
-    expect(
-      await admitTurn(
+    await expect(
+      admitTurn(
         { auth: { current: mallory, initiator: alice }, sessionId: "wrun_1" },
         { claim, isEvalRun, report }
       )
-    ).toBe(false);
+    ).resolves.toBeFalsy();
     expect(claim).not.toHaveBeenCalled();
   });
 
   it("refuses the turn when the session is recorded for someone else", async () => {
     const { claim, isEvalRun, report } = deps("user_mallory");
 
-    expect(
-      await admitTurn(
+    await expect(
+      admitTurn(
         { auth: { current: alice, initiator: alice }, sessionId: "wrun_1" },
         { claim, isEvalRun, report }
       )
-    ).toBe(false);
+    ).resolves.toBeFalsy();
     expect(report).toHaveBeenCalledWith(expect.any(Error), {
       sessionId: "wrun_1",
     });
@@ -86,12 +91,12 @@ describe("admitTurn", () => {
     const failure = new Error("pooler down");
     claim.mockRejectedValue(failure);
 
-    expect(
-      await admitTurn(
+    await expect(
+      admitTurn(
         { auth: { current: alice, initiator: alice }, sessionId: "wrun_1" },
         { claim, isEvalRun, report }
       )
-    ).toBe(false);
+    ).resolves.toBeFalsy();
     expect(report).toHaveBeenCalledWith(failure, { sessionId: "wrun_1" });
   });
 });

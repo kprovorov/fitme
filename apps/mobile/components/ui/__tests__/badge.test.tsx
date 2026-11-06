@@ -1,5 +1,6 @@
 import { describe, expect, it, jest } from "@jest/globals";
 import { render, screen } from "@testing-library/react-native";
+
 import { Badge } from "../badge";
 import { Text } from "../text";
 
@@ -16,6 +17,7 @@ const VARIANTS = [
 jest.mock("~/components/symbol-image", () => {
   const { View: MockView } =
     jest.requireActual<typeof import("react-native")>("react-native");
+
   return {
     SymbolImage: (props: object) => <MockView {...props} testID="symbol" />,
   };
@@ -29,13 +31,17 @@ function symbol() {
 /** The badge's children in order: "symbol" for the icon, else the text. */
 function childOrder(): string[] {
   const badge = screen.getByTestId("badge");
+
   return badge.children.map((child) => {
     if (typeof child === "string") {
       return child;
     }
+
     const [first] = child.children;
+
     const isIcon =
       typeof first !== "string" && first?.props.testID === "symbol";
+
     return isIcon ? "symbol" : String(child.props.children);
   });
 }
@@ -96,7 +102,7 @@ describe("Badge", () => {
   it("keeps its own fill and shape when a caller passes surface classes", async () => {
     await render(
       <Badge
-        className="mt-2 rounded-none bg-primary px-4"
+        className="bg-primary mt-2 rounded-none px-4"
         testID="badge"
         variant="secondary"
       >
@@ -109,6 +115,7 @@ describe("Badge", () => {
     expect(classes).toEqual(
       expect.arrayContaining(["mt-2", "bg-secondary", "rounded-full", "px-2"])
     );
+
     for (const dropped of ["bg-primary", "rounded-none", "px-4"]) {
       expect(classes).not.toContain(dropped);
     }

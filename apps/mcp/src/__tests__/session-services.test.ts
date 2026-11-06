@@ -4,6 +4,8 @@ import type {
   WorkoutSessionSet,
 } from "@fitme/services/workout-sessions";
 import { describe, expect, it, vi } from "vitest";
+
+import type { UserServices } from "../services.js";
 import {
   BENCH,
   call,
@@ -76,15 +78,18 @@ const toolSession = {
 
 describe("get_workout_session", () => {
   it("returns the session the service found, its Exercises named", async () => {
-    const getWorkoutSession = vi.fn(() => Promise.resolve(sessionDetail));
+    const getWorkoutSession = vi.fn<UserServices["getWorkoutSession"]>(() =>
+      Promise.resolve(sessionDetail)
+    );
+
     const client = await connectWithServices({ getWorkoutSession });
 
     const result = await call(client, "get_workout_session", {
       sessionId: SESSION_ID,
     });
 
-    expect(result.isError).toBe(false);
-    expect(result.json).toEqual(toolSession);
+    expect(result.isError).toBeFalsy();
+    expect(result.json).toStrictEqual(toolSession);
     expect(getWorkoutSession).toHaveBeenCalledWith(SESSION_ID);
   });
 
@@ -92,6 +97,7 @@ describe("get_workout_session", () => {
     const library = fakeLibrary();
     library.failWith(new LibraryUnavailableError());
     const { reportError, reported } = recordingReporter();
+
     const client = await connectWithServices(
       { getWorkoutSession: () => Promise.resolve(sessionDetail) },
       reportError,
@@ -102,7 +108,7 @@ describe("get_workout_session", () => {
       sessionId: SESSION_ID,
     });
 
-    expect(result.isError).toBe(false);
+    expect(result.isError).toBeFalsy();
     expect(result.json).toMatchObject({
       exercises: [
         { muscle_groups: [], name: "Bench press" },
@@ -121,21 +127,21 @@ describe("get_workout_session", () => {
       sessionId: SESSION_ID,
     });
 
-    expect(result.isError).toBe(true);
+    expect(result.isError).toBeTruthy();
     expect(result.text).toBe(
       `Workout session ${SESSION_ID} not found (it may have been deleted or belong to another user).`
     );
   });
 
   it("rejects a session id that isn't a uuid", async () => {
-    const getWorkoutSession = vi.fn();
+    const getWorkoutSession = vi.fn<UserServices["getWorkoutSession"]>();
     const client = await connectWithServices({ getWorkoutSession });
 
     const result = await call(client, "get_workout_session", {
       sessionId: "nope",
     });
 
-    expect(result.isError).toBe(true);
+    expect(result.isError).toBeTruthy();
     expect(getWorkoutSession).not.toHaveBeenCalled();
   });
 });
@@ -157,9 +163,10 @@ describe("list_workout_sessions", () => {
   };
 
   it("passes the defaults and returns the page with hasMore", async () => {
-    const listWorkoutSessions = vi.fn(() =>
+    const listWorkoutSessions = vi.fn<UserServices["listWorkoutSessions"]>(() =>
       Promise.resolve({ sessions: [summary], total: 21 })
     );
+
     const client = await connectWithServices({ listWorkoutSessions });
 
     const result = await call(client, "list_workout_sessions");
@@ -169,7 +176,7 @@ describe("list_workout_sessions", () => {
       offset: 0,
       status: "all",
     });
-    expect(result.json).toEqual({
+    expect(result.json).toStrictEqual({
       hasMore: true,
       limit: 20,
       offset: 0,
@@ -179,9 +186,10 @@ describe("list_workout_sessions", () => {
   });
 
   it("passes the status filter and reports the last page", async () => {
-    const listWorkoutSessions = vi.fn(() =>
+    const listWorkoutSessions = vi.fn<UserServices["listWorkoutSessions"]>(() =>
       Promise.resolve({ sessions: [summary], total: 6 })
     );
+
     const client = await connectWithServices({ listWorkoutSessions });
 
     const result = await call(client, "list_workout_sessions", {
@@ -208,7 +216,7 @@ describe("list_workout_sessions", () => {
       status: "finished",
     });
 
-    expect(result.json).toEqual({
+    expect(result.json).toStrictEqual({
       hasMore: false,
       limit: 20,
       offset: 20,
@@ -218,14 +226,14 @@ describe("list_workout_sessions", () => {
   });
 
   it("rejects a page size over the maximum", async () => {
-    const listWorkoutSessions = vi.fn();
+    const listWorkoutSessions = vi.fn<UserServices["listWorkoutSessions"]>();
     const client = await connectWithServices({ listWorkoutSessions });
 
     const result = await call(client, "list_workout_sessions", {
       limit: 101,
     });
 
-    expect(result.isError).toBe(true);
+    expect(result.isError).toBeTruthy();
     expect(listWorkoutSessions).not.toHaveBeenCalled();
   });
 });
@@ -234,15 +242,16 @@ describe("log_set", () => {
   const args = { repsCompleted: 8, setId: SET_ID, weightCompleted: 62.5 };
 
   it("logs the set and returns it, weight unconverted", async () => {
-    const logSet = vi.fn(() =>
+    const logSet = vi.fn<UserServices["logSet"]>(() =>
       Promise.resolve({ set: loggedSet, status: "logged" as const })
     );
+
     const client = await connectWithServices({ logSet });
 
     const result = await call(client, "log_set", args);
 
-    expect(result.isError).toBe(false);
-    expect(result.json).toEqual(loggedSet);
+    expect(result.isError).toBeFalsy();
+    expect(result.json).toStrictEqual(loggedSet);
     expect(logSet).toHaveBeenCalledWith(args);
   });
 
@@ -253,7 +262,7 @@ describe("log_set", () => {
 
     const result = await call(client, "log_set", args);
 
-    expect(result.isError).toBe(true);
+    expect(result.isError).toBeTruthy();
     expect(result.text).toBe(
       `Set ${SET_ID} not found. Use the set ids from get_workout_session (workout_session_exercise_sets.id).`
     );
@@ -271,14 +280,14 @@ describe("log_set", () => {
 
     const result = await call(client, "log_set", args);
 
-    expect(result.isError).toBe(true);
+    expect(result.isError).toBeTruthy();
     expect(result.text).toBe(
       `Workout session ${SESSION_ID} was finished at ${FINISHED_AT}; its sets can no longer be logged.`
     );
   });
 
   it("rejects negative reps before calling the service", async () => {
-    const logSet = vi.fn();
+    const logSet = vi.fn<UserServices["logSet"]>();
     const client = await connectWithServices({ logSet });
 
     const result = await call(client, "log_set", {
@@ -286,7 +295,7 @@ describe("log_set", () => {
       repsCompleted: -1,
     });
 
-    expect(result.isError).toBe(true);
+    expect(result.isError).toBeTruthy();
     expect(logSet).not.toHaveBeenCalled();
   });
 
@@ -304,21 +313,24 @@ describe("log_set", () => {
 
     const result = await call(client, "log_set", args);
 
-    expect(result.isError).toBe(true);
+    expect(result.isError).toBeTruthy();
     expect(result.text).toBe("deadlock detected");
   });
 });
 
 describe("delete_workout_session", () => {
   it("deletes the session", async () => {
-    const deleteWorkoutSession = vi.fn(() => Promise.resolve(true));
+    const deleteWorkoutSession = vi.fn<UserServices["deleteWorkoutSession"]>(
+      () => Promise.resolve(true)
+    );
+
     const client = await connectWithServices({ deleteWorkoutSession });
 
     const result = await call(client, "delete_workout_session", {
       sessionId: SESSION_ID,
     });
 
-    expect(result.json).toEqual({ deleted: true, sessionId: SESSION_ID });
+    expect(result.json).toStrictEqual({ deleted: true, sessionId: SESSION_ID });
     expect(deleteWorkoutSession).toHaveBeenCalledWith(SESSION_ID);
   });
 
@@ -331,7 +343,7 @@ describe("delete_workout_session", () => {
       sessionId: SESSION_ID,
     });
 
-    expect(result.isError).toBe(true);
+    expect(result.isError).toBeTruthy();
     expect(result.text).toBe(
       `Workout session ${SESSION_ID} not found (it may have been deleted or belong to another user).`
     );
@@ -354,21 +366,25 @@ const toolOpenSession = {
 
 describe("start_workout_session", () => {
   it("starts a session and returns it", async () => {
-    const startWorkoutSession = vi.fn(() =>
+    const startWorkoutSession = vi.fn<UserServices["startWorkoutSession"]>(() =>
       Promise.resolve({
         resumed: false,
         session: openSession,
         status: "started" as const,
       })
     );
+
     const client = await connectWithServices({ startWorkoutSession });
 
     const result = await call(client, "start_workout_session", {
       workoutId: WORKOUT_ID,
     });
 
-    expect(result.isError).toBe(false);
-    expect(result.json).toEqual({ resumed: false, session: toolOpenSession });
+    expect(result.isError).toBeFalsy();
+    expect(result.json).toStrictEqual({
+      resumed: false,
+      session: toolOpenSession,
+    });
     expect(startWorkoutSession).toHaveBeenCalledWith(WORKOUT_ID);
   });
 
@@ -386,7 +402,10 @@ describe("start_workout_session", () => {
       workoutId: WORKOUT_ID,
     });
 
-    expect(result.json).toEqual({ resumed: true, session: toolOpenSession });
+    expect(result.json).toStrictEqual({
+      resumed: true,
+      session: toolOpenSession,
+    });
   });
 
   it("errors for a Workout it can't start (unknown, another user's or of a deleted plan)", async () => {
@@ -399,7 +418,7 @@ describe("start_workout_session", () => {
       workoutId: WORKOUT_ID,
     });
 
-    expect(result.isError).toBe(true);
+    expect(result.isError).toBeTruthy();
     expect(result.text).toBe(
       `Workout ${WORKOUT_ID} not found (its plan may have been deleted or belong to another user, or update_plan replaced it — get_plan returns the current workout ids).`
     );
@@ -407,6 +426,7 @@ describe("start_workout_session", () => {
 
   it("refuses while another workout's session is open, naming it, unreported", async () => {
     const { reportError, reported } = recordingReporter();
+
     const client = await connectWithServices(
       {
         startWorkoutSession: () =>
@@ -423,11 +443,11 @@ describe("start_workout_session", () => {
       workoutId: WORKOUT_ID,
     });
 
-    expect(result.isError).toBe(true);
+    expect(result.isError).toBeTruthy();
     expect(result.text).toBe(
       `Workout "Day A" is already in progress (session ${SESSION_ID}): a user has at most one open workout session. Finish it with finish_workout_session (or delete_workout_session) before starting another.`
     );
-    expect(reported).toEqual([]);
+    expect(reported).toStrictEqual([]);
   });
 
   it("refuses while a session whose workout is gone is open", async () => {
@@ -444,21 +464,21 @@ describe("start_workout_session", () => {
       workoutId: WORKOUT_ID,
     });
 
-    expect(result.isError).toBe(true);
+    expect(result.isError).toBeTruthy();
     expect(result.text).toBe(
       `Workout session ${SESSION_ID} is already in progress: a user has at most one open workout session. Finish it with finish_workout_session (or delete_workout_session) before starting another.`
     );
   });
 
   it("rejects a workout id that isn't a uuid", async () => {
-    const startWorkoutSession = vi.fn();
+    const startWorkoutSession = vi.fn<UserServices["startWorkoutSession"]>();
     const client = await connectWithServices({ startWorkoutSession });
 
     const result = await call(client, "start_workout_session", {
       workoutId: "nope",
     });
 
-    expect(result.isError).toBe(true);
+    expect(result.isError).toBeTruthy();
     expect(startWorkoutSession).not.toHaveBeenCalled();
   });
 
@@ -478,30 +498,33 @@ describe("start_workout_session", () => {
       workoutId: WORKOUT_ID,
     });
 
-    expect(result.isError).toBe(true);
+    expect(result.isError).toBeTruthy();
     expect(result.text).toBe("deadlock detected");
   });
 });
 
-describe("finish_workout_session", () => {
-  const finished = (alreadyFinished: boolean, rotated: boolean) => () =>
-    Promise.resolve({
-      alreadyFinished,
-      rotated,
-      session: sessionDetail,
-      status: "finished" as const,
-    });
+const finished = (alreadyFinished: boolean, rotated: boolean) => () =>
+  Promise.resolve({
+    alreadyFinished,
+    rotated,
+    session: sessionDetail,
+    status: "finished" as const,
+  });
 
+describe("finish_workout_session", () => {
   it("finishes the session and reports the rotation", async () => {
-    const finishWorkoutSession = vi.fn(finished(false, true));
+    const finishWorkoutSession = vi.fn<UserServices["finishWorkoutSession"]>(
+      finished(false, true)
+    );
+
     const client = await connectWithServices({ finishWorkoutSession });
 
     const result = await call(client, "finish_workout_session", {
       sessionId: SESSION_ID,
     });
 
-    expect(result.isError).toBe(false);
-    expect(result.json).toEqual({
+    expect(result.isError).toBeFalsy();
+    expect(result.json).toStrictEqual({
       alreadyFinished: false,
       rotated: true,
       session: toolSession,
@@ -549,21 +572,21 @@ describe("finish_workout_session", () => {
       sessionId: SESSION_ID,
     });
 
-    expect(result.isError).toBe(true);
+    expect(result.isError).toBeTruthy();
     expect(result.text).toBe(
       `Workout session ${SESSION_ID} not found (it may have been deleted or belong to another user).`
     );
   });
 
   it("rejects a session id that isn't a uuid", async () => {
-    const finishWorkoutSession = vi.fn();
+    const finishWorkoutSession = vi.fn<UserServices["finishWorkoutSession"]>();
     const client = await connectWithServices({ finishWorkoutSession });
 
     const result = await call(client, "finish_workout_session", {
       sessionId: "nope",
     });
 
-    expect(result.isError).toBe(true);
+    expect(result.isError).toBeTruthy();
     expect(finishWorkoutSession).not.toHaveBeenCalled();
   });
 
@@ -583,7 +606,7 @@ describe("finish_workout_session", () => {
       sessionId: SESSION_ID,
     });
 
-    expect(result.isError).toBe(true);
+    expect(result.isError).toBeTruthy();
     expect(result.text).toBe("deadlock detected");
   });
 });

@@ -1,5 +1,6 @@
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
+
 import type { ToolContext } from "../context.js";
 import {
   asJson,
@@ -18,11 +19,10 @@ import {
   withCovers,
   workoutSlugs,
 } from "./library.js";
-import {
-  planMetadataShape,
-  planNoteSchema,
-  workoutsSchema,
-} from "./plan-schemas.js";
+import * as planSchemas from "./plan-schemas.js";
+import { planNoteSchema, workoutsSchema } from "./plan-schemas.js";
+
+const planMetadata = planSchemas.planMetadataShape;
 
 const planIdSchema = z.guid().describe("Plan id (plans.id).");
 
@@ -33,7 +33,7 @@ const COVER_NOTE =
 const planNotFound = (planId: string) =>
   `Plan ${planId} not found (it may have been deleted or belong to another user).`;
 
-function registerPlanReadTools(server: McpServer, ctx: ToolContext) {
+const registerPlanReadTools = (server: McpServer, ctx: ToolContext) => {
   server.registerTool(
     "list_plans",
     {
@@ -64,9 +64,9 @@ function registerPlanReadTools(server: McpServer, ctx: ToolContext) {
       )
     )
   );
-}
+};
 
-function registerPlanWriteTools(server: McpServer, ctx: ToolContext) {
+const registerPlanWriteTools = (server: McpServer, ctx: ToolContext) => {
   server.registerTool(
     "create_plan",
     {
@@ -78,7 +78,7 @@ function registerPlanWriteTools(server: McpServer, ctx: ToolContext) {
       },
       description: `Creates a training plan for the user and makes it their ACTIVE plan (every other plan is deactivated). Look up Exercise slugs with list_exercises first; unknown slugs are rejected and nothing is saved. Order of workouts, exercises and sets comes from their array position. Use list_plan_options for valid goal / place / experience_level values. ${WEIGHT_UNIT_NOTE} Returns the created plan in full.`,
       inputSchema: {
-        ...planMetadataShape,
+        ...planMetadata,
         note: planNoteSchema.optional(),
         workouts: workoutsSchema,
       },
@@ -87,6 +87,7 @@ function registerPlanWriteTools(server: McpServer, ctx: ToolContext) {
     withServices(ctx, async (plan, services) => {
       const known = await requireKnownSlugs(ctx, workoutSlugs(plan.workouts));
       const workouts = await withCovers(ctx, plan.workouts, known);
+
       return asJson(
         namePlan(await services.createPlan({ ...plan, workouts }), known)
       );
@@ -104,44 +105,50 @@ function registerPlanWriteTools(server: McpServer, ctx: ToolContext) {
       },
       description: `Updates one of the user's plans. Pass only the fields to change. Without \`workouts\`, only the given metadata fields are updated and workout ids stay the same. With \`workouts\`, ALL existing workouts are deleted and recreated from the array (send the complete list, not a diff; unknown Exercise slugs are rejected and nothing is saved): workout / exercise / set ids change, and past workout sessions keep their logged sets but lose the link to their workout. Does not change which plan is active. ${WEIGHT_UNIT_NOTE} Returns the updated plan in full.`,
       inputSchema: {
-        description: planMetadataShape.description.optional(),
-        experience_level: planMetadataShape.experience_level.optional(),
-        frequency: planMetadataShape.frequency.optional(),
-        goal: planMetadataShape.goal.optional(),
-        name: planMetadataShape.name.optional(),
+        description: planMetadata.description.optional(),
+        experience_level: planMetadata.experience_level.optional(),
+        frequency: planMetadata.frequency.optional(),
+        goal: planMetadata.goal.optional(),
+        name: planMetadata.name.optional(),
         note: planNoteSchema
           .nullable()
           .optional()
           .describe("Free-form note; null clears it."),
-        place: planMetadataShape.place.optional(),
+        place: planMetadata.place.optional(),
         planId: planIdSchema,
-        workout_duration: planMetadataShape.workout_duration.optional(),
+        workout_duration: planMetadata.workout_duration.optional(),
         workouts: workoutsSchema.optional(),
       },
       title: "Update plan",
     },
     withServices(ctx, async ({ planId, workouts, ...fields }, services) => {
       const metadata = pickDefined(fields);
+
       if (!workouts && Object.keys(metadata).length === 0) {
         throw new ToolError(
           "Nothing to update: pass at least one plan field or `workouts`."
         );
       }
+
       const checked = workouts
         ? await requireKnownSlugs(ctx, workoutSlugs(workouts))
         : undefined;
+
       // without workouts, the Workouts and their Covers stay as they are
       const changes =
         workouts && checked
           ? { ...metadata, workouts: await withCovers(ctx, workouts, checked) }
           : metadata;
+
       const updated = requireFound(
         await services.updatePlan(planId, changes),
         planNotFound(planId)
       );
+
       // without workouts, the Plan keeps Exercises nothing has looked up yet
       const known =
         checked ?? (await lookupForRead(ctx, workoutSlugs(updated.workouts)));
+
       return asJson(namePlan(updated, known));
     })
   );
@@ -191,9 +198,9 @@ function registerPlanWriteTools(server: McpServer, ctx: ToolContext) {
       })
     )
   );
-}
+};
 
-export function registerPlanTools(server: McpServer, ctx: ToolContext) {
+export const registerPlanTools = (server: McpServer, ctx: ToolContext) => {
   registerPlanReadTools(server, ctx);
   registerPlanWriteTools(server, ctx);
-}
+};

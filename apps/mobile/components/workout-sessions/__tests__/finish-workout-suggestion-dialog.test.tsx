@@ -1,6 +1,7 @@
 import { describe, expect, it, jest } from "@jest/globals";
 import { fireEvent, render, screen } from "@testing-library/react-native";
 import type * as React from "react";
+
 import { FinishWorkoutSuggestionDialog } from "../finish-workout-suggestion-dialog";
 
 // The real primitives render native SwiftUI views that can't mount under
@@ -89,6 +90,7 @@ const CLOSE = { name: "Close" } as const;
 const setup = async (props: Partial<Props> = {}) => {
   const onFinish = jest.fn();
   const onKeepTraining = jest.fn();
+
   const element = (overrides: Partial<Props> = {}) => (
     <FinishWorkoutSuggestionDialog
       isFinishing={false}
@@ -99,6 +101,7 @@ const setup = async (props: Partial<Props> = {}) => {
       {...overrides}
     />
   );
+
   const utils = await render(element());
 
   return {
@@ -130,6 +133,7 @@ describe("FinishWorkoutSuggestionDialog", () => {
 
   it("labels every action for assistive technology", async () => {
     await setup();
+
     const keepTrainingHint =
       "Closes this suggestion and keeps the workout going";
 
@@ -143,6 +147,7 @@ describe("FinishWorkoutSuggestionDialog", () => {
     const keepTraining = screen.getByTestId(
       "finish-workout-suggestion-keep-training"
     );
+
     expect(keepTraining).toHaveProp("accessibilityLabel", "Keep Training");
     expect(keepTraining).toHaveProp("accessibilityHint", keepTrainingHint);
 
@@ -242,6 +247,7 @@ describe("FinishWorkoutSuggestionDialog", () => {
     const onFinish = jest.fn(() => {
       throw new Error("boom");
     });
+
     await setup({ onFinish });
 
     await expect(
@@ -258,9 +264,9 @@ describe("FinishWorkoutSuggestionDialog", () => {
 
     await fireEvent.press(screen.getByRole("button", FINISH));
 
-    expect(
-      await screen.findByRole("button", { ...FINISH, busy: false })
-    ).toBeTruthy();
+    await expect(
+      screen.findByRole("button", { ...FINISH, busy: false })
+    ).resolves.toBeTruthy();
     expect(sheet()).toHaveProp("dismissDisabled", false);
   });
 

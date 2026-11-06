@@ -1,12 +1,14 @@
 import type { MuscleGroup } from "@fitme/core";
 import { describe, expect, it } from "@jest/globals";
 import { act, renderHook } from "@testing-library/react-native";
+
 import { useChoiceLabels } from "~/lib/choices";
 import { useAppLanguageSync } from "~/lib/i18n";
 import { setDeviceLanguages } from "~/test-utils/device-locales";
 
 const useLabels = () => {
   useAppLanguageSync();
+
   return useChoiceLabels();
 };
 

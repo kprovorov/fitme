@@ -1,17 +1,19 @@
 import {
-  type PersonalRecordKind,
   personalRecordFor,
   RECORD_WEIGHT_TOLERANCE,
-  type RecordSet,
+} from "@fitme/core/personal-records";
+import type {
+  PersonalRecordKind,
+  RecordSet,
 } from "@fitme/core/personal-records";
 import {
   personalRecordInitializations,
   personalRecords,
-  type Transaction,
   workoutSessionExerciseSets,
   workoutSessionExercises,
   workoutSessions,
 } from "@fitme/db";
+import type { Transaction } from "@fitme/db";
 import {
   and,
   asc,
@@ -23,6 +25,7 @@ import {
   ne,
   sql,
 } from "drizzle-orm";
+
 import { lockProfileUnits } from "./profile";
 
 /** After the Profile lock, before Plan/session locks; transaction-local. */
@@ -30,48 +33,6 @@ export const lockPersonalRecordHistory = (tx: Transaction, userId: string) =>
   tx.execute(
     sql`select pg_advisory_xact_lock(hashtextextended(${`personal-records:${userId}`}, 0))`
   );
-
-/**
- * Explicit per-User initialization entry point, inside asUser. Atomic: an
- * interruption rolls back every award and completion, so retry starts safely.
- * No pagination, no inferred units/goals, and no automatic production caller.
- */
-export const initializePersonalRecords = async (
-  tx: Transaction,
-  userId: string
-): Promise<{ alreadyInitialized: boolean }> => {
-  // As in finish, queue behind account deletion before taking any row lock.
-  await tx.execute(sql`lock table ${workoutSessions} in row exclusive mode`);
-  await lockProfileUnits(tx, userId);
-  await lockPersonalRecordHistory(tx, userId);
-  const [completed] = await tx
-    .select({ userId: personalRecordInitializations.userId })
-    .from(personalRecordInitializations)
-    .where(eq(personalRecordInitializations.userId, userId));
-  if (completed) {
-    return { alreadyInitialized: true };
-  }
-  const sessions = await tx
-    .select({ id: workoutSessions.id })
-    .from(workoutSessions)
-    .where(
-      and(
-        eq(workoutSessions.userId, userId),
-        isNotNull(workoutSessions.finishedAt)
-      )
-    )
-    .orderBy(
-      asc(workoutSessions.finishedAt),
-      asc(workoutSessions.startedAt),
-      asc(workoutSessions.id)
-    );
-  for (const session of sessions) {
-    // biome-ignore lint/performance/noAwaitInLoops: one transaction, chronological replay
-    await awardPersonalRecords(tx, userId, session.id, true);
-  }
-  await tx.insert(personalRecordInitializations).values({ userId });
-  return { alreadyInitialized: false };
-};
 
 /** A Personal record a Workout Session earned; its weight in the User's unit. */
 export interface WorkoutSessionPersonalRecord {
@@ -138,6 +99,7 @@ export const awardPersonalRecords = async (
     .where(eq(workoutSessionExercises.workoutSessionId, sessionId));
 
   const setsBySlug = new Map<string, RecordSet[]>();
+
   for (const set of sets) {
     const slugSets = setsBySlug.get(set.exerciseSlug) ?? [];
     slugSets.push({
@@ -146,6 +108,7 @@ export const awardPersonalRecords = async (
     });
     setsBySlug.set(set.exerciseSlug, slugSets);
   }
+
   if (setsBySlug.size === 0) {
     return;
   }
@@ -195,6 +158,7 @@ export const awardPersonalRecords = async (
       )
     )
     .as("earlier_results");
+
   const earlier = await tx
     .selectDistinctOn([earlierResults.exerciseSlug], {
       exerciseSlug: earlierResults.exerciseSlug,
@@ -209,6 +173,7 @@ export const awardPersonalRecords = async (
       desc(earlierResults.reps),
       desc(earlierResults.weight)
     );
+
   const earlierBySlug = new Map(
     earlier.map(({ exerciseSlug, reps, weight }) => [
       exerciseSlug,
@@ -221,6 +186,7 @@ export const awardPersonalRecords = async (
       earlierBySlug.get(exerciseSlug) ?? null,
       slugSets
     );
+
     return record
       ? [
           {
@@ -234,7 +200,62 @@ export const awardPersonalRecords = async (
         ]
       : [];
   });
+
   if (awards.length > 0) {
     await tx.insert(personalRecords).values(awards).onConflictDoNothing();
   }
+};
+
+/**
+ * Explicit per-User initialization entry point, inside asUser. Atomic: an
+ * interruption rolls back every award and completion, so retry starts safely.
+ * No pagination, no inferred units/goals, and no automatic production caller.
+ */
+export const initializePersonalRecords = async (
+  tx: Transaction,
+  userId: string
+): Promise<{ alreadyInitialized: boolean }> => {
+  // As in finish, queue behind account deletion before taking any row lock.
+  await tx.execute(sql`lock table ${workoutSessions} in row exclusive mode`);
+  await lockProfileUnits(tx, userId);
+  await lockPersonalRecordHistory(tx, userId);
+
+  const [completed] = await tx
+    .select({ userId: personalRecordInitializations.userId })
+    .from(personalRecordInitializations)
+    .where(eq(personalRecordInitializations.userId, userId));
+
+  if (completed !== undefined) {
+    return { alreadyInitialized: true };
+  }
+
+  const sessions = await tx
+    .select({ id: workoutSessions.id })
+    .from(workoutSessions)
+    .where(
+      and(
+        eq(workoutSessions.userId, userId),
+        isNotNull(workoutSessions.finishedAt)
+      )
+    )
+    .orderBy(
+      asc(workoutSessions.finishedAt),
+      asc(workoutSessions.startedAt),
+      asc(workoutSessions.id)
+    );
+
+  // Keep the replay chronological within this transaction.
+  let replay = Promise.resolve();
+
+  for (const session of sessions) {
+    replay = replay.then(
+      awardPersonalRecords.bind(undefined, tx, userId, session.id, true)
+    );
+  }
+
+  await replay;
+
+  await tx.insert(personalRecordInitializations).values({ userId });
+
+  return { alreadyInitialized: false };
 };

@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, jest } from "@jest/globals";
 import { fireEvent, render, screen } from "@testing-library/react-native";
+
 import { WorkoutSessionFinishSuggestion } from "../workout-session-finish-suggestion";
 
 const mockDismiss = jest.fn();
@@ -28,6 +29,7 @@ jest.mock("~/hooks/finish-workout-session", () => ({
 jest.mock("../finish-workout-suggestion-dialog", () => {
   const { Pressable, Text } =
     jest.requireActual<typeof import("react-native")>("react-native");
+
   return {
     FinishWorkoutSuggestionDialog: ({
       isFinishing,

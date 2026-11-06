@@ -22,7 +22,8 @@ import {
   jest,
 } from "@jest/globals";
 import { captureException } from "@sentry/react-native";
-import { type QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { QueryClientProvider } from "@tanstack/react-query";
+import type { QueryClient } from "@tanstack/react-query";
 import {
   act,
   fireEvent,
@@ -30,18 +31,15 @@ import {
   screen,
   within,
 } from "@testing-library/react-native";
-import {
-  createContext,
-  type ReactNode,
-  useCallback,
-  useSyncExternalStore,
-} from "react";
+import { createContext, useCallback, useSyncExternalStore } from "react";
+import type { ReactNode } from "react";
 import {
   AccessibilityInfo,
   Alert,
   Pressable as RowPressable,
   View,
 } from "react-native";
+
 import WorkoutScreen from "~/app/plans/[planId]/workouts/[workoutId]/index";
 import PlanSessionExerciseScreen from "~/app/plans/[planId]/workouts/[workoutId]/sessions/[sessionId]/exercises/[exerciseId]/index";
 import PlanSessionScreen from "~/app/plans/[planId]/workouts/[workoutId]/sessions/[sessionId]/index";
@@ -60,8 +58,8 @@ import {
   FAKE_USER_ID,
   fakePublicApi,
   libraryExerciseNamed,
-  type SeedSession,
 } from "~/test-utils/fake-public-api";
+import type { SeedSession } from "~/test-utils/fake-public-api";
 import {
   createTestQueryClient,
   settle as settleQueries,
@@ -116,16 +114,22 @@ const toRoute = (href: Href): Route => {
   // filled in, the rest kept as search params.
   const { params = {}, pathname } =
     typeof href === "string" ? { pathname: href } : href;
+
   const search = { ...params };
-  const path = pathname.replace(/\[(\w+)\]/g, (_, name: string) => {
+
+  const path = pathname.replaceAll(/\[(\w+)\]/g, (_, name: string) => {
     const value = search[name] ?? "";
     delete search[name];
+
     return value;
   });
+
   for (const [name, pattern] of PATHS) {
     const matched = path.match(pattern);
+
     if (matched) {
       routeKey += 1;
+
       return {
         key: `route-${routeKey}`,
         name,
@@ -133,6 +137,7 @@ const toRoute = (href: Href): Route => {
       };
     }
   }
+
   throw new Error(`Unknown route ${path}`);
 };
 
@@ -157,12 +162,14 @@ const mockNavigator = {
   routes: [] as Route[],
   set(routes: Route[]) {
     mockNavigator.routes = routes;
+
     for (const listener of mockNavigator.listeners) {
       listener();
     }
   },
   subscribe(listener: () => void) {
     mockNavigator.listeners.add(listener);
+
     return () => {
       mockNavigator.listeners.delete(listener);
     };
@@ -183,6 +190,7 @@ jest.mock("~/lib/clerk", () => ({
 
 jest.mock("expo-router", () => {
   const { useContext } = jest.requireActual<typeof import("react")>("react");
+
   return {
     Link: ({ children }: { children: ReactNode }) => children,
     Stack: { Screen: () => null },
@@ -215,26 +223,38 @@ jest.mock("~/hooks/queries/profiles", () => ({
 }));
 
 jest.mock("@sentry/react-native", () => ({ captureException: jest.fn() }));
-jest.mock("~/lib/segment", () => ({ segmentClient: { track: jest.fn() } }));
+
+jest.mock("~/lib/segment", () => ({
+  segmentClient: { track: jest.fn() },
+}));
+
 jest.mock("react-native-safe-area-context", () => ({
   useSafeAreaInsets: () => ({ bottom: 0, left: 0, right: 0, top: 0 }),
 }));
+
 jest.mock("react-native-keyboard-controller", () => {
   const { ScrollView } =
     jest.requireActual<typeof import("react-native")>("react-native");
+
   return { KeyboardAwareScrollView: ScrollView };
 });
+
 jest.mock("~/components/exercises/exercise-image", () => () => null);
+
 jest.mock("~/components/exercises/exercise-video", () => () => null);
+
 jest.mock("~/components/views/exercise-history-view", () => () => null);
+
 // Reanimated can't load under Jest; seeded sets have no rest, so it never shows.
 jest.mock("~/components/workout-sessions/rest-timer", () => () => null);
+
 // The exercise picker offers a single exercise to add, as a row to tap.
 const mockLunge = {
   muscle_groups: ["quadriceps"],
   name: "Lunge",
   slug: "lunge",
 };
+
 function MockExercisesView({
   onExercisePress,
   rowAccessibilityLabel,
@@ -245,6 +265,7 @@ function MockExercisesView({
   const pick = useCallback(() => {
     onExercisePress(mockLunge);
   }, [onExercisePress]);
+
   return (
     <RowPressable
       accessibilityLabel={rowAccessibilityLabel(mockLunge)}
@@ -253,6 +274,7 @@ function MockExercisesView({
     />
   );
 }
+
 jest.mock("~/components/views/exercises-view", () => ({
   __esModule: true,
   // Read lazily: the mock is hoisted above the stub's definition.
@@ -264,6 +286,7 @@ jest.mock("~/components/views/exercises-view", () => ({
 jest.mock("~/components/ui/button", () => {
   const { Pressable, Text } =
     jest.requireActual<typeof import("react-native")>("react-native");
+
   return {
     Button: ({
       accessibilityLabel,
@@ -299,11 +322,12 @@ jest.mock("~/components/ui/button", () => {
 jest.mock("~/components/ui/dropdown-menu", () => {
   const { Pressable } =
     jest.requireActual<typeof import("react-native")>("react-native");
+
   return {
     DropdownMenu: ({
       items,
     }: {
-      items: Array<{ label: string; onPress?: () => void }>;
+      items: { label: string; onPress?: () => void }[];
     }) =>
       items.map((item) => (
         <Pressable
@@ -321,8 +345,10 @@ const mockPresentations = { count: 0 };
 
 jest.mock("~/components/ui/dialog", () => {
   const { useEffect } = jest.requireActual<typeof import("react")>("react");
+
   const { View: MockView } =
     jest.requireActual<typeof import("react-native")>("react-native");
+
   return {
     Dialog: ({
       children,
@@ -338,6 +364,7 @@ jest.mock("~/components/ui/dialog", () => {
           mockPresentations.count += 1;
         }
       }, [isPresented]);
+
       // Tests fire `isPresentedChange` on this view the way the native sheet
       // does when swiped down or tapped outside.
       return isPresented ? (
@@ -360,6 +387,7 @@ jest.mock("~/components/ui/dialog", () => {
 function HomeScreen() {
   const { data: plan } = useActivePlanQuery();
   useOpenWorkoutSessionQuery();
+
   return plan ? <HomeView plan={plan} /> : null;
 }
 
@@ -378,9 +406,11 @@ function Navigator() {
     mockNavigator.subscribe,
     () => mockNavigator.routes
   );
+
   return routes.map((route, index) => {
     const focused = index === routes.length - 1;
     const Screen = SCREENS[route.name];
+
     return (
       <mockRouteContext.Provider
         key={route.key}
@@ -467,10 +497,10 @@ beforeEach(() => {
   serveLibrary(LIBRARY);
   mockNavigator.routes = [];
   mockPresentations.count = 0;
-  jest.spyOn(Alert, "alert").mockImplementation(() => undefined);
+  jest.spyOn(Alert, "alert").mockReturnValue(undefined);
   jest
     .spyOn(AccessibilityInfo, "announceForAccessibility")
-    .mockImplementation(() => undefined);
+    .mockReturnValue(undefined);
 });
 
 describe.each(ENTRY_ROUTES)(
@@ -486,6 +516,7 @@ describe.each(ENTRY_ROUTES)(
       for (const session of sessions) {
         backend.seed(session);
       }
+
       await renderApp();
       await openSession(sessions[0]?.id ?? "");
     };
@@ -510,8 +541,10 @@ describe.each(ENTRY_ROUTES)(
           reps
         );
       }
+
       const sent = () =>
         fakePublicApi.count(LOG_SET) + fakePublicApi.count(ADD_SET);
+
       const before = sent();
       await fireEvent.press(focused().getByTestId(`log-set-button-${order}`));
       await settle();
@@ -688,10 +721,12 @@ describe.each(ENTRY_ROUTES)(
 
       expect(focused().getByText(SET_SAVE_ERROR)).toBeTruthy();
       expect(focused().getByTestId("log-set-button-2")).toBeTruthy();
+
       const squatSets = () =>
         backend.sets.filter(
           (set) => set.workout_session_exercise_id === "s1-e1"
         );
+
       expect(squatSets()).toHaveLength(1);
 
       await trackSet(2);
@@ -746,6 +781,7 @@ describe.each(ENTRY_ROUTES)(
       await openExercise("Squat");
       await fireEvent.press(focused().getByText("Add Set"));
       const session = backend.session("s1");
+
       if (session) {
         session.finished_at = "2026-10-08T11:00:00.000Z";
       }
@@ -1294,7 +1330,7 @@ describe("starting a Workout from Home", () => {
       name: "plan-session",
       params: { sessionId: started?.id, workoutId: "w1" },
     });
-    expect(await focused().findByText("Squat")).toBeTruthy();
+    await expect(focused().findByText("Squat")).resolves.toBeTruthy();
   });
 
   it("resumes the Workout's open session instead of starting another", async () => {
@@ -1436,6 +1472,7 @@ describe("starting a Workout from Home", () => {
 
     await fireEvent.press(await focused().findByText("Squat"));
     await settle();
+
     const logFive = async (order: number) => {
       await fireEvent.changeText(
         focused().getByTestId(`set-reps-input-${order}`),
@@ -1444,6 +1481,7 @@ describe("starting a Workout from Home", () => {
       await fireEvent.press(focused().getByTestId(`log-set-button-${order}`));
       await settle();
     };
+
     await logFive(1);
     await logFive(2);
     const [started] = sessionsOf("w1");
@@ -1554,6 +1592,7 @@ describe("the Plan Update after finishing a Workout Session opened from Home", (
   const UPDATE = { name: "Update plan" } as const;
   const RETRY = { name: "Retry" } as const;
   const KEEP = { name: "Keep plan as is" } as const;
+
   const APPLY_ERROR =
     "Couldn't update your plan. Check your connection and try again.";
 
@@ -1606,6 +1645,7 @@ describe("the Plan Update after finishing a Workout Session opened from Home", (
       workout_id: "w1",
       workoutName: "Leg Day",
     });
+
     const exercise = (id: string, slug: string, order: number) =>
       backend.exercises.push({
         exercise_slug: slug,
@@ -1613,9 +1653,11 @@ describe("the Plan Update after finishing a Workout Session opened from Home", (
         order,
         workout_session_id: SESSION,
       });
+
     exercise("played-squat", "squat", 1);
     loggedSet("played-squat", 1, 5, 100, true);
     loggedSet("played-squat", 2, 5, 100, true);
+
     if (changed) {
       loggedSet("played-squat", 3, 5, 100, false);
       exercise("played-lunge", "lunge", 2);
@@ -1654,7 +1696,13 @@ describe("the Plan Update after finishing a Workout Session opened from Home", (
     backend.plans[0]?.workouts.find(({ id }) => id === "w1")?.exercises;
 
   // A plain mock: `jest.mocked` on the client's overloads is too deep to type.
-  const track = () => segmentClient.track as unknown as jest.Mock;
+  const track = () =>
+    jest.mocked<
+      (
+        event: string,
+        properties?: Record<string, string | number | boolean | null>
+      ) => void
+    >(segmentClient.track);
 
   const isSheetShown = () => screen.queryByText("Update your plan?") !== null;
 
@@ -1685,21 +1733,26 @@ describe("the Plan Update after finishing a Workout Session opened from Home", (
     expect(
       screen.getByText("Save today's changes to Leg Day in Strength.")
     ).toBeTruthy();
+
     for (const line of [ADDED_SET_LINE, ADDED_EXERCISE_LINE, UNRESOLVED_LINE]) {
       expect(screen.getByText(line)).toBeTruthy();
     }
+
     // Asked, not answered: still on the session under the sheet.
     expect(mockNavigator.routes.map(({ name }) => name)).toEqual([
       "home",
       "plan-session",
     ]);
-    expect(track()).toHaveBeenCalledWith("Plan Update Suggested", {
-      add_exercise: 2,
-      add_sets: 1,
-      remove_exercise: 0,
-      replace_exercise: 0,
-      ...eventProperties,
-    });
+    expect(track().mock.calls).toContainEqual([
+      "Plan Update Suggested",
+      {
+        add_exercise: 2,
+        add_sets: 1,
+        remove_exercise: 0,
+        replace_exercise: 0,
+        ...eventProperties,
+      },
+    ]);
   });
 
   it("asks to save a set added on the exercise screen, logged, after the finish", async () => {

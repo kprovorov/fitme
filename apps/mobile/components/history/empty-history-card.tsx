@@ -1,8 +1,10 @@
 import { formatCount } from "@fitme/i18n";
 import { useRouter } from "expo-router";
-import { type ReactNode, useCallback } from "react";
+import { useCallback } from "react";
+import type { ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { View } from "react-native";
+
 import { SymbolImage } from "~/components/symbol-image";
 import { Button } from "~/components/ui/button";
 import { Card, CardDescription } from "~/components/ui/card";
@@ -28,16 +30,17 @@ const ICON_SIZE = 18;
  */
 const TITLE_MAX_FONT_SCALE = 2;
 
-function StartAction({
+const StartAction = ({
   plan,
   workout,
 }: {
   plan: FullPlan;
   workout: PlanWorkout;
-}) {
+}) => {
   const router = useRouter();
   const { t } = useTranslation();
   const i18n = useI18n();
+
   // A 409 (another Workout's session opened meanwhile) re-reads the open
   // Workout Session, which turns the card into Resume.
   const { isStarting, startWorkout } = useStartWorkout(
@@ -46,6 +49,7 @@ function StartAction({
       router.push(workoutSessionPath(plan.id, workout.id, sessionId));
     }
   );
+
   return (
     <>
       <Button
@@ -56,7 +60,7 @@ function StartAction({
         size="lg"
         testID="history-start-workout"
       />
-      <Text className="text-center text-footnote text-muted-foreground">
+      <Text className="text-center" variant="muted">
         {t("history.empty.nextUp", {
           exercises: formatCount(i18n, "exercises", workout.exercises.length),
           plan: plan.name ?? "",
@@ -64,16 +68,18 @@ function StartAction({
       </Text>
     </>
   );
-}
+};
 
-function ResumeAction({ openSession }: { openSession: OpenWorkoutSession }) {
+const ResumeAction = ({ openSession }: { openSession: OpenWorkoutSession }) => {
   const router = useRouter();
   const { t } = useTranslation();
   const name = openSession.workout?.name;
+
   const resume = useCallback(
     () => router.push(openSessionPath(openSession)),
     [router, openSession]
   );
+
   return (
     <>
       <Button
@@ -86,17 +92,18 @@ function ResumeAction({ openSession }: { openSession: OpenWorkoutSession }) {
         onPress={resume}
         size="lg"
       />
-      <Text className="text-center text-footnote text-muted-foreground">
+      <Text className="text-center" variant="muted">
         {t("history.empty.inProgress")}
       </Text>
     </>
   );
-}
+};
 
-function CreatePlanAction() {
+const CreatePlanAction = () => {
   const router = useRouter();
   const { t } = useTranslation();
   const createPlan = useCallback(() => router.push("/planner"), [router]);
+
   return (
     <Button
       className="w-full"
@@ -105,7 +112,7 @@ function CreatePlanAction() {
       size="lg"
     />
   );
-}
+};
 
 interface EmptyHistoryCardProps {
   /**
@@ -124,14 +131,15 @@ interface EmptyHistoryCardProps {
  * else Start the active Plan's next Workout, else Create a plan. An active
  * Plan with no Workout has nothing to start, so it gets Create a plan too.
  */
-export function EmptyHistoryCard({
+export const EmptyHistoryCard = ({
   activePlan,
   openSession,
-}: EmptyHistoryCardProps) {
+}: EmptyHistoryCardProps) => {
   const { t } = useTranslation();
   const nextWorkout = activePlan ? nextWorkoutOf(activePlan) : undefined;
 
   let action: ReactNode;
+
   if (openSession) {
     action = <ResumeAction openSession={openSession} />;
   } else if (activePlan && nextWorkout) {
@@ -149,10 +157,10 @@ export function EmptyHistoryCard({
 
   return (
     <Card testID="history-empty">
-      <View className="items-center gap-sm pt-sm pb-xs">
+      <View className="gap-sm pt-sm pb-xs items-center">
         <View
           aria-hidden
-          className="size-18 items-center justify-center rounded-full bg-secondary"
+          className="bg-secondary size-18 items-center justify-center rounded-full"
           importantForAccessibility="no-hide-descendants"
         >
           <SymbolImage
@@ -161,7 +169,7 @@ export function EmptyHistoryCard({
             size={ICON_SIZE}
           />
         </View>
-        <View className="w-full items-center gap-xs">
+        <View className="gap-xs w-full items-center">
           <H3
             className="text-center"
             maxFontSizeMultiplier={TITLE_MAX_FONT_SCALE}
@@ -176,4 +184,4 @@ export function EmptyHistoryCard({
       </View>
     </Card>
   );
-}
+};

@@ -1,7 +1,6 @@
 import { MAX_SETS_PER_EXERCISE } from "@fitme/core/limits";
 import {
   plans,
-  type Transaction,
   workoutExerciseSets,
   workoutExercises,
   workoutSessionExerciseSets,
@@ -9,8 +8,11 @@ import {
   workoutSessions,
   workouts,
 } from "@fitme/db";
+import type { Transaction } from "@fitme/db";
 import { and, asc, eq, inArray, isNull, max, sql } from "drizzle-orm";
-import { lockProfileUnits, type ProfileUnits } from "./profile";
+
+import { lockProfileUnits } from "./profile";
+import type { ProfileUnits } from "./profile";
 
 /**
  * The Plan Update: the structural changes a finished Workout Session made to
@@ -26,8 +28,10 @@ import { lockProfileUnits, type ProfileUnits } from "./profile";
 
 /** No Plan Update past this many Exercises on either side. */
 const MAX_EXERCISES = 50;
+
 /** No Plan Update past this many sets on any one Exercise, on either side. */
 const MAX_INPUT_SETS = 100;
+
 /** The rest of a set with no Plan set to take it from. */
 const DEFAULT_REST = 90;
 
@@ -107,6 +111,27 @@ interface Slot {
   sessionExercise?: { sets: SessionSet[]; slug: string };
 }
 
+/** A transaction has one connection; each operation must finish before the next. */
+const inSequence = async <T>(
+  values: Iterable<T>,
+  visit: (value: T) => Promise<void>
+) => {
+  const iterator = values[Symbol.iterator]();
+
+  const visitNext = async (): Promise<void> => {
+    const entry = iterator.next();
+
+    if (entry.done === true) {
+      return;
+    }
+
+    await visit(entry.value);
+    await visitNext();
+  };
+
+  await visitNext();
+};
+
 /**
  * Whether slots can't be matched: a repeated `order` on either side, or
  * either side past the caps, so the work per call stays bounded. Each check
@@ -156,7 +181,8 @@ const isUnmatchable = async (
       )
     ) as unmatchable
   `);
-  return Boolean(result?.unmatchable);
+
+  return result?.unmatchable ?? false;
 };
 
 /** Both sides' Exercises and sets, by `order` (then id), as slots by `order`. */
@@ -165,81 +191,102 @@ const loadSlots = async (
   sessionId: string,
   workoutId: string
 ): Promise<Slot[]> => {
-  const sessionRows = await tx
-    .select({
-      id: workoutSessionExercises.id,
-      order: workoutSessionExercises.order,
-      repsCompleted: workoutSessionExerciseSets.repsCompleted,
-      repsRecommended: workoutSessionExerciseSets.repsRecommended,
-      setId: workoutSessionExerciseSets.id,
-      slug: workoutSessionExercises.exerciseSlug,
-      weightCompleted: workoutSessionExerciseSets.weightCompleted,
-    })
-    .from(workoutSessionExercises)
-    .leftJoin(
-      workoutSessionExerciseSets,
-      eq(
-        workoutSessionExerciseSets.workoutSessionExerciseId,
-        workoutSessionExercises.id
-      )
-    )
-    .where(eq(workoutSessionExercises.workoutSessionId, sessionId))
-    .orderBy(
-      asc(workoutSessionExercises.order),
-      asc(workoutSessionExercises.id),
-      asc(workoutSessionExerciseSets.order),
-      asc(workoutSessionExerciseSets.id)
-    );
-  const planRows = await tx
-    .select({
-      id: workoutExercises.id,
-      order: workoutExercises.order,
-      rest: workoutExerciseSets.restRecommended,
-      setId: workoutExerciseSets.id,
-      slug: workoutExercises.exerciseSlug,
-    })
-    .from(workoutExercises)
-    .leftJoin(
-      workoutExerciseSets,
-      eq(workoutExerciseSets.workoutExerciseId, workoutExercises.id)
-    )
-    .where(eq(workoutExercises.workoutId, workoutId))
-    .orderBy(
-      asc(workoutExercises.order),
-      asc(workoutExercises.id),
-      asc(workoutExerciseSets.order),
-      asc(workoutExerciseSets.id)
-    );
-
   // Orders are unique on each side here (isUnmatchable), so one per slot
   const slots = new Map<number, Slot>();
+
   const slotAt = (order: number) => {
     let slot = slots.get(order);
+
     if (!slot) {
       slot = {};
       slots.set(order, slot);
     }
+
     return slot;
   };
-  for (const row of sessionRows) {
-    const slot = slotAt(row.order);
-    slot.sessionExercise ??= { sets: [], slug: row.slug };
-    if (row.setId) {
-      slot.sessionExercise.sets.push({
-        repsCompleted: row.repsCompleted,
-        repsRecommended: row.repsRecommended,
-        weightCompleted: row.weightCompleted,
-      });
+
+  await inSequence(
+    [
+      async () => {
+        const sessionRows = await tx
+          .select({
+            id: workoutSessionExercises.id,
+            order: workoutSessionExercises.order,
+            repsCompleted: workoutSessionExerciseSets.repsCompleted,
+            repsRecommended: workoutSessionExerciseSets.repsRecommended,
+            setId: workoutSessionExerciseSets.id,
+            slug: workoutSessionExercises.exerciseSlug,
+            weightCompleted: workoutSessionExerciseSets.weightCompleted,
+          })
+          .from(workoutSessionExercises)
+          .leftJoin(
+            workoutSessionExerciseSets,
+            eq(
+              workoutSessionExerciseSets.workoutSessionExerciseId,
+              workoutSessionExercises.id
+            )
+          )
+          .where(eq(workoutSessionExercises.workoutSessionId, sessionId))
+          .orderBy(
+            asc(workoutSessionExercises.order),
+            asc(workoutSessionExercises.id),
+            asc(workoutSessionExerciseSets.order),
+            asc(workoutSessionExerciseSets.id)
+          );
+
+        for (const row of sessionRows) {
+          const slot = slotAt(row.order);
+          slot.sessionExercise ??= { sets: [], slug: row.slug };
+
+          if (row.setId !== null && row.setId !== "") {
+            slot.sessionExercise.sets.push({
+              repsCompleted: row.repsCompleted,
+              repsRecommended: row.repsRecommended,
+              weightCompleted: row.weightCompleted,
+            });
+          }
+        }
+      },
+      async () => {
+        const planRows = await tx
+          .select({
+            id: workoutExercises.id,
+            order: workoutExercises.order,
+            rest: workoutExerciseSets.restRecommended,
+            setId: workoutExerciseSets.id,
+            slug: workoutExercises.exerciseSlug,
+          })
+          .from(workoutExercises)
+          .leftJoin(
+            workoutExerciseSets,
+            eq(workoutExerciseSets.workoutExerciseId, workoutExercises.id)
+          )
+          .where(eq(workoutExercises.workoutId, workoutId))
+          .orderBy(
+            asc(workoutExercises.order),
+            asc(workoutExercises.id),
+            asc(workoutExerciseSets.order),
+            asc(workoutExerciseSets.id)
+          );
+
+        for (const row of planRows) {
+          const slot = slotAt(row.order);
+          slot.planExercise ??= { id: row.id, rests: [], slug: row.slug };
+
+          if (row.rest !== null) {
+            slot.planExercise.rests.push(row.rest);
+          }
+        }
+      },
+    ],
+    async (load) => {
+      await load();
     }
-  }
-  for (const row of planRows) {
-    const slot = slotAt(row.order);
-    slot.planExercise ??= { id: row.id, rests: [], slug: row.slug };
-    if (row.rest !== null) {
-      slot.planExercise.rests.push(row.rest);
-    }
-  }
-  return [...slots.entries()].sort(([a], [b]) => a - b).map(([, slot]) => slot);
+  );
+
+  return [...slots.entries()]
+    .toSorted(([a], [b]) => a - b)
+    .map(([, slot]) => slot);
 };
 
 type LoggedSet = SessionSet & { repsCompleted: number };
@@ -259,6 +306,7 @@ const addedSets = (sets: SessionSet[]): RestedSet[] | null => {
       rest: DEFAULT_REST,
       weight: weightOf(set),
     }));
+
   return logged.length > 0 ? logged : null;
 };
 
@@ -272,15 +320,19 @@ const replacementSets = (
   sets: SessionSet[],
   planRests: number[]
 ): RestedSet[] | null => {
-  const lastLogged = sets.filter(isLogged).at(-1);
+  const lastLogged = sets.findLast(isLogged);
+
   if (!lastLogged) {
     return null;
   }
+
   const lastRest = planRests.at(-1);
+
   return sets.slice(0, MAX_SETS_PER_EXERCISE).map((set, index) => {
-    const logged = set.repsCompleted === null ? lastLogged : set;
+    const logged = isLogged(set) ? set : lastLogged;
+
     return {
-      reps: logged.repsCompleted as number,
+      reps: logged.repsCompleted,
       rest: planRests[index] ?? lastRest ?? DEFAULT_REST,
       weight: weightOf(logged),
     };
@@ -301,17 +353,20 @@ const extraSets = (
 ): RestedSet[] | null => {
   const planSetCount = planRests.length;
   const rest = planRests.at(-1) ?? DEFAULT_REST;
+
   const extra = sets
     .filter(
-      (set, index) => set.repsRecommended === null || index + 1 > planSetCount
+      (set, index): set is LoggedSet =>
+        isLogged(set) &&
+        (set.repsRecommended === null || index + 1 > planSetCount)
     )
-    .filter(isLogged)
     .slice(0, Math.max(MAX_SETS_PER_EXERCISE - planSetCount, 0))
     .map((set) => ({
       reps: set.repsCompleted,
       rest,
       weight: weightOf(set),
     }));
+
   return extra.length > 0 ? extra : null;
 };
 
@@ -326,8 +381,10 @@ const planChange = ({
       workoutExerciseId: planExercise.id,
     };
   }
+
   if (sessionExercise && !planExercise) {
     const sets = addedSets(sessionExercise.sets);
+
     return (
       sets && {
         exerciseSlug: sessionExercise.slug,
@@ -336,11 +393,14 @@ const planChange = ({
       }
     );
   }
+
   if (!(planExercise && sessionExercise)) {
     return null;
   }
+
   if (sessionExercise.slug !== planExercise.slug) {
     const sets = replacementSets(sessionExercise.sets, planExercise.rests);
+
     return (
       sets && {
         exerciseSlug: sessionExercise.slug,
@@ -351,7 +411,9 @@ const planChange = ({
       }
     );
   }
+
   const sets = extraSets(sessionExercise.sets, planExercise.rests);
+
   return (
     sets && {
       exerciseSlug: planExercise.slug,
@@ -389,9 +451,8 @@ const applyChanges = async (
   workoutId: string,
   changes: PlannedChange[]
 ) => {
-  for (const change of changes) {
+  await inSequence(changes, async (change) => {
     if (change.kind === "replace_exercise") {
-      // biome-ignore lint/performance/noAwaitInLoops: one statement at a time on tx, in the apply order
       await tx
         .update(workoutExercises)
         .set({ exerciseSlug: change.exerciseSlug, updatedAt: sql`now()` })
@@ -409,6 +470,7 @@ const applyChanges = async (
         .where(
           eq(workoutExerciseSets.workoutExerciseId, change.workoutExerciseId)
         );
+
       await insertSets(
         tx,
         change.workoutExerciseId,
@@ -416,16 +478,18 @@ const applyChanges = async (
         change.sets
       );
     }
-  }
+  });
 
   const removed = changes.flatMap((change) =>
     change.kind === "remove_exercise" ? [change.workoutExerciseId] : []
   );
+
   if (removed.length > 0) {
     await tx
       .delete(workoutExercises)
       .where(inArray(workoutExercises.id, removed));
   }
+
   await tx.execute(sql`
     with ranked as (
       select
@@ -443,15 +507,16 @@ const applyChanges = async (
       and ${workoutExercises.order} <> ranked.new_order
   `);
 
-  for (const change of changes) {
+  await inSequence(changes, async (change) => {
     if (change.kind !== "add_exercise") {
-      continue;
+      return;
     }
-    // biome-ignore lint/performance/noAwaitInLoops: each appends after the last
+
     const [last] = await tx
       .select({ order: max(workoutExercises.order) })
       .from(workoutExercises)
       .where(eq(workoutExercises.workoutId, workoutId));
+
     const [added] = await tx
       .insert(workoutExercises)
       .values({
@@ -460,8 +525,9 @@ const applyChanges = async (
         workoutId,
       })
       .returning({ id: workoutExercises.id });
+
     await insertSets(tx, added.id, 1, change.sets);
-  }
+  });
 
   await tx
     .update(workoutSessions)
@@ -469,26 +535,37 @@ const applyChanges = async (
     .where(eq(workoutSessions.id, sessionId));
 };
 
+const sets = (rested: RestedSet[]) =>
+  rested.map(({ reps, weight }) => ({ reps, weight }));
+
 /** A change as the service answers it: slugs and `{ reps, weight }` sets, no rows or rests. */
 const toAnswer = (change: PlannedChange): PlanUpdateChange => {
-  const sets = (rested: RestedSet[]) =>
-    rested.map(({ reps, weight }) => ({ reps, weight }));
   switch (change.kind) {
-    case "replace_exercise":
+    case "replace_exercise": {
       return {
         exercise_slug: change.exerciseSlug,
         kind: change.kind,
         replaced_exercise_slug: change.replacedExerciseSlug,
         sets: sets(change.sets),
       };
-    case "remove_exercise":
+    }
+
+    case "remove_exercise": {
       return { exercise_slug: change.exerciseSlug, kind: change.kind };
-    default:
+    }
+
+    case "add_exercise":
+    case "add_sets": {
       return {
         exercise_slug: change.exerciseSlug,
         kind: change.kind,
         sets: sets(change.sets),
       };
+    }
+
+    default: {
+      throw new Error("Unknown Plan Update change");
+    }
   }
 };
 
@@ -517,6 +594,7 @@ const planUpdate = async (
   `);
   const units = await lockProfileUnits(tx, userId);
   const weightUnit = units?.weight ?? "kg";
+
   const ofUser = and(
     eq(workoutSessions.id, sessionId),
     eq(workoutSessions.userId, userId)
@@ -526,7 +604,8 @@ const planUpdate = async (
     .select({ workoutId: workoutSessions.workoutId })
     .from(workoutSessions)
     .where(ofUser);
-  if (!sessionWorkout) {
+
+  if (sessionWorkout === undefined) {
     return null;
   }
 
@@ -539,7 +618,8 @@ const planUpdate = async (
         planName: string | null;
       }
     | undefined;
-  if (sessionWorkout.workoutId) {
+
+  if (sessionWorkout.workoutId !== null && sessionWorkout.workoutId !== "") {
     await tx
       .select({ id: plans.id })
       .from(plans)
@@ -574,7 +654,8 @@ const planUpdate = async (
         )
       )
       .for("no key update", { of: workouts });
-    if (workout) {
+
+    if (workout !== undefined) {
       await tx
         .select({ id: workoutExercises.id })
         .from(workoutExercises)
@@ -593,7 +674,8 @@ const planUpdate = async (
     .from(workoutSessions)
     .where(ofUser)
     .for("no key update");
-  if (!session) {
+
+  if (session === undefined) {
     return null;
   }
 
@@ -604,6 +686,7 @@ const planUpdate = async (
   }
 
   let changes: PlannedChange[] = [];
+
   if (
     session.finishedAt !== null &&
     session.appliedAt === null &&
@@ -611,6 +694,7 @@ const planUpdate = async (
   ) {
     const slots = await loadSlots(tx, sessionId, workout.id);
     changes = slots.flatMap((slot) => planChange(slot) ?? []);
+
     if (apply) {
       await applyChanges(tx, sessionId, workout.id, changes);
     }
@@ -628,19 +712,19 @@ const planUpdate = async (
  * The Plan Update of one of the User's Workout Sessions, without writing
  * anything; `null` when the User has no such Workout Session.
  */
-export const previewPlanUpdate = (
+export const previewPlanUpdate = async (
   tx: Transaction,
   userId: string,
   sessionId: string
-) => planUpdate(tx, userId, sessionId, { apply: false });
+) => await planUpdate(tx, userId, sessionId, { apply: false });
 
 /**
  * Applies the Plan Update of one of the User's Workout Sessions and answers
  * what it applied; `null` when the User has no such Workout Session. Once
  * applied, both modes answer no changes, so a repeat writes nothing.
  */
-export const applyPlanUpdate = (
+export const applyPlanUpdate = async (
   tx: Transaction,
   userId: string,
   sessionId: string
-) => planUpdate(tx, userId, sessionId, { apply: true });
+) => await planUpdate(tx, userId, sessionId, { apply: true });

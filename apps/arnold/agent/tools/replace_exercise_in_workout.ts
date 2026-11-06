@@ -5,6 +5,7 @@ import {
 } from "@fitme/services/workout-edits";
 import { defineTool } from "eve/tools";
 import { z } from "zod";
+
 import { checkExerciseSlugs, exerciseSlugSchema } from "../lib/exercises";
 import { requireConversationOwner } from "../lib/owner";
 import { reportingEditErrors, setSchema } from "../lib/workout-edits";
@@ -15,17 +16,22 @@ export default defineTool({
   async execute({ new_exercise_slug, sets, workout_exercise_id }, ctx) {
     const userId = requireConversationOwner(ctx.session.auth);
     const refused = await checkExerciseSlugs([new_exercise_slug]);
+
     if (refused) {
       return refused;
     }
+
     return await reportingEditErrors(async () => {
-      const replaced = await asUser(userId, (tx) =>
-        replaceExerciseInWorkout(tx, userId, {
-          newExerciseSlug: new_exercise_slug,
-          sets,
-          workoutExerciseId: workout_exercise_id,
-        })
+      const replaced = await asUser(
+        userId,
+        async (tx) =>
+          await replaceExerciseInWorkout(tx, userId, {
+            newExerciseSlug: new_exercise_slug,
+            sets,
+            workoutExerciseId: workout_exercise_id,
+          })
       );
+
       return replaced
         ? {
             new_exercise_slug,

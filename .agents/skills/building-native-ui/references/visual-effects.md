@@ -157,8 +157,8 @@ if (isLiquidGlassAvailable()) {
 ### Fallback Pattern
 
 ```tsx
-import { GlassView, isLiquidGlassAvailable } from "expo-glass-effect";
 import { BlurView } from "expo-blur";
+import { GlassView, isLiquidGlassAvailable } from "expo-glass-effect";
 
 function AdaptiveGlass({ children, style }) {
   if (isLiquidGlassAvailable()) {

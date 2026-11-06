@@ -5,27 +5,29 @@
 The primary billing UI component. Renders subscription plans and opens Clerk's in-app checkout drawer when a user selects a plan.
 
 ```tsx
-import { PricingTable } from '@clerk/nextjs'
+import { PricingTable } from "@clerk/nextjs";
 
 export default function PricingPage() {
-	return <PricingTable />
+  return <PricingTable />;
 }
 ```
 
 **What it does:**
+
 - Fetches plan data from Clerk Dashboard configuration
 - Renders plan cards with features, pricing, and CTA buttons
 - Opens Clerk's in-app **checkout drawer** on plan selection
 - Shows current plan for subscribed users with upgrade/downgrade options
 
 **Key behaviors:**
+
 - Respects the active entity by default: user subscription for personal accounts, org subscription in org context. Override with `for`.
 - For an account-management UI that includes plan switching, cancellations, payment methods, and invoices, render `<UserProfile />` (B2C) or `<OrganizationProfile />` (B2B) instead. Use `<PricingTable />` standalone only when you need a dedicated pricing page.
 
 **Props (all optional):**
 
 | Prop | Type | Description |
-|------|------|-------------|
+| --- | --- | --- |
 | `appearance` | `Appearance` | Style overrides for the component. |
 | `checkoutProps` | `{ appearance: Appearance }` | Style overrides for the checkout drawer. |
 | `collapseFeatures` | `boolean` | Start with features collapsed. Requires `layout: 'default'`. Defaults to `false`. |
@@ -41,22 +43,22 @@ For most cases, use `<PricingTable />` with no props (or just `for="organization
 For custom checkout UX outside `<PricingTable />`, use `<CheckoutButton />` from `@clerk/nextjs/experimental`. It opens the same checkout drawer for a specific `planId`. Must be wrapped in `<Show when="signed-in">`.
 
 ```tsx
-'use client'
-import { Show } from '@clerk/nextjs'
-import { CheckoutButton } from '@clerk/nextjs/experimental'
+"use client";
+import { Show } from "@clerk/nextjs";
+import { CheckoutButton } from "@clerk/nextjs/experimental";
 
 export function UpgradeCTA() {
-	return (
-		<Show when="signed-in">
-			<CheckoutButton
-				planId="cplan_xxx"
-				planPeriod="annual"
-				for="user"
-				newSubscriptionRedirectUrl="/dashboard"
-				onSubscriptionComplete={() => console.log('subscribed')}
-			/>
-		</Show>
-	)
+  return (
+    <Show when="signed-in">
+      <CheckoutButton
+        planId="cplan_xxx"
+        planPeriod="annual"
+        for="user"
+        newSubscriptionRedirectUrl="/dashboard"
+        onSubscriptionComplete={() => console.log("subscribed")}
+      />
+    </Show>
+  );
 }
 ```
 
@@ -69,31 +71,31 @@ Key props: `planId` (required), `planPeriod: 'month' | 'annual'`, `for: 'user' |
 ### Server usage
 
 ```typescript
-import { auth } from '@clerk/nextjs/server'
+import { auth } from "@clerk/nextjs/server";
 
-const { has } = await auth()
+const { has } = await auth();
 
-has({ plan: 'pro' })        // true if user/org is on 'pro' plan
-has({ feature: 'export' })  // true if user/org has 'export' feature entitlement
+has({ plan: "pro" }); // true if user/org is on 'pro' plan
+has({ feature: "export" }); // true if user/org has 'export' feature entitlement
 ```
 
 ### Client usage
 
 ```tsx
-'use client'
-import { useAuth } from '@clerk/nextjs'
+"use client";
+import { useAuth } from "@clerk/nextjs";
 
-const { has } = useAuth()
-has?.({ plan: 'pro' })       // optional chaining, may be undefined before hydration
-has?.({ feature: 'export' })
+const { has } = useAuth();
+has?.({ plan: "pro" }); // optional chaining, may be undefined before hydration
+has?.({ feature: "export" });
 ```
 
 ### Combining with role checks
 
 ```typescript
-const { has, orgRole } = await auth()
+const { has, orgRole } = await auth();
 
-const canManageBilling = has({ plan: 'pro' }) && orgRole === 'org:admin'
+const canManageBilling = has({ plan: "pro" }) && orgRole === "org:admin";
 ```
 
 ### What `has()` checks
@@ -122,11 +124,10 @@ import { Show } from '@clerk/nextjs'
 
 ```typescript
 // Stable
-import { PricingTable, Show, useAuth } from '@clerk/nextjs'
-import { auth } from '@clerk/nextjs/server'
-
+import { PricingTable, Show, useAuth } from "@clerk/nextjs";
 // Experimental (Billing)
-import { CheckoutButton, useSubscription } from '@clerk/nextjs/experimental'
+import { CheckoutButton, useSubscription } from "@clerk/nextjs/experimental";
+import { auth } from "@clerk/nextjs/server";
 ```
 
 Stable billing primitives (`PricingTable`, `has()` via `auth()` / `useAuth()`, `<Show>`) live in `@clerk/nextjs`. Experimental hooks and components (`useSubscription`, `CheckoutButton`, `SubscriptionDetailsButton`, `PlanDetailsButton`) live in `@clerk/nextjs/experimental`. No separate billing package needed.

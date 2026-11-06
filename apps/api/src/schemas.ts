@@ -5,7 +5,8 @@ import {
   MAX_WEIGHT,
   MAX_WEIGHT_DECIMALS,
 } from "@fitme/core/limits";
-import { type Hook, z } from "@hono/zod-openapi";
+import { z } from "@hono/zod-openapi";
+import type { Hook } from "@hono/zod-openapi";
 import type { Env } from "hono";
 
 /** The muscle group enum, one named schema wherever it appears. */
@@ -32,7 +33,7 @@ export const WorkoutCover = z.string().nullable().openapi({
 });
 
 /** Lowercase letters and digits, words joined by single hyphens (apps/library's rule). */
-const EXERCISE_SLUG = /^[a-z0-9]+(-[a-z0-9]+)*$/;
+const EXERCISE_SLUG = /^[a-z0-9]+(?:-[a-z0-9]+)*$/u;
 
 /** An Exercise slug a write carries, checked against the Library before anything is written. */
 export const ExerciseSlug = z
@@ -46,6 +47,7 @@ export const ExerciseSlug = z
     description:
       "An Exercise slug from the Library API; every one is checked before anything is written",
     example: "barbell-back-squat",
+    pattern: "^[a-z0-9]+(-[a-z0-9]+)*$",
   });
 
 /** Every error, whatever the route: `{ error: { code, message } }`. */
@@ -80,6 +82,7 @@ export const invalidRequest = <E extends Env>(
     const message = result.error.issues
       .map((issue) => `${issue.path.join(".")}: ${issue.message}`)
       .join("; ");
+
     return c.json({ error: { code: "invalid_request", message } }, 400);
   }
 };

@@ -2,7 +2,9 @@ import { beforeEach, describe, expect, it, jest } from "@jest/globals";
 import * as Sentry from "@sentry/react-native";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { render } from "@testing-library/react-native";
+
 import { createTestQueryClient } from "~/test-utils/query-client";
+
 import AuthSync from "../auth-sync";
 
 interface FakeUser {
@@ -16,10 +18,12 @@ let mockUser: FakeUser | null = null;
 jest.mock("@clerk/expo", () => ({
   useUser: () => ({ isLoaded: true, user: mockUser }),
 }));
+
 jest.mock("@sentry/react-native", () => ({
   captureException: jest.fn(),
   setUser: jest.fn(),
 }));
+
 jest.mock("react-native-purchases", () => ({
   __esModule: true,
   default: {
@@ -31,6 +35,7 @@ jest.mock("react-native-purchases", () => ({
     setEmail: jest.fn(() => Promise.resolve()),
   },
 }));
+
 jest.mock("~/lib/segment", () => ({
   segmentClient: { identify: jest.fn(() => Promise.resolve()) },
 }));
@@ -39,12 +44,15 @@ const CLERK_ID = "user_2abcDEF";
 
 const renderAuthSync = async () => {
   const queryClient = createTestQueryClient();
+
   const tree = () => (
     <QueryClientProvider client={queryClient}>
       <AuthSync />
     </QueryClientProvider>
   );
+
   const result = await render(tree());
+
   return { rerender: () => result.rerender(tree()) };
 };
 
@@ -62,6 +70,7 @@ describe("AuthSync", () => {
     await renderAuthSync();
 
     expect(Sentry.setUser).toHaveBeenCalledWith({ id: CLERK_ID });
+
     for (const [user] of jest.mocked(Sentry.setUser).mock.calls) {
       expect(user).not.toHaveProperty("email");
       expect(user).not.toHaveProperty("username");

@@ -8,7 +8,8 @@
  */
 import { MAX_FREQUENCY, MAX_PLAN_TEXT_LENGTH } from "@fitme/core";
 import { beforeEach, describe, expect, it, jest } from "@jest/globals";
-import { type QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { QueryClientProvider } from "@tanstack/react-query";
+import type { QueryClient } from "@tanstack/react-query";
 import {
   fireEvent,
   render,
@@ -16,7 +17,9 @@ import {
   within,
 } from "@testing-library/react-native";
 import type { ReactNode } from "react";
-import { Alert, type AlertButton } from "react-native";
+import { Alert } from "react-native";
+import type { AlertButton } from "react-native";
+
 import PlanEditorScreen from "~/app/plans/[planId]/edit/index";
 import PlanScreen from "~/app/plans/[planId]/index";
 import { segmentClient } from "~/lib/segment";
@@ -26,8 +29,8 @@ import {
   backend,
   fakePublicApi,
   libraryExerciseNamed,
-  type SeedPlan,
 } from "~/test-utils/fake-public-api";
+import type { SeedPlan } from "~/test-utils/fake-public-api";
 import { InAppLanguage } from "~/test-utils/in-app-language";
 import {
   createTestQueryClient,
@@ -48,6 +51,7 @@ jest.mock("expo-router", () => {
   const stub = jest.requireActual<typeof import("~/test-utils/router-stub")>(
     "~/test-utils/router-stub"
   );
+
   return {
     Link: ({ children }: { children: ReactNode }) => children,
     Stack: { Screen: stub.StackScreenStub },
@@ -57,7 +61,7 @@ jest.mock("expo-router", () => {
     useNavigation: () => ({ isFocused: () => isEditorFocused.current }),
     // The guard blocks the swipe away, which Jest can't make; the simulator
     // check covers it. Cancel asks through `Alert` either way.
-    usePreventRemove: () => () => undefined,
+    usePreventRemove: () => () => {},
     useRouter: () => ({ ...stub.stubRouter, canGoBack: () => true }),
   };
 });
@@ -67,6 +71,7 @@ jest.mock("react-native-keyboard-controller", () => ({
     jest.requireActual<typeof import("react-native")>("react-native")
       .ScrollView,
 }));
+
 // The real Clerk SDK opens a MessagePort at import, which keeps Jest alive.
 jest.mock("~/lib/clerk", () => ({
   getCurrentUserId: () =>
@@ -74,17 +79,24 @@ jest.mock("~/lib/clerk", () => ({
       "~/test-utils/fake-public-api"
     ).FAKE_USER_ID,
 }));
+
 jest.mock("~/components/symbol-image", () => ({ SymbolImage: () => null }));
+
 jest.mock("~/components/ui/button", () =>
   jest.requireActual("~/test-utils/button-stub")
 );
+
 jest.mock("~/components/ui/dropdown-menu", () =>
   jest.requireActual("~/test-utils/dropdown-menu-stub")
 );
+
 jest.mock("~/components/ui/select", () =>
   jest.requireActual("~/test-utils/select-stub")
 );
-jest.mock("~/lib/segment", () => ({ segmentClient: { track: jest.fn() } }));
+
+jest.mock("~/lib/segment", () => ({
+  segmentClient: { track: jest.fn() },
+}));
 
 const SAVE = "PUT /v1/plans/{id}";
 
@@ -170,28 +182,31 @@ const savedPlan = () => backend.plans[0];
 /** A saved Workout Exercise's set ids, which a save writes as rows. */
 const setIds = (workout: number, exercise: number) => {
   const { sets } = savedPlan().workouts[workout].exercises[exercise];
+
   return (typeof sets === "number" ? [] : sets).map((set) => set.id);
 };
 
 const workoutIds = () => savedPlan().workouts.map((workout) => workout.id);
 
 const alerts = () =>
-  (Alert.alert as jest.Mock).mock.calls as [string, string, AlertButton[]?][];
+  jest.mocked(Alert.alert).mock.calls as [string, string, AlertButton[]?][];
 
 /** Presses `button` in the alert last shown. */
 const pressAlertButton = async (button: string) => {
   const buttons = alerts().at(-1)?.[2] ?? [];
   const pressed = buttons.find((candidate) => candidate.text === button);
+
   if (!pressed?.onPress) {
     throw new Error(`No "${button}" button in the last alert`);
   }
+
   pressed.onPress();
   await settle(client);
 };
 
 beforeEach(() => {
   jest.clearAllMocks();
-  jest.spyOn(Alert, "alert").mockImplementation(() => undefined);
+  jest.spyOn(Alert, "alert").mockReturnValue(undefined);
   backend.reset();
   backend.seedPlan(structuredClone(PLAN));
   serveLibrary([
@@ -328,9 +343,14 @@ describe("saving", () => {
     await type("plan-name", "Push pull legs");
     await save();
 
-    expect(jest.mocked(segmentClient.track).mock.calls).toEqual([
-      ["Plan Edited", { plan_id: "plan-1" }],
-    ]);
+    expect(
+      jest.mocked<
+        (
+          event: string,
+          properties?: Record<string, string | number | boolean | null>
+        ) => void
+      >(segmentClient.track).mock.calls
+    ).toEqual([["Plan Edited", { plan_id: "plan-1" }]]);
     expect(pushedRoutes()).toEqual([]);
   });
 
@@ -374,7 +394,7 @@ describe("saving while the User keeps editing", () => {
   });
 });
 
-describe("Save is disabled", () => {
+describe("save is disabled", () => {
   const expectNothingSaved = async () => {
     await save();
     expect(fakePublicApi.count(SAVE)).toBe(0);

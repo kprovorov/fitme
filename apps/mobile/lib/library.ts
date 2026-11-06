@@ -1,8 +1,6 @@
-import {
-  createLibrary,
-  type Library,
-  LibraryUnavailableError,
-} from "@fitme/library-sdk";
+import { createLibrary, LibraryUnavailableError } from "@fitme/library-sdk";
+import type { Library } from "@fitme/library-sdk";
+
 import { getClerk } from "~/lib/clerk";
 
 const notConfigured = () =>
@@ -36,5 +34,6 @@ export const getLibrary = (): Library => {
         })
       : unconfigured;
   }
+
   return library;
 };

@@ -1,19 +1,18 @@
 import { reportMissingEnv } from "@fitme/observability/node";
 import { describe, expect, it, vi } from "vitest";
+
 import { REQUIRED_ENV } from "../required-env";
 
-describe("REQUIRED_ENV", () => {
+describe("required environment variables", () => {
   it("reports one error per variable on a production instance missing them all", async () => {
-    const report = vi.fn((_error: unknown, _tags?: Record<string, string>) =>
-      Promise.resolve()
-    );
+    const report = vi.fn<() => Promise<void>>(() => Promise.resolve());
 
     const missing = await reportMissingEnv(REQUIRED_ENV, {
       env: { VERCEL_ENV: "production" },
       report,
     });
 
-    expect(missing).toEqual([
+    expect(missing).toStrictEqual([
       "CLERK_SECRET_KEY",
       "CLERK_PUBLISHABLE_KEY",
       "FITME_DATABASE_URL",

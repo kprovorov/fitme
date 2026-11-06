@@ -1,9 +1,7 @@
 import { describe, expect, it } from "@jest/globals";
-import {
-  isTracedRequestUrl,
-  type SpannedEvent,
-  templateRequestSpans,
-} from "../request-spans";
+
+import { isTracedRequestUrl, templateRequestSpans } from "../request-spans";
+import type { SpannedEvent } from "../request-spans";
 
 describe("isTracedRequestUrl", () => {
   it("records a span for every service we send trace headers to", () => {
@@ -29,7 +27,10 @@ describe("isTracedRequestUrl", () => {
   });
 });
 
-const requestSpan = (description: string, data: Record<string, unknown>) => ({
+const requestSpan = (
+  description: string,
+  data: NonNullable<NonNullable<SpannedEvent["spans"]>[number]["data"]>
+) => ({
   data,
   description,
   op: "http.client",
@@ -45,6 +46,7 @@ describe("templateRequestSpans", () => {
         ),
       ],
     }).spans;
+
     expect(span.description).toBe(
       "GET https://api.fitmeproject.com/v1/plans/{id}"
     );
@@ -59,6 +61,7 @@ describe("templateRequestSpans", () => {
         ),
       ],
     }).spans;
+
     expect(span.description).toBe(
       "GET https://library.fitmeproject.com/exercises/{slug}"
     );
@@ -70,6 +73,7 @@ describe("templateRequestSpans", () => {
         requestSpan("GET https://api.fitmeproject.com/v1/workout-sessions", {}),
       ],
     }).spans;
+
     expect(span.description).toBe(
       "GET https://api.fitmeproject.com/v1/workout-sessions"
     );
@@ -88,6 +92,7 @@ describe("templateRequestSpans", () => {
         ),
       ],
     }).spans;
+
     expect(added.description).toBe(
       "POST https://api.fitmeproject.com/v1/workout-sessions/{id}/exercises"
     );
@@ -111,6 +116,7 @@ describe("templateRequestSpans", () => {
         }),
       ],
     }).spans;
+
     expect(JSON.stringify(span.data)).not.toContain("search");
     expect(span.data["http.method"]).toBe("GET");
     expect(span.data.url).toBe("https://library.fitmeproject.com/exercises");
@@ -131,6 +137,7 @@ describe("templateRequestSpans", () => {
         ),
       ],
     }).spans;
+
     expect(span.data["url.full"]).toBe(
       "https://api.fitmeproject.com/v1/plans/{id}"
     );
@@ -142,6 +149,7 @@ describe("templateRequestSpans", () => {
       description: "/plans/[planId]",
       op: "navigation",
     };
+
     const event = { spans: [navigation] };
     expect(templateRequestSpans(event).spans[0]).toEqual(navigation);
   });
@@ -150,6 +158,7 @@ describe("templateRequestSpans", () => {
     const event: SpannedEvent & { transaction: string } = {
       transaction: "/history",
     };
+
     expect(templateRequestSpans(event)).toEqual(event);
   });
 });
@@ -164,6 +173,7 @@ describe("templateRequestSpans, Arnold", () => {
         ),
       ],
     }).spans;
+
     expect(span.description).toBe(
       "POST https://arnold.fitmeproject.com/eve/v1/session/{id}/messages"
     );
@@ -175,6 +185,7 @@ describe("templateRequestSpans, Arnold", () => {
         requestSpan("POST https://arnold.fitmeproject.com/eve/v1/session", {}),
       ],
     }).spans;
+
     expect(span.description).toBe(
       "POST https://arnold.fitmeproject.com/eve/v1/session"
     );

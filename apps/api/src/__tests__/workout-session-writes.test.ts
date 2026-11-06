@@ -9,6 +9,7 @@ import type {
   WorkoutSessionSet,
 } from "@fitme/services/workout-sessions";
 import { describe, expect, it } from "vitest";
+
 import type { UserServices } from "../services.js";
 import { fakeServices, signedInAs, testApp } from "../test/harness.js";
 
@@ -44,11 +45,11 @@ const sessionFields = {
 } as const;
 
 /** The Workout Session as the services answer it: with their internals. */
-const session = {
+const session: WorkoutSessionDetail & { user_id: string } = {
   ...sessionFields,
   exercises: [exercise],
   user_id: "user_alice",
-} as unknown as WorkoutSessionDetail;
+};
 
 /** The same Workout Session as the API answers it. */
 const shown = { ...sessionFields, exercises: [exercise], weight_unit: "lbs" };
@@ -67,44 +68,53 @@ const shownFinished = {
 
 type App = ReturnType<typeof testApp>["app"];
 
+type RequestBody = Record<string, string | number | undefined>;
+
 const send = (
   app: App,
   method: string,
   path: string,
-  body?: unknown,
+  body?: RequestBody,
   headers: Record<string, string> = {}
-) =>
-  app.request(path, {
+) => {
+  const requestHeaders: Record<string, string> = signedInAs("user_alice");
+
+  if (body !== undefined) {
+    requestHeaders["content-type"] = "application/json";
+  }
+
+  return app.request(path, {
     body: body === undefined ? undefined : JSON.stringify(body),
-    headers: {
-      ...signedInAs("user_alice"),
-      ...(body === undefined ? {} : { "content-type": "application/json" }),
-      ...headers,
-    },
+    headers: { ...requestHeaders, ...headers },
     method,
   });
+};
 
 /** A facade whose `method` answers `result` and records what it was called with. */
 const recording = <M extends keyof UserServices>(
   method: M,
   result: Awaited<ReturnType<UserServices[M]>>
 ) => {
-  const calls: unknown[] = [];
+  const calls: Parameters<UserServices[M]>[0][] = [];
+
   const services = fakeServices({
-    [method]: (arg: unknown) => {
+    [method]: (arg: Parameters<UserServices[M]>[0]) => {
       calls.push(arg);
+
       return Promise.resolve(result);
     },
   });
+
   return { calls, services };
 };
 
-describe("POST /v1/workout-sessions", () => {
+describe("pOST /v1/workout-sessions", () => {
   it("answers 201 with the new Workout Session in full", async () => {
     const { calls, services } = recording("startWorkoutSession", {
       value: { resumed: false, session, status: "started" },
       weightUnit: "lbs",
     });
+
     const { app, servicesFor } = testApp({ services });
 
     const response = await send(app, "POST", "/v1/workout-sessions", {
@@ -112,9 +122,9 @@ describe("POST /v1/workout-sessions", () => {
     });
 
     expect(response.status).toBe(201);
-    expect(await response.json()).toEqual({ data: shown });
-    expect(calls).toEqual([WORKOUT_ID]);
-    expect(servicesFor).toEqual(["user_alice"]);
+    await expect(response.json()).resolves.toStrictEqual({ data: shown });
+    expect(calls).toStrictEqual([WORKOUT_ID]);
+    expect(servicesFor).toStrictEqual(["user_alice"]);
   });
 
   it("answers 200 with the same body when it resumes the open Workout Session", async () => {
@@ -122,6 +132,7 @@ describe("POST /v1/workout-sessions", () => {
       value: { resumed: true, session, status: "started" },
       weightUnit: "lbs",
     });
+
     const { app } = testApp({ services });
 
     const response = await send(app, "POST", "/v1/workout-sessions", {
@@ -129,7 +140,7 @@ describe("POST /v1/workout-sessions", () => {
     });
 
     expect(response.status).toBe(200);
-    expect(await response.json()).toEqual({ data: shown });
+    await expect(response.json()).resolves.toStrictEqual({ data: shown });
   });
 
   it("answers kg for a User without a Profile", async () => {
@@ -137,13 +148,16 @@ describe("POST /v1/workout-sessions", () => {
       value: { resumed: false, session, status: "started" },
       weightUnit: "kg",
     });
+
     const { app } = testApp({ services });
 
     const response = await send(app, "POST", "/v1/workout-sessions", {
       workout_id: WORKOUT_ID,
     });
 
-    expect((await response.json()).data.weight_unit).toBe("kg");
+    const responseBody = await response.json();
+
+    expect(responseBody.data.weight_unit).toBe("kg");
   });
 
   it("answers 409 session_in_progress naming the Workout in progress, unreported", async () => {
@@ -155,6 +169,7 @@ describe("POST /v1/workout-sessions", () => {
       },
       weightUnit: "kg",
     });
+
     const { app, reported } = testApp({ services });
 
     const response = await send(app, "POST", "/v1/workout-sessions", {
@@ -162,13 +177,13 @@ describe("POST /v1/workout-sessions", () => {
     });
 
     expect(response.status).toBe(409);
-    expect(await response.json()).toEqual({
+    await expect(response.json()).resolves.toStrictEqual({
       error: {
         code: "session_in_progress",
         message: `Workout "Day A" is in progress (Workout Session ${SESSION_ID}); finish it before starting another`,
       },
     });
-    expect(reported).toEqual([]);
+    expect(reported).toStrictEqual([]);
   });
 
   it("answers 409 session_in_progress for an open Workout Session whose Workout is gone", async () => {
@@ -180,6 +195,7 @@ describe("POST /v1/workout-sessions", () => {
       },
       weightUnit: "kg",
     });
+
     const { app } = testApp({ services });
 
     const response = await send(app, "POST", "/v1/workout-sessions", {
@@ -187,7 +203,7 @@ describe("POST /v1/workout-sessions", () => {
     });
 
     expect(response.status).toBe(409);
-    expect(await response.json()).toEqual({
+    await expect(response.json()).resolves.toStrictEqual({
       error: {
         code: "session_in_progress",
         message: `Workout Session ${SESSION_ID} is in progress; finish it before starting another`,
@@ -200,6 +216,7 @@ describe("POST /v1/workout-sessions", () => {
       value: { status: "not_found" },
       weightUnit: "kg",
     });
+
     const { app, reported } = testApp({ services });
 
     const response = await send(app, "POST", "/v1/workout-sessions", {
@@ -207,10 +224,10 @@ describe("POST /v1/workout-sessions", () => {
     });
 
     expect(response.status).toBe(404);
-    expect(await response.json()).toEqual({
+    await expect(response.json()).resolves.toStrictEqual({
       error: { code: "not_found", message: "Workout not found" },
     });
-    expect(reported).toEqual([]);
+    expect(reported).toStrictEqual([]);
   });
 
   it.each([
@@ -228,7 +245,7 @@ describe("POST /v1/workout-sessions", () => {
       const { error } = await response.json();
       expect(error.code).toBe("invalid_request");
       expect(error.message).toContain(field);
-      expect(reported).toEqual([]);
+      expect(reported).toStrictEqual([]);
     }
   );
 
@@ -245,7 +262,7 @@ describe("POST /v1/workout-sessions", () => {
   });
 });
 
-describe("POST /v1/workout-sessions/:id/finish", () => {
+describe("pOST /v1/workout-sessions/:id/finish", () => {
   it("answers the finished Workout Session with already_finished: false", async () => {
     const { calls, services } = recording("finishWorkoutSession", {
       value: {
@@ -256,6 +273,7 @@ describe("POST /v1/workout-sessions/:id/finish", () => {
       },
       weightUnit: "lbs",
     });
+
     const { app } = testApp({ services });
 
     const response = await send(
@@ -265,11 +283,11 @@ describe("POST /v1/workout-sessions/:id/finish", () => {
     );
 
     expect(response.status).toBe(200);
-    expect(await response.json()).toEqual({
+    await expect(response.json()).resolves.toStrictEqual({
       already_finished: false,
       data: shownFinished,
     });
-    expect(calls).toEqual([SESSION_ID]);
+    expect(calls).toStrictEqual([SESSION_ID]);
   });
 
   it("answers already_finished: true on a repeat", async () => {
@@ -282,6 +300,7 @@ describe("POST /v1/workout-sessions/:id/finish", () => {
       },
       weightUnit: "lbs",
     });
+
     const { app } = testApp({ services });
 
     const response = await send(
@@ -291,7 +310,7 @@ describe("POST /v1/workout-sessions/:id/finish", () => {
     );
 
     expect(response.status).toBe(200);
-    expect(await response.json()).toEqual({
+    await expect(response.json()).resolves.toStrictEqual({
       already_finished: true,
       data: shownFinished,
     });
@@ -302,6 +321,7 @@ describe("POST /v1/workout-sessions/:id/finish", () => {
       value: { status: "not_found" },
       weightUnit: "kg",
     });
+
     const { app, reported } = testApp({ services });
 
     const response = await send(
@@ -311,10 +331,10 @@ describe("POST /v1/workout-sessions/:id/finish", () => {
     );
 
     expect(response.status).toBe(404);
-    expect(await response.json()).toEqual({
+    await expect(response.json()).resolves.toStrictEqual({
       error: { code: "not_found", message: "Workout Session not found" },
     });
-    expect(reported).toEqual([]);
+    expect(reported).toStrictEqual([]);
   });
 
   it("answers 400 invalid_request for an id that isn't a uuid, unreported", async () => {
@@ -327,12 +347,13 @@ describe("POST /v1/workout-sessions/:id/finish", () => {
     );
 
     expect(response.status).toBe(400);
-    expect((await response.json()).error.code).toBe("invalid_request");
-    expect(reported).toEqual([]);
+    const responseBody = await response.json();
+    expect(responseBody.error.code).toBe("invalid_request");
+    expect(reported).toStrictEqual([]);
   });
 });
 
-describe("DELETE /v1/workout-sessions/:id", () => {
+describe("dELETE /v1/workout-sessions/:id", () => {
   it("answers 204 with no body when it deletes the Workout Session", async () => {
     const { calls, services } = recording("deleteWorkoutSession", true);
     const { app } = testApp({ services });
@@ -344,8 +365,8 @@ describe("DELETE /v1/workout-sessions/:id", () => {
     );
 
     expect(response.status).toBe(204);
-    expect(await response.text()).toBe("");
-    expect(calls).toEqual([SESSION_ID]);
+    await expect(response.text()).resolves.toBe("");
+    expect(calls).toStrictEqual([SESSION_ID]);
   });
 
   it("answers 204 too when nothing of the User's matched (a repeat, or another User's id), unreported", async () => {
@@ -359,7 +380,7 @@ describe("DELETE /v1/workout-sessions/:id", () => {
     );
 
     expect(response.status).toBe(204);
-    expect(reported).toEqual([]);
+    expect(reported).toStrictEqual([]);
   });
 
   it("answers 400 invalid_request for an id that isn't a uuid, unreported", async () => {
@@ -368,12 +389,13 @@ describe("DELETE /v1/workout-sessions/:id", () => {
     const response = await send(app, "DELETE", "/v1/workout-sessions/nope");
 
     expect(response.status).toBe(400);
-    expect((await response.json()).error.code).toBe("invalid_request");
-    expect(reported).toEqual([]);
+    const responseBody = await response.json();
+    expect(responseBody.error.code).toBe("invalid_request");
+    expect(reported).toStrictEqual([]);
   });
 });
 
-describe("PATCH /v1/workout-session-sets/:id", () => {
+describe("pATCH /v1/workout-session-sets/:id", () => {
   const logged: WorkoutSessionSet = {
     ...set,
     logged_at: "2026-10-01T10:05:00+00:00",
@@ -382,13 +404,16 @@ describe("PATCH /v1/workout-session-sets/:id", () => {
   };
 
   it("logs the set and answers it with its weight unit", async () => {
+    const storedSet = { ...logged, workout_session_exercise_id: exercise.id };
+
     const { calls, services } = recording("logSet", {
       value: {
-        set: { ...logged, workout_session_exercise_id: exercise.id },
+        set: storedSet,
         status: "logged",
-      } as Awaited<ReturnType<UserServices["logSet"]>>["value"],
+      },
       weightUnit: "lbs",
     });
+
     const { app, servicesFor } = testApp({ services });
 
     const response = await send(
@@ -399,13 +424,13 @@ describe("PATCH /v1/workout-session-sets/:id", () => {
     );
 
     expect(response.status).toBe(200);
-    expect(await response.json()).toEqual({
+    await expect(response.json()).resolves.toStrictEqual({
       data: { ...logged, weight_unit: "lbs" },
     });
-    expect(calls).toEqual([
+    expect(calls).toStrictEqual([
       { repsCompleted: 8, setId: SET_ID, weightCompleted: 82.5 },
     ]);
-    expect(servicesFor).toEqual(["user_alice"]);
+    expect(servicesFor).toStrictEqual(["user_alice"]);
   });
 
   it.each([
@@ -416,6 +441,7 @@ describe("PATCH /v1/workout-session-sets/:id", () => {
       value: { set: logged, status: "logged" },
       weightUnit: "kg",
     });
+
     const { app } = testApp({ services });
 
     const response = await send(
@@ -426,7 +452,7 @@ describe("PATCH /v1/workout-session-sets/:id", () => {
     );
 
     expect(response.status).toBe(200);
-    expect(calls).toEqual([
+    expect(calls).toStrictEqual([
       { repsCompleted: reps, setId: SET_ID, weightCompleted: weight },
     ]);
   });
@@ -440,6 +466,7 @@ describe("PATCH /v1/workout-session-sets/:id", () => {
       },
       weightUnit: "kg",
     });
+
     const { app, reported } = testApp({ services });
 
     const response = await send(
@@ -450,8 +477,9 @@ describe("PATCH /v1/workout-session-sets/:id", () => {
     );
 
     expect(response.status).toBe(409);
-    expect((await response.json()).error.code).toBe("session_finished");
-    expect(reported).toEqual([]);
+    const responseBody = await response.json();
+    expect(responseBody.error.code).toBe("session_finished");
+    expect(reported).toStrictEqual([]);
   });
 
   it("answers 404 not_found for a set the User doesn't have, unreported", async () => {
@@ -459,6 +487,7 @@ describe("PATCH /v1/workout-session-sets/:id", () => {
       value: { status: "not_found" },
       weightUnit: "kg",
     });
+
     const { app, reported } = testApp({ services });
 
     const response = await send(
@@ -469,10 +498,10 @@ describe("PATCH /v1/workout-session-sets/:id", () => {
     );
 
     expect(response.status).toBe(404);
-    expect(await response.json()).toEqual({
+    await expect(response.json()).resolves.toStrictEqual({
       error: { code: "not_found", message: "Workout Session set not found" },
     });
-    expect(reported).toEqual([]);
+    expect(reported).toStrictEqual([]);
   });
 
   it.each([
@@ -504,8 +533,9 @@ describe("PATCH /v1/workout-session-sets/:id", () => {
     );
 
     expect(response.status).toBe(400);
-    expect((await response.json()).error.code).toBe("invalid_request");
-    expect(reported).toEqual([]);
+    const responseBody = await response.json();
+    expect(responseBody.error.code).toBe("invalid_request");
+    expect(reported).toStrictEqual([]);
   });
 
   it("answers 400 invalid_request for a set id that isn't a uuid, unreported", async () => {
@@ -517,8 +547,9 @@ describe("PATCH /v1/workout-session-sets/:id", () => {
     });
 
     expect(response.status).toBe(400);
-    expect((await response.json()).error.code).toBe("invalid_request");
-    expect(reported).toEqual([]);
+    const responseBody = await response.json();
+    expect(responseBody.error.code).toBe("invalid_request");
+    expect(reported).toStrictEqual([]);
   });
 
   it("answers 415 for a body that isn't JSON, unreported", async () => {
@@ -533,12 +564,13 @@ describe("PATCH /v1/workout-session-sets/:id", () => {
     );
 
     expect(response.status).toBe(415);
-    expect(reported).toEqual([]);
+    expect(reported).toStrictEqual([]);
   });
 });
 
-describe("POST /v1/workout-sessions/:id/exercises", () => {
+describe("pOST /v1/workout-sessions/:id/exercises", () => {
   const path = `/v1/workout-sessions/${SESSION_ID}/exercises`;
+
   const added = {
     exercise_slug: "barbell-back-squat",
     id: "4f5a6b7c-8d9e-4f0a-9b1c-2d3e4f5a6b7c",
@@ -547,15 +579,16 @@ describe("POST /v1/workout-sessions/:id/exercises", () => {
   };
 
   it("appends the Exercise and answers 201 with it, its sets and the weight unit", async () => {
+    const storedExercise = { ...added, workout_session_id: SESSION_ID };
+
     const { calls, services } = recording("addExerciseToWorkoutSession", {
       value: {
-        exercise: { ...added, workout_session_id: SESSION_ID },
+        exercise: storedExercise,
         status: "added",
-      } as Awaited<
-        ReturnType<UserServices["addExerciseToWorkoutSession"]>
-      >["value"],
+      },
       weightUnit: "lbs",
     });
+
     const { app, servicesFor } = testApp({ services });
 
     const response = await send(app, "POST", path, {
@@ -563,13 +596,13 @@ describe("POST /v1/workout-sessions/:id/exercises", () => {
     });
 
     expect(response.status).toBe(201);
-    expect(await response.json()).toEqual({
+    await expect(response.json()).resolves.toStrictEqual({
       data: { ...added, weight_unit: "lbs" },
     });
-    expect(calls).toEqual([
+    expect(calls).toStrictEqual([
       { exerciseSlug: "barbell-back-squat", sessionId: SESSION_ID },
     ]);
-    expect(servicesFor).toEqual(["user_alice"]);
+    expect(servicesFor).toStrictEqual(["user_alice"]);
   });
 
   it("answers 404 not_found for a Workout Session the User doesn't have, unreported", async () => {
@@ -577,6 +610,7 @@ describe("POST /v1/workout-sessions/:id/exercises", () => {
       value: { status: "not_found" },
       weightUnit: "kg",
     });
+
     const { app, reported } = testApp({ services });
 
     const response = await send(app, "POST", path, {
@@ -584,10 +618,10 @@ describe("POST /v1/workout-sessions/:id/exercises", () => {
     });
 
     expect(response.status).toBe(404);
-    expect(await response.json()).toEqual({
+    await expect(response.json()).resolves.toStrictEqual({
       error: { code: "not_found", message: "Workout Session not found" },
     });
-    expect(reported).toEqual([]);
+    expect(reported).toStrictEqual([]);
   });
 
   it("answers 409 session_finished for a finished Workout Session, unreported", async () => {
@@ -598,6 +632,7 @@ describe("POST /v1/workout-sessions/:id/exercises", () => {
       },
       weightUnit: "kg",
     });
+
     const { app, reported } = testApp({ services });
 
     const response = await send(app, "POST", path, {
@@ -605,13 +640,13 @@ describe("POST /v1/workout-sessions/:id/exercises", () => {
     });
 
     expect(response.status).toBe(409);
-    expect(await response.json()).toEqual({
+    await expect(response.json()).resolves.toStrictEqual({
       error: {
         code: "session_finished",
         message: `Workout Session ${SESSION_ID} was finished at 2026-10-01T11:00:00+00:00; it can no longer be changed`,
       },
     });
-    expect(reported).toEqual([]);
+    expect(reported).toStrictEqual([]);
   });
 
   it("answers 400 unknown_exercises naming the slug, before any service call, unreported", async () => {
@@ -623,13 +658,13 @@ describe("POST /v1/workout-sessions/:id/exercises", () => {
     });
 
     expect(response.status).toBe(400);
-    expect(await response.json()).toEqual({
+    await expect(response.json()).resolves.toStrictEqual({
       error: {
         code: "unknown_exercises",
         message: "Unknown exercise_slug(s): made-up-press",
       },
     });
-    expect(reported).toEqual([]);
+    expect(reported).toStrictEqual([]);
   });
 
   it("answers a reported 503 library_unavailable when the Library fails, before any service call", async () => {
@@ -642,8 +677,9 @@ describe("POST /v1/workout-sessions/:id/exercises", () => {
     });
 
     expect(response.status).toBe(503);
-    expect((await response.json()).error.code).toBe("library_unavailable");
-    expect(reported).toEqual([outage]);
+    const responseBody = await response.json();
+    expect(responseBody.error.code).toBe("library_unavailable");
+    expect(reported).toStrictEqual([outage]);
   });
 
   it("answers a reported 503 library_unavailable when the Library isn't configured", async () => {
@@ -657,7 +693,8 @@ describe("POST /v1/workout-sessions/:id/exercises", () => {
     });
 
     expect(response.status).toBe(503);
-    expect((await response.json()).error.code).toBe("library_unavailable");
+    const responseBody = await response.json();
+    expect(responseBody.error.code).toBe("library_unavailable");
     expect(reported).toHaveLength(1);
   });
 
@@ -675,8 +712,9 @@ describe("POST /v1/workout-sessions/:id/exercises", () => {
     const response = await send(app, "POST", path, body);
 
     expect(response.status).toBe(400);
-    expect((await response.json()).error.code).toBe("invalid_request");
-    expect(reported).toEqual([]);
+    const responseBody = await response.json();
+    expect(responseBody.error.code).toBe("invalid_request");
+    expect(reported).toStrictEqual([]);
   });
 
   it("answers 400 invalid_request for a Workout Session id that isn't a uuid, unreported", async () => {
@@ -692,8 +730,9 @@ describe("POST /v1/workout-sessions/:id/exercises", () => {
     );
 
     expect(response.status).toBe(400);
-    expect((await response.json()).error.code).toBe("invalid_request");
-    expect(reported).toEqual([]);
+    const responseBody = await response.json();
+    expect(responseBody.error.code).toBe("invalid_request");
+    expect(reported).toStrictEqual([]);
   });
 
   it("answers 415 for a body that isn't JSON, unreported", async () => {
@@ -704,39 +743,41 @@ describe("POST /v1/workout-sessions/:id/exercises", () => {
     });
 
     expect(response.status).toBe(415);
-    expect(reported).toEqual([]);
+    expect(reported).toStrictEqual([]);
   });
 });
 
 const SESSION_EXERCISE_ID = exercise.id;
 
-describe("DELETE /v1/workout-session-exercises/:id", () => {
+describe("dELETE /v1/workout-session-exercises/:id", () => {
   const path = `/v1/workout-session-exercises/${SESSION_EXERCISE_ID}`;
 
   it("answers 204 with no body when it removes the Exercise", async () => {
     const { calls, services } = recording("removeExerciseFromWorkoutSession", {
       status: "removed",
     });
+
     const { app, servicesFor } = testApp({ services });
 
     const response = await send(app, "DELETE", path);
 
     expect(response.status).toBe(204);
-    expect(await response.text()).toBe("");
-    expect(calls).toEqual([SESSION_EXERCISE_ID]);
-    expect(servicesFor).toEqual(["user_alice"]);
+    await expect(response.text()).resolves.toBe("");
+    expect(calls).toStrictEqual([SESSION_EXERCISE_ID]);
+    expect(servicesFor).toStrictEqual(["user_alice"]);
   });
 
   it("answers 204 too when nothing of the User's matched (a repeat, or another User's id), unreported", async () => {
     const { services } = recording("removeExerciseFromWorkoutSession", {
       status: "not_found",
     });
+
     const { app, reported } = testApp({ services });
 
     const response = await send(app, "DELETE", path);
 
     expect(response.status).toBe(204);
-    expect(reported).toEqual([]);
+    expect(reported).toStrictEqual([]);
   });
 
   it("answers 409 session_finished for an Exercise of a finished Workout Session, unreported", async () => {
@@ -745,18 +786,19 @@ describe("DELETE /v1/workout-session-exercises/:id", () => {
       sessionId: SESSION_ID,
       status: "session_finished",
     });
+
     const { app, reported } = testApp({ services });
 
     const response = await send(app, "DELETE", path);
 
     expect(response.status).toBe(409);
-    expect(await response.json()).toEqual({
+    await expect(response.json()).resolves.toStrictEqual({
       error: {
         code: "session_finished",
         message: `Workout Session ${SESSION_ID} was finished at 2026-10-01T11:00:00+00:00; it can no longer be changed`,
       },
     });
-    expect(reported).toEqual([]);
+    expect(reported).toStrictEqual([]);
   });
 
   it("answers 400 invalid_request for an id that isn't a uuid, unreported", async () => {
@@ -769,13 +811,15 @@ describe("DELETE /v1/workout-session-exercises/:id", () => {
     );
 
     expect(response.status).toBe(400);
-    expect((await response.json()).error.code).toBe("invalid_request");
-    expect(reported).toEqual([]);
+    const responseBody = await response.json();
+    expect(responseBody.error.code).toBe("invalid_request");
+    expect(reported).toStrictEqual([]);
   });
 });
 
-describe("PUT /v1/workout-session-exercises/:id", () => {
+describe("pUT /v1/workout-session-exercises/:id", () => {
   const path = `/v1/workout-session-exercises/${SESSION_EXERCISE_ID}`;
+
   const replaced = {
     ...exercise,
     exercise_slug: "barbell-back-squat",
@@ -787,6 +831,7 @@ describe("PUT /v1/workout-session-exercises/:id", () => {
       value: { exercise: replaced, status: "replaced" },
       weightUnit: "lbs",
     });
+
     const { app, servicesFor } = testApp({ services });
 
     const response = await send(app, "PUT", path, {
@@ -794,16 +839,16 @@ describe("PUT /v1/workout-session-exercises/:id", () => {
     });
 
     expect(response.status).toBe(200);
-    expect(await response.json()).toEqual({
+    await expect(response.json()).resolves.toStrictEqual({
       data: { ...replaced, weight_unit: "lbs" },
     });
-    expect(calls).toEqual([
+    expect(calls).toStrictEqual([
       {
         exerciseSlug: "barbell-back-squat",
         sessionExerciseId: SESSION_EXERCISE_ID,
       },
     ]);
-    expect(servicesFor).toEqual(["user_alice"]);
+    expect(servicesFor).toStrictEqual(["user_alice"]);
   });
 
   it("answers 404 not_found for a Workout Session Exercise the User doesn't have, unreported", async () => {
@@ -811,6 +856,7 @@ describe("PUT /v1/workout-session-exercises/:id", () => {
       value: { status: "not_found" },
       weightUnit: "kg",
     });
+
     const { app, reported } = testApp({ services });
 
     const response = await send(app, "PUT", path, {
@@ -818,13 +864,13 @@ describe("PUT /v1/workout-session-exercises/:id", () => {
     });
 
     expect(response.status).toBe(404);
-    expect(await response.json()).toEqual({
+    await expect(response.json()).resolves.toStrictEqual({
       error: {
         code: "not_found",
         message: "Workout Session Exercise not found",
       },
     });
-    expect(reported).toEqual([]);
+    expect(reported).toStrictEqual([]);
   });
 
   it("answers 409 session_finished for a finished Workout Session, unreported", async () => {
@@ -836,6 +882,7 @@ describe("PUT /v1/workout-session-exercises/:id", () => {
       },
       weightUnit: "kg",
     });
+
     const { app, reported } = testApp({ services });
 
     const response = await send(app, "PUT", path, {
@@ -843,13 +890,13 @@ describe("PUT /v1/workout-session-exercises/:id", () => {
     });
 
     expect(response.status).toBe(409);
-    expect(await response.json()).toEqual({
+    await expect(response.json()).resolves.toStrictEqual({
       error: {
         code: "session_finished",
         message: `Workout Session ${SESSION_ID} was finished at 2026-10-01T11:00:00+00:00; it can no longer be changed`,
       },
     });
-    expect(reported).toEqual([]);
+    expect(reported).toStrictEqual([]);
   });
 
   it("answers 400 unknown_exercises naming the slug, before any service call, unreported", async () => {
@@ -861,13 +908,13 @@ describe("PUT /v1/workout-session-exercises/:id", () => {
     });
 
     expect(response.status).toBe(400);
-    expect(await response.json()).toEqual({
+    await expect(response.json()).resolves.toStrictEqual({
       error: {
         code: "unknown_exercises",
         message: "Unknown exercise_slug(s): made-up-press",
       },
     });
-    expect(reported).toEqual([]);
+    expect(reported).toStrictEqual([]);
   });
 
   it("answers a reported 503 library_unavailable when the Library fails, before any service call", async () => {
@@ -880,8 +927,9 @@ describe("PUT /v1/workout-session-exercises/:id", () => {
     });
 
     expect(response.status).toBe(503);
-    expect((await response.json()).error.code).toBe("library_unavailable");
-    expect(reported).toEqual([outage]);
+    const responseBody = await response.json();
+    expect(responseBody.error.code).toBe("library_unavailable");
+    expect(reported).toStrictEqual([outage]);
   });
 
   it.each([
@@ -898,8 +946,9 @@ describe("PUT /v1/workout-session-exercises/:id", () => {
     const response = await send(app, "PUT", path, body);
 
     expect(response.status).toBe(400);
-    expect((await response.json()).error.code).toBe("invalid_request");
-    expect(reported).toEqual([]);
+    const responseBody = await response.json();
+    expect(responseBody.error.code).toBe("invalid_request");
+    expect(reported).toStrictEqual([]);
   });
 
   it("answers 400 invalid_request for an id that isn't a uuid, unreported", async () => {
@@ -913,13 +962,15 @@ describe("PUT /v1/workout-session-exercises/:id", () => {
     );
 
     expect(response.status).toBe(400);
-    expect((await response.json()).error.code).toBe("invalid_request");
-    expect(reported).toEqual([]);
+    const responseBody = await response.json();
+    expect(responseBody.error.code).toBe("invalid_request");
+    expect(reported).toStrictEqual([]);
   });
 });
 
-describe("POST /v1/workout-session-exercises/:id/sets", () => {
+describe("pOST /v1/workout-session-exercises/:id/sets", () => {
   const path = `/v1/workout-session-exercises/${SESSION_EXERCISE_ID}/sets`;
+
   const added: WorkoutSessionSet = {
     id: SET_ID,
     logged_at: "2026-10-01T10:05:00.123456+00:00",
@@ -936,6 +987,7 @@ describe("POST /v1/workout-session-exercises/:id/sets", () => {
       value: { set: added, status: "added" },
       weightUnit: "lbs",
     });
+
     const { app, servicesFor } = testApp({ services });
 
     const response = await send(app, "POST", path, {
@@ -944,17 +996,17 @@ describe("POST /v1/workout-session-exercises/:id/sets", () => {
     });
 
     expect(response.status).toBe(201);
-    expect(await response.json()).toEqual({
+    await expect(response.json()).resolves.toStrictEqual({
       data: { ...added, weight_unit: "lbs" },
     });
-    expect(calls).toEqual([
+    expect(calls).toStrictEqual([
       {
         repsCompleted: 8,
         sessionExerciseId: SESSION_EXERCISE_ID,
         weightCompleted: 82.5,
       },
     ]);
-    expect(servicesFor).toEqual(["user_alice"]);
+    expect(servicesFor).toStrictEqual(["user_alice"]);
   });
 
   it.each([
@@ -965,6 +1017,7 @@ describe("POST /v1/workout-session-exercises/:id/sets", () => {
       value: { set: added, status: "added" },
       weightUnit: "kg",
     });
+
     const { app } = testApp({ services });
 
     const response = await send(app, "POST", path, {
@@ -973,7 +1026,7 @@ describe("POST /v1/workout-session-exercises/:id/sets", () => {
     });
 
     expect(response.status).toBe(201);
-    expect(calls).toEqual([
+    expect(calls).toStrictEqual([
       {
         repsCompleted: reps,
         sessionExerciseId: SESSION_EXERCISE_ID,
@@ -987,6 +1040,7 @@ describe("POST /v1/workout-session-exercises/:id/sets", () => {
       value: { status: "not_found" },
       weightUnit: "kg",
     });
+
     const { app, reported } = testApp({ services });
 
     const response = await send(app, "POST", path, {
@@ -995,13 +1049,13 @@ describe("POST /v1/workout-session-exercises/:id/sets", () => {
     });
 
     expect(response.status).toBe(404);
-    expect(await response.json()).toEqual({
+    await expect(response.json()).resolves.toStrictEqual({
       error: {
         code: "not_found",
         message: "Workout Session Exercise not found",
       },
     });
-    expect(reported).toEqual([]);
+    expect(reported).toStrictEqual([]);
   });
 
   it("answers 409 session_finished for a finished Workout Session, unreported", async () => {
@@ -1013,6 +1067,7 @@ describe("POST /v1/workout-session-exercises/:id/sets", () => {
       },
       weightUnit: "kg",
     });
+
     const { app, reported } = testApp({ services });
 
     const response = await send(app, "POST", path, {
@@ -1021,13 +1076,13 @@ describe("POST /v1/workout-session-exercises/:id/sets", () => {
     });
 
     expect(response.status).toBe(409);
-    expect(await response.json()).toEqual({
+    await expect(response.json()).resolves.toStrictEqual({
       error: {
         code: "session_finished",
         message: `Workout Session ${SESSION_ID} was finished at 2026-10-01T11:00:00+00:00; it can no longer be changed`,
       },
     });
-    expect(reported).toEqual([]);
+    expect(reported).toStrictEqual([]);
   });
 
   it.each([
@@ -1057,8 +1112,9 @@ describe("POST /v1/workout-session-exercises/:id/sets", () => {
       const response = await send(app, "POST", path, body);
 
       expect(response.status).toBe(400);
-      expect((await response.json()).error.code).toBe("invalid_request");
-      expect(reported).toEqual([]);
+      const responseBody = await response.json();
+      expect(responseBody.error.code).toBe("invalid_request");
+      expect(reported).toStrictEqual([]);
     }
   );
 
@@ -1073,8 +1129,9 @@ describe("POST /v1/workout-session-exercises/:id/sets", () => {
     );
 
     expect(response.status).toBe(400);
-    expect((await response.json()).error.code).toBe("invalid_request");
-    expect(reported).toEqual([]);
+    const responseBody = await response.json();
+    expect(responseBody.error.code).toBe("invalid_request");
+    expect(reported).toStrictEqual([]);
   });
 
   it("answers 415 for a body that isn't JSON, unreported", async () => {
@@ -1085,6 +1142,6 @@ describe("POST /v1/workout-session-exercises/:id/sets", () => {
     });
 
     expect(response.status).toBe(415);
-    expect(reported).toEqual([]);
+    expect(reported).toStrictEqual([]);
   });
 });

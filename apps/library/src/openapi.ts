@@ -1,5 +1,6 @@
 import { writeFile } from "node:fs/promises";
-import { resolve } from "node:path";
+import path from "node:path";
+
 import { createApp } from "./create-app";
 import { memoryRateLimiter } from "./rate-limit";
 import { PLACEHOLDER_SUPABASE_URL, serveLibrary } from "./served-library";
@@ -10,11 +11,14 @@ import { PLACEHOLDER_SUPABASE_URL, serveLibrary } from "./served-library";
  * the app serves an empty Library and accepts no caller. PR CI fails when the committed
  * spec is stale or has a breaking change against the base branch.
  */
-const out = resolve(import.meta.dirname, "../openapi.json");
+const out = path.resolve(import.meta.dirname, "../openapi.json");
 const library = serveLibrary({ exercises: [] }, PLACEHOLDER_SUPABASE_URL);
+
 const spec = createApp({
   auth: { clerkJwtKeys: {}, serverSecrets: {} },
-  identifyUser: () => undefined,
+  identifyUser: () => {
+    // Spec generation has no request user to identify.
+  },
   library,
   rateLimiter: memoryRateLimiter(),
   reportError: () => Promise.resolve(),
@@ -25,4 +29,5 @@ const spec = createApp({
 });
 
 await writeFile(out, `${JSON.stringify(spec, null, 2)}\n`);
+
 console.log(`generated ${out}`);

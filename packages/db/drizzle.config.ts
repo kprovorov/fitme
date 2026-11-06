@@ -1,4 +1,5 @@
 import { defineConfig } from "drizzle-kit";
+
 import { localAdminDatabaseUrl } from "./integration/local-database-url";
 
 /**

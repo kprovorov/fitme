@@ -19,10 +19,12 @@ import {
   it,
   jest,
 } from "@jest/globals";
-import { type QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { QueryClientProvider } from "@tanstack/react-query";
+import type { QueryClient } from "@tanstack/react-query";
 import { act, fireEvent, render, screen } from "@testing-library/react-native";
 import type { ReactNode } from "react";
 import { Alert } from "react-native";
+
 import MusclesSheet from "~/app/muscles";
 import HistorySessionScreen from "~/app/workout-sessions/[workoutSessionId]";
 import ExercisePickerScreen from "~/app/workout-sessions/[workoutSessionId]/exercise-picker";
@@ -32,11 +34,8 @@ import { storage } from "~/lib/mmkv";
 import { segmentClient } from "~/lib/segment";
 import { setDeviceLanguages } from "~/test-utils/device-locales";
 import { libraryExercise, serveLibrary } from "~/test-utils/fake-library";
-import {
-  backend,
-  type Failure,
-  fakePublicApi,
-} from "~/test-utils/fake-public-api";
+import { backend, fakePublicApi } from "~/test-utils/fake-public-api";
+import type { Failure } from "~/test-utils/fake-public-api";
 import { InAppLanguage } from "~/test-utils/in-app-language";
 import {
   createTestQueryClient,
@@ -59,12 +58,15 @@ jest.mock("~/lib/clerk", () => ({
     typeof import("~/test-utils/signed-in-user")
   >("~/test-utils/signed-in-user").getCurrentUserId,
 }));
+
 jest.mock("expo-router", () => {
   const { View } =
     jest.requireActual<typeof import("react-native")>("react-native");
+
   const stub = jest.requireActual<typeof import("~/test-utils/router-stub")>(
     "~/test-utils/router-stub"
   );
+
   return {
     // A link shows as a view naming where it goes.
     Link: ({ children, href }: { children: ReactNode; href: string }) => (
@@ -85,52 +87,69 @@ jest.mock(
       "~/test-utils/fake-library"
     ).libraryModule
 );
+
 jest.mock("~/hooks/queries/profiles", () => ({
   useProfileQuery: () => ({ data: { measurement_system: "metric" } }),
 }));
+
 jest.mock("@sentry/react-native", () => ({ captureException: jest.fn() }));
-jest.mock("~/lib/segment", () => ({ segmentClient: { track: jest.fn() } }));
+
+jest.mock("~/lib/segment", () => ({
+  segmentClient: { track: jest.fn() },
+}));
+
 jest.mock("react-native-safe-area-context", () => ({
   useSafeAreaInsets: () => ({ bottom: 0, left: 0, right: 0, top: 0 }),
 }));
+
 jest.mock("react-native-keyboard-controller", () => {
   const { ScrollView } =
     jest.requireActual<typeof import("react-native")>("react-native");
+
   return { KeyboardAwareScrollView: ScrollView };
 });
+
 // A thumbnail shows as a view naming its image, or `none`.
 jest.mock("~/components/exercises/exercise-image", () => {
   const { View } =
     jest.requireActual<typeof import("react-native")>("react-native");
+
   return ({ exercise }: { exercise: { thumbnail_url: string | null } }) => (
     <View testID={`thumbnail:${exercise.thumbnail_url ?? "none"}`} />
   );
 });
+
 // A symbol shows as a view naming it: the picker rows' "+" or swap.
 jest.mock("~/components/symbol-image", () => {
   const { View } =
     jest.requireActual<typeof import("react-native")>("react-native");
+
   return {
     SymbolImage: ({ name }: { name: string }) => (
       <View testID={`symbol:${name}`} />
     ),
   };
 });
+
 jest.mock("~/components/workout-sessions/rest-timer", () => () => null);
+
 jest.mock("~/components/ui/button", () =>
   jest.requireActual("~/test-utils/button-stub")
 );
+
 jest.mock("~/components/ui/dialog", () =>
   jest.requireActual("~/test-utils/dialog-stub")
 );
+
 jest.mock("~/components/ui/dropdown-menu", () => {
   const { Pressable } =
     jest.requireActual<typeof import("react-native")>("react-native");
+
   return {
     DropdownMenu: ({
       items,
     }: {
-      items: Array<{ label: string; onPress?: () => void }>;
+      items: { label: string; onPress?: () => void }[];
     }) =>
       items.map((item) => (
         <Pressable
@@ -217,9 +236,11 @@ const openReplacePicker = async () => {
 /** Replaces the first Exercise by tapping Lunge's row in the picker. */
 const replaceFirstWithLunge = async () => {
   await openReplacePicker();
+
   const lunge = await screen.findByRole("button", {
     name: "Replace with Lunge",
   });
+
   await act(async () => {
     await fireEvent.press(lunge);
   });
@@ -264,7 +285,12 @@ const failures: [string, Failure, string][] = [
 // takes seconds of CPU; Jest's 5 s default fails them on a busy 2-core runner.
 jest.setTimeout(30_000);
 
-const track = segmentClient.track as unknown as jest.Mock;
+const track = jest.mocked<
+  (
+    event: string,
+    properties?: Record<string, string | number | boolean | null>
+  ) => void
+>(segmentClient.track);
 
 beforeEach(() => {
   jest.clearAllMocks();
@@ -277,7 +303,7 @@ beforeEach(() => {
     libraryExercise("lunge", { muscle_groups: ["quadriceps", "glutes"] }),
     libraryExercise("push-up", { muscle_groups: ["chest"] }),
   ]);
-  jest.spyOn(Alert, "alert").mockImplementation(() => undefined);
+  jest.spyOn(Alert, "alert").mockReturnValue(undefined);
   backend.seed({
     exercises: [{ name: "Squat", sets: [10, 8] }],
     id: "s1",
@@ -301,14 +327,16 @@ describe("the Exercise picker", () => {
         pathname: PICKER,
       }),
     ]);
-    expect(
-      await screen.findByRole("header", { name: "Add Exercise" })
-    ).toBeTruthy();
-    expect(await screen.findByText("Push Up")).toBeTruthy();
+    await expect(
+      screen.findByRole("header", { name: "Add Exercise" })
+    ).resolves.toBeTruthy();
+    await expect(screen.findByText("Push Up")).resolves.toBeTruthy();
+
     // Each whole row adds its Exercise, ending in a "+", with no button.
     for (const name of ["Lunge", "Push Up", "Squat"]) {
       expect(screen.getByRole("button", { name: `Add ${name}` })).toBeTruthy();
     }
+
     expect(screen.getAllByTestId(ADD_ICON)).toHaveLength(3);
     expect(screen.queryByTestId(REPLACE_ICON)).toBeNull();
     expect(screen.queryByText("Add")).toBeNull();
@@ -507,7 +535,7 @@ describe("searching in the Exercise picker", () => {
       route: ADD_EXERCISE,
     });
     expect(pickerOpen()).toBe(false);
-    expect(await screen.findByText("Push Up")).toBeTruthy();
+    await expect(screen.findByText("Push Up")).resolves.toBeTruthy();
   });
 
   it("clears the search from the empty state", async () => {
@@ -515,7 +543,7 @@ describe("searching in the Exercise picker", () => {
     await fireEvent.press(screen.getByRole("button", { name: "Add Exercise" }));
     await settle();
     await searchPicker("zzz", 0);
-    expect(await screen.findByText("No Exercises Found")).toBeTruthy();
+    await expect(screen.findByText("No Exercises Found")).resolves.toBeTruthy();
 
     await fireEvent.press(screen.getByText("Show All Exercises"));
     await until(() => pickerRows("add") === 3);
@@ -555,7 +583,7 @@ describe("adding an Exercise to a Workout Session", () => {
       order: 2,
       workout_session_id: "s1",
     });
-    expect(await screen.findByText("Lunge")).toBeTruthy();
+    await expect(screen.findByText("Lunge")).resolves.toBeTruthy();
     expect(pickerOpen()).toBe(false);
     expect(screen.queryByRole("button", { name: "Add Lunge" })).toBeNull();
     expect(Alert.alert).not.toHaveBeenCalled();
@@ -618,7 +646,7 @@ describe("adding an Exercise to a Workout Session", () => {
     );
     await fireEvent.press(screen.getByLabelText("Close"));
     expect(pickerOpen()).toBe(false);
-    expect(await screen.findByText("Lunge")).toBeTruthy();
+    await expect(screen.findByText("Lunge")).resolves.toBeTruthy();
   });
 });
 
@@ -718,7 +746,7 @@ describe("replacing an Exercise in a Workout Session", () => {
       { reps_completed: 10, reps_recommended: 0 },
       { reps_completed: 8, reps_recommended: 0 },
     ]);
-    expect(await screen.findByText("Lunge")).toBeTruthy();
+    await expect(screen.findByText("Lunge")).resolves.toBeTruthy();
     expect(pickerOpen()).toBe(false);
     expect(screen.queryByText("Squat")).toBeNull();
     expect(Alert.alert).not.toHaveBeenCalled();
@@ -731,9 +759,11 @@ describe("replacing an Exercise in a Workout Session", () => {
   it("replaces it once when its row is tapped twice", async () => {
     await renderSession();
     await openReplacePicker();
+
     const lunge = await screen.findByRole("button", {
       name: "Replace with Lunge",
     });
+
     const resume = fakePublicApi.pause(REPLACE_EXERCISE);
 
     await fireEvent.press(lunge);

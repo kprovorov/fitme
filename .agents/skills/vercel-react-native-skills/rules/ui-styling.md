@@ -83,5 +83,4 @@ Follow these styling patterns for cleaner, more consistent React Native code.
 <Text style={{ color: '#999' }}>Caption</Text>
 ```
 
-Limiting font sizes creates visual consistency. Use `fontWeight` (bold/semibold)
-and grayscale colors for hierarchy instead.
+Limiting font sizes creates visual consistency. Use `fontWeight` (bold/semibold) and grayscale colors for hierarchy instead.

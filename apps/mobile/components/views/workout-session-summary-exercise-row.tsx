@@ -2,12 +2,13 @@ import { formatCount } from "@fitme/i18n";
 import { useRouter } from "expo-router";
 import { useTranslation } from "react-i18next";
 import { Pressable } from "react-native";
+
 import ExerciseImage from "~/components/exercises/exercise-image";
 import { SymbolImage } from "~/components/symbol-image";
-import { HStack } from "~/components/ui/hstack";
 import { Text } from "~/components/ui/text";
 import { useExerciseHistoryQuery } from "~/hooks/queries/exercises";
-import { type ShownExercise, shownExercise } from "~/hooks/queries/library";
+import { shownExercise } from "~/hooks/queries/library";
+import type { ShownExercise } from "~/hooks/queries/library";
 import type { WorkoutSessionExercise } from "~/hooks/queries/workout-sessions";
 import { useI18n } from "~/lib/i18n";
 
@@ -20,18 +21,20 @@ interface WorkoutSessionSummaryExerciseRowProps {
   workoutSessionExercise: WorkoutSessionExercise;
 }
 
-export default function WorkoutSessionSummaryExerciseRow({
+const WorkoutSessionSummaryExerciseRow = ({
   exercise: resolved,
   planId,
   workoutId,
   sessionId,
   workoutSessionExercise,
-}: WorkoutSessionSummaryExerciseRowProps) {
+}: WorkoutSessionSummaryExerciseRowProps) => {
   const router = useRouter();
   const i18n = useI18n();
   const { t } = useTranslation();
+
   const exercise =
     resolved ?? shownExercise(workoutSessionExercise.exercise_slug, null);
+
   const { data: history } = useExerciseHistoryQuery({
     variables: { exerciseSlug: workoutSessionExercise.exercise_slug },
   });
@@ -44,17 +47,23 @@ export default function WorkoutSessionSummaryExerciseRow({
     0,
     ...workoutSessionExercise.sets.map((set) => set.weight_completed ?? 0)
   );
+
   // The best before this session, over the history pages read so far: the
   // first page is 20 Workout Sessions, so an Exercise with a longer history
   // is compared against its most recent ones (the record itself is the
   // server's, and lands on an entry later).
-  const priorMaxWeight = Math.max(
-    0,
-    ...(history?.pages ?? [])
-      .flatMap((page) => page.data)
-      .filter((entry) => entry.session.id !== sessionId)
-      .flatMap((entry) => entry.sets.map((set) => set.weight_completed ?? 0))
-  );
+  let priorMaxWeight = 0;
+
+  for (const page of history?.pages ?? []) {
+    for (const entry of page.data) {
+      if (entry.session.id !== sessionId) {
+        for (const set of entry.sets) {
+          priorMaxWeight = Math.max(priorMaxWeight, set.weight_completed ?? 0);
+        }
+      }
+    }
+  }
+
   const isNewRecord = sessionMaxWeight > 0 && sessionMaxWeight > priorMaxWeight;
 
   // The Exercise's screen lives under the session's Plan and Workout: none
@@ -74,36 +83,35 @@ export default function WorkoutSessionSummaryExerciseRow({
         sets: formatCount(i18n, "sets", setsLogged),
       })}
       accessibilityRole={canOpen ? "button" : undefined}
-      className="active:opacity-80"
+      className="px-md flex w-full flex-row items-center justify-center gap-2 active:opacity-80"
       disabled={!canOpen}
       onPress={handlePress}
     >
-      <HStack className="w-full items-center gap-2 px-md">
-        <ExerciseImage exercise={exercise} size={32} />
-        <Text className="text-body-emphasized text-primary">{setsLogged}</Text>
+      <ExerciseImage exercise={exercise} size={32} />
+      <Text className="text-primary" variant="large">
+        {setsLogged}
+      </Text>
+      <SymbolImage
+        className="text-caption-1-emphasized text-primary"
+        name="xmark"
+      />
+      <Text className="flex-1" numberOfLines={1} variant="large">
+        {exercise.name}
+      </Text>
+      {isNewRecord ? (
         <SymbolImage
-          className="text-caption-1-emphasized text-primary"
-          name="xmark"
+          className="text-body-emphasized text-primary"
+          name="trophy.fill"
         />
-        <Text
-          className="flex-1 text-body-emphasized text-foreground"
-          numberOfLines={1}
-        >
-          {exercise.name}
-        </Text>
-        {isNewRecord ? (
-          <SymbolImage
-            className="text-body-emphasized text-primary"
-            name="trophy.fill"
-          />
-        ) : null}
-        {canOpen ? (
-          <SymbolImage
-            className="text-body-emphasized text-foreground"
-            name="chevron.right"
-          />
-        ) : null}
-      </HStack>
+      ) : null}
+      {canOpen ? (
+        <SymbolImage
+          className="text-body-emphasized text-foreground"
+          name="chevron.right"
+        />
+      ) : null}
     </Pressable>
   );
-}
+};
+
+export default WorkoutSessionSummaryExerciseRow;

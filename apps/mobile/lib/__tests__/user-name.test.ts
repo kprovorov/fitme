@@ -1,4 +1,5 @@
 import { describe, expect, it } from "@jest/globals";
+
 import { getProfileHeader, splitFullName } from "../user-name";
 
 describe("splitFullName", () => {

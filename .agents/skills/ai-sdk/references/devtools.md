@@ -16,8 +16,8 @@ Requires AI SDK 6. Install `@ai-sdk/devtools` using your project's package manag
 Wrap your model with the middleware:
 
 ```ts
-import { wrapLanguageModel, gateway } from "ai";
 import { devToolsMiddleware } from "@ai-sdk/devtools";
+import { wrapLanguageModel, gateway } from "ai";
 
 const model = wrapLanguageModel({
   model: gateway("anthropic/claude-sonnet-4.5"),

@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+
 import {
   ALLOWLIST,
   checkFiles,
@@ -11,7 +12,7 @@ const PATH = "apps/mobile/components/example.tsx";
 const texts = (source: string, path = PATH) =>
   checkSource(path, source).map((finding) => finding.text);
 
-describe("checkSource", () => {
+describe("source text checks", () => {
   it("fails JSX text, naming the file, line, column and text", () => {
     const source = [
       "export function Empty() {",
@@ -23,13 +24,13 @@ describe("checkSource", () => {
       "}",
     ].join("\n");
 
-    expect(checkSource(PATH, source)).toEqual([
+    expect(checkSource(PATH, source)).toStrictEqual([
       { column: 7, file: PATH, line: 4, text: "No workouts yet" },
     ]);
   });
 
   it("fails text in another script", () => {
-    expect(texts("<Text>Зберегти</Text>")).toEqual(["Зберегти"]);
+    expect(texts("<Text>Зберегти</Text>")).toStrictEqual(["Зберегти"]);
   });
 
   it("fails a string literal as a JSX child, in either branch of a condition", () => {
@@ -39,7 +40,7 @@ describe("checkSource", () => {
       '<>{error && "Something went wrong"}</>',
     ].join("\n");
 
-    expect(texts(source)).toEqual([
+    expect(texts(source)).toStrictEqual([
       "Save",
       "Saving",
       "Save",
@@ -51,12 +52,11 @@ describe("checkSource", () => {
     const source = [
       '<Button title="Start workout" />',
       '<Input placeholder={"Email"} />',
-      // biome-ignore lint/suspicious/noTemplateCurlyInString: the fixture is source code holding a template literal
-      "<Button accessibilityLabel={`Delete ${name}`} />",
+      `<Button accessibilityLabel={\`Delete \${name}\`} />`,
       '<Field label={required ? "Name *" : "Name"} accessibilityHint={hint ?? "Opens the plan"} />',
     ].join("\n");
 
-    expect(texts(source)).toEqual([
+    expect(texts(source)).toStrictEqual([
       "Start workout",
       "Email",
       "Delete",
@@ -72,7 +72,7 @@ describe("checkSource", () => {
       'function Row({ title = "Untitled", label: shown = "Set" }) {}',
     ].join("\n");
 
-    expect(texts(source)).toEqual([
+    expect(texts(source)).toStrictEqual([
       "Delete",
       "No plans",
       "Oops",
@@ -87,7 +87,7 @@ describe("checkSource", () => {
       'navigation.setOptions({ headerTitle: "Plan" });',
     ].join("\n");
 
-    expect(texts(source)).toEqual(["Settings", "Back", "Plan"]);
+    expect(texts(source)).toStrictEqual(["Settings", "Back", "Plan"]);
   });
 
   it("fails an alert's title, message and button text, in .ts files too", () => {
@@ -95,11 +95,10 @@ describe("checkSource", () => {
       'Alert.alert("Couldn\'t start workout", "Try again in a moment.", [',
       '  { style: "cancel", text: "OK" },',
       "]);",
-      // biome-ignore lint/suspicious/noTemplateCurlyInString: the fixture is source code holding a template literal
-      'Alert.prompt("Rename", `Name the ${kind}`);',
+      `Alert.prompt("Rename", \`Name the \${kind}\`);`,
     ].join("\n");
 
-    expect(texts(source, "apps/mobile/hooks/start-workout.ts")).toEqual([
+    expect(texts(source, "apps/mobile/hooks/start-workout.ts")).toStrictEqual([
       "Couldn't start workout",
       "Try again in a moment.",
       "OK",
@@ -118,7 +117,7 @@ describe("checkSource", () => {
       '<Text>{saving ? t("save.saving") : t("save.idle")}</Text>',
     ].join("\n");
 
-    expect(checkSource(PATH, source)).toEqual([]);
+    expect(checkSource(PATH, source)).toStrictEqual([]);
   });
 
   it("ignores comments, whitespace and text without a letter", () => {
@@ -137,7 +136,7 @@ describe("checkSource", () => {
       "</View>",
     ].join("\n");
 
-    expect(checkSource(PATH, source)).toEqual([]);
+    expect(checkSource(PATH, source)).toStrictEqual([]);
   });
 
   it("ignores props and properties that aren't shown", () => {
@@ -154,7 +153,7 @@ describe("checkSource", () => {
       'Alert.alert(t("errors.title"), t("errors.message"), [{ style: "destructive", text: t("common.ok") }]);',
     ].join("\n");
 
-    expect(checkSource(PATH, source)).toEqual([]);
+    expect(checkSource(PATH, source)).toStrictEqual([]);
   });
 
   it("ignores catalog keys, conditions and comparisons", () => {
@@ -165,11 +164,11 @@ describe("checkSource", () => {
       '<Field label={format(value, "dayMonth")} />',
     ].join("\n");
 
-    expect(checkSource(PATH, source)).toEqual([]);
+    expect(checkSource(PATH, source)).toStrictEqual([]);
   });
 });
 
-describe("checkFiles", () => {
+describe("file text checks", () => {
   const files = new Map([
     ["apps/mobile/app/empty.tsx", "<Text>Nothing here</Text>"],
     ["apps/mobile/app/home.tsx", '<Text>{t("home.title")}</Text>'],
@@ -178,7 +177,7 @@ describe("checkFiles", () => {
   it("fails a file outside the allowlist", () => {
     const result = checkFiles(files, []);
 
-    expect(result.findings.map((finding) => finding.file)).toEqual([
+    expect(result.findings.map((finding) => finding.file)).toStrictEqual([
       "apps/mobile/app/empty.tsx",
     ]);
     expect(formatResult(result)).toBe(
@@ -191,22 +190,20 @@ describe("checkFiles", () => {
       { path: "apps/mobile/app/empty.tsx", reason: "developer-only screen" },
     ]);
 
-    expect(result).toEqual({ findings: [], staleEntries: [] });
+    expect(result).toStrictEqual({ findings: [], staleEntries: [] });
   });
 
   it("reports an allowlist entry whose file has no hardcoded text left", () => {
     const stale = { path: "apps/mobile/app/home.tsx", reason: "translated" };
     const result = checkFiles(files, [stale]);
 
-    expect(result.staleEntries).toEqual([stale]);
+    expect(result.staleEntries).toStrictEqual([stale]);
     expect(formatResult(result)).toContain(
       "allowlist entry has no hardcoded text left"
     );
   });
 
   it("gives every allowlist entry a reason", () => {
-    for (const entry of ALLOWLIST) {
-      expect(entry.reason.trim()).not.toBe("");
-    }
+    expect(ALLOWLIST.map((entry) => entry.reason.trim())).not.toContain("");
   });
 });

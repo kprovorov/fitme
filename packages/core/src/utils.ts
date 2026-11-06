@@ -1,105 +1,161 @@
 import type { Equipment, MuscleGroup } from "./models";
 
-export function handleSupabaseError(
-  error: Error | { message?: string } | unknown,
+export const handleSupabaseError = (
+  error: unknown,
   setMessage: (message: string) => void = () => {
     /* noop */
   }
-) {
-  const message =
-    error instanceof Error
-      ? error.message
-      : typeof error === "object" && error !== null && "message" in error
-        ? String((error as { message: unknown }).message)
-        : undefined;
-  setMessage(message ?? "Something went wrong. Please try again later.");
-}
+) => {
+  let message: string | undefined;
 
-export function range(from: number, to: number): number[] {
-  return Array.from({ length: to - from + 1 }, (_, i) => from + i);
-}
+  if (error instanceof Error) {
+    ({ message } = error);
+  } else if (
+    typeof error === "object" &&
+    error !== null &&
+    "message" in error
+  ) {
+    message = String(error.message);
+  }
+
+  setMessage(message ?? "Something went wrong. Please try again later.");
+};
+
+export const range = (from: number, to: number): number[] =>
+  Array.from({ length: to - from + 1 }, (_, i) => from + i);
 
 const INCHES_PER_FOOT = 12;
 
 /** Splits a total height in inches into whole feet and inches, rounding to the nearest inch. */
-export function inchesToFeetAndInches(totalInches: number): {
-  feet: number;
-  inches: number;
-} {
+export const inchesToFeetAndInches = (totalInches: number) => {
   const rounded = Math.round(totalInches);
+
   return {
     feet: Math.floor(rounded / INCHES_PER_FOOT),
     inches: rounded % INCHES_PER_FOOT,
   };
-}
+};
 
-export function feetAndInchesToInches(feet: number, inches: number): number {
-  return feet * INCHES_PER_FOOT + inches;
-}
+export const feetAndInchesToInches = (feet: number, inches: number): number =>
+  feet * INCHES_PER_FOOT + inches;
 
-export function muscleGroupToName(muscleGroup: MuscleGroup): string {
+export const muscleGroupToName = (muscleGroup: MuscleGroup): string => {
   switch (muscleGroup) {
-    case "chest":
+    case "chest": {
       return "Chest";
-    case "back":
+    }
+
+    case "back": {
       return "Back";
-    case "shoulders":
+    }
+
+    case "shoulders": {
       return "Shoulders";
-    case "biceps":
+    }
+
+    case "biceps": {
       return "Biceps";
-    case "triceps":
+    }
+
+    case "triceps": {
       return "Triceps";
-    case "forearms":
+    }
+
+    case "forearms": {
       return "Forearms";
-    case "abs":
+    }
+
+    case "abs": {
       return "Abs";
-    case "obliques":
+    }
+
+    case "obliques": {
       return "Obliques";
-    case "quadriceps":
+    }
+
+    case "quadriceps": {
       return "Quadriceps";
-    case "hamstrings":
+    }
+
+    case "hamstrings": {
       return "Hamstrings";
-    case "glutes":
+    }
+
+    case "glutes": {
       return "Glutes";
-    case "calves":
+    }
+
+    case "calves": {
       return "Calves";
-    case "traps":
+    }
+
+    case "traps": {
       return "Traps";
-    case "lats":
+    }
+
+    case "lats": {
       return "Lats";
-    case "lower-back":
+    }
+
+    case "lower-back": {
       return "Lower Back";
-    case "cardio":
+    }
+
+    case "cardio": {
       return "Cardio";
-    case "full-body":
+    }
+
+    case "full-body": {
       return "Full Body";
-    default:
+    }
+
+    default: {
       return muscleGroup;
+    }
   }
-}
+};
 
 /** The English name of a piece of Equipment, for the servers (MCP, Arnold). */
-export function equipmentToName(item: Equipment): string {
+export const equipmentToName = (item: Equipment): string => {
   switch (item) {
-    case "barbell":
+    case "barbell": {
       return "Barbell";
-    case "dumbbell":
+    }
+
+    case "dumbbell": {
       return "Dumbbell";
-    case "cable":
+    }
+
+    case "cable": {
       return "Cable";
-    case "machine":
+    }
+
+    case "machine": {
       return "Machine";
-    case "smith_machine":
+    }
+
+    case "smith_machine": {
       return "Smith machine";
-    case "bench":
+    }
+
+    case "bench": {
       return "Bench";
-    case "pull_up_bar":
+    }
+
+    case "pull_up_bar": {
       return "Pull-up bar";
-    case "landmine":
+    }
+
+    case "landmine": {
       return "Landmine";
-    case "bodyweight":
+    }
+
+    case "bodyweight": {
       return "Bodyweight";
-    default:
+    }
+
+    default: {
       return item;
+    }
   }
-}
+};

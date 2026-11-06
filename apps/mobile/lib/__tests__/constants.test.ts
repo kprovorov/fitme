@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, it } from "@jest/globals";
+
 import { isDevToolsSyncEnabled } from "../constants";
 
 // Mutate `process.env` in place: Expo's Babel preset reads `EXPO_PUBLIC_*`

@@ -1,6 +1,8 @@
 import { describe, expect, it, jest } from "@jest/globals";
 import { render, screen } from "@testing-library/react-native";
-import { StyleSheet, type TextStyle } from "react-native";
+import { StyleSheet } from "react-native";
+import type { TextStyle } from "react-native";
+
 import { ChatMarkdown } from "../chat-markdown";
 
 // Each text style resolves to a type that names it, so the test can tell
@@ -28,9 +30,13 @@ jest.mock("uniwind", () => ({
     fontWeight: className.endsWith("-emphasized") ? 600 : 400,
   }),
 }));
+
 jest.mock("expo-web-browser", () => ({}));
+
 // Syntax highlighting pulls in an ESM-only tree and isn't under test here
-jest.mock("../code-block", () => ({ CodeBlock: () => null }));
+jest.mock("../code-block", () => ({
+  CodeBlock: () => null,
+}));
 
 type TypeKey = "fontFamily" | "fontSize" | "fontWeight";
 
@@ -47,28 +53,36 @@ interface Node {
 function effectiveType(text: string): Pick<TextStyle, TypeKey> {
   const type: Pick<TextStyle, TypeKey> = {};
   let node: Node | null = screen.getByText(text) as unknown as Node;
+
   while (node) {
     const style = StyleSheet.flatten(node.props.style as TextStyle) ?? {};
+
     for (const key of ["fontFamily", "fontSize", "fontWeight"] as const) {
       if (type[key] === undefined && style[key] !== undefined) {
         Object.assign(type, { [key]: style[key] });
       }
     }
+
     node = node.parent;
   }
+
   return type;
 }
 
 /** The color React Native draws a piece of text in: the nearest one set. */
 function effectiveColor(text: string): unknown {
   let node: Node | null = screen.getByText(text) as unknown as Node;
+
   while (node) {
     const style = StyleSheet.flatten(node.props.style as TextStyle) ?? {};
+
     if (style.color !== undefined) {
       return style.color;
     }
+
     node = node.parent;
   }
+
   return undefined;
 }
 
@@ -83,22 +97,29 @@ interface JsonNode {
  */
 function viewStyles(): TextStyle[] {
   const styles: TextStyle[] = [];
+
   const visit = (node: JsonNode | string | null) => {
     if (!node || typeof node === "string") {
       return;
     }
+
     const style = StyleSheet.flatten(node.props.style as TextStyle);
+
     if (style) {
       styles.push(style);
     }
+
     for (const child of node.children ?? []) {
       visit(child);
     }
   };
+
   const tree = screen.toJSON() as JsonNode | JsonNode[] | null;
+
   for (const node of Array.isArray(tree) ? tree : [tree]) {
     visit(node);
   }
+
   return styles;
 }
 
@@ -107,12 +128,15 @@ function cellRole(text: string): unknown {
   let node: (Node & { props: { role?: string } }) | null = screen.getByText(
     text
   ) as unknown as Node & { props: { role?: string } };
+
   while (node) {
     if (node.props.role === "cell" || node.props.role === "columnheader") {
       return node.props.role;
     }
+
     node = node.parent as typeof node;
   }
+
   return undefined;
 }
 
@@ -128,7 +152,7 @@ describe("ChatMarkdown", () => {
 
   it("keeps a link inside bold text emphasized", async () => {
     await render(
-      <ChatMarkdown>{"**[bold link](https://fitme.app)**"}</ChatMarkdown>
+      <ChatMarkdown>**[bold link](https://fitme.app)**</ChatMarkdown>
     );
     expect(effectiveType("bold link")).toEqual({
       fontFamily: "text-callout-emphasized",
@@ -139,9 +163,7 @@ describe("ChatMarkdown", () => {
 
   it("sets a link inside a heading in the heading's style", async () => {
     await render(
-      <ChatMarkdown>
-        {"# Heading with [a link](https://fitme.app)"}
-      </ChatMarkdown>
+      <ChatMarkdown># Heading with [a link](https://fitme.app)</ChatMarkdown>
     );
     expect(effectiveType("a link")).toEqual({
       fontFamily: "text-title-2-emphasized",
@@ -160,15 +182,17 @@ describe("ChatMarkdown", () => {
     // Table views aren't accessibility elements, so find each text's cell
     expect(cellRole("Exercise")).toBe("columnheader");
     expect(cellRole("Sets")).toBe("columnheader");
+
     for (const text of ["Squat", "3", "Bench", "4"]) {
       expect(cellRole(text)).toBe("cell");
     }
+
     expect(screen.getByText("Squat")).toBeTruthy();
   });
 
   it("draws links in primary and body text in foreground", async () => {
     await render(
-      <ChatMarkdown>{"Read [the guide](https://fitme.app) first"}</ChatMarkdown>
+      <ChatMarkdown>Read [the guide](https://fitme.app) first</ChatMarkdown>
     );
     expect(effectiveColor("the guide")).toBe("--color-primary");
     expect(effectiveColor("Read ")).toBe("--color-foreground");

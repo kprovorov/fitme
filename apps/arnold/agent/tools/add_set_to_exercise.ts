@@ -3,6 +3,7 @@ import { asUser } from "@fitme/db";
 import { addSetToExercise } from "@fitme/services/workout-edits";
 import { defineTool } from "eve/tools";
 import { z } from "zod";
+
 import { requireConversationOwner } from "../lib/owner";
 import { requestKey } from "../lib/request-key";
 import { MAX_REST_SECONDS, reportingEditErrors } from "../lib/workout-edits";
@@ -13,14 +14,18 @@ export default defineTool({
   async execute(input, ctx) {
     const userId = requireConversationOwner(ctx.session.auth);
     const { workout_exercise_id, ...set } = input;
+
     return await reportingEditErrors(async () => {
-      const added = await asUser(userId, (tx) =>
-        addSetToExercise(tx, userId, {
-          requestKey: requestKey(ctx, input),
-          set,
-          workoutExerciseId: workout_exercise_id,
-        })
+      const added = await asUser(
+        userId,
+        async (tx) =>
+          await addSetToExercise(tx, userId, {
+            requestKey: requestKey(ctx, input),
+            set,
+            workoutExerciseId: workout_exercise_id,
+          })
       );
+
       return added
         ? { order: added.order, set_id: added.id, success: true }
         : { error: "Workout exercise not found" };

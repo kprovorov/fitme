@@ -1,4 +1,6 @@
 import { randomBytes } from "node:crypto";
+import { setTimeout } from "node:timers/promises";
+
 import {
   plans,
   profiles,
@@ -8,6 +10,7 @@ import {
 } from "@fitme/db";
 import { eq, sql } from "drizzle-orm";
 import { describe, expect, it } from "vitest";
+
 import { deleteTestUsers } from "./delete-test-users";
 
 /**
@@ -17,6 +20,7 @@ import { deleteTestUsers } from "./delete-test-users";
  * deadlock.
  */
 const user = `user_apiCleanup${randomBytes(16).toString("hex")}`;
+
 /** Long enough for a cleanup waiting on `workouts` to have queued there. */
 const CLEANUP_HEAD_START_MS = 200;
 
@@ -41,14 +45,13 @@ describe("deleteTestUsers against the local stack", () => {
     });
 
     let cleanup: Promise<void> | undefined;
+
     try {
       await withService(async (tx) => {
         // A later table of deleteUserData's list first...
         await tx.execute(sql`lock table ${workouts} in row exclusive mode`);
         cleanup = deleteTestUsers([user]);
-        await new Promise((resolve) =>
-          setTimeout(resolve, CLEANUP_HEAD_START_MS)
-        );
+        await setTimeout(CLEANUP_HEAD_START_MS);
         // ...then an earlier one, which a cleanup waiting on workouts would
         // already hold.
         await tx.execute(
@@ -63,7 +66,8 @@ describe("deleteTestUsers against the local stack", () => {
       await tx.select().from(profiles).where(eq(profiles.userId, user)),
       await tx.select().from(plans).where(eq(plans.userId, user)),
     ]);
-    expect(profilesLeft).toEqual([]);
-    expect(plansLeft).toEqual([]);
+
+    expect(profilesLeft).toStrictEqual([]);
+    expect(plansLeft).toStrictEqual([]);
   });
 });

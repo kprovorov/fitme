@@ -1,5 +1,7 @@
-import { ApiError, type components } from "@fitme/api-client";
+import { ApiError } from "@fitme/api-client";
+import type { components } from "@fitme/api-client";
 import { createInfiniteQuery } from "react-query-kit";
+
 import { publicApi } from "~/lib/public-api";
 
 /**
@@ -46,9 +48,11 @@ export const fetchExerciseHistory = async (
       },
     },
   });
+
   if (!data) {
     throw new ApiError("Public API answered without an Exercise history");
   }
+
   return data;
 };
 

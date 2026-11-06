@@ -33,19 +33,21 @@ export interface PickedImage {
  * drops every EXIF tag, GPS included, and turns a HEIC photo — the iPhone's
  * own format, which eve can't show the model — into one it can.
  */
-export async function shrinkToJpeg(uri: string): Promise<PickedImage> {
+export const shrinkToJpeg = async (uri: string): Promise<PickedImage> => {
   // The load bounds downsample while decoding, so a 12 MP photo never
   // reaches memory in full.
   const context = ImageManipulator.manipulate(uri, {
     maxHeight: MAX_ATTACHMENT_EDGE,
     maxWidth: MAX_ATTACHMENT_EDGE,
   });
+
   const decoded = await context.renderAsync();
+
+  // Only when the decode bounds left it larger than asked: resizing an
+  // image already under them would blow it up again.
   const resized =
     Math.max(decoded.width, decoded.height) > MAX_ATTACHMENT_EDGE
-      ? // Only when the decode bounds left it larger than asked: resizing an
-        // image already under them would blow it up again.
-        await context
+      ? await context
           .resize(
             decoded.width >= decoded.height
               ? { height: null, width: MAX_ATTACHMENT_EDGE }
@@ -53,12 +55,14 @@ export async function shrinkToJpeg(uri: string): Promise<PickedImage> {
           )
           .renderAsync()
       : decoded;
+
   const saved = await resized.saveAsync({
     compress: JPEG_QUALITY,
     format: SaveFormat.JPEG,
   });
+
   return { height: saved.height, uri: saved.uri, width: saved.width };
-}
+};
 
 /** What the picker came back with. */
 export interface PickedPhotos {
@@ -78,9 +82,9 @@ export interface PickedPhotos {
  * nothing else. `limit` must be at least 1 — the picker reads 0 as "no
  * limit" — so the caller checks the per-message cap first.
  */
-export async function pickLibraryPhotos(
+export const pickLibraryPhotos = async (
   limit: number
-): Promise<PickedPhotos | null> {
+): Promise<PickedPhotos | null> => {
   const result = await ImagePicker.launchImageLibraryAsync({
     allowsMultipleSelection: true,
     // Never the EXIF: re-encoding drops it, and nothing here reads it.
@@ -89,16 +93,25 @@ export async function pickLibraryPhotos(
     orderedSelection: true,
     selectionLimit: limit,
   });
+
   if (result.canceled) {
     return null;
   }
+
   const images: PickedImage[] = [];
   let failed = 0;
+  const assets = result.assets.values();
+
   // One at a time, never `Promise.all`: four full-resolution photos decoded
   // at once can run a phone out of memory.
-  for (const asset of result.assets) {
+  const processNext = async (): Promise<void> => {
+    const { done, value: asset } = assets.next();
+
+    if (done) {
+      return;
+    }
+
     try {
-      // biome-ignore lint/performance/noAwaitInLoops: one photo at a time, on purpose
       images.push(await shrinkToJpeg(asset.uri));
     } catch (error) {
       // One photo the decoder can't read (a RAW, a broken file) never costs
@@ -106,6 +119,11 @@ export async function pickLibraryPhotos(
       failed += 1;
       captureException(error);
     }
-  }
+
+    await processNext();
+  };
+
+  await processNext();
+
   return { failed, images };
-}
+};

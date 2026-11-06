@@ -3,11 +3,12 @@ import { TokenVerificationError } from "@clerk/backend/errors";
 import { arnoldErrorCodes } from "@fitme/core";
 import { MissingEnvError } from "@fitme/observability/node";
 import {
-  type AuthFn,
   extractBearerToken,
   ForbiddenError,
   withAuthChallenges,
 } from "eve/channels/auth";
+import type { AuthFn } from "eve/channels/auth";
+
 import type { ProCheck } from "./pro-access";
 
 export type ClaimSession = (
@@ -48,12 +49,12 @@ interface ClerkSessionOptions {
    * CLERK_JWT_KEY (a `MissingEnvError` tagged `component: clerk-auth` and
    * `env_var`, like the startup check's).
    */
-  report: (error: unknown, tags: Record<string, string>) => Promise<void>;
+  report: (error: Error, tags: Record<string, string>) => Promise<void>;
 }
 
 // Every route that addresses one session: messages, stream, cancel, clear,
 // compact, reset, stubs and subagent streams.
-const SESSION_ROUTE = /\/eve\/v1\/session\/([^/]+)/;
+const SESSION_ROUTE = /\/eve\/v1\/session\/(?<sessionId>[^/]+)/u;
 
 /**
  * Route auth for Arnold's channel: accepts a request only with a valid Clerk
@@ -84,17 +85,21 @@ export const clerkSession = ({
   claimSession,
   jwtKey = () => process.env.CLERK_JWT_KEY,
   report,
-}: ClerkSessionOptions): AuthFn<Request> => {
+}: ClerkSessionOptions): AuthFn => {
   let reportedMissingKey = false;
+
   // The key, or a throw (reported the first time) when it's missing.
   const requireKey = async (): Promise<string> => {
     const key = jwtKey();
-    if (key) {
+
+    if (key !== undefined && key !== "") {
       return key;
     }
+
     const error = new MissingEnvError(
       "Missing CLERK_JWT_KEY environment variable"
     );
+
     if (!reportedMissingKey) {
       reportedMissingKey = true;
       await report(error, {
@@ -102,16 +107,21 @@ export const clerkSession = ({
         env_var: "CLERK_JWT_KEY",
       });
     }
+
     throw error;
   };
+
   return withAuthChallenges(
     async (request) => {
       const token = extractBearerToken(request.headers.get("authorization"));
-      if (!token) {
+
+      if (token === null || token === "") {
         return null;
       }
+
       const key = await requireKey();
       let userId: string;
+
       try {
         // Checks the signature, `exp`, `nbf` and `iat`, and requires a `sub`.
         ({ sub: userId } = await verifyToken(token, { jwtKey: key }));
@@ -120,32 +130,47 @@ export const clerkSession = ({
           // A wrong CLERK_JWT_KEY fails every token with the same reasons as a
           // forged one, so log them: a burst of these points at the key.
           console.warn(`Rejected Clerk token: ${error.reason}`);
+
           return null;
         }
+
         throw error;
       }
+
       let isPro: boolean;
+
       try {
         isPro = await checkPro(userId);
       } catch (error) {
-        await report(error, { path: new URL(request.url).pathname, userId });
+        const failure =
+          error instanceof Error
+            ? error
+            : new Error("Pro check unavailable", { cause: error });
+
+        await report(failure, { path: new URL(request.url).pathname, userId });
         throw new ProCheckUnavailableError("Pro check unavailable", {
           cause: error,
         });
       }
+
       if (!isPro) {
         throw new ForbiddenError({
           code: arnoldErrorCodes.proRequired,
           message: "Arnold is a Fitme Pro feature.",
         });
       }
-      const sessionId = new URL(request.url).pathname.match(SESSION_ROUTE)?.[1];
-      if (sessionId) {
+
+      const sessionId = SESSION_ROUTE.exec(new URL(request.url).pathname)
+        ?.groups?.sessionId;
+
+      if (sessionId !== undefined && sessionId !== "") {
         const owner = await claimSession(decodeURIComponent(sessionId), userId);
+
         if (owner !== userId) {
           throw new ForbiddenError({ message: "Not your Conversation." });
         }
       }
+
       return {
         attributes: {},
         authenticator: "clerk",

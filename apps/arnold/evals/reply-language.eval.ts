@@ -1,26 +1,23 @@
 import { defineEval } from "eve/evals";
 import { satisfies } from "eve/evals/expect";
+
 import { readToolStubs } from "./fixtures";
 
 const CYRILLIC = /\p{Script=Cyrillic}/gu;
 const LATIN = /\p{Script=Latin}/gu;
+
 // Letters Ukrainian has and Russian doesn't, so a Russian answer fails too.
-const UKRAINIAN_LETTERS = /[іїєґ]/i;
+const UKRAINIAN_LETTERS = /[іїєґ]/iu;
 
 const count = (text: string, pattern: RegExp) =>
   text.match(pattern)?.length ?? 0;
 
-const isUkrainian = (message: string | undefined) => {
-  const text = message ?? "";
-  return (
-    UKRAINIAN_LETTERS.test(text) && count(text, CYRILLIC) > count(text, LATIN)
-  );
-};
+const isUkrainian = (message = "") =>
+  UKRAINIAN_LETTERS.test(message) &&
+  count(message, CYRILLIC) > count(message, LATIN);
 
-const isEnglish = (message: string | undefined) => {
-  const text = message ?? "";
-  return count(text, LATIN) > 0 && count(text, CYRILLIC) === 0;
-};
+const isEnglish = (message = "") =>
+  count(message, LATIN) > 0 && count(message, CYRILLIC) === 0;
 
 export default defineEval({
   description:
@@ -28,6 +25,7 @@ export default defineEval({
   async test(t) {
     // The App language is English, so only the message can make it Ukrainian.
     const ukrainianSession = await t.session({ stubs: readToolStubs });
+
     const ukrainian = await ukrainianSession.send(
       "Скільки відпочивати між підходами, коли я тренуюся на силу?",
       { clientContext: { language: "en" } }
@@ -41,6 +39,7 @@ export default defineEval({
 
     // The App language is Ukrainian, but the message is clearly English.
     const englishSession = await t.session({ stubs: readToolStubs });
+
     const english = await englishSession.send(
       "How long should I rest between sets when training for strength?",
       { clientContext: { language: "uk" } }
@@ -67,9 +66,11 @@ export default defineEval({
         { appLanguage: "ca", language: "Catalan", message: "💪" },
       ].map(async ({ appLanguage, language, message }) => {
         const session = await t.session({ stubs: readToolStubs });
+
         const turn = await session.send(message, {
           clientContext: { language: appLanguage },
         });
+
         turn.succeeded();
         t.judge(
           `The assistant's response is written in ${language}. Proper names and exercise names may stay in English.`,

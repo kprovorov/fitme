@@ -1,5 +1,6 @@
 import { defineTool } from "eve/tools";
 import { z } from "zod";
+
 import { checkExerciseSlugs, exerciseSlugSchema } from "../lib/exercises";
 import { requireConversationOwner } from "../lib/owner";
 
@@ -29,15 +30,19 @@ export default defineTool({
     // Only for the Conversation's owner, like every tool, though it writes
     // nothing
     requireConversationOwner(ctx.session.auth);
+
     const slugs = input.workouts.flatMap(({ exercises }) =>
       exercises.map(({ exercise_slug }) => exercise_slug)
     );
+
     const refused = await checkExerciseSlugs(slugs);
+
     if (refused) {
       // A tool error, never an `{ error }` result: the app renders every
       // successful result as a plan card (installed builds included)
       throw new Error(refused.error);
     }
+
     return input;
   },
   inputSchema: z.object({

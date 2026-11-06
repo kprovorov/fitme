@@ -1,11 +1,10 @@
 import type { Library } from "@fitme/library-sdk";
 import type { reportError as observabilityReportError } from "@fitme/observability/node";
-import { createLibraryFromEnv, type LibraryFactory } from "./library.js";
-import {
-  createServicesFromEnv,
-  type ServicesFactory,
-  type UserServices,
-} from "./services.js";
+
+import { createLibraryFromEnv } from "./library.js";
+import type { LibraryFactory } from "./library.js";
+import { createServicesFromEnv } from "./services.js";
+import type { ServicesFactory, UserServices } from "./services.js";
 import { ToolError } from "./tools/helpers.js";
 
 /** Reports an unexpected failure (logs, captures, waits for delivery). */
@@ -51,30 +50,34 @@ const LIBRARY_NOT_CONFIGURED_MESSAGE =
  * that User id through `asUser`, so RLS sees them as the caller, and on the
  * Library API.
  */
-export function createToolContext({
+export const createToolContext = ({
   createLibrary = createLibraryFromEnv,
   createServices = createServicesFromEnv,
   reportError,
   user,
-}: ToolContextOptions): ToolContext {
+}: ToolContextOptions): ToolContext => {
   let services: UserServices | undefined;
   let library: Library | undefined;
 
   return {
     getLibrary: () => {
       library ??= createLibrary() ?? undefined;
+
       if (!library) {
         throw new ToolError(LIBRARY_NOT_CONFIGURED_MESSAGE);
       }
+
       return library;
     },
     getServices: () => {
       services ??= createServices(user.userId) ?? undefined;
+
       if (!services) {
         throw new ToolError(NOT_CONFIGURED_MESSAGE);
       }
+
       return services;
     },
     reportError,
   };
-}
+};

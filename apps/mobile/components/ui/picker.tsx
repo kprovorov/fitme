@@ -4,12 +4,13 @@ import {
 } from "@expo/ui/swift-ui";
 import {
   foregroundStyle,
-  type PickerStyleType,
   pickerStyle,
   tag,
   tint,
 } from "@expo/ui/swift-ui/modifiers";
+import type { PickerStyleType } from "@expo/ui/swift-ui/modifiers";
 import { useCallback } from "react";
+
 import { SwiftUIHost, useSwiftUITheme } from "~/components/ui/swift-ui";
 import { cn } from "~/lib/utils";
 
@@ -50,6 +51,7 @@ const Picker = <TValue extends PickerValue>({
   const isWheel = variant === "wheel";
 
   const handleSelectionChange = useCallback(
+    // SAFETY: SwiftUI reports a selected option's tag, and every option tag is a TValue.
     (selection: TValue | null) => onValueChange?.(selection as TValue),
     [onValueChange]
   );
@@ -88,4 +90,5 @@ const Picker = <TValue extends PickerValue>({
 Picker.displayName = "Picker";
 
 export type { PickerOption, PickerProps, PickerValue };
+
 export { Picker };

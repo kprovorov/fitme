@@ -3,12 +3,14 @@ import { afterEach, describe, expect, it, jest } from "@jest/globals";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { render, screen, within } from "@testing-library/react-native";
 import type { ReactNode } from "react";
+
 import type { WorkoutSessionHistoryEntry } from "~/hooks/queries/workout-sessions";
 import { i18n } from "~/lib/i18n";
 import { setDeviceLanguages } from "~/test-utils/device-locales";
 import { libraryExercise, serveLibrary } from "~/test-utils/fake-library";
 import { InAppLanguage } from "~/test-utils/in-app-language";
 import { createTestQueryClient } from "~/test-utils/query-client";
+
 import WorkoutSessionHistoryRow from "../workout-session-history-row";
 
 // The Link as a view naming where it goes, so a test can follow the row.
@@ -16,9 +18,11 @@ jest.mock("expo-router", () => ({
   Link: ({ children, href }: { children: ReactNode; href: string }) => {
     const { View } =
       jest.requireActual<typeof import("react-native")>("react-native");
+
     return <View testID={`link:${href}`}>{children}</View>;
   },
 }));
+
 jest.mock("~/components/symbol-image", () => ({ SymbolImage: () => null }));
 
 // Wednesday 21 October 2026, 18:05 local time, for 42 minutes.
@@ -43,6 +47,7 @@ const entry: WorkoutSessionHistoryEntry = {
 // The Personal record VoiceOver reads after the rest of the row.
 const UKRAINIAN_RECORD =
   /\. Особистий рекорд: Pull up, власна вага × 12 повторень$/;
+
 // `12 505 кг`, with Ukrainian's no-break space between thousands.
 const UKRAINIAN_DETAILS = /^42 хв · 1 підхід · 12\s505 кг$/;
 
@@ -106,11 +111,11 @@ describe("WorkoutSessionHistoryRow", () => {
         screen.getByTestId("link:/workout-sessions/session-1/summary")
       ).getByText("PR")
     ).toBeTruthy();
-    expect(
-      await screen.findByRole("button", {
+    await expect(
+      screen.findByRole("button", {
         name: "Lower A, Wed, Oct 21, 42min, 1 set, 12,505 kilograms. Personal records: Barbell Back Squat, 102.5 kilograms × 3 reps; Pull up, bodyweight × 12 reps",
       })
-    ).toBeTruthy();
+    ).resolves.toBeTruthy();
   });
 
   it("reads a Personal record in Ukrainian", async () => {

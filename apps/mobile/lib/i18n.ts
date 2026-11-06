@@ -11,24 +11,20 @@ import "@formatjs/intl-pluralrules/locale-data/uk.js";
 import "@formatjs/intl-pluralrules/locale-data/es.js";
 import "@formatjs/intl-pluralrules/locale-data/ca.js";
 import {
-  type AppLanguage,
   defaultAppLanguage,
   isAppLanguage,
   resolveAppLanguage,
 } from "@fitme/core";
+import type { AppLanguage } from "@fitme/core";
+import { createI18n, setDeviceConventions } from "@fitme/i18n";
+import type { DeviceConventions } from "@fitme/i18n";
 import {
-  createI18n,
-  type DeviceConventions,
-  setDeviceConventions,
-} from "@fitme/i18n";
-import {
-  type Calendar,
   getCalendars,
   getLocales,
-  type Locale,
   useCalendars,
   useLocales,
 } from "expo-localization";
+import type { Calendar, Locale } from "expo-localization";
 import { useEffect, useMemo } from "react";
 import { setI18n, useTranslation } from "react-i18next";
 
@@ -51,6 +47,7 @@ const conventionsOf = (
 export const i18n = createI18n(appLanguageOf(getLocales()));
 
 let deviceConventions = conventionsOf(getLocales(), getCalendars());
+
 setDeviceConventions(i18n, deviceConventions);
 
 // `useTranslation()` reads this instance, with no provider needed.
@@ -62,7 +59,7 @@ setI18n(i18n);
  * per-app language) switches it without a restart. Used once, by the root
  * layout.
  */
-export function useAppLanguageSync(): void {
+export const useAppLanguageSync = (): void => {
   const locales = useLocales();
   const calendars = useCalendars();
   const language = appLanguageOf(locales);
@@ -72,8 +69,10 @@ export function useAppLanguageSync(): void {
     const conventionsChanged =
       region !== deviceConventions.region ||
       uses24hourClock !== deviceConventions.uses24hourClock;
+
     deviceConventions = { region, uses24hourClock };
     setDeviceConventions(i18n, deviceConventions);
+
     if (i18n.language !== language) {
       i18n.changeLanguage(language);
     } else if (conventionsChanged) {
@@ -82,16 +81,17 @@ export function useAppLanguageSync(): void {
       i18n.emit("languageChanged", language);
     }
   }, [language, region, uses24hourClock]);
-}
+};
 
 /**
  * The App language the screen's text is in, re-rendering when it changes, so
  * what follows it (the Library's Exercises) switches with the text.
  */
-export function useAppLanguage(): AppLanguage {
+export const useAppLanguage = (): AppLanguage => {
   const { language } = useTranslation().i18n;
+
   return isAppLanguage(language) ? language : defaultAppLanguage;
-}
+};
 
 /**
  * The App language's instance, for `@fitme/i18n`'s formatters
@@ -100,14 +100,16 @@ export function useAppLanguage(): AppLanguage {
  * Importing it from here starts the instance first, so a component using it
  * works wherever it renders, outside the root layout too.
  */
-export function useI18n(): typeof i18n {
+export const useI18n = (): typeof i18n => {
   const { i18n: instance, t } = useTranslation();
+
   // The React Compiler keeps what a component formatted until the object it
   // formatted with changes, and react-i18next hands out the same one while
   // the language stays. A region or clock change only brings a new `t`, so
   // each `t` gets its own view of the instance, and dates follow the device.
   return useMemo(
+    // SAFETY: Object.create(instance) inherits all i18n members from instance.
     () => Object.assign(Object.create(instance) as typeof i18n, { t }),
     [instance, t]
   );
-}
+};

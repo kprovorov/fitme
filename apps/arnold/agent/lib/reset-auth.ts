@@ -1,10 +1,11 @@
 import { createHash, timingSafeEqual } from "node:crypto";
+
 import {
-  type AuthFn,
   extractBearerToken,
   ForbiddenError,
   withAuthChallenges,
 } from "eve/channels/auth";
+import type { AuthFn } from "eve/channels/auth";
 
 interface AccountDeletionResetOptions {
   /**
@@ -16,7 +17,7 @@ interface AccountDeletionResetOptions {
 // Anything shorter isn't a generated secret (`openssl rand -hex 32` is 64).
 const MIN_SECRET_LENGTH = 32;
 
-const RESET_ROUTE = /^\/eve\/v1\/session\/[^/]+\/reset$/;
+const RESET_ROUTE = /^\/eve\/v1\/session\/[^/]+\/reset$/u;
 
 const digest = (value: string) => createHash("sha256").update(value).digest();
 
@@ -30,30 +31,40 @@ const digest = (value: string) => createHash("sha256").update(value).digest();
  */
 export const accountDeletionReset = ({
   secret = () => process.env.ARNOLD_RESET_SECRET,
-}: AccountDeletionResetOptions = {}): AuthFn<Request> =>
+}: AccountDeletionResetOptions = {}): AuthFn =>
   withAuthChallenges(
     (request) => {
       const expected = secret();
       const token = extractBearerToken(request.headers.get("authorization"));
-      if (!(expected && expected.length >= MIN_SECRET_LENGTH && token)) {
-        return Promise.resolve(null);
+
+      if (
+        expected === undefined ||
+        expected.length < MIN_SECRET_LENGTH ||
+        token === null ||
+        token === ""
+      ) {
+        return null;
       }
+
       // Compared as digests: equal length, constant time
       if (!timingSafeEqual(digest(token), digest(expected))) {
-        return Promise.resolve(null);
+        return null;
       }
+
       const { pathname } = new URL(request.url);
+
       if (request.method !== "POST" || !RESET_ROUTE.test(pathname)) {
         throw new ForbiddenError({
           message: "This credential only resets sessions.",
         });
       }
-      return Promise.resolve({
+
+      return {
         attributes: {},
         authenticator: "account-deletion",
         principalId: "account-deletion",
         principalType: "service",
-      });
+      };
     },
     [{ scheme: "Bearer" }]
   );

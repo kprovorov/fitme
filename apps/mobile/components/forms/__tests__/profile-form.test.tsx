@@ -1,21 +1,26 @@
 import { describe, expect, it, jest } from "@jest/globals";
 import { act, fireEvent, render, screen } from "@testing-library/react-native";
 import type { ReactNode } from "react";
+
 import { useAppLanguageSync } from "~/lib/i18n";
 import { setDeviceLanguages } from "~/test-utils/device-locales";
-import ProfileForm, {
-  type ProfileFormProps,
-  type ProfileFormValues,
-} from "../profile-form";
 
-jest.mock("expo-router", () => ({ Stack: { Screen: () => null } }));
+import ProfileForm from "../profile-form";
+import type { ProfileFormProps, ProfileFormValues } from "../profile-form";
+
+jest.mock("expo-router", () => ({
+  Stack: { Screen: () => null },
+}));
+
 jest.mock("react-native-safe-area-context", () => ({
   useSafeAreaInsets: () => ({ bottom: 0, left: 0, right: 0, top: 0 }),
 }));
+
 // Reanimated's worklets need a native module; the drawer only needs a View.
 jest.mock("react-native-reanimated", () => {
   const { View } =
     jest.requireActual<typeof import("react-native")>("react-native");
+
   return {
     __esModule: true,
     default: { View },
@@ -24,16 +29,20 @@ jest.mock("react-native-reanimated", () => {
     withTiming: (value: number) => value,
   };
 });
+
 jest.mock("~/components/ui/button", () =>
   jest.requireActual("~/test-utils/button-stub")
 );
+
 // The SwiftUI wheel can't mount under Jest; like the native one, the stub
 // never reports the selection it opens on. The open wheel's setter is kept, so
 // a test can pick any value, in bounds or not.
 const mockWheel: { onValueChange?: (value: number) => void } = {};
+
 jest.mock("~/components/ui/picker", () => ({
   Picker: ({ onValueChange }: { onValueChange: (value: number) => void }) => {
     mockWheel.onValueChange = onValueChange;
+
     return null;
   },
 }));
@@ -41,6 +50,7 @@ jest.mock("~/components/ui/picker", () => ({
 /** The form under the root layout's language sync. */
 function App({ children }: { children: ReactNode }) {
   useAppLanguageSync();
+
   return children;
 }
 
@@ -50,7 +60,7 @@ const renderForm = async ({
 }: Partial<
   Pick<ProfileFormProps, "defaultValues" | "measurementSystem">
 > = {}) => {
-  const onSubmit = jest.fn((_values: ProfileFormValues) => undefined);
+  const onSubmit = jest.fn((_values: ProfileFormValues) => {});
   await render(
     <App>
       <ProfileForm
@@ -61,6 +71,7 @@ const renderForm = async ({
       />
     </App>
   );
+
   return onSubmit;
 };
 
@@ -75,7 +86,7 @@ describe("ProfileForm", () => {
 
     await openWheel("Age");
 
-    expect(await screen.findByText("25 y.o.")).toBeTruthy();
+    await expect(screen.findByText("25 y.o.")).resolves.toBeTruthy();
   });
 
   it("submits the defaults of every wheel opened without scrolling", async () => {
@@ -133,6 +144,7 @@ describe("ProfileForm", () => {
     ["Weight", 1000.5, "Number must be less than or equal to 1000"],
     ["Weight", 80.125, "Number must have at most 2 decimals"],
   ] as const;
+
   const FORMS = [
     ["onboarding", { gender: "male" }],
     ["edit", { age: 30, gender: "female", height: 170, weight: 60 }],
@@ -157,7 +169,7 @@ describe("ProfileForm", () => {
       await act(() => mockWheel.onValueChange?.(value));
       await submit();
 
-      expect(await screen.findByText(message)).toBeTruthy();
+      await expect(screen.findByText(message)).resolves.toBeTruthy();
       expect(onSubmit).not.toHaveBeenCalled();
     }
   );
@@ -209,7 +221,7 @@ describe("ProfileForm", () => {
       await act(() => mockWheel.onValueChange?.(value));
       await submit();
 
-      expect(await screen.findByText(message)).toBeTruthy();
+      await expect(screen.findByText(message)).resolves.toBeTruthy();
       expect(onSubmit).not.toHaveBeenCalled();
     }
   );

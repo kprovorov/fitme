@@ -2,15 +2,14 @@
 
 Post-auth patterns. Hooks below are imported from `@clerk/expo` unless noted; they mirror `@clerk/react`.
 
-> Canonical docs (fetch to re-verify if the installed SDK is newer than 3.6.x):
-> https://clerk.com/docs/reference/expo/overview — plus `local-credentials` and `passkeys` pages under the Expo reference
+> Canonical docs (fetch to re-verify if the installed SDK is newer than 3.6.x): https://clerk.com/docs/reference/expo/overview — plus `local-credentials` and `passkeys` pages under the Expo reference
 
 ## User profile data
 
 ```tsx
-import { useUser } from '@clerk/expo'
+import { useUser } from "@clerk/expo";
 
-const { user, isLoaded } = useUser()
+const { user, isLoaded } = useUser();
 // user is null until loaded/signed in — always guard
 // user.fullName, user.firstName, user.imageUrl, user.primaryEmailAddress?.emailAddress
 ```
@@ -31,12 +30,12 @@ const { signOut } = useClerk()
 Organizations must be enabled in the dashboard. For deeper org work (roles, invitations, RBAC) load the `clerk-orgs` skill — the hooks are identical in Expo.
 
 ```tsx
-import { useOrganization, useOrganizationList } from '@clerk/expo'
+import { useOrganization, useOrganizationList } from "@clerk/expo";
 
-const { organization } = useOrganization()
+const { organization } = useOrganization();
 const { setActive, userMemberships } = useOrganizationList({
   userMemberships: { infinite: true },
-})
+});
 
 // Current: organization?.name ?? 'Personal account'
 // Switch: setActive({ organization: membership.organization.id })
@@ -48,12 +47,12 @@ const { setActive, userMemberships } = useOrganizationList({
 Route guards are client-side only; authorize on the server:
 
 ```tsx
-import { useAuth } from '@clerk/expo'
+import { useAuth } from "@clerk/expo";
 
-const { getToken } = useAuth()
+const { getToken } = useAuth();
 const res = await fetch(`${API_URL}/endpoint`, {
   headers: { Authorization: `Bearer ${await getToken()}` },
-})
+});
 ```
 
 Verify the token server-side with Clerk's backend SDK for your server framework (e.g. `@clerk/backend`'s `verifyToken`, or the framework SDK's `getAuth`). Clerk has no official Expo Router API-routes (`+api.ts`) integration — treat any server code as a normal backend and use `@clerk/backend`.
@@ -63,26 +62,26 @@ Verify the token server-side with Clerk's backend SDK for your server framework 
 Associate the Expo push token with the Clerk user:
 
 ```tsx
-import { useUser } from '@clerk/expo'
-import * as Notifications from 'expo-notifications'
-import { useEffect } from 'react'
+import { useUser } from "@clerk/expo";
+import * as Notifications from "expo-notifications";
+import { useEffect } from "react";
 
 export function PushTokenRegistrar() {
-  const { user, isLoaded } = useUser()
+  const { user, isLoaded } = useUser();
 
   useEffect(() => {
-    if (!isLoaded || !user) return
-    ;(async () => {
-      const { status } = await Notifications.requestPermissionsAsync()
-      if (status !== 'granted') return
-      const token = (await Notifications.getExpoPushTokenAsync()).data
+    if (!isLoaded || !user) return;
+    (async () => {
+      const { status } = await Notifications.requestPermissionsAsync();
+      if (status !== "granted") return;
+      const token = (await Notifications.getExpoPushTokenAsync()).data;
       await user.update({
         unsafeMetadata: { ...user.unsafeMetadata, expoPushToken: token },
-      })
-    })()
-  }, [isLoaded, user])
+      });
+    })();
+  }, [isLoaded, user]);
 
-  return null
+  return null;
 }
 ```
 
@@ -97,15 +96,16 @@ Dev build only. Stores the user's credentials in the keychain, gated by Face ID 
 Prerequisites: `npx expo install expo-local-authentication` (plus `expo-secure-store` from setup), iOS `NSFaceIDUsageDescription` in `app.json` → `ios.infoPlist`.
 
 ```tsx
-import { useLocalCredentials } from '@clerk/expo/local-credentials'
+import { useLocalCredentials } from "@clerk/expo/local-credentials";
 
-const { hasCredentials, setCredentials, authenticate, biometricType } = useLocalCredentials()
+const { hasCredentials, setCredentials, authenticate, biometricType } =
+  useLocalCredentials();
 
 // After a successful password sign-in, offer to enable biometrics:
-await setCredentials({ identifier: emailAddress, password })
+await setCredentials({ identifier: emailAddress, password });
 
 // On later launches, if hasCredentials:
-const signInResource = await authenticate() // prompts biometrics, performs the sign-in
+const signInResource = await authenticate(); // prompts biometrics, performs the sign-in
 ```
 
 Password-based instances only — it replays stored credentials. Confirm the exact return shape against `node_modules/@clerk/expo/dist/local-credentials/*.d.ts` before wiring UI.

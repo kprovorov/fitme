@@ -2,6 +2,7 @@ import type { ExerciseSummary } from "@fitme/library-sdk";
 import { router, Stack } from "expo-router";
 import { useCallback } from "react";
 import { useTranslation } from "react-i18next";
+
 import { ExerciseRowChevron } from "~/components/exercises/exercise-row";
 import ExercisesView from "~/components/views/exercises-view";
 import { useHeaderSearch } from "~/hooks/header-search";
@@ -9,7 +10,7 @@ import { useHeaderSearch } from "~/hooks/header-search";
 /** The Library tab's Muscle group choice: kept while the app runs. */
 const MUSCLE_CHOICE_KEY = "library";
 
-export default function LibraryScreen() {
+const LibraryScreen = () => {
   const { t } = useTranslation();
   const { onSearchChange, search, searchBarOptions } = useHeaderSearch();
 
@@ -42,4 +43,6 @@ export default function LibraryScreen() {
       />
     </>
   );
-}
+};
+
+export default LibraryScreen;

@@ -1,9 +1,11 @@
 import { beforeEach, describe, expect, it, jest } from "@jest/globals";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { fireEvent, render, screen } from "@testing-library/react-native";
+
 import type { PlanWorkout } from "~/hooks/queries/plans";
 import { backend, fakePublicApi } from "~/test-utils/fake-public-api";
 import { createTestQueryClient, settle } from "~/test-utils/query-client";
+
 import WorkoutCard from "../workout-card";
 
 const mockPush = jest.fn();
@@ -14,9 +16,12 @@ jest.mock("expo-router", () => ({
 }));
 
 // The real Clerk SDK opens a MessagePort at import that keeps Jest alive.
-jest.mock("~/lib/clerk", () => ({ getCurrentUserId: () => "user_test" }));
+jest.mock("~/lib/clerk", () => ({
+  getCurrentUserId: () => "user_test",
+}));
 
 jest.mock("~/components/exercises/exercise-image", () => () => null);
+
 jest.mock("~/components/symbol-image", () => ({ SymbolImage: () => null }));
 
 const SET = {
@@ -74,7 +79,7 @@ const renderCard = async (shown: PlanWorkout) => {
   await settle(client);
 };
 
-describe("A Plan screen's WorkoutCard", () => {
+describe("a Plan screen's WorkoutCard", () => {
   beforeEach(() => {
     jest.clearAllMocks();
     backend.reset();
@@ -116,9 +121,9 @@ describe("A Plan screen's WorkoutCard", () => {
     seedOpenSession("workout-1", HOUR_MS + 2 * 60_000);
     await renderCard(pushDay);
 
-    expect(
-      await screen.findByText(ELAPSED, {}, { timeout: 3000 })
-    ).toBeTruthy();
+    await expect(
+      screen.findByText(ELAPSED, {}, { timeout: 3000 })
+    ).resolves.toBeTruthy();
   });
 
   it("opens its Workout screen while another Workout's session is open", async () => {

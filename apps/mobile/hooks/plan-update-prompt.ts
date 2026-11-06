@@ -1,4 +1,5 @@
 import { useSyncExternalStore } from "react";
+
 import type { PlanUpdate } from "~/lib/plan-changes";
 
 /**
@@ -23,6 +24,7 @@ const emit = () => {
 
 const subscribe = (listener: () => void) => {
   listeners.add(listener);
+
   return () => {
     listeners.delete(listener);
   };
@@ -35,21 +37,21 @@ const getSnapshot = () => current;
  * the Workout card that finished it from Home is gone once the Plan refetches,
  * so `PlanUpdateSheetHost` (in the root layout) shows it.
  */
-export function showPlanUpdatePrompt(prompt: PlanUpdatePrompt): void {
+export const showPlanUpdatePrompt = (prompt: PlanUpdatePrompt): void => {
   current = prompt;
   emit();
-}
+};
 
 /** Closes the question, if it's still the one for `sessionId`. */
-export function closePlanUpdatePrompt(sessionId: string): void {
+export const closePlanUpdatePrompt = (sessionId: string): void => {
   if (current?.sessionId !== sessionId) {
     return;
   }
+
   current = null;
   emit();
-}
+};
 
 /** The open question, or null. */
-export function usePlanUpdatePrompt(): PlanUpdatePrompt | null {
-  return useSyncExternalStore(subscribe, getSnapshot, getSnapshot);
-}
+export const usePlanUpdatePrompt = (): PlanUpdatePrompt | null =>
+  useSyncExternalStore(subscribe, getSnapshot, getSnapshot);

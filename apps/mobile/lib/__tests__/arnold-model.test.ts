@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it } from "@jest/globals";
+
 import {
-  type ArnoldModelList,
   getSelectedArnoldModelId,
   MODELS_KEY,
   readCachedArnoldModels,
@@ -8,6 +8,7 @@ import {
   SELECTED_MODEL_KEY,
   writeCachedArnoldModels,
 } from "../arnold-model";
+import type { ArnoldModelList } from "../arnold-model";
 import { storage } from "../mmkv";
 
 const list: ArnoldModelList = {

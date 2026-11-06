@@ -11,29 +11,36 @@ export const isQueryError = (
   Object.hasOwn(value, "query") &&
   Object.hasOwn(value, "params");
 
-/** A `pg` error's SQLSTATE, if `value` is one. */
-const sqlstateOf = (value: unknown) =>
-  value instanceof Error && "code" in value && typeof value.code === "string"
-    ? value.code
-    : undefined;
+interface PostgresError extends Error {
+  code: string;
+}
+
+/** A `pg` error carrying a SQLSTATE. */
+const isPostgresError = (value: unknown): value is PostgresError =>
+  value instanceof Error && "code" in value && typeof value.code === "string";
 
 const MAX_CAUSE_DEPTH = 10;
 
 /** The query error in `error`'s cause chain, if there is one. */
-const findQueryError = (error: unknown) => {
-  let current = error;
+const findQueryError = (error: Error) => {
+  let current: unknown = error;
+
   for (let depth = 0; depth < MAX_CAUSE_DEPTH; depth += 1) {
     if (isQueryError(current)) {
       return current;
     }
+
     if (!(current instanceof Error)) {
-      return;
+      return null;
     }
+
     current = current.cause;
   }
+
+  return null;
 };
 
-const STACK_FRAME = /^\s+at /;
+const STACK_FRAME = /^\s+at /u;
 
 /** What a failed query is reported as, by `sanitizeError` and the scrubber. */
 export const QUERY_FAILED_MESSAGE = "Database query failed";
@@ -51,18 +58,23 @@ export interface SanitizedError {
  * returned as is.
  */
 export const sanitizeError = (error: unknown): SanitizedError => {
-  const query = findQueryError(error);
+  const query = error instanceof Error ? findQueryError(error) : undefined;
+
   if (!query) {
     return { error };
   }
-  const sqlstate = sqlstateOf(query.cause) ?? "unknown";
+
+  const sqlstate = isPostgresError(query.cause) ? query.cause.code : "unknown";
   const sanitized = new Error(`${QUERY_FAILED_MESSAGE} (SQLSTATE ${sqlstate})`);
   sanitized.name = "DatabaseQueryError";
+
   const frames = (query.stack ?? "")
     .split("\n")
     .filter((line) => STACK_FRAME.test(line));
+
   sanitized.stack = [`${sanitized.name}: ${sanitized.message}`, ...frames].join(
     "\n"
   );
+
   return { error: sanitized, tags: { sqlstate } };
 };

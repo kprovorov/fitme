@@ -1,12 +1,11 @@
-import { ApiError, type PublicApiFetch } from "@fitme/api-client";
+import { ApiError } from "@fitme/api-client";
+import type { PublicApiFetch } from "@fitme/api-client";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
+
 import { DashboardView } from "~/components/dashboard/dashboard-view";
-import {
-  type DashboardData,
-  isUnexpectedFailure,
-  loadDashboard,
-} from "~/lib/dashboard";
+import { isUnexpectedFailure, loadDashboard } from "~/lib/dashboard";
+import type { DashboardData } from "~/lib/dashboard";
 
 const API_URL = "https://api.test";
 const SESSION_TOKEN = "clerk-session-token";
@@ -49,9 +48,11 @@ const api = (routes: Record<string, () => Response>) =>
   vi.fn<PublicApiFetch>((url) => {
     const { pathname } = new URL(url);
     const route = routes[pathname];
+
     if (!route) {
       throw new Error(`No fake answer for ${url}`);
     }
+
     return Promise.resolve(route());
   });
 
@@ -72,8 +73,8 @@ const errorResponse = (
   code: string,
   headers: HeadersInit = {}
 ) =>
-  new Response(
-    JSON.stringify({ error: { code, message: `${code} message` } }),
+  Response.json(
+    { error: { code, message: `${code} message` } },
     { headers: { "Content-Type": "application/json", ...headers }, status }
   );
 
@@ -84,23 +85,27 @@ const load = (fetch: PublicApiFetch, { apiUrl = API_URL } = {}) =>
     getToken: () => Promise.resolve(SESSION_TOKEN),
   });
 
-describe("loadDashboard", () => {
+describe("dashboard loading", () => {
   it("reads the Plans and the recent Workout Sessions with the Clerk session token as the bearer", async () => {
     const fetch = serving([plan()], [session()]);
 
     const result = await load(fetch);
 
-    expect(result.ok).toBe(true);
+    expect(result.ok).toBeTruthy();
+
     if (!result.ok) {
       throw new Error("Expected the read to succeed");
     }
-    expect(result.data.plans).toEqual([plan()]);
-    expect(result.data.sessions).toEqual([session()]);
+
+    expect(result.data.plans).toStrictEqual([plan()]);
+    expect(result.data.sessions).toStrictEqual([session()]);
+
     for (const [, init] of fetch.mock.calls) {
       expect(new Headers(init.headers).get("Authorization")).toBe(
         `Bearer ${SESSION_TOKEN}`
       );
     }
+
     const paths = fetch.mock.calls.map(([url]) => url);
     expect(paths).toContain(`${API_URL}/v1/plans`);
     expect(paths).toContain(`${API_URL}/v1/workout-sessions?limit=10`);
@@ -113,12 +118,14 @@ describe("loadDashboard", () => {
       is_active: false,
       name: "Older",
     });
+
     const newer = plan({
       created_at: "2026-10-30T09:00:00+00:00",
       id: "bbbbbbbb-1111-4111-8111-111111111111",
       is_active: false,
       name: "Newer",
     });
+
     const active = plan({ id: "cccccccc-1111-4111-8111-111111111111" });
 
     const result = await load(serving([newer, active, older], []));
@@ -126,7 +133,8 @@ describe("loadDashboard", () => {
     if (!result.ok) {
       throw new Error("Expected the read to succeed");
     }
-    expect(result.data.plans.map((p) => p.name)).toEqual([
+
+    expect(result.data.plans.map((p) => p.name)).toStrictEqual([
       "Full body",
       "Newer",
       "Older",
@@ -141,10 +149,12 @@ describe("loadDashboard", () => {
       })
     );
 
-    expect(result.ok).toBe(false);
+    expect(result.ok).toBeFalsy();
+
     if (result.ok) {
       throw new Error("Expected the read to fail");
     }
+
     expect(result.error.status).toBe(500);
   });
 
@@ -160,6 +170,7 @@ describe("loadDashboard", () => {
     if (result.ok) {
       throw new Error("Expected the read to fail");
     }
+
     expect(result.error.code).toBe("rate_limited");
     expect(result.error.retryAfterSeconds).toBe(30);
   });
@@ -175,7 +186,7 @@ describe("loadDashboard", () => {
       })
     );
 
-    expect(result.ok).toBe(false);
+    expect(result.ok).toBeFalsy();
   });
 
   it("fails instead of crashing on a 200 without the answer's data", async () => {
@@ -186,7 +197,7 @@ describe("loadDashboard", () => {
       })
     );
 
-    expect(result.ok).toBe(false);
+    expect(result.ok).toBeFalsy();
   });
 
   it("fails without sending a request when the API URL is unset", async () => {
@@ -194,14 +205,15 @@ describe("loadDashboard", () => {
 
     const result = await load(fetch, { apiUrl: "" });
 
-    expect(result.ok).toBe(false);
+    expect(result.ok).toBeFalsy();
     expect(fetch).not.toHaveBeenCalled();
   });
 });
 
-describe("DashboardView", () => {
+describe("dashboard view", () => {
   it("renders the Plans and the recent Workout Sessions", async () => {
     const result = await load(serving([plan()], [session()]));
+
     if (!result.ok) {
       throw new Error("Expected the read to succeed");
     }
@@ -215,6 +227,7 @@ describe("DashboardView", () => {
 
   it("renders the empty state without Plans or sessions", async () => {
     const result = await load(serving([], []));
+
     if (!result.ok) {
       throw new Error("Expected the read to succeed");
     }
@@ -232,6 +245,7 @@ describe("DashboardView", () => {
         "/v1/workout-sessions": () => Response.json({ data: [] }),
       })
     );
+
     if (result.ok) {
       throw new Error("Expected the read to fail");
     }
@@ -249,6 +263,7 @@ describe("DashboardView", () => {
         "/v1/workout-sessions": () => Response.json({ data: [] }),
       })
     );
+
     if (result.ok) {
       throw new Error("Expected the read to fail");
     }
@@ -259,27 +274,27 @@ describe("DashboardView", () => {
   });
 });
 
-describe("isUnexpectedFailure", () => {
+describe("unexpected dashboard failures", () => {
   it("is every failure nothing else reports", () => {
-    for (const error of [
+    const errors = [
       new ApiError("Network request failed"),
       new ApiError("Unauthorized", { code: "unauthorized", status: 401 }),
       new ApiError("Boom", { code: "internal_error", status: 500 }),
-    ]) {
-      expect(isUnexpectedFailure(error)).toBe(true);
-    }
+    ];
+
+    expect(errors.map(isUnexpectedFailure)).toStrictEqual([true, true, true]);
   });
 
   it("is not the limits and refusals the dashboard shows on purpose", () => {
-    for (const error of [
+    const errors = [
       new ApiError("Too many", {
         code: "rate_limited",
         retryAfterSeconds: 30,
         status: 429,
       }),
       new ApiError("Nope", { code: "invalid_request", status: 400 }),
-    ]) {
-      expect(isUnexpectedFailure(error)).toBe(false);
-    }
+    ];
+
+    expect(errors.map(isUnexpectedFailure)).toStrictEqual([false, false]);
   });
 });

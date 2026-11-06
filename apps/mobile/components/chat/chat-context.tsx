@@ -1,5 +1,6 @@
 import type { ThreadMessage } from "@assistant-ui/react-native";
 import { createContext, use } from "react";
+
 import type { StreamingStore } from "./streaming-store";
 
 /** An Attachment picked for the next message, as the composer shows it. */
@@ -30,10 +31,12 @@ const ChatContext = createContext<ChatContextValue | null>(null);
 
 export const ChatProvider = ChatContext.Provider;
 
-export function useChatContext() {
+export const useChatContext = () => {
   const ctx = use(ChatContext);
+
   if (!ctx) {
     throw new Error("useChatContext must be used within <Chat>");
   }
+
   return ctx;
-}
+};

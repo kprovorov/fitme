@@ -1,4 +1,3 @@
-import "~/test-utils/auth-ui";
 /**
  * The sign-in and register screens in the App language: the real screens,
  * under the root layout's language sync, with Clerk's sign-in and sign-up
@@ -9,6 +8,8 @@ import { beforeEach, describe, expect, it, jest } from "@jest/globals";
 import { fireEvent, render, screen } from "@testing-library/react-native";
 import { router } from "expo-router";
 import type { ComponentType } from "react";
+
+import "~/test-utils/auth-ui";
 import LoginScreen from "~/app/auth/login";
 import RegisterScreen from "~/app/auth/register";
 import { setDeviceLanguages } from "~/test-utils/device-locales";
@@ -37,10 +38,13 @@ jest.mock("@clerk/expo", () => ({
   useSignIn: () => ({ fetchStatus: "idle", signIn: mockSignIn }),
   useSignUp: () => ({ signUp: mockSignUp }),
 }));
+
 jest.mock("@clerk/expo/token-cache", () => ({ tokenCache: {} }));
+
 jest.mock("expo-router", () => {
   const { Text } =
     jest.requireActual<typeof import("react-native")>("react-native");
+
   return {
     Link: ({ children }: { children: string }) => <Text>{children}</Text>,
     router: { push: jest.fn(), replace: jest.fn() },
@@ -52,10 +56,15 @@ jest.mock("expo-router", () => {
     },
   };
 });
+
 jest.mock("react-native-safe-area-context", () => ({
   useSafeAreaInsets: () => ({ bottom: 0, left: 0, right: 0, top: 0 }),
 }));
-jest.mock("~/lib/segment", () => ({ segmentClient: { track: jest.fn() } }));
+
+jest.mock("~/lib/segment", () => ({
+  segmentClient: { track: jest.fn() },
+}));
+
 jest.mock("~/components/ui/button", () =>
   jest.requireActual("~/test-utils/button-stub")
 );
@@ -80,9 +89,7 @@ beforeEach(() => {
   jest.clearAllMocks();
   mockSignIn.status = "needs_identifier";
   mockSignIn.supportedSecondFactors = [];
-  mockSignIn.password.mockImplementation(() =>
-    Promise.resolve({ error: null })
-  );
+  mockSignIn.password.mockResolvedValue({ error: null });
 });
 
 describe("login screen in Ukrainian", () => {
@@ -109,9 +116,9 @@ describe("login screen in Ukrainian", () => {
     await fillIn({ "Ел. пошта": "not-an-email" });
     await fireEvent.press(screen.getByRole("button", { name: "Увійти" }));
 
-    expect(
-      await screen.findByText("Неправильна адреса ел. пошти")
-    ).toBeTruthy();
+    await expect(
+      screen.findByText("Неправильна адреса ел. пошти")
+    ).resolves.toBeTruthy();
     expect(screen.getByText("Введіть пароль.")).toBeTruthy();
     expect(mockSignIn.password).not.toHaveBeenCalled();
   });
@@ -123,23 +130,21 @@ describe("login screen in Ukrainian", () => {
     await fillIn({ "Ел. пошта": "tony@example.com", Пароль: "a-password" });
     await fireEvent.press(screen.getByRole("button", { name: "Увійти" }));
 
-    expect(
-      await screen.findByText("Цей акаунт поки не може тут увійти.")
-    ).toBeTruthy();
+    await expect(
+      screen.findByText("Цей акаунт поки не може тут увійти.")
+    ).resolves.toBeTruthy();
   });
 
   it("shows the generic error in Ukrainian for a failure that isn't Clerk's", async () => {
-    mockSignIn.password.mockImplementation(() =>
-      Promise.resolve({ error: new Error("offline") })
-    );
+    mockSignIn.password.mockResolvedValue({ error: new Error("offline") });
     await renderInApp(LoginScreen);
 
     await fillIn({ "Ел. пошта": "tony@example.com", Пароль: "a-password" });
     await fireEvent.press(screen.getByRole("button", { name: "Увійти" }));
 
-    expect(
-      await screen.findByText("Щось пішло не так. Спробуйте пізніше.")
-    ).toBeTruthy();
+    await expect(
+      screen.findByText("Щось пішло не так. Спробуйте пізніше.")
+    ).resolves.toBeTruthy();
   });
 
   it("asks for the emailed code in Ukrainian on a new device", async () => {
@@ -189,9 +194,9 @@ describe("register screen in Ukrainian", () => {
       screen.getByRole("button", { name: "Створити акаунт" })
     );
 
-    expect(
-      await screen.findByText("Пароль має містити щонайменше 8 символів.")
-    ).toBeTruthy();
+    await expect(
+      screen.findByText("Пароль має містити щонайменше 8 символів.")
+    ).resolves.toBeTruthy();
     expect(
       screen.getByText("Ім’я має містити щонайменше 2 символи.")
     ).toBeTruthy();
@@ -216,9 +221,9 @@ describe("in English", () => {
       screen.getByRole("button", { name: "Create Account" })
     );
 
-    expect(
-      await screen.findByText("Password must be at least 8 characters.")
-    ).toBeTruthy();
+    await expect(
+      screen.findByText("Password must be at least 8 characters.")
+    ).resolves.toBeTruthy();
     expect(
       screen.getByText("Name must be at least 2 characters.")
     ).toBeTruthy();
@@ -257,7 +262,7 @@ describe.each([
       expect(screen.getByPlaceholderText(password)).toBeTruthy();
       await fillIn({ [email]: "not-an-email" });
       await fireEvent.press(screen.getByRole("button", { name: login }));
-      expect(await screen.findByText(invalid)).toBeTruthy();
+      await expect(screen.findByText(invalid)).resolves.toBeTruthy();
       expect(screen.getByText(required)).toBeTruthy();
       expect(mockSignIn.password).not.toHaveBeenCalled();
     });

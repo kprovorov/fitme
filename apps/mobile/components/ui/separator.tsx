@@ -1,5 +1,7 @@
-import * as SeparatorPrimitive from "@rn-primitives/separator";
+import type { RootProps, RootRef } from "@rn-primitives/separator";
+import { Root } from "@rn-primitives/separator";
 import type * as React from "react";
+
 import { cn } from "~/lib/utils";
 
 /** A one-point `border` line between rows or groups. */
@@ -9,12 +11,12 @@ const Separator = ({
   decorative = true,
   ref,
   ...props
-}: SeparatorPrimitive.RootProps & {
-  ref?: React.RefObject<SeparatorPrimitive.RootRef | null>;
+}: RootProps & {
+  ref?: React.RefObject<RootRef | null>;
 }) => (
-  <SeparatorPrimitive.Root
+  <Root
     className={cn(
-      "shrink-0 bg-border",
+      "bg-border shrink-0",
       orientation === "horizontal" ? "h-px w-full" : "h-full w-px",
       className
     )}
@@ -24,6 +26,7 @@ const Separator = ({
     {...props}
   />
 );
-Separator.displayName = SeparatorPrimitive.Root.displayName;
+
+Separator.displayName = Root.displayName;
 
 export { Separator };

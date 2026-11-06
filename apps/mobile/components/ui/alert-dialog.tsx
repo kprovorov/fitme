@@ -9,6 +9,7 @@ import { frame, tint } from "@expo/ui/swift-ui/modifiers";
 import * as Slot from "@rn-primitives/slot";
 import type * as React from "react";
 import { useCallback, useState } from "react";
+
 import {
   isStretchClassName,
   SwiftUIHost,
@@ -85,12 +86,12 @@ const AlertDialog = ({
           )}
         </Alert.Trigger>
         <Alert.Actions>
-          {actions.map((action) => (
+          {actions.map(({ label, onPress: handlePress, role }) => (
             <SwiftUIButton
-              key={action.label}
-              label={action.label}
-              onPress={action.onPress}
-              role={action.role ?? "default"}
+              key={label}
+              label={label}
+              onPress={handlePress}
+              role={role ?? "default"}
             />
           ))}
         </Alert.Actions>
@@ -107,4 +108,5 @@ const AlertDialog = ({
 AlertDialog.displayName = "AlertDialog";
 
 export type { AlertDialogAction, AlertDialogActionRole, AlertDialogProps };
+
 export { AlertDialog };

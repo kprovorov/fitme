@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+
 import {
   appLanguages,
   defaultAppLanguage,
@@ -6,30 +7,30 @@ import {
   resolveAppLanguage,
 } from "../models";
 
-describe("appLanguages", () => {
+describe("supported app languages", () => {
   it("lists every supported language, English the default", () => {
-    expect(appLanguages).toEqual(["en", "uk", "es", "ca"]);
+    expect(appLanguages).toStrictEqual(["en", "uk", "es", "ca"]);
     expect(defaultAppLanguage).toBe("en");
   });
 });
 
-describe("isAppLanguage", () => {
+describe("app language validation", () => {
   it("accepts an App language", () => {
-    expect(isAppLanguage("en")).toBe(true);
-    expect(isAppLanguage("uk")).toBe(true);
-    expect(isAppLanguage("es")).toBe(true);
-    expect(isAppLanguage("ca")).toBe(true);
+    expect(isAppLanguage("en")).toBeTruthy();
+    expect(isAppLanguage("uk")).toBeTruthy();
+    expect(isAppLanguage("es")).toBeTruthy();
+    expect(isAppLanguage("ca")).toBeTruthy();
   });
 
   it("refuses anything else", () => {
-    expect(isAppLanguage("ru")).toBe(false);
-    expect(isAppLanguage("uk-UA")).toBe(false);
-    expect(isAppLanguage("")).toBe(false);
-    expect(isAppLanguage(undefined)).toBe(false);
+    expect(isAppLanguage("ru")).toBeFalsy();
+    expect(isAppLanguage("uk-UA")).toBeFalsy();
+    expect(isAppLanguage("")).toBeFalsy();
+    expect(isAppLanguage(undefined)).toBeFalsy();
   });
 });
 
-describe("resolveAppLanguage", () => {
+describe("device language resolution", () => {
   it("picks Ukrainian with or without a region", () => {
     expect(resolveAppLanguage(["uk"])).toBe("uk");
     expect(resolveAppLanguage(["uk-UA"])).toBe("uk");

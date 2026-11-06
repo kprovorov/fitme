@@ -2,14 +2,15 @@ import Image from "next/image";
 import Link from "next/link";
 
 import { appStoreUrl, navLinks } from "@/lib/site";
+
 import { MobileMenu } from "./mobile-menu";
 import { Button } from "./ui/button";
 import { Container } from "./ui/container";
 
-function Header() {
-  return (
-    <header className="sticky top-0 z-50 w-full border-b bg-background/95">
-      <Container className="flex h-16 items-center justify-between gap-6">
+const Header = () => (
+  <header className="bg-background/95 sticky top-0 z-50 w-full border-b">
+    <Container>
+      <div className="flex h-16 items-center justify-between gap-6">
         <Link className="shrink-0" href="/">
           <Image alt="Fitme" height={30} priority src="/logo.svg" width={100} />
         </Link>
@@ -18,7 +19,7 @@ function Header() {
             {navLinks.map((link) => (
               <li key={link.href}>
                 <Link
-                  className="text-muted-foreground transition-colors hover:text-foreground"
+                  className="text-muted-foreground hover:text-foreground transition-colors"
                   href={link.href}
                 >
                   {link.title}
@@ -31,9 +32,9 @@ function Header() {
           </Button>
           <MobileMenu />
         </nav>
-      </Container>
-    </header>
-  );
-}
+      </div>
+    </Container>
+  </header>
+);
 
 export default Header;

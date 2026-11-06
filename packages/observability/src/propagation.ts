@@ -13,8 +13,9 @@ const SERVICES = ["api", "app", "arnold", "library", "mcp", "webhooks"];
  */
 export const tracePropagationTargets: RegExp[] = [
   new RegExp(
-    `^https://(?:${SERVICES.join("|")})\\.fitmeproject\\.com(?:[/?#]|$)`
+    `^https://(?:${SERVICES.join("|")})\\.fitmeproject\\.com(?:[/?#]|$)`,
+    "u"
   ),
-  /^https?:\/\/(?:localhost|127\.0\.0\.1)(?::\d+)?(?:[/?#]|$)/,
-  /^\/(?!\/)/,
+  /^https?:\/\/(?:localhost|127\.0\.0\.1)(?::\d+)?(?:[/?#]|$)/u,
+  /^\/(?!\/)/u,
 ];

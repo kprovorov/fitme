@@ -11,13 +11,13 @@ export const PRIVACY_POLICY_URL = "https://fitmeproject.com/privacy-policy";
  * claims). The system can refuse (`Unable to open URL`): that's reported,
  * never left as an unhandled rejection.
  */
-export async function openUrl(url: string): Promise<void> {
+export const openUrl = async (url: string): Promise<void> => {
   try {
     await Linking.openURL(url);
   } catch (error) {
     Sentry.captureException(error);
   }
-}
+};
 
 /**
  * Opens a web page of ours (the Terms, the privacy policy, a link in an Arnold
@@ -27,10 +27,11 @@ export async function openUrl(url: string): Promise<void> {
  * reported. A browser already open answers `locked` without throwing: the
  * User is looking at a page already, so nothing more opens.
  */
-export async function openWebPage(url: string): Promise<void> {
+export const openWebPage = async (url: string): Promise<void> => {
   if (process.env.EXPO_OS === "web") {
     return openUrl(url);
   }
+
   try {
     await WebBrowser.openBrowserAsync(url, {
       presentationStyle: WebBrowser.WebBrowserPresentationStyle.AUTOMATIC,
@@ -38,4 +39,4 @@ export async function openWebPage(url: string): Promise<void> {
   } catch {
     await openUrl(url);
   }
-}
+};

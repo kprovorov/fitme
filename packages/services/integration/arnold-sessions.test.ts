@@ -1,7 +1,9 @@
 import { randomUUID } from "node:crypto";
+
 import { arnoldSessions, asUser, withService } from "@fitme/db";
 import { inArray } from "drizzle-orm";
 import { afterAll, describe, expect, it } from "vitest";
+
 import {
   getArnoldSessionOwner,
   listArnoldSessionIds,
@@ -25,98 +27,129 @@ const otherSession = `wrun_svcArnoldOther${runId}`;
 const deleted = `user_svcArnoldDeleted${runId}`;
 const deletedSession = `wrun_svcArnoldDeleted${runId}`;
 
-afterAll(async () => {
-  await withService((tx) =>
-    tx
-      .delete(arnoldSessions)
-      .where(inArray(arnoldSessions.userId, [owner, other, deleted]))
-  );
-});
-
-describe("recordArnoldSession", () => {
-  it("records the session for the User, once however often it runs", async () => {
-    await asUser(owner, (tx) => recordArnoldSession(tx, owner, ownerSession));
-    await asUser(owner, (tx) => recordArnoldSession(tx, owner, ownerSession));
-    await asUser(owner, (tx) => recordArnoldSession(tx, owner, secondSession));
-
-    expect(
-      (await asUser(owner, (tx) => listArnoldSessionIds(tx, owner))).sort()
-    ).toEqual([ownerSession, secondSession].sort());
-  });
-
-  it("can't record a session for another User", async () => {
-    await expect(
-      asUser(owner, (tx) => recordArnoldSession(tx, other, otherSession))
-    ).rejects.toThrow();
-  });
-
-  it("never lists another User's sessions", async () => {
-    await asUser(other, (tx) => recordArnoldSession(tx, other, otherSession));
-
-    expect(
-      await asUser(other, (tx) => listArnoldSessionIds(tx, other))
-    ).toEqual([otherSession]);
-    expect(
-      await asUser(owner, (tx) => listArnoldSessionIds(tx, other))
-    ).toEqual([]);
-  });
-
-  it("leaves another User's session alone when its id is recorded again", async () => {
-    await asUser(owner, (tx) => recordArnoldSession(tx, owner, otherSession));
-
-    expect(
-      await asUser(other, (tx) => listArnoldSessionIds(tx, other))
-    ).toEqual([otherSession]);
-    expect(
-      await asUser(owner, (tx) => listArnoldSessionIds(tx, owner))
-    ).not.toContain(otherSession);
-  });
-});
-
-describe("getArnoldSessionOwner", () => {
-  it("names the User a session was recorded for", async () => {
-    await asUser(owner, (tx) => recordArnoldSession(tx, owner, ownerSession));
-
-    expect(
-      await withService((tx) => getArnoldSessionOwner(tx, ownerSession))
-    ).toBe(owner);
-  });
-
-  it("returns null for a session nobody recorded", async () => {
-    expect(
-      await withService((tx) =>
-        getArnoldSessionOwner(tx, `wrun_svcArnoldUnknown${runId}`)
-      )
-    ).toBeNull();
-  });
-});
-
-describe("a deleted User's Arnold sessions", () => {
-  it("stay recorded for the retired id, listed in withService", async () => {
-    await asUser(deleted, (tx) =>
-      recordArnoldSession(tx, deleted, deletedSession)
+describe("arnold sessions", () => {
+  afterAll(async () => {
+    await withService((tx) =>
+      tx
+        .delete(arnoldSessions)
+        .where(inArray(arnoldSessions.userId, [owner, other, deleted]))
     );
-
-    await withUserTablesLocked((tx) => deleteUserData(tx, deleted));
-
-    // The webhook resets these; the rows stay as the sessions' ACL
-    expect(
-      await withService((tx) => listArnoldSessionIds(tx, deleted))
-    ).toEqual([deletedSession]);
-    expect(
-      await withService((tx) => getArnoldSessionOwner(tx, deletedSession))
-    ).toBe(deleted);
-    // RLS no longer matches the retired id
-    expect(
-      await asUser(deleted, (tx) => listArnoldSessionIds(tx, deleted))
-    ).toEqual([]);
   });
 
-  it("can't be claimed again by the retired id", async () => {
-    await expect(
-      asUser(deleted, (tx) =>
-        recordArnoldSession(tx, deleted, `wrun_svcArnoldDeletedNew${runId}`)
-      )
-    ).rejects.toThrow();
+  describe("recording Arnold sessions", () => {
+    it("records the session for the User, once however often it runs", async () => {
+      await asUser(owner, async (tx) => {
+        await recordArnoldSession(tx, owner, ownerSession);
+      });
+      await asUser(owner, async (tx) => {
+        await recordArnoldSession(tx, owner, ownerSession);
+      });
+      await asUser(owner, async (tx) => {
+        await recordArnoldSession(tx, owner, secondSession);
+      });
+
+      const sessions = await asUser(
+        owner,
+        async (tx) => await listArnoldSessionIds(tx, owner)
+      );
+
+      expect(sessions).toHaveLength(2);
+      expect(sessions).toStrictEqual(
+        expect.arrayContaining([ownerSession, secondSession])
+      );
+    });
+
+    it("can't record a session for another User", async () => {
+      await expect(
+        asUser(owner, async (tx) => {
+          await recordArnoldSession(tx, other, otherSession);
+        })
+      ).rejects.toThrow('Failed query: insert into "arnold_sessions"');
+    });
+
+    it("never lists another User's sessions", async () => {
+      await asUser(other, async (tx) => {
+        await recordArnoldSession(tx, other, otherSession);
+      });
+
+      await expect(
+        asUser(other, async (tx) => await listArnoldSessionIds(tx, other))
+      ).resolves.toStrictEqual([otherSession]);
+      await expect(
+        asUser(owner, async (tx) => await listArnoldSessionIds(tx, other))
+      ).resolves.toStrictEqual([]);
+    });
+
+    it("leaves another User's session alone when its id is recorded again", async () => {
+      await asUser(owner, async (tx) => {
+        await recordArnoldSession(tx, owner, otherSession);
+      });
+
+      await expect(
+        asUser(other, async (tx) => await listArnoldSessionIds(tx, other))
+      ).resolves.toStrictEqual([otherSession]);
+      await expect(
+        asUser(owner, async (tx) => await listArnoldSessionIds(tx, owner))
+      ).resolves.not.toContain(otherSession);
+    });
+  });
+
+  describe("looking up Arnold session owners", () => {
+    it("names the User a session was recorded for", async () => {
+      await asUser(owner, async (tx) => {
+        await recordArnoldSession(tx, owner, ownerSession);
+      });
+
+      await expect(
+        withService(async (tx) => await getArnoldSessionOwner(tx, ownerSession))
+      ).resolves.toBe(owner);
+    });
+
+    it("returns null for a session nobody recorded", async () => {
+      await expect(
+        withService(
+          async (tx) =>
+            await getArnoldSessionOwner(tx, `wrun_svcArnoldUnknown${runId}`)
+        )
+      ).resolves.toBeNull();
+    });
+  });
+
+  describe("a deleted User's Arnold sessions", () => {
+    it("stay recorded for the retired id, listed in withService", async () => {
+      await asUser(deleted, async (tx) => {
+        await recordArnoldSession(tx, deleted, deletedSession);
+      });
+
+      await withUserTablesLocked(async (tx) => {
+        await deleteUserData(tx, deleted);
+      });
+
+      // The webhook resets these; the rows stay as the sessions' ACL
+      await expect(
+        withService(async (tx) => await listArnoldSessionIds(tx, deleted))
+      ).resolves.toStrictEqual([deletedSession]);
+      await expect(
+        withService(
+          async (tx) => await getArnoldSessionOwner(tx, deletedSession)
+        )
+      ).resolves.toBe(deleted);
+      // RLS no longer matches the retired id
+      await expect(
+        asUser(deleted, async (tx) => await listArnoldSessionIds(tx, deleted))
+      ).resolves.toStrictEqual([]);
+    });
+
+    it("can't be claimed again by the retired id", async () => {
+      await expect(
+        asUser(deleted, async (tx) => {
+          await recordArnoldSession(
+            tx,
+            deleted,
+            `wrun_svcArnoldDeletedNew${runId}`
+          );
+        })
+      ).rejects.toThrow('Failed query: insert into "arnold_sessions"');
+    });
   });
 });

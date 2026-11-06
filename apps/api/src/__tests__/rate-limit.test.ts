@@ -1,6 +1,11 @@
-import { memoryRateLimiter, type RateLimitResult } from "@fitme/rate-limit";
+import assert from "node:assert/strict";
+
+import { memoryRateLimiter } from "@fitme/rate-limit";
+import type { RateLimitResult } from "@fitme/rate-limit";
 import { describe, expect, it, vi } from "vitest";
-import { type RateLimiter, rateLimiterFromEnv } from "../rate-limit.js";
+
+import { rateLimiterFromEnv } from "../rate-limit.js";
+import type { RateLimiter } from "../rate-limit.js";
 import { fakeServices, signedInAs, testApp } from "../test/harness.js";
 
 const MINUTE_MS = 60_000;
@@ -8,6 +13,7 @@ const MINUTE_MS = 60_000;
 /** A clock tests move by hand. */
 const fakeClock = (start = Date.UTC(2026, 9, 23)) => {
   let time = start;
+
   return {
     advance: (ms: number) => {
       time += ms;
@@ -29,45 +35,50 @@ const limitedApp = (clock = fakeClock(), limit = 3) =>
     services,
   });
 
-const requestTimes = async (
+const requestTimes = (
   app: ReturnType<typeof testApp>["app"],
   times: number,
   path = "/v1/profile",
   headers: Record<string, string> = signedInAs("user_alice")
-) => {
-  const statuses: number[] = [];
-  for (let i = 0; i < times; i += 1) {
-    // biome-ignore lint/performance/noAwaitInLoops: one at a time, so the statuses come back in the order they were counted
-    statuses.push((await app.request(path, { headers })).status);
-  }
-  return statuses;
-};
+) =>
+  Promise.all(
+    Array.from({ length: times }, async () => {
+      const response = await app.request(path, { headers });
+
+      return response.status;
+    })
+  );
 
 describe("rate limiting", () => {
-  it("answers a User's 301st request within a minute with 429 and Retry-After", {
-    timeout: 30_000,
-  }, async () => {
-    const clock = fakeClock();
-    const { app, reported } = limitedApp(clock, 300);
+  it(
+    "answers a User's 301st request within a minute with 429 and Retry-After",
+    {
+      timeout: 30_000,
+    },
+    async () => {
+      const clock = fakeClock();
+      const { app, reported } = limitedApp(clock, 300);
 
-    const statuses = await requestTimes(app, 300);
-    clock.advance(45_000);
-    const response = await app.request("/v1/profile", {
-      headers: signedInAs("user_alice"),
-    });
+      const statuses = await requestTimes(app, 300);
+      clock.advance(45_000);
 
-    expect(statuses).toEqual(new Array(300).fill(200));
-    expect(response.status).toBe(429);
-    expect(response.headers.get("Retry-After")).toBe("15");
-    expect(await response.json()).toEqual({
-      error: {
-        code: "rate_limited",
-        message:
-          "Too many requests, retry after the Retry-After header's seconds",
-      },
-    });
-    expect(reported).toEqual([]);
-  });
+      const response = await app.request("/v1/profile", {
+        headers: signedInAs("user_alice"),
+      });
+
+      expect(statuses).toStrictEqual(Array.from({ length: 300 }, () => 200));
+      expect(response.status).toBe(429);
+      expect(response.headers.get("Retry-After")).toBe("15");
+      await expect(response.json()).resolves.toStrictEqual({
+        error: {
+          code: "rate_limited",
+          message:
+            "Too many requests, retry after the Retry-After header's seconds",
+        },
+      });
+      expect(reported).toStrictEqual([]);
+    }
+  );
 
   it("resets the window after a minute", async () => {
     const clock = fakeClock();
@@ -76,13 +87,14 @@ describe("rate limiting", () => {
     await requestTimes(app, 4);
     clock.advance(MINUTE_MS);
 
-    expect(await requestTimes(app, 3)).toEqual([200, 200, 200]);
+    await expect(requestTimes(app, 3)).resolves.toStrictEqual([200, 200, 200]);
   });
 
   it("counts each User separately", async () => {
     const { app } = limitedApp();
 
     await requestTimes(app, 4);
+
     const response = await app.request("/v1/profile", {
       headers: signedInAs("user_bob"),
     });
@@ -93,7 +105,10 @@ describe("rate limiting", () => {
   it("counts requests to unknown routes too", async () => {
     const { app } = limitedApp();
 
-    expect(await requestTimes(app, 3, "/nope")).toEqual([404, 404, 404]);
+    await expect(requestTimes(app, 3, "/nope")).resolves.toStrictEqual([
+      404, 404, 404,
+    ]);
+
     const response = await app.request("/v1/profile", {
       headers: signedInAs("user_alice"),
     });
@@ -110,11 +125,13 @@ describe("rate limiting", () => {
     const limit = vi.fn<RateLimiter["limit"]>(() =>
       Promise.resolve({ allowed: false, retryAfterSeconds: 60 })
     );
+
     const { app } = testApp({ rateLimiter: { limit } });
 
     const withToken = await app.request(path, {
       headers: signedInAs("user_alice"),
     });
+
     const withoutToken = await app.request(path);
 
     expect(withToken.status).toBe(200);
@@ -126,6 +143,7 @@ describe("rate limiting", () => {
     const limit = vi.fn<RateLimiter["limit"]>(() =>
       Promise.resolve({ allowed: true })
     );
+
     const { app } = testApp({ rateLimiter: { limit } });
 
     const response = await app.request("/v1/profile");
@@ -138,6 +156,7 @@ describe("rate limiting", () => {
     const limit = vi.fn<RateLimiter["limit"]>(() =>
       Promise.resolve({ allowed: true })
     );
+
     const { app } = testApp({ rateLimiter: { limit }, services });
 
     await app.request("/v1/profile", { headers: signedInAs("user_alice") });
@@ -147,6 +166,7 @@ describe("rate limiting", () => {
 
   it("serves the request and reports once when the limiter throws", async () => {
     const outage = new Error("Upstash is down");
+
     const { app, reported } = testApp({
       rateLimiter: { limit: () => Promise.reject(outage) },
       services,
@@ -158,50 +178,53 @@ describe("rate limiting", () => {
 
     expect(response.status).toBe(200);
     expect(reported).toHaveLength(1);
-    expect((reported[0] as Error).cause).toBe(outage);
+    assert.ok(reported[0] instanceof Error);
+    expect(reported[0].cause).toBe(outage);
   });
 
   it("serves the request and reports once when the limiter takes over 1 s", async () => {
     vi.useFakeTimers();
+
     const { app, reported } = testApp({
-      rateLimiter: { limit: () => new Promise(() => undefined) },
+      rateLimiter: {
+        limit: () => Promise.race<RateLimitResult>([]),
+      },
       services,
     });
 
     let settled = false;
+
     const pending = Promise.resolve(
       app.request("/v1/profile", { headers: signedInAs("user_alice") })
     ).finally(() => {
       settled = true;
     });
+
     // Token verification is async, so the limiter's timer starts some ticks in.
-    while (!settled) {
-      // biome-ignore lint/performance/noAwaitInLoops: each step lets the request reach its next timer
-      await vi.advanceTimersByTimeAsync(100);
-    }
+    await vi.waitUntil(() => settled, { interval: 100, timeout: 5000 });
+
     const response = await pending;
     vi.useRealTimers();
 
     expect(response.status).toBe(200);
     expect(reported).toHaveLength(1);
-    expect((reported[0] as Error).cause).toEqual(
+    assert.ok(reported[0] instanceof Error);
+    expect(reported[0].cause).toStrictEqual(
       new Error("Rate limiter timed out after 1000 ms")
     );
   });
 });
 
-describe("rateLimiterFromEnv", () => {
+describe("rate limiter environment", () => {
   it("limits each User to 300 a minute by default", async () => {
     const limiter = rateLimiterFromEnv({ NODE_ENV: "development" });
 
-    const results: RateLimitResult[] = [];
-    for (let i = 0; i < 301; i += 1) {
-      // biome-ignore lint/performance/noAwaitInLoops: counted in order
-      results.push(await limiter.limit("user:user_alice"));
-    }
+    const results = await Promise.all(
+      Array.from({ length: 301 }, () => limiter.limit("user:user_alice"))
+    );
 
-    expect(results.at(-2)).toEqual({ allowed: true });
-    expect(results.at(-1)).toEqual({
+    expect(results.at(-2)).toStrictEqual({ allowed: true });
+    expect(results.at(-1)).toStrictEqual({
       allowed: false,
       retryAfterSeconds: 60,
     });
@@ -217,7 +240,7 @@ describe("rateLimiterFromEnv", () => {
     await limiter.limit("user:user_alice");
     await limiter.limit("user:user_alice");
 
-    expect(await limiter.limit("user:user_alice")).toEqual({
+    await expect(limiter.limit("user:user_alice")).resolves.toStrictEqual({
       allowed: false,
       retryAfterSeconds: 10,
     });
@@ -243,7 +266,9 @@ describe("rateLimiterFromEnv", () => {
         NODE_ENV: "production",
         UPSTASH_REDIS_REST_URL: "https://example.upstash.io",
       })
-    ).toThrow();
+    ).toThrow(
+      "UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN are required in production"
+    );
   });
 
   it("uses Upstash in production when it's configured", () => {
@@ -259,7 +284,9 @@ describe("rateLimiterFromEnv", () => {
   it("uses the in-memory limiter outside production without Upstash", async () => {
     const limiter = rateLimiterFromEnv({ NODE_ENV: "development" });
 
-    expect(await limiter.limit("user:user_alice")).toEqual({ allowed: true });
+    await expect(limiter.limit("user:user_alice")).resolves.toStrictEqual({
+      allowed: true,
+    });
   });
 
   it("uses the in-memory limiter on a Vercel preview without Upstash", async () => {
@@ -268,6 +295,8 @@ describe("rateLimiterFromEnv", () => {
       VERCEL_ENV: "preview",
     });
 
-    expect(await limiter.limit("user:user_alice")).toEqual({ allowed: true });
+    await expect(limiter.limit("user:user_alice")).resolves.toStrictEqual({
+      allowed: true,
+    });
   });
 });

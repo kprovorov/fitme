@@ -18,29 +18,25 @@ describe("i18n setup", () => {
     expect(i18n.t("counts.sets", { count: 3 })).toBe("3 sets");
   });
 
-  it("translates in Ukrainian, with every plural form", () => {
+  it("translates in Ukrainian", () => {
     const i18n = createI18n("uk");
-    expect({
-      language: i18n.language,
-      tab: i18n.t("tabs.workout"),
-      sets: [1, 21, 3, 5, 11, 1.5].map((count) =>
-        i18n.t("counts.sets", { count })
-      ),
-    }).toStrictEqual({
-      language: "uk",
-      tab: "Тренування",
-      sets: [
-        "1 підхід",
-        "21 підхід",
-        "3 підходи",
-        "5 підходів",
-        "11 підходів",
-        "1,5 підходу",
-      ],
-    });
+    expect(i18n.language).toBe("uk");
+    expect(i18n.t("tabs.workout")).toBe("Тренування");
   });
 
   it.each([
+    [1, "1 підхід"],
+    [21, "21 підхід"],
+    [3, "3 підходи"],
+    [5, "5 підходів"],
+    [11, "11 підходів"],
+    [1.5, "1,5 підходу"],
+  ])("translates %s sets in Ukrainian as %s", (count, translation) => {
+    const i18n = createI18n("uk");
+    expect(i18n.t("counts.sets", { count })).toBe(translation);
+  });
+
+  describe.each([
     {
       fraction: "1,5 series",
       language: "es" as const,
@@ -62,22 +58,27 @@ describe("i18n setup", () => {
   ])(
     "translates and formats in $language",
     ({ language, tab, one, other, fraction, spoken, month }) => {
-      const i18n = createI18n(language);
-      setDeviceConventions(i18n, { region: "ES", uses24hourClock: true });
-      expect(i18n.t("tabs.workout")).toBe(tab);
-      expect(
-        [1, 2, 1.5].map((count) => i18n.t("counts.sets", { count }))
-      ).toStrictEqual([one, other, fraction]);
-      expect(i18n.t("counts.sets", { count: 1_000_000 })).toContain(
-        language === "es" ? "series" : "sèries"
-      );
-      const date = new Date(2026, 0, 15, 18, 5);
-      expect({
-        month: formatDate(i18n, date, "monthYear"),
-        number: formatNumber(i18n, 62.5),
-        spoken: spokenUnit(i18n, 2, "kg"),
-        time: formatTime(i18n, date),
-      }).toStrictEqual({ month, number: "62,5", spoken, time: "18:05" });
+      it("translates with every plural form", () => {
+        const i18n = createI18n(language);
+        setDeviceConventions(i18n, { region: "ES", uses24hourClock: true });
+        expect(i18n.t("tabs.workout")).toBe(tab);
+        expect(i18n.t("counts.sets", { count: 1 })).toBe(one);
+        expect(i18n.t("counts.sets", { count: 2 })).toBe(other);
+        expect(i18n.t("counts.sets", { count: 1.5 })).toBe(fraction);
+        expect(i18n.t("counts.sets", { count: 1_000_000 })).toContain(
+          language === "es" ? "series" : "sèries"
+        );
+      });
+
+      it("formats numbers, units, dates and times", () => {
+        const i18n = createI18n(language);
+        setDeviceConventions(i18n, { region: "ES", uses24hourClock: true });
+        expect(formatNumber(i18n, 62.5)).toBe("62,5");
+        expect(spokenUnit(i18n, 2, "kg")).toBe(spoken);
+        const date = new Date(2026, 0, 15, 18, 5);
+        expect(formatDate(i18n, date, "monthYear")).toBe(month);
+        expect(formatTime(i18n, date)).toBe("18:05");
+      });
     }
   );
 

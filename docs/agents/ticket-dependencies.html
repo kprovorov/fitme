@@ -13,97 +13,97 @@
 -->
 <html lang="en">
   <head>
-    <meta charset="utf-8">
+    <meta charset="utf-8" />
     <style>
-    :root {
-      --card: #17181c;
-      --border: #2a2c33;
-      --fg: #e8e8ea;
-      --muted: #8b8d96;
-    }
-    html,
-    body {
-      background: #0e0f12;
-    }
-    body {
-      width: 736px;
-      padding: 20px 12px;
-      margin: 0;
-      font-family:
-        -apple-system, BlinkMacSystemFont, "Inter", "Segoe UI", sans-serif;
-      color: var(--fg);
-    }
-    #wrap {
-      position: relative;
-    }
-    .row {
-      display: flex;
-      gap: 10px;
-      justify-content: center;
-      margin-bottom: 30px;
-    }
-    .row:last-child {
-      margin-bottom: 4px;
-    }
-    .card {
-      position: relative;
-      z-index: 1;
-      box-sizing: border-box;
-      width: 134px;
-      padding: 7px 9px;
-      font-size: 11.5px;
-      line-height: 1.3;
-      background: var(--card);
-      border: 1px solid var(--border);
-      border-left: 4px solid var(--c);
-      border-radius: 8px;
-    }
-    .card b {
-      display: block;
-      margin-bottom: 2px;
-      font-family: ui-monospace, Menlo, monospace;
-      font-size: 11px;
-      color: var(--c);
-    }
-    .card small {
-      display: block;
-      margin-top: 4px;
-      font-size: 10.5px;
-      color: var(--muted);
-    }
-    svg {
-      position: absolute;
-      inset: 0;
-      z-index: 0;
-      width: 100%;
-      height: 100%;
-      overflow: visible;
-    }
-    path {
-      fill: none;
-      stroke: var(--muted);
-      stroke-opacity: 0.7;
-      stroke-width: 1.3;
-    }
-    .legend {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 16px;
-      justify-content: center;
-      margin-bottom: 16px;
-      font-size: 11.5px;
-      color: var(--muted);
-    }
-    .legend span::before {
-      display: inline-block;
-      width: 10px;
-      height: 10px;
-      margin-right: 5px;
-      vertical-align: -1px;
-      content: "";
-      background: var(--c);
-      border-radius: 2px;
-    }
+      :root {
+        --card: #17181c;
+        --border: #2a2c33;
+        --fg: #e8e8ea;
+        --muted: #8b8d96;
+      }
+      html,
+      body {
+        background: #0e0f12;
+      }
+      body {
+        width: 736px;
+        padding: 20px 12px;
+        margin: 0;
+        font-family:
+          -apple-system, BlinkMacSystemFont, "Inter", "Segoe UI", sans-serif;
+        color: var(--fg);
+      }
+      #wrap {
+        position: relative;
+      }
+      .row {
+        display: flex;
+        gap: 10px;
+        justify-content: center;
+        margin-bottom: 30px;
+      }
+      .row:last-child {
+        margin-bottom: 4px;
+      }
+      .card {
+        position: relative;
+        z-index: 1;
+        box-sizing: border-box;
+        width: 134px;
+        padding: 7px 9px;
+        font-size: 11.5px;
+        line-height: 1.3;
+        background: var(--card);
+        border: 1px solid var(--border);
+        border-left: 4px solid var(--c);
+        border-radius: 8px;
+      }
+      .card b {
+        display: block;
+        margin-bottom: 2px;
+        font-family: ui-monospace, Menlo, monospace;
+        font-size: 11px;
+        color: var(--c);
+      }
+      .card small {
+        display: block;
+        margin-top: 4px;
+        font-size: 10.5px;
+        color: var(--muted);
+      }
+      svg {
+        position: absolute;
+        inset: 0;
+        z-index: 0;
+        width: 100%;
+        height: 100%;
+        overflow: visible;
+      }
+      path {
+        fill: none;
+        stroke: var(--muted);
+        stroke-opacity: 0.7;
+        stroke-width: 1.3;
+      }
+      .legend {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 16px;
+        justify-content: center;
+        margin-bottom: 16px;
+        font-size: 11.5px;
+        color: var(--muted);
+      }
+      .legend span::before {
+        display: inline-block;
+        width: 10px;
+        height: 10px;
+        margin-right: 5px;
+        vertical-align: -1px;
+        content: "";
+        background: var(--c);
+        border-radius: 2px;
+      }
     </style>
   </head>
   <body>
@@ -130,223 +130,223 @@
       </svg>
     </div>
     <script>
-    "use strict";
-    // One colour per app or package; add the ones your tickets use.
-    const AREAS = {
-      "apps/api": "#f59e0b",
-      "apps/arnold": "#2dd4bf",
-      "apps/library": "#f472b6",
-      "apps/mcp": "#a3e635",
-      "apps/mobile": "#60a5fa",
-      "apps/web": "#fb7185",
-      "apps/webhooks": "#facc15",
-      "packages/core": "#94a3b8",
-      "packages/i18n": "#c084fc",
-      "packages/services": "#fdba74",
-      "packages/supabase": "#4ade80",
-    };
+      "use strict";
+      // One colour per app or package; add the ones your tickets use.
+      const AREAS = {
+        "apps/api": "#f59e0b",
+        "apps/arnold": "#2dd4bf",
+        "apps/library": "#f472b6",
+        "apps/mcp": "#a3e635",
+        "apps/mobile": "#60a5fa",
+        "apps/web": "#fb7185",
+        "apps/webhooks": "#facc15",
+        "packages/core": "#94a3b8",
+        "packages/i18n": "#c084fc",
+        "packages/services": "#fdba74",
+        "packages/supabase": "#4ade80",
+      };
 
-    // The example is the "Attachments for Arnold" project; replace it.
-    const TICKETS = [
-      {
-        area: "apps/arnold",
-        blockedBy: [],
-        id: "FIT-574",
-        title: "Channel accepts only images",
-      },
-      {
-        area: "apps/arnold",
-        blockedBy: [],
-        id: "FIT-575",
-        title: "Arnold's images rule",
-      },
-      {
-        area: "apps/arnold",
-        blockedBy: ["FIT-575"],
-        id: "FIT-579",
-        title: "Body-photo eval",
-      },
-      {
-        area: "apps/arnold",
-        blockedBy: ["FIT-575"],
-        id: "FIT-580",
-        title: "Plan-screenshot eval",
-      },
-      {
-        area: "apps/mobile",
-        blockedBy: [],
-        id: "FIT-578",
-        title: 'Cut the "+" sheet down',
-      },
-      {
-        area: "packages/i18n",
-        blockedBy: [],
-        id: "FIT-576",
-        title: "Attachment strings",
-      },
-      {
-        area: "apps/mobile",
-        blockedBy: [],
-        id: "FIT-577",
-        title: "Fake Arnold test seam",
-      },
-      {
-        area: "packages/i18n",
-        blockedBy: ["FIT-578"],
-        id: "FIT-581",
-        title: "Drop mockup sheet strings",
-      },
-      {
-        area: "apps/mobile",
-        blockedBy: ["FIT-576", "FIT-577", "FIT-578"],
-        id: "FIT-582",
-        title: "Pick library photos into composer",
-      },
-      {
-        area: "apps/mobile",
-        blockedBy: ["FIT-582"],
-        id: "FIT-583",
-        title: "Send Attachments to Arnold",
-      },
-      {
-        area: "apps/mobile",
-        blockedBy: ["FIT-582"],
-        id: "FIT-584",
-        title: "Take a photo with the camera",
-      },
-      {
-        area: "apps/mobile",
-        blockedBy: ["FIT-583"],
-        id: "FIT-586",
-        title: "Failed send restores Attachments",
-      },
-      {
-        area: "apps/mobile",
-        blockedBy: ["FIT-583"],
-        id: "FIT-585",
-        title: "Keep a device copy",
-      },
-      {
-        area: "apps/mobile",
-        blockedBy: ["FIT-583"],
-        id: "FIT-587",
-        title: "10 per Conversation",
-      },
-      {
-        area: "apps/mobile",
-        blockedBy: ["FIT-585"],
-        id: "FIT-588",
-        title: "Show sent photos in bubbles",
-      },
-      {
-        area: "apps/mobile",
-        blockedBy: ["FIT-585"],
-        id: "FIT-589",
-        title: "Delete copies on account deletion",
-      },
-      {
-        area: "apps/mobile",
-        blockedBy: ["FIT-588"],
-        id: "FIT-590",
-        title: "Full-screen viewer",
-      },
-      {
-        area: "apps/mobile",
-        blockedBy: [
-          "FIT-574",
-          "FIT-575",
-          "FIT-584",
-          "FIT-586",
-          "FIT-587",
-          "FIT-588",
-          "FIT-589",
-          "FIT-590",
-        ],
-        id: "FIT-591",
-        title: "Turn on Attachments",
-      },
-    ];
+      // The example is the "Attachments for Arnold" project; replace it.
+      const TICKETS = [
+        {
+          area: "apps/arnold",
+          blockedBy: [],
+          id: "FIT-574",
+          title: "Channel accepts only images",
+        },
+        {
+          area: "apps/arnold",
+          blockedBy: [],
+          id: "FIT-575",
+          title: "Arnold's images rule",
+        },
+        {
+          area: "apps/arnold",
+          blockedBy: ["FIT-575"],
+          id: "FIT-579",
+          title: "Body-photo eval",
+        },
+        {
+          area: "apps/arnold",
+          blockedBy: ["FIT-575"],
+          id: "FIT-580",
+          title: "Plan-screenshot eval",
+        },
+        {
+          area: "apps/mobile",
+          blockedBy: [],
+          id: "FIT-578",
+          title: 'Cut the "+" sheet down',
+        },
+        {
+          area: "packages/i18n",
+          blockedBy: [],
+          id: "FIT-576",
+          title: "Attachment strings",
+        },
+        {
+          area: "apps/mobile",
+          blockedBy: [],
+          id: "FIT-577",
+          title: "Fake Arnold test seam",
+        },
+        {
+          area: "packages/i18n",
+          blockedBy: ["FIT-578"],
+          id: "FIT-581",
+          title: "Drop mockup sheet strings",
+        },
+        {
+          area: "apps/mobile",
+          blockedBy: ["FIT-576", "FIT-577", "FIT-578"],
+          id: "FIT-582",
+          title: "Pick library photos into composer",
+        },
+        {
+          area: "apps/mobile",
+          blockedBy: ["FIT-582"],
+          id: "FIT-583",
+          title: "Send Attachments to Arnold",
+        },
+        {
+          area: "apps/mobile",
+          blockedBy: ["FIT-582"],
+          id: "FIT-584",
+          title: "Take a photo with the camera",
+        },
+        {
+          area: "apps/mobile",
+          blockedBy: ["FIT-583"],
+          id: "FIT-586",
+          title: "Failed send restores Attachments",
+        },
+        {
+          area: "apps/mobile",
+          blockedBy: ["FIT-583"],
+          id: "FIT-585",
+          title: "Keep a device copy",
+        },
+        {
+          area: "apps/mobile",
+          blockedBy: ["FIT-583"],
+          id: "FIT-587",
+          title: "10 per Conversation",
+        },
+        {
+          area: "apps/mobile",
+          blockedBy: ["FIT-585"],
+          id: "FIT-588",
+          title: "Show sent photos in bubbles",
+        },
+        {
+          area: "apps/mobile",
+          blockedBy: ["FIT-585"],
+          id: "FIT-589",
+          title: "Delete copies on account deletion",
+        },
+        {
+          area: "apps/mobile",
+          blockedBy: ["FIT-588"],
+          id: "FIT-590",
+          title: "Full-screen viewer",
+        },
+        {
+          area: "apps/mobile",
+          blockedBy: [
+            "FIT-574",
+            "FIT-575",
+            "FIT-584",
+            "FIT-586",
+            "FIT-587",
+            "FIT-588",
+            "FIT-589",
+            "FIT-590",
+          ],
+          id: "FIT-591",
+          title: "Turn on Attachments",
+        },
+      ];
 
-    const byId = new Map(TICKETS.map((t) => [t.id, t]));
-    const depth = new Map();
-    const depthOf = (id) => {
-      if (!depth.has(id)) {
-        const blockers = byId.get(id).blockedBy;
-        depth.set(
-          id,
-          blockers.length ? 1 + Math.max(...blockers.map(depthOf)) : 0
-        );
+      const byId = new Map(TICKETS.map((t) => [t.id, t]));
+      const depth = new Map();
+      const depthOf = (id) => {
+        if (!depth.has(id)) {
+          const blockers = byId.get(id).blockedBy;
+          depth.set(
+            id,
+            blockers.length ? 1 + Math.max(...blockers.map(depthOf)) : 0
+          );
+        }
+        return depth.get(id);
+      };
+      for (const t of TICKETS) {
+        depthOf(t.id);
       }
-      return depth.get(id);
-    };
-    for (const t of TICKETS) {
-      depthOf(t.id);
-    }
 
-    const used = [...new Set(TICKETS.map((t) => t.area))];
-    document.getElementById("legend").innerHTML =
-      used
-        .map((a) => `<span style="--c:${AREAS[a] ?? "#94a3b8"}">${a}</span>`)
-        .join("") +
-      '<span style="--c:transparent">Top row can start now · arrows go blocker → blocked</span>';
+      const used = [...new Set(TICKETS.map((t) => t.area))];
+      document.getElementById("legend").innerHTML =
+        used
+          .map((a) => `<span style="--c:${AREAS[a] ?? "#94a3b8"}">${a}</span>`)
+          .join("") +
+        '<span style="--c:transparent">Top row can start now · arrows go blocker → blocked</span>';
 
-    const wrap = document.getElementById("wrap");
-    const rows = [];
-    for (const t of TICKETS) {
-      const d = depth.get(t.id);
-      if (!rows[d]) {
-        rows[d] = document.createElement("div");
-        rows[d].className = "row";
+      const wrap = document.getElementById("wrap");
+      const rows = [];
+      for (const t of TICKETS) {
+        const d = depth.get(t.id);
+        if (!rows[d]) {
+          rows[d] = document.createElement("div");
+          rows[d].className = "row";
+        }
+        const skipped = t.blockedBy.filter((b) => d - depth.get(b) > 2);
+        const card = document.createElement("div");
+        card.className = "card";
+        card.id = t.id;
+        card.style.setProperty("--c", AREAS[t.area] ?? "#94a3b8");
+        card.innerHTML =
+          `<b>${t.id}</b>${t.title}` +
+          (skipped.length
+            ? `<small>Also blocked by ${skipped.join(", ")}</small>`
+            : "");
+        if (skipped.length) {
+          card.style.width = "220px";
+        }
+        rows[d].appendChild(card);
       }
-      const skipped = t.blockedBy.filter((b) => d - depth.get(b) > 2);
-      const card = document.createElement("div");
-      card.className = "card";
-      card.id = t.id;
-      card.style.setProperty("--c", AREAS[t.area] ?? "#94a3b8");
-      card.innerHTML =
-        `<b>${t.id}</b>${t.title}` +
-        (skipped.length
-          ? `<small>Also blocked by ${skipped.join(", ")}</small>`
-          : "");
-      if (skipped.length) {
-        card.style.width = "220px";
+      for (const row of rows) {
+        wrap.appendChild(row);
       }
-      rows[d].appendChild(card);
-    }
-    for (const row of rows) {
-      wrap.appendChild(row);
-    }
 
-    const svg = document.getElementById("edges");
-    const origin = wrap.getBoundingClientRect();
-    const box = (id) => document.getElementById(id).getBoundingClientRect();
-    for (const t of TICKETS) {
-      const drawn = t.blockedBy
-        .filter((b) => depth.get(t.id) - depth.get(b) <= 2)
-        .sort((a, b) => box(a).left - box(b).left);
-      const to = box(t.id);
-      const spread = Math.min(to.width - 30, drawn.length * 16);
-      drawn.forEach((b, k) => {
-        const from = box(b);
-        const x1 = from.left + from.width / 2 - origin.left;
-        const y1 = from.bottom - origin.top;
-        const offset =
-          drawn.length > 1 ? (k / (drawn.length - 1) - 0.5) * spread : 0;
-        const x2 = to.left + to.width / 2 - origin.left + offset;
-        const y2 = to.top - origin.top - 1;
-        const my = (y1 + y2) / 2;
-        const path = document.createElementNS(
-          "http://www.w3.org/2000/svg",
-          "path"
-        );
-        path.setAttribute(
-          "d",
-          `M${x1},${y1} C${x1},${my} ${x2},${my} ${x2},${y2}`
-        );
-        path.setAttribute("marker-end", "url(#head)");
-        svg.appendChild(path);
-      });
-    }
+      const svg = document.getElementById("edges");
+      const origin = wrap.getBoundingClientRect();
+      const box = (id) => document.getElementById(id).getBoundingClientRect();
+      for (const t of TICKETS) {
+        const drawn = t.blockedBy
+          .filter((b) => depth.get(t.id) - depth.get(b) <= 2)
+          .sort((a, b) => box(a).left - box(b).left);
+        const to = box(t.id);
+        const spread = Math.min(to.width - 30, drawn.length * 16);
+        drawn.forEach((b, k) => {
+          const from = box(b);
+          const x1 = from.left + from.width / 2 - origin.left;
+          const y1 = from.bottom - origin.top;
+          const offset =
+            drawn.length > 1 ? (k / (drawn.length - 1) - 0.5) * spread : 0;
+          const x2 = to.left + to.width / 2 - origin.left + offset;
+          const y2 = to.top - origin.top - 1;
+          const my = (y1 + y2) / 2;
+          const path = document.createElementNS(
+            "http://www.w3.org/2000/svg",
+            "path"
+          );
+          path.setAttribute(
+            "d",
+            `M${x1},${y1} C${x1},${my} ${x2},${my} ${x2},${y2}`
+          );
+          path.setAttribute("marker-end", "url(#head)");
+          svg.appendChild(path);
+        });
+      }
     </script>
   </body>
 </html>

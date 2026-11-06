@@ -27,45 +27,53 @@
  * `~/lib/i18n` in the app. A test that loads `~/lib/i18n` (to follow the
  * device language through `useAppLanguageSync`) binds that instance instead.
  */
+import type * as ApiClient from "@fitme/api-client";
 import { createI18n } from "@fitme/i18n";
 import { jest } from "@jest/globals";
 import { setI18n } from "react-i18next";
+
+import type * as DeviceLocales from "~/test-utils/device-locales";
+import type * as FakeLibrary from "~/test-utils/fake-library";
+import type * as FakePublicApi from "~/test-utils/fake-public-api";
 
 setI18n(createI18n("en"));
 
 jest.mock(
   "~/lib/library",
   () =>
-    jest.requireActual<typeof import("~/test-utils/fake-library")>(
-      "~/test-utils/fake-library"
-    ).libraryModule
+    jest.requireActual<typeof FakeLibrary>("~/test-utils/fake-library")
+      .libraryModule
 );
+
 jest.mock("~/lib/public-api", () => {
   const { createPublicApi } =
-    jest.requireActual<typeof import("@fitme/api-client")>("@fitme/api-client");
+    jest.requireActual<typeof ApiClient>("@fitme/api-client");
+
   const { FAKE_SESSION_TOKEN, fakePublicApi } = jest.requireActual<
-    typeof import("~/test-utils/fake-public-api")
+    typeof FakePublicApi
   >("~/test-utils/fake-public-api");
+
   return {
     globalApi: createPublicApi({
       baseUrl: () => fakePublicApi.baseUrl,
       fetch: fakePublicApi.fetch,
-      token: async () => null,
+      token: () => Promise.resolve(null),
     }),
     publicApi: createPublicApi({
       baseUrl: () => fakePublicApi.baseUrl,
       fetch: fakePublicApi.fetch,
-      token: async () => FAKE_SESSION_TOKEN,
+      token: () => Promise.resolve(FAKE_SESSION_TOKEN),
     }),
   };
 });
+
 jest.mock(
   "expo-localization",
   () =>
-    jest.requireActual<typeof import("~/test-utils/device-locales")>(
-      "~/test-utils/device-locales"
-    ).localizationModule
+    jest.requireActual<typeof DeviceLocales>("~/test-utils/device-locales")
+      .localizationModule
 );
+
 jest.mock("@sentry/react-native", () => ({
   captureException: jest.fn(),
   setUser: jest.fn(),

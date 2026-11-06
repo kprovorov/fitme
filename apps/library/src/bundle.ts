@@ -1,10 +1,10 @@
 import {
-  type AppLanguage,
   appLanguages,
   defaultAppLanguage,
   equipment,
   muscleGroups,
 } from "@fitme/core/models";
+import type { AppLanguage } from "@fitme/core/models";
 import { z } from "zod";
 
 /**
@@ -18,12 +18,14 @@ import { z } from "zod";
 export const BUNDLE_VERSION = 1;
 
 /** The permanent Exercise identifier, e.g. `bench-press`. */
-const SLUG = /^[a-z0-9]+(-[a-z0-9]+)*$/;
+const SLUG = /^[a-z0-9]+(?:-[a-z0-9]+)*$/u;
+
 /** A Git LFS object id: the sha256 of the file's content. */
-const OID = /^[0-9a-f]{64}$/;
+const OID = /^[0-9a-f]{64}$/u;
+
 /** The permanent Cover identifier: a lowercase uuid. */
 const COVER_ID =
-  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/u;
 
 const KnownMuscleGroup = z.enum(muscleGroups, {
   error: (issue) =>
@@ -64,14 +66,17 @@ const translatedLanguages = appLanguages.filter(
  * every other App language optional. A locale that isn't one fails.
  */
 const Locales = z.strictObject(
+  // SAFETY: The default language is en; every other app language is mapped
+  // to an optional ExerciseText schema by translatedLanguages above.
   {
     [defaultAppLanguage]: ExerciseText,
     ...Object.fromEntries(
       translatedLanguages.map((language) => [language, ExerciseText.optional()])
     ),
-  } as { en: typeof ExerciseText } & {
-    [Language in TranslatedLanguage]: z.ZodOptional<typeof ExerciseText>;
-  },
+  } as { en: typeof ExerciseText } & Record<
+    TranslatedLanguage,
+    z.ZodOptional<typeof ExerciseText>
+  >,
   {
     error: (issue) =>
       issue.code === "unrecognized_keys"
@@ -102,7 +107,7 @@ const EquipmentList = z
 
 const image = media(["jpg", "png", "webp"]);
 
-export const BundleExercise = z.strictObject({
+const BundleExerciseSchema = z.strictObject({
   equipment: EquipmentList.optional(),
   locales: Locales,
   muscle_groups: MuscleGroups,
@@ -120,7 +125,7 @@ export const BundleExercise = z.strictObject({
  * A Cover: a photo a Workout's card shows, tagged with the muscle groups it
  * suits. Decorative, so no locales and no alt text.
  */
-export const BundleCover = z.strictObject({
+const BundleCoverSchema = z.strictObject({
   id: z.string().regex(COVER_ID, "must be a lowercase uuid"),
   image,
   muscle_groups: MuscleGroups,
@@ -134,6 +139,7 @@ const unique =
   ) =>
   (items: Item[], ctx: z.RefinementCtx) => {
     const seen = new Set<Item[Field]>();
+
     for (const [index, item] of items.entries()) {
       if (seen.has(item[field])) {
         ctx.addIssue({
@@ -142,17 +148,18 @@ const unique =
           path: [index, field],
         });
       }
+
       seen.add(item[field]);
     }
   };
 
-export const LibraryBundle = z.strictObject({
+const LibraryBundleSchema = z.strictObject({
   covers: z
-    .array(BundleCover)
+    .array(BundleCoverSchema)
     .superRefine(unique("id", (id) => `Cover id ${JSON.stringify(id)} repeats`))
     .optional(),
   exercises: z
-    .array(BundleExercise)
+    .array(BundleExerciseSchema)
     .superRefine(
       unique("slug", (slug) => `Exercise slug ${JSON.stringify(slug)} repeats`)
     ),
@@ -162,9 +169,18 @@ export const LibraryBundle = z.strictObject({
   }),
 });
 
-export type BundleCover = z.infer<typeof BundleCover>;
-export type BundleExercise = z.infer<typeof BundleExercise>;
-export type LibraryBundle = z.infer<typeof LibraryBundle>;
+export {
+  BundleCoverSchema as BundleCover,
+  BundleExerciseSchema as BundleExercise,
+  LibraryBundleSchema as LibraryBundle,
+};
+
+export type BundleCover = z.infer<typeof BundleCoverSchema>;
+
+export type BundleExercise = z.infer<typeof BundleExerciseSchema>;
+
+export type LibraryBundle = z.infer<typeof LibraryBundleSchema>;
+
 export type BundleMedia =
   | BundleExercise["thumbnail" | "video"]
   | BundleCover["image"];

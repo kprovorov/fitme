@@ -1,5 +1,6 @@
 import { arnoldModels, defaultArnoldModelId } from "@fitme/core";
 import { createRoute, OpenAPIHono, z } from "@hono/zod-openapi";
+
 import {
   invalidRequest,
   PUBLIC_CACHE_CONTROL,
@@ -47,6 +48,7 @@ export const arnoldModelsRoute = new OpenAPIHono({
   defaultHook: invalidRequest,
 }).openapi(listArnoldModels, (c) => {
   c.header("Cache-Control", PUBLIC_CACHE_CONTROL);
+
   return c.json(
     {
       data: {

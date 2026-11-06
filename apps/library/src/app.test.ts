@@ -1,20 +1,21 @@
 import { readFileSync } from "node:fs";
+
 import { appLanguages, equipment, muscleGroups } from "@fitme/core/models";
 import { describe, expect, it, vi } from "vitest";
+
 import { serverSecretsFromEnv } from "./auth";
-import {
-  LibraryBundle,
-  type BundleExercise as LibraryExercise,
-} from "./bundle";
-import { type AppDeps, createApp } from "./create-app";
+import { LibraryBundle } from "./bundle";
+import type { BundleExercise as LibraryExercise } from "./bundle";
+import { createApp } from "./create-app";
+import type { AppDeps } from "./create-app";
 import {
   memoryRateLimiter,
-  type RateLimiter,
   rateLimiterFromEnv,
   USER_LIMIT,
   USER_REQUESTS_PER_WINDOW,
 } from "./rate-limit";
-import type { CoverList, ExerciseBatch, ExercisePage } from "./schemas";
+import type { RateLimiter } from "./rate-limit";
+import type { ExerciseBatch, ExercisePage } from "./schemas";
 import { serveLibrary } from "./served-library";
 import { clerkInstance, clerkToken } from "./test/clerk";
 import {
@@ -27,14 +28,16 @@ import {
 const SUPABASE_URL = "https://project.supabase.co";
 
 /** An invalid request message naming the `language` field. */
-const LANGUAGE_PROBLEM = /^language: /;
+const LANGUAGE_PROBLEM = /^language: /u;
+
 /** An invalid request message naming the `muscle_groups` field (or one of its items). */
-const MUSCLE_GROUPS_PROBLEM = /^muscle_groups[.:]/;
+const MUSCLE_GROUPS_PROBLEM = /^muscle_groups[.:]/u;
+
 /** An invalid request message naming the `equipment` field (or one of its items). */
-const EQUIPMENT_PROBLEM = /^equipment[.:]/;
+const EQUIPMENT_PROBLEM = /^equipment[.:]/u;
 
 /** The library hash, a sha256, quoted. */
-const LIBRARY_ETAG = /^"[0-9a-f]{64}"$/;
+const LIBRARY_ETAG = /^"[0-9a-f]{64}"$/u;
 
 const ARNOLD_SECRET = "c".repeat(32);
 const MCP_SECRET = "m".repeat(64);
@@ -66,7 +69,7 @@ const unlimited: RateLimiter = {
 /** The deps every test app shares: no limits, no one identified, errors dropped. */
 const base = {
   auth,
-  identifyUser: () => undefined,
+  identifyUser: () => {},
   rateLimiter: unlimited,
   reportError: () => Promise.resolve(),
 };
@@ -117,12 +120,13 @@ const emptyApp = () =>
   });
 
 const currentEtag = async () => {
-  const etag = (
-    await app.request("/exercises/bench-press", asUser)
-  ).headers.get("ETag");
+  const response = await app.request("/exercises/bench-press", asUser);
+  const etag = response.headers.get("ETag");
+
   if (!etag) {
     throw new Error("no ETag");
   }
+
   return etag;
 };
 
@@ -145,20 +149,26 @@ const listApp = createApp({
 
 const list = async (query = "") => {
   const response = await listApp.request(`/exercises${query}`, asUser);
-  // an error body (400) is asserted with toEqual, which takes any shape
+  // SAFETY: Valid list requests return ExercisePage; error bodies are only compared as a whole.
   const body = (await response.json()) as ExercisePage;
+
   return { body, status: response.status };
 };
 
 const names = (body: ExercisePage) =>
   body.data.map((exercise) => exercise.name);
 
+const envApp = (env: Record<string, string | undefined>) =>
+  callerApp({
+    auth: { ...auth, serverSecrets: serverSecretsFromEnv(env) },
+  });
+
 describe("auth", () => {
   it("answers a content route without a token with 401", async () => {
     const response = await app.request("/exercises/bench-press");
 
     expect(response.status).toBe(401);
-    expect(await response.json()).toEqual(unauthorized);
+    await expect(response.json()).resolves.toStrictEqual(unauthorized);
   });
 
   it("checks the token before answering 304", async () => {
@@ -176,7 +186,7 @@ describe("auth", () => {
     const response = await callerApp().request("/caller", asUser);
 
     expect(response.status).toBe(200);
-    expect(await response.json()).toEqual({
+    await expect(response.json()).resolves.toStrictEqual({
       type: "user",
       userId: "user_alice",
     });
@@ -189,7 +199,10 @@ describe("auth", () => {
     );
 
     expect(response.status).toBe(200);
-    expect(await response.json()).toEqual({ type: "user", userId: "user_bob" });
+    await expect(response.json()).resolves.toStrictEqual({
+      type: "user",
+      userId: "user_bob",
+    });
   });
 
   it.each([
@@ -226,7 +239,7 @@ describe("auth", () => {
     const response = await app.request("/exercises/bench-press", { headers });
 
     expect(response.status).toBe(401);
-    expect(await response.json()).toEqual(unauthorized);
+    await expect(response.json()).resolves.toStrictEqual(unauthorized);
   });
 
   it.each(SERVER_SECRETS)(
@@ -235,12 +248,16 @@ describe("auth", () => {
       const response = await callerApp().request("/caller", bearer(secret));
 
       expect(response.status).toBe(200);
-      expect(await response.json()).toEqual({ name, type: "server" });
+      await expect(response.json()).resolves.toStrictEqual({
+        name,
+        type: "server",
+      });
     }
   );
 
   it("accepts nothing with a secret under 32 characters", async () => {
     const short = "s".repeat(31);
+
     const response = await callerApp({
       auth: {
         ...auth,
@@ -260,11 +277,6 @@ describe("auth", () => {
   });
 
   describe("server secrets from the environment", () => {
-    const envApp = (env: Record<string, string | undefined>) =>
-      callerApp({
-        auth: { ...auth, serverSecrets: serverSecretsFromEnv(env) },
-      });
-
     it("reads each caller's secret", async () => {
       const configured = envApp({
         LIBRARY_ARNOLD_SECRET: ARNOLD_SECRET,
@@ -272,11 +284,17 @@ describe("auth", () => {
         LIBRARY_PUBLIC_API_SECRET: API_SECRET,
       });
 
-      for (const [name, secret] of SERVER_SECRETS) {
-        // biome-ignore lint/performance/noAwaitInLoops: one caller at a time keeps the failure readable
-        const response = await configured.request("/caller", bearer(secret));
-        expect(await response.json()).toEqual({ name, type: "server" });
-      }
+      const callers = await Promise.all(
+        SERVER_SECRETS.map(async ([, secret]) => {
+          const response = await configured.request("/caller", bearer(secret));
+
+          return response.json();
+        })
+      );
+
+      expect(callers).toStrictEqual(
+        SERVER_SECRETS.map(([name]) => ({ name, type: "server" }))
+      );
     });
 
     it("reads none of the old EXERCISES_* names", async () => {
@@ -287,11 +305,15 @@ describe("auth", () => {
         EXERCISES_MCP_SECRET: MCP_SECRET,
       });
 
-      for (const [, secret] of SERVER_SECRETS) {
-        // biome-ignore lint/performance/noAwaitInLoops: one caller at a time keeps the failure readable
-        const response = await configured.request("/caller", bearer(secret));
-        expect(response.status).toBe(401);
-      }
+      const responses = await Promise.all(
+        SERVER_SECRETS.map(([, secret]) =>
+          configured.request("/caller", bearer(secret))
+        )
+      );
+
+      expect(responses.map((response) => response.status)).toStrictEqual([
+        401, 401, 401,
+      ]);
     });
 
     it.each([
@@ -325,20 +347,32 @@ describe("auth", () => {
           serverSecrets: { ...auth.serverSecrets, [name]: configured },
         },
       });
-      const statusFor = async (request: ReturnType<typeof bearer>) =>
-        (await configuredApp.request("/caller", request)).status;
+
+      const statusFor = async (request: ReturnType<typeof bearer>) => {
+        const response = await configuredApp.request("/caller", request);
+
+        return response.status;
+      };
+
       const otherSecrets = SERVER_SECRETS.filter(([other]) => other !== name);
 
-      expect(await statusFor(bearer(secret))).toBe(401);
-      if (configured) {
-        expect(await statusFor(bearer(configured))).toBe(401);
-      }
+      await expect(statusFor(bearer(secret))).resolves.toBe(401);
+
+      const configuredStatuses = await Promise.all(
+        (configured ? [configured] : []).map((token) =>
+          statusFor(bearer(token))
+        )
+      );
+
+      expect(configuredStatuses).toStrictEqual(configured ? [401] : []);
+
       const stillAccepted = await Promise.all(
         [...otherSecrets.map(([, other]) => bearer(other)), asUser].map(
           statusFor
         )
       );
-      expect(stillAccepted.every((status) => status === 200)).toBe(true);
+
+      expect(stillAccepted.every((status) => status === 200)).toBeTruthy();
     }
   );
 
@@ -351,25 +385,27 @@ describe("auth", () => {
   });
 });
 
-describe("error reporting identity", () => {
-  /** An app recording every User it identifies to error reporting. */
-  const identifyingApp = () => {
-    const identified: string[] = [];
-    const identifying = callerApp({
-      identifyUser: (userId) => {
-        identified.push(userId);
-      },
-    });
-    return { identified, identifying };
-  };
+/** An app recording every User it identifies to error reporting. */
+const identifyingApp = () => {
+  const identified: string[] = [];
 
+  const identifying = callerApp({
+    identifyUser: (userId) => {
+      identified.push(userId);
+    },
+  });
+
+  return { identified, identifying };
+};
+
+describe("error reporting identity", () => {
   it("identifies a User by their Clerk id", async () => {
     const { identified, identifying } = identifyingApp();
 
     const response = await identifying.request("/caller", asUser);
 
     expect(response.status).toBe(200);
-    expect(identified).toEqual(["user_alice"]);
+    expect(identified).toStrictEqual(["user_alice"]);
   });
 
   it.each(SERVER_SECRETS)(
@@ -380,7 +416,7 @@ describe("error reporting identity", () => {
       const response = await identifying.request("/caller", bearer(secret));
 
       expect(response.status).toBe(200);
-      expect(identified).toEqual([]);
+      expect(identified).toStrictEqual([]);
     }
   );
 
@@ -390,11 +426,11 @@ describe("error reporting identity", () => {
     const response = await identifying.request("/caller");
 
     expect(response.status).toBe(401);
-    expect(identified).toEqual([]);
+    expect(identified).toStrictEqual([]);
   });
 });
 
-describe("OpenAPI spec", () => {
+describe("openAPI spec", () => {
   it("declares bearer auth on every content route, not on /health", () => {
     const spec = app.getOpenAPIDocument({
       info: { title: "test", version: "0" },
@@ -404,23 +440,25 @@ describe("OpenAPI spec", () => {
     expect(spec.components?.securitySchemes).toMatchObject({
       bearerAuth: { scheme: "bearer", type: "http" },
     });
-    expect(spec.paths["/exercises"]?.get?.security).toEqual([
+    expect(spec.paths["/exercises"]?.get?.security).toStrictEqual([
       { bearerAuth: [] },
     ]);
-    expect(spec.paths["/exercises/{slug}"]?.get?.security).toEqual([
+    expect(spec.paths["/exercises/{slug}"]?.get?.security).toStrictEqual([
       { bearerAuth: [] },
     ]);
-    expect(spec.paths["/covers"]?.get?.security).toEqual([{ bearerAuth: [] }]);
+    expect(spec.paths["/covers"]?.get?.security).toStrictEqual([
+      { bearerAuth: [] },
+    ]);
     expect(spec.paths["/health"]?.get?.security).toBeUndefined();
   });
 });
 
-describe("GET /exercises", () => {
+describe("gET /exercises", () => {
   it("lists every Exercise alphabetically by name, as summaries", async () => {
     const { body, status } = await list();
 
     expect(status).toBe(200);
-    expect(names(body)).toEqual([
+    expect(names(body)).toStrictEqual([
       "Back Squat",
       "Bench Press",
       "Deadlift",
@@ -428,8 +466,8 @@ describe("GET /exercises", () => {
       "squat (front)",
     ]);
     expect(body.total).toBe(5);
-    expect(body.hasMore).toBe(false);
-    expect(body.data[0]).toEqual({
+    expect(body.hasMore).toBeFalsy();
+    expect(body.data[0]).toStrictEqual({
       // untagged in the bundle, so no Equipment
       equipment: [],
       muscle_groups: ["quadriceps", "glutes"],
@@ -441,18 +479,18 @@ describe("GET /exercises", () => {
   });
 });
 
-describe("GET /exercises search", () => {
+describe("gET /exercises search", () => {
   it("matches the name case-insensitively, anywhere in it", async () => {
     const { body } = await list("?search=SQU");
 
-    expect(names(body)).toEqual(["Back Squat", "squat (front)"]);
+    expect(names(body)).toStrictEqual(["Back Squat", "squat (front)"]);
     expect(body).toMatchObject({ hasMore: false, total: 2 });
   });
 
   it("counts every match in total, not just the page", async () => {
     const { body } = await list("?search=squat&limit=1");
 
-    expect(names(body)).toEqual(["Back Squat"]);
+    expect(names(body)).toStrictEqual(["Back Squat"]);
     expect(body).toMatchObject({ hasMore: true, total: 2 });
   });
 
@@ -470,27 +508,31 @@ describe("GET /exercises search", () => {
         SUPABASE_URL
       ),
     });
-    const search = async (term: string) =>
-      names(
-        (await (
-          await wildcardApp.request(
-            `/exercises?search=${encodeURIComponent(term)}`,
-            asUser
-          )
-        ).json()) as ExercisePage
+
+    const search = async (term: string) => {
+      const response = await wildcardApp.request(
+        `/exercises?search=${encodeURIComponent(term)}`,
+        asUser
       );
 
-    expect(await search("%")).toEqual(["100% Effort"]);
-    expect(await search("_")).toEqual(["Snake_Walk"]);
-    expect(await search("e_w")).toEqual(["Snake_Walk"]);
-    expect(await search("b%s")).toEqual([]);
+      // SAFETY: This fixture app serves ExercisePage for every valid search above.
+      const body = (await response.json()) as ExercisePage;
+
+      return names(body);
+    };
+
+    await expect(search("%")).resolves.toStrictEqual(["100% Effort"]);
+    await expect(search("_")).resolves.toStrictEqual(["Snake_Walk"]);
+    await expect(search("e_w")).resolves.toStrictEqual(["Snake_Walk"]);
+    await expect(search("b%s")).resolves.toStrictEqual([]);
   });
 
   it("ignores surrounding whitespace, and lists everything for a blank search", async () => {
-    expect(names((await list("?search=%20press%20")).body)).toEqual([
-      "Bench Press",
-    ]);
-    expect((await list("?search=%20%20")).body.total).toBe(5);
+    const trimmed = await list("?search=%20press%20");
+    const blank = await list("?search=%20%20");
+
+    expect(names(trimmed.body)).toStrictEqual(["Bench Press"]);
+    expect(blank.body.total).toBe(5);
   });
 
   it("answers a search over 100 characters with 400", async () => {
@@ -500,7 +542,9 @@ describe("GET /exercises search", () => {
   });
 
   it("answers no match with an empty page", async () => {
-    expect((await list("?search=row")).body).toEqual({
+    const { body } = await list("?search=row");
+
+    expect(body).toStrictEqual({
       data: [],
       hasMore: false,
       total: 0,
@@ -508,22 +552,24 @@ describe("GET /exercises search", () => {
   });
 });
 
-describe("GET /exercises muscle group filter", () => {
+describe("gET /exercises muscle group filter", () => {
   it("lists only Exercises with that muscle group", async () => {
     const { body } = await list("?muscle_group=quadriceps");
 
-    expect(names(body)).toEqual(["Back Squat", "squat (front)"]);
+    expect(names(body)).toStrictEqual(["Back Squat", "squat (front)"]);
     expect(body).toMatchObject({ hasMore: false, total: 2 });
   });
 
   it("combines with search", async () => {
     const { body } = await list("?muscle_group=quadriceps&search=back");
 
-    expect(names(body)).toEqual(["Back Squat"]);
+    expect(names(body)).toStrictEqual(["Back Squat"]);
   });
 
   it("answers a known muscle group no Exercise has with an empty page", async () => {
-    expect((await list("?muscle_group=calves")).body).toEqual({
+    const { body } = await list("?muscle_group=calves");
+
+    expect(body).toStrictEqual({
       data: [],
       hasMore: false,
       total: 0,
@@ -534,7 +580,7 @@ describe("GET /exercises muscle group filter", () => {
     const { body, status } = await list("?muscle_group=neck");
 
     expect(status).toBe(400);
-    expect(body).toEqual({
+    expect(body).toStrictEqual({
       error: { code: "invalid_request", message: expect.any(String) },
     });
   });
@@ -544,6 +590,7 @@ describe("GET /exercises muscle group filter", () => {
       info: { title: "Library API", version: "1" },
       openapi: "3.1.0",
     });
+
     const parameter = document.paths["/exercises"]?.get?.parameters?.find(
       (p) => "name" in p && p.name === "muscle_group"
     );
@@ -552,56 +599,63 @@ describe("GET /exercises muscle group filter", () => {
       in: "query",
       schema: { $ref: "#/components/schemas/MuscleGroup" },
     });
-    expect(document.components?.schemas?.MuscleGroup).toEqual({
+    expect(document.components?.schemas?.MuscleGroup).toStrictEqual({
       enum: [...muscleGroups],
       type: "string",
     });
   });
 });
 
-describe("GET /exercises several muscle groups", () => {
+describe("gET /exercises several muscle groups", () => {
   it("lists only Exercises with that muscle group, given one", async () => {
     const { body } = await list("?muscle_groups=quadriceps");
 
-    expect(names(body)).toEqual(["Back Squat", "squat (front)"]);
+    expect(names(body)).toStrictEqual(["Back Squat", "squat (front)"]);
     expect(body).toMatchObject({ hasMore: false, total: 2 });
   });
 
   it("lists Exercises with any of them, alphabetically, each once", async () => {
     const { body } = await list("?muscle_groups=quadriceps,chest,triceps");
 
-    expect(names(body)).toEqual(["Back Squat", "Bench Press", "squat (front)"]);
+    expect(names(body)).toStrictEqual([
+      "Back Squat",
+      "Bench Press",
+      "squat (front)",
+    ]);
     expect(body).toMatchObject({ hasMore: false, total: 3 });
   });
 
   it("counts a repeated muscle group once", async () => {
     const { body } = await list("?muscle_groups=quadriceps,quadriceps");
 
-    expect(names(body)).toEqual(["Back Squat", "squat (front)"]);
+    expect(names(body)).toStrictEqual(["Back Squat", "squat (front)"]);
     expect(body.total).toBe(2);
   });
 
   it("combines with search", async () => {
     const { body } = await list("?muscle_groups=chest,quadriceps&search=back");
 
-    expect(names(body)).toEqual(["Back Squat"]);
+    expect(names(body)).toStrictEqual(["Back Squat"]);
     expect(body.total).toBe(1);
   });
 
   it("pages with limit and offset, with total and hasMore across pages", async () => {
     const first = await list("?muscle_groups=chest,quadriceps&limit=2");
+
     const second = await list(
       "?muscle_groups=chest,quadriceps&limit=2&offset=2"
     );
 
     expect(first.body).toMatchObject({ hasMore: true, total: 3 });
-    expect(names(first.body)).toEqual(["Back Squat", "Bench Press"]);
+    expect(names(first.body)).toStrictEqual(["Back Squat", "Bench Press"]);
     expect(second.body).toMatchObject({ hasMore: false, total: 3 });
-    expect(names(second.body)).toEqual(["squat (front)"]);
+    expect(names(second.body)).toStrictEqual(["squat (front)"]);
   });
 
   it("answers a known muscle group no Exercise has with an empty page", async () => {
-    expect((await list("?muscle_groups=calves,forearms")).body).toEqual({
+    const { body } = await list("?muscle_groups=calves,forearms");
+
+    expect(body).toStrictEqual({
       data: [],
       hasMore: false,
       total: 0,
@@ -618,7 +672,7 @@ describe("GET /exercises several muscle groups", () => {
     const { body, status } = await list(query);
 
     expect(status).toBe(400);
-    expect(body).toEqual({
+    expect(body).toStrictEqual({
       error: {
         code: "invalid_request",
         message: expect.stringMatching(MUSCLE_GROUPS_PROBLEM),
@@ -629,7 +683,7 @@ describe("GET /exercises several muscle groups", () => {
   it("leaves muscle_group on its own as it was", async () => {
     const { body } = await list("?muscle_group=chest");
 
-    expect(names(body)).toEqual(["Bench Press"]);
+    expect(names(body)).toStrictEqual(["Bench Press"]);
     expect(body.total).toBe(1);
   });
 
@@ -638,6 +692,7 @@ describe("GET /exercises several muscle groups", () => {
       info: { title: "Library API", version: "1" },
       openapi: "3.1.0",
     });
+
     const parameter = document.paths["/exercises"]?.get?.parameters?.find(
       (p) => "name" in p && p.name === "muscle_groups"
     );
@@ -685,56 +740,63 @@ const taggedApp = createApp({
 
 const tagged = async (query = "") => {
   const response = await taggedApp.request(`/exercises${query}`, asUser);
-  // an error body (400) is asserted with toEqual, which takes any shape
+  // SAFETY: Valid list requests return ExercisePage; error bodies are only compared as a whole.
   const body = (await response.json()) as ExercisePage;
+
   return { body, status: response.status };
 };
 
-describe("GET /exercises Equipment filter", () => {
+describe("gET /exercises Equipment filter", () => {
   it("lists only Exercises with that Equipment", async () => {
     const { body } = await tagged("?equipment=barbell");
 
-    expect(names(body)).toEqual(["Bench Press", "Deadlift"]);
+    expect(names(body)).toStrictEqual(["Bench Press", "Deadlift"]);
     expect(body).toMatchObject({ hasMore: false, total: 2 });
   });
 
   it("lists Exercises needing any of them, alphabetically, each once", async () => {
     const { body } = await tagged("?equipment=dumbbell,bench,pull_up_bar");
 
-    expect(names(body)).toEqual(["Bench Press", "Goblet Squat", "Pull-Up"]);
+    expect(names(body)).toStrictEqual([
+      "Bench Press",
+      "Goblet Squat",
+      "Pull-Up",
+    ]);
     expect(body).toMatchObject({ hasMore: false, total: 3 });
   });
 
   it("counts a repeated Equipment once", async () => {
     const { body } = await tagged("?equipment=barbell,barbell");
 
-    expect(names(body)).toEqual(["Bench Press", "Deadlift"]);
+    expect(names(body)).toStrictEqual(["Bench Press", "Deadlift"]);
     expect(body.total).toBe(2);
   });
 
   it("combines with several muscle groups", async () => {
     const { body } = await tagged("?equipment=barbell&muscle_groups=chest,abs");
 
-    expect(names(body)).toEqual(["Bench Press"]);
+    expect(names(body)).toStrictEqual(["Bench Press"]);
     expect(body.total).toBe(1);
   });
 
   it("combines with one muscle group", async () => {
     const { body } = await tagged("?equipment=barbell&muscle_group=back");
 
-    expect(names(body)).toEqual(["Deadlift"]);
+    expect(names(body)).toStrictEqual(["Deadlift"]);
     expect(body.total).toBe(1);
   });
 
   it("combines with search", async () => {
     const { body } = await tagged("?equipment=barbell,dumbbell&search=squat");
 
-    expect(names(body)).toEqual(["Goblet Squat"]);
+    expect(names(body)).toStrictEqual(["Goblet Squat"]);
     expect(body.total).toBe(1);
   });
 
   it("leaves search matching names only, never Equipment", async () => {
-    expect((await tagged("?search=barbell")).body).toMatchObject({
+    const { body } = await tagged("?search=barbell");
+
+    expect(body).toMatchObject({
       data: [],
       total: 0,
     });
@@ -745,15 +807,15 @@ describe("GET /exercises Equipment filter", () => {
     const second = await tagged("?equipment=barbell,dumbbell&limit=2&offset=2");
 
     expect(first.body).toMatchObject({ hasMore: true, total: 3 });
-    expect(names(first.body)).toEqual(["Bench Press", "Deadlift"]);
+    expect(names(first.body)).toStrictEqual(["Bench Press", "Deadlift"]);
     expect(second.body).toMatchObject({ hasMore: false, total: 3 });
-    expect(names(second.body)).toEqual(["Goblet Squat"]);
+    expect(names(second.body)).toStrictEqual(["Goblet Squat"]);
   });
 
   it("never matches an Exercise the Library hasn't tagged", async () => {
     const { body } = await tagged(`?equipment=${equipment.join(",")}`);
 
-    expect(names(body)).toEqual([
+    expect(names(body)).toStrictEqual([
       "Bench Press",
       "Deadlift",
       "Goblet Squat",
@@ -763,7 +825,9 @@ describe("GET /exercises Equipment filter", () => {
   });
 
   it("answers a known Equipment no Exercise needs with an empty page", async () => {
-    expect((await tagged("?equipment=cable,landmine")).body).toEqual({
+    const { body } = await tagged("?equipment=cable,landmine");
+
+    expect(body).toStrictEqual({
       data: [],
       hasMore: false,
       total: 0,
@@ -775,7 +839,7 @@ describe("GET /exercises Equipment filter", () => {
       `?equipment=pull_up_bar&language=${language}`
     );
 
-    expect(names(body)).toEqual(["Pull-Up"]);
+    expect(names(body)).toStrictEqual(["Pull-Up"]);
     expect(body.total).toBe(1);
   });
 
@@ -788,7 +852,7 @@ describe("GET /exercises Equipment filter", () => {
     const { body, status } = await tagged(query);
 
     expect(status).toBe(400);
-    expect(body).toEqual({
+    expect(body).toStrictEqual({
       error: {
         code: "invalid_request",
         message: expect.stringMatching(EQUIPMENT_PROBLEM),
@@ -801,6 +865,7 @@ describe("GET /exercises Equipment filter", () => {
       info: { title: "Library API", version: "1" },
       openapi: "3.1.0",
     });
+
     const parameter = document.paths["/exercises"]?.get?.parameters?.find(
       (p) => "name" in p && p.name === "equipment"
     );
@@ -813,25 +878,28 @@ describe("GET /exercises Equipment filter", () => {
   });
 });
 
-describe("GET /exercises pagination", () => {
+describe("gET /exercises pagination", () => {
   it("pages with limit and offset, with total and hasMore across pages", async () => {
     const first = await list("?limit=2");
     const middle = await list("?limit=2&offset=2");
     const last = await list("?limit=2&offset=4");
 
-    expect(names(first.body)).toEqual(["Back Squat", "Bench Press"]);
+    expect(names(first.body)).toStrictEqual(["Back Squat", "Bench Press"]);
     expect(first.body).toMatchObject({ hasMore: true, total: 5 });
-    expect(names(middle.body)).toEqual(["Deadlift", "Pull-Up"]);
+    expect(names(middle.body)).toStrictEqual(["Deadlift", "Pull-Up"]);
     expect(middle.body).toMatchObject({ hasMore: true, total: 5 });
-    expect(names(last.body)).toEqual(["squat (front)"]);
-    expect(last.body).toMatchObject({ hasMore: false, total: 5 });
+    expect({
+      names: names(last.body),
+      hasMore: last.body.hasMore,
+      total: last.body.total,
+    }).toStrictEqual({ names: ["squat (front)"], hasMore: false, total: 5 });
   });
 
   it("answers an offset past the end with an empty page", async () => {
     const { body, status } = await list("?offset=10");
 
     expect(status).toBe(200);
-    expect(body).toEqual({ data: [], hasMore: false, total: 5 });
+    expect(body).toStrictEqual({ data: [], hasMore: false, total: 5 });
   });
 
   it("serves 20 Exercises by default", async () => {
@@ -839,6 +907,7 @@ describe("GET /exercises pagination", () => {
       { length: 21 },
       (_, i) => `exercise-${String(i).padStart(2, "0")}`
     );
+
     const big = createApp({
       ...base,
       library: serveLibrary(
@@ -847,9 +916,9 @@ describe("GET /exercises pagination", () => {
       ),
     });
 
-    const body = (await (
-      await big.request("/exercises", asUser)
-    ).json()) as ExercisePage;
+    const response = await big.request("/exercises", asUser);
+    // SAFETY: The fixture app returns ExercisePage for this valid list request.
+    const body = (await response.json()) as ExercisePage;
 
     expect(body.data).toHaveLength(20);
     expect(body).toMatchObject({ hasMore: true, total: 21 });
@@ -861,34 +930,47 @@ describe("GET /exercises pagination", () => {
       const { body, status } = await list(query);
 
       expect(status).toBe(400);
-      expect(body).toEqual({
+      expect(body).toStrictEqual({
         error: { code: "invalid_request", message: expect.any(String) },
       });
     }
   );
 
   it("accepts the limit bounds", async () => {
-    expect((await list("?limit=1")).body.data).toHaveLength(1);
-    expect((await list("?limit=50")).status).toBe(200);
+    const minimum = await list("?limit=1");
+    const maximum = await list("?limit=50");
+
+    expect(minimum.body.data).toHaveLength(1);
+    expect(maximum.status).toBe(200);
   });
 });
 
 const batch = async (slugs: string, rest = "") => {
-  const { body, status } = await list(`?slugs=${slugs}${rest}`);
-  return { body: body as unknown as ExerciseBatch, status };
+  const response = await listApp.request(
+    `/exercises?slugs=${slugs}${rest}`,
+    asUser
+  );
+
+  // SAFETY: Valid slugs requests return ExerciseBatch; error bodies are only compared as a whole.
+  const body = (await response.json()) as ExerciseBatch;
+
+  return { body, status: response.status };
 };
 
-describe("GET /exercises?slugs (batch lookup)", () => {
+const slugList = (count: number) =>
+  Array.from({ length: count }, (_, i) => `exercise-${i}`).join(",");
+
+describe("gET /exercises?slugs (batch lookup)", () => {
   it("answers known Exercise slugs in request order, as summaries, and lists unknown ones as missing", async () => {
     const { body, status } = await batch("squat,nope,bench-press,gone");
 
     expect(status).toBe(200);
-    expect(body.data.map((exercise) => exercise.slug)).toEqual([
+    expect(body.data.map((exercise) => exercise.slug)).toStrictEqual([
       "squat",
       "bench-press",
     ]);
-    expect(body.missing).toEqual(["nope", "gone"]);
-    expect(body.data[0]).toEqual({
+    expect(body.missing).toStrictEqual(["nope", "gone"]);
+    expect(body.data[0]).toStrictEqual({
       // untagged in the bundle, so no Equipment
       equipment: [],
       muscle_groups: ["quadriceps", "glutes"],
@@ -902,18 +984,17 @@ describe("GET /exercises?slugs (batch lookup)", () => {
   it("answers a repeated Exercise slug once, where it first appears", async () => {
     const { body } = await batch("squat,nope,deadlift,squat,nope");
 
-    expect(body.data.map((exercise) => exercise.slug)).toEqual([
+    expect(body.data.map((exercise) => exercise.slug)).toStrictEqual([
       "squat",
       "deadlift",
     ]);
-    expect(body.missing).toEqual(["nope"]);
+    expect(body.missing).toStrictEqual(["nope"]);
   });
 
-  const slugList = (count: number) =>
-    Array.from({ length: count }, (_, i) => `exercise-${i}`).join(",");
-
   it("looks up at most 40 Exercise slugs", async () => {
-    expect((await batch(slugList(40))).body.missing).toHaveLength(40);
+    const { body } = await batch(slugList(40));
+
+    expect(body.missing).toHaveLength(40);
   });
 
   it.each([
@@ -925,7 +1006,7 @@ describe("GET /exercises?slugs (batch lookup)", () => {
     const { body, status } = await batch(slugs);
 
     expect(status).toBe(400);
-    expect(body).toEqual({
+    expect(body).toStrictEqual({
       error: { code: "invalid_request", message: expect.any(String) },
     });
   });
@@ -944,7 +1025,7 @@ describe("GET /exercises?slugs (batch lookup)", () => {
       const { body, status } = await batch("squat", rest);
 
       expect(status).toBe(400);
-      expect(body).toEqual({
+      expect(body).toStrictEqual({
         error: { code: "invalid_request", message: expect.any(String) },
       });
     }
@@ -962,10 +1043,13 @@ describe("GET /exercises?slugs (batch lookup)", () => {
       info: { title: "Library API", version: "1" },
       openapi: "3.1.0",
     });
+
     const get = document.paths["/exercises"]?.get;
+
     const parameter = get?.parameters?.find(
       (p) => "name" in p && p.name === "slugs"
     );
+
     const ok = get?.responses?.["200"];
 
     expect(parameter).toMatchObject({
@@ -975,7 +1059,7 @@ describe("GET /exercises?slugs (batch lookup)", () => {
     });
     expect(
       ok && "content" in ok && ok.content?.["application/json"]?.schema
-    ).toEqual({
+    ).toStrictEqual({
       anyOf: [
         { $ref: "#/components/schemas/ExercisePage" },
         { $ref: "#/components/schemas/ExerciseBatch" },
@@ -995,12 +1079,12 @@ describe("GET /exercises?slugs (batch lookup)", () => {
   });
 });
 
-describe("GET /exercises/:slug", () => {
+describe("gET /exercises/:slug", () => {
   it("answers the full Exercise", async () => {
     const response = await app.request("/exercises/bench-press", asUser);
 
     expect(response.status).toBe(200);
-    expect(await response.json()).toEqual({
+    await expect(response.json()).resolves.toStrictEqual({
       description: "Bench Press is a compound pushing movement.\n",
       // untagged in the bundle, so no Equipment
       equipment: [],
@@ -1017,13 +1101,13 @@ describe("GET /exercises/:slug", () => {
     const response = await app.request("/exercises/deadlift", asUser);
 
     expect(response.status).toBe(404);
-    expect(await response.json()).toEqual({
+    await expect(response.json()).resolves.toStrictEqual({
       error: { code: "not_found", message: "Exercise not found" },
     });
   });
 });
 
-describe("Exercise Equipment", () => {
+describe("exercise Equipment", () => {
   const equippedApp = createApp({
     ...base,
     library: serveLibrary(
@@ -1049,14 +1133,16 @@ describe("Exercise Equipment", () => {
 
   const equipmentBySlug = async (path: string) => {
     const response = await equippedApp.request(path, asUser);
+    // SAFETY: Callers request a valid list or batch, both of which contain Exercise summaries.
     const body = (await response.json()) as ExercisePage | ExerciseBatch;
+
     return Object.fromEntries(
       body.data.map((exercise) => [exercise.slug, exercise.equipment])
     );
   };
 
   it("lists it in core's order, and none for an untagged Exercise", async () => {
-    expect(await equipmentBySlug("/exercises")).toEqual({
+    await expect(equipmentBySlug("/exercises")).resolves.toStrictEqual({
       "bench-press": ["barbell", "bench"],
       "pull-up": ["pull_up_bar"],
       "sit-up": [],
@@ -1064,9 +1150,9 @@ describe("Exercise Equipment", () => {
   });
 
   it("answers it on a batch lookup", async () => {
-    expect(
-      await equipmentBySlug("/exercises?slugs=sit-up,bench-press")
-    ).toEqual({
+    await expect(
+      equipmentBySlug("/exercises?slugs=sit-up,bench-press")
+    ).resolves.toStrictEqual({
       "bench-press": ["barbell", "bench"],
       "sit-up": [],
     });
@@ -1081,7 +1167,7 @@ describe("Exercise Equipment", () => {
       );
 
       expect(response.status).toBe(200);
-      expect(await response.json()).toMatchObject({
+      await expect(response.json()).resolves.toMatchObject({
         equipment: ["barbell", "bench"],
         name: language === "uk" ? "Жим лежачи" : "Bench Press",
       });
@@ -1089,7 +1175,9 @@ describe("Exercise Equipment", () => {
   );
 
   it.each(appLanguages)("lists it in %s", async (language) => {
-    expect(await equipmentBySlug(`/exercises?language=${language}`)).toEqual({
+    await expect(
+      equipmentBySlug(`/exercises?language=${language}`)
+    ).resolves.toStrictEqual({
       "bench-press": ["barbell", "bench"],
       "pull-up": ["pull_up_bar"],
       "sit-up": [],
@@ -1102,7 +1190,7 @@ describe("Exercise Equipment", () => {
       openapi: "3.1.0",
     });
 
-    expect(document.components?.schemas?.Equipment).toEqual({
+    expect(document.components?.schemas?.Equipment).toStrictEqual({
       enum: [...equipment],
       type: "string",
     });
@@ -1146,7 +1234,7 @@ describe("a Library with Ukrainian content, without a language", () => {
     const english = await app.request(path, asUser);
 
     expect(translated.status).toBe(200);
-    expect(await translated.text()).toBe(await english.text());
+    await expect(translated.text()).resolves.toBe(await english.text());
   });
 
   it.each([
@@ -1155,14 +1243,16 @@ describe("a Library with Ukrainian content, without a language", () => {
     "/exercises?slugs=bench-press,squat",
   ])("answers %s with language=en exactly as without it", async (path) => {
     const separator = path.includes("?") ? "&" : "?";
+
     const english = await translatedApp.request(
       `${path}${separator}language=en`,
       asUser
     );
+
     const unasked = await translatedApp.request(path, asUser);
 
     expect(english.status).toBe(200);
-    expect(await english.text()).toBe(await unasked.text());
+    await expect(english.text()).resolves.toBe(await unasked.text());
   });
 
   it("doesn't find an Exercise by its Ukrainian name", async () => {
@@ -1171,7 +1261,7 @@ describe("a Library with Ukrainian content, without a language", () => {
       asUser
     );
 
-    expect(await response.json()).toEqual({
+    await expect(response.json()).resolves.toStrictEqual({
       data: [],
       hasMore: false,
       total: 0,
@@ -1189,7 +1279,7 @@ describe("language=uk", () => {
         JSON.parse(
           readFileSync(
             new URL("../fixtures/library.json", import.meta.url),
-            "utf8"
+            "utf-8"
           )
         )
       ),
@@ -1199,13 +1289,14 @@ describe("language=uk", () => {
 
   const request = async (path: string, init = asUser) => {
     const response = await fixtureApp.request(path, init);
+
     return { body: await response.json(), response };
   };
 
   it("lists Exercises in Ukrainian, in Ukrainian order, an untranslated one in English", async () => {
     const { body } = await request("/exercises?language=uk");
 
-    expect(names(body)).toEqual([
+    expect(names(body)).toStrictEqual([
       "Приклад жиму",
       "Приклад тяги",
       "Example Squat",
@@ -1217,7 +1308,7 @@ describe("language=uk", () => {
       "/exercises?slugs=example-squat,example-press,nope&language=uk"
     );
 
-    expect(body).toEqual({
+    expect(body).toStrictEqual({
       data: [
         expect.objectContaining({
           name: "Example Squat",
@@ -1236,7 +1327,7 @@ describe("language=uk", () => {
     const { body } = await request("/exercises/example-press?language=uk");
     const { body: english } = await request("/exercises/example-press");
 
-    expect(body).toEqual({
+    expect(body).toStrictEqual({
       ...english,
       description:
         "Приклад жиму — вигадана вправа для завантажувача Бібліотеки. Це не справжній вміст.\n",
@@ -1251,13 +1342,14 @@ describe("language=uk", () => {
       "/exercises/example-squat?language=uk",
       asUser
     );
+
     const english = await fixtureApp.request(
       "/exercises/example-squat",
       asUser
     );
 
     expect(ukrainian.status).toBe(200);
-    expect(await ukrainian.text()).toBe(await english.text());
+    await expect(ukrainian.text()).resolves.toBe(await english.text());
   });
 
   it.each([
@@ -1274,7 +1366,7 @@ describe("language=uk", () => {
       `/exercises?language=uk&search=${encodeURIComponent(search)}`
     );
 
-    expect(names(body)).toEqual(found);
+    expect(names(body)).toStrictEqual(found);
     expect(body.total).toBe(found.length);
   });
 
@@ -1283,7 +1375,7 @@ describe("language=uk", () => {
       "/exercises?language=uk&muscle_group=back&limit=1&offset=0"
     );
 
-    expect(body).toEqual({
+    expect(body).toStrictEqual({
       data: [expect.objectContaining({ name: "Приклад тяги" })],
       hasMore: false,
       total: 1,
@@ -1294,16 +1386,17 @@ describe("language=uk", () => {
     const first = await request(
       "/exercises?language=uk&muscle_groups=back,chest&limit=1"
     );
+
     const second = await request(
       "/exercises?language=uk&muscle_groups=back,chest&limit=1&offset=1"
     );
 
-    expect(first.body).toEqual({
+    expect(first.body).toStrictEqual({
       data: [expect.objectContaining({ name: "Приклад жиму" })],
       hasMore: true,
       total: 2,
     });
-    expect(second.body).toEqual({
+    expect(second.body).toStrictEqual({
       data: [expect.objectContaining({ name: "Приклад тяги" })],
       hasMore: false,
       total: 2,
@@ -1331,7 +1424,8 @@ describe("language=uk", () => {
     );
 
     // by code point: І (U+0406), Д (U+0414), Ґ (U+0490)
-    expect(names((await response.json()) as ExercisePage)).toEqual([
+    // SAFETY: The fixture app returns ExercisePage for this valid Ukrainian list request.
+    expect(names((await response.json()) as ExercisePage)).toStrictEqual([
       "Ґанок",
       "Дельта",
       "Іній",
@@ -1348,7 +1442,7 @@ describe("language=uk", () => {
     const { body, response } = await request(path);
 
     expect(response.status).toBe(400);
-    expect(body).toEqual({
+    expect(body).toStrictEqual({
       error: {
         code: "invalid_request",
         message: expect.stringMatching(LANGUAGE_PROBLEM),
@@ -1371,7 +1465,7 @@ describe("language=uk", () => {
     expect(etag).toMatch(LIBRARY_ETAG);
     expect(response.headers.get("Cache-Control")).toBe("private, max-age=3600");
     expect(revalidated.status).toBe(304);
-    expect(await revalidated.text()).toBe("");
+    await expect(revalidated.text()).resolves.toBe("");
   });
 
   it("is an optional enum of the App languages on both routes in the OpenAPI definition", () => {
@@ -1391,7 +1485,8 @@ describe("language=uk", () => {
         schema: { $ref: "#/components/schemas/Language" },
       });
     }
-    expect(document.components?.schemas?.Language).toEqual({
+
+    expect(document.components?.schemas?.Language).toStrictEqual({
       enum: [...appLanguages],
       type: "string",
     });
@@ -1415,7 +1510,7 @@ describe("device caching", () => {
     });
 
     expect(response.status).toBe(304);
-    expect(await response.text()).toBe("");
+    await expect(response.text()).resolves.toBe("");
     expect(response.headers.get("ETag")).toBe(etag);
     expect(response.headers.get("Cache-Control")).toBe("private, max-age=3600");
   });
@@ -1424,6 +1519,7 @@ describe("device caching", () => {
     // a path no real route takes, under the content routes
     const withVary = emptyApp().get("/exercises/test/vary", (c) => {
       c.header("Vary", "Authorization");
+
       return c.json({ data: [] });
     });
 
@@ -1456,7 +1552,7 @@ describe("device caching", () => {
     });
 
     expect(response.status).toBe(200);
-    expect(await response.json()).toMatchObject({ slug: "squat" });
+    await expect(response.json()).resolves.toMatchObject({ slug: "squat" });
   });
 
   it("applies to every content route, including ones added later", async () => {
@@ -1473,9 +1569,11 @@ describe("device caching", () => {
 
   it("keeps errors uncacheable, even with a matching If-None-Match", async () => {
     const etag = await currentEtag();
+
     const failing = emptyApp().get("/exercises/boom/now", () => {
       throw new Error("boom");
     });
+
     const responses = [
       await app.request("/exercises/deadlift", {
         headers: { ...asUser.headers, "If-None-Match": etag },
@@ -1484,13 +1582,21 @@ describe("device caching", () => {
       await failing.request("/exercises/boom/now", asUser),
     ];
 
-    expect(responses.map((response) => response.status)).toEqual([
+    expect(responses.map((response) => response.status)).toStrictEqual([
       404, 404, 500,
     ]);
-    for (const response of responses) {
-      expect(response.headers.get("ETag")).toBeNull();
-      expect(response.headers.get("Cache-Control")).toBeNull();
-    }
+
+    expect(
+      responses.map((response) => ({
+        etag: response.headers.get("ETag"),
+        cacheControl: response.headers.get("Cache-Control"),
+      }))
+    ).toStrictEqual(
+      Array.from({ length: responses.length }, () => ({
+        etag: null,
+        cacheControl: null,
+      }))
+    );
   });
 
   it("doesn't cache /health", async () => {
@@ -1545,6 +1651,7 @@ describe("device caching", () => {
     ],
   ])("changes the ETag when %s changes", async (_, change) => {
     const etag = await currentEtag();
+
     const changed = createApp({
       ...base,
       library: serveLibrary(
@@ -1568,7 +1675,7 @@ describe("device caching", () => {
   });
 });
 
-describe("CORS", () => {
+describe("cORS", () => {
   const origin = "https://app.fitmeproject.com";
 
   it("answers a preflight before auth, allowing the Authorization header", async () => {
@@ -1601,19 +1708,24 @@ describe("CORS", () => {
       }),
     ];
 
-    expect(responses.map((response) => response.status)).toEqual([200, 401]);
-    for (const response of responses) {
-      expect(response.headers.get("Access-Control-Allow-Origin")).toBe("*");
-    }
+    expect(responses.map((response) => response.status)).toStrictEqual([
+      200, 401,
+    ]);
+
+    expect(
+      responses.map((response) =>
+        response.headers.get("Access-Control-Allow-Origin")
+      )
+    ).toStrictEqual(["*", "*"]);
   });
 });
 
-describe("GET /health", () => {
+describe("gET /health", () => {
   it("is public", async () => {
     const response = await app.request("/health");
 
     expect(response.status).toBe(200);
-    expect(await response.json()).toEqual({ ok: true });
+    await expect(response.json()).resolves.toStrictEqual({ ok: true });
   });
 });
 
@@ -1622,7 +1734,7 @@ describe("errors", () => {
     const response = await app.request("/nope", asUser);
 
     expect(response.status).toBe(404);
-    expect(await response.json()).toEqual({
+    await expect(response.json()).resolves.toStrictEqual({
       error: { code: "not_found", message: "Route not found" },
     });
   });
@@ -1630,11 +1742,13 @@ describe("errors", () => {
   it("reports a thrown error and answers a JSON 500", async () => {
     const reported: unknown[] = [];
     const boom = new Error("boom");
+
     const failing = createApp({
       ...base,
       library: serveLibrary({ exercises: [] }, SUPABASE_URL),
       reportError: (error) => {
         reported.push(error);
+
         return Promise.resolve();
       },
     }).get("/boom", () => {
@@ -1644,10 +1758,10 @@ describe("errors", () => {
     const response = await failing.request("/boom", asUser);
 
     expect(response.status).toBe(500);
-    expect(await response.json()).toEqual({
+    await expect(response.json()).resolves.toStrictEqual({
       error: { code: "internal_error", message: "Internal server error" },
     });
-    expect(reported).toEqual([boom]);
+    expect(reported).toStrictEqual([boom]);
   });
 });
 
@@ -1656,6 +1770,7 @@ const MINUTE_MS = 60_000;
 /** An app serving one Exercise, limited by `rateLimiter`, recording what it reports. */
 const limitedApp = (rateLimiter: RateLimiter) => {
   const reported: unknown[] = [];
+
   const limited = createApp({
     ...base,
     library: serveLibrary(
@@ -1665,15 +1780,18 @@ const limitedApp = (rateLimiter: RateLimiter) => {
     rateLimiter,
     reportError: (error) => {
       reported.push(error);
+
       return Promise.resolve();
     },
   });
+
   return { limited, reported };
 };
 
 /** A clock tests move by hand. */
 const fakeClock = (start = Date.UTC(2026, 9, 18)) => {
   let time = start;
+
   return {
     advance: (ms: number) => {
       time += ms;
@@ -1685,14 +1803,17 @@ const fakeClock = (start = Date.UTC(2026, 9, 18)) => {
 const requestTimes = async (
   target: { request: typeof app.request },
   times: number,
-  init: RequestInit = asUser
-) => {
-  const statuses: number[] = [];
-  for (let i = 0; i < times; i += 1) {
-    // biome-ignore lint/performance/noAwaitInLoops: one at a time, so the statuses come back in the order they were counted
-    statuses.push((await target.request("/exercises/squat", init)).status);
+  init: RequestInit = asUser,
+  route = "/exercises/squat"
+): Promise<number[]> => {
+  if (times <= 0) {
+    return [];
   }
-  return statuses;
+
+  const response = await target.request(route, init);
+  const rest = await requestTimes(target, times - 1, init, route);
+
+  return [response.status, ...rest];
 };
 
 /** A small limit, so the window is tested with a handful of requests. */
@@ -1701,9 +1822,11 @@ const TEST_LIMIT = 3;
 /** An app limited to `TEST_LIMIT` requests a minute, on a clock the test moves. */
 const smallLimitApp = () => {
   const clock = fakeClock();
+
   const { limited } = limitedApp(
     memoryRateLimiter({ limit: TEST_LIMIT, now: clock.now })
   );
+
   return { clock, limited };
 };
 
@@ -1712,14 +1835,16 @@ describe("rate limiting", () => {
     const clock = fakeClock();
     const limiter = memoryRateLimiter({ now: clock.now });
     const { limited } = limitedApp(limiter);
-    for (let i = 0; i < USER_REQUESTS_PER_WINDOW; i += 1) {
-      // biome-ignore lint/performance/noAwaitInLoops: counts the window up without sending 120 requests through the app
-      await limiter.limit("user_alice");
-    }
+
+    await Promise.all(
+      Array.from({ length: USER_REQUESTS_PER_WINDOW }, () =>
+        limiter.limit("user_alice")
+      )
+    );
 
     const response = await limited.request("/exercises/squat", asUser);
 
-    expect(USER_LIMIT).toEqual({
+    expect(USER_LIMIT).toStrictEqual({
       limit: 120,
       prefix: "library:user",
       windowMs: MINUTE_MS,
@@ -1734,11 +1859,13 @@ describe("rate limiting", () => {
     clock.advance(45_000);
     const response = await limited.request("/exercises/squat", asUser);
 
-    expect(statuses).toEqual(new Array(TEST_LIMIT).fill(200));
+    expect(statuses).toStrictEqual(
+      Array.from({ length: TEST_LIMIT }, () => 200)
+    );
     expect(response.status).toBe(429);
     expect(response.headers.get("Retry-After")).toBe("15");
     expect(response.headers.get("ETag")).toBeNull();
-    expect(await response.json()).toEqual({
+    await expect(response.json()).resolves.toStrictEqual({
       error: {
         code: "rate_limited",
         message:
@@ -1750,14 +1877,14 @@ describe("rate limiting", () => {
   it("resets the window after a minute", async () => {
     const { clock, limited } = smallLimitApp();
 
-    expect(await requestTimes(limited, TEST_LIMIT + 1)).toEqual([
-      ...new Array(TEST_LIMIT).fill(200),
+    await expect(requestTimes(limited, TEST_LIMIT + 1)).resolves.toStrictEqual([
+      ...Array.from({ length: TEST_LIMIT }, () => 200),
       429,
     ]);
     clock.advance(MINUTE_MS);
 
-    expect(await requestTimes(limited, TEST_LIMIT + 1)).toEqual([
-      ...new Array(TEST_LIMIT).fill(200),
+    await expect(requestTimes(limited, TEST_LIMIT + 1)).resolves.toStrictEqual([
+      ...Array.from({ length: TEST_LIMIT }, () => 200),
       429,
     ]);
   });
@@ -1766,6 +1893,7 @@ describe("rate limiting", () => {
     const { limited } = smallLimitApp();
 
     await requestTimes(limited, TEST_LIMIT + 1);
+
     const response = await limited.request(
       "/exercises/squat",
       bearer(clerkToken(production.privateKey, { sub: "user_bob" }))
@@ -1776,15 +1904,18 @@ describe("rate limiting", () => {
 
   it("counts a 304 too", async () => {
     const { limited } = smallLimitApp();
-    const etag = (
-      await limited.request("/exercises/squat", asUser)
-    ).headers.get("ETag");
+
+    const response = await limited.request("/exercises/squat", asUser);
+    const etag = response.headers.get("ETag");
 
     const statuses = await requestTimes(limited, TEST_LIMIT, {
       headers: { ...asUser.headers, "If-None-Match": etag ?? "" },
     });
 
-    expect(statuses).toEqual([...new Array(TEST_LIMIT - 1).fill(304), 429]);
+    expect(statuses).toStrictEqual([
+      ...Array.from({ length: TEST_LIMIT - 1 }, () => 304),
+      429,
+    ]);
   });
 
   it.each([
@@ -1795,13 +1926,14 @@ describe("rate limiting", () => {
     const limiter = vi.fn<RateLimiter["limit"]>(() =>
       Promise.resolve({ allowed: false, retryAfterSeconds: 60 })
     );
+
     const { limited } = limitedApp({ limit: limiter });
 
     // More than any limit a test sets, all served.
     const times = TEST_LIMIT + 2;
-    expect(await requestTimes(limited, times, bearer(secret))).toEqual(
-      new Array(times).fill(200)
-    );
+    await expect(
+      requestTimes(limited, times, bearer(secret))
+    ).resolves.toStrictEqual(Array.from({ length: times }, () => 200));
     expect(limiter).not.toHaveBeenCalled();
   });
 
@@ -1809,6 +1941,7 @@ describe("rate limiting", () => {
     const limiter = vi.fn<RateLimiter["limit"]>(() =>
       Promise.resolve({ allowed: true })
     );
+
     const { limited } = limitedApp({ limit: limiter });
 
     const response = await limited.request("/exercises/squat");
@@ -1819,6 +1952,7 @@ describe("rate limiting", () => {
 
   it("serves the request and reports when the limiter throws", async () => {
     const outage = new Error("Upstash is down");
+
     const { limited, reported } = limitedApp({
       limit: () => Promise.reject(outage),
     });
@@ -1827,38 +1961,40 @@ describe("rate limiting", () => {
 
     expect(response.status).toBe(200);
     expect(reported).toHaveLength(1);
-    expect((reported[0] as Error).cause).toBe(outage);
+    expect(reported[0]).toHaveProperty("cause", outage);
   });
 
   it("serves the request and reports when the limiter times out", async () => {
     vi.useFakeTimers();
+
     const { limited, reported } = limitedApp({
-      limit: () => new Promise(() => undefined),
+      limit: () => Promise.race([]),
     });
 
     let settled = false;
+
     const pending = Promise.resolve(
       limited.request("/exercises/squat", asUser)
     ).finally(() => {
       settled = true;
     });
-    // Token verification is async, so the limiter's timer starts some ticks in.
-    while (!settled) {
-      // biome-ignore lint/performance/noAwaitInLoops: each step lets the request reach its next timer
-      await vi.advanceTimersByTimeAsync(100);
-    }
+
+    // Token verification is async, so keep advancing until the request finishes.
+    await vi.waitUntil(() => settled, { interval: 100, timeout: 10_000 });
+
     const response = await pending;
     vi.useRealTimers();
 
     expect(response.status).toBe(200);
     expect(reported).toHaveLength(1);
-    expect((reported[0] as Error).cause).toEqual(
+    expect(reported[0]).toHaveProperty(
+      "cause",
       new Error("Rate limiter timed out after 1000 ms")
     );
   });
 });
 
-describe("rateLimiterFromEnv", () => {
+describe("rate limiter environment configuration", () => {
   it("refuses to start in production without Upstash", () => {
     expect(() => rateLimiterFromEnv({ NODE_ENV: "production" })).toThrow(
       "UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN are required in production"
@@ -1868,13 +2004,17 @@ describe("rateLimiterFromEnv", () => {
         NODE_ENV: "production",
         UPSTASH_REDIS_REST_URL: "https://example.upstash.io",
       })
-    ).toThrow();
+    ).toThrow(
+      "UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN are required in production"
+    );
   });
 
   it("uses the in-memory limiter outside production without Upstash", async () => {
     const limiter = rateLimiterFromEnv({ NODE_ENV: "development" });
 
-    expect(await limiter.limit("user_alice")).toEqual({ allowed: true });
+    await expect(limiter.limit("user_alice")).resolves.toStrictEqual({
+      allowed: true,
+    });
   });
 
   it("uses Upstash in production when it's configured", () => {
@@ -1911,12 +2051,24 @@ const coversApp = (rateLimiter: RateLimiter = unlimited) =>
     rateLimiter,
   });
 
-describe("GET /covers", () => {
+const etagOf = async (covers: Parameters<typeof libraryCover>[1]) => {
+  const response = await createApp({
+    ...base,
+    library: serveLibrary(
+      { covers: [libraryCover(CHEST_COVER, covers)], exercises: [] },
+      SUPABASE_URL
+    ),
+  }).request("/covers", asUser);
+
+  return response.headers.get("ETag");
+};
+
+describe("gET /covers", () => {
   it("answers every Cover in bundle order, its image on the render endpoint", async () => {
     const response = await coversApp().request("/covers", asUser);
 
     expect(response.status).toBe(200);
-    expect((await response.json()) as CoverList).toEqual({
+    await expect(response.json()).resolves.toStrictEqual({
       data: [
         {
           id: LEGS_COVER,
@@ -1934,6 +2086,7 @@ describe("GET /covers", () => {
 
   it("serves any id the bundle accepts, not only RFC uuids", async () => {
     const id = "12345678-1234-1234-1234-123456789abc";
+
     const served = createApp({
       ...base,
       library: serveLibrary(
@@ -1945,14 +2098,14 @@ describe("GET /covers", () => {
     const response = await served.request("/covers", asUser);
 
     expect(response.status).toBe(200);
-    expect(await response.json()).toMatchObject({ data: [{ id }] });
+    await expect(response.json()).resolves.toMatchObject({ data: [{ id }] });
   });
 
   it("answers an empty list for a Library without Covers", async () => {
     const response = await app.request("/covers", asUser);
 
     expect(response.status).toBe(200);
-    expect(await response.json()).toEqual({ data: [] });
+    await expect(response.json()).resolves.toStrictEqual({ data: [] });
   });
 
   it("answers the same whatever language is asked", async () => {
@@ -1960,14 +2113,14 @@ describe("GET /covers", () => {
     const ukrainian = await coversApp().request("/covers?language=uk", asUser);
 
     expect(ukrainian.status).toBe(200);
-    expect(await ukrainian.json()).toEqual(await english.json());
+    await expect(ukrainian.json()).resolves.toStrictEqual(await english.json());
   });
 
   it("answers without a token with 401", async () => {
     const response = await coversApp().request("/covers");
 
     expect(response.status).toBe(401);
-    expect(await response.json()).toEqual(unauthorized);
+    await expect(response.json()).resolves.toStrictEqual(unauthorized);
   });
 
   it.each(SERVER_SECRETS)("serves the %s server caller", async (_, secret) => {
@@ -1978,16 +2131,22 @@ describe("GET /covers", () => {
 
   it("counts a User's requests, answering 429 past the limit", async () => {
     const clock = fakeClock();
+
     const limited = coversApp(
       memoryRateLimiter({ limit: TEST_LIMIT, now: clock.now })
     );
-    const statuses: number[] = [];
-    for (let i = 0; i <= TEST_LIMIT; i += 1) {
-      // biome-ignore lint/performance/noAwaitInLoops: one at a time, so the statuses come back in the order they were counted
-      statuses.push((await limited.request("/covers", asUser)).status);
-    }
 
-    expect(statuses).toEqual([...new Array(TEST_LIMIT).fill(200), 429]);
+    const statuses = await requestTimes(
+      limited,
+      TEST_LIMIT + 1,
+      asUser,
+      "/covers"
+    );
+
+    expect(statuses).toStrictEqual([
+      ...Array.from({ length: TEST_LIMIT }, () => 200),
+      429,
+    ]);
   });
 
   it("lets devices cache it for an hour, tagged with the library hash /exercises carries", async () => {
@@ -2002,14 +2161,15 @@ describe("GET /covers", () => {
 
   it("answers 304 with no body when If-None-Match holds the current ETag", async () => {
     const served = coversApp();
-    const etag = (await served.request("/covers", asUser)).headers.get("ETag");
+    const initial = await served.request("/covers", asUser);
+    const etag = initial.headers.get("ETag");
 
     const response = await served.request("/covers", {
       headers: { ...asUser.headers, "If-None-Match": etag ?? "" },
     });
 
     expect(response.status).toBe(304);
-    expect(await response.text()).toBe("");
+    await expect(response.text()).resolves.toBe("");
     expect(response.headers.get("ETag")).toBe(etag);
   });
 
@@ -2022,17 +2182,6 @@ describe("GET /covers", () => {
   });
 
   it("changes the ETag when a Cover changes", async () => {
-    const etagOf = async (covers: Parameters<typeof libraryCover>[1]) =>
-      (
-        await createApp({
-          ...base,
-          library: serveLibrary(
-            { covers: [libraryCover(CHEST_COVER, covers)], exercises: [] },
-            SUPABASE_URL
-          ),
-        }).request("/covers", asUser)
-      ).headers.get("ETag");
-
-    expect(await etagOf(["chest"])).not.toBe(await etagOf(["back"]));
+    await expect(etagOf(["chest"])).resolves.not.toBe(await etagOf(["back"]));
   });
 });

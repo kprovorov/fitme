@@ -8,10 +8,11 @@ import { router, Stack } from "expo-router";
 import { useCallback } from "react";
 import { useTranslation } from "react-i18next";
 import { ActivityIndicator, View } from "react-native";
+
 import ProfileForm, {
-  type ProfileFormValues,
   profileSaveErrorMessage,
 } from "~/components/forms/profile-form";
+import type { ProfileFormValues } from "~/components/forms/profile-form";
 import { Button } from "~/components/ui/button";
 import { ErrorMessage } from "~/components/ui/error-message";
 import { VStack } from "~/components/ui/vstack";
@@ -20,11 +21,18 @@ import { useProfileQuery } from "~/hooks/queries/profiles";
 import { i18n } from "~/lib/i18n";
 import { genderOf, measurementSystemOf } from "~/lib/profile";
 
-export default function EditProfileScreen() {
+const useDeviceMeasurementSystem = (): MeasurementSystem => {
+  const locales = useLocales();
+
+  return locales[0]?.measurementSystem ?? "metric";
+};
+
+const EditProfileScreen = () => {
   const queryClient = useQueryClient();
   const { t } = useTranslation(undefined, { i18n });
 
   const { isLoaded: isUserLoaded, user } = useUser();
+
   const {
     data: profile,
     error: profileError,
@@ -42,9 +50,8 @@ export default function EditProfileScreen() {
 
   // Stored values are in the profile's system; the device locale only matters
   // when there is no profile yet.
-  const locales = useLocales();
-  const deviceMeasurementSystem = (locales[0]?.measurementSystem ??
-    "metric") as MeasurementSystem;
+  const deviceMeasurementSystem = useDeviceMeasurementSystem();
+
   const measurementSystem: MeasurementSystem = profile
     ? measurementSystemOf(profile)
     : deviceMeasurementSystem;
@@ -63,6 +70,7 @@ export default function EditProfileScreen() {
       if (rateLimitedFor(e) === null) {
         Sentry.captureException(e);
       }
+
       queryClient.invalidateQueries({ queryKey: useProfileQuery.getKey() });
     },
   });
@@ -77,6 +85,7 @@ export default function EditProfileScreen() {
       if (!user) {
         return;
       }
+
       // On the call, not the hook: a hook-level `onSuccess` would replace the
       // mutation's own, which shows the saved Profile.
       updateProfile(
@@ -115,19 +124,21 @@ export default function EditProfileScreen() {
         </View>
       ) : null}
       {isLoadError ? (
-        <VStack className="flex-1 items-stretch justify-center gap-4 p-6">
-          <ErrorMessage className="text-center">
-            {loadWaitSeconds === null
-              ? t("editProfile.loadError")
-              : t("common.rateLimited", { seconds: loadWaitSeconds })}
-          </ErrorMessage>
-          <Button
-            label={t("common.tryAgain")}
-            onPress={handleRetry}
-            size="lg"
-            variant="secondary"
-          />
-        </VStack>
+        <View className="flex-1 p-6">
+          <VStack className="flex-1 items-stretch justify-center">
+            <ErrorMessage className="text-center">
+              {loadWaitSeconds === null
+                ? t("editProfile.loadError")
+                : t("common.rateLimited", { seconds: loadWaitSeconds })}
+            </ErrorMessage>
+            <Button
+              label={t("common.tryAgain")}
+              onPress={handleRetry}
+              size="lg"
+              variant="secondary"
+            />
+          </VStack>
+        </View>
       ) : null}
       {!!user && profile !== undefined && (
         <ProfileForm
@@ -153,4 +164,6 @@ export default function EditProfileScreen() {
       )}
     </>
   );
-}
+};
+
+export default EditProfileScreen;

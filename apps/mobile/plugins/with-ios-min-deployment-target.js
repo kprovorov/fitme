@@ -1,4 +1,4 @@
-const { withPodfile } = require("expo/config-plugins");
+import { withPodfile } from "expo/config-plugins";
 
 const MIN_IOS_VERSION = "15.1";
 
@@ -21,6 +21,7 @@ const buildHook = (minVersion) => `
 /**
  * Raises IPHONEOS_DEPLOYMENT_TARGET for every CocoaPods target to the given
  * minimum. Idempotent: runs only once per generated Podfile.
+ * @type {import("expo/config-plugins").ConfigPlugin<{ minVersion?: string } | undefined>}
  */
 const withIosMinDeploymentTarget = (
   config,
@@ -28,22 +29,27 @@ const withIosMinDeploymentTarget = (
 ) =>
   withPodfile(config, (podfileConfig) => {
     const { contents } = podfileConfig.modResults;
+
     if (contents.includes("Xcode 27 rejects deployment targets")) {
       return podfileConfig;
     }
+
     const index = contents.indexOf(POST_INSTALL_MARKER);
+
     if (index === -1) {
       throw new Error(
         "with-ios-min-deployment-target: could not find react_native_post_install in Podfile"
       );
     }
+
     // Insert the hook before react_native_post_install so it runs inside post_install.
     const lineStart = contents.lastIndexOf("\n", index) + 1;
     podfileConfig.modResults.contents =
       contents.slice(0, lineStart) +
       buildHook(minVersion) +
       contents.slice(lineStart);
+
     return podfileConfig;
   });
 
-module.exports = withIosMinDeploymentTarget;
+export default withIosMinDeploymentTarget;

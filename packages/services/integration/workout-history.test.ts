@@ -1,4 +1,5 @@
 import { randomUUID } from "node:crypto";
+
 import {
   asUser,
   plans,
@@ -9,6 +10,7 @@ import {
   workouts,
 } from "@fitme/db";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
+
 import { listWorkoutHistory } from "../src/workout-sessions";
 import { deleteTestUsers } from "./delete-test-users";
 
@@ -40,8 +42,8 @@ interface Seeded {
 let seeded: Seeded;
 let intruderSessionId: string;
 
-const seedOwner = (): Promise<Seeded> =>
-  withService(async (tx) => {
+const seedOwner = async (): Promise<Seeded> =>
+  await withService(async (tx) => {
     const [plan] = await tx
       .insert(plans)
       .values({
@@ -52,6 +54,7 @@ const seedOwner = (): Promise<Seeded> =>
         userId: owner,
       })
       .returning({ id: plans.id });
+
     const [workout] = await tx
       .insert(workouts)
       .values({ description: "A", name: "Day A", order: 1, planId: plan.id })
@@ -99,6 +102,7 @@ const seedOwner = (): Promise<Seeded> =>
         { exerciseSlug: benchSlug, order: 1, workoutSessionId: middle.id },
       ])
       .returning({ id: workoutSessionExercises.id });
+
     await tx.insert(workoutSessionExerciseSets).values([
       {
         loggedAt: "2026-10-05T11:30:00Z",
@@ -139,44 +143,46 @@ const seedOwner = (): Promise<Seeded> =>
     };
   });
 
-beforeAll(async () => {
-  seeded = await seedOwner();
-  [{ id: intruderSessionId }] = await withService((tx) =>
-    tx
-      .insert(workoutSessions)
-      .values({
-        finishedAt: "2026-10-07T11:00:00Z",
-        startedAt: "2026-10-07T10:00:00Z",
-        userId: intruder,
-      })
-      .returning({ id: workoutSessions.id })
-  );
-});
+describe("workout history", () => {
+  beforeAll(async () => {
+    seeded = await seedOwner();
+    [{ id: intruderSessionId }] = await withService((tx) =>
+      tx
+        .insert(workoutSessions)
+        .values({
+          finishedAt: "2026-10-07T11:00:00Z",
+          startedAt: "2026-10-07T10:00:00Z",
+          userId: intruder,
+        })
+        .returning({ id: workoutSessions.id })
+    );
+  });
 
-afterAll(async () => {
-  await deleteTestUsers([owner, intruder]);
-});
+  afterAll(async () => {
+    await deleteTestUsers([owner, intruder]);
+  });
 
-describe("listWorkoutHistory", () => {
   it("returns finished sessions, last finished first, with exercises and sets in order", async () => {
-    const history = await asUser(owner, (tx) =>
-      listWorkoutHistory(tx, { limit: 10 })
+    const history = await asUser(
+      owner,
+      async (tx) => await listWorkoutHistory(tx, { limit: 10 })
     );
 
-    expect(history.map((session) => session.id)).toEqual([
+    expect(history.map((session) => session.id)).toStrictEqual([
       seeded.lateId,
       seeded.middleId,
       seeded.oldestId,
     ]);
-    expect(history[0]).toEqual({
+    const stringMatcher: unknown = expect.any(String);
+    expect(history[0]).toStrictEqual({
       exercises: [
         {
           exercise_slug: benchSlug,
-          id: expect.any(String),
+          id: stringMatcher,
           order: 1,
           sets: [
             {
-              id: expect.any(String),
+              id: stringMatcher,
               logged_at: "2026-10-05T11:20:00+00:00",
               order: 1,
               reps_completed: 8,
@@ -194,7 +200,7 @@ describe("listWorkoutHistory", () => {
         },
         {
           exercise_slug: squatSlug,
-          id: expect.any(String),
+          id: stringMatcher,
           order: 2,
           sets: [
             expect.objectContaining({
@@ -218,28 +224,32 @@ describe("listWorkoutHistory", () => {
   });
 
   it("returns at most `limit` sessions, the latest ones", async () => {
-    const history = await asUser(owner, (tx) =>
-      listWorkoutHistory(tx, { limit: 2 })
+    const history = await asUser(
+      owner,
+      async (tx) => await listWorkoutHistory(tx, { limit: 2 })
     );
 
-    expect(history.map((session) => session.id)).toEqual([
+    expect(history.map((session) => session.id)).toStrictEqual([
       seeded.lateId,
       seeded.middleId,
     ]);
   });
 
   it("never returns another User's sessions", async () => {
-    const ownHistory = await asUser(owner, (tx) =>
-      listWorkoutHistory(tx, { limit: 20 })
+    const ownHistory = await asUser(
+      owner,
+      async (tx) => await listWorkoutHistory(tx, { limit: 20 })
     );
-    const intruderHistory = await asUser(intruder, (tx) =>
-      listWorkoutHistory(tx, { limit: 20 })
+
+    const intruderHistory = await asUser(
+      intruder,
+      async (tx) => await listWorkoutHistory(tx, { limit: 20 })
     );
 
     expect(ownHistory.map((session) => session.id)).not.toContain(
       intruderSessionId
     );
-    expect(intruderHistory.map((session) => session.id)).toEqual([
+    expect(intruderHistory.map((session) => session.id)).toStrictEqual([
       intruderSessionId,
     ]);
     expect(intruderHistory[0]).toMatchObject({
@@ -250,8 +260,9 @@ describe("listWorkoutHistory", () => {
   });
 
   it("leaves out sessions still in progress", async () => {
-    const history = await asUser(owner, (tx) =>
-      listWorkoutHistory(tx, { limit: 20 })
+    const history = await asUser(
+      owner,
+      async (tx) => await listWorkoutHistory(tx, { limit: 20 })
     );
 
     expect(history.map((session) => session.id)).not.toContain(seeded.openId);

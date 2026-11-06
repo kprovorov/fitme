@@ -36,15 +36,10 @@
                 }
               }
             },
-            "required": [
-              "defaultId",
-              "models"
-            ]
+            "required": ["defaultId", "models"]
           }
         },
-        "required": [
-          "data"
-        ]
+        "required": ["data"]
       },
       "ArnoldModel": {
         "type": "object",
@@ -60,11 +55,7 @@
             "type": "string"
           }
         },
-        "required": [
-          "description",
-          "id",
-          "label"
-        ]
+        "required": ["description", "id", "label"]
       },
       "ClientConfig": {
         "type": "object",
@@ -94,21 +85,13 @@
                     "example": "1.10.0"
                   }
                 },
-                "required": [
-                  "android",
-                  "ios",
-                  "web"
-                ]
+                "required": ["android", "ios", "web"]
               }
             },
-            "required": [
-              "minimumVersion"
-            ]
+            "required": ["minimumVersion"]
           }
         },
-        "required": [
-          "data"
-        ]
+        "required": ["data"]
       },
       "MuscleGroupItem": {
         "type": "object",
@@ -121,10 +104,7 @@
             "example": "Chest"
           }
         },
-        "required": [
-          "id",
-          "name"
-        ]
+        "required": ["id", "name"]
       },
       "MuscleGroup": {
         "type": "string",
@@ -162,15 +142,10 @@
                 "type": "string"
               }
             },
-            "required": [
-              "code",
-              "message"
-            ]
+            "required": ["code", "message"]
           }
         },
-        "required": [
-          "error"
-        ]
+        "required": ["error"]
       },
       "PlanSummary": {
         "type": "object",
@@ -284,13 +259,7 @@
             "example": 1
           }
         },
-        "required": [
-          "cover",
-          "exercise_count",
-          "id",
-          "name",
-          "order"
-        ]
+        "required": ["cover", "exercise_count", "id", "name", "order"]
       },
       "Plan": {
         "type": "object",
@@ -383,10 +352,7 @@
       },
       "WeightUnit": {
         "type": "string",
-        "enum": [
-          "kg",
-          "lbs"
-        ],
+        "enum": ["kg", "lbs"],
         "description": "The unit of every weight in the response: `kg` (metric) or `lbs` (us, uk). Weights are as stored, never converted"
       },
       "PlanWorkout": {
@@ -423,14 +389,7 @@
             "example": 1
           }
         },
-        "required": [
-          "cover",
-          "description",
-          "exercises",
-          "id",
-          "name",
-          "order"
-        ]
+        "required": ["cover", "description", "exercises", "id", "name", "order"]
       },
       "PlanExercise": {
         "type": "object",
@@ -456,12 +415,7 @@
             "description": "In order"
           }
         },
-        "required": [
-          "exercise_slug",
-          "id",
-          "order",
-          "sets"
-        ]
+        "required": ["exercise_slug", "id", "order", "sets"]
       },
       "PlanSet": {
         "type": "object",
@@ -512,11 +466,7 @@
           },
           "experience_level": {
             "type": "string",
-            "enum": [
-              "beginner",
-              "intermediate",
-              "advanced"
-            ]
+            "enum": ["beginner", "intermediate", "advanced"]
           },
           "frequency": {
             "type": "integer",
@@ -548,10 +498,7 @@
           },
           "place": {
             "type": "string",
-            "enum": [
-              "gym",
-              "home"
-            ]
+            "enum": ["gym", "home"]
           },
           "workout_duration": {
             "type": "integer",
@@ -606,11 +553,7 @@
             "example": "Day A"
           }
         },
-        "required": [
-          "description",
-          "exercises",
-          "name"
-        ],
+        "required": ["description", "exercises", "name"],
         "additionalProperties": false
       },
       "NewPlanExercise": {
@@ -633,10 +576,7 @@
             "description": "In the order they are performed"
           }
         },
-        "required": [
-          "exercise_slug",
-          "sets"
-        ],
+        "required": ["exercise_slug", "sets"],
         "additionalProperties": false
       },
       "NewPlanSet": {
@@ -683,9 +623,7 @@
             "description": "Every Workout of the Plan, in rotation order: the first is up next. Every `order` comes from the array positions"
           }
         },
-        "required": [
-          "workouts"
-        ],
+        "required": ["workouts"],
         "additionalProperties": false
       },
       "SavedPlan": {
@@ -699,11 +637,7 @@
           },
           "experience_level": {
             "type": "string",
-            "enum": [
-              "beginner",
-              "intermediate",
-              "advanced"
-            ]
+            "enum": ["beginner", "intermediate", "advanced"]
           },
           "frequency": {
             "type": "integer",
@@ -736,10 +670,7 @@
           },
           "place": {
             "type": "string",
-            "enum": [
-              "gym",
-              "home"
-            ]
+            "enum": ["gym", "home"]
           },
           "workout_duration": {
             "type": "integer",
@@ -800,10 +731,7 @@
             "example": "Day A"
           }
         },
-        "required": [
-          "exercises",
-          "name"
-        ],
+        "required": ["exercises", "name"],
         "additionalProperties": false
       },
       "SavedPlanExercise": {
@@ -832,10 +760,7 @@
             "description": "In the order they are performed"
           }
         },
-        "required": [
-          "exercise_slug",
-          "sets"
-        ],
+        "required": ["exercise_slug", "sets"],
         "additionalProperties": false
       },
       "SavedPlanSet": {
@@ -885,11 +810,7 @@
           },
           "experience_level": {
             "type": "string",
-            "enum": [
-              "beginner",
-              "intermediate",
-              "advanced"
-            ]
+            "enum": ["beginner", "intermediate", "advanced"]
           },
           "frequency": {
             "type": "integer",
@@ -921,10 +842,7 @@
           },
           "place": {
             "type": "string",
-            "enum": [
-              "gym",
-              "home"
-            ]
+            "enum": ["gym", "home"]
           },
           "workout_duration": {
             "type": "integer",
@@ -948,10 +866,7 @@
           },
           "gender": {
             "type": "string",
-            "enum": [
-              "male",
-              "female"
-            ]
+            "enum": ["male", "female"]
           },
           "height": {
             "type": "number",
@@ -963,11 +878,7 @@
           },
           "measurement_system": {
             "type": "string",
-            "enum": [
-              "metric",
-              "us",
-              "uk"
-            ],
+            "enum": ["metric", "us", "uk"],
             "description": "A system other than the stored one converts every stored height and weight of the User (the Profile's, every Plan's set targets and every Workout Session's weights) to the new system's units, rounded to 2 decimals. Between `us` and `uk`, which share units, nothing is converted."
           },
           "weight": {
@@ -993,10 +904,7 @@
           },
           "gender": {
             "type": "string",
-            "enum": [
-              "male",
-              "female"
-            ]
+            "enum": ["male", "female"]
           },
           "height": {
             "type": "number",
@@ -1008,11 +916,7 @@
           },
           "measurement_system": {
             "type": "string",
-            "enum": [
-              "metric",
-              "us",
-              "uk"
-            ],
+            "enum": ["metric", "us", "uk"],
             "description": "A system other than the stored one converts every stored height and weight of the User (the Profile's, every Plan's set targets and every Workout Session's weights) to the new system's units, rounded to 2 decimals. Between `us` and `uk`, which share units, nothing is converted."
           },
           "weight": {
@@ -1024,13 +928,7 @@
             "example": 61.5
           }
         },
-        "required": [
-          "age",
-          "gender",
-          "height",
-          "measurement_system",
-          "weight"
-        ],
+        "required": ["age", "gender", "height", "measurement_system", "weight"],
         "additionalProperties": false
       },
       "WeeklyGoalChange": {
@@ -1051,10 +949,7 @@
             "example": 4
           }
         },
-        "required": [
-          "recorded_at",
-          "target"
-        ]
+        "required": ["recorded_at", "target"]
       },
       "ExerciseHistoryPage": {
         "type": "object",
@@ -1078,12 +973,7 @@
             "$ref": "#/components/schemas/WeightUnit"
           }
         },
-        "required": [
-          "data",
-          "hasMore",
-          "total",
-          "weight_unit"
-        ]
+        "required": ["data", "hasMore", "total", "weight_unit"]
       },
       "ExerciseHistoryEntry": {
         "type": "object",
@@ -1116,11 +1006,7 @@
                 "example": "2026-10-01T10:00:00.123456+00:00"
               }
             },
-            "required": [
-              "finished_at",
-              "id",
-              "started_at"
-            ]
+            "required": ["finished_at", "id", "started_at"]
           },
           "sets": {
             "type": "array",
@@ -1130,11 +1016,7 @@
             "description": "Its logged sets, in order"
           }
         },
-        "required": [
-          "id",
-          "session",
-          "sets"
-        ],
+        "required": ["id", "session", "sets"],
         "description": "One time the Exercise appeared in one of the User's Workout Sessions (normally once per Workout Session; twice when it was added to the same one again)"
       },
       "ExerciseHistorySet": {
@@ -1266,12 +1148,7 @@
             "description": "In order"
           }
         },
-        "required": [
-          "exercise_slug",
-          "id",
-          "order",
-          "sets"
-        ]
+        "required": ["exercise_slug", "id", "order", "sets"]
       },
       "ReplaceWorkoutSessionExercise": {
         "type": "object",
@@ -1284,9 +1161,7 @@
             "example": "barbell-back-squat"
           }
         },
-        "required": [
-          "exercise_slug"
-        ],
+        "required": ["exercise_slug"],
         "additionalProperties": false
       },
       "LogWorkoutSessionSet": {
@@ -1307,10 +1182,7 @@
             "example": 80.5
           }
         },
-        "required": [
-          "reps_completed",
-          "weight_completed"
-        ],
+        "required": ["reps_completed", "weight_completed"],
         "additionalProperties": false
       },
       "WorkoutSession": {
@@ -1342,10 +1214,7 @@
                 "nullable": true
               }
             },
-            "required": [
-              "id",
-              "name"
-            ],
+            "required": ["id", "name"],
             "description": "The Plan it was started from (shown even once that Plan is deleted), `null` without one"
           },
           "started_at": {
@@ -1356,10 +1225,7 @@
           },
           "status": {
             "type": "string",
-            "enum": [
-              "in_progress",
-              "finished"
-            ],
+            "enum": ["in_progress", "finished"],
             "description": "`finished` once `finished_at` is set"
           },
           "workout": {
@@ -1375,10 +1241,7 @@
                 "type": "string"
               }
             },
-            "required": [
-              "id",
-              "name"
-            ],
+            "required": ["id", "name"],
             "description": "The Workout it was started from, `null` once that Workout is gone (its Plan's Workouts replaced)"
           },
           "exercises": {
@@ -1413,9 +1276,7 @@
             "description": "The Workout to start, from a Plan of the User"
           }
         },
-        "required": [
-          "workout_id"
-        ],
+        "required": ["workout_id"],
         "additionalProperties": false
       },
       "PlanUpdate": {
@@ -1442,10 +1303,7 @@
                 "nullable": true
               }
             },
-            "required": [
-              "id",
-              "name"
-            ],
+            "required": ["id", "name"],
             "description": "The Plan it updates, `null` when the Workout is gone or its Plan deleted"
           },
           "weight_unit": {
@@ -1470,20 +1328,11 @@
                 "type": "string"
               }
             },
-            "required": [
-              "cover",
-              "id",
-              "name"
-            ],
+            "required": ["cover", "id", "name"],
             "description": "The Workout it updates, `null` when it's gone or its Plan deleted"
           }
         },
-        "required": [
-          "changes",
-          "plan",
-          "weight_unit",
-          "workout"
-        ]
+        "required": ["changes", "plan", "weight_unit", "workout"]
       },
       "PlanUpdateChange": {
         "oneOf": [
@@ -1497,9 +1346,7 @@
               },
               "kind": {
                 "type": "string",
-                "enum": [
-                  "replace_exercise"
-                ]
+                "enum": ["replace_exercise"]
               },
               "replaced_exercise_slug": {
                 "type": "string",
@@ -1531,9 +1378,7 @@
               },
               "kind": {
                 "type": "string",
-                "enum": [
-                  "add_exercise"
-                ]
+                "enum": ["add_exercise"]
               },
               "sets": {
                 "type": "array",
@@ -1543,11 +1388,7 @@
                 "description": "In order"
               }
             },
-            "required": [
-              "exercise_slug",
-              "kind",
-              "sets"
-            ]
+            "required": ["exercise_slug", "kind", "sets"]
           },
           {
             "type": "object",
@@ -1559,15 +1400,10 @@
               },
               "kind": {
                 "type": "string",
-                "enum": [
-                  "remove_exercise"
-                ]
+                "enum": ["remove_exercise"]
               }
             },
-            "required": [
-              "exercise_slug",
-              "kind"
-            ]
+            "required": ["exercise_slug", "kind"]
           },
           {
             "type": "object",
@@ -1579,9 +1415,7 @@
               },
               "kind": {
                 "type": "string",
-                "enum": [
-                  "add_sets"
-                ]
+                "enum": ["add_sets"]
               },
               "sets": {
                 "type": "array",
@@ -1591,11 +1425,7 @@
                 "description": "The sets appended after its last one, in order"
               }
             },
-            "required": [
-              "exercise_slug",
-              "kind",
-              "sets"
-            ]
+            "required": ["exercise_slug", "kind", "sets"]
           }
         ],
         "description": "One change to the Workout, by `kind`. Exercises are Exercise slugs only: their names come from the Library"
@@ -1613,10 +1443,7 @@
             "example": 80
           }
         },
-        "required": [
-          "reps",
-          "weight"
-        ],
+        "required": ["reps", "weight"],
         "description": "A set the Plan gets, its targets taken from what the User logged"
       },
       "AddWorkoutSessionExercise": {
@@ -1630,9 +1457,7 @@
             "example": "barbell-back-squat"
           }
         },
-        "required": [
-          "exercise_slug"
-        ],
+        "required": ["exercise_slug"],
         "additionalProperties": false
       },
       "WorkoutSessionPage": {
@@ -1657,12 +1482,7 @@
             "$ref": "#/components/schemas/WeightUnit"
           }
         },
-        "required": [
-          "data",
-          "hasMore",
-          "total",
-          "weight_unit"
-        ]
+        "required": ["data", "hasMore", "total", "weight_unit"]
       },
       "WorkoutSessionSummary": {
         "type": "object",
@@ -1693,10 +1513,7 @@
                 "nullable": true
               }
             },
-            "required": [
-              "id",
-              "name"
-            ],
+            "required": ["id", "name"],
             "description": "The Plan it was started from (shown even once that Plan is deleted), `null` without one"
           },
           "started_at": {
@@ -1707,10 +1524,7 @@
           },
           "status": {
             "type": "string",
-            "enum": [
-              "in_progress",
-              "finished"
-            ],
+            "enum": ["in_progress", "finished"],
             "description": "`finished` once `finished_at` is set"
           },
           "workout": {
@@ -1726,10 +1540,7 @@
                 "type": "string"
               }
             },
-            "required": [
-              "id",
-              "name"
-            ],
+            "required": ["id", "name"],
             "description": "The Workout it was started from, `null` once that Workout is gone (its Plan's Workouts replaced)"
           },
           "completed_rep_count": {
@@ -1788,10 +1599,7 @@
           },
           "kind": {
             "type": "string",
-            "enum": [
-              "weight",
-              "reps"
-            ],
+            "enum": ["weight", "reps"],
             "description": "`weight`: a higher weight than any earlier result of the Exercise; `reps`: more reps at the earlier highest weight"
           },
           "reps": {
@@ -1804,12 +1612,7 @@
             "example": 102.5
           }
         },
-        "required": [
-          "exercise_slug",
-          "kind",
-          "reps",
-          "weight"
-        ],
+        "required": ["exercise_slug", "kind", "reps", "weight"],
         "description": "A Personal record a Workout Session earned when it was finished: its best set of the Exercise beat the User's results in earlier finished Workout Sessions. Retained from then on"
       }
     },
@@ -1831,9 +1634,7 @@
                       "type": "boolean"
                     }
                   },
-                  "required": [
-                    "ok"
-                  ]
+                  "required": ["ok"]
                 }
               }
             }
@@ -1911,9 +1712,7 @@
                       }
                     }
                   },
-                  "required": [
-                    "data"
-                  ]
+                  "required": ["data"]
                 }
               }
             }
@@ -1946,9 +1745,7 @@
                       "$ref": "#/components/schemas/MuscleGroupItem"
                     }
                   },
-                  "required": [
-                    "data"
-                  ]
+                  "required": ["data"]
                 }
               }
             }
@@ -1990,9 +1787,7 @@
                       "description": "The User's Plans, newest first"
                     }
                   },
-                  "required": [
-                    "data"
-                  ]
+                  "required": ["data"]
                 }
               }
             }
@@ -2060,9 +1855,7 @@
                       "$ref": "#/components/schemas/Plan"
                     }
                   },
-                  "required": [
-                    "data"
-                  ]
+                  "required": ["data"]
                 }
               }
             }
@@ -2239,9 +2032,7 @@
                       "description": "The User's active Plan, `null` without one"
                     }
                   },
-                  "required": [
-                    "data"
-                  ]
+                  "required": ["data"]
                 }
               }
             }
@@ -2311,9 +2102,7 @@
                       "$ref": "#/components/schemas/Plan"
                     }
                   },
-                  "required": [
-                    "data"
-                  ]
+                  "required": ["data"]
                 }
               }
             }
@@ -2413,9 +2202,7 @@
                       "$ref": "#/components/schemas/Plan"
                     }
                   },
-                  "required": [
-                    "data"
-                  ]
+                  "required": ["data"]
                 }
               }
             }
@@ -2535,9 +2322,7 @@
                       "$ref": "#/components/schemas/Plan"
                     }
                   },
-                  "required": [
-                    "data"
-                  ]
+                  "required": ["data"]
                 }
               }
             }
@@ -2725,9 +2510,7 @@
                       "$ref": "#/components/schemas/Plan"
                     }
                   },
-                  "required": [
-                    "data"
-                  ]
+                  "required": ["data"]
                 }
               }
             }
@@ -2839,9 +2622,7 @@
                       "$ref": "#/components/schemas/Plan"
                     }
                   },
-                  "required": [
-                    "data"
-                  ]
+                  "required": ["data"]
                 }
               }
             }
@@ -2952,10 +2733,7 @@
                               "example": "kg"
                             }
                           },
-                          "required": [
-                            "height",
-                            "weight"
-                          ],
+                          "required": ["height", "weight"],
                           "description": "The units every height and weight of the User is stored and shown in"
                         },
                         "weight": {
@@ -2975,9 +2753,7 @@
                       "description": "The User's Profile, `null` until they finish onboarding"
                     }
                   },
-                  "required": [
-                    "data"
-                  ]
+                  "required": ["data"]
                 }
               }
             }
@@ -3076,10 +2852,7 @@
                               "example": "kg"
                             }
                           },
-                          "required": [
-                            "height",
-                            "weight"
-                          ],
+                          "required": ["height", "weight"],
                           "description": "The units every height and weight of the User is stored and shown in"
                         },
                         "weight": {
@@ -3098,9 +2871,7 @@
                       ]
                     }
                   },
-                  "required": [
-                    "data"
-                  ]
+                  "required": ["data"]
                 }
               }
             }
@@ -3229,10 +3000,7 @@
                               "example": "kg"
                             }
                           },
-                          "required": [
-                            "height",
-                            "weight"
-                          ],
+                          "required": ["height", "weight"],
                           "description": "The units every height and weight of the User is stored and shown in"
                         },
                         "weight": {
@@ -3251,9 +3019,7 @@
                       ]
                     }
                   },
-                  "required": [
-                    "data"
-                  ]
+                  "required": ["data"]
                 }
               }
             }
@@ -3300,10 +3066,7 @@
                               "example": "kg"
                             }
                           },
-                          "required": [
-                            "height",
-                            "weight"
-                          ],
+                          "required": ["height", "weight"],
                           "description": "The units every height and weight of the User is stored and shown in"
                         },
                         "weight": {
@@ -3322,9 +3085,7 @@
                       ]
                     }
                   },
-                  "required": [
-                    "data"
-                  ]
+                  "required": ["data"]
                 }
               }
             }
@@ -3429,10 +3190,7 @@
                       "example": 11
                     }
                   },
-                  "required": [
-                    "data",
-                    "streak"
-                  ]
+                  "required": ["data", "streak"]
                 }
               }
             }
@@ -3714,16 +3472,12 @@
                               "$ref": "#/components/schemas/WeightUnit"
                             }
                           },
-                          "required": [
-                            "weight_unit"
-                          ]
+                          "required": ["weight_unit"]
                         }
                       ]
                     }
                   },
-                  "required": [
-                    "data"
-                  ]
+                  "required": ["data"]
                 }
               }
             }
@@ -3863,16 +3617,12 @@
                               "$ref": "#/components/schemas/WeightUnit"
                             }
                           },
-                          "required": [
-                            "weight_unit"
-                          ]
+                          "required": ["weight_unit"]
                         }
                       ]
                     }
                   },
-                  "required": [
-                    "data"
-                  ]
+                  "required": ["data"]
                 }
               }
             }
@@ -4002,16 +3752,12 @@
                               "$ref": "#/components/schemas/WeightUnit"
                             }
                           },
-                          "required": [
-                            "weight_unit"
-                          ]
+                          "required": ["weight_unit"]
                         }
                       ]
                     }
                   },
-                  "required": [
-                    "data"
-                  ]
+                  "required": ["data"]
                 }
               }
             }
@@ -4122,9 +3868,7 @@
                       "$ref": "#/components/schemas/WorkoutSession"
                     }
                   },
-                  "required": [
-                    "data"
-                  ]
+                  "required": ["data"]
                 }
               }
             }
@@ -4281,9 +4025,7 @@
                       "$ref": "#/components/schemas/WorkoutSession"
                     }
                   },
-                  "required": [
-                    "data"
-                  ]
+                  "required": ["data"]
                 }
               }
             }
@@ -4299,9 +4041,7 @@
                       "$ref": "#/components/schemas/WorkoutSession"
                     }
                   },
-                  "required": [
-                    "data"
-                  ]
+                  "required": ["data"]
                 }
               }
             }
@@ -4416,11 +4156,7 @@
           {
             "schema": {
               "type": "string",
-              "enum": [
-                "all",
-                "in_progress",
-                "finished"
-              ],
+              "enum": ["all", "in_progress", "finished"],
               "default": "all",
               "description": "Which Workout Sessions to list"
             },
@@ -4522,10 +4258,7 @@
                       "$ref": "#/components/schemas/WorkoutSession"
                     }
                   },
-                  "required": [
-                    "already_finished",
-                    "data"
-                  ]
+                  "required": ["already_finished", "data"]
                 }
               }
             }
@@ -4617,9 +4350,7 @@
                       "$ref": "#/components/schemas/PlanUpdate"
                     }
                   },
-                  "required": [
-                    "data"
-                  ]
+                  "required": ["data"]
                 }
               }
             }
@@ -4709,9 +4440,7 @@
                       "$ref": "#/components/schemas/PlanUpdate"
                     }
                   },
-                  "required": [
-                    "data"
-                  ]
+                  "required": ["data"]
                 }
               }
             }
@@ -4821,16 +4550,12 @@
                               "$ref": "#/components/schemas/WeightUnit"
                             }
                           },
-                          "required": [
-                            "weight_unit"
-                          ]
+                          "required": ["weight_unit"]
                         }
                       ]
                     }
                   },
-                  "required": [
-                    "data"
-                  ]
+                  "required": ["data"]
                 }
               }
             }

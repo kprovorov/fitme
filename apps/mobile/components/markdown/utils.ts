@@ -1,11 +1,8 @@
-import type { Node, Parent } from "mdast";
+import type { Definition, Node, Root, RootContent } from "mdast";
 import type { Extension } from "mdast-util-from-markdown";
-import {
-  Platform,
-  StyleSheet,
-  type TextStyle,
-  type ViewStyle,
-} from "react-native";
+import { Platform, StyleSheet } from "react-native";
+import type { ImageStyle, TextStyle, ViewStyle } from "react-native";
+
 import type { StyleMap } from "./types";
 
 // Layout only: colors come from the tokens, in the renderer's styles
@@ -135,45 +132,37 @@ const defaultStyles: StyleMap = {
 };
 
 // Remove text-only style props for View-safe styles
-type TextOnlyProps = Omit<TextStyle, keyof ViewStyle>;
-
-function removeTextStyleProps<T extends ViewStyle | TextStyle>(
-  style: T
-): ViewStyle {
-  const textOnlyKeys: (keyof TextOnlyProps)[] = [
-    "color",
-    "fontFamily",
-    "fontSize",
-    "fontStyle",
-    "fontWeight",
-    "letterSpacing",
-    "lineHeight",
-    "textAlign",
-    "textDecorationLine",
-    "textDecorationStyle",
-    "textDecorationColor",
-    "textShadowColor",
-    "textShadowOffset",
-    "textShadowRadius",
-    "textTransform",
-    "includeFontPadding",
-    "textAlignVertical",
-    "fontVariant",
-    "writingDirection",
-  ];
+const removeTextStyleProps = (style: TextStyle): ViewStyle => {
   const result = { ...style };
-  for (const key of textOnlyKeys) {
-    delete (result as Record<string, unknown>)[key];
-  }
-  return result as ViewStyle;
-}
 
-export function getMergedStyles(
+  delete result.color;
+  delete result.fontFamily;
+  delete result.fontSize;
+  delete result.fontStyle;
+  delete result.fontWeight;
+  delete result.letterSpacing;
+  delete result.lineHeight;
+  delete result.textAlign;
+  delete result.textDecorationLine;
+  delete result.textDecorationStyle;
+  delete result.textDecorationColor;
+  delete result.textShadowColor;
+  delete result.textShadowOffset;
+  delete result.textShadowRadius;
+  delete result.textTransform;
+  delete result.includeFontPadding;
+  delete result.textAlignVertical;
+  delete result.fontVariant;
+  delete result.writingDirection;
+
+  return result;
+};
+
+export const getMergedStyles = (
   styles: StyleMap | null = null,
   merge = false
-): StyleMap {
-  // biome-ignore lint/suspicious/noExplicitAny: StyleSheet.flatten returns any; style values are mixed RN style types
-  const output: Record<string, any> = {};
+): StyleMap => {
+  const output: Record<string, ViewStyle | TextStyle | ImageStyle> = {};
 
   const allKeys = new Set([
     ...Object.keys(defaultStyles),
@@ -181,61 +170,57 @@ export function getMergedStyles(
   ]);
 
   for (const key of allKeys) {
-    // biome-ignore lint/suspicious/noExplicitAny: StyleSheet.flatten input must be cast since defaultStyles values are opaque NamedStyle
-    const base = StyleSheet.flatten(defaultStyles[key] as any) ?? {};
-    // biome-ignore lint/suspicious/noExplicitAny: StyleSheet.flatten input must be cast since styles values are opaque NamedStyle
-    const custom = StyleSheet.flatten(styles?.[key] as any) ?? {};
+    const base = StyleSheet.flatten(defaultStyles[key]) ?? {};
+    const custom = StyleSheet.flatten(styles?.[key]) ?? {};
 
-    const final = merge
-      ? { ...base, ...custom }
-      : styles?.[key]
-        ? custom
-        : base;
+    let final = base;
+
+    if (merge) {
+      final = { ...base, ...custom };
+    } else if (styles?.[key]) {
+      final = custom;
+    }
 
     output[key] = final;
-    // biome-ignore lint/suspicious/noExplicitAny: removeTextStyleProps accepts merged style record which is dynamically typed
-    output[`_VIEW_SAFE_${key}`] = removeTextStyleProps(final as any);
+    output[`_VIEW_SAFE_${key}`] = removeTextStyleProps(final);
   }
 
   return StyleSheet.create(output);
-}
+};
 
 // Generate unique keys for nodes based on position
-function getKey(node: Node): string {
+const getKey = (node: Node): string => {
   const { start, end } = node.position ?? {};
+
   if (start && end) {
     return `${node.type}-${start.line}:${start.column}-${end.line}:${end.column}`;
   }
-  return `${node.type}-${Math.random().toString(16).slice(2, 8)}`;
-}
 
-function addKeysRecursively(node: Node): void {
+  return `${node.type}-${Math.random().toString(16).slice(2, 8)}`;
+};
+
+const addKeysRecursively = (node: Root | RootContent): void => {
   if (node.position) {
     node.key = getKey(node);
   }
-  if ("children" in node && Array.isArray((node as Parent).children)) {
-    for (const child of (node as Parent).children) {
+
+  if ("children" in node && Array.isArray(node.children)) {
+    for (const child of node.children) {
       addKeysRecursively(child);
     }
   }
-}
+};
 
-export function getKeyFromMarkdown(): Extension {
-  return {
-    transforms: [
-      (tree) => {
-        addKeysRecursively(tree);
-      },
-    ],
-  };
-}
+export const getKeyFromMarkdown = (): Extension => ({
+  transforms: [
+    (tree) => {
+      addKeysRecursively(tree);
+    },
+  ],
+});
 
 // Resolve link and image references
-import type { Definition, Root, RootContent } from "mdast";
-
-function normalizeIdentifier(id: string): string {
-  return id.trim().toLowerCase();
-}
+const normalizeIdentifier = (id: string): string => id.trim().toLowerCase();
 
 const transform = (
   node: RootContent | Root,
@@ -243,24 +228,25 @@ const transform = (
 ): void => {
   if (node.type === "linkReference" || node.type === "imageReference") {
     const def = definitions.get(normalizeIdentifier(node.identifier));
+
     if (!def) {
       return;
     }
 
     if (node.type === "linkReference") {
-      // biome-ignore lint/suspicious/noExplicitAny: mutating node type in-place to convert reference to resolved link
-      const linkNode: any = node;
-      linkNode.type = "link";
-      linkNode.url = def.url;
-      linkNode.title = def.title ?? null;
+      Object.assign(node, {
+        type: "link",
+        url: def.url,
+        title: def.title ?? null,
+      });
     }
 
     if (node.type === "imageReference") {
-      // biome-ignore lint/suspicious/noExplicitAny: mutating node type in-place to convert reference to resolved image
-      const imageNode: any = node;
-      imageNode.type = "image";
-      imageNode.url = def.url;
-      imageNode.title = def.title ?? null;
+      Object.assign(node, {
+        type: "image",
+        url: def.url,
+        title: def.title ?? null,
+      });
     }
   }
 
@@ -271,30 +257,28 @@ const transform = (
   }
 };
 
-export function resolveReference(): Extension {
-  return {
-    transforms: [
-      (tree) => {
-        const definitions = new Map<string, Definition>();
-        const definitionIndices: number[] = [];
+export const resolveReference = (): Extension => ({
+  transforms: [
+    (tree) => {
+      const definitions = new Map<string, Definition>();
+      const definitionIndices: number[] = [];
 
-        for (const node of tree.children) {
-          if (node.type === "definition") {
-            definitions.set(normalizeIdentifier(node.identifier), node);
-            definitionIndices.push(tree.children.indexOf(node));
-          }
+      for (const node of tree.children) {
+        if (node.type === "definition") {
+          definitions.set(normalizeIdentifier(node.identifier), node);
+          definitionIndices.push(tree.children.indexOf(node));
         }
+      }
 
-        if (definitions.size === 0) {
-          return;
-        }
+      if (definitions.size === 0) {
+        return;
+      }
 
-        transform(tree, definitions);
+      transform(tree, definitions);
 
-        for (const index of definitionIndices.reverse()) {
-          tree.children.splice(index, 1);
-        }
-      },
-    ],
-  };
-}
+      for (const index of definitionIndices.toReversed()) {
+        tree.children.splice(index, 1);
+      }
+    },
+  ],
+});

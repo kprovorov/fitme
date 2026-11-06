@@ -24,9 +24,11 @@ const loadI18n = (deviceLanguages: readonly string[] = ["en-US"]) => {
       .setDeviceLanguages(deviceLanguages);
     module = jest.requireActual<typeof import("~/lib/i18n")>("~/lib/i18n");
   });
+
   if (!module) {
     throw new Error("~/lib/i18n didn't load");
   }
+
   return module;
 };
 

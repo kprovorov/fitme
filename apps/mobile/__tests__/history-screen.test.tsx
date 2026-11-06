@@ -23,6 +23,7 @@ import {
   within,
 } from "@testing-library/react-native";
 import type { ReactNode } from "react";
+
 import HistoryScreen from "~/app/(tabs)/history/index";
 import { i18n } from "~/lib/i18n";
 import { publicApi } from "~/lib/public-api";
@@ -44,6 +45,7 @@ jest.mock("expo-router", () => ({
     Screen: ({ options }: { options: { title?: string } }) => {
       const { Text } =
         jest.requireActual<typeof import("react-native")>("react-native");
+
       return options.title ? <Text>{options.title}</Text> : null;
     },
   },
@@ -67,6 +69,7 @@ jest.mock("@legendapp/list/react-native", () => ({
     renderItem: (info: { item: T }) => ReactNode;
   }) => {
     const { Fragment } = jest.requireActual<typeof import("react")>("react");
+
     return (
       <>
         {ListHeaderComponent}
@@ -82,7 +85,10 @@ jest.mock("@legendapp/list/react-native", () => ({
   },
 }));
 
-jest.mock("~/lib/segment", () => ({ segmentClient: { track: jest.fn() } }));
+jest.mock("~/lib/segment", () => ({
+  segmentClient: { track: jest.fn() },
+}));
+
 // The User a Plan write is made for (the real Clerk SDK keeps Jest alive).
 jest.mock("~/lib/clerk", () => ({
   getCurrentUserId: jest.requireActual<
@@ -94,28 +100,38 @@ jest.mock("react-native-purchases", () => ({
   __esModule: true,
   default: { invalidateCustomerInfoCache: jest.fn() },
 }));
+
 jest.mock("~/components/symbol-image", () => ({ SymbolImage: () => null }));
+
 jest.mock("~/components/ui/button", () =>
   jest.requireActual("~/test-utils/button-stub")
 );
 
 const MINUTE_MS = 60_000;
+
 /** History's reads of the list; the open Workout Session reads it too. */
 const FINISHED = { status: "finished" };
 const ROW_NAMES = /^(Push Day|Workout|Pull Day)$/;
+
 // The Personal record VoiceOver reads after the rest of the row.
 const UKRAINIAN_RECORD =
   /\. Особистий рекорд: Bench press, 105 кілограмів × 3 повторення$/;
+
 // `1 370 кг`, with Ukrainian's no-break space between thousands.
 const UKRAINIAN_PUSH_DAY = /^1 год 5 хв · 5 підходів · 1\s370 кг$/;
+
 const HISTORICAL_EN_METRIC =
   /Personal record: Bench press, 110 kilograms × 3 reps$/;
+
 const HISTORICAL_EN_IMPERIAL =
   /Personal record: Bench press, 242.51 pounds × 3 reps$/;
+
 const HISTORICAL_UK_METRIC =
   /Особистий рекорд: Bench press, 110 кілограмів × 3 повторення$/;
+
 const HISTORICAL_UK_IMPERIAL =
   /Особистий рекорд: Bench press, 242,51 фунта × 3 повторення$/;
+
 const WEEKLY_GOAL = /Weekly goal/;
 const WEEKS_HIT = /weeks? hit/;
 const STREAK = /week streak!/;
@@ -162,9 +178,11 @@ const seedEntry = ({ id, minutes, sets, start, workout }: Entry) => {
 };
 
 const now = new Date();
+
 /** 09:00 on a day of this month. */
 const thisMonth = (day: number) =>
   new Date(now.getFullYear(), now.getMonth(), day, 9, 0);
+
 /** 23:30 on the last day of last month: it finishes in this one. */
 const lastMonthsLastNight = new Date(
   now.getFullYear(),
@@ -188,6 +206,7 @@ const pushDay: Entry = {
   start: thisMonth(3),
   workout: "Push Day",
 };
+
 // 500 kg for 25 min, its Workout gone; one more set without a weight.
 const goneWorkout: Entry = {
   id: "session-gone",
@@ -199,6 +218,7 @@ const goneWorkout: Entry = {
   start: thisMonth(2),
   workout: null,
 };
+
 // An empty completion: listed, but no progress.
 const emptyCompletion: Entry = {
   id: "session-empty",
@@ -207,6 +227,7 @@ const emptyCompletion: Entry = {
   start: thisMonth(1),
   workout: "Pull Day",
 };
+
 // Starts on last month's last night and finishes in this month: last month's.
 const acrossMonths: Entry = {
   id: "session-across",
@@ -224,9 +245,11 @@ const finishHeavierPushDay = async () => {
   seedEntry(goneWorkout);
   seedEntry({ ...pushDay, sets: [[3, 105]] });
   const session = backend.session(pushDay.id);
+
   if (!session) {
     throw new Error("Push Day wasn't seeded");
   }
+
   const finishedAt = session.finished_at;
   session.finished_at = null;
   await publicApi().POST("/v1/workout-sessions/{id}/finish", {
@@ -266,7 +289,7 @@ afterEach(async () => {
   setDeviceConventions(i18n, { region: "US", uses24hourClock: false });
 });
 
-describe("The History tab", () => {
+describe("the History tab", () => {
   it.each([
     {
       badge: "PR",
@@ -301,6 +324,7 @@ describe("The History tab", () => {
     async ({ language, system, weight, badge, result }) => {
       setDeviceLanguages([language]);
       backend.seedProfile(FAKE_USER_ID, { measurement_system: system });
+
       // Retained resource evidence produced by service initialization. The
       // Screen consumes it unchanged; it never replays or infers PR rules.
       const older = {
@@ -310,6 +334,7 @@ describe("The History tab", () => {
         start: new Date(2024, 0, 1, 10),
         workout: "Old Plan · Baseline",
       };
+
       const improved = {
         ...pushDay,
         id: "historical-award",
@@ -317,6 +342,7 @@ describe("The History tab", () => {
         start: new Date(2024, 3, 3, 10),
         workout: "New Plan · Improved",
       };
+
       seedEntry(older);
       seedEntry(improved);
       backend.personalRecords.push({
@@ -343,6 +369,7 @@ describe("The History tab", () => {
     for (const entry of [pushDay, goneWorkout, emptyCompletion, acrossMonths]) {
       seedEntry(entry);
     }
+
     await mount();
 
     expect(screen.getByText("This month")).toBeTruthy();
@@ -375,6 +402,7 @@ describe("The History tab", () => {
     const row = screen.getByRole("button", {
       name: `Push Day, ${dayTitle(pushDay.start)}, 1h 5min, 5 sets, 1,370 kilograms`,
     });
+
     expect(within(row).getByText(String(pushDay.start.getDate()))).toBeTruthy();
   });
 
@@ -384,9 +412,11 @@ describe("The History tab", () => {
 
     // Only Push Day beat an earlier result; the gone Workout set the baseline.
     expect(screen.getAllByText("PR")).toHaveLength(1);
+
     const row = screen.getByRole("button", {
       name: `Push Day, ${dayTitle(pushDay.start)}, 1h 5min, 1 set, 315 kilograms. Personal record: Bench press, 105 kilograms × 3 reps`,
     });
+
     expect(within(row).getByText("PR")).toBeTruthy();
     expect(
       screen.getByRole("button", {
@@ -399,11 +429,13 @@ describe("The History tab", () => {
     for (const entry of [emptyCompletion, pushDay, goneWorkout]) {
       seedEntry(entry);
     }
+
     await mount();
 
     const names = screen
       .getAllByText(ROW_NAMES)
       .map((text) => text.props.children);
+
     expect(names).toEqual(["Push Day", "Workout", "Pull Day"]);
   });
 
@@ -428,6 +460,7 @@ describe("The History tab", () => {
         workout: `Workout ${index}`,
       });
     }
+
     await mount();
 
     expect(fakePublicApi.count("GET /v1/workout-sessions", FINISHED)).toBe(2);
@@ -447,6 +480,7 @@ describe("The History tab", () => {
         workout: `Workout ${index}`,
       });
     }
+
     const route = "GET /v1/workout-sessions";
     const resumeFirstPage = fakePublicApi.pause(route, FINISHED);
     const resumeSecondPage = fakePublicApi.pause(route, FINISHED);
@@ -536,7 +570,7 @@ describe("The History tab", () => {
   });
 });
 
-describe("The History tab in Ukrainian", () => {
+describe("the History tab in Ukrainian", () => {
   beforeEach(() => {
     setDeviceLanguages(["uk-UA"]);
     setDevice24HourClock(true);
@@ -546,6 +580,7 @@ describe("The History tab in Ukrainian", () => {
     for (const entry of [pushDay, goneWorkout, emptyCompletion]) {
       seedEntry(entry);
     }
+
     await mount();
 
     expect(screen.getByText("Цей місяць")).toBeTruthy();
@@ -574,7 +609,7 @@ describe("The History tab in Ukrainian", () => {
   });
 });
 
-describe("The History tab's Weekly goal", () => {
+describe("the History tab's Weekly goal", () => {
   // Wednesday 28 October 2026, noon in Kyiv, where the clocks went back on
   // Sunday 25 October: the week of 19 October is 169 hours long.
   const NOW = new Date("2026-10-28T12:00:00+02:00");
@@ -585,6 +620,7 @@ describe("The History tab's Weekly goal", () => {
     new Date(`${local}${local < "2026-10-25T04" ? "+03:00" : "+02:00"}`);
 
   let seeded = 0;
+
   /** A qualifying Workout Session started at a local Kyiv time. */
   const workoutAt = (
     local: string,
@@ -635,6 +671,7 @@ describe("The History tab's Weekly goal", () => {
 
   afterEach(() => {
     jest.useRealTimers();
+
     if (originalTimeZone === undefined) {
       delete process.env.TZ;
     } else {

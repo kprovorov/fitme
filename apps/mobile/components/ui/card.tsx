@@ -1,6 +1,8 @@
 import type { TextRef, ViewRef } from "@rn-primitives/types";
 import * as React from "react";
-import { Text, type TextProps, View, type ViewProps } from "react-native";
+import { Text, View } from "react-native";
+import type { TextProps, ViewProps } from "react-native";
+
 import { TextClassContext } from "~/components/ui/text";
 import { cn } from "~/lib/utils";
 
@@ -105,6 +107,7 @@ const Card = ({
     </TextClassContext.Provider>
   </CardVariantContext.Provider>
 );
+
 Card.displayName = "Card";
 
 const CardHeader = ({
@@ -113,11 +116,12 @@ const CardHeader = ({
   ...props
 }: ViewProps & { ref?: React.RefObject<ViewRef | null> }) => (
   <View
-    className={cn("flex flex-col gap-sm", className)}
+    className={cn("gap-sm flex flex-col", className)}
     ref={ref}
     {...props}
   />
 );
+
 CardHeader.displayName = "CardHeader";
 
 const CardTitle = ({
@@ -137,6 +141,7 @@ const CardTitle = ({
     {...props}
   />
 );
+
 CardTitle.displayName = "CardTitle";
 
 const CardDescription = ({
@@ -154,6 +159,7 @@ const CardDescription = ({
     {...props}
   />
 );
+
 CardDescription.displayName = "CardDescription";
 
 const CardContent = ({
@@ -167,6 +173,7 @@ const CardContent = ({
     <View className={className} ref={ref} {...props} />
   </TextClassContext.Provider>
 );
+
 CardContent.displayName = "CardContent";
 
 const CardFooter = ({
@@ -180,9 +187,11 @@ const CardFooter = ({
     {...props}
   />
 );
+
 CardFooter.displayName = "CardFooter";
 
 export type { CardProps };
+
 export {
   Card,
   CardContent,

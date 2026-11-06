@@ -1,11 +1,11 @@
+import { ApiError } from "@fitme/api-client";
 /**
  * The fake Public API's `PUT /v1/plans/{id}`, through the real client, as the
  * Plan builder's edit saves will reach it: the services' semantics (ADR 0016)
  * over its in-memory rows.
  */
-
-import { ApiError } from "@fitme/api-client";
 import { beforeEach, describe, expect, it } from "@jest/globals";
+
 import { publicApi } from "~/lib/public-api";
 import { libraryExercise, serveLibrary } from "~/test-utils/fake-library";
 import { backend, fakePublicApi } from "~/test-utils/fake-public-api";
@@ -82,9 +82,11 @@ describe("the fake's PUT /v1/plans/{id}", () => {
     });
 
     const data = answer?.data;
+
     if (!data) {
       throw new Error("The save answered no Plan");
     }
+
     expect(data).toMatchObject({
       ...details,
       description: null,
@@ -102,9 +104,11 @@ describe("the fake's PUT /v1/plans/{id}", () => {
     ]);
     expect(dayC).toMatchObject({ cover: null, name: "Day C", order: 2 });
     expect(data.workouts.map((w) => w.id)).not.toContain("workout-b");
+
     const read = await publicApi().GET("/v1/plans/{id}", {
       params: { path: { id: "plan-1" } },
     });
+
     expect(read.data).toEqual(answer);
     expect(fakePublicApi.count("PUT /v1/plans/{id}")).toBe(1);
   });
@@ -142,6 +146,7 @@ describe("the fake's PUT /v1/plans/{id}", () => {
         },
       ],
     }).catch((error: unknown) => error);
+
     const missing = await save(
       {
         ...details,

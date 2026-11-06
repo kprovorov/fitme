@@ -1,11 +1,12 @@
-import { verifyWebhook, type WebhookEvent } from "@clerk/backend/webhooks";
+import { verifyWebhook } from "@clerk/backend/webhooks";
+import type { WebhookEvent } from "@clerk/backend/webhooks";
 import { Hono } from "hono";
 
 export interface ClerkWebhookDeps {
   /** Resets every Arnold session recorded for the User. */
   deleteArnoldConversations: (userId: string) => Promise<void>;
   deleteUserData: (userId: string) => Promise<void>;
-  reportError: (error: unknown) => Promise<void>;
+  reportError: (error: Error) => Promise<void>;
   /** Unset fails every delivery with a reported 500, so Clerk keeps retrying. */
   signingSecret: string | undefined;
 }
@@ -29,17 +30,20 @@ export const clerkRoutes = ({
   new Hono().post("/", async (c) => {
     if (!signingSecret) {
       await reportError(new Error("Missing CLERK_WEBHOOK_SIGNING_SECRET"));
+
       return c.json(errorBody("internal_error", "Internal server error"), 500);
     }
 
     // Verified on the raw request, before anything reads the body
     let event: WebhookEvent;
+
     try {
       event = await verifyWebhook(c.req.raw, { signingSecret });
     } catch (error) {
       // Not reported: anyone can send a forged request. Logged so a wrong
       // secret in production is visible.
       console.warn("Rejected Clerk webhook", error);
+
       return c.json(errorBody("unauthorized", "Invalid signature"), 401);
     }
 
@@ -48,7 +52,12 @@ export const clerkRoutes = ({
         await deleteUserData(event.data.id);
         await deleteArnoldConversations(event.data.id);
       } catch (error) {
-        await reportError(error);
+        await reportError(
+          error instanceof Error
+            ? error
+            : new Error("User data cleanup failed", { cause: error })
+        );
+
         return c.json(
           errorBody("cleanup_failed", "User data cleanup failed"),
           500

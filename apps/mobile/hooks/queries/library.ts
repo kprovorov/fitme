@@ -1,18 +1,18 @@
+import { defaultAppLanguage } from "@fitme/core";
+import type { AppLanguage, MuscleGroup } from "@fitme/core";
 import {
-  type AppLanguage,
-  defaultAppLanguage,
-  type MuscleGroup,
-} from "@fitme/core";
-import {
-  type Cover,
-  type Exercise,
-  type ExercisePage,
-  type ExerciseSummary,
   exerciseNameFromSlug,
-  type Library,
   LibraryInvalidRequestError,
   LibraryRateLimitedError,
   LibraryUnauthorizedError,
+} from "@fitme/library-sdk";
+import type {
+  Cover,
+  Exercise,
+  ExercisePage,
+  ExerciseSummary,
+  Library,
+  ListExercisesParams,
 } from "@fitme/library-sdk";
 import {
   keepPreviousData,
@@ -23,6 +23,7 @@ import {
   useQueryClient,
 } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
+
 import { inCoreOrder } from "~/hooks/muscle-choice";
 import { useAppLanguage } from "~/lib/i18n";
 import { getLibrary } from "~/lib/library";
@@ -77,7 +78,7 @@ export const shownExercise = (
       };
 
 interface Waiter {
-  reject: (error: unknown) => void;
+  reject: (error: Error) => void;
   resolve: (exercise: ExerciseSummary | null) => void;
 }
 
@@ -94,18 +95,25 @@ const waiting = new Map<Library, Map<AppLanguage, Batch>>();
 /** Answers every slug of `batch` with one `lookup` through `library`. */
 const flush = async (library: Library, language: AppLanguage, batch: Batch) => {
   waiting.get(library)?.delete(language);
+
   try {
     const { data } = await library.lookup([...batch.keys()], { language });
     const found = new Map(data.map((exercise) => [exercise.slug, exercise]));
+
     for (const [slug, waiters] of batch) {
       for (const { resolve } of waiters) {
         resolve(found.get(slug) ?? null);
       }
     }
   } catch (error) {
+    const failure =
+      error instanceof Error
+        ? error
+        : new Error("Library lookup failed", { cause: error });
+
     for (const waiters of batch.values()) {
       for (const { reject } of waiters) {
-        reject(error);
+        reject(failure);
       }
     }
   }
@@ -118,6 +126,7 @@ const openBatch = (library: Library, language: AppLanguage): Batch => {
   batches.set(language, batch);
   waiting.set(library, batches);
   setTimeout(() => flush(library, language, batch), 0);
+
   return batch;
 };
 
@@ -126,19 +135,25 @@ const openBatch = (library: Library, language: AppLanguage): Batch => {
  * such slug. Slugs asked for in the same tick and language (every row of a
  * screen) share one `lookup`, which the client splits into requests of 40.
  */
-const lookupExercise = (language: AppLanguage, slug: string) =>
-  new Promise<ExerciseSummary | null>((resolve, reject) => {
-    const library = getLibrary();
-    const batch =
-      waiting.get(library)?.get(language) ?? openBatch(library, language);
-    batch.set(slug, [...(batch.get(slug) ?? []), { reject, resolve }]);
-  });
+const lookupExercise = async (language: AppLanguage, slug: string) => {
+  const { promise, resolve, reject } =
+    Promise.withResolvers<ExerciseSummary | null>();
+
+  const library = getLibrary();
+
+  const batch =
+    waiting.get(library)?.get(language) ?? openBatch(library, language);
+
+  batch.set(slug, [...(batch.get(slug) ?? []), { reject, resolve }]);
+
+  return await promise;
+};
 
 /**
  * One retry, and none for an answer a retry won't change (or, rate limited,
  * would only make worse): each slug retries on its own, outside the batch.
  */
-const retryOnce = (failureCount: number, error: unknown) =>
+const retryOnce = (failureCount: number, error: Error) =>
   failureCount < 1 &&
   !(
     error instanceof LibraryRateLimitedError ||
@@ -163,11 +178,13 @@ const exerciseSummaryQuery = (language: AppLanguage, slug: string) =>
     initialDataUpdatedAt: () => readCachedSummary(language, slug)?.savedAt,
     queryFn: async (): Promise<ExerciseSummary | null> => {
       const exercise = await lookupExercise(language, slug);
+
       if (exercise) {
         writeCachedSummary(language, exercise);
       } else {
         removeCachedExercise(slug);
       }
+
       return exercise;
     },
     queryKey: summaryQueryKey(language, slug),
@@ -181,25 +198,28 @@ const exerciseSummaryQuery = (language: AppLanguage, slug: string) =>
  * a slug not resolved yet (or that fails to) shows its slug's name, and its
  * row fills in once the Library answers.
  */
-export const useExercises = (
-  slugs: readonly string[]
-): Record<string, ShownExercise> => {
+export const useExercises = (slugs: readonly string[]) => {
   // An empty slug (a malformed row) never resolves: it isn't asked for.
   const unique = [...new Set(slugs)].filter(Boolean);
   const language = useAppLanguage();
+
   const results = useQueries({
     queries: unique.map((slug) => exerciseSummaryQuery(language, slug)),
   });
+
   const shown: Record<string, ShownExercise> = {};
-  unique.forEach((slug, index) => {
+
+  for (const [index, slug] of unique.entries()) {
     shown[slug] = shownExercise(slug, results[index]?.data);
-  });
+  }
+
   return shown;
 };
 
 /** One Exercise as a row shows it (see `useExercises`); none asked for without a slug. */
 export const useExercise = (slug: string | undefined): ShownExercise => {
   const shown = useExercises(slug ? [slug] : []);
+
   return (slug && shown[slug]) || shownExercise(slug ?? "", null);
 };
 
@@ -211,22 +231,26 @@ export const useExercise = (slug: string | undefined): ShownExercise => {
 export const useExerciseDetailQuery = (slug: string) => {
   const queryClient = useQueryClient();
   const language = useAppLanguage();
+
   return useQuery({
     enabled: slug.length > 0,
     initialData: () => readCachedExercise(language, slug)?.value,
     initialDataUpdatedAt: () => readCachedExercise(language, slug)?.savedAt,
     queryFn: async (): Promise<Exercise | null> => {
       const exercise = await getLibrary().get(slug, { language });
+
       if (exercise) {
         writeCachedExercise(language, exercise);
       } else {
         removeCachedExercise(slug);
       }
+
       // Rows showing this Exercise follow what its detail screen just read.
       queryClient.setQueryData<ExerciseSummary | null>(
         summaryQueryKey(language, slug),
         exercise
       );
+
       return exercise;
     },
     queryKey: ["exercise-detail", language, slug],
@@ -254,6 +278,7 @@ export const useCovers = (): ReadonlyMap<string, Cover> => {
     queryFn: async (): Promise<Cover[]> => {
       const covers = await getLibrary().covers();
       writeCachedCovers(covers);
+
       return covers;
     },
     queryKey: ["covers"],
@@ -261,6 +286,7 @@ export const useCovers = (): ReadonlyMap<string, Cover> => {
     select: coversById,
     staleTime: EXERCISE_STALE_TIME_MS,
   });
+
   return data ?? NO_COVERS;
 };
 
@@ -286,19 +312,22 @@ const choiceKey = (groups: readonly MuscleGroup[]) => groups.join(",");
 const rateLimitKey = ["exercise-search-rate-limited-until"];
 
 /** Resolves once `until` has passed; rejects if the request is cancelled first. */
-const waitUntil = (until: number, signal: AbortSignal) =>
-  new Promise<void>((resolve, reject) => {
-    const wait = until - Date.now();
-    if (wait <= 0) {
-      resolve();
-      return;
-    }
-    const timer = setTimeout(resolve, wait);
-    signal.addEventListener("abort", () => {
-      clearTimeout(timer);
-      reject(signal.reason);
-    });
+const waitUntil = async (until: number, signal: AbortSignal) => {
+  const wait = until - Date.now();
+
+  if (wait <= 0) {
+    return;
+  }
+
+  const { promise, resolve, reject } = Promise.withResolvers<undefined>();
+  const timer = setTimeout(() => resolve(undefined), wait);
+  signal.addEventListener("abort", () => {
+    clearTimeout(timer);
+    reject(signal.reason);
   });
+
+  await promise;
+};
 
 /**
  * The Library, searched and filtered, a page at a time, in the App language:
@@ -320,11 +349,14 @@ export const useExerciseSearch = ({
   const language = useAppLanguage();
   const term = search.trim();
   const groupsKey = choiceKey(inCoreOrder(muscleGroups));
+
   const [sent, setSent] = useState(() => ({
     groups: inCoreOrder(muscleGroups),
     search: term,
   }));
+
   const sameGroups = choiceKey(sent.groups) === groupsKey;
+
   const [lastPages, setLastPages] = useState<
     { language: AppLanguage; pages: ExercisePage[] } | undefined
   >(undefined);
@@ -333,13 +365,16 @@ export const useExerciseSearch = ({
     if (sent.search === term && sameGroups) {
       return;
     }
+
     // A new Muscle group choice is one tap: it goes out at once, with any
     // typed search.
     const debounce = sameGroups ? EXERCISE_SEARCH_DEBOUNCE_MS : 0;
+
     const timer = setTimeout(
       () => setSent({ groups: inCoreOrder(muscleGroups), search: term }),
       debounce
     );
+
     return () => clearTimeout(timer);
   }, [muscleGroups, sameGroups, sent, term]);
 
@@ -360,15 +395,27 @@ export const useExerciseSearch = ({
         signal
       );
       let page: ExercisePage;
+
       try {
-        page = await getLibrary().list({
+        const params: ListExercisesParams = {
           limit: EXERCISE_SEARCH_PAGE_SIZE,
           offset: pageParam,
-          // English is the API's default.
-          ...(language === defaultAppLanguage ? {} : { language }),
-          ...(sent.search ? { search: sent.search } : {}),
-          ...(sent.groups.length > 0 ? { muscleGroups: [...sent.groups] } : {}),
-        });
+        };
+
+        // English is the API's default.
+        if (language !== defaultAppLanguage) {
+          params.language = language;
+        }
+
+        if (sent.search) {
+          params.search = sent.search;
+        }
+
+        if (sent.groups.length > 0) {
+          params.muscleGroups = [...sent.groups];
+        }
+
+        page = await getLibrary().list(params);
       } catch (error) {
         if (error instanceof LibraryRateLimitedError) {
           queryClient.setQueryData<number>(
@@ -376,8 +423,10 @@ export const useExerciseSearch = ({
             Date.now() + error.retryAfterSeconds * 1000
           );
         }
+
         throw error;
       }
+
       for (const exercise of page.data) {
         writeCachedSummary(language, exercise);
         queryClient.setQueryData<ExerciseSummary | null>(
@@ -385,6 +434,7 @@ export const useExerciseSearch = ({
           exercise
         );
       }
+
       return page;
     },
     queryKey: ["exercise-search", language, sent.search, sent.groups],
@@ -393,13 +443,16 @@ export const useExerciseSearch = ({
   });
 
   const pages = query.isPlaceholderData ? undefined : query.data?.pages;
-  useEffect(() => {
-    if (pages) {
-      setLastPages({ language, pages });
-    }
-  }, [language, pages]);
+
+  if (
+    pages &&
+    (lastPages?.pages !== pages || lastPages.language !== language)
+  ) {
+    setLastPages({ language, pages });
+  }
 
   const isRateLimited = query.error instanceof LibraryRateLimitedError;
+
   // Rate limited, the last results in this language stay; with none to show
   // it's an error.
   const shownPages =

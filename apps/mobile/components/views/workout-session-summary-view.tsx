@@ -9,14 +9,16 @@ import {
 } from "@fitme/i18n";
 import { Fragment, useMemo } from "react";
 import { useTranslation } from "react-i18next";
+import { View } from "react-native";
+
 import { Button } from "~/components/ui/button";
-import { HStack } from "~/components/ui/hstack";
 import { Separator } from "~/components/ui/separator";
 import { Text } from "~/components/ui/text";
 import { VStack } from "~/components/ui/vstack";
 import { useExercises } from "~/hooks/queries/library";
 import type { WorkoutSession } from "~/hooks/queries/workout-sessions";
 import { useI18n } from "~/lib/i18n";
+
 import {
   WorkoutSessionSummaryBodyBack,
   WorkoutSessionSummaryBodyFront,
@@ -29,10 +31,10 @@ interface WorkoutSessionSummaryViewProps {
   workoutSession: WorkoutSession;
 }
 
-export default function WorkoutSessionSummaryView({
+const WorkoutSessionSummaryView = ({
   workoutSession,
   onContinue,
-}: WorkoutSessionSummaryViewProps) {
+}: WorkoutSessionSummaryViewProps) => {
   const i18n = useI18n();
   const { t } = useTranslation();
   // Weights are in the session's own unit, the User's when it was read.
@@ -41,7 +43,7 @@ export default function WorkoutSessionSummaryView({
   // Skipped exercises (no set logged) don't count toward the summary.
   const exercises = useMemo(
     () =>
-      loggedExercises(workoutSession.exercises).sort(
+      loggedExercises(workoutSession.exercises).toSorted(
         (a, b) => a.order - b.order
       ),
     [workoutSession.exercises]
@@ -50,6 +52,7 @@ export default function WorkoutSessionSummaryView({
   const shownBySlug = useExercises(
     exercises.map(({ exercise_slug }) => exercise_slug)
   );
+
   const muscleGroups = new Set<MuscleGroup>(
     exercises.flatMap(
       ({ exercise_slug }) => shownBySlug[exercise_slug]?.muscle_groups ?? []
@@ -74,13 +77,13 @@ export default function WorkoutSessionSummaryView({
   );
 
   return (
-    <VStack className="w-full items-stretch gap-md">
-      <Text className="text-center text-primary text-title-1-emphasized">
+    <View className="gap-md flex w-full flex-col items-stretch justify-center">
+      <Text className="text-center" variant="h2">
         {t("workoutSummary.title")}
       </Text>
 
-      <HStack className="items-start justify-between px-md">
-        <VStack className="items-start gap-4">
+      <View className="px-md flex flex-row items-start justify-between gap-4">
+        <VStack className="items-start">
           <WorkoutSessionSummaryStat
             icon="clock"
             title={t("workoutSession.stats.duration")}
@@ -114,15 +117,15 @@ export default function WorkoutSessionSummaryView({
           />
         </VStack>
 
-        <HStack className="items-center gap-3">
+        <View className="flex flex-row items-center justify-center gap-3">
           <WorkoutSessionSummaryBodyFront groups={muscleGroups} />
           <WorkoutSessionSummaryBodyBack groups={muscleGroups} />
-        </HStack>
-      </HStack>
+        </View>
+      </View>
 
       <Separator />
 
-      <VStack className="w-full items-stretch gap-md">
+      <View className="gap-md flex w-full flex-col items-stretch justify-center">
         {exercises.map((exercise, index) => (
           <Fragment key={exercise.id}>
             {index > 0 && <Separator />}
@@ -135,11 +138,11 @@ export default function WorkoutSessionSummaryView({
             />
           </Fragment>
         ))}
-      </VStack>
+      </View>
 
       <Separator />
 
-      <VStack className="w-full px-md">
+      <View className="px-md flex w-full flex-col items-center justify-center gap-4">
         <Button
           className="w-full"
           icon="arrow.right"
@@ -148,7 +151,9 @@ export default function WorkoutSessionSummaryView({
           onPress={onContinue}
           size="lg"
         />
-      </VStack>
-    </VStack>
+      </View>
+    </View>
   );
-}
+};
+
+export default WorkoutSessionSummaryView;

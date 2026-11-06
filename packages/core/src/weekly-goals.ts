@@ -1,23 +1,26 @@
-import {
-  type ProgressSession,
-  qualifiesForProgress,
-} from "./training-progress";
+import { qualifiesForProgress } from "./training-progress";
+import type { ProgressSession } from "./training-progress";
 
-const CALENDAR_OFFSET = /^(?:GMT|UTC)([+-])(\d{1,2})(?::?(\d{2}))?$/;
+const CALENDAR_OFFSET =
+  /^(?:GMT|UTC)(?<sign>[+-])(?<hours>\d{1,2})(?::?(?<minutes>\d{2}))?$/u;
 
 /** Expo's fixed-offset calendar IDs use the ISO sign: GMT+1 is east of UTC. */
-export function calendarOffsetMinutes(timeZone: string): number | null {
+export const calendarOffsetMinutes = (timeZone: string): number | null => {
   const match = CALENDAR_OFFSET.exec(timeZone);
+
   if (!match) {
     return null;
   }
+
   const hours = Number(match[2]);
   const minutes = Number(match[3] ?? 0);
+
   if (hours > 23 || minutes > 59) {
     return null;
   }
+
   return (match[1] === "-" ? -1 : 1) * (hours * 60 + minutes);
-}
+};
 
 /**
  * One change of the User's Weekly goal (ADR 0015), as the Public API answers
@@ -71,6 +74,7 @@ const DAYS_PER_WEEK = 7;
 /** The Monday 00:00 starting the week `date` falls in, on the device's clock. */
 export const startOfGoalWeek = (date: Date): Date => {
   const daysSinceMonday = (date.getDay() + DAYS_PER_WEEK - 1) % DAYS_PER_WEEK;
+
   return new Date(
     date.getFullYear(),
     date.getMonth(),
@@ -96,9 +100,11 @@ const goalOfWeek = (
   end: number
 ): Pick<GoalWeek, "goal" | "kind"> => {
   const [first] = changes;
-  if (!first || first.at >= end) {
+
+  if (first === undefined || first.at >= end) {
     return { goal: null, kind: "unknown" };
   }
+
   if (first.at >= start) {
     return first.target === null
       ? { goal: null, kind: "unknown" }
@@ -107,15 +113,19 @@ const goalOfWeek = (
           kind: first.at === start ? "tracked" : "firstPartial",
         };
   }
+
   // Every later change takes effect the Monday after it, so the goal is the
   // last one recorded before the week began.
   let target: number | null = null;
+
   for (const change of changes) {
     if (change.at >= start) {
       break;
     }
+
     ({ target } = change);
   }
+
   return target === null
     ? { goal: null, kind: "unknown" }
     : { goal: target, kind: "tracked" };
@@ -129,28 +139,34 @@ const goalOfWeek = (
  * `null` without an active Plan (no changes, or the last one `null`), when
  * History shows no goal at all.
  */
-export function weeklyGoalOverview(
+export const weeklyGoalOverview = (
   changes: WeeklyGoalChange[],
   sessions: ProgressSession[],
   now: Date = new Date(),
   weekCount = 8
-): WeeklyGoalOverview | null {
+): WeeklyGoalOverview | null => {
   const latest = changes.at(-1)?.target ?? null;
+
   if (latest === null) {
     return null;
   }
+
   const log = changes
     .map((change) => ({
       at: new Date(change.recorded_at).getTime(),
       target: change.target,
     }))
-    .sort((a, b) => a.at - b.at);
-  const starts = sessions
-    .filter(qualifiesForProgress)
-    .map((session) => new Date(session.started_at).getTime());
+    .toSorted((a, b) => a.at - b.at);
+
+  const starts = sessions.flatMap((session) =>
+    qualifiesForProgress(session)
+      ? [new Date(session.started_at).getTime()]
+      : []
+  );
 
   const thisWeek = startOfGoalWeek(now);
   const weeks: GoalWeek[] = [];
+
   for (let offset = 1 - weekCount; offset <= 0; offset += 1) {
     const start = addWeeks(thisWeek, offset);
     const from = start.getTime();
@@ -170,10 +186,11 @@ export function weeklyGoalOverview(
   const eligible = weeks.filter(
     (week) => !week.current && week.kind === "tracked"
   );
+
   return {
     eligibleWeeks: eligible.length,
     goal: weeks.at(-1)?.goal ?? latest,
     hitWeeks: eligible.filter((week) => week.hit).length,
     weeks,
   };
-}
+};

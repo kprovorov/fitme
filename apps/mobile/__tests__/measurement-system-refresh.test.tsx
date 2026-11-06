@@ -9,18 +9,19 @@
 import { beforeEach, describe, expect, it, jest } from "@jest/globals";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { act, fireEvent, render, screen } from "@testing-library/react-native";
-import { type ReactNode, useCallback } from "react";
+import { useCallback } from "react";
+import type { ReactNode } from "react";
 import { Alert, Pressable } from "react-native";
+
 import HistoryScreen from "~/app/(tabs)/history/index";
 import WorkoutScreen from "~/app/plans/[planId]/workouts/[workoutId]/index";
 import MeasurementSystemScreen from "~/app/settings/measurement-system";
 import {
   backend,
   FAKE_USER_ID,
-  type Failure,
   fakePublicApi,
-  type SeedPlan,
 } from "~/test-utils/fake-public-api";
+import type { Failure, SeedPlan } from "~/test-utils/fake-public-api";
 import {
   createTestQueryClient,
   settle,
@@ -58,6 +59,7 @@ jest.mock("@legendapp/list/react-native", () => ({
     renderItem: (info: { item: T }) => ReactNode;
   }) => {
     const { Fragment } = jest.requireActual<typeof import("react")>("react");
+
     return (
       <>
         {ListHeaderComponent}
@@ -82,19 +84,28 @@ jest.mock("~/lib/clerk", () => ({
 }));
 
 jest.mock("@sentry/react-native", () => ({ captureException: jest.fn() }));
-jest.mock("~/lib/segment", () => ({ segmentClient: { track: jest.fn() } }));
+
+jest.mock("~/lib/segment", () => ({
+  segmentClient: { track: jest.fn() },
+}));
+
 jest.mock("react-native-purchases", () => ({
   __esModule: true,
   default: { invalidateCustomerInfoCache: jest.fn() },
 }));
+
 jest.mock("react-native-safe-area-context", () => ({
   useSafeAreaInsets: () => ({ bottom: 0, left: 0, right: 0, top: 0 }),
 }));
+
 jest.mock("~/components/exercises/exercise-image", () => () => null);
+
 jest.mock("~/components/symbol-image", () => ({ SymbolImage: () => null }));
+
 jest.mock("~/components/ui/button", () =>
   jest.requireActual("~/test-utils/button-stub")
 );
+
 // Buttons of the stand-ins below. Top-level (and `mock`-prefixed, so the
 // factories may use them) because the React Compiler rewrites components
 // declared inside a `jest.mock` factory into code the factory can't reach.
@@ -109,6 +120,7 @@ const MockOption = ({
     () => onValueChange(value),
     [onValueChange, value]
   );
+
   return <Pressable onPress={handlePress} testID={`option-${value}`} />;
 };
 
@@ -126,6 +138,7 @@ const MockAction = ({
     onPress?.();
     onIsPresentedChange(false);
   }, [onIsPresentedChange, onPress]);
+
   return <Pressable onPress={handlePress} testID={`dialog-${label}`} />;
 };
 
@@ -135,6 +148,7 @@ const MockAction = ({
 jest.mock("~/components/ui/radio-group", () => {
   const { Text: MockText, View: MockView } =
     jest.requireActual<typeof import("react-native")>("react-native");
+
   return {
     RadioGroup: ({
       onValueChange,
@@ -158,9 +172,11 @@ jest.mock("~/components/ui/radio-group", () => {
     ),
   };
 });
+
 jest.mock("~/components/ui/alert-dialog", () => {
   const { View: MockView } =
     jest.requireActual<typeof import("react-native")>("react-native");
+
   return {
     AlertDialog: ({
       actions,
@@ -187,6 +203,7 @@ jest.mock("~/components/ui/alert-dialog", () => {
 });
 
 const PROFILE_PATCH = "PATCH /v1/profile";
+
 /** History's volume once converted to pounds. */
 const CONVERTED_VOLUME = /440\.92/;
 const MINUTE_MS = 60_000;
@@ -284,14 +301,14 @@ const plannedSet = (weight: string) =>
 
 beforeEach(() => {
   jest.clearAllMocks();
-  jest.spyOn(Alert, "alert").mockImplementation(() => undefined);
+  jest.spyOn(Alert, "alert").mockReturnValue(undefined);
   backend.reset();
   backend.seedProfile(FAKE_USER_ID, { height: 180, weight: 80 });
   backend.seedPlan(structuredClone(PLAN));
   seedFinishedSession();
 });
 
-describe("Switching the measurement system", () => {
+describe("switching the measurement system", () => {
   it("refreshes History and the Workout's planned weights, with no restart", async () => {
     await mount();
     expect(historyRow("200 kg")).toBeTruthy();
@@ -380,17 +397,21 @@ describe("Switching the measurement system", () => {
     // A refresh of the Profile lands while the switch waits for its answer,
     // so the answer can't be shown as is; then every read of it is refused.
     const profile = backend.profile(FAKE_USER_ID);
+
     if (profile) {
       // Another device changed the age.
       profile.age = 41;
     }
+
     await act(() => queryClient.refetchQueries({ queryKey: ["profile"] }));
+
     for (let read = 0; read < 4; read += 1) {
       fakePublicApi.failNext("GET /v1/profile", {
         retryAfterSeconds: 42,
         status: 429,
       });
     }
+
     const weighedReads = fakePublicApi.count("GET /v1/workout-sessions");
 
     resumeSwitch();
@@ -418,10 +439,12 @@ describe("Switching the measurement system", () => {
     // so the answer can't be shown as is and the Profile is read again. That
     // read succeeds; any further one would be refused.
     const profile = backend.profile(FAKE_USER_ID);
+
     if (profile) {
       // Another device changed the age.
       profile.age = 41;
     }
+
     await act(() => queryClient.refetchQueries({ queryKey: ["profile"] }));
     fakePublicApi.failNext("GET /v1/profile", "pass");
     fakePublicApi.failNext("GET /v1/profile", {

@@ -1,10 +1,11 @@
-const { getSentryExpoConfig } = require("@sentry/react-native/metro");
-const { withUniwindConfig } = require("uniwind/metro");
+/// <reference types="node" />
 
-// biome-ignore lint/correctness/noGlobalDirnameFilename: Having ReferenceError otherwise
-const config = getSentryExpoConfig(__dirname);
+import { getSentryExpoConfig } from "@sentry/react-native/metro.js";
+import { withUniwindConfig } from "uniwind/metro";
 
-module.exports = withUniwindConfig(config, {
+const config = getSentryExpoConfig(import.meta.dirname);
+
+export default withUniwindConfig(config, {
   cssEntryFile: "./global.css",
   polyfills: { rem: 16 },
 });

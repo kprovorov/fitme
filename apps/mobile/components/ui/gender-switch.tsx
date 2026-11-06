@@ -1,6 +1,8 @@
-import { type Gender, genders } from "@fitme/core";
+import { genders } from "@fitme/core";
+import type { Gender } from "@fitme/core";
 import { useCallback } from "react";
 import { Pressable, View } from "react-native";
+
 import { HStack } from "~/components/ui/hstack";
 import { Text } from "~/components/ui/text";
 import { useChoiceLabels } from "~/lib/choices";
@@ -22,13 +24,13 @@ interface GenderOptionProps {
   onValueChange?: (value: Gender) => void;
 }
 
-function GenderOption({
+const GenderOption = ({
   disabled,
   gender,
   isSelected,
   label,
   onValueChange,
-}: GenderOptionProps) {
+}: GenderOptionProps) => {
   const handlePress = useCallback(
     () => onValueChange?.(gender),
     [gender, onValueChange]
@@ -40,7 +42,7 @@ function GenderOption({
       accessibilityRole="radio"
       accessibilityState={{ checked: isSelected, disabled }}
       className={cn(
-        "flex-1 flex-row items-center justify-start gap-2 rounded-lg border-2 bg-card p-4",
+        "bg-card flex-1 flex-row items-center justify-start gap-2 rounded-lg border-2 p-4",
         isSelected ? "border-primary" : "border-border",
         disabled && "opacity-50"
       )}
@@ -55,13 +57,13 @@ function GenderOption({
         )}
       >
         {isSelected ? (
-          <View className="aspect-square size-2.5 rounded-full bg-primary" />
+          <View className="bg-primary aspect-square size-2.5 rounded-full" />
         ) : null}
       </View>
       <Text>{label}</Text>
     </Pressable>
   );
-}
+};
 
 /**
  * Side-by-side gender cards. Deliberately not a SwiftUI segmented `Picker` —
@@ -76,6 +78,7 @@ const GenderSwitch = ({
   testID,
 }: GenderSwitchProps) => {
   const labels = useChoiceLabels();
+
   return (
     <HStack
       accessibilityRole="radiogroup"
@@ -99,4 +102,5 @@ const GenderSwitch = ({
 GenderSwitch.displayName = "GenderSwitch";
 
 export type { GenderSwitchProps };
+
 export { GenderSwitch };

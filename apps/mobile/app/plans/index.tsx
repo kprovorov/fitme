@@ -2,13 +2,15 @@ import { Stack, useRouter } from "expo-router";
 import { useCallback } from "react";
 import { useTranslation } from "react-i18next";
 import { RefreshControl, ScrollView } from "react-native";
+
 import PlansListView from "~/components/views/plan-list-view";
 import { usePlanSummariesQuery } from "~/hooks/queries/plans";
 
-export default function PlansScreen() {
+const PlansScreen = () => {
   const { refetch, isLoading } = usePlanSummariesQuery();
   const router = useRouter();
   const { t } = useTranslation();
+
   const onRefresh = useCallback(async () => {
     await refetch();
   }, [refetch]);
@@ -53,4 +55,6 @@ export default function PlansScreen() {
       </ScrollView>
     </>
   );
-}
+};
+
+export default PlansScreen;

@@ -1,5 +1,6 @@
 import { Slider as SwiftUISlider } from "@expo/ui/swift-ui";
 import { tint } from "@expo/ui/swift-ui/modifiers";
+
 import { SwiftUIHost, useSwiftUITheme } from "~/components/ui/swift-ui";
 import { cn } from "~/lib/utils";
 
@@ -48,4 +49,5 @@ const Slider = ({
 Slider.displayName = "Slider";
 
 export type { SliderProps };
+
 export { Slider };

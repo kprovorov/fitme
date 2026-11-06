@@ -9,14 +9,14 @@ Protect each resource where it runs: the page, the Route Handler, and the Server
 ## `proxy.ts`
 
 ```typescript
-import { clerkMiddleware } from '@clerk/nextjs/server';
+import { clerkMiddleware } from "@clerk/nextjs/server";
 
 export default clerkMiddleware();
 
 export const config = {
   matcher: [
-    '/((?!_next|[^?]*\\.(?:html?|css|js(?!on)|jpe?g|webp|png|gif|svg|ttf|woff2?|ico|csv|docx?|xlsx?|zip|webmanifest)).*)',
-    '/(api|trpc)(.*)',
+    "/((?!_next|[^?]*\\.(?:html?|css|js(?!on)|jpe?g|webp|png|gif|svg|ttf|woff2?|ico|csv|docx?|xlsx?|zip|webmanifest)).*)",
+    "/(api|trpc)(.*)",
   ],
 };
 ```
@@ -39,7 +39,7 @@ export default async function Page() {
 
 ```typescript
 // app/api/dashboard/route.ts
-import { auth } from '@clerk/nextjs/server';
+import { auth } from "@clerk/nextjs/server";
 
 export async function GET() {
   const { userId } = await auth.protect();
@@ -49,8 +49,8 @@ export async function GET() {
 
 ```typescript
 // app/dashboard/actions.ts
-'use server';
-import { auth } from '@clerk/nextjs/server';
+"use server";
+import { auth } from "@clerk/nextjs/server";
 
 export async function updateDashboard() {
   await auth.protect();
@@ -107,10 +107,10 @@ For Route Handlers that accept other token types (OAuth tokens, machine-to-machi
 
 ```typescript
 // app/api/machine/route.ts
-import { auth } from '@clerk/nextjs/server';
+import { auth } from "@clerk/nextjs/server";
 
 export async function GET() {
-  const { machineId } = await auth.protect({ token: 'm2m_token' });
+  const { machineId } = await auth.protect({ token: "m2m_token" });
   return Response.json({ machineId });
 }
 ```
@@ -132,21 +132,21 @@ Signed-out users can be redirected to sign-in from `proxy.ts` before the page re
 When session tasks are enabled (e.g., forced password reset, MFA setup), users may have a `pending` session status. Redirect pending users to the task page from `proxy.ts`, for the routes that need completed tasks:
 
 ```typescript
-import { clerkMiddleware } from '@clerk/nextjs/server';
-import { NextRequest, NextResponse } from 'next/server';
+import { clerkMiddleware } from "@clerk/nextjs/server";
+import { NextRequest, NextResponse } from "next/server";
 
-const sessionTaskRoutes = ['/dashboard', '/settings'];
+const sessionTaskRoutes = ["/dashboard", "/settings"];
 
 export default clerkMiddleware(async (auth, req: NextRequest) => {
   const { sessionStatus } = await auth();
   const { pathname } = req.nextUrl;
   const routeRequiresSessionTasks = sessionTaskRoutes.some(
-    (path) => pathname === path || pathname.startsWith(`${path}/`),
+    (path) => pathname === path || pathname.startsWith(`${path}/`)
   );
 
-  if (sessionStatus === 'pending' && routeRequiresSessionTasks) {
+  if (sessionStatus === "pending" && routeRequiresSessionTasks) {
     const url = req.nextUrl.clone();
-    url.pathname = '/sign-in';
+    url.pathname = "/sign-in";
     return NextResponse.redirect(url);
   }
 });

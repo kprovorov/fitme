@@ -5,33 +5,40 @@ import os from "node:os";
 import path from "node:path";
 import { after, describe, test } from "node:test";
 import { fileURLToPath } from "node:url";
+
 import { isAlive, removeStaleBeamDumps } from "./stale-beam-dumps.mjs";
 
 const REMOVED = /Removed 2 BEAM perf\/jit dump/;
 
-const SCRIPT = fileURLToPath(
-  new URL("./stale-beam-dumps.mjs", import.meta.url)
-);
+const SCRIPT = fileURLToPath(new URL("stale-beam-dumps.mjs", import.meta.url));
 
+/** @type {string[]} */
 const tempDirs = [];
+
 const tempDir = () => {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), "beam-dumps-"));
   tempDirs.push(dir);
+
   return dir;
 };
+
 after(() => {
   for (const dir of tempDirs) {
     fs.rmSync(dir, { force: true, recursive: true });
   }
 });
 
+/**
+ * @param {string} dir Directory to write in.
+ * @param {...string} names Files to create.
+ */
 const touch = (dir, ...names) => {
   for (const name of names) {
     fs.writeFileSync(path.join(dir, name), "x");
   }
 };
 
-describe("removeStaleBeamDumps", () => {
+void describe("removeStaleBeamDumps", () => {
   test("removes the perf maps and jit dumps of dead pids, keeps live ones", () => {
     const dir = tempDir();
     touch(dir, "perf-100.map", "jit-100.dump", "perf-200.map", "jit-200.dump");
@@ -51,6 +58,7 @@ describe("removeStaleBeamDumps", () => {
 
   test("leaves every other file alone", () => {
     const dir = tempDir();
+
     const others = [
       "perf-abc.map",
       "perf-100.map.bak",
@@ -59,6 +67,7 @@ describe("removeStaleBeamDumps", () => {
       "perf-100.txt",
       "notes",
     ];
+
     touch(dir, ...others);
 
     assert.deepEqual(removeStaleBeamDumps({ dir, isAlive: () => false }), []);
@@ -68,10 +77,13 @@ describe("removeStaleBeamDumps", () => {
   test("skips a file it can't remove and carries on", () => {
     const dir = tempDir();
     touch(dir, "perf-100.map", "perf-101.map");
+
+    /** @param {string} file Dump to remove. */
     const unlink = (file) => {
       if (file.endsWith("perf-100.map")) {
         throw Object.assign(new Error("not permitted"), { code: "EPERM" });
       }
+
       fs.unlinkSync(file);
     };
 
@@ -91,16 +103,18 @@ describe("removeStaleBeamDumps", () => {
   });
 });
 
-describe("isAlive", () => {
+void describe("isAlive", () => {
   test("is true for this process and false for an exited one", async () => {
     assert.equal(isAlive(process.pid), true);
     const child = spawn(process.execPath, ["-e", ""]);
-    await new Promise((resolve) => child.on("exit", resolve));
+    await new Promise((resolve) => {
+      child.on("exit", resolve);
+    });
     assert.equal(isAlive(child.pid), false);
   });
 });
 
-describe("the script", () => {
+void describe("the script", () => {
   test("removes the dead pids' files in the given directory", () => {
     const dir = tempDir();
     // A pid no process has: above Linux's and macOS's pid_max.
@@ -113,7 +127,7 @@ describe("the script", () => {
     );
 
     const result = spawnSync(process.execPath, [SCRIPT, dir], {
-      encoding: "utf8",
+      encoding: "utf-8",
     });
 
     assert.equal(result.status, 0);

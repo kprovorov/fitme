@@ -16,14 +16,17 @@ const languageAtStartup = (deviceLanguages: readonly string[]) => {
         "~/test-utils/device-locales"
       )
       .setDeviceLanguages(deviceLanguages);
+
     const { i18n } =
       jest.requireActual<typeof import("~/lib/i18n")>("~/lib/i18n");
+
     ({ language } = i18n);
   });
+
   return language;
 };
 
-describe("App language at startup", () => {
+describe("app language at startup", () => {
   it("is English on an English device", () => {
     expect(languageAtStartup(["en-US"])).toBe("en");
   });

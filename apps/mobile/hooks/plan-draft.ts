@@ -1,4 +1,5 @@
 import { useEffect, useSyncExternalStore } from "react";
+
 import type { PlanDraft } from "~/lib/plan-draft";
 
 /** One editor opening's draft: what it loaded, and what it holds now. */
@@ -25,6 +26,7 @@ const emit = () => {
 
 const subscribe = (listener: () => void) => {
   listeners.add(listener);
+
   return () => {
     listeners.delete(listener);
   };
@@ -35,6 +37,7 @@ let openings = 0;
 /** A fresh key for one editor opening; hold it with `usePlanDraftOpening`. */
 export const newPlanDraftKey = (): string => {
   openings += 1;
+
   return `plan-draft-${openings}`;
 };
 
@@ -51,6 +54,7 @@ export const startPlanDraft = (key: string, loaded: PlanDraft): void => {
   if (drafts.has(key)) {
     return;
   }
+
   drafts.set(key, { draft: loaded, loaded });
   emit();
 };
@@ -61,9 +65,11 @@ export const updatePlanDraft = (
   change: (draft: PlanDraft) => PlanDraft
 ): void => {
   const entry = drafts.get(key);
+
   if (!entry) {
     return;
   }
+
   drafts.set(key, { ...entry, draft: change(entry.draft) });
   emit();
 };
@@ -75,9 +81,11 @@ export const updatePlanDraft = (
  */
 export const rebasePlanDraft = (key: string, loaded: PlanDraft): void => {
   const entry = drafts.get(key);
+
   if (!entry) {
     return;
   }
+
   drafts.set(key, { ...entry, loaded });
   emit();
 };
@@ -103,5 +111,6 @@ export const usePlanDraftOpening = (key: string): void => {
 /** The opening's draft, re-rendering whenever it changes. */
 export const usePlanDraft = (key: string): DraftEntry | undefined => {
   const read = () => getPlanDraft(key);
+
   return useSyncExternalStore(subscribe, read, read);
 };

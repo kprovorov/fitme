@@ -1,15 +1,17 @@
 import { createRoute, OpenAPIHono, z } from "@hono/zod-openapi";
+
 import {
   invalidRequest,
   PUBLIC_CACHE_CONTROL,
   publicCacheHeaders,
 } from "../schemas.js";
 
-const VERSION_PATTERN = /^\d+\.\d+\.\d+$/;
+const VERSION_PATTERN = /^\d+\.\d+\.\d+$/u;
 
 /** An `x.y.z` version from env, or `undefined` when unset or malformed. */
 const versionFromEnv = (name: string) => {
   const value = process.env[name]?.trim();
+
   return value && VERSION_PATTERN.test(value) ? value : undefined;
 };
 
@@ -59,6 +61,7 @@ export const clientConfig = new OpenAPIHono({
   defaultHook: invalidRequest,
 }).openapi(getClientConfig, (c) => {
   c.header("Cache-Control", PUBLIC_CACHE_CONTROL);
+
   return c.json(
     {
       data: {

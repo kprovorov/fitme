@@ -1,5 +1,7 @@
 import { createRoute, OpenAPIHono, z } from "@hono/zod-openapi";
-import { type ApiEnv, bearerSecurity, requires } from "../auth.js";
+
+import { bearerSecurity, requires } from "../auth.js";
+import type { ApiEnv } from "../auth.js";
 import { checkExerciseSlugs, slugRefusal } from "../library.js";
 import {
   ExerciseSlug,
@@ -235,6 +237,7 @@ export const workoutSessionExercises = new OpenAPIHono<ApiEnv>({
 })
   .openapi(listExerciseHistoryRoute, async (c) => {
     const { exercise_slug, limit, offset } = c.req.valid("query");
+
     const {
       value: { entries, total },
       weightUnit,
@@ -243,6 +246,7 @@ export const workoutSessionExercises = new OpenAPIHono<ApiEnv>({
       limit,
       offset,
     });
+
     // Parsed through the contract, so fields beyond it never go out.
     return c.json(
       ExerciseHistoryPage.parse({
@@ -266,9 +270,11 @@ export const workoutSessionExercises = new OpenAPIHono<ApiEnv>({
     const result = await c.var
       .getServices()
       .removeExerciseFromWorkoutSession(c.req.valid("param").id);
+
     if (result.status === "session_finished") {
       return c.json(sessionFinished(result.sessionId, result.finishedAt), 409);
     }
+
     // Nothing removed reads the same whether it was already removed, never
     // existed or is another User's: each answers 204, so a retried remove
     // succeeds and no id is revealed.
@@ -277,6 +283,7 @@ export const workoutSessionExercises = new OpenAPIHono<ApiEnv>({
   .openapi(replaceExerciseRoute, async (c) => {
     const { id } = c.req.valid("param");
     const { exercise_slug } = c.req.valid("json");
+
     const refusal = slugRefusal(
       await checkExerciseSlugs({
         library: c.var.getLibrary(),
@@ -284,21 +291,26 @@ export const workoutSessionExercises = new OpenAPIHono<ApiEnv>({
         slugs: [exercise_slug],
       })
     );
+
     if (refusal) {
       return c.json(refusal.body, refusal.status);
     }
+
     const { value, weightUnit } = await c.var
       .getServices()
       .replaceExerciseInWorkoutSession({
         exerciseSlug: exercise_slug,
         sessionExerciseId: id,
       });
+
     if (value.status === "not_found") {
       return c.json(exerciseNotFound, 404);
     }
+
     if (value.status === "session_finished") {
       return c.json(sessionFinished(value.sessionId, value.finishedAt), 409);
     }
+
     return c.json(
       WorkoutSessionExerciseResponse.parse({
         data: { ...value.exercise, weight_unit: weightUnit },
@@ -309,6 +321,7 @@ export const workoutSessionExercises = new OpenAPIHono<ApiEnv>({
   .openapi(addSetRoute, async (c) => {
     const { id } = c.req.valid("param");
     const { reps_completed, weight_completed } = c.req.valid("json");
+
     const { value, weightUnit } = await c.var
       .getServices()
       .addSetToWorkoutSessionExercise({
@@ -316,12 +329,15 @@ export const workoutSessionExercises = new OpenAPIHono<ApiEnv>({
         sessionExerciseId: id,
         weightCompleted: weight_completed,
       });
+
     if (value.status === "not_found") {
       return c.json(exerciseNotFound, 404);
     }
+
     if (value.status === "session_finished") {
       return c.json(sessionFinished(value.sessionId, value.finishedAt), 409);
     }
+
     return c.json(
       WorkoutSessionSetResponse.parse({
         data: { ...value.set, weight_unit: weightUnit },

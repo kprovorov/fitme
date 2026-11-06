@@ -2,6 +2,7 @@ import type { MuscleGroup } from "@fitme/core";
 import { useCallback } from "react";
 import { useTranslation } from "react-i18next";
 import { Pressable, View } from "react-native";
+
 import { Badge } from "~/components/ui/badge";
 import { Text } from "~/components/ui/text";
 import { useChoiceLabels } from "~/lib/choices";
@@ -14,7 +15,7 @@ import { i18n } from "~/lib/i18n";
  */
 const HIT_SLOP = { bottom: 11, left: 4, right: 4, top: 11 };
 
-function MuscleGroupChip({
+const MuscleGroupChip = ({
   group,
   label,
   onRemove,
@@ -22,7 +23,7 @@ function MuscleGroupChip({
   group: MuscleGroup;
   label: string;
   onRemove: (group: MuscleGroup) => void;
-}) {
+}) => {
   const { t } = useTranslation(undefined, { i18n });
   const remove = useCallback(() => onRemove(group), [group, onRemove]);
 
@@ -40,7 +41,7 @@ function MuscleGroupChip({
       </Badge>
     </Pressable>
   );
-}
+};
 
 /**
  * The chosen Muscle groups under the Muscles pill: one lime chip each, in
@@ -48,21 +49,22 @@ function MuscleGroupChip({
  * group at once. Nothing chosen renders nothing, so the list keeps the
  * pill's own spacing.
  */
-export function MuscleGroupChips({
+export const MuscleGroupChips = ({
   groups,
   onRemove,
 }: {
   groups: readonly MuscleGroup[];
   onRemove: (group: MuscleGroup) => void;
-}) {
+}) => {
   const labels = useChoiceLabels();
+
   if (groups.length === 0) {
     return null;
   }
 
   return (
     <View
-      className="w-full flex-row flex-wrap items-center gap-xs"
+      className="gap-xs w-full flex-row flex-wrap items-center"
       testID="muscle-group-chips"
     >
       {groups.map((group) => (
@@ -75,4 +77,4 @@ export function MuscleGroupChips({
       ))}
     </View>
   );
-}
+};

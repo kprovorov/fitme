@@ -1,5 +1,6 @@
 import { initObservability, reportMissingEnv } from "@fitme/observability/node";
 import { defineInstrumentation } from "eve/instrumentation";
+
 import { REQUIRED_ENV } from "../lib/required-env";
 
 // Error reporting (reportError from @fitme/observability/node), started once

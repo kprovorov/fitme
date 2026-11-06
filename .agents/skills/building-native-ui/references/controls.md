@@ -7,8 +7,8 @@ Native iOS controls provide built-in haptics, accessibility, and platform-approp
 Use for binary on/off settings. Has built-in haptics.
 
 ```tsx
-import { Switch } from "react-native";
 import { useState } from "react";
+import { Switch } from "react-native";
 
 const [enabled, setEnabled] = useState(false);
 
@@ -173,8 +173,8 @@ const [date, setDate] = useState(new Date());
 Increment/decrement numeric values.
 
 ```tsx
-import { Stepper } from "react-native";
 import { useState } from "react";
+import { Stepper } from "react-native";
 
 const [count, setCount] = useState(0);
 

@@ -13,7 +13,6 @@ import {
   Badge,
   VectorIcon,
 } from "expo-router/unstable-native-tabs";
-
 // SDK 55+
 import { NativeTabs } from "expo-router/unstable-native-tabs";
 ```

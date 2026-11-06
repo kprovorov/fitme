@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+
 import { formatElapsed } from "../formatters";
 import {
   bestSet,
@@ -15,9 +16,9 @@ const set = (
   weight_completed: number | null = null
 ) => ({ order, reps_completed, weight_completed });
 
-describe("exerciseProgress", () => {
+describe("exercise progress", () => {
   it("is done when every set is logged", () => {
-    expect(exerciseProgress([set(1, 10), set(2, 0)])).toEqual({
+    expect(exerciseProgress([set(1, 10), set(2, 0)])).toStrictEqual({
       logged: 2,
       state: "done",
       total: 2,
@@ -36,7 +37,7 @@ describe("exerciseProgress", () => {
   });
 });
 
-describe("countLoggedSets", () => {
+describe("logged set counts", () => {
   it("counts logged sets across exercises, zero reps included", () => {
     expect(
       countLoggedSets({
@@ -46,7 +47,7 @@ describe("countLoggedSets", () => {
   });
 });
 
-describe("sessionVolume", () => {
+describe("session volume", () => {
   it("sums weight × reps of logged sets", () => {
     expect(
       sessionVolume([
@@ -61,15 +62,15 @@ describe("sessionVolume", () => {
   });
 });
 
-describe("bestSet", () => {
+describe("best set selection", () => {
   it("picks the heaviest set, then the most reps", () => {
     expect(
       bestSet([set(1, 12, 17.5), set(2, 15, 17.5), set(3, 20, 15)])
-    ).toEqual({ reps: 15, weight: 17.5 });
+    ).toStrictEqual({ reps: 15, weight: 17.5 });
   });
 
   it("picks the most reps when no set has a weight", () => {
-    expect(bestSet([set(1, 12), set(2, 15)])).toEqual({
+    expect(bestSet([set(1, 12), set(2, 15)])).toStrictEqual({
       reps: 15,
       weight: null,
     });
@@ -80,7 +81,7 @@ describe("bestSet", () => {
   });
 });
 
-describe("formatSetResult", () => {
+describe("set result formatting", () => {
   it("shows weight × reps, or reps alone without a weight", () => {
     expect(formatSetResult({ reps: 12, weight: 17.5 })).toBe("17.5 × 12");
     expect(formatSetResult({ reps: 12, weight: null })).toBe("12 reps");
@@ -88,7 +89,7 @@ describe("formatSetResult", () => {
   });
 });
 
-describe("formatRepRange", () => {
+describe("rep range formatting", () => {
   it("formats a range, a single value, or nothing", () => {
     expect(
       formatRepRange([
@@ -102,7 +103,7 @@ describe("formatRepRange", () => {
   });
 });
 
-describe("formatElapsed", () => {
+describe("elapsed time formatting", () => {
   it("formats minutes and seconds, adding hours past an hour", () => {
     expect(formatElapsed(42 * 60_000 + 17_000)).toBe("42:17");
     expect(formatElapsed(65_000)).toBe("1:05");

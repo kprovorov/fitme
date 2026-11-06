@@ -1,6 +1,6 @@
 import { resolveObservabilityConfig, sdkOptions } from "@fitme/observability";
 
-/**
+/*
  * The Sentry options the browser, Node and edge runtimes share:
  * @fitme/observability's for the fitme-web DSN (environment, release,
  * sampling, the scrubber, data collection, trace headers to our own services

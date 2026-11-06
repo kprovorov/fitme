@@ -1,15 +1,19 @@
 import { randomBytes } from "node:crypto";
+
 import { asUser } from "@fitme/db";
 import { LibraryUnavailableError } from "@fitme/library-sdk";
-import { createFakeLibrary, type FakeLibrary } from "@fitme/library-sdk/fake";
+import { createFakeLibrary } from "@fitme/library-sdk/fake";
+import type { FakeLibrary } from "@fitme/library-sdk/fake";
 import { deleteTestUsers } from "@fitme/services/delete-test-users";
 import { createPlan, deletePlan, getPlan } from "@fitme/services/plans";
+import type { PlanWorkoutInput } from "@fitme/services/plans";
 import {
   finishWorkoutSession,
   logSet,
   startWorkoutSession,
 } from "@fitme/services/workout-sessions";
 import { afterAll, beforeEach, describe, expect, it } from "vitest";
+
 import { createApp } from "../src/create-app.js";
 import { createServicesFromEnv } from "../src/services.js";
 import {
@@ -39,14 +43,17 @@ const library: FakeLibrary = createFakeLibrary(
     ],
   }
 );
+
 const reported: unknown[] = [];
+
 const app = createApp({
   clerkJwtKey: clerk.jwtKey,
   createLibrary: () => library,
   createServices: createServicesFromEnv,
-  identifyUser: () => undefined,
+  identifyUser: () => {},
   reportError: (error) => {
     reported.push(error);
+
     return Promise.resolve();
   },
 });
@@ -101,17 +108,23 @@ const replacement = () => [
   },
 ];
 
-const put = async (userId: string, planId: string, workouts: unknown) => {
+const put = async (
+  userId: string,
+  planId: string,
+  workouts: PlanWorkoutInput[]
+) => {
   const response = await app.request(`/v1/plans/${planId}/workouts`, {
     body: JSON.stringify({ workouts }),
     headers: { ...signedInAs(userId), "content-type": "application/json" },
     method: "PUT",
   });
+
   return { body: await response.json(), status: response.status };
 };
 
 const get = async (path: string, userId: string) => {
   const response = await app.request(path, { headers: signedInAs(userId) });
+
   return { body: await response.json(), status: response.status };
 };
 
@@ -119,37 +132,42 @@ const get = async (path: string, userId: string) => {
 const planOf = (userId: string, planId: string) =>
   asUser(userId, (tx) => getPlan(tx, userId, planId));
 
-beforeEach(() => {
-  library.failWith(null);
-  reported.length = 0;
-});
+describe("pUT /v1/plans/{id}/workouts against the local stack", () => {
+  beforeEach(() => {
+    library.failWith(null);
+    reported.length = 0;
+  });
 
-afterAll(async () => {
-  await deleteTestUsers(users);
-});
+  afterAll(async () => {
+    await deleteTestUsers(users);
+  });
 
-describe("PUT /v1/plans/{id}/workouts against the local stack", () => {
   it("replaces the Workouts with new ids and fresh Covers, keeps the metadata and active state, and reads back the same", async () => {
     const plan = await asUser(owner, (tx) =>
       createPlan(tx, owner, newPlan("Replaced"), { activate: false })
     );
+
     const oldWorkoutIds = plan.workouts.map((workout) => workout.id);
 
     const { body, status } = await put(owner, plan.id, replacement());
 
-    expect(status).toBe(200);
-    expect(body.data).toMatchObject({
-      description: plan.description,
-      experience_level: plan.experience_level,
-      frequency: plan.frequency,
-      goal: plan.goal,
-      id: plan.id,
-      is_active: false,
-      name: "Replaced",
-      note: plan.note,
-      place: plan.place,
-      weight_unit: "kg",
-      workout_duration: plan.workout_duration,
+    expect({ data: body.data, status }).toMatchObject({
+      data: {
+        description: plan.description,
+        experience_level: plan.experience_level,
+        frequency: plan.frequency,
+        goal: plan.goal,
+        id: plan.id,
+        is_active: false,
+        name: "Replaced",
+        note: plan.note,
+        place: plan.place,
+        weight_unit: "kg",
+        workout_duration: plan.workout_duration,
+        // Day C ties hamstrings and quadriceps, so its first-met group wins.
+        workouts: [{ cover: HINGE_COVER }],
+      },
+      status: 200,
     });
     expect(
       body.data.workouts.map(
@@ -171,7 +189,7 @@ describe("PUT /v1/plans/{id}/workouts against the local stack", () => {
           ]),
         ]
       )
-    ).toEqual([
+    ).toStrictEqual([
       [
         1,
         "Day C",
@@ -189,13 +207,11 @@ describe("PUT /v1/plans/{id}/workouts against the local stack", () => {
       ],
     ]);
     expect(oldWorkoutIds).not.toContain(body.data.workouts[0].id);
-    // Day C ties hamstrings and quadriceps, so its first-met group wins.
-    expect(body.data.workouts[0].cover).toBe(HINGE_COVER);
-    expect(await get(`/v1/plans/${plan.id}`, owner)).toEqual({
+    await expect(get(`/v1/plans/${plan.id}`, owner)).resolves.toStrictEqual({
       body,
       status: 200,
     });
-    expect(reported).toEqual([]);
+    expect(reported).toStrictEqual([]);
   });
 
   it("keeps the active Plan active", async () => {
@@ -206,19 +222,23 @@ describe("PUT /v1/plans/{id}/workouts against the local stack", () => {
     const { body, status } = await put(owner, plan.id, replacement());
 
     expect(status).toBe(200);
-    expect(body.data.is_active).toBe(true);
-    expect((await get("/v1/plans/active", owner)).body.data.id).toBe(plan.id);
+    expect(body.data.is_active).toBeTruthy();
+    const activePlan = await get("/v1/plans/active", owner);
+    expect(activePlan.body.data.id).toBe(plan.id);
   });
 
   it("keeps past Workout Sessions of the replaced Workouts readable, with their logged sets", async () => {
     const plan = await asUser(owner, (tx) =>
       createPlan(tx, owner, newPlan("With history"), { activate: false })
     );
+
     const sessionId = await asUser(owner, async (tx) => {
       const started = await startWorkoutSession(tx, plan.workouts[0].id);
+
       if (started.status !== "started") {
         throw new Error("The Workout Session didn't start");
       }
+
       const [exercise] = started.session.exercises;
       await logSet(tx, {
         repsCompleted: 7,
@@ -226,15 +246,18 @@ describe("PUT /v1/plans/{id}/workouts against the local stack", () => {
         weightCompleted: 82.5,
       });
       await finishWorkoutSession(tx, started.session.id);
+
       return started.session.id;
     });
 
-    expect((await put(owner, plan.id, replacement())).status).toBe(200);
+    const replaced = await put(owner, plan.id, replacement());
+    expect(replaced.status).toBe(200);
 
     const { body, status } = await get(
       `/v1/workout-sessions/${sessionId}`,
       owner
     );
+
     expect(status).toBe(200);
     expect(body.data).toMatchObject({
       id: sessionId,
@@ -252,31 +275,33 @@ describe("PUT /v1/plans/{id}/workouts against the local stack", () => {
           exercise.sets.map((s) => [s.reps_completed, s.weight_completed]),
         ]
       )
-    ).toEqual([["barbell-back-squat", [[7, 82.5]]]]);
+    ).toStrictEqual([["barbell-back-squat", [[7, 82.5]]]]);
   });
 
   it("refuses unknown slugs with 400 unknown_exercises and keeps the old Workouts, unreported", async () => {
     const plan = await asUser(owner, (tx) =>
       createPlan(tx, owner, newPlan("Unknown"), { activate: false })
     );
+
     const workouts = replacement();
     workouts[0].exercises[1].exercise_slug = "made-up-press";
 
     const { body, status } = await put(owner, plan.id, workouts);
 
     expect(status).toBe(400);
-    expect(body.error).toEqual({
+    expect(body.error).toStrictEqual({
       code: "unknown_exercises",
       message: "Unknown exercise_slug(s): made-up-press",
     });
-    expect(await planOf(owner, plan.id)).toEqual(plan);
-    expect(reported).toEqual([]);
+    await expect(planOf(owner, plan.id)).resolves.toStrictEqual(plan);
+    expect(reported).toStrictEqual([]);
   });
 
   it("answers a reported 503 library_unavailable during an outage and keeps the old Workouts", async () => {
     const plan = await asUser(owner, (tx) =>
       createPlan(tx, owner, newPlan("Outage"), { activate: false })
     );
+
     const outage = new LibraryUnavailableError();
     library.failWith(outage);
 
@@ -284,8 +309,8 @@ describe("PUT /v1/plans/{id}/workouts against the local stack", () => {
 
     expect(status).toBe(503);
     expect(body.error.code).toBe("library_unavailable");
-    expect(await planOf(owner, plan.id)).toEqual(plan);
-    expect(reported).toEqual([outage]);
+    await expect(planOf(owner, plan.id)).resolves.toStrictEqual(plan);
+    expect(reported).toStrictEqual([outage]);
   });
 
   it("answers 404 not_found for another User's Plan and changes nothing of theirs", async () => {
@@ -297,8 +322,8 @@ describe("PUT /v1/plans/{id}/workouts against the local stack", () => {
 
     expect(status).toBe(404);
     expect(body.error.code).toBe("not_found");
-    expect(await planOf(owner, plan.id)).toEqual(plan);
-    expect(reported).toEqual([]);
+    await expect(planOf(owner, plan.id)).resolves.toStrictEqual(plan);
+    expect(reported).toStrictEqual([]);
   });
 
   it("answers 404 not_found for a deleted Plan and for one that never existed", async () => {
@@ -306,20 +331,23 @@ describe("PUT /v1/plans/{id}/workouts against the local stack", () => {
       const created = await createPlan(tx, owner, newPlan("Deleted"), {
         activate: false,
       });
+
       await deletePlan(tx, owner, created.id);
+
       return created;
     });
 
     const deleted = await put(owner, plan.id, replacement());
+
     const missing = await put(
       owner,
       "00000000-0000-4000-8000-000000000000",
       replacement()
     );
 
-    expect([deleted.status, missing.status]).toEqual([404, 404]);
+    expect([deleted.status, missing.status]).toStrictEqual([404, 404]);
     expect(deleted.body.error.code).toBe("not_found");
     expect(missing.body.error.code).toBe("not_found");
-    expect(reported).toEqual([]);
+    expect(reported).toStrictEqual([]);
   });
 });

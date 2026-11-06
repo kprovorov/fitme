@@ -8,7 +8,8 @@
 import { LibraryUnavailableError } from "@fitme/library-sdk";
 import type { FakeLibrary } from "@fitme/library-sdk/fake";
 import { beforeEach, describe, expect, it, jest } from "@jest/globals";
-import { type QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { QueryClientProvider } from "@tanstack/react-query";
+import type { QueryClient } from "@tanstack/react-query";
 import {
   act,
   fireEvent,
@@ -18,6 +19,7 @@ import {
 } from "@testing-library/react-native";
 import { router } from "expo-router";
 import type { ComponentType } from "react";
+
 import LibraryScreen from "~/app/(tabs)/library/index";
 import ExerciseGuideScreen from "~/app/exercises/[exerciseSlug]/guide";
 import ExerciseScreen from "~/app/exercises/[exerciseSlug]/index";
@@ -45,12 +47,16 @@ jest.mock("expo-router", () => ({
   useLocalSearchParams: () => ({ exerciseSlug: mockSlug.current }),
   useRouter: () => ({ push: jest.fn() }),
 }));
+
 jest.mock("~/components/ui/button", () =>
   jest.requireActual("~/test-utils/button-stub")
 );
+
 // A thumbnail and a video show as nothing.
 jest.mock("~/components/exercises/exercise-image", () => () => null);
+
 jest.mock("~/components/exercises/exercise-video", () => () => null);
+
 jest.mock("~/components/symbol-image", () => ({ SymbolImage: () => null }));
 
 let fake: FakeLibrary;

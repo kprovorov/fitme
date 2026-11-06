@@ -1,7 +1,5 @@
 import type { components } from "@fitme/api-client";
 import {
-  type ExperienceLevel,
-  type Goal,
   MAX_EXERCISES_PER_WORKOUT,
   MAX_FREQUENCY,
   MAX_PLAN_NAME_LENGTH,
@@ -13,6 +11,8 @@ import {
   MAX_WORKOUTS_PER_PLAN,
   MIN_FREQUENCY,
 } from "@fitme/core";
+import type { ExperienceLevel, Goal } from "@fitme/core";
+import { z } from "zod";
 
 /**
  * An Exercise of `display_workout_plan`'s result, by Exercise slug. A card
@@ -69,41 +69,45 @@ const DEFAULT_REST_SECONDS = 90;
 const DEFAULT_WORKOUT_DURATION_MINUTES = 60;
 const DEFAULT_PLAN_NAME = "Workout plan";
 
-const REPS_RE = /^\d+/;
+const REPS_RE = /^\d+/u;
 
 // The card is Arnold's tool output, from any Conversation however old, so
-// the helpers below take its fields as `unknown`: a missing or malformed one
-// gets the default rather than failing the save.
+// parse its fields before fitting them: a missing or malformed one gets the
+// default rather than failing the save.
+const cardNumberSchema = z.number().catch(Number.NaN);
+const cardTextSchema = z.string().catch("");
 
 /** `value` rounded to an integer within `min`–`max`; `fallback` if it isn't a number. */
 const fitInteger = (
-  value: unknown,
+  value: number,
   min: number,
   max: number,
   fallback: number
 ) =>
-  typeof value === "number" && Number.isFinite(value)
+  Number.isFinite(value)
     ? Math.min(max, Math.max(min, Math.round(value)))
     : fallback;
 
 /** The first number of Arnold's reps ("8-10" → 8). */
-const repsOf = (reps: unknown) => {
-  const match = typeof reps === "string" ? reps.match(REPS_RE) : null;
+const repsOf = (reps: WorkoutExercise["reps"]) => {
+  const match = reps.match(REPS_RE);
+
   return fitInteger(
-    match ? Number.parseInt(match[0], 10) : DEFAULT_REPS,
+    match ? Math.trunc(Number(match[0])) : DEFAULT_REPS,
     1,
     MAX_REPS,
     DEFAULT_REPS
   );
 };
 
-const nameOf = (name: unknown, fallback: string) => {
-  const trimmed = typeof name === "string" ? name.trim() : "";
+const nameOf = (name: WorkoutPlan["name"], fallback: string) => {
+  const trimmed = name.trim();
+
   return (trimmed || fallback).slice(0, MAX_PLAN_NAME_LENGTH);
 };
 
-const textOf = (text: unknown) =>
-  (typeof text === "string" ? text : "").slice(0, MAX_PLAN_TEXT_LENGTH);
+const textOf = (text: WorkoutPlan["description"]) =>
+  text.slice(0, MAX_PLAN_TEXT_LENGTH);
 
 /** Whether some Exercise of the card has no slug. */
 export const hasExercisesWithoutSlugs = (plan: WorkoutPlan) =>
@@ -131,6 +135,7 @@ export const planCardBody = (plan: WorkoutPlan): NewPlan | null => {
   if (!canSavePlanCard(plan)) {
     return null;
   }
+
   const workouts = plan.workouts
     .filter((workout) => workout.exercises.length > 0)
     .slice(0, MAX_WORKOUTS_PER_PLAN)
@@ -140,43 +145,52 @@ export const planCardBody = (plan: WorkoutPlan): NewPlan | null => {
         .slice(0, MAX_EXERCISES_PER_WORKOUT)
         .map((exercise) => {
           const set = {
-            reps_recommended: repsOf(exercise.reps),
+            reps_recommended: repsOf(cardTextSchema.parse(exercise.reps)),
             rest_recommended: fitInteger(
-              exercise.restSeconds,
+              cardNumberSchema.parse(exercise.restSeconds),
               0,
               MAX_REST_SECONDS,
               DEFAULT_REST_SECONDS
             ),
             weight_recommended: 0,
           };
+
           return {
             // Never empty: `canSavePlanCard` refuses a card without slugs.
             exercise_slug: exercise.exercise_slug ?? "",
             sets: Array.from(
               {
-                length: fitInteger(exercise.sets, 1, MAX_SETS_PER_EXERCISE, 1),
+                length: fitInteger(
+                  cardNumberSchema.parse(exercise.sets),
+                  1,
+                  MAX_SETS_PER_EXERCISE,
+                  1
+                ),
               },
               () => ({ ...set })
             ),
           };
         }),
-      name: nameOf(workout.name, workout.dayLabel || `Workout ${index + 1}`),
+      name: nameOf(
+        cardTextSchema.parse(workout.name),
+        workout.dayLabel || `Workout ${index + 1}`
+      ),
     }));
 
   return {
-    description: textOf(plan.description),
+    description: textOf(cardTextSchema.parse(plan.description)),
     experience_level: plan.experienceLevel ?? "intermediate",
     frequency: fitInteger(
-      plan.frequencyPerWeek,
+      cardNumberSchema.parse(plan.frequencyPerWeek),
       MIN_FREQUENCY,
       MAX_FREQUENCY,
       MIN_FREQUENCY
     ),
     goal: planCardGoal(plan.goal),
-    name: nameOf(plan.name, DEFAULT_PLAN_NAME),
+    name: nameOf(cardTextSchema.parse(plan.name), DEFAULT_PLAN_NAME),
     place: plan.place ?? "gym",
     workout_duration: fitInteger(
-      plan.workoutDuration,
+      cardNumberSchema.parse(plan.workoutDuration),
       1,
       MAX_WORKOUT_DURATION_MINUTES,
       DEFAULT_WORKOUT_DURATION_MINUTES

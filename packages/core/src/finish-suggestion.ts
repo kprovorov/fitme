@@ -1,14 +1,12 @@
 import type { WorkoutSessionExerciseSet } from "./models";
-import {
-  isWorkoutFullyTracked,
-  type TrackableWorkoutSession,
-} from "./workout-sessions";
+import { isWorkoutFullyTracked } from "./workout-sessions";
+import type { TrackableWorkoutSession } from "./workout-sessions";
 
 type PersistedSet = Pick<WorkoutSessionExerciseSet, "id" | "reps_completed">;
 
 /** A workout session whose sets can be matched against a just-saved set. */
 export interface ReconcilableWorkoutSession extends TrackableWorkoutSession {
-  exercises: Array<{ sets: PersistedSet[] }>;
+  exercises: { sets: PersistedSet[] }[];
 }
 
 /** Reported after a set mutation has been persisted successfully. */
@@ -34,7 +32,7 @@ export interface FinishSuggestionControllerOptions {
    * Called when `loadSession` fails; that save then does not trigger, unless
    * another save arrived during the failed read.
    */
-  onError?: (error: unknown) => void;
+  onError?: (error: Error) => void;
   /**
    * Remembers the sessions already suggested. Defaults to memory; pass a
    * persistent store to keep the once-per-session rule across app restarts.
@@ -102,6 +100,7 @@ const reconcile = (
     ...exercise,
     sets: exercise.sets.map((set) => {
       const saved = savedSets.get(set.id);
+
       return saved && hasReps(saved.reps_completed)
         ? { ...set, ...saved }
         : set;
@@ -109,11 +108,11 @@ const reconcile = (
   })),
 });
 
-export function createFinishSuggestionController({
+export const createFinishSuggestionController = ({
   loadSession,
   onError,
   suggestedSessionStore,
-}: FinishSuggestionControllerOptions): FinishSuggestionController {
+}: FinishSuggestionControllerOptions): FinishSuggestionController => {
   const listeners = new Set<() => void>();
   const suggestedSessions = suggestedSessionStore ?? new Set<string>();
   const pendingChecks = new Map<string, PendingCheck>();
@@ -130,13 +129,17 @@ export function createFinishSuggestionController({
     if (suggestedSessionIds.has(sessionId) === suggested) {
       return;
     }
+
     const next = new Set(suggestedSessionIds);
+
     if (suggested) {
       next.add(sessionId);
     } else {
       next.delete(sessionId);
     }
+
     suggestedSessionIds = next;
+
     for (const listener of listeners) {
       listener();
     }
@@ -152,11 +155,15 @@ export function createFinishSuggestionController({
     // instead of joining one that is about to end.
     if (!pending.dirty || suggestedSessions.has(sessionId)) {
       pendingChecks.delete(sessionId);
+
       return;
     }
+
     pending.dirty = false;
+
     try {
       const session = reconcile(await loadSession(sessionId), pending.sets);
+
       if (
         isWorkoutFullyTracked(session) &&
         watchers.has(sessionId) &&
@@ -168,28 +175,38 @@ export function createFinishSuggestionController({
       }
     } catch (error) {
       // A save that arrived during the failed read still gets its own check.
-      onError?.(error);
+      onError?.(
+        error instanceof Error
+          ? error
+          : new Error("Failed to load workout session", { cause: error })
+      );
     }
-    return check(sessionId, pending);
+
+    await check(sessionId, pending);
   };
 
-  const reportSetTracked = ({
+  const reportSetTracked = async ({
     previousRepsCompleted,
     sessionId,
     set,
   }: SetTrackedEvent): Promise<void> => {
     const isNewlyTracked =
       !hasReps(previousRepsCompleted) && hasReps(set.reps_completed);
+
     if (!isNewlyTracked || suggestedSessions.has(sessionId)) {
-      return Promise.resolve();
+      return;
     }
 
     const existing = pendingChecks.get(sessionId);
+
     if (existing) {
       existing.sets.set(set.id, set);
       existing.dirty = true;
       existing.generation = generationOf(sessionId);
-      return existing.promise;
+
+      await existing.promise;
+
+      return;
     }
 
     const pending: PendingCheck = {
@@ -198,30 +215,41 @@ export function createFinishSuggestionController({
       promise: Promise.resolve(),
       sets: new Map([[set.id, set]]),
     };
+
     pendingChecks.set(sessionId, pending);
     pending.promise = check(sessionId, pending);
-    return pending.promise;
+
+    await pending.promise;
   };
 
-  const dismiss = (sessionId: string) => setSuggested(sessionId, false);
+  const dismiss = (sessionId: string) => {
+    setSuggested(sessionId, false);
+  };
 
   const watch = (sessionId: string) => {
     const count = watchers.get(sessionId) ?? 0;
+
     if (count === 0) {
       watchGenerations.set(sessionId, generationOf(sessionId) + 1);
     }
+
     watchers.set(sessionId, count + 1);
     let watching = true;
+
     return () => {
       if (!watching) {
         return;
       }
+
       watching = false;
       const remaining = (watchers.get(sessionId) ?? 1) - 1;
+
       if (remaining > 0) {
         watchers.set(sessionId, remaining);
+
         return;
       }
+
       watchers.delete(sessionId);
       dismiss(sessionId);
     };
@@ -233,10 +261,11 @@ export function createFinishSuggestionController({
     reportSetTracked,
     subscribe: (listener) => {
       listeners.add(listener);
+
       return () => {
         listeners.delete(listener);
       };
     },
     watch,
   };
-}
+};

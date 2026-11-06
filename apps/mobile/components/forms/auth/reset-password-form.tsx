@@ -1,10 +1,13 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import type { TFunction } from "i18next";
-import { type ElementRef, useCallback, useMemo, useRef } from "react";
-import { type FieldErrors, useController, useForm } from "react-hook-form";
+import { useCallback, useMemo, useRef } from "react";
+import type { ElementRef } from "react";
+import { useController, useForm } from "react-hook-form";
+import type { FieldErrors } from "react-hook-form";
 import { useTranslation } from "react-i18next";
 import type { TextInput } from "react-native";
 import { z } from "zod";
+
 import type { AuthFormLayout } from "~/components/auth/auth-screen";
 import { PasswordInput } from "~/components/auth/password-input";
 import { Button } from "~/components/ui/button";
@@ -26,6 +29,7 @@ const createFormSchema = (t: TFunction) =>
       error: t("resetPassword.passwordsDontMatch"),
       path: ["confirmPassword"],
     });
+
 export type ResetPasswordFormValues = z.infer<
   ReturnType<typeof createFormSchema>
 >;
@@ -34,6 +38,7 @@ interface ResetPasswordFormProps extends AuthFormLayout {
   errors?: FieldErrors<ResetPasswordFormValues>;
   onSubmit: (values: ResetPasswordFormValues) => Promise<void>;
 }
+
 export default function ResetPasswordForm({
   children,
   disabled,
@@ -43,6 +48,7 @@ export default function ResetPasswordForm({
 }: ResetPasswordFormProps) {
   const { t } = useTranslation();
   const schema = useMemo(() => createFormSchema(t), [t]);
+
   const { control, handleSubmit, formState } = useForm<ResetPasswordFormValues>(
     {
       defaultValues: { confirmPassword: "", password: "" },
@@ -50,15 +56,19 @@ export default function ResetPasswordForm({
       resolver: zodResolver(schema),
     }
   );
+
   const busy = !!disabled || formState.isSubmitting;
+
   const submit = useCallback(
     () => handleSubmit(onSubmit)(),
     [handleSubmit, onSubmit]
   );
+
   const { field: password, fieldState: passwordState } = useController({
     control,
     name: "password",
   });
+
   const changePassword = useCallback(
     (value: string) => {
       password.onChange(value);
@@ -66,12 +76,17 @@ export default function ResetPasswordForm({
     },
     [password, onEdit]
   );
+
+  const confirmPasswordRef = useRef<ElementRef<typeof TextInput>>(null);
+
   const focusConfirmpassword = useCallback(
     () => confirmPasswordRef.current?.focus(),
     []
   );
+
   const { field: confirmPassword, fieldState: confirmPasswordState } =
     useController({ control, name: "confirmPassword" });
+
   const changeConfirmpassword = useCallback(
     (value: string) => {
       confirmPassword.onChange(value);
@@ -79,7 +94,10 @@ export default function ResetPasswordForm({
     },
     [confirmPassword, onEdit]
   );
-  const confirmPasswordRef = useRef<ElementRef<typeof TextInput>>(null);
+
+  const { onBlur: handlePasswordBlur } = password;
+  const { onBlur: handleConfirmPasswordBlur } = confirmPassword;
+
   return children({
     action: (
       <Button
@@ -97,7 +115,7 @@ export default function ResetPasswordForm({
       />
     ),
     fields: (
-      <VStack className="items-stretch gap-sm">
+      <VStack className="items-stretch">
         <PasswordInput
           accessibilityHint={t("auth.password.minimum", {
             count: PASSWORD_MIN_LENGTH,
@@ -106,7 +124,7 @@ export default function ResetPasswordForm({
           autoComplete="new-password"
           editable={!busy}
           error={passwordState.error?.message}
-          onBlur={password.onBlur}
+          onBlur={handlePasswordBlur}
           onChangeText={changePassword}
           onSubmitEditing={focusConfirmpassword}
           passwordRules={`minlength: ${PASSWORD_MIN_LENGTH};`}
@@ -121,7 +139,7 @@ export default function ResetPasswordForm({
           autoComplete="new-password"
           editable={!busy}
           error={confirmPasswordState.error?.message}
-          onBlur={confirmPassword.onBlur}
+          onBlur={handleConfirmPasswordBlur}
           onChangeText={changeConfirmpassword}
           onSubmitEditing={submit}
           passwordRules={`minlength: ${PASSWORD_MIN_LENGTH};`}
@@ -133,7 +151,7 @@ export default function ResetPasswordForm({
           value={confirmPassword.value}
         />
         {passwordState.error ? null : (
-          <Text className="text-footnote text-muted-foreground">
+          <Text variant="muted">
             {t("auth.password.minimum", { count: PASSWORD_MIN_LENGTH })}
           </Text>
         )}

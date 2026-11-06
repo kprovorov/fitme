@@ -1,10 +1,13 @@
 import type * as React from "react";
 import { useCallback, useState } from "react";
-import { TextInput, type TextInputProps, View } from "react-native";
+import { TextInput, View } from "react-native";
+import type { TextInputProps } from "react-native";
+
 import { ErrorMessage } from "~/components/ui/error-message";
 import { cn } from "~/lib/utils";
 
 type FieldState = "default" | "focused" | "error";
+
 type FieldVariant = "default" | "ghost";
 
 type FieldProps = TextInputProps & {
@@ -28,6 +31,7 @@ type FieldProps = TextInputProps & {
 };
 
 type FocusEvent = Parameters<NonNullable<TextInputProps["onFocus"]>>[0];
+
 type BlurEvent = Parameters<NonNullable<TextInputProps["onBlur"]>>[0];
 
 const restingStrokeClasses: Record<FieldVariant, string> = {
@@ -61,13 +65,15 @@ const Field = ({
   ...props
 }: FieldProps) => {
   const [isFocused, setIsFocused] = useState(false);
-  const message = typeof error === "string" && error ? error : undefined;
+  const message = error && error !== true ? error : undefined;
   let state: FieldState = "default";
+
   if (error) {
     state = "error";
   } else if (isFocused) {
     state = "focused";
   }
+
   const disabled = props.editable === false || props.readOnly === true;
 
   const handleFocus = useCallback(
@@ -77,6 +83,7 @@ const Field = ({
     },
     [onFocus]
   );
+
   const handleBlur = useCallback(
     (event: BlurEvent) => {
       setIsFocused(false);
@@ -92,7 +99,7 @@ const Field = ({
           [message, accessibilityHint].filter(Boolean).join(". ") || undefined
         }
         className={cn(
-          "rounded-lg border border-continuous bg-transparent px-sm text-body text-foreground",
+          "border-continuous px-sm text-body text-foreground rounded-lg border bg-transparent",
           state === "default"
             ? restingStrokeClasses[variant]
             : fieldStateClasses[state],
@@ -125,7 +132,9 @@ const Input = ({ className, ...props }: FieldProps) => (
     {...props}
   />
 );
+
 Input.displayName = "Input";
 
 export type { FieldProps as InputProps };
+
 export { Field, Input };

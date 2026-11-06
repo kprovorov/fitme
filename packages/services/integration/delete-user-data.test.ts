@@ -1,4 +1,5 @@
 import { randomUUID } from "node:crypto";
+
 import {
   arnoldSessions,
   asUser,
@@ -6,7 +7,6 @@ import {
   plans,
   profiles,
   retiredUserIdsInPrivate,
-  type Transaction,
   withService,
   workoutExerciseSets,
   workoutExercises,
@@ -15,8 +15,10 @@ import {
   workoutSessions,
   workouts,
 } from "@fitme/db";
+import type { Transaction } from "@fitme/db";
 import { eq, inArray } from "drizzle-orm";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
+
 import { deleteUserData, UserRekeyedError } from "../src/delete-user-data";
 import { withUserTablesLocked } from "./delete-test-users";
 
@@ -53,16 +55,18 @@ interface OwnedRows {
 const exerciseSlug = `test-squat-${runId}`;
 
 /** One row in every User-owned table and child table, all linked. */
-const seedUser = (userId: string): Promise<OwnedRows> =>
-  withService(async (tx) => {
+const seedUser = async (userId: string): Promise<OwnedRows> =>
+  await withService(async (tx) => {
     const [profile] = await tx
       .insert(profiles)
       .values({ age: 30, gender: "male", height: "180", userId, weight: "80" })
       .returning({ id: profiles.id });
+
     const [plan] = await tx
       .insert(plans)
       .values({ frequency: 3, goal: "general", place: "gym", userId })
       .returning({ id: plans.id });
+
     const [workout] = await tx
       .insert(workouts)
       .values({
@@ -72,10 +76,12 @@ const seedUser = (userId: string): Promise<OwnedRows> =>
         planId: plan.id,
       })
       .returning({ id: workouts.id });
+
     const [workoutExercise] = await tx
       .insert(workoutExercises)
       .values({ exerciseSlug, order: 1, workoutId: workout.id })
       .returning({ id: workoutExercises.id });
+
     const [workoutSet] = await tx
       .insert(workoutExerciseSets)
       .values({
@@ -86,6 +92,7 @@ const seedUser = (userId: string): Promise<OwnedRows> =>
         workoutExerciseId: workoutExercise.id,
       })
       .returning({ id: workoutExerciseSets.id });
+
     const [session] = await tx
       .insert(workoutSessions)
       .values({
@@ -95,14 +102,17 @@ const seedUser = (userId: string): Promise<OwnedRows> =>
         workoutId: workout.id,
       })
       .returning({ id: workoutSessions.id });
+
     const [sessionExercise] = await tx
       .insert(workoutSessionExercises)
       .values({ exerciseSlug, order: 1, workoutSessionId: session.id })
       .returning({ id: workoutSessionExercises.id });
+
     const [sessionSet] = await tx
       .insert(workoutSessionExerciseSets)
       .values({ order: 1, workoutSessionExerciseId: sessionExercise.id })
       .returning({ id: workoutSessionExerciseSets.id });
+
     const [personalRecord] = await tx
       .insert(personalRecords)
       .values({
@@ -141,11 +151,11 @@ const count = async (
     | typeof workoutSessions
     | typeof workouts,
   id: string
-) => tx.$count(table, eq(table.id, id));
+) => await tx.$count(table, eq(table.id, id));
 
 /** How many of the seeded rows still exist, per table. */
-const remaining = (rows: OwnedRows) =>
-  withService(async (tx) => ({
+const remaining = async (rows: OwnedRows) =>
+  await withService(async (tx) => ({
     personalRecord: await count(tx, personalRecords, rows.personalRecord),
     plan: await count(tx, plans, rows.plan),
     profile: await count(tx, profiles, rows.profile),
@@ -200,23 +210,23 @@ const rekey = async (tx: Transaction, oldId: string, newId: string) => {
  */
 const arnoldSessionId = (userId: string) => `wrun_${userId}`;
 
-const recordArnoldSessionFor = (userId: string) =>
-  withService((tx) =>
+const recordArnoldSessionFor = async (userId: string) =>
+  await withService((tx) =>
     tx
       .insert(arnoldSessions)
       .values({ sessionId: arnoldSessionId(userId), userId })
   );
 
-const arnoldSessionsLeft = (userId: string) =>
-  withService((tx) =>
+const arnoldSessionsLeft = async (userId: string) =>
+  await withService((tx) =>
     tx.$count(
       arnoldSessions,
       eq(arnoldSessions.sessionId, arnoldSessionId(userId))
     )
   );
 
-const retirement = (userId: string) =>
-  withService((tx) =>
+const retirement = async (userId: string) =>
+  await withService((tx) =>
     tx
       .select()
       .from(retiredUserIdsInPrivate)
@@ -226,51 +236,53 @@ const retirement = (userId: string) =>
 let deletedRows: OwnedRows;
 let bystanderRows: OwnedRows;
 
-beforeAll(async () => {
-  deletedRows = await seedUser(deleted);
-  bystanderRows = await seedUser(bystander);
-  await recordArnoldSessionFor(deleted);
-  await recordArnoldSessionFor(bystander);
-});
-
-afterAll(async () => {
-  await withUserTablesLocked(async (tx) => {
-    await deleteUserData(tx, bystander);
-    await deleteUserData(tx, rekeyed);
-    await tx
-      .delete(arnoldSessions)
-      .where(inArray(arnoldSessions.userId, [deleted, bystander]));
+describe("deleteUserData integration", () => {
+  beforeAll(async () => {
+    deletedRows = await seedUser(deleted);
+    bystanderRows = await seedUser(bystander);
+    await recordArnoldSessionFor(deleted);
+    await recordArnoldSessionFor(bystander);
   });
-});
 
-describe("deleteUserData", () => {
+  afterAll(async () => {
+    await withUserTablesLocked(async (tx) => {
+      await deleteUserData(tx, bystander);
+      await deleteUserData(tx, rekeyed);
+      await tx
+        .delete(arnoldSessions)
+        .where(inArray(arnoldSessions.userId, [deleted, bystander]));
+    });
+  });
+
   it("removes every row the User owns, children included", async () => {
-    expect(await remaining(deletedRows)).toEqual(allRows(1));
+    await expect(remaining(deletedRows)).resolves.toStrictEqual(allRows(1));
 
-    await withUserTablesLocked((tx) => deleteUserData(tx, deleted));
+    await withUserTablesLocked(async (tx) => {
+      await deleteUserData(tx, deleted);
+    });
 
-    expect(await remaining(deletedRows)).toEqual(allRows(0));
+    await expect(remaining(deletedRows)).resolves.toStrictEqual(allRows(0));
   });
 
   it("keeps the User's Arnold session ids, so their EVE sessions stay theirs", async () => {
-    expect(await arnoldSessionsLeft(deleted)).toBe(1);
-    expect(
-      await withService((tx) =>
+    await expect(arnoldSessionsLeft(deleted)).resolves.toBe(1);
+    await expect(
+      withService((tx) =>
         tx
           .select({ userId: arnoldSessions.userId })
           .from(arnoldSessions)
           .where(eq(arnoldSessions.sessionId, arnoldSessionId(deleted)))
       )
-    ).toEqual([{ userId: deleted }]);
+    ).resolves.toStrictEqual([{ userId: deleted }]);
   });
 
   it("leaves another User's rows untouched", async () => {
-    expect(await remaining(bystanderRows)).toEqual(allRows(1));
-    expect(await arnoldSessionsLeft(bystander)).toBe(1);
+    await expect(remaining(bystanderRows)).resolves.toStrictEqual(allRows(1));
+    await expect(arnoldSessionsLeft(bystander)).resolves.toBe(1);
   });
 
   it("retires the id, so a later write as that User is refused", async () => {
-    expect(await retirement(deleted)).toEqual([
+    await expect(retirement(deleted)).resolves.toStrictEqual([
       expect.objectContaining({ rekeyedTo: null, userId: deleted }),
     ]);
 
@@ -293,36 +305,42 @@ describe("deleteUserData", () => {
   it("is a no-op when run again for the same User", async () => {
     const before = await retirement(deleted);
 
-    await withUserTablesLocked((tx) => deleteUserData(tx, deleted));
+    await withUserTablesLocked(async (tx) => {
+      await deleteUserData(tx, deleted);
+    });
 
-    expect(await retirement(deleted)).toEqual(before);
-    expect(await remaining(deletedRows)).toEqual(allRows(0));
-    expect(await remaining(bystanderRows)).toEqual(allRows(1));
+    await expect(retirement(deleted)).resolves.toStrictEqual(before);
+    await expect(remaining(deletedRows)).resolves.toStrictEqual(allRows(0));
+    await expect(remaining(bystanderRows)).resolves.toStrictEqual(allRows(1));
   });
 
   it("refuses an id that was rekeyed away, changing nothing", async () => {
     const legacyRows = await seedUser(legacy);
-    await withService((tx) => rekey(tx, legacy, rekeyed));
+    await withService(async (tx) => {
+      await rekey(tx, legacy, rekeyed);
+    });
 
-    const attempt = withUserTablesLocked((tx) => deleteUserData(tx, legacy));
+    const attempt = withUserTablesLocked(async (tx) => {
+      await deleteUserData(tx, legacy);
+    });
 
     await expect(attempt).rejects.toBeInstanceOf(UserRekeyedError);
     await expect(attempt).rejects.toMatchObject({
       code: "55000",
       userId: legacy,
     });
-    expect(await retirement(legacy)).toEqual([
+    await expect(retirement(legacy)).resolves.toStrictEqual([
       expect.objectContaining({ rekeyedTo: rekeyed, userId: legacy }),
     ]);
-    expect(await remaining(legacyRows)).toEqual(allRows(1));
-    expect(
-      await withService((tx) =>
+    await expect(remaining(legacyRows)).resolves.toStrictEqual(allRows(1));
+    await expect(
+      withService((tx) =>
         tx
           .select({ userId: profiles.userId })
           .from(profiles)
           .where(eq(profiles.id, legacyRows.profile))
       )
-    ).toEqual([{ userId: rekeyed }]);
+    ).resolves.toStrictEqual([{ userId: rekeyed }]);
   });
 
   it("refuses every id along a rekey chain and deletes its current id", async () => {
@@ -333,22 +351,30 @@ describe("deleteUserData", () => {
     });
 
     await expect(
-      withUserTablesLocked((tx) => deleteUserData(tx, chainA))
+      withUserTablesLocked(async (tx) => {
+        await deleteUserData(tx, chainA);
+      })
     ).rejects.toMatchObject({ code: "55000", userId: chainA });
     await expect(
-      withUserTablesLocked((tx) => deleteUserData(tx, chainB))
+      withUserTablesLocked(async (tx) => {
+        await deleteUserData(tx, chainB);
+      })
     ).rejects.toMatchObject({ code: "55000", userId: chainB });
-    expect(await remaining(chainRows)).toEqual(allRows(1));
+    await expect(remaining(chainRows)).resolves.toStrictEqual(allRows(1));
 
-    await withUserTablesLocked((tx) => deleteUserData(tx, chainC));
+    await withUserTablesLocked(async (tx) => {
+      await deleteUserData(tx, chainC);
+    });
 
-    expect(await remaining(chainRows)).toEqual(allRows(0));
-    expect(await remaining(bystanderRows)).toEqual(allRows(1));
+    await expect(remaining(chainRows)).resolves.toStrictEqual(allRows(0));
+    await expect(remaining(bystanderRows)).resolves.toStrictEqual(allRows(1));
   });
 
   it("rejects an empty id", async () => {
     await expect(
-      withUserTablesLocked((tx) => deleteUserData(tx, ""))
+      withUserTablesLocked(async (tx) => {
+        await deleteUserData(tx, "");
+      })
     ).rejects.toThrow("deleteUserData needs a User id");
   });
 });

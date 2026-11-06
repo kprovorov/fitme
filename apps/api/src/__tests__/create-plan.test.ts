@@ -1,6 +1,7 @@
 import { LibraryUnavailableError } from "@fitme/library-sdk";
 import type { CreatePlanOptions, NewPlan } from "@fitme/services/plans";
 import { describe, expect, it } from "vitest";
+
 import {
   fakeServices,
   libraryCover,
@@ -23,7 +24,7 @@ const CHEST_COVER = "3c4d5e6f-7a8b-4c9d-8e0f-1a2b3c4d5e6f";
 
 /** A field of the services' answer the contract never shows. */
 const LEGACY_OR_INTERNAL_FIELD =
-  /"(exercise_id|exercise|deleted_at|request_key|user_id)"/;
+  /"(?<field>exercise_id|exercise|deleted_at|request_key|user_id)"/u;
 
 /** A valid body: two Workouts over the Exercises the test library knows. */
 const body = () => ({
@@ -138,18 +139,26 @@ const servicesCreated = {
 /** Services whose `createPlan` records what it was asked and answers `servicesCreated`. */
 const recordingServices = (weightUnit: "kg" | "lbs" = "kg") => {
   const calls: { options: CreatePlanOptions; plan: NewPlan }[] = [];
+
   const services = fakeServices({
     createPlan: (plan, options) => {
       calls.push({ options, plan });
+
       return Promise.resolve({ value: servicesCreated, weightUnit });
     },
   });
+
   return { calls, services };
+};
+
+type TestPlanPayload = ReturnType<typeof body> & {
+  activate?: boolean | string;
+  note?: string | null;
 };
 
 const post = (
   app: ReturnType<typeof testApp>["app"],
-  payload: unknown,
+  payload: TestPlanPayload,
   headers: Record<string, string> = signedInAs("user_alice")
 ) =>
   app.request("/v1/plans", {
@@ -158,7 +167,7 @@ const post = (
     method: "POST",
   });
 
-describe("POST /v1/plans", () => {
+describe("pOST /v1/plans", () => {
   it("creates the Plan, active by default, with no Covers from a Library without any, and answers it in full with its weight unit", async () => {
     const { calls, services } = recordingServices();
     const { app, reported, servicesFor } = testApp({ services });
@@ -166,11 +175,11 @@ describe("POST /v1/plans", () => {
     const response = await post(app, body());
 
     expect(response.status).toBe(201);
-    expect(await response.json()).toEqual({
+    await expect(response.json()).resolves.toStrictEqual({
       data: { ...created, weight_unit: "kg" },
     });
     const { workouts, ...metadata } = body();
-    expect(calls).toEqual([
+    expect(calls).toStrictEqual([
       {
         options: { activate: true },
         // The Library has no Covers, so no Workout gets one.
@@ -180,12 +189,13 @@ describe("POST /v1/plans", () => {
         },
       },
     ]);
-    expect(servicesFor).toEqual(["user_alice"]);
-    expect(reported).toEqual([]);
+    expect(servicesFor).toStrictEqual(["user_alice"]);
+    expect(reported).toStrictEqual([]);
   });
 
   it("gives each Workout the Cover of the muscle group it trains most", async () => {
     const { calls, services } = recordingServices();
+
     const { app, reported } = testApp({
       covers: [
         libraryCover(CHEST_COVER, ["chest"]),
@@ -200,15 +210,15 @@ describe("POST /v1/plans", () => {
 
     expect(response.status).toBe(201);
     // Day A ties quadriceps and hamstrings, so its first-met group wins.
-    expect(calls[0].plan.workouts.map((workout) => workout.cover)).toEqual([
-      LEGS_COVER,
-      HINGE_COVER,
-    ]);
-    expect(reported).toEqual([]);
+    expect(
+      calls[0].plan.workouts.map((workout) => workout.cover)
+    ).toStrictEqual([LEGS_COVER, HINGE_COVER]);
+    expect(reported).toStrictEqual([]);
   });
 
   it("gives no two Workouts the same Cover while the Library has enough", async () => {
     const { calls, services } = recordingServices();
+
     const { app } = testApp({
       covers: [
         libraryCover(LEGS_COVER, ["quadriceps"]),
@@ -217,16 +227,16 @@ describe("POST /v1/plans", () => {
       exercises,
       services,
     });
+
     const payload = body();
     // Both Workouts train quadriceps most, and only one Cover suits them.
     payload.workouts[1].exercises[0].exercise_slug = "barbell-back-squat";
 
     await post(app, payload);
 
-    expect(calls[0].plan.workouts.map((workout) => workout.cover)).toEqual([
-      LEGS_COVER,
-      CHEST_COVER,
-    ]);
+    expect(
+      calls[0].plan.workouts.map((workout) => workout.cover)
+    ).toStrictEqual([LEGS_COVER, CHEST_COVER]);
   });
 
   it("answers a reported 503 library_unavailable when the Covers can't be read, writing nothing", async () => {
@@ -237,14 +247,14 @@ describe("POST /v1/plans", () => {
     const response = await post(app, body());
 
     expect(response.status).toBe(503);
-    expect(await response.json()).toEqual({
+    await expect(response.json()).resolves.toStrictEqual({
       error: {
         code: "library_unavailable",
         message:
           "The Library is unavailable, so the Workouts' Covers couldn't be picked; try again",
       },
     });
-    expect(reported).toEqual([outage]);
+    expect(reported).toStrictEqual([outage]);
   });
 
   it("passes activate: false on, to keep the active Plan", async () => {
@@ -254,7 +264,9 @@ describe("POST /v1/plans", () => {
     const response = await post(app, { ...body(), activate: false });
 
     expect(response.status).toBe(201);
-    expect(calls.map((call) => call.options)).toEqual([{ activate: false }]);
+    expect(calls.map((call) => call.options)).toStrictEqual([
+      { activate: false },
+    ]);
     expect(calls[0].plan).not.toHaveProperty("activate");
   });
 
@@ -265,7 +277,7 @@ describe("POST /v1/plans", () => {
     await post(app, { ...body(), note: "Deload every fourth week" });
     await post(app, { ...body(), note: null });
 
-    expect(calls.map((call) => call.plan.note)).toEqual([
+    expect(calls.map((call) => call.plan.note)).toStrictEqual([
       "Deload every fourth week",
       null,
     ]);
@@ -277,7 +289,9 @@ describe("POST /v1/plans", () => {
 
     const response = await post(app, body());
 
-    expect((await response.json()).data.weight_unit).toBe("lbs");
+    const answer = await response.json();
+
+    expect(answer.data.weight_unit).toBe("lbs");
   });
 
   it("answers 400 unknown_exercises naming each unknown slug once, writes nothing, unreported", async () => {
@@ -301,13 +315,13 @@ describe("POST /v1/plans", () => {
     const response = await post(app, payload);
 
     expect(response.status).toBe(400);
-    expect(await response.json()).toEqual({
+    await expect(response.json()).resolves.toStrictEqual({
       error: {
         code: "unknown_exercises",
         message: "Unknown exercise_slug(s): made-up-press, made-up-row",
       },
     });
-    expect(reported).toEqual([]);
+    expect(reported).toStrictEqual([]);
   });
 
   it("answers a reported 503 library_unavailable when the Library fails, writing nothing", async () => {
@@ -318,14 +332,14 @@ describe("POST /v1/plans", () => {
     const response = await post(app, body());
 
     expect(response.status).toBe(503);
-    expect(await response.json()).toEqual({
+    await expect(response.json()).resolves.toStrictEqual({
       error: {
         code: "library_unavailable",
         message:
           "The Library is unavailable, so the Exercises couldn't be checked; try again",
       },
     });
-    expect(reported).toEqual([outage]);
+    expect(reported).toStrictEqual([outage]);
   });
 
   it("answers a reported 503 library_unavailable when the Library isn't configured", async () => {
@@ -337,8 +351,10 @@ describe("POST /v1/plans", () => {
     const response = await post(app, body());
 
     expect(response.status).toBe(503);
-    expect((await response.json()).error.code).toBe("library_unavailable");
-    expect(reported).toEqual([
+    const answer = await response.json();
+
+    expect(answer.error.code).toBe("library_unavailable");
+    expect(reported).toStrictEqual([
       new Error(
         "Missing LIBRARY_URL or LIBRARY_PUBLIC_API_SECRET environment variable"
       ),
@@ -360,6 +376,7 @@ describe("POST /v1/plans", () => {
   const invalid = (edit: (payload: ReturnType<typeof body>) => void) => {
     const payload = body();
     edit(payload);
+
     return payload;
   };
 
@@ -466,8 +483,10 @@ describe("POST /v1/plans", () => {
     const response = await post(app, payload);
 
     expect(response.status).toBe(400);
-    expect((await response.json()).error.code).toBe("invalid_request");
-    expect(reported).toEqual([]);
+    const answer = await response.json();
+
+    expect(answer.error.code).toBe("invalid_request");
+    expect(reported).toStrictEqual([]);
   });
 
   it("answers 415 for a body that isn't JSON, unreported", async () => {
@@ -483,7 +502,7 @@ describe("POST /v1/plans", () => {
     });
 
     expect(response.status).toBe(415);
-    expect(reported).toEqual([]);
+    expect(reported).toStrictEqual([]);
   });
 
   it("answers 401 without a session token", async () => {

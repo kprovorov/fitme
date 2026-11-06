@@ -30,11 +30,11 @@ const summaryFields = {
   video_url: z.url().openapi({ description: "The public video URL (mp4)." }),
 };
 
-export const ExerciseSummary = z
+const ExerciseSummarySchema = z
   .object(summaryFields)
   .openapi("ExerciseSummary");
 
-export const Exercise = z
+const ExerciseSchema = z
   .object({
     ...summaryFields,
     description: z.string().openapi({ description: "Markdown." }),
@@ -42,9 +42,9 @@ export const Exercise = z
   })
   .openapi("Exercise");
 
-export const ExercisePage = z
+const ExercisePageSchema = z
   .object({
-    data: z.array(ExerciseSummary),
+    data: z.array(ExerciseSummarySchema),
     hasMore: z
       .boolean()
       .openapi({ description: "Whether more matches follow this page." }),
@@ -54,9 +54,9 @@ export const ExercisePage = z
   })
   .openapi("ExercisePage");
 
-export const ExerciseBatch = z
+const ExerciseBatchSchema = z
   .object({
-    data: z.array(ExerciseSummary).openapi({
+    data: z.array(ExerciseSummarySchema).openapi({
       description: "The Exercises found, in the order their slugs were asked.",
     }),
     missing: z.array(z.string()).openapi({
@@ -67,7 +67,7 @@ export const ExerciseBatch = z
   .openapi("ExerciseBatch");
 
 /** A Cover: a photo a Workout's card shows, tagged with the muscle groups it suits (ADR 0014). */
-export const Cover = z
+const CoverSchema = z
   .object({
     // the bundle allows any lowercase 8-4-4-4-12 hex id, which z.uuid()'s
     // RFC version and variant checks would refuse
@@ -86,20 +86,34 @@ export const Cover = z
   })
   .openapi("Cover");
 
-export const CoverList = z
+const CoverListSchema = z
   .object({
-    data: z.array(Cover).openapi({
+    data: z.array(CoverSchema).openapi({
       description: "Every Cover in the Library, unpaged.",
     }),
   })
   .openapi("CoverList");
 
-export type ExerciseSummary = z.infer<typeof ExerciseSummary>;
-export type Exercise = z.infer<typeof Exercise>;
-export type ExercisePage = z.infer<typeof ExercisePage>;
-export type ExerciseBatch = z.infer<typeof ExerciseBatch>;
-export type Cover = z.infer<typeof Cover>;
-export type CoverList = z.infer<typeof CoverList>;
+export {
+  ExerciseSummarySchema as ExerciseSummary,
+  ExerciseSchema as Exercise,
+  ExercisePageSchema as ExercisePage,
+  ExerciseBatchSchema as ExerciseBatch,
+  CoverSchema as Cover,
+  CoverListSchema as CoverList,
+};
+
+export type ExerciseSummary = z.infer<typeof ExerciseSummarySchema>;
+
+export type Exercise = z.infer<typeof ExerciseSchema>;
+
+export type ExercisePage = z.infer<typeof ExercisePageSchema>;
+
+export type ExerciseBatch = z.infer<typeof ExerciseBatchSchema>;
+
+export type Cover = z.infer<typeof CoverSchema>;
+
+export type CoverList = z.infer<typeof CoverListSchema>;
 
 export const ErrorResponse = z
   .object({

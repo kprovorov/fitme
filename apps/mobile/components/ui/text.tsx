@@ -1,6 +1,8 @@
 import * as Slot from "@rn-primitives/slot";
 import * as React from "react";
-import { Platform, Text as RNText, type Role } from "react-native";
+import { Platform, Text as RNText } from "react-native";
+import type { Role } from "react-native";
+
 import { cn } from "~/lib/utils";
 
 /**
@@ -28,7 +30,9 @@ const TEXT_VARIANTS = {
 type TextVariant = keyof typeof TEXT_VARIANTS;
 
 const ROLE: Partial<Record<TextVariant, Role>> = {
+  // SAFETY: Platform.select confines this web ARIA role to web; native receives undefined.
   blockquote: Platform.select({ web: "blockquote" as Role }),
+  // SAFETY: Platform.select confines this web ARIA role to web; native receives undefined.
   code: Platform.select({ web: "code" as Role }),
   h1: "heading",
   h2: "heading",
@@ -55,14 +59,15 @@ type TextProps = React.ComponentProps<typeof RNText> & {
  * `AvatarFallback`) restyles the `Text` inside it through `TextClassContext`;
  * `className` still wins over both.
  */
-function Text({
+const Text = ({
   className,
   asChild = false,
   variant = "default",
   ...props
-}: TextProps) {
+}: TextProps) => {
   const textClass = React.useContext(TextClassContext);
   const Component = asChild ? Slot.Text : RNText;
+
   return (
     <Component
       aria-level={ARIA_LEVEL[variant]}
@@ -76,7 +81,8 @@ function Text({
       {...props}
     />
   );
-}
+};
 
 export type { TextProps, TextVariant };
+
 export { ARIA_LEVEL, ROLE, TEXT_VARIANTS, Text, TextClassContext };

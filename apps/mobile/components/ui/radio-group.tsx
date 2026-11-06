@@ -15,8 +15,10 @@ import {
   tint,
 } from "@expo/ui/swift-ui/modifiers";
 import { useCallback } from "react";
+
 import { SwiftUIHost, useSwiftUITheme } from "~/components/ui/swift-ui";
 import { cn } from "~/lib/utils";
+
 import type { PickerOption, PickerValue } from "./picker";
 
 interface RadioGroupProps<TValue extends PickerValue> {
@@ -54,6 +56,7 @@ const RadioGroup = <TValue extends PickerValue>({
   const theme = useSwiftUITheme();
 
   const handleSelectionChange = useCallback(
+    // SAFETY: SwiftUI reports a selected option's tag, and every option tag is a TValue.
     (selection: TValue | null) => onValueChange?.(selection as TValue),
     [onValueChange]
   );
@@ -107,4 +110,5 @@ const RadioGroup = <TValue extends PickerValue>({
 RadioGroup.displayName = "RadioGroup";
 
 export type { RadioGroupProps };
+
 export { RadioGroup };

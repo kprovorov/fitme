@@ -1,14 +1,10 @@
 import { getWeightLabel } from "@fitme/core/labels";
-import {
-  type Gender,
-  type MeasurementSystem,
-  measurementSystems,
-} from "@fitme/core/models";
+import { measurementSystems } from "@fitme/core/models";
+import type { Gender, MeasurementSystem } from "@fitme/core/models";
 import {
   personalRecords,
   plans,
   profiles,
-  type Transaction,
   workoutExerciseSets,
   workoutExercises,
   workoutSessionExerciseSets,
@@ -16,7 +12,9 @@ import {
   workoutSessions,
   workouts,
 } from "@fitme/db";
-import { and, eq, inArray, isNotNull, or, type SQL, sql } from "drizzle-orm";
+import type { Transaction } from "@fitme/db";
+import { and, eq, inArray, isNotNull, or, sql } from "drizzle-orm";
+import type { SQL } from "drizzle-orm";
 import type { AnyPgColumn } from "drizzle-orm/pg-core";
 
 const isKnownSystem = (value: string): value is MeasurementSystem =>
@@ -27,6 +25,7 @@ const unitsFor = (measurementSystem: string) => {
   const system = isKnownSystem(measurementSystem)
     ? measurementSystem
     : "metric";
+
   return {
     height: system === "metric" ? "cm" : "in",
     weight: getWeightLabel(system),
@@ -64,9 +63,11 @@ export const getProfile = async (
     })
     .from(profiles)
     .where(eq(profiles.userId, userId));
-  if (!profile) {
+
+  if (profile === undefined) {
     return null;
   }
+
   return {
     age: profile.age,
     gender: profile.gender,
@@ -95,7 +96,8 @@ export const lockProfileUnits = async (
     .from(profiles)
     .where(eq(profiles.userId, userId))
     .for("share");
-  return profile ? unitsFor(profile.measurementSystem) : null;
+
+  return profile === undefined ? null : unitsFor(profile.measurementSystem);
 };
 
 /** Fields of a Profile to change; omitted ones stay as they are. */
@@ -125,6 +127,7 @@ const conversionFactors = (
   if (isImperial(from) && isImperial(to)) {
     return null;
   }
+
   return from === "metric"
     ? { height: sql`0.393701`, weight: sql`2.20462` }
     : { height: sql`(1.0 / 0.393701)`, weight: sql`(1.0 / 2.20462)` };
@@ -224,8 +227,9 @@ export const updateProfile = async (
   changes: ProfileChanges
 ): Promise<ProfileWithUnits | null> => {
   const { measurement_system: newSystem } = changes;
+
   if (newSystem !== undefined && !isKnownSystem(newSystem)) {
-    throw new Error(`Invalid measurement system: ${newSystem}`);
+    throw new Error(`Invalid measurement system: ${String(newSystem)}`);
   }
 
   // A no-op UPDATE: row-locks the Profile (taking the table lock the writes
@@ -237,7 +241,8 @@ export const updateProfile = async (
     .set({ measurementSystem: sql`${profiles.measurementSystem}` })
     .where(eq(profiles.userId, userId))
     .returning({ measurementSystem: profiles.measurementSystem });
-  if (!current) {
+
+  if (current === undefined) {
     return null;
   }
 
@@ -253,23 +258,26 @@ export const updateProfile = async (
         }),
       })
       .where(eq(profiles.userId, userId));
+
     if (factors) {
       await convertStoredWeights(tx, userId, factors.weight);
     }
   }
 
   const { age, gender, height, weight } = changes;
+
   const fields = {
     ...(age !== undefined && { age }),
     ...(gender !== undefined && { gender }),
     ...(height !== undefined && { height: String(height) }),
     ...(weight !== undefined && { weight: String(weight) }),
   };
+
   if (Object.keys(fields).length > 0) {
     await tx.update(profiles).set(fields).where(eq(profiles.userId, userId));
   }
 
-  return getProfile(tx, userId);
+  return await getProfile(tx, userId);
 };
 
 /** A whole Profile, every field given. */
@@ -293,9 +301,10 @@ export const replaceProfile = async (
 ): Promise<{ created: boolean; profile: ProfileWithUnits }> => {
   if (!isKnownSystem(profile.measurement_system)) {
     throw new Error(
-      `Invalid measurement system: ${profile.measurement_system}`
+      `Invalid measurement system: ${String(profile.measurement_system)}`
     );
   }
+
   const inserted = await tx
     .insert(profiles)
     .values({
@@ -308,13 +317,17 @@ export const replaceProfile = async (
     })
     .onConflictDoNothing({ target: profiles.userId })
     .returning({ id: profiles.id });
+
   const created = inserted.length > 0;
+
   const replaced = created
     ? await getProfile(tx, userId)
     : await updateProfile(tx, userId, profile);
+
   if (!replaced) {
     // The insert found a Profile, or made one: only RLS hiding it gets here.
     throw new Error("The Profile written isn't readable");
   }
+
   return { created, profile: replaced };
 };

@@ -1,4 +1,5 @@
 import type { SessionContext } from "eve/tools";
+
 import type { ClaimSession } from "./clerk-auth";
 import { isEvalRunnerTurn } from "./eval-runner";
 import { ownerOfTurn } from "./owner";
@@ -7,7 +8,7 @@ interface AdmitTurnDeps {
   claim: ClaimSession;
   /** Whether this is a local `eve eval` run (`isLocalEvalRun`). */
   isEvalRun: () => boolean;
-  report: (error: unknown, context: { sessionId: string }) => Promise<void>;
+  report: (error: Error, context: { sessionId: string }) => Promise<void>;
 }
 
 /**
@@ -30,20 +31,31 @@ export const admitTurn = async (
   if (isEvalRunnerTurn(auth)) {
     return isEvalRun();
   }
+
   const owner = ownerOfTurn(auth);
-  if (!owner) {
+
+  if (owner === null || owner === "") {
     return false;
   }
+
   try {
     const recorded = await claim(sessionId, owner);
+
     if (recorded !== owner) {
       throw new Error(
         `Arnold session ${sessionId} isn't recorded for its owner`
       );
     }
+
     return true;
   } catch (error) {
-    await report(error, { sessionId });
+    const failure =
+      error instanceof Error
+        ? error
+        : new Error("Conversation ownership check failed", { cause: error });
+
+    await report(failure, { sessionId });
+
     return false;
   }
 };

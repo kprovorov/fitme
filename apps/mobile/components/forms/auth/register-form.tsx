@@ -1,16 +1,19 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import type { TFunction } from "i18next";
-import { type ElementRef, useCallback, useMemo, useRef } from "react";
-import { type FieldErrors, useController, useForm } from "react-hook-form";
+import { useCallback, useMemo, useRef } from "react";
+import type { ElementRef } from "react";
+import { useController, useForm } from "react-hook-form";
+import type { FieldErrors } from "react-hook-form";
 import { useTranslation } from "react-i18next";
+import { View } from "react-native";
 import type { TextInput } from "react-native";
 import { z } from "zod";
+
 import type { AuthFormLayout } from "~/components/auth/auth-screen";
 import { PasswordInput } from "~/components/auth/password-input";
 import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
 import { Text } from "~/components/ui/text";
-import { VStack } from "~/components/ui/vstack";
 import { NAME_MIN_LENGTH, PASSWORD_MIN_LENGTH } from "~/lib/constants";
 
 const registerFormSchema = (t: TFunction) =>
@@ -28,12 +31,14 @@ const registerFormSchema = (t: TFunction) =>
       }),
     }),
   });
+
 export type RegisterFormValues = z.infer<ReturnType<typeof registerFormSchema>>;
 
 interface RegisterFormProps extends AuthFormLayout {
   errors?: FieldErrors<RegisterFormValues>;
   onSubmit: (values: RegisterFormValues) => Promise<void>;
 }
+
 export default function RegisterForm({
   children,
   disabled,
@@ -43,20 +48,25 @@ export default function RegisterForm({
 }: RegisterFormProps) {
   const { t } = useTranslation();
   const schema = useMemo(() => registerFormSchema(t), [t]);
+
   const { control, handleSubmit, formState } = useForm<RegisterFormValues>({
     defaultValues: { email: "", name: "", password: "" },
     errors,
     resolver: zodResolver(schema),
   });
+
   const busy = !!disabled || formState.isSubmitting;
+
   const submit = useCallback(
     () => handleSubmit(onSubmit)(),
     [handleSubmit, onSubmit]
   );
+
   const { field: name, fieldState: nameState } = useController({
     control,
     name: "name",
   });
+
   const changeName = useCallback(
     (value: string) => {
       name.onChange(value);
@@ -64,11 +74,15 @@ export default function RegisterForm({
     },
     [name, onEdit]
   );
+
+  const emailRef = useRef<ElementRef<typeof TextInput>>(null);
   const focusEmail = useCallback(() => emailRef.current?.focus(), []);
+
   const { field: email, fieldState: emailState } = useController({
     control,
     name: "email",
   });
+
   const changeEmail = useCallback(
     (value: string) => {
       email.onChange(value);
@@ -76,12 +90,15 @@ export default function RegisterForm({
     },
     [email, onEdit]
   );
-  const emailRef = useRef<ElementRef<typeof TextInput>>(null);
+
+  const passwordRef = useRef<ElementRef<typeof TextInput>>(null);
   const focusPassword = useCallback(() => passwordRef.current?.focus(), []);
+
   const { field: password, fieldState: passwordState } = useController({
     control,
     name: "password",
   });
+
   const changePassword = useCallback(
     (value: string) => {
       password.onChange(value);
@@ -89,7 +106,11 @@ export default function RegisterForm({
     },
     [password, onEdit]
   );
-  const passwordRef = useRef<ElementRef<typeof TextInput>>(null);
+
+  const { onBlur: handleNameBlur } = name;
+  const { onBlur: handleEmailBlur } = email;
+  const { onBlur: handlePasswordBlur } = password;
+
   return children({
     action: (
       <Button
@@ -107,14 +128,14 @@ export default function RegisterForm({
       />
     ),
     fields: (
-      <VStack className="items-stretch gap-sm">
+      <View className="gap-sm flex flex-col items-stretch justify-center">
         <Input
           accessibilityLabel={t("auth.fields.name")}
           autoCapitalize="words"
           autoComplete="name"
           editable={!busy}
           error={nameState.error?.message}
-          onBlur={name.onBlur}
+          onBlur={handleNameBlur}
           onChangeText={changeName}
           onSubmitEditing={focusEmail}
           placeholder={t("auth.fields.name")}
@@ -131,7 +152,7 @@ export default function RegisterForm({
           editable={!busy}
           error={emailState.error?.message}
           keyboardType="email-address"
-          onBlur={email.onBlur}
+          onBlur={handleEmailBlur}
           onChangeText={changeEmail}
           onSubmitEditing={focusPassword}
           placeholder={t("auth.fields.email")}
@@ -150,7 +171,7 @@ export default function RegisterForm({
           autoComplete="new-password"
           editable={!busy}
           error={passwordState.error?.message}
-          onBlur={password.onBlur}
+          onBlur={handlePasswordBlur}
           onChangeText={changePassword}
           onSubmitEditing={submit}
           passwordRules={`minlength: ${PASSWORD_MIN_LENGTH};`}
@@ -162,11 +183,11 @@ export default function RegisterForm({
           value={password.value}
         />
         {passwordState.error ? null : (
-          <Text className="text-footnote text-muted-foreground">
+          <Text variant="muted">
             {t("auth.password.minimum", { count: PASSWORD_MIN_LENGTH })}
           </Text>
         )}
-      </VStack>
+      </View>
     ),
   });
 }

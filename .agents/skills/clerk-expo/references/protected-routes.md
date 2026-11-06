@@ -24,32 +24,33 @@ Apps using `AuthView` in a modal (prebuilt path) often don't need an `(auth)` gr
 
 ```tsx
 // src/app/(home)/_layout.tsx — protect the group
-import { useAuth } from '@clerk/expo'
-import { Redirect, Stack } from 'expo-router'
+import { useAuth } from "@clerk/expo";
+import { Redirect, Stack } from "expo-router";
 
 export default function Layout() {
-  const { isSignedIn, isLoaded } = useAuth()
+  const { isSignedIn, isLoaded } = useAuth();
 
-  if (!isLoaded) return null
-  if (!isSignedIn) return <Redirect href="/(auth)/sign-in" />
+  if (!isLoaded) return null;
+  if (!isSignedIn) return <Redirect href="/(auth)/sign-in" />;
 
-  return <Stack />
+  return <Stack />;
 }
 ```
 
 ```tsx
 // src/app/(auth)/_layout.tsx — keep signed-in users out of auth screens
 export default function AuthRoutesLayout() {
-  const { isSignedIn, isLoaded } = useAuth()
+  const { isSignedIn, isLoaded } = useAuth();
 
-  if (!isLoaded) return null
-  if (isSignedIn) return <Redirect href="/" />
+  if (!isLoaded) return null;
+  if (isSignedIn) return <Redirect href="/" />;
 
-  return <Stack />
+  return <Stack />;
 }
 ```
 
 Rules:
+
 - **Always check `isLoaded` before `isSignedIn`** — Clerk needs a moment to restore the session from the token cache; skipping this flashes the sign-in screen at every cold start.
 - Return `null` (or a splash/spinner) while loading.
 - Use `<Redirect>` from expo-router, not `router.push` inside effects — avoids render-phase navigation warnings.

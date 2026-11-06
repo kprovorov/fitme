@@ -1,19 +1,24 @@
 import { useCallback, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Pressable, View } from "react-native";
+
 import { SymbolImage } from "~/components/symbol-image";
-import { Input, type InputProps } from "~/components/ui/input";
-export function PasswordInput({ className, ...props }: InputProps) {
+import { Input } from "~/components/ui/input";
+import type { InputProps } from "~/components/ui/input";
+
+export const PasswordInput = ({ className, ...props }: InputProps) => {
   const { t } = useTranslation();
   const [visible, setVisible] = useState(false);
   const toggleVisibility = useCallback(() => setVisible((value) => !value), []);
+
   return (
-    <View className="relative">
+    <View className="gap-xs flex-row items-start">
       <Input
         {...props}
         autoCapitalize="none"
         autoCorrect={false}
-        className={className ? `${className} pr-14` : "pr-14"}
+        className={className}
+        containerClassName="flex-1"
         secureTextEntry={!visible}
       />
       <Pressable
@@ -22,7 +27,7 @@ export function PasswordInput({ className, ...props }: InputProps) {
         )}
         accessibilityRole="button"
         accessibilityState={{ disabled: props.editable === false }}
-        className="absolute top-0 right-0 min-h-12 w-12 items-center justify-center"
+        className="min-h-12 w-12 items-center justify-center"
         disabled={props.editable === false}
         onPress={toggleVisibility}
       >
@@ -33,4 +38,4 @@ export function PasswordInput({ className, ...props }: InputProps) {
       </Pressable>
     </View>
   );
-}
+};

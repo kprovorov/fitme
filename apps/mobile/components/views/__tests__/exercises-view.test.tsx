@@ -1,3 +1,4 @@
+import type { MuscleGroup } from "@fitme/core";
 /**
  * The Library tab and the Exercise picker search the Library API
  * (FIT-242): search waits 300 ms after the last keystroke, the muscle group
@@ -11,13 +12,11 @@
  * as the Muscles sheet confirms it (`setMuscleChoice`); the sheet itself is
  * `__tests__/muscles-sheet.test.tsx`'s.
  */
-
-import type { MuscleGroup } from "@fitme/core";
 import {
-  type ExerciseSummary,
   LibraryRateLimitedError,
   LibraryUnavailableError,
 } from "@fitme/library-sdk";
+import type { ExerciseSummary } from "@fitme/library-sdk";
 import type { FakeLibrary } from "@fitme/library-sdk/fake";
 import {
   afterEach,
@@ -27,7 +26,8 @@ import {
   it,
   jest,
 } from "@jest/globals";
-import { type QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { QueryClientProvider } from "@tanstack/react-query";
+import type { QueryClient } from "@tanstack/react-query";
 import {
   act,
   fireEvent,
@@ -37,6 +37,7 @@ import {
 } from "@testing-library/react-native";
 import type { ReactNode } from "react";
 import { Text } from "react-native";
+
 import { getMuscleChoice, setMuscleChoice } from "~/hooks/muscle-choice";
 import { i18n, useAppLanguageSync } from "~/lib/i18n";
 import { readCachedSummary } from "~/lib/library-cache";
@@ -53,13 +54,20 @@ jest.mock(
       "~/test-utils/fake-library"
     ).libraryModule
 );
+
 jest.mock("~/components/ui/button", () =>
   jest.requireActual("~/test-utils/button-stub")
 );
+
 const mockPush = jest.fn();
-jest.mock("expo-router", () => ({ useRouter: () => ({ push: mockPush }) }));
+
+jest.mock("expo-router", () => ({
+  useRouter: () => ({ push: mockPush }),
+}));
+
 // A thumbnail shows as nothing.
 jest.mock("~/components/exercises/exercise-image", () => () => null);
+
 jest.mock("~/components/symbol-image", () => ({ SymbolImage: () => null }));
 
 /** 25 bench presses (two pages of 20) and a squat. */
@@ -72,8 +80,10 @@ const EXERCISES = [
 
 const COULD_NOT_LOAD = /Couldn't load/;
 const LOAD_MORE = /load more$/i;
+
 const LOAD_MORE_ERROR =
   "Couldn't load more exercises. Check your connection and try again.";
+
 /** Any row's subtitle: Muscle groups, one or joined with ", ". */
 const MUSCLE_GROUP_SUBTITLE = /, |^(Triceps|Chest)$/;
 
@@ -152,6 +162,7 @@ const reachEnd = async () => {
 const type = async (text: string) => {
   // Labelled in the App language.
   const input = screen.getByLabelText(i18n.t("library.search"));
+
   for (const end of text.split("").keys()) {
     // biome-ignore lint/performance/noAwaitInLoops: keystrokes come one after another
     await fireEvent.changeText(input, text.slice(0, end + 1));
@@ -733,6 +744,7 @@ const TRANSLATED = [
 
 function InAppLanguage({ children }: { children: ReactNode }) {
   useAppLanguageSync();
+
   return children;
 }
 

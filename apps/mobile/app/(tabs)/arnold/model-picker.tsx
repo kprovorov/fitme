@@ -9,13 +9,14 @@ import {
   View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+
 import { AndroidGrabber } from "@/components/grabber";
 import { SymbolImage } from "@/components/symbol-image";
 import { useSelectedArnoldModel } from "~/hooks/arnold-model";
 // The app's instance, named so it's started wherever the sheet renders.
 import { i18n } from "~/lib/i18n";
 
-function ModelRow({
+const ModelRow = ({
   description,
   id,
   label,
@@ -27,14 +28,14 @@ function ModelRow({
   label: string;
   selected: boolean;
   onSelect: (id: string) => void;
-}) {
+}) => {
   const handlePress = useCallback(() => onSelect(id), [id, onSelect]);
 
   return (
     <Pressable
       accessibilityRole="radio"
       accessibilityState={{ selected }}
-      className="flex-row items-center gap-3.5 px-5 py-3.5 active:bg-muted"
+      className="active:bg-muted flex-row items-center gap-3.5 px-5 py-3.5"
       onPress={handlePress}
     >
       <View className="flex-1">
@@ -51,10 +52,11 @@ function ModelRow({
       ) : null}
     </Pressable>
   );
-}
+};
 
-function NoModels({ isLoading }: { isLoading: boolean }) {
+const NoModels = ({ isLoading }: { isLoading: boolean }) => {
   const { t } = useTranslation(undefined, { i18n });
+
   if (isLoading) {
     return (
       <View className="items-center px-5 py-8">
@@ -64,14 +66,15 @@ function NoModels({ isLoading }: { isLoading: boolean }) {
       </View>
     );
   }
+
   return (
-    <Text className="px-5 py-3.5 text-muted-foreground text-subhead">
+    <Text className="text-muted-foreground text-subhead px-5 py-3.5">
       {t("arnold.modelPicker.unavailable")}
     </Text>
   );
-}
+};
 
-export default function ModelPickerSheet() {
+const ModelPickerSheet = () => {
   const { t } = useTranslation(undefined, { i18n });
   const { isLoading, model, models, setSelectedId } = useSelectedArnoldModel();
   const insets = useSafeAreaInsets();
@@ -96,7 +99,7 @@ export default function ModelPickerSheet() {
     >
       <AndroidGrabber />
       <View className="pt-2 pb-4">
-        <Text className="px-5 pb-2 text-footnote text-muted-foreground">
+        <Text className="text-footnote text-muted-foreground px-5 pb-2">
           {t("arnold.modelPicker.appliesToNextMessage")}
         </Text>
         {models ? (
@@ -116,4 +119,6 @@ export default function ModelPickerSheet() {
       </View>
     </ScrollView>
   );
-}
+};
+
+export default ModelPickerSheet;

@@ -1,4 +1,5 @@
 import { createMutation } from "react-query-kit";
+
 import { publicApi } from "~/lib/public-api";
 
 export interface StoreWorkoutSessionExerciseData {
@@ -16,10 +17,7 @@ export interface CreateWorkoutSessionExercisesVariables {
  * Library; the screen re-reads the session. Rejects with an
  * `ApiError`.
  */
-export const useCreateWorkoutSessionExerciseMutation = createMutation<
-  void,
-  CreateWorkoutSessionExercisesVariables
->({
+export const useCreateWorkoutSessionExerciseMutation = createMutation({
   mutationFn: async ({
     sessionId,
     data: { exercise_slug },
@@ -40,10 +38,7 @@ export interface DeleteWorkoutSessionExerciseVariables {
  * `DELETE /v1/workout-session-exercises/{id}`, leaving the others' `order`; the
  * screen re-reads the session. Rejects with an `ApiError`.
  */
-export const useDeleteWorkoutSessionExerciseMutation = createMutation<
-  void,
-  DeleteWorkoutSessionExerciseVariables
->({
+export const useDeleteWorkoutSessionExerciseMutation = createMutation({
   mutationFn: async ({ exerciseId }: DeleteWorkoutSessionExerciseVariables) => {
     await publicApi().DELETE("/v1/workout-session-exercises/{id}", {
       params: { path: { id: exerciseId } },
@@ -64,10 +59,7 @@ export interface ReplaceWorkoutSessionExerciseVariables {
  * Library and zeroes its sets' targets in the same transaction; the
  * screen re-reads the session. Rejects with an `ApiError`.
  */
-export const useReplaceWorkoutSessionExerciseMutation = createMutation<
-  void,
-  ReplaceWorkoutSessionExerciseVariables
->({
+export const useReplaceWorkoutSessionExerciseMutation = createMutation({
   mutationFn: async ({
     exerciseId,
     data: { exercise_slug },

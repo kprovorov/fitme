@@ -8,15 +8,19 @@
  */
 import { beforeEach, describe, expect, it, jest } from "@jest/globals";
 import { QueryClient } from "@tanstack/react-query";
+
 import { useActivePlanQuery } from "~/hooks/queries/plans";
 import type { Profile } from "~/hooks/queries/profiles";
 import { useProfileQuery } from "~/hooks/queries/profiles";
 import { rememberWriteStarter } from "~/lib/write-answers";
 import { FAKE_USER_ID } from "~/test-utils/fake-public-api";
 import { signInAs } from "~/test-utils/signed-in-user";
+
 import { rememberPendingWeighedRefresh } from "../settings";
 
-jest.mock("~/lib/segment", () => ({ segmentClient: { track: jest.fn() } }));
+jest.mock("~/lib/segment", () => ({
+  segmentClient: { track: jest.fn() },
+}));
 
 jest.mock("~/lib/clerk", () => ({
   getCurrentUserId: jest.requireActual<
@@ -61,7 +65,7 @@ beforeEach(() => {
   signInAs(FAKE_USER_ID);
 });
 
-describe("A switch whose answer couldn't be checked", () => {
+describe("a switch whose answer couldn't be checked", () => {
   it("re-reads the weighed queries once a Profile read shows the new system", () => {
     profileRead("metric");
     seedWeighedQuery();

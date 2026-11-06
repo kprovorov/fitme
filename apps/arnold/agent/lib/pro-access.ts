@@ -47,16 +47,20 @@ const proUntil = (
   now: number
 ): number | null => {
   const entitlement = body.subscriber.entitlements[proEntitlement];
-  if (!entitlement) {
+
+  if (entitlement === undefined) {
     return null;
   }
+
   if (entitlement.expires_date === null) {
     return Number.POSITIVE_INFINITY;
   }
+
   const until = Math.max(
     Date.parse(entitlement.expires_date ?? "") || 0,
     Date.parse(entitlement.grace_period_expires_date ?? "") || 0
   );
+
   return until > now ? until : null;
 };
 
@@ -77,13 +81,17 @@ export const createProCheck = ({
 
   return async (userId) => {
     const cached = cache.get(userId);
+
     if (cached && cached.expiresAt > now()) {
       return cached.isPro;
     }
+
     const key = secretKey();
-    if (!key) {
+
+    if (key === undefined || key === "") {
       throw new Error("Missing REVENUECAT_SECRET_KEY environment variable");
     }
+
     const response = await fetch(
       `${REVENUECAT_SUBSCRIBERS_URL}/${encodeURIComponent(userId)}`,
       {
@@ -94,15 +102,19 @@ export const createProCheck = ({
         signal: AbortSignal.timeout(timeoutMs),
       }
     );
+
     if (!response.ok) {
       throw new Error(`RevenueCat answered ${response.status}`);
     }
+
     const body = subscriberResponse.parse(await response.json());
     const checkedAt = now();
     const until = proUntil(body, checkedAt);
+
     if (cache.size >= MAX_CACHED_USERS) {
       cache.clear();
     }
+
     cache.set(userId, {
       expiresAt: Math.min(
         checkedAt + PRO_CHECK_TTL_MS,
@@ -110,6 +122,7 @@ export const createProCheck = ({
       ),
       isPro: until !== null,
     });
+
     return until !== null;
   };
 };

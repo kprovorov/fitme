@@ -16,6 +16,7 @@ import { QueryClientProvider } from "@tanstack/react-query";
 import { fireEvent, render, screen } from "@testing-library/react-native";
 import { useCallback } from "react";
 import { Alert, Pressable, Text } from "react-native";
+
 import MeasurementSystemScreen from "~/app/settings/measurement-system";
 import { useProfileQuery } from "~/hooks/queries/profiles";
 import { i18n } from "~/lib/i18n";
@@ -34,13 +35,17 @@ import {
 } from "~/test-utils/query-client";
 import { signInAs } from "~/test-utils/signed-in-user";
 
-jest.mock("expo-router", () => ({ Stack: { Screen: () => null } }));
+jest.mock("expo-router", () => ({
+  Stack: { Screen: () => null },
+}));
 
 jest.mock("@sentry/react-native", () => ({ captureException: jest.fn() }));
 
 // Reached through the queries the switch reads again; its real client's
 // `uuid` is ESM, which Jest can't require.
-jest.mock("~/lib/segment", () => ({ segmentClient: { track: jest.fn() } }));
+jest.mock("~/lib/segment", () => ({
+  segmentClient: { track: jest.fn() },
+}));
 
 jest.mock("~/lib/clerk", () => ({
   getCurrentUserId: jest.requireActual<
@@ -64,6 +69,7 @@ const MockOption = ({
     () => onValueChange(value),
     [onValueChange, value]
   );
+
   return (
     <Pressable onPress={handlePress} testID={`option-${value}`}>
       <Text>{label}</Text>
@@ -85,6 +91,7 @@ const MockAction = ({
     onPress?.();
     onIsPresentedChange(false);
   }, [onIsPresentedChange, onPress]);
+
   return (
     <Pressable onPress={handlePress}>
       <Text>{label}</Text>
@@ -112,6 +119,7 @@ const MockButton = ({
 jest.mock("~/components/ui/radio-group", () => {
   const { Text: MockText, View: MockView } =
     jest.requireActual<typeof import("react-native")>("react-native");
+
   return {
     RadioGroup: ({
       disabled,
@@ -151,6 +159,7 @@ jest.mock("~/components/ui/button", () => ({
 jest.mock("~/components/ui/alert-dialog", () => {
   const { Text: MockText, View: MockView } =
     jest.requireActual<typeof import("react-native")>("react-native");
+
   return {
     AlertDialog: ({
       actions,
@@ -186,19 +195,21 @@ const PROFILE_PATCH = "PATCH /v1/profile";
 const writes = () =>
   fakePublicApi.requests.filter(({ route }) => route !== PROFILE_GET);
 
-const alerts = () =>
-  (Alert.alert as jest.Mock).mock.calls as [string, string][];
+const alerts = () => jest.mocked(Alert.alert).mock.calls as [string, string][];
 
 let queryClient = createTestQueryClient();
 
 const mount = async () => {
   queryClient = createTestQueryClient();
+
   const rendered = await render(
     <QueryClientProvider client={queryClient}>
       <MeasurementSystemScreen />
     </QueryClientProvider>
   );
+
   await settle(queryClient);
+
   return rendered;
 };
 
@@ -217,10 +228,12 @@ describe("MeasurementSystemScreen", () => {
     backend.reset();
     backend.seedProfile(FAKE_USER_ID, { height: 180, weight: 80 });
     backend.seed({ exercises: [{ name: "Squat", sets: [5] }], id: "session" });
+
     for (const set of backend.sets) {
       set.weight_completed = 100;
     }
-    jest.spyOn(Alert, "alert").mockImplementation(() => undefined);
+
+    jest.spyOn(Alert, "alert").mockReturnValue(undefined);
   });
 
   it("switches through the Public API, converting every height and weight", async () => {
@@ -471,9 +484,11 @@ describe("MeasurementSystemScreen", () => {
     queryClient.clear();
     signInAs("user_next");
     const resumeRead = fakePublicApi.pause(PROFILE_GET);
+
     const nextUsersRead = queryClient.fetchQuery(
       useProfileQuery.getFetchOptions()
     );
+
     await until(() => fakePublicApi.count(PROFILE_GET) === 2);
 
     resumeSwitch();
@@ -509,9 +524,11 @@ describe("MeasurementSystemScreen", () => {
     await unmount();
     queryClient.clear();
     signInAs("user_next");
+
     const nextUsersRead = queryClient.fetchQuery(
       useProfileQuery.getFetchOptions()
     );
+
     await until(() => fakePublicApi.count(PROFILE_GET) === 3);
     await until(() => switching?.state.status === "error");
 
@@ -547,13 +564,13 @@ describe("MeasurementSystemScreen", () => {
   });
 });
 
-describe("MeasurementSystemScreen on a Ukrainian device", () => {
+describe("measurementSystemScreen on a Ukrainian device", () => {
   beforeEach(() => {
     setDeviceLanguages(["uk-UA"]);
     jest.clearAllMocks();
     backend.reset();
     backend.seedProfile(FAKE_USER_ID, { height: 180, weight: 80 });
-    jest.spyOn(Alert, "alert").mockImplementation(() => undefined);
+    jest.spyOn(Alert, "alert").mockReturnValue(undefined);
   });
 
   afterEach(async () => {

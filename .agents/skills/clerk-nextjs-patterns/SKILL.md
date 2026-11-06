@@ -1,7 +1,6 @@
 ---
 name: clerk-nextjs-patterns
-description: Advanced Next.js patterns - middleware, Server Actions, caching with
-  Clerk.
+description: Advanced Next.js patterns - middleware, Server Actions, caching with Clerk.
 license: MIT
 allowed-tools: WebFetch
 compatibility: Requires NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY and CLERK_SECRET_KEY. For manual JWT verification (standalone API servers without Clerk middleware), additionally requires CLERK_JWT_KEY or CLERK_PEM_PUBLIC_KEY.
@@ -21,7 +20,7 @@ For basic setup, see `clerk-setup` skill.
 ## What Do You Need?
 
 | Task | Reference |
-|------|-----------|
+| --- | --- |
 | Server vs client auth (`auth()` vs hooks) | references/server-vs-client.md |
 | Protect routes (check in each page, handler, and Server Function) | references/middleware-strategies.md |
 | Protect Server Actions | references/server-actions.md |
@@ -31,7 +30,7 @@ For basic setup, see `clerk-setup` skill.
 ## References
 
 | Reference | Description |
-|-----------|-------------|
+| --- | --- |
 | `references/server-vs-client.md` | `await auth()` vs hooks |
 | `references/middleware-strategies.md` | `auth.protect()` in each resource, bare `clerkMiddleware()` in `proxy.ts` (Next.js <=15: `middleware.ts`) |
 | `references/server-actions.md` | Protect mutations |
@@ -41,12 +40,14 @@ For basic setup, see `clerk-setup` skill.
 ## Mental Model
 
 Server vs Client = different auth APIs:
+
 - **Server**: `await auth()` from `@clerk/nextjs/server` (async!)
 - **Client**: `useAuth()` hook from `@clerk/nextjs` (sync)
 
 Never mix them. Server Components use server imports, Client Components use hooks.
 
 Key properties from `auth()`:
+
 - `isAuthenticated` — boolean, replaces the `!!userId` pattern
 - `sessionStatus` — `'active'` | `'pending'`, for detecting incomplete session tasks
 - `userId`, `orgId`, `orgSlug`, `has()`, `protect()` — unchanged
@@ -75,11 +76,11 @@ For client-side conditional rendering based on auth state. `<Show>` covers both 
 **Authentication check:**
 
 ```tsx
-import { Show } from '@clerk/nextjs'
+import { Show } from "@clerk/nextjs";
 
 <Show when="signed-in" fallback={<p>Please sign in</p>}>
   <Dashboard />
-</Show>
+</Show>;
 ```
 
 **Authorization checks (B2B):**
@@ -109,7 +110,11 @@ import { Show } from '@clerk/nextjs'
 **Callback for complex logic:**
 
 ```tsx
-<Show when={(has) => has({ role: 'org:admin' }) || has({ role: 'org:billing_manager' })}>
+<Show
+  when={(has) =>
+    has({ role: "org:admin" }) || has({ role: "org:billing_manager" })
+  }
+>
   <BillingActions />
 </Show>
 ```
@@ -119,9 +124,9 @@ import { Show } from '@clerk/nextjs'
 ## Common Pitfalls
 
 | Symptom | Cause | Fix |
-|---------|-------|-----|
+| --- | --- | --- |
 | `undefined` userId in Server Component | Missing `await` | `await auth()` not `auth()` |
-| Auth not working on API routes | Missing matcher | Add `'/(api|trpc)(.*)'` to `proxy.ts` (Next.js <=15: `middleware.ts`) |
+| Auth not working on API routes | Missing matcher | Add `'/(api | trpc)(.*)'`to`proxy.ts`(Next.js <=15:`middleware.ts`) |
 | Cache returns wrong user's data | Missing userId in key | Include `userId` in `unstable_cache` key |
 | Mutations bypass auth | Unprotected Server Action | Check `auth()` at start of action |
 | Protected page returns 200, not 307, while signed out | The redirect happened after streaming started (e.g. under a `loading.tsx`) | Confirm the body redirects to sign-in and has no protected data. Keep the check in the page |
@@ -203,40 +208,43 @@ For standalone API servers that receive Clerk session tokens from the `Authoriza
 **Using `@clerk/backend` `verifyToken`** (recommended):
 
 ```typescript
-import { verifyToken } from '@clerk/backend'
+import { verifyToken } from "@clerk/backend";
 
-const token = req.headers.authorization?.replace('Bearer ', '')
-if (!token) return res.status(401).json({ error: 'No token' })
+const token = req.headers.authorization?.replace("Bearer ", "");
+if (!token) return res.status(401).json({ error: "No token" });
 
 try {
   const claims = await verifyToken(token, {
     jwtKey: process.env.CLERK_JWT_KEY,
-  })
+  });
   // claims.sub = userId
 } catch {
-  return res.status(401).json({ error: 'Invalid token' })
+  return res.status(401).json({ error: "Invalid token" });
 }
 ```
 
 **Using `jsonwebtoken`** (when you can't use `@clerk/backend`):
 
 ```typescript
-import jwt from 'jsonwebtoken'
+import jwt from "jsonwebtoken";
 
-const publicKey = process.env.CLERK_PEM_PUBLIC_KEY!.replace(/\\n/g, '\n')
-const token = req.headers.authorization?.replace('Bearer ', '')
-if (!token) return res.status(401).json({ error: 'No token' })
+const publicKey = process.env.CLERK_PEM_PUBLIC_KEY!.replace(/\\n/g, "\n");
+const token = req.headers.authorization?.replace("Bearer ", "");
+if (!token) return res.status(401).json({ error: "No token" });
 
 try {
-  const claims = jwt.verify(token, publicKey, { algorithms: ['RS256'] }) as jwt.JwtPayload
+  const claims = jwt.verify(token, publicKey, {
+    algorithms: ["RS256"],
+  }) as jwt.JwtPayload;
   // Manually check exp and nbf (jsonwebtoken does this automatically, but verify azp if needed)
   // claims.sub = userId
 } catch {
-  return res.status(401).json({ error: 'Invalid or expired token' })
+  return res.status(401).json({ error: "Invalid or expired token" });
 }
 ```
 
 Token sources:
+
 - **Same-origin requests**: `__session` cookie (Clerk sets this automatically)
 - **Cross-origin / mobile / API-to-API**: `Authorization: Bearer <token>` header
 

@@ -1,4 +1,5 @@
-import { createLibrary, type Library } from "@fitme/library-sdk";
+import { createLibrary } from "@fitme/library-sdk";
+import type { Library } from "@fitme/library-sdk";
 
 /**
  * Builds the Library client the tools search, check and name
@@ -13,8 +14,10 @@ export type LibraryFactory = () => Library | null;
 export const createLibraryFromEnv: LibraryFactory = () => {
   const url = process.env.LIBRARY_URL;
   const secret = process.env.LIBRARY_MCP_SECRET;
+
   if (!(url && secret)) {
     return null;
   }
+
   return createLibrary({ token: () => Promise.resolve(secret), url });
 };

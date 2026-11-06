@@ -1,3 +1,1 @@
-export function AndroidGrabber() {
-  return null;
-}
+export const AndroidGrabber = () => null;

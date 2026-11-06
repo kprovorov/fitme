@@ -6,15 +6,10 @@ import {
   Image as SwiftUIImage,
   Label as SwiftUILabel,
 } from "@expo/ui/swift-ui";
-import {
-  accessibilityLabel as accessibilityLabelModifier,
-  contentShape,
-  foregroundStyle,
-  frame,
-  shapes,
-} from "@expo/ui/swift-ui/modifiers";
+import * as menuModifiers from "@expo/ui/swift-ui/modifiers";
 import type * as React from "react";
 import type { SFSymbol } from "sf-symbols-typescript";
+
 import {
   SwiftUIHost,
   useClassColor,
@@ -77,25 +72,31 @@ const DropdownMenu = ({
   // draws in the label color.
   const menuLabel = () => {
     if (children) {
+      // SAFETY: RNHostView forwards children to React providers without reading element properties.
       return (
         <RNHostView matchContents>{children as React.ReactElement}</RNHostView>
       );
     }
+
     if (label) {
       return (
         <SwiftUILabel
-          modifiers={[foregroundStyle(theme.primary)]}
+          modifiers={[menuModifiers.foregroundStyle(theme.primary)]}
           systemImage={systemImage}
           title={label}
         />
       );
     }
+
     return (
       <SwiftUIImage
         color={iconColor ?? theme.foreground}
         modifiers={[
-          frame({ height: MIN_HIT_TARGET_SIZE, width: MIN_HIT_TARGET_SIZE }),
-          contentShape(shapes.rectangle()),
+          menuModifiers.frame({
+            height: MIN_HIT_TARGET_SIZE,
+            width: MIN_HIT_TARGET_SIZE,
+          }),
+          menuModifiers.contentShape(menuModifiers.shapes.rectangle()),
         ]}
         systemName={systemImage}
       />
@@ -108,24 +109,28 @@ const DropdownMenu = ({
         label={menuLabel()}
         modifiers={
           accessibilityLabel
-            ? [accessibilityLabelModifier(accessibilityLabel)]
+            ? [menuModifiers.accessibilityLabel(accessibilityLabel)]
             : []
         }
         onPrimaryAction={onPrimaryAction}
         testID={testID}
       >
-        {items.flatMap((item) => [
-          ...(item.startsSection
-            ? [<Divider key={`${item.label}-divider`} />]
-            : []),
-          <SwiftUIButton
-            key={item.label}
-            label={item.label}
-            onPress={item.onPress}
-            role={item.destructive ? "destructive" : "default"}
-            systemImage={item.systemImage}
-          />,
-        ])}
+        {items.flatMap((item) => {
+          const { onPress: handlePress } = item;
+
+          return [
+            ...(item.startsSection
+              ? [<Divider key={`${item.label}-divider`} />]
+              : []),
+            <SwiftUIButton
+              key={item.label}
+              label={item.label}
+              onPress={handlePress}
+              role={item.destructive ? "destructive" : "default"}
+              systemImage={item.systemImage}
+            />,
+          ];
+        })}
       </Menu>
     </SwiftUIHost>
   );
@@ -134,4 +139,5 @@ const DropdownMenu = ({
 DropdownMenu.displayName = "DropdownMenu";
 
 export type { DropdownMenuItem, DropdownMenuProps };
+
 export { DropdownMenu };

@@ -4,13 +4,17 @@ import { useCallback } from "react";
 import { useTranslation } from "react-i18next";
 import { ActivityIndicator, ScrollView, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+
 import WorkoutSessionSummaryView from "~/components/views/workout-session-summary-view";
 import SessionLoadError from "~/components/workout-sessions/session-load-error";
 import { useWorkoutSessionQuery } from "~/hooks/queries/workout-sessions";
 import { useI18n } from "~/lib/i18n";
 
-export default function WorkoutSessionSummaryScreen() {
-  const { workoutSessionId } = useLocalSearchParams();
+const WorkoutSessionSummaryScreen = () => {
+  const { workoutSessionId } = useLocalSearchParams<{
+    workoutSessionId: string;
+  }>();
+
   const router = useRouter();
   const i18n = useI18n();
   const { t } = useTranslation();
@@ -24,9 +28,10 @@ export default function WorkoutSessionSummaryScreen() {
     refetch,
   } = useWorkoutSessionQuery({
     variables: {
-      sessionId: workoutSessionId as string,
+      sessionId: workoutSessionId,
     },
   });
+
   const retry = useCallback(() => {
     refetch();
   }, [refetch]);
@@ -44,6 +49,7 @@ export default function WorkoutSessionSummaryScreen() {
         />
       );
     }
+
     if (isError) {
       return (
         <SessionLoadError
@@ -53,8 +59,9 @@ export default function WorkoutSessionSummaryScreen() {
         />
       );
     }
+
     return (
-      <View className="items-center pt-lg">
+      <View className="pt-lg items-center">
         <ActivityIndicator colorClassName="accent-foreground" />
       </View>
     );
@@ -81,7 +88,7 @@ export default function WorkoutSessionSummaryScreen() {
         }}
       />
       <ScrollView
-        className="flex-1 bg-background"
+        className="bg-background flex-1"
         contentContainerStyle={{
           paddingBottom: insets.bottom + 24,
         }}
@@ -92,4 +99,6 @@ export default function WorkoutSessionSummaryScreen() {
       </ScrollView>
     </>
   );
-}
+};
+
+export default WorkoutSessionSummaryScreen;

@@ -5,15 +5,15 @@ import exerciseShot from "@/public/screens/exercise-detail.png";
 import homeShot from "@/public/screens/home.png";
 import plannerShot from "@/public/screens/planner.png";
 
-function Hero() {
-  return (
-    <section aria-labelledby="hero-heading" className="w-full">
-      <Container className="flex flex-col items-center gap-12">
+const Hero = () => (
+  <section aria-labelledby="hero-heading" className="w-full">
+    <Container>
+      <div className="flex flex-col items-center gap-12">
         <div className="flex flex-col items-center gap-2 text-center">
           <h1 id="hero-heading">
             AI Workout Tracker & Fitness Coach for iPhone
           </h1>
-          <p className="max-w-2xl text-balance text-title-2">
+          <p className="text-title-2 max-w-2xl text-balance">
             Generate personalized workout plans, track every rep, and crush your
             fitness goals with Fitme — the smart AI fitness app.
           </p>
@@ -22,7 +22,7 @@ function Hero() {
 
         <div className="relative flex w-full justify-center">
           <div className="absolute inset-0 flex items-center justify-center">
-            <div className="aspect-square w-full max-w-100 rounded-full bg-primary opacity-10 blur-3xl sm:max-w-200" />
+            <div className="bg-primary aspect-square w-full max-w-100 rounded-full opacity-10 blur-3xl sm:max-w-200" />
           </div>
           <div className="absolute inset-0 hidden items-center justify-evenly sm:flex">
             <div className="w-52 md:w-64 lg:w-75">
@@ -49,9 +49,9 @@ function Hero() {
             />
           </div>
         </div>
-      </Container>
-    </section>
-  );
-}
+      </div>
+    </Container>
+  </section>
+);
 
 export { Hero };

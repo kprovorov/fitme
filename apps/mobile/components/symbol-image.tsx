@@ -1,12 +1,10 @@
-import {
-  Image as ExpoImage,
-  type ImageLoadEventData,
-  type ImageProps,
-} from "expo-image";
+import { Image as ExpoImage } from "expo-image";
+import type { ImageLoadEventData, ImageProps } from "expo-image";
 import { useCallback, useState } from "react";
 import { View } from "react-native";
 import type { SFSymbol } from "sf-symbols-typescript";
-import { useResolveClassNames, withUniwind } from "uniwind";
+import { ScopedVariables, useResolveClassNames, withUniwind } from "uniwind";
+
 import { cn } from "~/lib/utils";
 
 const Image = withUniwind(ExpoImage);
@@ -42,25 +40,31 @@ interface SymbolImageProps {
  * and web, where SF Symbols don't exist and nothing is drawn) the box is a
  * point size wide.
  */
-export function SymbolImage({
+export const SymbolImage = ({
   accessibilityLabel,
   className,
   name,
   sfEffect,
   size,
   transition,
-}: SymbolImageProps) {
+}: SymbolImageProps) => {
   const classNames = cn("text-body", className);
   const textStyle = useResolveClassNames(classNames);
+
+  // SAFETY: UniWind resolves font sizes to numeric React Native points when present.
   const pointSize = size ?? (textStyle.fontSize as number | undefined);
+
+  // SAFETY: UniWind resolves line heights to numeric React Native points when present.
   const lineHeight =
     size === undefined
       ? (textStyle.lineHeight as number | undefined)
       : undefined;
+
   const [symbolSize, setSymbolSize] = useState<{
     height: number;
     width: number;
   } | null>(null);
+
   const handleLoad = useCallback(({ source }: ImageLoadEventData) => {
     setSymbolSize((previous) =>
       previous?.height === source.height && previous.width === source.width
@@ -68,29 +72,36 @@ export function SymbolImage({
         : { height: source.height, width: source.width }
     );
   }, []);
-  const box = pointSize
+
+  const box: Record<string, number> = pointSize
     ? {
-        fontSize: pointSize,
-        height: lineHeight ?? Math.max(symbolSize?.height ?? 0, pointSize),
-        width: symbolSize?.width ?? pointSize,
+        "--symbol-point-size": pointSize,
+        "--symbol-height":
+          lineHeight ?? Math.max(symbolSize?.height ?? 0, pointSize),
+        "--symbol-width": symbolSize?.width ?? pointSize,
       }
+    : {};
+
+  const boxClassName = pointSize
+    ? "text-(length:--symbol-point-size)! h-(--symbol-height)! w-(--symbol-width)!"
     : undefined;
 
-  if (process.env.EXPO_OS !== "ios") {
-    return <Placeholder className={className} style={box} />;
-  }
-
   return (
-    <Image
-      accessibilityLabel={accessibilityLabel}
-      accessible={accessibilityLabel !== undefined}
-      className={classNames}
-      contentFit="scale-down"
-      onLoad={handleLoad}
-      sfEffect={sfEffect}
-      source={`sf:${name}`}
-      style={box}
-      transition={transition}
-    />
+    <ScopedVariables variables={box}>
+      {process.env.EXPO_OS === "ios" ? (
+        <Image
+          accessibilityLabel={accessibilityLabel}
+          accessible={accessibilityLabel !== undefined}
+          className={cn(classNames, boxClassName)}
+          contentFit="scale-down"
+          onLoad={handleLoad}
+          sfEffect={sfEffect}
+          source={`sf:${name}`}
+          transition={transition}
+        />
+      ) : (
+        <Placeholder className={cn(className, boxClassName)} />
+      )}
+    </ScopedVariables>
   );
-}
+};

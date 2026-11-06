@@ -1,9 +1,11 @@
 import { randomBytes } from "node:crypto";
+
 import { plans, profiles, withService } from "@fitme/db";
 import { createFakeLibrary } from "@fitme/library-sdk/fake";
 import { deleteTestUsers } from "@fitme/services/delete-test-users";
 import { eq } from "drizzle-orm";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
+
 import { createApp } from "../src/create-app.js";
 import { createServicesFromEnv } from "../src/services.js";
 import { clerk, libraryExercise, signedInAs } from "../src/test/harness.js";
@@ -20,14 +22,17 @@ const library = createFakeLibrary(
     libraryExercise(slug)
   )
 );
+
 const reported: unknown[] = [];
+
 const app = createApp({
   clerkJwtKey: clerk.jwtKey,
   createLibrary: () => library,
   createServices: createServicesFromEnv,
-  identifyUser: () => undefined,
+  identifyUser: () => {},
   reportError: (error) => {
     reported.push(error);
+
     return Promise.resolve();
   },
 });
@@ -88,21 +93,33 @@ const twoDayPlan = (name: string) => ({
   ],
 });
 
+type SessionFlowBody =
+  | ReturnType<typeof twoDayPlan>
+  | { workout_id: string }
+  | { reps_completed: number; weight_completed: number };
+
 const request = async (
   userId: string,
   method: string,
   path: string,
-  body?: unknown
+  body?: SessionFlowBody
 ) => {
+  const headers: ReturnType<typeof signedInAs> & { "content-type"?: string } = {
+    ...signedInAs(userId),
+  };
+
+  if (body !== undefined) {
+    headers["content-type"] = "application/json";
+  }
+
   const response = await app.request(path, {
     body: body === undefined ? undefined : JSON.stringify(body),
-    headers: {
-      ...signedInAs(userId),
-      ...(body === undefined ? {} : { "content-type": "application/json" }),
-    },
+    headers,
     method,
   });
+
   const text = await response.text();
+
   return {
     body: text ? JSON.parse(text) : null,
     status: response.status,
@@ -119,18 +136,23 @@ interface Ran {
 /** A Plan created through the API and a Workout Session started on its first Workout. */
 const startOne = async (userId: string, name: string): Promise<Ran> => {
   const created = await request(userId, "POST", "/v1/plans", twoDayPlan(name));
+
   if (created.status !== 201) {
     throw new Error(`Creating a Plan answered ${created.status}`);
   }
+
   const workoutIds = created.body.data.workouts.map(
     (workout: { id: string }) => workout.id
   );
+
   const started = await request(userId, "POST", "/v1/workout-sessions", {
     workout_id: workoutIds[0],
   });
+
   if (started.status !== 201) {
     throw new Error(`Starting a Workout Session answered ${started.status}`);
   }
+
   return {
     planId: created.body.data.id,
     sessionId: started.body.data.id,
@@ -145,6 +167,7 @@ const startOne = async (userId: string, name: string): Promise<Ran> => {
 /** The Workout ids of a Plan in rotation order, as the API shows them. */
 const rotation = async (userId: string, planId: string) => {
   const { body } = await request(userId, "GET", `/v1/plans/${planId}`);
+
   return body.data.workouts.map((workout: { id: string; order: number }) => [
     workout.id,
     workout.order,
@@ -154,27 +177,27 @@ const rotation = async (userId: string, planId: string) => {
 let ownerRun: Ran;
 let intruderRun: Ran;
 
-beforeAll(async () => {
-  // us: the owner's weights are in lbs; the intruder has no Profile (kg).
-  await withService((tx) =>
-    tx.insert(profiles).values({
-      age: 35,
-      gender: "female",
-      height: "66",
-      measurementSystem: "us",
-      userId: owner,
-      weight: "150",
-    })
-  );
-  ownerRun = await startOne(owner, "Owner plan");
-  intruderRun = await startOne(intruder, "Intruder plan");
-});
-
-afterAll(async () => {
-  await deleteTestUsers([owner, intruder]);
-});
-
 describe("a Workout Session through the Public API against the local stack", () => {
+  beforeAll(async () => {
+    // us: the owner's weights are in lbs; the intruder has no Profile (kg).
+    await withService((tx) =>
+      tx.insert(profiles).values({
+        age: 35,
+        gender: "female",
+        height: "66",
+        measurementSystem: "us",
+        userId: owner,
+        weight: "150",
+      })
+    );
+    ownerRun = await startOne(owner, "Owner plan");
+    intruderRun = await startOne(intruder, "Intruder plan");
+  });
+
+  afterAll(async () => {
+    await deleteTestUsers([owner, intruder]);
+  });
+
   it("resumes the open Workout Session with 200 and the same body", async () => {
     const first = await request(
       owner,
@@ -187,7 +210,7 @@ describe("a Workout Session through the Public API against the local stack", () 
     });
 
     expect(resumed.status).toBe(200);
-    expect(resumed.body).toEqual(first.body);
+    expect(resumed.body).toStrictEqual(first.body);
     expect(resumed.body.data).toMatchObject({
       exercises: [
         {
@@ -215,8 +238,10 @@ describe("a Workout Session through the Public API against the local stack", () 
     expect(refused.status).toBe(409);
     expect(refused.body.error.code).toBe("session_in_progress");
     expect(refused.body.error.message).toContain('"Day A"');
-    expect(await request(owner, "GET", "/v1/workout-sessions")).toEqual(before);
-    expect(reported).toEqual([]);
+    await expect(
+      request(owner, "GET", "/v1/workout-sessions")
+    ).resolves.toStrictEqual(before);
+    expect(reported).toStrictEqual([]);
   });
 
   it("logs sets in the User's unit", async () => {
@@ -234,7 +259,7 @@ describe("a Workout Session through the Public API against the local stack", () 
       weight_completed: 137.5,
       weight_unit: "lbs",
     });
-    expect(logged.body.data.logged_at).toEqual(expect.any(String));
+    expect(logged.body.data.logged_at).toStrictEqual(expect.any(String));
 
     const bodyweight = await request(
       owner,
@@ -242,6 +267,7 @@ describe("a Workout Session through the Public API against the local stack", () 
       `/v1/workout-session-sets/${ownerRun.setIds[1]}`,
       { reps_completed: 0, weight_completed: 0 }
     );
+
     expect(bodyweight.status).toBe(200);
   });
 
@@ -251,63 +277,68 @@ describe("a Workout Session through the Public API against the local stack", () 
       "GET",
       `/v1/workout-sessions/${intruderRun.sessionId}`
     );
+
     const planBefore = await rotation(intruder, intruderRun.planId);
 
-    expect(
-      (
-        await request(owner, "POST", "/v1/workout-sessions", {
-          workout_id: intruderRun.workoutIds[1],
-        })
-      ).status
-    ).toBe(404);
-    expect(
-      (
-        await request(
-          owner,
-          "PATCH",
-          `/v1/workout-session-sets/${intruderRun.setIds[0]}`,
-          { reps_completed: 1, weight_completed: 1 }
-        )
-      ).status
-    ).toBe(404);
-    expect(
-      (
-        await request(
-          owner,
-          "POST",
-          `/v1/workout-sessions/${intruderRun.sessionId}/finish`
-        )
-      ).status
-    ).toBe(404);
-    expect(
-      (
-        await request(
-          owner,
-          "DELETE",
-          `/v1/workout-sessions/${intruderRun.sessionId}`
-        )
-      ).status
-    ).toBe(204);
+    const started = await request(owner, "POST", "/v1/workout-sessions", {
+      workout_id: intruderRun.workoutIds[1],
+    });
+
+    const logged = await request(
+      owner,
+      "PATCH",
+      `/v1/workout-session-sets/${intruderRun.setIds[0]}`,
+      { reps_completed: 1, weight_completed: 1 }
+    );
+
+    const finished = await request(
+      owner,
+      "POST",
+      `/v1/workout-sessions/${intruderRun.sessionId}/finish`
+    );
+
+    const deleted = await request(
+      owner,
+      "DELETE",
+      `/v1/workout-sessions/${intruderRun.sessionId}`
+    );
+
+    expect({
+      deleted: deleted.status,
+      finished: finished.status,
+      logged: logged.status,
+      started: started.status,
+    }).toStrictEqual({
+      deleted: 204,
+      finished: 404,
+      logged: 404,
+      started: 404,
+    });
 
     const after = await request(
       intruder,
       "GET",
       `/v1/workout-sessions/${intruderRun.sessionId}`
     );
-    expect(after).toEqual(before);
+
+    expect(after).toStrictEqual(before);
     expect(after.body.data.weight_unit).toBe("kg");
-    expect(await rotation(intruder, intruderRun.planId)).toEqual(planBefore);
+    await expect(rotation(intruder, intruderRun.planId)).resolves.toStrictEqual(
+      planBefore
+    );
+
     const intruderSessions = await request(
       intruder,
       "GET",
       "/v1/workout-sessions"
     );
+
     expect(intruderSessions.body.total).toBe(1);
   });
 
   it("finishes once, rotating the Workout to the end of the Plan, then answers already_finished", async () => {
     const [dayA, dayB] = ownerRun.workoutIds;
-    expect(await rotation(owner, ownerRun.planId)).toEqual([
+    await expect(rotation(owner, ownerRun.planId)).resolves.toStrictEqual([
       [dayA, 1],
       [dayB, 2],
     ]);
@@ -318,15 +349,19 @@ describe("a Workout Session through the Public API against the local stack", () 
       `/v1/workout-sessions/${ownerRun.sessionId}/finish`
     );
 
-    expect(finished.status).toBe(200);
-    expect(finished.body.already_finished).toBe(false);
-    expect(finished.body.data).toMatchObject({
-      id: ownerRun.sessionId,
-      status: "finished",
-      weight_unit: "lbs",
+    expect(finished).toMatchObject({
+      body: {
+        already_finished: false,
+        data: {
+          finished_at: expect.any(String),
+          id: ownerRun.sessionId,
+          status: "finished",
+          weight_unit: "lbs",
+        },
+      },
+      status: 200,
     });
-    expect(finished.body.data.finished_at).toEqual(expect.any(String));
-    expect(await rotation(owner, ownerRun.planId)).toEqual([
+    await expect(rotation(owner, ownerRun.planId)).resolves.toStrictEqual([
       [dayB, 1],
       [dayA, 2],
     ]);
@@ -337,9 +372,11 @@ describe("a Workout Session through the Public API against the local stack", () 
       `/v1/workout-sessions/${ownerRun.sessionId}/finish`
     );
 
-    expect(repeated.status).toBe(200);
-    expect(repeated.body).toEqual({ ...finished.body, already_finished: true });
-    expect(await rotation(owner, ownerRun.planId)).toEqual([
+    expect(repeated).toStrictEqual({
+      body: { ...finished.body, already_finished: true },
+      status: 200,
+    });
+    await expect(rotation(owner, ownerRun.planId)).resolves.toStrictEqual([
       [dayB, 1],
       [dayA, 2],
     ]);
@@ -361,9 +398,9 @@ describe("a Workout Session through the Public API against the local stack", () 
 
     expect(refused.status).toBe(409);
     expect(refused.body.error.code).toBe("session_finished");
-    expect(
-      await request(owner, "GET", `/v1/workout-sessions/${ownerRun.sessionId}`)
-    ).toEqual(before);
+    await expect(
+      request(owner, "GET", `/v1/workout-sessions/${ownerRun.sessionId}`)
+    ).resolves.toStrictEqual(before);
   });
 
   it("lists the Workout Session as finished", async () => {
@@ -397,15 +434,19 @@ describe("a Workout Session through the Public API against the local stack", () 
     expect(started.status).toBe(201);
     expect(started.body.data.workout).toMatchObject({ name: "Day B" });
     const path = `/v1/workout-sessions/${started.body.data.id}`;
-    expect((await request(owner, "DELETE", path)).status).toBe(204);
+    const deleted = await request(owner, "DELETE", path);
+    expect(deleted.status).toBe(204);
   });
 
   it("deletes the Workout Session, and answers 204 again on a repeat", async () => {
     const path = `/v1/workout-sessions/${ownerRun.sessionId}`;
 
-    expect((await request(owner, "DELETE", path)).status).toBe(204);
-    expect((await request(owner, "DELETE", path)).status).toBe(204);
-    expect((await request(owner, "GET", path)).status).toBe(404);
+    const deleted = await request(owner, "DELETE", path);
+    expect(deleted.status).toBe(204);
+    const repeated = await request(owner, "DELETE", path);
+    expect(repeated.status).toBe(204);
+    const missing = await request(owner, "GET", path);
+    expect(missing.status).toBe(404);
   });
 
   it("answers 404 for a Workout nobody has", async () => {
@@ -430,6 +471,6 @@ describe("a Workout Session through the Public API against the local stack", () 
 
     expect(started.status).toBe(404);
     expect(started.body.error.code).toBe("not_found");
-    expect(reported).toEqual([]);
+    expect(reported).toStrictEqual([]);
   });
 });

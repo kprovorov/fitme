@@ -1,11 +1,10 @@
+import { ApiError } from "@fitme/api-client";
 /**
  * The real Public API clients (`lib/public-api.ts`; `test-utils/setup.ts`'s
  * stand-in is lifted here) over the fake Public API, with a stand-in Clerk
  * that loads when the test says so, as a screen outside the tabs (a deep
  * link) asks before Clerk has loaded.
  */
-
-import { ApiError } from "@fitme/api-client";
 import {
   afterEach,
   beforeEach,
@@ -14,6 +13,7 @@ import {
   it,
   jest,
 } from "@jest/globals";
+
 import { useArnoldModelsQuery } from "~/hooks/queries/arnold-models";
 import { CLERK_LOAD_TIMEOUT_MS, publicApi } from "~/lib/public-api";
 import {
@@ -27,6 +27,7 @@ import { createTestQueryClient } from "~/test-utils/query-client";
 jest.unmock("~/lib/public-api");
 
 type Status = "loading" | "ready" | "degraded" | "error";
+
 type Session = { getToken: () => Promise<string | null> } | null;
 
 // The Clerk instance `getClerk()` answers: loading until the test emits a
@@ -40,16 +41,18 @@ const mockClerk = {
     this.loaded = status === "ready" || status === "degraded";
     this.session = session;
     this.emitted = status;
+
     // biome-ignore lint/style/useForOf: indexes the live list, as Clerk's bus does
     for (let index = 0; index < this.handlers.length; index += 1) {
       this.handlers[index]?.(status);
     }
   },
   emitted: null as Status | null,
-  handlers: [] as Array<(status: Status) => void>,
+  handlers: [] as ((status: Status) => void)[],
   loaded: false,
   off(_event: "status", handler: (status: Status) => void) {
     const index = this.handlers.indexOf(handler);
+
     if (index !== -1) {
       this.handlers.splice(index, 1);
     }
@@ -60,6 +63,7 @@ const mockClerk = {
     options?: { notify: boolean }
   ) {
     this.handlers.push(handler);
+
     if (options?.notify && this.emitted) {
       handler(this.emitted);
     }
@@ -68,7 +72,9 @@ const mockClerk = {
   status: "loading" as Status,
 };
 
-jest.mock("~/lib/clerk", () => ({ getClerk: () => mockClerk }));
+jest.mock("~/lib/clerk", () => ({
+  getClerk: () => mockClerk,
+}));
 
 const signedIn: Session = { getToken: async () => FAKE_SESSION_TOKEN };
 
@@ -96,6 +102,7 @@ beforeEach(() => {
 afterEach(() => {
   jest.useRealTimers();
   globalThis.fetch = realFetch;
+
   if (realApiUrl === undefined) {
     Reflect.deleteProperty(process.env, "EXPO_PUBLIC_API_URL");
   } else {
@@ -143,14 +150,14 @@ describe("publicApi", () => {
     jest.useFakeTimers();
     const read = readProfile();
     await jest.advanceTimersByTimeAsync(0);
-    expect(mockClerk.handlers.length).toBe(1);
+    expect(mockClerk.handlers).toHaveLength(1);
 
     mockClerk.emit("ready", signedIn);
     // The fake Public API answers on its next tick.
     await jest.advanceTimersByTimeAsync(0);
 
     await expect(read).resolves.toMatchObject({ data: { data: null } });
-    expect(mockClerk.handlers.length).toBe(0);
+    expect(mockClerk.handlers).toHaveLength(0);
     expect(jest.getTimerCount()).toBe(0);
   });
 
@@ -216,7 +223,7 @@ describe("publicApi", () => {
   });
 });
 
-describe("Arnold's model list, a global route", () => {
+describe("arnold's model list, a global route", () => {
   const fetchModels = () =>
     createTestQueryClient().fetchQuery(useArnoldModelsQuery.getFetchOptions());
 

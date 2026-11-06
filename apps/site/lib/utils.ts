@@ -1,4 +1,5 @@
-import { type ClassValue, clsx } from "clsx";
+import { clsx } from "clsx";
+import type { ClassValue } from "clsx";
 import { extendTailwindMerge } from "tailwind-merge";
 
 const HIG_STYLES = [
@@ -54,6 +55,4 @@ const twMerge = extendTailwindMerge<"text-style">({
   },
 });
 
-export function cn(...inputs: ClassValue[]) {
-  return twMerge(clsx(inputs));
-}
+export const cn = (...inputs: ClassValue[]) => twMerge(clsx(inputs));

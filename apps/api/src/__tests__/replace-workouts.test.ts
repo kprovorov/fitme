@@ -1,6 +1,7 @@
 import { LibraryUnavailableError } from "@fitme/library-sdk";
 import type { PlanWorkoutInput } from "@fitme/services/plans";
 import { describe, expect, it } from "vitest";
+
 import {
   fakeServices,
   libraryCover,
@@ -23,7 +24,7 @@ const CHEST_COVER = "3c4d5e6f-7a8b-4c9d-8e0f-1a2b3c4d5e6f";
 
 /** A field of the services' answer the contract never shows. */
 const LEGACY_OR_INTERNAL_FIELD =
-  /"(exercise_id|exercise|deleted_at|request_key|user_id)"/;
+  /"(?<field>exercise_id|exercise|deleted_at|request_key|user_id)"/u;
 
 /** A valid body: two Workouts over the Exercises the test library knows. */
 const body = () => ({
@@ -130,44 +131,47 @@ const recordingServices = ({
   weightUnit?: "kg" | "lbs";
 } = {}) => {
   const calls: { planId: string; workouts: PlanWorkoutInput[] }[] = [];
+
   const services = fakeServices({
     replaceWorkouts: (id, workouts) => {
       calls.push({ planId: id, workouts });
+
       return Promise.resolve(
         found ? { value: servicesReplaced, weightUnit } : null
       );
     },
   });
+
   return { calls, services };
 };
 
 const put = (
   app: ReturnType<typeof testApp>["app"],
-  payload: unknown,
+  payload: string,
   {
     headers = signedInAs("user_alice"),
     id = planId,
   }: { headers?: Record<string, string>; id?: string } = {}
 ) =>
   app.request(`/v1/plans/${id}/workouts`, {
-    body: JSON.stringify(payload),
+    body: payload,
     headers: { ...headers, "content-type": "application/json" },
     method: "PUT",
   });
 
-describe("PUT /v1/plans/{id}/workouts", () => {
+describe("pUT /v1/plans/{id}/workouts", () => {
   it("replaces the Plan's Workouts with the sent ones, with no Covers from a Library without any, and answers the Plan in full with its weight unit", async () => {
     const { calls, services } = recordingServices();
     const { app, reported, servicesFor } = testApp({ services });
 
-    const response = await put(app, body());
+    const response = await put(app, JSON.stringify(body()));
 
     expect(response.status).toBe(200);
-    expect(await response.json()).toEqual({
+    await expect(response.json()).resolves.toStrictEqual({
       data: { ...replaced, weight_unit: "kg" },
     });
     // The Library has no Covers, so no Workout gets one.
-    expect(calls).toEqual([
+    expect(calls).toStrictEqual([
       {
         planId,
         workouts: body().workouts.map((workout) => ({
@@ -176,12 +180,13 @@ describe("PUT /v1/plans/{id}/workouts", () => {
         })),
       },
     ]);
-    expect(servicesFor).toEqual(["user_alice"]);
-    expect(reported).toEqual([]);
+    expect(servicesFor).toStrictEqual(["user_alice"]);
+    expect(reported).toStrictEqual([]);
   });
 
   it("gives each new Workout a fresh Cover for the muscle group it trains most, no two the same", async () => {
     const { calls, services } = recordingServices();
+
     const { app, reported } = testApp({
       covers: [
         libraryCover(CHEST_COVER, ["chest"]),
@@ -192,14 +197,14 @@ describe("PUT /v1/plans/{id}/workouts", () => {
       services,
     });
 
-    const response = await put(app, body());
+    const response = await put(app, JSON.stringify(body()));
 
     expect(response.status).toBe(200);
-    expect(calls[0].workouts.map((workout) => workout.cover)).toEqual([
+    expect(calls[0].workouts.map((workout) => workout.cover)).toStrictEqual([
       LEGS_COVER,
       HINGE_COVER,
     ]);
-    expect(reported).toEqual([]);
+    expect(reported).toStrictEqual([]);
   });
 
   it("answers a reported 503 library_unavailable when the Covers can't be read, writing nothing", async () => {
@@ -207,39 +212,41 @@ describe("PUT /v1/plans/{id}/workouts", () => {
     const outage = new LibraryUnavailableError();
     library.covers = () => Promise.reject(outage);
 
-    const response = await put(app, body());
+    const response = await put(app, JSON.stringify(body()));
 
     expect(response.status).toBe(503);
-    expect(await response.json()).toEqual({
+    await expect(response.json()).resolves.toStrictEqual({
       error: {
         code: "library_unavailable",
         message:
           "The Library is unavailable, so the Workouts' Covers couldn't be picked; try again",
       },
     });
-    expect(reported).toEqual([outage]);
+    expect(reported).toStrictEqual([outage]);
   });
 
   it("answers the weight unit of the User's Profile", async () => {
     const { services } = recordingServices({ weightUnit: "lbs" });
     const { app } = testApp({ services });
 
-    const response = await put(app, body());
+    const response = await put(app, JSON.stringify(body()));
 
-    expect((await response.json()).data.weight_unit).toBe("lbs");
+    const result = await response.json();
+
+    expect(result.data.weight_unit).toBe("lbs");
   });
 
   it("answers 404 not_found when the User has no such live Plan, unreported", async () => {
     const { services } = recordingServices({ found: false });
     const { app, reported } = testApp({ services });
 
-    const response = await put(app, body());
+    const response = await put(app, JSON.stringify(body()));
 
     expect(response.status).toBe(404);
-    expect(await response.json()).toEqual({
+    await expect(response.json()).resolves.toStrictEqual({
       error: { code: "not_found", message: "Plan not found" },
     });
-    expect(reported).toEqual([]);
+    expect(reported).toStrictEqual([]);
   });
 
   it("answers 400 unknown_exercises naming each unknown slug once, writes nothing, unreported", async () => {
@@ -262,16 +269,16 @@ describe("PUT /v1/plans/{id}/workouts", () => {
       }
     );
 
-    const response = await put(app, payload);
+    const response = await put(app, JSON.stringify(payload));
 
     expect(response.status).toBe(400);
-    expect(await response.json()).toEqual({
+    await expect(response.json()).resolves.toStrictEqual({
       error: {
         code: "unknown_exercises",
         message: "Unknown exercise_slug(s): made-up-press, made-up-row",
       },
     });
-    expect(reported).toEqual([]);
+    expect(reported).toStrictEqual([]);
   });
 
   it("answers a reported 503 library_unavailable when the Library fails, writing nothing", async () => {
@@ -279,17 +286,17 @@ describe("PUT /v1/plans/{id}/workouts", () => {
     const outage = new LibraryUnavailableError();
     library.failWith(outage);
 
-    const response = await put(app, body());
+    const response = await put(app, JSON.stringify(body()));
 
     expect(response.status).toBe(503);
-    expect(await response.json()).toEqual({
+    await expect(response.json()).resolves.toStrictEqual({
       error: {
         code: "library_unavailable",
         message:
           "The Library is unavailable, so the Exercises couldn't be checked; try again",
       },
     });
-    expect(reported).toEqual([outage]);
+    expect(reported).toStrictEqual([outage]);
   });
 
   it("answers a reported 503 library_unavailable when the Library isn't configured", async () => {
@@ -298,11 +305,13 @@ describe("PUT /v1/plans/{id}/workouts", () => {
       services: fakeServices({}),
     });
 
-    const response = await put(app, body());
+    const response = await put(app, JSON.stringify(body()));
 
     expect(response.status).toBe(503);
-    expect((await response.json()).error.code).toBe("library_unavailable");
-    expect(reported).toEqual([
+    const result = await response.json();
+
+    expect(result.error.code).toBe("library_unavailable");
+    expect(reported).toStrictEqual([
       new Error(
         "Missing LIBRARY_URL or LIBRARY_PUBLIC_API_SECRET environment variable"
       ),
@@ -313,7 +322,7 @@ describe("PUT /v1/plans/{id}/workouts", () => {
     const { services } = recordingServices();
     const { app } = testApp({ services });
 
-    const response = await put(app, body());
+    const response = await put(app, JSON.stringify(body()));
 
     expect(JSON.stringify(await response.json())).not.toMatch(
       LEGACY_OR_INTERNAL_FIELD
@@ -324,6 +333,7 @@ describe("PUT /v1/plans/{id}/workouts", () => {
   const invalid = (edit: (payload: ReturnType<typeof body>) => void) => {
     const payload = body();
     edit(payload);
+
     return payload;
   };
 
@@ -381,21 +391,27 @@ describe("PUT /v1/plans/{id}/workouts", () => {
   ])("answers 400 invalid_request for %s, unreported", async (_, payload) => {
     const { app, reported } = testApp({ services: fakeServices({}) });
 
-    const response = await put(app, payload);
+    const response = await put(app, JSON.stringify(payload));
 
     expect(response.status).toBe(400);
-    expect((await response.json()).error.code).toBe("invalid_request");
-    expect(reported).toEqual([]);
+    const result = await response.json();
+
+    expect(result.error.code).toBe("invalid_request");
+    expect(reported).toStrictEqual([]);
   });
 
   it("answers 400 invalid_request for a Plan id that isn't a uuid, unreported", async () => {
     const { app, reported } = testApp({ services: fakeServices({}) });
 
-    const response = await put(app, body(), { id: "not-a-uuid" });
+    const response = await put(app, JSON.stringify(body()), {
+      id: "not-a-uuid",
+    });
 
     expect(response.status).toBe(400);
-    expect((await response.json()).error.code).toBe("invalid_request");
-    expect(reported).toEqual([]);
+    const result = await response.json();
+
+    expect(result.error.code).toBe("invalid_request");
+    expect(reported).toStrictEqual([]);
   });
 
   it("answers 415 for a body that isn't JSON, unreported", async () => {
@@ -411,13 +427,13 @@ describe("PUT /v1/plans/{id}/workouts", () => {
     });
 
     expect(response.status).toBe(415);
-    expect(reported).toEqual([]);
+    expect(reported).toStrictEqual([]);
   });
 
   it("answers 401 without a session token", async () => {
     const { app } = testApp({ services: fakeServices({}) });
 
-    const response = await put(app, body(), { headers: {} });
+    const response = await put(app, JSON.stringify(body()), { headers: {} });
 
     expect(response.status).toBe(401);
   });

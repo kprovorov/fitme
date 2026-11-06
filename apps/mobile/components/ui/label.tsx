@@ -1,5 +1,7 @@
-import * as LabelPrimitive from "@rn-primitives/label";
+import type * as LabelPrimitive from "@rn-primitives/label";
+import { Root as LabelRoot, Text as LabelText } from "@rn-primitives/label";
 import type * as React from "react";
+
 import { cn } from "~/lib/utils";
 
 type LabelProps = LabelPrimitive.TextProps & {
@@ -19,14 +21,14 @@ const Label = ({
   ref,
   ...props
 }: LabelProps) => (
-  <LabelPrimitive.Root
+  <LabelRoot
     disabled={disabled}
     onLongPress={onLongPress}
     onPress={onPress}
     onPressIn={onPressIn}
     onPressOut={onPressOut}
   >
-    <LabelPrimitive.Text
+    <LabelText
       className={cn(
         "text-body-emphasized text-foreground",
         disabled && "opacity-50",
@@ -35,9 +37,11 @@ const Label = ({
       ref={ref}
       {...props}
     />
-  </LabelPrimitive.Root>
+  </LabelRoot>
 );
-Label.displayName = LabelPrimitive.Root.displayName;
+
+Label.displayName = LabelRoot.displayName;
 
 export type { LabelProps };
+
 export { Label };

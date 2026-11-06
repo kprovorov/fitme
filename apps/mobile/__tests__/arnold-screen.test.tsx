@@ -18,6 +18,7 @@ import {
   waitFor,
 } from "@testing-library/react-native";
 import type { ReactNode } from "react";
+
 import AddToChatSheet from "~/app/(tabs)/arnold/attachments";
 import ArnoldScreen from "~/app/(tabs)/arnold/index";
 import { clearArnoldAttachments } from "~/hooks/arnold-attachments";
@@ -51,7 +52,9 @@ jest.mock("react-native-keyboard-controller", () =>
 jest.mock("react-native-reanimated", () => {
   const { View } =
     jest.requireActual<typeof import("react-native")>("react-native");
+
   const transition = { duration: () => transition };
+
   return {
     __esModule: true,
     default: {
@@ -73,6 +76,7 @@ jest.mock("react-native-reanimated", () => {
 jest.mock("@legendapp/list/react-native", () => {
   const { View } =
     jest.requireActual<typeof import("react-native")>("react-native");
+
   return {
     LegendList: <T,>({
       data,
@@ -99,21 +103,23 @@ jest.mock("react-native-safe-area-context", () => ({
   useSafeAreaInsets: () => ({ bottom: 0, left: 0, right: 0, top: 0 }),
 }));
 
-jest.mock("@/components/touchable-glass", () => {
+jest.mock("~/components/touchable-glass", () => {
   const { Pressable } =
     jest.requireActual<typeof import("react-native")>("react-native");
+
   return { TouchableGlass: Pressable };
 });
 
 // The plan card has its own tests, its text in Ukrainian included.
-jest.mock("@/components/chat/workout-plan-card", () => ({
+jest.mock("~/components/chat/workout-plan-card", () => ({
   WorkoutPlanCard: () => null,
 }));
 
 // Markdown has its own tests; here an answer is read as the text it is.
-jest.mock("@/components/markdown", () => {
+jest.mock("~/components/markdown", () => {
   const { Text } =
     jest.requireActual<typeof import("react-native")>("react-native");
+
   return {
     ChatMarkdown: ({ children }: { children: string }) => (
       <Text>{children}</Text>
@@ -121,7 +127,7 @@ jest.mock("@/components/markdown", () => {
   };
 });
 
-jest.mock("@/components/symbol-image", () => ({ SymbolImage: () => null }));
+jest.mock("~/components/symbol-image", () => ({ SymbolImage: () => null }));
 
 jest.mock("@clerk/expo", () => ({
   useUser: () => ({ user: { id: "user_arnold_screen" } }),
@@ -185,9 +191,11 @@ interface HeaderItem {
 jest.mock("expo-router", () => {
   const { Text: RNText, View } =
     jest.requireActual<typeof import("react-native")>("react-native");
+
   const stub = jest.requireActual<typeof import("~/test-utils/router-stub")>(
     "~/test-utils/router-stub"
   );
+
   return {
     Link: stub.LinkStub,
     Stack: {
@@ -218,6 +226,7 @@ const ARNOLD_ROUTES = { "/arnold/attachments": AddToChatSheet };
 /** The screen under the root layout's language sync, with its stack. */
 function App() {
   useAppLanguageSync();
+
   return (
     <>
       <ArnoldScreen />
@@ -250,7 +259,7 @@ beforeEach(() => {
   process.env.EXPO_PUBLIC_ARNOLD_URL = fakeArnold.baseUrl;
 });
 
-describe("Arnold screen", () => {
+describe("arnold screen", () => {
   it("is in English on an English device", async () => {
     await renderArnold();
 
@@ -408,7 +417,7 @@ describe("Arnold screen", () => {
     });
   });
 
-  describe("Attachments", () => {
+  describe("attachments", () => {
     /** A re-encoded JPEG on this device, as the picker answers one. */
     const photo = (name: string): PickedImage => ({
       height: 1200,
@@ -475,6 +484,7 @@ describe("Arnold screen", () => {
 
       expect(screen.getByLabelText("Photo 1 of 2")).toBeTruthy();
       expect(screen.getByLabelText("Photo 2 of 2")).toBeTruthy();
+
       // Each thumbnail is a stop of its own for VoiceOver: expo-image is
       // not one without `accessible`, label or no label.
       for (const thumbnail of screen.getAllByLabelText(THUMBNAIL)) {
@@ -482,6 +492,7 @@ describe("Arnold screen", () => {
           true
         );
       }
+
       expect(thumbnails()).toEqual([
         "file:///photos/gym.jpg",
         "file:///photos/plan.jpg",

@@ -1,4 +1,5 @@
 import { randomBytes } from "node:crypto";
+
 import {
   plans,
   profiles,
@@ -8,8 +9,10 @@ import {
   workouts,
 } from "@fitme/db";
 import { deleteTestUsers } from "@fitme/services/delete-test-users";
+import type { ProfileChanges, WholeProfile } from "@fitme/services/profile";
 import { eq, inArray } from "drizzle-orm";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
+
 import { createApp } from "../src/create-app.js";
 import { createServicesFromEnv } from "../src/services.js";
 import { clerk, signedInAs } from "../src/test/harness.js";
@@ -23,8 +26,8 @@ import { clerk, signedInAs } from "../src/test/harness.js";
 const app = createApp({
   clerkJwtKey: clerk.jwtKey,
   createServices: createServicesFromEnv,
-  identifyUser: () => undefined,
-  reportError: (error) => Promise.reject(error),
+  identifyUser: () => {},
+  reportError: Promise.reject.bind(Promise),
 });
 
 /** A made-up id in Clerk's `user_…` format, unique per run. */
@@ -40,41 +43,44 @@ const getProfile = async (userId: string) => {
   const response = await app.request("/v1/profile", {
     headers: signedInAs(userId),
   });
+
   return { body: await response.json(), status: response.status };
 };
 
-beforeAll(async () => {
-  await withService((tx) =>
-    tx.insert(profiles).values([
-      {
-        age: 30,
-        gender: "female",
-        height: "170.5",
-        measurementSystem: "metric",
-        userId: withProfile,
-        weight: "60.25",
-      },
-      {
-        age: 41,
-        gender: "male",
-        height: "70",
-        measurementSystem: "us",
-        userId: imperial,
-        weight: "180",
-      },
-    ])
-  );
-});
+describe("gET /v1/profile against the local stack", () => {
+  beforeAll(async () => {
+    await withService((tx) =>
+      tx.insert(profiles).values([
+        {
+          age: 30,
+          gender: "female",
+          height: "170.5",
+          measurementSystem: "metric",
+          userId: withProfile,
+          weight: "60.25",
+        },
+        {
+          age: 41,
+          gender: "male",
+          height: "70",
+          measurementSystem: "us",
+          userId: imperial,
+          weight: "180",
+        },
+      ])
+    );
+  });
 
-afterAll(async () => {
-  await withService((tx) =>
-    tx.delete(profiles).where(inArray(profiles.userId, [withProfile, imperial]))
-  );
-});
+  afterAll(async () => {
+    await withService((tx) =>
+      tx
+        .delete(profiles)
+        .where(inArray(profiles.userId, [withProfile, imperial]))
+    );
+  });
 
-describe("GET /v1/profile against the local stack", () => {
   it("reads the signed-in User's Profile with its units", async () => {
-    expect(await getProfile(withProfile)).toEqual({
+    await expect(getProfile(withProfile)).resolves.toStrictEqual({
       body: {
         data: {
           age: 30,
@@ -87,7 +93,7 @@ describe("GET /v1/profile against the local stack", () => {
       },
       status: 200,
     });
-    expect(await getProfile(imperial)).toEqual({
+    await expect(getProfile(imperial)).resolves.toStrictEqual({
       body: {
         data: {
           age: 41,
@@ -103,7 +109,7 @@ describe("GET /v1/profile against the local stack", () => {
   });
 
   it("answers { data: null } for a User without a Profile", async () => {
-    expect(await getProfile(withoutProfile)).toEqual({
+    await expect(getProfile(withoutProfile)).resolves.toStrictEqual({
       body: { data: null },
       status: 200,
     });
@@ -121,7 +127,7 @@ describe("GET /v1/profile against the local stack", () => {
     );
 
     expect(response.status).toBe(200);
-    expect(await response.json()).toEqual({ data: null });
+    await expect(response.json()).resolves.toStrictEqual({ data: null });
   });
 });
 
@@ -142,14 +148,17 @@ const seedMetricUser = (userId: string) =>
       userId,
       weight: "60",
     });
+
     const [plan] = await tx
       .insert(plans)
       .values({ frequency: 3, goal: "strength", place: "gym", userId })
       .returning({ id: plans.id });
+
     const [workout] = await tx
       .insert(workouts)
       .values({ description: "Push", name: "A", order: 1, planId: plan.id })
       .returning({ id: workouts.id });
+
     const [workoutExercise] = await tx
       .insert(workoutExercises)
       .values({
@@ -158,6 +167,7 @@ const seedMetricUser = (userId: string) =>
         workoutId: workout.id,
       })
       .returning({ id: workoutExercises.id });
+
     const [set] = await tx
       .insert(workoutExerciseSets)
       .values({
@@ -168,6 +178,7 @@ const seedMetricUser = (userId: string) =>
         workoutExerciseId: workoutExercise.id,
       })
       .returning({ id: workoutExerciseSets.id });
+
     return set.id;
   });
 
@@ -178,20 +189,22 @@ const storedSetWeight = (setId: string) =>
       .select({ weight: workoutExerciseSets.weightRecommended })
       .from(workoutExerciseSets)
       .where(eq(workoutExerciseSets.id, setId));
+
     return set?.weight;
   });
 
 /** The status and body of `PATCH /v1/profile` as `userId`. */
-const patchProfile = async (userId: string, changes: unknown) => {
+const patchProfile = async (userId: string, changes: ProfileChanges) => {
   const response = await app.request("/v1/profile", {
     body: JSON.stringify(changes),
     headers: { ...signedInAs(userId), "content-type": "application/json" },
     method: "PATCH",
   });
+
   return { body: await response.json(), status: response.status };
 };
 
-describe("PATCH /v1/profile against the local stack", () => {
+describe("pATCH /v1/profile against the local stack", () => {
   let converterSet: string;
   let ukConverterSet: string;
   let bystanderSet: string;
@@ -212,7 +225,7 @@ describe("PATCH /v1/profile against the local stack", () => {
   });
 
   it("changes only the given field", async () => {
-    expect(await patchProfile(editor, { age: 31 })).toEqual({
+    await expect(patchProfile(editor, { age: 31 })).resolves.toStrictEqual({
       body: {
         data: {
           age: 31,
@@ -225,29 +238,31 @@ describe("PATCH /v1/profile against the local stack", () => {
       },
       status: 200,
     });
-    expect((await getProfile(editor)).body.data.age).toBe(31);
+    const { body } = await getProfile(editor);
+    expect(body.data.age).toBe(31);
   });
 
   it("converts every stored height and weight to a new measurement system, and nobody else's", async () => {
-    expect(await patchProfile(converter, { measurement_system: "us" })).toEqual(
-      {
-        body: {
-          data: {
-            age: 30,
-            gender: "female",
-            height: 66.93,
-            measurement_system: "us",
-            units: { height: "in", weight: "lbs" },
-            weight: 132.28,
-          },
+    await expect(
+      patchProfile(converter, { measurement_system: "us" })
+    ).resolves.toStrictEqual({
+      body: {
+        data: {
+          age: 30,
+          gender: "female",
+          height: 66.93,
+          measurement_system: "us",
+          units: { height: "in", weight: "lbs" },
+          weight: 132.28,
         },
-        status: 200,
-      }
-    );
+      },
+      status: 200,
+    });
     // 60 kg * 2.20462, rounded to 2 decimals
-    expect(await storedSetWeight(converterSet)).toBe("132.28");
+    await expect(storedSetWeight(converterSet)).resolves.toBe("132.28");
 
-    expect((await getProfile(bystander)).body.data).toEqual({
+    const { body } = await getProfile(bystander);
+    expect(body.data).toStrictEqual({
       age: 30,
       gender: "female",
       height: 170,
@@ -255,7 +270,7 @@ describe("PATCH /v1/profile against the local stack", () => {
       units: { height: "cm", weight: "kg" },
       weight: 60,
     });
-    expect(await storedSetWeight(bystanderSet)).toBe("60.00");
+    await expect(storedSetWeight(bystanderSet)).resolves.toBe("60.00");
   });
 
   it("writes a given height and weight in the new system's units", async () => {
@@ -272,25 +287,28 @@ describe("PATCH /v1/profile against the local stack", () => {
       weight: 140,
     });
     // The Plan's weights converted, the given ones written as they are
-    expect(await storedSetWeight(ukConverterSet)).toBe("132.28");
+    await expect(storedSetWeight(ukConverterSet)).resolves.toBe("132.28");
 
     // us and uk share units: switching between them converts nothing again
     await patchProfile(ukConverter, { measurement_system: "us" });
-    expect(await storedSetWeight(ukConverterSet)).toBe("132.28");
-    expect((await getProfile(ukConverter)).body.data).toMatchObject({
+    await expect(storedSetWeight(ukConverterSet)).resolves.toBe("132.28");
+    const { body: convertedBody } = await getProfile(ukConverter);
+    expect(convertedBody.data).toMatchObject({
       height: 67.5,
       weight: 140,
     });
   });
 
   it("answers 404 profile_not_found without a Profile, creating none", async () => {
-    expect(await patchProfile(withoutProfile, { age: 31 })).toEqual({
+    await expect(
+      patchProfile(withoutProfile, { age: 31 })
+    ).resolves.toStrictEqual({
       body: {
         error: { code: "profile_not_found", message: expect.any(String) },
       },
       status: 404,
     });
-    expect(await getProfile(withoutProfile)).toEqual({
+    await expect(getProfile(withoutProfile)).resolves.toStrictEqual({
       body: { data: null },
       status: 200,
     });
@@ -304,24 +322,28 @@ const invalid = testUserId("invalid");
 const putters = [creator, replacer, switcher, invalid];
 
 /** The status and body of `PUT /v1/profile` as `userId`. */
-const putProfile = async (userId: string, profile: unknown) => {
+const putProfile = async (userId: string, profile: Partial<WholeProfile>) => {
   const response = await app.request("/v1/profile", {
     body: JSON.stringify(profile),
     headers: { ...signedInAs(userId), "content-type": "application/json" },
     method: "PUT",
   });
+
   return { body: await response.json(), status: response.status };
 };
 
 /** How many Profiles `userId` has, read past RLS. */
 const profileCount = (userId: string) =>
-  withService(
-    async (tx) =>
-      (await tx.select().from(profiles).where(eq(profiles.userId, userId)))
-        .length
-  );
+  withService(async (tx) => {
+    const found = await tx
+      .select()
+      .from(profiles)
+      .where(eq(profiles.userId, userId));
 
-describe("PUT /v1/profile against the local stack", () => {
+    return found.length;
+  });
+
+describe("pUT /v1/profile against the local stack", () => {
   let switcherSet: string;
 
   beforeAll(async () => {
@@ -333,53 +355,54 @@ describe("PUT /v1/profile against the local stack", () => {
     await deleteTestUsers(putters);
   });
 
-  const metric = {
+  const metric: WholeProfile = {
     age: 28,
     gender: "male",
     height: 182.5,
     measurement_system: "metric",
     weight: 80.25,
   };
+
   const metricBody = {
     ...metric,
     units: { height: "cm", weight: "kg" },
   };
 
   it("creates a Profile (201), and a repeat replaces it without a second one (200)", async () => {
-    expect(await putProfile(creator, metric)).toEqual({
+    await expect(putProfile(creator, metric)).resolves.toStrictEqual({
       body: { data: metricBody },
       status: 201,
     });
-    expect(await getProfile(creator)).toEqual({
+    await expect(getProfile(creator)).resolves.toStrictEqual({
       body: { data: metricBody },
       status: 200,
     });
 
-    expect(await putProfile(creator, metric)).toEqual({
+    await expect(putProfile(creator, metric)).resolves.toStrictEqual({
       body: { data: metricBody },
       status: 200,
     });
-    expect(await profileCount(creator)).toBe(1);
+    await expect(profileCount(creator)).resolves.toBe(1);
   });
 
   it("replaces every field of an existing Profile in the same system", async () => {
-    expect(await putProfile(replacer, metric)).toEqual({
+    await expect(putProfile(replacer, metric)).resolves.toStrictEqual({
       body: { data: metricBody },
       status: 200,
     });
-    expect(await profileCount(replacer)).toBe(1);
+    await expect(profileCount(replacer)).resolves.toBe(1);
   });
 
   it("converts the stored weights to another system and stores the given height and weight as they are", async () => {
-    expect(
-      await putProfile(switcher, {
+    await expect(
+      putProfile(switcher, {
         age: 30,
         gender: "female",
         height: 67.5,
         measurement_system: "us",
         weight: 140,
       })
-    ).toEqual({
+    ).resolves.toStrictEqual({
       body: {
         data: {
           age: 30,
@@ -393,7 +416,7 @@ describe("PUT /v1/profile against the local stack", () => {
       status: 200,
     });
     // 60 kg * 2.20462, rounded to 2 decimals, as PATCH converts it
-    expect(await storedSetWeight(switcherSet)).toBe("132.28");
+    await expect(storedSetWeight(switcherSet)).resolves.toBe("132.28");
 
     // Again in the same system: nothing is converted twice
     await putProfile(switcher, {
@@ -403,12 +426,13 @@ describe("PUT /v1/profile against the local stack", () => {
       measurement_system: "us",
       weight: 140,
     });
-    expect(await storedSetWeight(switcherSet)).toBe("132.28");
+    await expect(storedSetWeight(switcherSet)).resolves.toBe("132.28");
   });
 
   it("writes nothing for an invalid Profile", async () => {
     const { measurement_system: _system, ...partial } = metric;
-    expect((await putProfile(invalid, partial)).status).toBe(400);
-    expect(await profileCount(invalid)).toBe(0);
+    const { status } = await putProfile(invalid, partial);
+    expect(status).toBe(400);
+    await expect(profileCount(invalid)).resolves.toBe(0);
   });
 });

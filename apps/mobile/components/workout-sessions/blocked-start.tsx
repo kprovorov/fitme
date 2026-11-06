@@ -1,5 +1,6 @@
 import { useTranslation } from "react-i18next";
 import { View } from "react-native";
+
 import { Button } from "~/components/ui/button";
 import { Text } from "~/components/ui/text";
 import type { OpenWorkoutSession } from "~/hooks/queries/workout-sessions";
@@ -23,14 +24,15 @@ interface BlockedStartProps {
  * and a button continuing it. The Workout screen and the Next card on Home
  * both show it.
  */
-export function BlockedStart({
+export const BlockedStart = ({
   blockedBy,
   onContinue,
   size = "lg",
   variant = "default",
-}: BlockedStartProps) {
+}: BlockedStartProps) => {
   const { t } = useTranslation();
   const name = blockedBy.workout?.name;
+
   return (
     <View className="gap-xs">
       <Button
@@ -39,7 +41,7 @@ export function BlockedStart({
         size={size}
         testID="start-workout-button"
       />
-      <Text className="text-center text-footnote text-muted-foreground">
+      <Text className="text-center" variant="muted">
         {name
           ? t("startWorkout.finishFirstNamed", { name })
           : t("startWorkout.finishFirst")}
@@ -58,4 +60,4 @@ export function BlockedStart({
       />
     </View>
   );
-}
+};

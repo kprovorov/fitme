@@ -1,5 +1,7 @@
 import { useVideoPlayer, VideoView } from "expo-video";
-import { useCSSVariable } from "uniwind";
+import { withUniwind } from "uniwind";
+
+const StyledVideoView = withUniwind(VideoView);
 
 /** The clips' aspect ratio, which the box around one keeps. */
 export const CLIP_ASPECT_RATIO = 4 / 3;
@@ -10,10 +12,7 @@ interface ExerciseVideoProps {
 }
 
 /** The Exercise's clip: muted, looping, playing on its own, with no controls. */
-export default function ExerciseVideo({ url }: ExerciseVideoProps) {
-  // The clips are shot on white, so the space they load into is near-white
-  // too rather than flashing dark first
-  const placeholder = useCSSVariable("--color-foreground") as string;
+const ExerciseVideo = ({ url }: ExerciseVideoProps) => {
   const player = useVideoPlayer(url, (videoPlayer) => {
     videoPlayer.loop = true;
     videoPlayer.play();
@@ -21,16 +20,16 @@ export default function ExerciseVideo({ url }: ExerciseVideoProps) {
     videoPlayer.audioMixingMode = "mixWithOthers";
   });
 
+  // The clips are shot on white, so the space they load into is near-white
+  // too rather than flashing dark first
   return (
-    <VideoView
+    <StyledVideoView
+      className="bg-foreground aspect-4/3 w-full"
       contentFit="cover"
       nativeControls={false}
       player={player}
-      style={{
-        aspectRatio: CLIP_ASPECT_RATIO,
-        backgroundColor: placeholder,
-        width: "100%",
-      }}
     />
   );
-}
+};
+
+export default ExerciseVideo;

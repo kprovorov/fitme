@@ -1,6 +1,8 @@
 import type { ViewRef } from "@rn-primitives/types";
 import type * as React from "react";
-import { View, type ViewProps } from "react-native";
+import { View } from "react-native";
+import type { ViewProps } from "react-native";
+
 import { cn } from "~/lib/utils";
 
 const HStack = ({
@@ -14,6 +16,7 @@ const HStack = ({
     {...props}
   />
 );
+
 HStack.displayName = "HStack";
 
 export { HStack };

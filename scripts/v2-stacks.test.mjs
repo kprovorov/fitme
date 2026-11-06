@@ -5,19 +5,25 @@ import os from "node:os";
 import path from "node:path";
 import { after, describe, test } from "node:test";
 import { fileURLToPath } from "node:url";
+
 import { staleV2Stacks } from "./v2-stacks.mjs";
 
 const DESTROYING_GONE = /Destroying gone-id/;
 const USAGE = /Usage/;
 
-const SCRIPT = fileURLToPath(new URL("./v2-stacks.mjs", import.meta.url));
+const SCRIPT = fileURLToPath(new URL("v2-stacks.mjs", import.meta.url));
 
+/** @type {string[]} */
 const tempDirs = [];
+
+/** @param {string} prefix Temporary directory name prefix. */
 const tempDir = (prefix) => {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), prefix));
   tempDirs.push(dir);
+
   return dir;
 };
+
 after(() => {
   for (const dir of tempDirs) {
     fs.rmSync(dir, { force: true, recursive: true });
@@ -26,6 +32,12 @@ after(() => {
 
 // A stack's state.json as the CLI writes it: v3 records a `pin` in every
 // instance's `creation`, v2 doesn't.
+/**
+ * @param {string} root Stack state directory.
+ * @param {string} id Stack identifier.
+ * @param {string} projectRoot Checkout's Supabase directory.
+ * @param {{ v2?: boolean }} [options] Stack version options.
+ */
 const writeState = (root, id, projectRoot, { v2 = true } = {}) => {
   const creation = v2 ? { config: {} } : { config: {}, pin: {} };
   fs.mkdirSync(path.join(root, id), { recursive: true });
@@ -39,7 +51,7 @@ const writeState = (root, id, projectRoot, { v2 = true } = {}) => {
   );
 };
 
-describe("staleV2Stacks", () => {
+void describe("staleV2Stacks", () => {
   test("picks the v2 stacks of checkouts that no longer exist", () => {
     const root = tempDir("v2-stacks-");
     writeState(root, "live", "/live/packages/supabase");
@@ -82,7 +94,7 @@ describe("staleV2Stacks", () => {
   });
 });
 
-describe("the CLI", () => {
+void describe("the CLI", () => {
   test("prints one id per line, the rest on stderr", () => {
     const root = tempDir("v2-stacks-");
     const live = tempDir("v2-stacks-live-");
@@ -90,7 +102,7 @@ describe("the CLI", () => {
     writeState(root, "gone-id", path.join(live, "missing"));
 
     const run = spawnSync(process.execPath, [SCRIPT, root], {
-      encoding: "utf8",
+      encoding: "utf-8",
     });
 
     assert.equal(run.status, 0, run.stderr);
@@ -99,7 +111,7 @@ describe("the CLI", () => {
   });
 
   test("fails without its arguments", () => {
-    const run = spawnSync(process.execPath, [SCRIPT], { encoding: "utf8" });
+    const run = spawnSync(process.execPath, [SCRIPT], { encoding: "utf-8" });
     assert.notEqual(run.status, 0);
     assert.match(run.stderr, USAGE);
   });

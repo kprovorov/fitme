@@ -1,4 +1,5 @@
-import { describe, expect, it } from "vitest";
+import { assert, describe, expect, it } from "vitest";
+
 import { isQueryError, sanitizeError } from "../index";
 
 const SQL = 'delete from "profiles" where "user_id" = $1';
@@ -10,7 +11,8 @@ class FakeQueryError extends Error {
   readonly query: string;
 
   constructor(query: string, params: unknown[], cause?: unknown) {
-    super(`Failed query: ${query}\nparams: ${params}`, { cause });
+    super(`Failed query: ${query}\nparams: ${String(params)}`, { cause });
+    this.name = "FakeQueryError";
     this.query = query;
     this.params = params;
   }
@@ -20,49 +22,59 @@ class FakeQueryError extends Error {
 const postgresError = (code: string, message: string) =>
   Object.assign(new Error(message), { code });
 
-describe("isQueryError", () => {
+describe("query error detection", () => {
   it("recognises an error with own query and params", () => {
-    expect(isQueryError(new FakeQueryError(SQL, [USER_ID]))).toBe(true);
+    expect(isQueryError(new FakeQueryError(SQL, [USER_ID]))).toBeTruthy();
   });
 
   it("rejects anything else", () => {
-    expect(isQueryError(new Error("Failed query: select 1"))).toBe(false);
-    expect(isQueryError({ params: [], query: SQL })).toBe(false);
-    expect(isQueryError(postgresError("22P02", "bad"))).toBe(false);
-    expect(isQueryError(null)).toBe(false);
+    expect(isQueryError(new Error("Failed query: select 1"))).toBeFalsy();
+    expect(isQueryError({ params: [], query: SQL })).toBeFalsy();
+    expect(isQueryError(postgresError("22P02", "bad"))).toBeFalsy();
+    expect(isQueryError(null)).toBeFalsy();
   });
 });
 
-describe("sanitizeError", () => {
+describe("error sanitization", () => {
   it("replaces a query error with its SQLSTATE and stack frames only", () => {
     const cause = postgresError(
       "22P02",
       `invalid input syntax for type uuid: "${USER_ID}"`
     );
+
     const query = new FakeQueryError(SQL, [USER_ID], cause);
 
     const { error, tags } = sanitizeError(query);
 
-    expect(error).toBeInstanceOf(Error);
-    const sanitized = error as Error;
-    expect(sanitized.name).toBe("DatabaseQueryError");
-    expect(sanitized.message).toBe("Database query failed (SQLSTATE 22P02)");
-    expect(sanitized.cause).toBeUndefined();
-    expect(tags).toEqual({ sqlstate: "22P02" });
+    assert.instanceOf(error, Error);
+    const sanitized = error;
+    expect({
+      name: sanitized.name,
+      message: sanitized.message,
+      cause: sanitized.cause,
+      tags,
+    }).toStrictEqual({
+      name: "DatabaseQueryError",
+      message: "Database query failed (SQLSTATE 22P02)",
+      cause: undefined,
+      tags: { sqlstate: "22P02" },
+    });
 
     const [header, ...frames] = (sanitized.stack ?? "").split("\n");
     expect(header).toBe(
       "DatabaseQueryError: Database query failed (SQLSTATE 22P02)"
     );
     expect(frames.length).toBeGreaterThan(0);
-    expect(frames).toEqual(
+
+    for (const leak of [SQL, USER_ID, "invalid input syntax", "Failed query"]) {
+      expect(sanitized.stack).not.toContain(leak);
+    }
+
+    expect(frames).toStrictEqual(
       (query.stack ?? "")
         .split("\n")
         .filter((line) => line.startsWith("    at "))
     );
-    for (const leak of [SQL, USER_ID, "invalid input syntax", "Failed query"]) {
-      expect(sanitized.stack).not.toContain(leak);
-    }
   });
 
   it("finds a query error deeper in the cause chain", () => {
@@ -71,30 +83,29 @@ describe("sanitizeError", () => {
       [USER_ID],
       postgresError("23505", "dup")
     );
+
     const wrapper = new Error("cleanup failed", { cause: query });
 
     const { error, tags } = sanitizeError(wrapper);
 
-    expect((error as Error).message).toBe(
-      "Database query failed (SQLSTATE 23505)"
-    );
-    expect(tags).toEqual({ sqlstate: "23505" });
+    assert.instanceOf(error, Error);
+    expect(error.message).toBe("Database query failed (SQLSTATE 23505)");
+    expect(tags).toStrictEqual({ sqlstate: "23505" });
   });
 
   it("reports an unknown SQLSTATE without a Postgres cause", () => {
     const { error, tags } = sanitizeError(new FakeQueryError(SQL, [USER_ID]));
 
-    expect((error as Error).message).toBe(
-      "Database query failed (SQLSTATE unknown)"
-    );
-    expect(tags).toEqual({ sqlstate: "unknown" });
+    assert.instanceOf(error, Error);
+    expect(error.message).toBe("Database query failed (SQLSTATE unknown)");
+    expect(tags).toStrictEqual({ sqlstate: "unknown" });
   });
 
   it("leaves any other error as it is", () => {
     const other = new Error("database unreachable");
 
-    expect(sanitizeError(other)).toEqual({ error: other });
-    expect(sanitizeError("boom")).toEqual({ error: "boom" });
+    expect(sanitizeError(other)).toStrictEqual({ error: other });
+    expect(sanitizeError("boom")).toStrictEqual({ error: "boom" });
   });
 
   it("stops at a cause cycle", () => {
@@ -102,6 +113,6 @@ describe("sanitizeError", () => {
     const b = new Error("b", { cause: a });
     a.cause = b;
 
-    expect(sanitizeError(a)).toEqual({ error: a });
+    expect(sanitizeError(a)).toStrictEqual({ error: a });
   });
 });

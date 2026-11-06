@@ -1,5 +1,6 @@
 import { arnoldModels, defaultArnoldModelId } from "@fitme/core";
 import { describe, expect, it } from "vitest";
+
 import { createApp } from "../create-app.js";
 import { signedInAs, testApp } from "../test/harness.js";
 
@@ -7,10 +8,11 @@ const app = createApp();
 
 const getModels = async (path: string) => {
   const response = await app.request(path);
+
   return { body: await response.json(), response };
 };
 
-describe("GET /v1/arnold/models", () => {
+describe("gET /v1/arnold/models", () => {
   const path = "/v1/arnold/models";
 
   it("answers without a token", async () => {
@@ -22,7 +24,7 @@ describe("GET /v1/arnold/models", () => {
   it("returns every Arnold model in list order and the default id", async () => {
     const { body } = await getModels(path);
 
-    expect(body).toEqual({
+    expect(body).toStrictEqual({
       data: {
         defaultId: defaultArnoldModelId,
         models: arnoldModels.map(({ description, id, label }) => ({
@@ -37,9 +39,11 @@ describe("GET /v1/arnold/models", () => {
   it("sends only id, label and description per model", async () => {
     const { body } = await getModels(path);
 
-    for (const model of body.data.models) {
-      expect(Object.keys(model).sort()).toEqual(["description", "id", "label"]);
-    }
+    expect(
+      body.data.models.map((model: (typeof arnoldModels)[number]) =>
+        Object.keys(model).toSorted()
+      )
+    ).toStrictEqual(body.data.models.map(() => ["description", "id", "label"]));
   });
 
   it("is publicly cacheable for a few minutes", async () => {
@@ -53,14 +57,14 @@ describe("GET /v1/arnold/models", () => {
 
 // The pre-rename route, removed once the minimum version gate (2.2.0) cut off
 // the builds that read it
-describe("GET /v1/coach/models", () => {
+describe("gET /v1/coach/models", () => {
   it("is gone", async () => {
     const response = await testApp().app.request("/v1/coach/models", {
       headers: signedInAs("user_alice"),
     });
 
     expect(response.status).toBe(404);
-    expect(await response.json()).toMatchObject({
+    await expect(response.json()).resolves.toMatchObject({
       error: { code: "not_found" },
     });
   });

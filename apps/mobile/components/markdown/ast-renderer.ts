@@ -1,10 +1,10 @@
-import type { Node, Root } from "mdast";
+import type { List, Node, Root, Table, TableRow } from "mdast";
 import type { ReactElement, ReactNode } from "react";
+
 import defaultRenderRules from "./render-rules";
 import type {
   ASTRendererOptions,
   ListBulletStyle,
-  NodeTypeMap,
   RenderExtras,
   RenderFunction,
   RenderRules,
@@ -32,7 +32,7 @@ export default class ASTRenderer {
   }: ASTRendererOptions) {
     this._renderRules = {
       ...defaultRenderRules,
-      ...(renderRules || {}),
+      ...renderRules,
     };
     this._styles = getMergedStyles(styles, mergeStyle);
     this._listBulletStyle = listBulletStyle;
@@ -43,12 +43,17 @@ export default class ASTRenderer {
 
   private get getListBulletCharacter(): string {
     switch (this._listBulletStyle) {
-      case "disc":
+      case "disc": {
         return "\u2022";
-      case "dash":
+      }
+
+      case "dash": {
         return "-";
-      default:
+      }
+
+      default: {
         return "\u2022";
+      }
     }
   }
 
@@ -60,10 +65,16 @@ export default class ASTRenderer {
 
   private getRenderFunction(type: keyof RenderRules): RenderFunction {
     const fn = this._renderRules[type];
+
     if (!fn) {
       console.warn(`Missing render rule for node type: ${type}`);
-      return (this._renderRules.unknown ?? (() => null)) as RenderFunction;
+
+      const unknown = this._renderRules.unknown;
+
+      return unknown ? (params) => unknown(params) : () => null;
     }
+
+    // SAFETY: The rule is selected by node.type and called with that same node below.
     return fn as RenderFunction;
   }
 
@@ -74,9 +85,11 @@ export default class ASTRenderer {
     extras?: RenderExtras
   ): ReactNode {
     const children: ReactNode[] = [];
+    // SAFETY: mdast types are renderer keys; unrecognized types use the unknown rule.
     const type = node.type as ValidNodeKey;
 
     let currentExtras = extras;
+
     if (type === "link" && this._onLinkPress) {
       currentExtras = {
         ...currentExtras,
@@ -86,12 +99,14 @@ export default class ASTRenderer {
 
     if ("children" in node && Array.isArray(node.children)) {
       if (type === "list") {
-        const listNode = node as import("mdast").List;
+        // SAFETY: node.type is "list" and its children were checked above.
+        const listNode = node as List;
         const start = listNode.start ?? 1;
         const ordered = listNode.ordered ?? false;
 
         for (let i = 0; i < listNode.children.length; i += 1) {
           const listItemNode = listNode.children[i];
+
           const listStyleType = ordered
             ? `${start + i}.`
             : this.getListBulletCharacter;
@@ -113,9 +128,12 @@ export default class ASTRenderer {
         }
       } else if (type === "table") {
         // Handle table with header row detection
-        const tableNode = node as import("mdast").Table;
+        // SAFETY: node.type is "table" and its children were checked above.
+        const tableNode = node as Table;
+
         for (let i = 0; i < tableNode.children.length; i += 1) {
           const rowNode = tableNode.children[i];
+
           if (rowNode) {
             children.push(
               this.renderNode(rowNode, [node, ...parentStack], {
@@ -127,9 +145,12 @@ export default class ASTRenderer {
         }
       } else if (type === "tableRow") {
         // Handle table row with cell rendering
-        const tableRowNode = node as import("mdast").TableRow;
+        // SAFETY: node.type is "tableRow" and its children were checked above.
+        const tableRowNode = node as TableRow;
+
         for (let i = 0; i < tableRowNode.children.length; i += 1) {
           const cellNode = tableRowNode.children[i];
+
           if (cellNode) {
             children.push(
               this.renderNode(cellNode, [node, ...parentStack], {
@@ -152,7 +173,7 @@ export default class ASTRenderer {
     return renderFunction({
       children,
       extras: currentExtras,
-      node: node as NodeTypeMap[typeof type],
+      node,
       parentStack,
       styles: this._styles,
     });

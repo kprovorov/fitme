@@ -23,8 +23,8 @@ Two pieces, and only two:
 2. **`toast()` called from client code** — event handlers, effects, callbacks. It's a plain function, no hook or provider needed, but it does nothing on the server: in a server action, return the result and call `toast()` in the client code that receives it.
 
 ```jsx
-import { Toaster } from 'sonner'; // once, in layout
-import { toast } from 'sonner';   // anywhere client-side
+import { Toaster } from "sonner"; // once, in layout
+import { toast } from "sonner"; // anywhere client-side
 ```
 
 ## Picking the right call
@@ -44,8 +44,8 @@ import { toast } from 'sonner';   // anywhere client-side
 **Update a toast** — call `toast()` again with the same `id`; only the props you pass change. Switching to `toast.success(…, { id })` changes the type. This is how loading → success flows work without `toast.promise`:
 
 ```jsx
-const id = toast.loading('Uploading…');
-toast.success('Uploaded', { id });
+const id = toast.loading("Uploading…");
+toast.success("Uploaded", { id });
 ```
 
 **Persist** — `{ duration: Infinity }`. **Dismiss** — `toast.dismiss(id)`, or `toast.dismiss()` for all. **Read active toasts** — `useSonner()` in React, `toast.getActiveToasts()` outside it.

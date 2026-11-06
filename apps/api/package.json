@@ -7,7 +7,7 @@
     "backfill:covers": "tsx scripts/backfill-covers.ts",
     "build": "tsdown",
     "dev": "tsx watch --env-file-if-exists=.env src/index.ts",
-    "openapi": "tsx src/openapi.ts",
+    "openapi": "tsx src/openapi.ts && oxfmt --write openapi.json",
     "start": "node dist/node/index.js",
     "test": "vitest run",
     "test:integration": "vitest run --config vitest.integration.config.ts",

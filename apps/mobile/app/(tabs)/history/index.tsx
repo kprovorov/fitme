@@ -1,5 +1,6 @@
 import { rateLimitedFor } from "@fitme/api-client";
-import { formatCount, formatDate, type Translator } from "@fitme/i18n";
+import { formatCount, formatDate } from "@fitme/i18n";
+import type { Translator } from "@fitme/i18n";
 import { LegendList } from "@legendapp/list/react-native";
 import { useCalendars } from "expo-localization";
 import { Stack } from "expo-router";
@@ -8,6 +9,7 @@ import { useTranslation } from "react-i18next";
 import { ActivityIndicator, RefreshControl, View } from "react-native";
 import Purchases from "react-native-purchases";
 import { useResolveClassNames } from "uniwind";
+
 import { EmptyHistoryCard } from "~/components/history/empty-history-card";
 import { Button } from "~/components/ui/button";
 import { Card } from "~/components/ui/card";
@@ -21,8 +23,10 @@ import { useWeeklyGoalsQuery } from "~/hooks/queries/weekly-goals";
 import {
   useOpenWorkoutSessionQuery,
   useWorkoutSessionHistoryQuery,
-  type WorkoutSessionHistory,
-  type WorkoutSessionHistoryEntry,
+} from "~/hooks/queries/workout-sessions";
+import type {
+  WorkoutSessionHistory,
+  WorkoutSessionHistoryEntry,
 } from "~/hooks/queries/workout-sessions";
 import { useStackedLayout } from "~/hooks/stacked-layout";
 import { useI18n } from "~/lib/i18n";
@@ -38,15 +42,17 @@ interface Month {
  * Entries grouped by the month they started in on the device's clock,
  * newest first (the query sorts them by start).
  */
-function groupByMonth(
+const groupByMonth = (
   { sessions, weightUnit }: WorkoutSessionHistory,
   translator: Translator
-): Month[] {
+): Month[] => {
   const months: Month[] = [];
+
   for (const entry of sessions) {
     const startedAt = new Date(entry.started_at);
     const key = `${startedAt.getFullYear()}-${startedAt.getMonth() + 1}`;
     const last = months.at(-1);
+
     if (last?.key === key) {
       last.entries.push(entry);
     } else {
@@ -58,22 +64,20 @@ function groupByMonth(
       });
     }
   }
+
   return months;
-}
+};
 
 const keyExtractor = (month: Month) => month.key;
-
-const renderMonth = ({ item }: { item: Month }) => (
-  <MonthSection month={item} />
-);
 
 /**
  * A month of History: its heading, counting every finished entry (empty
  * completions too, unlike the overview's workouts), over a card of rows.
  */
-function MonthSection({ month }: { month: Month }) {
+const MonthSection = ({ month }: { month: Month }) => {
   const i18n = useI18n();
   const stacked = useStackedLayout();
+
   return (
     <View className="gap-xs pb-lg">
       <View
@@ -82,42 +86,51 @@ function MonthSection({ month }: { month: Month }) {
         }
       >
         <H4 className={stacked ? undefined : "flex-1"}>{month.title}</H4>
-        <Text className="text-footnote text-muted-foreground">
+        <Text variant="muted">
           {formatCount(i18n, "entries", month.entries.length)}
         </Text>
       </View>
-      <Card className="gap-sm">
-        {month.entries.map((entry, index) => (
-          <Fragment key={entry.id}>
-            {index > 0 && <Separator />}
-            <WorkoutSessionHistoryRow
-              entry={entry}
-              weightUnit={month.weightUnit}
-            />
-          </Fragment>
-        ))}
+      <Card>
+        <View className="gap-sm">
+          {month.entries.map((entry, index) => (
+            <Fragment key={entry.id}>
+              {index > 0 && <Separator />}
+              <WorkoutSessionHistoryRow
+                entry={entry}
+                weightUnit={month.weightUnit}
+              />
+            </Fragment>
+          ))}
+        </View>
       </Card>
     </View>
   );
-}
+};
+
+const renderMonth = ({ item }: { item: Month }) => (
+  <MonthSection month={item} />
+);
 
 /**
  * Whether any of the reads failed with nothing read, and, when one of those
  * was refused for its rate limit, the wait it gave; `null` when none failed.
  */
 const failedRead = (
-  reads: Array<{ error: unknown; failed: boolean }>
+  reads: { error: unknown; failed: boolean }[]
 ): { waitSeconds: number | null } | null => {
   const failed = reads.filter((read) => read.failed);
+
   if (failed.length === 0) {
     return null;
   }
+
   // A Public API read refused for its rate limit gives the wait.
   const waits = failed.map((read) => rateLimitedFor(read.error));
+
   return { waitSeconds: waits.find((wait) => wait !== null) ?? null };
 };
 
-export default function HistoryScreen() {
+const HistoryScreen = () => {
   const { t } = useTranslation();
   const [refreshing, setRefreshing] = useState(false);
   // LegendList takes no class names: resolve the spacing tokens to a style.
@@ -129,6 +142,7 @@ export default function HistoryScreen() {
     isError,
     refetch: refetchWorkoutSessions,
   } = useWorkoutSessionHistoryQuery();
+
   // What the empty History offers to do next: read alongside it, so the card
   // never shows an action guessed from a read that hasn't answered.
   const {
@@ -137,6 +151,7 @@ export default function HistoryScreen() {
     isError: isOpenSessionError,
     refetch: refetchOpenSession,
   } = useOpenWorkoutSessionQuery();
+
   // The active Plan, whose next Workout the empty card starts (`null` with
   // none, which the card answers with Create a Plan).
   const {
@@ -145,9 +160,11 @@ export default function HistoryScreen() {
     isError: isActivePlanError,
     refetch: refetchActivePlan,
   } = useActivePlanQuery();
+
   // A failed read only hides the Weekly goal; the list still shows.
   const calendars = useCalendars();
   const timeZone = calendars[0]?.timeZone ?? "UTC";
+
   const { data: weeklyGoals, refetch: refetchWeeklyGoals } =
     useWeeklyGoalsQuery({ refetchInterval: 60_000, variables: { timeZone } });
 
@@ -179,12 +196,16 @@ export default function HistoryScreen() {
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
+
     try {
       await Purchases.invalidateCustomerInfoCache();
       await refetchAll();
-    } finally {
+    } catch (refreshError) {
       setRefreshing(false);
+      throw refreshError;
     }
+
+    setRefreshing(false);
   }, [refetchAll]);
 
   const renderEmpty = () => {
@@ -202,11 +223,13 @@ export default function HistoryScreen() {
         failed: isActivePlanError && activePlan === undefined,
       },
     ]);
+
     if (failure) {
       const { waitSeconds } = failure;
+
       return (
-        <View className="items-center gap-sm px-md pt-lg">
-          <Text className="text-center text-muted-foreground">
+        <View className="gap-sm px-md pt-lg items-center">
+          <Text className="text-center" variant="muted">
             {waitSeconds === null
               ? t("history.loadError")
               : t("common.rateLimited", { seconds: waitSeconds })}
@@ -221,13 +244,15 @@ export default function HistoryScreen() {
         </View>
       );
     }
+
     if (!history || openSession === undefined || activePlan === undefined) {
       return (
-        <View className="items-center pt-lg">
+        <View className="pt-lg items-center">
           <ActivityIndicator colorClassName="accent-foreground" />
         </View>
       );
     }
+
     return (
       <EmptyHistoryCard activePlan={activePlan} openSession={openSession} />
     );
@@ -267,4 +292,6 @@ export default function HistoryScreen() {
       />
     </>
   );
-}
+};
+
+export default HistoryScreen;

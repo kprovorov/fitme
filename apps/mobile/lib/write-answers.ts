@@ -1,9 +1,10 @@
-import {
-  hashKey,
-  type InvalidateQueryFilters,
-  type QueryClient,
-  type QueryKey,
+import { hashKey } from "@tanstack/react-query";
+import type {
+  InvalidateQueryFilters,
+  QueryClient,
+  QueryKey,
 } from "@tanstack/react-query";
+
 import { getCurrentUserId } from "~/lib/clerk";
 
 /**
@@ -102,27 +103,35 @@ export const seedWriteAnswer = async (
   if (!isStillWriteStarter(starter)) {
     return "signed-out";
   }
+
   await client.cancelQueries({ exact: true, queryKey });
+
   if (!(starter && isStillWriteStarter(starter))) {
     return "signed-out";
   }
+
   let result: SeedResult = "seeded";
   const now = shownIn(client, queryKey);
+
   const atStart = starter.shownAtStart[hashKey(queryKey)] ?? {
     count: 0,
     data: undefined,
   };
+
   if (now.data === atStart.data && now.count === atStart.count) {
     client.setQueryData(queryKey, answer);
   } else {
     result = "superseded";
     await client.invalidateQueries({ exact: true, queryKey });
+
     if (!isStillWriteStarter(starter)) {
       return "signed-out";
     }
   }
+
   await Promise.all(
     alsoInvalidate.map((filters) => client.invalidateQueries(filters))
   );
+
   return isStillWriteStarter(starter) ? result : "signed-out";
 };

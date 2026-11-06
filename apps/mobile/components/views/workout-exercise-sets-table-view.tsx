@@ -1,17 +1,16 @@
 import { formatElapsed } from "@fitme/core";
-import { type Translator, unitName } from "@fitme/i18n";
+import { unitName } from "@fitme/i18n";
+import type { Translator } from "@fitme/i18n";
 import type { ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { View } from "react-native";
+
 import type { FullPlan, PlanSet } from "~/hooks/queries/plans";
 import { describeSetTarget, formatSetTarget } from "~/lib/set-inputs";
 import { cn } from "~/lib/utils";
-import {
-  SET_NUMBER_COLUMN_CLASS,
-  SET_TABLE_MAX_FONT_SCALE,
-} from "../forms/workout-exercise-set-form";
+
+import { SET_TABLE_MAX_FONT_SCALE } from "../forms/workout-exercise-set-form";
 import { Text } from "../ui/text";
-import { VStack } from "../ui/vstack";
 
 /** A row's height: a Workout Session set row's, so both tables line up. */
 const ROW_CLASS = "min-h-10 flex-row items-center gap-sm";
@@ -22,7 +21,7 @@ interface WorkoutExerciseSetsTableViewProps {
   weightUnit: FullPlan["weight_unit"];
 }
 
-function Cell({
+const Cell = ({
   children,
   className,
   header = false,
@@ -30,22 +29,20 @@ function Cell({
   children: ReactNode;
   className?: string;
   header?: boolean;
-}) {
-  return (
-    <Text
-      adjustsFontSizeToFit
-      className={cn(
-        "text-center text-mono-body",
-        header && "text-primary",
-        className
-      )}
-      maxFontSizeMultiplier={SET_TABLE_MAX_FONT_SCALE}
-      numberOfLines={1}
-    >
-      {children}
-    </Text>
-  );
-}
+}) => (
+  <Text
+    adjustsFontSizeToFit
+    className={cn(
+      "text-mono-body text-center",
+      header && "text-primary",
+      className
+    )}
+    maxFontSizeMultiplier={SET_TABLE_MAX_FONT_SCALE}
+    numberOfLines={1}
+  >
+    {children}
+  </Text>
+);
 
 /** A set's rest as a clock (`1:30`), or `–` without one. */
 const formatRest = (seconds: number) =>
@@ -66,21 +63,21 @@ const setLabel = (translator: Translator, set: PlanSet, weightLabel: string) =>
  * A Workout Exercise's sets as planned, read-only: each set's target reps ×
  * weight in the Plan's own unit, and its recommended rest.
  */
-export default function WorkoutExerciseSetsTableView({
+const WorkoutExerciseSetsTableView = ({
   sets,
   weightUnit,
-}: WorkoutExerciseSetsTableViewProps) {
+}: WorkoutExerciseSetsTableViewProps) => {
   const { i18n, t } = useTranslation();
   const weightLabel = unitName(i18n, weightUnit);
 
   return (
-    <VStack className="items-stretch gap-sm">
+    <View className="gap-sm flex flex-col items-stretch justify-center">
       <View
         accessibilityElementsHidden
-        className="flex-row items-center gap-sm"
+        className="gap-sm flex-row items-center"
         importantForAccessibility="no-hide-descendants"
       >
-        <Cell className={SET_NUMBER_COLUMN_CLASS} header>
+        <Cell className="w-7" header>
           #
         </Cell>
         <Cell className="flex-1" header>
@@ -91,8 +88,8 @@ export default function WorkoutExerciseSetsTableView({
         </Cell>
       </View>
 
-      {[...sets]
-        .sort((a, b) => a.order - b.order)
+      {sets
+        .toSorted((a, b) => a.order - b.order)
         .map((set) => (
           <View
             accessibilityLabel={setLabel(i18n, set, weightLabel)}
@@ -100,13 +97,15 @@ export default function WorkoutExerciseSetsTableView({
             className={ROW_CLASS}
             key={set.id}
           >
-            <Cell className={SET_NUMBER_COLUMN_CLASS}>{`#${set.order}`}</Cell>
+            <Cell className="w-7">{`#${set.order}`}</Cell>
             <Cell className="flex-1">{formatSetTarget(set, weightLabel)}</Cell>
-            <Cell className="flex-1 text-muted-foreground">
+            <Cell className="text-muted-foreground flex-1">
               {formatRest(set.rest_recommended)}
             </Cell>
           </View>
         ))}
-    </VStack>
+    </View>
   );
-}
+};
+
+export default WorkoutExerciseSetsTableView;

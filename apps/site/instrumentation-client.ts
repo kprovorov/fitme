@@ -1,10 +1,11 @@
 import { resolveObservabilityConfig, scrubEvent } from "@fitme/observability";
-import * as Sentry from "@sentry/nextjs";
-import posthog from "posthog-js";
+import { browserTracingIntegration, init } from "@sentry/nextjs";
+import { posthog } from "posthog-js";
 
 posthog.init(process.env.NEXT_PUBLIC_POSTHOG_KEY ?? "", {
   api_host: "/ingest",
-  capture_exceptions: true, // This enables capturing exceptions using Error Tracking
+  // This enables capturing exceptions using Error Tracking
+  capture_exceptions: true,
   debug: process.env.NODE_ENV === "development",
   defaults: "2025-05-24",
   ui_host: "https://eu.posthog.com",
@@ -22,7 +23,7 @@ const sentryConfig = resolveObservabilityConfig({
 });
 
 if (sentryConfig.enabled) {
-  Sentry.init({
+  init({
     beforeSend: scrubEvent,
     // No web vitals (Vercel Speed Insights has them): whatever pageload
     // measurements the SDK still takes are dropped with the rest
@@ -40,7 +41,7 @@ if (sentryConfig.enabled) {
     dsn: sentryConfig.dsn,
     environment: sentryConfig.environment,
     integrations: [
-      Sentry.browserTracingIntegration({
+      browserTracingIntegration({
         enableLongTask: false,
         webVitals: { ignore: ["cls", "inp", "lcp"] },
       }),
@@ -55,4 +56,4 @@ if (sentryConfig.enabled) {
   });
 }
 
-export const onRouterTransitionStart = Sentry.captureRouterTransitionStart;
+export { captureRouterTransitionStart as onRouterTransitionStart } from "@sentry/nextjs";

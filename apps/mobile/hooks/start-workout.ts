@@ -1,13 +1,14 @@
 import { ApiError, rateLimitedFor } from "@fitme/api-client";
 import { useQueryClient } from "@tanstack/react-query";
 import { Alert } from "react-native";
+
 import {
   OPEN_WORKOUT_SESSION_QUERY_KEY,
-  type OpenWorkoutSession,
   seedWorkoutSession,
   useCreateWorkoutSessionMutation,
   useOpenWorkoutSessionQuery,
 } from "~/hooks/queries/workout-sessions";
+import type { OpenWorkoutSession } from "~/hooks/queries/workout-sessions";
 import { i18n } from "~/lib/i18n";
 import { isStillWriteStarter } from "~/lib/write-answers";
 
@@ -35,7 +36,7 @@ export const nextWorkoutOf = <W extends { order: number }>(plan: {
   workouts: W[];
 }): W | undefined =>
   // A copy: plan.workouts is the query cache's array, never sorted in place.
-  [...plan.workouts].sort((a, b) => a.order - b.order)[0];
+  plan.workouts.toSorted((a, b) => a.order - b.order)[0];
 
 const alertStartFailed = (waitSeconds: number | null) => {
   Alert.alert(
@@ -69,9 +70,6 @@ const alertFinishFirst = (
   );
 };
 
-const isSessionInProgress = (error: unknown) =>
-  error instanceof ApiError && error.code === "session_in_progress";
-
 /**
  * Starts a Workout (or resumes its open Workout Session) through the Public
  * API, the way the Workout tab's cards and the Workout screen both do: the
@@ -92,15 +90,16 @@ const isSessionInProgress = (error: unknown) =>
  * it still asks the API, and the 409 alerts "Finish <Workout> first", its
  * Continue button handing the blocking session to `onContinueBlocking`.
  */
-export function useStartWorkout(
+export const useStartWorkout = (
   workoutId: string,
   onStarted: (sessionId: string) => void,
   {
     onContinueBlocking,
   }: { onContinueBlocking?: (open: OpenWorkoutSession) => void } = {}
-) {
+) => {
   const queryClient = useQueryClient();
   const { data: openSession } = useOpenWorkoutSessionQuery();
+
   const { mutate, isPending } = useCreateWorkoutSessionMutation({
     // Signed out (or another User signed in) before the answer: it's the
     // previous User's, so it neither shows, nor reads, nor opens anything.
@@ -108,25 +107,31 @@ export function useStartWorkout(
       if (!isStillWriteStarter(starter)) {
         return;
       }
-      if (isSessionInProgress(error)) {
+
+      if (error instanceof ApiError && error.code === "session_in_progress") {
         await queryClient.invalidateQueries({
           queryKey: OPEN_WORKOUT_SESSION_QUERY_KEY,
         });
+
         if (!isStillWriteStarter(starter)) {
           return;
         }
+
         const open = queryClient.getQueryData<OpenWorkoutSession | null>(
           OPEN_WORKOUT_SESSION_QUERY_KEY
         );
+
         // The blocked state shows it; otherwise (finished meanwhile, or the
         // re-read failed) the press still gets an answer.
         if (open && open.workout?.id !== workoutId) {
           if (onContinueBlocking) {
             alertFinishFirst(open, onContinueBlocking);
           }
+
           return;
         }
       }
+
       alertStartFailed(rateLimitedFor(error));
     },
     onSuccess: async (workoutSession, _variables, starter) => {
@@ -138,18 +143,21 @@ export function useStartWorkout(
         workoutSession,
         [{ queryKey: OPEN_WORKOUT_SESSION_QUERY_KEY }]
       );
+
       if (seeded === "signed-out") {
         return;
       }
+
       onStarted(workoutSession.id);
     },
   });
 
   const blockedBy =
     openSession && openSession.workout?.id !== workoutId ? openSession : null;
+
   return {
     blockedBy,
     isStarting: isPending,
     startWorkout: () => mutate({ workoutId }),
   };
-}
+};

@@ -1,22 +1,16 @@
 # Contributing
 
-Fitme's source is public to read, but the project doesn't take outside
-contributions: pull requests and GitHub issues from outside the team are closed
-unread. Work is planned and tracked privately.
+Fitme's source is public to read, but the project doesn't take outside contributions: pull requests and GitHub issues from outside the team are closed unread. Work is planned and tracked privately.
 
 Found a security problem? Don't open an issue: follow [`SECURITY.md`](SECURITY.md).
 
 ## Running the repo locally
 
-See the [README](README.md#running-it-locally) for setup and the checks, and
-[`AGENTS.md`](AGENTS.md) for every command, environment variable and how the
-apps fit together.
+See the [README](README.md#running-it-locally) for setup and the checks, and [`AGENTS.md`](AGENTS.md) for every command, environment variable and how the apps fit together.
 
 ## Agent skills
 
-`.agents/skills/` holds agent skills from their authors' repositories (linked to
-Claude Code through `.claude/skills/`), pinned in `skills-lock.json`. Each is
-redistributed under its own licence:
+`.agents/skills/` holds agent skills from their authors' repositories (linked to Claude Code through `.claude/skills/`), pinned in `skills-lock.json`. Each is redistributed under its own licence:
 
 | Skills | Source | Licence |
 | --- | --- | --- |
@@ -31,7 +25,4 @@ redistributed under its own licence:
 | `ultracite` | [haydenbleasel/ultracite](https://github.com/haydenbleasel/ultracite) | MIT |
 | `uniwind` | [uni-stack/uniwind](https://github.com/uni-stack/uniwind) | MIT |
 
-`skills-lock.json` also lists skills that aren't committed (the `assistant-ui`
-ones and `migrate-nativewind-to-uniwind`). Install every skill in it with
-`npx skills experimental_install`. A skill whose licence doesn't allow
-redistribution stays out of the repo: git-ignore it and install it that way.
+`skills-lock.json` also lists skills that aren't committed (the `assistant-ui` ones and `migrate-nativewind-to-uniwind`). Install every skill in it with `npx skills experimental_install`. A skill whose licence doesn't allow redistribution stays out of the repo: git-ignore it and install it that way.

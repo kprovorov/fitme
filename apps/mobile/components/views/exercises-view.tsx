@@ -7,11 +7,11 @@ import { useTranslation } from "react-i18next";
 import {
   ActivityIndicator,
   FlatList,
-  type NativeScrollEvent,
-  type NativeSyntheticEvent,
   RefreshControl,
   View,
 } from "react-native";
+import type { NativeScrollEvent, NativeSyntheticEvent } from "react-native";
+
 import {
   ExerciseRow,
   ExerciseRowSeparator,
@@ -35,6 +35,10 @@ const END_REACHED_THRESHOLD = 0.5;
 
 const exerciseKey = (exercise: ExerciseSummary) => exercise.slug;
 
+const noop = () => {
+  /* noop */
+};
+
 /**
  * The Library, searched and filtered by Muscle group: the Library tab and the
  * Exercise picker. It is the screen's scroll container, a virtualised list
@@ -44,9 +48,7 @@ const exerciseKey = (exercise: ExerciseSummary) => exercise.slug;
  * group shows as a chip under the pill; its × removes that group at once.
  */
 const ExercisesView = ({
-  onExercisePress = () => {
-    /* noop */
-  },
+  onExercisePress = noop,
   rowAccessibilityLabel,
   trailing,
   muscleChoiceKey,
@@ -112,8 +114,10 @@ const ExercisesView = ({
   const onScrollEndDrag = useCallback(
     ({ nativeEvent }: NativeSyntheticEvent<NativeScrollEvent>) => {
       const { contentOffset, contentSize, layoutMeasurement } = nativeEvent;
+
       const fromEnd =
         contentSize.height - contentOffset.y - layoutMeasurement.height;
+
       if (
         canLoadMore &&
         isLoadMoreError &&
@@ -127,8 +131,9 @@ const ExercisesView = ({
 
   const onRefresh = useCallback(() => {
     setRefreshing(true);
+
     // A refetch never rejects: a failure is the query's error state.
-    refetch().then(() => setRefreshing(false));
+    void refetch().then(() => setRefreshing(false));
   }, [refetch]);
 
   const retry = useCallback(() => {
@@ -177,9 +182,9 @@ const ExercisesView = ({
   const renderEmpty = () => {
     if (isError) {
       return (
-        <VStack className="items-center gap-sm pt-lg">
+        <View className="gap-sm pt-lg flex flex-col items-center justify-center">
           <H3 className="text-center">{t("library.loadErrorTitle")}</H3>
-          <Text className="text-center text-muted-foreground">
+          <Text className="text-center" variant="muted">
             {t("library.loadError")}
           </Text>
           <Button
@@ -189,14 +194,15 @@ const ExercisesView = ({
             size="lg"
             variant="secondary"
           />
-        </VStack>
+        </View>
       );
     }
+
     if (exercises) {
       return (
-        <VStack className="items-center gap-sm pt-lg">
+        <View className="gap-sm pt-lg flex flex-col items-center justify-center">
           <H3 className="text-center">{t("library.emptyTitle")}</H3>
-          <Text className="text-center text-muted-foreground">
+          <Text className="text-center" variant="muted">
             {t("library.empty")}
           </Text>
           <Button
@@ -205,11 +211,12 @@ const ExercisesView = ({
             onPress={showAll}
             size="lg"
           />
-        </VStack>
+        </View>
       );
     }
+
     return (
-      <View className="items-center pt-lg">
+      <View className="pt-lg items-center">
         <ActivityIndicator colorClassName="accent-foreground" />
       </View>
     );
@@ -218,18 +225,22 @@ const ExercisesView = ({
   const renderFooter = () => {
     if (isLoadingMore) {
       return (
-        <View className="items-center pt-md" testID="exercises-loading-more">
+        <View className="pt-md items-center" testID="exercises-loading-more">
           <ActivityIndicator colorClassName="accent-foreground" />
         </View>
       );
     }
+
     if (isLoadMoreError) {
       return (
-        <ErrorMessage className="pt-md text-center">
-          {t("library.loadMoreError")}
-        </ErrorMessage>
+        <View className="pt-md">
+          <ErrorMessage className="text-center">
+            {t("library.loadMoreError")}
+          </ErrorMessage>
+        </View>
       );
     }
+
     return null;
   };
 
@@ -245,7 +256,7 @@ const ExercisesView = ({
       ListEmptyComponent={renderEmpty()}
       ListFooterComponent={renderFooter() ?? undefined}
       ListHeaderComponent={
-        <VStack className="items-stretch pb-sm">
+        <VStack className="mb-sm items-stretch">
           <Button
             className="self-start"
             disabled={musclesDisabled}
@@ -277,6 +288,7 @@ const ExercisesView = ({
     />
   );
 };
+
 ExercisesView.displayName = "ExercisesView";
 
 export default ExercisesView;

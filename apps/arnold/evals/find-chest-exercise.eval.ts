@@ -1,7 +1,8 @@
 import { defineEval } from "eve/evals";
+
 import { readToolStubs } from "./fixtures";
 
-const A_CHEST_EXERCISE = /Bench Press|Incline Dumbbell Press/;
+const A_CHEST_EXERCISE = /Bench Press|Incline Dumbbell Press/u;
 
 export default defineEval({
   description:

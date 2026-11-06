@@ -7,10 +7,7 @@ tags: lists, performance, flatlist, virtualization
 
 ## Optimize List Performance with Stable Object References
 
-Don't map or filter data before passing to virtualized lists. Virtualization
-relies on object reference stability to know what changed—new references cause
-full re-renders of all visible items. Attempt to prevent frequent renders at the
-list-parent level.
+Don't map or filter data before passing to virtualized lists. Virtualization relies on object reference stability to know what changed—new references cause full re-renders of all visible items. Attempt to prevent frequent renders at the list-parent level.
 
 Where needed, use context selectors within list items.
 
@@ -67,8 +64,7 @@ function DomainItem({ tld }: { tld: Tld }) {
 
 **Updating parent array reference:**
 
-Creating a new array instance can be okay, as long as its inner object
-references are stable. For instance, if you sort a list of objects:
+Creating a new array instance can be okay, as long as its inner object references are stable. For instance, if you sort a list of objects:
 
 ```tsx
 // good: creates a new array instance without mutating the inner objects
@@ -78,8 +74,7 @@ const sortedTlds = tlds.toSorted((a, b) => a.name.localeCompare(b.name));
 return <LegendList data={sortedTlds} renderItem={renderItem} />;
 ```
 
-Even though this creates a new array instance `sortedTlds`, the inner object
-references are stable.
+Even though this creates a new array instance `sortedTlds`, the inner object references are stable.
 
 **With zustand for dynamic data (avoids parent re-renders):**
 
@@ -109,16 +104,11 @@ function DomainItem({ tld }: { tld: Tld }) {
 }
 ```
 
-Virtualization can now skip items that haven't changed when typing. Only visible
-items (~20) re-render on keystroke, rather than the parent.
+Virtualization can now skip items that haven't changed when typing. Only visible items (~20) re-render on keystroke, rather than the parent.
 
-**Deriving state within list items based on parent data (avoids parent
-re-renders):**
+**Deriving state within list items based on parent data (avoids parent re-renders):**
 
-For components where the data is conditional based on the parent state, this
-pattern is even more important. For example, if you are checking if an item is
-favorited, toggling favorites only re-renders one component if the item itself
-is in charge of accessing the state rather than the parent:
+For components where the data is conditional based on the parent state, this pattern is even more important. For example, if you are checking if an item is favorited, toggling favorites only re-renders one component if the item itself is in charge of accessing the state rather than the parent:
 
 ```tsx
 function DomainItemFavoriteButton({ tld }: { tld: Tld }) {
@@ -127,6 +117,4 @@ function DomainItemFavoriteButton({ tld }: { tld: Tld }) {
 }
 ```
 
-Note: if you're using the React Compiler, you can read React Context values
-directly within list items. Although this is slightly slower than using a
-Zustand selector in most cases, the effect may be negligible.
+Note: if you're using the React Compiler, you can read React Context values directly within list items. Although this is slightly slower than using a Zustand selector in most cases, the effect may be negligible.

@@ -12,11 +12,13 @@ import {
   View,
 } from "react-native";
 import Purchases from "react-native-purchases";
+
 import Logo from "~/components/brand/logo";
 import { Button } from "~/components/ui/button";
 import { Text } from "~/components/ui/text";
 import { H1 } from "~/components/ui/typography";
 import { VStack } from "~/components/ui/vstack";
+import HomeView from "~/components/views/home-view";
 import {
   useActivePlanQuery,
   usePlanSummariesQuery,
@@ -30,9 +32,35 @@ const IS_E2E = process.env.EXPO_PUBLIC_E2E_ENABLED === "true";
 /** How often the tab reads its Plans again while it's open: every minute. */
 const REFRESH_INTERVAL_MS = 60_000;
 
-import HomeView from "~/components/views/home-view";
+const HomeProfileButton = () => {
+  const { t } = useTranslation();
+  const router = useRouter();
+  const openProfile = useCallback(() => router.push("/profile"), [router]);
 
-export default function HomeScreen() {
+  return (
+    <Pressable accessibilityRole="button" hitSlop={8} onPress={openProfile}>
+      <Text className="text-primary" variant="large">
+        {t("profile.title")}
+      </Text>
+    </Pressable>
+  );
+};
+
+const HomeHeaderTitle = () => {
+  const { t } = useTranslation();
+
+  return (
+    <View
+      accessibilityLabel={t("home.logo")}
+      accessibilityRole="image"
+      accessible
+    >
+      <Logo />
+    </View>
+  );
+};
+
+const HomeScreen = () => {
   const { t } = useTranslation();
   const { user } = useUser();
   const { data: profile } = useProfileQuery();
@@ -47,12 +75,14 @@ export default function HomeScreen() {
     isError: isActivePlanError,
     refetch: refetchActivePlan,
   } = useActivePlanQuery({ refetchInterval: REFRESH_INTERVAL_MS });
+
   const {
     data: plans,
     error: plansError,
     isError: isPlansError,
     refetch: refetchPlans,
   } = usePlanSummariesQuery({ refetchInterval: REFRESH_INTERVAL_MS });
+
   // Read alongside the Plans, so the Next card's Start shows blocked from the
   // first frame while another Workout is in progress.
   const { refetch: refetchOpenSession } = useOpenWorkoutSessionQuery();
@@ -64,14 +94,19 @@ export default function HomeScreen() {
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
+
     try {
       if (!IS_E2E) {
         await Purchases.invalidateCustomerInfoCache();
       }
+
       await Promise.all([refetchPlanReads(), refetchOpenSession()]);
-    } finally {
+    } catch (error) {
       setRefreshing(false);
+      throw error;
     }
+
+    setRefreshing(false);
   }, [refetchPlanReads, refetchOpenSession]);
 
   const router = useRouter();
@@ -81,6 +116,7 @@ export default function HomeScreen() {
     // has not loaded (or failed), so do not send the User to onboarding yet.
     if (user && profile === null) {
       const hasSeen = storage.getBoolean(`onboarding.seen.${user.id}`) ?? false;
+
       if (!hasSeen) {
         router.push("/onboarding");
       }
@@ -90,6 +126,7 @@ export default function HomeScreen() {
   const handleCreatePlan = useCallback(() => router.push("/planner"), [router]);
   const handleManagePlans = useCallback(() => router.push("/plans"), [router]);
   const openProfile = useCallback(() => router.push("/profile"), [router]);
+
   const retryPlans = useCallback(() => {
     refetchPlanReads();
   }, [refetchPlanReads]);
@@ -99,6 +136,7 @@ export default function HomeScreen() {
   // empty state needs the summaries too, to say whether any Plan exists.
   const activePlanFailed = isActivePlanError && activePlan === undefined;
   const plansFailed = activePlan === null && isPlansError && !plans;
+
   // A Public API read refused for its rate limit gives the wait.
   const waitSeconds =
     (activePlanFailed ? rateLimitedFor(activePlanError) : null) ??
@@ -108,9 +146,10 @@ export default function HomeScreen() {
     if (activePlan) {
       return <HomeView plan={activePlan} />;
     }
+
     if (activePlanFailed || plansFailed) {
       return (
-        <VStack className="flex-1 py-md">
+        <VStack className="my-md flex-1">
           <H1 className="text-center">{t("home.loadError.title")}</H1>
           <Text className="text-center">
             {waitSeconds === null
@@ -126,6 +165,7 @@ export default function HomeScreen() {
         </VStack>
       );
     }
+
     if (activePlan === undefined || !plans) {
       return (
         <View
@@ -136,8 +176,9 @@ export default function HomeScreen() {
         </View>
       );
     }
+
     return (
-      <VStack className="flex-1 py-md">
+      <VStack className="my-md flex-1">
         <H1 className="text-center">{t("home.empty.title")}</H1>
         <Text className="text-center">
           {plans.length > 0
@@ -173,30 +214,10 @@ export default function HomeScreen() {
           // Android's native stack has no header items, so Profile is a text
           // button there; iOS shows the items below and ignores this.
           headerRight:
-            Platform.OS === "android"
-              ? () => (
-                  <Pressable
-                    accessibilityRole="button"
-                    hitSlop={8}
-                    onPress={openProfile}
-                  >
-                    <Text className="text-body-emphasized text-primary">
-                      {t("profile.title")}
-                    </Text>
-                  </Pressable>
-                )
-              : undefined,
+            Platform.OS === "android" ? HomeProfileButton : undefined,
           // The Fitme logo in the title's place; `title` still names the tab
           // for the back button of the screens pushed over it.
-          headerTitle: () => (
-            <View
-              accessibilityLabel={t("home.logo")}
-              accessibilityRole="image"
-              accessible
-            >
-              <Logo />
-            </View>
-          ),
+          headerTitle: HomeHeaderTitle,
           headerTransparent: true,
           title: t("tabs.workout"),
           unstable_headerRightItems: () => [
@@ -226,4 +247,6 @@ export default function HomeScreen() {
       </ScrollView>
     </>
   );
-}
+};
+
+export default HomeScreen;

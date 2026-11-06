@@ -5,6 +5,7 @@
  * side (ADR 0018), whatever size and format it had.
  */
 import { beforeEach, describe, expect, it, jest } from "@jest/globals";
+
 import {
   MAX_ATTACHMENT_EDGE,
   pickLibraryPhotos,
@@ -27,6 +28,7 @@ interface Size {
  * module factory to reach.
  */
 const mockDecoded = new Map<string, { height: number; width: number }>();
+
 /** The sources the stood-in decoder refuses, as a RAW or a broken file. */
 const mockFailFor = new Set<string>();
 const mockManipulated: { options: unknown; uri: string }[] = [];
@@ -37,6 +39,7 @@ const mockRender = (uri: string, size: { height: number; width: number }) => ({
   height: size.height,
   saveAsync: (options: SaveOptions = {}) => {
     mockSaves.push(options);
+
     return Promise.resolve({
       height: size.height,
       uri: `${uri}.jpg`,
@@ -50,19 +53,24 @@ jest.mock("expo-image-manipulator", () => ({
   ImageManipulator: {
     manipulate: (uri: string, options: unknown) => {
       mockManipulated.push({ options, uri });
+
       if (mockFailFor.has(uri)) {
         throw new Error("Could not decode the image");
       }
+
       const size = mockDecoded.get(uri) ?? { height: 1200, width: 1600 };
+
       return {
         renderAsync: () => Promise.resolve(mockRender(uri, size)),
         resize: (next: Size) => {
           mockResizes.push(next);
+
           // As the native one does: the side left null follows the ratio.
           const scale =
             next.width === null
               ? (next.height ?? 0) / size.height
               : next.width / size.width;
+
           return {
             renderAsync: () =>
               Promise.resolve(
@@ -157,7 +165,7 @@ describe("pickLibraryPhotos", () => {
   it("answers nothing, and re-encodes nothing, when the User cancels", async () => {
     mockLaunchImageLibrary.mockResolvedValue({ assets: null, canceled: true });
 
-    expect(await pickLibraryPhotos(4)).toBeNull();
+    await expect(pickLibraryPhotos(4)).resolves.toBeNull();
     expect(mockManipulated).toEqual([]);
   });
 

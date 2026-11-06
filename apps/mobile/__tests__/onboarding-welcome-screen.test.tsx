@@ -5,6 +5,7 @@
 import { describe, expect, it, jest } from "@jest/globals";
 import { fireEvent, render, screen } from "@testing-library/react-native";
 import type { ReactNode } from "react";
+
 import WelcomeScreen from "~/app/onboarding";
 import { useAppLanguageSync } from "~/lib/i18n";
 import { storage } from "~/lib/mmkv";
@@ -23,6 +24,7 @@ jest.mock("@clerk/expo", () => ({
 jest.mock("react-native-safe-area-context", () => {
   const { View } =
     jest.requireActual<typeof import("react-native")>("react-native");
+
   return { SafeAreaView: View };
 });
 
@@ -33,10 +35,11 @@ jest.mock("~/components/ui/button", () =>
 /** The screen under the root layout's language sync. */
 function App() {
   useAppLanguageSync();
+
   return <WelcomeScreen />;
 }
 
-describe("Onboarding WelcomeScreen", () => {
+describe("onboarding WelcomeScreen", () => {
   it("is in English on an English device", async () => {
     await render(<App />);
 

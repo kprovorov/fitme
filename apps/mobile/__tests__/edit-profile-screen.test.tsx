@@ -18,6 +18,7 @@ import { act, fireEvent, render, screen } from "@testing-library/react-native";
 import { router } from "expo-router";
 import { useCallback } from "react";
 import { Pressable, Text } from "react-native";
+
 import EditProfileScreen from "~/app/settings/edit-profile";
 import { rememberProfileWrite, seedProfile } from "~/hooks/mutations/profiles";
 import { useProfileQuery } from "~/hooks/queries/profiles";
@@ -44,7 +45,10 @@ jest.mock("expo-router", () => ({
 }));
 
 jest.mock("@sentry/react-native", () => ({ captureException: jest.fn() }));
-jest.mock("~/lib/segment", () => ({ segmentClient: { track: jest.fn() } }));
+
+jest.mock("~/lib/segment", () => ({
+  segmentClient: { track: jest.fn() },
+}));
 
 // The Clerk User whose screen this is (`useUser`), signed in until a test
 // signs `mockNextUser` in (`signInAs`), which `getClerk` follows.
@@ -55,6 +59,7 @@ const mockUser = {
     // Clerk's answer isn't read.
   }),
 };
+
 const mockNextUser = {
   fullName: "Pepper Potts" as string | null,
   id: "user_next",
@@ -71,6 +76,7 @@ jest.mock("~/lib/clerk", () => {
   const signedIn = jest.requireActual<
     typeof import("~/test-utils/signed-in-user")
   >("~/test-utils/signed-in-user");
+
   return {
     getClerk: () => ({
       user:
@@ -90,6 +96,7 @@ jest.mock("react-native-safe-area-context", () => ({
 jest.mock("react-native-reanimated", () => {
   const { View } =
     jest.requireActual<typeof import("react-native")>("react-native");
+
   return {
     __esModule: true,
     default: { View },
@@ -117,6 +124,7 @@ const MockWheelOption = ({
     () => onValueChange(value),
     [onValueChange, value]
   );
+
   return (
     <Pressable onPress={handlePress} testID={`wheel-${value}`}>
       <Text>{value}</Text>
@@ -129,6 +137,7 @@ const MockWheelOption = ({
 jest.mock("~/components/ui/picker", () => {
   const { View: MockView } =
     jest.requireActual<typeof import("react-native")>("react-native");
+
   return {
     Picker: ({
       onValueChange,
@@ -153,12 +162,14 @@ jest.mock("~/components/ui/picker", () => {
 const PROFILE_GET = "GET /v1/profile";
 const PROFILE_PATCH = "PATCH /v1/profile";
 const PROFILE_PUT = "PUT /v1/profile";
+
 const LOAD_ERROR =
   "Couldn't load your profile. Please check your connection and try again.";
 
 /** Every request but the Profile's reads. */
 const writes = () =>
   fakePublicApi.requests.filter(({ route }) => route !== PROFILE_GET);
+
 const SAVE_ERROR =
   "Couldn't save your profile. Please check your connection and try again.";
 
@@ -212,9 +223,11 @@ describe("EditProfileScreen", () => {
         route: PROFILE_GET,
       },
     ]);
+
     for (const text of ["32 y.o.", "82.5 kg", "180.5 cm"]) {
       expect(screen.getByText(text)).toBeTruthy();
     }
+
     expect(screen.getByLabelText("Male")).toBeChecked();
     expect(screen.getByLabelText("Female")).not.toBeChecked();
     expect(screen.getByTestId("edit-profile-name-input")).toHaveDisplayValue(
@@ -234,6 +247,7 @@ describe("EditProfileScreen", () => {
       measurement_system: "imperial",
       units: { height: "cm", weight: "kg" },
     });
+
     for (const text of ["82.5 kg", "180.5 cm"]) {
       expect(screen.getByText(text)).toBeTruthy();
     }
@@ -339,9 +353,11 @@ describe("EditProfileScreen", () => {
     queryClient.clear();
     signInAs(mockNextUser.id);
     const resumeRead = fakePublicApi.pause(PROFILE_GET);
+
     const nextUsersRead = queryClient.fetchQuery(
       useProfileQuery.getFetchOptions()
     );
+
     await until(() => fakePublicApi.count(PROFILE_GET) === 2);
 
     resumeSave();
@@ -372,9 +388,11 @@ describe("EditProfileScreen", () => {
     backend.seedProfile(FAKE_USER_ID, { age: 30, height: 170, weight: 60 });
     await mount();
     const clock = jest.spyOn(Date, "now").mockReturnValue(Date.now());
+
     let releaseName: () => void = () => {
       // Replaced once Clerk is asked.
     };
+
     mockUser.update.mockImplementationOnce(
       () =>
         new Promise<void>((resolve) => {
@@ -389,6 +407,7 @@ describe("EditProfileScreen", () => {
     await fireEvent.press(screen.getByTestId("edit-profile-save-button"));
     await until(() => mockUser.update.mock.calls.length === 1);
     const [saving] = queryClient.getMutationCache().getAll();
+
     return {
       finish: async () => {
         releaseName();
@@ -403,9 +422,11 @@ describe("EditProfileScreen", () => {
     const { finish } = await saveWithNameHeld();
     // Another device changes the weight, and a refresh reads it.
     const saved = backend.profile(FAKE_USER_ID);
+
     if (saved) {
       saved.weight = 65;
     }
+
     await act(() =>
       queryClient.refetchQueries({ queryKey: useProfileQuery.getKey() })
     );
@@ -428,9 +449,11 @@ describe("EditProfileScreen", () => {
     // Profile it reads is deep-equal to the one shown before the save, so
     // react-query keeps that very object.
     const saved = backend.profile(FAKE_USER_ID);
+
     if (saved) {
       saved.age = 30;
     }
+
     await act(() =>
       queryClient.refetchQueries({ queryKey: useProfileQuery.getKey() })
     );
@@ -454,8 +477,10 @@ describe("EditProfileScreen", () => {
       const switchStarter = rememberProfileWrite(undefined, {
         client: queryClient,
       });
+
       const converted =
         await useUpdateMeasurementSystemMutation.mutationFn("us");
+
       await seedProfile(queryClient, converted, switchStarter);
     });
     const reads = fakePublicApi.count(PROFILE_GET);
@@ -672,7 +697,7 @@ describe("EditProfileScreen", () => {
   });
 });
 
-describe("EditProfileScreen on a Ukrainian device", () => {
+describe("editProfileScreen on a Ukrainian device", () => {
   beforeEach(() => {
     setDeviceLanguages(["uk-UA"]);
     jest.clearAllMocks();
@@ -721,6 +746,7 @@ describe("EditProfileScreen on a Ukrainian device", () => {
     ]) {
       expect(screen.getByText(text)).toBeTruthy();
     }
+
     expect(screen.getByLabelText("Жінка")).toBeTruthy();
   });
 
@@ -738,6 +764,7 @@ describe("EditProfileScreen on a Ukrainian device", () => {
     ]) {
       expect(screen.getByText(text)).toBeTruthy();
     }
+
     expect(writes()).toEqual([]);
   });
 

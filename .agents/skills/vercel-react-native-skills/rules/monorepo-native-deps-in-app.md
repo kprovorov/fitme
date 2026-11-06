@@ -7,9 +7,7 @@ tags: monorepo, native, autolinking, installation
 
 ## Install Native Dependencies in App Directory
 
-In a monorepo, packages with native code must be installed in the native app's
-directory directly. Autolinking only scans the app's `node_modules`—it won't
-find native dependencies installed in other packages.
+In a monorepo, packages with native code must be installed in the native app's directory directly. Autolinking only scans the app's `node_modules`—it won't find native dependencies installed in other packages.
 
 **Incorrect (native dep in shared package only):**
 
@@ -42,5 +40,4 @@ packages/
 }
 ```
 
-Even if the shared package uses the native dependency, the app must also list it
-for autolinking to detect and link the native code.
+Even if the shared package uses the native dependency, the app must also list it for autolinking to detect and link the native code.

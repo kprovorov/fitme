@@ -1,17 +1,18 @@
 import { muscleGroups, muscleGroupToName } from "@fitme/core";
 import { describe, expect, it } from "vitest";
+
 import { createApp } from "../create-app.js";
 
 const app = createApp();
 
 const [muscleGroup] = muscleGroups;
 
-describe("GET /v1/muscle-groups/:muscleGroup", () => {
+describe("gET /v1/muscle-groups/:muscleGroup", () => {
   it("returns a known muscle group", async () => {
     const response = await app.request(`/v1/muscle-groups/${muscleGroup}`);
 
     expect(response.status).toBe(200);
-    expect(await response.json()).toEqual({
+    await expect(response.json()).resolves.toStrictEqual({
       data: { id: muscleGroup, name: muscleGroupToName(muscleGroup) },
     });
   });
@@ -20,7 +21,7 @@ describe("GET /v1/muscle-groups/:muscleGroup", () => {
     const response = await app.request("/v1/muscle-groups/elbows");
 
     expect(response.status).toBe(404);
-    expect(await response.json()).toEqual({
+    await expect(response.json()).resolves.toStrictEqual({
       error: { code: "not_found", message: "Unknown muscle group" },
     });
   });

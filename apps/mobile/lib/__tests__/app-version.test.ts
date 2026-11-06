@@ -1,4 +1,5 @@
 import { describe, expect, it } from "@jest/globals";
+
 import { isBelowMinimumVersion } from "../app-version";
 
 describe("isBelowMinimumVersion", () => {

@@ -63,7 +63,6 @@ Verify Apple on a physical iPhone before release. Check the auth screens with th
 
 Email registration still asks for a name. New and reset passwords require eight characters. Login accepts existing nonempty passwords and lets Clerk validate them. Fitness onboarding remains separate and skippable.
 
-
 ## Deferred provider setup
 
 The native integration can ship with email auth while provider readiness flags are false. The remaining account setup and release verification are tracked in [Google setup (FIT-488)](https://linear.app/provorov/issue/FIT-488/configure-google-cloud-oauth-and-enable-native-google-sign-in) and [Apple setup (FIT-489)](https://linear.app/provorov/issue/FIT-489/finish-apple-native-sign-in-setup-and-verify-on-a-real-iphone).

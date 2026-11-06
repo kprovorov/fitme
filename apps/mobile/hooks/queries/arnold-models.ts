@@ -1,10 +1,11 @@
 import { createQuery } from "react-query-kit";
+
 import {
-  type ArnoldModelList,
   arnoldModelListSchema,
   readCachedArnoldModels,
   writeCachedArnoldModels,
 } from "~/lib/arnold-model";
+import type { ArnoldModelList } from "~/lib/arnold-model";
 import { globalApi } from "~/lib/public-api";
 
 /**
@@ -20,6 +21,7 @@ export const useArnoldModelsQuery = createQuery<ArnoldModelList>({
     // shape fails the query and keeps the cached list.
     const list = arnoldModelListSchema.parse(data?.data);
     writeCachedArnoldModels(list);
+
     return list;
   },
   initialData: readCachedArnoldModels,

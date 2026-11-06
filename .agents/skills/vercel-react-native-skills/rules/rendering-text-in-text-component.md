@@ -7,8 +7,7 @@ tags: rendering, text, core
 
 ## Wrap Strings in Text Components
 
-Strings must be rendered inside `<Text>`. React Native crashes if a string is a
-direct child of `<View>`.
+Strings must be rendered inside `<Text>`. React Native crashes if a string is a direct child of `<View>`.
 
 **Incorrect (crashes):**
 

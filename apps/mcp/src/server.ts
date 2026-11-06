@@ -1,4 +1,5 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+
 import type { ToolContext } from "./context.js";
 import { registerCatalogTools } from "./tools/catalog.js";
 import { registerExerciseTools } from "./tools/exercises.js";
@@ -23,9 +24,9 @@ export interface CreateMcpServerOptions {
  * Builds a fresh MCP server. The HTTP transport runs stateless, so a new
  * instance is created for every request, carrying that request's caller.
  */
-export function createMcpServer({
+export const createMcpServer = ({
   context: ctx,
-}: CreateMcpServerOptions): McpServer {
+}: CreateMcpServerOptions): McpServer => {
   const server = new McpServer(
     { name: SERVER_NAME, version: SERVER_VERSION },
     { instructions: INSTRUCTIONS }
@@ -38,4 +39,4 @@ export function createMcpServer({
   registerProfileTools(server, ctx);
 
   return server;
-}
+};

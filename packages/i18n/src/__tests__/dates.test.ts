@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+
 import { createI18n } from "..";
 import {
   formatDate,
@@ -16,16 +17,35 @@ const on = (
 ) => {
   const instance = createI18n(language);
   setDeviceConventions(instance, { region, uses24hourClock });
+
   return instance;
 };
 
+const viewOf = (
+  instance: ReturnType<typeof on>,
+  properties: PropertyDescriptorMap = {}
+) => {
+  const view: unknown = Object.create(instance, properties);
+
+  const inheritsInstance = (value: unknown): value is typeof instance =>
+    value !== null &&
+    typeof value === "object" &&
+    Object.prototype.isPrototypeOf.call(instance, value);
+
+  if (!inheritsInstance(view)) {
+    throw new TypeError("Expected a view inheriting from the instance");
+  }
+
+  return view;
+};
+
 // A 12-hour Ukrainian time: `6:05 пп`, whatever space ICU puts before it.
-const SIX_OH_FIVE_12_HOUR = /^6:05\s/;
+const SIX_OH_FIVE_12_HOUR = /^6:05\s/u;
 
 // 2026-10-21 18:05, local time.
 const evening = new Date(2026, 9, 21, 18, 5);
 
-describe("formatLocale", () => {
+describe("date locales", () => {
   it("is the App language plus the device region", () => {
     expect(formatLocale(on("uk", "UA"))).toBe("uk-UA");
     expect(formatLocale(on("en", "GB"))).toBe("en-GB");
@@ -42,10 +62,11 @@ describe("formatLocale", () => {
   it("reads the instance's device through a copy or view of it", () => {
     const instance = on("uk", "UA");
     // react-i18next's copy of the instance, and a view inheriting from it.
-    const copy = Object.create(instance, { __original: { value: instance } });
+    const copy = viewOf(instance, { __original: { value: instance } });
+
     expect(formatLocale(copy)).toBe("uk-UA");
-    expect(formatLocale(Object.create(copy))).toBe("uk-UA");
-    expect(formatLocale(Object.create(instance))).toBe("uk-UA");
+    expect(formatLocale(viewOf(copy))).toBe("uk-UA");
+    expect(formatLocale(viewOf(instance))).toBe("uk-UA");
   });
 
   it("follows the App language when it changes", async () => {
@@ -55,7 +76,7 @@ describe("formatLocale", () => {
   });
 });
 
-describe("formatDate", () => {
+describe("dates", () => {
   it("writes a Ukrainian date with a Ukrainian month, day before month", () => {
     const uk = on("uk", "UA");
     expect(formatDate(uk, evening, "dayMonth")).toBe("21 жовтня");
@@ -72,6 +93,9 @@ describe("formatDate", () => {
     expect(formatDate(on("en", "US"), evening, "weekdayDayMonthYear")).toBe(
       "Wed, Oct 21, 2026"
     );
+  });
+
+  it("writes an English month and year", () => {
     expect(formatDate(on("en", "US"), evening, "monthYear")).toBe(
       "October 2026"
     );
@@ -85,7 +109,7 @@ describe("formatDate", () => {
   });
 });
 
-describe("formatTime", () => {
+describe("times", () => {
   it("follows the device's 24-hour setting, whatever the language", () => {
     expect(formatTime(on("en", "US", true), evening)).toBe("18:05");
     expect(formatTime(on("en", "US", false), evening)).toBe("6:05 PM");
@@ -99,11 +123,13 @@ describe("formatTime", () => {
     const zone = process.env.TZ;
     const instance = on("en", "GB", true);
     const noonUtc = new Date(Date.UTC(2026, 9, 21, 12, 0));
+    const times: string[] = [];
+
     try {
       process.env.TZ = "UTC";
-      expect(formatTime(instance, noonUtc)).toBe("12:00");
+      times.push(formatTime(instance, noonUtc));
       process.env.TZ = "Asia/Tokyo";
-      expect(formatTime(instance, noonUtc)).toBe("21:00");
+      times.push(formatTime(instance, noonUtc));
     } finally {
       // Node stringifies an env value, so assigning an unset `zone` back would
       // set TZ to the string "undefined": an invalid zone that formats as UTC
@@ -114,6 +140,8 @@ describe("formatTime", () => {
         process.env.TZ = zone;
       }
     }
+
+    expect(times).toStrictEqual(["12:00", "21:00"]);
   });
 
   it("takes the locale's own clock when the device doesn't say", () => {

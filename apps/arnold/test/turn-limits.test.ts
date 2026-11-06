@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+
 import {
   addStepCost,
   MAX_STEPS_PER_TURN,
@@ -11,12 +12,13 @@ import {
 /** A step's usage with token counts but no cost. */
 const tokensOnly = { inputTokens: 10, outputTokens: 5 };
 
-describe("turnLimitReached", () => {
+describe("turn limits", () => {
   it("lets the first 20 model calls of a turn run", () => {
-    expect(MAX_STEPS_PER_TURN).toBe(20);
     for (let stepIndex = 0; stepIndex < MAX_STEPS_PER_TURN; stepIndex += 1) {
-      expect(turnLimitReached({ stepIndex, turnId: "t1" }, null)).toBe(null);
+      expect(turnLimitReached({ stepIndex, turnId: "t1" }, null)).toBeNull();
     }
+
+    expect(MAX_STEPS_PER_TURN).toBe(20);
   });
 
   it("stops the 21st model call", () => {
@@ -29,8 +31,12 @@ describe("turnLimitReached", () => {
     const once = addStepCost(null, "t1", { costUsd: 0.25 });
     const twice = addStepCost(once, "t1", { costUsd: 0.5 });
 
-    expect(twice).toEqual({ costUsd: 0.75, turnId: "t1", unpriced: false });
-    expect(addStepCost(twice, "t2", { costUsd: 0.1 })).toEqual({
+    expect(twice).toStrictEqual({
+      costUsd: 0.75,
+      turnId: "t1",
+      unpriced: false,
+    });
+    expect(addStepCost(twice, "t2", { costUsd: 0.1 })).toStrictEqual({
       costUsd: 0.1,
       turnId: "t2",
       unpriced: false,
@@ -43,7 +49,7 @@ describe("turnLimitReached", () => {
     const spent = addStepCost(under, "t1", { costUsd: 0.01 });
     const over = addStepCost(under, "t1", { costUsd: 0.6 });
 
-    expect(turnLimitReached({ stepIndex: 1, turnId: "t1" }, under)).toBe(null);
+    expect(turnLimitReached({ stepIndex: 1, turnId: "t1" }, under)).toBeNull();
     expect(turnLimitReached({ stepIndex: 2, turnId: "t1" }, spent)).toBe(
       "budget"
     );
@@ -55,7 +61,7 @@ describe("turnLimitReached", () => {
   it("lets a new turn run after the previous one spent its budget", () => {
     const spent = addStepCost(null, "t1", { costUsd: 1.5 });
 
-    expect(turnLimitReached({ stepIndex: 0, turnId: "t2" }, spent)).toBe(null);
+    expect(turnLimitReached({ stepIndex: 0, turnId: "t2" }, spent)).toBeNull();
   });
 
   it("stops the call after a step that reported no cost", () => {
@@ -73,36 +79,36 @@ describe("turnLimitReached", () => {
     expect(turnLimitReached({ stepIndex: 3, turnId: "t1" }, thenPriced)).toBe(
       "unpriced"
     );
-    expect(turnLimitReached({ stepIndex: 0, turnId: "t2" }, noCost)).toBe(null);
+    expect(turnLimitReached({ stepIndex: 0, turnId: "t2" }, noCost)).toBeNull();
   });
 });
 
-describe("reportedCostUsd", () => {
+describe("reported step cost", () => {
   it("is the step's reported cost, free steps included", () => {
     expect(reportedCostUsd({ costUsd: 0.0123 })).toBe(0.0123);
     expect(reportedCostUsd({ costUsd: 0 })).toBe(0);
   });
 
   it("is null, to be reported, when the step reported no usable cost", () => {
-    expect(reportedCostUsd(undefined)).toBe(null);
-    expect(reportedCostUsd(tokensOnly)).toBe(null);
-    expect(reportedCostUsd({ costUsd: Number.NaN })).toBe(null);
-    expect(reportedCostUsd({ costUsd: -1 })).toBe(null);
+    expect(reportedCostUsd(undefined)).toBeNull();
+    expect(reportedCostUsd(tokensOnly)).toBeNull();
+    expect(reportedCostUsd({ costUsd: Number.NaN })).toBeNull();
+    expect(reportedCostUsd({ costUsd: -1 })).toBeNull();
   });
 });
 
-describe("missingCostError", () => {
+describe("missing cost errors", () => {
   it("reports a step that reported no cost", () => {
     const error = missingCostError({ stepIndex: 3, usage: tokensOnly });
 
     expect(error?.name).toBe("Arnold step cost missing");
     expect(error?.message).toContain("step 3 reported no cost");
-    expect(missingCostError({ stepIndex: 0 })).not.toBe(null);
+    expect(missingCostError({ stepIndex: 0 })).not.toBeNull();
   });
 
   it("reports nothing for a step that reported its cost", () => {
-    expect(missingCostError({ stepIndex: 3, usage: { costUsd: 0 } })).toBe(
-      null
-    );
+    expect(
+      missingCostError({ stepIndex: 3, usage: { costUsd: 0 } })
+    ).toBeNull();
   });
 });

@@ -23,6 +23,7 @@ export const MAX_SETS_PER_EXERCISE = 20;
 export const MIN_FREQUENCY = 1;
 export const MAX_FREQUENCY = 7;
 export const MAX_WORKOUT_DURATION_MINUTES = 600;
+
 /** The longest Exercise slug a Plan write accepts. */
 export const MAX_EXERCISE_SLUG_LENGTH = 100;
 

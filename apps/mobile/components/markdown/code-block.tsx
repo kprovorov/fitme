@@ -1,51 +1,43 @@
-import transform, { type StyleTuple } from "css-to-react-native";
-import {
-  type CSSProperties,
-  memo,
-  type ReactNode,
-  useCallback,
-  useMemo,
-} from "react";
-import {
-  ScrollView,
-  StyleSheet,
-  Text,
-  type TextStyle,
-  View,
-} from "react-native";
+import transform from "css-to-react-native";
+import type { StyleTuple } from "css-to-react-native";
+import { memo, useCallback, useMemo } from "react";
+import type { CSSProperties, ReactNode } from "react";
+import { ScrollView, StyleSheet, Text, View } from "react-native";
+import type { TextStyle } from "react-native";
 import SyntaxHighlighter from "react-syntax-highlighter";
 import { irBlack } from "react-syntax-highlighter/dist/esm/styles/hljs";
 import { useCSSVariable } from "uniwind";
 
-interface HighlighterStyleSheet {
-  [key: string]: TextStyle;
-}
-interface ReactStyle {
-  [key: string]: CSSProperties;
-}
+type HighlighterStyleSheet = Record<string, TextStyle | undefined>;
+
+type ReactStyle = Record<string, CSSProperties>;
 
 interface RendererNode {
   children?: RendererNode[];
   properties?: {
     className?: string[];
   };
-  tagName?: string;
-  value?: string;
+  value?: string | number;
 }
 
-const ALLOWED_STYLE_PROPERTIES: Record<string, boolean> = {
-  background: true,
-  backgroundColor: true,
-  color: true,
-  fontStyle: true,
-  fontWeight: true,
-};
+const ALLOWED_STYLE_PROPERTIES = new Set([
+  "background",
+  "backgroundColor",
+  "color",
+  "fontStyle",
+  "fontWeight",
+]);
 
 const cleanStyle = (style: CSSProperties) => {
-  const styles = Object.entries(style)
-    .filter(([key]) => ALLOWED_STYLE_PROPERTIES[key])
-    .map<StyleTuple>(([key, value]) => [key, String(value)]);
-  return transform(styles);
+  const declarations: StyleTuple[] = [];
+
+  for (const [key, value] of Object.entries(style)) {
+    if (ALLOWED_STYLE_PROPERTIES.has(key)) {
+      declarations.push([key, String(value)]);
+    }
+  }
+
+  return transform(declarations);
 };
 
 const getRNStylesFromHljsStyle = (
@@ -58,120 +50,26 @@ const getRNStylesFromHljsStyle = (
     ])
   );
 
-function trimNewlines(string: string): string {
+const trimNewlines = (string: string): string => {
   let start = 0;
   let end = string.length;
+
   while (start < end && (string[start] === "\r" || string[start] === "\n")) {
     start += 1;
   }
+
   while (
     end > start &&
     (string[end - 1] === "\r" || string[end - 1] === "\n")
   ) {
     end -= 1;
   }
+
   return start > 0 || end < string.length ? string.slice(start, end) : string;
-}
+};
 
 // Pre-computed once: the app is dark only, so there is one theme
-const stylesheet = getRNStylesFromHljsStyle(irBlack as ReactStyle);
-
-interface CodeBlockProps {
-  code: string;
-  language?: string;
-}
-
-function CodeBlockBase({ code, language }: CodeBlockProps) {
-  const foreground = useCSSVariable("--color-foreground") as string;
-  const surface = useCSSVariable("--color-muted") as string;
-
-  const baseStyle = useMemo(
-    () =>
-      // biome-ignore lint/suspicious/noUnnecessaryConditions: a highlight theme may have no hljs entry; the Record type can't say so
-      ({ color: stylesheet.hljs?.color || foreground }),
-    [foreground]
-  );
-
-  const containerStyle = useMemo(
-    () => [styles.container, { backgroundColor: surface }],
-    [surface]
-  );
-
-  const getStylesForNode = useCallback((node: RendererNode): TextStyle[] => {
-    const classes: string[] = node.properties?.className ?? [];
-    return classes
-      .map((c: string) => stylesheet[c])
-      .filter((c) => !!c) as TextStyle[];
-  }, []);
-
-  const renderNodeChildren = useCallback(
-    (nodes: RendererNode[], keyPrefix = "row"): ReactNode[] =>
-      nodes.reduce<ReactNode[]>((acc, node, index) => {
-        const keyPrefixWithIndex = `${keyPrefix}_${index}`;
-        if (node.children) {
-          const nodeStyles = getStylesForNode(node);
-          const textStyles = nodeStyles.length > 0 ? nodeStyles : undefined;
-          acc.push(
-            <Text key={keyPrefixWithIndex} style={textStyles}>
-              {renderNodeChildren(node.children, `${keyPrefixWithIndex}_child`)}
-            </Text>
-          );
-        }
-        if (node.value) {
-          acc.push(trimNewlines(String(node.value)));
-        }
-        return acc;
-      }, []),
-    [getStylesForNode]
-  );
-
-  const renderer = useCallback(
-    // biome-ignore lint/suspicious/noExplicitAny: react-syntax-highlighter renderer props have no exported type
-    (props: any) => {
-      const { rows } = props;
-      return (
-        <ScrollView
-          contentContainerStyle={styles.scrollContent}
-          horizontal
-          showsHorizontalScrollIndicator={false}
-        >
-          <View style={styles.codeContent}>
-            {rows.map((row: RendererNode, index: number) => (
-              <Text
-                className="text-mono-footnote"
-                // biome-ignore lint/suspicious/noArrayIndexKey: syntax rows have no stable identity
-                key={`row_${index}`}
-                style={baseStyle}
-              >
-                {renderNodeChildren(row.children || [], `row_${index}`)}
-              </Text>
-            ))}
-          </View>
-        </ScrollView>
-      );
-    },
-    [renderNodeChildren, baseStyle]
-  );
-
-  return (
-    <View style={containerStyle}>
-      <SyntaxHighlighter
-        // biome-ignore lint/suspicious/noExplicitAny: react-syntax-highlighter CodeTag/PreTag props expect ComponentType<any>
-        CodeTag={View as any}
-        customStyle={{ backgroundColor: "transparent" }}
-        language={language || "typescript"}
-        // biome-ignore lint/suspicious/noExplicitAny: react-syntax-highlighter CodeTag/PreTag props expect ComponentType<any>
-        PreTag={View as any}
-        renderer={renderer}
-        style={undefined}
-      >
-        {code}
-      </SyntaxHighlighter>
-    </View>
-  );
-}
-
-export const CodeBlock = memo(CodeBlockBase);
+const stylesheet = getRNStylesFromHljsStyle(irBlack);
 
 const styles = StyleSheet.create({
   codeContent: {
@@ -186,3 +84,109 @@ const styles = StyleSheet.create({
     minWidth: "100%",
   },
 });
+
+const getStylesForNode = (node: RendererNode): TextStyle[] => {
+  const nodeStyles: TextStyle[] = [];
+
+  for (const className of node.properties?.className ?? []) {
+    const style = stylesheet[className];
+
+    if (style) {
+      nodeStyles.push(style);
+    }
+  }
+
+  return nodeStyles;
+};
+
+const keyedNodes = (nodes: RendererNode[]) => {
+  const occurrences = new Map<string, number>();
+
+  return nodes.map((node) => {
+    const content = JSON.stringify(node);
+    const occurrence = occurrences.get(content) ?? 0;
+    occurrences.set(content, occurrence + 1);
+
+    return { key: `${content}_${occurrence}`, node };
+  });
+};
+
+const renderNodeChildren = (nodes: RendererNode[]): ReactNode[] => {
+  const children: ReactNode[] = [];
+
+  for (const { key, node } of keyedNodes(nodes)) {
+    if (node.children) {
+      const nodeStyles = getStylesForNode(node);
+      const textStyles = nodeStyles.length > 0 ? nodeStyles : undefined;
+      children.push(
+        <Text key={key} style={textStyles}>
+          {renderNodeChildren(node.children)}
+        </Text>
+      );
+    }
+
+    if (node.value) {
+      children.push(trimNewlines(String(node.value)));
+    }
+  }
+
+  return children;
+};
+
+interface CodeBlockProps {
+  code: string;
+  language?: string;
+}
+
+const CodeBlockBase = ({ code, language }: CodeBlockProps) => {
+  // SAFETY: --color-foreground is defined as a CSS color string in tokens.css.
+  const foreground = useCSSVariable("--color-foreground") as string;
+  // SAFETY: --color-muted is defined as a CSS color string in tokens.css.
+  const surface = useCSSVariable("--color-muted") as string;
+
+  const baseStyle = useMemo(
+    () => ({ color: stylesheet.hljs?.color || foreground }),
+    [foreground]
+  );
+
+  const containerStyle = useMemo(
+    () => [styles.container, { backgroundColor: surface }],
+    [surface]
+  );
+
+  const renderer = useCallback(
+    ({ rows }: { rows: RendererNode[] }) => (
+      <ScrollView
+        contentContainerStyle={styles.scrollContent}
+        horizontal
+        showsHorizontalScrollIndicator={false}
+      >
+        <View style={styles.codeContent}>
+          {keyedNodes(rows).map(({ key, node: row }) => (
+            <Text className="text-mono-footnote" key={key} style={baseStyle}>
+              {renderNodeChildren(row.children || [])}
+            </Text>
+          ))}
+        </View>
+      </ScrollView>
+    ),
+    [baseStyle]
+  );
+
+  return (
+    <View style={containerStyle}>
+      <SyntaxHighlighter
+        CodeTag={View}
+        customStyle={{ backgroundColor: "transparent" }}
+        language={language || "typescript"}
+        PreTag={View}
+        renderer={renderer}
+        style={undefined}
+      >
+        {code}
+      </SyntaxHighlighter>
+    </View>
+  );
+};
+
+export const CodeBlock = memo(CodeBlockBase);

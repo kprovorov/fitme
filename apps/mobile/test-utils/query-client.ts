@@ -10,12 +10,13 @@ const clients = new Set<QueryClient>();
 // A completed fetch can still have a queued observer notification. That
 // notification renders its data and can mount the next dependent query.
 const pendingNotifications = new Set<object>();
+
 notifyManager.setScheduler((callback) => {
   const notification = {};
   pendingNotifications.add(notification);
   defaultScheduler(() => {
     try {
-      callback();
+      return callback();
     } finally {
       pendingNotifications.delete(notification);
     }
@@ -35,7 +36,9 @@ export const createTestQueryClient = () => {
       queries: { gcTime: Number.POSITIVE_INFINITY, retry: false },
     },
   });
+
   clients.add(client);
+
   return client;
 };
 
@@ -43,6 +46,7 @@ export const clearTestQueryClients = () => {
   for (const client of clients) {
     client.clear();
   }
+
   clients.clear();
   // Fake-timer tests can discard a notification when returning to real timers.
   pendingNotifications.clear();
@@ -53,7 +57,9 @@ const MAX_TICKS = 2000;
 
 const nextMacrotask = () =>
   act(async () => {
-    await new Promise((resolve) => setTimeout(resolve, 0));
+    const { promise, resolve } = Promise.withResolvers<undefined>();
+    setTimeout(resolve, 0, undefined);
+    await promise;
   });
 
 /**
@@ -62,14 +68,21 @@ const nextMacrotask = () =>
  * Real timers only.
  */
 export const until = async (condition: () => boolean) => {
-  for (let tick = 0; tick < MAX_TICKS; tick += 1) {
+  const check = async (tick: number): Promise<void> => {
+    if (tick === MAX_TICKS) {
+      throw new Error(`Condition still false after ${MAX_TICKS} ticks`);
+    }
+
     if (condition()) {
       return;
     }
-    // biome-ignore lint/performance/noAwaitInLoops: each tick lets the app reach its next timer
+
     await nextMacrotask();
-  }
-  throw new Error(`Condition still false after ${MAX_TICKS} ticks`);
+
+    return check(tick + 1);
+  };
+
+  await check(0);
 };
 
 /**
@@ -87,20 +100,30 @@ export const settle = async (
   isIdle: () => boolean = () => true
 ) => {
   let idleTicks = 0;
-  for (let tick = 0; tick < MAX_TICKS; tick += 1) {
-    // biome-ignore lint/performance/noAwaitInLoops: each tick lets the app reach its next timer
+
+  const check = async (tick: number): Promise<void> => {
+    if (tick === MAX_TICKS) {
+      throw new Error(
+        `Not settled after ${MAX_TICKS} ticks: ${client.isFetching()} fetching, ${client.isMutating()} mutating`
+      );
+    }
+
     await nextMacrotask();
+
     const idle =
       client.isFetching() === 0 &&
       client.isMutating() === 0 &&
       pendingNotifications.size === 0 &&
       isIdle();
+
     idleTicks = idle ? idleTicks + 1 : 0;
+
     if (idleTicks === 2) {
       return;
     }
-  }
-  throw new Error(
-    `Not settled after ${MAX_TICKS} ticks: ${client.isFetching()} fetching, ${client.isMutating()} mutating`
-  );
+
+    return check(tick + 1);
+  };
+
+  await check(0);
 };

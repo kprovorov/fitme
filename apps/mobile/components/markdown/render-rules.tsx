@@ -1,19 +1,21 @@
-import {
-  Image,
-  type ImageProps,
-  type ImageStyle,
-  Text,
-  type TextStyle,
-  View,
-  type ViewStyle,
+import { Image, Text, View } from "react-native";
+import type {
+  ImageProps,
+  ImageStyle,
+  TextStyle,
+  ViewStyle,
 } from "react-native";
+
 import { CodeBlock } from "./code-block";
 import type { RenderRules, StyleMap } from "./types";
 
 // Helper to safely get styles with proper casting
 const getViewStyle = (styles: StyleMap, key: string): ViewStyle | undefined =>
+  // SAFETY: View keys select layout styles or _VIEW_SAFE_ entries stripped of text-only props by getMergedStyles.
   styles[key] as ViewStyle | undefined;
+
 const getTextStyle = (styles: StyleMap, key: string): TextStyle | undefined =>
+  // SAFETY: Text rules select text style entries flattened by getMergedStyles; absent keys remain undefined.
   styles[key] as TextStyle | undefined;
 
 const renderRules: RenderRules = {
@@ -52,11 +54,13 @@ const renderRules: RenderRules = {
   image: ({ node, styles }) => {
     const imageProps: ImageProps = {
       source: { uri: node.url },
+      // SAFETY: getMergedStyles flattens the image entry, whose styles are consumed only by Image.
       style: styles.image as ImageStyle,
       ...(node.alt
         ? { accessibilityLabel: node.alt, accessible: true, alt: node.alt }
         : {}),
     };
+
     return <Image key={node.key} {...imageProps} />;
   },
   inlineCode: ({ node, styles }) => (
@@ -66,6 +70,7 @@ const renderRules: RenderRules = {
   ),
   link: ({ node, styles, children, extras }) => {
     const onPress = () => extras?.onPress?.(node.url);
+
     return (
       <Text
         key={node.key}
@@ -86,9 +91,7 @@ const renderRules: RenderRules = {
   ),
   listItem: ({ node, styles, children, extras }) => (
     <View key={node.key} style={getViewStyle(styles, "listItem")}>
-      {extras?.customListStyleType ? (
-        extras.customListStyleType
-      ) : (
+      {extras?.customListStyleType || (
         <Text style={getTextStyle(styles, "listBullet")}>
           {extras?.listStyleType}
         </Text>
@@ -98,6 +101,7 @@ const renderRules: RenderRules = {
   ),
   paragraph: ({ node, styles, children, parentStack }) => {
     const inListItem = parentStack.some((p) => p.type === "listItem");
+
     return (
       <Text
         key={node.key}
@@ -171,6 +175,7 @@ const renderRules: RenderRules = {
   ),
   unknown: ({ node }) => {
     console.warn("Unknown node type encountered", node.type);
+
     return null;
   },
 };

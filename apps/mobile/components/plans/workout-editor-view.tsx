@@ -3,6 +3,7 @@ import { unitName } from "@fitme/i18n";
 import { useCallback, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { View } from "react-native";
+
 import DraftSetRow from "~/components/plans/draft-set-row";
 import { Button } from "~/components/ui/button";
 import { Card } from "~/components/ui/card";
@@ -12,26 +13,25 @@ import { Label } from "~/components/ui/label";
 import { Separator } from "~/components/ui/separator";
 import { Text } from "~/components/ui/text";
 import { H4 } from "~/components/ui/typography";
-import { VStack } from "~/components/ui/vstack";
 import ExerciseCardHeader from "~/components/views/exercise-card-header";
-import {
-  type ShownExercise,
-  shownExercise,
-  useExercises,
-} from "~/hooks/queries/library";
+import { shownExercise, useExercises } from "~/hooks/queries/library";
+import type { ShownExercise } from "~/hooks/queries/library";
 import type { FullPlan } from "~/hooks/queries/plans";
 import { useI18n } from "~/lib/i18n";
 import {
   addDraftSet,
   canAddDraftExercise,
   canAddDraftSet,
-  type DraftChange,
-  type DraftExercise,
-  type DraftWorkout,
   moveDraftExercise,
   removeDraftExercise,
   renameDraftWorkout,
 } from "~/lib/plan-draft";
+import type {
+  DraftChange,
+  DraftExercise,
+  DraftWorkout,
+} from "~/lib/plan-draft";
+
 import {
   SET_CHECK_COLUMN_CLASS,
   SET_NUMBER_COLUMN_CLASS,
@@ -39,38 +39,41 @@ import {
 } from "../forms/workout-exercise-set-form";
 
 /** The set table's column headings, lined up with `DraftSetRow`'s cells. */
-function SetColumns({ weightLabel }: { weightLabel: string }) {
+const SetColumns = ({ weightLabel }: { weightLabel: string }) => {
   const { t } = useTranslation();
-  const heading = "flex-1 text-center text-mono-footnote text-primary";
+
   return (
     <View
       accessibilityElementsHidden
-      className="flex-row items-center gap-sm"
+      className="gap-sm flex-row items-center"
       importantForAccessibility="no-hide-descendants"
     >
-      <Text className={SET_NUMBER_COLUMN_CLASS} />
+      <View className={SET_NUMBER_COLUMN_CLASS} />
       <Text
-        className={heading}
+        className="flex-1 text-center"
         maxFontSizeMultiplier={SET_TABLE_MAX_FONT_SCALE}
+        variant="small"
       >
         {t("sets.columns.reps")}
       </Text>
       <Text
-        className={heading}
+        className="flex-1 text-center"
         maxFontSizeMultiplier={SET_TABLE_MAX_FONT_SCALE}
+        variant="small"
       >
         {weightLabel}
       </Text>
       <Text
-        className={heading}
+        className="flex-1 text-center"
         maxFontSizeMultiplier={SET_TABLE_MAX_FONT_SCALE}
+        variant="small"
       >
         {t("sets.columns.rest")}
       </Text>
-      <Text className={SET_CHECK_COLUMN_CLASS} />
+      <View className={SET_CHECK_COLUMN_CLASS} />
     </View>
   );
-}
+};
 
 interface DraftExerciseCardProps {
   exercise: DraftExercise;
@@ -88,7 +91,7 @@ interface DraftExerciseCardProps {
  * name while the Library hasn't resolved it), the menu that moves, replaces
  * or removes it, and its sets as rows with Add Set under them.
  */
-function DraftExerciseCard({
+const DraftExerciseCard = ({
   exercise,
   index,
   onChange,
@@ -97,12 +100,12 @@ function DraftExerciseCard({
   total,
   weightLabel,
   workoutKey,
-}: DraftExerciseCardProps) {
+}: DraftExerciseCardProps) => {
   const { t } = useTranslation();
   const { name } = shown;
 
   const items = useMemo(() => {
-    const actions: Array<{
+    const actions: {
       destructive?: boolean;
       label: string;
       onPress: () => void;
@@ -111,7 +114,8 @@ function DraftExerciseCard({
         | "arrow.down"
         | "arrow.left.arrow.right"
         | "trash";
-    }> = [];
+    }[] = [];
+
     if (index > 0) {
       actions.push({
         label: t("planEditor.workout.moveUp", { name }),
@@ -122,6 +126,7 @@ function DraftExerciseCard({
         systemImage: "arrow.up",
       });
     }
+
     if (index < total - 1) {
       actions.push({
         label: t("planEditor.workout.moveDown", { name }),
@@ -132,20 +137,24 @@ function DraftExerciseCard({
         systemImage: "arrow.down",
       });
     }
-    actions.push({
-      label: t("planEditor.workout.replace", { name }),
-      onPress: () => onReplace(exercise.key),
-      systemImage: "arrow.left.arrow.right",
-    });
-    actions.push({
-      destructive: true,
-      label: t("planEditor.workout.remove", { name }),
-      onPress: () =>
-        onChange((draft) =>
-          removeDraftExercise(draft, workoutKey, exercise.key)
-        ),
-      systemImage: "trash",
-    });
+
+    actions.push(
+      {
+        label: t("planEditor.workout.replace", { name }),
+        onPress: () => onReplace(exercise.key),
+        systemImage: "arrow.left.arrow.right",
+      },
+      {
+        destructive: true,
+        label: t("planEditor.workout.remove", { name }),
+        onPress: () =>
+          onChange((draft) =>
+            removeDraftExercise(draft, workoutKey, exercise.key)
+          ),
+        systemImage: "trash",
+      }
+    );
+
     return actions;
   }, [exercise.key, index, name, onChange, onReplace, t, total, workoutKey]);
 
@@ -155,48 +164,49 @@ function DraftExerciseCard({
   );
 
   return (
-    <Card className="gap-sm" testID={`draft-exercise-${index + 1}`}>
-      <ExerciseCardHeader
-        exercise={shown}
-        trailing={
-          <DropdownMenu
-            accessibilityLabel={t("planEditor.workout.exerciseActions", {
-              name,
-            })}
-            items={items}
-            systemImage="ellipsis"
-          />
-        }
-      />
-      <SetColumns weightLabel={weightLabel} />
-      {exercise.sets.map((set, at) => (
-        <DraftSetRow
-          canRemove={exercise.sets.length > 1}
-          exerciseKey={exercise.key}
-          key={set.key}
-          onChange={onChange}
-          order={at + 1}
-          set={set}
-          workoutKey={workoutKey}
+    <Card testID={`draft-exercise-${index + 1}`}>
+      <View className="gap-sm">
+        <ExerciseCardHeader
+          exercise={shown}
+          trailing={
+            <DropdownMenu
+              accessibilityLabel={t("planEditor.workout.exerciseActions", {
+                name,
+              })}
+              items={items}
+              systemImage="ellipsis"
+            />
+          }
         />
-      ))}
-      <Separator />
-      {/* The Workout Session's Add Set, so the same control reads the same
+        <SetColumns weightLabel={weightLabel} />
+        {exercise.sets.map((set, at) => (
+          <DraftSetRow
+            canRemove={exercise.sets.length > 1}
+            exerciseKey={exercise.key}
+            key={set.key}
+            onChange={onChange}
+            order={at + 1}
+            set={set}
+            workoutKey={workoutKey}
+          />
+        ))}
+        <Separator />
+        {/* The Workout Session's Add Set, so the same control reads the same
           one Screen away. */}
-      <Button
-        contentColorClassName="text-primary"
-        disabled={!canAddDraftSet(exercise)}
-        fill
-        icon="plus"
-        label={t("sets.addSet")}
-        onPress={addSet}
-        size="sm"
-        testID={`add-draft-set-${index + 1}`}
-        variant="ghost"
-      />
+        <Button
+          disabled={!canAddDraftSet(exercise)}
+          fill
+          icon="plus"
+          label={t("sets.addSet")}
+          onPress={addSet}
+          size="sm"
+          testID={`add-draft-set-${index + 1}`}
+          variant="ghost"
+        />
+      </View>
     </Card>
   );
-}
+};
 
 interface WorkoutEditorViewProps {
   onAddExercise: () => void;
@@ -213,16 +223,17 @@ interface WorkoutEditorViewProps {
  * into the draft (`onChange`), which the Plan editor's one Save sends; this
  * Screen has no Save of its own.
  */
-export default function WorkoutEditorView({
+const WorkoutEditorView = ({
   onAddExercise,
   onChange,
   onReplaceExercise,
   weightUnit,
   workout,
-}: WorkoutEditorViewProps) {
+}: WorkoutEditorViewProps) => {
   const { t } = useTranslation();
   const i18n = useI18n();
   const weightLabel = unitName(i18n, weightUnit);
+
   const shownBySlug = useExercises(
     workout.exercises.map((exercise) => exercise.exerciseSlug)
   );
@@ -235,6 +246,7 @@ export default function WorkoutEditorView({
 
   const trimmedName = workout.name.trim();
   let nameError: string | undefined;
+
   if (trimmedName === "") {
     nameError = t("planEditor.workout.errors.nameRequired");
   } else if (trimmedName.length > MAX_PLAN_NAME_LENGTH) {
@@ -244,8 +256,8 @@ export default function WorkoutEditorView({
   }
 
   return (
-    <VStack className="items-stretch gap-lg">
-      <VStack className="items-stretch gap-2">
+    <View className="gap-lg flex flex-col items-stretch justify-center">
+      <View className="flex flex-col items-stretch justify-center gap-2">
         <Label>{t("planEditor.workout.name")}</Label>
         <Input
           error={nameError}
@@ -254,14 +266,12 @@ export default function WorkoutEditorView({
           testID="workout-name"
           value={workout.name}
         />
-      </VStack>
+      </View>
 
-      <VStack className="items-stretch gap-sm">
+      <View className="gap-sm flex flex-col items-stretch justify-center">
         <H4>{t("planEditor.workout.exercises")}</H4>
         {workout.exercises.length > 0 ? (
-          <Text className="text-muted-foreground text-subhead">
-            {t("planEditor.workout.exercisesHint")}
-          </Text>
+          <Text variant="muted">{t("planEditor.workout.exercisesHint")}</Text>
         ) : null}
         {workout.exercises.length > 0 ? (
           workout.exercises.map((exercise, index) => (
@@ -281,9 +291,7 @@ export default function WorkoutEditorView({
             />
           ))
         ) : (
-          <Text className="text-muted-foreground">
-            {t("planEditor.workout.noExercises")}
-          </Text>
+          <Text variant="muted">{t("planEditor.workout.noExercises")}</Text>
         )}
         <Button
           className="self-start"
@@ -296,7 +304,9 @@ export default function WorkoutEditorView({
           testID="add-draft-exercise"
           variant="secondary"
         />
-      </VStack>
-    </VStack>
+      </View>
+    </View>
   );
-}
+};
+
+export default WorkoutEditorView;

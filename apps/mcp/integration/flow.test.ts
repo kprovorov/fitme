@@ -1,26 +1,46 @@
-import { type MuscleGroup, muscleGroups } from "@fitme/core";
+/// <reference lib="es2023.array" />
+
+import { muscleGroups } from "@fitme/core";
+import type { MuscleGroup } from "@fitme/core";
 import { asUser, profiles } from "@fitme/db";
+import type { ListExercisesParams } from "@fitme/library-sdk";
+import type { ExerciseHistoryPage } from "@fitme/services/exercises";
+import type { ProfileWithUnits } from "@fitme/services/profile";
 import type { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { beforeAll, describe, expect, it } from "vitest";
+
 import {
   callError,
   callOk,
   connectAs,
   createTestUser,
-  type ExercisePage,
-  type ExerciseRow,
   INTEGRATION_COVERS,
-  type PlanDetail,
-  type PlanSummary,
   pickExercises,
   planInput,
-  type SessionDetail,
-  type SessionPage,
-  type TestUser,
+} from "./setup.js";
+import type {
+  ExercisePage,
+  ExerciseRow,
+  PlanDetail,
+  PlanSummary,
+  SessionDetail,
+  SessionPage,
+  SessionSet,
+  TestUser,
 } from "./setup.js";
 
 const isMuscleGroup = (value: string): value is MuscleGroup =>
   muscleGroups.some((group) => group === value);
+
+const workoutNamed = (detail: PlanDetail, name: string) => {
+  const workout = detail.workouts.find((item) => item.name === name);
+
+  if (!workout) {
+    throw new Error(`Workout ${name} not in plan ${detail.id}`);
+  }
+
+  return workout;
+};
 
 /**
  * The main flow with one real user, in order: each step builds on the state
@@ -33,14 +53,6 @@ describe("plan and workout flow against the local stack", () => {
   let plan: PlanDetail;
   let otherPlan: PlanDetail;
   let session: SessionDetail;
-
-  const workoutNamed = (detail: PlanDetail, name: string) => {
-    const workout = detail.workouts.find((item) => item.name === name);
-    if (!workout) {
-      throw new Error(`Workout ${name} not in plan ${detail.id}`);
-    }
-    return workout;
-  };
 
   beforeAll(async () => {
     user = createTestUser("flow");
@@ -61,10 +73,8 @@ describe("plan and workout flow against the local stack", () => {
       })
     );
 
-    const profile = await callOk<Record<string, unknown>>(
-      client,
-      "get_profile"
-    );
+    const profile = await callOk<ProfileWithUnits>(client, "get_profile");
+
     expect(profile).toMatchObject({
       measurement_system: "us",
       units: { height: "in", weight: "lbs" },
@@ -74,33 +84,47 @@ describe("plan and workout flow against the local stack", () => {
   it("searches the exercise library and pages past the end", async () => {
     const [first] = exercises;
     const muscleGroup = first.muscle_groups.find(isMuscleGroup);
-    const found = await callOk<ExercisePage>(client, "list_exercises", {
+
+    const search: Pick<ListExercisesParams, "muscleGroup" | "search"> = {
       search: first.name,
-      ...(muscleGroup ? { muscleGroup } : {}),
-    });
+    };
+
+    if (muscleGroup) {
+      search.muscleGroup = muscleGroup;
+    }
+
+    const found = await callOk<ExercisePage>(client, "list_exercises", search);
+
     expect(found.exercises.map((row) => row.slug)).toContain(first.slug);
 
     const all = await callOk<ExercisePage>(client, "list_exercises", {
       limit: 1,
     });
+
     expect(all.total).toBeGreaterThanOrEqual(2);
-    expect(all.hasMore).toBe(true);
+    expect(all.hasMore).toBeTruthy();
 
     // An offset past the end is an empty page, not an error.
     const pastEnd = await callOk<ExercisePage>(client, "list_exercises", {
       offset: all.total + 10,
     });
+
     expect(pastEnd).toMatchObject({
       exercises: [],
       hasMore: false,
       total: all.total,
     });
+  });
+
+  it("reads the exercise details", async () => {
+    const [first] = exercises;
 
     const detail = await callOk<{ instructions: string; slug: string }>(
       client,
       "get_exercise",
       { exerciseSlug: first.slug }
     );
+
     expect(detail.slug).toBe(first.slug);
     expect(detail.instructions).toBeTruthy();
   });
@@ -113,7 +137,7 @@ describe("plan and workout flow against the local stack", () => {
     );
 
     expect(plan).toMatchObject({ is_active: true, name: "Integration plan" });
-    expect(plan.workouts.map((workout) => workout.name)).toEqual([
+    expect(plan.workouts.map((workout) => workout.name)).toStrictEqual([
       "Day A",
       "Day B",
     ]);
@@ -124,34 +148,36 @@ describe("plan and workout flow against the local stack", () => {
         name,
         slug: exercise_slug,
       }))
-    ).toEqual(
+    ).toStrictEqual(
       exercises.map(({ muscle_groups, name, slug }) => ({
         muscle_groups,
         name,
         slug,
       }))
     );
-    expect(dayA.exercises[0]?.sets.map((set) => set.reps_recommended)).toEqual([
-      8, 6,
-    ]);
+    expect(
+      dayA.exercises[0]?.sets.map((set) => set.reps_recommended)
+    ).toStrictEqual([8, 6]);
   });
 
   it("stores a Cover for each Workout, by its most-trained muscle group", async () => {
     const stored = await callOk<PlanDetail>(client, "get_plan", {
       planId: plan.id,
     });
-    expect(stored.workouts.map(({ cover, name }) => ({ cover, name }))).toEqual(
-      [
-        { cover: INTEGRATION_COVERS.quadriceps.id, name: "Day A" },
-        { cover: INTEGRATION_COVERS.back.id, name: "Day B" },
-      ]
-    );
+
+    expect(
+      stored.workouts.map(({ cover, name }) => ({ cover, name }))
+    ).toStrictEqual([
+      { cover: INTEGRATION_COVERS.quadriceps.id, name: "Day A" },
+      { cover: INTEGRATION_COVERS.back.id, name: "Day B" },
+    ]);
   });
 
   it("rejects unknown Exercise slugs without creating a plan", async () => {
     const input = planInput(exercises, "Broken plan");
     const unknownSlug = "not-in-the-library";
     const [dayA] = input.workouts;
+
     const message = await callError(client, "create_plan", {
       ...input,
       workouts: [
@@ -161,6 +187,7 @@ describe("plan and workout flow against the local stack", () => {
         },
       ],
     });
+
     expect(message).toContain(unknownSlug);
   });
 
@@ -168,7 +195,8 @@ describe("plan and workout flow against the local stack", () => {
     const fetched = await callOk<PlanDetail>(client, "get_plan", {
       planId: plan.id,
     });
-    expect(fetched).toEqual(plan);
+
+    expect(fetched).toStrictEqual(plan);
   });
 
   it("makes a newly created plan the only active one", async () => {
@@ -179,13 +207,13 @@ describe("plan and workout flow against the local stack", () => {
     );
 
     const plans = await callOk<PlanSummary[]>(client, "list_plans");
-    expect(plans.map((item) => [item.id, item.is_active])).toEqual([
+    expect(plans.map((item) => [item.id, item.is_active])).toStrictEqual([
       [otherPlan.id, true],
       [plan.id, false],
     ]);
-    expect(plans[1]?.workouts.map((workout) => workout.exercise_count)).toEqual(
-      [2, 1]
-    );
+    expect(
+      plans[1]?.workouts.map((workout) => workout.exercise_count)
+    ).toStrictEqual([2, 1]);
   });
 
   it("updates metadata only, keeping workout ids", async () => {
@@ -201,8 +229,9 @@ describe("plan and workout flow against the local stack", () => {
       name: "Renamed plan",
       note: null,
     });
-    expect(updated.workouts).toEqual(plan.workouts);
+    const previousWorkouts = plan.workouts;
     plan = updated;
+    expect(updated.workouts).toStrictEqual(previousWorkouts);
   });
 
   it("activates a plan and deactivates the others", async () => {
@@ -211,23 +240,25 @@ describe("plan and workout flow against the local stack", () => {
       "activate_plan",
       { planId: plan.id }
     );
+
     expect(summary).toMatchObject({ id: plan.id, is_active: true });
 
     const plans = await callOk<PlanSummary[]>(client, "list_plans");
     expect(
       plans.filter((item) => item.is_active).map((item) => item.id)
-    ).toEqual([plan.id]);
+    ).toStrictEqual([plan.id]);
   });
 
   it("starts a session from a workout and resumes it", async () => {
     const dayA = workoutNamed(plan, "Day A");
+
     const started = await callOk<{ resumed: boolean; session: SessionDetail }>(
       client,
       "start_workout_session",
       { workoutId: dayA.id }
     );
 
-    expect(started.resumed).toBe(false);
+    expect(started.resumed).toBeFalsy();
     ({ session } = started);
     expect(session).toMatchObject({
       finished_at: null,
@@ -245,7 +276,7 @@ describe("plan and workout flow against the local stack", () => {
           set.logged_at,
         ]),
       ])
-    ).toEqual(
+    ).toStrictEqual(
       dayA.exercises.map((exercise) => [
         exercise.exercise_slug,
         exercise.name,
@@ -262,7 +293,8 @@ describe("plan and workout flow against the local stack", () => {
       "start_workout_session",
       { workoutId: dayA.id }
     );
-    expect(resumed).toEqual({ resumed: true, session });
+
+    expect(resumed).toStrictEqual({ resumed: true, session });
   });
 
   it("logs a set and overwrites it when logged again", async () => {
@@ -272,17 +304,18 @@ describe("plan and workout flow against the local stack", () => {
       setId,
       weightCompleted: 50,
     });
-    const logged = await callOk<Record<string, unknown>>(client, "log_set", {
+
+    const logged = await callOk<SessionSet>(client, "log_set", {
       repsCompleted: 7,
       setId,
       weightCompleted: 62.5,
     });
+
     expect(logged).toMatchObject({
       id: setId,
       reps_completed: 7,
       weight_completed: 62.5,
     });
-    expect(logged.logged_at).toEqual(expect.any(String));
 
     // A plan set id is not a session set id.
     await callError(client, "log_set", {
@@ -290,13 +323,16 @@ describe("plan and workout flow against the local stack", () => {
       setId: plan.workouts[0]?.exercises[0]?.sets[0]?.id,
       weightCompleted: 1,
     });
+
+    expect(logged.logged_at).toStrictEqual(expect.any(String));
   });
 
   it("lists the open session as in progress", async () => {
     const open = await callOk<SessionPage>(client, "list_workout_sessions", {
       status: "in_progress",
     });
-    expect(open.sessions).toEqual([
+
+    expect(open.sessions).toStrictEqual([
       expect.objectContaining({
         id: session.id,
         logged_set_count: 1,
@@ -312,6 +348,7 @@ describe("plan and workout flow against the local stack", () => {
       rotated: boolean;
       session: SessionDetail;
     }>(client, "finish_workout_session", { sessionId: session.id });
+
     expect(finished).toMatchObject({
       alreadyFinished: false,
       rotated: true,
@@ -321,7 +358,8 @@ describe("plan and workout flow against the local stack", () => {
     const rotated = await callOk<PlanDetail>(client, "get_plan", {
       planId: plan.id,
     });
-    expect(rotated.workouts.map((workout) => workout.name)).toEqual([
+
+    expect(rotated.workouts.map((workout) => workout.name)).toStrictEqual([
       "Day B",
       "Day A",
     ]);
@@ -331,6 +369,7 @@ describe("plan and workout flow against the local stack", () => {
       "finish_workout_session",
       { sessionId: session.id }
     );
+
     expect(again).toMatchObject({ alreadyFinished: true, rotated: false });
 
     const message = await callError(client, "log_set", {
@@ -338,6 +377,7 @@ describe("plan and workout flow against the local stack", () => {
       setId: session.exercises[0]?.sets[1]?.id,
       weightCompleted: 1,
     });
+
     expect(message).toContain("finished");
   });
 
@@ -349,26 +389,34 @@ describe("plan and workout flow against the local stack", () => {
         status: "finished",
       }
     );
-    expect(finished.sessions.map((item) => item.id)).toEqual([session.id]);
+
+    expect(finished.sessions.map((item) => item.id)).toStrictEqual([
+      session.id,
+    ]);
 
     const open = await callOk<SessionPage>(client, "list_workout_sessions", {
       status: "in_progress",
     });
+
     expect(open).toMatchObject({ sessions: [], total: 0 });
 
     const pastEnd = await callOk<SessionPage>(client, "list_workout_sessions", {
       offset: 5,
     });
+
     expect(pastEnd).toMatchObject({ hasMore: false, sessions: [], total: 1 });
   });
 
   it("returns the logged set in the exercise history", async () => {
     const [first] = exercises;
-    const history = await callOk<{
-      entries: { session_id: string; sets: Record<string, unknown>[] }[];
-    }>(client, "get_exercise_history", { exerciseSlug: first.slug });
 
-    expect(history.entries).toEqual([
+    const history = await callOk<ExerciseHistoryPage>(
+      client,
+      "get_exercise_history",
+      { exerciseSlug: first.slug }
+    );
+
+    expect(history.entries).toStrictEqual([
       expect.objectContaining({
         plan: { id: plan.id, name: plan.name },
         session_id: session.id,
@@ -384,34 +432,39 @@ describe("plan and workout flow against the local stack", () => {
 
   it("replaces workouts and keeps past sessions' logged sets", async () => {
     const input = planInput(exercises);
+
     const replaced = await callOk<PlanDetail>(client, "update_plan", {
       planId: plan.id,
-      workouts: [...input.workouts].reverse(),
+      workouts: input.workouts.toReversed(),
     });
 
     expect(replaced.name).toBe("Renamed plan");
-    expect(replaced.workouts.map((workout) => workout.name)).toEqual([
+    expect(replaced.workouts.map((workout) => workout.name)).toStrictEqual([
       "Day B",
       "Day A",
     ]);
     const oldIds = new Set(plan.workouts.map((workout) => workout.id));
+
     for (const workout of replaced.workouts) {
-      expect(oldIds.has(workout.id)).toBe(false);
+      expect(oldIds.has(workout.id)).toBeFalsy();
     }
+
     const stored = await callOk<PlanDetail>(client, "get_plan", {
       planId: plan.id,
     });
-    expect(stored.workouts.map(({ cover, name }) => ({ cover, name }))).toEqual(
-      [
-        { cover: INTEGRATION_COVERS.back.id, name: "Day B" },
-        { cover: INTEGRATION_COVERS.quadriceps.id, name: "Day A" },
-      ]
-    );
+
+    expect(
+      stored.workouts.map(({ cover, name }) => ({ cover, name }))
+    ).toStrictEqual([
+      { cover: INTEGRATION_COVERS.back.id, name: "Day B" },
+      { cover: INTEGRATION_COVERS.quadriceps.id, name: "Day A" },
+    ]);
     plan = replaced;
 
     const past = await callOk<SessionDetail>(client, "get_workout_session", {
       sessionId: session.id,
     });
+
     expect(past).toMatchObject({
       plan: { id: plan.id },
       status: "finished",
@@ -440,6 +493,7 @@ describe("plan and workout flow against the local stack", () => {
       rotated: boolean;
       session: SessionDetail;
     }>(client, "finish_workout_session", { sessionId: open.id });
+
     expect(finished).toMatchObject({
       alreadyFinished: false,
       rotated: false,
@@ -449,16 +503,19 @@ describe("plan and workout flow against the local stack", () => {
     const deleted = await callOk(client, "delete_workout_session", {
       sessionId: open.id,
     });
-    expect(deleted).toEqual({ deleted: true, sessionId: open.id });
+
     await callError(client, "get_workout_session", { sessionId: open.id });
     await callError(client, "delete_workout_session", { sessionId: open.id });
+
+    expect(deleted).toStrictEqual({ deleted: true, sessionId: open.id });
   });
 
   it("soft-deletes a plan and hides it everywhere", async () => {
     const deleted = await callOk(client, "delete_plan", {
       planId: otherPlan.id,
     });
-    expect(deleted).toEqual({
+
+    expect(deleted).toStrictEqual({
       alreadyDeleted: false,
       deleted: true,
       plan: { id: otherPlan.id, name: otherPlan.name },
@@ -467,6 +524,7 @@ describe("plan and workout flow against the local stack", () => {
     const again = await callOk(client, "delete_plan", {
       planId: otherPlan.id,
     });
+
     expect(again).toMatchObject({ alreadyDeleted: true, deleted: true });
 
     await callError(client, "get_plan", { planId: otherPlan.id });
@@ -480,6 +538,6 @@ describe("plan and workout flow against the local stack", () => {
     });
 
     const plans = await callOk<PlanSummary[]>(client, "list_plans");
-    expect(plans.map((item) => item.id)).toEqual([plan.id]);
+    expect(plans.map((item) => item.id)).toStrictEqual([plan.id]);
   });
 });

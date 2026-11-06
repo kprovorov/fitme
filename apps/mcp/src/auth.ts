@@ -3,6 +3,7 @@ import { protectedResourceHandlerClerk } from "@clerk/mcp-tools/hono";
 import type { Context } from "hono";
 import { env } from "hono/adapter";
 import { createMiddleware } from "hono/factory";
+
 import type { ClerkUser } from "./context.js";
 
 /**
@@ -51,32 +52,37 @@ export const protectedResourceMetadata = (c: Context) =>
  * 401 with the `WWW-Authenticate` challenge MCP clients use to discover the
  * authorization server and start (or, for a rejected token, redo) OAuth.
  */
-function unauthorized(c: Context, reason: "invalid" | "missing") {
+const unauthorized = (c: Context, reason: "invalid" | "missing") => {
   const metadata = `resource_metadata="${resourceMetadataUrl(c)}"`;
+
   if (reason === "missing") {
     // RFC 6750: a request without credentials gets no error code.
     c.header("WWW-Authenticate", `Bearer ${metadata}`);
+
     return c.json(
       { error_description: "Authentication required: sign in with OAuth." },
       401
     );
   }
+
   const description = "The access token is invalid or expired. Sign in again.";
   c.header(
     "WWW-Authenticate",
     `Bearer error="invalid_token", error_description="${description}", ${metadata}`
   );
+
   return c.json(
     { error: "invalid_token", error_description: description },
     401
   );
-}
+};
 
 /** Fails closed (500) when the Clerk or database config is missing. */
 export const requireConfig = createMiddleware<{ Variables: AuthVariables }>(
   async (c, next) => {
     const values = env<Record<string, string | undefined>>(c);
     const missing = REQUIRED_ENV.filter((name) => !values[name]);
+
     if (missing.length > 0) {
       return c.json(
         {
@@ -88,11 +94,12 @@ export const requireConfig = createMiddleware<{ Variables: AuthVariables }>(
         500
       );
     }
-    await next();
+
+    return await next();
   }
 );
 
-const BEARER_TOKEN = /^Bearer\s+\S+\s*$/i;
+const BEARER_TOKEN = /^Bearer\s+\S+\s*$/iu;
 
 /** 401 without `Authorization: Bearer <token>`, before asking Clerk. */
 export const requireBearerToken = createMiddleware<{
@@ -101,7 +108,8 @@ export const requireBearerToken = createMiddleware<{
   if (!BEARER_TOKEN.test(c.req.header("Authorization") ?? "")) {
     return unauthorized(c, "missing");
   }
-  await next();
+
+  return await next();
 });
 
 /**
@@ -111,10 +119,13 @@ export const requireBearerToken = createMiddleware<{
 export const requireClerkUser = createMiddleware<{ Variables: AuthVariables }>(
   async (c, next) => {
     const auth = getAuth(c, { acceptsToken: "oauth_token" });
+
     if (!(auth.isAuthenticated && auth.userId)) {
       return unauthorized(c, "invalid");
     }
+
     c.set("clerkUser", { userId: auth.userId });
-    await next();
+
+    return await next();
   }
 );

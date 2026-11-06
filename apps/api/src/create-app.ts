@@ -5,19 +5,21 @@ import {
   reportError,
 } from "@fitme/observability/node";
 import { createRoute, OpenAPIHono, z } from "@hono/zod-openapi";
+import type { ErrorHandler } from "hono";
 import { cors } from "hono/cors";
 import { HTTPException } from "hono/http-exception";
 import { logger } from "hono/logger";
-import { type ApiEnv, BEARER_AUTH, requireCaller } from "./auth.js";
-import { createLibraryFromEnv, type LibraryFactory } from "./library.js";
-import {
-  type RateLimiter,
-  rateLimitCallers,
-  rateLimiterFromEnv,
-} from "./rate-limit.js";
+
+import { BEARER_AUTH, requireCaller } from "./auth.js";
+import type { ApiEnv } from "./auth.js";
+import { createLibraryFromEnv } from "./library.js";
+import type { LibraryFactory } from "./library.js";
+import { rateLimitCallers, rateLimiterFromEnv } from "./rate-limit.js";
+import type { RateLimiter } from "./rate-limit.js";
 import { publicV1, userV1 } from "./routes/v1.js";
 import { invalidRequest } from "./schemas.js";
-import { createServicesFromEnv, type ServicesFactory } from "./services.js";
+import { createServicesFromEnv } from "./services.js";
+import type { ServicesFactory } from "./services.js";
 
 export interface AppDeps {
   /** The Clerk instance's PEM public key session tokens are verified against. */
@@ -31,7 +33,7 @@ export interface AppDeps {
   /** Counts each caller's requests (`rateLimiterFromEnv` unless given). */
   rateLimiter: RateLimiter;
   /** Reports an unhandled error before the 500 goes out. */
-  reportError: (error: unknown) => Promise<void>;
+  reportError: typeof reportError;
 }
 
 /**
@@ -69,6 +71,7 @@ export const createApp = (deps: Partial<AppDeps> = {}) => {
     identifyUser: identify,
     reportError: report,
   } = { ...defaultDeps(), ...deps };
+
   const rateLimiter = deps.rateLimiter ?? rateLimiterFromEnv(process.env);
 
   // Invalid input on any route answers 400 invalid_request unless the route
@@ -100,10 +103,12 @@ export const createApp = (deps: Partial<AppDeps> = {}) => {
       if (library === undefined) {
         library = createLibrary();
       }
+
       return library;
     });
     c.set("reportError", report);
-    await next();
+
+    return await next();
   });
   // Before anything is served, unknown routes included.
   app.use(rateLimitCallers({ limiter: rateLimiter, reportError: report }));
@@ -118,19 +123,23 @@ export const createApp = (deps: Partial<AppDeps> = {}) => {
     c.json({ error: { code: "not_found", message: "Route not found" } }, 404)
   );
 
-  app.onError(async (error, c) => {
+  const handleError: ErrorHandler<ApiEnv> = async (error, c) => {
     if (error instanceof HTTPException) {
       return c.json(
         { error: { code: "http_error", message: error.message } },
         error.status
       );
     }
+
     await report(error);
+
     return c.json(
       { error: { code: "internal_error", message: "Internal server error" } },
       500
     );
-  });
+  };
+
+  app.onError(handleError);
 
   return app;
 };

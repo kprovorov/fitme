@@ -1,4 +1,3 @@
-import { fileURLToPath } from "node:url";
 import { defineConfig } from "vitest/config";
 
 export default defineConfig({
@@ -6,7 +5,7 @@ export default defineConfig({
   // won't do, so the test files that render a component need it set here.
   esbuild: { jsx: "automatic" },
   resolve: {
-    alias: { "~": fileURLToPath(new URL(".", import.meta.url)) },
+    alias: { "~": import.meta.dirname },
   },
   test: {
     include: ["__tests__/**/*.test.ts", "__tests__/**/*.test.tsx"],

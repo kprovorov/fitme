@@ -1,5 +1,6 @@
 import { Toggle } from "@expo/ui/swift-ui";
 import { labelsHidden, tint } from "@expo/ui/swift-ui/modifiers";
+
 import { SwiftUIHost, useSwiftUITheme } from "~/components/ui/swift-ui";
 
 interface SwitchProps {
@@ -38,4 +39,5 @@ const Switch = ({
 Switch.displayName = "Switch";
 
 export type { SwitchProps };
+
 export { Switch };

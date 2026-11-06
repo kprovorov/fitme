@@ -1,12 +1,16 @@
 import { useRouter } from "expo-router";
 import { useTranslation } from "react-i18next";
+import { View } from "react-native";
+
 import { Card } from "~/components/ui/card";
 import { DropdownMenu } from "~/components/ui/dropdown-menu";
-import { type ShownExercise, shownExercise } from "~/hooks/queries/library";
+import { shownExercise } from "~/hooks/queries/library";
+import type { ShownExercise } from "~/hooks/queries/library";
 import type {
   WorkoutSession,
   WorkoutSessionExercise,
 } from "~/hooks/queries/workout-sessions";
+
 import ExerciseCardHeader, { OpenChevron } from "./exercise-card-header";
 import WorkoutSessionExerciseSetsTableView from "./workout-session-exercise-sets-table-view";
 
@@ -29,7 +33,7 @@ interface WorkoutSessionExerciseCardProps {
  * An exercise of a workout session: its header (opening the exercise's
  * screen) above its sets, logged right here.
  */
-export default function WorkoutSessionExerciseCard({
+const WorkoutSessionExerciseCard = ({
   exercise: resolved,
   workoutSessionExercise,
   onDelete,
@@ -39,11 +43,13 @@ export default function WorkoutSessionExerciseCard({
   weightUnit,
   workoutId,
   sessionId,
-}: WorkoutSessionExerciseCardProps) {
+}: WorkoutSessionExerciseCardProps) => {
   const { t } = useTranslation();
   const router = useRouter();
+
   const exercise =
     resolved ?? shownExercise(workoutSessionExercise.exercise_slug, null);
+
   // The exercise screen lives under the session's plan and workout.
   const canOpen = !!(planId && workoutId);
 
@@ -76,32 +82,36 @@ export default function WorkoutSessionExerciseCard({
   ];
 
   return (
-    <Card className="gap-sm">
-      <ExerciseCardHeader
-        accessibilityHint={t("workoutSession.exercise.openHint")}
-        exercise={exercise}
-        onPress={canOpen ? handlePress : undefined}
-        trailing={
-          menuItems.length > 0 ? (
-            <DropdownMenu
-              accessibilityLabel={t("workoutSession.exercise.moreOptions", {
-                name: exercise.name,
-              })}
-              items={menuItems}
-              systemImage="ellipsis"
-            />
-          ) : (
-            canOpen && <OpenChevron />
-          )
-        }
-      />
-      <WorkoutSessionExerciseSetsTableView
-        exerciseId={workoutSessionExercise.id}
-        readOnly={readOnly}
-        sessionId={sessionId}
-        weightUnit={weightUnit}
-        workoutSessionExerciseSets={workoutSessionExercise.sets}
-      />
+    <Card>
+      <View className="gap-sm">
+        <ExerciseCardHeader
+          accessibilityHint={t("workoutSession.exercise.openHint")}
+          exercise={exercise}
+          onPress={canOpen ? handlePress : undefined}
+          trailing={
+            menuItems.length > 0 ? (
+              <DropdownMenu
+                accessibilityLabel={t("workoutSession.exercise.moreOptions", {
+                  name: exercise.name,
+                })}
+                items={menuItems}
+                systemImage="ellipsis"
+              />
+            ) : (
+              canOpen && <OpenChevron />
+            )
+          }
+        />
+        <WorkoutSessionExerciseSetsTableView
+          exerciseId={workoutSessionExercise.id}
+          readOnly={readOnly}
+          sessionId={sessionId}
+          weightUnit={weightUnit}
+          workoutSessionExerciseSets={workoutSessionExercise.sets}
+        />
+      </View>
     </Card>
   );
-}
+};
+
+export default WorkoutSessionExerciseCard;

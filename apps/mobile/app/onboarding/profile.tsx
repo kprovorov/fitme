@@ -8,27 +8,28 @@ import { useCallback } from "react";
 import { useTranslation } from "react-i18next";
 import { ActivityIndicator, ScrollView } from "react-native";
 import { useResolveClassNames } from "uniwind";
+
 import ProfileForm, {
-  type ProfileFormValues,
   profileSaveErrorMessage,
 } from "~/components/forms/profile-form";
+import type { ProfileFormValues } from "~/components/forms/profile-form";
 import { Button } from "~/components/ui/button";
 import { ErrorMessage } from "~/components/ui/error-message";
 import { Text } from "~/components/ui/text";
-import {
-  type StoreProfileData,
-  useStoreProfileMutation,
-} from "~/hooks/mutations/profiles";
+import { useStoreProfileMutation } from "~/hooks/mutations/profiles";
+import type { StoreProfileData } from "~/hooks/mutations/profiles";
 import { useProfileQuery } from "~/hooks/queries/profiles";
+import type { Profile } from "~/hooks/queries/profiles";
 import { IS_E2E } from "~/lib/constants";
 import { storage } from "~/lib/mmkv";
 import { genderOf, measurementSystemOf } from "~/lib/profile";
 import { segmentClient } from "~/lib/segment";
 
-export default function ProfileScreen() {
+const ProfileScreen = () => {
   const { t } = useTranslation();
 
   const { user } = useUser();
+
   const {
     data: profile,
     error: profileError,
@@ -36,6 +37,7 @@ export default function ProfileScreen() {
     isPending: isProfilePending,
     refetch: refetchProfile,
   } = useProfileQuery();
+
   // Without the Profile read, the form can't know whether one is saved (a
   // save would then replace it), so a failed first read is its error state,
   // a 429 giving the wait. A failed refresh keeps the Profile already read.
@@ -43,8 +45,10 @@ export default function ProfileScreen() {
   const loadWaitSeconds = rateLimitedFor(profileError);
 
   const locales = useLocales();
-  const deviceMeasurementSystem = (locales[0]?.measurementSystem ??
-    "metric") as MeasurementSystem;
+
+  const deviceMeasurementSystem: MeasurementSystem =
+    locales[0]?.measurementSystem ?? "metric";
+
   const measurementSystem: MeasurementSystem = profile
     ? measurementSystemOf(profile)
     : deviceMeasurementSystem;
@@ -66,10 +70,11 @@ export default function ProfileScreen() {
   // has set to the saved one by the time this runs. On the call, not the
   // hook: a hook-level `onSuccess` would replace the mutation's own.
   const handleSaved = useCallback(
-    (_profile: unknown, variables: StoreProfileData) => {
+    (_profile: Profile, variables: StoreProfileData) => {
       if (user) {
         storage.set(`onboarding.seen.${user.id}`, true);
       }
+
       if (!IS_E2E) {
         segmentClient.track("Profile Filled", {
           age: variables.age,
@@ -77,6 +82,7 @@ export default function ProfileScreen() {
           weight_unit: measurementSystem,
         });
       }
+
       router.dismissTo("/planner");
     },
     [measurementSystem, user]
@@ -174,4 +180,6 @@ export default function ProfileScreen() {
       ) : null}
     </>
   );
-}
+};
+
+export default ProfileScreen;

@@ -1,6 +1,7 @@
 import { MAX_REPS, MAX_WEIGHT } from "@fitme/core/limits";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
+
 import type { ToolContext } from "../context.js";
 import {
   asJson,
@@ -23,7 +24,7 @@ const sessionNotFound = (sessionId: string) =>
 const workoutNotFound = (workoutId: string) =>
   `Workout ${workoutId} not found (its plan may have been deleted or belong to another user, or update_plan replaced it — get_plan returns the current workout ids).`;
 
-function registerSessionReadTools(server: McpServer, ctx: ToolContext) {
+const registerSessionReadTools = (server: McpServer, ctx: ToolContext) => {
   server.registerTool(
     "get_workout_session",
     {
@@ -80,6 +81,7 @@ function registerSessionReadTools(server: McpServer, ctx: ToolContext) {
         offset,
         status,
       });
+
       return asJson({
         hasMore: offset + sessions.length < total,
         limit,
@@ -89,7 +91,7 @@ function registerSessionReadTools(server: McpServer, ctx: ToolContext) {
       });
     })
   );
-}
+};
 
 const sessionInProgress = ({
   sessionId,
@@ -102,10 +104,11 @@ const sessionInProgress = ({
     workoutName === null
       ? `Workout session ${sessionId} is already in progress`
       : `Workout "${workoutName}" is already in progress (session ${sessionId})`;
+
   return `${open}: a user has at most one open workout session. Finish it with finish_workout_session (or delete_workout_session) before starting another.`;
 };
 
-function registerSessionWriteTools(server: McpServer, ctx: ToolContext) {
+const registerSessionWriteTools = (server: McpServer, ctx: ToolContext) => {
   server.registerTool(
     "start_workout_session",
     {
@@ -126,13 +129,17 @@ function registerSessionWriteTools(server: McpServer, ctx: ToolContext) {
     },
     withServices(ctx, async ({ workoutId }, services) => {
       const result = await services.startWorkoutSession(workoutId);
+
       if (result.status === "not_found") {
         throw new ToolError(workoutNotFound(workoutId));
       }
+
       if (result.status === "session_in_progress") {
         throw new ToolError(sessionInProgress(result));
       }
+
       const { resumed, session } = result;
+
       return asJson({ resumed, session: await namedSession(ctx, session) });
     })
   );
@@ -169,16 +176,19 @@ function registerSessionWriteTools(server: McpServer, ctx: ToolContext) {
     },
     withServices(ctx, async (input, services) => {
       const result = await services.logSet(input);
+
       if (result.status === "not_found") {
         throw new ToolError(
           `Set ${input.setId} not found. Use the set ids from get_workout_session (workout_session_exercise_sets.id).`
         );
       }
+
       if (result.status === "session_finished") {
         throw new ToolError(
           `Workout session ${result.sessionId} was finished at ${result.finishedAt}; its sets can no longer be logged.`
         );
       }
+
       return asJson(result.set);
     })
   );
@@ -199,10 +209,13 @@ function registerSessionWriteTools(server: McpServer, ctx: ToolContext) {
     },
     withServices(ctx, async ({ sessionId }, services) => {
       const result = await services.finishWorkoutSession(sessionId);
+
       if (result.status === "not_found") {
         throw new ToolError(sessionNotFound(sessionId));
       }
+
       const { alreadyFinished, rotated, session } = result;
+
       return asJson({
         alreadyFinished,
         rotated,
@@ -229,12 +242,13 @@ function registerSessionWriteTools(server: McpServer, ctx: ToolContext) {
       if (!(await services.deleteWorkoutSession(sessionId))) {
         throw new ToolError(sessionNotFound(sessionId));
       }
+
       return asJson({ deleted: true, sessionId });
     })
   );
-}
+};
 
-export function registerSessionTools(server: McpServer, ctx: ToolContext) {
+export const registerSessionTools = (server: McpServer, ctx: ToolContext) => {
   registerSessionReadTools(server, ctx);
   registerSessionWriteTools(server, ctx);
-}
+};

@@ -1,7 +1,9 @@
 import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import path from "node:path";
+
 import { afterAll, describe, expect, it } from "vitest";
+
 import {
   APPLY_MIGRATIONS_COMMAND,
   migrationsError,
@@ -9,26 +11,28 @@ import {
   missingMigrations,
 } from "./check-migrations";
 
-const dir = mkdtempSync(join(tmpdir(), "fitme-migrations-"));
-afterAll(() => rmSync(dir, { force: true, recursive: true }));
+const dir = mkdtempSync(path.join(tmpdir(), "fitme-migrations-"));
 
 describe("migration check", () => {
+  afterAll(() => {
+    rmSync(dir, { force: true, recursive: true });
+  });
+
   it("reads the versions of the migration files, oldest first", () => {
-    writeFileSync(join(dir, "20261102120000_b.sql"), "");
-    writeFileSync(join(dir, "20261101120000_a.sql"), "");
-    writeFileSync(join(dir, "README.md"), "");
-    expect(migrationVersions(dir)).toEqual([
+    writeFileSync(path.join(dir, "20261102120000_b.sql"), "");
+    writeFileSync(path.join(dir, "20261101120000_a.sql"), "");
+    writeFileSync(path.join(dir, "README.md"), "");
+    expect(migrationVersions(dir)).toStrictEqual([
       "20261101120000",
       "20261102120000",
     ]);
   });
 
   it("names every file version not applied, older ones included", () => {
-    expect(missingMigrations(["1", "2", "3", "4"], ["1", "3", "9"])).toEqual([
-      "2",
-      "4",
-    ]);
-    expect(missingMigrations(["1"], ["1"])).toEqual([]);
+    expect(
+      missingMigrations(["1", "2", "3", "4"], ["1", "3", "9"])
+    ).toStrictEqual(["2", "4"]);
+    expect(missingMigrations(["1"], ["1"])).toStrictEqual([]);
   });
 
   it("answers no error when every file is applied", () => {

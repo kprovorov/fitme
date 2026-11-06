@@ -16,7 +16,8 @@ import {
   it,
   jest,
 } from "@jest/globals";
-import { type QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { QueryClientProvider } from "@tanstack/react-query";
+import type { QueryClient } from "@tanstack/react-query";
 import {
   act,
   fireEvent,
@@ -26,6 +27,7 @@ import {
 } from "@testing-library/react-native";
 import type { ReactNode } from "react";
 import { Alert } from "react-native";
+
 import WorkoutScreen from "~/app/plans/[planId]/workouts/[workoutId]/index";
 import WorkoutSessionExerciseScreen from "~/app/plans/[planId]/workouts/[workoutId]/sessions/[sessionId]/exercises/[exerciseId]/index";
 import WorkoutSessionSummaryScreen from "~/app/workout-sessions/[workoutSessionId]/summary";
@@ -56,6 +58,7 @@ jest.mock("expo-router", () => {
   const stub = jest.requireActual<typeof import("~/test-utils/router-stub")>(
     "~/test-utils/router-stub"
   );
+
   return {
     Stack: { Screen: stub.StackScreenStub },
     useIsFocused: () => true,
@@ -71,49 +74,66 @@ jest.mock("~/lib/clerk", () => ({
     typeof import("~/test-utils/signed-in-user")
   >("~/test-utils/signed-in-user").getCurrentUserId,
 }));
+
 jest.mock("@sentry/react-native", () => ({ captureException: jest.fn() }));
-jest.mock("~/lib/segment", () => ({ segmentClient: { track: jest.fn() } }));
+
+jest.mock("~/lib/segment", () => ({
+  segmentClient: { track: jest.fn() },
+}));
+
 jest.mock("react-native-safe-area-context", () => ({
   useSafeAreaInsets: () => ({ bottom: 0, left: 0, right: 0, top: 0 }),
 }));
+
 jest.mock("react-native-keyboard-controller", () => {
   const { ScrollView } =
     jest.requireActual<typeof import("react-native")>("react-native");
+
   return { KeyboardAwareScrollView: ScrollView };
 });
+
 jest.mock("~/components/exercises/exercise-image", () => () => null);
+
 // A symbol shows as a view naming it: a Summary row's trophy.
 jest.mock("~/components/symbol-image", () => {
   const { View } =
     jest.requireActual<typeof import("react-native")>("react-native");
+
   return {
     SymbolImage: ({ name }: { name: string }) => (
       <View testID={`symbol:${name}`} />
     ),
   };
 });
+
 // The body diagram reads theme colors uniwind has no stylesheet for in Jest.
 jest.mock("~/components/views/workout-session-summary-body", () => ({
   WorkoutSessionSummaryBodyBack: () => null,
   WorkoutSessionSummaryBodyFront: () => null,
 }));
+
 jest.mock("~/components/workout-sessions/rest-timer", () => () => null);
+
 // The real prompt store, its question recorded.
 jest.mock("~/hooks/plan-update-prompt", () => {
   const actual = jest.requireActual<
     typeof import("~/hooks/plan-update-prompt")
   >("~/hooks/plan-update-prompt");
+
   return {
     ...actual,
     showPlanUpdatePrompt: jest.fn(actual.showPlanUpdatePrompt),
   };
 });
+
 jest.mock("~/components/ui/button", () =>
   jest.requireActual("~/test-utils/button-stub")
 );
+
 jest.mock("~/components/ui/dialog", () =>
   jest.requireActual("~/test-utils/dialog-stub")
 );
+
 jest.mock("~/components/ui/dropdown-menu", () => ({
   DropdownMenu: () => null,
 }));
@@ -124,10 +144,13 @@ const FINISH = "POST /v1/workout-sessions/{id}/finish";
 const PLAN_UPDATE = "GET /v1/workout-sessions/{id}/plan-update";
 const LIST = "GET /v1/workout-sessions";
 const IN_PROGRESS = { status: "in_progress" };
+
 const SESSION_LOAD_ERROR =
   "Couldn't load this workout. Check your connection and try again.";
+
 const EXERCISE_LOAD_ERROR =
   "Couldn't load this exercise. Check your connection and try again.";
+
 const RATE_LIMITED = "Too many requests: please try again in 12 s.";
 
 // An Exercise card's or row's header, read with its muscle groups.
@@ -161,11 +184,13 @@ const mountExercise = (exerciseId: string) => {
     sessionId: "s1",
     workoutId: "workout-1",
   };
+
   return mount(<WorkoutSessionExerciseScreen />);
 };
 
 const mountSummary = () => {
   mockParams.current = { workoutSessionId: "s1" };
+
   return mount(<WorkoutSessionSummaryScreen />);
 };
 
@@ -181,15 +206,17 @@ const setSet = (
   }
 ) => {
   const set = backend.sets.find((candidate) => candidate.id === id);
+
   if (!set) {
     throw new Error(`No seeded set ${id}`);
   }
+
   Object.assign(set, values);
 };
 
 beforeEach(() => {
   jest.clearAllMocks();
-  jest.spyOn(Alert, "alert").mockImplementation(() => undefined);
+  jest.spyOn(Alert, "alert").mockReturnValue(undefined);
   backend.reset();
   storage.clearAll();
   resetStubRouter();
@@ -203,7 +230,7 @@ beforeEach(() => {
   ]);
 });
 
-describe("The Workout Session screen", () => {
+describe("the Workout Session screen", () => {
   beforeEach(() => {
     backend.seed({
       exercises: [
@@ -317,7 +344,7 @@ describe("The Workout Session screen", () => {
   });
 });
 
-describe("The Workout Session Exercise screen", () => {
+describe("the Workout Session Exercise screen", () => {
   beforeEach(() => {
     backend.seed({
       exercises: [
@@ -382,7 +409,7 @@ describe("The Workout Session Exercise screen", () => {
   });
 });
 
-describe("The Workout Summary", () => {
+describe("the Workout Summary", () => {
   beforeEach(() => {
     // An earlier finished session: Bench Press at 60 kg, Squat at 120 kg.
     backend.seed({
@@ -501,9 +528,11 @@ const mountLegDay = async () => {
 /** The mutation the test just started, kept past `queryClient.clear()`. */
 const pendingMutation = () => {
   const [mutation] = queryClient.getMutationCache().getAll();
+
   if (!mutation) {
     throw new Error("No mutation started");
   }
+
   return mutation;
 };
 
@@ -517,7 +546,7 @@ const signOutDuringWrite = async (next: string | null) => {
   signInAs(next);
 };
 
-describe("Start and Finish", () => {
+describe("start and Finish", () => {
   it("opens the Workout Session on Start's answer, with no second read", async () => {
     await mountLegDay();
 
@@ -613,7 +642,7 @@ describe("Start and Finish", () => {
   });
 });
 
-describe("A late Start or Finish answer", () => {
+describe("a late Start or Finish answer", () => {
   it.each([
     ["nobody", null],
     ["another User", "user_next"],
@@ -664,14 +693,17 @@ describe("A late Start or Finish answer", () => {
       // The next User's own read of that key is on its way.
       const reads = fakePublicApi.count(READ);
       const resumeRead = fakePublicApi.pause(READ);
+
       const nextUsersRead = next
         ? queryClient.fetchQuery(
             useWorkoutSessionQuery.getFetchOptions({ sessionId: "s1" })
           )
         : null;
+
       if (next) {
         await until(() => fakePublicApi.count(READ) === reads + 1);
       }
+
       const openReads = fakePublicApi.count(LIST, IN_PROGRESS);
 
       resume();
@@ -687,9 +719,11 @@ describe("A late Start or Finish answer", () => {
       expect(fakePublicApi.count(PLAN_UPDATE)).toBe(0);
       expect(pushedRoutes()).toEqual([]);
       resumeRead();
+
       if (nextUsersRead) {
         await expect(nextUsersRead).resolves.toMatchObject({ id: "s1" });
       }
+
       await settle(queryClient);
       expect(fakePublicApi.count(READ)).toBe(reads + (next ? 1 : 0));
       expect(pushedRoutes()).toEqual([]);
@@ -812,7 +846,7 @@ describe("A late Start or Finish answer", () => {
   });
 
   describe("a Finish whose Plan Update is still being previewed", () => {
-    const PROMPT = showPlanUpdatePrompt as unknown as jest.Mock;
+    const PROMPT = jest.mocked(showPlanUpdatePrompt);
 
     /** Squat logged where the Plan has Bench Press: a Plan Update to ask about. */
     const mountChangedSession = async () => {
@@ -870,7 +904,7 @@ describe("A late Start or Finish answer", () => {
         expect(pushedRoutes()).toEqual([]);
         expect(Alert.alert).not.toHaveBeenCalled();
         // Nothing read, or put in the cache, for whoever is signed in now.
-        expect(fakePublicApi.requests.length).toBe(reads);
+        expect(fakePublicApi.requests).toHaveLength(reads);
         expect(queryClient.getQueryCache().getAll()).toEqual([]);
       }
     );

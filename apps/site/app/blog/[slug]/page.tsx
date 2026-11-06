@@ -1,9 +1,9 @@
-import moment from "moment";
 import type { Metadata } from "next";
+import { MDXRemote } from "next-mdx-remote-client/rsc";
 import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { MDXRemote } from "next-mdx-remote-client/rsc";
+
 import { ProseArticle } from "@/components/prose";
 import {
   Breadcrumb,
@@ -14,21 +14,28 @@ import {
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
 import { Container } from "@/components/ui/container";
-import { HStack } from "@/components/ui/hstack";
-import { VStack } from "@/components/ui/vstack";
+
 import { getBlogPosts } from "../utils";
 
 const baseUrl = "https://fitmeproject.com";
+
+const publishedDateFormatter = new Intl.DateTimeFormat("en-US", {
+  day: "numeric",
+  month: "long",
+  timeZone: "UTC",
+  year: "numeric",
+});
 
 interface Props {
   params: Promise<{ slug: string }>;
 }
 
-export function generateStaticParams() {
-  return getBlogPosts().map((post) => ({ slug: post.slug }));
-}
+export const generateStaticParams = () =>
+  getBlogPosts().map((post) => ({ slug: post.slug }));
 
-export async function generateMetadata({ params }: Props): Promise<Metadata> {
+export const generateMetadata = async ({
+  params,
+}: Props): Promise<Metadata> => {
   const { slug } = await params;
 
   const post = getBlogPosts().find((item) => item.slug === slug);
@@ -53,7 +60,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
       publishedTime: publishedAt,
       title,
       type: "article",
-      url: `${baseUrl}/blog/${post.slug}`,
+      url: `${baseUrl}/blog/${encodeURIComponent(post.slug)}`,
     },
     title,
     twitter: {
@@ -63,9 +70,9 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
       title,
     },
   };
-}
+};
 
-export default async function Blog({ params }: Props) {
+const Blog = async ({ params }: Props) => {
   const { slug } = await params;
 
   const post = getBlogPosts().find((item) => item.slug === slug);
@@ -76,7 +83,7 @@ export default async function Blog({ params }: Props) {
 
   return (
     <Container className="max-w-3xl">
-      <VStack className="items-start gap-10">
+      <div className="flex flex-col items-start justify-center gap-10">
         <Breadcrumb>
           <BreadcrumbList>
             <BreadcrumbItem>
@@ -98,7 +105,7 @@ export default async function Blog({ params }: Props) {
         </Breadcrumb>
         <div>
           <span className="text-caption-1 text-muted-foreground">
-            {moment(post.metadata.publishedAt).format("MMMM D, YYYY")}
+            {publishedDateFormatter.format(new Date(post.metadata.publishedAt))}
           </span>
           <ProseArticle>
             <h1>{post.metadata.title}</h1>
@@ -109,27 +116,29 @@ export default async function Blog({ params }: Props) {
               src={`/blog/${post.metadata.publishedAt}.png`}
               width={800}
             />
-            <p className="lead">{post.metadata.summary}</p>
+            <p>{post.metadata.summary}</p>
             <MDXRemote source={post.content} />
           </ProseArticle>
         </div>
-        <HStack className="justify-start gap-2">
+        <div className="flex flex-row items-center justify-start gap-2">
           <Image
-            alt={"Kirill Provorov"}
+            alt="Kirill Provorov"
             className="rounded-full"
             height={50}
-            src={"https://github.com/kprovorov.png"}
+            src="https://github.com/kprovorov.png"
             width={50}
           />
 
-          <VStack className="items-start gap-0">
+          <div className="flex flex-col items-start justify-center gap-0">
             <span className="text-body-emphasized">Kirill Provorov</span>
-            <a className="text-subhead" href={"https://x.com/kprovorov"}>
+            <a className="text-subhead" href="https://x.com/kprovorov">
               @kprovorov
             </a>
-          </VStack>
-        </HStack>
-      </VStack>
+          </div>
+        </div>
+      </div>
     </Container>
   );
-}
+};
+
+export default Blog;

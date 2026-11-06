@@ -1,18 +1,28 @@
+import type * as Db from "@fitme/db";
+import type * as ProfileServices from "@fitme/services/profile";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+
 import { contextFor, inputSchemaOf, userIdFields } from "./tool-context";
 
 const db = vi.hoisted(() => ({ asUser: vi.fn() }));
-const services = vi.hoisted(() => ({ getProfile: vi.fn() }));
-vi.mock("@fitme/db", () => db);
-vi.mock("@fitme/services/profile", () => services);
 
-const { default: getUserProfile } = await import(
-  "../agent/tools/get_user_profile"
+const services = vi.hoisted(() => ({
+  getProfile: vi.fn<typeof ProfileServices.getProfile>(),
+}));
+
+vi.mock<typeof Db>(import("@fitme/db"), () => db);
+
+vi.mock<typeof ProfileServices>(
+  import("@fitme/services/profile"),
+  () => services
 );
+
+const { default: getUserProfile } =
+  await import("../agent/tools/get_user_profile");
 
 const tx = { fake: "transaction" };
 
-const profile = {
+const profile: ProfileServices.ProfileWithUnits = {
   age: 30,
   gender: "female",
   height: 170,
@@ -21,16 +31,23 @@ const profile = {
   weight: 60,
 };
 
-beforeEach(() => {
-  db.asUser.mockImplementation((_userId, fn) => fn(tx));
-  services.getProfile.mockResolvedValue(profile);
-});
-
 describe("get_user_profile", () => {
+  beforeEach(() => {
+    db.asUser.mockImplementation(
+      async (
+        _userId: string,
+        fn: (
+          transaction: typeof tx
+        ) => Promise<ProfileServices.ProfileWithUnits | null>
+      ) => await fn(tx)
+    );
+    services.getProfile.mockResolvedValue(profile);
+  });
+
   it("reads the Profile as the session's User", async () => {
     const result = await getUserProfile.execute({}, contextFor("user_alice"));
 
-    expect(result).toEqual(profile);
+    expect(result).toStrictEqual(profile);
     expect(db.asUser).toHaveBeenCalledWith("user_alice", expect.any(Function));
     expect(services.getProfile).toHaveBeenCalledWith(tx, "user_alice");
   });
@@ -41,7 +58,7 @@ describe("get_user_profile", () => {
 
     await getUserProfile.execute(input, contextFor("user_alice"));
 
-    expect(input).toEqual({});
+    expect(input).toStrictEqual({});
     expect(db.asUser).toHaveBeenCalledWith("user_alice", expect.any(Function));
     expect(services.getProfile).toHaveBeenCalledWith(tx, "user_alice");
     expect(
@@ -52,15 +69,17 @@ describe("get_user_profile", () => {
   it("tells the model when the User has no Profile yet", async () => {
     services.getProfile.mockResolvedValue(null);
 
-    expect(await getUserProfile.execute({}, contextFor("user_alice"))).toEqual({
+    await expect(
+      getUserProfile.execute({}, contextFor("user_alice"))
+    ).resolves.toStrictEqual({
       error: "Profile not found",
     });
   });
 
   it("refuses to run without a Clerk User owning the session", async () => {
-    await expect(
-      getUserProfile.execute({}, contextFor(null))
-    ).rejects.toThrow();
+    await expect(getUserProfile.execute({}, contextFor(null))).rejects.toThrow(
+      "This Conversation has no signed-in owner"
+    );
     expect(db.asUser).not.toHaveBeenCalled();
   });
 });

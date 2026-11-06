@@ -1,10 +1,10 @@
 import {
-  type AppLanguage,
-  type Equipment,
+  isAppLanguage,
   equipment as knownEquipment,
-  type MuscleGroup,
   muscleGroups,
 } from "@fitme/core/models";
+import type { AppLanguage } from "@fitme/core/models";
+
 import type { Cover, Exercise } from "..";
 
 /** An Exercise's text in another App language, as the bundle carries it. */
@@ -21,9 +21,9 @@ export const exercise = (
   overrides: Partial<StubExercise> = {}
 ): StubExercise => ({
   description: `About ${slug}.`,
-  equipment: ["barbell"] as Equipment[],
+  equipment: ["barbell"],
   instructions: `Do ${slug}.`,
-  muscle_groups: ["chest"] as MuscleGroup[],
+  muscle_groups: ["chest"],
   name: slug
     .split("-")
     .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
@@ -38,13 +38,17 @@ export const exercise = (
 export const cover = (id: string, overrides: Partial<Cover> = {}): Cover => ({
   id,
   image_url: `https://media.test/covers/${id}.jpg`,
-  muscle_groups: ["chest"] as MuscleGroup[],
+  muscle_groups: ["chest"],
   ...overrides,
 });
 
-const summary = ({ description, instructions, ...rest }: Exercise) => rest;
+const summary = ({
+  description: _description,
+  instructions: _instructions,
+  ...rest
+}: Exercise) => rest;
 
-const EXERCISE_PATH = /^\/exercises\/([^/]+)$/;
+const EXERCISE_PATH = /^\/exercises\/(?<slug>[^/]+)$/u;
 
 const invalidRequest = (message: string) =>
   Response.json(
@@ -64,10 +68,12 @@ const muscleGroupsRefusal = ({
   if (groups === null) {
     return null;
   }
+
   if (muscleGroup !== null) {
     return invalidRequest("muscle_groups: can't be combined with muscle_group");
   }
-  return groups.every((group) => muscleGroups.includes(group as MuscleGroup))
+
+  return groups.every((group) => muscleGroups.some((known) => known === group))
     ? null
     : invalidRequest("muscle_groups: invalid muscle group");
 };
@@ -80,7 +86,10 @@ const equipmentRefusal = ({ equipment }: StubRequest) => {
   if (equipment === null) {
     return null;
   }
-  return equipment.every((item) => knownEquipment.includes(item as Equipment))
+
+  return equipment.every((item) =>
+    knownEquipment.some((known) => known === item)
+  )
     ? null
     : invalidRequest("equipment: invalid equipment");
 };
@@ -111,9 +120,13 @@ export interface StubRequest {
  */
 const serveIn = (exercises: StubExercise[], language: string) => {
   const collator = new Intl.Collator(language);
+
   return exercises
     .map(({ translations, ...english }) => {
-      const translation = translations?.[language as AppLanguage];
+      const translation = isAppLanguage(language)
+        ? translations?.[language]
+        : undefined;
+
       return {
         exercise: { ...english, ...translation },
         names: [translation?.name ?? english.name, english.name].map((name) =>
@@ -121,7 +134,7 @@ const serveIn = (exercises: StubExercise[], language: string) => {
         ),
       };
     })
-    .sort(
+    .toSorted(
       (a, b) =>
         collator.compare(a.exercise.name, b.exercise.name) ||
         collator.compare(a.exercise.slug, b.exercise.slug)
@@ -146,13 +159,18 @@ export const stubApi = (
     if (request.path === "/covers") {
       return Response.json({ data: covers });
     }
+
     const sorted = serveIn(exercises, request.language ?? "en");
+
     const bySlug = new Map(
       sorted.map(({ exercise: e }) => [e.slug, summary(e)])
     );
+
     const full = new Map(sorted.map(({ exercise: e }) => [e.slug, e]));
+
     if (request.exerciseSlug !== null) {
       const found = full.get(request.exerciseSlug);
+
       return found
         ? Response.json(found)
         : Response.json(
@@ -160,37 +178,47 @@ export const stubApi = (
             { status: 404 }
           );
     }
+
     if (request.slugs) {
       const slugs = [...new Set(request.slugs)];
+
       return Response.json({
         data: slugs.flatMap((slug) => bySlug.get(slug) ?? []),
         missing: slugs.filter((slug) => !bySlug.has(slug)),
       });
     }
+
     const refusal = muscleGroupsRefusal(request) ?? equipmentRefusal(request);
+
     if (refusal) {
       return refusal;
     }
+
     const groups =
-      request.muscleGroups ?? (request.muscleGroup && [request.muscleGroup]);
+      request.muscleGroups ??
+      (request.muscleGroup === null || request.muscleGroup === ""
+        ? null
+        : [request.muscleGroup]);
+
     const limit = Number(request.limit ?? 20);
     const offset = Number(request.offset ?? 0);
-    const term = request.search?.trim().toLowerCase();
+    const term = request.search?.trim().toLowerCase() ?? "";
+
     const matches = sorted.filter(
       ({ exercise: e, names }) =>
-        (!term || names.some((name) => name.includes(term))) &&
-        (!groups ||
-          groups.some((group) =>
-            e.muscle_groups.includes(group as MuscleGroup)
-          )) &&
+        (term === "" || names.some((name) => name.includes(term))) &&
+        (groups === null ||
+          e.muscle_groups.some((group) => groups.includes(group))) &&
         (!request.equipment ||
           request.equipment.some((item) =>
-            e.equipment.includes(item as Equipment)
+            e.equipment.some((known) => known === item)
           ))
     );
+
     const data = matches
       .slice(offset, offset + limit)
       .map(({ exercise: e }) => summary(e));
+
     return Response.json({
       data,
       hasMore: offset + data.length < matches.length,
@@ -198,10 +226,11 @@ export const stubApi = (
     });
   };
 
-  const fetch = (input: RequestInfo | URL, init?: RequestInit) => {
-    const url = new URL(String(input));
+  const fetch = async (input: RequestInfo | URL, init?: RequestInit) => {
+    const url = new URL(input instanceof Request ? input.url : input);
     const params = url.searchParams;
-    const [, slug] = EXERCISE_PATH.exec(url.pathname) ?? [];
+    const slug = EXERCISE_PATH.exec(url.pathname)?.groups?.slug;
+
     const request: StubRequest = {
       authorization: new Headers(init?.headers).get("authorization"),
       equipment: params.has("equipment")
@@ -222,8 +251,10 @@ export const stubApi = (
         : null,
       url,
     };
+
     requests.push(request);
-    return Promise.resolve(respond ? respond(request) : answer(request));
+
+    return respond ? await respond(request) : answer(request);
   };
 
   return { fetch, requests };

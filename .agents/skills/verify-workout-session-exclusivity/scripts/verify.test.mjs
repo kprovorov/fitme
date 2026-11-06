@@ -1,3 +1,4 @@
+/// <reference types="node" />
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
 import {
@@ -8,25 +9,32 @@ import {
   writeFileSync,
 } from "node:fs";
 import { tmpdir } from "node:os";
-import { dirname, join, resolve } from "node:path";
+import { join, resolve } from "node:path";
 import test from "node:test";
-import { fileURLToPath } from "node:url";
 
-const scripts = dirname(fileURLToPath(import.meta.url));
+const scripts = import.meta.dirname;
 const root = resolve(scripts, "../../../..");
 const migrations = "packages/supabase/supabase/migrations";
 const outputDirectory = /generated model\/configs: (.+)/;
 const userKey = /Index key: user/;
+
 const unreviewedMigration =
   /touches workout_sessions after the covered migration/;
 
-for (const scenario of ["reviewed", "edited-records", "edited-progress", "new"]) {
+for (const scenario of [
+  "reviewed",
+  "edited-records",
+  "edited-progress",
+  "new",
+]) {
   test(`migration guard: ${scenario} session reference`, () => {
     const scratch = mkdtempSync(join(tmpdir(), "fitme-migration-guard-"));
     let out;
+
     try {
       const target = join(scratch, migrations);
       cpSync(join(root, migrations), target, { recursive: true });
+
       if (scenario.startsWith("edited-")) {
         const file = join(
           target,
@@ -34,17 +42,20 @@ for (const scenario of ["reviewed", "edited-records", "edited-progress", "new"])
             ? "20261031130000_personal_records.sql"
             : "20261101100000_workout_session_progress.sql"
         );
+
         writeFileSync(
           file,
-          `${readFileSync(file, "utf8")}\nDROP INDEX public.workout_sessions_one_open_per_user_idx;\n`
+          `${readFileSync(file, "utf-8")}\nDROP INDEX public.workout_sessions_one_open_per_user_idx;\n`
         );
       }
+
       if (scenario === "new") {
         writeFileSync(
           join(target, "20261101120000_drop_session_index.sql"),
           "DROP INDEX public.workout_sessions_one_open_per_user_idx;\n"
         );
       }
+
       const result = spawnSync(
         process.execPath,
         [
@@ -53,10 +64,12 @@ for (const scenario of ["reviewed", "edited-records", "edited-progress", "new"])
           "--source-root",
           scratch,
         ],
-        { encoding: "utf8", timeout: 10_000 }
+        { encoding: "utf-8", timeout: 10_000 }
       );
+
       assert.ifError(result.error);
-      out = result.stdout.match(outputDirectory)?.[1];
+      out = outputDirectory.exec(result.stdout)?.[1];
+
       if (scenario === "reviewed") {
         assert.equal(result.status, 0, result.stderr);
         assert.match(result.stdout, userKey);
@@ -66,7 +79,8 @@ for (const scenario of ["reviewed", "edited-records", "edited-progress", "new"])
       }
     } finally {
       rmSync(scratch, { force: true, recursive: true });
-      if (out) {
+
+      if (out !== undefined && out !== "") {
         rmSync(out, { force: true, recursive: true });
       }
     }

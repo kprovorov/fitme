@@ -86,8 +86,7 @@ Comprehensive performance optimization guide for React Native applications, desi
 
 **Impact: CRITICAL**
 
-Fundamental React Native rendering rules. Violations cause
-runtime crashes or broken UI.
+Fundamental React Native rendering rules. Violations cause runtime crashes or broken UI.
 
 ### 1.1 Never Use && with Potentially Falsy Values
 
@@ -203,8 +202,7 @@ function Greeting({ name }: { name: string }) {
 
 **Impact: HIGH**
 
-Optimizing virtualized lists (FlatList, LegendList, FlashList)
-for smooth scrolling and fast updates.
+Optimizing virtualized lists (FlatList, LegendList, FlashList) for smooth scrolling and fast updates.
 
 ### 2.1 Avoid Inline Objects in renderItem
 
@@ -366,7 +364,7 @@ function ProductRow({ id }: { id: string }) {
   // Bad: expensive computation
   const recommendations = useMemo(
     () => computeRecommendations(product),
-    [product],
+    [product]
   );
 
   return <View>{/* ... */}</View>;
@@ -872,8 +870,7 @@ function Feed({ items }: { items: FeedItem[] }) {
 
 **Impact: HIGH**
 
-GPU-accelerated animations, Reanimated patterns, and avoiding
-render thrashing during gestures.
+GPU-accelerated animations, Reanimated patterns, and avoiding render thrashing during gestures.
 
 ### 3.1 Animate Transform and Opacity Instead of Layout Properties
 
@@ -970,7 +967,7 @@ function MyComponent() {
     () => progress.value,
     (current) => {
       opacity.value = 1 - current;
-    },
+    }
   );
 
   // ...
@@ -1184,8 +1181,7 @@ function Feed() {
 
 **Impact: HIGH**
 
-Using native navigators for stack and tab navigation instead of
-JS-based alternatives.
+Using native navigators for stack and tab navigation instead of JS-based alternatives.
 
 ### 5.1 Use Native Navigators for Navigation
 
@@ -1382,8 +1378,7 @@ safe area handling automatically.
 
 **Impact: MEDIUM**
 
-Patterns for managing React state to avoid stale closures and
-unnecessary re-renders.
+Patterns for managing React state to avoid stale closures and unnecessary re-renders.
 
 ### 6.1 Minimize State Variables and Derive Values
 
@@ -1693,8 +1688,7 @@ State is the minimal truth. Everything else is derived.
 
 **Impact: MEDIUM**
 
-Compatibility patterns for React Compiler with React Native and
-Reanimated.
+Compatibility patterns for React Compiler with React Native and Reanimated.
 
 ### 8.1 Destructure Functions Early in Render (React Compiler)
 
@@ -1798,8 +1792,7 @@ for more.
 
 **Impact: MEDIUM**
 
-Native UI patterns for images, menus, modals, styling, and
-platform-consistent interfaces.
+Native UI patterns for images, menus, modals, styling, and platform-consistent interfaces.
 
 ### 9.1 Measuring View Dimensions
 
@@ -2546,8 +2539,7 @@ with Reanimated shared values instead of Pressable's style callback. See the
 
 **Impact: MEDIUM**
 
-Architecture patterns for building maintainable component
-libraries.
+Architecture patterns for building maintainable component libraries.
 
 ### 10.1 Use Compound Components Over Polymorphic Children
 
@@ -2621,8 +2613,7 @@ function ButtonIcon({ children }: { children: React.ReactNode }) {
 
 **Impact: LOW**
 
-Dependency management and native module configuration in
-monorepos.
+Dependency management and native module configuration in monorepos.
 
 ### 11.1 Install Native Dependencies in App Directory
 
@@ -2730,8 +2721,7 @@ the root. When adding dependencies, specify exact versions without `^` or `~`.
 
 **Impact: LOW**
 
-Wrapping and re-exporting third-party dependencies for
-maintainability.
+Wrapping and re-exporting third-party dependencies for maintainability.
 
 ### 12.1 Import from Design System Folder
 
@@ -2744,8 +2734,8 @@ not directly from packages. This enables global changes and easy refactoring.
 **Incorrect: imports directly from package**
 
 ```tsx
-import { View, Text } from "react-native";
 import { Button } from "@ui/button";
+import { View, Text } from "react-native";
 
 function Profile() {
   return (
@@ -2760,9 +2750,9 @@ function Profile() {
 **Correct: imports from design system**
 
 ```tsx
-import { View } from "@/components/view";
-import { Text } from "@/components/text";
 import { Button } from "@/components/button";
+import { Text } from "@/components/text";
+import { View } from "@/components/view";
 
 function Profile() {
   return (
@@ -2824,7 +2814,7 @@ function Price({ amount }: { amount: number }) {
 ```tsx
 const dateFormatter = useMemo(
   () => new Intl.DateTimeFormat(locale, { dateStyle: "medium" }),
-  [locale],
+  [locale]
 );
 ```
 

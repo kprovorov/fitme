@@ -182,7 +182,7 @@ import { shadcn } from '@clerk/ui/themes'
 Add to global CSS:
 
 ```css
-@import '@clerk/ui/themes/shadcn.css';
+@import "@clerk/ui/themes/shadcn.css";
 ```
 
 ## Critical rules

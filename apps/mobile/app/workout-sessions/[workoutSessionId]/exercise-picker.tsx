@@ -1,10 +1,12 @@
-import { type MuscleGroup, muscleGroups } from "@fitme/core";
+import { muscleGroups } from "@fitme/core";
+import type { MuscleGroup } from "@fitme/core";
 import type { ExerciseSummary } from "@fitme/library-sdk";
 import { useQueryClient } from "@tanstack/react-query";
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Alert } from "react-native";
+
 import { ExerciseRowSymbol } from "~/components/exercises/exercise-row";
 import ExercisesView from "~/components/views/exercises-view";
 import { useHeaderSearch } from "~/hooks/header-search";
@@ -22,7 +24,7 @@ import { segmentClient } from "~/lib/segment";
 import { sessionEditFailureMessage } from "~/lib/session-edit-failure";
 
 const isMuscleGroup = (value: string | undefined): value is MuscleGroup =>
-  (muscleGroups as readonly string[]).includes(value ?? "");
+  muscleGroups.some((group) => group === value);
 
 /**
  * The Exercise picker, a page sheet over an open Workout Session: adds the
@@ -31,13 +33,15 @@ const isMuscleGroup = (value: string | undefined): value is MuscleGroup =>
  * It searches from the native header search bar, empty on every open.
  * It closes once saved; a failure says so in an alert and keeps it open.
  */
-export default function ExercisePickerScreen() {
+const ExercisePickerScreen = () => {
   const { t } = useTranslation();
   const router = useRouter();
   const queryClient = useQueryClient();
+
   const { onSearchChange, search, searchBarOptions } = useHeaderSearch({
     inSheet: true,
   });
+
   const {
     muscleGroup,
     replaceExerciseId: replacingId,
@@ -50,7 +54,7 @@ export default function ExercisePickerScreen() {
 
   // Each opening starts over: the replaced Exercise's first Muscle group, or
   // none, and forgotten once closed.
-  const [muscleChoiceKey] = useState(newMuscleChoiceKey);
+  const muscleChoiceKey = useMemo(() => newMuscleChoiceKey(), []);
   useMuscleChoiceOpening(
     muscleChoiceKey,
     isMuscleGroup(muscleGroup) ? [muscleGroup] : []
@@ -84,10 +88,12 @@ export default function ExercisePickerScreen() {
     },
     []
   );
+
   const close = useCallback(() => {
     if (left.current) {
       return;
     }
+
     left.current = true;
     router.back();
   }, [router]);
@@ -106,8 +112,10 @@ export default function ExercisePickerScreen() {
             t("workoutSession.editFailed.replaceTitle"),
             sessionEditFailureMessage(t, error)
           );
+
           return;
         }
+
         if (!IS_E2E) {
           segmentClient.track("Exercise Replaced", {
             exercise_slug: exercise.slug,
@@ -126,8 +134,10 @@ export default function ExercisePickerScreen() {
             t("workoutSession.editFailed.addTitle"),
             sessionEditFailureMessage(t, error)
           );
+
           return;
         }
+
         if (!IS_E2E) {
           segmentClient.track("Exercise Added", {
             exercise_slug: exercise.slug,
@@ -135,6 +145,7 @@ export default function ExercisePickerScreen() {
           });
         }
       }
+
       close();
     },
     [addExercise, close, replaceExercise, replacingId, sessionId, t]
@@ -147,14 +158,20 @@ export default function ExercisePickerScreen() {
       if (saving.current || left.current) {
         return;
       }
+
       saving.current = true;
       setIsSaving(true);
+
       try {
         await save(exercise);
-      } finally {
+      } catch (error) {
         saving.current = false;
         setIsSaving(false);
+        throw error;
       }
+
+      saving.current = false;
+      setIsSaving(false);
     },
     [save]
   );
@@ -212,4 +229,6 @@ export default function ExercisePickerScreen() {
       />
     </>
   );
-}
+};
+
+export default ExercisePickerScreen;

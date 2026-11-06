@@ -1,4 +1,7 @@
 import { randomUUID } from "node:crypto";
+import { once } from "node:events";
+import { setTimeout } from "node:timers/promises";
+
 import type { MeasurementSystem } from "@fitme/core/models";
 import {
   asUser,
@@ -14,6 +17,7 @@ import {
 } from "@fitme/db";
 import { asc, eq, inArray, sql } from "drizzle-orm";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
+
 import { getProfile, lockProfileUnits, updateProfile } from "../src/profile";
 
 /**
@@ -25,69 +29,6 @@ const runId = randomUUID().replaceAll("-", "").slice(0, 12);
 const metric = `user_svcProfMetric${runId}`;
 const imperial = `user_svcProfUs${runId}`;
 const noProfile = `user_svcProfNone${runId}`;
-
-beforeAll(async () => {
-  await withService((tx) =>
-    tx.insert(profiles).values([
-      {
-        age: 30,
-        gender: "female",
-        height: "170.5",
-        measurementSystem: "metric",
-        userId: metric,
-        weight: "60.25",
-      },
-      {
-        age: 41,
-        gender: "male",
-        height: "70",
-        measurementSystem: "us",
-        userId: imperial,
-        weight: "180",
-      },
-    ])
-  );
-});
-
-afterAll(async () => {
-  await withService((tx) =>
-    tx.delete(profiles).where(inArray(profiles.userId, [metric, imperial]))
-  );
-});
-
-describe("getProfile", () => {
-  it("returns the User's own Profile with metric units", async () => {
-    expect(await asUser(metric, (tx) => getProfile(tx, metric))).toEqual({
-      age: 30,
-      gender: "female",
-      height: 170.5,
-      measurement_system: "metric",
-      units: { height: "cm", weight: "kg" },
-      weight: 60.25,
-    });
-  });
-
-  it("returns imperial units for the us measurement system", async () => {
-    expect(await asUser(imperial, (tx) => getProfile(tx, imperial))).toEqual({
-      age: 41,
-      gender: "male",
-      height: 70,
-      measurement_system: "us",
-      units: { height: "in", weight: "lbs" },
-      weight: 180,
-    });
-  });
-
-  it("never shows another User's Profile", async () => {
-    expect(await asUser(metric, (tx) => getProfile(tx, imperial))).toBeNull();
-  });
-
-  it("returns null when the User has no Profile yet", async () => {
-    expect(
-      await asUser(noProfile, (tx) => getProfile(tx, noProfile))
-    ).toBeNull();
-  });
-});
 
 // ------------------------------------------------------------
 // updateProfile
@@ -102,6 +43,7 @@ const exerciseSlug = `test-row-profile-${runId}`;
 const newUser = (label: string) => {
   const userId = `user_svcProfUpd${label}${runId}`;
   updaters.push(userId);
+
   return userId;
 };
 
@@ -109,7 +51,7 @@ interface SeedOptions {
   height?: string;
   /** A Workout Session set's completed weight; numeric(8,2). */
   sessionWeightCompleted?: string;
-  system: MeasurementSystem;
+  system: string;
   weight?: string;
 }
 
@@ -118,7 +60,7 @@ interface SeedOptions {
  * that Plan's Workout with two sets (one not logged), and a Workout Session
  * whose Workout is gone.
  */
-const seedUser = (
+const seedUser = async (
   userId: string,
   {
     height = "180",
@@ -126,8 +68,8 @@ const seedUser = (
     system,
     weight = "100",
   }: SeedOptions
-) =>
-  withService(async (tx) => {
+) => {
+  await withService(async (tx) => {
     await tx.insert(profiles).values({
       age: 30,
       gender: "male",
@@ -136,18 +78,22 @@ const seedUser = (
       userId,
       weight,
     });
+
     const [plan] = await tx
       .insert(plans)
       .values({ frequency: 3, goal: "strength", place: "gym", userId })
       .returning({ id: plans.id });
+
     const [workout] = await tx
       .insert(workouts)
       .values({ description: "Pull", name: "A", order: 1, planId: plan.id })
       .returning({ id: workouts.id });
+
     const [workoutExercise] = await tx
       .insert(workoutExercises)
       .values({ exerciseSlug, order: 1, workoutId: workout.id })
       .returning({ id: workoutExercises.id });
+
     await tx.insert(workoutExerciseSets).values({
       order: 1,
       repsRecommended: 5,
@@ -155,6 +101,7 @@ const seedUser = (
       weightRecommended: "60",
       workoutExerciseId: workoutExercise.id,
     });
+
     const sessions = await tx
       .insert(workoutSessions)
       .values([
@@ -175,6 +122,7 @@ const seedUser = (
         },
       ])
       .returning({ id: workoutSessions.id });
+
     const sessionExercises = await tx
       .insert(workoutSessionExercises)
       .values(
@@ -185,6 +133,7 @@ const seedUser = (
         }))
       )
       .returning({ id: workoutSessionExercises.id });
+
     await tx.insert(workoutSessionExerciseSets).values(
       sessionExercises.flatMap(({ id }) => [
         {
@@ -202,10 +151,11 @@ const seedUser = (
       ])
     );
   });
+};
 
 /** Every stored height and weight of the User, read past RLS. */
-const storedValues = (userId: string) =>
-  withService(async (tx) => {
+const storedValues = async (userId: string) =>
+  await withService(async (tx) => {
     const [profile] = await tx
       .select({
         age: profiles.age,
@@ -216,6 +166,7 @@ const storedValues = (userId: string) =>
       })
       .from(profiles)
       .where(eq(profiles.userId, userId));
+
     const planSets = await tx
       .select({ weightRecommended: workoutExerciseSets.weightRecommended })
       .from(workoutExerciseSets)
@@ -226,6 +177,7 @@ const storedValues = (userId: string) =>
       .innerJoin(workouts, eq(workouts.id, workoutExercises.workoutId))
       .innerJoin(plans, eq(plans.id, workouts.planId))
       .where(eq(plans.userId, userId));
+
     const sessionSets = await tx
       .select({
         linked: sql<boolean>`${workoutSessions.workoutId} is not null`,
@@ -249,6 +201,7 @@ const storedValues = (userId: string) =>
         asc(workoutSessions.startedAt),
         workoutSessionExerciseSets.order
       );
+
     return { planSets, profile, sessionSets };
   });
 
@@ -301,6 +254,7 @@ const storedAs = (system: MeasurementSystem, values: Stored) => {
     },
     { linked, weightCompleted: null, weightRecommended: values.plan2 },
   ];
+
   return {
     planSets: [{ weightRecommended: values.plan }],
     profile: {
@@ -314,241 +268,11 @@ const storedAs = (system: MeasurementSystem, values: Stored) => {
   };
 };
 
-const update = (userId: string, changes: Parameters<typeof updateProfile>[2]) =>
-  asUser(userId, (tx) => updateProfile(tx, userId, changes));
-
-afterAll(async () => {
-  await withService(async (tx) => {
-    await tx
-      .delete(workoutSessions)
-      .where(inArray(workoutSessions.userId, updaters));
-    await tx.delete(plans).where(inArray(plans.userId, updaters));
-    await tx.delete(profiles).where(inArray(profiles.userId, updaters));
-  });
-});
-
-describe("updateProfile", () => {
-  it("changes only the given fields and returns the Profile", async () => {
-    const userId = newUser("Fields");
-    await seedUser(userId, { system: "metric" });
-    const before = await storedValues(userId);
-
-    expect(await update(userId, { age: 31, weight: 98.5 })).toEqual({
-      age: 31,
-      gender: "male",
-      height: 180,
-      measurement_system: "metric",
-      units: { height: "cm", weight: "kg" },
-      weight: 98.5,
-    });
-    expect(
-      await update(userId, { gender: "female", height: 181.25 })
-    ).toMatchObject({ gender: "female", height: 181.25 });
-
-    const after = await storedValues(userId);
-    expect(after.profile).toEqual({
-      age: 31,
-      gender: "female",
-      height: "181.25",
-      measurementSystem: "metric",
-      weight: "98.50",
-    });
-    expect(after.planSets).toEqual(before.planSets);
-    expect(after.sessionSets).toEqual(before.sessionSets);
-  });
-
-  it("returns the Profile unchanged when nothing is given", async () => {
-    const userId = newUser("Nothing");
-    await seedUser(userId, { system: "us" });
-
-    expect(await update(userId, {})).toMatchObject({
-      measurement_system: "us",
-      weight: 100,
-    });
-  });
-
-  it("converts every stored weight from metric to us", async () => {
-    const userId = newUser("MetricUs");
-    await seedUser(userId, { system: "metric" });
-
-    expect(await update(userId, { measurement_system: "us" })).toEqual({
-      age: 30,
-      gender: "male",
-      height: 70.87,
-      measurement_system: "us",
-      units: { height: "in", weight: "lbs" },
-      weight: 220.46,
-    });
-    expect(await storedValues(userId)).toEqual({
-      planSets: [{ weightRecommended: "132.28" }],
-      profile: expect.objectContaining({
-        height: "70.87",
-        measurementSystem: "us",
-        weight: "220.46",
-      }),
-      sessionSets: [
-        // Its Workout is gone, but it's still the User's: converted too
-        {
-          linked: false,
-          weightCompleted: "126.77",
-          weightRecommended: "132.28",
-        },
-        { linked: false, weightCompleted: null, weightRecommended: "137.79" },
-        {
-          linked: true,
-          weightCompleted: "126.77",
-          weightRecommended: "132.28",
-        },
-        { linked: true, weightCompleted: null, weightRecommended: "137.79" },
-      ],
-    });
-  });
-
-  for (const [from, to, values] of [
-    ["metric", "us", toImperial],
-    ["metric", "uk", toImperial],
-    ["us", "metric", toMetric],
-    ["uk", "metric", toMetric],
-    ["us", "uk", unconverted],
-    ["uk", "us", unconverted],
-    ["metric", "metric", unconverted],
-    ["us", "us", unconverted],
-  ] as const) {
-    it(`converts ${from} -> ${to}`, async () => {
-      const userId = newUser(`Svc${from}${to}`);
-      await seedUser(userId, {
-        height: "70.5",
-        system: from,
-        weight: "181.37",
-      });
-
-      await update(userId, { measurement_system: to });
-
-      expect(await storedValues(userId)).toEqual(storedAs(to, values));
-    });
-  }
-
-  it("converts an unknown stored system as imperial", async () => {
-    const userId = newUser("SvcUnknown");
-    await seedUser(userId, {
-      height: "70.5",
-      system: "imperial" as MeasurementSystem,
-      weight: "181.37",
-    });
-
-    await update(userId, { measurement_system: "metric" });
-
-    expect(await storedValues(userId)).toEqual(storedAs("metric", toMetric));
-  });
-
-  it("writes the given weight and height in the new system's units", async () => {
-    const userId = newUser("ChangeAndSet");
-    await seedUser(userId, { system: "metric" });
-
-    expect(
-      await update(userId, { measurement_system: "us", weight: 200 })
-    ).toMatchObject({ height: 70.87, measurement_system: "us", weight: 200 });
-    expect((await storedValues(userId)).planSets).toEqual([
-      { weightRecommended: "132.28" },
-    ]);
-  });
-
-  it("gives the same result when the same update runs twice", async () => {
-    const userId = newUser("Twice");
-    await seedUser(userId, { system: "metric" });
-    const changes = { age: 32, measurement_system: "uk", weight: 200 } as const;
-
-    const first = await update(userId, changes);
-    const afterFirst = await storedValues(userId);
-    const second = await update(userId, changes);
-
-    expect(second).toEqual(first);
-    expect(await storedValues(userId)).toEqual(afterFirst);
-  });
-
-  it("converts once when two conversions run at the same time", async () => {
-    const userId = newUser("Concurrent");
-    await seedUser(userId, { system: "metric" });
-
-    await Promise.all([
-      update(userId, { measurement_system: "us" }),
-      update(userId, { measurement_system: "us" }),
-    ]);
-
-    expect(await storedValues(userId)).toMatchObject({
-      planSets: [{ weightRecommended: "132.28" }],
-      profile: { measurementSystem: "us", weight: "220.46" },
-    });
-  });
-
-  it("leaves everything unchanged when a conversion fails partway", async () => {
-    const userId = newUser("Overflow");
-    // Past numeric(8,2) once converted, after the Profile and Plan sets were
-    await seedUser(userId, {
-      sessionWeightCompleted: "500000",
-      system: "metric",
-    });
-    const before = await storedValues(userId);
-
-    await expect(
-      update(userId, { measurement_system: "us" })
-    ).rejects.toMatchObject({ cause: { code: NUMERIC_OUT_OF_RANGE } });
-
-    expect(await storedValues(userId)).toEqual(before);
-  });
-
-  it("leaves the conversion undone when a field write fails after it", async () => {
-    const userId = newUser("FieldOverflow");
-    await seedUser(userId, { system: "metric" });
-    const before = await storedValues(userId);
-
-    await expect(
-      update(userId, { measurement_system: "us", weight: 10_000_000 })
-    ).rejects.toMatchObject({ cause: { code: NUMERIC_OUT_OF_RANGE } });
-
-    expect(await storedValues(userId)).toEqual(before);
-  });
-
-  it("rejects an unknown measurement system without changing anything", async () => {
-    const userId = newUser("Invalid");
-    await seedUser(userId, { system: "metric" });
-    const before = await storedValues(userId);
-
-    await expect(
-      update(userId, {
-        measurement_system: "imperial" as MeasurementSystem,
-        weight: 1,
-      })
-    ).rejects.toThrow("Invalid measurement system: imperial");
-    expect(await storedValues(userId)).toEqual(before);
-  });
-
-  it("returns null without a Profile", async () => {
-    const userId = newUser("NoProfile");
-
-    expect(await update(userId, { measurement_system: "us" })).toBeNull();
-    expect((await storedValues(userId)).profile).toBeUndefined();
-  });
-
-  it("never touches another User's Profile or weights", async () => {
-    const userId = newUser("Self");
-    const other = newUser("Other");
-    await seedUser(userId, { system: "metric" });
-    await seedUser(other, { system: "metric" });
-    const otherBefore = await storedValues(other);
-
-    // Even when handed another User's id, RLS keeps the caller to their own rows
-    expect(
-      await asUser(userId, (tx) =>
-        updateProfile(tx, other, { measurement_system: "us", weight: 1 })
-      )
-    ).toBeNull();
-    await update(userId, { measurement_system: "us" });
-
-    expect(await storedValues(other)).toEqual(otherBefore);
-    expect((await storedValues(userId)).profile?.measurementSystem).toBe("us");
-  });
-});
+const update = async (
+  userId: string,
+  changes: Parameters<typeof updateProfile>[2]
+) =>
+  await asUser(userId, async (tx) => await updateProfile(tx, userId, changes));
 
 // ------------------------------------------------------------
 // lockProfileUnits
@@ -560,84 +284,434 @@ const BLOCKED_FOR_MS = 300;
 /** Whether `promise` is still pending after BLOCKED_FOR_MS. */
 const staysPending = async (promise: Promise<unknown>) => {
   const pending = Symbol("pending");
+
   const outcome = await Promise.race([
     promise,
-    new Promise((resolve) => setTimeout(resolve, BLOCKED_FOR_MS, pending)),
+    setTimeout(BLOCKED_FOR_MS, pending),
   ]);
+
   return outcome === pending;
 };
 
 /** A promise and the function that resolves it. */
 const signal = () => {
-  let resolve!: () => void;
-  const promise = new Promise<void>((done) => {
-    resolve = done;
-  });
-  return { promise, resolve };
+  const target = new EventTarget();
+
+  return {
+    promise: once(target, "signal"),
+    resolve: () => {
+      target.dispatchEvent(new Event("signal"));
+    },
+  };
 };
 
 /** The weight unit `lockProfileUnits` answers, `null` without a Profile. */
-const lockedWeightUnit = (
+const lockedWeightUnit = async (
   tx: Parameters<typeof lockProfileUnits>[0],
   userId: string
-) => lockProfileUnits(tx, userId).then((units) => units?.weight ?? null);
+) => await lockProfileUnits(tx, userId).then((units) => units?.weight ?? null);
 
-describe("lockProfileUnits", () => {
-  it("answers the units of the User's measurement system, null without a Profile", async () => {
-    expect(await asUser(metric, (tx) => lockProfileUnits(tx, metric))).toEqual({
-      height: "cm",
-      weight: "kg",
-    });
-    expect(
-      await asUser(imperial, (tx) => lockProfileUnits(tx, imperial))
-    ).toEqual({ height: "in", weight: "lbs" });
-    expect(
-      await asUser(noProfile, (tx) => lockProfileUnits(tx, noProfile))
-    ).toBeNull();
-    // RLS hides another User's Profile
-    expect(
-      await asUser(metric, (tx) => lockProfileUnits(tx, imperial))
-    ).toBeNull();
+describe("profile", () => {
+  beforeAll(async () => {
+    await withService((tx) =>
+      tx.insert(profiles).values([
+        {
+          age: 30,
+          gender: "female",
+          height: "170.5",
+          measurementSystem: "metric",
+          userId: metric,
+          weight: "60.25",
+        },
+        {
+          age: 41,
+          gender: "male",
+          height: "70",
+          measurementSystem: "us",
+          userId: imperial,
+          weight: "180",
+        },
+      ])
+    );
   });
 
-  it("holds off a conversion until the reading transaction ends", async () => {
-    const userId = newUser("UnitFirst");
-    await seedUser(userId, { system: "metric" });
-    const locked = signal();
-    const release = signal();
-    const reading = asUser(userId, async (tx) => {
-      const unit = await lockedWeightUnit(tx, userId);
-      locked.resolve();
-      await release.promise;
-      return unit;
+  afterAll(async () => {
+    await withService((tx) =>
+      tx.delete(profiles).where(inArray(profiles.userId, [metric, imperial]))
+    );
+    await withService(async (tx) => {
+      await tx
+        .delete(workoutSessions)
+        .where(inArray(workoutSessions.userId, updaters));
+      await tx.delete(plans).where(inArray(plans.userId, updaters));
+      await tx.delete(profiles).where(inArray(profiles.userId, updaters));
     });
-    await locked.promise;
-
-    const conversion = update(userId, { measurement_system: "us" });
-
-    expect(await staysPending(conversion)).toBe(true);
-    release.resolve();
-    expect(await reading).toBe("kg");
-    expect((await conversion)?.units.weight).toBe("lbs");
   });
 
-  it("waits for a conversion in progress and answers its new unit", async () => {
-    const userId = newUser("ConvertFirst");
-    await seedUser(userId, { system: "metric" });
-    const converted = signal();
-    const release = signal();
-    const conversion = asUser(userId, async (tx) => {
-      await updateProfile(tx, userId, { measurement_system: "us" });
-      converted.resolve();
-      await release.promise;
+  describe("reading profiles", () => {
+    it("returns the User's own Profile with metric units", async () => {
+      await expect(
+        asUser(metric, async (tx) => await getProfile(tx, metric))
+      ).resolves.toStrictEqual({
+        age: 30,
+        gender: "female",
+        height: 170.5,
+        measurement_system: "metric",
+        units: { height: "cm", weight: "kg" },
+        weight: 60.25,
+      });
     });
-    await converted.promise;
 
-    const reading = asUser(userId, (tx) => lockedWeightUnit(tx, userId));
+    it("returns imperial units for the us measurement system", async () => {
+      await expect(
+        asUser(imperial, async (tx) => await getProfile(tx, imperial))
+      ).resolves.toStrictEqual({
+        age: 41,
+        gender: "male",
+        height: 70,
+        measurement_system: "us",
+        units: { height: "in", weight: "lbs" },
+        weight: 180,
+      });
+    });
 
-    expect(await staysPending(reading)).toBe(true);
-    release.resolve();
-    await conversion;
-    expect(await reading).toBe("lbs");
+    it("never shows another User's Profile", async () => {
+      await expect(
+        asUser(metric, async (tx) => await getProfile(tx, imperial))
+      ).resolves.toBeNull();
+    });
+
+    it("returns null when the User has no Profile yet", async () => {
+      await expect(
+        asUser(noProfile, async (tx) => await getProfile(tx, noProfile))
+      ).resolves.toBeNull();
+    });
+  });
+
+  describe("updating profiles", () => {
+    it("changes only the given fields and returns the Profile", async () => {
+      const userId = newUser("Fields");
+      await seedUser(userId, { system: "metric" });
+      const before = await storedValues(userId);
+
+      await expect(
+        update(userId, { age: 31, weight: 98.5 })
+      ).resolves.toStrictEqual({
+        age: 31,
+        gender: "male",
+        height: 180,
+        measurement_system: "metric",
+        units: { height: "cm", weight: "kg" },
+        weight: 98.5,
+      });
+      await expect(
+        update(userId, { gender: "female", height: 181.25 })
+      ).resolves.toMatchObject({ gender: "female", height: 181.25 });
+
+      const after = await storedValues(userId);
+      expect(after.profile).toStrictEqual({
+        age: 31,
+        gender: "female",
+        height: "181.25",
+        measurementSystem: "metric",
+        weight: "98.50",
+      });
+      expect(after.planSets).toStrictEqual(before.planSets);
+      expect(after.sessionSets).toStrictEqual(before.sessionSets);
+    });
+
+    it("returns the Profile unchanged when nothing is given", async () => {
+      const userId = newUser("Nothing");
+      await seedUser(userId, { system: "us" });
+
+      await expect(update(userId, {})).resolves.toMatchObject({
+        measurement_system: "us",
+        weight: 100,
+      });
+    });
+
+    it("converts every stored weight from metric to us", async () => {
+      const userId = newUser("MetricUs");
+      await seedUser(userId, { system: "metric" });
+
+      await expect(
+        update(userId, { measurement_system: "us" })
+      ).resolves.toStrictEqual({
+        age: 30,
+        gender: "male",
+        height: 70.87,
+        measurement_system: "us",
+        units: { height: "in", weight: "lbs" },
+        weight: 220.46,
+      });
+
+      const expectedProfile: unknown = expect.objectContaining({
+        height: "70.87",
+        measurementSystem: "us",
+        weight: "220.46",
+      });
+
+      await expect(storedValues(userId)).resolves.toStrictEqual({
+        planSets: [{ weightRecommended: "132.28" }],
+        profile: expectedProfile,
+        sessionSets: [
+          // Its Workout is gone, but it's still the User's: converted too
+          {
+            linked: false,
+            weightCompleted: "126.77",
+            weightRecommended: "132.28",
+          },
+          { linked: false, weightCompleted: null, weightRecommended: "137.79" },
+          {
+            linked: true,
+            weightCompleted: "126.77",
+            weightRecommended: "132.28",
+          },
+          { linked: true, weightCompleted: null, weightRecommended: "137.79" },
+        ],
+      });
+    });
+
+    it.each([
+      ["metric", "us", toImperial],
+      ["metric", "uk", toImperial],
+      ["us", "metric", toMetric],
+      ["uk", "metric", toMetric],
+      ["us", "uk", unconverted],
+      ["uk", "us", unconverted],
+      ["metric", "metric", unconverted],
+      ["us", "us", unconverted],
+    ] as const)("converts %s -> %s", async (from, to, values) => {
+      const userId = newUser(`Svc${from}${to}`);
+      await seedUser(userId, {
+        height: "70.5",
+        system: from,
+        weight: "181.37",
+      });
+
+      await update(userId, { measurement_system: to });
+
+      await expect(storedValues(userId)).resolves.toStrictEqual(
+        storedAs(to, values)
+      );
+    });
+
+    it("converts an unknown stored system as imperial", async () => {
+      const userId = newUser("SvcUnknown");
+      await seedUser(userId, {
+        height: "70.5",
+        system: "imperial",
+        weight: "181.37",
+      });
+
+      await update(userId, { measurement_system: "metric" });
+
+      await expect(storedValues(userId)).resolves.toStrictEqual(
+        storedAs("metric", toMetric)
+      );
+    });
+
+    it("writes the given weight and height in the new system's units", async () => {
+      const userId = newUser("ChangeAndSet");
+      await seedUser(userId, { system: "metric" });
+
+      await expect(
+        update(userId, { measurement_system: "us", weight: 200 })
+      ).resolves.toMatchObject({
+        height: 70.87,
+        measurement_system: "us",
+        weight: 200,
+      });
+      const { planSets } = await storedValues(userId);
+      expect(planSets).toStrictEqual([{ weightRecommended: "132.28" }]);
+    });
+
+    it("gives the same result when the same update runs twice", async () => {
+      const userId = newUser("Twice");
+      await seedUser(userId, { system: "metric" });
+
+      const changes = {
+        age: 32,
+        measurement_system: "uk",
+        weight: 200,
+      } as const;
+
+      const first = await update(userId, changes);
+      const afterFirst = await storedValues(userId);
+      const second = await update(userId, changes);
+
+      expect(second).toStrictEqual(first);
+      await expect(storedValues(userId)).resolves.toStrictEqual(afterFirst);
+    });
+
+    it("converts once when two conversions run at the same time", async () => {
+      const userId = newUser("Concurrent");
+      await seedUser(userId, { system: "metric" });
+
+      await Promise.all([
+        update(userId, { measurement_system: "us" }),
+        update(userId, { measurement_system: "us" }),
+      ]);
+
+      await expect(storedValues(userId)).resolves.toMatchObject({
+        planSets: [{ weightRecommended: "132.28" }],
+        profile: { measurementSystem: "us", weight: "220.46" },
+      });
+    });
+
+    it("leaves everything unchanged when a conversion fails partway", async () => {
+      const userId = newUser("Overflow");
+      // Past numeric(8,2) once converted, after the Profile and Plan sets were
+      await seedUser(userId, {
+        sessionWeightCompleted: "500000",
+        system: "metric",
+      });
+      const before = await storedValues(userId);
+
+      await expect(
+        update(userId, { measurement_system: "us" })
+      ).rejects.toMatchObject({ cause: { code: NUMERIC_OUT_OF_RANGE } });
+
+      await expect(storedValues(userId)).resolves.toStrictEqual(before);
+    });
+
+    it("leaves the conversion undone when a field write fails after it", async () => {
+      const userId = newUser("FieldOverflow");
+      await seedUser(userId, { system: "metric" });
+      const before = await storedValues(userId);
+
+      await expect(
+        update(userId, { measurement_system: "us", weight: 10_000_000 })
+      ).rejects.toMatchObject({ cause: { code: NUMERIC_OUT_OF_RANGE } });
+
+      await expect(storedValues(userId)).resolves.toStrictEqual(before);
+    });
+
+    it("rejects an unknown measurement system without changing anything", async () => {
+      const userId = newUser("Invalid");
+      await seedUser(userId, { system: "metric" });
+      const before = await storedValues(userId);
+
+      // Add an invalid runtime field without claiming it is a MeasurementSystem.
+      const changes = Object.defineProperty(
+        { weight: 1 },
+        "measurement_system",
+        {
+          enumerable: true,
+          value: "imperial",
+        }
+      );
+
+      await expect(update(userId, changes)).rejects.toThrow(
+        "Invalid measurement system: imperial"
+      );
+      await expect(storedValues(userId)).resolves.toStrictEqual(before);
+    });
+
+    it("returns null without a Profile", async () => {
+      const userId = newUser("NoProfile");
+
+      await expect(
+        update(userId, { measurement_system: "us" })
+      ).resolves.toBeNull();
+      const { profile } = await storedValues(userId);
+      expect(profile).toBeUndefined();
+    });
+
+    it("never touches another User's Profile or weights", async () => {
+      const userId = newUser("Self");
+      const other = newUser("Other");
+      await seedUser(userId, { system: "metric" });
+      await seedUser(other, { system: "metric" });
+      const otherBefore = await storedValues(other);
+
+      // Even when handed another User's id, RLS keeps the caller to their own rows
+      await expect(
+        asUser(
+          userId,
+          async (tx) =>
+            await updateProfile(tx, other, {
+              measurement_system: "us",
+              weight: 1,
+            })
+        )
+      ).resolves.toBeNull();
+      await update(userId, { measurement_system: "us" });
+
+      await expect(storedValues(other)).resolves.toStrictEqual(otherBefore);
+      const { profile } = await storedValues(userId);
+      expect(profile?.measurementSystem).toBe("us");
+    });
+  });
+
+  describe("locking profile units", () => {
+    it("answers the units of the User's measurement system, null without a Profile", async () => {
+      await expect(
+        asUser(metric, async (tx) => await lockProfileUnits(tx, metric))
+      ).resolves.toStrictEqual({
+        height: "cm",
+        weight: "kg",
+      });
+      await expect(
+        asUser(imperial, async (tx) => await lockProfileUnits(tx, imperial))
+      ).resolves.toStrictEqual({ height: "in", weight: "lbs" });
+      await expect(
+        asUser(noProfile, async (tx) => await lockProfileUnits(tx, noProfile))
+      ).resolves.toBeNull();
+      // RLS hides another User's Profile
+      await expect(
+        asUser(metric, async (tx) => await lockProfileUnits(tx, imperial))
+      ).resolves.toBeNull();
+    });
+
+    it("holds off a conversion until the reading transaction ends", async () => {
+      const userId = newUser("UnitFirst");
+      await seedUser(userId, { system: "metric" });
+      const locked = signal();
+      const release = signal();
+
+      const reading = asUser(userId, async (tx) => {
+        const unit = await lockedWeightUnit(tx, userId);
+        locked.resolve();
+        await release.promise;
+
+        return unit;
+      });
+
+      await locked.promise;
+
+      const conversion = update(userId, { measurement_system: "us" });
+
+      await expect(staysPending(conversion)).resolves.toBeTruthy();
+      release.resolve();
+      await expect(reading).resolves.toBe("kg");
+      const convertedProfile = await conversion;
+      expect(convertedProfile?.units.weight).toBe("lbs");
+    });
+
+    it("waits for a conversion in progress and answers its new unit", async () => {
+      const userId = newUser("ConvertFirst");
+      await seedUser(userId, { system: "metric" });
+      const converted = signal();
+      const release = signal();
+
+      const conversion = asUser(userId, async (tx) => {
+        await updateProfile(tx, userId, { measurement_system: "us" });
+        converted.resolve();
+        await release.promise;
+      });
+
+      await converted.promise;
+
+      const reading = asUser(
+        userId,
+        async (tx) => await lockedWeightUnit(tx, userId)
+      );
+
+      await expect(staysPending(reading)).resolves.toBeTruthy();
+      release.resolve();
+      await conversion;
+      await expect(reading).resolves.toBe("lbs");
+    });
   });
 });

@@ -2,6 +2,7 @@ import { Stack, useLocalSearchParams } from "expo-router";
 import { useCallback } from "react";
 import { useTranslation } from "react-i18next";
 import { ActivityIndicator, ScrollView, View } from "react-native";
+
 import ExerciseVideo from "~/components/exercises/exercise-video";
 import { Button } from "~/components/ui/button";
 import { Text } from "~/components/ui/text";
@@ -9,7 +10,7 @@ import { Muted, P } from "~/components/ui/typography";
 import { VStack } from "~/components/ui/vstack";
 import { useExercise, useExerciseDetailQuery } from "~/hooks/queries/library";
 
-export default function ExerciseScreen() {
+const ExerciseScreen = () => {
   const { t } = useTranslation();
   const { exerciseSlug } = useLocalSearchParams<{ exerciseSlug: string }>();
 
@@ -18,8 +19,10 @@ export default function ExerciseScreen() {
     isError,
     refetch,
   } = useExerciseDetailQuery(exerciseSlug);
+
   // The name rows already show, while the Exercise in full loads.
   const { name } = useExercise(exerciseSlug);
+
   const retry = useCallback(() => {
     refetch();
   }, [refetch]);
@@ -33,22 +36,24 @@ export default function ExerciseScreen() {
               <ExerciseVideo url={exercise.video_url} />
             </View>
           ) : null}
-          <P className="text-primary">{exercise.description}</P>
+          <P>{exercise.description}</P>
           <Muted>{exercise.instructions}</Muted>
         </VStack>
       );
     }
+
     if (exercise === null) {
       return (
-        <Text className="pt-lg text-center text-muted-foreground">
+        <Text className="mt-lg text-center" variant="muted">
           {t("exercise.gone")}
         </Text>
       );
     }
+
     if (isError) {
       return (
-        <View className="items-center gap-sm pt-lg">
-          <Text className="text-center text-muted-foreground">
+        <View className="gap-sm pt-lg items-center">
+          <Text className="text-center" variant="muted">
             {t("exercise.loadError")}
           </Text>
           <Button
@@ -61,8 +66,9 @@ export default function ExerciseScreen() {
         </View>
       );
     }
+
     return (
-      <View className="items-center pt-lg">
+      <View className="pt-lg items-center">
         <ActivityIndicator colorClassName="accent-foreground" />
       </View>
     );
@@ -91,4 +97,6 @@ export default function ExerciseScreen() {
       </ScrollView>
     </>
   );
-}
+};
+
+export default ExerciseScreen;

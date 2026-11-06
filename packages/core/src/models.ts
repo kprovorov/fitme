@@ -5,9 +5,11 @@ export const goals = [
   "strength-performance",
   "general-health-fitness",
 ] as const;
+
 export type Goal = (typeof goals)[number];
 
 export const places = ["gym", "home"] as const;
+
 export type Place = (typeof places)[number];
 
 export const experienceLevels = [
@@ -15,12 +17,15 @@ export const experienceLevels = [
   "intermediate",
   "advanced",
 ] as const;
+
 export type ExperienceLevel = (typeof experienceLevels)[number];
 
 export const genders = ["male", "female"] as const;
+
 export type Gender = (typeof genders)[number];
 
 export const measurementSystems = ["metric", "us", "uk"] as const;
+
 export type MeasurementSystem = (typeof measurementSystems)[number];
 
 export const muscleGroups = [
@@ -42,6 +47,7 @@ export const muscleGroups = [
   "cardio",
   "full-body",
 ] as const;
+
 export type MuscleGroup = (typeof muscleGroups)[number];
 
 /**
@@ -61,24 +67,24 @@ export const equipment = [
   "landmine",
   "bodyweight",
 ] as const;
+
 export type Equipment = (typeof equipment)[number];
 
-export function isEquipment(value: unknown): value is Equipment {
-  return equipment.some((item) => item === value);
-}
+export const isEquipment = (value: unknown): value is Equipment =>
+  equipment.some((item) => item === value);
 
 /** The languages Fitme speaks to a User in (GLOSSARY.md: App language). */
 export const appLanguages = ["en", "uk", "es", "ca"] as const;
+
 export type AppLanguage = (typeof appLanguages)[number];
 
 /** The App language for every device language Fitme doesn't support. */
 export const defaultAppLanguage: AppLanguage = "en";
 
-export function isAppLanguage(value: unknown): value is AppLanguage {
-  return appLanguages.some((language) => language === value);
-}
+export const isAppLanguage = (value: unknown): value is AppLanguage =>
+  appLanguages.some((language) => language === value);
 
-const LANGUAGE_SUBTAG = /^[a-z]+/i;
+const LANGUAGE_SUBTAG = /^[a-z]+/iu;
 
 /**
  * The App language for a device's preferred languages (BCP 47 tags, most
@@ -87,17 +93,19 @@ const LANGUAGE_SUBTAG = /^[a-z]+/i;
  * Russian gets English. Walking the list in order matches how iOS and
  * Android pick an app's bundle language.
  */
-export function resolveAppLanguage(
+export const resolveAppLanguage = (
   preferredLanguages: readonly string[]
-): AppLanguage {
+): AppLanguage => {
   for (const tag of preferredLanguages) {
     const subtag = LANGUAGE_SUBTAG.exec(tag)?.[0].toLowerCase();
+
     if (isAppLanguage(subtag)) {
       return subtag;
     }
   }
+
   return defaultAppLanguage;
-}
+};
 
 export interface Identifiable {
   id: string;
@@ -111,7 +119,8 @@ export interface Timestamped {
 export type Model = Identifiable & Timestamped;
 
 export type Profile = Model & {
-  user_id: string; // User id (JWT sub claim)
+  // User id (JWT sub claim)
+  user_id: string;
   gender: Gender;
   age: number;
   height: number;
@@ -120,7 +129,8 @@ export type Profile = Model & {
 };
 
 export type Plan = Model & {
-  user_id: string; // User id (JWT sub claim)
+  // User id (JWT sub claim)
+  user_id: string;
   name: string;
   /** `plans.description` is nullable, so a Plan can carry `null`. */
   description: string | null;
@@ -296,13 +306,13 @@ export const arnoldModels = [
 }[];
 
 export type ArnoldModel = (typeof arnoldModels)[number];
+
 export type ArnoldModelId = ArnoldModel["id"];
 
 export const defaultArnoldModelId: ArnoldModelId = "openai/gpt-5.5";
 
-export function isArnoldModelId(value: unknown): value is ArnoldModelId {
-  return arnoldModels.some((model) => model.id === value);
-}
+export const isArnoldModelId = (value: unknown): value is ArnoldModelId =>
+  arnoldModels.some((model) => model.id === value);
 
 /** The RevenueCat entitlement that makes a User Pro (and unlocks Arnold). */
 export const proEntitlement = "Fitme Pro";

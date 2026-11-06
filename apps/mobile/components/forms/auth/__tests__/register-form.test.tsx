@@ -1,7 +1,10 @@
-import "~/test-utils/auth-ui";
 import { describe, expect, it, jest } from "@jest/globals";
 import { fireEvent, render, screen } from "@testing-library/react-native";
-import RegisterForm, { type RegisterFormValues } from "../register-form";
+
+import "~/test-utils/auth-ui";
+
+import RegisterForm from "../register-form";
+import type { RegisterFormValues } from "../register-form";
 
 jest.mock("~/components/ui/button", () =>
   jest.requireActual("~/test-utils/button-stub")
@@ -58,6 +61,7 @@ describe("RegisterForm", () => {
     );
     expect(screen.getByTestId("password-input").props.value).toBe("eight888");
   });
+
   it("rejects a password shorter than Clerk's minimum without submitting", async () => {
     const onSubmit = jest.fn(() => Promise.resolve());
     await render(
@@ -78,9 +82,9 @@ describe("RegisterForm", () => {
     });
     await submit();
 
-    expect(
-      await screen.findByText("Password must be at least 8 characters.")
-    ).toBeTruthy();
+    await expect(
+      screen.findByText("Password must be at least 8 characters.")
+    ).resolves.toBeTruthy();
     expect(onSubmit).not.toHaveBeenCalled();
   });
 
@@ -88,11 +92,13 @@ describe("RegisterForm", () => {
     const onSubmit = jest.fn<(values: RegisterFormValues) => Promise<void>>(
       () => Promise.resolve()
     );
+
     const values = {
       email: "tony@example.com",
       name: "Tony Stark",
       password: "eight888",
     };
+
     await render(
       <RegisterForm onSubmit={onSubmit}>
         {({ fields, action }) => (

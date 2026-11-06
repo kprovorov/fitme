@@ -1,7 +1,7 @@
 {
   "extends": "@fitme/typescript-config/base.json",
   "compilerOptions": {
-    "lib": ["ES2022"],
+    "lib": ["ES2023"],
     "types": ["node"],
     "baseUrl": ".",
     "paths": {

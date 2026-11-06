@@ -48,7 +48,7 @@ config.resolver.resolveRequest = (context, moduleName, platform) => {
         mainFields: ["module"],
       },
       moduleName,
-      platform,
+      platform
     );
   }
   return context.resolveRequest(context, moduleName, platform);
@@ -104,7 +104,7 @@ export class ReactNativeCanvas {
 
 export const makeWebGPURenderer = (
   context: GPUCanvasContext,
-  { antialias = true }: { antialias?: boolean } = {},
+  { antialias = true }: { antialias?: boolean } = {}
 ) =>
   new THREE.WebGPURenderer({
     antialias,
@@ -117,8 +117,6 @@ export const makeWebGPURenderer = (
 ### 2. fiber-canvas.tsx
 
 ```tsx
-import * as THREE from "three/webgpu";
-import React, { useEffect, useRef } from "react";
 import type { ReconcilerRoot, RootState } from "@react-three/fiber";
 import {
   extend,
@@ -126,9 +124,11 @@ import {
   unmountComponentAtNode,
   events,
 } from "@react-three/fiber";
+import React, { useEffect, useRef } from "react";
 import type { ViewProps } from "react-native";
 import { PixelRatio } from "react-native";
 import { Canvas, type CanvasRef } from "react-native-wgpu";
+import * as THREE from "three/webgpu";
 
 import {
   makeWebGPURenderer,
@@ -225,10 +225,11 @@ export const FiberCanvas = ({
 ## Basic 3D Scene
 
 ```tsx
-import * as THREE from "three/webgpu";
-import { View } from "react-native";
-import { useRef } from "react";
 import { useFrame, useThree } from "@react-three/fiber";
+import { useRef } from "react";
+import { View } from "react-native";
+import * as THREE from "three/webgpu";
+
 import { FiberCanvas } from "@/lib/fiber-canvas";
 
 function RotatingBox() {
@@ -371,9 +372,9 @@ function AnimatedMesh() {
 ## Particle Systems
 
 ```tsx
-import * as THREE from "three/webgpu";
-import { useRef, useEffect } from "react";
 import { useFrame } from "@react-three/fiber";
+import { useRef, useEffect } from "react";
+import * as THREE from "three/webgpu";
 
 function Particles({ count = 500 }) {
   const ref = useRef<THREE.Points>(null!);
@@ -418,6 +419,7 @@ See the full `orbit-controls.tsx` implementation in the lib files. Usage:
 
 ```tsx
 import { View } from "react-native";
+
 import { FiberCanvas } from "@/lib/fiber-canvas";
 import useControls from "@/lib/orbit-controls";
 
@@ -541,10 +543,11 @@ Performance critical?
 ## Example: Complete Game Scene
 
 ```tsx
-import * as THREE from "three/webgpu";
-import { View, Text, Pressable } from "react-native";
-import { useRef, useState, useCallback } from "react";
 import { useFrame, useThree } from "@react-three/fiber";
+import { useRef, useState, useCallback } from "react";
+import { View, Text, Pressable } from "react-native";
+import * as THREE from "three/webgpu";
+
 import { FiberCanvas } from "@/lib/fiber-canvas";
 
 function Player({ position }: { position: THREE.Vector3 }) {

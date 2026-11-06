@@ -1,4 +1,5 @@
-import { createFakeLibrary, type FakeExercise } from "@fitme/library-sdk/fake";
+import { createFakeLibrary } from "@fitme/library-sdk/fake";
+import type { FakeExercise } from "@fitme/library-sdk/fake";
 
 const media = (slug: string) => ({
   thumbnail_url: `https://media.test/${slug}.jpg`,

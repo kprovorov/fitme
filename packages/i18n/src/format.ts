@@ -1,4 +1,5 @@
-import { inchesToFeetAndInches, type MeasurementSystem } from "@fitme/core";
+import { inchesToFeetAndInches } from "@fitme/core";
+import type { MeasurementSystem } from "@fitme/core";
 import type { i18n } from "i18next";
 
 /**
@@ -39,18 +40,26 @@ const NO_CONVENTIONS: DeviceConventions = {
 // Per instance, so tests' instances never share the app's device.
 const conventionsByInstance = new WeakMap<object, DeviceConventions>();
 
+const isObject = (value: unknown): value is object =>
+  (typeof value === "object" && value !== null) || typeof value === "function";
+
 /**
  * Sets the device's region and clock for an instance's dates and numbers,
  * the catalogs' `{{…, number}}` placeholders included. Without them, the App
  * language's own conventions apply.
  */
-export function setDeviceConventions(
+export const setDeviceConventions = (
   translator: Translator,
   conventions: DeviceConventions
-): void {
-  const original = (translator as { __original?: object }).__original;
-  conventionsByInstance.set(original ?? translator, conventions);
-}
+): void => {
+  const original =
+    "__original" in translator ? translator.__original : undefined;
+
+  conventionsByInstance.set(
+    isObject(original) ? original : translator,
+    conventions
+  );
+};
 
 /**
  * The instance behind a translator. react-i18next's `useTranslation().i18n`
@@ -58,18 +67,21 @@ export function setDeviceConventions(
  * `useI18n()` a view inheriting from either.
  */
 const instanceOf = (translator: Translator): object => {
-  let current: object | null = translator;
-  while (current) {
+  let current: unknown = translator;
+
+  while (isObject(current)) {
     if (conventionsByInstance.has(current)) {
       return current;
     }
-    const original: object | undefined = (current as { __original?: object })
-      .__original;
+
+    const original = "__original" in current ? current.__original : undefined;
+
     current =
-      original && original !== current
+      isObject(original) && original !== current
         ? original
         : Object.getPrototypeOf(current);
   }
+
   return translator;
 };
 
@@ -81,11 +93,11 @@ export const regionOf = (translator: Translator): string | null =>
   conventionsOf(translator).region;
 
 // A BCP 47 region subtag: two letters (`UA`) or three digits (`419`).
-const REGION = /^(?:[A-Z]{2}|\d{3})$/;
+const REGION = /^(?:[A-Z]{2}|\d{3})$/u;
 
 /** A language with a region, when the region is a usable one: `uk-UA`. */
 export const withRegion = (language: string, region: string | null): string =>
-  region && REGION.test(region) ? `${language}-${region}` : language;
+  region !== null && REGION.test(region) ? `${language}-${region}` : language;
 
 /**
  * The locale dates and numbers are written in: the App language plus the
@@ -105,10 +117,12 @@ export const numberFormat = (
 ): Intl.NumberFormat => {
   const key = `${locale}|${JSON.stringify(options)}`;
   let format = numberFormats.get(key);
+
   if (!format) {
     format = new Intl.NumberFormat(locale, options);
     numberFormats.set(key, format);
   }
+
   return format;
 };
 
@@ -165,11 +179,17 @@ export const formatDate = (
 /** A time of day on the device's clock: `18:05` or `6:05 PM`. */
 export const formatTime = (translator: Translator, date: Date): string => {
   const { uses24hourClock } = conventionsOf(translator);
-  return dateFormat(formatLocale(translator), {
+
+  const options: Intl.DateTimeFormatOptions = {
     hour: "numeric",
     minute: "2-digit",
-    ...(uses24hourClock === null ? {} : { hour12: !uses24hourClock }),
-  }).format(date);
+  };
+
+  if (uses24hourClock !== null) {
+    options.hour12 = !uses24hourClock;
+  }
+
+  return dateFormat(formatLocale(translator), options).format(date);
 };
 
 /** `3 sets`, `3 підходи`, `5 підходів`: a count with its plural form. */
@@ -217,7 +237,9 @@ export const formatHeight = (
   if (measurementSystem === "metric") {
     return formatUnit(translator, height, "cm");
   }
+
   const { feet, inches } = inchesToFeetAndInches(height);
+
   return `${feet}′ ${inches}″`;
 };
 
@@ -231,6 +253,7 @@ export const formatDuration = (
   const totalMinutes = Math.max(0, Math.round(durationMs / MINUTE_MS));
   const hours = Math.floor(totalMinutes / 60);
   const minutes = totalMinutes % 60;
+
   return hours > 0
     ? translator.t("duration.hoursMinutes", { hours, minutes })
     : translator.t("duration.minutes", { minutes });
@@ -258,10 +281,13 @@ type WeightUnit = Extract<Unit, "kg" | "lbs">;
  */
 const compactVolume = (volume: number, unit: WeightUnit) => {
   const whole = Math.round(volume);
+
   if (whole < THOUSAND) {
     return { compact: null, unit, value: whole } as const;
   }
+
   const thousandsToOneDecimal = Math.round((volume / THOUSAND) * 10) / 10;
+
   return {
     compact: unit === "kg" ? "t" : "thousandLbs",
     unit,
@@ -279,6 +305,7 @@ export const formatCompactVolume = (
   unit: WeightUnit
 ): string => {
   const { compact, value } = compactVolume(volume, unit);
+
   return compact === null
     ? formatUnit(translator, value, unit)
     : translator.t(`compactUnits.${compact}`, { value });
@@ -291,6 +318,7 @@ export const spokenCompactVolume = (
   unit: WeightUnit
 ): string => {
   const { compact, value } = compactVolume(volume, unit);
+
   return compact === null
     ? spokenUnit(translator, value, unit)
     : translator.t(`spokenCompactUnits.${compact}`, { count: value });

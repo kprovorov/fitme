@@ -8,9 +8,11 @@
  * rendered without it afterwards needs `i18n.changeLanguage("en")` first.
  */
 import type { ReactNode } from "react";
+
 import { useAppLanguageSync } from "~/lib/i18n";
 
-export function InAppLanguage({ children }: { children: ReactNode }) {
+export const InAppLanguage = ({ children }: { children: ReactNode }) => {
   useAppLanguageSync();
+
   return children;
-}
+};

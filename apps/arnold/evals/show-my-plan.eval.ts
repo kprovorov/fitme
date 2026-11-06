@@ -1,8 +1,9 @@
 import { defineEval } from "eve/evals";
+
 import { readToolStubs } from "./fixtures";
 
-const PLAN_OR_UPPER_DAY = /Upper Lower Builder|Upper Day/i;
-const LOWER_DAY = /Lower Day|squat/i;
+const PLAN_OR_UPPER_DAY = /Upper Lower Builder|Upper Day/iu;
+const LOWER_DAY = /Lower Day|squat/iu;
 
 export default defineEval({
   description: "Show my plan: reads the active Plan and names its Workouts.",

@@ -1,9 +1,7 @@
-import { StyleSheet, View } from "react-native";
+import { View } from "react-native";
 
-export function BlurViewRawBackdrop({
-  tint = "default",
-  intensity = 50,
+export const BlurViewRawBackdrop = ({
+  tint: _tint = "default",
+  intensity: _intensity = 50,
   ...props
-}) {
-  return <View style={StyleSheet.absoluteFill} {...props} />;
-}
+}) => <View className="absolute inset-0" {...props} />;

@@ -9,6 +9,7 @@ import { beforeEach, describe, expect, it, jest } from "@jest/globals";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { act, fireEvent, render, screen } from "@testing-library/react-native";
 import { Alert } from "react-native";
+
 import WorkoutScreen from "~/app/plans/[planId]/workouts/[workoutId]/index";
 import {
   OPEN_WORKOUT_SESSION_POLL_MS,
@@ -18,8 +19,8 @@ import {
   backend,
   FAKE_USER_ID,
   fakePublicApi,
-  type SeedPlan,
 } from "~/test-utils/fake-public-api";
+import type { SeedPlan } from "~/test-utils/fake-public-api";
 import {
   createTestQueryClient,
   settle,
@@ -59,10 +60,14 @@ jest.mock("~/lib/clerk", () => ({
 }));
 
 // The real Segment client is ESM-only and is created at import.
-jest.mock("~/lib/segment", () => ({ segmentClient: { track: jest.fn() } }));
+jest.mock("~/lib/segment", () => ({
+  segmentClient: { track: jest.fn() },
+}));
 
 jest.mock("~/components/exercises/exercise-image", () => () => null);
+
 jest.mock("~/components/symbol-image", () => ({ SymbolImage: () => null }));
+
 jest.mock("~/components/ui/button", () =>
   jest.requireActual("~/test-utils/button-stub")
 );
@@ -127,14 +132,14 @@ const mount = async () => {
 
 beforeEach(() => {
   jest.clearAllMocks();
-  jest.spyOn(Alert, "alert").mockImplementation(() => undefined);
+  jest.spyOn(Alert, "alert").mockReturnValue(undefined);
   backend.reset();
   backend.seedProfile(FAKE_USER_ID);
   backend.seedPlan(structuredClone(PLAN));
   mockWorkoutId.current = "workout-1";
 });
 
-describe("The Workout screen", () => {
+describe("the Workout screen", () => {
   it("shows the Workout's name, planned stats and a planned card per Exercise, in order", async () => {
     await mount();
 
@@ -257,6 +262,7 @@ describe("The Workout screen", () => {
 
 const START = "POST /v1/workout-sessions";
 const LIST = "GET /v1/workout-sessions";
+
 /** The open Workout Session's read of the list. */
 const IN_PROGRESS = { limit: "1", status: "in_progress" };
 
@@ -272,7 +278,7 @@ const seedOpenSession = (workoutId: string) => {
   });
 };
 
-describe("Starting a Workout from its screen", () => {
+describe("starting a Workout from its screen", () => {
   it.each([
     ["the Next Workout", "workout-1"],
     ["an Upcoming Workout, with no Exercises", "workout-2"],
@@ -290,6 +296,7 @@ describe("Starting a Workout from its screen", () => {
       const started = backend.sessions.find(
         (session) => session.workout_id === workoutId
       );
+
       expect(started?.finished_at).toBeNull();
       expect(fakePublicApi.count(START)).toBe(1);
       // Replaced, not pushed: Back goes to Home or the Plan.
@@ -390,7 +397,7 @@ describe("Starting a Workout from its screen", () => {
   });
 });
 
-describe("Starting while another Workout is in progress", () => {
+describe("starting while another Workout is in progress", () => {
   /** Leg Day's open Workout Session, blocking every other Workout. */
   const seedLegDayOpen = () => {
     seedOpenSession("workout-1");
@@ -491,9 +498,11 @@ describe("Starting while another Workout is in progress", () => {
     // Finished elsewhere; the finish flow invalidates the open Workout
     // Session read (see the Home integration test for the whole flow).
     const open = backend.session("open-session");
+
     if (open) {
       open.finished_at = "2026-10-29T10:00:00.000Z";
     }
+
     await act(() =>
       queryClient.invalidateQueries({
         queryKey: OPEN_WORKOUT_SESSION_QUERY_KEY,
@@ -530,6 +539,7 @@ describe("Starting while another Workout is in progress", () => {
         "clearTimeout",
       ],
     });
+
     try {
       seedLegDayOpen();
       mockWorkoutId.current = "workout-2";
@@ -538,9 +548,11 @@ describe("Starting while another Workout is in progress", () => {
 
       // Finished elsewhere (MCP, another device): nothing invalidates it here.
       const open = backend.session("open-session");
+
       if (open) {
         open.finished_at = "2026-10-29T10:00:00.000Z";
       }
+
       await act(() => {
         jest.advanceTimersByTime(OPEN_WORKOUT_SESSION_POLL_MS - 1);
       });
@@ -579,6 +591,7 @@ describe("Starting while another Workout is in progress", () => {
         "clearTimeout",
       ],
     });
+
     try {
       await mount();
       const reads = fakePublicApi.count(LIST, IN_PROGRESS);
@@ -596,7 +609,7 @@ describe("Starting while another Workout is in progress", () => {
   });
 });
 
-describe("The open Workout Session's read on the Workout screen", () => {
+describe("the open Workout Session's read on the Workout screen", () => {
   it("shows Start loading until it has answered, never Start as if nothing were open", async () => {
     seedOpenSession("workout-1");
     mockWorkoutId.current = "workout-2";

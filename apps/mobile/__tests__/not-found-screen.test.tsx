@@ -5,6 +5,7 @@
 import { afterEach, describe, expect, it, jest } from "@jest/globals";
 import { render, screen } from "@testing-library/react-native";
 import type { ReactNode } from "react";
+
 import NotFoundScreen from "~/app/+not-found";
 import { i18n } from "~/lib/i18n";
 import { setDeviceLanguages } from "~/test-utils/device-locales";

@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next";
 import { ActivityIndicator, useWindowDimensions, View } from "react-native";
 import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+
 import { Button } from "~/components/ui/button";
 import { Card } from "~/components/ui/card";
 import { H4 } from "~/components/ui/typography";
@@ -13,7 +14,6 @@ import { WorkoutSessionFinishSuggestion } from "~/components/workout-sessions/wo
 import WorkoutSessionStats from "~/components/workout-sessions/workout-session-stats";
 import { useFinishWorkoutSession } from "~/hooks/finish-workout-session";
 import { useWorkoutSessionQuery } from "~/hooks/queries/workout-sessions";
-import { cn } from "~/lib/utils";
 
 /** Space kept between a focused set input and the keyboard. */
 const KEYBOARD_BOTTOM_OFFSET = 62;
@@ -30,13 +30,12 @@ interface WorkoutSessionScreenProps {
  * card per exercise whose sets are logged right there. Both session routes
  * (from a plan, and `/workout-sessions/:id`) render it.
  */
-export default function WorkoutSessionScreen({
-  sessionId,
-}: WorkoutSessionScreenProps) {
+const WorkoutSessionScreen = ({ sessionId }: WorkoutSessionScreenProps) => {
   const { t } = useTranslation();
   const insets = useSafeAreaInsets();
   const { fontScale } = useWindowDimensions();
   const stacked = fontScale > STACKED_FONT_SCALE;
+
   // A failed refresh keeps the session on screen; with none read yet it's
   // the load error.
   const {
@@ -49,36 +48,42 @@ export default function WorkoutSessionScreen({
   });
 
   const { confirmFinish, isFinishing } = useFinishWorkoutSession(sessionId);
+
   const retry = useCallback(() => {
     refetch();
   }, [refetch]);
+
   const canFinish = !!workoutSession && !workoutSession.finished_at;
 
   const renderContent = () => {
     if (workoutSession) {
       return (
         <>
-          <Card className="gap-sm" variant="ghost">
-            <View
-              className={
-                stacked ? "items-start gap-sm" : "flex-row items-center gap-sm"
-              }
-            >
-              <H4 className={cn("text-primary", !stacked && "flex-1")}>
-                {workoutSession.workout?.name}
-              </H4>
-              {canFinish ? (
-                <Button
-                  fill={false}
-                  isLoading={isFinishing}
-                  label={t("workoutSession.finish")}
-                  onPress={confirmFinish}
-                  size="lg"
-                  testID="finish-workout-button"
-                />
-              ) : null}
+          <Card variant="ghost">
+            <View className="gap-sm">
+              <View
+                className={
+                  stacked
+                    ? "gap-sm items-start"
+                    : "gap-sm flex-row items-center"
+                }
+              >
+                <H4 className={stacked ? undefined : "flex-1"}>
+                  {workoutSession.workout?.name}
+                </H4>
+                {canFinish ? (
+                  <Button
+                    fill={false}
+                    isLoading={isFinishing}
+                    label={t("workoutSession.finish")}
+                    onPress={confirmFinish}
+                    size="lg"
+                    testID="finish-workout-button"
+                  />
+                ) : null}
+              </View>
+              <WorkoutSessionStats workoutSession={workoutSession} />
             </View>
-            <WorkoutSessionStats workoutSession={workoutSession} />
           </Card>
           <WorkoutSessionView
             sessionId={sessionId}
@@ -87,6 +92,7 @@ export default function WorkoutSessionScreen({
         </>
       );
     }
+
     if (isError) {
       return (
         <SessionLoadError
@@ -96,8 +102,9 @@ export default function WorkoutSessionScreen({
         />
       );
     }
+
     return (
-      <View className="items-center pt-lg">
+      <View className="pt-lg items-center">
         <ActivityIndicator colorClassName="accent-foreground" />
       </View>
     );
@@ -130,4 +137,6 @@ export default function WorkoutSessionScreen({
       />
     </>
   );
-}
+};
+
+export default WorkoutSessionScreen;

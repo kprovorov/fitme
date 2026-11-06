@@ -1,5 +1,6 @@
 import { memoryRateLimiter } from "@fitme/rate-limit";
 import { describe, expect, it } from "vitest";
+
 import { fakeServices, signedInAs, testApp } from "../test/harness.js";
 
 const changes = [
@@ -8,7 +9,7 @@ const changes = [
   { recorded_at: "2026-10-20T07:00:00+00:00", target: 4 },
 ];
 
-describe("GET /v1/weekly-goals", () => {
+describe("gET /v1/weekly-goals", () => {
   it("answers the signed-in User's Weekly goal changes, oldest first", async () => {
     const { app, servicesFor } = testApp({
       services: fakeServices({
@@ -21,8 +22,11 @@ describe("GET /v1/weekly-goals", () => {
     });
 
     expect(response.status).toBe(200);
-    expect(await response.json()).toEqual({ data: changes, streak: 11 });
-    expect(servicesFor).toEqual(["user_alice"]);
+    await expect(response.json()).resolves.toStrictEqual({
+      data: changes,
+      streak: 11,
+    });
+    expect(servicesFor).toStrictEqual(["user_alice"]);
   });
 
   it("answers an empty list before tracking started", async () => {
@@ -36,7 +40,10 @@ describe("GET /v1/weekly-goals", () => {
       headers: signedInAs("user_alice"),
     });
 
-    expect(await response.json()).toEqual({ data: [], streak: 0 });
+    await expect(response.json()).resolves.toStrictEqual({
+      data: [],
+      streak: 0,
+    });
   });
 
   it("never shows fields beyond the contract", async () => {
@@ -57,29 +64,40 @@ describe("GET /v1/weekly-goals", () => {
       headers: signedInAs("user_alice"),
     });
 
-    expect(await response.json()).toEqual({ data: changes, streak: 11 });
+    await expect(response.json()).resolves.toStrictEqual({
+      data: changes,
+      streak: 11,
+    });
   });
 
   it("passes the device timezone through and defaults old clients to UTC", async () => {
     const zones: string[] = [];
+
     const { app } = testApp({
       services: fakeServices({
         getWeeklyGoals: (zone) => {
           zones.push(zone);
+
           return Promise.resolve({ changes: [], streak: 0 });
         },
       }),
     });
-    for (const path of [
+
+    const withTimezone = await app.request(
       "/v1/weekly-goals?time_zone=Europe%2FKyiv",
-      "/v1/weekly-goals",
-    ]) {
-      expect(
-        // biome-ignore lint/performance/noAwaitInLoops: ordered timezone requests
-        (await app.request(path, { headers: signedInAs("user_alice") })).status
-      ).toBe(200);
-    }
-    expect(zones).toEqual(["Europe/Kyiv", "UTC"]);
+      { headers: signedInAs("user_alice") }
+    );
+
+    expect(withTimezone.status).toBe(200);
+
+    const withoutTimezone = await app.request("/v1/weekly-goals", {
+      headers: signedInAs("user_alice"),
+    });
+
+    expect(withoutTimezone.status).toBe(200);
+
+    expect(zones).toStrictEqual(["Europe/Kyiv", "UTC"]);
+
     const invalid = await Promise.all(
       ["invalid", "%2B02%3A00", ""].map((zone) =>
         app.request(`/v1/weekly-goals?time_zone=${zone}`, {
@@ -87,7 +105,10 @@ describe("GET /v1/weekly-goals", () => {
         })
       )
     );
-    expect(invalid.map((response) => response.status)).toEqual([400, 400, 400]);
+
+    expect(invalid.map((response) => response.status)).toStrictEqual([
+      400, 400, 400,
+    ]);
   });
 
   it("refuses a request without a session token", async () => {
@@ -96,28 +117,35 @@ describe("GET /v1/weekly-goals", () => {
     const response = await app.request("/v1/weekly-goals");
 
     expect(response.status).toBe(401);
-    expect(servicesFor).toEqual([]);
+    expect(servicesFor).toStrictEqual([]);
   });
 
   it.each(["GMT+1", "GMT+05:30", "GMT-03:30", "UTC+12:45"])(
     "accepts the fixed-offset calendar timezone %s without losing goal data",
     async (zone) => {
       const zones: string[] = [];
+
       const { app } = testApp({
         services: fakeServices({
           getWeeklyGoals: (timeZone) => {
             zones.push(timeZone);
+
             return Promise.resolve({ changes, streak: 2 });
           },
         }),
       });
+
       const response = await app.request(
         `/v1/weekly-goals?time_zone=${encodeURIComponent(zone)}`,
         { headers: signedInAs("user_alice") }
       );
+
       expect(response.status).toBe(200);
-      expect(await response.json()).toEqual({ data: changes, streak: 2 });
-      expect(zones).toEqual([zone]);
+      await expect(response.json()).resolves.toStrictEqual({
+        data: changes,
+        streak: 2,
+      });
+      expect(zones).toStrictEqual([zone]);
     }
   );
 
@@ -125,12 +153,14 @@ describe("GET /v1/weekly-goals", () => {
     "rejects the malformed fixed-offset timezone %s",
     async (zone) => {
       const { app, servicesFor } = testApp({});
+
       const response = await app.request(
         `/v1/weekly-goals?time_zone=${encodeURIComponent(zone)}`,
         { headers: signedInAs("user_alice") }
       );
+
       expect(response.status).toBe(400);
-      expect(servicesFor).toEqual([]);
+      expect(servicesFor).toStrictEqual([]);
     }
   );
 
@@ -149,6 +179,7 @@ describe("GET /v1/weekly-goals", () => {
     const first = await app.request("/v1/weekly-goals", {
       headers: signedInAs("user_alice"),
     });
+
     const second = await app.request("/v1/weekly-goals", {
       headers: signedInAs("user_alice"),
     });

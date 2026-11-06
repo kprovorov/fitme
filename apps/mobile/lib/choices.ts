@@ -9,6 +9,7 @@ import type {
 import type { TFunction } from "i18next";
 import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
+
 import { i18n } from "~/lib/i18n";
 
 /**
@@ -30,13 +31,15 @@ export interface ChoiceLabels {
 type ChoiceSection = keyof ChoiceLabels;
 
 // i18next reads these inside a key as nesting and namespace separators.
-const KEY_SEPARATORS = /[.:]/;
+const KEY_SEPARATORS = /[.:]/u;
 
 /**
  * The labels through a `t`. An id the catalogs don't have (a muscle group the
  * Library added after this build) shows as itself, never as a raw key.
  */
 export const choiceLabels = (t: TFunction): ChoiceLabels => {
+  // SAFETY: section is a fixed choice group, separator-containing ids are rejected,
+  // and defaultValue covers ids absent from the typed catalogs.
   const label =
     <S extends ChoiceSection>(section: S) =>
     (id: Parameters<ChoiceLabels[S]>[0]): string =>
@@ -57,8 +60,9 @@ export const choiceLabels = (t: TFunction): ChoiceLabels => {
 };
 
 /** The fixed choices' labels in the App language, following a change of it. */
-export function useChoiceLabels(): ChoiceLabels {
+export const useChoiceLabels = (): ChoiceLabels => {
   // The app's instance, named so it's started wherever this is rendered.
   const { t } = useTranslation(undefined, { i18n });
+
   return useMemo(() => choiceLabels(t), [t]);
-}
+};

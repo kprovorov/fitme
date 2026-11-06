@@ -4,9 +4,11 @@
  */
 import { existsSync } from "node:fs";
 import { resolve } from "node:path";
+
 import { beforeEach, describe, expect, it, jest } from "@jest/globals";
 import { fireEvent, render, screen } from "@testing-library/react-native";
 import { router } from "expo-router";
+
 import PlannerScreen from "~/app/planner";
 import { useAppLanguageSync } from "~/lib/i18n";
 import { getTabTitle } from "~/lib/tabs";
@@ -36,6 +38,7 @@ jest.mock("~/components/ui/slider", () => ({ Slider: () => null }));
 // The root layout's language sync, which follows the device's languages.
 function Planner() {
   useAppLanguageSync();
+
   return <PlannerScreen />;
 }
 
@@ -53,9 +56,11 @@ describe("PlannerScreen", () => {
     await fireEvent.press(screen.getByText("Get my plan!"));
 
     expect(router.dismissTo).toHaveBeenCalledTimes(1);
+
     const [target] = jest.mocked(router.dismissTo).mock.calls[0] as [
       { params: { initialMessage: string }; pathname: string },
     ];
+
     expect(target.pathname).toBe("/(tabs)/arnold");
     expect(target.params.initialMessage).toContain("- Frequency: 3 days");
 
@@ -75,6 +80,7 @@ describe("PlannerScreen", () => {
     // Goal
     expect(screen.getByText("Ціль")).toBeTruthy();
     expect(screen.getByText("Яка ваша ціль?")).toBeTruthy();
+
     for (const goal of ["Скинути вагу", "Набрати м’язи", "Тримати форму"]) {
       expect(screen.getByText(goal)).toBeTruthy();
     }
@@ -82,6 +88,7 @@ describe("PlannerScreen", () => {
     // Experience
     expect(screen.getByText("Досвід")).toBeTruthy();
     expect(screen.getByText("Який у вас досвід тренувань?")).toBeTruthy();
+
     for (const [level, description] of [
       ["Початківець", "0–6 міс. досвіду"],
       ["Середній рівень", "6 міс. – 3 роки досвіду"],
@@ -124,7 +131,7 @@ describe("PlannerScreen", () => {
     await fireEvent.press(screen.getByText("Отримати мій план!"));
 
     // Goal, experience and frequency have no default.
-    expect(await screen.findAllByText("Обов’язково")).toHaveLength(3);
+    await expect(screen.findAllByText("Обов’язково")).resolves.toHaveLength(3);
     expect(screen.queryByText("Required")).toBeNull();
     expect(router.dismissTo).not.toHaveBeenCalled();
   });
@@ -145,6 +152,7 @@ describe("PlannerScreen", () => {
     const [target] = jest.mocked(router.dismissTo).mock.calls[0] as [
       { params: { initialMessage: string }; pathname: string },
     ];
+
     expect(target.params.initialMessage).toBe(
       [
         "Будь ласка, створи для мене план тренувань із такими параметрами:",

@@ -1,5 +1,6 @@
 import { createQuery } from "react-query-kit";
 import { z } from "zod";
+
 import { getApiUrl } from "~/lib/constants";
 
 const clientConfigSchema = z.object({
@@ -20,9 +21,11 @@ export const useClientConfigQuery = createQuery<ClientConfig>({
     const response = await fetch(`${getApiUrl()}/v1/client-config`, {
       signal,
     });
+
     if (!response.ok) {
       throw new Error(`Client config request failed (${response.status})`);
     }
+
     // A payload of another shape fails the query, so it can't block the app.
     return responseSchema.parse(await response.json()).data;
   },

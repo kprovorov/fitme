@@ -1,5 +1,6 @@
 import { HTTPException } from "hono/http-exception";
 import { describe, expect, it } from "vitest";
+
 import { clerkInstance, clerkToken } from "../test/clerk.js";
 import { fakeServices, signedInAs, testApp } from "../test/harness.js";
 
@@ -22,6 +23,7 @@ const failingApp = () => {
   test.app.get("/test/teapot", () => {
     throw new HTTPException(418, { message: "I'm a teapot" });
   });
+
   return { ...test, crash };
 };
 
@@ -41,7 +43,7 @@ describe("app", () => {
     const response = await app.request("/health");
 
     expect(response.status).toBe(200);
-    expect(await response.json()).toEqual({ ok: true });
+    await expect(response.json()).resolves.toStrictEqual({ ok: true });
   });
 
   it("answers the global routes without a token", async () => {
@@ -58,8 +60,8 @@ describe("app", () => {
     const response = await app.request("/nope");
 
     expect(response.status).toBe(401);
-    expect(await response.json()).toEqual(unauthorized);
-    expect(reported).toEqual([]);
+    await expect(response.json()).resolves.toStrictEqual(unauthorized);
+    expect(reported).toStrictEqual([]);
   });
 
   it("answers an unknown route with a valid token 404, unreported", async () => {
@@ -70,10 +72,10 @@ describe("app", () => {
     });
 
     expect(response.status).toBe(404);
-    expect(await response.json()).toEqual({
+    await expect(response.json()).resolves.toStrictEqual({
       error: { code: "not_found", message: "Route not found" },
     });
-    expect(reported).toEqual([]);
+    expect(reported).toStrictEqual([]);
   });
 
   it("answers a CORS preflight before auth", async () => {
@@ -111,10 +113,10 @@ describe("app", () => {
     });
 
     expect(response.status).toBe(500);
-    expect(await response.json()).toEqual({
+    await expect(response.json()).resolves.toStrictEqual({
       error: { code: "internal_error", message: "Internal server error" },
     });
-    expect(reported).toEqual([crash]);
+    expect(reported).toStrictEqual([crash]);
   });
 
   it("answers an HTTP error with its status without reporting it", async () => {
@@ -125,10 +127,10 @@ describe("app", () => {
     });
 
     expect(response.status).toBe(418);
-    expect(await response.json()).toEqual({
+    await expect(response.json()).resolves.toStrictEqual({
       error: { code: "http_error", message: "I'm a teapot" },
     });
-    expect(reported).toEqual([]);
+    expect(reported).toStrictEqual([]);
   });
 
   it("doesn't report a route's own 4xx", async () => {
@@ -137,7 +139,7 @@ describe("app", () => {
     const response = await app.request("/v1/muscle-groups/elbows");
 
     expect(response.status).toBe(404);
-    expect(reported).toEqual([]);
+    expect(reported).toStrictEqual([]);
   });
 });
 
@@ -169,9 +171,9 @@ describe("auth", () => {
       const response = await app.request("/v1/profile", { headers });
 
       expect(response.status).toBe(401);
-      expect(await response.json()).toEqual(unauthorized);
-      expect(reported).toEqual([]);
-      expect(servicesFor).toEqual([]);
+      await expect(response.json()).resolves.toStrictEqual(unauthorized);
+      expect(reported).toStrictEqual([]);
+      expect(servicesFor).toStrictEqual([]);
     }
   );
 
@@ -194,7 +196,7 @@ describe("auth", () => {
     expect(response.status).toBe(500);
     expect(reported).toHaveLength(1);
     expect(String(reported[0])).toContain("CLERK_JWT_KEY");
-    expect(servicesFor).toEqual([]);
+    expect(servicesFor).toStrictEqual([]);
   });
 
   it("answers a reported 500 without FITME_DATABASE_URL", async () => {
@@ -222,7 +224,7 @@ describe("auth", () => {
     });
 
     expect(response.status).toBe(200);
-    expect(servicesFor).toEqual(["user_alice"]);
-    expect(identified).toEqual(["user_alice"]);
+    expect(servicesFor).toStrictEqual(["user_alice"]);
+    expect(identified).toStrictEqual(["user_alice"]);
   });
 });

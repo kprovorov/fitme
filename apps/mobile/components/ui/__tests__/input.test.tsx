@@ -1,5 +1,6 @@
 import { describe, expect, it, jest } from "@jest/globals";
 import { fireEvent, render, screen } from "@testing-library/react-native";
+
 import { Input } from "../input";
 import { Textarea } from "../textarea";
 
@@ -67,6 +68,7 @@ describe("Input", () => {
     const { rerender } = await render(
       <Input placeholder="Reps" variant="ghost" />
     );
+
     const field = screen.getByPlaceholderText("Reps");
     expect(field.props.className).toContain("border-transparent");
     expect(field.props.className).not.toContain("border-input");
