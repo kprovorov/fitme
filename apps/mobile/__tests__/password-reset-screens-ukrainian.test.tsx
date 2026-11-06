@@ -14,7 +14,6 @@ import {
 } from "@jest/globals";
 import { act, fireEvent, render, screen } from "@testing-library/react-native";
 import type { ReactNode } from "react";
-import { it, afterEach, describe, expect, beforeEach } from "vitest";
 
 import "~/test-utils/auth-ui";
 import ForgotPasswordView from "~/components/views/forgot-password-view";
@@ -60,7 +59,7 @@ const mockSignIn = {
   supportedSecondFactors: [] as { strategy: string }[],
 };
 
-jest.mock<typeof import("@clerk/expo")>(import("@clerk/expo"), () => {
+jest.mock("@clerk/expo", () => {
   const { useState } = jest.requireActual<typeof import("react")>("react");
 
   return {
@@ -79,23 +78,19 @@ jest.mock<typeof import("@clerk/expo")>(import("@clerk/expo"), () => {
   };
 });
 
-jest.mock<typeof import("@clerk/expo/token-cache")>(
-  import("@clerk/expo/token-cache"),
-  () => ({ tokenCache: {} })
-);
+jest.mock("@clerk/expo/token-cache", () => ({ tokenCache: {} }));
 
-jest.mock<typeof import("expo-router")>(import("expo-router"), () => ({
+jest.mock("expo-router", () => ({
   Link: ({ children }: { children: unknown }) => children,
   router: { push: jest.fn(), replace: jest.fn() },
 }));
 
-jest.mock<typeof import("~/lib/segment")>(import("~/lib/segment"), () => ({
+jest.mock("~/lib/segment", () => ({
   segmentClient: { track: jest.fn() },
 }));
 
-jest.mock<typeof import("~/components/ui/button")>(
-  import("~/components/ui/button"),
-  () => jest.requireActual("~/test-utils/button-stub")
+jest.mock("~/components/ui/button", () =>
+  jest.requireActual("~/test-utils/button-stub")
 );
 
 const renderInUkrainian = async (view: ReactNode) => {

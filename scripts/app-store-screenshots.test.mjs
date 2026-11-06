@@ -10,8 +10,6 @@ import { after, describe, test } from "node:test";
 import { fileURLToPath } from "node:url";
 import zlib from "node:zlib";
 
-import { describe, test } from "vitest";
-
 const SCRIPT = fileURLToPath(
   new URL("app-store-screenshots.mjs", import.meta.url)
 );

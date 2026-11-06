@@ -9,7 +9,6 @@ import { beforeEach, describe, expect, it, jest } from "@jest/globals";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { fireEvent, render, screen } from "@testing-library/react-native";
 import { Text } from "react-native";
-import { it, describe, expect, beforeEach } from "vitest";
 
 import { usePlanQuery, usePlanSummariesQuery } from "~/hooks/queries/plans";
 import { useAppLanguageSync } from "~/lib/i18n";
@@ -25,43 +24,36 @@ import type { WorkoutPlan } from "../workout-plan-card";
 
 const mockPush = jest.fn();
 
-jest.mock<typeof import("expo-router")>(import("expo-router"), () => ({
+jest.mock("expo-router", () => ({
   router: { push: (path: string) => mockPush(path) },
 }));
 
-jest.mock<typeof import("~/lib/segment")>(import("~/lib/segment"), () => ({
+jest.mock("~/lib/segment", () => ({
   segmentClient: { track: jest.fn() },
 }));
 
 // The User the save is made for (the real Clerk SDK keeps Jest alive).
-jest.mock<typeof import("~/lib/clerk")>(import("~/lib/clerk"), () => ({
+jest.mock("~/lib/clerk", () => ({
   getCurrentUserId: jest.requireActual<
     typeof import("~/test-utils/signed-in-user")
   >("~/test-utils/signed-in-user").getCurrentUserId,
 }));
 
-jest.mock<typeof import("react-native-reanimated")>(
-  import("react-native-reanimated"),
-  () => {
-    const { View } =
-      jest.requireActual<typeof import("react-native")>("react-native");
+jest.mock("react-native-reanimated", () => {
+  const { View } =
+    jest.requireActual<typeof import("react-native")>("react-native");
 
-    return {
-      __esModule: true,
-      default: { View },
-      FadeIn: { duration: () => {} },
-    };
-  }
-);
+  return {
+    __esModule: true,
+    default: { View },
+    FadeIn: { duration: () => {} },
+  };
+});
 
-jest.mock<typeof import("@/components/symbol-image")>(
-  import("@/components/symbol-image"),
-  () => ({ SymbolImage: () => null })
-);
+jest.mock("~/components/symbol-image", () => ({ SymbolImage: () => null }));
 
-jest.mock<typeof import("@/components/ui/button")>(
-  import("@/components/ui/button"),
-  () => jest.requireActual("~/test-utils/button-stub")
+jest.mock("~/components/ui/button", () =>
+  jest.requireActual("~/test-utils/button-stub")
 );
 
 const PLAN_ROUTE = "POST /v1/plans";
@@ -142,7 +134,13 @@ const save = async (client: ReturnType<typeof createTestQueryClient>) => {
 const planRequests = () =>
   fakePublicApi.requests.filter((request) => request.route === PLAN_ROUTE);
 
-const tracked = () => jest.mocked(segmentClient.track).mock.calls;
+const tracked = () =>
+  jest.mocked<
+    (
+      event: string,
+      properties?: Record<string, string | number | boolean | null>
+    ) => void
+  >(segmentClient.track).mock.calls;
 
 beforeEach(() => {
   jest.clearAllMocks();
@@ -154,7 +152,7 @@ beforeEach(() => {
   ]);
 });
 
-describe(WorkoutPlanCard, () => {
+describe("WorkoutPlanCard", () => {
   it("names each Exercise from the library and links it by slug", async () => {
     await renderCard();
 

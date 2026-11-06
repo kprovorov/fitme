@@ -15,7 +15,6 @@ import {
 } from "@testing-library/react-native";
 import type { ReactElement, ReactNode } from "react";
 import type { RefreshControlProps } from "react-native";
-import { it, describe, expect, beforeEach } from "vitest";
 
 import HomeScreen from "~/app/(tabs)/(home)/index";
 import HistoryScreen from "~/app/(tabs)/history/index";
@@ -30,7 +29,7 @@ import { createTestQueryClient, settle } from "~/test-utils/query-client";
 
 const mockPush = jest.fn();
 
-jest.mock<typeof import("expo-router")>(import("expo-router"), () => ({
+jest.mock("expo-router", () => ({
   Link: ({ children }: { children: unknown }) => children,
   Stack: { Screen: () => null },
   useLocalSearchParams: () => ({ planId: "plan-1", workoutId: "workout-push" }),
@@ -47,77 +46,60 @@ jest.mock<typeof import("expo-router")>(import("expo-router"), () => ({
 
 // LegendList lays its items out on measure, which Jest never does: render
 // its empty component (History has nothing finished here) in a plain view.
-jest.mock<typeof import("@legendapp/list/react-native")>(
-  import("@legendapp/list/react-native"),
-  () => ({
-    LegendList: ({
-      ListEmptyComponent,
-      refreshControl,
-    }: {
-      ListEmptyComponent: ReactNode;
-      refreshControl: ReactElement<RefreshControlProps>;
-    }) => {
-      const { ScrollView } =
-        jest.requireActual<typeof import("react-native")>("react-native");
+jest.mock("@legendapp/list/react-native", () => ({
+  LegendList: ({
+    ListEmptyComponent,
+    refreshControl,
+  }: {
+    ListEmptyComponent: ReactNode;
+    refreshControl: ReactElement<RefreshControlProps>;
+  }) => {
+    const { ScrollView } =
+      jest.requireActual<typeof import("react-native")>("react-native");
 
-      return (
-        <ScrollView refreshControl={refreshControl}>
-          {ListEmptyComponent}
-        </ScrollView>
-      );
-    },
-  })
-);
+    return (
+      <ScrollView refreshControl={refreshControl}>
+        {ListEmptyComponent}
+      </ScrollView>
+    );
+  },
+}));
 
-jest.mock<typeof import("@clerk/expo")>(import("@clerk/expo"), () => ({
+jest.mock("@clerk/expo", () => ({
   useUser: () => ({ isLoaded: true, user: { id: "user-1" } }),
 }));
 
-jest.mock<typeof import("react-native-purchases")>(
-  import("react-native-purchases"),
-  () => ({
-    __esModule: true,
-    default: { invalidateCustomerInfoCache: () => Promise.resolve() },
-  })
-);
+jest.mock("react-native-purchases", () => ({
+  __esModule: true,
+  default: { invalidateCustomerInfoCache: () => Promise.resolve() },
+}));
 
-jest.mock<typeof import("react-native-safe-area-context")>(
-  import("react-native-safe-area-context"),
-  () => ({
-    useSafeAreaInsets: () => ({ bottom: 0, left: 0, right: 0, top: 0 }),
-  })
-);
+jest.mock("react-native-safe-area-context", () => ({
+  useSafeAreaInsets: () => ({ bottom: 0, left: 0, right: 0, top: 0 }),
+}));
 
 // The real Clerk SDK opens a MessagePort at import that keeps Jest alive.
-jest.mock<typeof import("~/lib/clerk")>(import("~/lib/clerk"), () => ({
+jest.mock("~/lib/clerk", () => ({
   getCurrentUserId: () =>
     jest.requireActual<typeof import("~/test-utils/fake-public-api")>(
       "~/test-utils/fake-public-api"
     ).FAKE_USER_ID,
 }));
 
-jest.mock<typeof import("~/lib/segment")>(import("~/lib/segment"), () => ({
+jest.mock("~/lib/segment", () => ({
   segmentClient: { track: jest.fn() },
 }));
 
-jest.mock<typeof import("~/components/exercises/exercise-image")>(
-  import("~/components/exercises/exercise-image"),
-  () => () => null
+jest.mock("~/components/exercises/exercise-image", () => () => null);
+
+jest.mock("~/components/symbol-image", () => ({ SymbolImage: () => null }));
+
+jest.mock("~/components/ui/dropdown-menu", () =>
+  jest.requireActual("~/test-utils/dropdown-menu-stub")
 );
 
-jest.mock<typeof import("~/components/symbol-image")>(
-  import("~/components/symbol-image"),
-  () => ({ SymbolImage: () => null })
-);
-
-jest.mock<typeof import("~/components/ui/dropdown-menu")>(
-  import("~/components/ui/dropdown-menu"),
-  () => jest.requireActual("~/test-utils/dropdown-menu-stub")
-);
-
-jest.mock<typeof import("~/components/ui/button")>(
-  import("~/components/ui/button"),
-  () => jest.requireActual("~/test-utils/button-stub")
+jest.mock("~/components/ui/button", () =>
+  jest.requireActual("~/test-utils/button-stub")
 );
 
 const LIST = "GET /v1/workout-sessions";

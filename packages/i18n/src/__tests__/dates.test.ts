@@ -28,6 +28,8 @@ const viewOf = (
   const view: unknown = Object.create(instance, properties);
 
   const inheritsInstance = (value: unknown): value is typeof instance =>
+    value !== null &&
+    typeof value === "object" &&
     Object.prototype.isPrototypeOf.call(instance, value);
 
   if (!inheritsInstance(view)) {

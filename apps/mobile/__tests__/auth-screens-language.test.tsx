@@ -10,8 +10,6 @@ import { router } from "expo-router";
 import type { ComponentType } from "react";
 
 import "~/test-utils/auth-ui";
-import { it, describe, expect, beforeEach } from "vitest";
-
 import LoginScreen from "~/app/auth/login";
 import RegisterScreen from "~/app/auth/register";
 import { setDeviceLanguages } from "~/test-utils/device-locales";
@@ -33,7 +31,7 @@ const mockSignUp = {
   },
 };
 
-jest.mock<typeof import("@clerk/expo")>(import("@clerk/expo"), () => ({
+jest.mock("@clerk/expo", () => ({
   isClerkAPIResponseError: (error: { isClerkApiError?: boolean }) =>
     error.isClerkApiError === true,
   useAuth: () => ({ isLoaded: true, isSignedIn: false }),
@@ -41,12 +39,9 @@ jest.mock<typeof import("@clerk/expo")>(import("@clerk/expo"), () => ({
   useSignUp: () => ({ signUp: mockSignUp }),
 }));
 
-jest.mock<typeof import("@clerk/expo/token-cache")>(
-  import("@clerk/expo/token-cache"),
-  () => ({ tokenCache: {} })
-);
+jest.mock("@clerk/expo/token-cache", () => ({ tokenCache: {} }));
 
-jest.mock<typeof import("expo-router")>(import("expo-router"), () => {
+jest.mock("expo-router", () => {
   const { Text } =
     jest.requireActual<typeof import("react-native")>("react-native");
 
@@ -62,20 +57,16 @@ jest.mock<typeof import("expo-router")>(import("expo-router"), () => {
   };
 });
 
-jest.mock<typeof import("react-native-safe-area-context")>(
-  import("react-native-safe-area-context"),
-  () => ({
-    useSafeAreaInsets: () => ({ bottom: 0, left: 0, right: 0, top: 0 }),
-  })
-);
+jest.mock("react-native-safe-area-context", () => ({
+  useSafeAreaInsets: () => ({ bottom: 0, left: 0, right: 0, top: 0 }),
+}));
 
-jest.mock<typeof import("~/lib/segment")>(import("~/lib/segment"), () => ({
+jest.mock("~/lib/segment", () => ({
   segmentClient: { track: jest.fn() },
 }));
 
-jest.mock<typeof import("~/components/ui/button")>(
-  import("~/components/ui/button"),
-  () => jest.requireActual("~/test-utils/button-stub")
+jest.mock("~/components/ui/button", () =>
+  jest.requireActual("~/test-utils/button-stub")
 );
 
 /** A screen under the root layout's language sync. */
@@ -164,7 +155,7 @@ describe("login screen in Ukrainian", () => {
     await fillIn({ "Ел. пошта": "tony@example.com", Пароль: "a-password" });
     await fireEvent.press(screen.getByRole("button", { name: "Увійти" }));
 
-    expect(mockSignIn.mfa.sendEmailCode).toHaveBeenCalledOnce();
+    expect(mockSignIn.mfa.sendEmailCode).toHaveBeenCalledTimes(1);
     expect(router.push).toHaveBeenCalledWith({
       params: { purpose: "sign-in", source: "login" },
       pathname: "/auth/verify-code",

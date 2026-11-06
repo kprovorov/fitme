@@ -550,15 +550,17 @@ describe("request keys", () => {
       },
     ]);
 
-    await expect(keyOf(laterStep.call("call_1"))).resolves.not.toBe(
-      await keyOf(attempt().call("call_1"))
-    );
+    const later = await keyOf(laterStep.call("call_1"));
+    const earlier = await keyOf(attempt().call("call_1"));
+
+    expect(later).not.toBe(earlier);
   });
 
   it("differs for different input", async () => {
-    await expect(
-      keyOf(alice, { ...input, reps_recommended: 12 })
-    ).resolves.not.toBe(await keyOf(alice));
+    const changed = await keyOf(alice, { ...input, reps_recommended: 12 });
+    const original = await keyOf(alice);
+
+    expect(changed).not.toBe(original);
   });
 
   it("differs in another turn or session", async () => {

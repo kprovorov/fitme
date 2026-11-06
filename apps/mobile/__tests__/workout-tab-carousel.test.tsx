@@ -14,7 +14,6 @@ import {
   within,
 } from "@testing-library/react-native";
 import { Alert, ScrollView } from "react-native";
-import { it, describe, expect, beforeEach } from "vitest";
 
 import HomeScreen from "~/app/(tabs)/(home)/index";
 import { libraryExercise, serveLibrary } from "~/test-utils/fake-library";
@@ -27,7 +26,7 @@ import { createTestQueryClient, settle } from "~/test-utils/query-client";
 
 const mockPush = jest.fn();
 
-jest.mock<typeof import("expo-router")>(import("expo-router"), () => ({
+jest.mock("expo-router", () => ({
   Link: ({ children }: { children: unknown }) => children,
   Stack: { Screen: () => null },
   useNavigation: () => ({}),
@@ -40,44 +39,36 @@ jest.mock<typeof import("expo-router")>(import("expo-router"), () => ({
   }),
 }));
 
-jest.mock<typeof import("@clerk/expo")>(import("@clerk/expo"), () => ({
+jest.mock("@clerk/expo", () => ({
   useUser: () => ({ isLoaded: true, user: { id: "user-1" } }),
 }));
 
-jest.mock<typeof import("react-native-purchases")>(
-  import("react-native-purchases"),
-  () => ({
-    __esModule: true,
-    default: { invalidateCustomerInfoCache: () => Promise.resolve() },
-  })
-);
+jest.mock("react-native-purchases", () => ({
+  __esModule: true,
+  default: { invalidateCustomerInfoCache: () => Promise.resolve() },
+}));
 
 // The real Clerk SDK (reached through the Workout cards) opens a MessagePort
 // at import that keeps Jest alive.
-jest.mock<typeof import("~/lib/clerk")>(import("~/lib/clerk"), () => ({
+jest.mock("~/lib/clerk", () => ({
   getCurrentUserId: () =>
     jest.requireActual<typeof import("~/test-utils/fake-public-api")>(
       "~/test-utils/fake-public-api"
     ).FAKE_USER_ID,
 }));
 
-jest.mock<typeof import("~/lib/segment")>(import("~/lib/segment"), () => ({
+jest.mock("~/lib/segment", () => ({
   segmentClient: { track: jest.fn() },
 }));
 
-jest.mock<typeof import("~/components/symbol-image")>(
-  import("~/components/symbol-image"),
-  () => ({ SymbolImage: () => null })
+jest.mock("~/components/symbol-image", () => ({ SymbolImage: () => null }));
+
+jest.mock("~/components/ui/dropdown-menu", () =>
+  jest.requireActual("~/test-utils/dropdown-menu-stub")
 );
 
-jest.mock<typeof import("~/components/ui/dropdown-menu")>(
-  import("~/components/ui/dropdown-menu"),
-  () => jest.requireActual("~/test-utils/dropdown-menu-stub")
-);
-
-jest.mock<typeof import("~/components/ui/button")>(
-  import("~/components/ui/button"),
-  () => jest.requireActual("~/test-utils/button-stub")
+jest.mock("~/components/ui/button", () =>
+  jest.requireActual("~/test-utils/button-stub")
 );
 
 const START = "POST /v1/workout-sessions";

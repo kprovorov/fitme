@@ -4,8 +4,6 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
 
-import { test } from "vitest";
-
 import { replay } from "./replay.mjs";
 
 const indexSql = `CREATE UNIQUE INDEX workout_sessions_one_open_per_user_idx

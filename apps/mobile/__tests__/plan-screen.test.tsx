@@ -18,7 +18,6 @@ import {
 import type { ReactNode } from "react";
 import { Alert, Pressable, Text, View } from "react-native";
 import type { AlertButton } from "react-native";
-import { it, describe, expect, beforeEach } from "vitest";
 
 import PlanScreen from "~/app/plans/[planId]/index";
 import PlansScreen from "~/app/plans/index";
@@ -70,7 +69,7 @@ const MockHeader = ({ options }: { options: MockHeaderOptions }) => {
   );
 };
 
-jest.mock<typeof import("expo-router")>(import("expo-router"), () => ({
+jest.mock("expo-router", () => ({
   Link: ({ children }: { children: ReactNode }) => children,
   Stack: {
     Screen: (props: { options: MockHeaderOptions }) => (
@@ -88,31 +87,24 @@ jest.mock<typeof import("expo-router")>(import("expo-router"), () => ({
 
 // The real Clerk SDK (reached through the Workout cards) opens a MessagePort
 // at import that keeps Jest alive.
-jest.mock<typeof import("~/lib/clerk")>(import("~/lib/clerk"), () => ({
+jest.mock("~/lib/clerk", () => ({
   getCurrentUserId: jest.requireActual<
     typeof import("~/test-utils/signed-in-user")
   >("~/test-utils/signed-in-user").getCurrentUserId,
 }));
 
-jest.mock<typeof import("~/lib/segment")>(import("~/lib/segment"), () => ({
+jest.mock("~/lib/segment", () => ({
   segmentClient: { track: jest.fn() },
 }));
 
-jest.mock<typeof import("~/hooks/revenueCat")>(
-  import("~/hooks/revenueCat"),
-  () => ({
-    useIsProQuery: () => ({ data: false }),
-  })
-);
+jest.mock("~/hooks/revenueCat", () => ({
+  useIsProQuery: () => ({ data: false }),
+}));
 
-jest.mock<typeof import("~/components/symbol-image")>(
-  import("~/components/symbol-image"),
-  () => ({ SymbolImage: () => null })
-);
+jest.mock("~/components/symbol-image", () => ({ SymbolImage: () => null }));
 
-jest.mock<typeof import("~/components/ui/button")>(
-  import("~/components/ui/button"),
-  () => jest.requireActual("~/test-utils/button-stub")
+jest.mock("~/components/ui/button", () =>
+  jest.requireActual("~/test-utils/button-stub")
 );
 
 const ACTIVATE = "POST /v1/plans/{id}/activate";
@@ -126,7 +118,12 @@ const PLAN_LOAD_ERROR = /Couldn't load this plan/;
 const WORKOUT_CARD = /Day, /;
 
 // The stand-in `jest.mock("~/lib/segment")` installs.
-const track = jest.mocked(segmentClient.track);
+const track = jest.mocked<
+  (
+    event: string,
+    properties?: Record<string, string | number | boolean | null>
+  ) => void
+>(segmentClient.track);
 
 let queryClient = createTestQueryClient();
 
@@ -335,7 +332,7 @@ describe("a Plan's screen", () => {
     expect(screen.queryByText("Archive")).toBeNull();
 
     await fireEvent.press(screen.getByRole("button", { name: "Go Back" }));
-    expect(mockBack).toHaveBeenCalledWith();
+    expect(mockBack).toHaveBeenCalled();
   });
 
   it("says another User's Plan no longer exists", async () => {

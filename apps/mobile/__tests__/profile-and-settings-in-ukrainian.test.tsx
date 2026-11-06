@@ -9,7 +9,6 @@ import { QueryClientProvider } from "@tanstack/react-query";
 import { fireEvent, render, screen } from "@testing-library/react-native";
 import type { ReactNode } from "react";
 import { Alert, Pressable, Text, View } from "react-native";
-import { it, describe, expect, beforeEach } from "vitest";
 
 import LegalScreen from "~/app/legal";
 import SettingsScreen from "~/app/settings";
@@ -25,7 +24,7 @@ import { InAppLanguage } from "~/test-utils/in-app-language";
 import { createTestQueryClient, settle } from "~/test-utils/query-client";
 
 // Each Screen's title, as the native header shows it.
-jest.mock<typeof import("expo-router")>(import("expo-router"), () => {
+jest.mock("expo-router", () => {
   const { Text: MockText } =
     jest.requireActual<typeof import("react-native")>("react-native");
 
@@ -47,12 +46,12 @@ const mockUser = {
   primaryEmailAddress: { emailAddress: "taras@example.com" },
 };
 
-jest.mock<typeof import("@clerk/expo")>(import("@clerk/expo"), () => ({
+jest.mock("@clerk/expo", () => ({
   isClerkAPIResponseError: () => false,
   useUser: () => ({ isLoaded: true, user: mockUser }),
 }));
 
-jest.mock<typeof import("~/lib/clerk")>(import("~/lib/clerk"), () => ({
+jest.mock("~/lib/clerk", () => ({
   ...jest.requireActual<typeof import("~/lib/clerk")>("~/lib/clerk"),
   getClerk: () => ({ signOut: jest.fn(), user: mockUser }),
   getCurrentUserId: () =>
@@ -61,29 +60,22 @@ jest.mock<typeof import("~/lib/clerk")>(import("~/lib/clerk"), () => ({
     ).FAKE_USER_ID,
 }));
 
-jest.mock<typeof import("~/lib/segment")>(import("~/lib/segment"), () => ({
+jest.mock("~/lib/segment", () => ({
   segmentClient: { reset: jest.fn(), track: jest.fn() },
 }));
 
-jest.mock<typeof import("react-native-purchases-ui")>(
-  import("react-native-purchases-ui"),
-  () => ({
-    __esModule: true,
-    default: { presentPaywall: jest.fn() },
-  })
-);
+jest.mock("react-native-purchases-ui", () => ({
+  __esModule: true,
+  default: { presentPaywall: jest.fn() },
+}));
 
-jest.mock<typeof import("~/hooks/revenueCat")>(
-  import("~/hooks/revenueCat"),
-  () => ({
-    useCustomerInfoQuery: () => ({ data: undefined }),
-    useIsProQuery: () => ({ data: false }),
-  })
-);
+jest.mock("~/hooks/revenueCat", () => ({
+  useCustomerInfoQuery: () => ({ data: undefined }),
+  useIsProQuery: () => ({ data: false }),
+}));
 
-jest.mock<typeof import("~/components/ui/button")>(
-  import("~/components/ui/button"),
-  () => jest.requireActual("~/test-utils/button-stub")
+jest.mock("~/components/ui/button", () =>
+  jest.requireActual("~/test-utils/button-stub")
 );
 
 // The native alert stand-in: its trigger, then its title, message and
@@ -118,14 +110,11 @@ const MockAlertDialog = ({
   </View>
 );
 
-jest.mock<typeof import("~/components/ui/alert-dialog")>(
-  import("~/components/ui/alert-dialog"),
-  () => ({
-    AlertDialog: (props: Parameters<typeof MockAlertDialog>[0]) => (
-      <MockAlertDialog {...props} />
-    ),
-  })
-);
+jest.mock("~/components/ui/alert-dialog", () => ({
+  AlertDialog: (props: Parameters<typeof MockAlertDialog>[0]) => (
+    <MockAlertDialog {...props} />
+  ),
+}));
 
 const mount = async (element: ReactNode) => {
   const client = createTestQueryClient();
@@ -198,7 +187,7 @@ describe("profile and Settings on a Ukrainian device", () => {
     await fireEvent.press(screen.getByText("Видалити"));
     await settle(client);
 
-    expect(mockUser.delete).toHaveBeenCalledOnce();
+    expect(mockUser.delete).toHaveBeenCalledTimes(1);
     expect(alert).toHaveBeenCalledWith(
       "Не вдалося видалити акаунт",
       "Щось пішло не так. Спробуйте пізніше."

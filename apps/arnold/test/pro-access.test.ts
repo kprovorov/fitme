@@ -155,7 +155,7 @@ describe("pro access check", () => {
     const fetch =
       vi.fn<(url: string, init: RequestInit) => Promise<Response>>();
 
-    const check = createProCheck({ fetch, secretKey: () => {} });
+    const check = createProCheck({ fetch, secretKey: () => undefined });
 
     await expect(check("user_alice")).rejects.toThrow("REVENUECAT_SECRET_KEY");
     expect(fetch).not.toHaveBeenCalled();

@@ -12,7 +12,6 @@ import { fireEvent, render, screen } from "@testing-library/react-native";
 import type { ReactNode } from "react";
 import { Alert, Pressable, Text } from "react-native";
 import type { AlertButton } from "react-native";
-import { it, describe, expect, beforeEach } from "vitest";
 
 import PlanScreen from "~/app/plans/[planId]/index";
 import WorkoutScreen from "~/app/plans/[planId]/workouts/[workoutId]/index";
@@ -61,7 +60,7 @@ const MockHeader = ({ options }: { options: MockHeaderOptions }) => {
   );
 };
 
-jest.mock<typeof import("expo-router")>(import("expo-router"), () => ({
+jest.mock("expo-router", () => ({
   Link: ({ children }: { children: ReactNode }) => children,
   Stack: {
     Screen: (props: { options: MockHeaderOptions }) => (
@@ -81,46 +80,33 @@ jest.mock<typeof import("expo-router")>(import("expo-router"), () => ({
   }),
 }));
 
-jest.mock<typeof import("react-native-safe-area-context")>(
-  import("react-native-safe-area-context"),
-  () => ({
-    useSafeAreaInsets: () => ({ bottom: 0, left: 0, right: 0, top: 0 }),
-  })
-);
+jest.mock("react-native-safe-area-context", () => ({
+  useSafeAreaInsets: () => ({ bottom: 0, left: 0, right: 0, top: 0 }),
+}));
 
 // The real Clerk SDK (reached through the Workout cards) opens a MessagePort
 // at import that keeps Jest alive.
-jest.mock<typeof import("~/lib/clerk")>(import("~/lib/clerk"), () => ({
+jest.mock("~/lib/clerk", () => ({
   getCurrentUserId: () =>
     jest.requireActual<typeof import("~/test-utils/fake-public-api")>(
       "~/test-utils/fake-public-api"
     ).FAKE_USER_ID,
 }));
 
-jest.mock<typeof import("~/lib/segment")>(import("~/lib/segment"), () => ({
+jest.mock("~/lib/segment", () => ({
   segmentClient: { track: jest.fn() },
 }));
 
-jest.mock<typeof import("~/hooks/revenueCat")>(
-  import("~/hooks/revenueCat"),
-  () => ({
-    useIsProQuery: () => ({ data: false }),
-  })
-);
+jest.mock("~/hooks/revenueCat", () => ({
+  useIsProQuery: () => ({ data: false }),
+}));
 
-jest.mock<typeof import("~/components/exercises/exercise-image")>(
-  import("~/components/exercises/exercise-image"),
-  () => () => null
-);
+jest.mock("~/components/exercises/exercise-image", () => () => null);
 
-jest.mock<typeof import("~/components/symbol-image")>(
-  import("~/components/symbol-image"),
-  () => ({ SymbolImage: () => null })
-);
+jest.mock("~/components/symbol-image", () => ({ SymbolImage: () => null }));
 
-jest.mock<typeof import("~/components/ui/button")>(
-  import("~/components/ui/button"),
-  () => jest.requireActual("~/test-utils/button-stub")
+jest.mock("~/components/ui/button", () =>
+  jest.requireActual("~/test-utils/button-stub")
 );
 
 const DELETE = "DELETE /v1/plans/{id}";

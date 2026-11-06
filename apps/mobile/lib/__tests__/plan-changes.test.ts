@@ -1,6 +1,5 @@
 import { createI18n } from "@fitme/i18n";
 import { describe, expect, it } from "@jest/globals";
-import { describe, expect, it } from "vitest";
 
 import {
   countPlanChanges,
@@ -19,7 +18,7 @@ const nameOf = (slug: string) => NAMES[slug] ?? `<${slug}>`;
 
 const i18n = createI18n("en");
 
-describe(formatPlanChange, () => {
+describe("formatPlanChange", () => {
   it("lists a replacement's sets in kilograms, each Exercise by name", () => {
     expect(
       formatPlanChange(
@@ -189,7 +188,7 @@ describe("formatPlanChange in Ukrainian", () => {
   });
 });
 
-describe(planUpdateSlugs, () => {
+describe("planUpdateSlugs", () => {
   it("lists every Exercise the changes name, a replacement's both", () => {
     expect(
       planUpdateSlugs([
@@ -205,7 +204,7 @@ describe(planUpdateSlugs, () => {
   });
 });
 
-describe(countPlanChanges, () => {
+describe("countPlanChanges", () => {
   it("counts each kind, zero included", () => {
     expect(
       countPlanChanges([

@@ -1,7 +1,6 @@
 import { afterEach, describe, expect, it, jest } from "@jest/globals";
 import { fireEvent, render, screen } from "@testing-library/react-native";
 import { Keyboard, Pressable, Text, TextInput } from "react-native";
-import { afterEach, describe, expect, it } from "vitest";
 
 import "~/test-utils/auth-ui";
 import { AuthScreen } from "~/components/auth/auth-screen";
@@ -45,6 +44,6 @@ describe("auth screen accessibility", () => {
     const dismiss = jest.spyOn(Keyboard, "dismiss");
     await show();
     await fireEvent.press(screen.getByTestId("background"));
-    expect(dismiss).toHaveBeenCalledOnce();
+    expect(dismiss).toHaveBeenCalledTimes(1);
   });
 });

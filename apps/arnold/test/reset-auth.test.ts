@@ -66,7 +66,7 @@ describe("account deletion reset authentication", () => {
   });
 
   it("accepts nothing when the secret is unset", async () => {
-    const unconfigured = accountDeletionReset({ secret: () => {} });
+    const unconfigured = accountDeletionReset({ secret: () => undefined });
 
     const result = await routeAuth(
       request(`Bearer ${SECRET}`, "/eve/v1/session/wrun_alice/reset"),

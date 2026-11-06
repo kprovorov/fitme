@@ -5,7 +5,6 @@ import { ApiError } from "@fitme/api-client";
  * over its in-memory rows.
  */
 import { beforeEach, describe, expect, it } from "@jest/globals";
-import { it, describe, expect, beforeEach } from "vitest";
 
 import { publicApi } from "~/lib/public-api";
 import { libraryExercise, serveLibrary } from "~/test-utils/fake-library";

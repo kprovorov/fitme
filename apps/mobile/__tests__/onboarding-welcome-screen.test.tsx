@@ -5,36 +5,31 @@
 import { describe, expect, it, jest } from "@jest/globals";
 import { fireEvent, render, screen } from "@testing-library/react-native";
 import type { ReactNode } from "react";
-import { describe, expect, it } from "vitest";
 
 import WelcomeScreen from "~/app/onboarding";
 import { useAppLanguageSync } from "~/lib/i18n";
 import { storage } from "~/lib/mmkv";
 import { setDeviceLanguages } from "~/test-utils/device-locales";
 
-jest.mock<typeof import("expo-router")>(import("expo-router"), () => ({
+jest.mock("expo-router", () => ({
   Link: ({ children }: { children: ReactNode }) => children,
   router: { dismissTo: jest.fn() },
   Stack: { Screen: () => null },
 }));
 
-jest.mock<typeof import("@clerk/expo")>(import("@clerk/expo"), () => ({
+jest.mock("@clerk/expo", () => ({
   useUser: () => ({ isLoaded: true, user: { id: "user_welcome" } }),
 }));
 
-jest.mock<typeof import("react-native-safe-area-context")>(
-  import("react-native-safe-area-context"),
-  () => {
-    const { View } =
-      jest.requireActual<typeof import("react-native")>("react-native");
+jest.mock("react-native-safe-area-context", () => {
+  const { View } =
+    jest.requireActual<typeof import("react-native")>("react-native");
 
-    return { SafeAreaView: View };
-  }
-);
+  return { SafeAreaView: View };
+});
 
-jest.mock<typeof import("~/components/ui/button")>(
-  import("~/components/ui/button"),
-  () => jest.requireActual("~/test-utils/button-stub")
+jest.mock("~/components/ui/button", () =>
+  jest.requireActual("~/test-utils/button-stub")
 );
 
 /** The screen under the root layout's language sync. */

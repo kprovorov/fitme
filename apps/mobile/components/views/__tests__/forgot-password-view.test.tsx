@@ -1,7 +1,6 @@
 import { beforeEach, describe, expect, it, jest } from "@jest/globals";
 import { fireEvent, render, screen } from "@testing-library/react-native";
 import { router } from "expo-router";
-import { it, describe, expect, beforeEach } from "vitest";
 
 import "~/test-utils/auth-ui";
 
@@ -30,25 +29,21 @@ const mockSignIn = {
   },
 };
 
-jest.mock<typeof import("@clerk/expo")>(import("@clerk/expo"), () => ({
+jest.mock("@clerk/expo", () => ({
   isClerkAPIResponseError: (error: { isClerkApiError?: boolean }) =>
     error.isClerkApiError === true,
   useSignIn: () => ({ fetchStatus: "idle", signIn: mockSignIn }),
 }));
 
-jest.mock<typeof import("@clerk/expo/token-cache")>(
-  import("@clerk/expo/token-cache"),
-  () => ({ tokenCache: {} })
-);
+jest.mock("@clerk/expo/token-cache", () => ({ tokenCache: {} }));
 
-jest.mock<typeof import("expo-router")>(import("expo-router"), () => ({
+jest.mock("expo-router", () => ({
   Link: ({ children }: { children: unknown }) => children,
   router: { push: jest.fn() },
 }));
 
-jest.mock<typeof import("~/components/ui/button")>(
-  import("~/components/ui/button"),
-  () => jest.requireActual("~/test-utils/button-stub")
+jest.mock("~/components/ui/button", () =>
+  jest.requireActual("~/test-utils/button-stub")
 );
 
 const requestReset = async (email: string) => {
@@ -60,7 +55,7 @@ beforeEach(() => {
   jest.clearAllMocks();
 });
 
-describe(ForgotPasswordView, () => {
+describe("ForgotPasswordView", () => {
   it("emails a reset code and opens the code screen", async () => {
     await render(<ForgotPasswordView />);
 
@@ -69,7 +64,7 @@ describe(ForgotPasswordView, () => {
     expect(mockSignIn.create).toHaveBeenCalledWith({
       identifier: KNOWN_EMAIL,
     });
-    expect(mockSignIn.resetPasswordEmailCode.sendCode).toHaveBeenCalledOnce();
+    expect(mockSignIn.resetPasswordEmailCode.sendCode).toHaveBeenCalledTimes(1);
     expect(router.push).toHaveBeenCalledWith({
       params: { purpose: "reset-password" },
       pathname: "/auth/verify-code",

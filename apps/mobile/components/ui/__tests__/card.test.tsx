@@ -1,12 +1,11 @@
 import { describe, expect, it } from "@jest/globals";
 import { render, screen } from "@testing-library/react-native";
 import { Text } from "react-native";
-import { describe, expect, it } from "vitest";
 
 import { Card, CardContent, CardDescription, CardTitle } from "../card";
 import { Text as UIText } from "../text";
 
-describe(Card, () => {
+describe("Card", () => {
   it("renders its children with no styling props", async () => {
     await render(
       <Card>

@@ -3,7 +3,6 @@ import { afterEach, describe, expect, it, jest } from "@jest/globals";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { render, screen, within } from "@testing-library/react-native";
 import type { ReactNode } from "react";
-import { afterEach, describe, expect, it } from "vitest";
 
 import type { WorkoutSessionHistoryEntry } from "~/hooks/queries/workout-sessions";
 import { i18n } from "~/lib/i18n";
@@ -15,7 +14,7 @@ import { createTestQueryClient } from "~/test-utils/query-client";
 import WorkoutSessionHistoryRow from "../workout-session-history-row";
 
 // The Link as a view naming where it goes, so a test can follow the row.
-jest.mock<typeof import("expo-router")>(import("expo-router"), () => ({
+jest.mock("expo-router", () => ({
   Link: ({ children, href }: { children: ReactNode; href: string }) => {
     const { View } =
       jest.requireActual<typeof import("react-native")>("react-native");
@@ -24,10 +23,7 @@ jest.mock<typeof import("expo-router")>(import("expo-router"), () => ({
   },
 }));
 
-jest.mock<typeof import("~/components/symbol-image")>(
-  import("~/components/symbol-image"),
-  () => ({ SymbolImage: () => null })
-);
+jest.mock("~/components/symbol-image", () => ({ SymbolImage: () => null }));
 
 // Wednesday 21 October 2026, 18:05 local time, for 42 minutes.
 const startedAt = new Date(2026, 9, 21, 18, 5);
@@ -70,7 +66,7 @@ const renderRow = (shown = entry, weightUnit: "kg" | "lbs" = "kg") =>
     </QueryClientProvider>
   );
 
-describe(WorkoutSessionHistoryRow, () => {
+describe("WorkoutSessionHistoryRow", () => {
   it("shows the date tile, name, duration, logged sets and volume", async () => {
     await renderRow();
 

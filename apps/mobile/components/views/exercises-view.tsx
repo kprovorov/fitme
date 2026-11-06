@@ -133,7 +133,7 @@ const ExercisesView = ({
     setRefreshing(true);
 
     // A refetch never rejects: a failure is the query's error state.
-    return refetch().then(() => setRefreshing(false));
+    void refetch().then(() => setRefreshing(false));
   }, [refetch]);
 
   const retry = useCallback(() => {

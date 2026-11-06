@@ -13,7 +13,6 @@ import {
   it,
   jest,
 } from "@jest/globals";
-import { it, afterEach, describe, expect, beforeEach } from "vitest";
 
 import { useArnoldModelsQuery } from "~/hooks/queries/arnold-models";
 import { CLERK_LOAD_TIMEOUT_MS, publicApi } from "~/lib/public-api";
@@ -73,7 +72,7 @@ const mockClerk = {
   status: "loading" as Status,
 };
 
-jest.mock<typeof import("~/lib/clerk")>(import("~/lib/clerk"), () => ({
+jest.mock("~/lib/clerk", () => ({
   getClerk: () => mockClerk,
 }));
 
@@ -111,7 +110,7 @@ afterEach(() => {
   }
 });
 
-describe(publicApi, () => {
+describe("publicApi", () => {
   it("holds a request until Clerk has loaded, then sends it with the session token", async () => {
     const read = readProfile();
     await flush();

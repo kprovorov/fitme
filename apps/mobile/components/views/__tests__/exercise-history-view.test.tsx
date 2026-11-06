@@ -11,7 +11,6 @@ import { QueryClientProvider } from "@tanstack/react-query";
 import type { QueryClient } from "@tanstack/react-query";
 import { act, render, screen } from "@testing-library/react-native";
 import type { ReactNode } from "react";
-import { it, afterEach, describe, expect, beforeEach } from "vitest";
 
 import { i18n } from "~/lib/i18n";
 import { storage } from "~/lib/mmkv";
@@ -33,15 +32,14 @@ const SET_NUMBER = /^#\d$/;
 const SESSION_DATE = /^October \d+(, \d{4})?$/;
 
 // The real Clerk SDK opens a MessagePort at import that keeps Jest alive.
-jest.mock<typeof import("~/lib/clerk")>(import("~/lib/clerk"), () => ({
+jest.mock("~/lib/clerk", () => ({
   getCurrentUserId: jest.requireActual<
     typeof import("~/test-utils/signed-in-user")
   >("~/test-utils/signed-in-user").getCurrentUserId,
 }));
 
-jest.mock<typeof import("~/components/ui/button")>(
-  import("~/components/ui/button"),
-  () => jest.requireActual("~/test-utils/button-stub")
+jest.mock("~/components/ui/button", () =>
+  jest.requireActual("~/test-utils/button-stub")
 );
 
 let queryClient: QueryClient;
@@ -95,7 +93,7 @@ afterEach(async () => {
   setDeviceConventions(i18n, { region: "US", uses24hourClock: false });
 });
 
-describe(ExerciseHistoryView, () => {
+describe("ExerciseHistoryView", () => {
   it("shows each past session as a table of its sets under Progress", async () => {
     seedSession("e1", "2026-10-21T10:00:00.000Z", [
       { reps: 12 },

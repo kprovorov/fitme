@@ -56,13 +56,10 @@ const renderRules: RenderRules = {
       source: { uri: node.url },
       // SAFETY: getMergedStyles flattens the image entry, whose styles are consumed only by Image.
       style: styles.image as ImageStyle,
+      ...(node.alt
+        ? { accessibilityLabel: node.alt, accessible: true, alt: node.alt }
+        : {}),
     };
-
-    if (node.alt) {
-      imageProps.accessibilityLabel = node.alt;
-      imageProps.accessible = true;
-      imageProps.alt = node.alt;
-    }
 
     return <Image key={node.key} {...imageProps} />;
   },

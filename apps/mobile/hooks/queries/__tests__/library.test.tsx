@@ -10,7 +10,6 @@ import {
 import { QueryClientProvider } from "@tanstack/react-query";
 import { act, renderHook, waitFor } from "@testing-library/react-native";
 import type { ReactNode } from "react";
-import { it, afterEach, describe, expect, beforeEach } from "vitest";
 
 import { i18n } from "~/lib/i18n";
 import { storage } from "~/lib/mmkv";
@@ -23,8 +22,8 @@ import { createTestQueryClient } from "~/test-utils/query-client";
 
 import { useExerciseDetailQuery, useExercises } from "../library";
 
-jest.mock<typeof import("~/lib/library")>(
-  import("~/lib/library"),
+jest.mock(
+  "~/lib/library",
   () =>
     jest.requireActual<typeof import("~/test-utils/fake-library")>(
       "~/test-utils/fake-library"
@@ -218,7 +217,7 @@ describe("the App language", () => {
   });
 });
 
-describe(useExercises, () => {
+describe("useExercises", () => {
   it("resolves a large slug set through the client in chunks of 40", async () => {
     const slugs = Array.from(
       { length: 100 },
@@ -366,7 +365,7 @@ describe(useExercises, () => {
       wrapper: newWrapper(),
     });
 
-    await waitFor(() => expect(lookup).toHaveBeenCalledWith());
+    await waitFor(() => expect(lookup).toHaveBeenCalled());
     expect(result.current["bench-press"]).toMatchObject({
       isResolved: false,
       name: "Bench press",
@@ -374,7 +373,7 @@ describe(useExercises, () => {
   });
 });
 
-describe(useExerciseDetailQuery, () => {
+describe("useExerciseDetailQuery", () => {
   it("shows an Exercise seen before from MMKV while offline", async () => {
     const fake = serveLibrary([libraryExercise("bench-press")]);
 

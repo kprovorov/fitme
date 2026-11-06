@@ -1,88 +1,81 @@
 import { describe, expect, it, jest } from "@jest/globals";
 import { fireEvent, render, screen } from "@testing-library/react-native";
 import type * as React from "react";
-import { describe, expect, it } from "vitest";
 
 import { FinishWorkoutSuggestionDialog } from "../finish-workout-suggestion-dialog";
 
 // The real primitives render native SwiftUI views that can't mount under
 // Jest, so they're swapped for plain React Native stand-ins that keep the
 // props this component relies on.
-jest.mock<typeof import("~/components/ui/dialog")>(
-  import("~/components/ui/dialog"),
-  () => {
-    const { View } =
-      jest.requireActual<typeof import("react-native")>("react-native");
+jest.mock("~/components/ui/dialog", () => {
+  const { View } =
+    jest.requireActual<typeof import("react-native")>("react-native");
 
-    return {
-      Dialog: ({
-        children,
-        dismissDisabled,
-        isPresented,
-        onIsPresentedChange,
-      }: {
-        children?: React.ReactNode;
-        dismissDisabled?: boolean;
-        isPresented: boolean;
-        onIsPresentedChange: (isPresented: boolean) => void;
-      }) => (
-        // Tests read the sheet's props off this view and fire
-        // `isPresentedChange` on it the way the native sheet does when swiped
-        // down or tapped outside.
-        <View
-          {...{ dismissDisabled, isPresented, onIsPresentedChange }}
-          testID="native-sheet"
-        >
-          {isPresented ? children : null}
-        </View>
-      ),
-    };
-  }
-);
+  return {
+    Dialog: ({
+      children,
+      dismissDisabled,
+      isPresented,
+      onIsPresentedChange,
+    }: {
+      children?: React.ReactNode;
+      dismissDisabled?: boolean;
+      isPresented: boolean;
+      onIsPresentedChange: (isPresented: boolean) => void;
+    }) => (
+      // Tests read the sheet's props off this view and fire
+      // `isPresentedChange` on it the way the native sheet does when swiped
+      // down or tapped outside.
+      <View
+        {...{ dismissDisabled, isPresented, onIsPresentedChange }}
+        testID="native-sheet"
+      >
+        {isPresented ? children : null}
+      </View>
+    ),
+  };
+});
 
-jest.mock<typeof import("~/components/ui/button")>(
-  import("~/components/ui/button"),
-  () => {
-    const { Pressable, Text } =
-      jest.requireActual<typeof import("react-native")>("react-native");
+jest.mock("~/components/ui/button", () => {
+  const { Pressable, Text } =
+    jest.requireActual<typeof import("react-native")>("react-native");
 
-    return {
-      Button: ({
-        accessibilityHint,
-        accessibilityLabel,
-        disabled,
-        isLoading,
-        label,
-        onPress,
-        testID,
-      }: {
-        accessibilityHint?: string;
-        accessibilityLabel?: string;
-        disabled?: boolean;
-        isLoading?: boolean;
-        label?: string;
-        onPress?: () => void;
-        testID?: string;
-      }) => (
-        <Pressable
-          accessibilityHint={accessibilityHint}
-          accessibilityLabel={accessibilityLabel}
-          accessibilityRole="button"
-          accessibilityState={{
-            busy: !!isLoading,
-            disabled: !!(disabled || isLoading),
-          }}
-          // Presses always go through, so the tests exercise the component's own
-          // duplicate-tap guard rather than the native disabled state.
-          onPress={onPress}
-          testID={testID}
-        >
-          {label ? <Text>{label}</Text> : null}
-        </Pressable>
-      ),
-    };
-  }
-);
+  return {
+    Button: ({
+      accessibilityHint,
+      accessibilityLabel,
+      disabled,
+      isLoading,
+      label,
+      onPress,
+      testID,
+    }: {
+      accessibilityHint?: string;
+      accessibilityLabel?: string;
+      disabled?: boolean;
+      isLoading?: boolean;
+      label?: string;
+      onPress?: () => void;
+      testID?: string;
+    }) => (
+      <Pressable
+        accessibilityHint={accessibilityHint}
+        accessibilityLabel={accessibilityLabel}
+        accessibilityRole="button"
+        accessibilityState={{
+          busy: !!isLoading,
+          disabled: !!(disabled || isLoading),
+        }}
+        // Presses always go through, so the tests exercise the component's own
+        // duplicate-tap guard rather than the native disabled state.
+        onPress={onPress}
+        testID={testID}
+      >
+        {label ? <Text>{label}</Text> : null}
+      </Pressable>
+    ),
+  };
+});
 
 type Props = React.ComponentProps<typeof FinishWorkoutSuggestionDialog>;
 
@@ -118,7 +111,7 @@ const setup = async (props: Partial<Props> = {}) => {
   };
 };
 
-describe(FinishWorkoutSuggestionDialog, () => {
+describe("FinishWorkoutSuggestionDialog", () => {
   it("passes the open state to the sheet", async () => {
     const { rerender } = await setup({ open: false });
     expect(sheet()).toHaveProp("isPresented", false);
@@ -168,7 +161,7 @@ describe(FinishWorkoutSuggestionDialog, () => {
 
     await fireEvent.press(screen.getByRole("button", FINISH));
 
-    expect(onFinish).toHaveBeenCalledOnce();
+    expect(onFinish).toHaveBeenCalledTimes(1);
     expect(onKeepTraining).not.toHaveBeenCalled();
   });
 
@@ -180,7 +173,7 @@ describe(FinishWorkoutSuggestionDialog, () => {
     await fireEvent.press(finish);
     await fireEvent.press(finish);
 
-    expect(onFinish).toHaveBeenCalledOnce();
+    expect(onFinish).toHaveBeenCalledTimes(1);
   });
 
   it("ignores Finish taps while isFinishing is set", async () => {
@@ -190,7 +183,7 @@ describe(FinishWorkoutSuggestionDialog, () => {
     await rerender({ isFinishing: true });
     await fireEvent.press(screen.getByRole("button", FINISH));
 
-    expect(onFinish).toHaveBeenCalledOnce();
+    expect(onFinish).toHaveBeenCalledTimes(1);
   });
 
   it("locks the dialog as soon as Finish is tapped", async () => {
@@ -226,7 +219,7 @@ describe(FinishWorkoutSuggestionDialog, () => {
     await fireEvent.press(screen.getByRole("button", KEEP_TRAINING));
     await fireEvent.press(screen.getByRole("button", CLOSE));
 
-    expect(onFinish).toHaveBeenCalledOnce();
+    expect(onFinish).toHaveBeenCalledTimes(1);
     expect(onKeepTraining).not.toHaveBeenCalled();
   });
 
@@ -247,7 +240,7 @@ describe(FinishWorkoutSuggestionDialog, () => {
     await rerender({ isFinishing: true });
     await rerender({ isFinishing: false });
     await dismissSheet();
-    expect(onKeepTraining).toHaveBeenCalledOnce();
+    expect(onKeepTraining).toHaveBeenCalledTimes(1);
   });
 
   it("unlocks when onFinish throws", async () => {
@@ -282,7 +275,7 @@ describe(FinishWorkoutSuggestionDialog, () => {
 
     await fireEvent.press(screen.getByRole("button", KEEP_TRAINING));
 
-    expect(onKeepTraining).toHaveBeenCalledOnce();
+    expect(onKeepTraining).toHaveBeenCalledTimes(1);
     expect(onFinish).not.toHaveBeenCalled();
   });
 
@@ -291,7 +284,7 @@ describe(FinishWorkoutSuggestionDialog, () => {
 
     await fireEvent.press(screen.getByRole("button", CLOSE));
 
-    expect(onKeepTraining).toHaveBeenCalledOnce();
+    expect(onKeepTraining).toHaveBeenCalledTimes(1);
     expect(onFinish).not.toHaveBeenCalled();
   });
 
@@ -300,7 +293,7 @@ describe(FinishWorkoutSuggestionDialog, () => {
 
     await dismissSheet();
 
-    expect(onKeepTraining).toHaveBeenCalledOnce();
+    expect(onKeepTraining).toHaveBeenCalledTimes(1);
     expect(onFinish).not.toHaveBeenCalled();
   });
 
@@ -311,7 +304,7 @@ describe(FinishWorkoutSuggestionDialog, () => {
     await dismissSheet();
     await fireEvent.press(screen.getByRole("button", CLOSE));
 
-    expect(onKeepTraining).toHaveBeenCalledOnce();
+    expect(onKeepTraining).toHaveBeenCalledTimes(1);
   });
 
   it("does not report Keep Training when the caller closes the dialog", async () => {
@@ -332,7 +325,7 @@ describe(FinishWorkoutSuggestionDialog, () => {
 
     expect(screen.getByRole("button", FINISH)).not.toBeBusy();
     await fireEvent.press(screen.getByRole("button", KEEP_TRAINING));
-    expect(onKeepTraining).toHaveBeenCalledOnce();
-    expect(onFinish).toHaveBeenCalledOnce();
+    expect(onKeepTraining).toHaveBeenCalledTimes(1);
+    expect(onFinish).toHaveBeenCalledTimes(1);
   });
 });

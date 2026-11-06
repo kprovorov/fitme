@@ -1,4 +1,5 @@
 import "@/polyfills";
+import "~/lib/i18n";
 import {
   NunitoSans_400Regular,
   NunitoSans_600SemiBold,

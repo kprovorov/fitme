@@ -24,7 +24,7 @@ import {
   useState,
 } from "react";
 import type { ReactNode } from "react";
-import { Controller, useController, useForm } from "react-hook-form";
+import { Controller, useController, useForm, useWatch } from "react-hook-form";
 import type {
   Control,
   ControllerFieldState,
@@ -538,17 +538,17 @@ const ProfileForm = ({
     [handleNameFocus, isFormSubmitting, t]
   );
 
-  // The rows read `getValues`, so this re-validation is also what re-renders
-  // them with a wheel's new value.
+  // Re-validate the field after the wheel changes its value.
   const handleWheelChange = useCallback(() => {
     if (activeWheel) {
       form.trigger(activeWheel);
     }
   }, [activeWheel, form]);
 
-  const age = form.getValues("age");
-  const weight = form.getValues("weight");
-  const height = form.getValues("height");
+  const [age, weight, height] = useWatch({
+    control: form.control,
+    name: ["age", "weight", "height"],
+  });
 
   return (
     <>

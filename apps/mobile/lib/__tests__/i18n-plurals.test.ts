@@ -11,7 +11,6 @@ import {
   it,
   jest,
 } from "@jest/globals";
-import { it, afterEach, describe, expect, beforeEach } from "vitest";
 
 const nodePluralRules = Intl.PluralRules;
 

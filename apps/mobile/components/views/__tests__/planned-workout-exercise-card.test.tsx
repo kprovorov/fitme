@@ -1,6 +1,5 @@
 import { beforeEach, describe, expect, it, jest } from "@jest/globals";
 import { fireEvent, render, screen } from "@testing-library/react-native";
-import { it, describe, expect, beforeEach } from "vitest";
 
 import type { ShownExercise } from "~/hooks/queries/library";
 import type { PlanExercise, PlanSet } from "~/hooks/queries/plans";
@@ -9,23 +8,16 @@ import PlannedWorkoutExerciseCard from "../planned-workout-exercise-card";
 
 const mockPush = jest.fn();
 
-jest.mock<typeof import("expo-router")>(import("expo-router"), () => ({
+jest.mock("expo-router", () => ({
   useRouter: () => ({ push: mockPush }),
 }));
 
-jest.mock<typeof import("~/components/exercises/exercise-image")>(
-  import("~/components/exercises/exercise-image"),
-  () => () => null
-);
+jest.mock("~/components/exercises/exercise-image", () => () => null);
 
-jest.mock<typeof import("~/components/symbol-image")>(
-  import("~/components/symbol-image"),
-  () => ({ SymbolImage: () => null })
-);
+jest.mock("~/components/symbol-image", () => ({ SymbolImage: () => null }));
 
-jest.mock<typeof import("~/components/ui/button")>(
-  import("~/components/ui/button"),
-  () => jest.requireActual("~/test-utils/button-stub")
+jest.mock("~/components/ui/button", () =>
+  jest.requireActual("~/test-utils/button-stub")
 );
 
 const BENCH: ShownExercise = {
@@ -67,7 +59,7 @@ beforeEach(() => {
   mockPush.mockClear();
 });
 
-describe(PlannedWorkoutExerciseCard, () => {
+describe("PlannedWorkoutExerciseCard", () => {
   it("shows every set's target and rest, in order", async () => {
     await render(
       <PlannedWorkoutExerciseCard

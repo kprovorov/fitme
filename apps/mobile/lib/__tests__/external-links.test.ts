@@ -2,17 +2,13 @@ import { beforeEach, describe, expect, it, jest } from "@jest/globals";
 import * as Sentry from "@sentry/react-native";
 import * as WebBrowser from "expo-web-browser";
 import { Linking } from "react-native";
-import { it, describe, expect, beforeEach } from "vitest";
 
 import { openUrl, openWebPage, TERMS_URL } from "../external-links";
 
-jest.mock<typeof import("expo-web-browser")>(
-  import("expo-web-browser"),
-  () => ({
-    openBrowserAsync: jest.fn(),
-    WebBrowserPresentationStyle: { AUTOMATIC: "automatic" },
-  })
-);
+jest.mock("expo-web-browser", () => ({
+  openBrowserAsync: jest.fn(),
+  WebBrowserPresentationStyle: { AUTOMATIC: "automatic" },
+}));
 
 const openBrowserAsync = jest.mocked(WebBrowser.openBrowserAsync);
 const captureException = jest.mocked(Sentry.captureException);
@@ -24,7 +20,7 @@ beforeEach(() => {
   openURL.mockReset();
 });
 
-describe(openWebPage, () => {
+describe("openWebPage", () => {
   it("opens the page in the in-app browser", async () => {
     openBrowserAsync.mockResolvedValue({
       type: "dismiss",
@@ -60,7 +56,7 @@ describe(openWebPage, () => {
   });
 });
 
-describe(openUrl, () => {
+describe("openUrl", () => {
   it("hands the URL to the system", async () => {
     openURL.mockResolvedValue(undefined);
 

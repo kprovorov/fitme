@@ -6,7 +6,6 @@ import { beforeEach, describe, expect, it } from "@jest/globals";
  * sent file as metadata only, the way eve's `message.received` does.
  */
 import { Client, ClientError } from "eve/client";
-import { it, describe, expect, beforeEach } from "vitest";
 
 import { FAKE_ARNOLD_REPLY, fakeArnold } from "~/test-utils/fake-arnold";
 

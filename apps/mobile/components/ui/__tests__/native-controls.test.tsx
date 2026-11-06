@@ -2,7 +2,6 @@ import { describe, expect, it, jest } from "@jest/globals";
 import { render, screen } from "@testing-library/react-native";
 import type * as React from "react";
 import { Text } from "react-native";
-import { describe, expect, it } from "vitest";
 
 import { AlertDialog } from "~/components/ui/alert-dialog";
 import { ContextMenu } from "~/components/ui/context-menu";
@@ -26,128 +25,119 @@ interface Modifier {
 // `{ type, args }` records and its `color`, and renders its node props (a
 // Section's header and footer, a Menu's label view) as children, a string
 // child (a Text's) inside a React Native Text.
-jest.mock<typeof import("@expo/ui/swift-ui/modifiers")>(
-  import("@expo/ui/swift-ui/modifiers"),
-  () => {
-    const modifier =
-      (type: string) =>
-      (...args: unknown[]) => ({ args, type });
+jest.mock("@expo/ui/swift-ui/modifiers", () => {
+  const modifier =
+    (type: string) =>
+    (...args: unknown[]) => ({ args, type });
 
-    return {
-      accessibilityLabel: modifier("accessibilityLabel"),
-      contentShape: modifier("contentShape"),
-      disabled: modifier("disabled"),
-      foregroundStyle: modifier("foregroundStyle"),
-      frame: modifier("frame"),
-      interactiveDismissDisabled: modifier("interactiveDismissDisabled"),
-      labelsHidden: modifier("labelsHidden"),
-      listRowBackground: modifier("listRowBackground"),
-      listRowSeparatorTint: modifier("listRowSeparatorTint"),
-      pickerStyle: modifier("pickerStyle"),
-      scrollContentBackground: modifier("scrollContentBackground"),
-      shapes: { rectangle: () => "rectangle" },
-      tag: modifier("tag"),
-      tint: modifier("tint"),
+  return {
+    accessibilityLabel: modifier("accessibilityLabel"),
+    contentShape: modifier("contentShape"),
+    disabled: modifier("disabled"),
+    foregroundStyle: modifier("foregroundStyle"),
+    frame: modifier("frame"),
+    interactiveDismissDisabled: modifier("interactiveDismissDisabled"),
+    labelsHidden: modifier("labelsHidden"),
+    listRowBackground: modifier("listRowBackground"),
+    listRowSeparatorTint: modifier("listRowSeparatorTint"),
+    pickerStyle: modifier("pickerStyle"),
+    scrollContentBackground: modifier("scrollContentBackground"),
+    shapes: { rectangle: () => "rectangle" },
+    tag: modifier("tag"),
+    tint: modifier("tint"),
+  };
+});
+
+jest.mock("@expo/ui/swift-ui", () => {
+  const { Text: RNText, View } =
+    jest.requireActual<typeof import("react-native")>("react-native");
+
+  const { isValidElement } =
+    jest.requireActual<typeof import("react")>("react");
+
+  // Lowercase, so React Refresh doesn't register it from inside the factory
+  const view =
+    (name: string) =>
+    ({
+      children,
+      color,
+      footer,
+      header,
+      label,
+      modifiers,
+    }: {
+      children?: React.ReactNode;
+      color?: string;
+      footer?: React.ReactNode;
+      header?: React.ReactNode;
+      label?: React.ReactNode;
+      modifiers?: Modifier[];
+    }) => {
+      const content =
+        typeof children === "string" ? <RNText>{children}</RNText> : children;
+
+      return (
+        <View
+          testID={`native-${name}`}
+          {...{ color, modifierRecords: modifiers ?? [] }}
+        >
+          {header}
+          {isValidElement(label) ? label : null}
+          {content}
+          {footer}
+        </View>
+      );
     };
-  }
-);
 
-jest.mock<typeof import("@expo/ui/swift-ui")>(
-  import("@expo/ui/swift-ui"),
-  () => {
-    const { Text: RNText, View } =
-      jest.requireActual<typeof import("react-native")>("react-native");
-
-    const { isValidElement } =
-      jest.requireActual<typeof import("react")>("react");
-
-    // Lowercase, so React Refresh doesn't register it from inside the factory
-    const view =
-      (name: string) =>
-      ({
-        children,
-        color,
-        footer,
-        header,
-        label,
-        modifiers,
-      }: {
-        children?: React.ReactNode;
-        color?: string;
-        footer?: React.ReactNode;
-        header?: React.ReactNode;
-        label?: React.ReactNode;
-        modifiers?: Modifier[];
-      }) => {
-        const content =
-          typeof children === "string" ? <RNText>{children}</RNText> : children;
-
-        return (
-          <View
-            testID={`native-${name}`}
-            {...{ color, modifierRecords: modifiers ?? [] }}
-          >
-            {header}
-            {isValidElement(label) ? label : null}
-            {content}
-            {footer}
-          </View>
-        );
-      };
-
-    return {
-      Alert: Object.assign(view("Alert"), {
-        Actions: view("Alert.Actions"),
-        Message: view("Alert.Message"),
-        Trigger: view("Alert.Trigger"),
-      }),
-      BottomSheet: view("BottomSheet"),
-      Button: view("Button"),
-      ContextMenu: Object.assign(view("ContextMenu"), {
-        Items: view("ContextMenu.Items"),
-        Trigger: view("ContextMenu.Trigger"),
-      }),
-      Divider: view("Divider"),
-      Form: view("Form"),
-      Group: view("Group"),
-      Host: view("Host"),
-      Image: view("Image"),
-      Label: view("Label"),
-      Menu: view("Menu"),
-      Picker: view("Picker"),
-      RNHostView: view("RNHostView"),
-      Section: view("Section"),
-      Slider: view("Slider"),
-      Spacer: view("Spacer"),
-      Text: view("Text"),
-      Toggle: view("Toggle"),
-    };
-  }
-);
+  return {
+    Alert: Object.assign(view("Alert"), {
+      Actions: view("Alert.Actions"),
+      Message: view("Alert.Message"),
+      Trigger: view("Alert.Trigger"),
+    }),
+    BottomSheet: view("BottomSheet"),
+    Button: view("Button"),
+    ContextMenu: Object.assign(view("ContextMenu"), {
+      Items: view("ContextMenu.Items"),
+      Trigger: view("ContextMenu.Trigger"),
+    }),
+    Divider: view("Divider"),
+    Form: view("Form"),
+    Group: view("Group"),
+    Host: view("Host"),
+    Image: view("Image"),
+    Label: view("Label"),
+    Menu: view("Menu"),
+    Picker: view("Picker"),
+    RNHostView: view("RNHostView"),
+    Section: view("Section"),
+    Slider: view("Slider"),
+    Spacer: view("Spacer"),
+    Text: view("Text"),
+    Toggle: view("Toggle"),
+  };
+});
 
 // Reanimated's worklets need a native module; WheelSelect's drawer only needs
 // a View.
-jest.mock<typeof import("react-native-reanimated")>(
-  import("react-native-reanimated"),
-  () => {
-    const { View } =
-      jest.requireActual<typeof import("react-native")>("react-native");
+jest.mock("react-native-reanimated", () => {
+  const { View } =
+    jest.requireActual<typeof import("react-native")>("react-native");
 
-    return {
-      __esModule: true,
-      default: { View },
-      useAnimatedStyle: () => ({}),
-      useSharedValue: (value: number) => ({ value }),
-      withTiming: (value: number) => value,
-    };
-  }
-);
+  return {
+    __esModule: true,
+    default: { View },
+    useAnimatedStyle: () => ({}),
+    useSharedValue: (value: number) => ({ value }),
+    withTiming: (value: number) => value,
+  };
+});
 
 // uniwind resolves no theme values under Jest, so each color class resolves to
 // its own name: a tint of "text-primary" is the `--color-primary` token.
 const mockColorClass = /^text-[a-z-]+$/;
 
-jest.mock<typeof import("uniwind")>(import("uniwind"), () => {
+jest.mock("uniwind", () => {
   const actual = jest.requireActual<typeof import("uniwind")>("uniwind");
 
   return {

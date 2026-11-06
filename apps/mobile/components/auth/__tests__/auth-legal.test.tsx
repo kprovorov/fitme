@@ -3,24 +3,20 @@ import * as Sentry from "@sentry/react-native";
 import { fireEvent, render, screen } from "@testing-library/react-native";
 import * as WebBrowser from "expo-web-browser";
 import { Linking } from "react-native";
-import { test, expect, beforeEach } from "vitest";
 
 import { PRIVACY_POLICY_URL, TERMS_URL } from "~/lib/external-links";
 
 import { AuthLegal } from "../auth-links";
 
 // AuthLegal never navigates; the real router pulls in ESM-only modules
-jest.mock<typeof import("expo-router")>(import("expo-router"), () => ({
+jest.mock("expo-router", () => ({
   router: { replace: jest.fn() },
 }));
 
-jest.mock<typeof import("expo-web-browser")>(
-  import("expo-web-browser"),
-  () => ({
-    openBrowserAsync: jest.fn(),
-    WebBrowserPresentationStyle: { AUTOMATIC: "automatic" },
-  })
-);
+jest.mock("expo-web-browser", () => ({
+  openBrowserAsync: jest.fn(),
+  WebBrowserPresentationStyle: { AUTOMATIC: "automatic" },
+}));
 
 const openBrowserAsync = jest.mocked(WebBrowser.openBrowserAsync);
 const openURL = jest.spyOn(Linking, "openURL");

@@ -8,7 +8,7 @@ import { useTranslation } from "react-i18next";
 import { useWindowDimensions, View } from "react-native";
 import { ScopedVariables, withUniwind } from "uniwind";
 
-import { Image } from "~/components/tw";
+import { Image } from "~/components/image";
 import { Button } from "~/components/ui/button";
 import { Separator } from "~/components/ui/separator";
 import { Text } from "~/components/ui/text";

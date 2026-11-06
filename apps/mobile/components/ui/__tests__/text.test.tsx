@@ -1,7 +1,6 @@
 import { describe, expect, it } from "@jest/globals";
 import { render, screen } from "@testing-library/react-native";
 import type * as React from "react";
-import { describe, expect, it } from "vitest";
 
 import { Text, TextClassContext } from "../text";
 import type { TextVariant } from "../text";
@@ -46,7 +45,7 @@ const HEADINGS = [
   ["h4", H4, 4],
 ] as const;
 
-describe(Text, () => {
+describe("Text", () => {
   it.each(VARIANTS)("renders its children as %s", async (variant) => {
     await render(<Text variant={variant}>{`Copy ${variant}`}</Text>);
 

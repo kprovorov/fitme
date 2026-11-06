@@ -10,7 +10,6 @@ import { QueryClientProvider } from "@tanstack/react-query";
 import { act, fireEvent, render, screen } from "@testing-library/react-native";
 import { AppState, Linking, Text } from "react-native";
 import type { AppStateStatus } from "react-native";
-import { it, afterEach, describe, expect, beforeEach } from "vitest";
 
 import { useClientConfigQuery } from "~/hooks/queries/client-config";
 import { i18n } from "~/lib/i18n";
@@ -24,7 +23,7 @@ const INSTALLED_VERSION = "1.4.0";
 const APP_STORE_URL = "https://apps.apple.com/app/id6741153628";
 const API_URL = "https://api.example.com";
 
-jest.mock<typeof import("expo-constants")>(import("expo-constants"), () => ({
+jest.mock("expo-constants", () => ({
   __esModule: true,
   default: {
     expoConfig: {
@@ -35,9 +34,8 @@ jest.mock<typeof import("expo-constants")>(import("expo-constants"), () => ({
   },
 }));
 
-jest.mock<typeof import("~/components/ui/button")>(
-  import("~/components/ui/button"),
-  () => jest.requireActual("~/test-utils/button-stub")
+jest.mock("~/components/ui/button", () =>
+  jest.requireActual("~/test-utils/button-stub")
 );
 
 const mockFetch = jest.fn<typeof fetch>();
@@ -79,7 +77,7 @@ beforeEach(() => {
   jest.clearAllMocks();
   process.env.EXPO_PUBLIC_API_URL = API_URL;
   global.fetch = mockFetch;
-  openURL.mockResolvedValue();
+  openURL.mockResolvedValue(undefined);
   jest.spyOn(AppState, "addEventListener").mockImplementation((_, handler) => {
     changeAppState = handler;
 
@@ -87,7 +85,7 @@ beforeEach(() => {
   });
 });
 
-describe(MinimumVersionGate, () => {
+describe("MinimumVersionGate", () => {
   it("blocks the app below the minimum and links to the store", async () => {
     serveMinimumIosVersion("1.5.0");
 

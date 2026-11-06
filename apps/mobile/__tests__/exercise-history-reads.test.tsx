@@ -14,7 +14,6 @@ import { QueryClientProvider } from "@tanstack/react-query";
 import type { QueryClient } from "@tanstack/react-query";
 import { fireEvent, render, screen } from "@testing-library/react-native";
 import type { ReactNode } from "react";
-import { it, describe, expect, beforeEach } from "vitest";
 
 import WorkoutSessionExerciseScreen from "~/app/plans/[planId]/workouts/[workoutId]/sessions/[sessionId]/exercises/[exerciseId]/index";
 import { storage } from "~/lib/mmkv";
@@ -29,7 +28,7 @@ import { resetStubRouter } from "~/test-utils/router-stub";
 
 const mockParams: { current: Record<string, string> } = { current: {} };
 
-jest.mock<typeof import("expo-router")>(import("expo-router"), () => {
+jest.mock("expo-router", () => {
   const stub = jest.requireActual<typeof import("~/test-utils/router-stub")>(
     "~/test-utils/router-stub"
   );
@@ -44,58 +43,40 @@ jest.mock<typeof import("expo-router")>(import("expo-router"), () => {
 });
 
 // The real Clerk SDK opens a MessagePort at import that keeps Jest alive.
-jest.mock<typeof import("~/lib/clerk")>(import("~/lib/clerk"), () => ({
+jest.mock("~/lib/clerk", () => ({
   getCurrentUserId: jest.requireActual<
     typeof import("~/test-utils/signed-in-user")
   >("~/test-utils/signed-in-user").getCurrentUserId,
 }));
 
-jest.mock<typeof import("@sentry/react-native")>(
-  import("@sentry/react-native"),
-  () => ({ captureException: jest.fn() })
-);
+jest.mock("@sentry/react-native", () => ({ captureException: jest.fn() }));
 
-jest.mock<typeof import("~/lib/segment")>(import("~/lib/segment"), () => ({
+jest.mock("~/lib/segment", () => ({
   segmentClient: { track: jest.fn() },
 }));
 
-jest.mock<typeof import("react-native-safe-area-context")>(
-  import("react-native-safe-area-context"),
-  () => ({
-    useSafeAreaInsets: () => ({ bottom: 0, left: 0, right: 0, top: 0 }),
-  })
-);
+jest.mock("react-native-safe-area-context", () => ({
+  useSafeAreaInsets: () => ({ bottom: 0, left: 0, right: 0, top: 0 }),
+}));
 
-jest.mock<typeof import("react-native-keyboard-controller")>(
-  import("react-native-keyboard-controller"),
-  () => {
-    const { ScrollView } =
-      jest.requireActual<typeof import("react-native")>("react-native");
+jest.mock("react-native-keyboard-controller", () => {
+  const { ScrollView } =
+    jest.requireActual<typeof import("react-native")>("react-native");
 
-    return { KeyboardAwareScrollView: ScrollView };
-  }
-);
+  return { KeyboardAwareScrollView: ScrollView };
+});
 
-jest.mock<typeof import("~/components/exercises/exercise-image")>(
-  import("~/components/exercises/exercise-image"),
-  () => () => null
-);
+jest.mock("~/components/exercises/exercise-image", () => () => null);
 
-jest.mock<typeof import("~/components/workout-sessions/rest-timer")>(
-  import("~/components/workout-sessions/rest-timer"),
-  () => () => null
-);
+jest.mock("~/components/workout-sessions/rest-timer", () => () => null);
 
-jest.mock<
-  typeof import("~/components/workout-sessions/workout-session-finish-suggestion")
->(
-  import("~/components/workout-sessions/workout-session-finish-suggestion"),
+jest.mock(
+  "~/components/workout-sessions/workout-session-finish-suggestion",
   () => ({ WorkoutSessionFinishSuggestion: () => null })
 );
 
-jest.mock<typeof import("~/components/ui/button")>(
-  import("~/components/ui/button"),
-  () => jest.requireActual("~/test-utils/button-stub")
+jest.mock("~/components/ui/button", () =>
+  jest.requireActual("~/test-utils/button-stub")
 );
 
 const HISTORY = "GET /v1/workout-session-exercises";

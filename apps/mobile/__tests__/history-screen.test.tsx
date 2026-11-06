@@ -23,7 +23,6 @@ import {
   within,
 } from "@testing-library/react-native";
 import type { ReactNode } from "react";
-import { it, afterEach, describe, expect, beforeEach } from "vitest";
 
 import HistoryScreen from "~/app/(tabs)/history/index";
 import { i18n } from "~/lib/i18n";
@@ -40,7 +39,7 @@ import {
 import { InAppLanguage } from "~/test-utils/in-app-language";
 import { createTestQueryClient, settle } from "~/test-utils/query-client";
 
-jest.mock<typeof import("expo-router")>(import("expo-router"), () => ({
+jest.mock("expo-router", () => ({
   Link: ({ children }: { children: ReactNode }) => children,
   Stack: {
     Screen: ({ options }: { options: { title?: string } }) => {
@@ -55,67 +54,57 @@ jest.mock<typeof import("expo-router")>(import("expo-router"), () => ({
 
 // LegendList lays its items out on measure, which Jest never does: render
 // the header and every item (or the empty component) in a plain view instead.
-jest.mock<typeof import("@legendapp/list/react-native")>(
-  import("@legendapp/list/react-native"),
-  () => ({
-    LegendList: <T,>({
-      data,
-      keyExtractor,
-      ListEmptyComponent,
-      ListHeaderComponent,
-      renderItem,
-    }: {
-      data: T[];
-      keyExtractor: (item: T) => string;
-      ListEmptyComponent: ReactNode;
-      ListHeaderComponent: ReactNode;
-      renderItem: (info: { item: T }) => ReactNode;
-    }) => {
-      const { Fragment } = jest.requireActual<typeof import("react")>("react");
+jest.mock("@legendapp/list/react-native", () => ({
+  LegendList: <T,>({
+    data,
+    keyExtractor,
+    ListEmptyComponent,
+    ListHeaderComponent,
+    renderItem,
+  }: {
+    data: T[];
+    keyExtractor: (item: T) => string;
+    ListEmptyComponent: ReactNode;
+    ListHeaderComponent: ReactNode;
+    renderItem: (info: { item: T }) => ReactNode;
+  }) => {
+    const { Fragment } = jest.requireActual<typeof import("react")>("react");
 
-      return (
-        <>
-          {ListHeaderComponent}
-          {data.length === 0
-            ? ListEmptyComponent
-            : data.map((item) => (
-                <Fragment key={keyExtractor(item)}>
-                  {renderItem({ item })}
-                </Fragment>
-              ))}
-        </>
-      );
-    },
-  })
-);
+    return (
+      <>
+        {ListHeaderComponent}
+        {data.length === 0
+          ? ListEmptyComponent
+          : data.map((item) => (
+              <Fragment key={keyExtractor(item)}>
+                {renderItem({ item })}
+              </Fragment>
+            ))}
+      </>
+    );
+  },
+}));
 
-jest.mock<typeof import("~/lib/segment")>(import("~/lib/segment"), () => ({
+jest.mock("~/lib/segment", () => ({
   segmentClient: { track: jest.fn() },
 }));
 
 // The User a Plan write is made for (the real Clerk SDK keeps Jest alive).
-jest.mock<typeof import("~/lib/clerk")>(import("~/lib/clerk"), () => ({
+jest.mock("~/lib/clerk", () => ({
   getCurrentUserId: jest.requireActual<
     typeof import("~/test-utils/signed-in-user")
   >("~/test-utils/signed-in-user").getCurrentUserId,
 }));
 
-jest.mock<typeof import("react-native-purchases")>(
-  import("react-native-purchases"),
-  () => ({
-    __esModule: true,
-    default: { invalidateCustomerInfoCache: jest.fn() },
-  })
-);
+jest.mock("react-native-purchases", () => ({
+  __esModule: true,
+  default: { invalidateCustomerInfoCache: jest.fn() },
+}));
 
-jest.mock<typeof import("~/components/symbol-image")>(
-  import("~/components/symbol-image"),
-  () => ({ SymbolImage: () => null })
-);
+jest.mock("~/components/symbol-image", () => ({ SymbolImage: () => null }));
 
-jest.mock<typeof import("~/components/ui/button")>(
-  import("~/components/ui/button"),
-  () => jest.requireActual("~/test-utils/button-stub")
+jest.mock("~/components/ui/button", () =>
+  jest.requireActual("~/test-utils/button-stub")
 );
 
 const MINUTE_MS = 60_000;

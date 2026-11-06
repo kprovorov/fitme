@@ -1,15 +1,13 @@
 import { describe, expect, it, jest } from "@jest/globals";
 import { fireEvent, render, screen } from "@testing-library/react-native";
-import { describe, expect, it } from "vitest";
 
 import "~/test-utils/auth-ui";
 
 import RegisterForm from "../register-form";
 import type { RegisterFormValues } from "../register-form";
 
-jest.mock<typeof import("~/components/ui/button")>(
-  import("~/components/ui/button"),
-  () => jest.requireActual("~/test-utils/button-stub")
+jest.mock("~/components/ui/button", () =>
+  jest.requireActual("~/test-utils/button-stub")
 );
 
 const fillIn = async (values: RegisterFormValues) => {
@@ -27,7 +25,7 @@ const fillIn = async (values: RegisterFormValues) => {
 const submit = () =>
   fireEvent.press(screen.getByRole("button", { name: "Create Account" }));
 
-describe(RegisterForm, () => {
+describe("RegisterForm", () => {
   it("reveals and hides the existing password without changing the draft", async () => {
     const onSubmit = jest.fn(() => Promise.resolve());
     await render(
@@ -115,7 +113,7 @@ describe(RegisterForm, () => {
     await fillIn(values);
     await submit();
 
-    expect(onSubmit).toHaveBeenCalledOnce();
+    expect(onSubmit).toHaveBeenCalledTimes(1);
     expect(onSubmit.mock.calls[0]?.[0]).toEqual(values);
   });
 });

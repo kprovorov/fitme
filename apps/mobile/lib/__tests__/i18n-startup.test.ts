@@ -5,7 +5,6 @@
  * on its device.
  */
 import { describe, expect, it, jest } from "@jest/globals";
-import { describe, expect, it } from "vitest";
 
 /** The App language `~/lib/i18n` starts in, loaded on a device in these languages. */
 const languageAtStartup = (deviceLanguages: readonly string[]) => {

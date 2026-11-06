@@ -10,7 +10,6 @@ import {
   MIN_FREQUENCY,
 } from "@fitme/core";
 import { describe, expect, it } from "@jest/globals";
-import { describe, expect, it } from "vitest";
 
 import type { FullPlan } from "~/hooks/queries/plans";
 import {
@@ -88,7 +87,7 @@ const plan = (overrides: Partial<FullPlan> = {}): FullPlan =>
     ...overrides,
   }) as FullPlan;
 
-describe(planDraftFrom, () => {
+describe("planDraftFrom", () => {
   it("loads the Plan's details, its note and its Workouts in rotation order", () => {
     const draft = planDraftFrom(plan());
     expect(draft).toEqual({
@@ -133,7 +132,7 @@ describe(planDraftFrom, () => {
   });
 });
 
-describe(savePlanBody, () => {
+describe("savePlanBody", () => {
   it("sends every id it loaded, and no field the write doesn't take", () => {
     const draft = planDraftFrom(plan());
 
@@ -209,7 +208,7 @@ describe(savePlanBody, () => {
   });
 });
 
-describe(isSavablePlanDraft, () => {
+describe("isSavablePlanDraft", () => {
   const draft = () => planDraftFrom(plan());
 
   it("allows the Plan as it was loaded", () => {
@@ -302,7 +301,7 @@ describe("the Workout rows", () => {
   });
 });
 
-describe(planDraftChanged, () => {
+describe("planDraftChanged", () => {
   it("is false for the draft as it was loaded, whatever was read", () => {
     const loaded = planDraftFrom(plan());
     expect(planDraftChanged(loaded, planDraftFrom(plan()))).toBe(false);

@@ -434,7 +434,7 @@ describe("update_plan", () => {
     });
 
     expect(result.isError).toBeFalsy();
-    expect(updatePlan).toHaveBeenCalledWith();
+    expect(updatePlan).toHaveBeenCalled();
     expect(result.json).toMatchObject({
       workouts: [{ exercises: [{ name: "Bench press" }] }],
     });

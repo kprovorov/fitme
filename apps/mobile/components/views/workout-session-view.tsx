@@ -96,7 +96,7 @@ const WorkoutSessionView = ({
     }
 
     router.push({
-      params,
+      params: { ...params },
       pathname: "/workout-sessions/[workoutSessionId]/exercise-picker",
     });
   };

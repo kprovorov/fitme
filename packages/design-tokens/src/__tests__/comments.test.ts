@@ -59,3 +59,24 @@ describe("unterminated CSS comments", () => {
     ]);
   });
 });
+
+describe("unterminated CSS blocks", () => {
+  it("rejects many theme headers without rescanning the remaining input", () => {
+    expect(() => parseTokens("@theme{{|".repeat(100_000))).toThrow(
+      "No @theme block"
+    );
+  });
+
+  it("finds no utilities among many headers without a closing brace", () => {
+    expect(parseUtilities("@utility -{{|".repeat(100_000))).toStrictEqual([]);
+  });
+
+  it("skips invalid headers before valid blocks", () => {
+    expect(parseTokens(`@themex {}${tokens}`)).toStrictEqual(
+      parseTokens(tokens)
+    );
+    expect(parseUtilities(`@utility ! {}${utilities}`)).toStrictEqual(
+      parseUtilities(utilities)
+    );
+  });
+});

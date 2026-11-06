@@ -14,7 +14,6 @@ import {
 } from "@jest/globals";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { render, screen, within } from "@testing-library/react-native";
-import { it, afterEach, describe, expect, beforeEach } from "vitest";
 
 import ModelPickerSheet from "~/app/(tabs)/arnold/model-picker";
 import { useAppLanguageSync } from "~/lib/i18n";
@@ -28,21 +27,15 @@ import { createTestQueryClient, settle } from "~/test-utils/query-client";
 
 const MODELS_ROUTE = "GET /v1/arnold/models";
 
-jest.mock<typeof import("expo-router")>(import("expo-router"), () => ({
+jest.mock("expo-router", () => ({
   useRouter: () => ({ back: jest.fn() }),
 }));
 
-jest.mock<typeof import("react-native-safe-area-context")>(
-  import("react-native-safe-area-context"),
-  () => ({
-    useSafeAreaInsets: () => ({ bottom: 0, left: 0, right: 0, top: 0 }),
-  })
-);
+jest.mock("react-native-safe-area-context", () => ({
+  useSafeAreaInsets: () => ({ bottom: 0, left: 0, right: 0, top: 0 }),
+}));
 
-jest.mock<typeof import("@/components/symbol-image")>(
-  import("@/components/symbol-image"),
-  () => ({ SymbolImage: () => null })
-);
+jest.mock("~/components/symbol-image", () => ({ SymbolImage: () => null }));
 
 const { EXPO_PUBLIC_API_URL } = process.env;
 

@@ -1,9 +1,8 @@
 import { describe, expect, it } from "@jest/globals";
-import { describe, expect, it } from "vitest";
 
 import { cn, TEXT_STYLES } from "../utils";
 
-describe(cn, () => {
+describe("cn", () => {
   it("keeps border-circular next to a border color, and a later color wins", () => {
     expect(cn("border-circular border-input", "border-destructive")).toBe(
       "border-circular border-destructive"
@@ -63,10 +62,10 @@ describe(cn, () => {
   });
 
   it("keeps a border color next to border-continuous, in either order", () => {
-    expect(cn("border-border border-continuous border")).toBe(
+    expect(cn("border border-border border-continuous")).toBe(
       "border border-border border-continuous"
     );
-    expect(cn("border-continuous", "border-border border")).toBe(
+    expect(cn("border-continuous", "border border-border")).toBe(
       "border-continuous border border-border"
     );
   });

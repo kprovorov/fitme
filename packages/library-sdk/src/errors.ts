@@ -4,122 +4,61 @@ export type LibraryErrorCode =
   | "unauthorized"
   | "unavailable";
 
-type LibraryErrorInstance = Error & {
-  readonly code: LibraryErrorCode;
-  readonly status: number | undefined;
-};
-
-type LibraryRateLimitedErrorInstance = LibraryErrorInstance & {
-  readonly retryAfterSeconds: number;
-};
-
-export type {
-  LibraryErrorInstance as LibraryError,
-  LibraryErrorInstance as LibraryUnauthorizedError,
-  LibraryErrorInstance as LibraryUnavailableError,
-  LibraryErrorInstance as LibraryInvalidRequestError,
-  LibraryRateLimitedErrorInstance as LibraryRateLimitedError,
-};
-
-const createLibraryError = <
-  Args extends unknown[],
-  ParentArgs extends unknown[],
->(
-  name: string,
-  Parent: new (...args: ParentArgs) => Error,
-  initialize: (...args: Args) => {
-    args: ParentArgs;
-    properties?: Partial<LibraryRateLimitedErrorInstance>;
-  }
-) => {
-  class LibraryErrorType extends Parent {
-    declare readonly code: LibraryErrorCode;
-    /** The HTTP status, when the API answered. */
-    declare readonly status: number | undefined;
-    declare readonly retryAfterSeconds: number;
-
-    constructor(...args: Args) {
-      const initialized = initialize(...args);
-      super(...initialized.args);
-      // keeps `instanceof` working where classes are transpiled (React Native's Babel)
-      Object.setPrototypeOf(this, new.target.prototype);
-      this.name = name;
-      Object.assign(this, initialized.properties);
-    }
-  }
-
-  Object.defineProperty(LibraryErrorType, "name", { value: name });
-  Object.defineProperty(LibraryErrorType, "length", {
-    value: initialize.length,
-  });
-
-  return LibraryErrorType;
-};
-
 /** Every failure of the Library client; match on `code` or the subclass. */
-export const LibraryError: new (
-  code: LibraryErrorCode,
-  message: string,
-  options?: { cause?: unknown; status?: number }
-) => LibraryErrorInstance = createLibraryError(
-  "LibraryError",
-  Error,
-  (
+export class LibraryError extends Error {
+  readonly code: LibraryErrorCode;
+  /** The HTTP status, when the API answered. */
+  readonly status: number | undefined;
+
+  constructor(
     code: LibraryErrorCode,
     message: string,
     options: { cause?: unknown; status?: number } = {}
-  ) => ({
-    args: [message, { cause: options.cause }],
-    properties: { code, status: options.status },
-  })
-);
+  ) {
+    super(message, { cause: options.cause });
+    // keeps `instanceof` working where classes are transpiled (React Native's Babel)
+    Object.setPrototypeOf(this, new.target.prototype);
+    this.name = "LibraryError";
+    this.code = code;
+    this.status = options.status;
+  }
+}
 
 /** 401: no valid Clerk session token or server secret (or no token at all). */
-export const LibraryUnauthorizedError: new (options?: {
-  status?: number;
-}) => LibraryErrorInstance = createLibraryError(
-  "LibraryUnauthorizedError",
-  LibraryError,
-  (options: { status?: number } = {}) => ({
-    args: ["unauthorized", "Not authorized to read the Library", options],
-  })
-);
+export class LibraryUnauthorizedError extends LibraryError {
+  constructor(options: { status?: number } = {}) {
+    super("unauthorized", "Not authorized to read the Library", options);
+    this.name = "LibraryUnauthorizedError";
+  }
+}
 
 /** 429: the User is over their limit; retry after `retryAfterSeconds`. */
-export const LibraryRateLimitedError: new (
-  retryAfterSeconds: number
-) => LibraryRateLimitedErrorInstance = createLibraryError(
-  "LibraryRateLimitedError",
-  LibraryError,
-  (retryAfterSeconds: number) => ({
-    args: [
+export class LibraryRateLimitedError extends LibraryError {
+  readonly retryAfterSeconds: number;
+
+  constructor(retryAfterSeconds: number) {
+    super(
       "rate_limited",
       `Library rate limit reached, retry after ${retryAfterSeconds}s`,
-      { status: 429 },
-    ],
-    properties: { retryAfterSeconds },
-  })
-);
+      { status: 429 }
+    );
+    this.name = "LibraryRateLimitedError";
+    this.retryAfterSeconds = retryAfterSeconds;
+  }
+}
 
 /** A network failure, a timeout, a 5xx or an unreadable answer: worth retrying later. */
-export const LibraryUnavailableError: new (options?: {
-  cause?: unknown;
-  status?: number;
-}) => LibraryErrorInstance = createLibraryError(
-  "LibraryUnavailableError",
-  LibraryError,
-  (options: { cause?: unknown; status?: number } = {}) => ({
-    args: ["unavailable", "The Library is unavailable", options],
-  })
-);
+export class LibraryUnavailableError extends LibraryError {
+  constructor(options: { cause?: unknown; status?: number } = {}) {
+    super("unavailable", "The Library is unavailable", options);
+    this.name = "LibraryUnavailableError";
+  }
+}
 
 /** 400: a parameter the API rejects (a limit over 50, a search over 100 characters, …). */
-export const LibraryInvalidRequestError: new (
-  message: string
-) => LibraryErrorInstance = createLibraryError(
-  "LibraryInvalidRequestError",
-  LibraryError,
-  (message: string) => ({
-    args: ["invalid_request", message, { status: 400 }],
-  })
-);
+export class LibraryInvalidRequestError extends LibraryError {
+  constructor(message: string) {
+    super("invalid_request", message, { status: 400 });
+    this.name = "LibraryInvalidRequestError";
+  }
+}

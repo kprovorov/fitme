@@ -7,7 +7,6 @@ import { appLanguages } from "@fitme/core";
  * comes from that list.
  */
 import { describe, expect, it } from "@jest/globals";
-import { describe, expect, it } from "vitest";
 
 import appJson from "~/app.json";
 

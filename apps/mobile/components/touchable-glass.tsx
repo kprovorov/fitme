@@ -2,14 +2,16 @@ import { isLiquidGlassAvailable } from "expo-glass-effect";
 import type React from "react";
 import { useCallback, useState } from "react";
 import { TouchableWithoutFeedback } from "react-native";
+import type { ViewProps } from "react-native";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import Animated from "react-native-reanimated";
 import { scheduleOnRN } from "react-native-worklets";
 
 import { BlurViewRawBackdrop } from "./blur-raw";
 import { AppleGlassView } from "./tw";
+import type { FallbackAppleGlassViewProps } from "./tw";
 
-type GlassViewProps = React.ComponentProps<typeof AppleGlassView>;
+type GlassViewProps = FallbackAppleGlassViewProps;
 
 type TouchableGlassProps = Omit<GlassViewProps, "children"> & {
   children?: React.ReactNode;
@@ -118,7 +120,8 @@ const TouchableGlassFallback = ({
       <Animated.View
         className={className}
         ref={ref}
-        {...viewProps}
+        // SAFETY: Glass-only and animated props were removed above; this fallback forwards native View props.
+        {...(viewProps as ViewProps)}
         style={[
           {
             overflow: "hidden",

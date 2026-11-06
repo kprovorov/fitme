@@ -1,7 +1,6 @@
 import { beforeEach, describe, expect, it, jest } from "@jest/globals";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { fireEvent, render, screen } from "@testing-library/react-native";
-import { it, describe, expect, beforeEach } from "vitest";
 
 import type { PlanWorkout } from "~/hooks/queries/plans";
 import { backend, fakePublicApi } from "~/test-utils/fake-public-api";
@@ -11,25 +10,19 @@ import WorkoutCard from "../workout-card";
 
 const mockPush = jest.fn();
 
-jest.mock<typeof import("expo-router")>(import("expo-router"), () => ({
+jest.mock("expo-router", () => ({
   Link: ({ children }: { children: unknown }) => children,
   useRouter: () => ({ push: mockPush }),
 }));
 
 // The real Clerk SDK opens a MessagePort at import that keeps Jest alive.
-jest.mock<typeof import("~/lib/clerk")>(import("~/lib/clerk"), () => ({
+jest.mock("~/lib/clerk", () => ({
   getCurrentUserId: () => "user_test",
 }));
 
-jest.mock<typeof import("~/components/exercises/exercise-image")>(
-  import("~/components/exercises/exercise-image"),
-  () => () => null
-);
+jest.mock("~/components/exercises/exercise-image", () => () => null);
 
-jest.mock<typeof import("~/components/symbol-image")>(
-  import("~/components/symbol-image"),
-  () => ({ SymbolImage: () => null })
-);
+jest.mock("~/components/symbol-image", () => ({ SymbolImage: () => null }));
 
 const SET = {
   reps_recommended: 10,

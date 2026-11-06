@@ -11,17 +11,16 @@ import TabLayout from "~/app/(tabs)/_layout";
 import { useAppLanguageSync } from "~/lib/i18n";
 import { setDeviceLanguages } from "~/test-utils/device-locales";
 
-jest.mock<typeof import("@clerk/expo")>(import("@clerk/expo"), () => ({
+jest.mock("@clerk/expo", () => ({
   useAuth: () => ({ isLoaded: true, isSignedIn: true }),
 }));
 
-jest.mock<typeof import("expo-router")>(import("expo-router"), () => ({
+jest.mock("expo-router", () => ({
   Redirect: () => null,
 }));
 
-jest.mock<typeof import("expo-router/native-tabs")>(
-  import("expo-router/native-tabs"),
-  () => jest.requireActual("~/test-utils/native-tabs-stub")
+jest.mock("expo-router/native-tabs", () =>
+  jest.requireActual("~/test-utils/native-tabs-stub")
 );
 
 function App() {

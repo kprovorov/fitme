@@ -3,10 +3,9 @@ import {
   isLiquidGlassAvailable,
   GlassView as XGlassView,
 } from "expo-glass-effect";
-import { Image as XImage } from "expo-image";
 import type { StyleProp, ViewProps, ViewStyle } from "react-native";
 import { KeyboardGestureArea as XKeyboardGestureArea } from "react-native-keyboard-controller";
-import { createAnimatedComponent } from "react-native-reanimated";
+import Animated from "react-native-reanimated";
 import { SafeAreaView as XSafeAreaView } from "react-native-safe-area-context";
 import { withUniwind } from "uniwind";
 
@@ -16,11 +15,7 @@ export const SafeAreaView = (
   props: React.ComponentProps<typeof StyledSafeAreaView>
 ) => <StyledSafeAreaView {...props} />;
 
-const StyledImage = withUniwind(XImage);
-
-export const Image = (props: React.ComponentProps<typeof StyledImage>) => (
-  <StyledImage {...props} />
-);
+export { Image } from "./image";
 
 const StyledKeyboardGestureArea = withUniwind(XKeyboardGestureArea);
 
@@ -28,7 +23,7 @@ export const KeyboardGestureArea = (
   props: React.ComponentProps<typeof StyledKeyboardGestureArea>
 ) => <StyledKeyboardGestureArea {...props} />;
 
-const AnimatedEXGlassView = createAnimatedComponent(XGlassView);
+const AnimatedEXGlassView = Animated.createAnimatedComponent(XGlassView);
 
 const BlurView = withUniwind(EXBlurView);
 
@@ -93,7 +88,7 @@ export const InnerAppleGlassView = (
   props: React.ComponentProps<typeof StyledInnerAppleGlassView>
 ) => <StyledInnerAppleGlassView {...props} />;
 
-type FallbackAppleGlassViewProps = React.ComponentProps<
+export type FallbackAppleGlassViewProps = React.ComponentProps<
   typeof AnimatedEXGlassView
 > & {
   className?: string;

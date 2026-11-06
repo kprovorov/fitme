@@ -80,7 +80,7 @@ const goalOptions = [
 ] as const satisfies readonly Goal[];
 
 // Home workouts aren't planned yet.
-const soonPlaces: readonly Place[] = new Set(["home"]);
+const soonPlaces: ReadonlySet<Place> = new Set(["home"]);
 
 const frequencyOptions = [1, 2, 3, 4, 5, 6, 7];
 

@@ -1,6 +1,5 @@
 import { afterEach, describe, expect, it } from "@jest/globals";
 import type { MessageStreamEvent } from "eve/client";
-import { afterEach, describe, expect, it } from "vitest";
 
 import { storage } from "~/lib/mmkv";
 
@@ -31,7 +30,7 @@ function clientError(status: number, code?: string) {
   });
 }
 
-describe(getArnoldUrl, () => {
+describe("getArnoldUrl", () => {
   const { EXPO_PUBLIC_ARNOLD_URL } = process.env;
 
   afterEach(() => {
@@ -49,7 +48,7 @@ describe(getArnoldUrl, () => {
   });
 });
 
-describe(arnoldRunConfig, () => {
+describe("arnoldRunConfig", () => {
   const models = {
     defaultId: "openai/gpt-5.5",
     models: [
@@ -107,7 +106,7 @@ describe(arnoldRunConfig, () => {
   });
 });
 
-describe(arnoldErrorAction, () => {
+describe("arnoldErrorAction", () => {
   it("shows the paywall when Arnold refuses a User without Pro", () => {
     expect(arnoldErrorAction(clientError(403, "arnold_pro_required"))).toBe(
       "paywall"
@@ -144,7 +143,7 @@ describe(arnoldErrorAction, () => {
   });
 });
 
-describe(arnoldErrorKind, () => {
+describe("arnoldErrorKind", () => {
   it("names the Pro check being unavailable", () => {
     expect(
       arnoldErrorKind(clientError(503, "arnold_pro_check_unavailable"))
@@ -239,7 +238,7 @@ describe("saved Arnold Conversation", () => {
   });
 });
 
-describe(isRefusedSend, () => {
+describe("isRefusedSend", () => {
   const userMessage = (status?: string) =>
     ({
       content: [{ text: "Build me a plan", type: "text" }],

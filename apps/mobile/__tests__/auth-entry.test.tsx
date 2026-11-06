@@ -1,7 +1,7 @@
+import "~/test-utils/auth-ui";
 import { beforeEach, describe, expect, it, jest } from "@jest/globals";
 import { act, fireEvent, render, screen } from "@testing-library/react-native";
 import { router } from "expo-router";
-import { it, describe, expect, beforeEach } from "vitest";
 
 import AuthWelcomeView from "~/components/views/auth-welcome-view";
 import { configuredSocialProviders } from "~/hooks/native-social-auth";
@@ -77,50 +77,37 @@ const makeSignUp = (
   overrides: Partial<NonNullable<NativeResult["signUp"]>>
 ) => ({ ...mockSignUp, ...overrides });
 
-jest.mock<typeof import("@clerk/expo")>(import("@clerk/expo"), () => ({
+jest.mock("@clerk/expo", () => ({
   isClerkAPIResponseError: () => false,
   useSignIn: () => ({ signIn: mockSignIn }),
   useSignUp: () => ({ signUp: mockSignUp }),
 }));
 
-jest.mock<typeof import("@clerk/expo/legacy")>(
-  import("@clerk/expo/legacy"),
-  () => ({
-    useSignIn: () => ({ signIn: mockSignIn }),
-    useSignUp: () => ({ signUp: mockSignUp }),
-  })
-);
+jest.mock("@clerk/expo/legacy", () => ({
+  useSignIn: () => ({ signIn: mockSignIn }),
+  useSignUp: () => ({ signUp: mockSignUp }),
+}));
 
-jest.mock<typeof import("@clerk/expo/apple")>(
-  import("@clerk/expo/apple"),
-  () => ({
-    useSignInWithApple: () => ({ startAppleAuthenticationFlow: mockApple }),
-  })
-);
+jest.mock("@clerk/expo/apple", () => ({
+  useSignInWithApple: () => ({ startAppleAuthenticationFlow: mockApple }),
+}));
 
-jest.mock<typeof import("@clerk/expo/google")>(
-  import("@clerk/expo/google"),
-  () => ({
-    useSignInWithGoogle: () => ({ startGoogleAuthenticationFlow: mockGoogle }),
-  })
-);
+jest.mock("@clerk/expo/google", () => ({
+  useSignInWithGoogle: () => ({ startGoogleAuthenticationFlow: mockGoogle }),
+}));
 
-jest.mock<typeof import("@clerk/expo/token-cache")>(
-  import("@clerk/expo/token-cache"),
-  () => ({ tokenCache: {} })
-);
+jest.mock("@clerk/expo/token-cache", () => ({ tokenCache: {} }));
 
-jest.mock<typeof import("expo-router")>(import("expo-router"), () => ({
+jest.mock("expo-router", () => ({
   router: { push: jest.fn(), replace: jest.fn() },
 }));
 
-jest.mock<typeof import("~/lib/segment")>(import("~/lib/segment"), () => ({
+jest.mock("~/lib/segment", () => ({
   segmentClient: { track: jest.fn() },
 }));
 
-jest.mock<typeof import("~/components/ui/button")>(
-  import("~/components/ui/button"),
-  () => jest.requireActual("~/test-utils/button-stub")
+jest.mock("~/components/ui/button", () =>
+  jest.requireActual("~/test-utils/button-stub")
 );
 
 const config = {
@@ -135,8 +122,8 @@ beforeEach(() => {
   jest.clearAllMocks();
   setAuthProviderConfig(config);
   mockResult = { createdSessionId: null };
-  mockApple.mockResolvedValue(mockResult);
-  mockGoogle.mockResolvedValue(mockResult);
+  mockApple.mockImplementation(() => Promise.resolve(mockResult));
+  mockGoogle.mockImplementation(() => Promise.resolve(mockResult));
 });
 
 const show = async () => {
@@ -262,7 +249,7 @@ describe("native social results", () => {
     await fireEvent.press(
       screen.getByRole("button", { name: "Continue with Apple" })
     );
-    expect(mockPrepareEmail).toHaveBeenCalledOnce();
+    expect(mockPrepareEmail).toHaveBeenCalledTimes(1);
     expect(router.push).toHaveBeenCalledWith({
       params: { purpose: "sign-up" },
       pathname: "/auth/verify-code",
@@ -285,7 +272,7 @@ describe("native social results", () => {
     await fireEvent.press(
       screen.getByRole("button", { name: "Continue with Google" })
     );
-    expect(mockPrepareSecond).toHaveBeenCalledOnce();
+    expect(mockPrepareSecond).toHaveBeenCalledTimes(1);
     expect(router.push).toHaveBeenCalledWith({
       params: { purpose: "sign-in", source: "social" },
       pathname: "/auth/verify-code",
@@ -332,7 +319,7 @@ describe("native social results", () => {
 
     await fireEvent.press(apple);
     await fireEvent.press(apple);
-    expect(mockApple).toHaveBeenCalledOnce();
+    expect(mockApple).toHaveBeenCalledTimes(1);
     expect(
       screen.getByRole("button", { name: "Continue with Email" })
     ).toBeDisabled();

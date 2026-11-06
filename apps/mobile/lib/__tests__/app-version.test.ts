@@ -1,9 +1,8 @@
 import { describe, expect, it } from "@jest/globals";
-import { describe, expect, it } from "vitest";
 
 import { isBelowMinimumVersion } from "../app-version";
 
-describe(isBelowMinimumVersion, () => {
+describe("isBelowMinimumVersion", () => {
   it("compares each part as a number, not as text", () => {
     expect(isBelowMinimumVersion("1.9.3", "1.10.0")).toBe(true);
     expect(isBelowMinimumVersion("1.10.0", "1.9.3")).toBe(false);

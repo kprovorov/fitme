@@ -2,7 +2,6 @@ import { describe, expect, it, jest } from "@jest/globals";
 import { render, screen } from "@testing-library/react-native";
 import { StyleSheet } from "react-native";
 import type { TextStyle } from "react-native";
-import { describe, expect, it } from "vitest";
 
 import { ChatMarkdown } from "../chat-markdown";
 
@@ -22,7 +21,7 @@ const SIZES: Record<string, number> = {
   "text-title-3-emphasized": 20,
 };
 
-jest.mock<typeof import("uniwind")>(import("uniwind"), () => ({
+jest.mock("uniwind", () => ({
   // Each token resolves to its own name, so a color says where it came from
   useCSSVariable: (names: string[]) => names,
   useResolveClassNames: (className: string) => ({
@@ -32,13 +31,10 @@ jest.mock<typeof import("uniwind")>(import("uniwind"), () => ({
   }),
 }));
 
-jest.mock<typeof import("expo-web-browser")>(
-  import("expo-web-browser"),
-  () => ({})
-);
+jest.mock("expo-web-browser", () => ({}));
 
 // Syntax highlighting pulls in an ESM-only tree and isn't under test here
-jest.mock<typeof import("../code-block")>(import("../code-block"), () => ({
+jest.mock("../code-block", () => ({
   CodeBlock: () => null,
 }));
 
@@ -144,7 +140,7 @@ function cellRole(text: string): unknown {
   return undefined;
 }
 
-describe(ChatMarkdown, () => {
+describe("ChatMarkdown", () => {
   it("sets paragraph text in Callout", async () => {
     await render(<ChatMarkdown>Plain words</ChatMarkdown>);
     expect(effectiveType("Plain words")).toEqual({

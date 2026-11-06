@@ -24,7 +24,6 @@ import { Text, View } from "react-native";
 import type { LayoutChangeEvent, ViewStyle } from "react-native";
 import { useKeyboardHandler } from "react-native-keyboard-controller";
 import Animated, {
-  createAnimatedComponent,
   runOnJS,
   useAnimatedProps,
   useAnimatedStyle,
@@ -62,11 +61,11 @@ type AnimatableLegendListProps = LegendListProps<ThreadMessage> & {
 const AnimatableLegendList = ({ ref, ...props }: AnimatableLegendListProps) => {
   const listRef = useRef<LegendListRef>(null);
 
-  useImperativeHandle(ref, () => {
+  useImperativeHandle<LegendListRef | null, LegendListRef | null>(ref, () => {
     const list = listRef.current;
 
     if (!list) {
-      throw new Error("LegendList must be mounted before exposing its ref");
+      return null;
     }
 
     return {
@@ -78,7 +77,8 @@ const AnimatableLegendList = ({ ref, ...props }: AnimatableLegendListProps) => {
   return <LegendList {...props} ref={listRef} />;
 };
 
-const AnimatedLegendList = createAnimatedComponent(AnimatableLegendList);
+const AnimatedLegendList =
+  Animated.createAnimatedComponent(AnimatableLegendList);
 
 const messageKeyExtractor = (item: ThreadMessage) => item.id;
 

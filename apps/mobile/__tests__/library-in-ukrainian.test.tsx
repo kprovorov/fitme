@@ -19,7 +19,6 @@ import {
 } from "@testing-library/react-native";
 import { router } from "expo-router";
 import type { ComponentType } from "react";
-import { it, describe, expect, beforeEach } from "vitest";
 
 import LibraryScreen from "~/app/(tabs)/library/index";
 import ExerciseGuideScreen from "~/app/exercises/[exerciseSlug]/guide";
@@ -38,7 +37,7 @@ import { SEARCH_BAR_TEST_ID } from "~/test-utils/stack-screen-stub";
 
 const mockSlug = { current: "bench-press" };
 
-jest.mock<typeof import("expo-router")>(import("expo-router"), () => ({
+jest.mock("expo-router", () => ({
   router: { push: jest.fn() },
   Stack: {
     Screen: jest.requireActual<typeof import("~/test-utils/stack-screen-stub")>(
@@ -49,26 +48,16 @@ jest.mock<typeof import("expo-router")>(import("expo-router"), () => ({
   useRouter: () => ({ push: jest.fn() }),
 }));
 
-jest.mock<typeof import("~/components/ui/button")>(
-  import("~/components/ui/button"),
-  () => jest.requireActual("~/test-utils/button-stub")
+jest.mock("~/components/ui/button", () =>
+  jest.requireActual("~/test-utils/button-stub")
 );
 
 // A thumbnail and a video show as nothing.
-jest.mock<typeof import("~/components/exercises/exercise-image")>(
-  import("~/components/exercises/exercise-image"),
-  () => () => null
-);
+jest.mock("~/components/exercises/exercise-image", () => () => null);
 
-jest.mock<typeof import("~/components/exercises/exercise-video")>(
-  import("~/components/exercises/exercise-video"),
-  () => () => null
-);
+jest.mock("~/components/exercises/exercise-video", () => () => null);
 
-jest.mock<typeof import("~/components/symbol-image")>(
-  import("~/components/symbol-image"),
-  () => ({ SymbolImage: () => null })
-);
+jest.mock("~/components/symbol-image", () => ({ SymbolImage: () => null }));
 
 let fake: FakeLibrary;
 let client: QueryClient;

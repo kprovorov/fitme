@@ -1,10 +1,9 @@
 import { describe, expect, it } from "@jest/globals";
-import { describe, expect, it } from "vitest";
 
 import { isTracedRequestUrl, templateRequestSpans } from "../request-spans";
 import type { SpannedEvent } from "../request-spans";
 
-describe(isTracedRequestUrl, () => {
+describe("isTracedRequestUrl", () => {
   it("records a span for every service we send trace headers to", () => {
     for (const url of [
       "https://api.fitmeproject.com/v1/plans/active",
@@ -28,13 +27,16 @@ describe(isTracedRequestUrl, () => {
   });
 });
 
-const requestSpan = (description: string, data: Record<string, unknown>) => ({
+const requestSpan = (
+  description: string,
+  data: NonNullable<NonNullable<SpannedEvent["spans"]>[number]["data"]>
+) => ({
   data,
   description,
   op: "http.client",
 });
 
-describe(templateRequestSpans, () => {
+describe("templateRequestSpans", () => {
   it("replaces a row id with its route template, so a route groups as one", () => {
     const [span] = templateRequestSpans({
       spans: [

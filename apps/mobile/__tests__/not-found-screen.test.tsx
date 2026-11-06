@@ -5,20 +5,18 @@
 import { afterEach, describe, expect, it, jest } from "@jest/globals";
 import { render, screen } from "@testing-library/react-native";
 import type { ReactNode } from "react";
-import { afterEach, describe, expect, it } from "vitest";
 
 import NotFoundScreen from "~/app/+not-found";
 import { i18n } from "~/lib/i18n";
 import { setDeviceLanguages } from "~/test-utils/device-locales";
 import { InAppLanguage } from "~/test-utils/in-app-language";
 
-jest.mock<typeof import("expo-router")>(import("expo-router"), () => ({
+jest.mock("expo-router", () => ({
   Link: ({ children }: { children: ReactNode }) => children,
 }));
 
-jest.mock<typeof import("~/components/ui/button")>(
-  import("~/components/ui/button"),
-  () => jest.requireActual("~/test-utils/button-stub")
+jest.mock("~/components/ui/button", () =>
+  jest.requireActual("~/test-utils/button-stub")
 );
 
 const renderScreen = () =>
@@ -28,7 +26,7 @@ const renderScreen = () =>
     </InAppLanguage>
   );
 
-describe(NotFoundScreen, () => {
+describe("NotFoundScreen", () => {
   afterEach(async () => {
     // The next English test renders without the sync.
     await i18n.changeLanguage("en");

@@ -12,8 +12,6 @@ import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import test from "node:test";
 
-import { test } from "vitest";
-
 const scripts = import.meta.dirname;
 const root = resolve(scripts, "../../../..");
 const migrations = "packages/supabase/supabase/migrations";

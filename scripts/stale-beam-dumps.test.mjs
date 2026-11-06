@@ -6,8 +6,6 @@ import path from "node:path";
 import { after, describe, test } from "node:test";
 import { fileURLToPath } from "node:url";
 
-import { describe, test } from "vitest";
-
 import { isAlive, removeStaleBeamDumps } from "./stale-beam-dumps.mjs";
 
 const REMOVED = /Removed 2 BEAM perf\/jit dump/;

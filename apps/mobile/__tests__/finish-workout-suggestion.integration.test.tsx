@@ -39,7 +39,6 @@ import {
   Pressable as RowPressable,
   View,
 } from "react-native";
-import { it, afterEach, describe, expect, beforeEach } from "vitest";
 
 import WorkoutScreen from "~/app/plans/[planId]/workouts/[workoutId]/index";
 import PlanSessionExerciseScreen from "~/app/plans/[planId]/workouts/[workoutId]/sessions/[sessionId]/exercises/[exerciseId]/index";
@@ -183,13 +182,13 @@ const mockRouteContext = createContext<{
 }>({ focused: false, params: {} });
 
 // The User a write is made for (the real Clerk SDK keeps Jest alive).
-jest.mock<typeof import("~/lib/clerk")>(import("~/lib/clerk"), () => ({
+jest.mock("~/lib/clerk", () => ({
   getCurrentUserId: jest.requireActual<
     typeof import("~/test-utils/signed-in-user")
   >("~/test-utils/signed-in-user").getCurrentUserId,
 }));
 
-jest.mock<typeof import("expo-router")>(import("expo-router"), () => {
+jest.mock("expo-router", () => {
   const { useContext } = jest.requireActual<typeof import("react")>("react");
 
   return {
@@ -211,67 +210,43 @@ jest.mock<typeof import("expo-router")>(import("expo-router"), () => {
 // Backend and native edges.
 // ---------------------------------------------------------------------------
 
-jest.mock<typeof import("~/lib/library")>(
-  import("~/lib/library"),
+jest.mock(
+  "~/lib/library",
   () =>
     jest.requireActual<typeof import("~/test-utils/fake-library")>(
       "~/test-utils/fake-library"
     ).libraryModule
 );
 
-jest.mock<typeof import("~/hooks/queries/profiles")>(
-  import("~/hooks/queries/profiles"),
-  () => ({
-    useProfileQuery: () => ({ data: { measurement_system: "metric" } }),
-  })
-);
+jest.mock("~/hooks/queries/profiles", () => ({
+  useProfileQuery: () => ({ data: { measurement_system: "metric" } }),
+}));
 
-jest.mock<typeof import("@sentry/react-native")>(
-  import("@sentry/react-native"),
-  () => ({ captureException: jest.fn() })
-);
+jest.mock("@sentry/react-native", () => ({ captureException: jest.fn() }));
 
-jest.mock<typeof import("~/lib/segment")>(import("~/lib/segment"), () => ({
+jest.mock("~/lib/segment", () => ({
   segmentClient: { track: jest.fn() },
 }));
 
-jest.mock<typeof import("react-native-safe-area-context")>(
-  import("react-native-safe-area-context"),
-  () => ({
-    useSafeAreaInsets: () => ({ bottom: 0, left: 0, right: 0, top: 0 }),
-  })
-);
+jest.mock("react-native-safe-area-context", () => ({
+  useSafeAreaInsets: () => ({ bottom: 0, left: 0, right: 0, top: 0 }),
+}));
 
-jest.mock<typeof import("react-native-keyboard-controller")>(
-  import("react-native-keyboard-controller"),
-  () => {
-    const { ScrollView } =
-      jest.requireActual<typeof import("react-native")>("react-native");
+jest.mock("react-native-keyboard-controller", () => {
+  const { ScrollView } =
+    jest.requireActual<typeof import("react-native")>("react-native");
 
-    return { KeyboardAwareScrollView: ScrollView };
-  }
-);
+  return { KeyboardAwareScrollView: ScrollView };
+});
 
-jest.mock<typeof import("~/components/exercises/exercise-image")>(
-  import("~/components/exercises/exercise-image"),
-  () => () => null
-);
+jest.mock("~/components/exercises/exercise-image", () => () => null);
 
-jest.mock<typeof import("~/components/exercises/exercise-video")>(
-  import("~/components/exercises/exercise-video"),
-  () => () => null
-);
+jest.mock("~/components/exercises/exercise-video", () => () => null);
 
-jest.mock<typeof import("~/components/views/exercise-history-view")>(
-  import("~/components/views/exercise-history-view"),
-  () => () => null
-);
+jest.mock("~/components/views/exercise-history-view", () => () => null);
 
 // Reanimated can't load under Jest; seeded sets have no rest, so it never shows.
-jest.mock<typeof import("~/components/workout-sessions/rest-timer")>(
-  import("~/components/workout-sessions/rest-timer"),
-  () => () => null
-);
+jest.mock("~/components/workout-sessions/rest-timer", () => () => null);
 
 // The exercise picker offers a single exercise to add, as a row to tap.
 const mockLunge = {
@@ -300,118 +275,106 @@ function MockExercisesView({
   );
 }
 
-jest.mock<typeof import("~/components/views/exercises-view")>(
-  import("~/components/views/exercises-view"),
-  () => ({
-    __esModule: true,
-    // Read lazily: the mock is hoisted above the stub's definition.
-    get default() {
-      return MockExercisesView;
-    },
-  })
-);
+jest.mock("~/components/views/exercises-view", () => ({
+  __esModule: true,
+  // Read lazily: the mock is hoisted above the stub's definition.
+  get default() {
+    return MockExercisesView;
+  },
+}));
 
-jest.mock<typeof import("~/components/ui/button")>(
-  import("~/components/ui/button"),
-  () => {
-    const { Pressable, Text } =
-      jest.requireActual<typeof import("react-native")>("react-native");
+jest.mock("~/components/ui/button", () => {
+  const { Pressable, Text } =
+    jest.requireActual<typeof import("react-native")>("react-native");
 
-    return {
-      Button: ({
-        accessibilityLabel,
-        disabled,
-        isLoading,
-        label,
-        onPress,
-        systemImage,
-        testID,
-      }: {
-        accessibilityLabel?: string;
-        disabled?: boolean;
-        isLoading?: boolean;
-        label?: string;
-        onPress?: () => void;
-        systemImage?: string;
-        testID?: string;
-      }) => (
+  return {
+    Button: ({
+      accessibilityLabel,
+      disabled,
+      isLoading,
+      label,
+      onPress,
+      systemImage,
+      testID,
+    }: {
+      accessibilityLabel?: string;
+      disabled?: boolean;
+      isLoading?: boolean;
+      label?: string;
+      onPress?: () => void;
+      systemImage?: string;
+      testID?: string;
+    }) => (
+      <Pressable
+        accessibilityLabel={accessibilityLabel ?? label ?? systemImage}
+        accessibilityRole="button"
+        accessibilityState={{ busy: !!isLoading, disabled: !!disabled }}
+        disabled={disabled}
+        onPress={onPress}
+        testID={testID}
+      >
+        {label ? <Text>{label}</Text> : null}
+      </Pressable>
+    ),
+  };
+});
+
+jest.mock("~/components/ui/dropdown-menu", () => {
+  const { Pressable } =
+    jest.requireActual<typeof import("react-native")>("react-native");
+
+  return {
+    DropdownMenu: ({
+      items,
+    }: {
+      items: { label: string; onPress?: () => void }[];
+    }) =>
+      items.map((item) => (
         <Pressable
-          accessibilityLabel={accessibilityLabel ?? label ?? systemImage}
-          accessibilityRole="button"
-          accessibilityState={{ busy: !!isLoading, disabled: !!disabled }}
-          disabled={disabled}
-          onPress={onPress}
-          testID={testID}
-        >
-          {label ? <Text>{label}</Text> : null}
-        </Pressable>
-      ),
-    };
-  }
-);
-
-jest.mock<typeof import("~/components/ui/dropdown-menu")>(
-  import("~/components/ui/dropdown-menu"),
-  () => {
-    const { Pressable } =
-      jest.requireActual<typeof import("react-native")>("react-native");
-
-    return {
-      DropdownMenu: ({
-        items,
-      }: {
-        items: { label: string; onPress?: () => void }[];
-      }) =>
-        items.map((item) => (
-          <Pressable
-            accessibilityLabel={item.label}
-            accessibilityRole="menuitem"
-            key={item.label}
-            onPress={item.onPress}
-          />
-        )),
-    };
-  }
-);
+          accessibilityLabel={item.label}
+          accessibilityRole="menuitem"
+          key={item.label}
+          onPress={item.onPress}
+        />
+      )),
+  };
+});
 
 /** Times the suggestion sheet has been presented. */
 const mockPresentations = { count: 0 };
 
-jest.mock<typeof import("~/components/ui/dialog")>(
-  import("~/components/ui/dialog"),
-  () => {
-    const { useEffect } = jest.requireActual<typeof import("react")>("react");
+jest.mock("~/components/ui/dialog", () => {
+  const { useEffect } = jest.requireActual<typeof import("react")>("react");
 
-    const { View: MockView } =
-      jest.requireActual<typeof import("react-native")>("react-native");
+  const { View: MockView } =
+    jest.requireActual<typeof import("react-native")>("react-native");
 
-    return {
-      Dialog: ({
-        children,
-        isPresented,
-        onIsPresentedChange,
-      }: {
-        children?: ReactNode;
-        isPresented: boolean;
-        onIsPresentedChange: (isPresented: boolean) => void;
-      }) => {
-        useEffect(() => {
-          if (isPresented) {
-            mockPresentations.count += 1;
-          }
-        }, [isPresented]);
+  return {
+    Dialog: ({
+      children,
+      isPresented,
+      onIsPresentedChange,
+    }: {
+      children?: ReactNode;
+      isPresented: boolean;
+      onIsPresentedChange: (isPresented: boolean) => void;
+    }) => {
+      useEffect(() => {
+        if (isPresented) {
+          mockPresentations.count += 1;
+        }
+      }, [isPresented]);
 
-        // Tests fire `isPresentedChange` on this view the way the native sheet
-        // does when swiped down or tapped outside.
-        return isPresented ? (
-          <MockView {...{ onIsPresentedChange }} testID="finish-suggestion">
-            {children}
-          </MockView>
-        ) : null;
-      },
-    };
-  }
-);
+      // Tests fire `isPresentedChange` on this view the way the native sheet
+      // does when swiped down or tapped outside.
+      return isPresented ? (
+        <MockView {...{ onIsPresentedChange }} testID="finish-suggestion">
+          {children}
+        </MockView>
+      ) : null;
+    },
+  };
+});
 
 // ---------------------------------------------------------------------------
 // Harness.
@@ -864,7 +827,7 @@ describe.each(ENTRY_ROUTES)(
 
       expect(isSuggestionShown()).toBe(false);
       // The check's own read failed, not the screens' refetch.
-      expect(captureException).toHaveBeenCalledOnce();
+      expect(captureException).toHaveBeenCalledTimes(1);
     });
 
     it("suggests whichever order the sets are tracked in", async () => {
@@ -1130,7 +1093,7 @@ describe.each(ENTRY_ROUTES)(
         screen.getByTestId("finish-workout-suggestion-finish")
       );
       await settle();
-      expect(Alert.alert).toHaveBeenCalledOnce();
+      expect(Alert.alert).toHaveBeenCalledTimes(1);
       expect(backend.session("s1")?.finished_at).not.toBeNull();
 
       // The retry answers `already_finished`, a success.
@@ -1141,7 +1104,7 @@ describe.each(ENTRY_ROUTES)(
 
       expect(mockNavigator.routes.map(({ name }) => name)).toEqual(["summary"]);
       expect(fakePublicApi.count(FINISH)).toBe(2);
-      expect(Alert.alert).toHaveBeenCalledOnce();
+      expect(Alert.alert).toHaveBeenCalledTimes(1);
     });
 
     it("keeps the session active and lets the user retry when finishing fails", async () => {
@@ -1158,7 +1121,7 @@ describe.each(ENTRY_ROUTES)(
       );
       await settle();
 
-      expect(Alert.alert).toHaveBeenCalledOnce();
+      expect(Alert.alert).toHaveBeenCalledTimes(1);
       expect(backend.session("s1")?.finished_at).toBeNull();
       expect(mockNavigator.routes.map(({ name }) => name).at(-1)).toBe(
         "exercise"
@@ -1733,7 +1696,13 @@ describe("the Plan Update after finishing a Workout Session opened from Home", (
     backend.plans[0]?.workouts.find(({ id }) => id === "w1")?.exercises;
 
   // A plain mock: `jest.mocked` on the client's overloads is too deep to type.
-  const track = () => jest.mocked(segmentClient.track);
+  const track = () =>
+    jest.mocked<
+      (
+        event: string,
+        properties?: Record<string, string | number | boolean | null>
+      ) => void
+    >(segmentClient.track);
 
   const isSheetShown = () => screen.queryByText("Update your plan?") !== null;
 
@@ -1774,13 +1743,16 @@ describe("the Plan Update after finishing a Workout Session opened from Home", (
       "home",
       "plan-session",
     ]);
-    expect(track()).toHaveBeenCalledWith("Plan Update Suggested", {
-      add_exercise: 2,
-      add_sets: 1,
-      remove_exercise: 0,
-      replace_exercise: 0,
-      ...eventProperties,
-    });
+    expect(track().mock.calls).toContainEqual([
+      "Plan Update Suggested",
+      {
+        add_exercise: 2,
+        add_sets: 1,
+        remove_exercise: 0,
+        replace_exercise: 0,
+        ...eventProperties,
+      },
+    ]);
   });
 
   it("asks to save a set added on the exercise screen, logged, after the finish", async () => {
@@ -1977,7 +1949,7 @@ describe("the Plan Update after finishing a Workout Session opened from Home", (
     await finishFromSession();
 
     expect(isSheetShown()).toBe(false);
-    expect(captureException).toHaveBeenCalledWith();
+    expect(captureException).toHaveBeenCalled();
     expect(mockNavigator.routes.map(({ name }) => name)).toEqual([
       "home",
       "summary",

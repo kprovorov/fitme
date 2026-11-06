@@ -69,7 +69,9 @@ export default class ASTRenderer {
     if (!fn) {
       console.warn(`Missing render rule for node type: ${type}`);
 
-      return this._renderRules.unknown ?? (() => null);
+      const unknown = this._renderRules.unknown;
+
+      return unknown ? (params) => unknown(params) : () => null;
     }
 
     // SAFETY: The rule is selected by node.type and called with that same node below.

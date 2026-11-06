@@ -6,8 +6,6 @@ import path from "node:path";
 import { after, describe, test } from "node:test";
 import { fileURLToPath } from "node:url";
 
-import { describe, test } from "vitest";
-
 import { staleV2Stacks } from "./v2-stacks.mjs";
 
 const DESTROYING_GONE = /Destroying gone-id/;

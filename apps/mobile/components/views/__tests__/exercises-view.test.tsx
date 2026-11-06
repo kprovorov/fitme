@@ -37,7 +37,6 @@ import {
 } from "@testing-library/react-native";
 import type { ReactNode } from "react";
 import { Text } from "react-native";
-import { it, afterEach, describe, expect, beforeEach } from "vitest";
 
 import { getMuscleChoice, setMuscleChoice } from "~/hooks/muscle-choice";
 import { i18n, useAppLanguageSync } from "~/lib/i18n";
@@ -48,35 +47,28 @@ import { libraryExercise, serveLibrary } from "~/test-utils/fake-library";
 import { createTestQueryClient } from "~/test-utils/query-client";
 import { SearchedExercisesView } from "~/test-utils/searched-exercises-view";
 
-jest.mock<typeof import("~/lib/library")>(
-  import("~/lib/library"),
+jest.mock(
+  "~/lib/library",
   () =>
     jest.requireActual<typeof import("~/test-utils/fake-library")>(
       "~/test-utils/fake-library"
     ).libraryModule
 );
 
-jest.mock<typeof import("~/components/ui/button")>(
-  import("~/components/ui/button"),
-  () => jest.requireActual("~/test-utils/button-stub")
+jest.mock("~/components/ui/button", () =>
+  jest.requireActual("~/test-utils/button-stub")
 );
 
 const mockPush = jest.fn();
 
-jest.mock<typeof import("expo-router")>(import("expo-router"), () => ({
+jest.mock("expo-router", () => ({
   useRouter: () => ({ push: mockPush }),
 }));
 
 // A thumbnail shows as nothing.
-jest.mock<typeof import("~/components/exercises/exercise-image")>(
-  import("~/components/exercises/exercise-image"),
-  () => () => null
-);
+jest.mock("~/components/exercises/exercise-image", () => () => null);
 
-jest.mock<typeof import("~/components/symbol-image")>(
-  import("~/components/symbol-image"),
-  () => ({ SymbolImage: () => null })
-);
+jest.mock("~/components/symbol-image", () => ({ SymbolImage: () => null }));
 
 /** 25 bench presses (two pages of 20) and a squat. */
 const EXERCISES = [
@@ -194,7 +186,7 @@ describe("searching the Library", () => {
   it("lists the first page of every Exercise at once", async () => {
     await renderView();
 
-    expect(list).toHaveBeenCalledOnce();
+    expect(list).toHaveBeenCalledTimes(1);
     expect(list).toHaveBeenLastCalledWith({ limit: 20, offset: 0 });
     expect(screen.getByText("Bench Press 01")).toBeTruthy();
     expect(screen.queryByText("Bench Press 21")).toBeNull();
@@ -210,7 +202,7 @@ describe("searching the Library", () => {
     expect(list).not.toHaveBeenCalled();
 
     await advance(50);
-    expect(list).toHaveBeenCalledOnce();
+    expect(list).toHaveBeenCalledTimes(1);
     expect(list).toHaveBeenLastCalledWith({
       limit: 20,
       offset: 0,
@@ -326,7 +318,7 @@ describe("filtering and paging", () => {
     await fireEvent.press(screen.getByRole("button", { name: "Remove Chest" }));
     await advance(0);
 
-    expect(list).toHaveBeenCalledOnce();
+    expect(list).toHaveBeenCalledTimes(1);
     expect(list).toHaveBeenLastCalledWith({
       limit: 20,
       muscleGroups: ["quadriceps"],
@@ -352,7 +344,7 @@ describe("filtering and paging", () => {
     await chooseMuscleGroups("quadriceps");
     await advance(0);
 
-    expect(list).toHaveBeenCalledOnce();
+    expect(list).toHaveBeenCalledTimes(1);
     expect(list).toHaveBeenLastCalledWith({
       limit: 20,
       muscleGroups: ["quadriceps"],
@@ -441,7 +433,7 @@ describe("filtering and paging", () => {
     await chooseMuscleGroups("quadriceps");
     await advance(0);
 
-    expect(list).toHaveBeenCalledOnce();
+    expect(list).toHaveBeenCalledTimes(1);
     expect(list).toHaveBeenLastCalledWith({
       limit: 20,
       muscleGroups: ["quadriceps"],
@@ -470,7 +462,7 @@ describe("filtering and paging", () => {
     await reachEnd();
     await advance(0);
 
-    expect(list).toHaveBeenCalledOnce();
+    expect(list).toHaveBeenCalledTimes(1);
     expect(list).toHaveBeenLastCalledWith({
       limit: 20,
       offset: 20,
@@ -480,7 +472,7 @@ describe("filtering and paging", () => {
 
     await reachEnd();
     await advance(0);
-    expect(list).toHaveBeenCalledOnce();
+    expect(list).toHaveBeenCalledTimes(1);
   });
 
   it("has no Load More button", async () => {
@@ -522,7 +514,7 @@ describe("filtering and paging", () => {
     await reachEnd();
     await advance(30_000);
 
-    expect(list).toHaveBeenCalledOnce();
+    expect(list).toHaveBeenCalledTimes(1);
     expect(list).toHaveBeenLastCalledWith({ limit: 20, offset: 20 });
   });
 });
@@ -862,7 +854,7 @@ describe("in Ukrainian", () => {
     });
     await advance(0);
 
-    expect(list).toHaveBeenCalledOnce();
+    expect(list).toHaveBeenCalledTimes(1);
     expect(list).toHaveBeenLastCalledWith({
       limit: 20,
       offset: 0,

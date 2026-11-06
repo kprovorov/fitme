@@ -1,5 +1,4 @@
 import { describe, expect, it } from "@jest/globals";
-import { describe, expect, it } from "vitest";
 
 import { i18n } from "~/lib/i18n";
 
@@ -10,7 +9,7 @@ const age = numberInRange(4, 150, "Age is required");
 const errorOf = (input: unknown) =>
   age.safeParse(input).error?.issues.map((issue) => issue.message);
 
-describe(numberInRange, () => {
+describe("numberInRange", () => {
   it("coerces a number in range", () => {
     expect(age.parse("30")).toBe(30);
     expect(age.parse(4)).toBe(4);

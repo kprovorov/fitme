@@ -19,7 +19,6 @@ import {
   screen,
   within,
 } from "@testing-library/react-native";
-import { it, describe, expect, beforeEach } from "vitest";
 
 import LibraryScreen from "~/app/(tabs)/library/index";
 import MusclesSheet from "~/app/muscles";
@@ -40,7 +39,7 @@ import {
   stubRouter,
 } from "~/test-utils/router-stub";
 
-jest.mock<typeof import("expo-router")>(import("expo-router"), () => {
+jest.mock("expo-router", () => {
   const stub = jest.requireActual<typeof import("~/test-utils/router-stub")>(
     "~/test-utils/router-stub"
   );
@@ -53,21 +52,14 @@ jest.mock<typeof import("expo-router")>(import("expo-router"), () => {
   };
 });
 
-jest.mock<typeof import("~/components/ui/button")>(
-  import("~/components/ui/button"),
-  () => jest.requireActual("~/test-utils/button-stub")
+jest.mock("~/components/ui/button", () =>
+  jest.requireActual("~/test-utils/button-stub")
 );
 
 // A thumbnail shows as nothing.
-jest.mock<typeof import("~/components/exercises/exercise-image")>(
-  import("~/components/exercises/exercise-image"),
-  () => () => null
-);
+jest.mock("~/components/exercises/exercise-image", () => () => null);
 
-jest.mock<typeof import("~/components/symbol-image")>(
-  import("~/components/symbol-image"),
-  () => ({ SymbolImage: () => null })
-);
+jest.mock("~/components/symbol-image", () => ({ SymbolImage: () => null }));
 
 let fake: FakeLibrary;
 let list: jest.SpiedFunction<FakeLibrary["list"]>;
@@ -164,7 +156,7 @@ describe("the Muscles sheet over the Library tab", () => {
     await tick("Chest");
     expect(isChecked("Chest")).toBe(true);
     // Nothing is applied while the User is still choosing.
-    expect(list).toHaveBeenCalledOnce();
+    expect(list).toHaveBeenCalledTimes(1);
     await confirm();
 
     expect(sheetOpen()).toBe(false);

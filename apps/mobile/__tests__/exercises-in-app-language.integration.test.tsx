@@ -23,7 +23,6 @@ import { QueryClientProvider } from "@tanstack/react-query";
 import type { QueryClient } from "@tanstack/react-query";
 import { act, fireEvent, render, screen } from "@testing-library/react-native";
 import type { ReactNode } from "react";
-import { it, afterEach, describe, expect, beforeEach } from "vitest";
 
 import LibraryScreen from "~/app/(tabs)/library/index";
 import ExerciseGuideScreen from "~/app/exercises/[exerciseSlug]/guide";
@@ -46,13 +45,13 @@ const mockParams: { current: Record<string, string> } = { current: {} };
 
 // The real Clerk SDK (reached through the Workout Session's writes) opens a
 // MessagePort at import that keeps Jest alive.
-jest.mock<typeof import("~/lib/clerk")>(import("~/lib/clerk"), () => ({
+jest.mock("~/lib/clerk", () => ({
   getCurrentUserId: jest.requireActual<
     typeof import("~/test-utils/signed-in-user")
   >("~/test-utils/signed-in-user").getCurrentUserId,
 }));
 
-jest.mock<typeof import("expo-router")>(import("expo-router"), () => {
+jest.mock("expo-router", () => {
   const { Text, View } =
     jest.requireActual<typeof import("react-native")>("react-native");
 
@@ -96,108 +95,79 @@ jest.mock<typeof import("expo-router")>(import("expo-router"), () => {
   };
 });
 
-jest.mock<typeof import("~/lib/library")>(
-  import("~/lib/library"),
+jest.mock(
+  "~/lib/library",
   () =>
     jest.requireActual<typeof import("~/test-utils/fake-library")>(
       "~/test-utils/fake-library"
     ).libraryModule
 );
 
-jest.mock<typeof import("~/hooks/queries/profiles")>(
-  import("~/hooks/queries/profiles"),
-  () => ({
-    useProfileQuery: () => ({ data: { measurement_system: "metric" } }),
-  })
-);
+jest.mock("~/hooks/queries/profiles", () => ({
+  useProfileQuery: () => ({ data: { measurement_system: "metric" } }),
+}));
 
-jest.mock<typeof import("@sentry/react-native")>(
-  import("@sentry/react-native"),
-  () => ({ captureException: jest.fn() })
-);
+jest.mock("@sentry/react-native", () => ({ captureException: jest.fn() }));
 
-jest.mock<typeof import("~/lib/segment")>(import("~/lib/segment"), () => ({
+jest.mock("~/lib/segment", () => ({
   segmentClient: { track: jest.fn() },
 }));
 
-jest.mock<typeof import("react-native-safe-area-context")>(
-  import("react-native-safe-area-context"),
-  () => ({
-    useSafeAreaInsets: () => ({ bottom: 0, left: 0, right: 0, top: 0 }),
-  })
-);
+jest.mock("react-native-safe-area-context", () => ({
+  useSafeAreaInsets: () => ({ bottom: 0, left: 0, right: 0, top: 0 }),
+}));
 
-jest.mock<typeof import("react-native-keyboard-controller")>(
-  import("react-native-keyboard-controller"),
-  () => {
-    const { ScrollView } =
-      jest.requireActual<typeof import("react-native")>("react-native");
+jest.mock("react-native-keyboard-controller", () => {
+  const { ScrollView } =
+    jest.requireActual<typeof import("react-native")>("react-native");
 
-    return { KeyboardAwareScrollView: ScrollView };
-  }
-);
+  return { KeyboardAwareScrollView: ScrollView };
+});
 
 // A thumbnail shows as a view naming its image, or `none`.
-jest.mock<typeof import("~/components/exercises/exercise-image")>(
-  import("~/components/exercises/exercise-image"),
-  () => {
-    const { View } =
-      jest.requireActual<typeof import("react-native")>("react-native");
+jest.mock("~/components/exercises/exercise-image", () => {
+  const { View } =
+    jest.requireActual<typeof import("react-native")>("react-native");
 
-    return ({ exercise }: { exercise: { thumbnail_url: string | null } }) => (
-      <View testID={`thumbnail:${exercise.thumbnail_url ?? "none"}`} />
-    );
-  }
+  return ({ exercise }: { exercise: { thumbnail_url: string | null } }) => (
+    <View testID={`thumbnail:${exercise.thumbnail_url ?? "none"}`} />
+  );
+});
+
+jest.mock("~/components/symbol-image", () => ({ SymbolImage: () => null }));
+
+jest.mock("~/components/workout-sessions/rest-timer", () => () => null);
+
+jest.mock("~/components/ui/button", () =>
+  jest.requireActual("~/test-utils/button-stub")
 );
 
-jest.mock<typeof import("~/components/symbol-image")>(
-  import("~/components/symbol-image"),
-  () => ({ SymbolImage: () => null })
+jest.mock("~/components/ui/dialog", () =>
+  jest.requireActual("~/test-utils/dialog-stub")
 );
 
-jest.mock<typeof import("~/components/workout-sessions/rest-timer")>(
-  import("~/components/workout-sessions/rest-timer"),
-  () => () => null
-);
+jest.mock("~/components/ui/dropdown-menu", () => {
+  const { Pressable } =
+    jest.requireActual<typeof import("react-native")>("react-native");
 
-jest.mock<typeof import("~/components/ui/button")>(
-  import("~/components/ui/button"),
-  () => jest.requireActual("~/test-utils/button-stub")
-);
+  return {
+    DropdownMenu: ({
+      items,
+    }: {
+      items: { label: string; onPress?: () => void }[];
+    }) =>
+      items.map((item) => (
+        <Pressable
+          accessibilityLabel={item.label}
+          accessibilityRole="menuitem"
+          key={item.label}
+          onPress={item.onPress}
+        />
+      )),
+  };
+});
 
-jest.mock<typeof import("~/components/ui/dialog")>(
-  import("~/components/ui/dialog"),
-  () => jest.requireActual("~/test-utils/dialog-stub")
-);
-
-jest.mock<typeof import("~/components/ui/dropdown-menu")>(
-  import("~/components/ui/dropdown-menu"),
-  () => {
-    const { Pressable } =
-      jest.requireActual<typeof import("react-native")>("react-native");
-
-    return {
-      DropdownMenu: ({
-        items,
-      }: {
-        items: { label: string; onPress?: () => void }[];
-      }) =>
-        items.map((item) => (
-          <Pressable
-            accessibilityLabel={item.label}
-            accessibilityRole="menuitem"
-            key={item.label}
-            onPress={item.onPress}
-          />
-        )),
-    };
-  }
-);
-
-jest.mock<typeof import("~/components/exercises/exercise-video")>(
-  import("~/components/exercises/exercise-video"),
-  () => () => null
-);
+jest.mock("~/components/exercises/exercise-video", () => () => null);
 
 /** Translated into Ukrainian. */
 const SQUAT = libraryExercise("squat", {

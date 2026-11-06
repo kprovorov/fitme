@@ -7,7 +7,6 @@ import { afterEach, beforeEach, describe, expect, it } from "@jest/globals";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { act, renderHook } from "@testing-library/react-native";
 import type { ReactNode } from "react";
-import { it, afterEach, describe, expect, beforeEach } from "vitest";
 
 import { storage } from "~/lib/mmkv";
 import {
@@ -47,7 +46,7 @@ afterEach(() => {
   process.env.EXPO_PUBLIC_API_URL = EXPO_PUBLIC_API_URL;
 });
 
-describe(useSelectedArnoldModel, () => {
+describe("useSelectedArnoldModel", () => {
   it("reads the list from GET /v1/arnold/models and caches it under arnold.models", async () => {
     const { result } = await renderSelectedModel();
 

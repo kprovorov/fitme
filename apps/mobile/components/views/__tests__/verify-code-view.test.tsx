@@ -8,7 +8,6 @@ import {
 } from "@jest/globals";
 import { act, fireEvent, render, screen } from "@testing-library/react-native";
 import { router } from "expo-router";
-import { it, afterEach, describe, expect, beforeEach } from "vitest";
 
 import "~/test-utils/auth-ui";
 import { segmentClient } from "~/lib/segment";
@@ -79,7 +78,7 @@ const mockSignIn = {
   supportedSecondFactors: [{ strategy: "email_code" }],
 };
 
-jest.mock<typeof import("@clerk/expo")>(import("@clerk/expo"), () => {
+jest.mock("@clerk/expo", () => {
   const { useState } = jest.requireActual<typeof import("react")>("react");
 
   return {
@@ -98,22 +97,18 @@ jest.mock<typeof import("@clerk/expo")>(import("@clerk/expo"), () => {
   };
 });
 
-jest.mock<typeof import("@clerk/expo/token-cache")>(
-  import("@clerk/expo/token-cache"),
-  () => ({ tokenCache: {} })
-);
+jest.mock("@clerk/expo/token-cache", () => ({ tokenCache: {} }));
 
-jest.mock<typeof import("expo-router")>(import("expo-router"), () => ({
+jest.mock("expo-router", () => ({
   router: { replace: jest.fn() },
 }));
 
-jest.mock<typeof import("~/lib/segment")>(import("~/lib/segment"), () => ({
+jest.mock("~/lib/segment", () => ({
   segmentClient: { track: jest.fn() },
 }));
 
-jest.mock<typeof import("~/components/ui/button")>(
-  import("~/components/ui/button"),
-  () => jest.requireActual("~/test-utils/button-stub")
+jest.mock("~/components/ui/button", () =>
+  jest.requireActual("~/test-utils/button-stub")
 );
 
 const enterCode = async (code: string) => {
@@ -149,7 +144,7 @@ describe("email verification", () => {
     await fireEvent.changeText(screen.getByLabelText("Code"), "42424");
     expect(screen.getByRole("button", { name: "Verify" })).toBeDisabled();
     await enterCode(EMAILED_CODE);
-    expect(mockSignUp.finalize).toHaveBeenCalledOnce();
+    expect(mockSignUp.finalize).toHaveBeenCalledTimes(1);
   });
 
   it("shows a wrong-code error and clears it on edit before a successful retry", async () => {
@@ -160,7 +155,7 @@ describe("email verification", () => {
     expect(screen.queryByText("Incorrect code")).toBeNull();
     expect(mockSignUp.finalize).not.toHaveBeenCalled();
     await fireEvent.press(screen.getByRole("button", { name: "Verify" }));
-    expect(mockSignUp.finalize).toHaveBeenCalledOnce();
+    expect(mockSignUp.finalize).toHaveBeenCalledTimes(1);
   });
 
   it("sanitizes a pasted code and never auto-submits it", async () => {
@@ -180,7 +175,7 @@ describe("email verification", () => {
     await fireEvent.changeText(screen.getByLabelText("Code"), "123456");
     await allowResend();
     await fireEvent.press(screen.getByRole("button", { name: "Resend code" }));
-    expect(mockSignUp.verifications.sendEmailCode).toHaveBeenCalledOnce();
+    expect(mockSignUp.verifications.sendEmailCode).toHaveBeenCalledTimes(1);
     expect(screen.getByLabelText("Code")).toHaveProp("value", "");
     expect(screen.getByText("We sent you a new code.")).toBeTruthy();
     expect(screen.getByTestId("verify-code-resend-button")).toBeDisabled();
@@ -203,7 +198,7 @@ describe("email verification", () => {
     await render(<VerifyCodeView purpose="sign-up" />);
     expect(screen.queryByLabelText("Code")).toBeNull();
     await fireEvent.press(screen.getByRole("button", { name: "Start again" }));
-    expect(mockSignUp.reset).toHaveBeenCalledOnce();
+    expect(mockSignUp.reset).toHaveBeenCalledTimes(1);
     expect(router.replace).toHaveBeenCalledWith("/auth/register");
     expect(mockSignUp.verifications.verifyEmailCode).not.toHaveBeenCalled();
   });
@@ -211,7 +206,7 @@ describe("email verification", () => {
   it("resets the attempt when the User chooses to change email", async () => {
     await render(<VerifyCodeView purpose="sign-up" />);
     await fireEvent.press(screen.getByRole("link", { name: "Change it" }));
-    expect(mockSignUp.reset).toHaveBeenCalledOnce();
+    expect(mockSignUp.reset).toHaveBeenCalledTimes(1);
     expect(router.replace).toHaveBeenCalledWith("/auth/register");
   });
 });
@@ -227,7 +222,7 @@ describe("password recovery verification", () => {
     await render(<VerifyCodeView purpose="reset-password" />);
     await allowResend();
     await fireEvent.press(screen.getByRole("button", { name: "Resend code" }));
-    expect(mockSignIn.resetPasswordEmailCode.sendCode).toHaveBeenCalledOnce();
+    expect(mockSignIn.resetPasswordEmailCode.sendCode).toHaveBeenCalledTimes(1);
   });
 });
 
@@ -238,7 +233,7 @@ describe("device Trust verification", () => {
       mockSignIn.status = "needs_client_trust";
       await render(<VerifyCodeView purpose="sign-in" source={source} />);
       await enterCode(EMAILED_CODE);
-      expect(mockSignIn.finalize).toHaveBeenCalledOnce();
+      expect(mockSignIn.finalize).toHaveBeenCalledTimes(1);
 
       if (source === "reset-password") {
         expect(segmentClient.track).not.toHaveBeenCalled();
@@ -253,6 +248,6 @@ describe("device Trust verification", () => {
     await render(<VerifyCodeView purpose="sign-in" />);
     await allowResend();
     await fireEvent.press(screen.getByRole("button", { name: "Resend code" }));
-    expect(mockSignIn.mfa.sendEmailCode).toHaveBeenCalledOnce();
+    expect(mockSignIn.mfa.sendEmailCode).toHaveBeenCalledTimes(1);
   });
 });

@@ -1,6 +1,5 @@
 import { describe, expect, it, jest } from "@jest/globals";
 import { render, screen } from "@testing-library/react-native";
-import { describe, expect, it } from "vitest";
 
 import { Badge } from "../badge";
 import { Text } from "../text";
@@ -15,17 +14,14 @@ const VARIANTS = [
 
 // The symbol, as a plain view carrying its props: what it draws from them
 // (size, weight, color from the class names) is SymbolImage's own
-jest.mock<typeof import("~/components/symbol-image")>(
-  import("~/components/symbol-image"),
-  () => {
-    const { View: MockView } =
-      jest.requireActual<typeof import("react-native")>("react-native");
+jest.mock("~/components/symbol-image", () => {
+  const { View: MockView } =
+    jest.requireActual<typeof import("react-native")>("react-native");
 
-    return {
-      SymbolImage: (props: object) => <MockView {...props} testID="symbol" />,
-    };
-  }
-);
+  return {
+    SymbolImage: (props: object) => <MockView {...props} testID="symbol" />,
+  };
+});
 
 /** The icon, hidden from accessibility, so queries must ask for it. */
 function symbol() {
@@ -50,7 +46,7 @@ function childOrder(): string[] {
   });
 }
 
-describe(Badge, () => {
+describe("Badge", () => {
   it("renders its label with the default variant", async () => {
     await render(
       <Badge>

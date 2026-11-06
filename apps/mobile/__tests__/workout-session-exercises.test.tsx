@@ -24,7 +24,6 @@ import type { QueryClient } from "@tanstack/react-query";
 import { act, fireEvent, render, screen } from "@testing-library/react-native";
 import type { ReactNode } from "react";
 import { Alert } from "react-native";
-import { it, afterEach, describe, expect, beforeEach } from "vitest";
 
 import MusclesSheet from "~/app/muscles";
 import HistorySessionScreen from "~/app/workout-sessions/[workoutSessionId]";
@@ -54,13 +53,13 @@ const mockParams: { current: Record<string, string> } = { current: {} };
 
 // The real Clerk SDK (reached through the Workout Session's writes) opens a
 // MessagePort at import that keeps Jest alive.
-jest.mock<typeof import("~/lib/clerk")>(import("~/lib/clerk"), () => ({
+jest.mock("~/lib/clerk", () => ({
   getCurrentUserId: jest.requireActual<
     typeof import("~/test-utils/signed-in-user")
   >("~/test-utils/signed-in-user").getCurrentUserId,
 }));
 
-jest.mock<typeof import("expo-router")>(import("expo-router"), () => {
+jest.mock("expo-router", () => {
   const { View } =
     jest.requireActual<typeof import("react-native")>("react-native");
 
@@ -81,113 +80,87 @@ jest.mock<typeof import("expo-router")>(import("expo-router"), () => {
   };
 });
 
-jest.mock<typeof import("~/lib/library")>(
-  import("~/lib/library"),
+jest.mock(
+  "~/lib/library",
   () =>
     jest.requireActual<typeof import("~/test-utils/fake-library")>(
       "~/test-utils/fake-library"
     ).libraryModule
 );
 
-jest.mock<typeof import("~/hooks/queries/profiles")>(
-  import("~/hooks/queries/profiles"),
-  () => ({
-    useProfileQuery: () => ({ data: { measurement_system: "metric" } }),
-  })
-);
+jest.mock("~/hooks/queries/profiles", () => ({
+  useProfileQuery: () => ({ data: { measurement_system: "metric" } }),
+}));
 
-jest.mock<typeof import("@sentry/react-native")>(
-  import("@sentry/react-native"),
-  () => ({ captureException: jest.fn() })
-);
+jest.mock("@sentry/react-native", () => ({ captureException: jest.fn() }));
 
-jest.mock<typeof import("~/lib/segment")>(import("~/lib/segment"), () => ({
+jest.mock("~/lib/segment", () => ({
   segmentClient: { track: jest.fn() },
 }));
 
-jest.mock<typeof import("react-native-safe-area-context")>(
-  import("react-native-safe-area-context"),
-  () => ({
-    useSafeAreaInsets: () => ({ bottom: 0, left: 0, right: 0, top: 0 }),
-  })
-);
+jest.mock("react-native-safe-area-context", () => ({
+  useSafeAreaInsets: () => ({ bottom: 0, left: 0, right: 0, top: 0 }),
+}));
 
-jest.mock<typeof import("react-native-keyboard-controller")>(
-  import("react-native-keyboard-controller"),
-  () => {
-    const { ScrollView } =
-      jest.requireActual<typeof import("react-native")>("react-native");
+jest.mock("react-native-keyboard-controller", () => {
+  const { ScrollView } =
+    jest.requireActual<typeof import("react-native")>("react-native");
 
-    return { KeyboardAwareScrollView: ScrollView };
-  }
-);
+  return { KeyboardAwareScrollView: ScrollView };
+});
 
 // A thumbnail shows as a view naming its image, or `none`.
-jest.mock<typeof import("~/components/exercises/exercise-image")>(
-  import("~/components/exercises/exercise-image"),
-  () => {
-    const { View } =
-      jest.requireActual<typeof import("react-native")>("react-native");
+jest.mock("~/components/exercises/exercise-image", () => {
+  const { View } =
+    jest.requireActual<typeof import("react-native")>("react-native");
 
-    return ({ exercise }: { exercise: { thumbnail_url: string | null } }) => (
-      <View testID={`thumbnail:${exercise.thumbnail_url ?? "none"}`} />
-    );
-  }
-);
+  return ({ exercise }: { exercise: { thumbnail_url: string | null } }) => (
+    <View testID={`thumbnail:${exercise.thumbnail_url ?? "none"}`} />
+  );
+});
 
 // A symbol shows as a view naming it: the picker rows' "+" or swap.
-jest.mock<typeof import("~/components/symbol-image")>(
-  import("~/components/symbol-image"),
-  () => {
-    const { View } =
-      jest.requireActual<typeof import("react-native")>("react-native");
+jest.mock("~/components/symbol-image", () => {
+  const { View } =
+    jest.requireActual<typeof import("react-native")>("react-native");
 
-    return {
-      SymbolImage: ({ name }: { name: string }) => (
-        <View testID={`symbol:${name}`} />
-      ),
-    };
-  }
+  return {
+    SymbolImage: ({ name }: { name: string }) => (
+      <View testID={`symbol:${name}`} />
+    ),
+  };
+});
+
+jest.mock("~/components/workout-sessions/rest-timer", () => () => null);
+
+jest.mock("~/components/ui/button", () =>
+  jest.requireActual("~/test-utils/button-stub")
 );
 
-jest.mock<typeof import("~/components/workout-sessions/rest-timer")>(
-  import("~/components/workout-sessions/rest-timer"),
-  () => () => null
+jest.mock("~/components/ui/dialog", () =>
+  jest.requireActual("~/test-utils/dialog-stub")
 );
 
-jest.mock<typeof import("~/components/ui/button")>(
-  import("~/components/ui/button"),
-  () => jest.requireActual("~/test-utils/button-stub")
-);
+jest.mock("~/components/ui/dropdown-menu", () => {
+  const { Pressable } =
+    jest.requireActual<typeof import("react-native")>("react-native");
 
-jest.mock<typeof import("~/components/ui/dialog")>(
-  import("~/components/ui/dialog"),
-  () => jest.requireActual("~/test-utils/dialog-stub")
-);
-
-jest.mock<typeof import("~/components/ui/dropdown-menu")>(
-  import("~/components/ui/dropdown-menu"),
-  () => {
-    const { Pressable } =
-      jest.requireActual<typeof import("react-native")>("react-native");
-
-    return {
-      DropdownMenu: ({
-        items,
-      }: {
-        items: { label: string; onPress?: () => void }[];
-      }) =>
-        items.map((item) => (
-          <Pressable
-            accessibilityLabel={item.label}
-            accessibilityRole="menuitem"
-            key={item.label}
-            onPress={item.onPress}
-          />
-        )),
-    };
-  }
-);
+  return {
+    DropdownMenu: ({
+      items,
+    }: {
+      items: { label: string; onPress?: () => void }[];
+    }) =>
+      items.map((item) => (
+        <Pressable
+          accessibilityLabel={item.label}
+          accessibilityRole="menuitem"
+          key={item.label}
+          onPress={item.onPress}
+        />
+      )),
+  };
+});
 
 const ADD_EXERCISE = "POST /v1/workout-sessions/{id}/exercises";
 const REMOVE_EXERCISE = "DELETE /v1/workout-session-exercises/{id}";
@@ -312,7 +285,12 @@ const failures: [string, Failure, string][] = [
 // takes seconds of CPU; Jest's 5 s default fails them on a busy 2-core runner.
 jest.setTimeout(30_000);
 
-const track = jest.mocked(segmentClient.track);
+const track = jest.mocked<
+  (
+    event: string,
+    properties?: Record<string, string | number | boolean | null>
+  ) => void
+>(segmentClient.track);
 
 beforeEach(() => {
   jest.clearAllMocks();
@@ -653,7 +631,7 @@ describe("adding an Exercise to a Workout Session", () => {
     expect(fakePublicApi.count(ADD_EXERCISE)).toBe(1);
     expect(backend.exercises).toHaveLength(2);
     expect(pickerOpen()).toBe(false);
-    expect(track).toHaveBeenCalledOnce();
+    expect(track).toHaveBeenCalledTimes(1);
   });
 
   it("shows an Exercise saved before the answer was lost", async () => {
@@ -798,7 +776,7 @@ describe("replacing an Exercise in a Workout Session", () => {
       expect.objectContaining({ exercise_slug: "lunge", id: "s1-e1" }),
     ]);
     expect(pickerOpen()).toBe(false);
-    expect(track).toHaveBeenCalledOnce();
+    expect(track).toHaveBeenCalledTimes(1);
   });
 
   it.each(failures)(

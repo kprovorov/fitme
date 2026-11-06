@@ -47,6 +47,7 @@ export const ExerciseSlug = z
     description:
       "An Exercise slug from the Library API; every one is checked before anything is written",
     example: "barbell-back-squat",
+    pattern: "^[a-z0-9]+(-[a-z0-9]+)*$",
   });
 
 /** Every error, whatever the route: `{ error: { code, message } }`. */

@@ -4,8 +4,6 @@ import { spawnSync } from "node:child_process";
 import { describe, test } from "node:test";
 import { fileURLToPath } from "node:url";
 
-import { describe, test } from "vitest";
-
 import { findShellRuleViolations } from "./shell-rules.mjs";
 
 const REASON = /^AGENTS\.md Shell: /;

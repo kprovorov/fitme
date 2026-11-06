@@ -18,7 +18,6 @@ import { act, fireEvent, render, screen } from "@testing-library/react-native";
 import { router } from "expo-router";
 import { useCallback } from "react";
 import { Pressable, Text } from "react-native";
-import { it, afterEach, describe, expect, beforeEach } from "vitest";
 
 import EditProfileScreen from "~/app/settings/edit-profile";
 import { rememberProfileWrite, seedProfile } from "~/hooks/mutations/profiles";
@@ -40,17 +39,14 @@ import {
 } from "~/test-utils/query-client";
 import { signInAs } from "~/test-utils/signed-in-user";
 
-jest.mock<typeof import("expo-router")>(import("expo-router"), () => ({
+jest.mock("expo-router", () => ({
   router: { back: jest.fn() },
   Stack: { Screen: () => null },
 }));
 
-jest.mock<typeof import("@sentry/react-native")>(
-  import("@sentry/react-native"),
-  () => ({ captureException: jest.fn() })
-);
+jest.mock("@sentry/react-native", () => ({ captureException: jest.fn() }));
 
-jest.mock<typeof import("~/lib/segment")>(import("~/lib/segment"), () => ({
+jest.mock("~/lib/segment", () => ({
   segmentClient: { track: jest.fn() },
 }));
 
@@ -72,11 +68,11 @@ const mockNextUser = {
   }),
 };
 
-jest.mock<typeof import("@clerk/expo")>(import("@clerk/expo"), () => ({
+jest.mock("@clerk/expo", () => ({
   useUser: () => ({ isLoaded: true, user: mockUser }),
 }));
 
-jest.mock<typeof import("~/lib/clerk")>(import("~/lib/clerk"), () => {
+jest.mock("~/lib/clerk", () => {
   const signedIn = jest.requireActual<
     typeof import("~/test-utils/signed-in-user")
   >("~/test-utils/signed-in-user");
@@ -92,33 +88,26 @@ jest.mock<typeof import("~/lib/clerk")>(import("~/lib/clerk"), () => {
   };
 });
 
-jest.mock<typeof import("react-native-safe-area-context")>(
-  import("react-native-safe-area-context"),
-  () => ({
-    useSafeAreaInsets: () => ({ bottom: 0, left: 0, right: 0, top: 0 }),
-  })
-);
+jest.mock("react-native-safe-area-context", () => ({
+  useSafeAreaInsets: () => ({ bottom: 0, left: 0, right: 0, top: 0 }),
+}));
 
 // Reanimated's worklets need a native module; the drawer only needs a View.
-jest.mock<typeof import("react-native-reanimated")>(
-  import("react-native-reanimated"),
-  () => {
-    const { View } =
-      jest.requireActual<typeof import("react-native")>("react-native");
+jest.mock("react-native-reanimated", () => {
+  const { View } =
+    jest.requireActual<typeof import("react-native")>("react-native");
 
-    return {
-      __esModule: true,
-      default: { View },
-      useAnimatedStyle: () => ({}),
-      useSharedValue: (value: number) => ({ value }),
-      withTiming: (value: number) => value,
-    };
-  }
-);
+  return {
+    __esModule: true,
+    default: { View },
+    useAnimatedStyle: () => ({}),
+    useSharedValue: (value: number) => ({ value }),
+    withTiming: (value: number) => value,
+  };
+});
 
-jest.mock<typeof import("~/components/ui/button")>(
-  import("~/components/ui/button"),
-  () => jest.requireActual("~/test-utils/button-stub")
+jest.mock("~/components/ui/button", () =>
+  jest.requireActual("~/test-utils/button-stub")
 );
 
 // One option of the wheel stand-in. Top-level (and `mock`-prefixed, so the
@@ -145,33 +134,30 @@ const MockWheelOption = ({
 
 // The SwiftUI wheel can't mount under Jest. Like the native one, the stand-in
 // reports a value only when one of its options is tapped.
-jest.mock<typeof import("~/components/ui/picker")>(
-  import("~/components/ui/picker"),
-  () => {
-    const { View: MockView } =
-      jest.requireActual<typeof import("react-native")>("react-native");
+jest.mock("~/components/ui/picker", () => {
+  const { View: MockView } =
+    jest.requireActual<typeof import("react-native")>("react-native");
 
-    return {
-      Picker: ({
-        onValueChange,
-        options,
-      }: {
-        onValueChange: (value: number) => void;
-        options: { value: number }[];
-      }) => (
-        <MockView>
-          {options.map((option) => (
-            <MockWheelOption
-              key={option.value}
-              onValueChange={onValueChange}
-              value={option.value}
-            />
-          ))}
-        </MockView>
-      ),
-    };
-  }
-);
+  return {
+    Picker: ({
+      onValueChange,
+      options,
+    }: {
+      onValueChange: (value: number) => void;
+      options: { value: number }[];
+    }) => (
+      <MockView>
+        {options.map((option) => (
+          <MockWheelOption
+            key={option.value}
+            onValueChange={onValueChange}
+            value={option.value}
+          />
+        ))}
+      </MockView>
+    ),
+  };
+});
 
 const PROFILE_GET = "GET /v1/profile";
 const PROFILE_PATCH = "PATCH /v1/profile";
@@ -210,7 +196,7 @@ const pick = async (row: string, value: number) => {
   await fireEvent.press(screen.getByTestId(`wheel-${value}`));
 };
 
-describe(EditProfileScreen, () => {
+describe("EditProfileScreen", () => {
   beforeEach(() => {
     // A metric device, so the form suggests centimeters and kilograms.
     setDeviceLanguages(["en-GB"]);
@@ -348,7 +334,7 @@ describe(EditProfileScreen, () => {
       weight: 60,
     });
     expect(mockUser.update).not.toHaveBeenCalled();
-    expect(router.back).toHaveBeenCalledOnce();
+    expect(router.back).toHaveBeenCalledTimes(1);
   });
 
   it("never shows a save's late answer to the next User who signs in", async () => {
@@ -570,7 +556,7 @@ describe(EditProfileScreen, () => {
       firstName: "Pepper",
       lastName: "Potts",
     });
-    expect(router.back).toHaveBeenCalledOnce();
+    expect(router.back).toHaveBeenCalledTimes(1);
   });
 
   it("sends nothing at all when nothing changed", async () => {
@@ -581,7 +567,7 @@ describe(EditProfileScreen, () => {
 
     expect(writes()).toEqual([]);
     expect(mockUser.update).not.toHaveBeenCalled();
-    expect(router.back).toHaveBeenCalledOnce();
+    expect(router.back).toHaveBeenCalledTimes(1);
   });
 
   it("creates the Profile through the Public API without a saved one", async () => {
@@ -624,7 +610,7 @@ describe(EditProfileScreen, () => {
       age: 28,
       measurement_system: "metric",
     });
-    expect(router.back).toHaveBeenCalledOnce();
+    expect(router.back).toHaveBeenCalledTimes(1);
   });
 
   it.each([
@@ -639,7 +625,7 @@ describe(EditProfileScreen, () => {
     await save();
 
     expect(screen.getByText(SAVE_ERROR)).toBeTruthy();
-    expect(Sentry.captureException).toHaveBeenCalledOnce();
+    expect(Sentry.captureException).toHaveBeenCalledTimes(1);
     expect(backend.profile(FAKE_USER_ID)?.age).toBe(30);
     // The save may have landed without an answer, so the Profile is read
     // again.
@@ -658,7 +644,7 @@ describe(EditProfileScreen, () => {
     await save();
 
     expect(screen.getByText(SAVE_ERROR)).toBeTruthy();
-    expect(Sentry.captureException).toHaveBeenCalledOnce();
+    expect(Sentry.captureException).toHaveBeenCalledTimes(1);
     expect(backend.profile(FAKE_USER_ID)).toBeUndefined();
     expect(router.back).not.toHaveBeenCalled();
   });
@@ -695,7 +681,7 @@ describe(EditProfileScreen, () => {
       age: 4,
       gender: "male",
     });
-    expect(router.back).toHaveBeenCalledOnce();
+    expect(router.back).toHaveBeenCalledTimes(1);
   });
 
   it("only offers values inside the shared bounds", async () => {

@@ -6,8 +6,6 @@ import path from "node:path";
 import { after, describe, test } from "node:test";
 import { fileURLToPath } from "node:url";
 
-import { describe, test } from "vitest";
-
 import { parseStackOutput, rewriteEnvText } from "./rewrite-env.mjs";
 
 const NO_JSON = /no JSON/;

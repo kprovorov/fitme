@@ -16,7 +16,6 @@ import {
 import { QueryClientProvider } from "@tanstack/react-query";
 import { render, screen } from "@testing-library/react-native";
 import type { ReactNode } from "react";
-import { it, afterEach, describe, expect, beforeEach } from "vitest";
 
 import WorkoutSessionSummaryScreen from "~/app/workout-sessions/[workoutSessionId]/summary";
 import type {
@@ -34,7 +33,7 @@ import { createTestQueryClient, settle } from "~/test-utils/query-client";
 
 const mockSessions: { current: WorkoutSession[] } = { current: [] };
 
-jest.mock<typeof import("expo-router")>(import("expo-router"), () => ({
+jest.mock("expo-router", () => ({
   Link: ({ children }: { children: ReactNode }) => children,
   Stack: {
     Screen: ({ options }: { options: { title?: string } }) => {
@@ -52,49 +51,30 @@ jest.mock<typeof import("expo-router")>(import("expo-router"), () => ({
   }),
 }));
 
-jest.mock<typeof import("~/hooks/queries/workout-sessions")>(
-  import("~/hooks/queries/workout-sessions"),
-  () => ({
-    useWorkoutSessionQuery: () => ({ data: mockSessions.current[0] }),
-  })
-);
+jest.mock("~/hooks/queries/workout-sessions", () => ({
+  useWorkoutSessionQuery: () => ({ data: mockSessions.current[0] }),
+}));
 
-jest.mock<typeof import("~/hooks/queries/exercises")>(
-  import("~/hooks/queries/exercises"),
-  () => ({
-    useExerciseHistoryQuery: () => ({ data: { pageParams: [], pages: [] } }),
-  })
-);
+jest.mock("~/hooks/queries/exercises", () => ({
+  useExerciseHistoryQuery: () => ({ data: { pageParams: [], pages: [] } }),
+}));
 
-jest.mock<typeof import("react-native-safe-area-context")>(
-  import("react-native-safe-area-context"),
-  () => ({
-    useSafeAreaInsets: () => ({ bottom: 0, left: 0, right: 0, top: 0 }),
-  })
-);
+jest.mock("react-native-safe-area-context", () => ({
+  useSafeAreaInsets: () => ({ bottom: 0, left: 0, right: 0, top: 0 }),
+}));
 
-jest.mock<typeof import("~/components/exercises/exercise-image")>(
-  import("~/components/exercises/exercise-image"),
-  () => () => null
-);
+jest.mock("~/components/exercises/exercise-image", () => () => null);
 
 // The body diagram reads theme colors uniwind has no stylesheet for in Jest.
-jest.mock<typeof import("~/components/views/workout-session-summary-body")>(
-  import("~/components/views/workout-session-summary-body"),
-  () => ({
-    WorkoutSessionSummaryBodyBack: () => null,
-    WorkoutSessionSummaryBodyFront: () => null,
-  })
-);
+jest.mock("~/components/views/workout-session-summary-body", () => ({
+  WorkoutSessionSummaryBodyBack: () => null,
+  WorkoutSessionSummaryBodyFront: () => null,
+}));
 
-jest.mock<typeof import("~/components/symbol-image")>(
-  import("~/components/symbol-image"),
-  () => ({ SymbolImage: () => null })
-);
+jest.mock("~/components/symbol-image", () => ({ SymbolImage: () => null }));
 
-jest.mock<typeof import("~/components/ui/button")>(
-  import("~/components/ui/button"),
-  () => jest.requireActual("~/test-utils/button-stub")
+jest.mock("~/components/ui/button", () =>
+  jest.requireActual("~/test-utils/button-stub")
 );
 
 // Wednesday 21 October 2026, 18:05 local time.

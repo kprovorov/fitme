@@ -12,7 +12,6 @@ import { act, fireEvent, render, screen } from "@testing-library/react-native";
 import { useCallback } from "react";
 import type { ReactNode } from "react";
 import { Alert, Pressable } from "react-native";
-import { it, describe, expect, beforeEach } from "vitest";
 
 import HistoryScreen from "~/app/(tabs)/history/index";
 import WorkoutScreen from "~/app/plans/[planId]/workouts/[workoutId]/index";
@@ -30,7 +29,7 @@ import {
 } from "~/test-utils/query-client";
 import { signInAs } from "~/test-utils/signed-in-user";
 
-jest.mock<typeof import("expo-router")>(import("expo-router"), () => ({
+jest.mock("expo-router", () => ({
   Link: ({ children }: { children: ReactNode }) => children,
   Stack: { Screen: () => null },
   useLocalSearchParams: () => ({ planId: "plan-1", workoutId: "workout-1" }),
@@ -45,85 +44,66 @@ jest.mock<typeof import("expo-router")>(import("expo-router"), () => ({
 
 // LegendList lays its items out on measure, which Jest never does: render
 // the header and every item in a plain view instead.
-jest.mock<typeof import("@legendapp/list/react-native")>(
-  import("@legendapp/list/react-native"),
-  () => ({
-    LegendList: <T,>({
-      data,
-      keyExtractor,
-      ListEmptyComponent,
-      ListHeaderComponent,
-      renderItem,
-    }: {
-      data: T[];
-      keyExtractor: (item: T) => string;
-      ListEmptyComponent: ReactNode;
-      ListHeaderComponent: ReactNode;
-      renderItem: (info: { item: T }) => ReactNode;
-    }) => {
-      const { Fragment } = jest.requireActual<typeof import("react")>("react");
+jest.mock("@legendapp/list/react-native", () => ({
+  LegendList: <T,>({
+    data,
+    keyExtractor,
+    ListEmptyComponent,
+    ListHeaderComponent,
+    renderItem,
+  }: {
+    data: T[];
+    keyExtractor: (item: T) => string;
+    ListEmptyComponent: ReactNode;
+    ListHeaderComponent: ReactNode;
+    renderItem: (info: { item: T }) => ReactNode;
+  }) => {
+    const { Fragment } = jest.requireActual<typeof import("react")>("react");
 
-      return (
-        <>
-          {ListHeaderComponent}
-          {data.length === 0
-            ? ListEmptyComponent
-            : data.map((item) => (
-                <Fragment key={keyExtractor(item)}>
-                  {renderItem({ item })}
-                </Fragment>
-              ))}
-        </>
-      );
-    },
-  })
-);
+    return (
+      <>
+        {ListHeaderComponent}
+        {data.length === 0
+          ? ListEmptyComponent
+          : data.map((item) => (
+              <Fragment key={keyExtractor(item)}>
+                {renderItem({ item })}
+              </Fragment>
+            ))}
+      </>
+    );
+  },
+}));
 
 // The real Clerk SDK (reached through the writes' signed-in User check) opens
 // a MessagePort at import that keeps Jest alive.
-jest.mock<typeof import("~/lib/clerk")>(import("~/lib/clerk"), () => ({
+jest.mock("~/lib/clerk", () => ({
   getCurrentUserId: jest.requireActual<
     typeof import("~/test-utils/signed-in-user")
   >("~/test-utils/signed-in-user").getCurrentUserId,
 }));
 
-jest.mock<typeof import("@sentry/react-native")>(
-  import("@sentry/react-native"),
-  () => ({ captureException: jest.fn() })
-);
+jest.mock("@sentry/react-native", () => ({ captureException: jest.fn() }));
 
-jest.mock<typeof import("~/lib/segment")>(import("~/lib/segment"), () => ({
+jest.mock("~/lib/segment", () => ({
   segmentClient: { track: jest.fn() },
 }));
 
-jest.mock<typeof import("react-native-purchases")>(
-  import("react-native-purchases"),
-  () => ({
-    __esModule: true,
-    default: { invalidateCustomerInfoCache: jest.fn() },
-  })
-);
+jest.mock("react-native-purchases", () => ({
+  __esModule: true,
+  default: { invalidateCustomerInfoCache: jest.fn() },
+}));
 
-jest.mock<typeof import("react-native-safe-area-context")>(
-  import("react-native-safe-area-context"),
-  () => ({
-    useSafeAreaInsets: () => ({ bottom: 0, left: 0, right: 0, top: 0 }),
-  })
-);
+jest.mock("react-native-safe-area-context", () => ({
+  useSafeAreaInsets: () => ({ bottom: 0, left: 0, right: 0, top: 0 }),
+}));
 
-jest.mock<typeof import("~/components/exercises/exercise-image")>(
-  import("~/components/exercises/exercise-image"),
-  () => () => null
-);
+jest.mock("~/components/exercises/exercise-image", () => () => null);
 
-jest.mock<typeof import("~/components/symbol-image")>(
-  import("~/components/symbol-image"),
-  () => ({ SymbolImage: () => null })
-);
+jest.mock("~/components/symbol-image", () => ({ SymbolImage: () => null }));
 
-jest.mock<typeof import("~/components/ui/button")>(
-  import("~/components/ui/button"),
-  () => jest.requireActual("~/test-utils/button-stub")
+jest.mock("~/components/ui/button", () =>
+  jest.requireActual("~/test-utils/button-stub")
 );
 
 // Buttons of the stand-ins below. Top-level (and `mock`-prefixed, so the
@@ -165,68 +145,62 @@ const MockAction = ({
 // The real primitives render native SwiftUI views that can't mount under
 // Jest. The picker stand-in exposes the `value` it's given, which is what the
 // native picker shows.
-jest.mock<typeof import("~/components/ui/radio-group")>(
-  import("~/components/ui/radio-group"),
-  () => {
-    const { Text: MockText, View: MockView } =
-      jest.requireActual<typeof import("react-native")>("react-native");
+jest.mock("~/components/ui/radio-group", () => {
+  const { Text: MockText, View: MockView } =
+    jest.requireActual<typeof import("react-native")>("react-native");
 
-    return {
-      RadioGroup: ({
-        onValueChange,
-        options,
-        value,
-      }: {
-        onValueChange: (value: string) => void;
-        options: { label: string; value: string }[];
-        value: string;
-      }) => (
+  return {
+    RadioGroup: ({
+      onValueChange,
+      options,
+      value,
+    }: {
+      onValueChange: (value: string) => void;
+      options: { label: string; value: string }[];
+      value: string;
+    }) => (
+      <MockView>
+        <MockText testID="picker-value">{value}</MockText>
+        {options.map((option) => (
+          <MockOption
+            key={option.value}
+            onValueChange={onValueChange}
+            value={option.value}
+          />
+        ))}
+      </MockView>
+    ),
+  };
+});
+
+jest.mock("~/components/ui/alert-dialog", () => {
+  const { View: MockView } =
+    jest.requireActual<typeof import("react-native")>("react-native");
+
+  return {
+    AlertDialog: ({
+      actions,
+      isPresented,
+      onIsPresentedChange,
+    }: {
+      actions: { label: string; onPress?: () => void }[];
+      isPresented: boolean;
+      onIsPresentedChange: (isPresented: boolean) => void;
+    }) =>
+      isPresented ? (
         <MockView>
-          <MockText testID="picker-value">{value}</MockText>
-          {options.map((option) => (
-            <MockOption
-              key={option.value}
-              onValueChange={onValueChange}
-              value={option.value}
+          {actions.map((action) => (
+            <MockAction
+              key={action.label}
+              label={action.label}
+              onIsPresentedChange={onIsPresentedChange}
+              onPress={action.onPress}
             />
           ))}
         </MockView>
-      ),
-    };
-  }
-);
-
-jest.mock<typeof import("~/components/ui/alert-dialog")>(
-  import("~/components/ui/alert-dialog"),
-  () => {
-    const { View: MockView } =
-      jest.requireActual<typeof import("react-native")>("react-native");
-
-    return {
-      AlertDialog: ({
-        actions,
-        isPresented,
-        onIsPresentedChange,
-      }: {
-        actions: { label: string; onPress?: () => void }[];
-        isPresented: boolean;
-        onIsPresentedChange: (isPresented: boolean) => void;
-      }) =>
-        isPresented ? (
-          <MockView>
-            {actions.map((action) => (
-              <MockAction
-                key={action.label}
-                label={action.label}
-                onIsPresentedChange={onIsPresentedChange}
-                onPress={action.onPress}
-              />
-            ))}
-          </MockView>
-        ) : null,
-    };
-  }
-);
+      ) : null,
+  };
+});
 
 const PROFILE_PATCH = "PATCH /v1/profile";
 

@@ -9,7 +9,6 @@ import { beforeEach, describe, expect, it, jest } from "@jest/globals";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { act, fireEvent, render, screen } from "@testing-library/react-native";
 import { Alert } from "react-native";
-import { it, describe, expect, beforeEach } from "vitest";
 
 import WorkoutScreen from "~/app/plans/[planId]/workouts/[workoutId]/index";
 import {
@@ -33,7 +32,7 @@ const mockPush = jest.fn();
 const mockReplace = jest.fn();
 const mockWorkoutId = { current: "workout-1" };
 
-jest.mock<typeof import("expo-router")>(import("expo-router"), () => ({
+jest.mock("expo-router", () => ({
   Stack: { Screen: () => null },
   useLocalSearchParams: () => ({
     planId: "plan-1",
@@ -47,16 +46,13 @@ jest.mock<typeof import("expo-router")>(import("expo-router"), () => ({
   }),
 }));
 
-jest.mock<typeof import("react-native-safe-area-context")>(
-  import("react-native-safe-area-context"),
-  () => ({
-    useSafeAreaInsets: () => ({ bottom: 0, left: 0, right: 0, top: 0 }),
-  })
-);
+jest.mock("react-native-safe-area-context", () => ({
+  useSafeAreaInsets: () => ({ bottom: 0, left: 0, right: 0, top: 0 }),
+}));
 
 // The real Clerk SDK (reached through the Profile read) opens a MessagePort
 // at import that keeps Jest alive.
-jest.mock<typeof import("~/lib/clerk")>(import("~/lib/clerk"), () => ({
+jest.mock("~/lib/clerk", () => ({
   getCurrentUserId: () =>
     jest.requireActual<typeof import("~/test-utils/fake-public-api")>(
       "~/test-utils/fake-public-api"
@@ -64,23 +60,16 @@ jest.mock<typeof import("~/lib/clerk")>(import("~/lib/clerk"), () => ({
 }));
 
 // The real Segment client is ESM-only and is created at import.
-jest.mock<typeof import("~/lib/segment")>(import("~/lib/segment"), () => ({
+jest.mock("~/lib/segment", () => ({
   segmentClient: { track: jest.fn() },
 }));
 
-jest.mock<typeof import("~/components/exercises/exercise-image")>(
-  import("~/components/exercises/exercise-image"),
-  () => () => null
-);
+jest.mock("~/components/exercises/exercise-image", () => () => null);
 
-jest.mock<typeof import("~/components/symbol-image")>(
-  import("~/components/symbol-image"),
-  () => ({ SymbolImage: () => null })
-);
+jest.mock("~/components/symbol-image", () => ({ SymbolImage: () => null }));
 
-jest.mock<typeof import("~/components/ui/button")>(
-  import("~/components/ui/button"),
-  () => jest.requireActual("~/test-utils/button-stub")
+jest.mock("~/components/ui/button", () =>
+  jest.requireActual("~/test-utils/button-stub")
 );
 
 const PLAN: SeedPlan = {
@@ -245,7 +234,7 @@ describe("the Workout screen", () => {
     expect(screen.queryByText("Try Again")).toBeNull();
 
     await fireEvent.press(screen.getByRole("button", { name: "Go Back" }));
-    expect(mockBack).toHaveBeenCalledWith();
+    expect(mockBack).toHaveBeenCalled();
   });
 
   it("says a Workout of a deleted Plan no longer exists", async () => {

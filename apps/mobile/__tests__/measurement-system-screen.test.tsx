@@ -16,7 +16,6 @@ import { QueryClientProvider } from "@tanstack/react-query";
 import { fireEvent, render, screen } from "@testing-library/react-native";
 import { useCallback } from "react";
 import { Alert, Pressable, Text } from "react-native";
-import { it, afterEach, describe, expect, beforeEach } from "vitest";
 
 import MeasurementSystemScreen from "~/app/settings/measurement-system";
 import { useProfileQuery } from "~/hooks/queries/profiles";
@@ -36,22 +35,19 @@ import {
 } from "~/test-utils/query-client";
 import { signInAs } from "~/test-utils/signed-in-user";
 
-jest.mock<typeof import("expo-router")>(import("expo-router"), () => ({
+jest.mock("expo-router", () => ({
   Stack: { Screen: () => null },
 }));
 
-jest.mock<typeof import("@sentry/react-native")>(
-  import("@sentry/react-native"),
-  () => ({ captureException: jest.fn() })
-);
+jest.mock("@sentry/react-native", () => ({ captureException: jest.fn() }));
 
 // Reached through the queries the switch reads again; its real client's
 // `uuid` is ESM, which Jest can't require.
-jest.mock<typeof import("~/lib/segment")>(import("~/lib/segment"), () => ({
+jest.mock("~/lib/segment", () => ({
   segmentClient: { track: jest.fn() },
 }));
 
-jest.mock<typeof import("~/lib/clerk")>(import("~/lib/clerk"), () => ({
+jest.mock("~/lib/clerk", () => ({
   getCurrentUserId: jest.requireActual<
     typeof import("~/test-utils/signed-in-user")
   >("~/test-utils/signed-in-user").getCurrentUserId,
@@ -120,86 +116,77 @@ const MockButton = ({
 // Jest, so they're swapped for plain React Native stand-ins. The picker
 // stand-in exposes the `value` it's given, which is what the native picker
 // shows, and fires `onValueChange` like a tap on an option does.
-jest.mock<typeof import("~/components/ui/radio-group")>(
-  import("~/components/ui/radio-group"),
-  () => {
-    const { Text: MockText, View: MockView } =
-      jest.requireActual<typeof import("react-native")>("react-native");
+jest.mock("~/components/ui/radio-group", () => {
+  const { Text: MockText, View: MockView } =
+    jest.requireActual<typeof import("react-native")>("react-native");
 
-    return {
-      RadioGroup: ({
-        disabled,
-        footer,
-        onValueChange,
-        options,
-        value,
-      }: {
-        disabled?: boolean;
-        footer?: string;
-        onValueChange: (value: string) => void;
-        options: { label: string; value: string }[];
-        value: string;
-      }) => (
-        <MockView accessibilityState={{ disabled: !!disabled }} testID="picker">
-          <MockText testID="picker-value">{value}</MockText>
-          {options.map((option) => (
-            <MockOption
-              key={option.value}
-              label={option.label}
-              onValueChange={onValueChange}
-              value={option.value}
+  return {
+    RadioGroup: ({
+      disabled,
+      footer,
+      onValueChange,
+      options,
+      value,
+    }: {
+      disabled?: boolean;
+      footer?: string;
+      onValueChange: (value: string) => void;
+      options: { label: string; value: string }[];
+      value: string;
+    }) => (
+      <MockView accessibilityState={{ disabled: !!disabled }} testID="picker">
+        <MockText testID="picker-value">{value}</MockText>
+        {options.map((option) => (
+          <MockOption
+            key={option.value}
+            label={option.label}
+            onValueChange={onValueChange}
+            value={option.value}
+          />
+        ))}
+        <MockText>{footer}</MockText>
+      </MockView>
+    ),
+  };
+});
+
+jest.mock("~/components/ui/button", () => ({
+  Button: (props: { label: string; onPress: () => void }) => (
+    <MockButton {...props} />
+  ),
+}));
+
+jest.mock("~/components/ui/alert-dialog", () => {
+  const { Text: MockText, View: MockView } =
+    jest.requireActual<typeof import("react-native")>("react-native");
+
+  return {
+    AlertDialog: ({
+      actions,
+      isPresented,
+      onIsPresentedChange,
+      title,
+    }: {
+      actions: { label: string; onPress?: () => void }[];
+      isPresented: boolean;
+      onIsPresentedChange: (isPresented: boolean) => void;
+      title: string;
+    }) =>
+      isPresented ? (
+        <MockView testID="confirm-dialog">
+          <MockText>{title}</MockText>
+          {actions.map((action) => (
+            <MockAction
+              key={action.label}
+              label={action.label}
+              onIsPresentedChange={onIsPresentedChange}
+              onPress={action.onPress}
             />
           ))}
-          <MockText>{footer}</MockText>
         </MockView>
-      ),
-    };
-  }
-);
-
-jest.mock<typeof import("~/components/ui/button")>(
-  import("~/components/ui/button"),
-  () => ({
-    Button: (props: { label: string; onPress: () => void }) => (
-      <MockButton {...props} />
-    ),
-  })
-);
-
-jest.mock<typeof import("~/components/ui/alert-dialog")>(
-  import("~/components/ui/alert-dialog"),
-  () => {
-    const { Text: MockText, View: MockView } =
-      jest.requireActual<typeof import("react-native")>("react-native");
-
-    return {
-      AlertDialog: ({
-        actions,
-        isPresented,
-        onIsPresentedChange,
-        title,
-      }: {
-        actions: { label: string; onPress?: () => void }[];
-        isPresented: boolean;
-        onIsPresentedChange: (isPresented: boolean) => void;
-        title: string;
-      }) =>
-        isPresented ? (
-          <MockView testID="confirm-dialog">
-            <MockText>{title}</MockText>
-            {actions.map((action) => (
-              <MockAction
-                key={action.label}
-                label={action.label}
-                onIsPresentedChange={onIsPresentedChange}
-                onPress={action.onPress}
-              />
-            ))}
-          </MockView>
-        ) : null,
-    };
-  }
-);
+      ) : null,
+  };
+});
 
 const PROFILE_GET = "GET /v1/profile";
 const PROFILE_PATCH = "PATCH /v1/profile";
@@ -235,7 +222,7 @@ const switchTo = async (system: string) => {
   await settle(queryClient);
 };
 
-describe(MeasurementSystemScreen, () => {
+describe("MeasurementSystemScreen", () => {
   beforeEach(() => {
     jest.clearAllMocks();
     backend.reset();
@@ -341,7 +328,7 @@ describe(MeasurementSystemScreen, () => {
           "Your measurements weren't changed. Please try again.",
         ],
       ]);
-      expect(Sentry.captureException).toHaveBeenCalledOnce();
+      expect(Sentry.captureException).toHaveBeenCalledTimes(1);
       expect(backend.profile(FAKE_USER_ID)).toMatchObject({
         height: 180,
         measurement_system: "metric",

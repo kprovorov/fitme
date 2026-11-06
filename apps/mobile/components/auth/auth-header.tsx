@@ -1,6 +1,6 @@
 import { View } from "react-native";
 
-import { Image } from "~/components/tw";
+import { Image } from "~/components/image";
 import { Text } from "~/components/ui/text";
 import { H1, H2 } from "~/components/ui/typography";
 

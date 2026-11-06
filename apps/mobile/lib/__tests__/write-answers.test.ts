@@ -5,14 +5,13 @@
  */
 import { afterEach, describe, expect, it, jest } from "@jest/globals";
 import { QueryObserver } from "@tanstack/react-query";
-import { afterEach, describe, expect, it } from "vitest";
 
 import { rememberWriteStarter, seedWriteAnswer } from "~/lib/write-answers";
 import { FAKE_USER_ID } from "~/test-utils/fake-public-api";
 import { createTestQueryClient } from "~/test-utils/query-client";
 import { signInAs } from "~/test-utils/signed-in-user";
 
-jest.mock<typeof import("~/lib/clerk")>(import("~/lib/clerk"), () => ({
+jest.mock("~/lib/clerk", () => ({
   getCurrentUserId: jest.requireActual<
     typeof import("~/test-utils/signed-in-user")
   >("~/test-utils/signed-in-user").getCurrentUserId,
@@ -64,7 +63,7 @@ const setUp = async (seededAnswer: () => Promise<unknown>) => {
   return { client, other: other.counter, seeded: seeded.counter };
 };
 
-describe(seedWriteAnswer, () => {
+describe("seedWriteAnswer", () => {
   it("shows the answer without reading the query again, then invalidates the rest", async () => {
     const { client, other, seeded } = await setUp(() =>
       Promise.resolve("before")

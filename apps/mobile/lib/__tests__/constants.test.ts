@@ -1,5 +1,4 @@
 import { afterEach, describe, expect, it } from "@jest/globals";
-import { afterEach, describe, expect, it } from "vitest";
 
 import { isDevToolsSyncEnabled } from "../constants";
 
@@ -20,7 +19,7 @@ afterEach(() => {
   setEnv("NODE_ENV", NODE_ENV);
 });
 
-describe(isDevToolsSyncEnabled, () => {
+describe("isDevToolsSyncEnabled", () => {
   it("is off when the flag is unset", () => {
     setEnv("EXPO_PUBLIC_DEVTOOLS_SYNC", undefined);
     expect(isDevToolsSyncEnabled()).toBe(false);

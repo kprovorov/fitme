@@ -8,7 +8,6 @@
  */
 import { beforeEach, describe, expect, it, jest } from "@jest/globals";
 import { QueryClient } from "@tanstack/react-query";
-import { it, describe, expect, beforeEach } from "vitest";
 
 import { useActivePlanQuery } from "~/hooks/queries/plans";
 import type { Profile } from "~/hooks/queries/profiles";
@@ -19,11 +18,11 @@ import { signInAs } from "~/test-utils/signed-in-user";
 
 import { rememberPendingWeighedRefresh } from "../settings";
 
-jest.mock<typeof import("~/lib/segment")>(import("~/lib/segment"), () => ({
+jest.mock("~/lib/segment", () => ({
   segmentClient: { track: jest.fn() },
 }));
 
-jest.mock<typeof import("~/lib/clerk")>(import("~/lib/clerk"), () => ({
+jest.mock("~/lib/clerk", () => ({
   getCurrentUserId: jest.requireActual<
     typeof import("~/test-utils/signed-in-user")
   >("~/test-utils/signed-in-user").getCurrentUserId,

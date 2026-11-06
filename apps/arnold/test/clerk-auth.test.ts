@@ -165,7 +165,7 @@ describe("clerk session authentication", () => {
     const unconfigured = clerkSession({
       checkPro,
       claimSession,
-      jwtKey: () => {},
+      jwtKey: () => undefined,
       report,
     });
 
@@ -181,7 +181,7 @@ describe("clerk session authentication", () => {
     const unconfigured = clerkSession({
       checkPro,
       claimSession,
-      jwtKey: () => {},
+      jwtKey: () => undefined,
       report,
     });
 

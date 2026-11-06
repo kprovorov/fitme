@@ -150,7 +150,7 @@ export const createPublicApi = ({
         signal: request.signal,
       });
     } catch (error) {
-      throw new ApiError("Network request failed", { error });
+      throw new ApiError("Network request failed", { cause: error });
     }
 
     if (!response.ok) {

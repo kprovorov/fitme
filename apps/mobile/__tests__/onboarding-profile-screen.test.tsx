@@ -11,7 +11,6 @@ import { fireEvent, render, screen } from "@testing-library/react-native";
 import { router } from "expo-router";
 import { useCallback } from "react";
 import { Pressable, Text } from "react-native";
-import { it, describe, expect, beforeEach } from "vitest";
 
 import ProfileScreen from "~/app/onboarding/profile";
 import { useAppLanguageSync } from "~/lib/i18n";
@@ -29,58 +28,48 @@ import {
   until,
 } from "~/test-utils/query-client";
 
-jest.mock<typeof import("expo-router")>(import("expo-router"), () => ({
+jest.mock("expo-router", () => ({
   router: { dismissTo: jest.fn() },
   Stack: { Screen: () => null },
 }));
 
-jest.mock<typeof import("@sentry/react-native")>(
-  import("@sentry/react-native"),
-  () => ({ captureException: jest.fn() })
-);
+jest.mock("@sentry/react-native", () => ({ captureException: jest.fn() }));
 
-jest.mock<typeof import("~/lib/segment")>(import("~/lib/segment"), () => ({
+jest.mock("~/lib/segment", () => ({
   segmentClient: { track: jest.fn() },
 }));
 
-jest.mock<typeof import("@clerk/expo")>(import("@clerk/expo"), () => ({
+jest.mock("@clerk/expo", () => ({
   useUser: () => ({ isLoaded: true, user: { id: "user_test" } }),
 }));
 
-jest.mock<typeof import("~/lib/clerk")>(import("~/lib/clerk"), () => ({
+jest.mock("~/lib/clerk", () => ({
   getCurrentUserId: () =>
     jest.requireActual<typeof import("~/test-utils/fake-public-api")>(
       "~/test-utils/fake-public-api"
     ).FAKE_USER_ID,
 }));
 
-jest.mock<typeof import("react-native-safe-area-context")>(
-  import("react-native-safe-area-context"),
-  () => ({
-    useSafeAreaInsets: () => ({ bottom: 0, left: 0, right: 0, top: 0 }),
-  })
-);
+jest.mock("react-native-safe-area-context", () => ({
+  useSafeAreaInsets: () => ({ bottom: 0, left: 0, right: 0, top: 0 }),
+}));
 
 // Reanimated's worklets need a native module; the drawer only needs a View.
-jest.mock<typeof import("react-native-reanimated")>(
-  import("react-native-reanimated"),
-  () => {
-    const { View } =
-      jest.requireActual<typeof import("react-native")>("react-native");
+jest.mock("react-native-reanimated", () => {
+  const { View } =
+    jest.requireActual<typeof import("react-native")>("react-native");
 
-    return {
-      __esModule: true,
-      default: { View },
-      useAnimatedStyle: () => ({}),
-      useSharedValue: (value: number) => ({ value }),
-      withTiming: (value: number) => value,
-    };
-  }
-);
+  return {
+    __esModule: true,
+    default: { View },
+    useAnimatedStyle: () => ({}),
+    useSharedValue: (value: number) => ({ value }),
+    withTiming: (value: number) => value,
+  };
+});
 
-jest.mock<typeof import("~/components/ui/button")>(
-  import("~/components/ui/button"),
-  () => jest.requireActual("~/test-utils/button-stub")
+jest.mock("~/components/ui/button", () =>
+  jest.requireActual("~/test-utils/button-stub")
 );
 
 // One option of the wheel stand-in. Top-level (and `mock`-prefixed, so the
@@ -107,36 +96,38 @@ const MockWheelOption = ({
 
 // The SwiftUI wheel can't mount under Jest. Like the native one, the stand-in
 // reports a value only when one of its options is tapped.
-jest.mock<typeof import("~/components/ui/picker")>(
-  import("~/components/ui/picker"),
-  () => {
-    const { View: MockView } =
-      jest.requireActual<typeof import("react-native")>("react-native");
+jest.mock("~/components/ui/picker", () => {
+  const { View: MockView } =
+    jest.requireActual<typeof import("react-native")>("react-native");
 
-    return {
-      Picker: ({
-        onValueChange,
-        options,
-      }: {
-        onValueChange: (value: number) => void;
-        options: { value: number }[];
-      }) => (
-        <MockView>
-          {options.map((option) => (
-            <MockWheelOption
-              key={option.value}
-              onValueChange={onValueChange}
-              value={option.value}
-            />
-          ))}
-        </MockView>
-      ),
-    };
-  }
-);
+  return {
+    Picker: ({
+      onValueChange,
+      options,
+    }: {
+      onValueChange: (value: number) => void;
+      options: { value: number }[];
+    }) => (
+      <MockView>
+        {options.map((option) => (
+          <MockWheelOption
+            key={option.value}
+            onValueChange={onValueChange}
+            value={option.value}
+          />
+        ))}
+      </MockView>
+    ),
+  };
+});
 
 // The stand-in `jest.mock("~/lib/segment")` installs.
-const track = jest.mocked(segmentClient.track);
+const track = jest.mocked<
+  (
+    event: string,
+    properties?: Record<string, string | number | boolean | null>
+  ) => void
+>(segmentClient.track);
 
 const PROFILE_GET = "GET /v1/profile";
 const PROFILE_PATCH = "PATCH /v1/profile";
@@ -408,7 +399,7 @@ describe("onboarding ProfileScreen", () => {
       await fillAndSubmit();
 
       expect(screen.getByText(SAVE_ERROR)).toBeTruthy();
-      expect(Sentry.captureException).toHaveBeenCalledOnce();
+      expect(Sentry.captureException).toHaveBeenCalledTimes(1);
       expect(backend.profile(FAKE_USER_ID)).toBeUndefined();
       expect(track).not.toHaveBeenCalled();
       expect(router.dismissTo).not.toHaveBeenCalled();

@@ -12,7 +12,6 @@ import { QueryClientProvider } from "@tanstack/react-query";
 import { fireEvent, render, screen } from "@testing-library/react-native";
 import type { ReactNode } from "react";
 import { Platform, Pressable, Text } from "react-native";
-import { it, describe, expect, beforeEach } from "vitest";
 
 import HomeScreen from "~/app/(tabs)/(home)/index";
 import ProfileScreen from "~/app/profile";
@@ -73,7 +72,7 @@ const MockHeader = ({ options }: { options: MockHeaderOptions }) => (
 
 const mockPush = jest.fn();
 
-jest.mock<typeof import("expo-router")>(import("expo-router"), () => ({
+jest.mock("expo-router", () => ({
   Link: ({ children }: { children: ReactNode }) => children,
   router: { replace: jest.fn() },
   Stack: {
@@ -98,28 +97,22 @@ const mockUser = {
   reload: () => Promise.resolve(),
 };
 
-jest.mock<typeof import("@clerk/expo")>(import("@clerk/expo"), () => ({
+jest.mock("@clerk/expo", () => ({
   useUser: () => ({ isLoaded: true, user: mockUser }),
 }));
 
-jest.mock<typeof import("react-native-purchases")>(
-  import("react-native-purchases"),
-  () => ({
-    __esModule: true,
-    default: { invalidateCustomerInfoCache: () => Promise.resolve() },
-  })
-);
+jest.mock("react-native-purchases", () => ({
+  __esModule: true,
+  default: { invalidateCustomerInfoCache: () => Promise.resolve() },
+}));
 
-jest.mock<typeof import("react-native-purchases-ui")>(
-  import("react-native-purchases-ui"),
-  () => ({
-    __esModule: true,
-    default: { presentPaywall: jest.fn() },
-  })
-);
+jest.mock("react-native-purchases-ui", () => ({
+  __esModule: true,
+  default: { presentPaywall: jest.fn() },
+}));
 
 // The real Clerk SDK opens a MessagePort at import that keeps Jest alive.
-jest.mock<typeof import("~/lib/clerk")>(import("~/lib/clerk"), () => ({
+jest.mock("~/lib/clerk", () => ({
   getClerk: () => ({ signOut: jest.fn(), user: mockUser }),
   getCurrentUserId: () =>
     jest.requireActual<typeof import("~/test-utils/fake-public-api")>(
@@ -127,36 +120,25 @@ jest.mock<typeof import("~/lib/clerk")>(import("~/lib/clerk"), () => ({
     ).FAKE_USER_ID,
 }));
 
-jest.mock<typeof import("~/lib/segment")>(import("~/lib/segment"), () => ({
+jest.mock("~/lib/segment", () => ({
   segmentClient: { reset: jest.fn(), track: jest.fn() },
 }));
 
-jest.mock<typeof import("~/hooks/revenueCat")>(
-  import("~/hooks/revenueCat"),
-  () => ({
-    useCustomerInfoQuery: () => ({ data: undefined }),
-    useIsProQuery: () => ({ data: false }),
-  })
+jest.mock("~/hooks/revenueCat", () => ({
+  useCustomerInfoQuery: () => ({ data: undefined }),
+  useIsProQuery: () => ({ data: false }),
+}));
+
+jest.mock("~/components/exercises/exercise-image", () => () => null);
+
+jest.mock("~/components/symbol-image", () => ({ SymbolImage: () => null }));
+
+jest.mock("~/components/ui/button", () =>
+  jest.requireActual("~/test-utils/button-stub")
 );
 
-jest.mock<typeof import("~/components/exercises/exercise-image")>(
-  import("~/components/exercises/exercise-image"),
-  () => () => null
-);
-
-jest.mock<typeof import("~/components/symbol-image")>(
-  import("~/components/symbol-image"),
-  () => ({ SymbolImage: () => null })
-);
-
-jest.mock<typeof import("~/components/ui/button")>(
-  import("~/components/ui/button"),
-  () => jest.requireActual("~/test-utils/button-stub")
-);
-
-jest.mock<typeof import("~/components/ui/dropdown-menu")>(
-  import("~/components/ui/dropdown-menu"),
-  () => jest.requireActual("~/test-utils/dropdown-menu-stub")
+jest.mock("~/components/ui/dropdown-menu", () =>
+  jest.requireActual("~/test-utils/dropdown-menu-stub")
 );
 
 const mount = async (element: ReactNode) => {

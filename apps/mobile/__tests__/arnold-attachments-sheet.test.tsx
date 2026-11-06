@@ -5,25 +5,18 @@
  */
 import { describe, expect, it, jest } from "@jest/globals";
 import { render, screen } from "@testing-library/react-native";
-import { describe, expect, it } from "vitest";
 
 import AddToChatSheet from "~/app/(tabs)/arnold/attachments";
 import { setDeviceLanguages } from "~/test-utils/device-locales";
 import { InAppLanguage } from "~/test-utils/in-app-language";
 
-jest.mock<typeof import("@/components/symbol-image")>(
-  import("@/components/symbol-image"),
-  () => ({ SymbolImage: () => null })
-);
+jest.mock("~/components/symbol-image", () => ({ SymbolImage: () => null }));
 
-jest.mock<typeof import("expo-router/react-navigation")>(
-  import("expo-router/react-navigation"),
-  () => ({ useHeaderHeight: () => 0 })
-);
+jest.mock("expo-router/react-navigation", () => ({ useHeaderHeight: () => 0 }));
 
 // expo-router's own module can't load under Jest (an ESM dependency), and
 // the sheet only needs the pop that follows a pick.
-jest.mock<typeof import("expo-router")>(import("expo-router"), () => {
+jest.mock("expo-router", () => {
   const stub = jest.requireActual<typeof import("~/test-utils/router-stub")>(
     "~/test-utils/router-stub"
   );
@@ -31,12 +24,9 @@ jest.mock<typeof import("expo-router")>(import("expo-router"), () => {
   return { useRouter: () => stub.stubRouter };
 });
 
-jest.mock<typeof import("react-native-safe-area-context")>(
-  import("react-native-safe-area-context"),
-  () => ({
-    useSafeAreaInsets: () => ({ bottom: 0, left: 0, right: 0, top: 0 }),
-  })
-);
+jest.mock("react-native-safe-area-context", () => ({
+  useSafeAreaInsets: () => ({ bottom: 0, left: 0, right: 0, top: 0 }),
+}));
 
 /** The mockup's controls, as it worded them before the catalogs dropped them. */
 const DROPPED = {

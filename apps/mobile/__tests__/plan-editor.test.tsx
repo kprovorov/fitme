@@ -19,7 +19,6 @@ import {
 import type { ReactNode } from "react";
 import { Alert } from "react-native";
 import type { AlertButton } from "react-native";
-import { it, describe, expect, beforeEach } from "vitest";
 
 import PlanEditorScreen from "~/app/plans/[planId]/edit/index";
 import PlanScreen from "~/app/plans/[planId]/index";
@@ -48,7 +47,7 @@ const mockParams = { current: { planId: "plan-1" } };
 
 const isEditorFocused = { current: true };
 
-jest.mock<typeof import("expo-router")>(import("expo-router"), () => {
+jest.mock("expo-router", () => {
   const stub = jest.requireActual<typeof import("~/test-utils/router-stub")>(
     "~/test-utils/router-stub"
   );
@@ -67,44 +66,35 @@ jest.mock<typeof import("expo-router")>(import("expo-router"), () => {
   };
 });
 
-jest.mock<typeof import("react-native-keyboard-controller")>(
-  import("react-native-keyboard-controller"),
-  () => ({
-    KeyboardAwareScrollView:
-      jest.requireActual<typeof import("react-native")>("react-native")
-        .ScrollView,
-  })
-);
+jest.mock("react-native-keyboard-controller", () => ({
+  KeyboardAwareScrollView:
+    jest.requireActual<typeof import("react-native")>("react-native")
+      .ScrollView,
+}));
 
 // The real Clerk SDK opens a MessagePort at import, which keeps Jest alive.
-jest.mock<typeof import("~/lib/clerk")>(import("~/lib/clerk"), () => ({
+jest.mock("~/lib/clerk", () => ({
   getCurrentUserId: () =>
     jest.requireActual<typeof import("~/test-utils/fake-public-api")>(
       "~/test-utils/fake-public-api"
     ).FAKE_USER_ID,
 }));
 
-jest.mock<typeof import("~/components/symbol-image")>(
-  import("~/components/symbol-image"),
-  () => ({ SymbolImage: () => null })
+jest.mock("~/components/symbol-image", () => ({ SymbolImage: () => null }));
+
+jest.mock("~/components/ui/button", () =>
+  jest.requireActual("~/test-utils/button-stub")
 );
 
-jest.mock<typeof import("~/components/ui/button")>(
-  import("~/components/ui/button"),
-  () => jest.requireActual("~/test-utils/button-stub")
+jest.mock("~/components/ui/dropdown-menu", () =>
+  jest.requireActual("~/test-utils/dropdown-menu-stub")
 );
 
-jest.mock<typeof import("~/components/ui/dropdown-menu")>(
-  import("~/components/ui/dropdown-menu"),
-  () => jest.requireActual("~/test-utils/dropdown-menu-stub")
+jest.mock("~/components/ui/select", () =>
+  jest.requireActual("~/test-utils/select-stub")
 );
 
-jest.mock<typeof import("~/components/ui/select")>(
-  import("~/components/ui/select"),
-  () => jest.requireActual("~/test-utils/select-stub")
-);
-
-jest.mock<typeof import("~/lib/segment")>(import("~/lib/segment"), () => ({
+jest.mock("~/lib/segment", () => ({
   segmentClient: { track: jest.fn() },
 }));
 
@@ -353,9 +343,14 @@ describe("saving", () => {
     await type("plan-name", "Push pull legs");
     await save();
 
-    expect(jest.mocked(segmentClient.track).mock.calls).toEqual([
-      ["Plan Edited", { plan_id: "plan-1" }],
-    ]);
+    expect(
+      jest.mocked<
+        (
+          event: string,
+          properties?: Record<string, string | number | boolean | null>
+        ) => void
+      >(segmentClient.track).mock.calls
+    ).toEqual([["Plan Edited", { plan_id: "plan-1" }]]);
     expect(pushedRoutes()).toEqual([]);
   });
 

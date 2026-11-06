@@ -1,27 +1,22 @@
 import { describe, expect, it, jest } from "@jest/globals";
 import { fireEvent, render, screen } from "@testing-library/react-native";
-import { describe, expect, it } from "vitest";
 
 import type { ShownExercise } from "~/hooks/queries/library";
 
 import SessionExerciseHeader from "../session-exercise-header";
 
-jest.mock<typeof import("~/components/ui/button")>(
-  import("~/components/ui/button"),
-  () => jest.requireActual("~/test-utils/button-stub")
+jest.mock("~/components/ui/button", () =>
+  jest.requireActual("~/test-utils/button-stub")
 );
 
-jest.mock<typeof import("~/components/exercises/exercise-video")>(
-  import("~/components/exercises/exercise-video"),
-  () => {
-    const { View } =
-      jest.requireActual<typeof import("react-native")>("react-native");
+jest.mock("~/components/exercises/exercise-video", () => {
+  const { View } =
+    jest.requireActual<typeof import("react-native")>("react-native");
 
-    return ({ url }: { url: string }) => (
-      <View testID="exercise-video" {...{ url }} />
-    );
-  }
-);
+  return ({ url }: { url: string }) => (
+    <View testID="exercise-video" {...{ url }} />
+  );
+});
 
 const PRESS: ShownExercise = {
   isResolved: true,
@@ -35,7 +30,7 @@ const PRESS: ShownExercise = {
 const DESCRIPTION =
   "A foundational lower-body exercise enhancing strength, power, and balance.";
 
-describe(SessionExerciseHeader, () => {
+describe("SessionExerciseHeader", () => {
   it("shows the description on at most two lines, opening the guide", async () => {
     const onOpenGuide = jest.fn();
     await render(
@@ -48,7 +43,7 @@ describe(SessionExerciseHeader, () => {
 
     expect(screen.getByText(DESCRIPTION).props.numberOfLines).toBe(2);
     await fireEvent.press(screen.getByRole("button", { name: DESCRIPTION }));
-    expect(onOpenGuide).toHaveBeenCalledOnce();
+    expect(onOpenGuide).toHaveBeenCalledTimes(1);
   });
 
   it("opens the guide from the How to? button", async () => {
@@ -62,7 +57,7 @@ describe(SessionExerciseHeader, () => {
     );
 
     await fireEvent.press(screen.getByRole("button", { name: "How to?" }));
-    expect(onOpenGuide).toHaveBeenCalledOnce();
+    expect(onOpenGuide).toHaveBeenCalledTimes(1);
   });
 
   it("plays the clip with the muscle groups over it", async () => {
