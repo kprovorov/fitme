@@ -24,7 +24,32 @@ export interface Token {
 /** Absolute path of the token CSS. */
 export const TOKENS_CSS_PATH = new URL("tokens.css", import.meta.url);
 
-const COMMENT = /\/\*[\s\S]*?\*\//gu;
+const stripComments = (css: string): string => {
+  const parts: string[] = [];
+  let position = 0;
+
+  while (position < css.length) {
+    const start = css.indexOf("/*", position);
+
+    if (start === -1) {
+      break;
+    }
+
+    const end = css.indexOf("*/", start + 2);
+
+    if (end === -1) {
+      break;
+    }
+
+    parts.push(css.slice(position, start));
+    position = end + 2;
+  }
+
+  parts.push(css.slice(position));
+
+  return parts.join("");
+};
+
 const THEME_BLOCK = /@theme\s*\{(?<body>[^}]*)\}/u;
 
 // One `property: value` statement of the block, before its name is checked
@@ -53,7 +78,7 @@ const isTokenKind = (value: string): value is TokenKind =>
  * kind throws, so a broken token file can't parse as a shorter one.
  */
 export const parseTokens = (css: string): Token[] => {
-  const block = THEME_BLOCK.exec(css.replaceAll(COMMENT, ""))?.[1];
+  const block = THEME_BLOCK.exec(stripComments(css))?.[1];
 
   if (block === undefined) {
     throw new Error("No @theme block found in the token CSS");
@@ -101,7 +126,7 @@ const UTILITY_BLOCK = /@utility\s+(?<name>[a-z0-9-]+)\s*\{(?<body>[^}]*)\}/gu;
  * without a `property: value` shape, or a repeated property, throws.
  */
 export const parseUtilities = (css: string): Utility[] =>
-  [...css.replaceAll(COMMENT, "").matchAll(UTILITY_BLOCK)].map(
+  [...stripComments(css).matchAll(UTILITY_BLOCK)].map(
     ([, name = "", body = ""]) => {
       const declarations: Record<string, string> = {};
 
