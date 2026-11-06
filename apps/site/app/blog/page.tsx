@@ -69,7 +69,10 @@ const Page = () => {
                 </span>
               </div>
 
-              <Link className="hover:underline" href={`/blog/${post.slug}`}>
+              <Link
+                className="hover:underline"
+                href={`/blog/${encodeURIComponent(post.slug)}`}
+              >
                 <h2>{post.metadata.title}</h2>
               </Link>
 
