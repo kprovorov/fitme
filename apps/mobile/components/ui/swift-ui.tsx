@@ -21,7 +21,7 @@ export const GLASS_ENABLED = isLiquidGlassAvailable();
  * buttons paint their own circle where this is false.
  */
 export const NATIVE_CIRCLE_ENABLED =
-  Platform.OS !== "ios" || Math.trunc(Number(String(Platform.Version))) >= 17;
+  Platform.OS !== "ios" || Number(String(Platform.Version).split(".")[0]) >= 17;
 
 /**
  * SwiftUI's `.infinity` can't cross the bridge, but `.frame(maxWidth:)` is

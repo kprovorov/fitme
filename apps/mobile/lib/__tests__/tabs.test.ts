@@ -1,4 +1,5 @@
-import { describe, expect, it } from "@jest/globals";
+import { afterEach, describe, expect, it, jest } from "@jest/globals";
+import { Platform } from "react-native";
 
 import { getTabSymbol, getTabTitle } from "../tabs";
 
@@ -18,6 +19,23 @@ describe("getTabTitle", () => {
 });
 
 describe("getTabSymbol", () => {
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  it.each([
+    ["16.7.12", "book.closed", "sparkles"],
+    ["17.7.1", "book.pages", "sparkles"],
+    ["18.7.1", "book.pages", "sparkles"],
+    ["26.1.1", "book.pages", "sparkles.2"],
+    [26, "book.pages", "sparkles.2"],
+  ])("uses the device's major version for %s", (version, history, arnold) => {
+    jest.spyOn(Platform, "Version", "get").mockReturnValue(version);
+
+    expect(getTabSymbol("history")).toBe(history);
+    expect(getTabSymbol("arnold")).toBe(arnold);
+  });
+
   it("is Figma's symbol on an iOS that has every one", () => {
     expect(getTabSymbol("(home)", 26)).toBe("dumbbell.fill");
     expect(getTabSymbol("history", 26)).toBe("book.pages");
