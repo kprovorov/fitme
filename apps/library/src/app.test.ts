@@ -1434,10 +1434,10 @@ describe("language=uk", () => {
   });
 
   it.each([
-    "/exercises?language=de",
+    "/exercises?language=ru",
     "/exercises?language=",
-    "/exercises?slugs=example-press&language=de",
-    "/exercises/example-press?language=de",
+    "/exercises?slugs=example-press&language=ru",
+    "/exercises/example-press?language=ru",
     "/exercises/example-press?language=",
   ])("answers %s with 400 naming the field", async (path) => {
     const { body, response } = await request(path);
@@ -1468,6 +1468,23 @@ describe("language=uk", () => {
     expect(revalidated.status).toBe(304);
     await expect(revalidated.text()).resolves.toBe("");
   });
+
+  it.each(appLanguages)(
+    "accepts %s on every Exercise route, falling back to English without translated content",
+    async (language) => {
+      await Promise.all(
+        [
+          `/exercises?language=${language}`,
+          `/exercises?slugs=example-squat&language=${language}`,
+          `/exercises/example-squat?language=${language}`,
+        ].map(async (route) => {
+          const { response, body } = await request(route);
+          expect(response.status).toBe(200);
+          expect(JSON.stringify(body)).toContain("Example Squat");
+        })
+      );
+    }
+  );
 
   it("is an optional enum of the App languages on both routes in the OpenAPI definition", () => {
     const document = fixtureApp.getOpenAPIDocument({

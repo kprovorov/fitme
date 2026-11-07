@@ -9,17 +9,30 @@ import {
 
 describe("supported app languages", () => {
   it("lists every supported language, English the default", () => {
-    expect(appLanguages).toStrictEqual(["en", "uk", "es", "ca"]);
+    expect(appLanguages).toStrictEqual([
+      "en",
+      "uk",
+      "es",
+      "ca",
+      "fr",
+      "de",
+      "it",
+      "pt-BR",
+      "pt-PT",
+      "pl",
+      "zh-Hans",
+      "zh-Hant",
+      "ja",
+      "ko",
+      "nl",
+    ]);
     expect(defaultAppLanguage).toBe("en");
   });
 });
 
 describe("app language validation", () => {
-  it("accepts an App language", () => {
-    expect(isAppLanguage("en")).toBeTruthy();
-    expect(isAppLanguage("uk")).toBeTruthy();
-    expect(isAppLanguage("es")).toBeTruthy();
-    expect(isAppLanguage("ca")).toBeTruthy();
+  it.each(appLanguages)("accepts %s", (language) => {
+    expect(isAppLanguage(language)).toBeTruthy();
   });
 
   it("refuses anything else", () => {
@@ -45,13 +58,42 @@ describe("device language resolution", () => {
     ["ca-ES", "ca"],
     ["ca-ES-valencia", "ca"],
     ["CA_es", "ca"],
+    ["fr-FR", "fr"],
+    ["fr-CA", "fr"],
+    ["de-DE", "de"],
+    ["it-IT", "it"],
+    ["pt-BR", "pt-BR"],
+    ["pt-PT", "pt-PT"],
+    ["pl-PL", "pl"],
+    ["zh-Hans-CN", "zh-Hans"],
+    ["zh-Hant-TW", "zh-Hant"],
+    ["zh-CN", "zh-Hans"],
+    ["zh-TW", "zh-Hant"],
+    ["zh-HK", "zh-Hant"],
+    ["zh-MO", "zh-Hant"],
+    ["zh-SG", "zh-Hans"],
+    ["zh-Hans-TW", "zh-Hans"],
+    ["zh-Hant-CN", "zh-Hant"],
+    ["pt", "pt-BR"],
+    ["PT_pt", "pt-PT"],
+    ["pt-Latn-PT", "pt-PT"],
+    ["zh", "zh-Hans"],
+    ["ja-JP", "ja"],
+    ["ko-KR", "ko"],
+    ["nl-NL", "nl"],
+    ["nl-BE", "nl"],
   ])("resolves %s to %s", (tag, language) => {
     expect(resolveAppLanguage([tag])).toBe(language);
   });
 
   it("respects Spanish and Catalan device preference order", () => {
-    expect(resolveAppLanguage(["fr-FR", "ca-ES", "es-ES"])).toBe("ca");
+    expect(resolveAppLanguage(["ru-RU", "ca-ES", "es-ES"])).toBe("ca");
     expect(resolveAppLanguage(["es-MX", "ca-ES", "en"])).toBe("es");
+  });
+
+  it("respects the newly supported languages in preference order", () => {
+    expect(resolveAppLanguage(["fr-CA", "ca-ES"])).toBe("fr");
+    expect(resolveAppLanguage(["ru-RU", "ja-JP", "de-DE"])).toBe("ja");
   });
 
   it("picks English with a region", () => {
@@ -61,8 +103,8 @@ describe("device language resolution", () => {
   it("gives an unsupported language English, never another language", () => {
     expect(resolveAppLanguage(["ru"])).toBe("en");
     expect(resolveAppLanguage(["ru-RU"])).toBe("en");
-    expect(resolveAppLanguage(["de"])).toBe("en");
-    expect(resolveAppLanguage(["de-DE"])).toBe("en");
+    expect(resolveAppLanguage(["sv"])).toBe("en");
+    expect(resolveAppLanguage(["sv-SE"])).toBe("en");
   });
 
   it("gives an empty list English", () => {
@@ -70,8 +112,8 @@ describe("device language resolution", () => {
   });
 
   it("picks the first supported language in order", () => {
-    expect(resolveAppLanguage(["de-DE", "uk-UA"])).toBe("uk");
-    expect(resolveAppLanguage(["de-DE", "en-US", "uk-UA"])).toBe("en");
+    expect(resolveAppLanguage(["sv-SE", "uk-UA"])).toBe("uk");
+    expect(resolveAppLanguage(["sv-SE", "en-US", "uk-UA"])).toBe("en");
   });
 
   it("compares the language subtag case-insensitively", () => {

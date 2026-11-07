@@ -1,3 +1,4 @@
+import { appLanguages } from "@fitme/core/models";
 import type { ModelMessage } from "ai";
 import { describe, expect, it } from "vitest";
 
@@ -58,19 +59,26 @@ describe("app language", () => {
     expect(appLanguage([clientContext({ language: "ca" })])).toBe("ca");
   });
 
+  it.each(appLanguages)("accepts %s from client context", (language) => {
+    expect(appLanguage([clientContext({ language })])).toBe(language);
+  });
+
   it("is English without a client context, without a language, or with one that isn't an App language", () => {
     expect(appLanguage([userSays("hi")])).toBe("en");
     expect(appLanguage([clientContext({ model: "openai/gpt-5.5" })])).toBe(
       "en"
     );
-    expect(appLanguage([clientContext({ language: "de" })])).toBe("en");
+    expect(appLanguage([clientContext({ language: "ru" })])).toBe("en");
     expect(appLanguage([clientContext({ language: "uk-UA" })])).toBe("en");
     expect(appLanguage([clientContext({ language: 1 })])).toBe("en");
   });
 });
 
 describe("library language", () => {
-  it.each(["es", "ca"])("passes %s to the Library", (language) => {
-    expect(libraryLanguage([clientContext({ language })])).toBe(language);
-  });
+  it.each(appLanguages.filter((language) => language !== "en"))(
+    "passes %s to the Library",
+    (language) => {
+      expect(libraryLanguage([clientContext({ language })])).toBe(language);
+    }
+  );
 });

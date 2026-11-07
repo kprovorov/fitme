@@ -1,0 +1,845 @@
+{
+  "tabs": {
+    "workout": "ワークアウト",
+    "history": "履歴",
+    "arnold": "Arnold AI",
+    "library": "ライブラリ"
+  },
+  "library": {
+    "search": "種目を検索",
+    "muscles": "部位",
+    "removeMuscleGroup": "{{muscleGroup}}を解除",
+    "reset": "リセット",
+    "confirm": "完了",
+    "loadErrorTitle": "種目を読み込めませんでした",
+    "loadError": "種目を読み込めませんでした。接続を確認して、もう一度お試しください。",
+    "loadMoreError": "追加の種目を読み込めませんでした。接続を確認して、もう一度お試しください。",
+    "emptyTitle": "種目が見つかりません",
+    "empty": "一致する種目がありません。別の名前や部位でお試しください。",
+    "showAll": "すべての種目を表示"
+  },
+  "exercise": {
+    "gone": "この種目はライブラリにありません。",
+    "loadError": "この種目を読み込めませんでした。接続を確認して、もう一度お試しください。"
+  },
+  "exerciseHistory": {
+    "title": "進捗",
+    "loadError": "この種目の履歴を読み込めませんでした。接続を確認して、もう一度お試しください。",
+    "set": "セット{{order, number}}：{{logged}}",
+    "target": "目標 {{target}}"
+  },
+  "counts": {
+    "entries_other": "{{count, number}}件",
+    "exercises_other": "{{count, number}}種目",
+    "minutes_other": "{{count, number}}分",
+    "reps_other": "{{count, number}}回",
+    "sets_other": "{{count, number}}セット",
+    "workoutSessions_other": "{{count, number}}回のワークアウト",
+    "workouts_other": "{{count, number}}ワークアウト"
+  },
+  "arnold": {
+    "title": "Arnold",
+    "chat": "チャット",
+    "model": "モデル",
+    "newConversation": "新しい会話",
+    "scrollToLatest": "最新のメッセージへ移動",
+    "emptyState": {
+      "title": "Arnoldに相談",
+      "description": "トレーニングやプラン、ワークアウトについて"
+    },
+    "composer": {
+      "placeholder": "Arnoldにメッセージ",
+      "send": "メッセージを送信",
+      "addToChat": "チャットに追加"
+    },
+    "attachments": {
+      "title": "チャットに追加",
+      "camera": "カメラ",
+      "photos": "写真",
+      "pickedPhoto": "写真{{position, number}}枚目、全{{total, number}}枚",
+      "removePhoto": "全{{total, number}}枚のうち{{position, number}}枚目の写真を削除",
+      "pickFailed": "この写真を追加できませんでした。別の写真をお試しください。",
+      "perMessageLimit_other": "1つのメッセージに追加できる写真は{{count, number}}枚までです。",
+      "conversationFull_other": "この会話の写真が{{count, number}}枚に達しました。さらに送るには、新しい会話を始めてください。",
+      "photo": "写真",
+      "sentPhoto": "写真{{position, number}}枚目、全{{total, number}}枚",
+      "cameraDenied": {
+        "title": "カメラへのアクセスが必要です",
+        "message": "Arnoldに送る写真を撮るには、Fitmeにカメラへのアクセスを許可してください。設定で変更できます。",
+        "openSettings": "設定を開く"
+      },
+      "viewer": {
+        "close": "閉じる",
+        "image": "写真"
+      }
+    },
+    "errors": {
+      "proCheckUnavailable": "Fitme Proのサブスクリプションを確認できませんでした。しばらくしてからお試しください。",
+      "network": "Arnoldに接続できませんでした。接続を確認して、もう一度お試しください。",
+      "generic": "問題が発生しました。もう一度お試しください。"
+    },
+    "modelPicker": {
+      "appliesToNextMessage": "次のメッセージから適用されます",
+      "loading": "モデルを読み込み中",
+      "unavailable": "現在モデルを選択できません。メッセージにはArnoldの標準モデルが使われます。"
+    },
+    "planCard": {
+      "frequency_other": "週{{count, number}}回",
+      "setCount": "{{count, number}}×",
+      "save": "プランを保存",
+      "saved": "プランを保存しました",
+      "unmatchedExercises": "ライブラリで見つからない種目があるため、保存できません。プランを作り直してください。",
+      "errors": {
+        "unknownExercises": "未登録の種目があるため、このプランは保存できません。Arnoldに別のプランを依頼してください。",
+        "libraryUnavailable": "プランの種目を確認できませんでした。もう一度お試しください。",
+        "rateLimited": "リクエストが多すぎます。{{seconds, number}}秒後にお試しください。",
+        "generic": "プランを保存できませんでした。もう一度お試しください。"
+      }
+    }
+  },
+  "planner": {
+    "title": "ワークアウトプランを作成",
+    "goal": {
+      "title": "目標",
+      "question": "目標は何ですか？",
+      "options": {
+        "fat-loss": "体重を減らす",
+        "muscle-gain": "筋肉をつける",
+        "general-health-fitness": "健康を改善する"
+      }
+    },
+    "experience": {
+      "title": "経験",
+      "question": "トレーニング経験はどのくらいですか？"
+    },
+    "duration": {
+      "title": "ワークアウト時間",
+      "question": "どのくらいの時間トレーニングしたいですか？",
+      "minutes_other": "{{count}}分"
+    },
+    "place": {
+      "title": "場所",
+      "question": "ワークアウトをする場所を選んでください",
+      "soon": "近日対応"
+    },
+    "frequency": {
+      "title": "頻度",
+      "question": "週に何回トレーニングしたいですか？"
+    },
+    "note": {
+      "title": "追加の要望",
+      "question": "プランへの要望を追加してください",
+      "placeholder": "例：腹筋を重点的に鍛えたい"
+    },
+    "submit": "プランを作成！",
+    "required": "必須",
+    "message": {
+      "intro": "以下の条件でワークアウトプランを作成してください：",
+      "goal": "- 目標：{{goal}}",
+      "experience": "- 経験：{{experience}}",
+      "duration_other": "- ワークアウト時間：{{count}}分",
+      "place": "- 場所：{{place}}",
+      "frequency_other": "- 頻度：週{{count}}日",
+      "note": "- 追加の要望：{{note}}"
+    }
+  },
+  "plans": {
+    "title": "マイプラン",
+    "create": "ワークアウトプランを作成",
+    "createNew": "新しいワークアウトプランを作成",
+    "frequency_other": "週{{count, number}}回",
+    "manage": "管理",
+    "edit": "プランを編集",
+    "goBack": "戻る",
+    "loadError": "このプランを読み込めませんでした。接続を確認して、もう一度お試しください。",
+    "listLoadError": "プランを読み込めませんでした。接続を確認して、もう一度お試しください。",
+    "activate": {
+      "action": "プランを有効にする",
+      "title": "プランを有効にする",
+      "message": "現在のプランは無効になります",
+      "confirm": "有効にする",
+      "failed": "プランを有効にできませんでした"
+    },
+    "archive": {
+      "action": "アーカイブ",
+      "title": "プランをアーカイブ",
+      "activePlan": "有効なプランはアーカイブできません。常に1つ以上のプランを有効にしておく必要があります。",
+      "message": "このプランをアーカイブしますか？",
+      "confirm": "アーカイブ",
+      "failed": "プランをアーカイブできませんでした"
+    },
+    "errors": {
+      "notFound": "このプランは存在しません。",
+      "network": "接続を確認して、もう一度お試しください。",
+      "rateLimited": "リクエストが多すぎます。{{seconds, number}}秒後にお試しください。"
+    }
+  },
+  "planEditor": {
+    "title": "プランを編集",
+    "save": "保存",
+    "details": "詳細",
+    "name": "名前",
+    "namePlaceholder": "プラン名",
+    "description": "説明",
+    "descriptionPlaceholder": "このプランの目的",
+    "frequency": "週のワークアウト回数",
+    "duration": "ワークアウト時間",
+    "durationUnit": "分",
+    "goal": "目標",
+    "experience": "経験レベル",
+    "place": "場所",
+    "workouts": "ワークアウト",
+    "workoutsHint": "順番に繰り返します。先頭が次のワークアウトです。",
+    "noWorkouts": "プランには1つ以上のワークアウトが必要です。",
+    "workoutActions": "{{name}}の操作",
+    "moveUp": "{{name}}を上へ移動",
+    "moveDown": "{{name}}を下へ移動",
+    "remove": "{{name}}を削除",
+    "addWorkout": "ワークアウトを追加",
+    "newWorkoutName": "ワークアウト{{letter}}",
+    "openWorkout": "{{name}}を編集",
+    "workoutNeedsExercise": "1つ以上の種目が必要です",
+    "workoutNeedsFixing": "ワークアウト名とセットを確認してください",
+    "workout": {
+      "title": "ワークアウトを編集",
+      "name": "名前",
+      "namePlaceholder": "ワークアウト名",
+      "exercises": "種目",
+      "exercisesHint": "実施する順番に並んでいます。",
+      "noExercises": "このワークアウトに種目を追加してください。",
+      "addExercise": "種目を追加",
+      "exerciseActions": "{{name}}の操作",
+      "moveUp": "{{name}}を上へ移動",
+      "moveDown": "{{name}}を下へ移動",
+      "replace": "{{name}}を変更",
+      "remove": "{{name}}を削除",
+      "removeSet": "セット{{order, number}}を削除",
+      "errors": {
+        "nameRequired": "ワークアウト名を入力してください",
+        "repsRange": "回数は{{min, number(useGrouping: false)}}〜{{max, number(useGrouping: false)}}の整数で入力してください",
+        "weightRange": "重量は{{min, number(useGrouping: false)}}〜{{max, number(useGrouping: false)}}の数値で入力してください",
+        "restRange": "休憩時間は{{min, number(useGrouping: false)}}〜{{max, number(useGrouping: false)}}秒の整数で入力してください"
+      }
+    },
+    "picker": {
+      "addTitle": "種目を追加",
+      "replaceTitle": "種目を変更",
+      "addExercise": "{{name}}を追加",
+      "replaceWith": "{{name}}に変更"
+    },
+    "discard": {
+      "title": "変更を破棄しますか？",
+      "message": "このプランへの変更は失われます。",
+      "confirm": "破棄"
+    },
+    "errors": {
+      "nameRequired": "プラン名を入力してください",
+      "nameTooLong": "名前は{{max, number(useGrouping: false)}}文字以内で入力してください",
+      "descriptionTooLong": "説明は{{max, number(useGrouping: false)}}文字以内で入力してください",
+      "frequencyRange": "週のワークアウト回数は{{min, number(useGrouping: false)}}〜{{max, number(useGrouping: false)}}の整数で入力してください",
+      "durationRange": "ワークアウト時間は{{max, number(useGrouping: false)}}分以下の整数で入力してください",
+      "choiceRequired": "1つ選んでください",
+      "saveFailed": "プランを保存できませんでした。接続を確認して、もう一度お試しください。",
+      "saveRateLimited": "プランを保存できませんでした。リクエストが多すぎます。{{seconds, number}}秒後にお試しください。",
+      "unknownExercises": "未登録の種目があるため、このプランは保存できません。種目を変更して、もう一度お試しください。",
+      "libraryUnavailable": "プランの種目を確認できませんでした。もう一度お試しください。",
+      "unitsChanged": "別の端末で重量の単位が変更されたため、ここにある目標値は以前の単位のままです。編集画面を閉じて、開き直してください。"
+    }
+  },
+  "plannedWorkout": {
+    "stats": {
+      "duration": "時間",
+      "exercises": "種目",
+      "sets": "セット"
+    },
+    "durationMinutes": "{{minutes, number}}分",
+    "noExercises": "このワークアウトにはまだ種目がありません。",
+    "gone": "このワークアウトは存在しません",
+    "goBack": "戻る",
+    "edit": "ワークアウトを編集",
+    "loadError": "このワークアウトを読み込めませんでした。接続を確認して、もう一度お試しください。",
+    "exerciseDetailsHint": "種目の詳細を開きます"
+  },
+  "home": {
+    "managePlans": "プランを管理",
+    "createPlan": "プランを作成",
+    "workouts": "ワークアウト",
+    "planMenu": "プランのオプション",
+    "logo": "Fitme",
+    "card": {
+      "preview": "プレビュー",
+      "previewNamed": "{{name}}をプレビュー",
+      "start": "開始",
+      "startNamed": "{{name}}を開始",
+      "continue": "再開",
+      "continueNamed": "{{name}}を再開",
+      "moreMuscleGroups": "+{{count, number}}",
+      "moreMuscleGroupsSpoken_other": "ほか{{count, number}}部位"
+    },
+    "allSet": "お疲れさまです！すべて完了しました！",
+    "empty": {
+      "title": "有効なプランがありません",
+      "message": "有効なワークアウトプランがありません。まずはプランを作成しましょう。",
+      "inactiveMessage": "既存のプランを有効にするか、新しいプランを作成してください。",
+      "action": "ワークアウトプランを作成"
+    },
+    "loadError": {
+      "title": "プランを読み込めませんでした",
+      "message": "接続を確認して、もう一度お試しください。"
+    }
+  },
+  "startWorkout": {
+    "start": "ワークアウトを開始",
+    "continue": "ワークアウトを再開",
+    "continueNamed": "{{name}}を再開",
+    "finishFirst": "まず実施中のワークアウトを終了してください",
+    "finishFirstNamed": "まず{{name}}を終了してください",
+    "failed": {
+      "title": "ワークアウトを開始できませんでした",
+      "network": "接続を確認して、もう一度お試しください。",
+      "rateLimited": "リクエストが多すぎます。{{seconds, number}}秒後にお試しください。"
+    }
+  },
+  "workoutCard": {
+    "exercises_other": "{{count, number}}種目",
+    "toWorkout": "ワークアウトへ",
+    "openHint": "ワークアウトを開きます",
+    "openInProgressHint": "実施中のワークアウトを開きます"
+  },
+  "choices": {
+    "equipment": {
+      "barbell": "バーベル",
+      "dumbbell": "ダンベル",
+      "cable": "ケーブル",
+      "machine": "マシン",
+      "smith_machine": "スミスマシン",
+      "bench": "ベンチ",
+      "pull_up_bar": "懸垂バー",
+      "landmine": "ランドマイン",
+      "bodyweight": "自重"
+    },
+    "experienceLevel": {
+      "beginner": "初心者",
+      "intermediate": "中級者",
+      "advanced": "上級者"
+    },
+    "experienceLevelDescription": {
+      "beginner": "経験0〜6か月",
+      "intermediate": "経験6か月〜3年",
+      "advanced": "経験3年以上"
+    },
+    "gender": {
+      "male": "男性",
+      "female": "女性"
+    },
+    "goal": {
+      "muscle-gain": "筋肉増量",
+      "fat-loss": "減量",
+      "recomposition": "体脂肪を減らして筋肉をつける",
+      "strength-performance": "筋力・パフォーマンス向上",
+      "general-health-fitness": "健康・体力づくり"
+    },
+    "measurementSystem": {
+      "metric": "メートル法",
+      "us": "米国式",
+      "uk": "英国式"
+    },
+    "measurementSystemDescription": {
+      "metric": "センチメートル・キログラム",
+      "us": "フィート・インチ・ポンド",
+      "uk": "フィート・インチ・ポンド"
+    },
+    "muscleGroup": {
+      "chest": "胸",
+      "back": "背中",
+      "shoulders": "肩",
+      "biceps": "上腕二頭筋",
+      "triceps": "上腕三頭筋",
+      "forearms": "前腕",
+      "abs": "腹筋",
+      "obliques": "腹斜筋",
+      "quadriceps": "大腿四頭筋",
+      "hamstrings": "ハムストリングス",
+      "glutes": "臀筋",
+      "calves": "ふくらはぎ",
+      "traps": "僧帽筋",
+      "lats": "広背筋",
+      "lower-back": "腰",
+      "cardio": "有酸素運動",
+      "full-body": "全身"
+    },
+    "place": {
+      "gym": "ジム",
+      "home": "自宅"
+    }
+  },
+  "unitNames": {
+    "cm": "cm",
+    "in": "インチ",
+    "kg": "kg",
+    "lbs": "ポンド"
+  },
+  "units": {
+    "cm": "{{value, number}} cm",
+    "in": "{{value, number}}インチ",
+    "kg": "{{value, number}} kg",
+    "lbs": "{{value, number}}ポンド"
+  },
+  "spokenUnits": {
+    "cm_other": "{{count, number}}センチメートル",
+    "in_other": "{{count, number}}インチ",
+    "kg_other": "{{count, number}}キログラム",
+    "lbs_other": "{{count, number}}ポンド"
+  },
+  "compactUnits": {
+    "t": "{{value, number}} t",
+    "thousandLbs": "{{value, number}}千ポンド"
+  },
+  "spokenCompactUnits": {
+    "t_other": "{{count, number}}トン",
+    "thousandLbs_other": "{{count, number}}千ポンド"
+  },
+  "duration": {
+    "hoursMinutes": "{{hours, number}}時間{{minutes, number}}分",
+    "minutes": "{{minutes, number}}分"
+  },
+  "finishWorkout": {
+    "confirm": {
+      "title": "ワークアウトを終了しますか？",
+      "unloggedSets_other": "予定のセットが{{count, number}}セット未記録です。",
+      "cancel": "キャンセル",
+      "finish": "終了"
+    },
+    "failed": {
+      "title": "ワークアウトを終了できませんでした",
+      "network": "接続を確認して、もう一度お試しください。",
+      "rateLimited": "リクエストが多すぎます。{{seconds, number}}秒後にお試しください。"
+    },
+    "suggestion": {
+      "title": "ワークアウト完了！",
+      "description": "予定のセットをすべて記録しました。",
+      "close": "閉じる",
+      "keepTrainingHint": "この提案を閉じて、ワークアウトを続けます",
+      "finish": "ワークアウトを終了",
+      "finishHint": "このワークアウトを終了します",
+      "keepTraining": "トレーニングを続ける"
+    }
+  },
+  "planUpdate": {
+    "title": "プランを更新しますか？",
+    "description": "今日の{{workout}}への変更を{{plan}}に保存します。",
+    "failed": "プランを更新できませんでした。接続を確認して、もう一度お試しください。",
+    "rateLimited": "リクエストが多すぎます。{{seconds, number}}秒後にお試しください。",
+    "update": "プランを更新",
+    "updateHint": "変更をプランに保存して、ワークアウトのまとめを表示します",
+    "retry": "再試行",
+    "keep": "プランを変更しない",
+    "keepHint": "プランを変更せず、ワークアウトのまとめを表示します",
+    "changes": {
+      "replace": "{{replaced}}を{{exercise}}に変更",
+      "add": "{{exercise}}を追加",
+      "remove": "{{exercise}}を削除",
+      "addSets_other": "{{exercise}}に{{count, number}}セット追加",
+      "line": "{{change}} · {{sets}}",
+      "spokenLine": "{{change}}：{{sets}}",
+      "spokenSet": "{{weight}}で{{reps}}"
+    }
+  },
+  "sets": {
+    "columns": {
+      "target": "目標",
+      "reps": "回数",
+      "rest": "休憩"
+    },
+    "addSet": "セットを追加",
+    "noTarget": "目標なし",
+    "repsAtWeight": "{{weight}}で{{reps}}",
+    "plannedSet": "セット{{order, number}}：{{target}}、{{rest}}",
+    "restSeconds_other": "休憩{{count, number}}秒",
+    "noRest": "休憩なし",
+    "row": {
+      "repsInput": "セット{{order, number}}の回数",
+      "weightInput": "セット{{order, number}}の重量",
+      "restInput": "セット{{order, number}}の休憩時間",
+      "log": "セット{{order, number}}を記録",
+      "edit": "セット{{order, number}}を編集",
+      "editHint": "セットの編集画面を開きます",
+      "logged": "セット{{order, number}}、記録済み"
+    },
+    "errors": {
+      "save": "このセットを保存できませんでした。もう一度お試しください。",
+      "rateLimited": "リクエストが多すぎます。{{seconds, number}}秒後にお試しください。"
+    },
+    "form": {
+      "weightNotNumber": "重量は数値で入力してください",
+      "weightNegative": "重量は0以上で入力してください",
+      "weightTooHigh": "重量は{{max}}以下で入力してください",
+      "weightDecimals_other": "重量の小数点以下は{{count, number}}桁までです",
+      "repsNotNumber": "回数は数値で入力してください",
+      "repsNegative": "回数は0以上で入力してください",
+      "repsTooHigh": "回数は{{max}}以下で入力してください",
+      "repsNotWhole": "回数は整数で入力してください"
+    },
+    "rest": {
+      "title": "休憩",
+      "thenSet": "休憩 · 次はセット{{order, number}}",
+      "left": "休憩、残り{{clock}}",
+      "less_other": "{{count, number}}秒短くする",
+      "more_other": "{{count, number}}秒長くする",
+      "skip": "スキップ",
+      "skipRest": "休憩をスキップ",
+      "over": "休憩終了"
+    }
+  },
+  "forms": {
+    "numberMin": "{{min, number(useGrouping: false)}}以上の数値を入力してください",
+    "numberMax": "{{max, number(useGrouping: false)}}以下の数値を入力してください"
+  },
+  "onboarding": {
+    "welcome": {
+      "title": "Fitmeへようこそ！",
+      "description": "あなた専属のAIトレーナーが待っています。さっそく始めましょう！",
+      "getStarted": "始める",
+      "skip": "スキップ"
+    },
+    "profile": {
+      "title": "あなたについて教えてください",
+      "description": "この情報をもとに、あなたに合った体験をお届けします。",
+      "next": "次へ",
+      "loadError": "プロフィールを読み込めませんでした。接続を確認して、もう一度お試しください。"
+    }
+  },
+  "profileForm": {
+    "name": "名前",
+    "gender": "性別",
+    "parameters": "身体情報",
+    "age": "年齢",
+    "weight": "体重",
+    "height": "身長",
+    "notSet": "未設定",
+    "done": "完了",
+    "ageValue_other": "{{count, number}}歳",
+    "feet_other": "{{count, number}}フィート",
+    "inches_other": "{{count, number}}インチ",
+    "errors": {
+      "ageRequired": "年齢を入力してください",
+      "genderRequired": "性別を選んでください",
+      "heightRequired": "身長を入力してください",
+      "weightRequired": "体重を入力してください",
+      "nameTooLong": "名前は{{max, number(useGrouping: false)}}文字以内で入力してください",
+      "tooManyDecimals": "小数点以下は{{max, number(useGrouping: false)}}桁までです",
+      "saveFailed": "プロフィールを保存できませんでした。接続を確認して、もう一度お試しください。",
+      "saveRateLimited": "プロフィールを保存できませんでした。リクエストが多すぎます。{{seconds, number}}秒後にお試しください。"
+    }
+  },
+  "common": {
+    "cancel": "キャンセル",
+    "confirm": "確認",
+    "tryAgain": "再試行",
+    "genericError": "問題が発生しました。しばらくしてからお試しください。",
+    "rateLimited": "リクエストが多すぎます。{{seconds, number}}秒後にお試しください。"
+  },
+  "profile": {
+    "title": "プロフィール",
+    "pro": {
+      "title": "Proをご利用中です！",
+      "description": "すべての機能をご利用いただけます。サブスクリプションはいつでも解約できます。",
+      "manage": "サブスクリプションを管理"
+    },
+    "free": {
+      "title": "無料プランをご利用中です",
+      "description": "Fitme Proに登録して、すべての機能を無制限で利用しましょう",
+      "upgrade": "Proにアップグレード"
+    },
+    "editProfile": "プロフィールを編集",
+    "settings": "設定",
+    "support": "サポート",
+    "legal": "法的情報",
+    "logout": "ログアウト",
+    "rate": {
+      "title": "アプリは気に入りましたか？",
+      "action": "App Storeで評価する"
+    }
+  },
+  "editProfile": {
+    "title": "プロフィールを編集",
+    "loadError": "プロフィールを読み込めませんでした。接続を確認して、もう一度お試しください。",
+    "save": "保存"
+  },
+  "settings": {
+    "title": "設定",
+    "measurementSystem": "単位系",
+    "deleteAccount": "アカウントを削除",
+    "deleteConfirm": {
+      "title": "アカウントを削除",
+      "message": "アカウントと関連するすべてのデータが完全に削除されます。この操作は取り消せません。",
+      "confirm": "削除"
+    },
+    "deleteFailed": "アカウントを削除できませんでした"
+  },
+  "measurementSystem": {
+    "title": "単位系",
+    "loadError": "単位系を読み込めませんでした。接続を確認して、もう一度お試しください。",
+    "confirm": {
+      "title": "変更しますか？",
+      "message": "単位系の変更はすべての測定値に反映されます。プロフィールのデータとワークアウト履歴は、新しい単位系に換算されます。"
+    },
+    "checkFailed": {
+      "title": "単位を確認できませんでした",
+      "message": "接続を確認してから、もう一度お試しいただくと、保存されている単位系を確認できます。"
+    },
+    "changeFailed": {
+      "title": "単位を変更できませんでした",
+      "message": "測定値は変更されていません。もう一度お試しください。",
+      "rateLimited": "測定値は変更されていません。リクエストが多すぎます。{{seconds, number}}秒後にお試しください。"
+    }
+  },
+  "legal": {
+    "title": "法的情報",
+    "privacyPolicy": "プライバシーポリシー",
+    "terms": "利用規約",
+    "deleteAccount": "アカウントを削除",
+    "deleteConfirm": {
+      "title": "アカウントを削除しますか？",
+      "message": "この操作は取り消せません。アカウントが完全に削除され、サーバーからデータが消去されます。",
+      "confirm": "はい、アカウントを削除します"
+    }
+  },
+  "support": {
+    "title": "サポート",
+    "contact": "ご質問やご意見がありましたら、いつでもお気軽にお問い合わせください",
+    "social": {
+      "x": "XでFitmeを見る",
+      "instagram": "InstagramでFitmeを見る",
+      "threads": "ThreadsでFitmeを見る"
+    }
+  },
+  "verifyCode": {
+    "screenTitle": "コードを確認",
+    "title": "メールを確認してください",
+    "description": {
+      "signUp": "アカウントを有効にするには、メールで届いたコードを入力してください",
+      "reset": "パスワードをリセットするには、メールで届いたコードを入力してください",
+      "signIn": "この端末で本人確認をするため、メールで届いたコードを入力してください"
+    },
+    "codePlaceholder": "コード",
+    "verify": "確認",
+    "errors": {
+      "signUpIncomplete": "アカウントの作成を完了できませんでした。もう一度お試しください。",
+      "resetIncomplete": "コードを確認できませんでした。もう一度お試しください。",
+      "signInIncomplete": "ログインできませんでした。もう一度お試しください。"
+    },
+    "resendButton": "コードを再送",
+    "resentNotice": "新しいコードを送信しました。",
+    "destination": "{{email}}に送信した6桁のコードを入力してください",
+    "didntGet": "メールが届きませんか？",
+    "resendIn": "{{time}}後に再送できます",
+    "wrongEmail": "メールアドレスが違いますか？",
+    "changeEmail": "変更する",
+    "loading": "確認中",
+    "expired": "認証の有効期限が切れました。最初からやり直して、新しいコードを取得してください。",
+    "startOver": "最初からやり直す"
+  },
+  "forgotPassword": {
+    "screenTitle": "パスワードを忘れた場合",
+    "title": "パスワードをお忘れですか？",
+    "description": "登録したメールアドレスを入力すると、6桁のコードをお送りします。",
+    "emailPlaceholder": "メールアドレス",
+    "invalidEmail": "メールアドレスが正しくありません",
+    "submit": "コードを送信",
+    "remember": "パスワードを思い出しましたか？",
+    "login": "ログイン",
+    "loading": "コードを送信中"
+  },
+  "resetPassword": {
+    "screenTitle": "パスワードをリセット",
+    "title": "新しいパスワードを設定",
+    "description": "ほかのアカウントで使っていないパスワードを設定してください。",
+    "newPasswordPlaceholder": "新しいパスワード",
+    "confirmPasswordPlaceholder": "新しいパスワードを確認",
+    "passwordTooShort_other": "パスワードは{{count}}文字以上で入力してください。",
+    "passwordsDontMatch": "パスワードが一致しません。",
+    "submit": "パスワードを更新",
+    "passwordChanged": "パスワードを変更しました。新しいパスワードでログインしてください。",
+    "loading": "パスワードを更新中",
+    "changedMind": "変更をやめますか？",
+    "backToLogin": "ログインに戻る"
+  },
+  "updateRequired": {
+    "title": "アップデートが必要です",
+    "description": "このバージョンのFitmeはサポートされていません。トレーニングを続けるには、アプリをアップデートしてください。",
+    "update": "アップデート"
+  },
+  "notFound": {
+    "title": "おっと！",
+    "description": "この画面は存在しません。",
+    "goHome": "ホーム画面へ"
+  },
+  "workoutSession": {
+    "finish": "終了",
+    "loadError": "このワークアウトを読み込めませんでした。接続を確認して、もう一度お試しください。",
+    "stats": {
+      "duration": "時間",
+      "volume": "総負荷量",
+      "sets": "セット",
+      "exercisesDone_other": "{{count, number}}種目中{{done, number}}種目完了"
+    },
+    "addExercise": "種目を追加",
+    "picker": {
+      "addExercise": "{{name}}を追加",
+      "replaceWith": "{{name}}に変更",
+      "close": "閉じる",
+      "addTitle": "種目を追加",
+      "replaceTitle": "種目を変更"
+    },
+    "exercise": {
+      "openHint": "種目を開きます",
+      "moreOptions": "{{name}}のその他のオプション",
+      "replace": "変更",
+      "delete": "削除"
+    },
+    "editFailed": {
+      "addTitle": "種目を追加できませんでした",
+      "replaceTitle": "種目を変更できませんでした",
+      "deleteTitle": "種目を削除できませんでした",
+      "libraryUnavailable": "現在、種目ライブラリを利用できません。もう一度お試しください。",
+      "sessionFinished": "このワークアウトはすでに終了しています。",
+      "rateLimited": "リクエストが多すぎます。{{seconds, number}}秒後にお試しください。",
+      "generic": "接続を確認して、もう一度お試しください。"
+    }
+  },
+  "workoutSessionExercise": {
+    "loadError": "この種目を読み込めませんでした。接続を確認して、もう一度お試しください。",
+    "howTo": "やり方",
+    "guideHint": "種目のガイドを開きます"
+  },
+  "history": {
+    "empty": {
+      "title": "ワークアウトの記録はまだありません",
+      "body": "最初のワークアウトを終了すると、時間、セット数、総負荷量、自己ベストがここに表示されます。",
+      "start": "{{name}}を開始",
+      "nextUp": "{{plan}}の次のワークアウト · {{exercises}}",
+      "resume": "ワークアウトを再開",
+      "resumeNamed": "{{name}}を再開",
+      "inProgress": "実施中のワークアウトがあります。",
+      "createPlan": "プランを作成"
+    },
+    "loadError": "ワークアウトを読み込めませんでした。接続を確認して、もう一度お試しください。",
+    "untitledWorkout": "ワークアウト",
+    "duration": "所要時間 {{duration}}",
+    "thisMonth": "今月",
+    "stats": {
+      "workouts": "ワークアウト",
+      "time": "時間",
+      "volume": "総負荷量"
+    },
+    "statLabel": "{{title}}：{{value}}",
+    "entry": "{{name}}、{{date}}、{{duration}}、{{sets}}、{{volume}}",
+    "streak": {
+      "badge_other": "{{count, number}}週連続！",
+      "spoken_other": "毎週の継続記録：{{count, number}}週間"
+    },
+    "weeklyGoal": {
+      "title": "週の目標 · {{workouts}}",
+      "weeksHit_other": "{{count, number}}週中{{hit, number}}週達成",
+      "now": "現在",
+      "extra": "+{{count, number}}",
+      "thisWeek": "今週",
+      "weekOf": "{{date}}の週",
+      "progress_other": "{{count, number}}回中{{done, number}}回のワークアウト",
+      "overGoal": "目標を{{count, number}}回超過",
+      "goalMet": "目標達成",
+      "goalMissed": "目標未達成",
+      "inProgress": "進行中",
+      "firstWeek": "記録開始週",
+      "noGoal": "目標の記録なし",
+      "weekLabel": "{{week}}：{{details}}"
+    },
+    "personalRecord": "自己ベスト",
+    "entryWithRecords": "{{entry}}。{{records}}",
+    "personalRecords_other": "自己ベスト：{{records}}",
+    "recordResult": "{{exercise}}、{{weight}} × {{reps}}",
+    "bodyweightRecordResult": "{{exercise}}、自重 × {{reps}}"
+  },
+  "workoutSummary": {
+    "title": "ワークアウト完了！",
+    "stats": {
+      "exercises": "種目"
+    },
+    "statLabel": "{{title}}：{{value}}",
+    "continue": "次へ",
+    "exercise": "{{name}}、{{sets}}"
+  },
+  "auth": {
+    "welcome": "Fitmeへようこそ！",
+    "fields": {
+      "email": "メールアドレス",
+      "passwordPlaceholder": "パスワード",
+      "name": "名前",
+      "code": "コード"
+    },
+    "validation": {
+      "invalidEmail": "メールアドレスが正しくありません",
+      "passwordRequired": "パスワードを入力してください。",
+      "nameTooShort_other": "名前は{{count}}文字以上で入力してください。",
+      "passwordTooShort_other": "パスワードは{{count}}文字以上で入力してください。"
+    },
+    "login": {
+      "title": "ログイン",
+      "subtitle": "アカウントにログインしてワークアウトを確認しましょう",
+      "continue": "ログイン",
+      "forgotPasswordLink": "パスワードを忘れた場合",
+      "noAccount": "Fitmeは初めてですか？",
+      "registerLink": "アカウントを作成",
+      "cantSignInHere": "このアカウントではまだログインできません。",
+      "heading": "おかえりなさい",
+      "loading": "ログイン中"
+    },
+    "deviceCode": {
+      "title": "メールを確認してください",
+      "subtitle": "この端末で本人確認をするため、メールで届いたコードを入力してください",
+      "verify": "確認",
+      "resend": "新しいコードを送信",
+      "differentAccount": "別のアカウントを使う"
+    },
+    "register": {
+      "title": "新規登録",
+      "subtitle": "アカウントを作成して始めましょう",
+      "submit": "アカウントを作成",
+      "haveAccount": "すでにアカウントをお持ちですか？",
+      "loginLink": "ログイン",
+      "heading": "アカウントを作成",
+      "loading": "アカウントを作成中"
+    },
+    "intro": {
+      "heading": "時間より、\n質で鍛える。",
+      "description": "Fitmeはあなた専属のAIトレーナー。プランを作成し、すべてのセットを記録します。",
+      "plans": "あなたに合ったプラン",
+      "logging": "すべてのセットと回数を記録",
+      "guides": "動画付きの種目ガイド",
+      "email": "メールアドレスで続ける"
+    },
+    "social": {
+      "apple": "Appleで続ける",
+      "google": "Googleで続ける",
+      "connectingGoogle": "Googleに接続中",
+      "incomplete": "ログインを完了できませんでした。再試行するか、メールアドレスで続けてください。"
+    },
+    "password": {
+      "show": "パスワードを表示",
+      "hide": "パスワードを隠す",
+      "minimum": "{{count}}文字以上"
+    },
+    "legal": {
+      "prefix": "続けることで、Fitmeの以下の規約に同意したものとみなされます：",
+      "terms": "利用規約",
+      "and": "および",
+      "privacy": "プライバシーポリシー"
+    },
+    "or": "または",
+    "errors": {
+      "credentials": "メールアドレスかパスワードが正しくありません。もう一度お試しください。",
+      "connection": "接続を確認して、もう一度お試しください。"
+    }
+  }
+}

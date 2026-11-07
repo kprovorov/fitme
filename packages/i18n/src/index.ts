@@ -4,9 +4,20 @@ import { createInstance } from "i18next";
 import type { i18n } from "i18next";
 
 import ca from "./catalogs/ca.json";
+import de from "./catalogs/de.json";
 import en from "./catalogs/en.json";
 import es from "./catalogs/es.json";
+import fr from "./catalogs/fr.json";
+import it from "./catalogs/it.json";
+import ja from "./catalogs/ja.json";
+import ko from "./catalogs/ko.json";
+import nl from "./catalogs/nl.json";
+import pl from "./catalogs/pl.json";
+import ptBR from "./catalogs/pt-BR.json";
+import ptPT from "./catalogs/pt-PT.json";
 import uk from "./catalogs/uk.json";
+import zhHans from "./catalogs/zh-Hans.json";
+import zhHant from "./catalogs/zh-Hant.json";
 import type { Catalog } from "./check";
 import { numberFormat, regionOf, withRegion } from "./format";
 
@@ -57,10 +68,23 @@ const numberFormatOptions = (
 export const defaultNamespace = "translation";
 
 /** Every App language's catalog. English is the source and the fallback. */
-export const catalogs = { ca, en, es, uk } satisfies Record<
-  AppLanguage,
-  Catalog
->;
+export const catalogs = {
+  ca,
+  de,
+  en,
+  es,
+  fr,
+  it,
+  ja,
+  ko,
+  nl,
+  pl,
+  "pt-BR": ptBR,
+  "pt-PT": ptPT,
+  uk,
+  "zh-Hans": zhHans,
+  "zh-Hant": zhHant,
+} satisfies Record<AppLanguage, Catalog>;
 
 declare module "i18next" {
   interface CustomTypeOptions {

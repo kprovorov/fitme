@@ -1,3 +1,4 @@
+import type { AppLanguage } from "@fitme/core";
 import { describe, expect, it } from "vitest";
 
 import { createI18n } from "..";
@@ -11,7 +12,7 @@ import {
 
 /** An instance in an App language, on a device with a region and a clock. */
 const on = (
-  language: "en" | "uk",
+  language: AppLanguage,
   region: string | null,
   uses24hourClock: boolean | null = null
 ) => {
@@ -51,6 +52,23 @@ describe("date locales", () => {
     expect(formatLocale(on("en", "GB"))).toBe("en-GB");
     // A Ukrainian speaker in Poland: Ukrainian words, Polish conventions.
     expect(formatLocale(on("uk", "PL"))).toBe("uk-PL");
+  });
+
+  it("replaces a Portuguese catalog's region with the device region", () => {
+    const portuguese = on("pt-PT", "BR");
+    expect(formatLocale(portuguese)).toBe("pt-BR");
+    expect(formatNumber(portuguese, 1234.5)).toBe("1.234,5");
+    expect(formatNumber(on("pt-BR", "PT"), 1234.5)).toBe(
+      new Intl.NumberFormat("pt-PT").format(1234.5)
+    );
+  });
+
+  it("preserves Chinese script when applying the device region", () => {
+    expect(formatLocale(on("zh-Hant", "HK"))).toBe("zh-Hant-HK");
+    expect(formatLocale(on("zh-Hans", "CN"))).toBe("zh-Hans-CN");
+    expect(() =>
+      formatDate(on("zh-Hant", "TW"), evening, "monthYear")
+    ).not.toThrow();
   });
 
   it("is the App language alone without a usable region", () => {

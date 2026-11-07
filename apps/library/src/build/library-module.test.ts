@@ -1,3 +1,4 @@
+import { appLanguages } from "@fitme/core/models";
 import { mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
@@ -115,12 +116,9 @@ describe("generateLibraryModule", () => {
     expect(library).toEqual({
       covers: [],
       hash: expect.stringMatching(/^[0-9a-f]{64}$/),
-      languages: {
-        en: { exercises: [squat], searchNames: [["squat"]] },
-        uk: { exercises: [squat], searchNames: [["squat"]] },
-        es: { exercises: [squat], searchNames: [["squat"]] },
-        ca: { exercises: [squat], searchNames: [["squat"]] },
-      },
+      languages: Object.fromEntries(
+        appLanguages.map((language) => [language, { exercises: [squat], searchNames: [["squat"]] }])
+      ),
     });
   });
 
@@ -198,6 +196,12 @@ describe("generateLibraryModule", () => {
       language: "ca" as const,
       name: "Esquat",
     },
+    ...appLanguages.filter((language) => !["en", "uk", "es", "ca"].includes(language)).map((language) => ({
+      language,
+      name: `Translated squat (${language})`,
+      description: `Translated description (${language}).`,
+      instructions: `Translated instructions (${language}).`,
+    })),
   ])(
     "serves translated text and English fallback in $language",
     async ({ language, name, description, instructions }) => {
@@ -395,11 +399,11 @@ describe("generateLibraryModule", () => {
           ...libraryExercise("squat", "Squat"),
           locales: {
             ...libraryExercise("squat", "Squat").locales,
-            de: libraryExercise("squat", "Kniebeuge").locales.en,
+            ru: libraryExercise("squat", "Приседание").locales.en,
           },
         },
       ]),
-      /: exercises\.0\.locales: unknown locale "de" \(known: en, uk, es, ca\)$/,
+      new RegExp(`: exercises\\.0\\.locales: unknown locale "ru" \\(known: ${appLanguages.join(", ")}\\)$`),
     ],
     [
       "a Ukrainian translation missing a field",

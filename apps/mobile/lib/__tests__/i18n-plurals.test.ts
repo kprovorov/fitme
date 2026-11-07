@@ -3,6 +3,7 @@
  * Node, whose full `Intl` would hide a missing polyfill, so this test takes
  * Node's away first, as on Hermes, then loads the app's i18n.
  */
+import { appLanguages } from "@fitme/core";
 import {
   afterEach,
   beforeEach,
@@ -53,9 +54,9 @@ describe("plural rules", () => {
     expect(
       "polyfilled" in Intl.PluralRules ? Intl.PluralRules.polyfilled : undefined
     ).toBe(true);
-    expect(
-      Intl.PluralRules.supportedLocalesOf(["en", "uk", "es", "ca"])
-    ).toEqual(["en", "uk", "es", "ca"]);
+    expect(Intl.PluralRules.supportedLocalesOf([...appLanguages])).toEqual([
+      ...appLanguages,
+    ]);
   });
 
   it("give Ukrainian counts their one, few and many forms", async () => {
@@ -96,4 +97,48 @@ describe("plural rules", () => {
     expect(i18n.t("counts.sets", { count: 1 })).toBe("1 set");
     expect(i18n.t("counts.sets", { count: 2 })).toBe("2 sets");
   });
+
+  it.each([
+    ["fr", 0, "one"],
+    ["fr", 2, "other"],
+    ["fr", 1_000_000, "many"],
+    ["de", 1, "one"],
+    ["de", 2, "other"],
+    ["it", 1_000_000, "many"],
+    ["pt-BR", 0, "one"],
+    ["pt-BR", 1.5, "one"],
+    ["pt-PT", 0, "other"],
+    ["pt-PT", 1, "one"],
+    ["pt-PT", 1.5, "other"],
+    ["pl", 1, "one"],
+    ["pl", 2, "few"],
+    ["pl", 5, "many"],
+    ["pl", 12, "many"],
+    ["pl", 22, "few"],
+    ["pl", 1.5, "other"],
+    ["zh-Hans", 1, "other"],
+    ["zh-Hant", 2, "other"],
+    ["ja", 1, "other"],
+    ["ko", 2, "other"],
+    ["nl", 1, "one"],
+    ["nl", 2, "other"],
+  ] as const)(
+    "selects %s's form for %s without native Intl",
+    (language, count, form) => {
+      const { i18n } = loadI18n([language]);
+
+      // Distinct markers prove the polyfill and i18next select the right form,
+      // even when several translated forms happen to have identical words.
+      for (const category of ["one", "few", "many", "other"]) {
+        i18n.addResource(
+          language,
+          "translation",
+          `counts.sets_${category}`,
+          category
+        );
+      }
+
+      expect(i18n.t("counts.sets", { count })).toBe(form);
+    }
+  );
 });

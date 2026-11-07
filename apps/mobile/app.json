@@ -71,7 +71,23 @@
       [
         "expo-localization",
         {
-          "supportedLocales": ["en", "uk", "es", "ca"]
+          "supportedLocales": [
+            "en",
+            "uk",
+            "es",
+            "ca",
+            "fr",
+            "de",
+            "it",
+            "pt-BR",
+            "pt-PT",
+            "pl",
+            "zh-Hans",
+            "zh-Hant",
+            "ja",
+            "ko",
+            "nl"
+          ]
         }
       ],
       "@sentry/react-native",
