@@ -1,7 +1,7 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import type { TFunction } from "i18next";
 import { useCallback, useMemo, useRef } from "react";
-import type { ElementRef } from "react";
+import type { ComponentRef } from "react";
 import { useController, useForm } from "react-hook-form";
 import type { FieldErrors } from "react-hook-form";
 import { useTranslation } from "react-i18next";
@@ -75,7 +75,7 @@ export default function RegisterForm({
     [name, onEdit]
   );
 
-  const emailRef = useRef<ElementRef<typeof TextInput>>(null);
+  const emailRef = useRef<ComponentRef<typeof TextInput>>(null);
   const focusEmail = useCallback(() => emailRef.current?.focus(), []);
 
   const { field: email, fieldState: emailState } = useController({
@@ -91,7 +91,7 @@ export default function RegisterForm({
     [email, onEdit]
   );
 
-  const passwordRef = useRef<ElementRef<typeof TextInput>>(null);
+  const passwordRef = useRef<ComponentRef<typeof TextInput>>(null);
   const focusPassword = useCallback(() => passwordRef.current?.focus(), []);
 
   const { field: password, fieldState: passwordState } = useController({
@@ -122,7 +122,9 @@ export default function RegisterForm({
         disabled={!!disabled}
         isLoading={formState.isSubmitting}
         label={t("auth.register.submit")}
-        onPress={submit}
+        onPress={(...args) => {
+          void submit(...args);
+        }}
         size="lg"
         testID="register-button"
       />

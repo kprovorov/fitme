@@ -113,7 +113,9 @@ const labelTextSchema = z.union([
   z.literal([Number.POSITIVE_INFINITY, Number.NEGATIVE_INFINITY]),
 ]);
 
-const isLabelIterable = (node: ReactNode): node is Iterable<ReactNode> =>
+const isLabelIterable = (
+  node: ReactNode
+): node is Iterable<ReactNode> & object =>
   node !== null &&
   typeof node === "object" &&
   Symbol.iterator in node &&
@@ -147,7 +149,7 @@ export const childrenToLabel = (children: ReactNode): string | null => {
     }
 
     if (Array.isArray(node)) {
-      return node.every((child) => walk(child, nestedChildren));
+      return node.every((child: ReactNode) => walk(child, nestedChildren));
     }
 
     if (nestedChildren && isLabelIterable(node)) {

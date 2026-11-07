@@ -52,7 +52,7 @@ beforeEach(() => {
   });
 });
 
-const save = (body: object, id = "plan-1") =>
+const save = (body: unknown, id = "plan-1") =>
   publicApi().PUT("/v1/plans/{id}", {
     body: body as never,
     params: { path: { id } },

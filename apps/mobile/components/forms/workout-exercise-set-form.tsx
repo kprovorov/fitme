@@ -285,11 +285,17 @@ const WorkoutSessionExerciseSetForm = ({
     checkCell = <View className={SET_CHECK_COLUMN_CLASS} />;
   } else {
     checkCell = (
-      <SetCheckCell onPress={submit}>
+      <SetCheckCell
+        onPress={(...args) => {
+          void submit(...args);
+        }}
+      >
         <Button
           accessibilityLabel={t("sets.row.log", { order: setIndex })}
           icon="checkmark"
-          onPress={submit}
+          onPress={(...args) => {
+            void submit(...args);
+          }}
           shape="circle"
           size="sm"
           testID={`log-set-button-${setIndex}`}

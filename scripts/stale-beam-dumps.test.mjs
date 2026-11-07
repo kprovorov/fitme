@@ -8,7 +8,7 @@ import { fileURLToPath } from "node:url";
 
 import { isAlive, removeStaleBeamDumps } from "./stale-beam-dumps.mjs";
 
-const REMOVED = /Removed 2 BEAM perf\/jit dump/;
+const REMOVED = /Removed 2 BEAM perf\/jit dump/u;
 
 const SCRIPT = fileURLToPath(new URL("stale-beam-dumps.mjs", import.meta.url));
 
@@ -39,24 +39,24 @@ const touch = (dir, ...names) => {
 };
 
 void describe("removeStaleBeamDumps", () => {
-  test("removes the perf maps and jit dumps of dead pids, keeps live ones", () => {
+  void test("removes the perf maps and jit dumps of dead pids, keeps live ones", () => {
     const dir = tempDir();
     touch(dir, "perf-100.map", "jit-100.dump", "perf-200.map", "jit-200.dump");
     const alive = (pid) => pid === 200;
 
     const removed = removeStaleBeamDumps({ dir, isAlive: alive });
 
-    assert.deepEqual(removed.map((file) => path.basename(file)).sort(), [
+    assert.deepEqual(removed.map((file) => path.basename(file)).toSorted(), [
       "jit-100.dump",
       "perf-100.map",
     ]);
-    assert.deepEqual(fs.readdirSync(dir).sort(), [
+    assert.deepEqual(fs.readdirSync(dir).toSorted(), [
       "jit-200.dump",
       "perf-200.map",
     ]);
   });
 
-  test("leaves every other file alone", () => {
+  void test("leaves every other file alone", () => {
     const dir = tempDir();
 
     const others = [
@@ -71,10 +71,10 @@ void describe("removeStaleBeamDumps", () => {
     touch(dir, ...others);
 
     assert.deepEqual(removeStaleBeamDumps({ dir, isAlive: () => false }), []);
-    assert.deepEqual(fs.readdirSync(dir).sort(), [...others].sort());
+    assert.deepEqual(fs.readdirSync(dir).toSorted(), [...others].toSorted());
   });
 
-  test("skips a file it can't remove and carries on", () => {
+  void test("skips a file it can't remove and carries on", () => {
     const dir = tempDir();
     touch(dir, "perf-100.map", "perf-101.map");
 
@@ -95,7 +95,7 @@ void describe("removeStaleBeamDumps", () => {
     );
   });
 
-  test("answers nothing for a missing directory", () => {
+  void test("answers nothing for a missing directory", () => {
     assert.deepEqual(
       removeStaleBeamDumps({ dir: path.join(tempDir(), "missing") }),
       []
@@ -104,7 +104,7 @@ void describe("removeStaleBeamDumps", () => {
 });
 
 void describe("isAlive", () => {
-  test("is true for this process and false for an exited one", async () => {
+  void test("is true for this process and false for an exited one", async () => {
     assert.equal(isAlive(process.pid), true);
     const child = spawn(process.execPath, ["-e", ""]);
     await new Promise((resolve) => {
@@ -115,7 +115,7 @@ void describe("isAlive", () => {
 });
 
 void describe("the script", () => {
-  test("removes the dead pids' files in the given directory", () => {
+  void test("removes the dead pids' files in the given directory", () => {
     const dir = tempDir();
     // A pid no process has: above Linux's and macOS's pid_max.
     const dead = 2 ** 30;

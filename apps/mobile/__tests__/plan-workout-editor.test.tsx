@@ -253,7 +253,7 @@ const card = (index = 1) =>
 
 const type = async (testID: string, text: string) => {
   await act(() => {
-    fireEvent.changeText(editor().getByTestId(testID), text);
+    void fireEvent.changeText(editor().getByTestId(testID), text);
   });
   await settle(client);
 };
@@ -261,7 +261,7 @@ const type = async (testID: string, text: string) => {
 /** Types into one of the first Exercise's set fields. */
 const typeSet = async (testID: string, text: string, exercise = 1) => {
   await act(() => {
-    fireEvent.changeText(card(exercise).getByTestId(testID), text);
+    void fireEvent.changeText(card(exercise).getByTestId(testID), text);
   });
   await settle(client);
 };
@@ -792,7 +792,7 @@ describe("the weight unit", () => {
     // every stored weight, and the next read of the Plan is in `lbs`.
     backend.profiles[0].measurement_system = "us";
     await act(() => {
-      client.invalidateQueries({ queryKey: ["plan"] });
+      void client.invalidateQueries({ queryKey: ["plan"] });
     });
     await settle(client);
 

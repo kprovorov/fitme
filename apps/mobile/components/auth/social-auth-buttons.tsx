@@ -19,7 +19,9 @@ import type { useAuthOperation } from "./operation";
 
 type Operation = ReturnType<typeof useAuthOperation>;
 
-const googleLogo = require("~/assets/auth/google.svg");
+// SAFETY: Metro resolves this static asset to its numeric asset registry id.
+// oxlint-disable-next-line unicorn/prefer-module, node/global-require -- Metro requires a static asset require.
+const googleLogo = require("~/assets/auth/google.svg") as number;
 
 const StyledAppleAuthenticationButton = withUniwind(AppleAuthenticationButton);
 
@@ -38,7 +40,7 @@ const AvailableSocialButtons = ({
 
   const signInWithApple = useCallback(() => {
     if (!operation.pending) {
-      operation.run("apple", (current) => start("apple", current));
+      void operation.run("apple", (current) => start("apple", current));
     }
   }, [operation, start]);
 
@@ -85,7 +87,9 @@ const AvailableSocialButtons = ({
           disabled={operation.pending !== null}
           fill
           isLoading={operation.pending === "google"}
-          onPress={signInWithGoogle}
+          onPress={(...args) => {
+            void signInWithGoogle(...args);
+          }}
           size="lg"
           testID="auth-google-button"
           variant="secondary"

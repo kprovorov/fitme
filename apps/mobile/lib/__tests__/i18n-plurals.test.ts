@@ -15,21 +15,21 @@ import {
 const nodePluralRules = Intl.PluralRules;
 
 const loadI18n = (deviceLanguages: readonly string[] = ["en-US"]) => {
-  let module: typeof import("~/lib/i18n") | undefined;
+  let loadedI18n: typeof import("~/lib/i18n") | undefined;
   jest.isolateModules(() => {
     jest
       .requireActual<typeof import("~/test-utils/device-locales")>(
         "~/test-utils/device-locales"
       )
       .setDeviceLanguages(deviceLanguages);
-    module = jest.requireActual<typeof import("~/lib/i18n")>("~/lib/i18n");
+    loadedI18n = jest.requireActual<typeof import("~/lib/i18n")>("~/lib/i18n");
   });
 
-  if (!module) {
+  if (!loadedI18n) {
     throw new Error("~/lib/i18n didn't load");
   }
 
-  return module;
+  return loadedI18n;
 };
 
 describe("plural rules", () => {
@@ -51,7 +51,7 @@ describe("plural rules", () => {
 
     expect(Intl.PluralRules).not.toBe(nodePluralRules);
     expect(
-      (Intl.PluralRules as unknown as { polyfilled?: boolean }).polyfilled
+      "polyfilled" in Intl.PluralRules ? Intl.PluralRules.polyfilled : undefined
     ).toBe(true);
     expect(
       Intl.PluralRules.supportedLocalesOf(["en", "uk", "es", "ca"])

@@ -189,7 +189,7 @@ describe("the Workout cards' Covers", () => {
     expect(cover).not.toBeNull();
     await act(() => {
       if (cover) {
-        fireEvent(cover, "error", { nativeEvent: { error: "404" } });
+        void fireEvent(cover, "error", { nativeEvent: { error: "404" } });
       }
     });
 

@@ -127,7 +127,7 @@ export const requireCaller = ({
       return services;
     });
 
-    return await next();
+    await next();
   });
 
 /**
@@ -148,5 +148,5 @@ export const requires = (permission: Permission) =>
       throw new Error(`Caller lacks the ${permission} permission`);
     }
 
-    return await next();
+    await next();
   });

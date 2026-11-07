@@ -32,20 +32,24 @@ import { PushedRoutes, resetStubRouter } from "~/test-utils/router-stub";
 const mockPresentPaywall = jest.fn();
 
 /** What the fake's refusals say: never shown to the User. */
-const SERVER_MESSAGE = /Arnold says no/;
+const SERVER_MESSAGE = /Arnold says no/u;
 
 /** The composer's placeholder and Send button, in either device language. */
-const COMPOSER = /Message Arnold|Повідомлення для Arnold/;
-const SEND = /Send message|Надіслати повідомлення/;
+const COMPOSER = /Message Arnold|Повідомлення для Arnold/u;
+const SEND = /Send message|Надіслати повідомлення/u;
 
 /** The Attachments controls, in either device language. */
-const ADD_TO_CHAT = /Add to chat|Додати до чату/;
-const PHOTOS = /^(Photos|Фото)$/;
-const REMOVE_PHOTO = /^(Remove photo|Видалити фото) \d+ (of|з) \d+$/;
-const THUMBNAIL = /^(Photo \d+ of \d+|Фото \d+ з \d+)$/;
+const ADD_TO_CHAT = /Add to chat|Додати до чату/u;
+const PHOTOS = /^(Photos|Фото)$/u;
+const REMOVE_PHOTO = /^(Remove photo|Видалити фото) \d+ (of|з) \d+$/u;
+const THUMBNAIL = /^(Photo \d+ of \d+|Фото \d+ з \d+)$/u;
 
 jest.mock("react-native-keyboard-controller", () =>
   jest.requireActual("react-native-keyboard-controller/jest")
+);
+
+jest.mock("react-native-worklets", () =>
+  jest.requireActual("react-native-worklets/lib/module/mock")
 );
 
 // Animations as plain views and values: the screen's layout isn't under test.
@@ -61,6 +65,7 @@ jest.mock("react-native-reanimated", () => {
       createAnimatedComponent: <T,>(component: T) => component,
       View,
     },
+    createAnimatedComponent: <T,>(component: T) => component,
     FadeIn: transition,
     FadeOut: transition,
     runOnJS: <T,>(fn: T) => fn,
@@ -514,7 +519,7 @@ describe("arnold screen", () => {
 
       expect(screen.getByLabelText("Remove photo 2 of 2")).toBeTruthy();
       const [first] = screen.getAllByLabelText(REMOVE_PHOTO);
-      await userEvent.setup().press(first as NonNullable<typeof first>);
+      await userEvent.setup().press(first);
 
       expect(thumbnails()).toEqual(["file:///photos/plan.jpg"]);
       expect(screen.getByLabelText("Photo 1 of 1")).toBeTruthy();

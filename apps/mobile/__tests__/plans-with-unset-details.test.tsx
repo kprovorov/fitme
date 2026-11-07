@@ -114,7 +114,7 @@ const mount = async (children: ReactNode) => {
 };
 
 /** An unset detail shown as the raw value, which no Screen may do. */
-const NULL_TEXT = /null/i;
+const NULL_TEXT = /null/iu;
 
 /** What the Screens logged as errors; empty unless one broke. */
 let logged: unknown[][] = [];

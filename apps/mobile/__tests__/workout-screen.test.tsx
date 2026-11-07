@@ -106,17 +106,17 @@ const PLAN: SeedPlan = {
 /** The Workout screen's read: the Plan in full, its Workout picked from it. */
 const GET_PLAN = "GET /v1/plans/{id}";
 
-const LOAD_ERROR = /^Couldn't load this workout/;
+const LOAD_ERROR = /^Couldn't load this workout/u;
 
 // The blocked state's caption, whichever Workout it names.
-const FINISH_FIRST = / first$/;
+const FINISH_FIRST = / first$/u;
 
 // A Workout Session screen of `workout-2`.
 const WORKOUT_2_SESSION_PATH =
-  /^\/plans\/plan-1\/workouts\/workout-2\/sessions\//;
+  /^\/plans\/plan-1\/workouts\/workout-2\/sessions\//u;
 
 // A planned set's row, as VoiceOver reads it.
-const SET_ROW = /^Set \d:/;
+const SET_ROW = /^Set \d:/u;
 
 let queryClient = createTestQueryClient();
 

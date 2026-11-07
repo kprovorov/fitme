@@ -1,5 +1,6 @@
-import "@/polyfills";
+/* oxlint-disable import/no-duplicates -- Initialize translations before any route or component imports. */
 import "~/lib/i18n";
+import "@/polyfills";
 import {
   NunitoSans_400Regular,
   NunitoSans_600SemiBold,
@@ -69,6 +70,7 @@ Sentry.init({
   ],
   // Relative to tracesSampleRate: half of the traced sessions are profiled.
   profilesSampleRate: 0.5,
+  // oxlint-disable-next-line typescript/no-deprecated -- Keep the explicit privacy opt-out alongside the shared data-collection policy.
   sendDefaultPii: false,
   // Trace headers go to our own services only (api, app, arnold, library, mcp,
   // webhooks), never to Clerk, RevenueCat, Supabase or Segment.
@@ -82,7 +84,7 @@ Sentry.init({
 Uniwind.setTheme("dark");
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
-SplashScreen.preventAutoHideAsync();
+void SplashScreen.preventAutoHideAsync();
 
 // Configured before anything renders, so the signed-in User can be logged in
 // to RevenueCat as soon as Clerk loads.
@@ -109,7 +111,7 @@ const RootLayout = () => {
 
   useEffect(() => {
     if (loaded) {
-      SplashScreen.hideAsync();
+      void SplashScreen.hideAsync();
     }
   }, [loaded]);
 

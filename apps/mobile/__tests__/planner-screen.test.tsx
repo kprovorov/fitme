@@ -3,7 +3,7 @@
  * router recorded and the native-backed primitives for stand-ins.
  */
 import { existsSync } from "node:fs";
-import { resolve } from "node:path";
+import path from "node:path";
 
 import { beforeEach, describe, expect, it, jest } from "@jest/globals";
 import { fireEvent, render, screen } from "@testing-library/react-native";
@@ -69,7 +69,7 @@ describe("PlannerScreen", () => {
     expect(getTabTitle(tab)).toBe("Arnold AI");
     expect(
       // Jest runs from apps/mobile.
-      existsSync(resolve(`app/(tabs)/${tab}/index.tsx`))
+      existsSync(path.resolve(`app/(tabs)/${tab}/index.tsx`))
     ).toBe(true);
   });
 

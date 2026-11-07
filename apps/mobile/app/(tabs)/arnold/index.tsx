@@ -174,7 +174,7 @@ const useArnoldChat = (userId: string, composer: Composer) => {
     composer.set(composer.get() || refused);
 
     if (action === "paywall") {
-      RevenueCatUI.presentPaywall();
+      void RevenueCatUI.presentPaywall();
     } else if (action === "new-conversation") {
       resetFailedConversation();
     }
@@ -206,7 +206,7 @@ const useArnoldChat = (userId: string, composer: Composer) => {
   const sendMessage = useCallback(
     (text: string) => {
       lastSentRef.current = text;
-      aui.thread().append({
+      aui.thread.append({
         content: [{ text, type: "text" }],
         role: "user",
         // Read per send so a model or language change applies to the next message.
@@ -221,7 +221,7 @@ const useArnoldChat = (userId: string, composer: Composer) => {
       return;
     }
 
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     sendMessage(input);
     setInput("");
   }, [input, isBusy, sendMessage, setInput]);
@@ -285,7 +285,7 @@ const ArnoldChat = ({
 
     if (isPro === false) {
       chat.setInput(initialMessage);
-      RevenueCatUI.presentPaywall();
+      void RevenueCatUI.presentPaywall();
 
       return;
     }
@@ -295,7 +295,7 @@ const ArnoldChat = ({
 
   const handleSend = useCallback(() => {
     if (isPro === false) {
-      RevenueCatUI.presentPaywall();
+      void RevenueCatUI.presentPaywall();
 
       return;
     }

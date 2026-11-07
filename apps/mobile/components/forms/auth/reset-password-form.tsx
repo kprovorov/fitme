@@ -1,7 +1,7 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import type { TFunction } from "i18next";
 import { useCallback, useMemo, useRef } from "react";
-import type { ElementRef } from "react";
+import type { ComponentRef } from "react";
 import { useController, useForm } from "react-hook-form";
 import type { FieldErrors } from "react-hook-form";
 import { useTranslation } from "react-i18next";
@@ -77,7 +77,7 @@ export default function ResetPasswordForm({
     [password, onEdit]
   );
 
-  const confirmPasswordRef = useRef<ElementRef<typeof TextInput>>(null);
+  const confirmPasswordRef = useRef<ComponentRef<typeof TextInput>>(null);
 
   const focusConfirmpassword = useCallback(
     () => confirmPasswordRef.current?.focus(),
@@ -109,7 +109,9 @@ export default function ResetPasswordForm({
         disabled={!!disabled}
         isLoading={formState.isSubmitting}
         label={t("resetPassword.submit")}
-        onPress={submit}
+        onPress={(...args) => {
+          void submit(...args);
+        }}
         size="lg"
         testID="reset-password-button"
       />

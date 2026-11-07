@@ -33,7 +33,7 @@ const MinimumVersionGate = ({ children }: { children: React.ReactNode }) => {
 
     const subscription = AppState.addEventListener("change", (state) => {
       if (state === "active") {
-        refetch();
+        void refetch();
       }
     });
 

@@ -185,8 +185,8 @@ export const useCreatePlanMutation = createMutation<
     const { id } = data.data;
 
     if (!IS_E2E) {
-      segmentClient.track("Plan Saved", { plan_id: id });
-      segmentClient.track("Plan Activated", { plan_id: id });
+      void segmentClient.track("Plan Saved", { plan_id: id });
+      void segmentClient.track("Plan Activated", { plan_id: id });
     }
 
     return data.data;
@@ -222,7 +222,7 @@ export const useActivatePlanMutation = createMutation<
     }
 
     if (!IS_E2E) {
-      segmentClient.track("Plan Activated", { plan_id: id });
+      void segmentClient.track("Plan Activated", { plan_id: id });
     }
 
     return data.data;
@@ -244,7 +244,7 @@ export const useDeletePlanMutation = createMutation<undefined, { id: string }>({
     await publicApi().DELETE("/v1/plans/{id}", { params: { path: { id } } });
 
     if (!IS_E2E) {
-      segmentClient.track("Plan Deleted", { plan_id: id });
+      void segmentClient.track("Plan Deleted", { plan_id: id });
     }
   },
 });

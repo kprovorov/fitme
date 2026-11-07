@@ -135,7 +135,7 @@ jest.mock("react-native-reanimated", () => {
 
 // uniwind resolves no theme values under Jest, so each color class resolves to
 // its own name: a tint of "text-primary" is the `--color-primary` token.
-const mockColorClass = /^text-[a-z-]+$/;
+const mockColorClass = /^text-[a-z-]+$/u;
 
 jest.mock("uniwind", () => {
   const actual = jest.requireActual<typeof import("uniwind")>("uniwind");

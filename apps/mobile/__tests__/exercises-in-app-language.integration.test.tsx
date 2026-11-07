@@ -362,7 +362,7 @@ const search = async (term: string) => {
 };
 
 // A picker row adding its Exercise ("Додати вправу «Присідання»").
-const ADD_ROW = /^Додати вправу «/;
+const ADD_ROW = /^Додати вправу «/u;
 
 describe("searching the Library", () => {
   it("adds the Exercise found by its Ukrainian name to a Workout Session by slug", async () => {
@@ -378,7 +378,7 @@ describe("searching the Library", () => {
 
     expect(others).toHaveLength(0);
     await act(async () => {
-      await fireEvent.press(addFirst as NonNullable<typeof addFirst>);
+      await fireEvent.press(addFirst);
     });
     await settle();
 

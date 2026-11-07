@@ -58,7 +58,7 @@ export const AuthScreen = ({
   const headerHeight = useHeaderHeight();
   const { height } = useWindowDimensions();
   const keyboard = useKeyboardState();
-  const sticky = keyboard.isVisible === true;
+  const sticky = keyboard.isVisible;
 
   return (
     <View className="bg-background flex-1">

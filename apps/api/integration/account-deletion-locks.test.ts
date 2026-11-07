@@ -50,7 +50,7 @@ const lockWaitSeen = async (
 
   await delay(POLL_MS);
 
-  return lockWaitSeen(deadline);
+  await lockWaitSeen(deadline);
 };
 
 describe("a write racing an account deletion against the local stack", () => {

@@ -76,7 +76,7 @@ const ProfileScreen = () => {
       }
 
       if (!IS_E2E) {
-        segmentClient.track("Profile Filled", {
+        void segmentClient.track("Profile Filled", {
           age: variables.age,
           gender: variables.gender,
           weight_unit: measurementSystem,
@@ -93,7 +93,7 @@ const ProfileScreen = () => {
   const largeTitle = useResolveClassNames("text-title-1-emphasized");
 
   const handleRetry = useCallback(() => {
-    refetchProfile();
+    void refetchProfile();
   }, [refetchProfile]);
 
   const handleSubmit = useCallback(

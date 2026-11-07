@@ -101,15 +101,11 @@ function LanguageSync() {
 function PlanList() {
   const { data: plans } = usePlanSummariesQuery();
 
-  return (
-    <>
-      {plans?.map((saved) => (
-        <Text key={saved.id}>
-          {`Listed: ${saved.name}${saved.is_active ? " (active)" : ""}`}
-        </Text>
-      ))}
-    </>
-  );
+  return plans?.map((saved) => (
+    <Text key={saved.id}>
+      {`Listed: ${saved.name}${saved.is_active ? " (active)" : ""}`}
+    </Text>
+  ));
 }
 
 const renderCard = async (card: WorkoutPlan = plan) => {

@@ -21,71 +21,70 @@ import {
   savePlanBody,
 } from "~/lib/plan-draft";
 
-const plan = (overrides: Partial<FullPlan> = {}): FullPlan =>
-  ({
-    created_at: "2026-10-01T09:00:00.000Z",
-    description: "Three full-body days",
-    experience_level: "intermediate",
-    frequency: 3,
-    goal: "strength-performance",
-    id: "plan-1",
-    is_active: true,
-    name: "Full body",
-    note: "Keep the bar close",
-    place: "gym",
-    updated_at: "2026-10-01T09:00:00.000Z",
-    weight_unit: "kg",
-    workout_duration: 60,
-    workouts: [
-      {
-        cover: "cover-1",
-        description: "Legs and pulls",
-        exercises: [
-          {
-            exercise_slug: "barbell-back-squat",
-            id: "we-1",
-            order: 1,
-            sets: [
-              {
-                id: "set-1",
-                order: 1,
-                reps_recommended: 8,
-                rest_recommended: 120,
-                weight_recommended: 80.5,
-              },
-            ],
-          },
-        ],
-        id: "workout-1",
-        name: "Day A",
-        order: 1,
-      },
-      {
-        cover: null,
-        description: "",
-        exercises: [
-          {
-            exercise_slug: "bench-press",
-            id: "we-2",
-            order: 1,
-            sets: [
-              {
-                id: "set-2",
-                order: 1,
-                reps_recommended: 10,
-                rest_recommended: 90,
-                weight_recommended: 0,
-              },
-            ],
-          },
-        ],
-        id: "workout-2",
-        name: "Day B",
-        order: 2,
-      },
-    ],
-    ...overrides,
-  }) as FullPlan;
+const plan = (overrides: Partial<FullPlan> = {}): FullPlan => ({
+  created_at: "2026-10-01T09:00:00.000Z",
+  description: "Three full-body days",
+  experience_level: "intermediate",
+  frequency: 3,
+  goal: "strength-performance",
+  id: "plan-1",
+  is_active: true,
+  name: "Full body",
+  note: "Keep the bar close",
+  place: "gym",
+  updated_at: "2026-10-01T09:00:00.000Z",
+  weight_unit: "kg",
+  workout_duration: 60,
+  workouts: [
+    {
+      cover: "cover-1",
+      description: "Legs and pulls",
+      exercises: [
+        {
+          exercise_slug: "barbell-back-squat",
+          id: "we-1",
+          order: 1,
+          sets: [
+            {
+              id: "set-1",
+              order: 1,
+              reps_recommended: 8,
+              rest_recommended: 120,
+              weight_recommended: 80.5,
+            },
+          ],
+        },
+      ],
+      id: "workout-1",
+      name: "Day A",
+      order: 1,
+    },
+    {
+      cover: null,
+      description: "",
+      exercises: [
+        {
+          exercise_slug: "bench-press",
+          id: "we-2",
+          order: 1,
+          sets: [
+            {
+              id: "set-2",
+              order: 1,
+              reps_recommended: 10,
+              rest_recommended: 90,
+              weight_recommended: 0,
+            },
+          ],
+        },
+      ],
+      id: "workout-2",
+      name: "Day B",
+      order: 2,
+    },
+  ],
+  ...overrides,
+});
 
 describe("planDraftFrom", () => {
   it("loads the Plan's details, its note and its Workouts in rotation order", () => {

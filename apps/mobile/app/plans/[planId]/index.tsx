@@ -51,10 +51,10 @@ const PlanScreen = () => {
   // A failed call doesn't prove nothing changed, so the Plans are read again
   // (a successful activation shows its answer: the mutation does that).
   const refreshPlans = useCallback(() => {
-    queryClient.invalidateQueries({ queryKey: PLANS_QUERY_KEY });
-    queryClient.invalidateQueries({ queryKey: ["plan"] });
+    void queryClient.invalidateQueries({ queryKey: PLANS_QUERY_KEY });
+    void queryClient.invalidateQueries({ queryKey: ["plan"] });
     // Activating or deleting the active Plan changes the Weekly goal
-    queryClient.invalidateQueries({ queryKey: WEEKLY_GOALS_QUERY_KEY });
+    void queryClient.invalidateQueries({ queryKey: WEEKLY_GOALS_QUERY_KEY });
   }, [queryClient]);
 
   // No hook-level `onSuccess`: it would replace the mutation's own, which
@@ -115,7 +115,7 @@ const PlanScreen = () => {
   }, [refetch, queryClient]);
 
   const retry = useCallback(() => {
-    refetch();
+    void refetch();
   }, [refetch]);
 
   const goBack = useCallback(() => {

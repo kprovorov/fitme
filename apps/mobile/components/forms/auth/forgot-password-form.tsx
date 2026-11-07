@@ -73,7 +73,9 @@ export default function ForgotPasswordForm({
         disabled={!!disabled}
         isLoading={formState.isSubmitting}
         label={t("forgotPassword.submit")}
-        onPress={submit}
+        onPress={(...args) => {
+          void submit(...args);
+        }}
         size="lg"
         testID="forgot-password-button"
       />

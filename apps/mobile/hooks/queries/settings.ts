@@ -116,7 +116,7 @@ const consumePendingWeighedRefresh = (
   }
 
   if (measurementSystemOf(profile) === system) {
-    invalidateWeighedQueries(client);
+    void invalidateWeighedQueries(client);
   }
 };
 

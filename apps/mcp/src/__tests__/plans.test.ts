@@ -818,7 +818,7 @@ describe("cover assignment", () => {
   });
 
   it("create_plan keeps the Covers distinct within the Plan", async () => {
-    const passed: unknown[] = [];
+    const passed: NewPlan["workouts"][number]["cover"][] = [];
 
     const createPlan = vi.fn<UserServices["createPlan"]>((plan: NewPlan) => {
       passed.push(...plan.workouts.map((workout) => workout.cover));
@@ -837,9 +837,9 @@ describe("cover assignment", () => {
       workouts: [chestDay, chestDay],
     });
 
-    expect(passed.toSorted()).toStrictEqual(
-      [CHEST_A.id, CHEST_B.id].toSorted()
-    );
+    expect(
+      passed.toSorted((a, b) => (a ?? "").localeCompare(b ?? ""))
+    ).toStrictEqual([CHEST_A.id, CHEST_B.id].toSorted());
   });
 
   it("update_plan with workouts gives each new Workout a Cover", async () => {

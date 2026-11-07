@@ -9,17 +9,17 @@ import {
   writeFileSync,
 } from "node:fs";
 import { tmpdir } from "node:os";
-import { join, resolve } from "node:path";
+import path from "node:path";
 import test from "node:test";
 
 const scripts = import.meta.dirname;
-const root = resolve(scripts, "../../../..");
+const root = path.resolve(scripts, "../../../..");
 const migrations = "packages/supabase/supabase/migrations";
-const outputDirectory = /generated model\/configs: (.+)/;
-const userKey = /Index key: user/;
+const outputDirectory = /generated model\/configs: (.+)/u;
+const userKey = /Index key: user/u;
 
 const unreviewedMigration =
-  /touches workout_sessions after the covered migration/;
+  /touches workout_sessions after the covered migration/u;
 
 for (const scenario of [
   "reviewed",
@@ -27,16 +27,16 @@ for (const scenario of [
   "edited-progress",
   "new",
 ]) {
-  test(`migration guard: ${scenario} session reference`, () => {
-    const scratch = mkdtempSync(join(tmpdir(), "fitme-migration-guard-"));
+  void test(`migration guard: ${scenario} session reference`, () => {
+    const scratch = mkdtempSync(path.join(tmpdir(), "fitme-migration-guard-"));
     let out;
 
     try {
-      const target = join(scratch, migrations);
-      cpSync(join(root, migrations), target, { recursive: true });
+      const target = path.join(scratch, migrations);
+      cpSync(path.join(root, migrations), target, { recursive: true });
 
       if (scenario.startsWith("edited-")) {
-        const file = join(
+        const file = path.join(
           target,
           scenario === "edited-records"
             ? "20261031130000_personal_records.sql"
@@ -51,7 +51,7 @@ for (const scenario of [
 
       if (scenario === "new") {
         writeFileSync(
-          join(target, "20261101120000_drop_session_index.sql"),
+          path.join(target, "20261101120000_drop_session_index.sql"),
           "DROP INDEX public.workout_sessions_one_open_per_user_idx;\n"
         );
       }
@@ -59,7 +59,7 @@ for (const scenario of [
       const result = spawnSync(
         process.execPath,
         [
-          join(scripts, "verify.mjs"),
+          path.join(scripts, "verify.mjs"),
           "--prepare-only",
           "--source-root",
           scratch,

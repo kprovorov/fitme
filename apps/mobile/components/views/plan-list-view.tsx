@@ -21,7 +21,7 @@ const PlansListView = () => {
   const { t } = useTranslation();
 
   const retry = useCallback(() => {
-    refetch();
+    void refetch();
   }, [refetch]);
 
   const renderPlans = () => {

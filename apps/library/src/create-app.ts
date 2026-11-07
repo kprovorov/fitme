@@ -74,7 +74,7 @@ export const createApp = ({
       identifyUser(caller.userId);
     }
 
-    return await next();
+    await next();
   });
   app.openAPIRegistry.registerComponent("securitySchemes", BEARER_AUTH, {
     description:

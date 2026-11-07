@@ -33,7 +33,7 @@ const WorkoutSessionSummaryScreen = () => {
   });
 
   const retry = useCallback(() => {
-    refetch();
+    void refetch();
   }, [refetch]);
 
   const insets = useSafeAreaInsets();

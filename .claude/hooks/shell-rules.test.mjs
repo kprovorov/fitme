@@ -6,12 +6,12 @@ import { fileURLToPath } from "node:url";
 
 import { findShellRuleViolations } from "./shell-rules.mjs";
 
-const REASON = /^AGENTS\.md Shell: /;
-const TIMEOUT_REASON = /macOS has neither `timeout` nor `gtimeout`/;
-const WORD_SPLIT_REASON = /zsh doesn't word-split/;
-const ZSH_PATH_REASON = /zsh ties the lowercase `path` array to `PATH`/;
-const OUTPUT_FORMAT_REASON = /--output-format json/;
-const GITLEAKS_REASON = /gitleaks masks nothing without `--redact`/;
+const REASON = /^AGENTS\.md Shell: /u;
+const TIMEOUT_REASON = /macOS has neither `timeout` nor `gtimeout`/u;
+const WORD_SPLIT_REASON = /zsh doesn't word-split/u;
+const ZSH_PATH_REASON = /zsh ties the lowercase `path` array to `PATH`/u;
+const OUTPUT_FORMAT_REASON = /--output-format json/u;
+const GITLEAKS_REASON = /gitleaks masks nothing without `--redact`/u;
 
 /**
  * @param {Parameters<typeof findShellRuleViolations>[0]} command The shell command.
@@ -29,7 +29,7 @@ void describe("timeout", () => {
     "echo start; timeout 5 node x.js",
     "ls | timeout 5 cat",
   ]) {
-    test(`refuses ${command}`, () => {
+    void test(`refuses ${command}`, () => {
       assert.deepEqual(rulesBroken(command), ["timeout"]);
     });
   }
@@ -41,7 +41,7 @@ void describe("timeout", () => {
     "grep -n timeout src/app.ts",
     "pnpm test --testTimeout 5000",
   ]) {
-    test(`allows ${command}`, () => {
+    void test(`allows ${command}`, () => {
       assert.deepEqual(rulesBroken(command), []);
     });
   }
@@ -56,7 +56,7 @@ void describe("cd", () => {
     "cd -P apps/mobile && ls",
     "(cd apps/mobile && pnpm test)",
   ]) {
-    test(`refuses ${command}`, () => {
+    void test(`refuses ${command}`, () => {
       assert.deepEqual(rulesBroken(command), ["cd"]);
     });
   }
@@ -72,7 +72,7 @@ void describe("cd", () => {
     'echo "cd apps/mobile && pnpm test"',
     "gh pr create --body 'run cd apps/mobile && pnpm test; done'",
   ]) {
-    test(`allows ${command}`, () => {
+    void test(`allows ${command}`, () => {
       assert.deepEqual(rulesBroken(command), []);
     });
   }
@@ -88,7 +88,7 @@ void describe("pkill and pgrep", () => {
     "pkill -u me -f expo",
     "sleep 1; pkill -f 'node .*eve'",
   ]) {
-    test(`refuses ${command}`, () => {
+    void test(`refuses ${command}`, () => {
       assert.deepEqual(rulesBroken(command), ["pkill"]);
     });
   }
@@ -102,7 +102,7 @@ void describe("pkill and pgrep", () => {
     "pkill -F /tmp/dev.pid",
     'echo "pkill -f ultracite"',
   ]) {
-    test(`allows ${command}`, () => {
+    void test(`allows ${command}`, () => {
       assert.deepEqual(rulesBroken(command), []);
     });
   }
@@ -118,7 +118,7 @@ void describe("sleep", () => {
     "sleep infinity",
     "while true; do gh pr checks 12; sleep 60; done",
   ]) {
-    test(`refuses ${command}`, () => {
+    void test(`refuses ${command}`, () => {
       assert.deepEqual(rulesBroken(command), ["sleep"]);
     });
   }
@@ -132,12 +132,12 @@ void describe("sleep", () => {
     'echo "sleep 60"',
     "sleep $DELAY",
   ]) {
-    test(`allows ${command}`, () => {
+    void test(`allows ${command}`, () => {
       assert.deepEqual(rulesBroken(command), []);
     });
   }
 
-  test("allows a long sleep the Bash tool runs in the background", () => {
+  void test("allows a long sleep the Bash tool runs in the background", () => {
     assert.deepEqual(
       rulesBroken("sleep 60 && gh pr checks 12", { background: true }),
       []
@@ -157,19 +157,19 @@ void describe("text that isn't a command", () => {
     "echo $(echo 'sleep 60')",
     "echo 'unterminated && sleep 60",
   ]) {
-    test(`allows ${JSON.stringify(command)}`, () => {
+    void test(`allows ${JSON.stringify(command)}`, () => {
       assert.deepEqual(rulesBroken(command), []);
     });
   }
 
-  test("checks the commands after a heredoc", () => {
+  void test("checks the commands after a heredoc", () => {
     assert.deepEqual(
       rulesBroken("cat <<EOF > x\nhello\nEOF\ntimeout 5 pnpm test"),
       ["timeout"]
     );
   });
 
-  test("reports every rule a command breaks, each with its reason", () => {
+  void test("reports every rule a command breaks, each with its reason", () => {
     const violations = findShellRuleViolations(
       "cd apps/mobile && timeout 90 pnpm test"
     );
@@ -201,7 +201,7 @@ void describe("the PreToolUse hook", () => {
       }
     );
 
-  test("blocks a broken rule with exit 2 and the reason on stderr", () => {
+  void test("blocks a broken rule with exit 2 and the reason on stderr", () => {
     const result = runHook({
       tool_input: { command: "timeout 90 pnpm test" },
       tool_name: "Bash",
@@ -211,7 +211,7 @@ void describe("the PreToolUse hook", () => {
     assert.match(result.stderr, TIMEOUT_REASON);
   });
 
-  test("lets an allowed command through", () => {
+  void test("lets an allowed command through", () => {
     const result = runHook({
       tool_input: { command: "pnpm test" },
       tool_name: "Bash",
@@ -221,7 +221,7 @@ void describe("the PreToolUse hook", () => {
     assert.equal(result.stderr, "");
   });
 
-  test("lets a long sleep run in the background", () => {
+  void test("lets a long sleep run in the background", () => {
     const result = runHook({
       tool_input: { command: "sleep 60", run_in_background: true },
       tool_name: "Bash",
@@ -230,7 +230,7 @@ void describe("the PreToolUse hook", () => {
     assert.equal(result.status, 0);
   });
 
-  test("reads the project directory from CLAUDE_PROJECT_DIR", () => {
+  void test("reads the project directory from CLAUDE_PROJECT_DIR", () => {
     /** @param {string} command The shell command. */
     const scan = (command) =>
       runHook(
@@ -255,7 +255,7 @@ void describe("wrapped and compound commands", () => {
     ["while true; do sleep 60; done", ["sleep"]],
     ["(sleep 60; echo hi)", ["sleep"]],
   ]) {
-    test(`refuses ${JSON.stringify(command)}`, () => {
+    void test(`refuses ${JSON.stringify(command)}`, () => {
       assert.deepEqual(rulesBroken(command), rules);
     });
   }
@@ -273,19 +273,19 @@ void describe("wrapped and compound commands", () => {
     "wait_up() { sleep 10; }",
     "case $x in a) sleep 1;; esac",
   ]) {
-    test(`allows ${JSON.stringify(command)}`, () => {
+    void test(`allows ${JSON.stringify(command)}`, () => {
       assert.deepEqual(rulesBroken(command), []);
     });
   }
 });
 
 void describe("heredocs inside substitutions", () => {
-  test("allows an apostrophe and blocked words in the body", () => {
+  void test("allows an apostrophe and blocked words in the body", () => {
     const command = `git commit -m "$(cat <<'EOF'\nDon't run \`sleep 60\` or timeout 5.\nEOF\n)" && git push`;
     assert.deepEqual(rulesBroken(command), []);
   });
 
-  test("checks the command after the substitution", () => {
+  void test("checks the command after the substitution", () => {
     const command = "x=$(cat <<'EOF'\nDon't\nEOF\n); timeout 5 y";
     assert.deepEqual(rulesBroken(command), ["timeout"]);
   });
@@ -307,7 +307,7 @@ void describe("self-matching patterns, introspection, continued lines and case p
       ["timeout"],
     ],
   ]) {
-    test(`${JSON.stringify(command)} breaks ${JSON.stringify(rules)}`, () => {
+    void test(`${JSON.stringify(command)} breaks ${JSON.stringify(rules)}`, () => {
       assert.deepEqual(rulesBroken(command), rules);
     });
   }
@@ -326,7 +326,7 @@ void describe("expressions, function keywords and long wrapper options", () => {
     ["sudo --user root timeout 5 node x.js", ["timeout"]],
     ["sudo --user=root timeout 5 node x.js", ["timeout"]],
   ]) {
-    test(`${JSON.stringify(command)} breaks ${JSON.stringify(rules)}`, () => {
+    void test(`${JSON.stringify(command)} breaks ${JSON.stringify(rules)}`, () => {
       assert.deepEqual(rulesBroken(command), rules);
     });
   }
@@ -347,7 +347,7 @@ void describe("loop headers, arrays, comments in substitutions and regex dialect
     ["pkill -f '[[:alpha:]]ltracite'", []],
     ["pkill -if ULTRACITE", ["pkill"]],
   ]) {
-    test(`${JSON.stringify(command)} breaks ${JSON.stringify(rules)}`, () => {
+    void test(`${JSON.stringify(command)} breaks ${JSON.stringify(rules)}`, () => {
       assert.deepEqual(rulesBroken(command), rules);
     });
   }
@@ -362,7 +362,7 @@ void describe("shifts, time options and named descriptors", () => {
     ["{fd}>/dev/null sleep 60", ["sleep"]],
     ["{fd}>/dev/null timeout 5 x", ["timeout"]],
   ]) {
-    test(`${JSON.stringify(command)} breaks ${JSON.stringify(rules)}`, () => {
+    void test(`${JSON.stringify(command)} breaks ${JSON.stringify(rules)}`, () => {
       assert.deepEqual(rulesBroken(command), rules);
     });
   }
@@ -377,7 +377,7 @@ void describe("expansion hashes, escaped delimiters and append assignments", () 
     ["LOG+=more timeout 5 x", ["timeout"]],
     ["list[0]=a timeout 5 x", ["timeout"]],
   ]) {
-    test(`${JSON.stringify(command)} breaks ${JSON.stringify(rules)}`, () => {
+    void test(`${JSON.stringify(command)} breaks ${JSON.stringify(rules)}`, () => {
       assert.deepEqual(rulesBroken(command), rules);
     });
   }
@@ -393,7 +393,7 @@ void describe("expansion shifts, timed groups and older-than options", () => {
     ["pgrep -O 0 -f ultracite", ["pkill"]],
     ["pgrep --older 0 -f ultracite", ["pkill"]],
   ]) {
-    test(`${JSON.stringify(command)} breaks ${JSON.stringify(rules)}`, () => {
+    void test(`${JSON.stringify(command)} breaks ${JSON.stringify(rules)}`, () => {
       assert.deepEqual(rulesBroken(command), rules);
     });
   }
@@ -407,7 +407,7 @@ void describe("zsh word-splitting in loop headers", () => {
     "for f in $files\ndo\n  echo $f\ndone",
     "select f in $files; do echo $f; done",
   ]) {
-    test(`refuses ${JSON.stringify(command)}`, () => {
+    void test(`refuses ${JSON.stringify(command)}`, () => {
       assert.deepEqual(rulesBroken(command), ["word-split"]);
     });
   }
@@ -425,12 +425,12 @@ void describe("zsh word-splitting in loop headers", () => {
     "for ((i = 0; i < 3; i++)); do echo $i; done",
     "echo 'for f in $files; do x; done'",
   ]) {
-    test(`allows ${JSON.stringify(command)}`, () => {
+    void test(`allows ${JSON.stringify(command)}`, () => {
       assert.deepEqual(rulesBroken(command), []);
     });
   }
 
-  test("says how to iterate instead", () => {
+  void test("says how to iterate instead", () => {
     const [violation] = findShellRuleViolations("for f in $files; do x; done");
     assert.match(violation.reason, WORD_SPLIT_REASON);
   });
@@ -452,7 +452,7 @@ void describe("zsh's `path` variable", () => {
     "check() { local path=$1; ls $path; }",
     'echo "$(path=x; echo $path)"',
   ]) {
-    test(`refuses ${JSON.stringify(command)}`, () => {
+    void test(`refuses ${JSON.stringify(command)}`, () => {
       assert.deepEqual(rulesBroken(command), ["zsh-path"]);
     });
   }
@@ -469,12 +469,12 @@ void describe("zsh's `path` variable", () => {
     "read -r line",
     "node -e 'const path = require(\"node:path\")'",
   ]) {
-    test(`allows ${JSON.stringify(command)}`, () => {
+    void test(`allows ${JSON.stringify(command)}`, () => {
       assert.deepEqual(rulesBroken(command), []);
     });
   }
 
-  test("says why and what to name it instead", () => {
+  void test("says why and what to name it instead", () => {
     const [violation] = findShellRuleViolations("local path=x");
     assert.match(violation.reason, ZSH_PATH_REASON);
   });
@@ -491,7 +491,7 @@ void describe("the Supabase CLI's legacy output flag", () => {
     "pnpm --filter @fitme/supabase exec supabase status -o json",
     "pnpm db status -o json",
   ]) {
-    test(`refuses ${command}`, () => {
+    void test(`refuses ${command}`, () => {
       assert.deepEqual(rulesBroken(command), ["supabase-output"]);
     });
   }
@@ -503,12 +503,12 @@ void describe("the Supabase CLI's legacy output flag", () => {
     "curl -o out.json localhost:54321",
     'echo "supabase status -o json"',
   ]) {
-    test(`allows ${command}`, () => {
+    void test(`allows ${command}`, () => {
       assert.deepEqual(rulesBroken(command), []);
     });
   }
 
-  test("points at --output-format json", () => {
+  void test("points at --output-format json", () => {
     const [violation] = findShellRuleViolations("supabase status -o json");
     assert.match(violation.reason, OUTPUT_FORMAT_REASON);
   });
@@ -527,7 +527,7 @@ void describe("prod secrets in a local shell", () => {
     "infisical secrets set X=1 --env=prod",
     "pnpm exec infisical export --env=prod",
   ]) {
-    test(`refuses ${JSON.stringify(command)}`, () => {
+    void test(`refuses ${JSON.stringify(command)}`, () => {
       assert.deepEqual(rulesBroken(command), ["infisical-prod"]);
     });
   }
@@ -541,7 +541,7 @@ void describe("prod secrets in a local shell", () => {
     "infisical login",
     'echo "infisical secrets get X --env=prod"',
   ]) {
-    test(`allows ${command}`, () => {
+    void test(`allows ${command}`, () => {
       assert.deepEqual(rulesBroken(command), []);
     });
   }
@@ -563,7 +563,7 @@ void describe("printing env file values", () => {
     "cat apps/api/.env | grep LIBRARY",
     "pnpm install && cat apps/api/.env",
   ]) {
-    test(`refuses ${JSON.stringify(command)}`, () => {
+    void test(`refuses ${JSON.stringify(command)}`, () => {
       assert.deepEqual(rulesBroken(command), ["env-file"]);
     });
   }
@@ -586,7 +586,7 @@ void describe("printing env file values", () => {
     "ls -la apps/api/.env",
     'echo "cat apps/api/.env"',
   ]) {
-    test(`allows ${JSON.stringify(command)}`, () => {
+    void test(`allows ${JSON.stringify(command)}`, () => {
       assert.deepEqual(rulesBroken(command), []);
     });
   }
@@ -609,7 +609,7 @@ void describe("commands inside substitutions", () => {
       [],
     ],
   ]) {
-    test(`${JSON.stringify(command)} breaks ${JSON.stringify(rules)}`, () => {
+    void test(`${JSON.stringify(command)} breaks ${JSON.stringify(rules)}`, () => {
       assert.deepEqual(rulesBroken(command), rules);
     });
   }
@@ -678,7 +678,7 @@ void describe("gitleaks scanning a whole worktree or printing secrets", () => {
     "gitleaks protect --staged --redact",
     "gitleaks dir apps/mobile --config",
   ]) {
-    test(`refuses ${JSON.stringify(command)}`, () => {
+    void test(`refuses ${JSON.stringify(command)}`, () => {
       assert.deepEqual(rulesBroken(command), ["gitleaks"]);
     });
   }
@@ -715,7 +715,7 @@ void describe("gitleaks scanning a whole worktree or printing secrets", () => {
     "gitleaks",
     'echo "gitleaks dir . --redact=0"',
   ]) {
-    test(`allows ${JSON.stringify(command)}`, () => {
+    void test(`allows ${JSON.stringify(command)}`, () => {
       assert.deepEqual(rulesBroken(command), []);
     });
   }
@@ -739,7 +739,7 @@ void describe("gitleaks scanning a whole worktree or printing secrets", () => {
     ["gitleaks dir /elsewhere --redact", []],
     ["gitleaks dir apps/mobile --redact", []],
   ]) {
-    test(`${JSON.stringify(command)} under ${PROJECT_DIR} breaks ${JSON.stringify(rules)}`, () => {
+    void test(`${JSON.stringify(command)} under ${PROJECT_DIR} breaks ${JSON.stringify(rules)}`, () => {
       assert.deepEqual(
         rulesBroken(command, { projectDir: PROJECT_DIR }),
         rules
@@ -747,7 +747,7 @@ void describe("gitleaks scanning a whole worktree or printing secrets", () => {
     });
   }
 
-  test("points at a single path and --redact", () => {
+  void test("points at a single path and --redact", () => {
     const [violation] = findShellRuleViolations("gitleaks dir . --redact=0");
     assert.match(violation.reason, REASON);
     assert.match(violation.reason, GITLEAKS_REASON);

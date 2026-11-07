@@ -149,11 +149,11 @@ const mount = async (wrap: (node: ReactNode) => ReactNode = (n) => n) => {
 const button = (name: string | RegExp) => screen.getByRole("button", { name });
 
 /** A Start button, whichever Workout it names. */
-const START_LABEL = /^Start /;
+const START_LABEL = /^Start /u;
 
 /** Every button the empty card could offer, whatever its name. */
 const ACTION =
-  /^(Start |Resume |Create a Plan$|Почати |Продовжити |Створити план$)/;
+  /^(Start |Resume |Create a Plan$|Почати |Продовжити |Створити план$)/u;
 
 beforeEach(() => {
   jest.clearAllMocks();
@@ -196,7 +196,7 @@ describe("the empty History", () => {
   it("starts whichever Workout is next in the rotation, with its own Exercise count", async () => {
     backend.seedPlan({
       ...structuredClone(PLAN),
-      workouts: [...structuredClone(PLAN.workouts)].reverse(),
+      workouts: [...structuredClone(PLAN.workouts)].toReversed(),
     });
     await mount();
 
@@ -303,7 +303,9 @@ describe("starting from the empty History", () => {
     await fireEvent.press(button("Start Upper A"));
     // The mutation reports itself pending on its next tick.
     await act(async () => {
-      await new Promise((resolve) => setTimeout(resolve, 0));
+      await new Promise((resolve) => {
+        setTimeout(resolve, 0);
+      });
     });
     expect(button("Start Upper A")).toBeDisabled();
     await fireEvent.press(button("Start Upper A"));
@@ -369,7 +371,9 @@ describe("the empty History's reads", () => {
         </QueryClientProvider>
       );
       await act(async () => {
-        await new Promise((resolve) => setTimeout(resolve, 10));
+        await new Promise((resolve) => {
+          setTimeout(resolve, 10);
+        });
       });
 
       expect(screen.queryByTestId("history-empty")).toBeNull();

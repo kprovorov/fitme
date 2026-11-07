@@ -102,7 +102,7 @@ describe("WorkoutSessionFinishSuggestion", () => {
     mockState.isFinishing = true;
     await renderSuggestion();
 
-    fireEvent.press(screen.getByTestId("finish"));
+    void fireEvent.press(screen.getByTestId("finish"));
 
     expect(mockFinish).toHaveBeenCalledTimes(1);
     expect(mockDismiss).not.toHaveBeenCalled();
@@ -112,7 +112,7 @@ describe("WorkoutSessionFinishSuggestion", () => {
   it("keeps training by dismissing the suggestion only", async () => {
     await renderSuggestion();
 
-    fireEvent.press(screen.getByTestId("keep-training"));
+    void fireEvent.press(screen.getByTestId("keep-training"));
 
     expect(mockDismiss).toHaveBeenCalledTimes(1);
     expect(mockFinish).not.toHaveBeenCalled();

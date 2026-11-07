@@ -5,7 +5,7 @@ import {
 } from "expo-glass-effect";
 import type { StyleProp, ViewProps, ViewStyle } from "react-native";
 import { KeyboardGestureArea as XKeyboardGestureArea } from "react-native-keyboard-controller";
-import Animated from "react-native-reanimated";
+import { createAnimatedComponent } from "react-native-reanimated";
 import { SafeAreaView as XSafeAreaView } from "react-native-safe-area-context";
 import { withUniwind } from "uniwind";
 
@@ -23,7 +23,7 @@ export const KeyboardGestureArea = (
   props: React.ComponentProps<typeof StyledKeyboardGestureArea>
 ) => <StyledKeyboardGestureArea {...props} />;
 
-const AnimatedEXGlassView = Animated.createAnimatedComponent(XGlassView);
+const AnimatedEXGlassView = createAnimatedComponent(XGlassView);
 
 const BlurView = withUniwind(EXBlurView);
 
@@ -53,7 +53,8 @@ const flattenStyle = (
 
   // SAFETY: Array.isArray handled every array (including readonly arrays);
   // the remaining truthy style is a single style object copied without mutation.
-  return style ? ({ ...style } as FlatGlassStyle) : {};
+  // oxlint-disable-next-line typescript/no-misused-spread -- Array.isArray flattened readonly arrays above; this branch copies one style object.
+  return style ? { ...(style as FlatGlassStyle) } : {};
 };
 
 const convertStylesToProps = (style: AnimatedGlassViewProps["style"]) => {

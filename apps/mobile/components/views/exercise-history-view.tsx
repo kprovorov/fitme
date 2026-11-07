@@ -237,7 +237,7 @@ const ExerciseHistoryView = ({
         }
       }
 
-      fetchNextPage({ cancelRefetch: false });
+      void fetchNextPage({ cancelRefetch: false });
     },
     [
       errorUpdatedAt,
@@ -252,7 +252,7 @@ const ExerciseHistoryView = ({
   useImperativeHandle(ref, () => ({ loadMore }), [loadMore]);
 
   const retry = useCallback(() => {
-    refetch();
+    void refetch();
   }, [refetch]);
 
   // Each entry keeps its own page's unit: a measurement system switched

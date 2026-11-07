@@ -74,24 +74,20 @@ jest.mock("~/components/ui/button", () =>
 const START = "POST /v1/workout-sessions";
 
 // Any Finish button, and an elapsed time like 12:34.
-const FINISH = /^Finish/;
-const ELAPSED_TIME = /\d+:\d\d/;
+const FINISH = /^Finish/u;
+const ELAPSED_TIME = /\d+:\d\d/u;
 
 // The "+N" badge, whatever N is.
-const MORE_BADGE = /^\+/;
+const MORE_BADGE = /^\+/u;
 
 // A Workout Session screen of `workout-legs`.
 const LEGS_SESSION_PATH =
-  /^\/plans\/plan-1\/workouts\/workout-legs\/sessions\/.+/;
+  /^\/plans\/plan-1\/workouts\/workout-legs\/sessions\/.+/u;
 
 let queryClient = createTestQueryClient();
 
-type AlertButtons = Parameters<typeof Alert.alert>[2];
-
 const pressAlertButton = async (text: string) => {
-  const buttons = jest.mocked(Alert.alert).mock.calls.at(-1)?.[2] as
-    | AlertButtons
-    | undefined;
+  const buttons = jest.mocked(Alert.alert).mock.calls.at(-1)?.[2];
 
   const button = buttons?.find((candidate) => candidate.text === text);
   await act(() => button?.onPress?.());

@@ -268,8 +268,8 @@ const WorkoutScreen = () => {
   }, []);
 
   const retry = useCallback(() => {
-    refetch();
-    refetchOpenSession();
+    void refetch();
+    void refetchOpenSession();
   }, [refetch, refetchOpenSession]);
 
   const goBack = useCallback(() => {

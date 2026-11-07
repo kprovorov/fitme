@@ -83,6 +83,7 @@ const saveFailureMessage = (t: TFunction, error: ApiError | null) => {
  * keeps it, with what went wrong above the form, and a save the User typed
  * over while it was in flight keeps the editor open on what they typed.
  */
+// oxlint-disable-next-line react-doctor/no-giant-component -- This component owns the complete plan-draft save and cancellation lifecycle.
 const PlanEditorScreen = () => {
   const { planId, workoutId } = useLocalSearchParams<{
     planId: string;
@@ -285,7 +286,7 @@ const PlanEditorScreen = () => {
   }, [close, draft, draftKey, navigation, planId, savePlan, staleUnits, t]);
 
   const retry = useCallback(() => {
-    refetch();
+    void refetch();
   }, [refetch]);
 
   const headerItems = () => [

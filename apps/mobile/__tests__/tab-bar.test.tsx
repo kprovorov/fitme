@@ -29,9 +29,9 @@ function App() {
   return <TabLayout />;
 }
 
-const TAB = /^tab:/;
-const SYMBOL = /^sf:/;
-const ANY_TEXT = /./;
+const TAB = /^tab:/u;
+const SYMBOL = /^sf:/u;
+const ANY_TEXT = /./u;
 
 /** Each tab in order: its route, its symbol (one for both states) and label. */
 const shownTabs = () =>

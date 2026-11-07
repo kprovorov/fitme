@@ -205,7 +205,7 @@ jest.mock("~/components/ui/alert-dialog", () => {
 const PROFILE_PATCH = "PATCH /v1/profile";
 
 /** History's volume once converted to pounds. */
-const CONVERTED_VOLUME = /440\.92/;
+const CONVERTED_VOLUME = /440\.92/u;
 const MINUTE_MS = 60_000;
 
 /** A Plan whose Leg Day has one 5 × 100 kg set. */

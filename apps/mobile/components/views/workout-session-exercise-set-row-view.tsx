@@ -98,7 +98,7 @@ const WorkoutSessionExerciseSetRowView = ({
 
   const trackSetCompleted = () => {
     if (!IS_E2E && pendingSetData.current) {
-      segmentClient.track("Set Tracked", {
+      void segmentClient.track("Set Tracked", {
         exercise_id: exerciseId,
         reps: pendingSetData.current.reps,
         weight: pendingSetData.current.weight,
@@ -117,15 +117,15 @@ const WorkoutSessionExerciseSetRowView = ({
       sessionId,
       set,
     });
-    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     setSaveError(null);
     setIsEditing(false);
     setJustLogged(true);
     trackSetCompleted();
-    queryClient.invalidateQueries({
+    void queryClient.invalidateQueries({
       queryKey: WORKOUT_SESSION_QUERY_KEY,
     });
-    queryClient.invalidateQueries({
+    void queryClient.invalidateQueries({
       queryKey: ["exercise-history"],
     });
 

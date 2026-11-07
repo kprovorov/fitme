@@ -191,7 +191,7 @@ const HistoryScreen = () => {
   );
 
   const retry = useCallback(() => {
-    refetchAll();
+    void refetchAll();
   }, [refetchAll]);
 
   const onRefresh = useCallback(async () => {

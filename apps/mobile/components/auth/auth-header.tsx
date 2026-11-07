@@ -4,8 +4,13 @@ import { Image } from "~/components/image";
 import { Text } from "~/components/ui/text";
 import { H1, H2 } from "~/components/ui/typography";
 
-const welcomeMark = require("~/assets/auth/mark-welcome.svg");
-const mark = require("~/assets/auth/mark.svg");
+// SAFETY: Metro resolves this static asset to its numeric asset registry id.
+// oxlint-disable-next-line unicorn/prefer-module, node/global-require -- Metro requires a static asset require.
+const welcomeMark = require("~/assets/auth/mark-welcome.svg") as number;
+
+// SAFETY: Metro resolves this static asset to its numeric asset registry id.
+// oxlint-disable-next-line unicorn/prefer-module, node/global-require -- Metro requires a static asset require.
+const mark = require("~/assets/auth/mark.svg") as number;
 
 export const AuthHeader = ({
   title,

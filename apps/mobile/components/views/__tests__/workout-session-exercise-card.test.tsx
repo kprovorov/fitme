@@ -65,8 +65,8 @@ const BENCH: ShownExercise = {
 };
 
 // The header reads the name, then the muscle groups.
-const BENCH_PRESS = /^Bench Press/;
-const MENU = /^More options/;
+const BENCH_PRESS = /^Bench Press/u;
+const MENU = /^More options/u;
 
 const set = (order: number): WorkoutSessionSet => ({
   id: `set-${order}`,

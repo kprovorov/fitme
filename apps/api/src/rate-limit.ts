@@ -107,5 +107,5 @@ export const rateLimitCallers = ({
       return c.json(tooManyRequests, 429);
     }
 
-    return await next();
+    await next();
   });

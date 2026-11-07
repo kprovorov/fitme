@@ -29,7 +29,9 @@ export const openUrl = async (url: string): Promise<void> => {
  */
 export const openWebPage = async (url: string): Promise<void> => {
   if (process.env.EXPO_OS === "web") {
-    return openUrl(url);
+    await openUrl(url);
+
+    return;
   }
 
   try {

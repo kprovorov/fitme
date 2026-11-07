@@ -30,7 +30,7 @@ jest.mock("~/lib/clerk", () => ({
 
 /** A Profile saved in `system`; only its measurement system is read. */
 const profileIn = (system: string) =>
-  ({ measurement_system: system }) as unknown as Profile;
+  ({ measurement_system: system }) as Profile;
 
 let client = new QueryClient();
 

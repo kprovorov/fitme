@@ -8,8 +8,8 @@ import { fileURLToPath } from "node:url";
 
 import { staleV2Stacks } from "./v2-stacks.mjs";
 
-const DESTROYING_GONE = /Destroying gone-id/;
-const USAGE = /Usage/;
+const DESTROYING_GONE = /Destroying gone-id/u;
+const USAGE = /Usage/u;
 
 const SCRIPT = fileURLToPath(new URL("v2-stacks.mjs", import.meta.url));
 
@@ -52,7 +52,7 @@ const writeState = (root, id, projectRoot, { v2 = true } = {}) => {
 };
 
 void describe("staleV2Stacks", () => {
-  test("picks the v2 stacks of checkouts that no longer exist", () => {
+  void test("picks the v2 stacks of checkouts that no longer exist", () => {
     const root = tempDir("v2-stacks-");
     writeState(root, "live", "/live/packages/supabase");
     writeState(root, "gone", "/gone/packages/supabase");
@@ -65,7 +65,7 @@ void describe("staleV2Stacks", () => {
     );
   });
 
-  test("picks every v2 stack of the given checkout, even a live one", () => {
+  void test("picks every v2 stack of the given checkout, even a live one", () => {
     const root = tempDir("v2-stacks-");
     writeState(root, "mine", "/mine/packages/supabase");
     writeState(root, "mine-v3", "/mine/packages/supabase", { v2: false });
@@ -79,7 +79,7 @@ void describe("staleV2Stacks", () => {
     );
   });
 
-  test("skips a stack without a readable state, and a missing root", () => {
+  void test("skips a stack without a readable state, and a missing root", () => {
     const root = tempDir("v2-stacks-");
     fs.mkdirSync(path.join(root, "empty"));
     fs.mkdirSync(path.join(root, "broken"));
@@ -95,7 +95,7 @@ void describe("staleV2Stacks", () => {
 });
 
 void describe("the CLI", () => {
-  test("prints one id per line, the rest on stderr", () => {
+  void test("prints one id per line, the rest on stderr", () => {
     const root = tempDir("v2-stacks-");
     const live = tempDir("v2-stacks-live-");
     writeState(root, "live-id", live);
@@ -110,7 +110,7 @@ void describe("the CLI", () => {
     assert.match(run.stderr, DESTROYING_GONE);
   });
 
-  test("fails without its arguments", () => {
+  void test("fails without its arguments", () => {
     const run = spawnSync(process.execPath, [SCRIPT], { encoding: "utf-8" });
     assert.notEqual(run.status, 0);
     assert.match(run.stderr, USAGE);

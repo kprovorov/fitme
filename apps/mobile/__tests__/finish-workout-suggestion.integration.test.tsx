@@ -89,20 +89,20 @@ interface Route {
 const PATHS: [RouteName, RegExp][] = [
   [
     "exercise",
-    /^\/plans\/(?<planId>[^/]+)\/workouts\/(?<workoutId>[^/]+)\/sessions\/(?<sessionId>[^/]+)\/exercises\/(?<exerciseId>[^/]+)$/,
+    /^\/plans\/(?<planId>[^/]+)\/workouts\/(?<workoutId>[^/]+)\/sessions\/(?<sessionId>[^/]+)\/exercises\/(?<exerciseId>[^/]+)$/u,
   ],
   [
     "plan-session",
-    /^\/plans\/(?<planId>[^/]+)\/workouts\/(?<workoutId>[^/]+)\/sessions\/(?<sessionId>[^/]+)$/,
+    /^\/plans\/(?<planId>[^/]+)\/workouts\/(?<workoutId>[^/]+)\/sessions\/(?<sessionId>[^/]+)$/u,
   ],
-  ["workout", /^\/plans\/(?<planId>[^/]+)\/workouts\/(?<workoutId>[^/]+)$/],
+  ["workout", /^\/plans\/(?<planId>[^/]+)\/workouts\/(?<workoutId>[^/]+)$/u],
   [
     "exercise-picker",
-    /^\/workout-sessions\/(?<workoutSessionId>[^/]+)\/exercise-picker$/,
+    /^\/workout-sessions\/(?<workoutSessionId>[^/]+)\/exercise-picker$/u,
   ],
-  ["summary", /^\/workout-sessions\/(?<workoutSessionId>[^/]+)\/summary$/],
-  ["history-session", /^\/workout-sessions\/(?<workoutSessionId>[^/]+)$/],
-  ["home", /^\/$/],
+  ["summary", /^\/workout-sessions\/(?<workoutSessionId>[^/]+)\/summary$/u],
+  ["history-session", /^\/workout-sessions\/(?<workoutSessionId>[^/]+)$/u],
+  ["home", /^\/$/u],
 ];
 
 let routeKey = 0;
@@ -117,9 +117,9 @@ const toRoute = (href: Href): Route => {
 
   const search = { ...params };
 
-  const path = pathname.replaceAll(/\[(\w+)\]/g, (_, name: string) => {
+  const path = pathname.replaceAll(/\[(\w+)\]/gu, (_, name: string) => {
     const value = search[name] ?? "";
-    delete search[name];
+    Reflect.deleteProperty(search, name);
 
     return value;
   });
@@ -991,9 +991,7 @@ describe.each(ENTRY_ROUTES)(
       // Deleting awaits the save and then updates the screen; keep that whole
       // update inside `act`.
       await act(async () => {
-        await fireEvent.press(
-          deleteButtons[1] as (typeof deleteButtons)[number]
-        );
+        await fireEvent.press(deleteButtons[1]);
       });
       await settle();
 

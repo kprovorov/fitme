@@ -78,14 +78,14 @@ const EXERCISES = [
   libraryExercise("squat", { muscle_groups: ["quadriceps"] }),
 ];
 
-const COULD_NOT_LOAD = /Couldn't load/;
-const LOAD_MORE = /load more$/i;
+const COULD_NOT_LOAD = /Couldn't load/u;
+const LOAD_MORE = /load more$/iu;
 
 const LOAD_MORE_ERROR =
   "Couldn't load more exercises. Check your connection and try again.";
 
 /** Any row's subtitle: Muscle groups, one or joined with ", ". */
-const MUSCLE_GROUP_SUBTITLE = /, |^(Triceps|Chest)$/;
+const MUSCLE_GROUP_SUBTITLE = /, |^(Triceps|Chest)$/u;
 
 let fake: FakeLibrary;
 let list: jest.SpiedFunction<FakeLibrary["list"]>;
@@ -165,7 +165,9 @@ const type = async (text: string) => {
 
   for (const end of text.split("").keys()) {
     // biome-ignore lint/performance/noAwaitInLoops: keystrokes come one after another
+    // oxlint-disable-next-line eslint/no-await-in-loop -- Keystrokes and debounce time advance sequentially.
     await fireEvent.changeText(input, text.slice(0, end + 1));
+    // oxlint-disable-next-line eslint/no-await-in-loop -- Each keystroke waits before the next character.
     await advance(50);
   }
 };
@@ -201,6 +203,7 @@ describe("searching the Library", () => {
     await advance(200);
     expect(list).not.toHaveBeenCalled();
 
+    // oxlint-disable-next-line eslint/no-await-in-loop -- Each keystroke waits before the next character.
     await advance(50);
     expect(list).toHaveBeenCalledTimes(1);
     expect(list).toHaveBeenLastCalledWith({
@@ -764,7 +767,7 @@ const renderInAppLanguage = async () => {
 /** The names listed, top to bottom. */
 const listedNames = (names: readonly string[]) =>
   screen
-    .getAllByText(new RegExp(`^(${names.join("|")})$`))
+    .getAllByText(new RegExp(`^(${names.join("|")})$`, "u"))
     .map((element) => element.props.children);
 
 describe("in Ukrainian", () => {

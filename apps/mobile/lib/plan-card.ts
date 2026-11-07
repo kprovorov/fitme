@@ -90,7 +90,7 @@ const fitInteger = (
 
 /** The first number of Arnold's reps ("8-10" → 8). */
 const repsOf = (reps: WorkoutExercise["reps"]) => {
-  const match = reps.match(REPS_RE);
+  const match = REPS_RE.exec(reps);
 
   return fitInteger(
     match ? Math.trunc(Number(match[0])) : DEFAULT_REPS,

@@ -125,7 +125,9 @@ const openBatch = (library: Library, language: AppLanguage): Batch => {
   const batches = waiting.get(library) ?? new Map<AppLanguage, Batch>();
   batches.set(language, batch);
   waiting.set(library, batches);
-  setTimeout(() => flush(library, language, batch), 0);
+  setTimeout(() => {
+    void flush(library, language, batch);
+  }, 0);
 
   return batch;
 };
@@ -220,7 +222,7 @@ export const useExercises = (slugs: readonly string[]) => {
 export const useExercise = (slug: string | undefined): ShownExercise => {
   const shown = useExercises(slug ? [slug] : []);
 
-  return (slug && shown[slug]) || shownExercise(slug ?? "", null);
+  return (slug ? shown[slug] : undefined) ?? shownExercise(slug ?? "", null);
 };
 
 /**

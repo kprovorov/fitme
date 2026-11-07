@@ -288,7 +288,7 @@ describe("auth", () => {
         SERVER_SECRETS.map(async ([, secret]) => {
           const response = await configured.request("/caller", bearer(secret));
 
-          return response.json();
+          return await response.json();
         })
       );
 
@@ -306,8 +306,9 @@ describe("auth", () => {
       });
 
       const responses = await Promise.all(
-        SERVER_SECRETS.map(([, secret]) =>
-          configured.request("/caller", bearer(secret))
+        SERVER_SECRETS.map(
+          async ([, secret]) =>
+            await configured.request("/caller", bearer(secret))
         )
       );
 

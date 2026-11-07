@@ -89,7 +89,9 @@ export const ChatMarkdown = ({ children }: { children: string }) => {
   return (
     <Markdown
       markdown={preserveNewlines(children)}
-      onLinkPress={openWebPage}
+      onLinkPress={(...args) => {
+        void openWebPage(...args);
+      }}
       renderRules={{
         listItem: ({ node, children: itemChildren, extras }) => (
           <View

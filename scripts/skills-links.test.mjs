@@ -44,11 +44,11 @@ const fixture = ({ skills, links }) => {
 const linkTo = (name) => `../../.agents/skills/${name}`;
 
 void describe("skillLinkProblems", () => {
-  test("every project skill in this repo has its .claude/skills symlink", () => {
+  void test("every project skill in this repo has its .claude/skills symlink", () => {
     assert.deepEqual(skillLinkProblems(REPO_ROOT), []);
   });
 
-  test("passes when every skill has its link", () => {
+  void test("passes when every skill has its link", () => {
     const root = fixture({
       links: { alpha: linkTo("alpha"), beta: linkTo("beta") },
       skills: ["alpha", "beta"],
@@ -57,7 +57,7 @@ void describe("skillLinkProblems", () => {
     assert.deepEqual(skillLinkProblems(root), []);
   });
 
-  test("fails for a skill without a link", () => {
+  void test("fails for a skill without a link", () => {
     const root = fixture({
       links: { alpha: linkTo("alpha") },
       skills: ["alpha", "beta"],
@@ -68,7 +68,7 @@ void describe("skillLinkProblems", () => {
     ]);
   });
 
-  test("fails for a link pointing at nothing", () => {
+  void test("fails for a link pointing at nothing", () => {
     const root = fixture({
       links: { alpha: linkTo("alpha"), gone: linkTo("gone") },
       skills: ["alpha"],
@@ -79,7 +79,7 @@ void describe("skillLinkProblems", () => {
     ]);
   });
 
-  test("fails for a link pointing at another skill", () => {
+  void test("fails for a link pointing at another skill", () => {
     const root = fixture({
       links: { alpha: linkTo("beta"), beta: linkTo("beta") },
       skills: ["alpha", "beta"],
@@ -90,7 +90,7 @@ void describe("skillLinkProblems", () => {
     ]);
   });
 
-  test("fails for a copy instead of a symlink", () => {
+  void test("fails for a copy instead of a symlink", () => {
     const root = fixture({ links: {}, skills: ["alpha"] });
     fs.mkdirSync(path.join(root, ".claude/skills/alpha"));
     assert.deepEqual(skillLinkProblems(root), [

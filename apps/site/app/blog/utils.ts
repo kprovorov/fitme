@@ -17,7 +17,7 @@ export interface BlogPost {
 }
 
 const parseFrontmatter = (fileContent: string) => {
-  const [, frontMatterBlock] = fileContent.match(FRONTMATTER_REGEX) ?? [];
+  const [, frontMatterBlock] = FRONTMATTER_REGEX.exec(fileContent) ?? [];
 
   if (frontMatterBlock === undefined) {
     throw new Error("Blog post is missing a frontmatter block");

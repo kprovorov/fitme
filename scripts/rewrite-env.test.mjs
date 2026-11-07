@@ -8,9 +8,9 @@ import { fileURLToPath } from "node:url";
 
 import { parseStackOutput, rewriteEnvText } from "./rewrite-env.mjs";
 
-const NO_JSON = /no JSON/;
-const POINTED_MOBILE = /Pointed apps\/mobile\/\.env at the local stack/;
-const USAGE = /Usage/;
+const NO_JSON = /no JSON/u;
+const POINTED_MOBILE = /Pointed apps\/mobile\/\.env at the local stack/u;
+const USAGE = /Usage/u;
 
 const SCRIPT = fileURLToPath(new URL("rewrite-env.mjs", import.meta.url));
 
@@ -48,27 +48,27 @@ const stackOutput = (mcpUrl = "http://127.0.0.1:55321/mcp") =>
   ].join("\n");
 
 void describe("parseStackOutput", () => {
-  test("reads the JSON line after any progress lines", () => {
+  void test("reads the JSON line after any progress lines", () => {
     assert.deepEqual(parseStackOutput(stackOutput()), {
       ...stack,
       mcpUrl: "http://127.0.0.1:55321/mcp",
     });
   });
 
-  test("throws without a JSON line", () => {
+  void test("throws without a JSON line", () => {
     assert.throws(() => parseStackOutput("Starting database...\n"), NO_JSON);
   });
 });
 
 void describe("rewriteEnvText", () => {
-  test("leaves the Data API's URL and key alone", () => {
+  void test("leaves the Data API's URL and key alone", () => {
     const before =
       "EXPO_PUBLIC_SUPABASE_URL=http://127.0.0.1:54321\nEXPO_PUBLIC_SUPABASE_ANON_KEY=old\nOTHER=1\n";
 
     assert.equal(rewriteEnvText(before, stack), before);
   });
 
-  test("moves a local pooler URL to the stack's pooler port, quoted or not", () => {
+  void test("moves a local pooler URL to the stack's pooler port, quoted or not", () => {
     for (const quote of ["", "'", '"']) {
       const before = `FITME_DATABASE_URL=${quote}postgresql://fitme.pooler-dev:pw@127.0.0.1:54329/postgres?application_name=api${quote}\n`;
       assert.equal(
@@ -78,7 +78,7 @@ void describe("rewriteEnvText", () => {
     }
   });
 
-  test("leaves a remote pooler URL alone", () => {
+  void test("leaves a remote pooler URL alone", () => {
     const before =
       "FITME_DATABASE_URL=postgresql://fitme.ref:pw@aws-0.pooler.supabase.com:6543/postgres\n";
 
@@ -128,7 +128,7 @@ void describe("the CLI", () => {
    */
   const read = (root, rel) => fs.readFileSync(path.join(root, rel), "utf-8");
 
-  test("rewrites every app's and package's env files and prints the MCP URL", () => {
+  void test("rewrites every app's and package's env files and prints the MCP URL", () => {
     const root = checkout();
 
     const run = spawnSync(process.execPath, [SCRIPT, root, stackOutput()], {
@@ -156,13 +156,13 @@ void describe("the CLI", () => {
     assert.match(run.stderr, POINTED_MOBILE);
   });
 
-  test("fails without its arguments", () => {
+  void test("fails without its arguments", () => {
     const run = spawnSync(process.execPath, [SCRIPT], { encoding: "utf-8" });
     assert.notEqual(run.status, 0);
     assert.match(run.stderr, USAGE);
   });
 
-  test("fails on output with no JSON, printing nothing to stdout", () => {
+  void test("fails on output with no JSON, printing nothing to stdout", () => {
     const run = spawnSync(process.execPath, [SCRIPT, checkout(), "oops"], {
       encoding: "utf-8",
     });

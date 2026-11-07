@@ -53,12 +53,12 @@ const ProfileView = () => {
 
   const openManagementURL = useCallback(() => {
     if (managementURL) {
-      openUrl(managementURL);
+      void openUrl(managementURL);
     }
   }, [managementURL]);
 
   const handleLogout = useCallback(() => {
-    logout();
+    void logout();
   }, [logout]);
 
   return (
@@ -120,7 +120,9 @@ const ProfileView = () => {
                 <Muted>{t("profile.free.description")}</Muted>
                 <Button
                   label={t("profile.free.upgrade")}
-                  onPress={presentPaywall}
+                  onPress={(...args) => {
+                    void presentPaywall(...args);
+                  }}
                   size="lg"
                 />
               </View>

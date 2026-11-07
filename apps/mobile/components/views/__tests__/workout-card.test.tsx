@@ -55,7 +55,7 @@ const withExercise: PlanWorkout = {
 };
 
 const HOUR_MS = 3_600_000;
-const ELAPSED = /^01:0[23]:\d\d$/;
+const ELAPSED = /^01:0[23]:\d\d$/u;
 
 /** The User's open Workout Session, of `workoutId`, started `ago` ms ago. */
 const seedOpenSession = (workoutId: string | null, ago = 0) => {

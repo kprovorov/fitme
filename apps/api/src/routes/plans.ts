@@ -714,7 +714,7 @@ export const plans = new OpenAPIHono<ApiEnv>({
         );
       }
 
-      default: {
+      case "saved": {
         return c.json(
           PlanResponse.parse({
             data: planData({ value: value.plan, weightUnit }),

@@ -135,7 +135,7 @@ const longSession = session("session-1", startedAt, 65, [
 ]);
 
 // `1 370 кілограмів`, with Ukrainian's no-break space between thousands.
-const LONG_SESSION_VOLUME = /^Обсяг: 1\s370 кілограмів$/;
+const LONG_SESSION_VOLUME = /^Обсяг: 1\s370 кілограмів$/u;
 
 // The Summary's first render loads its whole module graph, which can take
 // more than Jest's default 5 s on a busy machine.

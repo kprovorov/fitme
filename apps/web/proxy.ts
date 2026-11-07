@@ -4,6 +4,7 @@ import * as Sentry from "@sentry/nextjs";
 import { SIGN_IN_PATH } from "~/lib/routes";
 
 // Everything else needs a signed-in User; new pages are protected by default.
+// oxlint-disable-next-line typescript/no-deprecated -- Keep the existing public-route matcher until Clerk resource auth is migrated.
 const isPublicRoute = createRouteMatcher(["/", `${SIGN_IN_PATH}(.*)`]);
 
 export default clerkMiddleware(

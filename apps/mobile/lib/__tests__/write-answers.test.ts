@@ -42,7 +42,10 @@ const watched = (
   return { counter, unsubscribe };
 };
 
-const flush = () => new Promise((resolve) => setTimeout(resolve, 0));
+const flush = () =>
+  new Promise((resolve) => {
+    setTimeout(resolve, 0);
+  });
 
 const unsubscribers: (() => void)[] = [];
 

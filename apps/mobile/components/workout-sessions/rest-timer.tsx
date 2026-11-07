@@ -68,7 +68,7 @@ const RestTimer = ({
 
   useEffect(() => {
     if (isOver) {
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+      void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
       AccessibilityInfo.announceForAccessibility(t("sets.rest.over"));
       onEnd();
     }

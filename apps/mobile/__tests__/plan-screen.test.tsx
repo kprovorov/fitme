@@ -112,10 +112,10 @@ const DELETE = "DELETE /v1/plans/{id}";
 const GET_PLAN = "GET /v1/plans/{id}";
 const LIST_PLANS = "GET /v1/plans";
 
-const SEEDED_PLAN_NAME = /^(Hypertrophy|Strength)$/;
-const LIST_LOAD_ERROR = /Couldn't load your plans/;
-const PLAN_LOAD_ERROR = /Couldn't load this plan/;
-const WORKOUT_CARD = /Day, /;
+const SEEDED_PLAN_NAME = /^(Hypertrophy|Strength)$/u;
+const LIST_LOAD_ERROR = /Couldn't load your plans/u;
+const PLAN_LOAD_ERROR = /Couldn't load this plan/u;
+const WORKOUT_CARD = /Day, /u;
 
 // The stand-in `jest.mock("~/lib/segment")` installs.
 const track = jest.mocked<

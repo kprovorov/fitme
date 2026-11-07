@@ -52,7 +52,7 @@ interface Node {
  */
 function effectiveType(text: string): Pick<TextStyle, TypeKey> {
   const type: Pick<TextStyle, TypeKey> = {};
-  let node: Node | null = screen.getByText(text) as unknown as Node;
+  let node: Node | null = screen.getByText(text);
 
   while (node) {
     const style = StyleSheet.flatten(node.props.style as TextStyle) ?? {};
@@ -71,7 +71,7 @@ function effectiveType(text: string): Pick<TextStyle, TypeKey> {
 
 /** The color React Native draws a piece of text in: the nearest one set. */
 function effectiveColor(text: string): unknown {
-  let node: Node | null = screen.getByText(text) as unknown as Node;
+  let node: Node | null = screen.getByText(text);
 
   while (node) {
     const style = StyleSheet.flatten(node.props.style as TextStyle) ?? {};
@@ -125,9 +125,8 @@ function viewStyles(): TextStyle[] {
 
 /** The role of the table cell a piece of text sits in. */
 function cellRole(text: string): unknown {
-  let node: (Node & { props: { role?: string } }) | null = screen.getByText(
-    text
-  ) as unknown as Node & { props: { role?: string } };
+  let node: (Node & { props: { role?: string } }) | null =
+    screen.getByText(text);
 
   while (node) {
     if (node.props.role === "cell" || node.props.role === "columnheader") {

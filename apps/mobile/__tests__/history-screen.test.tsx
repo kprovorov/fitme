@@ -111,30 +111,30 @@ const MINUTE_MS = 60_000;
 
 /** History's reads of the list; the open Workout Session reads it too. */
 const FINISHED = { status: "finished" };
-const ROW_NAMES = /^(Push Day|Workout|Pull Day)$/;
+const ROW_NAMES = /^(Push Day|Workout|Pull Day)$/u;
 
 // The Personal record VoiceOver reads after the rest of the row.
 const UKRAINIAN_RECORD =
-  /\. Особистий рекорд: Bench press, 105 кілограмів × 3 повторення$/;
+  /\. Особистий рекорд: Bench press, 105 кілограмів × 3 повторення$/u;
 
 // `1 370 кг`, with Ukrainian's no-break space between thousands.
-const UKRAINIAN_PUSH_DAY = /^1 год 5 хв · 5 підходів · 1\s370 кг$/;
+const UKRAINIAN_PUSH_DAY = /^1 год 5 хв · 5 підходів · 1\s370 кг$/u;
 
 const HISTORICAL_EN_METRIC =
-  /Personal record: Bench press, 110 kilograms × 3 reps$/;
+  /Personal record: Bench press, 110 kilograms × 3 reps$/u;
 
 const HISTORICAL_EN_IMPERIAL =
-  /Personal record: Bench press, 242.51 pounds × 3 reps$/;
+  /Personal record: Bench press, 242.51 pounds × 3 reps$/u;
 
 const HISTORICAL_UK_METRIC =
-  /Особистий рекорд: Bench press, 110 кілограмів × 3 повторення$/;
+  /Особистий рекорд: Bench press, 110 кілограмів × 3 повторення$/u;
 
 const HISTORICAL_UK_IMPERIAL =
-  /Особистий рекорд: Bench press, 242,51 фунта × 3 повторення$/;
+  /Особистий рекорд: Bench press, 242,51 фунта × 3 повторення$/u;
 
-const WEEKLY_GOAL = /Weekly goal/;
-const WEEKS_HIT = /weeks? hit/;
-const STREAK = /week streak!/;
+const WEEKLY_GOAL = /Weekly goal/u;
+const WEEKS_HIT = /weeks? hit/u;
+const STREAK = /week streak!/u;
 
 interface Entry {
   id: string;
@@ -162,7 +162,8 @@ const seedEntry = ({ id, minutes, sets, start, workout }: Entry) => {
     order: 1,
     workout_session_id: id,
   });
-  sets.forEach(([reps, weight], index) => {
+
+  for (const [index, [reps, weight]] of sets.entries()) {
     backend.sets.push({
       id: `${id}-e1-s${index + 1}`,
       logged_at: start.toISOString(),
@@ -174,7 +175,7 @@ const seedEntry = ({ id, minutes, sets, start, workout }: Entry) => {
       weight_recommended: weight,
       workout_session_exercise_id: `${id}-e1`,
     });
-  });
+  }
 };
 
 const now = new Date();
@@ -493,7 +494,12 @@ describe("the History tab", () => {
     await waitFor(() => expect(fakePublicApi.count(route, FINISHED)).toBe(1));
     // A macrotask, so the first request is waiting on the first pause (in
     // act: the Weekly goal's answer renders meanwhile).
-    await act(() => new Promise((resolve) => setTimeout(resolve, 10)));
+    await act(
+      () =>
+        new Promise((resolve) => {
+          setTimeout(resolve, 10);
+        })
+    );
     resumeFirstPage();
     await waitFor(() => expect(fakePublicApi.count(route, FINISHED)).toBe(2));
     // The newest session goes after the first page: the second would skip one.

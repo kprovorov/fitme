@@ -52,13 +52,10 @@ export const SymbolImage = ({
   const textStyle = useResolveClassNames(classNames);
 
   // SAFETY: UniWind resolves font sizes to numeric React Native points when present.
-  const pointSize = size ?? (textStyle.fontSize as number | undefined);
+  const pointSize = size ?? textStyle.fontSize;
 
   // SAFETY: UniWind resolves line heights to numeric React Native points when present.
-  const lineHeight =
-    size === undefined
-      ? (textStyle.lineHeight as number | undefined)
-      : undefined;
+  const lineHeight = size === undefined ? textStyle.lineHeight : undefined;
 
   const [symbolSize, setSymbolSize] = useState<{
     height: number;

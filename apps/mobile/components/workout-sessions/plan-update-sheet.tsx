@@ -250,10 +250,10 @@ export const PlanUpdateSheetHost = () => {
         },
         onSuccess: () => {
           for (const queryKey of PLAN_QUERY_KEYS) {
-            queryClient.invalidateQueries({ queryKey });
+            void queryClient.invalidateQueries({ queryKey });
           }
 
-          segmentClient.track(
+          void segmentClient.track(
             "Plan Update Accepted",
             planUpdateProperties(prompt.sessionId, prompt.preview)
           );
@@ -269,7 +269,7 @@ export const PlanUpdateSheetHost = () => {
     }
 
     answeredRef.current = true;
-    segmentClient.track(
+    void segmentClient.track(
       "Plan Update Declined",
       planUpdateProperties(prompt.sessionId, prompt.preview)
     );

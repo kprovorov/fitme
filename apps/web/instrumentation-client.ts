@@ -12,6 +12,7 @@ init({
     // under its name keeps it out.
     { name: "WebVitals" },
     browserTracingIntegration({
+      // oxlint-disable-next-line typescript/no-deprecated -- Keep the existing disabled web-vitals policy for this SDK version.
       enableInp: false,
       enableLongTask: false,
     }),

@@ -37,7 +37,7 @@ const LoginView = () => {
     }
 
     if (!IS_E2E) {
-      segmentClient.track("User Logged In");
+      void segmentClient.track("User Logged In");
     }
   };
 
@@ -74,13 +74,13 @@ const LoginView = () => {
       }
 
       if (signIn.status === "complete") {
-        return finishPassword();
+        return await finishPassword();
       }
 
       if (
         supportsEmailChallenge(signIn.status, signIn.supportedSecondFactors)
       ) {
-        return sendDeviceCode(current);
+        return await sendDeviceCode(current);
       }
 
       return t("auth.login.cantSignInHere");

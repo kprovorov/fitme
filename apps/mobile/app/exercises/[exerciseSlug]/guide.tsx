@@ -32,7 +32,7 @@ const ExerciseGuideScreen = () => {
   const { name } = useExercise(exerciseSlug);
 
   const retry = useCallback(() => {
-    refetch();
+    void refetch();
   }, [refetch]);
 
   const renderContent = () => {

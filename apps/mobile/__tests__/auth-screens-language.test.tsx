@@ -81,6 +81,7 @@ const renderInApp = async (Screen: ComponentType) => {
 const fillIn = async (fields: Record<string, string>) => {
   for (const [placeholder, value] of Object.entries(fields)) {
     // biome-ignore lint/performance/noAwaitInLoops: a User types one field after another
+    // oxlint-disable-next-line eslint/no-await-in-loop -- Fill the fields in the order a User enters them.
     await fireEvent.changeText(screen.getByPlaceholderText(placeholder), value);
   }
 };

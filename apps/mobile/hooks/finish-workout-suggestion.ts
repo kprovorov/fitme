@@ -31,7 +31,7 @@ const controller = createFinishSuggestionController({
  * suggests finishing, once per session.
  */
 export const reportWorkoutSetTracked = (event: SetTrackedEvent): void => {
-  controller.reportSetTracked(event);
+  void controller.reportSetTracked(event);
 };
 
 /**
