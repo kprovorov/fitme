@@ -320,9 +320,9 @@ class FakeArnold {
     input: RequestInfo | URL,
     init: RequestInit = {}
   ): Promise<Response> => {
-    const url = new URL(String(input));
+    const url = new URL(input instanceof Request ? input.url : input);
 
-    if (`${url.origin}` !== new URL(this.baseUrl).origin) {
+    if (url.origin !== new URL(this.baseUrl).origin) {
       throw new Error(
         `Fake Arnold: a test reached ${url.origin}, which is not Arnold. Stand that host in for the test.`
       );
@@ -344,7 +344,7 @@ class FakeArnold {
       );
     }
 
-    return this.respond(url, init);
+    return await this.respond(url, init);
   };
 
   private respond(url: URL, init: RequestInit): Promise<Response> | Response {

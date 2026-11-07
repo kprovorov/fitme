@@ -169,7 +169,7 @@ const PICKER = "/workout-sessions/[workoutSessionId]/exercise-picker";
 
 /** The last request to `route`: the session's re-read follows every edit. */
 const lastRequestTo = (route: string) =>
-  fakePublicApi.requests.filter((request) => request.route === route).at(-1);
+  fakePublicApi.requests.findLast((request) => request.route === route);
 
 let queryClient: QueryClient;
 
@@ -221,7 +221,7 @@ const addLunge = async () => {
 const deleteFirst = async () => {
   const [deleteItem] = await screen.findAllByLabelText("Delete");
   await act(async () => {
-    await fireEvent.press(deleteItem as NonNullable<typeof deleteItem>);
+    await fireEvent.press(deleteItem);
   });
   await settle();
 };
@@ -229,7 +229,7 @@ const deleteFirst = async () => {
 /** Opens the picker replacing the first Exercise. */
 const openReplacePicker = async () => {
   const [replaceItem] = await screen.findAllByLabelText("Replace");
-  await fireEvent.press(replaceItem as NonNullable<typeof replaceItem>);
+  await fireEvent.press(replaceItem);
   await settle();
 };
 
@@ -347,7 +347,7 @@ describe("the Exercise picker", () => {
     await renderSession();
 
     const [replaceItem] = await screen.findAllByLabelText("Replace");
-    await fireEvent.press(replaceItem as NonNullable<typeof replaceItem>);
+    await fireEvent.press(replaceItem);
     await settle();
 
     expect(pushedRoutes()).toEqual([
@@ -400,7 +400,7 @@ describe("the Exercise picker", () => {
   it("removes Replace's preselected Muscle group from its chip", async () => {
     await renderSession();
     const [replaceItem] = await screen.findAllByLabelText("Replace");
-    await fireEvent.press(replaceItem as NonNullable<typeof replaceItem>);
+    await fireEvent.press(replaceItem);
     await settle();
 
     expect(
@@ -421,7 +421,7 @@ describe("the Exercise picker", () => {
   it("starts unfiltered again when adding after a replace", async () => {
     await renderSession();
     const [replaceItem] = await screen.findAllByLabelText("Replace");
-    await fireEvent.press(replaceItem as NonNullable<typeof replaceItem>);
+    await fireEvent.press(replaceItem);
     await settle();
 
     await fireEvent.press(screen.getByLabelText("Close"));
@@ -461,7 +461,7 @@ describe("the Exercise picker", () => {
     expect(pickerOpen()).toBe(false);
 
     const [replaceItem] = await screen.findAllByLabelText("Замінити");
-    await fireEvent.press(replaceItem as NonNullable<typeof replaceItem>);
+    await fireEvent.press(replaceItem);
     await settle();
     expect(
       screen.getByRole("header", { name: "Замінити вправу" })
@@ -507,7 +507,7 @@ describe("searching in the Exercise picker", () => {
   it("searches within the replaced one's muscle group", async () => {
     await renderSession();
     const [replaceItem] = await screen.findAllByLabelText("Replace");
-    await fireEvent.press(replaceItem as NonNullable<typeof replaceItem>);
+    await fireEvent.press(replaceItem);
     await settle();
     expect(pickerRows("replace")).toBe(2);
 

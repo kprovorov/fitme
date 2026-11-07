@@ -10,7 +10,7 @@ export const BlurViewRawBackdrop = ({
   tint = "default",
   intensity = 50,
   blurReductionFactor = 4,
-  experimentalBlurMethod = "none",
+  blurMethod = "none",
   style: _style,
   children: _children,
   ...props
@@ -18,7 +18,7 @@ export const BlurViewRawBackdrop = ({
   <StyledNativeBlurView
     blurReductionFactor={blurReductionFactor}
     className="absolute inset-0 overflow-hidden"
-    experimentalBlurMethod={experimentalBlurMethod}
+    blurMethod={blurMethod}
     intensity={intensity}
     tint={tint}
     {...props}

@@ -194,7 +194,7 @@ const callTool = (
 /** The tool result inside a 200 SSE response. */
 const readToolResult = async (response: Response) => {
   const text = await response.text();
-  const data = text.match(SSE_DATA_LINE)?.groups?.data;
+  const data = SSE_DATA_LINE.exec(text)?.groups?.data;
   const message = JSON.parse(data ?? "{}");
   const [content] = message.result.content;
 

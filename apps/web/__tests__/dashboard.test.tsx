@@ -75,7 +75,13 @@ const errorResponse = (
 ) =>
   Response.json(
     { error: { code, message: `${code} message` } },
-    { headers: { "Content-Type": "application/json", ...headers }, status }
+    {
+      headers: {
+        "Content-Type": "application/json",
+        ...Object.fromEntries(new Headers(headers)),
+      },
+      status,
+    }
   );
 
 const load = (fetch: PublicApiFetch, { apiUrl = API_URL } = {}) =>

@@ -25,7 +25,7 @@ const STORE_URL = getStoreUrl();
 
 const openStore = () => {
   if (STORE_URL) {
-    openUrl(STORE_URL);
+    void openUrl(STORE_URL);
   }
 };
 

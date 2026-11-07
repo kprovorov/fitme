@@ -65,7 +65,7 @@ const readSavedSystem = async (
     if (reconciled?.status === "success" && !reconciled.isInvalidated) {
       // SAFETY: This successful entry uses useProfileQuery's key, whose cached data is Profile | null.
       return {
-        saved: measurementSystemOf(reconciled.data as Profile | null),
+        saved: measurementSystemOf(reconciled.data),
       };
     }
   }
@@ -75,6 +75,7 @@ const readSavedSystem = async (
   }
 
   try {
+    // oxlint-disable-next-line typescript/no-deprecated -- This explicit refresh must preserve the current Query v5 stale-time behavior.
     const fresh = await queryClient.fetchQuery({
       ...useProfileQuery.getFetchOptions(),
       staleTime: 0,
@@ -98,7 +99,7 @@ const readSavedSystem = async (
     // read that lands says whether it did (FIT-553). Remembered before the
     // Profile is dropped, so the read that dropping it starts already counts.
     rememberPendingWeighedRefresh(queryClient, system, starter);
-    queryClient.resetQueries({ queryKey: useProfileQuery.getKey() });
+    void queryClient.resetQueries({ queryKey: useProfileQuery.getKey() });
 
     return { saved: undefined };
   }
@@ -220,7 +221,7 @@ const MeasurementSystemScreen = () => {
         // nothing. Not awaited: nothing below needs it, and History's paged
         // read would hold the picker disabled for the whole thing.
         if (saved === system) {
-          invalidateWeighedQueries(queryClient);
+          void invalidateWeighedQueries(queryClient);
         }
 
         if (isMounted.current) {
@@ -251,7 +252,7 @@ const MeasurementSystemScreen = () => {
   );
 
   const handleRetry = useCallback(() => {
-    refetch();
+    void refetch();
   }, [refetch]);
 
   const handleIsPresentedChange = useCallback((isPresented: boolean) => {

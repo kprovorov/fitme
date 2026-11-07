@@ -1,3 +1,4 @@
+/* oxlint-disable import/no-duplicates -- Install native auth stubs before importing screens, then configure them through the named import. */
 import "~/test-utils/auth-ui";
 import { beforeEach, describe, expect, it, jest } from "@jest/globals";
 import { act, fireEvent, render, screen } from "@testing-library/react-native";

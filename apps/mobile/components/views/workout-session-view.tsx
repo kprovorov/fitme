@@ -42,7 +42,7 @@ const WorkoutSessionView = ({
   // A failed edit may still have been saved (a lost answer): read again
   // either way.
   const rereadSession = useCallback(() => {
-    queryClient.invalidateQueries({
+    void queryClient.invalidateQueries({
       queryKey: WORKOUT_SESSION_QUERY_KEY,
     });
   }, [queryClient]);
@@ -72,7 +72,7 @@ const WorkoutSessionView = ({
     }
 
     if (!IS_E2E) {
-      segmentClient.track("Exercise Deleted", {
+      void segmentClient.track("Exercise Deleted", {
         exercise_id: exerciseId,
         session_id: sessionId,
       });
@@ -112,7 +112,9 @@ const WorkoutSessionView = ({
             onDelete={
               workoutSession.finished_at
                 ? undefined
-                : () => handleDeleteExercise(exercise.id)
+                : () => {
+                    void handleDeleteExercise(exercise.id);
+                  }
             }
             onReplace={
               workoutSession.finished_at

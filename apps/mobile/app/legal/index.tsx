@@ -65,9 +65,19 @@ const LegalScreen = () => {
         showsVerticalScrollIndicator={false}
       >
         <MenuList>
-          <LegalLink label={t("legal.privacyPolicy")} onPress={openPrivacy} />
+          <LegalLink
+            label={t("legal.privacyPolicy")}
+            onPress={(...args) => {
+              void openPrivacy(...args);
+            }}
+          />
           <Separator />
-          <LegalLink label={t("legal.terms")} onPress={openTerms} />
+          <LegalLink
+            label={t("legal.terms")}
+            onPress={(...args) => {
+              void openTerms(...args);
+            }}
+          />
           <Separator />
           <AlertDialog
             actions={[

@@ -66,6 +66,7 @@ import { cn } from "~/lib/utils";
  * What a failed save shows, in the App language: the wait when there were too
  * many requests, never the API's own message.
  */
+// oxlint-disable-next-line react-doctor/only-export-components -- This shared error formatter is used outside the form as well.
 export const profileSaveErrorMessage = (t: Translator["t"], error: Error) => {
   const seconds = rateLimitedFor(error);
 
@@ -541,7 +542,7 @@ const ProfileForm = ({
   // Re-validate the field after the wheel changes its value.
   const handleWheelChange = useCallback(() => {
     if (activeWheel) {
-      form.trigger(activeWheel);
+      void form.trigger(activeWheel);
     }
   }, [activeWheel, form]);
 
@@ -684,7 +685,9 @@ const ProfileForm = ({
             iconPosition="trailing"
             isLoading={isFormSubmitting}
             label={submitLabel}
-            onPress={form.handleSubmit(onSubmit)}
+            onPress={() => {
+              void form.handleSubmit(onSubmit)();
+            }}
             size="lg"
             testID={submitTestID}
           />

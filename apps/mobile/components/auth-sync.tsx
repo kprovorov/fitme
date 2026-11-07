@@ -50,7 +50,7 @@ const AuthSync = () => {
     if (isNewUser) {
       // Screens outside the tabs (deep links) can query before Clerk loads,
       // with only the anon key; refetch them as the User.
-      queryClient.invalidateQueries();
+      void queryClient.invalidateQueries();
     }
 
     // The Clerk id only: no email or name reaches Sentry.
@@ -83,8 +83,9 @@ const AuthSync = () => {
       return;
     }
 
-    const listener = () =>
-      queryClient.invalidateQueries({ queryKey: ["rc-is-pro"] });
+    const listener = () => {
+      void queryClient.invalidateQueries({ queryKey: ["rc-is-pro"] });
+    };
 
     Purchases.addCustomerInfoUpdateListener(listener);
 

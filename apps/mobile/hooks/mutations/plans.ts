@@ -38,7 +38,7 @@ export const useSavePlanMutation = createMutation<FullPlan, SavePlanVariables>({
     }
 
     if (!IS_E2E) {
-      segmentClient.track("Plan Edited", { plan_id: id });
+      void segmentClient.track("Plan Edited", { plan_id: id });
     }
 
     return data.data;
@@ -50,7 +50,7 @@ export const useSavePlanMutation = createMutation<FullPlan, SavePlanVariables>({
   // paged), and the caller's own `onSuccess`, which closes the editor, runs
   // after this one settles.
   onSettled: (_plan, _error, _variables, _context, { client }) => {
-    invalidateWeighedQueries(client);
-    client.invalidateQueries({ queryKey: WEEKLY_GOALS_QUERY_KEY });
+    void invalidateWeighedQueries(client);
+    void client.invalidateQueries({ queryKey: WEEKLY_GOALS_QUERY_KEY });
   },
 });

@@ -381,7 +381,7 @@ export const fetchWorkoutSessionHistory =
         return history;
       }
 
-      return readAttempt(attempt + 1);
+      return await readAttempt(attempt + 1);
     };
 
     return await readAttempt(1);

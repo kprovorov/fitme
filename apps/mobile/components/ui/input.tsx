@@ -22,7 +22,7 @@ type FieldProps = TextInputProps & {
    * message somewhere else (a set row's errors go under the whole row).
    */
   error?: string | boolean;
-  ref?: React.RefObject<React.ElementRef<typeof TextInput> | null>;
+  ref?: React.RefObject<React.ComponentRef<typeof TextInput> | null>;
   /**
    * `ghost` keeps the field's box with a transparent stroke at rest, for a
    * value that reads as settled (a set row's logged or locked cells).

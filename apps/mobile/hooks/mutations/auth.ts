@@ -14,8 +14,8 @@ export const useLogoutMutation = createMutation({
     await getClerk().signOut();
 
     if (!IS_E2E) {
-      segmentClient.track("User Logged Out");
-      segmentClient.reset();
+      void segmentClient.track("User Logged Out");
+      void segmentClient.reset();
     }
   },
 });
@@ -40,8 +40,8 @@ export const useDeleteUserMutation = createMutation({
     await clerk.signOut().catch(Sentry.captureException);
 
     if (!IS_E2E) {
-      segmentClient.track("User Deleted Account");
-      segmentClient.reset();
+      void segmentClient.track("User Deleted Account");
+      void segmentClient.reset();
     }
   },
   onError: (error) => {

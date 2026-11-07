@@ -74,7 +74,7 @@ export const useAppLanguageSync = (): void => {
     setDeviceConventions(i18n, deviceConventions);
 
     if (i18n.language !== language) {
-      i18n.changeLanguage(language);
+      void i18n.changeLanguage(language);
     } else if (conventionsChanged) {
       // Only the region or clock changed: re-render what `useTranslation()`
       // shows, as a language change would, so its dates follow.

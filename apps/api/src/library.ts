@@ -215,7 +215,7 @@ export const refusalOf = (check: RefusedCheck) => {
       );
     }
 
-    default: {
+    case "unknown": {
       return {
         body: {
           error: {

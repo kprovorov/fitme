@@ -25,11 +25,11 @@ import { createTestQueryClient, settle } from "~/test-utils/query-client";
 import ExerciseHistoryView from "../exercise-history-view";
 
 // A row's set number cell, and a session's date.
-const SET_NUMBER = /^#\d$/;
+const SET_NUMBER = /^#\d$/u;
 
 // A date shows its year once it is not this one. An American device puts the
 // month first.
-const SESSION_DATE = /^October \d+(, \d{4})?$/;
+const SESSION_DATE = /^October \d+(, \d{4})?$/u;
 
 // The real Clerk SDK opens a MessagePort at import that keeps Jest alive.
 jest.mock("~/lib/clerk", () => ({
@@ -68,7 +68,8 @@ const seedSession = (
     id,
     startedAt,
   });
-  sets.forEach(({ weight = 45 }, index) => {
+
+  for (const [index, { weight = 45 }] of sets.entries()) {
     const set = backend.sets.find(
       (candidate) => candidate.id === `${id}-e1-s${index + 1}`
     );
@@ -78,7 +79,7 @@ const seedSession = (
       weight_completed: weight,
       weight_recommended: 45,
     });
-  });
+  }
 };
 
 beforeEach(() => {

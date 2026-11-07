@@ -30,6 +30,7 @@ const createTapGesture = ({
   TouchableGlassProps,
   "onPress" | "onPressIn" | "onPressOut" | "disabled"
 >) =>
+  // oxlint-disable-next-line typescript/no-deprecated -- The supported gesture-builder API preserves the current native press lifecycle.
   Gesture.Tap()
     .enabled(!disabled)
     .onBegin(() => {

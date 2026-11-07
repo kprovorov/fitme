@@ -50,7 +50,9 @@ const MenuListItem = ({
   // Rendered next to the icon, so render-function children are not supported.
   children?: React.ReactNode;
   icon?: MenuListItemIcon;
-}) & { ref?: React.RefObject<React.ElementRef<typeof Pressable> | null> }) => (
+}) & {
+  ref?: React.RefObject<React.ComponentRef<typeof Pressable> | null>;
+}) => (
   <TextClassContext.Provider value="web:pointer-events-none">
     <Pressable
       accessibilityRole="button"

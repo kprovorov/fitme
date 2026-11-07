@@ -95,7 +95,7 @@ export const requireConfig = createMiddleware<{ Variables: AuthVariables }>(
       );
     }
 
-    return await next();
+    await next();
   }
 );
 
@@ -109,7 +109,7 @@ export const requireBearerToken = createMiddleware<{
     return unauthorized(c, "missing");
   }
 
-  return await next();
+  await next();
 });
 
 /**
@@ -126,6 +126,6 @@ export const requireClerkUser = createMiddleware<{ Variables: AuthVariables }>(
 
     c.set("clerkUser", { userId: auth.userId });
 
-    return await next();
+    await next();
   }
 );

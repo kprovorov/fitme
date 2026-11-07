@@ -187,36 +187,36 @@ const unreported = ({ lines }, expected) =>
 const EN = "iphone-6.9/en-US";
 const UK = "iphone-6.9/uk";
 
-describe("check accepts", () => {
-  test("a Screenshot set of one image", () => {
+void describe("check accepts", () => {
+  void test("a Screenshot set of one image", () => {
     const result = check(makeTree(images(EN, 1)));
     assert.equal(result.status, 0, result.lines.join("\n"));
     assert.deepEqual(result.lines, []);
   });
 });
 
-describe("check accepts (numbering)", () => {
-  test("a Screenshot set of ten images, ordered through 10", () => {
+void describe("check accepts (numbering)", () => {
+  void test("a Screenshot set of ten images, ordered through 10", () => {
     const result = check(makeTree(images(EN, 10)));
     assert.equal(result.status, 0, result.lines.join("\n"));
     assert.ok(result.stdout.startsWith("1 Screenshot set, 10 images"));
   });
 
-  test("a palette image", () => {
+  void test("a palette image", () => {
     const result = check(makeTree(images(EN, 1, png({ colorType: 3 }))));
     assert.equal(result.status, 0, result.lines.join("\n"));
     assert.deepEqual(result.lines, []);
   });
 
-  test("Listing locales with different counts", () => {
+  void test("Listing locales with different counts", () => {
     const result = check(makeTree({ ...images(EN, 4), ...images(UK, 2) }));
     assert.equal(result.status, 0, result.lines.join("\n"));
     assert.deepEqual(result.lines, []);
   });
 });
 
-describe("check rejects (numbering)", () => {
-  test("an empty Screenshot set", () => {
+void describe("check rejects (numbering)", () => {
+  void test("an empty Screenshot set", () => {
     const result = check(makeTree({ [`${EN}/`]: null }));
     assert.equal(result.status, 1, result.stdout);
     assert.deepEqual(
@@ -226,7 +226,7 @@ describe("check rejects (numbering)", () => {
     );
   });
 
-  test("eleven images", () => {
+  void test("eleven images", () => {
     const result = check(makeTree(images(EN, 11)));
     assert.equal(result.status, 1, result.stdout);
     assert.deepEqual(
@@ -236,7 +236,7 @@ describe("check rejects (numbering)", () => {
     );
   });
 
-  test("a gap in the numbering", () => {
+  void test("a gap in the numbering", () => {
     const tree = images(EN, 4);
     delete tree[`${EN}/02.png`];
     const result = check(makeTree(tree));
@@ -247,7 +247,7 @@ describe("check rejects (numbering)", () => {
     );
   });
 
-  test("stray names, every one of them", () => {
+  void test("stray names, every one of them", () => {
     const result = check(
       makeTree({
         ...images(EN, 2),
@@ -274,7 +274,7 @@ describe("check rejects (numbering)", () => {
     assert.equal(result.lines.length, 5, result.lines.join("\n"));
   });
 
-  test("an unknown device folder", () => {
+  void test("an unknown device folder", () => {
     const result = check(
       makeTree({ ...images(EN, 1), ...images("iphone-6.7/en-US", 1) })
     );
@@ -289,7 +289,7 @@ describe("check rejects (numbering)", () => {
     );
   });
 
-  test("a file where a Listing locale folder belongs", () => {
+  void test("a file where a Listing locale folder belongs", () => {
     const result = check(
       makeTree({ ...images(EN, 1), "iphone-6.9/01.png": png() })
     );
@@ -309,8 +309,8 @@ const withImage = (bytes, set = EN) => ({
   [`${set}/02.png`]: bytes,
 });
 
-describe("check rejects (images)", () => {
-  test("the wrong size", () => {
+void describe("check rejects (images)", () => {
+  void test("the wrong size", () => {
     const result = check(
       makeTree(withImage(png({ height: 2622, width: 1206 })))
     );
@@ -325,7 +325,7 @@ describe("check rejects (images)", () => {
     );
   });
 
-  test("landscape", () => {
+  void test("landscape", () => {
     const result = check(
       makeTree(withImage(png({ height: WIDTH, width: HEIGHT })))
     );
@@ -340,7 +340,7 @@ describe("check rejects (images)", () => {
     );
   });
 
-  test("non-PNG bytes under .png", () => {
+  void test("non-PNG bytes under .png", () => {
     const result = check(
       makeTree(
         withImage(
@@ -357,7 +357,7 @@ describe("check rejects (images)", () => {
     );
   });
 
-  test("a truncated PNG", () => {
+  void test("a truncated PNG", () => {
     const whole = png();
 
     const result = check(
@@ -374,7 +374,7 @@ describe("check rejects (images)", () => {
     );
   });
 
-  test("a PNG whose image data is cut short", () => {
+  void test("a PNG whose image data is cut short", () => {
     // Every chunk well formed, but the pixels stop half way down.
     const ihdr = png().subarray(8, 8 + 25);
     const rowBytes = 1 + WIDTH * 3;
@@ -398,7 +398,7 @@ describe("check rejects (images)", () => {
     );
   });
 
-  test("image data that runs long", () => {
+  void test("image data that runs long", () => {
     const rowBytes = 1 + WIDTH * 3;
 
     const bytes = Buffer.concat([
@@ -418,7 +418,7 @@ describe("check rejects (images)", () => {
     );
   });
 
-  test("a header claiming the largest size a PNG allows", () => {
+  void test("a header claiming the largest size a PNG allows", () => {
     // Reported as undecodable, never decoded into memory.
     const ihdr = Buffer.alloc(13);
     ihdr.writeUInt32BE(1, 0);
@@ -444,7 +444,7 @@ describe("check rejects (images)", () => {
     );
   });
 
-  test("bytes after the IEND chunk", () => {
+  void test("bytes after the IEND chunk", () => {
     const bytes = Buffer.concat([png(), Buffer.from("trailing")]);
     const result = check(makeTree(withImage(bytes)));
     assert.equal(result.status, 1, result.stdout);
@@ -457,7 +457,7 @@ describe("check rejects (images)", () => {
     );
   });
 
-  test("a corrupt chunk", () => {
+  void test("a corrupt chunk", () => {
     const bytes = Buffer.from(png());
     bytes[45] = 255 - bytes[45]; // inside IDAT: its CRC no longer matches
     const result = check(makeTree(withImage(bytes)));
@@ -471,7 +471,7 @@ describe("check rejects (images)", () => {
     );
   });
 
-  test("a broken palette", () => {
+  void test("a broken palette", () => {
     const result = check(
       makeTree({
         ...withImage(png({ colorType: 3, palette: Buffer.alloc(0) })),
@@ -497,7 +497,7 @@ describe("check rejects (images)", () => {
     assert.equal(result.lines.length, 3, result.lines.join("\n"));
   });
 
-  test("an alpha channel, even when fully opaque", () => {
+  void test("an alpha channel, even when fully opaque", () => {
     const result = check(
       makeTree({
         ...withImage(png({ colorType: 6 })),
@@ -516,7 +516,7 @@ describe("check rejects (images)", () => {
     );
   });
 
-  test("transparency without an alpha channel", () => {
+  void test("transparency without an alpha channel", () => {
     const result = check(makeTree(withImage(png({ transparency: true }))));
     assert.equal(result.status, 1, result.stdout);
     assert.deepEqual(
@@ -528,7 +528,7 @@ describe("check rejects (images)", () => {
     );
   });
 
-  test("every failure, across sets, not just the first", () => {
+  void test("every failure, across sets, not just the first", () => {
     const result = check(
       makeTree({
         ...withImage(png({ colorType: 6 })),
@@ -553,8 +553,8 @@ describe("check rejects (images)", () => {
   });
 });
 
-describe("check against the listing config", () => {
-  test("accepts a Listing locale in the config without a folder", () => {
+void describe("check against the listing config", () => {
+  void test("accepts a Listing locale in the config without a folder", () => {
     const result = check(
       makeTree(images(EN, 1)),
       listingConfig(["en-US", "uk", "de-DE"])
@@ -564,7 +564,7 @@ describe("check against the listing config", () => {
     assert.deepEqual(result.lines, []);
   });
 
-  test("accepts the repo's own listing config with its current locales", () => {
+  void test("accepts the repo's own listing config with its current locales", () => {
     const result = run(
       "check",
       makeTree({ ...images(EN, 1), ...images(UK, 1) })
@@ -574,7 +574,7 @@ describe("check against the listing config", () => {
     assert.deepEqual(result.lines, []);
   });
 
-  test("rejects a Listing locale folder the config doesn't list", () => {
+  void test("rejects a Listing locale folder the config doesn't list", () => {
     const config = listingConfig(["en-US", "uk"]);
 
     const result = check(
@@ -598,7 +598,7 @@ describe("check against the listing config", () => {
     assert.equal(result.lines.length, 2, result.lines.join("\n"));
   });
 
-  test("rejects a device folder without an en-US Screenshot set", () => {
+  void test("rejects a device folder without an en-US Screenshot set", () => {
     const result = check(makeTree(images(UK, 2)));
     assert.equal(result.status, 1, result.stdout);
     assert.deepEqual(result.lines, [
@@ -606,7 +606,7 @@ describe("check against the listing config", () => {
     ]);
   });
 
-  test("rejects a screenshots entry anywhere in the config", () => {
+  void test("rejects a screenshots entry anywhere in the config", () => {
     const dir = makeTree({});
     const config = path.join(dir, "store.config.json");
     fs.writeFileSync(
@@ -638,7 +638,7 @@ describe("check against the listing config", () => {
     assert.equal(result.lines.length, 2, result.lines.join("\n"));
   });
 
-  test("rejects a listing config that isn't there or isn't JSON", () => {
+  void test("rejects a listing config that isn't there or isn't JSON", () => {
     const dir = makeTree({ "broken.json": "{ not json" });
     const missing = path.join(dir, "nope.json");
     const broken = path.join(dir, "broken.json");
@@ -652,7 +652,7 @@ describe("check against the listing config", () => {
     assert.ok(result.lines[0].startsWith(`${broken}: not valid JSON`));
   });
 
-  test("rejects a listing config without apple.info", () => {
+  void test("rejects a listing config without apple.info", () => {
     const dir = makeTree({ "store.config.json": '{"configVersion":0}' });
     const config = path.join(dir, "store.config.json");
     const result = check(makeTree(images(EN, 1)), config);
@@ -663,26 +663,26 @@ describe("check against the listing config", () => {
   });
 });
 
-describe("the command line", () => {
-  test("refuses an unknown command", () => {
+void describe("the command line", () => {
+  void test("refuses an unknown command", () => {
     const result = run("push");
     assert.equal(result.status, 2);
     assert.ok(result.lines[0].startsWith("Usage:"));
   });
 
-  test("refuses an empty --config", () => {
+  void test("refuses an empty --config", () => {
     const result = run("check", makeTree(images(EN, 1)), "--config=");
     assert.equal(result.status, 2);
     assert.ok(result.lines[0].startsWith("Usage:"));
   });
 
-  test("refuses an unknown option", () => {
+  void test("refuses an unknown option", () => {
     const result = run("check", "--bsae", "main");
     assert.equal(result.status, 2);
     assert.ok(result.lines[0].startsWith("Usage:"));
   });
 
-  test("fails on a directory that isn't there", () => {
+  void test("fails on a directory that isn't there", () => {
     const missing = path.join(makeTree({}), "nope");
     const result = check(missing);
     assert.equal(result.status, 1);
@@ -725,7 +725,7 @@ const git = (cwd, ...args) => {
 const SCREENSHOTS = "marketing/app-store";
 
 const DELETED_UK =
-  /^iphone-6\.9 \/ uk: Screenshot set deleted since HEAD, but uk is still a Listing locale in \S*store\.config\.json; .*would stay online as they are\. Replace the images instead, or remove uk from the listing config deliberately$/;
+  /^iphone-6\.9 \/ uk: Screenshot set deleted since HEAD, but uk is still a Listing locale in \S*store\.config\.json; .*would stay online as they are\. Replace the images instead, or remove uk from the listing config deliberately$/u;
 
 /** @param {string[]} locales Listing locales. */
 const configJson = (locales) =>
@@ -763,8 +763,8 @@ const makeRepo = (tree, locales = ["en-US", "uk"]) => {
 const checkAgainst = ({ config, dir }, base = "HEAD") =>
   run("check", dir, "--base", base, "--config", config);
 
-describe("check against a base ref", () => {
-  test("rejects a deleted Screenshot set whose Listing locale is still listed", () => {
+void describe("check against a base ref", () => {
+  void test("rejects a deleted Screenshot set whose Listing locale is still listed", () => {
     const repo = makeRepo({ ...images(EN, 2), ...images(UK, 2) });
     fs.rmSync(path.join(repo.dir, UK), { recursive: true });
     const result = checkAgainst(repo);
@@ -773,7 +773,7 @@ describe("check against a base ref", () => {
     assert.match(result.lines[0], DELETED_UK);
   });
 
-  test("rejects a deleted Screenshot set even once committed", () => {
+  void test("rejects a deleted Screenshot set even once committed", () => {
     const repo = makeRepo({ ...images(EN, 1), ...images(UK, 1) });
     fs.rmSync(path.join(repo.dir, UK), { recursive: true });
     git(repo.repo, "commit", "-q", "-am", "delete uk");
@@ -787,7 +787,7 @@ describe("check against a base ref", () => {
     );
   });
 
-  test("rejects a renamed Listing locale folder", () => {
+  void test("rejects a renamed Listing locale folder", () => {
     const repo = makeRepo({ ...images(EN, 1), ...images(UK, 1) });
     fs.renameSync(
       path.join(repo.dir, UK),
@@ -803,7 +803,7 @@ describe("check against a base ref", () => {
     );
   });
 
-  test("accepts a deleted Screenshot set whose Listing locale left the config", () => {
+  void test("accepts a deleted Screenshot set whose Listing locale left the config", () => {
     const repo = makeRepo({ ...images(EN, 1), ...images(UK, 1) });
     fs.rmSync(path.join(repo.dir, UK), { recursive: true });
     fs.writeFileSync(repo.config, configJson(["en-US"]));
@@ -812,7 +812,7 @@ describe("check against a base ref", () => {
     assert.deepEqual(result.lines, []);
   });
 
-  test("accepts added and changed images", () => {
+  void test("accepts added and changed images", () => {
     const repo = makeRepo({ ...images(EN, 2), ...images(UK, 1) });
     fs.writeFileSync(
       path.join(repo.dir, EN, "01.png"),
@@ -825,7 +825,7 @@ describe("check against a base ref", () => {
     assert.ok(result.stdout.startsWith("2 Screenshot sets, 5 images"));
   });
 
-  test("accepts a Screenshot set added since the base", () => {
+  void test("accepts a Screenshot set added since the base", () => {
     const repo = makeRepo(images(EN, 1));
 
     for (const [name, bytes] of Object.entries(images(UK, 1))) {
@@ -839,7 +839,7 @@ describe("check against a base ref", () => {
     assert.equal(result.status, 0, result.lines.join("\n"));
   });
 
-  test("still runs every other rule", () => {
+  void test("still runs every other rule", () => {
     const repo = makeRepo({ ...images(EN, 1), ...images(UK, 1) });
     fs.rmSync(path.join(repo.dir, UK), { recursive: true });
     fs.writeFileSync(path.join(repo.dir, EN, "01.png"), png({ width: 1 }));
@@ -855,7 +855,7 @@ describe("check against a base ref", () => {
     );
   });
 
-  test("fails on a ref that isn't there, never passing silently", () => {
+  void test("fails on a ref that isn't there, never passing silently", () => {
     const repo = makeRepo({ ...images(EN, 1), ...images(UK, 1) });
     fs.rmSync(path.join(repo.dir, UK), { recursive: true });
     const result = checkAgainst(repo, "origin/main");
@@ -869,7 +869,7 @@ describe("check against a base ref", () => {
     );
   });
 
-  test("fails outside a Git repo", () => {
+  void test("fails outside a Git repo", () => {
     const dir = makeTree(images(EN, 1));
 
     const result = run(
@@ -888,14 +888,14 @@ describe("check against a base ref", () => {
     );
   });
 
-  test("refuses a ref that would read as a Git option", () => {
+  void test("refuses a ref that would read as a Git option", () => {
     const { config, dir } = makeRepo(images(EN, 1));
     const result = run("check", dir, "--base=--output=x", "--config", config);
     assert.equal(result.status, 1, result.stdout);
     assert.deepEqual(result.lines, ["--base --output=x: not a Git ref"]);
   });
 
-  test("leaves a listing config it can't read to the config rule", () => {
+  void test("leaves a listing config it can't read to the config rule", () => {
     const repo = makeRepo({ ...images(EN, 1), ...images(UK, 1) });
     fs.rmSync(path.join(repo.dir, UK), { recursive: true });
     fs.writeFileSync(repo.config, "{");
@@ -909,8 +909,8 @@ describe("check against a base ref", () => {
   });
 });
 
-describe("check without a base ref", () => {
-  test("doesn't run the deleted Screenshot set rule", () => {
+void describe("check without a base ref", () => {
+  void test("doesn't run the deleted Screenshot set rule", () => {
     const repo = makeRepo({ ...images(EN, 1), ...images(UK, 1) });
     fs.rmSync(path.join(repo.dir, UK), { recursive: true });
     const result = run("check", repo.dir, "--config", repo.config);
@@ -1038,10 +1038,10 @@ const distinctImages = (set, count, seed = 0) =>
 const staged = (config, paths) =>
   paths.map((p) => path.resolve(path.dirname(config), p));
 
-const STAGED_NAME = /^(\d{2})-([0-9a-f]{8})\.png$/;
+const STAGED_NAME = /^(\d{2})-([0-9a-f]{8})\.png$/u;
 
-describe("prepare", () => {
-  test("writes one entry per Screenshot set, staged under content names", () => {
+void describe("prepare", () => {
+  void test("writes one entry per Screenshot set, staged under content names", () => {
     const tree = {
       ...distinctImages(EN, 2),
       ...distinctImages(UK, 1, 100),
@@ -1109,8 +1109,8 @@ const filesUnder = (dir) =>
         .map((entry) => path.join(entry.parentPath, entry.name))
     : [];
 
-describe("prepare (names and order)", () => {
-  test("orders a set numerically, through 10", () => {
+void describe("prepare (names and order)", () => {
+  void test("orders a set numerically, through 10", () => {
     const tree = distinctImages(EN, 10);
     const target = listing();
     const result = prepare(makeTree(tree), target);
@@ -1137,7 +1137,7 @@ describe("prepare (names and order)", () => {
     );
   });
 
-  test("gives unchanged images the same names, a same-size replacement a new one", () => {
+  void test("gives unchanged images the same names, a same-size replacement a new one", () => {
     const tree = distinctImages(EN, 3);
     const first = listing();
     assert.equal(prepare(makeTree(tree), first).status, 0);
@@ -1165,7 +1165,7 @@ describe("prepare (names and order)", () => {
   });
 });
 
-describe("prepare writes nothing", () => {
+void describe("prepare writes nothing", () => {
   // What prepare left: the config's text and the staged files.
   /** @param {PrepareTarget} target Listing paths. */
   const leftover = (target) => ({
@@ -1173,7 +1173,7 @@ describe("prepare writes nothing", () => {
     staged: filesUnder(target.staging),
   });
 
-  test("for an invalid tree", () => {
+  void test("for an invalid tree", () => {
     const target = listing();
     const before = fs.readFileSync(target.config, "utf-8");
 
@@ -1192,7 +1192,7 @@ describe("prepare writes nothing", () => {
     assert.deepEqual(leftover(target), { config: before, staged: [] });
   });
 
-  test("for a Listing locale folder the config doesn't list", () => {
+  void test("for a Listing locale folder the config doesn't list", () => {
     const target = listing();
     const before = fs.readFileSync(target.config, "utf-8");
 
@@ -1211,7 +1211,7 @@ describe("prepare writes nothing", () => {
     assert.deepEqual(leftover(target), { config: before, staged: [] });
   });
 
-  test("for a Listing locale whose listing isn't an object", () => {
+  void test("for a Listing locale whose listing isn't an object", () => {
     const target = listing({
       ...LISTING,
       apple: { ...LISTING.apple, info: { ...LISTING.apple.info, uk: "Fitme" } },
@@ -1231,7 +1231,7 @@ describe("prepare writes nothing", () => {
     assert.deepEqual(leftover(target), { config: before, staged: [] });
   });
 
-  test("for a config prepare already wrote, like check", () => {
+  void test("for a config prepare already wrote, like check", () => {
     const tree = makeTree(distinctImages(EN, 1));
     const target = listing();
     assert.equal(prepare(tree, target).status, 0);
@@ -1245,7 +1245,7 @@ describe("prepare writes nothing", () => {
     assert.deepEqual(leftover(again), { config: before, staged: [] });
   });
 
-  test("for a listing config that isn't JSON", () => {
+  void test("for a listing config that isn't JSON", () => {
     const target = listing();
     fs.writeFileSync(target.config, "{ not json");
     const result = prepare(makeTree(distinctImages(EN, 1)), target);
@@ -1258,7 +1258,7 @@ describe("prepare writes nothing", () => {
     assert.deepEqual(leftover(target), { config: "{ not json", staged: [] });
   });
 
-  test("but succeeds without any Screenshot sets, the config text only", () => {
+  void test("but succeeds without any Screenshot sets, the config text only", () => {
     const target = listing();
     const before = fs.readFileSync(target.config, "utf-8");
     const result = prepare(makeTree({ "README.md": "# App Store" }), target);
@@ -1268,8 +1268,8 @@ describe("prepare writes nothing", () => {
   });
 });
 
-describe("the command line (prepare)", () => {
-  test("takes no base ref", () => {
+void describe("the command line (prepare)", () => {
+  void test("takes no base ref", () => {
     const { staging } = listing();
 
     const result = run(
@@ -1284,13 +1284,13 @@ describe("the command line (prepare)", () => {
     assert.ok(result.lines[0].startsWith("Usage:"));
   });
 
-  test("needs a staging directory", () => {
+  void test("needs a staging directory", () => {
     const result = run("prepare");
     assert.equal(result.status, 2);
     assert.ok(result.lines[0].startsWith("Usage:"));
   });
 
-  test("refuses an unknown option", () => {
+  void test("refuses an unknown option", () => {
     const { staging } = listing();
     const result = run("prepare", staging, makeTree(images(EN, 1)), "--nope");
     assert.equal(result.status, 2);

@@ -119,6 +119,7 @@ const confirmFinishWorkout = async (
     let session: WorkoutSession;
 
     try {
+      // oxlint-disable-next-line typescript/no-deprecated -- This cache-only fallback must keep ensureQueryData semantics on Query v5.
       session = await queryClient.ensureQueryData(
         useWorkoutSessionQuery.getFetchOptions({ sessionId })
       );
@@ -292,7 +293,7 @@ export const useFinishWorkoutSession = (
         return;
       }
 
-      segmentClient.track("Plan Update Suggested", {
+      void segmentClient.track("Plan Update Suggested", {
         ...countPlanChanges(preview.changes),
         ...planUpdateProperties(sessionId, preview),
       });

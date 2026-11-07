@@ -15,7 +15,7 @@ const IMAGE = "data:image/jpeg;base64,/9j/4AAQSkZJRg==";
 /** The bytes `IMAGE` carries, which the echo reports as its `size`. */
 const IMAGE_BYTES = 10;
 
-const NOT_ARNOLD = /not Arnold/;
+const NOT_ARNOLD = /not Arnold/u;
 
 const client = () => new Client({ host: fakeArnold.baseUrl });
 
@@ -164,7 +164,9 @@ describe("fake Arnold", () => {
     // What `after-each.ts` does while that request is still on its way.
     fakeArnold.reset();
 
-    expect((await inFlight).status).toBe(409);
+    const refused = await inFlight;
+
+    expect(refused.status).toBe(409);
     expect(fakeArnold.sent).toEqual([]);
     expect(fakeArnold.sessionIds).toEqual([]);
   });

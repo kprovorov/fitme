@@ -108,7 +108,7 @@ export const createApp = (deps: Partial<AppDeps> = {}) => {
     });
     c.set("reportError", report);
 
-    return await next();
+    await next();
   });
   // Before anything is served, unknown routes included.
   app.use(rateLimitCallers({ limiter: rateLimiter, reportError: report }));

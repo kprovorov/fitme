@@ -46,10 +46,10 @@ const entry: WorkoutSessionHistoryEntry = {
 
 // The Personal record VoiceOver reads after the rest of the row.
 const UKRAINIAN_RECORD =
-  /\. Особистий рекорд: Pull up, власна вага × 12 повторень$/;
+  /\. Особистий рекорд: Pull up, власна вага × 12 повторень$/u;
 
 // `12 505 кг`, with Ukrainian's no-break space between thousands.
-const UKRAINIAN_DETAILS = /^42 хв · 1 підхід · 12\s505 кг$/;
+const UKRAINIAN_DETAILS = /^42 хв · 1 підхід · 12\s505 кг$/u;
 
 // The language sync leaves the App language and region where a test put them.
 afterEach(async () => {

@@ -8,9 +8,9 @@ import { fileURLToPath } from "node:url";
 
 import { staleStacks } from "./stale-stacks.mjs";
 
-const NO_JSON = /no JSON/;
-const DESTROYING_GONE = /Destroying gone-id/;
-const USAGE = /Usage/;
+const NO_JSON = /no JSON/u;
+const DESTROYING_GONE = /Destroying gone-id/u;
+const USAGE = /Usage/u;
 
 const SCRIPT = fileURLToPath(new URL("stale-stacks.mjs", import.meta.url));
 
@@ -46,7 +46,7 @@ const stack = (id, projectRoot) => ({
 });
 
 void describe("staleStacks", () => {
-  test("picks the stacks of checkouts that no longer exist", () => {
+  void test("picks the stacks of checkouts that no longer exist", () => {
     const exists = (dir) => dir === "/live/packages/supabase";
 
     const stacks = [
@@ -60,7 +60,7 @@ void describe("staleStacks", () => {
     );
   });
 
-  test("picks every stack of the given checkout, even a live one", () => {
+  void test("picks every stack of the given checkout, even a live one", () => {
     const exists = () => true;
 
     const stacks = [
@@ -77,13 +77,13 @@ void describe("staleStacks", () => {
     );
   });
 
-  test("throws without a JSON line", () => {
+  void test("throws without a JSON line", () => {
     assert.throws(() => staleStacks("nothing\n"), NO_JSON);
   });
 });
 
 void describe("the CLI", () => {
-  test("prints one id per line, the rest on stderr", () => {
+  void test("prints one id per line, the rest on stderr", () => {
     const live = tempDir("stale-stacks-");
     fs.mkdirSync(path.join(live, "packages/supabase"), { recursive: true });
 
@@ -101,7 +101,7 @@ void describe("the CLI", () => {
     assert.match(run.stderr, DESTROYING_GONE);
   });
 
-  test("fails without its arguments", () => {
+  void test("fails without its arguments", () => {
     const run = spawnSync(process.execPath, [SCRIPT], { encoding: "utf-8" });
     assert.notEqual(run.status, 0);
     assert.match(run.stderr, USAGE);

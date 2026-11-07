@@ -71,12 +71,14 @@ const EditProfileScreen = () => {
         Sentry.captureException(e);
       }
 
-      queryClient.invalidateQueries({ queryKey: useProfileQuery.getKey() });
+      void queryClient.invalidateQueries({
+        queryKey: useProfileQuery.getKey(),
+      });
     },
   });
 
   const handleRetry = useCallback(() => {
-    refetchProfile();
+    void refetchProfile();
   }, [refetchProfile]);
 
   const handleSubmit = useCallback(

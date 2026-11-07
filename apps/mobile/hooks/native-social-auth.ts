@@ -190,7 +190,7 @@ export const useNativeSocialAuth = () => {
       await result.setActive({ session: result.createdSessionId });
 
       if (!IS_E2E) {
-        segmentClient.track(
+        void segmentClient.track(
           result.signUp?.createdSessionId === result.createdSessionId
             ? "User Registered"
             : "User Logged In"
@@ -223,7 +223,7 @@ export const useNativeSocialAuth = () => {
       }
 
       if (result.createdSessionId) {
-        return activate(result, current);
+        return await activate(result, current);
       }
 
       const changedSignIn =
@@ -237,7 +237,7 @@ export const useNativeSocialAuth = () => {
       }
 
       if (changedSignUp && result.signUp?.status === "missing_requirements") {
-        return completeSignUp(result, current);
+        return await completeSignUp(result, current);
       }
 
       if (
@@ -245,7 +245,7 @@ export const useNativeSocialAuth = () => {
         (result.signIn?.status === "needs_second_factor" ||
           result.signIn?.status === "needs_client_trust")
       ) {
-        return completeSignIn(result, current);
+        return await completeSignIn(result, current);
       }
 
       return t("auth.social.incomplete");

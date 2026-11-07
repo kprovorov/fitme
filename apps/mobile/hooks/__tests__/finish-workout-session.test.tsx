@@ -125,17 +125,7 @@ jest.mock("~/hooks/queries/workout-sessions", () => {
   };
 });
 
-const deferred = () => {
-  let resolve!: (value: unknown) => void;
-  let reject!: (error: unknown) => void;
-
-  const promise = new Promise<unknown>((res, rej) => {
-    resolve = res;
-    reject = rej;
-  });
-
-  return { promise, reject, resolve };
-};
+const deferred = () => Promise.withResolvers<unknown>();
 
 const setup = async (screensAboveSession = 0) => {
   const queryClient = createTestQueryClient();
@@ -161,7 +151,12 @@ const setup = async (screensAboveSession = 0) => {
   // notification (a 0 ms timer) re-render the hooks inside act.
   const settled = async () => {
     await waitFor(() => expect(queryClient.isMutating()).toBe(0));
-    await act(() => new Promise((resolve) => setTimeout(resolve, 0)));
+    await act(
+      () =>
+        new Promise((resolve) => {
+          setTimeout(resolve, 0);
+        })
+    );
     expect([
       result.current.session.isFinishing,
       result.current.exercise.isFinishing,
@@ -353,12 +348,8 @@ describe("useFinishWorkoutSession", () => {
       id: "session-1",
     };
 
-    type AlertButtons = Parameters<typeof Alert.alert>[2];
-
     const pressAlertButton = async (text: string, call = 0) => {
-      const buttons = jest.mocked(Alert.alert).mock.calls[call]?.[2] as
-        | AlertButtons
-        | undefined;
+      const buttons = jest.mocked(Alert.alert).mock.calls[call]?.[2];
 
       const button = buttons?.find((candidate) => candidate.text === text);
       await act(() => button?.onPress?.());
@@ -455,7 +446,12 @@ describe("useFinishWorkoutSession", () => {
         result.current.exercise.confirmFinish();
       });
       await waitFor(() => expect(Alert.alert).toHaveBeenCalled());
-      await act(() => new Promise((resolve) => setTimeout(resolve, 0)));
+      await act(
+        () =>
+          new Promise((resolve) => {
+            setTimeout(resolve, 0);
+          })
+      );
       expect(Alert.alert).toHaveBeenCalledTimes(1);
 
       await pressAlertButton("Finish");

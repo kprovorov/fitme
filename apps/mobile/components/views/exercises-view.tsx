@@ -98,7 +98,7 @@ const ExercisesView = ({
 
   const loadNextPage = useCallback(() => {
     // A request in flight is never sent again.
-    loadMore({ cancelRefetch: false });
+    void loadMore({ cancelRefetch: false });
   }, [loadMore]);
 
   const onEndReached = useCallback(() => {
@@ -137,7 +137,7 @@ const ExercisesView = ({
   }, [refetch]);
 
   const retry = useCallback(() => {
-    refetch();
+    void refetch();
   }, [refetch]);
 
   const showAll = useCallback(() => {

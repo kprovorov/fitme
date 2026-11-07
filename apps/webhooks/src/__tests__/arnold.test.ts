@@ -73,7 +73,7 @@ describe("arnold conversation deletion", () => {
   it("resets the rest and fails when one session fails to reset", async () => {
     const { retired, wipe } = setup(["wrun_a", "wrun_b"], ["wrun_b"]);
 
-    const failure = await wipe(USER_ID).catch((error) => error);
+    const failure = await wipe(USER_ID).catch((error: unknown) => error);
 
     expect(failure).toBeInstanceOf(AggregateError);
 

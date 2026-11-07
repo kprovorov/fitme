@@ -1,3 +1,4 @@
+/* oxlint-disable eslint/max-classes-per-file -- These exported errors share one public domain error hierarchy. */
 export type LibraryErrorCode =
   | "invalid_request"
   | "rate_limited"

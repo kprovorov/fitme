@@ -142,8 +142,8 @@ jest.mock("~/components/ui/dropdown-menu", () => {
 });
 
 // The Exercise header reads the name, then the muscle groups.
-const SQUAT = /^Squat/;
-const MYSTERY_MOVE = /^Mystery move/;
+const SQUAT = /^Squat/u;
+const MYSTERY_MOVE = /^Mystery move/u;
 
 /** Not in the Library: shown as "Mystery move". */
 const UNKNOWN_SLUG = "mystery-move";
@@ -307,7 +307,7 @@ describe("a Workout Session", () => {
     await renderScreen(HistorySessionScreen, { workoutSessionId: "s1" });
 
     const [replaceSquat] = await screen.findAllByLabelText("Replace");
-    await fireEvent.press(replaceSquat as NonNullable<typeof replaceSquat>);
+    await fireEvent.press(replaceSquat);
 
     const replaceWithLunge = await screen.findByRole("button", {
       name: "Replace with Lunge",

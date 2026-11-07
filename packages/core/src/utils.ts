@@ -1,5 +1,8 @@
 import type { Equipment, MuscleGroup } from "./models";
 
+const hasMessage = (value: unknown): value is { message: unknown } =>
+  typeof value === "object" && value !== null && "message" in value;
+
 export const handleSupabaseError = (
   error: unknown,
   setMessage: (message: string) => void = () => {
@@ -10,11 +13,7 @@ export const handleSupabaseError = (
 
   if (error instanceof Error) {
     ({ message } = error);
-  } else if (
-    typeof error === "object" &&
-    error !== null &&
-    "message" in error
-  ) {
+  } else if (hasMessage(error)) {
     message = String(error.message);
   }
 

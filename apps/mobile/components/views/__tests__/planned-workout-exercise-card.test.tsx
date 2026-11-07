@@ -49,11 +49,11 @@ const workoutExercise = (
 });
 
 // A row's set number cell.
-const SET_NUMBER = /^#\d$/;
-const ANY_VALUE = /.*/;
+const SET_NUMBER = /^#\d$/u;
+const ANY_VALUE = /.*/u;
 
 // The header reads the name, then the muscle groups.
-const BENCH_PRESS = /^Bench Press/;
+const BENCH_PRESS = /^Bench Press/u;
 
 beforeEach(() => {
   mockPush.mockClear();

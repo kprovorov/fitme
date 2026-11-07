@@ -15,7 +15,11 @@ import {
   View,
 } from "react-native";
 import type { TextInputInstance } from "react-native";
-import Animated, { FadeIn, FadeOut } from "react-native-reanimated";
+import Animated, {
+  createAnimatedComponent,
+  FadeIn,
+  FadeOut,
+} from "react-native-reanimated";
 import { ScopedVariables, useCSSVariable, withUniwind } from "uniwind";
 
 import { SymbolImage } from "@/components/symbol-image";
@@ -28,7 +32,7 @@ import type { ChatAttachment } from "./chat-context";
 import { useConversationContext } from "./conversation";
 
 const AnimatedGlassContainer = withUniwind(
-  Animated.createAnimatedComponent(GlassContainer)
+  createAnimatedComponent(GlassContainer)
 );
 
 const StyledGlassView = withUniwind(GlassView);

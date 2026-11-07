@@ -64,13 +64,13 @@ const ResetPasswordView = () => {
       }
 
       if (signIn.status === "complete") {
-        return finishPassword();
+        return await finishPassword();
       }
 
       if (
         supportsEmailChallenge(signIn.status, signIn.supportedSecondFactors)
       ) {
-        return sendDeviceCode(current);
+        return await sendDeviceCode(current);
       }
 
       return t("resetPassword.passwordChanged");

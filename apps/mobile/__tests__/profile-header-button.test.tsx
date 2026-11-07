@@ -170,7 +170,7 @@ describe("profile from the first tab's header", () => {
     const button = screen.getByRole("button", { name: "Profile" });
     expect(button.props.testID).toBe("header-person.fill");
 
-    fireEvent.press(button);
+    void fireEvent.press(button);
 
     expect(mockPush).toHaveBeenCalledWith("/profile");
   });
@@ -190,7 +190,7 @@ describe("profile from the first tab's header", () => {
       );
 
       expect(textButton).toBeDefined();
-      fireEvent.press(textButton as NonNullable<typeof textButton>);
+      void fireEvent.press(textButton as NonNullable<typeof textButton>);
       expect(mockPush).toHaveBeenCalledWith("/profile");
     } finally {
       Platform.OS = os;

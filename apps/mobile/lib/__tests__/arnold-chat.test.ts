@@ -178,6 +178,7 @@ describe("arnoldErrorKind", () => {
 describe("saved Arnold Conversation", () => {
   const session = { sessionId: "ses_1", streamIndex: 4 };
 
+  // oxlint-disable-next-line anti-slop/no-chained-type-assertions -- This serialization-only fixture deliberately omits Eve transport fields.
   const events = [
     { meta: { id: "evt_1" }, type: "session.started" },
   ] as unknown as MessageStreamEvent[];
@@ -239,12 +240,16 @@ describe("saved Arnold Conversation", () => {
 });
 
 describe("isRefusedSend", () => {
-  const userMessage = (status?: string) =>
-    ({
-      content: [{ text: "Build me a plan", type: "text" }],
-      metadata: { custom: status ? { status } : {} },
-      role: "user",
-    }) as unknown as Parameters<typeof isRefusedSend>[0];
+  const userMessage = (
+    status?: string
+  ): Parameters<typeof isRefusedSend>[0] => ({
+    attachments: [],
+    content: [{ text: "Build me a plan", type: "text" }],
+    createdAt: new Date("2026-11-07T00:00:00Z"),
+    id: "user-message",
+    metadata: { custom: status ? { status } : {} },
+    role: "user",
+  });
 
   it("spots the placeholder eve keeps for a send Arnold refused", () => {
     expect(isRefusedSend(userMessage("failed"))).toBe(true);

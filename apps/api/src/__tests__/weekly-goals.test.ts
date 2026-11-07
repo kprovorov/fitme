@@ -99,10 +99,11 @@ describe("gET /v1/weekly-goals", () => {
     expect(zones).toStrictEqual(["Europe/Kyiv", "UTC"]);
 
     const invalid = await Promise.all(
-      ["invalid", "%2B02%3A00", ""].map((zone) =>
-        app.request(`/v1/weekly-goals?time_zone=${zone}`, {
-          headers: signedInAs("user_alice"),
-        })
+      ["invalid", "%2B02%3A00", ""].map(
+        async (zone) =>
+          await app.request(`/v1/weekly-goals?time_zone=${zone}`, {
+            headers: signedInAs("user_alice"),
+          })
       )
     );
 

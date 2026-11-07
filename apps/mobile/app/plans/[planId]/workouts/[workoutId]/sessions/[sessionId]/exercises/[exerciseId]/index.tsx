@@ -128,7 +128,7 @@ const WorkoutSessionExerciseScreen = () => {
   }, []);
 
   const retry = useCallback(() => {
-    refetch();
+    void refetch();
   }, [refetch]);
 
   // The history is a card inside this screen's scroll view, so the screen is

@@ -66,7 +66,9 @@ export const rateLimitUsers = ({
     const caller = c.get("caller");
 
     if (caller.type !== "user") {
-      return next();
+      await next();
+
+      return;
     }
 
     const result = await checkRateLimit({
@@ -87,5 +89,5 @@ export const rateLimitUsers = ({
       return c.json(tooManyRequests, 429);
     }
 
-    return next();
+    await next();
   });

@@ -19,7 +19,9 @@ jest.mock("~/components/symbol-image", () => {
     jest.requireActual<typeof import("react-native")>("react-native");
 
   return {
-    SymbolImage: (props: object) => <MockView {...props} testID="symbol" />,
+    SymbolImage: (props: React.ComponentProps<typeof MockView>) => (
+      <MockView {...props} testID="symbol" />
+    ),
   };
 });
 

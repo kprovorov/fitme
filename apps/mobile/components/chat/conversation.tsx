@@ -24,7 +24,7 @@ import { Text, View } from "react-native";
 import type { LayoutChangeEvent, ViewStyle } from "react-native";
 import { useKeyboardHandler } from "react-native-keyboard-controller";
 import Animated, {
-  runOnJS,
+  createAnimatedComponent,
   useAnimatedProps,
   useAnimatedStyle,
   useDerivedValue,
@@ -33,6 +33,7 @@ import Animated, {
 } from "react-native-reanimated";
 import type { AnimatedStyle } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { scheduleOnRN } from "react-native-worklets";
 import type { SFSymbol } from "sf-symbols-typescript";
 
 import { SymbolImage } from "@/components/symbol-image";
@@ -70,6 +71,7 @@ const AnimatableLegendList = ({ ref, ...props }: AnimatableLegendListProps) => {
 
     return {
       ...list,
+      // oxlint-disable-next-line typescript/no-unsafe-return -- LegendList's typed native ref is forwarded unchanged; tsc validates its contract.
       getAnimatableRef: () => list.getNativeScrollRef(),
     };
   }, []);
@@ -77,8 +79,7 @@ const AnimatableLegendList = ({ ref, ...props }: AnimatableLegendListProps) => {
   return <LegendList {...props} ref={listRef} />;
 };
 
-const AnimatedLegendList =
-  Animated.createAnimatedComponent(AnimatableLegendList);
+const AnimatedLegendList = createAnimatedComponent(AnimatableLegendList);
 
 const messageKeyExtractor = (item: ThreadMessage) => item.id;
 
@@ -265,7 +266,7 @@ export const Conversation = ({
 
       if (wasAtBottom && heightIncreased && listRef.current) {
         requestAnimationFrame(() => {
-          listRef.current?.scrollToEnd({
+          void listRef.current?.scrollToEnd({
             animated: true,
             viewOffset: -bottomInset.value,
           });
@@ -283,7 +284,7 @@ export const Conversation = ({
   );
 
   const scrollToBottom = useCallback(() => {
-    listRef.current?.scrollToEnd({
+    void listRef.current?.scrollToEnd({
       animated: true,
       viewOffset: -bottomInset.value,
     });
@@ -299,7 +300,7 @@ export const Conversation = ({
         wasInteractive.set(false);
 
         if (shouldScroll) {
-          runOnJS(scrollToBottom)();
+          scheduleOnRN(scrollToBottom);
         }
       },
       onInteractive: (e) => {

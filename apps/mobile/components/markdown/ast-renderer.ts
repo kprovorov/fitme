@@ -69,7 +69,7 @@ export default class ASTRenderer {
     if (!fn) {
       console.warn(`Missing render rule for node type: ${type}`);
 
-      const unknown = this._renderRules.unknown;
+      const { unknown } = this._renderRules;
 
       return unknown ? (params) => unknown(params) : () => null;
     }
@@ -161,7 +161,8 @@ export default class ASTRenderer {
           }
         }
       } else {
-        for (const child of node.children) {
+        // SAFETY: mdast parents contain Nodes; the children array was checked above.
+        for (const child of node.children as Node[]) {
           children.push(this.renderNode(child, [node, ...parentStack]));
         }
       }

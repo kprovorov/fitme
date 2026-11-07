@@ -476,7 +476,10 @@ const unitsOf = (system: string) =>
 
 const json = <T>(status: number, body: T, headers: HeadersInit = {}) =>
   new Response(body === null ? null : JSON.stringify(body), {
-    headers: { "Content-Type": "application/json", ...headers },
+    headers: {
+      "Content-Type": "application/json",
+      ...Object.fromEntries(new Headers(headers)),
+    },
     status,
   });
 
@@ -2392,7 +2395,7 @@ class FakePublicApi {
       const { failure } = queued;
 
       if (failure === "pass") {
-        return this.answer(matched, authorization, body, searchParams);
+        return await this.answer(matched, authorization, body, searchParams);
       }
 
       if (failure === "lost") {
@@ -2417,7 +2420,7 @@ class FakePublicApi {
           );
     }
 
-    return this.answer(matched, authorization, body, searchParams);
+    return await this.answer(matched, authorization, body, searchParams);
   }
 
   private answer(

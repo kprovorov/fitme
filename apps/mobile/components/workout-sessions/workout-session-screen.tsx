@@ -50,7 +50,7 @@ const WorkoutSessionScreen = ({ sessionId }: WorkoutSessionScreenProps) => {
   const { confirmFinish, isFinishing } = useFinishWorkoutSession(sessionId);
 
   const retry = useCallback(() => {
-    refetch();
+    void refetch();
   }, [refetch]);
 
   const canFinish = !!workoutSession && !workoutSession.finished_at;

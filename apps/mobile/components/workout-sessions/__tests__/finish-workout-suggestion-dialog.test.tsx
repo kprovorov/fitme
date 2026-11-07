@@ -88,7 +88,7 @@ const KEEP_TRAINING = { name: "Keep Training" } as const;
 const CLOSE = { name: "Close" } as const;
 
 const setup = async (props: Partial<Props> = {}) => {
-  const onFinish = jest.fn();
+  const onFinish = jest.fn<Props["onFinish"]>();
   const onKeepTraining = jest.fn();
 
   const element = (overrides: Partial<Props> = {}) => (

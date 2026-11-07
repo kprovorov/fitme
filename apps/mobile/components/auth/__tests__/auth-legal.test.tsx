@@ -16,6 +16,7 @@ jest.mock("expo-router", () => ({
 jest.mock("expo-web-browser", () => ({
   openBrowserAsync: jest.fn(),
   WebBrowserPresentationStyle: { AUTOMATIC: "automatic" },
+  WebBrowserResultType: { DISMISS: "dismiss" },
 }));
 
 const openBrowserAsync = jest.mocked(WebBrowser.openBrowserAsync);
@@ -29,8 +30,8 @@ beforeEach(() => {
 
 test("opens the Terms and the privacy policy in the in-app browser", async () => {
   openBrowserAsync.mockResolvedValue({
-    type: "dismiss",
-  } as WebBrowser.WebBrowserResult);
+    type: WebBrowser.WebBrowserResultType.DISMISS,
+  });
   await render(<AuthLegal />);
 
   await fireEvent.press(screen.getByText("Terms of Service"));

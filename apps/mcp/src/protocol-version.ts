@@ -59,7 +59,9 @@ export const answerUnsupportedProtocolVersion: MiddlewareHandler = async (
     !unsupported ||
     (c.req.method === "POST" && (await isForTransport(c.req.raw)))
   ) {
-    return await next();
+    await next();
+
+    return;
   }
 
   const message = `Bad Request: Unsupported protocol version: ${version} (supported versions: ${SUPPORTED_PROTOCOL_VERSIONS.join(", ")})`;

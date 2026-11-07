@@ -8,7 +8,7 @@ const { EXPO_PUBLIC_DEVTOOLS_SYNC, NODE_ENV } = process.env;
 
 const setEnv = (name: string, value: string | undefined) => {
   if (value === undefined) {
-    delete process.env[name];
+    Reflect.deleteProperty(process.env, name);
   } else {
     process.env[name] = value;
   }

@@ -154,8 +154,8 @@ const EXERCISE_LOAD_ERROR =
 const RATE_LIMITED = "Too many requests: please try again in 12 s.";
 
 // An Exercise card's or row's header, read with its muscle groups.
-const SQUAT = /^Squat/;
-const BENCH_PRESS = /^Bench Press/;
+const SQUAT = /^Squat/u;
+const BENCH_PRESS = /^Bench Press/u;
 
 const TROPHY = "symbol:trophy.fill";
 

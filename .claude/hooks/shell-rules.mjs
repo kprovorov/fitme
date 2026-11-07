@@ -423,6 +423,7 @@ class Lexer {
    * @param {string} char The char to process.
    * @param {string | undefined} following The following to process.
    */
+  // oxlint-disable-next-line eslint/complexity -- Keep the lexer's character-state transitions in one dispatch.
   step(char, following) {
     if (char === "\\") {
       this.escape(following);
@@ -1540,6 +1541,7 @@ const leaksLocalSecrets = (args, projectDir) => {
   if (subcommand === "detect" && flags.has("--no-git")) {
     const source = flags.get("--source");
 
+    // oxlint-disable-next-line anti-slop/no-runtime-typeof -- This is the shell flag parser's boundary check for an optional string value.
     return typeof source !== "string" || !namesOnePlace(source, projectDir);
   }
 

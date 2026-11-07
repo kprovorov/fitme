@@ -11,12 +11,12 @@ const clients = new Set<QueryClient>();
 // notification renders its data and can mount the next dependent query.
 const pendingNotifications = new Set<object>();
 
-notifyManager.setScheduler((callback) => {
+notifyManager.setScheduler((notify) => {
   const notification = {};
   pendingNotifications.add(notification);
   defaultScheduler(() => {
     try {
-      return callback();
+      notify();
     } finally {
       pendingNotifications.delete(notification);
     }
@@ -79,7 +79,7 @@ export const until = async (condition: () => boolean) => {
 
     await nextMacrotask();
 
-    return check(tick + 1);
+    await check(tick + 1);
   };
 
   await check(0);
@@ -122,7 +122,7 @@ export const settle = async (
       return;
     }
 
-    return check(tick + 1);
+    await check(tick + 1);
   };
 
   await check(0);

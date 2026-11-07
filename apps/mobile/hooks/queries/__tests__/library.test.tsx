@@ -39,7 +39,7 @@ const newWrapper = () => {
   );
 };
 
-const SLUGS_PATTERN = /[?&]slugs=([^&]*)/;
+const SLUGS_PATTERN = /[?&]slugs=([^&]*)/u;
 
 beforeEach(() => {
   storage.clearAll();
@@ -137,7 +137,7 @@ describe("the MMKV cache", () => {
       expect(rows.result.current["bench-press"].isResolved).toBe(true)
     );
 
-    expect(storage.getAllKeys().sort()).toEqual([
+    expect(storage.getAllKeys().toSorted()).toEqual([
       "arnold.models",
       "library.en.exercise-summary.bench-press",
       "library.untranslated-exercises-swept",
@@ -227,23 +227,23 @@ describe("useExercises", () => {
     const asked: string[][] = [];
 
     const fetch = jest.fn((url: string | URL | Request) => {
-      const match = String(url).match(SLUGS_PATTERN);
+      const match = SLUGS_PATTERN.exec(
+        url instanceof Request ? url.url : String(url)
+      );
+
       const batch = decodeURIComponent(match?.[1] ?? "").split(",");
       asked.push(batch);
 
       return Promise.resolve(
-        new Response(
-          JSON.stringify({
-            data: batch.map((slug) => libraryExercise(slug)),
-            missing: [],
-          }),
-          { headers: { "content-type": "application/json" }, status: 200 }
-        )
+        Response.json({
+          data: batch.map((slug) => libraryExercise(slug)),
+          missing: [],
+        })
       );
     });
 
     library.current = createLibrary({
-      fetch: fetch as typeof globalThis.fetch,
+      fetch,
       token: () => Promise.resolve("session-token"),
       url: "https://exercises.test",
     });
@@ -256,7 +256,7 @@ describe("useExercises", () => {
       expect(slugs.every((slug) => result.current[slug].isResolved)).toBe(true)
     );
     expect(asked.map((batch) => batch.length)).toEqual([40, 40, 20]);
-    expect(asked.flat().sort()).toEqual([...slugs].sort());
+    expect(asked.flat().toSorted()).toEqual([...slugs].toSorted());
     expect(result.current["exercise-7"].name).toBe("Exercise 7");
   });
 

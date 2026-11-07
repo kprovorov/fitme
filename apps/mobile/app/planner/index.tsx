@@ -533,14 +533,16 @@ const PlannerScreen = () => {
               <View className="flex flex-col items-stretch justify-center gap-2">
                 <Button
                   label={t("planner.submit")}
-                  onPress={form.handleSubmit((data) => {
-                    router.dismissTo({
-                      params: {
-                        initialMessage: buildPlanMessage(data, t),
-                      },
-                      pathname: "/(tabs)/arnold",
-                    });
-                  })}
+                  onPress={() => {
+                    void form.handleSubmit((data) => {
+                      router.dismissTo({
+                        params: {
+                          initialMessage: buildPlanMessage(data, t),
+                        },
+                        pathname: "/(tabs)/arnold",
+                      });
+                    })();
+                  }}
                   size="lg"
                 />
               </View>

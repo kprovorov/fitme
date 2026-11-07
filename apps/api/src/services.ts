@@ -322,7 +322,7 @@ export const createServicesFromEnv: ServicesFactory = (userId) => {
       weighed(
         async (tx) =>
           (await activatePlan(tx, userId, planId))
-            ? getPlan(tx, userId, planId)
+            ? await getPlan(tx, userId, planId)
             : null,
         write
       ),
@@ -360,7 +360,11 @@ export const createServicesFromEnv: ServicesFactory = (userId) => {
       asUser(userId, async (tx) => {
         await write.before(tx);
 
-        return removeExerciseFromWorkoutSession(tx, userId, sessionExerciseId);
+        return await removeExerciseFromWorkoutSession(
+          tx,
+          userId,
+          sessionExerciseId
+        );
       }),
     replaceExerciseInWorkoutSession: (input) =>
       inUnits(

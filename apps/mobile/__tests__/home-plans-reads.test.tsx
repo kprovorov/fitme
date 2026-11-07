@@ -133,7 +133,9 @@ const createAppQueryClient = () =>
 /** Lets `ms` of real time pass, inside `act`. */
 const wait = (ms: number) =>
   act(async () => {
-    await new Promise((resolve) => setTimeout(resolve, ms));
+    await new Promise((resolve) => {
+      setTimeout(resolve, ms);
+    });
   });
 
 const renderScreen = async (client = createTestQueryClient()) => {

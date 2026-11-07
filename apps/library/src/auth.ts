@@ -110,7 +110,9 @@ export const requireCaller = ({ clerkJwtKeys, serverSecrets }: AuthConfig) => {
       if (server) {
         c.set("caller", { name: server.name, type: "server" });
 
-        return next();
+        await next();
+
+        return;
       }
 
       const results = await Promise.all(
@@ -122,7 +124,9 @@ export const requireCaller = ({ clerkJwtKeys, serverSecrets }: AuthConfig) => {
       if (verified) {
         c.set("caller", { type: "user", userId: verified.userId });
 
-        return next();
+        await next();
+
+        return;
       }
 
       // A wrong Clerk key fails every token the same way a forged one does,

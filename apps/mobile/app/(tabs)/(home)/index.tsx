@@ -128,7 +128,7 @@ const HomeScreen = () => {
   const openProfile = useCallback(() => router.push("/profile"), [router]);
 
   const retryPlans = useCallback(() => {
-    refetchPlanReads();
+    void refetchPlanReads();
   }, [refetchPlanReads]);
 
   // What the tab shows, from what has been read: a failed refresh keeps the

@@ -4,6 +4,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { contextFor, inputSchemaOf, userIdFields } from "./tool-context";
 
+// oxlint-disable-next-line vitest/require-mock-type-parameters -- Vitest cannot preserve asUser's polymorphic return type; the typed profile callback is supplied below.
 const db = vi.hoisted(() => ({ asUser: vi.fn() }));
 
 const services = vi.hoisted(() => ({

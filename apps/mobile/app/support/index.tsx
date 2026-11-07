@@ -56,13 +56,17 @@ const SupportScreen = () => {
           <P>{t("support.contact")}</P>
           <Button
             label={SUPPORT_EMAIL}
-            onPress={openSupportEmail}
+            onPress={(...args) => {
+              void openSupportEmail(...args);
+            }}
             variant="ghost"
           />
           <View className="flex flex-row items-center justify-center">
             <Button
               accessibilityLabel={t("support.social.x")}
-              onPress={openX}
+              onPress={(...args) => {
+                void openX(...args);
+              }}
               variant="ghost"
             >
               <View className={LOGO_TARGET_CLASS}>
@@ -71,7 +75,9 @@ const SupportScreen = () => {
             </Button>
             <Button
               accessibilityLabel={t("support.social.instagram")}
-              onPress={openInstagram}
+              onPress={(...args) => {
+                void openInstagram(...args);
+              }}
               variant="ghost"
             >
               <View className={LOGO_TARGET_CLASS}>
@@ -80,7 +86,9 @@ const SupportScreen = () => {
             </Button>
             <Button
               accessibilityLabel={t("support.social.threads")}
-              onPress={openThreads}
+              onPress={(...args) => {
+                void openThreads(...args);
+              }}
               variant="ghost"
             >
               <View className={LOGO_TARGET_CLASS}>

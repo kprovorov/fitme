@@ -46,6 +46,7 @@ const formatClerkErrorMessage = (error: ClerkError): string => {
  * A message for a Clerk error that can be shown to the User as is: Clerk's
  * own (in English), or the app's generic one in the App language.
  */
-export const getClerkErrorMessage = clerkErrorSchema.transform(
-  formatClerkErrorMessage
-).parse;
+const clerkMessageSchema = clerkErrorSchema.transform(formatClerkErrorMessage);
+
+export const getClerkErrorMessage = (error: unknown) =>
+  clerkMessageSchema.parse(error);

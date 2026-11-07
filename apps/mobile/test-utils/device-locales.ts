@@ -44,7 +44,13 @@ let locales: Locale[] = ENGLISH_DEVICE.map(toLocale);
 let uses24hourClock = false;
 
 let calendars: [Calendar, ...Calendar[]] = [
-  { calendar: null, firstWeekday: 1, timeZone: "UTC", uses24hourClock },
+  {
+    calendar: null,
+    // oxlint-disable-next-line typescript/no-unsafe-enum-assignment -- Expo's Sunday ordinal is 1; importing its runtime enum here recurses into this mock.
+    firstWeekday: 1,
+    timeZone: "UTC",
+    uses24hourClock,
+  },
 ];
 
 const listeners = new Set<() => void>();

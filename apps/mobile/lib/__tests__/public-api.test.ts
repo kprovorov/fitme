@@ -42,7 +42,7 @@ const mockClerk = {
     this.session = session;
     this.emitted = status;
 
-    // biome-ignore lint/style/useForOf: indexes the live list, as Clerk's bus does
+    // oxlint-disable-next-line typescript/prefer-for-of -- Index the live list exactly as Clerk's dispatch does.
     for (let index = 0; index < this.handlers.length; index += 1) {
       this.handlers[index]?.(status);
     }
@@ -76,9 +76,14 @@ jest.mock("~/lib/clerk", () => ({
   getClerk: () => mockClerk,
 }));
 
-const signedIn: Session = { getToken: async () => FAKE_SESSION_TOKEN };
+const signedIn: Session = {
+  getToken: () => Promise.resolve(FAKE_SESSION_TOKEN),
+};
 
-const flush = () => new Promise((resolve) => setTimeout(resolve, 0));
+const flush = () =>
+  new Promise((resolve) => {
+    setTimeout(resolve, 0);
+  });
 
 /** A User-data read, as every screen's query sends it. */
 const readProfile = () => publicApi().GET("/v1/profile");
@@ -203,6 +208,7 @@ describe("publicApi", () => {
   it("fails unsent when Clerk doesn't load in time", async () => {
     jest.useFakeTimers();
     const read = readProfile();
+    // oxlint-disable-next-line jest/valid-expect -- Attach the rejection handler before advancing time; failed is awaited below.
     const failed = expect(read).rejects.toMatchObject({ status: null });
 
     await jest.advanceTimersByTimeAsync(CLERK_LOAD_TIMEOUT_MS);

@@ -23,7 +23,7 @@ interface FinishWorkoutSuggestionDialogProps {
    * navigation, error handling and closing the dialog; an async `onFinish`
    * must report its own errors, as a rejection only unlocks the dialog.
    */
-  onFinish: () => void;
+  onFinish: () => void | Promise<void>;
   /**
    * Called once when the user keeps training: the Keep Training button, the
    * close button, or dismissing the sheet by swiping it down or tapping

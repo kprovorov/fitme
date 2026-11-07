@@ -63,7 +63,7 @@ const ExercisePickerScreen = () => {
   // A failed edit may still have been saved (a lost answer): read again
   // either way.
   const rereadSession = useCallback(() => {
-    queryClient.invalidateQueries({
+    void queryClient.invalidateQueries({
       queryKey: WORKOUT_SESSION_QUERY_KEY,
     });
   }, [queryClient]);
@@ -117,7 +117,7 @@ const ExercisePickerScreen = () => {
         }
 
         if (!IS_E2E) {
-          segmentClient.track("Exercise Replaced", {
+          void segmentClient.track("Exercise Replaced", {
             exercise_slug: exercise.slug,
             session_id: sessionId,
           });
@@ -139,7 +139,7 @@ const ExercisePickerScreen = () => {
         }
 
         if (!IS_E2E) {
-          segmentClient.track("Exercise Added", {
+          void segmentClient.track("Exercise Added", {
             exercise_slug: exercise.slug,
             session_id: sessionId,
           });
@@ -217,7 +217,9 @@ const ExercisePickerScreen = () => {
         contentContainerClassName="px-md"
         muscleChoiceKey={muscleChoiceKey}
         musclesDisabled={isSaving}
-        onExercisePress={onExercisePress}
+        onExercisePress={(...args) => {
+          void onExercisePress(...args);
+        }}
         onSearchChange={onSearchChange}
         rowAccessibilityLabel={rowAccessibilityLabel}
         search={search}

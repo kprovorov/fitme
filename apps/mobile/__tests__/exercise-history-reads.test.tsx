@@ -88,7 +88,7 @@ const RATE_LIMITED = "Too many requests: please try again in 12 s.";
 
 // A session's date in the card, this year, so without it; an American device
 // puts the month first.
-const SESSION_DATE = /^(January|February) \d+$/;
+const SESSION_DATE = /^(January|February) \d+$/u;
 
 const SCROLL_VIEW = "workout-session-exercise-scroll";
 
@@ -272,8 +272,7 @@ describe("the Exercise history card's pages", () => {
     expect(screen.getAllByText(SESSION_DATE)).toHaveLength(21);
     expect(fakePublicApi.count(HISTORY)).toBe(2);
     expect(
-      fakePublicApi.requests.filter(({ route }) => route === HISTORY).at(-1)
-        ?.query
+      fakePublicApi.requests.findLast(({ route }) => route === HISTORY)?.query
     ).toEqual({ exercise_slug: "squat", limit: "20", offset: "20" });
   });
 

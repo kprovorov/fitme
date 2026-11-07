@@ -133,7 +133,9 @@ const AddToChatSheet = () => {
               disabled={isPicking || isFull}
               icon="photo"
               label={t("arnold.attachments.photos")}
-              onPress={pickPhotos}
+              onPress={(...args) => {
+                void pickPhotos(...args);
+              }}
             />
           </View>
           {isFull || hasFailed ? (

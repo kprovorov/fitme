@@ -74,7 +74,7 @@ const useSignUpVerification = (): CodeVerification => {
       }
 
       if (!IS_E2E) {
-        segmentClient.track("User Registered");
+        void segmentClient.track("User Registered");
       }
     },
   };
@@ -169,7 +169,7 @@ const useSignInVerification = (
       }
 
       if (source !== "reset-password" && !IS_E2E) {
-        segmentClient.track("User Logged In");
+        void segmentClient.track("User Logged In");
       }
     },
   };
@@ -281,7 +281,9 @@ const CodeVerificationContent = ({
             disabled={operation.pending !== null}
             isLoading={operation.pending === "restart"}
             label={t("verifyCode.startOver")}
-            onPress={restart}
+            onPress={(...args) => {
+              void restart(...args);
+            }}
             size="lg"
           />
         }
@@ -326,7 +328,9 @@ const CodeVerificationContent = ({
             disabled={code.length !== 6 || operation.pending !== null}
             isLoading={operation.pending === "verify"}
             label={t("verifyCode.verify")}
-            onPress={handleVerify}
+            onPress={(...args) => {
+              void handleVerify(...args);
+            }}
             size="lg"
             testID="verify-code-button"
           />
@@ -337,7 +341,9 @@ const CodeVerificationContent = ({
           disabled={operation.pending !== null}
           href={restartHref}
           label={t("verifyCode.changeEmail")}
-          onPress={restart}
+          onPress={(...args) => {
+            void restart(...args);
+          }}
           prompt={t("verifyCode.wrongEmail")}
         />
       }

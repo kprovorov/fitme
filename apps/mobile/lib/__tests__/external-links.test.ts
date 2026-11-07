@@ -8,6 +8,7 @@ import { openUrl, openWebPage, TERMS_URL } from "../external-links";
 jest.mock("expo-web-browser", () => ({
   openBrowserAsync: jest.fn(),
   WebBrowserPresentationStyle: { AUTOMATIC: "automatic" },
+  WebBrowserResultType: { DISMISS: "dismiss" },
 }));
 
 const openBrowserAsync = jest.mocked(WebBrowser.openBrowserAsync);
@@ -23,8 +24,8 @@ beforeEach(() => {
 describe("openWebPage", () => {
   it("opens the page in the in-app browser", async () => {
     openBrowserAsync.mockResolvedValue({
-      type: "dismiss",
-    } as WebBrowser.WebBrowserResult);
+      type: WebBrowser.WebBrowserResultType.DISMISS,
+    });
 
     await openWebPage(TERMS_URL);
 

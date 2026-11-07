@@ -1,7 +1,7 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import type { TFunction } from "i18next";
 import { useCallback, useMemo, useRef } from "react";
-import type { ElementRef } from "react";
+import type { ComponentRef } from "react";
 import { useController, useForm } from "react-hook-form";
 import type { FieldErrors } from "react-hook-form";
 import { useTranslation } from "react-i18next";
@@ -65,7 +65,7 @@ export default function LoginForm({
     [email, onEdit]
   );
 
-  const passwordRef = useRef<ElementRef<typeof TextInput>>(null);
+  const passwordRef = useRef<ComponentRef<typeof TextInput>>(null);
   const focusPassword = useCallback(() => passwordRef.current?.focus(), []);
 
   const { field: password, fieldState: passwordState } = useController({
@@ -93,7 +93,9 @@ export default function LoginForm({
         disabled={!!disabled}
         isLoading={formState.isSubmitting}
         label={t("auth.login.continue")}
-        onPress={submit}
+        onPress={(...args) => {
+          void submit(...args);
+        }}
         size="lg"
         testID="login-button"
       />

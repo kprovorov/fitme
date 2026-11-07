@@ -127,9 +127,9 @@ jest.mock("@expo/ui/swift-ui", () => {
 // (ghost, painted circles) frame and fill themselves.
 // Like uniwind on device, an empty class name answers the last color class
 // resolved (FIT-251).
-const mockColorClass = /^text-(primary|secondary|destructive|foreground)/;
+const mockColorClass = /^text-(primary|secondary|destructive|foreground)/u;
 let mockLastColorClass: string | undefined;
-const mockTextStyleClass = /^text-[a-z0-9-]+-emphasized$/;
+const mockTextStyleClass = /^text-[a-z0-9-]+-emphasized$/u;
 
 jest.mock("uniwind", () => {
   const actual = jest.requireActual<typeof import("uniwind")>("uniwind");
@@ -242,7 +242,7 @@ const stackModifiers = (): Modifier[][] => {
     }
   };
 
-  walk(screen.toJSON() as JsonHost | JsonHost[] | null);
+  walk(screen.toJSON());
 
   return lists;
 };
@@ -259,8 +259,7 @@ const modifierArgs = (type: string): unknown[][] =>
     .map((m) => m.args);
 
 /** The button's text in reading order, icons as `[symbol]`. */
-const readingOrder = () =>
-  texts(screen.toJSON() as JsonNode | JsonNode[] | null).join(" ");
+const readingOrder = () => texts(screen.toJSON()).join(" ");
 
 describe("Button", () => {
   it.each(VARIANTS)(

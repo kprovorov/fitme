@@ -27,6 +27,7 @@ if (sentryConfig.enabled) {
     beforeSend: scrubEvent,
     // No web vitals (Vercel Speed Insights has them): whatever pageload
     // measurements the SDK still takes are dropped with the rest
+    // oxlint-disable-next-line typescript/no-deprecated -- Static trace lifecycle intentionally uses the transaction scrubber.
     beforeSendTransaction: (event) =>
       scrubEvent({ ...event, measurements: {} }),
     // Nothing that could carry User data: no cookies, headers, bodies, query

@@ -59,7 +59,9 @@ export interface CreateAppOptions {
  */
 const refuseNonPost: MiddlewareHandler = async (c, next) => {
   if (c.req.method === "POST") {
-    return await next();
+    await next();
+
+    return;
   }
 
   return c.json(
@@ -126,7 +128,7 @@ export const createApp = ({
     async (c, next) => {
       identifyUser(c.get("clerkUser").userId);
 
-      return await next();
+      await next();
     },
     refuseNonPost,
     answerUnsupportedProtocolVersion

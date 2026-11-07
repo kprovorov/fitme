@@ -39,6 +39,7 @@ const formatAuthErrorMessage = (error: AuthError): string => {
   return getClerkErrorMessage(error);
 };
 
-export const getAuthErrorMessage = authErrorSchema.transform(
-  formatAuthErrorMessage
-).parse;
+const authMessageSchema = authErrorSchema.transform(formatAuthErrorMessage);
+
+export const getAuthErrorMessage = (error: unknown) =>
+  authMessageSchema.parse(error);
