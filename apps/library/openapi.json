@@ -160,7 +160,23 @@
       },
       "Language": {
         "type": "string",
-        "enum": ["en", "uk", "es", "ca"]
+        "enum": [
+          "en",
+          "uk",
+          "es",
+          "ca",
+          "fr",
+          "de",
+          "it",
+          "pt-BR",
+          "pt-PT",
+          "pl",
+          "zh-Hans",
+          "zh-Hant",
+          "ja",
+          "ko",
+          "nl"
+        ]
       },
       "Exercise": {
         "type": "object",

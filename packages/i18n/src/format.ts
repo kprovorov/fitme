@@ -94,10 +94,13 @@ export const regionOf = (translator: Translator): string | null =>
 
 // A BCP 47 region subtag: two letters (`UA`) or three digits (`419`).
 const REGION = /^(?:[A-Z]{2}|\d{3})$/u;
+const REGION_SUFFIX = /-(?:[A-Z]{2}|\d{3})$/u;
 
 /** A language with a region, when the region is a usable one: `uk-UA`. */
 export const withRegion = (language: string, region: string | null): string =>
-  region !== null && REGION.test(region) ? `${language}-${region}` : language;
+  region !== null && REGION.test(region)
+    ? `${language.replace(REGION_SUFFIX, "")}-${region}`
+    : language;
 
 /**
  * The locale dates and numbers are written in: the App language plus the

@@ -39,12 +39,34 @@ describe("app language at startup", () => {
     ["es-ES", "es"],
     ["es-MX", "es"],
     ["ca-ES", "ca"],
+    ["fr-FR", "fr"],
+    ["de-DE", "de"],
+    ["it-IT", "it"],
+    ["pt-BR", "pt-BR"],
+    ["pt-PT", "pt-PT"],
+    ["pl-PL", "pl"],
+    ["zh-Hans-CN", "zh-Hans"],
+    ["zh-Hant-TW", "zh-Hant"],
+    ["zh-CN", "zh-Hans"],
+    ["zh-TW", "zh-Hant"],
+    ["zh-HK", "zh-Hant"],
+    ["zh-MO", "zh-Hant"],
+    ["zh-SG", "zh-Hans"],
+    ["zh-Hans-TW", "zh-Hans"],
+    ["zh-Hant-CN", "zh-Hant"],
+    ["pt", "pt-BR"],
+    ["PT_pt", "pt-PT"],
+    ["pt-Latn-PT", "pt-PT"],
+    ["zh", "zh-Hans"],
+    ["ja-JP", "ja"],
+    ["ko-KR", "ko"],
+    ["nl-NL", "nl"],
   ])("is %s at startup", (tag, language) => {
     expect(languageAtStartup([tag])).toBe(language);
   });
 
   it("uses Catalan before Spanish when preferred", () => {
-    expect(languageAtStartup(["fr-FR", "ca-ES", "es-ES"])).toBe("ca");
+    expect(languageAtStartup(["ru-RU", "ca-ES", "es-ES"])).toBe("ca");
   });
 
   it("is the first device language the app speaks", () => {

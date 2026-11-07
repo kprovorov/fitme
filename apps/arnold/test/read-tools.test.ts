@@ -440,7 +440,7 @@ describe("the App language", () => {
 
   const inUkrainian = withClientContext(alice, { language: "uk" });
   const inEnglish = withClientContext(alice, { language: "en" });
-  const inGerman = withClientContext(alice, { language: "de" });
+  const inUnsupportedLanguage = withClientContext(alice, { language: "ru" });
 
   /** The names `get_active_plan` gives the active Plan's Exercises. */
   const planNames = async (ctx: typeof alice) => {
@@ -487,7 +487,9 @@ describe("the App language", () => {
 
     await expect(planNames(alice)).resolves.toStrictEqual(english);
     await expect(planNames(inEnglish)).resolves.toStrictEqual(english);
-    await expect(planNames(inGerman)).resolves.toStrictEqual(english);
+    await expect(planNames(inUnsupportedLanguage)).resolves.toStrictEqual(
+      english
+    );
   });
 
   it("names the workout history's Exercises in the App language, keeping their muscle groups", async () => {
@@ -504,7 +506,7 @@ describe("the App language", () => {
       name: "Присідання зі штангою",
     });
     await expect(shown(alice)).resolves.toMatchObject({ name: "Back Squat" });
-    await expect(shown(inGerman)).resolves.toMatchObject({
+    await expect(shown(inUnsupportedLanguage)).resolves.toMatchObject({
       name: "Back Squat",
     });
   });
@@ -541,7 +543,9 @@ describe("the App language", () => {
 
     await expect(searchNames(alice)).resolves.toStrictEqual(english);
     await expect(searchNames(inEnglish)).resolves.toStrictEqual(english);
-    await expect(searchNames(inGerman)).resolves.toStrictEqual(english);
+    await expect(searchNames(inUnsupportedLanguage)).resolves.toStrictEqual(
+      english
+    );
   });
 
   it("finds an Exercise by its Ukrainian name, and still by its English one", async () => {

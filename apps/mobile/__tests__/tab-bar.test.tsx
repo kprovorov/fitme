@@ -74,11 +74,35 @@ describe("tab bar", () => {
   it.each([
     ["es-ES", ["Entreno", "Historial", "Arnold AI", "Biblioteca"]],
     ["ca-ES", ["Entrena", "Historial", "Arnold AI", "Biblioteca"]],
+    ["fr-FR", ["Entraînement", "Historique", "Arnold IA", "Bibliothèque"]],
+    ["de-DE", ["Training", "Verlauf", "Arnold AI", "Bibliothek"]],
+    ["it-IT", ["Allenamento", "Cronologia", "Arnold IA", "Libreria"]],
+    ["pl-PL", ["Trening", "Historia", "Arnold AI", "Biblioteka"]],
+    ["pt-BR", ["Treino", "Histórico", "Arnold AI", "Biblioteca"]],
+    ["pt-PT", ["Treino", "Histórico", "Arnold AI", "Biblioteca"]],
+    ["zh-Hans-CN", ["训练", "历史", "Arnold AI", "动作库"]],
+    ["zh-Hant-TW", ["訓練", "紀錄", "Arnold AI", "動作庫"]],
+    ["ja-JP", ["ワークアウト", "履歴", "Arnold AI", "ライブラリ"]],
+    ["ko-KR", ["운동", "기록", "Arnold AI", "라이브러리"]],
+    ["nl-NL", ["Training", "Geschiedenis", "Arnold AI", "Bibliotheek"]],
   ])("is localized on a %s device", async (language, labels) => {
     setDeviceLanguages([language]);
     await render(<App />);
 
     expect(shownTabs().map(({ label }) => label)).toEqual(labels);
+  });
+
+  it("switches between Chinese scripts while open", async () => {
+    setDeviceLanguages(["zh-CN"]);
+    await render(<App />);
+    expect(screen.getByText("训练")).toBeTruthy();
+
+    await act(() => setDeviceLanguages(["zh-HK"]));
+    expect(screen.getByText("訓練")).toBeTruthy();
+    expect(screen.queryByText("训练")).toBeNull();
+
+    await act(() => setDeviceLanguages(["zh-Hans-TW"]));
+    expect(screen.getByText("训练")).toBeTruthy();
   });
 
   it("switches between Spanish and Catalan while open", async () => {
@@ -125,7 +149,7 @@ describe("tab bar", () => {
     expect(screen.queryByText("Library")).toBeNull();
 
     await act(() => {
-      setDeviceLanguages(["de-DE"]);
+      setDeviceLanguages(["sv-SE"]);
     });
     expect(screen.getByText("Library")).toBeTruthy();
   });

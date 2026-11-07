@@ -64,6 +64,33 @@ export default defineEval({
         },
         { appLanguage: "es", language: "Spanish", message: "💪" },
         { appLanguage: "ca", language: "Catalan", message: "💪" },
+        { appLanguage: "fr", language: "French", message: "💪" },
+        { appLanguage: "de", language: "German", message: "💪" },
+        { appLanguage: "it", language: "Italian", message: "💪" },
+        {
+          appLanguage: "pt-BR",
+          language: "Brazilian Portuguese",
+          message: "💪",
+        },
+        {
+          appLanguage: "pt-PT",
+          language: "European Portuguese",
+          message: "💪",
+        },
+        { appLanguage: "pl", language: "Polish", message: "💪" },
+        {
+          appLanguage: "zh-Hans",
+          language: "Simplified Chinese",
+          message: "💪",
+        },
+        {
+          appLanguage: "zh-Hant",
+          language: "Traditional Chinese",
+          message: "💪",
+        },
+        { appLanguage: "ja", language: "Japanese", message: "💪" },
+        { appLanguage: "ko", language: "Korean", message: "💪" },
+        { appLanguage: "nl", language: "Dutch", message: "💪" },
       ].map(async ({ appLanguage, language, message }) => {
         const session = await t.session({ stubs: readToolStubs });
 

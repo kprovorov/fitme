@@ -1,0 +1,925 @@
+{
+  "tabs": {
+    "workout": "Allenamento",
+    "history": "Cronologia",
+    "arnold": "Arnold IA",
+    "library": "Libreria"
+  },
+  "library": {
+    "search": "Cerca esercizi",
+    "muscles": "Muscoli",
+    "removeMuscleGroup": "Rimuovi {{muscleGroup}}",
+    "reset": "Reimposta",
+    "confirm": "Fine",
+    "loadErrorTitle": "Impossibile caricare gli esercizi",
+    "loadError": "Impossibile caricare gli esercizi. Controlla la connessione e riprova.",
+    "loadMoreError": "Impossibile caricare altri esercizi. Controlla la connessione e riprova.",
+    "emptyTitle": "Nessun esercizio trovato",
+    "empty": "Nessun esercizio corrispondente. Prova con un altro nome o gruppo muscolare.",
+    "showAll": "Mostra tutti gli esercizi"
+  },
+  "exercise": {
+    "gone": "Questo esercizio non è più nella libreria.",
+    "loadError": "Impossibile caricare questo esercizio. Controlla la connessione e riprova."
+  },
+  "exerciseHistory": {
+    "title": "Progressi",
+    "loadError": "Impossibile caricare la cronologia di questo esercizio. Controlla la connessione e riprova.",
+    "set": "Serie {{order, number}}: {{logged}}",
+    "target": "Obiettivo {{target}}"
+  },
+  "counts": {
+    "entries_one": "{{count, number}} voce",
+    "entries_many": "{{count, number}} voci",
+    "entries_other": "{{count, number}} voci",
+    "exercises_one": "{{count, number}} esercizio",
+    "exercises_many": "{{count, number}} esercizi",
+    "exercises_other": "{{count, number}} esercizi",
+    "minutes_one": "{{count, number}} minuto",
+    "minutes_many": "{{count, number}} minuti",
+    "minutes_other": "{{count, number}} minuti",
+    "reps_one": "{{count, number}} ripetizione",
+    "reps_many": "{{count, number}} ripetizioni",
+    "reps_other": "{{count, number}} ripetizioni",
+    "sets_one": "{{count, number}} serie",
+    "sets_many": "{{count, number}} serie",
+    "sets_other": "{{count, number}} serie",
+    "workoutSessions_one": "{{count, number}} sessione di allenamento",
+    "workoutSessions_many": "{{count, number}} sessioni di allenamento",
+    "workoutSessions_other": "{{count, number}} sessioni di allenamento",
+    "workouts_one": "{{count, number}} allenamento",
+    "workouts_many": "{{count, number}} allenamenti",
+    "workouts_other": "{{count, number}} allenamenti"
+  },
+  "arnold": {
+    "title": "Arnold",
+    "chat": "Chat",
+    "model": "Modello",
+    "newConversation": "Nuova conversazione",
+    "scrollToLatest": "Vai agli ultimi messaggi",
+    "emptyState": {
+      "title": "Chiedi ad Arnold",
+      "description": "Informazioni su esercizi, piani e allenamenti"
+    },
+    "composer": {
+      "placeholder": "Scrivi ad Arnold",
+      "send": "Invia messaggio",
+      "addToChat": "Aggiungi alla chat"
+    },
+    "attachments": {
+      "title": "Aggiungi alla chat",
+      "camera": "Fotocamera",
+      "photos": "Foto",
+      "pickedPhoto": "Foto {{position, number}} di {{total, number}}",
+      "removePhoto": "Rimuovi foto {{position, number}} di {{total, number}}",
+      "pickFailed": "Impossibile aggiungere questa foto. Provane un'altra.",
+      "perMessageLimit_one": "Puoi aggiungere fino a {{count, number}} foto a un messaggio.",
+      "perMessageLimit_many": "Puoi aggiungere fino a {{count, number}} foto a un messaggio.",
+      "perMessageLimit_other": "Puoi aggiungere fino a {{count, number}} foto a un messaggio.",
+      "conversationFull_one": "Questa conversazione ha raggiunto {{count, number}} foto. Inizia una nuova conversazione per inviarne altre.",
+      "conversationFull_many": "Questa conversazione ha raggiunto {{count, number}} foto. Inizia una nuova conversazione per inviarne altre.",
+      "conversationFull_other": "Questa conversazione ha raggiunto {{count, number}} foto. Inizia una nuova conversazione per inviarne altre.",
+      "photo": "Foto",
+      "sentPhoto": "Foto {{position, number}} di {{total, number}}",
+      "cameraDenied": {
+        "title": "Accesso alla fotocamera richiesto",
+        "message": "Fitme ha bisogno di accedere alla fotocamera per scattare foto per Arnold. Puoi consentirlo nelle Impostazioni.",
+        "openSettings": "Apri Impostazioni"
+      },
+      "viewer": {
+        "close": "Chiudi",
+        "image": "Foto"
+      }
+    },
+    "errors": {
+      "proCheckUnavailable": "Impossibile verificare il tuo abbonamento a Fitme Pro. Riprova tra poco.",
+      "network": "Impossibile contattare Arnold. Controlla la connessione e riprova.",
+      "generic": "Qualcosa è andato storto. Riprova."
+    },
+    "modelPicker": {
+      "appliesToNextMessage": "Si applica al prossimo messaggio",
+      "loading": "Caricamento dei modelli",
+      "unavailable": "I modelli non sono disponibili al momento. I tuoi messaggi usano il modello predefinito di Arnold."
+    },
+    "planCard": {
+      "frequency_one": "{{count, number}}× / settimana",
+      "frequency_many": "{{count, number}}× / settimana",
+      "frequency_other": "{{count, number}}× / settimana",
+      "setCount": "{{count, number}}×",
+      "save": "Salva piano",
+      "saved": "Piano salvato",
+      "unmatchedExercises": "Alcuni esercizi non sono stati trovati nella libreria e non possono essere salvati. Prova a generare di nuovo il piano.",
+      "errors": {
+        "unknownExercises": "Questo piano contiene esercizi che non conosciamo e non può essere salvato. Chiedi ad Arnold un altro piano.",
+        "libraryUnavailable": "Impossibile verificare gli esercizi di questo piano. Riprova.",
+        "rateLimited": "Troppe richieste. Riprova tra {{seconds, number}} s.",
+        "generic": "Impossibile salvare il piano. Riprova."
+      }
+    }
+  },
+  "planner": {
+    "title": "Crea piano di allenamento",
+    "goal": {
+      "title": "Obiettivo",
+      "question": "Qual è il tuo obiettivo?",
+      "options": {
+        "fat-loss": "Perdere peso",
+        "muscle-gain": "Aumentare la massa muscolare",
+        "general-health-fitness": "Migliorare la salute"
+      }
+    },
+    "experience": {
+      "title": "Esperienza",
+      "question": "Quanta esperienza hai?"
+    },
+    "duration": {
+      "title": "Durata dell'allenamento",
+      "question": "Quanto tempo vuoi allenarti?",
+      "minutes_one": "{{count}} minuto",
+      "minutes_many": "{{count}} minuti",
+      "minutes_other": "{{count}} minuti"
+    },
+    "place": {
+      "title": "Luogo",
+      "question": "Scegli dove vuoi allenarti",
+      "soon": "In arrivo"
+    },
+    "frequency": {
+      "title": "Frequenza",
+      "question": "Quante volte a settimana vuoi allenarti?"
+    },
+    "note": {
+      "title": "Nota personale",
+      "question": "Aggiungi una nota al tuo piano",
+      "placeholder": "Es. Vorrei concentrarmi di più sugli addominali"
+    },
+    "submit": "Crea il mio piano!",
+    "required": "Obbligatorio",
+    "message": {
+      "intro": "Crea un piano di allenamento per me con questi dettagli:",
+      "goal": "- Obiettivo: {{goal}}",
+      "experience": "- Esperienza: {{experience}}",
+      "duration_one": "- Durata dell'allenamento: {{count}} minuto",
+      "duration_many": "- Durata dell'allenamento: {{count}} minuti",
+      "duration_other": "- Durata dell'allenamento: {{count}} minuti",
+      "place": "- Luogo: {{place}}",
+      "frequency_one": "- Frequenza: {{count}} giorno a settimana",
+      "frequency_many": "- Frequenza: {{count}} giorni a settimana",
+      "frequency_other": "- Frequenza: {{count}} giorni a settimana",
+      "note": "- Note aggiuntive: {{note}}"
+    }
+  },
+  "plans": {
+    "title": "I miei piani",
+    "create": "Crea piano di allenamento",
+    "createNew": "Crea nuovo piano di allenamento",
+    "frequency_one": "{{count, number}}× a settimana",
+    "frequency_many": "{{count, number}}× a settimana",
+    "frequency_other": "{{count, number}}× a settimana",
+    "manage": "Gestisci",
+    "edit": "Modifica piano",
+    "goBack": "Indietro",
+    "loadError": "Impossibile caricare questo piano. Controlla la connessione e riprova.",
+    "listLoadError": "Impossibile caricare i tuoi piani. Controlla la connessione e riprova.",
+    "activate": {
+      "action": "Attiva piano",
+      "title": "Attiva piano",
+      "message": "Il piano attuale verrà disattivato",
+      "confirm": "Attiva",
+      "failed": "Impossibile attivare il piano"
+    },
+    "archive": {
+      "action": "Archivia",
+      "title": "Archivia piano",
+      "activePlan": "Non puoi archiviare un piano attivo. Devi avere sempre almeno un piano attivo.",
+      "message": "Vuoi davvero archiviare questo piano?",
+      "confirm": "Archivia",
+      "failed": "Impossibile archiviare il piano"
+    },
+    "errors": {
+      "notFound": "Questo piano non esiste più.",
+      "network": "Controlla la connessione e riprova.",
+      "rateLimited": "Troppe richieste: riprova tra {{seconds, number}} s."
+    }
+  },
+  "planEditor": {
+    "title": "Modifica piano",
+    "save": "Salva",
+    "details": "Dettagli",
+    "name": "Nome",
+    "namePlaceholder": "Nome del piano",
+    "description": "Descrizione",
+    "descriptionPlaceholder": "A cosa serve questo piano",
+    "frequency": "Allenamenti a settimana",
+    "duration": "Durata dell'allenamento",
+    "durationUnit": "minuti",
+    "goal": "Obiettivo",
+    "experience": "Livello di esperienza",
+    "place": "Luogo",
+    "workouts": "Allenamenti",
+    "workoutsHint": "In ordine di rotazione: il primo è il prossimo.",
+    "noWorkouts": "Un piano deve contenere almeno un allenamento.",
+    "workoutActions": "Azioni per {{name}}",
+    "moveUp": "Sposta {{name}} in alto",
+    "moveDown": "Sposta {{name}} in basso",
+    "remove": "Rimuovi {{name}}",
+    "addWorkout": "Aggiungi allenamento",
+    "newWorkoutName": "Allenamento {{letter}}",
+    "openWorkout": "Modifica {{name}}",
+    "workoutNeedsExercise": "Richiede almeno un esercizio",
+    "workoutNeedsFixing": "Controlla il nome e le serie di questo allenamento",
+    "workout": {
+      "title": "Modifica allenamento",
+      "name": "Nome",
+      "namePlaceholder": "Nome dell'allenamento",
+      "exercises": "Esercizi",
+      "exercisesHint": "Nell'ordine in cui li esegui.",
+      "noExercises": "Aggiungi un esercizio a questo allenamento.",
+      "addExercise": "Aggiungi esercizio",
+      "exerciseActions": "Azioni per {{name}}",
+      "moveUp": "Sposta {{name}} in alto",
+      "moveDown": "Sposta {{name}} in basso",
+      "replace": "Sostituisci {{name}}",
+      "remove": "Rimuovi {{name}}",
+      "removeSet": "Rimuovi serie {{order, number}}",
+      "errors": {
+        "nameRequired": "Inserisci un nome per l'allenamento",
+        "repsRange": "Le ripetizioni devono essere un numero intero da {{min, number(useGrouping: false)}} a {{max, number(useGrouping: false)}}",
+        "weightRange": "Il peso deve essere un numero da {{min, number(useGrouping: false)}} a {{max, number(useGrouping: false)}}",
+        "restRange": "Il recupero deve essere un numero intero di secondi da {{min, number(useGrouping: false)}} a {{max, number(useGrouping: false)}}"
+      }
+    },
+    "picker": {
+      "addTitle": "Aggiungi esercizio",
+      "replaceTitle": "Sostituisci esercizio",
+      "addExercise": "Aggiungi {{name}}",
+      "replaceWith": "Sostituisci con {{name}}"
+    },
+    "discard": {
+      "title": "Scartare le modifiche?",
+      "message": "Le modifiche a questo piano andranno perse.",
+      "confirm": "Scarta"
+    },
+    "errors": {
+      "nameRequired": "Inserisci un nome per il piano",
+      "nameTooLong": "Il nome può contenere al massimo {{max, number(useGrouping: false)}} caratteri",
+      "descriptionTooLong": "La descrizione può contenere al massimo {{max, number(useGrouping: false)}} caratteri",
+      "frequencyRange": "Gli allenamenti a settimana devono essere un numero intero da {{min, number(useGrouping: false)}} a {{max, number(useGrouping: false)}}",
+      "durationRange": "La durata dell'allenamento deve essere un numero intero di minuti, al massimo {{max, number(useGrouping: false)}}",
+      "choiceRequired": "Scegli un'opzione",
+      "saveFailed": "Impossibile salvare il piano. Controlla la connessione e riprova.",
+      "saveRateLimited": "Impossibile salvare il piano. Troppe richieste: riprova tra {{seconds, number}} s.",
+      "unknownExercises": "Questo piano contiene esercizi che non conosciamo e non può essere salvato. Sostituiscili e riprova.",
+      "libraryUnavailable": "Impossibile verificare gli esercizi di questo piano. Riprova.",
+      "unitsChanged": "Le unità di peso sono cambiate su un altro dispositivo, quindi questi obiettivi usano ancora le unità precedenti. Chiudi l'editor e riaprilo."
+    }
+  },
+  "plannedWorkout": {
+    "stats": {
+      "duration": "Durata",
+      "exercises": "Esercizi",
+      "sets": "Serie"
+    },
+    "durationMinutes": "{{minutes, number}} min",
+    "noExercises": "Questo allenamento non contiene ancora esercizi.",
+    "gone": "Questo allenamento non esiste più",
+    "goBack": "Indietro",
+    "edit": "Modifica allenamento",
+    "loadError": "Impossibile caricare questo allenamento. Controlla la connessione e riprova.",
+    "exerciseDetailsHint": "Apre i dettagli dell'esercizio"
+  },
+  "home": {
+    "managePlans": "Gestisci piani",
+    "createPlan": "Crea piano",
+    "workouts": "Allenamenti",
+    "planMenu": "Opzioni del piano",
+    "logo": "Fitme",
+    "card": {
+      "preview": "Anteprima",
+      "previewNamed": "Anteprima di {{name}}",
+      "start": "Inizia",
+      "startNamed": "Inizia {{name}}",
+      "continue": "Continua",
+      "continueNamed": "Continua {{name}}",
+      "moreMuscleGroups": "+{{count, number}}",
+      "moreMuscleGroupsSpoken_one": "e {{count, number}} altro gruppo muscolare",
+      "moreMuscleGroupsSpoken_many": "e {{count, number}} altri gruppi muscolari",
+      "moreMuscleGroupsSpoken_other": "e {{count, number}} altri gruppi muscolari"
+    },
+    "allSet": "Ottimo lavoro! Hai finito!",
+    "empty": {
+      "title": "Nessun piano attivo",
+      "message": "Non hai un piano di allenamento attivo. Creane uno per iniziare.",
+      "inactiveMessage": "Attiva uno dei tuoi piani o creane uno nuovo.",
+      "action": "Crea piano di allenamento"
+    },
+    "loadError": {
+      "title": "Impossibile caricare il piano",
+      "message": "Controlla la connessione e riprova."
+    }
+  },
+  "startWorkout": {
+    "start": "Inizia allenamento",
+    "continue": "Continua allenamento",
+    "continueNamed": "Continua {{name}}",
+    "finishFirst": "Termina prima l'allenamento in corso",
+    "finishFirstNamed": "Termina prima {{name}}",
+    "failed": {
+      "title": "Impossibile iniziare l'allenamento",
+      "network": "Controlla la connessione e riprova.",
+      "rateLimited": "Troppe richieste: riprova tra {{seconds, number}} s."
+    }
+  },
+  "workoutCard": {
+    "exercises_one": "{{count, number}} esercizio",
+    "exercises_many": "{{count, number}} esercizi",
+    "exercises_other": "{{count, number}} esercizi",
+    "toWorkout": "Vai all'allenamento",
+    "openHint": "Apre l'allenamento",
+    "openInProgressHint": "Apre l'allenamento in corso"
+  },
+  "choices": {
+    "equipment": {
+      "barbell": "Bilanciere",
+      "dumbbell": "Manubrio",
+      "cable": "Cavo",
+      "machine": "Macchina",
+      "smith_machine": "Multipower",
+      "bench": "Panca",
+      "pull_up_bar": "Sbarra per trazioni",
+      "landmine": "Landmine",
+      "bodyweight": "Corpo libero"
+    },
+    "experienceLevel": {
+      "beginner": "Principiante",
+      "intermediate": "Intermedio",
+      "advanced": "Avanzato"
+    },
+    "experienceLevelDescription": {
+      "beginner": "0–6 mesi di esperienza",
+      "intermediate": "6 mesi–3 anni di esperienza",
+      "advanced": "Oltre 3 anni di esperienza"
+    },
+    "gender": {
+      "male": "Uomo",
+      "female": "Donna"
+    },
+    "goal": {
+      "muscle-gain": "Aumentare la massa muscolare",
+      "fat-loss": "Perdere peso",
+      "recomposition": "Ricomposizione corporea",
+      "strength-performance": "Forza e prestazioni",
+      "general-health-fitness": "Salute e forma fisica"
+    },
+    "measurementSystem": {
+      "metric": "Metrico",
+      "us": "USA",
+      "uk": "Regno Unito"
+    },
+    "measurementSystemDescription": {
+      "metric": "Centimetri e chilogrammi",
+      "us": "Piedi, pollici e libbre",
+      "uk": "Piedi, pollici e libbre"
+    },
+    "muscleGroup": {
+      "chest": "Pettorali",
+      "back": "Schiena",
+      "shoulders": "Spalle",
+      "biceps": "Bicipiti",
+      "triceps": "Tricipiti",
+      "forearms": "Avambracci",
+      "abs": "Addominali",
+      "obliques": "Obliqui",
+      "quadriceps": "Quadricipiti",
+      "hamstrings": "Ischiocrurali",
+      "glutes": "Glutei",
+      "calves": "Polpacci",
+      "traps": "Trapezi",
+      "lats": "Dorsali",
+      "lower-back": "Lombari",
+      "cardio": "Cardio",
+      "full-body": "Tutto il corpo"
+    },
+    "place": {
+      "gym": "Palestra",
+      "home": "Casa"
+    }
+  },
+  "unitNames": {
+    "cm": "cm",
+    "in": "in",
+    "kg": "kg",
+    "lbs": "lb"
+  },
+  "units": {
+    "cm": "{{value, number}} cm",
+    "in": "{{value, number}} in",
+    "kg": "{{value, number}} kg",
+    "lbs": "{{value, number}} lb"
+  },
+  "spokenUnits": {
+    "cm_one": "{{count, number}} centimetro",
+    "cm_many": "{{count, number}} centimetri",
+    "cm_other": "{{count, number}} centimetri",
+    "in_one": "{{count, number}} pollice",
+    "in_many": "{{count, number}} pollici",
+    "in_other": "{{count, number}} pollici",
+    "kg_one": "{{count, number}} chilogrammo",
+    "kg_many": "{{count, number}} chilogrammi",
+    "kg_other": "{{count, number}} chilogrammi",
+    "lbs_one": "{{count, number}} libbra",
+    "lbs_many": "{{count, number}} libbre",
+    "lbs_other": "{{count, number}} libbre"
+  },
+  "compactUnits": {
+    "t": "{{value, number}} t",
+    "thousandLbs": "{{value, number}}K lb"
+  },
+  "spokenCompactUnits": {
+    "t_one": "{{count, number}} tonnellata",
+    "t_many": "{{count, number}} tonnellate",
+    "t_other": "{{count, number}} tonnellate",
+    "thousandLbs_one": "{{count, number}} migliaio di libbre",
+    "thousandLbs_many": "{{count, number}} migliaia di libbre",
+    "thousandLbs_other": "{{count, number}} migliaia di libbre"
+  },
+  "duration": {
+    "hoursMinutes": "{{hours, number}} h {{minutes, number}} min",
+    "minutes": "{{minutes, number}} min"
+  },
+  "finishWorkout": {
+    "confirm": {
+      "title": "Terminare l'allenamento?",
+      "unloggedSets_one": "{{count, number}} serie prevista non è stata registrata.",
+      "unloggedSets_many": "{{count, number}} serie previste non sono state registrate.",
+      "unloggedSets_other": "{{count, number}} serie previste non sono state registrate.",
+      "cancel": "Annulla",
+      "finish": "Termina"
+    },
+    "failed": {
+      "title": "Impossibile terminare l'allenamento",
+      "network": "Controlla la connessione e riprova.",
+      "rateLimited": "Troppe richieste: riprova tra {{seconds, number}} s."
+    },
+    "suggestion": {
+      "title": "Allenamento completato!",
+      "description": "Hai registrato tutte le serie previste.",
+      "close": "Chiudi",
+      "keepTrainingHint": "Chiude questo suggerimento e prosegue l'allenamento",
+      "finish": "Termina allenamento",
+      "finishHint": "Termina questa sessione di allenamento",
+      "keepTraining": "Continua ad allenarti"
+    }
+  },
+  "planUpdate": {
+    "title": "Aggiornare il piano?",
+    "description": "Salva le modifiche di oggi a {{workout}} nel piano {{plan}}.",
+    "failed": "Impossibile aggiornare il piano. Controlla la connessione e riprova.",
+    "rateLimited": "Troppe richieste. Riprova tra {{seconds, number}} s.",
+    "update": "Aggiorna piano",
+    "updateHint": "Salva queste modifiche nel piano, poi mostra il riepilogo dell'allenamento",
+    "retry": "Riprova",
+    "keep": "Mantieni il piano attuale",
+    "keepHint": "Lascia il piano invariato e mostra il riepilogo dell'allenamento",
+    "changes": {
+      "replace": "Sostituisci {{replaced}} con {{exercise}}",
+      "add": "Aggiungi {{exercise}}",
+      "remove": "Rimuovi {{exercise}}",
+      "addSets_one": "Aggiungi {{count, number}} serie a {{exercise}}",
+      "addSets_many": "Aggiungi {{count, number}} serie a {{exercise}}",
+      "addSets_other": "Aggiungi {{count, number}} serie a {{exercise}}",
+      "line": "{{change}} · {{sets}}",
+      "spokenLine": "{{change}}: {{sets}}",
+      "spokenSet": "{{reps}} con {{weight}}"
+    }
+  },
+  "sets": {
+    "columns": {
+      "target": "obiettivo",
+      "reps": "ripetizioni",
+      "rest": "recupero"
+    },
+    "addSet": "Aggiungi serie",
+    "noTarget": "nessun obiettivo",
+    "repsAtWeight": "{{reps}} con {{weight}}",
+    "plannedSet": "Serie {{order, number}}: {{target}}, {{rest}}",
+    "restSeconds_one": "recupero di {{count, number}} secondo",
+    "restSeconds_many": "recupero di {{count, number}} secondi",
+    "restSeconds_other": "recupero di {{count, number}} secondi",
+    "noRest": "nessun recupero",
+    "row": {
+      "repsInput": "Ripetizioni della serie {{order, number}}",
+      "weightInput": "Peso della serie {{order, number}}",
+      "restInput": "Recupero della serie {{order, number}}",
+      "log": "Registra serie {{order, number}}",
+      "edit": "Modifica serie {{order, number}}",
+      "editHint": "Apre la serie per modificarla",
+      "logged": "Serie {{order, number}}, registrata"
+    },
+    "errors": {
+      "save": "Impossibile salvare questa serie. Riprova.",
+      "rateLimited": "Troppe richieste. Riprova tra {{seconds, number}} s."
+    },
+    "form": {
+      "weightNotNumber": "Il peso deve essere un numero",
+      "weightNegative": "Il peso non può essere negativo",
+      "weightTooHigh": "Il peso può essere al massimo {{max}}",
+      "weightDecimals_one": "Il peso può avere al massimo {{count, number}} decimale",
+      "weightDecimals_many": "Il peso può avere al massimo {{count, number}} decimali",
+      "weightDecimals_other": "Il peso può avere al massimo {{count, number}} decimali",
+      "repsNotNumber": "Le ripetizioni devono essere un numero",
+      "repsNegative": "Le ripetizioni non possono essere negative",
+      "repsTooHigh": "Le ripetizioni possono essere al massimo {{max}}",
+      "repsNotWhole": "Le ripetizioni devono essere un numero intero"
+    },
+    "rest": {
+      "title": "Recupero",
+      "thenSet": "Recupero · poi serie {{order, number}}",
+      "left": "Recupero, {{clock}} rimanenti",
+      "less_one": "{{count, number}} secondo in meno",
+      "less_many": "{{count, number}} secondi in meno",
+      "less_other": "{{count, number}} secondi in meno",
+      "more_one": "{{count, number}} secondo in più",
+      "more_many": "{{count, number}} secondi in più",
+      "more_other": "{{count, number}} secondi in più",
+      "skip": "Salta",
+      "skipRest": "Salta recupero",
+      "over": "Recupero terminato"
+    }
+  },
+  "forms": {
+    "numberMin": "Il numero deve essere maggiore o uguale a {{min, number(useGrouping: false)}}",
+    "numberMax": "Il numero deve essere minore o uguale a {{max, number(useGrouping: false)}}"
+  },
+  "onboarding": {
+    "welcome": {
+      "title": "Ti diamo il benvenuto su Fitme!",
+      "description": "Il tuo personal trainer IA ti aspetta. Cominciamo!",
+      "getStarted": "Inizia",
+      "skip": "Salta"
+    },
+    "profile": {
+      "title": "Conosciamoci meglio",
+      "description": "Useremo queste informazioni per personalizzare la tua esperienza.",
+      "next": "Avanti",
+      "loadError": "Impossibile caricare il profilo. Controlla la connessione e riprova."
+    }
+  },
+  "profileForm": {
+    "name": "Nome",
+    "gender": "Genere",
+    "parameters": "Dati personali",
+    "age": "Età",
+    "weight": "Peso",
+    "height": "Altezza",
+    "notSet": "Non impostato",
+    "done": "Fine",
+    "ageValue_one": "{{count, number}} anno",
+    "ageValue_many": "{{count, number}} anni",
+    "ageValue_other": "{{count, number}} anni",
+    "feet_one": "{{count, number}} ft",
+    "feet_many": "{{count, number}} ft",
+    "feet_other": "{{count, number}} ft",
+    "inches_one": "{{count, number}} in",
+    "inches_many": "{{count, number}} in",
+    "inches_other": "{{count, number}} in",
+    "errors": {
+      "ageRequired": "L'età è obbligatoria",
+      "genderRequired": "Il genere è obbligatorio",
+      "heightRequired": "L'altezza è obbligatoria",
+      "weightRequired": "Il peso è obbligatorio",
+      "nameTooLong": "Il nome può contenere al massimo {{max, number(useGrouping: false)}} caratteri",
+      "tooManyDecimals": "Il numero può avere al massimo {{max, number(useGrouping: false)}} decimali",
+      "saveFailed": "Impossibile salvare il profilo. Controlla la connessione e riprova.",
+      "saveRateLimited": "Impossibile salvare il profilo. Troppe richieste: riprova tra {{seconds, number}} s."
+    }
+  },
+  "common": {
+    "cancel": "Annulla",
+    "confirm": "Conferma",
+    "tryAgain": "Riprova",
+    "genericError": "Qualcosa è andato storto. Riprova più tardi.",
+    "rateLimited": "Troppe richieste: riprova tra {{seconds, number}} s."
+  },
+  "profile": {
+    "title": "Profilo",
+    "pro": {
+      "title": "Hai Pro!",
+      "description": "Hai accesso a tutte le nostre funzionalità. Puoi annullare l'abbonamento in qualsiasi momento.",
+      "manage": "Gestisci abbonamento"
+    },
+    "free": {
+      "title": "Hai un piano gratuito",
+      "description": "Abbonati a Fitme Pro per accedere senza limiti a tutte le nostre funzionalità",
+      "upgrade": "Passa a Pro"
+    },
+    "editProfile": "Modifica profilo",
+    "settings": "Impostazioni",
+    "support": "Assistenza",
+    "legal": "Informazioni legali",
+    "logout": "Esci",
+    "rate": {
+      "title": "Ti piace l'app?",
+      "action": "Valutala sull'App Store!"
+    }
+  },
+  "editProfile": {
+    "title": "Modifica profilo",
+    "loadError": "Impossibile caricare il profilo. Controlla la connessione e riprova.",
+    "save": "Salva"
+  },
+  "settings": {
+    "title": "Impostazioni",
+    "measurementSystem": "Sistema di misura",
+    "deleteAccount": "Elimina account",
+    "deleteConfirm": {
+      "title": "Elimina account",
+      "message": "Il tuo account e tutti i dati associati verranno eliminati definitivamente. Questa azione non può essere annullata.",
+      "confirm": "Elimina"
+    },
+    "deleteFailed": "Impossibile eliminare il tuo account"
+  },
+  "measurementSystem": {
+    "title": "Sistema di misura",
+    "loadError": "Impossibile caricare il sistema di misura. Controlla la connessione e riprova.",
+    "confirm": {
+      "title": "Vuoi procedere?",
+      "message": "Cambiare il sistema di misura influirà su tutte le tue misure. I dati del profilo e la cronologia degli allenamenti verranno convertiti al nuovo sistema."
+    },
+    "checkFailed": {
+      "title": "Impossibile verificare le unità",
+      "message": "Controlla la connessione, poi riprova per vedere quale sistema è salvato."
+    },
+    "changeFailed": {
+      "title": "Impossibile cambiare le unità",
+      "message": "Le tue misure non sono state modificate. Riprova.",
+      "rateLimited": "Le tue misure non sono state modificate. Troppe richieste: riprova tra {{seconds, number}} s."
+    }
+  },
+  "legal": {
+    "title": "Informazioni legali",
+    "privacyPolicy": "Informativa sulla privacy",
+    "terms": "Termini di servizio",
+    "deleteAccount": "Elimina account",
+    "deleteConfirm": {
+      "title": "Vuoi davvero eliminare il tuo account?",
+      "message": "Questa azione non può essere annullata. Il tuo account verrà eliminato definitivamente e i tuoi dati verranno rimossi dai nostri server.",
+      "confirm": "Sì, elimina il mio account"
+    }
+  },
+  "support": {
+    "title": "Assistenza",
+    "contact": "Contattaci quando vuoi se hai domande o suggerimenti",
+    "social": {
+      "x": "Fitme su X",
+      "instagram": "Fitme su Instagram",
+      "threads": "Fitme su Threads"
+    }
+  },
+  "verifyCode": {
+    "screenTitle": "Verifica codice",
+    "title": "Controlla la tua email",
+    "description": {
+      "signUp": "Inserisci il codice che ti abbiamo inviato via email per attivare il tuo account",
+      "reset": "Inserisci il codice che ti abbiamo inviato via email per reimpostare la password",
+      "signIn": "Inserisci il codice che ti abbiamo inviato per confermare la tua identità su questo dispositivo"
+    },
+    "codePlaceholder": "Codice",
+    "verify": "Verifica",
+    "errors": {
+      "signUpIncomplete": "Impossibile completare la creazione del tuo account. Riprova.",
+      "resetIncomplete": "Impossibile verificare il codice. Riprova.",
+      "signInIncomplete": "Impossibile effettuare l'accesso. Riprova."
+    },
+    "resendButton": "Invia di nuovo il codice",
+    "resentNotice": "Ti abbiamo inviato un nuovo codice.",
+    "destination": "Inserisci il codice a 6 cifre che abbiamo inviato a {{email}}",
+    "didntGet": "Non l'hai ricevuto?",
+    "resendIn": "Invia di nuovo tra {{time}}",
+    "wrongEmail": "Email sbagliata?",
+    "changeEmail": "Cambiala",
+    "loading": "Verifica in corso",
+    "expired": "Questa verifica è scaduta. Ricomincia per ricevere un nuovo codice.",
+    "startOver": "Ricomincia"
+  },
+  "forgotPassword": {
+    "screenTitle": "Password dimenticata",
+    "title": "Hai dimenticato la password?",
+    "description": "Inserisci l'email usata per registrarti e ti invieremo un codice a 6 cifre.",
+    "emailPlaceholder": "Email",
+    "invalidEmail": "Email non valida",
+    "submit": "Invia codice",
+    "remember": "Ti è tornata in mente?",
+    "login": "Accedi",
+    "loading": "Invio del codice"
+  },
+  "resetPassword": {
+    "screenTitle": "Reimposta password",
+    "title": "Imposta una nuova password",
+    "description": "Scegli una password che non usi per altri account.",
+    "newPasswordPlaceholder": "Nuova password",
+    "confirmPasswordPlaceholder": "Conferma la nuova password",
+    "passwordTooShort_one": "La password deve contenere almeno {{count}} carattere.",
+    "passwordTooShort_many": "La password deve contenere almeno {{count}} caratteri.",
+    "passwordTooShort_other": "La password deve contenere almeno {{count}} caratteri.",
+    "passwordsDontMatch": "Le password non coincidono.",
+    "submit": "Aggiorna password",
+    "passwordChanged": "La password è stata modificata. Accedi con la nuova password.",
+    "loading": "Aggiornamento della password",
+    "changedMind": "Hai cambiato idea?",
+    "backToLogin": "Torna all'accesso"
+  },
+  "updateRequired": {
+    "title": "Aggiornamento richiesto",
+    "description": "Questa versione di Fitme non è più supportata. Aggiorna l'app per continuare ad allenarti.",
+    "update": "Aggiorna"
+  },
+  "notFound": {
+    "title": "Ops!",
+    "description": "Questa schermata non esiste.",
+    "goHome": "Vai alla schermata iniziale"
+  },
+  "workoutSession": {
+    "finish": "Termina",
+    "loadError": "Impossibile caricare questo allenamento. Controlla la connessione e riprova.",
+    "stats": {
+      "duration": "Durata",
+      "volume": "Volume",
+      "sets": "Serie",
+      "exercisesDone_one": "{{done, number}} di {{count, number}} esercizio completato",
+      "exercisesDone_many": "{{done, number}} di {{count, number}} esercizi completati",
+      "exercisesDone_other": "{{done, number}} di {{count, number}} esercizi completati"
+    },
+    "addExercise": "Aggiungi esercizio",
+    "picker": {
+      "addExercise": "Aggiungi {{name}}",
+      "replaceWith": "Sostituisci con {{name}}",
+      "close": "Chiudi",
+      "addTitle": "Aggiungi esercizio",
+      "replaceTitle": "Sostituisci esercizio"
+    },
+    "exercise": {
+      "openHint": "Apre l'esercizio",
+      "moreOptions": "Altre opzioni per {{name}}",
+      "replace": "Sostituisci",
+      "delete": "Elimina"
+    },
+    "editFailed": {
+      "addTitle": "Impossibile aggiungere l'esercizio",
+      "replaceTitle": "Impossibile sostituire l'esercizio",
+      "deleteTitle": "Impossibile eliminare l'esercizio",
+      "libraryUnavailable": "La libreria degli esercizi non è disponibile al momento. Riprova.",
+      "sessionFinished": "Questo allenamento è già terminato.",
+      "rateLimited": "Troppe richieste: riprova tra {{seconds, number}} s.",
+      "generic": "Controlla la connessione e riprova."
+    }
+  },
+  "workoutSessionExercise": {
+    "loadError": "Impossibile caricare questo esercizio. Controlla la connessione e riprova.",
+    "howTo": "Come si fa?",
+    "guideHint": "Apre la guida dell'esercizio"
+  },
+  "history": {
+    "empty": {
+      "title": "Nessun allenamento ancora",
+      "body": "Termina la prima sessione per vederla qui con durata, serie, volume e record personali.",
+      "start": "Inizia {{name}}",
+      "nextUp": "Il prossimo in {{plan}} · {{exercises}}",
+      "resume": "Riprendi allenamento",
+      "resumeNamed": "Riprendi {{name}}",
+      "inProgress": "Hai un allenamento in corso.",
+      "createPlan": "Crea un piano"
+    },
+    "loadError": "Impossibile caricare i tuoi allenamenti. Controlla la connessione e riprova.",
+    "untitledWorkout": "Allenamento",
+    "duration": "Durata {{duration}}",
+    "thisMonth": "Questo mese",
+    "stats": {
+      "workouts": "Allenamenti",
+      "time": "Tempo",
+      "volume": "Volume"
+    },
+    "statLabel": "{{title}}: {{value}}",
+    "entry": "{{name}}, {{date}}, {{duration}}, {{sets}}, {{volume}}",
+    "streak": {
+      "badge_one": "{{count, number}} settimana di fila!",
+      "badge_many": "{{count, number}} settimane di fila!",
+      "badge_other": "{{count, number}} settimane di fila!",
+      "spoken_one": "Serie settimanale: {{count, number}} settimana",
+      "spoken_many": "Serie settimanale: {{count, number}} settimane",
+      "spoken_other": "Serie settimanale: {{count, number}} settimane"
+    },
+    "weeklyGoal": {
+      "title": "Obiettivo settimanale · {{workouts}}",
+      "weeksHit_one": "Settimane con obiettivo raggiunto: {{hit, number}} su {{count, number}}",
+      "weeksHit_many": "Settimane con obiettivo raggiunto: {{hit, number}} su {{count, number}}",
+      "weeksHit_other": "Settimane con obiettivo raggiunto: {{hit, number}} su {{count, number}}",
+      "now": "Ora",
+      "extra": "+{{count, number}}",
+      "thisWeek": "Questa settimana",
+      "weekOf": "Settimana del {{date}}",
+      "progress_one": "{{done, number}} di {{count, number}} allenamento",
+      "progress_many": "{{done, number}} di {{count, number}} allenamenti",
+      "progress_other": "{{done, number}} di {{count, number}} allenamenti",
+      "overGoal": "{{count, number}} oltre l'obiettivo",
+      "goalMet": "obiettivo raggiunto",
+      "goalMissed": "obiettivo non raggiunto",
+      "inProgress": "in corso",
+      "firstWeek": "prima settimana registrata",
+      "noGoal": "nessun obiettivo registrato",
+      "weekLabel": "{{week}}: {{details}}"
+    },
+    "personalRecord": "RP",
+    "entryWithRecords": "{{entry}}. {{records}}",
+    "personalRecords_one": "Record personale: {{records}}",
+    "personalRecords_many": "Record personali: {{records}}",
+    "personalRecords_other": "Record personali: {{records}}",
+    "recordResult": "{{exercise}}, {{weight}} × {{reps}}",
+    "bodyweightRecordResult": "{{exercise}}, corpo libero × {{reps}}"
+  },
+  "workoutSummary": {
+    "title": "Allenamento completato!",
+    "stats": {
+      "exercises": "Esercizi"
+    },
+    "statLabel": "{{title}}: {{value}}",
+    "continue": "Continua",
+    "exercise": "{{name}}, {{sets}}"
+  },
+  "auth": {
+    "welcome": "Ti diamo il benvenuto su Fitme!",
+    "fields": {
+      "email": "Email",
+      "passwordPlaceholder": "Password",
+      "name": "Nome",
+      "code": "Codice"
+    },
+    "validation": {
+      "invalidEmail": "Email non valida",
+      "passwordRequired": "Inserisci la password.",
+      "nameTooShort_one": "Il nome deve contenere almeno {{count}} carattere.",
+      "nameTooShort_many": "Il nome deve contenere almeno {{count}} caratteri.",
+      "nameTooShort_other": "Il nome deve contenere almeno {{count}} caratteri.",
+      "passwordTooShort_one": "La password deve contenere almeno {{count}} carattere.",
+      "passwordTooShort_many": "La password deve contenere almeno {{count}} caratteri.",
+      "passwordTooShort_other": "La password deve contenere almeno {{count}} caratteri."
+    },
+    "login": {
+      "title": "Accedi",
+      "subtitle": "Accedi al tuo account per vedere i tuoi allenamenti",
+      "continue": "Accedi",
+      "forgotPasswordLink": "Password dimenticata?",
+      "noAccount": "Non usi ancora Fitme?",
+      "registerLink": "Crea un account",
+      "cantSignInHere": "Questo account non può ancora accedere qui.",
+      "heading": "Bentornato",
+      "loading": "Accesso in corso"
+    },
+    "deviceCode": {
+      "title": "Controlla la tua email",
+      "subtitle": "Inserisci il codice che ti abbiamo inviato per confermare la tua identità su questo dispositivo",
+      "verify": "Verifica",
+      "resend": "Invia un nuovo codice",
+      "differentAccount": "Usa un altro account"
+    },
+    "register": {
+      "title": "Registrati",
+      "subtitle": "Crea un account per iniziare",
+      "submit": "Crea account",
+      "haveAccount": "Hai già un account?",
+      "loginLink": "Accedi",
+      "heading": "Crea il tuo account",
+      "loading": "Creazione dell'account"
+    },
+    "intro": {
+      "heading": "Allenati meglio,\nnon più a lungo.",
+      "description": "Fitme è il tuo personal trainer IA. Crea il tuo piano e registra ogni serie.",
+      "plans": "Un piano su misura per te",
+      "logging": "Ogni serie e ripetizione registrata",
+      "guides": "Guide agli esercizi con video",
+      "email": "Continua con email"
+    },
+    "social": {
+      "apple": "Continua con Apple",
+      "google": "Continua con Google",
+      "connectingGoogle": "Connessione a Google",
+      "incomplete": "Impossibile completare l'accesso. Riprova o continua con email."
+    },
+    "password": {
+      "show": "Mostra password",
+      "hide": "Nascondi password",
+      "minimum": "Almeno {{count}} caratteri"
+    },
+    "legal": {
+      "prefix": "Continuando, accetti i documenti di Fitme:",
+      "terms": "Termini di servizio",
+      "and": "e",
+      "privacy": "Informativa sulla privacy"
+    },
+    "or": "oppure",
+    "errors": {
+      "credentials": "Email o password errata. Riprova.",
+      "connection": "Controlla la connessione e riprova."
+    }
+  }
+}

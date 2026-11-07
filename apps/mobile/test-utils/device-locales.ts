@@ -20,7 +20,9 @@ const ENGLISH_DEVICE = ["en-US"];
 
 /** A `Locale` as the device reports it, for a language tag like `uk-UA`. */
 const toLocale = (languageTag: string): Locale => {
-  const [languageCode = null, regionCode = null] = languageTag.split("-");
+  const locale = new Intl.Locale(languageTag.replaceAll("_", "-"));
+  const languageCode = locale.language;
+  const regionCode = locale.region ?? null;
 
   return {
     currencyCode: null,
@@ -31,7 +33,7 @@ const toLocale = (languageTag: string): Locale => {
     languageCurrencyCode: null,
     languageCurrencySymbol: null,
     languageRegionCode: regionCode,
-    languageScriptCode: null,
+    languageScriptCode: locale.script ?? null,
     languageTag,
     measurementSystem: regionCode === "US" ? "us" : "metric",
     regionCode,

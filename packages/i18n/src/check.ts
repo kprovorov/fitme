@@ -26,9 +26,20 @@ type PluralForm = "zero" | "one" | "two" | "few" | "many" | "other";
 export const pluralForms: Readonly<Record<AppLanguage, readonly PluralForm[]>> =
   {
     ca: ["one", "many", "other"],
+    de: ["one", "other"],
     en: ["one", "other"],
     es: ["one", "many", "other"],
+    fr: ["one", "many", "other"],
+    it: ["one", "many", "other"],
+    ja: ["other"],
+    ko: ["other"],
+    nl: ["one", "other"],
+    pl: ["one", "few", "many", "other"],
+    "pt-BR": ["one", "many", "other"],
+    "pt-PT": ["one", "many", "other"],
     uk: ["one", "few", "many", "other"],
+    "zh-Hans": ["other"],
+    "zh-Hant": ["other"],
   };
 
 const PLURAL_SUFFIX = /_(?<form>zero|one|two|few|many|other)$/u;

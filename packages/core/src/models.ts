@@ -74,7 +74,23 @@ export const isEquipment = (value: unknown): value is Equipment =>
   equipment.some((item) => item === value);
 
 /** The languages Fitme speaks to a User in (GLOSSARY.md: App language). */
-export const appLanguages = ["en", "uk", "es", "ca"] as const;
+export const appLanguages = [
+  "en",
+  "uk",
+  "es",
+  "ca",
+  "fr",
+  "de",
+  "it",
+  "pt-BR",
+  "pt-PT",
+  "pl",
+  "zh-Hans",
+  "zh-Hant",
+  "ja",
+  "ko",
+  "nl",
+] as const;
 
 export type AppLanguage = (typeof appLanguages)[number];
 
@@ -84,12 +100,41 @@ export const defaultAppLanguage: AppLanguage = "en";
 export const isAppLanguage = (value: unknown): value is AppLanguage =>
   appLanguages.some((language) => language === value);
 
-const LANGUAGE_SUBTAG = /^[a-z]+/iu;
+const TRADITIONAL_CHINESE_REGIONS = new Set(["tw", "hk", "mo"]);
+
+const languageFromTag = (tag: string): AppLanguage | undefined => {
+  const [language, scriptOrRegion, regionAfterScript] = tag
+    .replaceAll("_", "-")
+    .toLowerCase()
+    .split("-");
+
+  const region =
+    scriptOrRegion?.length === 4 ? regionAfterScript : scriptOrRegion;
+
+  if (language === "pt") {
+    return region === "pt" ? "pt-PT" : "pt-BR";
+  }
+
+  if (language === "zh") {
+    if (scriptOrRegion === "hans") {
+      return "zh-Hans";
+    }
+
+    return scriptOrRegion === "hant" ||
+      TRADITIONAL_CHINESE_REGIONS.has(region ?? "")
+      ? "zh-Hant"
+      : "zh-Hans";
+  }
+
+  return isAppLanguage(language) ? language : undefined;
+};
 
 /**
  * The App language for a device's preferred languages (BCP 47 tags, most
- * preferred first): the first whose language subtag is an App language
- * (`uk-UA` → `uk`), or the default. No language stands in for another, so
+ * preferred first): the first supported language (`uk-UA` → `uk`), or the
+ * default. Portuguese follows its region (Brazilian without Portugal);
+ * Chinese follows an explicit script, then TW/HK/MO for Traditional,
+ * otherwise Simplified. No language stands in for another, so
  * Russian gets English. Walking the list in order matches how iOS and
  * Android pick an app's bundle language.
  */
@@ -97,10 +142,10 @@ export const resolveAppLanguage = (
   preferredLanguages: readonly string[]
 ): AppLanguage => {
   for (const tag of preferredLanguages) {
-    const subtag = LANGUAGE_SUBTAG.exec(tag)?.[0].toLowerCase();
+    const language = languageFromTag(tag);
 
-    if (isAppLanguage(subtag)) {
-      return subtag;
+    if (language) {
+      return language;
     }
   }
 

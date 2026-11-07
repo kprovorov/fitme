@@ -1,0 +1,845 @@
+{
+  "tabs": {
+    "workout": "训练",
+    "history": "历史",
+    "arnold": "Arnold AI",
+    "library": "动作库"
+  },
+  "library": {
+    "search": "搜索训练动作",
+    "muscles": "肌群",
+    "removeMuscleGroup": "移除{{muscleGroup}}",
+    "reset": "重置",
+    "confirm": "完成",
+    "loadErrorTitle": "无法加载训练动作",
+    "loadError": "无法加载训练动作。请检查网络连接后重试。",
+    "loadMoreError": "无法加载更多训练动作。请检查网络连接后重试。",
+    "emptyTitle": "未找到训练动作",
+    "empty": "没有匹配的训练动作。请尝试其他名称或肌群。",
+    "showAll": "显示所有训练动作"
+  },
+  "exercise": {
+    "gone": "此动作已不在动作库中。",
+    "loadError": "无法加载此动作。请检查网络连接后重试。"
+  },
+  "exerciseHistory": {
+    "title": "进步记录",
+    "loadError": "无法加载此动作的历史记录。请检查网络连接后重试。",
+    "set": "第{{order, number}}组：{{logged}}",
+    "target": "目标：{{target}}"
+  },
+  "counts": {
+    "entries_other": "{{count, number}}条记录",
+    "exercises_other": "{{count, number}}个动作",
+    "minutes_other": "{{count, number}}分钟",
+    "reps_other": "{{count, number}}次",
+    "sets_other": "{{count, number}}组",
+    "workoutSessions_other": "{{count, number}}次训练",
+    "workouts_other": "{{count, number}}项训练"
+  },
+  "arnold": {
+    "title": "Arnold",
+    "chat": "聊天",
+    "model": "模型",
+    "newConversation": "新建对话",
+    "scrollToLatest": "滚动到最新消息",
+    "emptyState": {
+      "title": "问问 Arnold",
+      "description": "聊聊你的训练、计划和动作"
+    },
+    "composer": {
+      "placeholder": "给 Arnold 发消息",
+      "send": "发送消息",
+      "addToChat": "添加到聊天"
+    },
+    "attachments": {
+      "title": "添加到聊天",
+      "camera": "相机",
+      "photos": "照片",
+      "pickedPhoto": "第{{position, number}}张照片，共{{total, number}}张",
+      "removePhoto": "移除第{{position, number}}张照片，共{{total, number}}张",
+      "pickFailed": "无法添加这张照片。请换一张重试。",
+      "perMessageLimit_other": "每条消息最多可添加{{count, number}}张照片。",
+      "conversationFull_other": "此对话已达到{{count, number}}张照片的上限。请新建对话以发送更多照片。",
+      "photo": "照片",
+      "sentPhoto": "第{{position, number}}张照片，共{{total, number}}张",
+      "cameraDenied": {
+        "title": "需要相机权限",
+        "message": "Fitme 需要使用相机来为 Arnold 拍摄照片。你可以在设置中开启权限。",
+        "openSettings": "打开设置"
+      },
+      "viewer": {
+        "close": "关闭",
+        "image": "照片"
+      }
+    },
+    "errors": {
+      "proCheckUnavailable": "无法验证你的 Fitme Pro 订阅。请稍后重试。",
+      "network": "无法连接到 Arnold。请检查网络连接后重试。",
+      "generic": "出了点问题，请重试。"
+    },
+    "modelPicker": {
+      "appliesToNextMessage": "用于你的下一条消息",
+      "loading": "正在加载模型",
+      "unavailable": "模型暂时不可用。你的消息将使用 Arnold 的默认模型。"
+    },
+    "planCard": {
+      "frequency_other": "每周{{count, number}}次",
+      "setCount": "{{count, number}}×",
+      "save": "保存计划",
+      "saved": "计划已保存",
+      "unmatchedExercises": "部分动作无法在动作库中找到，因此无法保存。请尝试重新生成计划。",
+      "errors": {
+        "unknownExercises": "此计划包含未知动作，无法保存。请让 Arnold 生成另一个计划。",
+        "libraryUnavailable": "无法验证此计划中的动作，请重试。",
+        "rateLimited": "请求过于频繁，请在{{seconds, number}}秒后重试。",
+        "generic": "无法保存计划，请重试。"
+      }
+    }
+  },
+  "planner": {
+    "title": "创建训练计划",
+    "goal": {
+      "title": "目标",
+      "question": "你的目标是什么？",
+      "options": {
+        "fat-loss": "减重",
+        "muscle-gain": "增肌",
+        "general-health-fitness": "改善健康"
+      }
+    },
+    "experience": {
+      "title": "经验",
+      "question": "你有多少训练经验？"
+    },
+    "duration": {
+      "title": "训练时长",
+      "question": "你希望每次训练多长时间？",
+      "minutes_other": "{{count}}分钟"
+    },
+    "place": {
+      "title": "地点",
+      "question": "选择你想训练的地点",
+      "soon": "即将推出"
+    },
+    "frequency": {
+      "title": "频率",
+      "question": "你希望每周训练几次？"
+    },
+    "note": {
+      "title": "补充说明",
+      "question": "为你的计划添加补充说明",
+      "placeholder": "例如：我想多练腹肌"
+    },
+    "submit": "生成我的计划！",
+    "required": "必填",
+    "message": {
+      "intro": "请根据以下信息为我制定训练计划：",
+      "goal": "- 目标：{{goal}}",
+      "experience": "- 经验：{{experience}}",
+      "duration_other": "- 每次训练时长：{{count}}分钟",
+      "place": "- 地点：{{place}}",
+      "frequency_other": "- 频率：每周{{count}}天",
+      "note": "- 补充说明：{{note}}"
+    }
+  },
+  "plans": {
+    "title": "我的计划",
+    "create": "创建训练计划",
+    "createNew": "创建新训练计划",
+    "frequency_other": "每周{{count, number}}次",
+    "manage": "管理",
+    "edit": "编辑计划",
+    "goBack": "返回",
+    "loadError": "无法加载此计划。请检查网络连接后重试。",
+    "listLoadError": "无法加载你的计划。请检查网络连接后重试。",
+    "activate": {
+      "action": "启用计划",
+      "title": "启用计划",
+      "message": "此操作会停用你当前的计划",
+      "confirm": "启用",
+      "failed": "无法启用计划"
+    },
+    "archive": {
+      "action": "归档",
+      "title": "归档计划",
+      "activePlan": "无法归档正在使用的计划。你需要始终保留至少一个启用的计划。",
+      "message": "确定要归档此计划吗？",
+      "confirm": "归档",
+      "failed": "无法归档计划"
+    },
+    "errors": {
+      "notFound": "此计划已不存在。",
+      "network": "请检查网络连接后重试。",
+      "rateLimited": "请求过于频繁，请在{{seconds, number}}秒后重试。"
+    }
+  },
+  "planEditor": {
+    "title": "编辑计划",
+    "save": "保存",
+    "details": "详情",
+    "name": "名称",
+    "namePlaceholder": "计划名称",
+    "description": "描述",
+    "descriptionPlaceholder": "这个计划的用途",
+    "frequency": "每周训练次数",
+    "duration": "训练时长",
+    "durationUnit": "分钟",
+    "goal": "目标",
+    "experience": "经验水平",
+    "place": "地点",
+    "workouts": "训练",
+    "workoutsHint": "按轮换顺序排列：第一项就是下次训练。",
+    "noWorkouts": "计划中至少需要一项训练。",
+    "workoutActions": "{{name}}的操作",
+    "moveUp": "上移{{name}}",
+    "moveDown": "下移{{name}}",
+    "remove": "移除{{name}}",
+    "addWorkout": "添加训练",
+    "newWorkoutName": "训练{{letter}}",
+    "openWorkout": "编辑{{name}}",
+    "workoutNeedsExercise": "至少需要一个动作",
+    "workoutNeedsFixing": "请检查此训练的名称和组数设置",
+    "workout": {
+      "title": "编辑训练",
+      "name": "名称",
+      "namePlaceholder": "训练名称",
+      "exercises": "动作",
+      "exercisesHint": "按你的训练顺序排列。",
+      "noExercises": "为此训练添加一个动作。",
+      "addExercise": "添加动作",
+      "exerciseActions": "{{name}}的操作",
+      "moveUp": "上移{{name}}",
+      "moveDown": "下移{{name}}",
+      "replace": "替换{{name}}",
+      "remove": "移除{{name}}",
+      "removeSet": "移除第{{order, number}}组",
+      "errors": {
+        "nameRequired": "请输入训练名称",
+        "repsRange": "次数必须是{{min, number(useGrouping: false)}}至{{max, number(useGrouping: false)}}之间的整数",
+        "weightRange": "重量必须是{{min, number(useGrouping: false)}}至{{max, number(useGrouping: false)}}之间的数值",
+        "restRange": "休息秒数必须是{{min, number(useGrouping: false)}}至{{max, number(useGrouping: false)}}之间的整数"
+      }
+    },
+    "picker": {
+      "addTitle": "添加动作",
+      "replaceTitle": "替换动作",
+      "addExercise": "添加{{name}}",
+      "replaceWith": "替换为{{name}}"
+    },
+    "discard": {
+      "title": "放弃更改？",
+      "message": "你对此计划的更改将会丢失。",
+      "confirm": "放弃"
+    },
+    "errors": {
+      "nameRequired": "请输入计划名称",
+      "nameTooLong": "名称不能超过{{max, number(useGrouping: false)}}个字符",
+      "descriptionTooLong": "描述不能超过{{max, number(useGrouping: false)}}个字符",
+      "frequencyRange": "每周训练次数必须是{{min, number(useGrouping: false)}}至{{max, number(useGrouping: false)}}之间的整数",
+      "durationRange": "训练分钟数必须是整数，且不超过{{max, number(useGrouping: false)}}",
+      "choiceRequired": "请选择一项",
+      "saveFailed": "无法保存你的计划。请检查网络连接后重试。",
+      "saveRateLimited": "无法保存你的计划。请求过于频繁，请在{{seconds, number}}秒后重试。",
+      "unknownExercises": "此计划包含未知动作，无法保存。请替换后重试。",
+      "libraryUnavailable": "无法验证此计划中的动作，请重试。",
+      "unitsChanged": "你在另一台设备上更改了重量单位，这些目标仍使用旧单位。请关闭编辑器后重新打开。"
+    }
+  },
+  "plannedWorkout": {
+    "stats": {
+      "duration": "时长",
+      "exercises": "动作",
+      "sets": "组数"
+    },
+    "durationMinutes": "{{minutes, number}}分钟",
+    "noExercises": "此训练还没有动作。",
+    "gone": "此训练已不存在",
+    "goBack": "返回",
+    "edit": "编辑训练",
+    "loadError": "无法加载此训练。请检查网络连接后重试。",
+    "exerciseDetailsHint": "打开动作详情"
+  },
+  "home": {
+    "managePlans": "管理计划",
+    "createPlan": "创建计划",
+    "workouts": "训练",
+    "planMenu": "计划选项",
+    "logo": "Fitme",
+    "card": {
+      "preview": "预览",
+      "previewNamed": "预览{{name}}",
+      "start": "开始",
+      "startNamed": "开始{{name}}",
+      "continue": "继续",
+      "continueNamed": "继续{{name}}",
+      "moreMuscleGroups": "+{{count, number}}",
+      "moreMuscleGroupsSpoken_other": "以及另外{{count, number}}个肌群"
+    },
+    "allSet": "做得好！全部完成了！",
+    "empty": {
+      "title": "没有启用的计划",
+      "message": "你还没有启用的训练计划。创建一个，开始训练吧。",
+      "inactiveMessage": "启用已有计划，或创建一个新计划。",
+      "action": "创建训练计划"
+    },
+    "loadError": {
+      "title": "无法加载你的计划",
+      "message": "请检查网络连接后重试。"
+    }
+  },
+  "startWorkout": {
+    "start": "开始训练",
+    "continue": "继续训练",
+    "continueNamed": "继续{{name}}",
+    "finishFirst": "请先完成正在进行的训练",
+    "finishFirstNamed": "请先完成{{name}}",
+    "failed": {
+      "title": "无法开始训练",
+      "network": "请检查网络连接后重试。",
+      "rateLimited": "请求过于频繁，请在{{seconds, number}}秒后重试。"
+    }
+  },
+  "workoutCard": {
+    "exercises_other": "{{count, number}}个动作",
+    "toWorkout": "前往训练",
+    "openHint": "打开训练",
+    "openInProgressHint": "打开正在进行的训练"
+  },
+  "choices": {
+    "equipment": {
+      "barbell": "杠铃",
+      "dumbbell": "哑铃",
+      "cable": "绳索器械",
+      "machine": "固定器械",
+      "smith_machine": "史密斯机",
+      "bench": "训练凳",
+      "pull_up_bar": "引体向上杆",
+      "landmine": "地雷杆",
+      "bodyweight": "自重"
+    },
+    "experienceLevel": {
+      "beginner": "初级",
+      "intermediate": "中级",
+      "advanced": "高级"
+    },
+    "experienceLevelDescription": {
+      "beginner": "0至6个月经验",
+      "intermediate": "6个月至3年经验",
+      "advanced": "3年以上经验"
+    },
+    "gender": {
+      "male": "男",
+      "female": "女"
+    },
+    "goal": {
+      "muscle-gain": "增肌",
+      "fat-loss": "减重",
+      "recomposition": "增肌减脂",
+      "strength-performance": "力量与运动表现",
+      "general-health-fitness": "健康与体能"
+    },
+    "measurementSystem": {
+      "metric": "公制",
+      "us": "美制",
+      "uk": "英制"
+    },
+    "measurementSystemDescription": {
+      "metric": "厘米和千克",
+      "us": "英尺、英寸和磅",
+      "uk": "英尺、英寸和磅"
+    },
+    "muscleGroup": {
+      "chest": "胸部",
+      "back": "背部",
+      "shoulders": "肩部",
+      "biceps": "肱二头肌",
+      "triceps": "肱三头肌",
+      "forearms": "前臂",
+      "abs": "腹肌",
+      "obliques": "腹斜肌",
+      "quadriceps": "股四头肌",
+      "hamstrings": "腘绳肌",
+      "glutes": "臀部",
+      "calves": "小腿",
+      "traps": "斜方肌",
+      "lats": "背阔肌",
+      "lower-back": "下背部",
+      "cardio": "有氧",
+      "full-body": "全身"
+    },
+    "place": {
+      "gym": "健身房",
+      "home": "家中"
+    }
+  },
+  "unitNames": {
+    "cm": "厘米",
+    "in": "英寸",
+    "kg": "千克",
+    "lbs": "磅"
+  },
+  "units": {
+    "cm": "{{value, number}}厘米",
+    "in": "{{value, number}}英寸",
+    "kg": "{{value, number}}千克",
+    "lbs": "{{value, number}}磅"
+  },
+  "spokenUnits": {
+    "cm_other": "{{count, number}}厘米",
+    "in_other": "{{count, number}}英寸",
+    "kg_other": "{{count, number}}千克",
+    "lbs_other": "{{count, number}}磅"
+  },
+  "compactUnits": {
+    "t": "{{value, number}}吨",
+    "thousandLbs": "{{value, number}}千磅"
+  },
+  "spokenCompactUnits": {
+    "t_other": "{{count, number}}吨",
+    "thousandLbs_other": "{{count, number}}千磅"
+  },
+  "duration": {
+    "hoursMinutes": "{{hours, number}}小时{{minutes, number}}分钟",
+    "minutes": "{{minutes, number}}分钟"
+  },
+  "finishWorkout": {
+    "confirm": {
+      "title": "结束训练？",
+      "unloggedSets_other": "还有{{count, number}}组计划内的训练未记录。",
+      "cancel": "取消",
+      "finish": "结束"
+    },
+    "failed": {
+      "title": "无法结束训练",
+      "network": "请检查网络连接后重试。",
+      "rateLimited": "请求过于频繁，请在{{seconds, number}}秒后重试。"
+    },
+    "suggestion": {
+      "title": "训练完成！",
+      "description": "你已记录全部计划内的训练组。",
+      "close": "关闭",
+      "keepTrainingHint": "关闭此提示并继续训练",
+      "finish": "结束训练",
+      "finishHint": "结束本次训练",
+      "keepTraining": "继续训练"
+    }
+  },
+  "planUpdate": {
+    "title": "更新你的计划？",
+    "description": "将今天对{{workout}}的更改保存到{{plan}}。",
+    "failed": "无法更新你的计划。请检查网络连接后重试。",
+    "rateLimited": "请求过于频繁，请在{{seconds, number}}秒后重试。",
+    "update": "更新计划",
+    "updateHint": "将这些更改保存到计划，然后显示训练总结",
+    "retry": "重试",
+    "keep": "保持原计划",
+    "keepHint": "保留原计划并显示训练总结",
+    "changes": {
+      "replace": "将{{replaced}}替换为{{exercise}}",
+      "add": "添加{{exercise}}",
+      "remove": "移除{{exercise}}",
+      "addSets_other": "为{{exercise}}添加{{count, number}}组",
+      "line": "{{change}} · {{sets}}",
+      "spokenLine": "{{change}}：{{sets}}",
+      "spokenSet": "{{weight}}，{{reps}}"
+    }
+  },
+  "sets": {
+    "columns": {
+      "target": "目标",
+      "reps": "次数",
+      "rest": "休息"
+    },
+    "addSet": "添加一组",
+    "noTarget": "无目标",
+    "repsAtWeight": "{{weight}}，{{reps}}",
+    "plannedSet": "第{{order, number}}组：{{target}}，{{rest}}",
+    "restSeconds_other": "休息{{count, number}}秒",
+    "noRest": "无休息",
+    "row": {
+      "repsInput": "第{{order, number}}组次数",
+      "weightInput": "第{{order, number}}组重量",
+      "restInput": "第{{order, number}}组休息时间",
+      "log": "记录第{{order, number}}组",
+      "edit": "编辑第{{order, number}}组",
+      "editHint": "打开此组进行编辑",
+      "logged": "第{{order, number}}组，已记录"
+    },
+    "errors": {
+      "save": "无法保存此组，请重试。",
+      "rateLimited": "请求过于频繁，请在{{seconds, number}}秒后重试。"
+    },
+    "form": {
+      "weightNotNumber": "重量必须是数值",
+      "weightNegative": "重量不能为负数",
+      "weightTooHigh": "重量不能超过{{max}}",
+      "weightDecimals_other": "重量最多保留{{count, number}}位小数",
+      "repsNotNumber": "次数必须是数值",
+      "repsNegative": "次数不能为负数",
+      "repsTooHigh": "次数不能超过{{max}}",
+      "repsNotWhole": "次数必须是整数"
+    },
+    "rest": {
+      "title": "休息",
+      "thenSet": "休息 · 接下来是第{{order, number}}组",
+      "left": "休息中，还剩{{clock}}",
+      "less_other": "减少{{count, number}}秒",
+      "more_other": "增加{{count, number}}秒",
+      "skip": "跳过",
+      "skipRest": "跳过休息",
+      "over": "休息结束"
+    }
+  },
+  "forms": {
+    "numberMin": "数值必须大于或等于{{min, number(useGrouping: false)}}",
+    "numberMax": "数值必须小于或等于{{max, number(useGrouping: false)}}"
+  },
+  "onboarding": {
+    "welcome": {
+      "title": "欢迎使用 Fitme！",
+      "description": "你的专属 AI 教练已准备就绪。开始吧！",
+      "getStarted": "开始使用",
+      "skip": "跳过"
+    },
+    "profile": {
+      "title": "让我们了解你",
+      "description": "我们将用这些信息为你提供个性化体验。",
+      "next": "下一步",
+      "loadError": "无法加载你的个人资料。请检查网络连接后重试。"
+    }
+  },
+  "profileForm": {
+    "name": "姓名",
+    "gender": "性别",
+    "parameters": "身体数据",
+    "age": "年龄",
+    "weight": "体重",
+    "height": "身高",
+    "notSet": "未设置",
+    "done": "完成",
+    "ageValue_other": "{{count, number}}岁",
+    "feet_other": "{{count, number}}英尺",
+    "inches_other": "{{count, number}}英寸",
+    "errors": {
+      "ageRequired": "请填写年龄",
+      "genderRequired": "请选择性别",
+      "heightRequired": "请填写身高",
+      "weightRequired": "请填写体重",
+      "nameTooLong": "姓名不能超过{{max, number(useGrouping: false)}}个字符",
+      "tooManyDecimals": "数值最多保留{{max, number(useGrouping: false)}}位小数",
+      "saveFailed": "无法保存你的个人资料。请检查网络连接后重试。",
+      "saveRateLimited": "无法保存你的个人资料。请求过于频繁，请在{{seconds, number}}秒后重试。"
+    }
+  },
+  "common": {
+    "cancel": "取消",
+    "confirm": "确认",
+    "tryAgain": "重试",
+    "genericError": "出了点问题，请稍后重试。",
+    "rateLimited": "请求过于频繁，请在{{seconds, number}}秒后重试。"
+  },
+  "profile": {
+    "title": "个人资料",
+    "pro": {
+      "title": "你已是 Pro 用户！",
+      "description": "你可以使用全部功能，也可以随时取消订阅。",
+      "manage": "管理订阅"
+    },
+    "free": {
+      "title": "你正在使用免费版",
+      "description": "订阅 Fitme Pro，即可无限使用全部功能",
+      "upgrade": "升级到 Pro"
+    },
+    "editProfile": "编辑个人资料",
+    "settings": "设置",
+    "support": "支持",
+    "legal": "法律信息",
+    "logout": "退出登录",
+    "rate": {
+      "title": "喜欢这款应用吗？",
+      "action": "去 App Store 给个评分吧！"
+    }
+  },
+  "editProfile": {
+    "title": "编辑个人资料",
+    "loadError": "无法加载你的个人资料。请检查网络连接后重试。",
+    "save": "保存"
+  },
+  "settings": {
+    "title": "设置",
+    "measurementSystem": "计量单位制",
+    "deleteAccount": "删除账户",
+    "deleteConfirm": {
+      "title": "删除账户",
+      "message": "此操作将永久删除你的账户及所有相关数据，且无法撤销。",
+      "confirm": "删除"
+    },
+    "deleteFailed": "无法删除你的账户"
+  },
+  "measurementSystem": {
+    "title": "计量单位制",
+    "loadError": "无法加载你的计量单位制。请检查网络连接后重试。",
+    "confirm": {
+      "title": "确定要更改吗？",
+      "message": "更改计量单位制会影响所有测量数据。你的个人资料和训练历史将转换为新的单位制。"
+    },
+    "checkFailed": {
+      "title": "无法验证你的单位",
+      "message": "请检查网络连接后重试，以查看已保存的单位制。"
+    },
+    "changeFailed": {
+      "title": "无法更改单位",
+      "message": "你的测量数据未更改，请重试。",
+      "rateLimited": "你的测量数据未更改。请求过于频繁，请在{{seconds, number}}秒后重试。"
+    }
+  },
+  "legal": {
+    "title": "法律信息",
+    "privacyPolicy": "隐私政策",
+    "terms": "服务条款",
+    "deleteAccount": "删除账户",
+    "deleteConfirm": {
+      "title": "确定要删除你的账户吗？",
+      "message": "此操作无法撤销。你的账户将被永久删除，你的数据也将从我们的服务器中移除。",
+      "confirm": "是的，删除我的账户"
+    }
+  },
+  "support": {
+    "title": "支持",
+    "contact": "如果你有任何问题或建议，欢迎随时联系我们",
+    "social": {
+      "x": "Fitme 的 X 主页",
+      "instagram": "Fitme 的 Instagram 主页",
+      "threads": "Fitme 的 Threads 主页"
+    }
+  },
+  "verifyCode": {
+    "screenTitle": "验证码",
+    "title": "查看你的邮箱",
+    "description": {
+      "signUp": "输入我们发送到你邮箱的验证码以启用账户",
+      "reset": "输入我们发送到你邮箱的验证码以重置密码",
+      "signIn": "输入我们发送的验证码，确认是你在此设备上登录"
+    },
+    "codePlaceholder": "验证码",
+    "verify": "验证",
+    "errors": {
+      "signUpIncomplete": "无法完成账户创建，请重试。",
+      "resetIncomplete": "无法验证此验证码，请重试。",
+      "signInIncomplete": "无法登录，请重试。"
+    },
+    "resendButton": "重新发送验证码",
+    "resentNotice": "我们已向你发送新的验证码。",
+    "destination": "输入我们发送至{{email}}的6位验证码",
+    "didntGet": "没收到？",
+    "resendIn": "{{time}}后可重新发送",
+    "wrongEmail": "邮箱有误？",
+    "changeEmail": "更换邮箱",
+    "loading": "正在验证",
+    "expired": "此次验证已过期。请重新开始以获取新的验证码。",
+    "startOver": "重新开始"
+  },
+  "forgotPassword": {
+    "screenTitle": "忘记密码",
+    "title": "忘记密码了？",
+    "description": "输入注册时使用的邮箱，我们将向你发送6位验证码。",
+    "emailPlaceholder": "邮箱",
+    "invalidEmail": "邮箱地址无效",
+    "submit": "发送验证码",
+    "remember": "想起密码了？",
+    "login": "登录",
+    "loading": "正在发送验证码"
+  },
+  "resetPassword": {
+    "screenTitle": "重置密码",
+    "title": "设置新密码",
+    "description": "请使用与其他账户不同的密码。",
+    "newPasswordPlaceholder": "新密码",
+    "confirmPasswordPlaceholder": "确认新密码",
+    "passwordTooShort_other": "密码至少需要{{count}}个字符。",
+    "passwordsDontMatch": "两次输入的密码不一致。",
+    "submit": "更新密码",
+    "passwordChanged": "密码已更改，请使用新密码登录。",
+    "loading": "正在更新密码",
+    "changedMind": "改变主意了？",
+    "backToLogin": "返回登录"
+  },
+  "updateRequired": {
+    "title": "需要更新",
+    "description": "此版本的 Fitme 已不再受支持。请更新应用以继续训练。",
+    "update": "更新"
+  },
+  "notFound": {
+    "title": "出错了！",
+    "description": "此页面不存在。",
+    "goHome": "返回首页"
+  },
+  "workoutSession": {
+    "finish": "结束",
+    "loadError": "无法加载此训练。请检查网络连接后重试。",
+    "stats": {
+      "duration": "时长",
+      "volume": "训练总量",
+      "sets": "组数",
+      "exercisesDone_other": "已完成{{done, number}}个动作，共{{count, number}}个"
+    },
+    "addExercise": "添加动作",
+    "picker": {
+      "addExercise": "添加{{name}}",
+      "replaceWith": "替换为{{name}}",
+      "close": "关闭",
+      "addTitle": "添加动作",
+      "replaceTitle": "替换动作"
+    },
+    "exercise": {
+      "openHint": "打开动作",
+      "moreOptions": "{{name}}的更多选项",
+      "replace": "替换",
+      "delete": "删除"
+    },
+    "editFailed": {
+      "addTitle": "无法添加动作",
+      "replaceTitle": "无法替换动作",
+      "deleteTitle": "无法删除动作",
+      "libraryUnavailable": "动作库暂时不可用，请重试。",
+      "sessionFinished": "此训练已经结束。",
+      "rateLimited": "请求过于频繁，请在{{seconds, number}}秒后重试。",
+      "generic": "请检查网络连接后重试。"
+    }
+  },
+  "workoutSessionExercise": {
+    "loadError": "无法加载此动作。请检查网络连接后重试。",
+    "howTo": "如何练习？",
+    "guideHint": "打开动作指南"
+  },
+  "history": {
+    "empty": {
+      "title": "还没有训练记录",
+      "body": "完成首次训练后，就能在这里看到时长、组数、训练总量和个人纪录。",
+      "start": "开始{{name}}",
+      "nextUp": "{{plan}}的下一项训练 · {{exercises}}",
+      "resume": "继续训练",
+      "resumeNamed": "继续{{name}}",
+      "inProgress": "你有一项正在进行的训练。",
+      "createPlan": "创建计划"
+    },
+    "loadError": "无法加载你的训练记录。请检查网络连接后重试。",
+    "untitledWorkout": "训练",
+    "duration": "时长{{duration}}",
+    "thisMonth": "本月",
+    "stats": {
+      "workouts": "训练次数",
+      "time": "时间",
+      "volume": "训练总量"
+    },
+    "statLabel": "{{title}}：{{value}}",
+    "entry": "{{name}}，{{date}}，{{duration}}，{{sets}}，{{volume}}",
+    "streak": {
+      "badge_other": "连续训练{{count, number}}周！",
+      "spoken_other": "连续训练：{{count, number}}周"
+    },
+    "weeklyGoal": {
+      "title": "每周目标 · {{workouts}}",
+      "weeksHit_other": "{{count, number}}周中有{{hit, number}}周达标",
+      "now": "现在",
+      "extra": "+{{count, number}}",
+      "thisWeek": "本周",
+      "weekOf": "{{date}}所在周",
+      "progress_other": "已完成{{done, number}}次训练，目标{{count, number}}次",
+      "overGoal": "超出目标{{count, number}}次",
+      "goalMet": "已达标",
+      "goalMissed": "未达标",
+      "inProgress": "进行中",
+      "firstWeek": "首次记录的周",
+      "noGoal": "未记录目标",
+      "weekLabel": "{{week}}：{{details}}"
+    },
+    "personalRecord": "个人纪录",
+    "entryWithRecords": "{{entry}}。{{records}}",
+    "personalRecords_other": "个人纪录：{{records}}",
+    "recordResult": "{{exercise}}，{{weight}} × {{reps}}",
+    "bodyweightRecordResult": "{{exercise}}，自重 × {{reps}}"
+  },
+  "workoutSummary": {
+    "title": "训练完成！",
+    "stats": {
+      "exercises": "动作"
+    },
+    "statLabel": "{{title}}：{{value}}",
+    "continue": "继续",
+    "exercise": "{{name}}，{{sets}}"
+  },
+  "auth": {
+    "welcome": "欢迎使用 Fitme！",
+    "fields": {
+      "email": "邮箱",
+      "passwordPlaceholder": "密码",
+      "name": "姓名",
+      "code": "验证码"
+    },
+    "validation": {
+      "invalidEmail": "邮箱地址无效",
+      "passwordRequired": "请输入密码。",
+      "nameTooShort_other": "姓名至少需要{{count}}个字符。",
+      "passwordTooShort_other": "密码至少需要{{count}}个字符。"
+    },
+    "login": {
+      "title": "登录",
+      "subtitle": "登录账户，查看你的训练",
+      "continue": "登录",
+      "forgotPasswordLink": "忘记密码？",
+      "noAccount": "第一次使用 Fitme？",
+      "registerLink": "创建账户",
+      "cantSignInHere": "此账户暂时无法在这里登录。",
+      "heading": "欢迎回来",
+      "loading": "正在登录"
+    },
+    "deviceCode": {
+      "title": "查看你的邮箱",
+      "subtitle": "输入我们发送的验证码，确认是你在此设备上登录",
+      "verify": "验证",
+      "resend": "发送新验证码",
+      "differentAccount": "使用其他账户"
+    },
+    "register": {
+      "title": "注册",
+      "subtitle": "创建账户，开始使用",
+      "submit": "创建账户",
+      "haveAccount": "已有账户？",
+      "loginLink": "登录",
+      "heading": "创建你的账户",
+      "loading": "正在创建账户"
+    },
+    "intro": {
+      "heading": "练得更聪明，\n而不是更久。",
+      "description": "Fitme 是你的 AI 私人教练，为你制定计划并记录每一组训练。",
+      "plans": "为你量身制定的计划",
+      "logging": "记录每一组、每一次",
+      "guides": "附视频的动作指南",
+      "email": "使用邮箱继续"
+    },
+    "social": {
+      "apple": "通过 Apple 继续",
+      "google": "通过 Google 继续",
+      "connectingGoogle": "正在连接 Google",
+      "incomplete": "无法完成登录。请重试，或使用邮箱继续。"
+    },
+    "password": {
+      "show": "显示密码",
+      "hide": "隐藏密码",
+      "minimum": "至少{{count}}个字符"
+    },
+    "legal": {
+      "prefix": "继续即表示你同意 Fitme 的",
+      "terms": "服务条款",
+      "and": "和",
+      "privacy": "隐私政策"
+    },
+    "or": "或",
+    "errors": {
+      "credentials": "邮箱或密码不正确，请重试。",
+      "connection": "请检查网络连接后重试。"
+    }
+  }
+}
