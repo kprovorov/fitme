@@ -29,11 +29,17 @@ import {
   clearArnoldAttachments,
 } from "~/hooks/arnold-attachments";
 import type { PickedImage, PickedPhotos } from "~/lib/arnold-attachment-picker";
+import {
+  loadSavedArnoldConversation,
+  savedArnoldSessionId,
+} from "~/lib/arnold-chat";
+import { sentAttachmentUri } from "~/lib/arnold-sent-attachments";
 import { useAppLanguageSync } from "~/lib/i18n";
 import { storage } from "~/lib/mmkv";
 import { segmentClient } from "~/lib/segment";
 import { setDeviceLanguages } from "~/test-utils/device-locales";
 import { FAKE_ARNOLD_REPLY, fakeArnold } from "~/test-utils/fake-arnold";
+import type * as InMemoryFileSystem from "~/test-utils/in-memory-file-system";
 import { PushedRoutes, resetStubRouter } from "~/test-utils/router-stub";
 
 const mockPresentPaywall = jest.fn();
@@ -186,6 +192,21 @@ jest.mock("~/lib/arnold-attachment-picker", () => ({
   readAttachmentDataUrl: (uri: string) => mockReadAttachmentDataUrl(uri),
 }));
 
+// The device this Conversation keeps its sent photos on (ADR 0018), in
+// memory: jest-expo's own stand-in stores nothing, so a test over it
+// couldn't see the copies, nor that a reset took them away.
+jest.mock(
+  "expo-file-system",
+  () =>
+    jest.requireActual<typeof InMemoryFileSystem>(
+      "~/test-utils/in-memory-file-system"
+    ).fileSystemModule
+);
+
+const { fileSystem } = jest.requireActual<typeof InMemoryFileSystem>(
+  "~/test-utils/in-memory-file-system"
+);
+
 jest.mock("expo-router/react-navigation", () => ({ useHeaderHeight: () => 0 }));
 
 let mockAttachmentsEnabled = false;
@@ -312,6 +333,7 @@ beforeEach(() => {
   mockPresentPaywall.mockClear();
   jest.mocked(segmentClient.track).mockClear();
   storage.clearAll();
+  fileSystem.reset();
   fakeArnold.install();
   process.env.EXPO_PUBLIC_ARNOLD_URL = fakeArnold.baseUrl;
 });
@@ -475,12 +497,42 @@ describe("arnold screen", () => {
   });
 
   describe("attachments", () => {
-    /** A re-encoded JPEG on this device, as the picker answers one. */
-    const photo = (name: string): PickedImage => ({
-      height: 1200,
-      uri: `file:///photos/${name}.jpg`,
-      width: 1600,
-    });
+    /**
+     * A re-encoded JPEG on this device, as the picker answers one, with its
+     * own bytes on the stand-in device, so a copy of it is told from a copy
+     * of another photo.
+     */
+    const photo = (name: string): PickedImage => {
+      const uri = `file:///photos/${name}.jpg`;
+      fileSystem.write(uri, `${name}-bytes`);
+
+      return { height: 1200, uri, width: 1600 };
+    };
+
+    /** The name every device copy is given, and sent as a part's `filename`. */
+    const COPY_NAME = /^[0-9a-z]+-\d+-[0-9a-z]+\.jpg$/u;
+
+    /**
+     * What this device kept for the photos the saved Conversation's own echo
+     * names, in the order they were sent: each copy's bytes, or `undefined`
+     * for one this device hasn't got. Read from MMKV and the file system
+     * alone, which is all a restarted app has (ADR 0018).
+     */
+    const keptPhotos = (userId: string): (string | undefined)[] => {
+      const { events = [] } = loadSavedArnoldConversation(userId);
+      const sessionId = savedArnoldSessionId(userId);
+
+      return events
+        .flatMap((event) =>
+          event.type === "message.received" ? (event.data.parts ?? []) : []
+        )
+        .flatMap((part) => (part.type === "file" ? [part.filename ?? ""] : []))
+        .map((filename) => {
+          const uri = sentAttachmentUri(userId, sessionId, filename);
+
+          return uri === undefined ? undefined : fileSystem.read(uri);
+        });
+    };
 
     /** Opens the "+" sheet, as the User does. */
     const openSheet = async () => {
@@ -655,11 +707,15 @@ describe("arnold screen", () => {
         { text: "What is this machine?", type: "text" },
         {
           data: dataUrlFor("file:///photos/gym.jpg"),
+          // The name this device kept its copy under, which eve's echo
+          // brings back (ADR 0018).
+          filename: expect.stringMatching(COPY_NAME),
           mediaType: "image/jpeg",
           type: "file",
         },
         {
           data: dataUrlFor("file:///photos/plan.jpg"),
+          filename: expect.stringMatching(COPY_NAME),
           mediaType: "image/jpeg",
           type: "file",
         },
@@ -680,6 +736,7 @@ describe("arnold screen", () => {
       expect(fakeArnold.sent[0]?.parts).toEqual([
         {
           data: dataUrlFor("file:///photos/gym.jpg"),
+          filename: expect.stringMatching(COPY_NAME),
           mediaType: "image/jpeg",
           type: "file",
         },
@@ -1033,6 +1090,152 @@ describe("arnold screen", () => {
       expect(screen.getByLabelText("Фото 2 з 2")).toBeTruthy();
       expect(screen.getAllByText("Фото")).toHaveLength(2);
       expect(screen.queryByLabelText("Photo 1 of 2")).toBeNull();
+    });
+
+    /**
+     * The device copy of a sent Attachment (ADR 0018): eve's echo carries an
+     * Attachment's metadata and never its bytes, so what a bubble shows comes
+     * from the phone. Nothing on screen changes yet; these read the copies the
+     * way a reopened or restarted app does, through the saved Conversation.
+     */
+    describe("the device copy", () => {
+      /** Sends two photos and waits for Arnold's answer and the saved turn. */
+      const sendTwoPhotos = async (text = "What is this machine?") => {
+        mockPickLibraryPhotos.mockResolvedValue({
+          failed: 0,
+          images: [photo("gym"), photo("plan")],
+        });
+        await renderArnold();
+        await pickPhotos();
+        await send(text);
+
+        await waitFor(() =>
+          expect(screen.getByText(FAKE_ARNOLD_REPLY)).toBeTruthy()
+        );
+        await waitFor(() =>
+          expect(
+            loadSavedArnoldConversation("user_arnold_screen").events
+          ).toBeTruthy()
+        );
+      };
+
+      it("keeps one photo per Attachment, found again by the echo's name", async () => {
+        mockAttachmentsEnabled = true;
+        await sendTwoPhotos();
+
+        // Found from MMKV and the file system alone, which is all the app
+        // has after a restart, and in the order they were sent.
+        expect(keptPhotos("user_arnold_screen")).toEqual([
+          "gym-bytes",
+          "plan-bytes",
+        ]);
+      });
+
+      it("keeps them under the Conversation, not loose on the device", async () => {
+        mockAttachmentsEnabled = true;
+        await sendTwoPhotos();
+
+        const [sessionId] = fakeArnold.sessionIds;
+
+        expect(
+          fileSystem.filesUnder(
+            `file:///memory/document/arnold-attachments/user_arnold_screen/${sessionId}`
+          )
+        ).toHaveLength(2);
+      });
+
+      it("keeps them through a reopened screen", async () => {
+        mockAttachmentsEnabled = true;
+        const { unmount } = await renderArnold();
+        mockPickLibraryPhotos.mockResolvedValue({
+          failed: 0,
+          images: [photo("gym")],
+        });
+        await pickPhotos();
+        await send("What is this machine?");
+        await waitFor(() =>
+          expect(screen.getByText(FAKE_ARNOLD_REPLY)).toBeTruthy()
+        );
+        await waitFor(() =>
+          expect(
+            loadSavedArnoldConversation("user_arnold_screen").events
+          ).toBeTruthy()
+        );
+        await unmount();
+
+        // Resuming the saved Conversation reports its session again, which
+        // must not be read as a session replacing it.
+        await renderArnold();
+        await waitFor(() =>
+          expect(screen.getByText(FAKE_ARNOLD_REPLY)).toBeTruthy()
+        );
+
+        expect(keptPhotos("user_arnold_screen")).toEqual(["gym-bytes"]);
+      });
+
+      it("takes them away with the Conversation the '+' resets", async () => {
+        mockAttachmentsEnabled = true;
+        await sendTwoPhotos();
+
+        await userEvent.setup().press(screen.getByLabelText(NEW_CONVERSATION));
+
+        await waitFor(() =>
+          expect(screen.getByText("Ask Arnold")).toBeTruthy()
+        );
+        expect(
+          fileSystem.filesUnder(
+            "file:///memory/document/arnold-attachments/user_arnold_screen"
+          )
+        ).toEqual([]);
+      });
+
+      it("keeps them through a sign-out, and never shows another User's", async () => {
+        mockAttachmentsEnabled = true;
+        await sendTwoPhotos();
+
+        const theirs = keptPhotos("user_arnold_screen");
+
+        // Another User signs in on the same phone: the first User's photos
+        // are still on it, and this one's Conversation lists none of them.
+        mockUserId = "user_someone_else";
+        await renderArnold();
+
+        expect(keptPhotos("user_someone_else")).toEqual([]);
+        expect(theirs).toEqual(["gym-bytes", "plan-bytes"]);
+        expect(keptPhotos("user_arnold_screen")).toEqual([
+          "gym-bytes",
+          "plan-bytes",
+        ]);
+      });
+
+      it("sends a photo it could not copy, and keeps nothing for it", async () => {
+        mockAttachmentsEnabled = true;
+        mockPickLibraryPhotos.mockResolvedValue({
+          failed: 0,
+          // Never written to the stand-in device: the cache the re-encoder
+          // wrote to was purged before the send.
+          images: [
+            { height: 1200, uri: "file:///photos/gone.jpg", width: 1600 },
+          ],
+        });
+        await renderArnold();
+        await pickPhotos();
+        await send("What is this machine?");
+
+        // The message still goes, so a disk that refuses the copy costs the
+        // User a thumbnail, never the message.
+        await waitFor(() => expect(fakeArnold.sent).toHaveLength(1));
+        await waitFor(() =>
+          expect(screen.getByText(FAKE_ARNOLD_REPLY)).toBeTruthy()
+        );
+        await waitFor(() =>
+          expect(
+            loadSavedArnoldConversation("user_arnold_screen").events
+          ).toBeTruthy()
+        );
+
+        expect(keptPhotos("user_arnold_screen")).toEqual([undefined]);
+      });
     });
   });
 });

@@ -62,9 +62,14 @@ import {
   loadSavedArnoldConversation,
   saveArnoldConversation,
   saveArnoldSession,
+  savedArnoldSessionId,
   shownUserMessage,
 } from "~/lib/arnold-chat";
 import type { ArnoldErrorKind } from "~/lib/arnold-chat";
+import {
+  dropSentAttachments,
+  keepSentAttachments,
+} from "~/lib/arnold-sent-attachments";
 import { getClerk } from "~/lib/clerk";
 import { segmentClient } from "~/lib/segment";
 
@@ -148,10 +153,15 @@ const useArnoldChat = (userId: string, composer: Composer) => {
   // Attachments are lost and the User sends again without re-picking a
   // photo. `owner` is who the photos belonged to when it went, so a send
   // that outlives its User hands them to nobody (`addArnoldAttachments`).
-  // Cleared once a turn settles, so an answered prompt never returns.
+  // `copies` and `sessionId` are the device copies it wrote (ADR 0018),
+  // which come back off the device with it: no message names them, and a
+  // retry writes its own. Cleared once a turn settles, so an answered
+  // prompt never returns.
   const lastSentRef = useRef<{
     attachments: readonly ArnoldAttachment[];
+    copies: readonly string[];
     owner: string | null;
+    sessionId: string | undefined;
     text: string;
   } | null>(null);
 
@@ -197,13 +207,16 @@ const useArnoldChat = (userId: string, composer: Composer) => {
 
     // The refused message goes back into the composer, to send again: its
     // text, and its Attachments as the thumbnails they were. Nothing of it
-    // was ever stored off the device, so there is no copy to clean up.
+    // was stored off the device, and the copies it kept on it come back
+    // too, since no message of the Conversation names them and the retry
+    // writes its own (ADR 0018).
     const refused = lastSentRef.current;
     lastSentRef.current = null;
 
     if (refused) {
       composer.set(composer.get() || refused.text);
       addArnoldAttachments(refused.attachments, refused.owner);
+      dropSentAttachments(userId, refused.sessionId, refused.copies);
     }
 
     if (action === "paywall") {
@@ -211,7 +224,7 @@ const useArnoldChat = (userId: string, composer: Composer) => {
     } else if (action === "new-conversation") {
       resetFailedConversation();
     }
-  }, [composer, eveError]);
+  }, [composer, eveError, userId]);
 
   // Sync streaming text to the store
   useEffect(() => {
@@ -242,7 +255,16 @@ const useArnoldChat = (userId: string, composer: Composer) => {
       // takes a moment, and a User who signs out meanwhile must not have
       // them handed back to whoever signs in next.
       const sentBy = arnoldAttachmentsOwner();
-      lastSentRef.current = { attachments, owner: sentBy, text };
+      // The Conversation the copies go under, read before the awaits with
+      // the owner, so a reset meanwhile can't send them somewhere else.
+      const sessionId = savedArnoldSessionId(userId);
+      lastSentRef.current = {
+        attachments,
+        copies: [],
+        owner: sentBy,
+        sessionId,
+        text,
+      };
       const conversation = conversationRef.current;
       // The bytes go inline, as `data:` URL file parts after the text
       // (ADR 0018), read from the device only now: the runtime turns an
@@ -271,10 +293,36 @@ const useArnoldChat = (userId: string, composer: Composer) => {
         return;
       }
 
+      // eve echoes an Attachment's metadata, never its bytes, so the bubble
+      // is drawn from a copy this device keeps (ADR 0018). Each copy is
+      // named after the `filename` its part carries, which the echo brings
+      // back, so a reopened Conversation finds its own photos again. It
+      // never throws: a copy the device refuses costs a thumbnail, never
+      // the message.
+      const copies = await keepSentAttachments(
+        userId,
+        sessionId,
+        attachments.map((attachment) => attachment.uri)
+      );
+
+      // Remembered with the message, so a refusal takes them back off the
+      // device along with giving its photos back to the composer.
+      lastSentRef.current = {
+        attachments,
+        copies,
+        owner: sentBy,
+        sessionId,
+        text,
+      };
+
+      // Checked after both awaits, the photos' read and their copy, so a
+      // Conversation the User left while either ran takes the message with
+      // it, and the copies it had already written come back off the device.
       if (conversation !== conversationRef.current) {
         // The User started a new Conversation while the photos were being
         // read. This message was for the one they left, so it goes nowhere.
         lastSentRef.current = null;
+        dropSentAttachments(userId, sessionId, copies);
 
         return;
       }
@@ -284,7 +332,11 @@ const useArnoldChat = (userId: string, composer: Composer) => {
           // An image-only message carries no text part at all, rather than
           // an empty one the model would read as a blank question.
           ...(text ? [{ text, type: "text" as const }] : []),
-          ...images.map((image) => ({ image, type: "image" as const })),
+          ...images.map((image, index) => ({
+            filename: copies[index],
+            image,
+            type: "image" as const,
+          })),
         ],
         role: "user",
         // Read per send so a model or language change applies to the next message.
@@ -298,7 +350,7 @@ const useArnoldChat = (userId: string, composer: Composer) => {
         });
       }
     },
-    [aui, composer]
+    [aui, composer, userId]
   );
 
   const onSend = useCallback(
