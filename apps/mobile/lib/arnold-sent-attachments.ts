@@ -84,6 +84,12 @@ export const keepSentAttachments = async (
   sessionId: string | undefined,
   uris: readonly string[]
 ): Promise<readonly string[]> => {
+  // A text-only send, which is most of them, touches no file at all: no
+  // directory of a Conversation that has sent no Attachment is ever made.
+  if (uris.length === 0) {
+    return [];
+  }
+
   const names = uris.map((_uri, index) => copyName(index));
   const directory = conversationDirectory(userId, sessionId);
 

@@ -86,6 +86,17 @@ describe("keepSentAttachments", () => {
     expect(fileSystem.filesUnder(userRoot())).toHaveLength(2);
   });
 
+  it("touches no file for a message with no Attachment", async () => {
+    await expect(keepSentAttachments(USER, "ses_1", [])).resolves.toEqual([]);
+
+    // A text-only send is most of them: a Conversation that has sent no
+    // Attachment has no directory on the device at all.
+    expect(fileSystem.filesUnder("file:///memory/document")).toEqual([]);
+    expect(
+      sentAttachmentUri(USER, "ses_1", "mabc-0-deadbeef.jpg")
+    ).toBeUndefined();
+  });
+
   it("holds the first message's copies until eve has named the session", async () => {
     const names = await keepSentAttachments(USER, undefined, [picked("gym")]);
 
@@ -211,6 +222,7 @@ describe("followSentAttachments", () => {
 describe("forgetSentAttachments", () => {
   it("takes every copy of the User's away", async () => {
     const first = await keepSentAttachments(USER, "ses_1", [picked("gym")]);
+
     const pending = await keepSentAttachments(USER, undefined, [
       picked("plan"),
     ]);

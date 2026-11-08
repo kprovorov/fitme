@@ -1208,6 +1208,35 @@ describe("arnold screen", () => {
         ]);
       });
 
+      it("drops a send whose Conversation was replaced mid-copy", async () => {
+        mockAttachmentsEnabled = true;
+        mockPickLibraryPhotos.mockResolvedValue({
+          failed: 0,
+          images: [photo("gym")],
+        });
+        // Held mid-copy: the send has no turn yet, so nothing is busy and
+        // the header's New conversation button is live.
+        const copy = fileSystem.holdNextCopy();
+        await renderArnold();
+        await pickPhotos();
+        await send("What is this machine?");
+        await copy.started;
+
+        await userEvent.setup().press(screen.getByLabelText(NEW_CONVERSATION));
+        await act(async () => {
+          copy.release();
+          await Promise.resolve();
+        });
+
+        // The message was for the Conversation the User left, so it never
+        // reaches Arnold and never shows in the new one.
+        await waitFor(() =>
+          expect(screen.getByText("Ask Arnold")).toBeTruthy()
+        );
+        expect(fakeArnold.sent).toEqual([]);
+        expect(screen.queryByText("What is this machine?")).toBeNull();
+      });
+
       it("sends a photo it could not copy, and keeps nothing for it", async () => {
         mockAttachmentsEnabled = true;
         mockPickLibraryPhotos.mockResolvedValue({

@@ -65,11 +65,38 @@ const addDirectories = (uri: string): void => {
   }
 };
 
+/** A copy a test is holding part-way through, so it sees the device mid-write. */
+interface CopyHold {
+  release: () => void;
+  started: () => void;
+  waitFor: Promise<undefined>;
+}
+
+let hold: CopyHold | undefined;
+
 /** What a test does with the stand-in device. */
 export const fileSystem = {
   /** The file uris under `directory`, at any depth, sorted. */
   filesUnder: (directory: string): string[] =>
     [...contents.keys()].filter((uri) => isUnder(uri, directory)).toSorted(),
+
+  /**
+   * Holds the next copy until `release` is called, so a test acts while a
+   * send is part-way through writing its device copies. `started` resolves
+   * once the copy has been asked for.
+   */
+  holdNextCopy: (): { release: () => void; started: Promise<undefined> } => {
+    const gate = Promise.withResolvers<undefined>();
+    const begun = Promise.withResolvers<undefined>();
+
+    hold = {
+      release: () => gate.resolve(undefined),
+      started: () => begun.resolve(undefined),
+      waitFor: gate.promise,
+    };
+
+    return { release: () => gate.resolve(undefined), started: begun.promise };
+  },
 
   /** A file's contents, or `undefined` when there is no such file. */
   read: (uri: string): string | undefined => contents.get(uri),
@@ -80,6 +107,8 @@ export const fileSystem = {
     directories.clear();
     directories.add(DOCUMENT_URI);
     directories.add(CACHE_URI);
+    hold?.release();
+    hold = undefined;
   },
 
   /** Writes a file, creating the directories above it: a picked photo. */
@@ -129,22 +158,28 @@ class InMemoryFile {
       : Promise.resolve(Buffer.from(text).toString("base64"));
   }
 
-  copy(destination: InMemoryFile): Promise<void> {
+  async copy(destination: InMemoryFile): Promise<void> {
+    const held = hold;
+
+    if (held) {
+      hold = undefined;
+      held.started();
+      await held.waitFor;
+    }
+
     const text = contents.get(this.uri);
 
     if (text === undefined) {
-      return Promise.reject(missing("file", this.uri));
+      throw missing("file", this.uri);
     }
 
     const parent = parentOf(destination.uri);
 
     if (!directories.has(parent)) {
-      return Promise.reject(missing("directory", parent));
+      throw missing("directory", parent);
     }
 
     contents.set(destination.uri, text);
-
-    return Promise.resolve();
   }
 
   delete(): void {
@@ -222,6 +257,12 @@ class InMemoryDirectory {
     return children;
   }
 
+  /**
+   * Moves this directory's contents into `destination`, which the native one
+   * would instead nest this directory inside when it already exists. The app
+   * only ever moves into a directory that doesn't, so the difference never
+   * shows; a call site that would rely on nesting needs this made faithful.
+   */
   moveSync(destination: InMemoryDirectory): void {
     if (!this.exists) {
       throw missing("directory", this.uri);
