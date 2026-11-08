@@ -165,10 +165,20 @@ export const shownUserMessage = (
   events: readonly MessageStreamEvent[]
 ): ShownUserMessage => {
   if (message.metadata.custom.optimistic === true) {
+    // Only the trailing ones: eve writes the text parts first and a line
+    // per file after them, so a `[file]` the User typed themselves, which
+    // is theirs to see, is anywhere else.
     const lines = text.split("\n");
-    const own = lines.filter((line) => !FILE_PLACEHOLDER_LINE.test(line));
+    let own = lines.length;
 
-    return { attachmentCount: lines.length - own.length, text: own.join("\n") };
+    while (own > 0 && FILE_PLACEHOLDER_LINE.test(lines[own - 1] ?? "")) {
+      own -= 1;
+    }
+
+    return {
+      attachmentCount: lines.length - own,
+      text: lines.slice(0, own).join("\n"),
+    };
   }
 
   const { turnId } = message.metadata.custom;

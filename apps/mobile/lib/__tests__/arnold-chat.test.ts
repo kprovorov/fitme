@@ -360,6 +360,16 @@ describe("shownUserMessage", () => {
     });
   });
 
+  it("keeps a placeholder the User typed above their own text", () => {
+    // eve writes its own after the text, so one in the middle is theirs.
+    const text = "[file]\nis how you write it\n[file]";
+
+    expect(shownUserMessage(optimistic(text), text, [])).toEqual({
+      attachmentCount: 1,
+      text: "[file]\nis how you write it",
+    });
+  });
+
   it("counts the files of the echo of its turn", () => {
     const echo = echoed("What is this machine?");
 

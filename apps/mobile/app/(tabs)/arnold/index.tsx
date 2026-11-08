@@ -219,6 +219,10 @@ const useArnoldChat = (userId: string, composer: Composer) => {
   const sendMessage = useCallback(
     async (text: string, attachments: readonly ArnoldAttachment[] = []) => {
       lastSentRef.current = text;
+      // Who the photos belong to, read before the files are: reading them
+      // takes a moment, and a User who signs out meanwhile must not have
+      // them handed back to whoever signs in next.
+      const sentBy = arnoldAttachmentsOwner();
       // The bytes go inline, as `data:` URL file parts after the text
       // (ADR 0018), read from the device only now: the runtime turns an
       // `image` content part into the eve file part Arnold's channel takes.
@@ -236,7 +240,7 @@ const useArnoldChat = (userId: string, composer: Composer) => {
         captureException(error);
         lastSentRef.current = "";
         composer.set(composer.get() || text);
-        addArnoldAttachments(attachments, arnoldAttachmentsOwner());
+        addArnoldAttachments(attachments, sentBy);
 
         return;
       }

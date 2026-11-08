@@ -24,7 +24,10 @@ import type { ReactNode } from "react";
 import { ATTACHMENT_TRAY } from "@/components/chat";
 import AddToChatSheet from "~/app/(tabs)/arnold/attachments";
 import ArnoldScreen from "~/app/(tabs)/arnold/index";
-import { clearArnoldAttachments } from "~/hooks/arnold-attachments";
+import {
+  arnoldAttachmentsOwner,
+  clearArnoldAttachments,
+} from "~/hooks/arnold-attachments";
 import type { PickedImage, PickedPhotos } from "~/lib/arnold-attachment-picker";
 import { useAppLanguageSync } from "~/lib/i18n";
 import { storage } from "~/lib/mmkv";
@@ -144,8 +147,11 @@ jest.mock("~/components/markdown", () => {
 
 jest.mock("~/components/symbol-image", () => ({ SymbolImage: () => null }));
 
+/** The signed-in Clerk User; a test changes it and renders again. */
+let mockUserId = "user_arnold_screen";
+
 jest.mock("@clerk/expo", () => ({
-  useUser: () => ({ user: { id: "user_arnold_screen" } }),
+  useUser: () => ({ user: { id: mockUserId } }),
 }));
 
 // The bearer every eve request carries, resolved per request in the app.
@@ -264,7 +270,7 @@ function App() {
 }
 
 async function renderArnold() {
-  await render(<App />);
+  return await render(<App />);
 }
 
 /** Types `text` into the composer and presses Send, as the User does. */
@@ -278,6 +284,7 @@ async function send(text: string) {
 
 beforeEach(() => {
   mockAttachmentsEnabled = false;
+  mockUserId = "user_arnold_screen";
   mockPickLibraryPhotos.mockReset();
   mockReadAttachmentDataUrl.mockReset();
   mockReadAttachmentDataUrl.mockImplementation((uri) =>
@@ -755,6 +762,56 @@ describe("arnold screen", () => {
         "file:///photos/gym.jpg",
         "file:///photos/plan.jpg",
       ]);
+    });
+
+    it("gives a message back to nobody once another User has signed in", async () => {
+      mockAttachmentsEnabled = true;
+      mockPickLibraryPhotos.mockResolvedValue({
+        failed: 0,
+        images: [photo("gym")],
+      });
+      let readStarted!: () => void;
+      const reading = new Promise<void>((resolve) => {
+        readStarted = resolve;
+      });
+      let letTheReadFail!: () => void;
+      const readFails = new Promise<void>((resolve) => {
+        letTheReadFail = resolve;
+      });
+      // Held mid-read, so the User is gone by the time it fails.
+      mockReadAttachmentDataUrl.mockImplementation(async () => {
+        readStarted();
+        await readFails;
+        throw new Error("No such file");
+      });
+      const { rerender } = await renderArnold();
+      await pickPhotos();
+      await send("What is this machine?");
+      await reading;
+
+      // Another User signs in: the screen is rebuilt for them (a new `key`,
+      // since the screen reads the User from Clerk, not from a prop).
+      mockUserId = "user_someone_else";
+      await act(async () => {
+        rerender(<App key={mockUserId} />);
+        await Promise.resolve();
+      });
+      // The next User's screen is up, with their own empty composer, before
+      // the read fails: that is when the photos must go to nobody.
+      await waitFor(() =>
+        expect(arnoldAttachmentsOwner()).toBe("user_someone_else")
+      );
+      await act(async () => {
+        letTheReadFail();
+        await Promise.resolve();
+      });
+
+      await waitFor(() => expect(captureException).toHaveBeenCalled());
+      // Let the composer render whatever it was given back.
+      await act(async () => {
+        await Promise.resolve();
+      });
+      expect(thumbnails()).toEqual([]);
     });
 
     it("picks photos and says the message is full in Ukrainian", async () => {
