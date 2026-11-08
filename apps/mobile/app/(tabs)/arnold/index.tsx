@@ -143,10 +143,17 @@ const useArnoldChat = (userId: string, composer: Composer) => {
   const streamingStore = useMemo(() => createStreamingStore(), []);
   const prevStreamingTextRef = useRef<string>("");
 
-  // The text of the last send, given back to the composer when Arnold
-  // refuses it or it fails (its placeholder bubble is hidden), so it isn't
-  // lost. Cleared once a turn settles, so an answered prompt never returns.
-  const lastSentRef = useRef("");
+  // The last send, given back to the composer when Arnold refuses it or it
+  // fails (its placeholder bubble is hidden), so neither its text nor its
+  // Attachments are lost and the User sends again without re-picking a
+  // photo. `owner` is who the photos belonged to when it went, so a send
+  // that outlives its User hands them to nobody (`addArnoldAttachments`).
+  // Cleared once a turn settles, so an answered prompt never returns.
+  const lastSentRef = useRef<{
+    attachments: readonly ArnoldAttachment[];
+    owner: string | null;
+    text: string;
+  } | null>(null);
 
   // Which Conversation the screen is on: bumped whenever one replaces it.
   const conversationRef = useRef(0);
@@ -156,7 +163,7 @@ const useArnoldChat = (userId: string, composer: Composer) => {
   // A turn that settled without an error was answered: nothing to give back.
   useEffect(() => {
     if (!(isRunning || eveError)) {
-      lastSentRef.current = "";
+      lastSentRef.current = null;
     }
   }, [isRunning, eveError]);
 
@@ -188,10 +195,16 @@ const useArnoldChat = (userId: string, composer: Composer) => {
       return;
     }
 
-    // The refused text goes back into the composer, to send again.
+    // The refused message goes back into the composer, to send again: its
+    // text, and its Attachments as the thumbnails they were. Nothing of it
+    // was ever stored off the device, so there is no copy to clean up.
     const refused = lastSentRef.current;
-    lastSentRef.current = "";
-    composer.set(composer.get() || refused);
+    lastSentRef.current = null;
+
+    if (refused) {
+      composer.set(composer.get() || refused.text);
+      addArnoldAttachments(refused.attachments, refused.owner);
+    }
 
     if (action === "paywall") {
       void RevenueCatUI.presentPaywall();
@@ -225,11 +238,11 @@ const useArnoldChat = (userId: string, composer: Composer) => {
 
   const sendMessage = useCallback(
     async (text: string, attachments: readonly ArnoldAttachment[] = []) => {
-      lastSentRef.current = text;
       // Who the photos belong to, read before the files are: reading them
       // takes a moment, and a User who signs out meanwhile must not have
       // them handed back to whoever signs in next.
       const sentBy = arnoldAttachmentsOwner();
+      lastSentRef.current = { attachments, owner: sentBy, text };
       const conversation = conversationRef.current;
       // The bytes go inline, as `data:` URL file parts after the text
       // (ADR 0018), read from the device only now: the runtime turns an
@@ -246,7 +259,7 @@ const useArnoldChat = (userId: string, composer: Composer) => {
         // into the composer rather than going out without its photos or
         // being lost without a word.
         captureException(error);
-        lastSentRef.current = "";
+        lastSentRef.current = null;
 
         // Not into a Conversation started since: the message belongs to the
         // one the User left, and so do its photos.
@@ -261,7 +274,7 @@ const useArnoldChat = (userId: string, composer: Composer) => {
       if (conversation !== conversationRef.current) {
         // The User started a new Conversation while the photos were being
         // read. This message was for the one they left, so it goes nowhere.
-        lastSentRef.current = "";
+        lastSentRef.current = null;
 
         return;
       }

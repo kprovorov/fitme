@@ -21,7 +21,8 @@ const NONE: readonly ArnoldAttachment[] = [];
  * The Attachments picked for Arnold's next message, in memory only (never
  * MMKV): the "+" sheet picks them and the composer, a screen away, shows
  * them, so they live outside both. They are a draft, like the composer's
- * text: a sent or refused message is the next ticket's.
+ * text: a sent message empties them, and a refused or failed one is given
+ * them back (`app/(tabs)/arnold/index.tsx`).
  */
 let picked = NONE;
 let owner: string | null = null;
