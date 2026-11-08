@@ -61,7 +61,7 @@
       "removePhoto": "全{{total, number}}枚のうち{{position, number}}枚目の写真を削除",
       "pickFailed": "この写真を追加できませんでした。別の写真をお試しください。",
       "perMessageLimit_other": "1つのメッセージに追加できる写真は{{count, number}}枚までです。",
-      "conversationFull_other": "この会話の写真が{{count, number}}枚に達しました。さらに送るには、新しい会話を始めてください。",
+      "conversationFull_other": "1つの会話に追加できる写真は{{count, number}}枚までです。さらに追加するには、新しい会話を始めてください。",
       "photo": "写真",
       "sentPhoto": "写真{{position, number}}枚目、全{{total, number}}枚",
       "cameraDenied": {

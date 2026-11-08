@@ -3,10 +3,16 @@
  * mockup's Files button, Research and Web search toggles and Add to project,
  * Style and Tool access rows are gone, so a User never meets a dead control.
  */
-import { describe, expect, it, jest } from "@jest/globals";
+import { beforeEach, describe, expect, it, jest } from "@jest/globals";
 import { render, screen } from "@testing-library/react-native";
 
 import AddToChatSheet from "~/app/(tabs)/arnold/attachments";
+import {
+  clearArnoldAttachments,
+  MAX_ATTACHMENTS_PER_CONVERSATION,
+  setConversationAttachmentCount,
+  useArnoldAttachmentsOwner,
+} from "~/hooks/arnold-attachments";
 import { setDeviceLanguages } from "~/test-utils/device-locales";
 import { InAppLanguage } from "~/test-utils/in-app-language";
 
@@ -56,6 +62,12 @@ const renderSheet = async () => {
   );
 };
 
+beforeEach(() => {
+  clearArnoldAttachments();
+  setConversationAttachmentCount(0);
+  useArnoldAttachmentsOwner("user_sheet");
+});
+
 describe("arnold's attachments sheet", () => {
   it("offers only Camera and Photos on an English device", async () => {
     await renderSheet();
@@ -80,5 +92,22 @@ describe("arnold's attachments sheet", () => {
     for (const dropped of DROPPED.uk) {
       expect(screen.queryByText(dropped)).toBeNull();
     }
+  });
+
+  it("names the Conversation's cap, not the message's, when that's what's full", async () => {
+    // Reached from the composer before "+" went disabled: the message would
+    // hold four more, so the message's cap would be the wrong thing to say.
+    setConversationAttachmentCount(MAX_ATTACHMENTS_PER_CONVERSATION);
+    await renderSheet();
+
+    expect(
+      screen.getByText(
+        "A conversation can hold 10 photos. Start a new conversation to add more."
+      )
+    ).toBeTruthy();
+    expect(
+      screen.queryByText("You can add up to 4 photos to a message.")
+    ).toBeNull();
+    expect(screen.getByRole("button", { name: "Photos" })).toBeDisabled();
   });
 });

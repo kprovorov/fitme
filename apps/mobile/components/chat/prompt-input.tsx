@@ -25,6 +25,8 @@ import { ScopedVariables, useCSSVariable, withUniwind } from "uniwind";
 import { SymbolImage } from "@/components/symbol-image";
 import { TouchableGlass } from "@/components/touchable-glass";
 import { Image } from "@/components/tw";
+import { Button } from "~/components/ui/button";
+import { MAX_ATTACHMENTS_PER_CONVERSATION } from "~/hooks/arnold-attachments";
 import { cn } from "~/lib/utils";
 
 import { useChatContext } from "./chat-context";
@@ -51,6 +53,58 @@ const PromptInputError = ({ message }: { message: string }) => (
     </View>
   </Animated.View>
 );
+
+/**
+ * The notice that the Conversation is full of photos, with its way out. Its
+ * New conversation button is named like the header's, so a test tells the two
+ * apart by this.
+ */
+export const CONVERSATION_FULL_NOTICE = "conversation-full";
+
+/**
+ * The Conversation holds as many Attachments as it can (ADR 0018): eve
+ * resends every earlier image on every model call, so a photo-heavy
+ * Conversation would run into Arnold's turn budget and have a turn cancelled
+ * with nothing to show for it. The way out is a Conversation of its own,
+ * offered right here rather than only in the header, where a User met by this
+ * message wouldn't think to look.
+ */
+const PromptInputConversationFull = () => {
+  const { isGenerating, isLoading, onNewConversation } = useChatContext();
+  const { t } = useTranslation();
+  // A reset mid-turn would leave the turn running on Arnold, where it could
+  // still change a Plan nobody sees: the header's button waits too.
+  const isBusy = isGenerating || Boolean(isLoading);
+
+  return (
+    <Animated.View
+      className="px-3 pb-2"
+      entering={FadeIn.duration(200)}
+      exiting={FadeOut.duration(150)}
+    >
+      <View
+        className="border-continuous bg-card gap-2 rounded-xl px-3 py-2.5"
+        testID={CONVERSATION_FULL_NOTICE}
+      >
+        <Text className="text-footnote text-muted-foreground">
+          {t("arnold.attachments.conversationFull", {
+            count: MAX_ATTACHMENTS_PER_CONVERSATION,
+          })}
+        </Text>
+        {/* Spanning the card rather than hugging its label: at the largest
+            text size a hugged pill grows past the card's edge, and so does
+            a longer translation of the label at any size. */}
+        <Button
+          disabled={isBusy}
+          label={t("arnold.newConversation")}
+          onPress={onNewConversation}
+          size="sm"
+          variant="secondary"
+        />
+      </View>
+    </Animated.View>
+  );
+};
 
 /**
  * One picked Attachment: its thumbnail, read from the file on this device,
@@ -209,7 +263,7 @@ export const PromptInputAttachments = () => {
  */
 export const PromptInput = ({ children }: { children: ReactNode }) => {
   const { promptInputStyle, onPromptInputLayout } = useConversationContext();
-  const { errorMessage } = useChatContext();
+  const { errorMessage, isConversationFull } = useChatContext();
 
   return (
     <Animated.View
@@ -218,6 +272,7 @@ export const PromptInput = ({ children }: { children: ReactNode }) => {
       style={promptInputStyle}
     >
       {errorMessage ? <PromptInputError message={errorMessage} /> : null}
+      {isConversationFull ? <PromptInputConversationFull /> : null}
       <PromptInputAttachments />
       <AnimatedGlassContainer
         spacing={8}
@@ -230,19 +285,30 @@ export const PromptInput = ({ children }: { children: ReactNode }) => {
 };
 
 /**
- * A circular glass button for actions (e.g. attachments, camera).
+ * A circular glass button for actions (e.g. attachments, camera). Disabled it
+ * dims and reports itself as such: liquid glass only stops taking them, which
+ * on its own would leave the button looking live.
  */
-export const PromptInputAction = (props: {
+export const PromptInputAction = ({
+  disabled,
+  ...props
+}: {
   accessibilityLabel: string;
   children: ReactNode;
+  disabled?: boolean;
   onPress?: () => void;
 }) => (
   <TouchableGlass
     accessibilityRole="button"
+    accessibilityState={{ disabled: Boolean(disabled) }}
     accessible
+    disabled={disabled}
     hitSlop={4}
     {...props}
-    className="h-11 w-11 items-center justify-center rounded-full"
+    className={cn(
+      "h-11 w-11 items-center justify-center rounded-full",
+      disabled && "opacity-50"
+    )}
   />
 );
 

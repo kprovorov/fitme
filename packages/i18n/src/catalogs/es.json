@@ -77,9 +77,9 @@
       "perMessageLimit_one": "Puedes añadir hasta {{count, number}} foto a un mensaje.",
       "perMessageLimit_many": "Puedes añadir hasta {{count, number}} fotos a un mensaje.",
       "perMessageLimit_other": "Puedes añadir hasta {{count, number}} fotos a un mensaje.",
-      "conversationFull_one": "Esta conversación ya tiene {{count, number}} foto. Empieza una nueva conversación para enviar más.",
-      "conversationFull_many": "Esta conversación ya tiene {{count, number}} fotos. Empieza una nueva conversación para enviar más.",
-      "conversationFull_other": "Esta conversación ya tiene {{count, number}} fotos. Empieza una nueva conversación para enviar más.",
+      "conversationFull_one": "Una conversación admite {{count, number}} foto. Empieza una nueva conversación para añadir más.",
+      "conversationFull_many": "Una conversación admite {{count, number}} fotos. Empieza una nueva conversación para añadir más.",
+      "conversationFull_other": "Una conversación admite {{count, number}} fotos. Empieza una nueva conversación para añadir más.",
       "photo": "Foto",
       "sentPhoto": "Foto {{position, number}} de {{total, number}}",
       "cameraDenied": {

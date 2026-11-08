@@ -116,28 +116,28 @@ describe("the Attachment strings", () => {
   it.each([
     {
       conversationFull:
-        "This conversation has reached 10 photos. Start a new conversation to send more.",
+        "A conversation can hold 10 photos. Start a new conversation to add more.",
       language: "en" as const,
       perMessageLimit: "You can add up to 4 photos to a message.",
       pickedPhoto: "Photo 2 of 3",
     },
     {
       conversationFull:
-        "У цій розмові вже 10 фото. Почніть нову розмову, щоб надіслати більше.",
+        "У розмові може бути до 10 фото. Почніть нову розмову, щоб додати ще.",
       language: "uk" as const,
       perMessageLimit: "В одне повідомлення можна додати не більше 4 фото.",
       pickedPhoto: "Фото 2 з 3",
     },
     {
       conversationFull:
-        "Esta conversación ya tiene 10 fotos. Empieza una nueva conversación para enviar más.",
+        "Una conversación admite 10 fotos. Empieza una nueva conversación para añadir más.",
       language: "es" as const,
       perMessageLimit: "Puedes añadir hasta 4 fotos a un mensaje.",
       pickedPhoto: "Foto 2 de 3",
     },
     {
       conversationFull:
-        "Aquesta conversa ja té 10 fotos. Comença una conversa nova per enviar-ne més.",
+        "Una conversa admet 10 fotos. Comença una conversa nova per afegir-ne més.",
       language: "ca" as const,
       perMessageLimit: "Pots afegir fins a 4 fotos a un missatge.",
       pickedPhoto: "Foto 2 de 3",
