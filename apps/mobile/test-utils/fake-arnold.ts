@@ -281,6 +281,8 @@ class FakeArnold {
   /** Bumped by `reset()`, so a request in flight then answers nothing. */
   private epoch = 0;
   private failures: ArnoldFailure[] = [];
+  /** How many of the next turns fail after their message was echoed. */
+  private failTurns = 0;
   private holds: Promise<void>[] = [];
   private sessionCount = 0;
   private deliveryCount = 0;
@@ -317,6 +319,7 @@ class FakeArnold {
     this.sent = [];
     this.unhandled = [];
     this.failures = [];
+    this.failTurns = 0;
     this.holds = [];
     this.reply = FAKE_ARNOLD_REPLY;
     this.sessionCount = 0;
@@ -326,6 +329,16 @@ class FakeArnold {
   /** Makes the next send fail, as Arnold refuses or fails one. */
   failNextSend(failure: ArnoldFailure) {
     this.failures.push(failure);
+  }
+
+  /**
+   * Accepts and echoes the next send, then fails its turn (`turn.failed`),
+   * as a turn that breaks after the model has the message does: the message
+   * stays in the Conversation and its saved events while the client reports
+   * an error. Tell it from `failNextSend`, where nothing was ever accepted.
+   */
+  failNextTurn() {
+    this.failTurns += 1;
   }
 
   /**
@@ -575,6 +588,35 @@ class FakeArnold {
       meta: meta(deliveryId),
       type: "message.received",
     });
+
+    if (this.failTurns > 0) {
+      this.failTurns -= 1;
+      // Accepted and echoed, then the turn itself fails: the message stays
+      // in the Conversation while the client reports an error.
+      append({
+        data: {
+          code: "internal_error",
+          message: "The turn failed (the fake's own message)",
+          sequence: 2,
+          terminal: true,
+          turnId,
+        },
+        meta: meta(deliveryId),
+        type: "turn.failed",
+      });
+      append({
+        data: {
+          code: "internal_error",
+          message: "The session failed (the fake's own message)",
+          sessionId: session.sessionId,
+        },
+        meta: meta(deliveryId),
+        type: "session.failed",
+      });
+
+      return deliveryId;
+    }
+
     append({
       data: { messageDelta: this.reply, sequence: 2, stepIndex: 0, turnId },
       meta: meta(deliveryId),

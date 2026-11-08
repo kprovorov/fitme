@@ -16,6 +16,7 @@ import {
   arnoldErrorKind,
   arnoldRunConfig,
   clearSavedArnoldConversation,
+  echoedAttachmentNames,
   getArnoldUrl,
   isRefusedSend,
   loadSavedArnoldConversation,
@@ -297,6 +298,44 @@ describe("a saved Conversation's Attachments", () => {
     expect(
       sentAttachmentUri("user_gone", "ses_1", names[0] ?? "")
     ).toBeUndefined();
+  });
+});
+
+describe("echoedAttachmentNames", () => {
+  const echo = (
+    turnId: string,
+    filenames: readonly string[]
+  ): MessageStreamEvent => ({
+    data: {
+      message: "What is this machine?",
+      parts: [
+        { text: "What is this machine?", type: "text" },
+        ...filenames.map((filename) => ({
+          filename,
+          mediaType: "image/jpeg",
+          size: 10,
+          type: "file" as const,
+        })),
+      ],
+      sequence: 1,
+      turnId,
+    },
+    meta: { at: "2026-01-01T00:00:00.000Z", id: `evt_${turnId}` },
+    type: "message.received",
+  });
+
+  it("names every Attachment the Conversation's messages carry", () => {
+    expect([
+      ...echoedAttachmentNames([
+        echo("turn_0", ["a.jpg"]),
+        echo("turn_1", ["b.jpg", "c.jpg"]),
+      ]),
+    ]).toEqual(["a.jpg", "b.jpg", "c.jpg"]);
+  });
+
+  it("names none for a Conversation of text alone", () => {
+    expect(echoedAttachmentNames([echo("turn_0", [])]).size).toBe(0);
+    expect(echoedAttachmentNames([]).size).toBe(0);
   });
 });
 

@@ -1239,6 +1239,34 @@ describe("arnold screen", () => {
         ).toEqual([]);
       });
 
+      it("keeps the copies of a message Arnold had already echoed", async () => {
+        mockAttachmentsEnabled = true;
+        mockPickLibraryPhotos.mockResolvedValue({
+          failed: 0,
+          images: [photo("gym")],
+        });
+        // Accepted and echoed, then the turn breaks: the message stays in
+        // the Conversation, so its photos are the ones its bubble shows and
+        // must survive the error the screen reports.
+        fakeArnold.failNextTurn();
+        await renderArnold();
+        await pickPhotos();
+        await send("What is this machine?");
+
+        await waitFor(() =>
+          expect(
+            screen.getByText("Something went wrong. Try again.")
+          ).toBeTruthy()
+        );
+        await waitFor(() =>
+          expect(
+            loadSavedArnoldConversation("user_arnold_screen").events
+          ).toBeTruthy()
+        );
+
+        expect(keptPhotos("user_arnold_screen")).toEqual(["gym-bytes"]);
+      });
+
       it("keeps only the retry's copies when a failed send is sent again", async () => {
         mockAttachmentsEnabled = true;
         mockPickLibraryPhotos.mockResolvedValue({

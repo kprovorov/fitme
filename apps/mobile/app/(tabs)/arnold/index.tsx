@@ -57,6 +57,7 @@ import {
   arnoldErrorKind,
   arnoldRunConfig,
   clearSavedArnoldConversation,
+  echoedAttachmentNames,
   getArnoldUrl,
   isRefusedSend,
   loadSavedArnoldConversation,
@@ -153,15 +154,13 @@ const useArnoldChat = (userId: string, composer: Composer) => {
   // Attachments are lost and the User sends again without re-picking a
   // photo. `owner` is who the photos belonged to when it went, so a send
   // that outlives its User hands them to nobody (`addArnoldAttachments`).
-  // `copies` and `sessionId` are the device copies it wrote (ADR 0018),
-  // which come back off the device with it: no message names them, and a
-  // retry writes its own. Cleared once a turn settles, so an answered
-  // prompt never returns.
+  // `copies` are the device copies it wrote (ADR 0018), which come back off
+  // the device with it when no message of the Conversation names them.
+  // Cleared once a turn settles, so an answered prompt never returns.
   const lastSentRef = useRef<{
     attachments: readonly ArnoldAttachment[];
     copies: readonly string[];
     owner: string | null;
-    sessionId: string | undefined;
     text: string;
   } | null>(null);
 
@@ -198,6 +197,21 @@ const useArnoldChat = (userId: string, composer: Composer) => {
   // `useEveReset` returns a new function each time.
   const resetFailedConversation = useEffectEvent(() => newConversation());
 
+  // The device copies of a send that errored, dropped only where no message
+  // of the Conversation names them (ADR 0018). A turn can fail *after* eve
+  // has echoed its message, which leaves that message in the Conversation
+  // and in its saved events: its photos are still the ones its bubble
+  // shows, so they stay. An `useEffectEvent`, so the error effect reads the
+  // latest events without rerunning on each one.
+  const dropUnnamedCopies = useEffectEvent((copies: readonly string[]) => {
+    const named = echoedAttachmentNames(events);
+
+    dropSentAttachments(
+      userId,
+      copies.filter((name) => !named.has(name))
+    );
+  });
+
   useEffect(() => {
     const action = arnoldErrorAction(eveError);
 
@@ -216,7 +230,7 @@ const useArnoldChat = (userId: string, composer: Composer) => {
     if (refused) {
       composer.set(composer.get() || refused.text);
       addArnoldAttachments(refused.attachments, refused.owner);
-      dropSentAttachments(userId, refused.sessionId, refused.copies);
+      dropUnnamedCopies(refused.copies);
     }
 
     if (action === "paywall") {
@@ -224,7 +238,7 @@ const useArnoldChat = (userId: string, composer: Composer) => {
     } else if (action === "new-conversation") {
       resetFailedConversation();
     }
-  }, [composer, eveError, userId]);
+  }, [composer, eveError]);
 
   // Sync streaming text to the store
   useEffect(() => {
@@ -258,13 +272,7 @@ const useArnoldChat = (userId: string, composer: Composer) => {
       // The Conversation the copies go under, read before the awaits with
       // the owner, so a reset meanwhile can't send them somewhere else.
       const sessionId = savedArnoldSessionId(userId);
-      lastSentRef.current = {
-        attachments,
-        copies: [],
-        owner: sentBy,
-        sessionId,
-        text,
-      };
+      lastSentRef.current = { attachments, copies: [], owner: sentBy, text };
       const conversation = conversationRef.current;
       // The bytes go inline, as `data:` URL file parts after the text
       // (ADR 0018), read from the device only now: the runtime turns an
@@ -307,13 +315,7 @@ const useArnoldChat = (userId: string, composer: Composer) => {
 
       // Remembered with the message, so a refusal takes them back off the
       // device along with giving its photos back to the composer.
-      lastSentRef.current = {
-        attachments,
-        copies,
-        owner: sentBy,
-        sessionId,
-        text,
-      };
+      lastSentRef.current = { attachments, copies, owner: sentBy, text };
 
       // Checked after both awaits, the photos' read and their copy, so a
       // Conversation the User left while either ran takes the message with
@@ -322,7 +324,7 @@ const useArnoldChat = (userId: string, composer: Composer) => {
         // The User started a new Conversation while the photos were being
         // read. This message was for the one they left, so it goes nowhere.
         lastSentRef.current = null;
-        dropSentAttachments(userId, sessionId, copies);
+        dropSentAttachments(userId, copies);
 
         return;
       }

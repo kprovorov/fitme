@@ -180,7 +180,7 @@ describe("dropSentAttachments", () => {
       picked("plan"),
     ]);
 
-    dropSentAttachments(USER, "ses_1", names);
+    dropSentAttachments(USER, names);
 
     expect(fileSystem.filesUnder(userRoot())).toEqual([]);
   });
@@ -189,7 +189,7 @@ describe("dropSentAttachments", () => {
     const kept = await keepSentAttachments(USER, "ses_1", [picked("kept")]);
     const refused = await keepSentAttachments(USER, "ses_1", [picked("gone")]);
 
-    dropSentAttachments(USER, "ses_1", refused);
+    dropSentAttachments(USER, refused);
 
     expect(sentAttachmentUri(USER, "ses_1", kept[0] ?? "")).toBeTruthy();
     expect(sentAttachmentUri(USER, "ses_1", refused[0] ?? "")).toBeUndefined();
@@ -197,23 +197,32 @@ describe("dropSentAttachments", () => {
 
   it("does nothing for copies that were never written", () => {
     expect(() =>
-      dropSentAttachments(USER, "ses_1", ["mabc-0-deadbeef.jpg"])
+      dropSentAttachments(USER, ["mabc-0-deadbeef.jpg"])
     ).not.toThrow();
   });
 
-  it("never reaches another User's or another Conversation's copies", async () => {
+  it("never reaches another User's copies", async () => {
     const theirs = await keepSentAttachments("user_other", "ses_1", [
       picked("theirs"),
     ]);
 
-    const other = await keepSentAttachments(USER, "ses_2", [picked("other")]);
-
-    dropSentAttachments(USER, "ses_1", [...theirs, ...other]);
+    dropSentAttachments(USER, theirs);
 
     expect(
       sentAttachmentUri("user_other", "ses_1", theirs[0] ?? "")
     ).toBeTruthy();
-    expect(sentAttachmentUri(USER, "ses_2", other[0] ?? "")).toBeTruthy();
+  });
+
+  it("finds a first message's copies after eve named its session", async () => {
+    // Written before eve had named the session, so they went to `pending`
+    // and moved from under the send's feet: the Conversation the send read
+    // is no longer where its copies are, so the name is what finds them.
+    const names = await keepSentAttachments(USER, undefined, [picked("gym")]);
+    followSentAttachments(USER, "ses_1");
+
+    dropSentAttachments(USER, names);
+
+    expect(fileSystem.filesUnder(userRoot())).toEqual([]);
   });
 });
 

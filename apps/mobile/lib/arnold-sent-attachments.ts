@@ -140,26 +140,44 @@ export const sentAttachmentUri = (
 /**
  * Takes the copies of a send that went nowhere back off the device: Arnold
  * refused it or it failed, so its Attachments are in the composer again and
- * a retry writes its own copies. No message of the Conversation names these,
- * so leaving them would only pile up photos on a retried send.
+ * a retry writes its own copies. The caller must have checked that no message
+ * names them (`echoedAttachmentNames`), since a turn can fail after eve has
+ * echoed its message; leaving them otherwise would pile up a photo per try.
+ *
+ * By name alone, in whichever of the User's Conversation directories holds
+ * it: a name is this module's own and unique, and the copies of a first
+ * message move from `pending` to the session's directory as soon as eve names
+ * it, so the Conversation a send read before it went is no longer where its
+ * copies are.
  */
 export const dropSentAttachments = (
   userId: string,
-  sessionId: string | undefined,
   filenames: readonly string[]
 ): void => {
-  for (const filename of filenames) {
-    const uri = sentAttachmentUri(userId, sessionId, filename);
+  const named = new Set(filenames.filter((name) => COPY_NAME.test(name)));
 
-    if (uri === undefined) {
-      continue;
-    }
+  if (named.size === 0) {
+    return;
+  }
 
-    try {
-      new File(uri).delete();
-    } catch (error) {
-      captureException(error);
+  const user = userDirectory(userId);
+
+  if (!user.exists) {
+    return;
+  }
+
+  try {
+    for (const conversation of user.list()) {
+      for (const name of named) {
+        const file = new File(conversation, name);
+
+        if (file.exists) {
+          file.delete();
+        }
+      }
     }
+  } catch (error) {
+    captureException(error);
   }
 };
 
