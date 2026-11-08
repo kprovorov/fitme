@@ -90,9 +90,15 @@ export const conversationHasRoomFor = (count: number): boolean =>
  * Holds a send's slots while its files are read: it has left the composer
  * and hasn't reached the Conversation, and in between nothing else may take
  * the slots it is about to fill.
+ *
+ * `startedFor` is the owner when the send began, as `addArnoldAttachments`
+ * takes it: a hold belongs to one User's Conversation and to no other.
  */
-export const markAttachmentsSending = (count: number): void => {
-  if (count <= 0) {
+export const markAttachmentsSending = (
+  count: number,
+  startedFor: string | null
+): void => {
+  if (count <= 0 || startedFor !== owner) {
     return;
   }
 
@@ -100,9 +106,19 @@ export const markAttachmentsSending = (count: number): void => {
   emit();
 };
 
-/** Gives those slots back: that send never reached the Conversation. */
-export const releaseSendingAttachments = (count: number): void => {
-  if (count <= 0 || sending === 0) {
+/**
+ * Gives those slots back: that send never reached the Conversation.
+ *
+ * Only to the User who held them. A send outlives a sign-out, and the User
+ * who signed in meanwhile has a Conversation of their own: their switch
+ * already dropped this hold, so taking it off their count again would hand
+ * out slots their own sends are reading files for.
+ */
+export const releaseSendingAttachments = (
+  count: number,
+  startedFor: string | null
+): void => {
+  if (count <= 0 || sending === 0 || startedFor !== owner) {
     return;
   }
 

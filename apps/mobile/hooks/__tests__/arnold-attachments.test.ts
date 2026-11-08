@@ -179,7 +179,7 @@ describe("the Conversation's own cap", () => {
     setConversationAttachmentCount(MAX_ATTACHMENTS_PER_CONVERSATION - 4);
     // The composer has let go of two: they are neither picked nor in the
     // Conversation yet, and without the hold both counts would miss them.
-    markAttachmentsSending(2);
+    markAttachmentsSending(2, "user_one");
 
     expect(remainingAttachmentSlots()).toBe(2);
     expect(conversationHasRoomFor(2)).toBe(true);
@@ -188,7 +188,7 @@ describe("the Conversation's own cap", () => {
 
   it("is full while a send holds the last of them", () => {
     setConversationAttachmentCount(MAX_ATTACHMENTS_PER_CONVERSATION - 2);
-    markAttachmentsSending(2);
+    markAttachmentsSending(2, "user_one");
 
     expect(isConversationFull()).toBe(true);
     expect(remainingAttachmentSlots()).toBe(0);
@@ -197,9 +197,9 @@ describe("the Conversation's own cap", () => {
 
   it("gives the slots back when that send never reaches the Conversation", () => {
     setConversationAttachmentCount(MAX_ATTACHMENTS_PER_CONVERSATION - 2);
-    markAttachmentsSending(2);
+    markAttachmentsSending(2, "user_one");
 
-    releaseSendingAttachments(2);
+    releaseSendingAttachments(2, "user_one");
 
     // The photos go back into the composer, so there has to be room for
     // them: a failed read must not cost the User the message.
@@ -211,8 +211,8 @@ describe("the Conversation's own cap", () => {
     // Nothing is busy while a send reads its files, so a second can start
     // during the first and both hold their slots at once.
     setConversationAttachmentCount(2);
-    markAttachmentsSending(4);
-    markAttachmentsSending(4);
+    markAttachmentsSending(4, "user_one");
+    markAttachmentsSending(4, "user_one");
     expect(conversationHasRoomFor(1)).toBe(false);
 
     // The first lands: the Conversation grew by its four, and only those
@@ -230,7 +230,7 @@ describe("the Conversation's own cap", () => {
 
   it("takes the hold over once the Conversation's own count has them", () => {
     setConversationAttachmentCount(MAX_ATTACHMENTS_PER_CONVERSATION - 2);
-    markAttachmentsSending(2);
+    markAttachmentsSending(2, "user_one");
 
     // The screen counts the Conversation again, and the message it just
     // sent is in it: counting the hold as well would count them twice.
@@ -238,8 +238,29 @@ describe("the Conversation's own cap", () => {
 
     expect(isConversationFull()).toBe(true);
     expect(conversationHasRoomFor(0)).toBe(true);
-    releaseSendingAttachments(2);
+    releaseSendingAttachments(2, "user_one");
     expect(isConversationFull()).toBe(true);
+  });
+
+  it("never takes a hold off the User who signed in after it", () => {
+    // One User's send is reading its files when they sign out.
+    markAttachmentsSending(4, "user_one");
+
+    // The next User's own Conversation, with two sends reading at once.
+    useArnoldAttachmentsOwner("user_two");
+    setConversationAttachmentCount(2);
+    markAttachmentsSending(4, "user_two");
+    markAttachmentsSending(4, "user_two");
+    expect(remainingAttachmentSlots()).toBe(0);
+
+    // Only now does the first User's read fail. Their slots were dropped
+    // when they signed out, so there is nothing of theirs to give back:
+    // taking it off this User's would be handing out slots their own sends
+    // are already reading files for.
+    releaseSendingAttachments(4, "user_one");
+
+    expect(remainingAttachmentSlots()).toBe(0);
+    expect(conversationHasRoomFor(1)).toBe(false);
   });
 
   it("forgets another User's full Conversation when they sign in", () => {

@@ -325,7 +325,7 @@ const useArnoldChat = (userId: string, composer: Composer) => {
       // The composer has let go of these and the Conversation hasn't got
       // them yet, so their slots are held until one of the two is true
       // again: nothing else may take what this message is about to fill.
-      markAttachmentsSending(attachments.length);
+      markAttachmentsSending(attachments.length, sentBy);
       // The bytes go inline, as `data:` URL file parts after the text
       // (ADR 0018), read from the device only now: the runtime turns an
       // `image` content part into the eve file part Arnold's channel takes.
@@ -344,7 +344,7 @@ const useArnoldChat = (userId: string, composer: Composer) => {
         lastSentRef.current = null;
         // Given back before the photos are, or there would be no room left
         // for the very photos that are going back into the composer.
-        releaseSendingAttachments(attachments.length);
+        releaseSendingAttachments(attachments.length, sentBy);
 
         // Not into a Conversation started since: the message belongs to the
         // one the User left, and so do its photos.
@@ -380,7 +380,7 @@ const useArnoldChat = (userId: string, composer: Composer) => {
         // read. This message was for the one they left, so it goes nowhere.
         lastSentRef.current = null;
         dropSentAttachments(userId, copies);
-        releaseSendingAttachments(attachments.length);
+        releaseSendingAttachments(attachments.length, sentBy);
 
         return;
       }
