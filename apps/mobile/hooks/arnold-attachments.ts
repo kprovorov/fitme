@@ -137,15 +137,18 @@ export const isConversationFull = (): boolean => conversationSlotsLeft() <= 0;
  * renders and syncs the count here.
  */
 export const setConversationAttachmentCount = (count: number): void => {
-  if (count === sent && sending === 0) {
+  if (count === sent) {
     return;
   }
 
+  // Only the send that just landed gives up its hold: the Conversation grew
+  // by what it carried, and any other send still reading its files keeps
+  // holding the slots it is about to fill. Clearing every hold here would
+  // offer those slots twice, and two overlapping sends could walk the
+  // Conversation past its cap (nothing is busy while files are read, so a
+  // second send can start during the first).
+  sending = Math.max(0, sending - Math.max(0, count - sent));
   sent = count;
-  // Whatever a send was holding is in this count now: it is read off the
-  // Conversation the screen renders, where an optimistic message already
-  // carries the Attachments it was sent with.
-  sending = 0;
   emit();
 };
 

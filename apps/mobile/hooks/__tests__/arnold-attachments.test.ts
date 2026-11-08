@@ -207,6 +207,27 @@ describe("the Conversation's own cap", () => {
     expect(remainingAttachmentSlots()).toBe(2);
   });
 
+  it("keeps the other send's hold when one of two overlapping ones lands", () => {
+    // Nothing is busy while a send reads its files, so a second can start
+    // during the first and both hold their slots at once.
+    setConversationAttachmentCount(2);
+    markAttachmentsSending(4);
+    markAttachmentsSending(4);
+    expect(conversationHasRoomFor(1)).toBe(false);
+
+    // The first lands: the Conversation grew by its four, and only those
+    // stop being held. Giving up the second's hold here would offer its
+    // slots a second time and let the Conversation past its cap.
+    setConversationAttachmentCount(6);
+
+    expect(remainingAttachmentSlots()).toBe(0);
+    expect(conversationHasRoomFor(1)).toBe(false);
+
+    setConversationAttachmentCount(10);
+
+    expect(isConversationFull()).toBe(true);
+  });
+
   it("takes the hold over once the Conversation's own count has them", () => {
     setConversationAttachmentCount(MAX_ATTACHMENTS_PER_CONVERSATION - 2);
     markAttachmentsSending(2);
