@@ -1,9 +1,13 @@
 import type { ReactNode } from "react";
-import { Text } from "react-native";
+import { useTranslation } from "react-i18next";
+import { Text, View } from "react-native";
 import Animated, { FadeIn, FadeOut } from "react-native-reanimated";
 import { z } from "zod";
 
 import { ChatMarkdown } from "@/components/markdown";
+import { SymbolImage } from "@/components/symbol-image";
+import type { ShownUserMessage } from "~/lib/arnold-chat";
+import { cn } from "~/lib/utils";
 
 /**
  * Wrapper for a single chat message. Styles automatically based on the sender
@@ -47,6 +51,75 @@ export const Message = ({
     </Animated.View>
   );
 };
+
+/**
+ * One Attachment the User sent, as a tile standing for the photo itself:
+ * eve never sends an Attachment's bytes back, and this device's own copy of
+ * it is a later ticket's, so the bubble says a photo was sent without
+ * showing it. VoiceOver reads the tile and its place among them.
+ */
+const SentAttachment = ({
+  position,
+  total,
+}: {
+  position: number;
+  total: number;
+}) => {
+  const { t } = useTranslation();
+
+  return (
+    <View
+      accessibilityLabel={t("arnold.attachments.sentPhoto", {
+        position,
+        total,
+      })}
+      accessible
+      // Four of them fit a bubble's width on the narrowest phone, so a
+      // message's worth never wraps onto a second row with a gap beside it;
+      // a minimum rather than a size, so the caption still fits at the
+      // largest text size.
+      className="bg-background min-h-14 min-w-14 items-center justify-center gap-1 rounded-xl p-2"
+      style={{ borderCurve: "continuous" }}
+    >
+      <SymbolImage
+        className="text-muted-foreground text-title-3"
+        name="photo"
+      />
+      <Text className="text-caption-2 text-muted-foreground dark:text-muted-foreground">
+        {t("arnold.attachments.photo")}
+      </Text>
+    </View>
+  );
+};
+
+/**
+ * What a message of the User's holds: a tile per Attachment it carried, then
+ * the text they wrote. A photo sent on its own has no text to show.
+ */
+export const UserMessageBody = ({
+  attachmentCount,
+  text,
+}: ShownUserMessage) => (
+  <>
+    {attachmentCount > 0 ? (
+      <View className={cn("flex-row flex-wrap gap-2", text && "mb-2")}>
+        {Array.from({ length: attachmentCount }, (_, index) => (
+          <SentAttachment
+            // biome-ignore lint/suspicious/noArrayIndexKey: identical tiles with nothing of their own to be keyed by
+            key={index}
+            position={index + 1}
+            total={attachmentCount}
+          />
+        ))}
+      </View>
+    ) : null}
+    {text ? (
+      <Text className="text-body text-black dark:text-black" selectable>
+        {text}
+      </Text>
+    ) : null}
+  </>
+);
 
 /**
  * Renders markdown content for an assistant message. Wraps `<ChatMarkdown />`

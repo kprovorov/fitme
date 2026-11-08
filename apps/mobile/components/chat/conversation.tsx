@@ -41,7 +41,8 @@ import { SymbolImage } from "@/components/symbol-image";
 import { TouchableGlass } from "../touchable-glass";
 import { KeyboardGestureArea } from "../tw";
 import { useChatContext } from "./chat-context";
-import { Message, MessageResponse } from "./message";
+import type { ChatContextValue } from "./chat-context";
+import { Message, MessageResponse, UserMessageBody } from "./message";
 import { messageText } from "./message-text";
 import { StreamingMessage } from "./streaming-message";
 import type { StreamingStore } from "./streaming-store";
@@ -111,13 +112,24 @@ const ConversationMessage = ({
   item,
   isStreaming,
   streamingStore,
+  userMessage,
 }: {
   item: ThreadMessage;
   isStreaming: boolean;
   streamingStore: StreamingStore;
+  userMessage?: ChatContextValue["userMessage"];
 }) => {
   if (item.role === "user") {
-    return <Message from="user">{messageText(item)}</Message>;
+    return (
+      <Message from="user">
+        <UserMessageBody
+          {...(userMessage?.(item) ?? {
+            attachmentCount: 0,
+            text: messageText(item),
+          })}
+        />
+      </Message>
+    );
   }
 
   if (item.role !== "assistant") {
@@ -178,7 +190,8 @@ export const Conversation = ({
   /** Shown while there are no messages. */
   emptyState: ReactNode;
 }) => {
-  const { messages, isGenerating, streamingStore } = useChatContext();
+  const { messages, isGenerating, streamingStore, userMessage } =
+    useChatContext();
 
   const listRef = useRef<LegendListRef>(null);
   const insets = useSafeAreaInsets();
@@ -396,9 +409,10 @@ export const Conversation = ({
         isStreaming={isGenerating && item === messages.at(-1)}
         item={item}
         streamingStore={streamingStore}
+        userMessage={userMessage}
       />
     ),
-    [isGenerating, messages, streamingStore]
+    [isGenerating, messages, streamingStore, userMessage]
   );
 
   // -- Context value -------------------------------------------------------

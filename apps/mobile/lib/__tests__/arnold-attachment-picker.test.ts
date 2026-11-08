@@ -9,6 +9,7 @@ import { beforeEach, describe, expect, it, jest } from "@jest/globals";
 import {
   MAX_ATTACHMENT_EDGE,
   pickLibraryPhotos,
+  readAttachmentDataUrl,
   shrinkToJpeg,
 } from "~/lib/arnold-attachment-picker";
 
@@ -101,6 +102,25 @@ jest.mock("expo-image-picker", () => ({
     mockLaunchImageLibrary(options),
 }));
 
+/** The base64 the stood-in file system answers per path. */
+const mockFileBase64 = new Map<string, string>();
+
+jest.mock("expo-file-system", () => ({
+  File: class {
+    readonly #uri: string;
+    constructor(uri: string) {
+      this.#uri = uri;
+    }
+    base64() {
+      const base64 = mockFileBase64.get(this.#uri);
+
+      return base64 === undefined
+        ? Promise.reject(new Error(`No such file: ${this.#uri}`))
+        : Promise.resolve(base64);
+    }
+  },
+}));
+
 /** What the picker answers for images the User picked. */
 const picks = (...uris: string[]) => ({
   assets: uris.map((uri) => ({ uri })),
@@ -114,6 +134,7 @@ const DECODE_BOUNDS = {
 };
 
 beforeEach(() => {
+  mockFileBase64.clear();
   mockDecoded.clear();
   mockFailFor.clear();
   mockCaptureException.mockClear();
@@ -220,5 +241,21 @@ describe("shrinkToJpeg", () => {
     expect(mockResizes).toEqual([{ height: MAX_ATTACHMENT_EDGE, width: null }]);
     expect(image.height).toBe(MAX_ATTACHMENT_EDGE);
     expect(image.width).toBe(738);
+  });
+});
+
+describe("readAttachmentDataUrl", () => {
+  it("reads the JPEG as the data URL a send carries inline", async () => {
+    mockFileBase64.set("file:///cache/gym.jpg", "Z3ltLWJ5dGVz");
+
+    await expect(readAttachmentDataUrl("file:///cache/gym.jpg")).resolves.toBe(
+      "data:image/jpeg;base64,Z3ltLWJ5dGVz"
+    );
+  });
+
+  it("fails when the file is gone, rather than sending nothing", async () => {
+    await expect(
+      readAttachmentDataUrl("file:///cache/purged.jpg")
+    ).rejects.toThrow("No such file");
   });
 });

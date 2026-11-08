@@ -1,6 +1,7 @@
 import {
   useEveAgentRuntime,
   useEveError,
+  useEveEvents,
   useEveReset,
 } from "@assistant-ui/eve";
 import {
@@ -8,7 +9,9 @@ import {
   useAui,
   useAuiState,
 } from "@assistant-ui/react-native";
+import type { ThreadMessage } from "@assistant-ui/react-native";
 import { useUser } from "@clerk/expo";
+import { captureException } from "@sentry/react-native";
 import * as Haptics from "expo-haptics";
 import { Link, Stack, useLocalSearchParams, useRouter } from "expo-router";
 import {
@@ -37,12 +40,17 @@ import {
 } from "@/components/chat";
 import { SymbolImage } from "@/components/symbol-image";
 import {
+  addArnoldAttachments,
+  arnoldAttachmentsOwner,
+  clearArnoldAttachments,
   removeArnoldAttachment,
   useArnoldAttachments,
   useArnoldAttachmentsOwner,
 } from "~/hooks/arnold-attachments";
+import type { ArnoldAttachment } from "~/hooks/arnold-attachments";
 import { useSelectedArnoldModel } from "~/hooks/arnold-model";
 import { useIsProQuery } from "~/hooks/revenueCat";
+import { readAttachmentDataUrl } from "~/lib/arnold-attachment-picker";
 import { ATTACHMENTS_ENABLED } from "~/lib/arnold-attachments";
 import {
   arnoldErrorAction,
@@ -54,9 +62,11 @@ import {
   loadSavedArnoldConversation,
   saveArnoldConversation,
   saveArnoldSession,
+  shownUserMessage,
 } from "~/lib/arnold-chat";
 import type { ArnoldErrorKind } from "~/lib/arnold-chat";
 import { getClerk } from "~/lib/clerk";
+import { segmentClient } from "~/lib/segment";
 
 const getArnoldToken = async () => (await getClerk().session?.getToken()) ?? "";
 
@@ -124,6 +134,9 @@ const useArnoldChat = (userId: string, composer: Composer) => {
   );
 
   const isRunning = useAuiState((s) => s.thread.isRunning);
+  // The Attachments a sent message carried are counted off its turn's echo,
+  // which `@assistant-ui/eve` leaves out of the message (`shownUserMessage`).
+  const events = useEveEvents();
   const isLoading = useAuiState((s) => s.thread.isLoading);
   const eveError = useEveError();
   const resetSession = useEveReset();
@@ -134,6 +147,9 @@ const useArnoldChat = (userId: string, composer: Composer) => {
   // refuses it or it fails (its placeholder bubble is hidden), so it isn't
   // lost. Cleared once a turn settles, so an answered prompt never returns.
   const lastSentRef = useRef("");
+
+  // Which Conversation the screen is on: bumped whenever one replaces it.
+  const conversationRef = useRef(0);
 
   const errorAction = arnoldErrorAction(eveError);
 
@@ -153,6 +169,10 @@ const useArnoldChat = (userId: string, composer: Composer) => {
       return;
     }
 
+    // A send reading its photos has no turn yet, so it isn't busy and this
+    // button is live: counting the Conversations it has outlived is how it
+    // knows not to land in the one started without it.
+    conversationRef.current += 1;
     clearSavedArnoldConversation(userId);
     resetSession();
   }, [isBusy, resetSession, userId]);
@@ -204,27 +224,94 @@ const useArnoldChat = (userId: string, composer: Composer) => {
   }, [messages, isRunning, streamingStore]);
 
   const sendMessage = useCallback(
-    (text: string) => {
+    async (text: string, attachments: readonly ArnoldAttachment[] = []) => {
       lastSentRef.current = text;
+      // Who the photos belong to, read before the files are: reading them
+      // takes a moment, and a User who signs out meanwhile must not have
+      // them handed back to whoever signs in next.
+      const sentBy = arnoldAttachmentsOwner();
+      const conversation = conversationRef.current;
+      // The bytes go inline, as `data:` URL file parts after the text
+      // (ADR 0018), read from the device only now: the runtime turns an
+      // `image` content part into the eve file part Arnold's channel takes.
+      let images: string[];
+
+      try {
+        images = await Promise.all(
+          attachments.map((attachment) => readAttachmentDataUrl(attachment.uri))
+        );
+      } catch (error) {
+        // The cache the re-encoder wrote to can be purged under memory
+        // pressure. Nothing has been sent, so the whole message goes back
+        // into the composer rather than going out without its photos or
+        // being lost without a word.
+        captureException(error);
+        lastSentRef.current = "";
+
+        // Not into a Conversation started since: the message belongs to the
+        // one the User left, and so do its photos.
+        if (conversation === conversationRef.current) {
+          composer.set(composer.get() || text);
+          addArnoldAttachments(attachments, sentBy);
+        }
+
+        return;
+      }
+
+      if (conversation !== conversationRef.current) {
+        // The User started a new Conversation while the photos were being
+        // read. This message was for the one they left, so it goes nowhere.
+        lastSentRef.current = "";
+
+        return;
+      }
+
       aui.thread.append({
-        content: [{ text, type: "text" }],
+        content: [
+          // An image-only message carries no text part at all, rather than
+          // an empty one the model would read as a blank question.
+          ...(text ? [{ text, type: "text" as const }] : []),
+          ...images.map((image) => ({ image, type: "image" as const })),
+        ],
         role: "user",
         // Read per send so a model or language change applies to the next message.
         runConfig: arnoldRunConfig(),
       });
+
+      if (attachments.length > 0) {
+        // The count only: never the image, its name or its size.
+        void segmentClient.track("Arnold Attachment Sent", {
+          count: attachments.length,
+        });
+      }
     },
-    [aui]
+    [aui, composer]
   );
 
-  const onSend = useCallback(() => {
-    if (!input.trim() || isBusy) {
-      return;
-    }
+  const onSend = useCallback(
+    (attachments: readonly ArnoldAttachment[] = []) => {
+      const text = input.trim();
 
-    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    sendMessage(input);
-    setInput("");
-  }, [input, isBusy, sendMessage, setInput]);
+      // Photos alone are a message: "what is this machine?" can be a photo.
+      if ((!text && attachments.length === 0) || isBusy) {
+        return;
+      }
+
+      void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      // Cleared before the files are read, so a second press finds nothing
+      // left to send while the first send is still on its way.
+      setInput("");
+      clearArnoldAttachments();
+      void sendMessage(text, attachments);
+    },
+    [input, isBusy, sendMessage, setInput]
+  );
+
+  const userMessage = useCallback(
+    (message: ThreadMessage) =>
+      shownUserMessage(message, messageText(message), events),
+    [events]
+  );
 
   return {
     errorMessage:
@@ -241,6 +328,7 @@ const useArnoldChat = (userId: string, composer: Composer) => {
     sendMessage,
     setInput,
     streamingStore,
+    userMessage,
   };
 };
 
@@ -290,7 +378,7 @@ const ArnoldChat = ({
       return;
     }
 
-    chat.sendMessage(initialMessage);
+    void chat.sendMessage(initialMessage);
   }, [initialMessage, isPro, chat, router]);
 
   const handleSend = useCallback(() => {
@@ -300,8 +388,8 @@ const ArnoldChat = ({
       return;
     }
 
-    chat.onSend();
-  }, [isPro, chat]);
+    chat.onSend(attachments);
+  }, [attachments, isPro, chat]);
 
   const { isBusy, newConversation } = chat;
 

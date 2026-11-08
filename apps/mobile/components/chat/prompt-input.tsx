@@ -119,10 +119,12 @@ const ComposerSurface = ({
   children,
   className,
   isInteractive,
+  testID,
 }: {
   children: ReactNode;
   className: string;
   isInteractive?: boolean;
+  testID?: string;
 }) => (
   <ScopedVariables variables={{ "--composer-radius": 22 }}>
     {isLiquidGlassAvailable() ? (
@@ -133,6 +135,7 @@ const ComposerSurface = ({
         )}
         glassEffectStyle="regular"
         isInteractive={isInteractive}
+        testID={testID}
       >
         {children}
       </StyledGlassView>
@@ -144,6 +147,7 @@ const ComposerSurface = ({
           "border-continuous overflow-hidden rounded-(--composer-radius)",
           className
         )}
+        testID={testID}
         tint="systemChromeMaterial"
       >
         {children}
@@ -151,6 +155,13 @@ const ComposerSurface = ({
     )}
   </ScopedVariables>
 );
+
+/**
+ * The tray the picked Attachments sit on. A sent Attachment's tile is named
+ * the same way for VoiceOver, in its own place in the Conversation, so a
+ * test tells the two apart by this.
+ */
+export const ATTACHMENT_TRAY = "composer-attachments";
 
 /**
  * The Attachments picked for the next message, in a row above the text
@@ -173,7 +184,10 @@ export const PromptInputAttachments = () => {
     >
       {/* The composer's own material, so a message scrolling past behind
           the thumbnails is blurred rather than showing through the gaps. */}
-      <ComposerSurface className="flex-row gap-2 p-1.5">
+      <ComposerSurface
+        className="flex-row gap-2 p-1.5"
+        testID={ATTACHMENT_TRAY}
+      >
         {attachments.map((attachment, index) => (
           <PickedAttachment
             attachment={attachment}
@@ -281,15 +295,20 @@ export const PromptInputTextarea = ({
 };
 
 /**
- * Submit button that sends the current input. Shows a spinner while the model
- * is generating. Reads state from `ChatContext`.
+ * Submit button that sends the current input and its Attachments. Shows a
+ * spinner while the model is generating. Reads state from `ChatContext`.
  */
 export const PromptInputSubmit = () => {
-  const { input, isGenerating, isLoading, onSend } = useChatContext();
+  const { attachments, input, isGenerating, isLoading, onSend } =
+    useChatContext();
+
   const { t } = useTranslation();
   // SAFETY: The foreground theme token is a CSS color string in every theme.
   const foreground = useCSSVariable("--color-foreground") as string;
-  const disabled = !input.trim() || isGenerating || isLoading;
+  // A photo on its own is a message too (ADR 0018): "what is this machine?"
+  // can be just a picture.
+  const hasMessage = Boolean(input.trim()) || Boolean(attachments?.length);
+  const disabled = !hasMessage || isGenerating || isLoading;
 
   return (
     <Pressable

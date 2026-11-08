@@ -1,15 +1,23 @@
 /**
- * Where an Arnold Attachment comes from: the system photo picker, and the
- * re-encoding every picked image goes through (ADR 0018). It is the only
- * module importing `expo-image-picker` and `expo-image-manipulator`, so a
+ * Where an Arnold Attachment comes from: the system photo picker, the
+ * re-encoding every picked image goes through, and reading the JPEG back as
+ * the `data:` URL a send carries (ADR 0018). It is the only module importing
+ * `expo-image-picker`, `expo-image-manipulator` and `expo-file-system`, so a
  * screen test stands this one module in and never touches a native module.
  */
 import { captureException } from "@sentry/react-native";
+import { File } from "expo-file-system";
 import { ImageManipulator, SaveFormat } from "expo-image-manipulator";
 import * as ImagePicker from "expo-image-picker";
 
 /** The longest side of a re-encoded Attachment, in pixels (ADR 0018). */
 export const MAX_ATTACHMENT_EDGE = 1600;
+
+/**
+ * What every Attachment is: `shrinkToJpeg` saves one, Arnold's channel takes
+ * one (its `uploadPolicy`), and a send declares one.
+ */
+export const ATTACHMENT_MEDIA_TYPE = "image/jpeg";
 
 /**
  * The JPEG quality every Attachment is saved at: measured on the simulator,
@@ -62,6 +70,18 @@ export const shrinkToJpeg = async (uri: string): Promise<PickedImage> => {
   });
 
   return { height: saved.height, uri: saved.uri, width: saved.width };
+};
+
+/**
+ * The JPEG at `uri` as the `data:` URL a send carries inline (ADR 0018):
+ * eve's channel takes the bytes in the message, so there is no upload and no
+ * storage of ours. Read at send time rather than kept with the pick, so a
+ * draft of four photos holds four file paths instead of megabytes of base64.
+ */
+export const readAttachmentDataUrl = async (uri: string): Promise<string> => {
+  const base64 = await new File(uri).base64();
+
+  return `data:${ATTACHMENT_MEDIA_TYPE};base64,${base64}`;
 };
 
 /** What the picker came back with. */
