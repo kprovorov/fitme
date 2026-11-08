@@ -756,6 +756,121 @@ describe("arnold screen", () => {
       expect(segmentClient.track).not.toHaveBeenCalled();
     });
 
+    it("gives a failed send's text and photos back to the composer", async () => {
+      mockAttachmentsEnabled = true;
+      mockPickLibraryPhotos.mockResolvedValue({
+        failed: 0,
+        images: [photo("gym"), photo("plan")],
+      });
+      fakeArnold.failNextSend({ status: 500 });
+      await renderArnold();
+      await pickPhotos();
+      await send("What is this machine?");
+
+      await waitFor(() =>
+        expect(
+          screen.getByText("Something went wrong. Try again.")
+        ).toBeTruthy()
+      );
+      // Back in the composer, text and thumbnails alike, so the User sends
+      // again without re-picking either.
+      expect(screen.getByDisplayValue("What is this machine?")).toBeTruthy();
+      expect(thumbnails()).toEqual([
+        "file:///photos/gym.jpg",
+        "file:///photos/plan.jpg",
+      ]);
+      // And the bubble of the send that never went through stays hidden:
+      // every Photo label on screen is one of the composer's own.
+      expect(screen.queryByText("What is this machine?")).toBeNull();
+      expect(screen.getAllByLabelText(THUMBNAIL)).toHaveLength(2);
+      expect(screen.queryByText(FILE_PLACEHOLDER)).toBeNull();
+    });
+
+    it("gives them back when Arnold refuses the send, before the paywall", async () => {
+      mockAttachmentsEnabled = true;
+      mockPickLibraryPhotos.mockResolvedValue({
+        failed: 0,
+        images: [photo("gym"), photo("plan")],
+      });
+      // Not Pro: the same rules as a text-only send, so the paywall opens
+      // and the message waits in the composer behind it.
+      fakeArnold.failNextSend("pro-required");
+      await renderArnold();
+      await pickPhotos();
+      await send("What is this machine?");
+
+      await waitFor(() => expect(mockPresentPaywall).toHaveBeenCalledTimes(1));
+      expect(screen.getByDisplayValue("What is this machine?")).toBeTruthy();
+      expect(thumbnails()).toEqual([
+        "file:///photos/gym.jpg",
+        "file:///photos/plan.jpg",
+      ]);
+      expect(screen.queryByText("What is this machine?")).toBeNull();
+      expect(screen.getAllByLabelText(THUMBNAIL)).toHaveLength(2);
+      expect(screen.queryByText(SERVER_MESSAGE)).toBeNull();
+    });
+
+    it("gives back a failed send that was a photo and nothing else", async () => {
+      mockAttachmentsEnabled = true;
+      mockPickLibraryPhotos.mockResolvedValue({
+        failed: 0,
+        images: [photo("gym")],
+      });
+      fakeArnold.failNextSend({ status: 500 });
+      await renderArnold();
+      await pickPhotos();
+      await userEvent.setup().press(screen.getByLabelText(SEND));
+
+      await waitFor(() =>
+        expect(
+          screen.getByText("Something went wrong. Try again.")
+        ).toBeTruthy()
+      );
+      // The photo was the whole message, so it is the whole draft back.
+      expect(thumbnails()).toEqual(["file:///photos/gym.jpg"]);
+      expect(screen.getByDisplayValue("")).toBeTruthy();
+    });
+
+    it("sends the same photos again when the User retries", async () => {
+      mockAttachmentsEnabled = true;
+      mockPickLibraryPhotos.mockResolvedValue({
+        failed: 0,
+        images: [photo("gym"), photo("plan")],
+      });
+      fakeArnold.failNextSend({ status: 500 });
+      await renderArnold();
+      await pickPhotos();
+      await send("What is this machine?");
+      await waitFor(() =>
+        expect(
+          screen.getByText("Something went wrong. Try again.")
+        ).toBeTruthy()
+      );
+
+      // Nothing to re-pick or retype: Send carries what came back.
+      await userEvent.setup().press(screen.getByLabelText(SEND));
+
+      await waitFor(() => expect(fakeArnold.sent).toHaveLength(1));
+      expect(fakeArnold.sent[0]?.parts).toEqual([
+        { text: "What is this machine?", type: "text" },
+        {
+          data: dataUrlFor("file:///photos/gym.jpg"),
+          mediaType: "image/jpeg",
+          type: "file",
+        },
+        {
+          data: dataUrlFor("file:///photos/plan.jpg"),
+          mediaType: "image/jpeg",
+          type: "file",
+        },
+      ]);
+      // Gone from the composer, now that they have gone out.
+      expect(thumbnails()).toEqual([]);
+      await waitFor(() =>
+        expect(screen.getByText(FAKE_ARNOLD_REPLY)).toBeTruthy()
+      );
+    });
+
     it("gives a message back when a photo can't be read off the device", async () => {
       mockAttachmentsEnabled = true;
       mockPickLibraryPhotos.mockResolvedValue({
