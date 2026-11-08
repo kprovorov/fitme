@@ -74,7 +74,11 @@ const SentAttachment = ({
         total,
       })}
       accessible
-      className="bg-background h-16 w-16 items-center justify-center gap-1 rounded-xl"
+      // Four of them fit a bubble's width on the narrowest phone, so a
+      // message's worth never wraps onto a second row with a gap beside it;
+      // a minimum rather than a size, so the caption still fits at the
+      // largest text size.
+      className="bg-background min-h-14 min-w-14 items-center justify-center gap-1 rounded-xl p-2"
       style={{ borderCurve: "continuous" }}
     >
       <SymbolImage
