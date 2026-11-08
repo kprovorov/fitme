@@ -8,6 +8,7 @@
   "library": {
     "search": "種目を検索",
     "muscles": "部位",
+    "equipment": "器具",
     "removeMuscleGroup": "{{muscleGroup}}を解除",
     "reset": "リセット",
     "confirm": "完了",

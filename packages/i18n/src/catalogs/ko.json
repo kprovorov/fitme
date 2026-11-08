@@ -8,6 +8,7 @@
   "library": {
     "search": "운동 종목 검색",
     "muscles": "근육",
+    "equipment": "장비",
     "removeMuscleGroup": "{{muscleGroup}} 제거",
     "reset": "초기화",
     "confirm": "완료",

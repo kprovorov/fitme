@@ -1,5 +1,5 @@
 import { defaultAppLanguage } from "@fitme/core";
-import type { AppLanguage, MuscleGroup } from "@fitme/core";
+import type { AppLanguage, Equipment, MuscleGroup } from "@fitme/core";
 import {
   exerciseNameFromSlug,
   LibraryInvalidRequestError,
@@ -24,6 +24,7 @@ import {
 } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 
+import { equipmentInCoreOrder } from "~/hooks/equipment-choice";
 import { inCoreOrder } from "~/hooks/muscle-choice";
 import { useAppLanguage } from "~/lib/i18n";
 import { getLibrary } from "~/lib/library";
@@ -299,13 +300,18 @@ export const EXERCISE_SEARCH_PAGE_SIZE = 20;
 export const EXERCISE_SEARCH_DEBOUNCE_MS = 300;
 
 interface ExerciseSearchParams {
+  /** Exercises needing any of it; none filters nothing. */
+  equipment?: readonly Equipment[];
   /** Exercises working any of them; none is every Exercise. */
   muscleGroups: readonly MuscleGroup[];
   search: string;
 }
 
+/** A stable default, so a screen without an Equipment pill never re-sends. */
+const NO_EQUIPMENT: readonly Equipment[] = [];
+
 /** One spelling per choice, in core's order, so it reuses its cache entry. */
-const choiceKey = (groups: readonly MuscleGroup[]) => groups.join(",");
+const choiceKey = (chosen: readonly string[]) => chosen.join(",");
 
 /**
  * When the User may call `list` again after a 429, kept in the query client
@@ -337,13 +343,14 @@ const waitUntil = async (until: number, signal: AbortSignal) => {
  * in the App language or the English one, and results come in that
  * language's alphabetical order. A changed search is sent
  * `EXERCISE_SEARCH_DEBOUNCE_MS` after the last keystroke, a changed Muscle
- * group or App language at once. Rate limited, it keeps the last results (no
+ * group, Equipment choice or App language at once. Rate limited, it keeps the last results (no
  * error) and holds the next request (a search, the next page, a refresh) back
  * until `Retry-After` has passed. Every Exercise it lists is seeded into its
  * row query and MMKV in the language it was listed in, so its detail screen
  * has its name at once and it shows offline.
  */
 export const useExerciseSearch = ({
+  equipment = NO_EQUIPMENT,
   muscleGroups,
   search,
 }: ExerciseSearchParams) => {
@@ -351,34 +358,44 @@ export const useExerciseSearch = ({
   const language = useAppLanguage();
   const term = search.trim();
   const groupsKey = choiceKey(inCoreOrder(muscleGroups));
+  const equipmentKey = choiceKey(equipmentInCoreOrder(equipment));
 
   const [sent, setSent] = useState(() => ({
+    equipment: equipmentInCoreOrder(equipment),
     groups: inCoreOrder(muscleGroups),
     search: term,
   }));
 
   const sameGroups = choiceKey(sent.groups) === groupsKey;
+  const sameEquipment = choiceKey(sent.equipment) === equipmentKey;
+  // A changed filter choice is one tap; only typing is debounced.
+  const sameFilters = sameGroups && sameEquipment;
 
   const [lastPages, setLastPages] = useState<
     { language: AppLanguage; pages: ExercisePage[] } | undefined
   >(undefined);
 
   useEffect(() => {
-    if (sent.search === term && sameGroups) {
+    if (sent.search === term && sameFilters) {
       return;
     }
 
-    // A new Muscle group choice is one tap: it goes out at once, with any
-    // typed search.
-    const debounce = sameGroups ? EXERCISE_SEARCH_DEBOUNCE_MS : 0;
+    // A new Muscle group or Equipment choice is one tap: it goes out at
+    // once, with any typed search.
+    const debounce = sameFilters ? EXERCISE_SEARCH_DEBOUNCE_MS : 0;
 
     const timer = setTimeout(
-      () => setSent({ groups: inCoreOrder(muscleGroups), search: term }),
+      () =>
+        setSent({
+          equipment: equipmentInCoreOrder(equipment),
+          groups: inCoreOrder(muscleGroups),
+          search: term,
+        }),
       debounce
     );
 
     return () => clearTimeout(timer);
-  }, [muscleGroups, sameGroups, sent, term]);
+  }, [equipment, muscleGroups, sameFilters, sent, term]);
 
   const query = useInfiniteQuery({
     getNextPageParam: (lastPage: ExercisePage, _pages, lastOffset: number) =>
@@ -417,6 +434,10 @@ export const useExerciseSearch = ({
           params.muscleGroups = [...sent.groups];
         }
 
+        if (sent.equipment.length > 0) {
+          params.equipment = [...sent.equipment];
+        }
+
         page = await getLibrary().list(params);
       } catch (error) {
         if (error instanceof LibraryRateLimitedError) {
@@ -439,7 +460,13 @@ export const useExerciseSearch = ({
 
       return page;
     },
-    queryKey: ["exercise-search", language, sent.search, sent.groups],
+    queryKey: [
+      "exercise-search",
+      language,
+      sent.search,
+      sent.groups,
+      sent.equipment,
+    ],
     retry: retryOnce,
     staleTime: EXERCISE_STALE_TIME_MS,
   });

@@ -166,6 +166,17 @@ const RootLayout = () => {
             }}
           />
           <Stack.Screen
+            name="equipment"
+            options={{
+              headerShown: true,
+              headerTransparent: true,
+              presentation: "formSheet",
+              sheetAllowedDetents: [0.5, 1],
+              sheetGrabberVisible: true,
+              sheetInitialDetentIndex: 0,
+            }}
+          />
+          <Stack.Screen
             name="exercises/[exerciseSlug]/guide"
             options={{
               presentation: "formSheet",

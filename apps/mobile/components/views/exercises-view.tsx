@@ -22,6 +22,7 @@ import { ErrorMessage } from "~/components/ui/error-message";
 import { Text } from "~/components/ui/text";
 import { H3 } from "~/components/ui/typography";
 import { VStack } from "~/components/ui/vstack";
+import { useEquipmentChoice } from "~/hooks/equipment-choice";
 import {
   getMuscleChoice,
   setMuscleChoice,
@@ -40,18 +41,31 @@ const noop = () => {
 };
 
 /**
+ * The key a screen without an Equipment pill reads: never written to, so its
+ * choice stays empty.
+ */
+const NO_EQUIPMENT_KEY = "none";
+
+/**
  * The Library, searched and filtered by Muscle group: the Library tab and the
  * Exercise picker. It is the screen's scroll container, a virtualised list
  * loading the next page as the User nears its end. The Muscles pill opens the
  * Muscles sheet over the screen, which hands the confirmed choice back under
  * `muscleChoiceKey` (`hooks/muscle-choice.ts`), the screen's own. Each chosen
  * group shows as a chip under the pill; its × removes that group at once.
+ *
+ * A screen given an `equipmentChoiceKey` also gets the Equipment pill after
+ * the Muscles pill, over its own Equipment choice
+ * (`hooks/equipment-choice.ts`): the list then narrows to Exercises needing
+ * any of the chosen Equipment as well as matching the Muscle groups and the
+ * search.
  */
 const ExercisesView = ({
   onExercisePress = noop,
   rowAccessibilityLabel,
   trailing,
   muscleChoiceKey,
+  equipmentChoiceKey,
   musclesDisabled = false,
   refreshable = false,
   contentContainerClassName,
@@ -67,6 +81,9 @@ const ExercisesView = ({
   // Where the screen's Muscle group choice is kept: one key per screen, so
   // the Library tab and the picker never share a choice.
   muscleChoiceKey: string;
+  // Where the screen's Equipment choice is kept, its own key like the Muscle
+  // group one. Left out, the screen has no Equipment pill and filters by none.
+  equipmentChoiceKey?: string;
   // The Muscles pill can't open the sheet (the picker, while saving).
   musclesDisabled?: boolean;
   // Pull to refresh (the Library tab).
@@ -80,6 +97,9 @@ const ExercisesView = ({
   const { t } = useTranslation(undefined, { i18n });
   const router = useRouter();
   const muscleGroups = useMuscleChoice(muscleChoiceKey);
+  // Without a key the choice is a screen's own empty one, read all the same
+  // so the hook order never changes.
+  const equipment = useEquipmentChoice(equipmentChoiceKey ?? NO_EQUIPMENT_KEY);
   const [refreshing, setRefreshing] = useState(false);
 
   const {
@@ -90,7 +110,7 @@ const ExercisesView = ({
     isLoadingMore,
     loadMore,
     refetch,
-  } = useExerciseSearch({ muscleGroups, search });
+  } = useExerciseSearch({ equipment, muscleGroups, search });
 
   // A failed search or refresh shows the error state, with no rows: the
   // shortened list reaching its end must not page past it.
@@ -151,6 +171,13 @@ const ExercisesView = ({
       pathname: "/muscles",
     });
   }, [muscleChoiceKey, router]);
+
+  const openEquipment = useCallback(() => {
+    router.push({
+      params: { choice: equipmentChoiceKey },
+      pathname: "/equipment",
+    });
+  }, [equipmentChoiceKey, router]);
 
   const removeMuscleGroup = useCallback(
     (group: MuscleGroup) => {
@@ -257,17 +284,30 @@ const ExercisesView = ({
       ListFooterComponent={renderFooter() ?? undefined}
       ListHeaderComponent={
         <VStack className="mb-sm items-stretch">
-          <Button
-            className="self-start"
-            disabled={musclesDisabled}
-            fill={false}
-            icon="chevron.down"
-            iconPosition="trailing"
-            label={t("library.muscles")}
-            onPress={openMuscles}
-            size="sm"
-            variant="secondary"
-          />
+          <View className="gap-xs flex-row items-center self-start">
+            <Button
+              disabled={musclesDisabled}
+              fill={false}
+              icon="chevron.down"
+              iconPosition="trailing"
+              label={t("library.muscles")}
+              onPress={openMuscles}
+              size="sm"
+              variant="secondary"
+            />
+            {equipmentChoiceKey === undefined ? null : (
+              <Button
+                disabled={musclesDisabled}
+                fill={false}
+                icon="chevron.down"
+                iconPosition="trailing"
+                label={t("library.equipment")}
+                onPress={openEquipment}
+                size="sm"
+                variant="secondary"
+              />
+            )}
+          </View>
           <MuscleGroupChips
             groups={muscleGroups}
             onRemove={removeMuscleGroup}
