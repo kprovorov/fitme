@@ -47,6 +47,9 @@ const SEND = /Send message|Надіслати повідомлення/u;
 
 /** The Attachments controls, in either device language. */
 const ADD_TO_CHAT = /Add to chat|Додати до чату/u;
+
+/** The header's New conversation button, in either device language. */
+const NEW_CONVERSATION = /^(New conversation|Нова розмова)$/u;
 const PHOTOS = /^(Photos|Фото)$/u;
 const REMOVE_PHOTO = /^(Remove photo|Видалити фото) \d+ (of|з) \d+$/u;
 const THUMBNAIL = /^(Photo \d+ of \d+|Фото \d+ з \d+)$/u;
@@ -219,12 +222,17 @@ jest.mock("expo-haptics", () => ({
 
 interface HeaderItem {
   accessibilityLabel?: string;
+  disabled?: boolean;
   label: string;
+  onPress?: () => void;
 }
 
 jest.mock("expo-router", () => {
-  const { Text: RNText, View } =
-    jest.requireActual<typeof import("react-native")>("react-native");
+  const {
+    Pressable,
+    Text: RNText,
+    View,
+  } = jest.requireActual<typeof import("react-native")>("react-native");
 
   const stub = jest.requireActual<typeof import("~/test-utils/router-stub")>(
     "~/test-utils/router-stub"
@@ -244,7 +252,15 @@ jest.mock("expo-router", () => {
         <View>
           <RNText>{options.title}</RNText>
           {options.unstable_headerRightItems().map((item) => (
-            <RNText key={item.label}>{item.label}</RNText>
+            <Pressable
+              accessibilityLabel={item.accessibilityLabel ?? item.label}
+              accessibilityRole="button"
+              disabled={item.disabled}
+              key={item.label}
+              onPress={item.onPress}
+            >
+              <RNText>{item.label}</RNText>
+            </Pressable>
           ))}
         </View>
       ),
@@ -771,13 +787,17 @@ describe("arnold screen", () => {
         images: [photo("gym")],
       });
       let readStarted!: () => void;
+
       const reading = new Promise<void>((resolve) => {
         readStarted = resolve;
       });
+
       let letTheReadFail!: () => void;
+
       const readFails = new Promise<void>((resolve) => {
         letTheReadFail = resolve;
       });
+
       // Held mid-read, so the User is gone by the time it fails.
       mockReadAttachmentDataUrl.mockImplementation(async () => {
         readStarted();
@@ -793,8 +813,7 @@ describe("arnold screen", () => {
       // since the screen reads the User from Clerk, not from a prop).
       mockUserId = "user_someone_else";
       await act(async () => {
-        rerender(<App key={mockUserId} />);
-        await Promise.resolve();
+        await rerender(<App key={mockUserId} />);
       });
       // The next User's screen is up, with their own empty composer, before
       // the read fails: that is when the photos must go to nobody.
@@ -812,6 +831,51 @@ describe("arnold screen", () => {
         await Promise.resolve();
       });
       expect(thumbnails()).toEqual([]);
+    });
+
+    it("sends nothing into a Conversation started while a photo was read", async () => {
+      mockAttachmentsEnabled = true;
+      mockPickLibraryPhotos.mockResolvedValue({
+        failed: 0,
+        images: [photo("gym")],
+      });
+
+      let readStarted!: () => void;
+
+      const reading = new Promise<void>((resolve) => {
+        readStarted = resolve;
+      });
+
+      let finishTheRead!: () => void;
+
+      const read = new Promise<void>((resolve) => {
+        finishTheRead = resolve;
+      });
+
+      // Held mid-read: the send has no turn yet, so nothing is busy and the
+      // header's New conversation button is live.
+      mockReadAttachmentDataUrl.mockImplementation(async (uri) => {
+        readStarted();
+        await read;
+
+        return dataUrlFor(uri);
+      });
+      await renderArnold();
+      await pickPhotos();
+      await send("What is this machine?");
+      await reading;
+
+      await userEvent.setup().press(screen.getByLabelText(NEW_CONVERSATION));
+      await act(async () => {
+        finishTheRead();
+        await Promise.resolve();
+      });
+
+      // The message was for the Conversation the User left, so it never
+      // reaches Arnold and never shows in the new one.
+      await waitFor(() => expect(screen.getByText("Ask Arnold")).toBeTruthy());
+      expect(fakeArnold.sent).toEqual([]);
+      expect(screen.queryByText("What is this machine?")).toBeNull();
     });
 
     it("picks photos and says the message is full in Ukrainian", async () => {

@@ -148,6 +148,9 @@ const useArnoldChat = (userId: string, composer: Composer) => {
   // lost. Cleared once a turn settles, so an answered prompt never returns.
   const lastSentRef = useRef("");
 
+  // Which Conversation the screen is on: bumped whenever one replaces it.
+  const conversationRef = useRef(0);
+
   const errorAction = arnoldErrorAction(eveError);
 
   // A turn that settled without an error was answered: nothing to give back.
@@ -166,6 +169,10 @@ const useArnoldChat = (userId: string, composer: Composer) => {
       return;
     }
 
+    // A send reading its photos has no turn yet, so it isn't busy and this
+    // button is live: counting the Conversations it has outlived is how it
+    // knows not to land in the one started without it.
+    conversationRef.current += 1;
     clearSavedArnoldConversation(userId);
     resetSession();
   }, [isBusy, resetSession, userId]);
@@ -223,6 +230,7 @@ const useArnoldChat = (userId: string, composer: Composer) => {
       // takes a moment, and a User who signs out meanwhile must not have
       // them handed back to whoever signs in next.
       const sentBy = arnoldAttachmentsOwner();
+      const conversation = conversationRef.current;
       // The bytes go inline, as `data:` URL file parts after the text
       // (ADR 0018), read from the device only now: the runtime turns an
       // `image` content part into the eve file part Arnold's channel takes.
@@ -239,8 +247,21 @@ const useArnoldChat = (userId: string, composer: Composer) => {
         // being lost without a word.
         captureException(error);
         lastSentRef.current = "";
-        composer.set(composer.get() || text);
-        addArnoldAttachments(attachments, sentBy);
+
+        // Not into a Conversation started since: the message belongs to the
+        // one the User left, and so do its photos.
+        if (conversation === conversationRef.current) {
+          composer.set(composer.get() || text);
+          addArnoldAttachments(attachments, sentBy);
+        }
+
+        return;
+      }
+
+      if (conversation !== conversationRef.current) {
+        // The User started a new Conversation while the photos were being
+        // read. This message was for the one they left, so it goes nowhere.
+        lastSentRef.current = "";
 
         return;
       }
