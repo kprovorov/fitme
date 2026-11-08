@@ -31,13 +31,36 @@ const summary = (exercise: Exercise) =>
     )
   );
 
-/** A made-up Exercise, named from its slug. */
+/** A made-up Exercise, named from its slug, needing no gear. */
 const drill = (n: number): Exercise => ({
   ...BENCH,
+  equipment: ["bodyweight"],
   muscle_groups: ["cardio"],
   name: `Drill ${String(n).padStart(3, "0")}`,
   slug: `drill-${String(n).padStart(3, "0")}`,
 });
+
+/** Chest Exercises, each tagged with the Equipment it needs. */
+const DUMBBELL_PRESS: Exercise = {
+  ...BENCH,
+  equipment: ["dumbbell", "bench"],
+  name: "Dumbbell Bench Press",
+  slug: "dumbbell-bench-press",
+};
+
+const CABLE_FLY: Exercise = {
+  ...BENCH,
+  equipment: ["cable"],
+  name: "Cable Fly",
+  slug: "cable-fly",
+};
+
+const PUSH_UP: Exercise = {
+  ...BENCH,
+  equipment: ["bodyweight"],
+  name: "Push Up",
+  slug: "push-up",
+};
 
 /** A library over `exercises` recording every list call. */
 const spiedLibrary = (exercises: Exercise[]) => {
@@ -92,7 +115,13 @@ describe("list_exercises", () => {
     });
 
     expect(lists).toStrictEqual([
-      { limit: 1, muscleGroup: "chest", offset: 1, search: "PRESS" },
+      {
+        equipment: undefined,
+        limit: 1,
+        muscleGroup: "chest",
+        offset: 1,
+        search: "PRESS",
+      },
     ]);
     expect(result.isError).toBeFalsy();
     expect(result.json).toStrictEqual({
@@ -104,6 +133,64 @@ describe("list_exercises", () => {
     });
   });
 
+  it("filters by Equipment, matching any of the values, with the muscle group and search", async () => {
+    const { library, lists } = spiedLibrary([
+      DUMBBELL_PRESS,
+      CABLE_FLY,
+      PUSH_UP,
+      SQUAT,
+    ]);
+
+    const client = await connectWithServices({}, undefined, library);
+
+    const result = await call(client, "list_exercises", {
+      equipment: ["dumbbell", "cable"],
+      muscleGroup: "chest",
+      search: "press",
+    });
+
+    expect(lists).toStrictEqual([
+      {
+        equipment: ["dumbbell", "cable"],
+        limit: 20,
+        muscleGroup: "chest",
+        offset: 0,
+        search: "press",
+      },
+    ]);
+
+    // the cable fly uses one of the values but is no "press", the push up neither
+    expect(result.json).toStrictEqual({
+      exercises: [summary(DUMBBELL_PRESS)],
+      hasMore: false,
+      limit: 20,
+      offset: 0,
+      total: 1,
+    });
+  });
+
+  it("answers each row's Equipment next to its muscle groups", async () => {
+    const client = await connectWithServices(
+      {},
+      undefined,
+      fakeLibrary([DUMBBELL_PRESS, PUSH_UP])
+    );
+
+    const result = await call(client, "list_exercises");
+
+    expect(result.json.exercises).toStrictEqual([
+      expect.objectContaining({
+        equipment: ["dumbbell", "bench"],
+        muscle_groups: ["chest", "triceps"],
+        slug: DUMBBELL_PRESS.slug,
+      }),
+      expect.objectContaining({
+        equipment: ["bodyweight"],
+        slug: PUSH_UP.slug,
+      }),
+    ]);
+  });
+
   it("asks for the first page of 20 by default", async () => {
     const { library, lists } = spiedLibrary([BENCH, SQUAT]);
     const client = await connectWithServices({}, undefined, library);
@@ -111,7 +198,13 @@ describe("list_exercises", () => {
     const result = await call(client, "list_exercises");
 
     expect(lists).toStrictEqual([
-      { limit: 20, muscleGroup: undefined, offset: 0, search: undefined },
+      {
+        equipment: undefined,
+        limit: 20,
+        muscleGroup: undefined,
+        offset: 0,
+        search: undefined,
+      },
     ]);
     expect(result.json).toStrictEqual({
       exercises: [summary(SQUAT), summary(BENCH)],
@@ -133,8 +226,20 @@ describe("list_exercises", () => {
     });
 
     expect(lists).toStrictEqual([
-      { limit: 50, muscleGroup: undefined, offset: 5, search: undefined },
-      { limit: 50, muscleGroup: undefined, offset: 55, search: undefined },
+      {
+        equipment: undefined,
+        limit: 50,
+        muscleGroup: undefined,
+        offset: 5,
+        search: undefined,
+      },
+      {
+        equipment: undefined,
+        limit: 50,
+        muscleGroup: undefined,
+        offset: 55,
+        search: undefined,
+      },
     ]);
     expect(result.json).toMatchObject({
       hasMore: true,
@@ -151,6 +256,44 @@ describe("list_exercises", () => {
     expect(slugs).toHaveLength(100);
     expect(slugs[0]).toBe("drill-005");
     expect(slugs.at(-1)).toBe("drill-104");
+  });
+
+  it("sends the Equipment filter on both parts of a page over the API's 50", async () => {
+    const drills = Array.from({ length: 120 }, (_, i) => drill(i));
+    const { library, lists } = spiedLibrary([...drills, DUMBBELL_PRESS]);
+    const client = await connectWithServices({}, undefined, library);
+
+    const result = await call(client, "list_exercises", {
+      equipment: ["bodyweight"],
+      limit: 100,
+      offset: 5,
+    });
+
+    expect(lists).toStrictEqual([
+      {
+        equipment: ["bodyweight"],
+        limit: 50,
+        muscleGroup: undefined,
+        offset: 5,
+        search: undefined,
+      },
+      {
+        equipment: ["bodyweight"],
+        limit: 50,
+        muscleGroup: undefined,
+        offset: 55,
+        search: undefined,
+      },
+    ]);
+
+    // the dumbbell press is filtered out of both parts and of the total
+    expect(result.json).toMatchObject({
+      hasMore: true,
+      limit: 100,
+      offset: 5,
+      total: 120,
+    });
+    expect(result.json.exercises).toHaveLength(100);
   });
 
   it("answers the last page when it ends inside the first part", async () => {
@@ -199,6 +342,7 @@ describe("list_exercises", () => {
     const client = await connectWithServices({}, reportError, library);
 
     const tooMany = await call(client, "list_exercises", { limit: 101 });
+
     expect(tooMany.isError).toBeTruthy();
 
     const unknownMuscleGroup = await call(client, "list_exercises", {
@@ -206,6 +350,33 @@ describe("list_exercises", () => {
     });
 
     expect(unknownMuscleGroup.isError).toBeTruthy();
+    expect(lists).toStrictEqual([]);
+    expect(reported).toStrictEqual([]);
+  });
+
+  it("rejects Equipment that isn't a list of known values, unreported", async () => {
+    const { library, lists } = spiedLibrary([BENCH]);
+    const { reportError, reported } = recordingReporter();
+    const client = await connectWithServices({}, reportError, library);
+
+    const unknownEquipment = await call(client, "list_exercises", {
+      equipment: ["kettlebell"],
+    });
+
+    expect(unknownEquipment.isError).toBeTruthy();
+
+    const equipmentString = await call(client, "list_exercises", {
+      equipment: "dumbbell",
+    });
+
+    expect(equipmentString.isError).toBeTruthy();
+
+    // more values than there are, so no caller can build a query the API rejects
+    const tooMuchEquipment = await call(client, "list_exercises", {
+      equipment: Array.from({ length: 50 }, () => "dumbbell"),
+    });
+
+    expect(tooMuchEquipment.isError).toBeTruthy();
     expect(lists).toStrictEqual([]);
     expect(reported).toStrictEqual([]);
   });
