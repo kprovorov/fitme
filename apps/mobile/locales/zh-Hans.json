@@ -1,0 +1,5 @@
+{
+  "ios": {
+    "NSCameraUsageDescription": "Fitme 使用相机，让你可以拍照发送给你的 AI 教练 Arnold 并向他提问。"
+  }
+}

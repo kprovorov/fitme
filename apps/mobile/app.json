@@ -95,13 +95,31 @@
       [
         "expo-image-picker",
         {
-          "microphonePermission": false
+          "microphonePermission": false,
+          "cameraPermission": "Fitme uses the camera so you can take a photo to send to Arnold, your AI coach, and ask about it."
         }
       ],
       "expo-web-browser",
       "expo-status-bar",
       "./plugins/with-ios-min-deployment-target.js"
     ],
+    "locales": {
+      "en": "./locales/en.json",
+      "uk": "./locales/uk.json",
+      "es": "./locales/es.json",
+      "ca": "./locales/ca.json",
+      "fr": "./locales/fr.json",
+      "de": "./locales/de.json",
+      "it": "./locales/it.json",
+      "pt-BR": "./locales/pt-BR.json",
+      "pt-PT": "./locales/pt-PT.json",
+      "pl": "./locales/pl.json",
+      "zh-Hans": "./locales/zh-Hans.json",
+      "zh-Hant": "./locales/zh-Hant.json",
+      "ja": "./locales/ja.json",
+      "ko": "./locales/ko.json",
+      "nl": "./locales/nl.json"
+    },
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true

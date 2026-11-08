@@ -3,7 +3,7 @@ import { useRouter } from "expo-router";
 import { useHeaderHeight } from "expo-router/react-navigation";
 import { useCallback, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Pressable, Text, View } from "react-native";
+import { Alert, Pressable, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import type { SFSymbol } from "sf-symbols-typescript";
 import { ScopedVariables } from "uniwind";
@@ -19,7 +19,8 @@ import {
   useIsConversationFull,
   useRemainingAttachmentSlots,
 } from "~/hooks/arnold-attachments";
-import { pickLibraryPhotos } from "~/lib/arnold-attachment-picker";
+import { pickLibraryPhotos, takePhoto } from "~/lib/arnold-attachment-picker";
+import { openAppSettings } from "~/lib/external-links";
 import { cn } from "~/lib/utils";
 
 const AttachmentButton = ({
@@ -53,8 +54,7 @@ const AttachmentButton = ({
 
 /**
  * What a User can add to a message to Arnold: a photo from the camera or
- * from their library (ADR 0018). Camera is still inert; the ticket after
- * this one wires it up.
+ * from their library (ADR 0018).
  *
  * The sheet is short enough to fit its contents, and nothing here scrolls, so
  * it clears the header itself: a glass header floats over the content (the
@@ -71,12 +71,13 @@ const AddToChatSheet = () => {
   // it is decides the message, since only one of them has a way out.
   const isFull = remaining <= 0;
   const isConversationFull = useIsConversationFull();
-  // While the system picker is up and the photos are being re-encoded: the
-  // picker covers the sheet, but a second tap landing either side of it
-  // would open a second one.
+  // While the camera or the system picker is up and what came back is being
+  // re-encoded: either covers the sheet, but a second tap landing beside it
+  // would open another one.
   const [isPicking, setIsPicking] = useState(false);
-  // Shown when nothing the User picked could be read: the sheet stays open,
-  // so they can try another photo rather than wonder what happened.
+  // Shown when nothing the User picked or took could be read: the sheet
+  // stays open, so they can try another photo rather than wonder what
+  // happened.
   const [hasFailed, setHasFailed] = useState(false);
 
   // Which cap is full: the Conversation's is the one to say, since it holds
@@ -122,6 +123,52 @@ const AddToChatSheet = () => {
     setIsPicking(false);
   }, [remaining, router]);
 
+  const openCamera = useCallback(async () => {
+    // Never opened without room, so a photo is never taken for nothing.
+    if (remaining <= 0) {
+      return;
+    }
+
+    setIsPicking(true);
+    setHasFailed(false);
+    // Read before the await, as the picker does: taking a photo takes a
+    // while, and the store drops what comes back for a User who has since
+    // signed out.
+    const startedFor = arnoldAttachmentsOwner();
+
+    try {
+      const photo = await takePhoto();
+
+      if (photo.status === "denied") {
+        // iOS only asks once, so there is nothing left to tap in the app:
+        // the alert takes the User where they can turn it back on.
+        Alert.alert(
+          t("arnold.attachments.cameraDenied.title"),
+          t("arnold.attachments.cameraDenied.message"),
+          [
+            { style: "cancel", text: t("common.cancel") },
+            {
+              onPress: () => {
+                void openAppSettings();
+              },
+              text: t("arnold.attachments.cameraDenied.openSettings"),
+            },
+          ]
+        );
+      } else if (photo.status === "taken") {
+        addArnoldAttachments([photo.image], startedFor);
+        router.back();
+      }
+      // Cancelled: nothing taken, so the sheet stays open as it was.
+    } catch (error) {
+      // No camera (the simulator), or a photo the re-encoder can't read.
+      captureException(error);
+      setHasFailed(true);
+    }
+
+    setIsPicking(false);
+  }, [remaining, router, t]);
+
   return (
     <ScopedVariables
       variables={{
@@ -140,8 +187,12 @@ const AddToChatSheet = () => {
         <View className="px-md pb-md gap-3 pt-2">
           <View className="flex-row gap-3">
             <AttachmentButton
+              disabled={isPicking || isFull}
               icon="camera"
               label={t("arnold.attachments.camera")}
+              onPress={(...args) => {
+                void openCamera(...args);
+              }}
             />
             <AttachmentButton
               disabled={isPicking || isFull}

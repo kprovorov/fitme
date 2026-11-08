@@ -1,0 +1,5 @@
+{
+  "ios": {
+    "NSCameraUsageDescription": "Fitme は、写真を撮って AI コーチの Arnold に送り、質問できるようにカメラを使用します。"
+  }
+}

@@ -1,0 +1,5 @@
+{
+  "ios": {
+    "NSCameraUsageDescription": "Fitme używa aparatu, aby można było zrobić zdjęcie, wysłać je do Arnolda, Twojego trenera AI, i o nie zapytać."
+  }
+}

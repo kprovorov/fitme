@@ -1,0 +1,5 @@
+{
+  "ios": {
+    "NSCameraUsageDescription": "Fitme usa la cámara para que puedas hacer una foto, enviarla a Arnold, tu entrenador con IA, y preguntarle sobre ella."
+  }
+}

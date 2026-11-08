@@ -1,9 +1,10 @@
 /**
- * Where an Arnold Attachment comes from: the system photo picker, the
- * re-encoding every picked image goes through, and reading the JPEG back as
- * the `data:` URL a send carries (ADR 0018). It is the only module importing
- * `expo-image-picker`, `expo-image-manipulator` and `expo-file-system`, so a
- * screen test stands this one module in and never touches a native module.
+ * Where an Arnold Attachment comes from: the camera, the system photo
+ * picker, the re-encoding every picked image goes through, and reading the
+ * JPEG back as the `data:` URL a send carries (ADR 0018). It is the only
+ * module importing `expo-image-picker`, `expo-image-manipulator` and
+ * `expo-file-system`, so a screen test stands this one module in and never
+ * touches a native module, the camera permission included.
  */
 import { captureException } from "@sentry/react-native";
 import { File } from "expo-file-system";
@@ -146,4 +147,58 @@ export const pickLibraryPhotos = async (
   await processNext();
 
   return { failed, images };
+};
+
+/** What the camera came back with. */
+export type CameraPhoto =
+  /** The photo, re-encoded like a picked one. */
+  | { image: PickedImage; status: "taken" }
+  /** The User backed out of the camera, so nothing changes. */
+  | { status: "cancelled" }
+  /** Camera access is off for Fitme: the caller offers Settings. */
+  | { status: "denied" };
+
+/**
+ * Opens the camera and answers the photo taken, re-encoded exactly as a
+ * picked one is (`shrinkToJpeg`), or what stopped it.
+ *
+ * The permission is asked for here, so this stays the one module a screen
+ * test stands in for the whole camera. iOS shows its prompt, with the
+ * purpose string from the app's own `InfoPlist.strings` per App language,
+ * only the first time; once the User has said no it answers denied without
+ * asking again, which is the alert the caller shows. A platform that can
+ * still ask (Android's soft deny) answers cancelled instead, since the
+ * prompt, not Settings, is where that User turns it on.
+ *
+ * A photo the re-encoder can't read throws, like one from the library.
+ */
+export const takePhoto = async (): Promise<CameraPhoto> => {
+  const permission = await ImagePicker.requestCameraPermissionsAsync();
+
+  if (!permission.granted) {
+    // iOS prompts once: a refusal leaves `canAskAgain` false for good, so
+    // the alert offering Settings is the only way back. Android can prompt
+    // again, and the prompt the User has just said no to *is* that way, so
+    // there is nothing to send them to Settings for: it reads as the
+    // cancelling it was, and the next tap asks again.
+    return permission.canAskAgain
+      ? { status: "cancelled" }
+      : { status: "denied" };
+  }
+
+  const result = await ImagePicker.launchCameraAsync({
+    // Never the EXIF: re-encoding drops it, and nothing here reads it.
+    exif: false,
+    mediaTypes: ["images"],
+  });
+
+  // `canceled` covers the User backing out; the empty list is belt and
+  // braces, so a camera that answers neither never reads as a photo.
+  const asset = result.canceled ? undefined : result.assets[0];
+
+  if (!asset) {
+    return { status: "cancelled" };
+  }
+
+  return { image: await shrinkToJpeg(asset.uri), status: "taken" };
 };

@@ -3,7 +3,12 @@ import * as Sentry from "@sentry/react-native";
 import * as WebBrowser from "expo-web-browser";
 import { Linking } from "react-native";
 
-import { openUrl, openWebPage, TERMS_URL } from "../external-links";
+import {
+  openAppSettings,
+  openUrl,
+  openWebPage,
+  TERMS_URL,
+} from "../external-links";
 
 jest.mock("expo-web-browser", () => ({
   openBrowserAsync: jest.fn(),
@@ -14,11 +19,13 @@ jest.mock("expo-web-browser", () => ({
 const openBrowserAsync = jest.mocked(WebBrowser.openBrowserAsync);
 const captureException = jest.mocked(Sentry.captureException);
 const openURL = jest.spyOn(Linking, "openURL");
+const openSettings = jest.spyOn(Linking, "openSettings");
 
 beforeEach(() => {
   openBrowserAsync.mockReset();
   captureException.mockClear();
   openURL.mockReset();
+  openSettings.mockReset();
 });
 
 describe("openWebPage", () => {
@@ -77,6 +84,27 @@ describe("openUrl", () => {
     await expect(
       openUrl("mailto:support@fitmeproject.com")
     ).resolves.toBeUndefined();
+
+    expect(captureException).toHaveBeenCalledWith(failure);
+  });
+});
+
+describe("openAppSettings", () => {
+  it("opens Fitme's own page in the system Settings", async () => {
+    openSettings.mockResolvedValue(undefined);
+
+    await openAppSettings();
+
+    expect(openSettings).toHaveBeenCalledTimes(1);
+    expect(openURL).not.toHaveBeenCalled();
+    expect(captureException).not.toHaveBeenCalled();
+  });
+
+  it("reports, never rejects, when the system can't open Settings", async () => {
+    const failure = new Error("Unable to open settings");
+    openSettings.mockRejectedValue(failure);
+
+    await expect(openAppSettings()).resolves.toBeUndefined();
 
     expect(captureException).toHaveBeenCalledWith(failure);
   });
