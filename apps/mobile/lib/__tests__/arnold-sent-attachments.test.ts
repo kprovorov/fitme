@@ -9,6 +9,7 @@ import { beforeEach, describe, expect, it, jest } from "@jest/globals";
 import type * as InMemoryFileSystem from "~/test-utils/in-memory-file-system";
 
 import {
+  dropSentAttachments,
   followSentAttachments,
   forgetSentAttachments,
   keepSentAttachments,
@@ -169,6 +170,50 @@ describe("sentAttachmentUri", () => {
       sentAttachmentUri(USER, "ses_1", "../elsewhere.jpg")
     ).toBeUndefined();
     expect(sentAttachmentUri(USER, "ses_1", "report.pdf")).toBeUndefined();
+  });
+});
+
+describe("dropSentAttachments", () => {
+  it("takes back the copies of a send that went nowhere", async () => {
+    const names = await keepSentAttachments(USER, "ses_1", [
+      picked("gym"),
+      picked("plan"),
+    ]);
+
+    dropSentAttachments(USER, "ses_1", names);
+
+    expect(fileSystem.filesUnder(userRoot())).toEqual([]);
+  });
+
+  it("leaves the Conversation's other messages' copies alone", async () => {
+    const kept = await keepSentAttachments(USER, "ses_1", [picked("kept")]);
+    const refused = await keepSentAttachments(USER, "ses_1", [picked("gone")]);
+
+    dropSentAttachments(USER, "ses_1", refused);
+
+    expect(sentAttachmentUri(USER, "ses_1", kept[0] ?? "")).toBeTruthy();
+    expect(sentAttachmentUri(USER, "ses_1", refused[0] ?? "")).toBeUndefined();
+  });
+
+  it("does nothing for copies that were never written", () => {
+    expect(() =>
+      dropSentAttachments(USER, "ses_1", ["mabc-0-deadbeef.jpg"])
+    ).not.toThrow();
+  });
+
+  it("never reaches another User's or another Conversation's copies", async () => {
+    const theirs = await keepSentAttachments("user_other", "ses_1", [
+      picked("theirs"),
+    ]);
+
+    const other = await keepSentAttachments(USER, "ses_2", [picked("other")]);
+
+    dropSentAttachments(USER, "ses_1", [...theirs, ...other]);
+
+    expect(
+      sentAttachmentUri("user_other", "ses_1", theirs[0] ?? "")
+    ).toBeTruthy();
+    expect(sentAttachmentUri(USER, "ses_2", other[0] ?? "")).toBeTruthy();
   });
 });
 

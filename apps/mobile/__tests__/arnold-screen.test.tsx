@@ -912,11 +912,14 @@ describe("arnold screen", () => {
         { text: "What is this machine?", type: "text" },
         {
           data: dataUrlFor("file:///photos/gym.jpg"),
+          // The retry writes its own device copies, so its own names.
+          filename: expect.stringMatching(COPY_NAME),
           mediaType: "image/jpeg",
           type: "file",
         },
         {
           data: dataUrlFor("file:///photos/plan.jpg"),
+          filename: expect.stringMatching(COPY_NAME),
           mediaType: "image/jpeg",
           type: "file",
         },
@@ -1208,6 +1211,69 @@ describe("arnold screen", () => {
         ]);
       });
 
+      it("takes back the copies of a send Arnold refused", async () => {
+        mockAttachmentsEnabled = true;
+        mockPickLibraryPhotos.mockResolvedValue({
+          failed: 0,
+          images: [photo("gym"), photo("plan")],
+        });
+        fakeArnold.failNextSend({ status: 500 });
+        await renderArnold();
+        await pickPhotos();
+        await send("What is this machine?");
+
+        await waitFor(() =>
+          expect(
+            screen.getByText("Something went wrong. Try again.")
+          ).toBeTruthy()
+        );
+
+        // The photos are in the composer again (FIT-586), so no message
+        // names those copies and a retry writes its own: leaving them would
+        // pile up a photo on the device per failed try.
+        expect(thumbnails()).toHaveLength(2);
+        expect(
+          fileSystem.filesUnder(
+            "file:///memory/document/arnold-attachments/user_arnold_screen"
+          )
+        ).toEqual([]);
+      });
+
+      it("keeps only the retry's copies when a failed send is sent again", async () => {
+        mockAttachmentsEnabled = true;
+        mockPickLibraryPhotos.mockResolvedValue({
+          failed: 0,
+          images: [photo("gym")],
+        });
+        fakeArnold.failNextSend({ status: 500 });
+        await renderArnold();
+        await pickPhotos();
+        await send("What is this machine?");
+        await waitFor(() =>
+          expect(
+            screen.getByText("Something went wrong. Try again.")
+          ).toBeTruthy()
+        );
+
+        // Sent again with the photo the composer gave back.
+        await userEvent.setup().press(screen.getByLabelText(SEND));
+        await waitFor(() =>
+          expect(screen.getByText(FAKE_ARNOLD_REPLY)).toBeTruthy()
+        );
+        await waitFor(() =>
+          expect(
+            loadSavedArnoldConversation("user_arnold_screen").events
+          ).toBeTruthy()
+        );
+
+        expect(keptPhotos("user_arnold_screen")).toEqual(["gym-bytes"]);
+        expect(
+          fileSystem.filesUnder(
+            "file:///memory/document/arnold-attachments/user_arnold_screen"
+          )
+        ).toHaveLength(1);
+      });
+
       it("drops a send whose Conversation was replaced mid-copy", async () => {
         mockAttachmentsEnabled = true;
         mockPickLibraryPhotos.mockResolvedValue({
@@ -1235,6 +1301,12 @@ describe("arnold screen", () => {
         );
         expect(fakeArnold.sent).toEqual([]);
         expect(screen.queryByText("What is this machine?")).toBeNull();
+        // And its copy comes back off the device with it.
+        expect(
+          fileSystem.filesUnder(
+            "file:///memory/document/arnold-attachments/user_arnold_screen"
+          )
+        ).toEqual([]);
       });
 
       it("sends a photo it could not copy, and keeps nothing for it", async () => {
