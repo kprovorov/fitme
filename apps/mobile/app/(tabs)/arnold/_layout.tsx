@@ -54,6 +54,16 @@ const StackLayout = () => {
         }}
       />
 
+      {/*
+        A sent photo, full-screen: it covers the tab bar as well, since it is
+        the photo that is being looked at and nothing else. Its own Screen
+        sets the transparent header and the title naming the photo.
+      */}
+      <Stack.Screen
+        name="photo-viewer"
+        options={{ presentation: "fullScreenModal" }}
+      />
+
       <Stack.Screen
         name="model-picker"
         options={{

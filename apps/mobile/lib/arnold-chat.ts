@@ -152,6 +152,12 @@ export interface ShownAttachment {
    */
   id: string;
   /**
+   * Its device copy's name, which the send put on the wire as the file part's
+   * `filename` and eve's echo brought back. The full-screen viewer takes it,
+   * since that is what finds the photo again (`sentAttachmentUri`).
+   */
+  name: string;
+  /**
    * Where its copy is on this device, or `undefined` when this device hasn't
    * got it (another device, a reinstall, a copy the disk refused): the bubble
    * shows a Photo tile in its place.
@@ -199,7 +205,7 @@ export const shownUserMessage = (
       const id = `${index}:${name}`;
       const uri = uriOf(name);
 
-      return uri === undefined ? { id } : { id, uri };
+      return uri === undefined ? { id, name } : { id, name, uri };
     });
 
   if (message.metadata.custom.optimistic === true) {

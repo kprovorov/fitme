@@ -1,14 +1,14 @@
 import { useCallback, useState } from "react";
 import type { ReactNode } from "react";
 import { useTranslation } from "react-i18next";
-import { Text, View } from "react-native";
+import { Pressable, Text, View } from "react-native";
 import Animated, { FadeIn, FadeOut } from "react-native-reanimated";
 import { z } from "zod";
 
 import { ChatMarkdown } from "@/components/markdown";
 import { SymbolImage } from "@/components/symbol-image";
 import { Image } from "@/components/tw";
-import type { ShownUserMessage } from "~/lib/arnold-chat";
+import type { ShownAttachment, ShownUserMessage } from "~/lib/arnold-chat";
 import { cn } from "~/lib/utils";
 
 /**
@@ -55,19 +55,36 @@ export const Message = ({
 };
 
 /**
+ * A sent Attachment's own thumbnail, so a test reads the photo it draws: the
+ * control around it is what carries the label, since that is where VoiceOver
+ * stops.
+ */
+export const SENT_PHOTO_IMAGE = "sent-photo-image";
+
+/**
  * One Attachment the User sent, drawn from the copy this device kept of it
  * (ADR 0018): eve never sends an Attachment's bytes back, so the photo comes
  * off the phone rather than out of the Conversation. Without that copy
  * (another device, a reinstall, a copy the disk refused) a tile stands for
  * the photo instead, so the message still reads as one that carried one.
  *
+ * A photo this device can draw opens full-screen when it's tapped; a tile
+ * doesn't, since there is no photo behind it to open.
+ *
  * VoiceOver reads either as the photo and its place among them.
  */
 const SentAttachment = ({
+  onOpen,
   position,
   total,
   uri,
 }: {
+  /**
+   * Not `onPress`: a prop by that name is found by a press on the tile too,
+   * which carries no photo to open (React Testing Library walks the tree
+   * looking for the handler, and props of a component are part of it).
+   */
+  onOpen: () => void;
   position: number;
   total: number;
   uri?: string;
@@ -85,16 +102,24 @@ const SentAttachment = ({
 
   if (uri && !unreadable) {
     return (
-      <Image
+      // The label and the role sit here, not on the image: VoiceOver stops
+      // once, at the control that opens the photo. expo-image is left out of
+      // the accessibility tree for it (its `isAccessibilityElement` is
+      // `accessible ?? false`, so leaving `accessible` off is enough).
+      <Pressable
         accessibilityLabel={label}
-        // `accessible`, or the label is set on a view VoiceOver never stops
-        // at: expo-image's `isAccessibilityElement` is `accessible ?? false`.
-        accessible
-        className="border-continuous bg-background h-14 w-14 rounded-xl"
-        contentFit="cover"
-        onError={onError}
-        source={{ uri }}
-      />
+        accessibilityRole="imagebutton"
+        className="active:opacity-80"
+        onPress={onOpen}
+      >
+        <Image
+          className="border-continuous bg-background h-14 w-14 rounded-xl"
+          contentFit="cover"
+          onError={onError}
+          source={{ uri }}
+          testID={SENT_PHOTO_IMAGE}
+        />
+      </Pressable>
     );
   }
 
@@ -133,18 +158,33 @@ const SentAttachment = ({
  * order they were sent, then the text they wrote. A photo sent on its own
  * has no text, so the bubble holds the photo and no empty line.
  *
+ * Tapping one opens the message's photos full-screen, which is why the whole
+ * list and the place tapped go back: the viewer shows the message's photos,
+ * not the one photo.
+ *
  * A message's four (`MAX_ATTACHMENTS_PER_MESSAGE`) just fit one row inside
  * the bubble on the narrowest supported iPhone, with about 2 pt to spare, so
  * a wider slot, a wider gap or more padding around the list wraps the last
  * one onto a row of its own; the row wraps rather than overflow either way.
  */
-export const UserMessageBody = ({ attachments, text }: ShownUserMessage) => (
+export const UserMessageBody = ({
+  attachments,
+  onOpenAttachment,
+  text,
+}: ShownUserMessage & {
+  /** Opens the viewer on this message's photos, at the one tapped. */
+  onOpenAttachment?: (
+    attachments: readonly ShownAttachment[],
+    index: number
+  ) => void;
+}) => (
   <>
     {attachments.length > 0 ? (
       <View className={cn("flex-row flex-wrap gap-2", text && "mb-2")}>
         {attachments.map((attachment, index) => (
           <SentAttachment
             key={attachment.id}
+            onOpen={() => onOpenAttachment?.(attachments, index)}
             position={index + 1}
             total={attachments.length}
             uri={attachment.uri}

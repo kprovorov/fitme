@@ -72,7 +72,7 @@ import {
   savedArnoldSessionId,
   shownUserMessage,
 } from "~/lib/arnold-chat";
-import type { ArnoldErrorKind } from "~/lib/arnold-chat";
+import type { ArnoldErrorKind, ShownAttachment } from "~/lib/arnold-chat";
 import {
   dropSentAttachments,
   keepSentAttachments,
@@ -479,6 +479,26 @@ const useArnoldChat = (userId: string, composer: Composer) => {
     [events, uriOf]
   );
 
+  const router = useRouter();
+
+  // A tapped photo opens its whole message full-screen, so the viewer can be
+  // swiped through the message's photos. It gets the copies' names, not their
+  // paths and not the Conversation either: the viewer finds each photo on
+  // this device by name (ADR 0018), since eve can name the Conversation while
+  // the viewer is already open on a first message's photos, which moves them.
+  const onOpenAttachment = useCallback(
+    (attachments: readonly ShownAttachment[], index: number) => {
+      router.push({
+        params: {
+          names: attachments.map((attachment) => attachment.name).join(","),
+          open: attachments[index]?.name ?? "",
+        },
+        pathname: "/arnold/photo-viewer",
+      });
+    },
+    [router]
+  );
+
   return {
     errorMessage:
       errorAction === "show"
@@ -490,6 +510,7 @@ const useArnoldChat = (userId: string, composer: Composer) => {
     isLoading,
     messages,
     newConversation,
+    onOpenAttachment,
     onSend,
     sendMessage,
     setInput,

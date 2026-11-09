@@ -13,6 +13,8 @@ export {
 } from "./conversation";
 
 // Messages
+export { SENT_PHOTO_IMAGE } from "./message";
+
 export { messageText } from "./message-text";
 
 // Prompt Input
@@ -25,6 +27,9 @@ export {
   PromptInputSubmit,
   PromptInputTextarea,
 } from "./prompt-input";
+
+// Sent Attachments, full-screen
+export { SENT_PHOTOS_PAGER, SentPhotosView } from "./sent-photos-view";
 
 // Streaming
 export type { StreamingStore } from "./streaming-store";

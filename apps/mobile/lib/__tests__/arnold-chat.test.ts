@@ -507,8 +507,8 @@ describe("shownUserMessage", () => {
 
     expect(shownUserMessage(optimistic(text), text, [], onDevice)).toEqual({
       attachments: [
-        { id: "0:a.jpg", uri: "file:///copies/a.jpg" },
-        { id: "1:b.jpg", uri: "file:///copies/b.jpg" },
+        { id: "0:a.jpg", name: "a.jpg", uri: "file:///copies/a.jpg" },
+        { id: "1:b.jpg", name: "b.jpg", uri: "file:///copies/b.jpg" },
       ],
       text: "What is this machine?",
     });
@@ -523,7 +523,9 @@ describe("shownUserMessage", () => {
         onDevice
       )
     ).toEqual({
-      attachments: [{ id: "0:a.jpg", uri: "file:///copies/a.jpg" }],
+      attachments: [
+        { id: "0:a.jpg", name: "a.jpg", uri: "file:///copies/a.jpg" },
+      ],
       text: "",
     });
   });
@@ -532,7 +534,7 @@ describe("shownUserMessage", () => {
     const text = "Look\n[file]";
 
     expect(shownUserMessage(optimistic(text), text, [], onDevice)).toEqual({
-      attachments: [{ id: "0:" }],
+      attachments: [{ id: "0:", name: "" }],
       text: "Look",
     });
   });
@@ -542,8 +544,8 @@ describe("shownUserMessage", () => {
 
     expect(shownUserMessage(optimistic(text), text, [], onDevice)).toEqual({
       attachments: [
-        { id: "0:gone.jpg" },
-        { id: "1:b.jpg", uri: "file:///copies/b.jpg" },
+        { id: "0:gone.jpg", name: "gone.jpg" },
+        { id: "1:b.jpg", name: "b.jpg", uri: "file:///copies/b.jpg" },
       ],
       text: "Look",
     });
@@ -554,7 +556,9 @@ describe("shownUserMessage", () => {
     const text = "[file]\nis how you write it\n[file: a.jpg]";
 
     expect(shownUserMessage(optimistic(text), text, [], onDevice)).toEqual({
-      attachments: [{ id: "0:a.jpg", uri: "file:///copies/a.jpg" }],
+      attachments: [
+        { id: "0:a.jpg", name: "a.jpg", uri: "file:///copies/a.jpg" },
+      ],
       text: "[file]\nis how you write it",
     });
   });
@@ -571,8 +575,8 @@ describe("shownUserMessage", () => {
       )
     ).toEqual({
       attachments: [
-        { id: "0:a.jpg", uri: "file:///copies/a.jpg" },
-        { id: "1:b.jpg", uri: "file:///copies/b.jpg" },
+        { id: "0:a.jpg", name: "a.jpg", uri: "file:///copies/a.jpg" },
+        { id: "1:b.jpg", name: "b.jpg", uri: "file:///copies/b.jpg" },
       ],
       text: "What is this machine?",
     });
@@ -605,7 +609,9 @@ describe("shownUserMessage", () => {
         onDevice
       )
     ).toEqual({
-      attachments: [{ id: "0:c.jpg", uri: "file:///copies/c.jpg" }],
+      attachments: [
+        { id: "0:c.jpg", name: "c.jpg", uri: "file:///copies/c.jpg" },
+      ],
       text: "Second",
     });
   });

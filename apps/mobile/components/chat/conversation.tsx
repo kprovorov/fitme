@@ -111,11 +111,13 @@ export const useConversationContext = () => {
 const ConversationMessage = ({
   item,
   isStreaming,
+  onOpenAttachment,
   streamingStore,
   userMessage,
 }: {
   item: ThreadMessage;
   isStreaming: boolean;
+  onOpenAttachment?: ChatContextValue["onOpenAttachment"];
   streamingStore: StreamingStore;
   userMessage?: ChatContextValue["userMessage"];
 }) => {
@@ -127,6 +129,7 @@ const ConversationMessage = ({
             attachments: [],
             text: messageText(item),
           })}
+          onOpenAttachment={onOpenAttachment}
         />
       </Message>
     );
@@ -190,8 +193,13 @@ export const Conversation = ({
   /** Shown while there are no messages. */
   emptyState: ReactNode;
 }) => {
-  const { messages, isGenerating, streamingStore, userMessage } =
-    useChatContext();
+  const {
+    messages,
+    isGenerating,
+    onOpenAttachment,
+    streamingStore,
+    userMessage,
+  } = useChatContext();
 
   const listRef = useRef<LegendListRef>(null);
   const insets = useSafeAreaInsets();
@@ -408,11 +416,12 @@ export const Conversation = ({
       <ConversationMessage
         isStreaming={isGenerating && item === messages.at(-1)}
         item={item}
+        onOpenAttachment={onOpenAttachment}
         streamingStore={streamingStore}
         userMessage={userMessage}
       />
     ),
-    [isGenerating, messages, streamingStore, userMessage]
+    [isGenerating, messages, onOpenAttachment, streamingStore, userMessage]
   );
 
   // -- Context value -------------------------------------------------------
