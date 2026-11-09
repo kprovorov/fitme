@@ -268,7 +268,7 @@ describe("the Workout tab's Plans", () => {
     await fireEvent.press(
       screen.getByRole("button", { name: "Create Workout Plan" })
     );
-    expect(mockPush).toHaveBeenCalledWith("/planner");
+    expect(mockPush).toHaveBeenCalledWith("/plans/create");
   });
 
   it("leaves out a deleted Plan, which is never the active one", async () => {

@@ -206,6 +206,7 @@
   },
   "planEditor": {
     "title": "Editar plan",
+    "createTitle": "Nuevo plan",
     "save": "Guardar",
     "details": "Detalles",
     "name": "Nombre",
@@ -218,6 +219,7 @@
     "goal": "Objetivo",
     "experience": "Nivel de experiencia",
     "place": "Lugar",
+    "unset": "Sin definir",
     "workouts": "Entrenamientos",
     "workoutsHint": "En orden de rotación: el primero es el siguiente.",
     "noWorkouts": "Un plan necesita al menos un entrenamiento.",
@@ -268,13 +270,25 @@
       "descriptionTooLong": "La descripción puede tener como máximo {{max, number(useGrouping: false)}} caracteres",
       "frequencyRange": "Los entrenamientos por semana deben ser un número entero de {{min, number(useGrouping: false)}} a {{max, number(useGrouping: false)}}",
       "durationRange": "La duración del entrenamiento debe ser un número entero de minutos, como máximo {{max, number(useGrouping: false)}}",
-      "choiceRequired": "Elige una opción",
       "saveFailed": "No se ha podido guardar tu plan. Comprueba tu conexión e inténtalo de nuevo.",
       "saveRateLimited": "No se ha podido guardar tu plan. Demasiadas solicitudes: inténtalo de nuevo en {{seconds, number}} s.",
       "unknownExercises": "Este plan tiene ejercicios que no conocemos, así que no se puede guardar. Sustitúyelos e inténtalo de nuevo.",
       "libraryUnavailable": "No se han podido comprobar los ejercicios de este plan. Inténtalo de nuevo.",
       "unitsChanged": "Tus unidades de peso han cambiado en otro dispositivo, así que estos objetivos están en las antiguas. Cierra el editor y vuelve a abrirlo."
     }
+  },
+  "planBuilder": {
+    "title": "Crear plan",
+    "question": "¿Cómo quieres crear este plan?",
+    "byHand": "Créalo tú mismo",
+    "byHandHint": "Elige tus entrenamientos, ejercicios y series.",
+    "askArnold": "Pregunta a Arnold",
+    "askArnoldHint": "La IA de Fitme crea un plan según tus objetivos.",
+    "pro": "Pro",
+    "detailsTitle": "Nuevo plan",
+    "detailsHint": "Solo un nombre y con qué frecuencia entrenas. Lo demás se puede cambiar después.",
+    "continue": "Continuar",
+    "back": "Atrás"
   },
   "plannedWorkout": {
     "stats": {

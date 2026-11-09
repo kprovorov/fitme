@@ -29,6 +29,15 @@ export const measurementSystemOf = (
     ? profile.measurement_system
     : "metric";
 
+/**
+ * The unit the User's weights are stored and typed in, which the API types
+ * as a plain string: `lbs` for an imperial Profile, `kg` for a metric one
+ * and for a User who hasn't got a Profile yet.
+ */
+export const weightUnitOf = (
+  profile: { units: { weight: string } } | null | undefined
+): "kg" | "lbs" => (profile?.units.weight === "lbs" ? "lbs" : "kg");
+
 /** The Profile's gender, or `undefined` without one the app knows. */
 export const genderOf = (
   profile: Pick<ProfileChoices, "gender"> | null | undefined

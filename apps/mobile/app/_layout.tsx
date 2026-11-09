@@ -142,6 +142,12 @@ const RootLayout = () => {
             }}
           />
           <Stack.Screen
+            name="plans/create"
+            options={{
+              presentation: "modal",
+            }}
+          />
+          <Stack.Screen
             name="plans/[planId]/edit"
             options={{
               presentation: "modal",

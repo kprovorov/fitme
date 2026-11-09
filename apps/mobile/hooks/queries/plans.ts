@@ -143,20 +143,32 @@ const seedPlan = (
     queryKey: usePlanQuery.getKey({ id: plan.id }),
   });
 
+/** Where a saved Plan came from: the Plan builder, or Arnold's plan card. */
+export type PlanSource = "arnold" | "builder";
+
+export interface CreatePlanVariables {
+  plan: NewPlan;
+  source: PlanSource;
+}
+
 /**
  * Saves a Plan through `POST /v1/plans` and makes it the active one, in one
- * transaction: nothing is saved unless all of it is. Fires `Plan Saved` and
- * `Plan Activated` once it has, shows the new Plan from the answer and reads
- * the Plan lists again. Answers the new Plan; rejects with an `ApiError`
- * (`unknown_exercises`, `library_unavailable`, …).
+ * transaction: nothing is saved unless all of it is. Fires `Plan Saved` with
+ * where it came from (`builder` or `arnold`) and `Plan Activated` once it
+ * has, shows the new Plan from the answer and reads the Plan lists again.
+ * Answers the new Plan; rejects with an `ApiError` (`unknown_exercises`,
+ * `library_unavailable`, …).
  */
 export const useCreatePlanMutation = createMutation<
   FullPlan,
-  NewPlan,
+  CreatePlanVariables,
   Error,
   WriteStarter
 >({
-  mutationFn: async (plan: NewPlan): Promise<FullPlan> => {
+  mutationFn: async ({
+    plan,
+    source,
+  }: CreatePlanVariables): Promise<FullPlan> => {
     const { data } = await publicApi().POST("/v1/plans", {
       body: { ...plan, activate: true },
     });
@@ -168,15 +180,16 @@ export const useCreatePlanMutation = createMutation<
     const { id } = data.data;
 
     if (!IS_E2E) {
-      void segmentClient.track("Plan Saved", { plan_id: id });
+      void segmentClient.track("Plan Saved", { plan_id: id, source });
       void segmentClient.track("Plan Activated", { plan_id: id });
     }
 
     return data.data;
   },
-  // On the mutation, not the call: it still runs once the card is gone. The
-  // new Plan has no query yet, so there's no revision to remember.
-  onMutate: (_plan, { client }) => rememberWriteStarter(client, []),
+  // On the mutation, not the call: it still runs once the card or the editor
+  // is gone. The new Plan has no query yet, so there's no revision to
+  // remember.
+  onMutate: (_variables, { client }) => rememberWriteStarter(client, []),
   onSuccess: async (plan, _variables, starter, { client }) => {
     await seedPlan(client, plan, starter);
   },

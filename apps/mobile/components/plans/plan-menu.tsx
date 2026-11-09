@@ -22,7 +22,7 @@ const PlanMenu = () => {
         },
         {
           label: t("home.createPlan"),
-          onPress: () => router.push("/planner"),
+          onPress: () => router.push("/plans/create"),
           systemImage: "plus",
         },
       ]}

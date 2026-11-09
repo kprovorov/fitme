@@ -102,7 +102,8 @@ const ResumeAction = ({ openSession }: { openSession: OpenWorkoutSession }) => {
 const CreatePlanAction = () => {
   const router = useRouter();
   const { t } = useTranslation();
-  const createPlan = useCallback(() => router.push("/planner"), [router]);
+
+  const createPlan = useCallback(() => router.push("/plans/create"), [router]);
 
   return (
     <Button

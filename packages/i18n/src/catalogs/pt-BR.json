@@ -206,6 +206,7 @@
   },
   "planEditor": {
     "title": "Editar plano",
+    "createTitle": "Novo plano",
     "save": "Salvar",
     "details": "Detalhes",
     "name": "Nome",
@@ -218,6 +219,7 @@
     "goal": "Objetivo",
     "experience": "Nível de experiência",
     "place": "Local",
+    "unset": "Não definido",
     "workouts": "Treinos",
     "workoutsHint": "Na ordem de rotação: o primeiro é o próximo.",
     "noWorkouts": "Um plano precisa de pelo menos um treino.",
@@ -268,13 +270,25 @@
       "descriptionTooLong": "A descrição deve ter no máximo {{max, number(useGrouping: false)}} caracteres",
       "frequencyRange": "Os treinos por semana devem ser um número inteiro de {{min, number(useGrouping: false)}} a {{max, number(useGrouping: false)}}",
       "durationRange": "A duração do treino deve ser um número inteiro de minutos, no máximo {{max, number(useGrouping: false)}}",
-      "choiceRequired": "Escolha uma opção",
       "saveFailed": "Não foi possível salvar seu plano. Verifique sua conexão e tente novamente.",
       "saveRateLimited": "Não foi possível salvar seu plano. Muitas solicitações: tente novamente em {{seconds, number}} s.",
       "unknownExercises": "Este plano contém exercícios desconhecidos e não pode ser salvo. Substitua-os e tente novamente.",
       "libraryUnavailable": "Não foi possível verificar os exercícios deste plano. Tente novamente.",
       "unitsChanged": "Suas unidades de peso mudaram em outro dispositivo, então estas metas estão na unidade antiga. Feche o editor e abra novamente."
     }
+  },
+  "planBuilder": {
+    "title": "Criar plano",
+    "question": "Como você quer criar este plano?",
+    "byHand": "Criar você mesmo",
+    "byHandHint": "Escolha seus treinos, exercícios e séries.",
+    "askArnold": "Pedir ao Arnold",
+    "askArnoldHint": "A IA do Fitme monta um plano para os seus objetivos.",
+    "pro": "Pro",
+    "detailsTitle": "Novo plano",
+    "detailsHint": "Só um nome e com que frequência você treina. O resto você muda depois.",
+    "continue": "Continuar",
+    "back": "Voltar"
   },
   "plannedWorkout": {
     "stats": {

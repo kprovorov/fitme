@@ -178,6 +178,7 @@
   },
   "planEditor": {
     "title": "プランを編集",
+    "createTitle": "新しいプラン",
     "save": "保存",
     "details": "詳細",
     "name": "名前",
@@ -190,6 +191,7 @@
     "goal": "目標",
     "experience": "経験レベル",
     "place": "場所",
+    "unset": "未設定",
     "workouts": "ワークアウト",
     "workoutsHint": "順番に繰り返します。先頭が次のワークアウトです。",
     "noWorkouts": "プランには1つ以上のワークアウトが必要です。",
@@ -240,13 +242,25 @@
       "descriptionTooLong": "説明は{{max, number(useGrouping: false)}}文字以内で入力してください",
       "frequencyRange": "週のワークアウト回数は{{min, number(useGrouping: false)}}〜{{max, number(useGrouping: false)}}の整数で入力してください",
       "durationRange": "ワークアウト時間は{{max, number(useGrouping: false)}}分以下の整数で入力してください",
-      "choiceRequired": "1つ選んでください",
       "saveFailed": "プランを保存できませんでした。接続を確認して、もう一度お試しください。",
       "saveRateLimited": "プランを保存できませんでした。リクエストが多すぎます。{{seconds, number}}秒後にお試しください。",
       "unknownExercises": "未登録の種目があるため、このプランは保存できません。種目を変更して、もう一度お試しください。",
       "libraryUnavailable": "プランの種目を確認できませんでした。もう一度お試しください。",
       "unitsChanged": "別の端末で重量の単位が変更されたため、ここにある目標値は以前の単位のままです。編集画面を閉じて、開き直してください。"
     }
+  },
+  "planBuilder": {
+    "title": "プランを作成",
+    "question": "このプランをどう作りますか？",
+    "byHand": "自分で作る",
+    "byHandHint": "ワークアウト、エクササイズ、セットを自分で選びます。",
+    "askArnold": "Arnold に相談",
+    "askArnoldHint": "Fitme の AI が目標に合わせてプランを作ります。",
+    "pro": "Pro",
+    "detailsTitle": "新しいプラン",
+    "detailsHint": "名前と週の回数だけ。ほかは後から変更できます。",
+    "continue": "次へ",
+    "back": "戻る"
   },
   "plannedWorkout": {
     "stats": {

@@ -13,8 +13,10 @@ import { describe, expect, it } from "@jest/globals";
 
 import type { FullPlan } from "~/hooks/queries/plans";
 import {
+  createPlanBody,
   isSavablePlanDraft,
   moveDraftWorkout,
+  newPlanDraft,
   planDraftChanged,
   planDraftFrom,
   removeDraftWorkout,
@@ -190,6 +192,26 @@ describe("savePlanBody", () => {
     });
   });
 
+  it("leaves out a detail the User cleared, which clears it (ADR 0017)", () => {
+    const draft = {
+      ...planDraftFrom(plan()),
+      experienceLevel: null,
+      goal: null,
+      place: null,
+      workoutDuration: null,
+    };
+
+    if (!isSavablePlanDraft(draft)) {
+      throw new Error("the draft should be savable");
+    }
+
+    const body = savePlanBody(draft);
+    expect("goal" in body).toBe(false);
+    expect("place" in body).toBe(false);
+    expect("experience_level" in body).toBe(false);
+    expect("workout_duration" in body).toBe(false);
+  });
+
   it("trims the name and leaves out a description it has none of", () => {
     const draft = {
       ...planDraftFrom(plan()),
@@ -263,14 +285,146 @@ describe("isSavablePlanDraft", () => {
     ).toBe(false);
   });
 
-  it("refuses a detail the Plan hasn't got, since the save can't clear one yet", () => {
-    expect(isSavablePlanDraft({ ...draft(), goal: null })).toBe(false);
-    expect(isSavablePlanDraft({ ...draft(), place: null })).toBe(false);
-    expect(isSavablePlanDraft({ ...draft(), experienceLevel: null })).toBe(
-      false
+  it("allows a Plan with none of the four optional details (ADR 0017)", () => {
+    expect(
+      isSavablePlanDraft({
+        ...draft(),
+        experienceLevel: null,
+        goal: null,
+        place: null,
+        workoutDuration: null,
+      })
+    ).toBe(true);
+  });
+});
+
+describe("newPlanDraft", () => {
+  const nameFor = (letter: string) => `Workout ${letter}`;
+
+  it("starts on one empty lettered Workout per weekly session", () => {
+    const draft = newPlanDraft({
+      frequency: 3,
+      name: "Full body",
+      nameFor,
+      weightUnit: "lbs",
+    });
+
+    expect(draft.name).toBe("Full body");
+    expect(draft.frequency).toBe(3);
+    expect(draft.weightUnit).toBe("lbs");
+    expect(draft.workouts.map((workout) => workout.name)).toEqual([
+      "Workout A",
+      "Workout B",
+      "Workout C",
+    ]);
+    expect(
+      draft.workouts.every((workout) => workout.exercises.length === 0)
+    ).toBe(true);
+    // No row has an id yet, and no detail is set (ADR 0017).
+    expect(draft.workouts.every((workout) => workout.id === undefined)).toBe(
+      true
     );
-    expect(isSavablePlanDraft({ ...draft(), workoutDuration: null })).toBe(
-      false
+    expect(draft.goal).toBeNull();
+    expect(draft.place).toBeNull();
+    expect(draft.experienceLevel).toBeNull();
+    expect(draft.workoutDuration).toBeNull();
+    expect(draft.note).toBeNull();
+  });
+
+  it("can't be saved until every Workout has an Exercise", () => {
+    const draft = newPlanDraft({
+      frequency: 2,
+      name: "Full body",
+      nameFor,
+      weightUnit: "kg",
+    });
+
+    expect(isSavablePlanDraft(draft)).toBe(false);
+  });
+});
+
+describe("createPlanBody", () => {
+  const started = (frequency: number | null) =>
+    newPlanDraft({
+      frequency,
+      name: "  Full body  ",
+      nameFor: (letter) => `Workout ${letter}`,
+      weightUnit: "kg",
+    });
+
+  /** That draft with one Exercise in every Workout, so it can be saved. */
+  const filled = (frequency: number) => {
+    const draft = started(frequency);
+
+    return {
+      ...draft,
+      workouts: draft.workouts.map((workout) => ({
+        ...workout,
+        exercises: [
+          {
+            exerciseSlug: "barbell-back-squat",
+            key: `${workout.key}-e`,
+            sets: [{ key: `${workout.key}-s`, reps: 10, rest: 90, weight: 0 }],
+          },
+        ],
+      })),
+    };
+  };
+
+  it("sends only the details the User set, and no id", () => {
+    const draft = filled(1);
+
+    if (!isSavablePlanDraft(draft)) {
+      throw new Error("the filled draft should be savable");
+    }
+
+    expect(createPlanBody(draft)).toEqual({
+      // The create's schema requires both descriptions, so an empty one is
+      // sent as "" rather than left out.
+      description: "",
+      frequency: 1,
+      name: "Full body",
+      workouts: [
+        {
+          description: "",
+          exercises: [
+            {
+              exercise_slug: "barbell-back-squat",
+              sets: [
+                {
+                  reps_recommended: 10,
+                  rest_recommended: 90,
+                  weight_recommended: 0,
+                },
+              ],
+            },
+          ],
+          name: "Workout A",
+        },
+      ],
+    });
+  });
+
+  it("sends the details the User did set", () => {
+    const draft = {
+      ...filled(1),
+      experienceLevel: "beginner" as const,
+      goal: "fat-loss" as const,
+      place: "home" as const,
+      workoutDuration: 45,
+    };
+
+    if (!isSavablePlanDraft(draft)) {
+      throw new Error("the filled draft should be savable");
+    }
+
+    expect(createPlanBody(draft)).toEqual(
+      expect.objectContaining({
+        experience_level: "beginner",
+        goal: "fat-loss",
+        place: "home",
+        workout_duration: 45,
+      })
     );
   });
 });

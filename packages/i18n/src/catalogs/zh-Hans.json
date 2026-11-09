@@ -178,6 +178,7 @@
   },
   "planEditor": {
     "title": "编辑计划",
+    "createTitle": "新建计划",
     "save": "保存",
     "details": "详情",
     "name": "名称",
@@ -190,6 +191,7 @@
     "goal": "目标",
     "experience": "经验水平",
     "place": "地点",
+    "unset": "未设置",
     "workouts": "训练",
     "workoutsHint": "按轮换顺序排列：第一项就是下次训练。",
     "noWorkouts": "计划中至少需要一项训练。",
@@ -240,13 +242,25 @@
       "descriptionTooLong": "描述不能超过{{max, number(useGrouping: false)}}个字符",
       "frequencyRange": "每周训练次数必须是{{min, number(useGrouping: false)}}至{{max, number(useGrouping: false)}}之间的整数",
       "durationRange": "训练分钟数必须是整数，且不超过{{max, number(useGrouping: false)}}",
-      "choiceRequired": "请选择一项",
       "saveFailed": "无法保存你的计划。请检查网络连接后重试。",
       "saveRateLimited": "无法保存你的计划。请求过于频繁，请在{{seconds, number}}秒后重试。",
       "unknownExercises": "此计划包含未知动作，无法保存。请替换后重试。",
       "libraryUnavailable": "无法验证此计划中的动作，请重试。",
       "unitsChanged": "你在另一台设备上更改了重量单位，这些目标仍使用旧单位。请关闭编辑器后重新打开。"
     }
+  },
+  "planBuilder": {
+    "title": "创建计划",
+    "question": "你想怎样创建这个计划？",
+    "byHand": "自己创建",
+    "byHandHint": "自行选择训练、动作和组数。",
+    "askArnold": "询问 Arnold",
+    "askArnoldHint": "Fitme 的 AI 会围绕你的目标制定计划。",
+    "pro": "Pro",
+    "detailsTitle": "新建计划",
+    "detailsHint": "只需名称和每周训练次数，其余稍后都能修改。",
+    "continue": "继续",
+    "back": "返回"
   },
   "plannedWorkout": {
     "stats": {

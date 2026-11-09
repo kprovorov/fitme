@@ -24,19 +24,25 @@ import {
   usePlanDraft,
   usePlanDraftOpening,
 } from "~/hooks/plan-draft";
-import { usePlanQuery } from "~/hooks/queries/plans";
+import { useCreatePlanMutation, usePlanQuery } from "~/hooks/queries/plans";
+import { useProfileQuery } from "~/hooks/queries/profiles";
 import {
   addDraftWorkout,
   adoptSavedIds,
   canAddDraftWorkout,
+  createPlanBody,
   isSavablePlanDraft,
+  newPlanDraft,
+  NEW_PLAN_ID,
   nextWorkoutName,
   planDraftChanged,
   planDraftFrom,
   planUnitsChanged,
   savePlanBody,
+  wholePlanNumber,
 } from "~/lib/plan-draft";
 import type { PlanDraft } from "~/lib/plan-draft";
+import { weightUnitOf } from "~/lib/profile";
 
 /**
  * What a failed save shows, in the App language: a Plan that's gone says so
@@ -68,10 +74,17 @@ const saveFailureMessage = (t: TFunction, error: ApiError | null) => {
 };
 
 /**
- * The Plan editor: it opens on a draft of the Plan in full, ids included
+ * The Plan editor. Editing opens on a draft of the Plan in full, ids included
  * (ADR 0016), and Save sends the whole draft back through
  * `PUT /v1/plans/{id}`, including every field it doesn't show (the note, the
  * Workouts' descriptions, their Exercises and sets) as it was loaded.
+ *
+ * Opened under `NEW_PLAN_ID` it is building a Plan instead (the create
+ * sheet's name and frequency as its params): nothing is read, the draft
+ * starts as that many empty lettered Workouts, and Save creates the Plan
+ * through `POST /v1/plans`, which makes it the active one, then lands on it.
+ * Its goal, place, experience level and Workout duration are optional
+ * throughout, and each can be cleared back to unset (ADR 0017).
  *
  * Its Workouts open the Workout editor, pushed over it inside the same
  * modal and working on the same draft; given a `workoutId`, it opens that
@@ -80,16 +93,22 @@ const saveFailureMessage = (t: TFunction, error: ApiError | null) => {
  * Save and Cancel are the native header's items; Save is disabled while the
  * draft can't be saved. Leaving with unsaved changes — Cancel or a swipe —
  * asks first, and the draft is thrown away with the Screen. A failed save
- * keeps it, with what went wrong above the form, and a save the User typed
+ * keeps it, with what went wrong above the form, and an edit the User typed
  * over while it was in flight keeps the editor open on what they typed.
  */
 // oxlint-disable-next-line react-doctor/no-giant-component -- This component owns the complete plan-draft save and cancellation lifecycle.
 const PlanEditorScreen = () => {
-  const { planId, workoutId } = useLocalSearchParams<{
+  const { frequency, name, planId, workoutId } = useLocalSearchParams<{
+    /** The create sheet's frequency, for a Plan being built. */
+    frequency?: string;
+    /** The create sheet's name, for a Plan being built. */
+    name?: string;
     planId: string;
     /** A Workout to open at once: "Edit Workout" on the Workout screen. */
     workoutId?: string;
   }>();
+
+  const isCreating = planId === NEW_PLAN_ID;
 
   const router = useRouter();
   const navigation = useNavigation();
@@ -102,17 +121,46 @@ const PlanEditorScreen = () => {
   const {
     data: plan,
     error: readError,
-    isError,
-    refetch,
-  } = usePlanQuery({ variables: { id: planId } });
+    isError: isPlanError,
+    refetch: refetchPlan,
+  } = usePlanQuery({ enabled: !isCreating, variables: { id: planId } });
+
+  // A Plan being built has no weights read with it, so the unit its set rows
+  // label and its targets go out in is the User's own.
+  const {
+    data: profile,
+    error: profileError,
+    isError: isProfileError,
+    refetch: refetchProfile,
+  } = useProfileQuery({ enabled: isCreating });
 
   // Seeded once (`startPlanDraft` keeps the first), so a refreshed read
   // never overwrites what the User has typed.
   useEffect(() => {
+    if (isCreating) {
+      // `null` is a User without a Profile, which counts as metric.
+      if (profile === undefined) {
+        return;
+      }
+
+      startPlanDraft(
+        draftKey,
+        newPlanDraft({
+          frequency:
+            frequency === undefined ? null : wholePlanNumber(frequency),
+          name: name ?? "",
+          nameFor: (letter) => t("planEditor.newWorkoutName", { letter }),
+          weightUnit: weightUnitOf(profile),
+        })
+      );
+
+      return;
+    }
+
     if (plan) {
       startPlanDraft(draftKey, planDraftFrom(plan));
     }
-  }, [draftKey, plan]);
+  }, [draftKey, frequency, isCreating, name, plan, profile, t]);
 
   const entry = usePlanDraft(draftKey);
 
@@ -167,7 +215,12 @@ const PlanEditorScreen = () => {
   }, [entry, openWorkout, workoutId]);
 
   const [saveError, setSaveError] = useState<string | null>(null);
-  const { isPending: isSaving, mutate: savePlan } = useSavePlanMutation();
+  const { isPending: isSavingEdit, mutate: savePlan } = useSavePlanMutation();
+
+  const { isPending: isCreatingPlan, mutate: createPlan } =
+    useCreatePlanMutation();
+
+  const isSaving = isSavingEdit || isCreatingPlan;
 
   const hasChanges = entry
     ? planDraftChanged(entry.loaded, entry.draft)
@@ -204,9 +257,20 @@ const PlanEditorScreen = () => {
     if (router.canGoBack()) {
       router.back();
     } else {
-      router.dismissTo(`/plans/${planId}`);
+      // A Plan being built has no Screen of its own to fall back to.
+      router.dismissTo(isCreating ? "/plans" : `/plans/${planId}`);
     }
-  }, [disablePrevention, planId, router]);
+  }, [disablePrevention, isCreating, planId, router]);
+
+  /** Closes the editor and shows the Plan that was just created. */
+  const landOnPlan = useCallback(
+    (id: string) => {
+      setIsLeaving(true);
+      disablePrevention();
+      router.dismissTo(`/plans/${id}`);
+    },
+    [disablePrevention, router]
+  );
 
   const cancel = useCallback(() => {
     if (!hasChanges) {
@@ -241,12 +305,37 @@ const PlanEditorScreen = () => {
   const isSavable =
     draft !== undefined && !staleUnits && isSavablePlanDraft(draft);
 
+  const onSaveFailed = useCallback(
+    (error: unknown) => {
+      setSaveError(
+        saveFailureMessage(t, error instanceof ApiError ? error : null)
+      );
+    },
+    [t]
+  );
+
   const save = useCallback(() => {
     if (!(draft && !staleUnits && isSavablePlanDraft(draft))) {
       return;
     }
 
     setSaveError(null);
+
+    if (isCreating) {
+      // A create can only be saved once: the editor still knows no Plan id,
+      // so a second Save would create a second Plan. It closes on the
+      // answer either way and lands on the Plan it just made.
+      createPlan(
+        { plan: createPlanBody(draft), source: "builder" },
+        {
+          onError: onSaveFailed,
+          onSuccess: (created) => landOnPlan(created.id),
+        }
+      );
+
+      return;
+    }
+
     // The draft as it was sent. Only Save is disabled while the call is in
     // flight, so the User can keep editing; what they typed meanwhile is
     // theirs to keep, and the editor stays open with it.
@@ -254,11 +343,7 @@ const PlanEditorScreen = () => {
     savePlan(
       { body: savePlanBody(sent), id: planId },
       {
-        onError: (error) => {
-          setSaveError(
-            saveFailureMessage(t, error instanceof ApiError ? error : null)
-          );
-        },
+        onError: onSaveFailed,
         onSuccess: (saved) => {
           const current = getPlanDraft(draftKey)?.draft;
           // Closing while the Workout editor or the picker sits over this
@@ -283,11 +368,23 @@ const PlanEditorScreen = () => {
         },
       }
     );
-  }, [close, draft, draftKey, navigation, planId, savePlan, staleUnits, t]);
+  }, [
+    close,
+    createPlan,
+    draft,
+    draftKey,
+    isCreating,
+    landOnPlan,
+    navigation,
+    onSaveFailed,
+    planId,
+    savePlan,
+    staleUnits,
+  ]);
 
   const retry = useCallback(() => {
-    void refetch();
-  }, [refetch]);
+    void (isCreating ? refetchProfile() : refetchPlan());
+  }, [isCreating, refetchProfile, refetchPlan]);
 
   const headerItems = () => [
     {
@@ -311,7 +408,7 @@ const PlanEditorScreen = () => {
     <Stack.Screen
       options={{
         headerShown: true,
-        title: t("planEditor.title"),
+        title: isCreating ? t("planEditor.createTitle") : t("planEditor.title"),
         unstable_headerLeftItems: cancelItems,
         unstable_headerRightItems: draft ? headerItems : undefined,
       }}
@@ -344,12 +441,15 @@ const PlanEditorScreen = () => {
     );
   }
 
+  const isGone = !isCreating && plan === null;
+  const isReadError = isCreating ? isProfileError : isPlanError;
+
   const message = () => {
-    if (plan === null) {
+    if (isGone) {
       return t("plans.errors.notFound");
     }
 
-    const seconds = rateLimitedFor(readError);
+    const seconds = rateLimitedFor(isCreating ? profileError : readError);
 
     return seconds === null
       ? t("plans.loadError")
@@ -363,15 +463,15 @@ const PlanEditorScreen = () => {
         className="p-md flex-1"
         contentInsetAdjustmentBehavior="automatic"
       >
-        {plan === null || isError ? (
+        {isGone || isReadError ? (
           <View className="gap-sm pt-lg items-center">
             <Text className="text-center" variant="muted">
               {message()}
             </Text>
             <Button
               fill={false}
-              label={plan === null ? t("plans.goBack") : t("common.tryAgain")}
-              onPress={plan === null ? close : retry}
+              label={isGone ? t("plans.goBack") : t("common.tryAgain")}
+              onPress={isGone ? close : retry}
               size="lg"
               variant="secondary"
             />
