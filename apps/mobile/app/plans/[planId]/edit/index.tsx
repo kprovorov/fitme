@@ -260,9 +260,17 @@ const PlanEditorScreen = () => {
   // Set before leaving, so the unsaved-changes guard lets the Screen go.
   const [isLeaving, setIsLeaving] = useState(false);
 
+  // A create that is already on its way can't be called back, so the Screen
+  // holds whichever way the User leaves — the swipe and the back gesture as
+  // well as Cancel, which is disabled. Leaving would make the Plan, and make
+  // it active, with nothing on screen to say so.
   const disablePrevention = usePreventRemove(
-    hasChanges && !isLeaving,
+    !isLeaving && (isCreatingPlan || hasChanges),
     ({ repeat }) => {
+      if (isCreatingPlan) {
+        return;
+      }
+
       Alert.alert(
         t("planEditor.discard.title"),
         t("planEditor.discard.message"),

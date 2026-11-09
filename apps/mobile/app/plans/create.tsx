@@ -19,7 +19,7 @@ import { Text } from "~/components/ui/text";
 import { H4 } from "~/components/ui/typography";
 import { VStack } from "~/components/ui/vstack";
 import { useIsProQuery } from "~/hooks/revenueCat";
-import { NEW_PLAN_ID, wholePlanNumber } from "~/lib/plan-draft";
+import { isPlanNumberIn, NEW_PLAN_ID, wholePlanNumber } from "~/lib/plan-draft";
 
 /** How often a new Plan trains a week until the User says otherwise. */
 const DEFAULT_FREQUENCY = 3;
@@ -113,22 +113,22 @@ const CreatePlanScreen = () => {
     });
   }
 
-  const frequencyError =
-    frequency === null || frequency < MIN_FREQUENCY || frequency > MAX_FREQUENCY
-      ? t("planEditor.errors.frequencyRange", {
-          max: MAX_FREQUENCY,
-          min: MIN_FREQUENCY,
-        })
-      : undefined;
+  const frequencyError = isPlanNumberIn(frequency, MIN_FREQUENCY, MAX_FREQUENCY)
+    ? undefined
+    : t("planEditor.errors.frequencyRange", {
+        max: MAX_FREQUENCY,
+        min: MIN_FREQUENCY,
+      });
 
   const canContinue =
     trimmedName !== "" &&
     nameError === undefined &&
-    frequency !== null &&
     frequencyError === undefined;
 
   const start = useCallback(() => {
-    if (!(canContinue && frequency !== null)) {
+    if (
+      !(canContinue && isPlanNumberIn(frequency, MIN_FREQUENCY, MAX_FREQUENCY))
+    ) {
       return;
     }
 

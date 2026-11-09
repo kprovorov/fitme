@@ -336,6 +336,23 @@ describe("saving", () => {
     expect(savedPlan().workout_duration).toBeNull();
   });
 
+  it("refuses a duration that isn't a whole number, rather than clearing it", async () => {
+    await openEditor();
+
+    await type("plan-duration", "45.5");
+
+    expect(screen.getByLabelText("Save")).toBeDisabled();
+    expect(
+      screen.getByText(
+        "Workout duration must be a whole number of minutes, at most 600"
+      )
+    ).toBeTruthy();
+    await save();
+
+    // Nothing is written, so the Plan keeps the duration it had.
+    expect(fakePublicApi.count(SAVE)).toBe(0);
+  });
+
   it("saves a reordered rotation, every Workout keeping its id", async () => {
     await openEditor();
 

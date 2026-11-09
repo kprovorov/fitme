@@ -55,6 +55,9 @@ import {
 
 const mockParams: { current: Record<string, string> } = { current: {} };
 
+/** Whether the editor is holding the Screen against a swipe or the back gesture. */
+const preventsRemove = { current: false };
+
 /** Whether the signed-in User has Fitme Pro, as RevenueCat answers it. */
 const mockIsPro = { current: false };
 
@@ -71,9 +74,15 @@ jest.mock("expo-router", () => {
     Stack: { Screen: stub.StackScreenStub },
     useLocalSearchParams: () => stub.useStubParams(mockParams.current),
     useNavigation: () => ({ isFocused: () => true }),
-    // The guard blocks the swipe away, which Jest can't make; Cancel asks
-    // through `Alert` either way.
-    usePreventRemove: () => () => {},
+    // The guard blocks the swipe away, which Jest can't make, so the test
+    // reads the flag it is given; Cancel asks through `Alert` either way.
+    usePreventRemove: (shouldPrevent: boolean) => {
+      preventsRemove.current = shouldPrevent;
+
+      return () => {
+        preventsRemove.current = false;
+      };
+    },
     useRouter: () => ({ ...stub.stubRouter, canGoBack: () => true }),
   };
 });
@@ -480,7 +489,7 @@ describe("saving a Plan built by hand", () => {
     expect(savedPlan().name).toBe("Full body");
   });
 
-  it("keeps Cancel off while the create is on its way", async () => {
+  it("holds the Screen while the create is on its way", async () => {
     await openChoice();
     await buildByHand({ frequency: "1" });
     await addExerciseTo("Workout A", "Barbell back squat");
@@ -490,10 +499,11 @@ describe("saving a Plan built by hand", () => {
     await until(() => fakePublicApi.count(CREATE) === 1);
 
     // Leaving now would make the Plan, and make it active, with nothing on
-    // screen to say so.
+    // screen to say so: Cancel is off, and so is every other way out.
     await waitFor(() => {
       expect(screen.getByLabelText("Cancel")).toBeDisabled();
     });
+    expect(preventsRemove.current).toBe(true);
 
     resume();
     await settle(client);
@@ -515,6 +525,25 @@ describe("saving a Plan built by hand", () => {
     expect(
       screen.getByText(
         "Your weight units changed on another device, so these targets are in the old one. Close the editor and open it again."
+      )
+    ).toBeTruthy();
+    expect(screen.getByLabelText("Save")).toBeDisabled();
+
+    await press("Save");
+    expect(fakePublicApi.count(CREATE)).toBe(0);
+  });
+
+  it("refuses a duration that isn't a whole number, rather than clearing it", async () => {
+    await openChoice();
+    await buildByHand({ frequency: "1" });
+    await addExerciseTo("Workout A", "Barbell back squat");
+
+    await fireEvent.changeText(editor().getByTestId("plan-duration"), "45.5");
+    await settle(client);
+
+    expect(
+      screen.getByText(
+        "Workout duration must be a whole number of minutes, at most 600"
       )
     ).toBeTruthy();
     expect(screen.getByLabelText("Save")).toBeDisabled();

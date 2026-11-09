@@ -35,6 +35,7 @@ import {
   canAddDraftWorkout,
   isSavableWorkout,
   moveDraftWorkout,
+  isPlanNumberIn,
   removeDraftWorkout,
   wholePlanNumber,
 } from "~/lib/plan-draft";
@@ -52,7 +53,7 @@ interface PlanEditorViewProps {
 }
 
 const isOutside = (value: number | null, min: number, max: number) =>
-  value === null || value < min || value > max;
+  !isPlanNumberIn(value, min, max);
 
 /**
  * What a cleared choice is while the `Picker` holds it: it has no value for
@@ -388,6 +389,8 @@ const PlanEditorView = ({
         <NumberField
           error={
             // Optional (ADR 0017): an empty field is unset, not an error.
+            // Text that isn't a whole number is `NaN`, never `null`, so it
+            // is an error rather than a Plan whose duration was cleared.
             draft.workoutDuration !== null &&
             isOutside(draft.workoutDuration, 1, MAX_WORKOUT_DURATION_MINUTES)
               ? t("planEditor.errors.durationRange", {

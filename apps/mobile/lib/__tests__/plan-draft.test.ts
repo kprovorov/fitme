@@ -15,6 +15,7 @@ import type { FullPlan } from "~/hooks/queries/plans";
 import {
   createPlanBody,
   isSavablePlanDraft,
+  wholePlanNumber,
   moveDraftWorkout,
   newPlanDraft,
   planDraftChanged,
@@ -285,6 +286,12 @@ describe("isSavablePlanDraft", () => {
     ).toBe(false);
   });
 
+  it("refuses a duration that isn't a whole number, which is not the same as unset", () => {
+    expect(
+      isSavablePlanDraft({ ...draft(), workoutDuration: Number.NaN })
+    ).toBe(false);
+  });
+
   it("allows a Plan with none of the four optional details (ADR 0017)", () => {
     expect(
       isSavablePlanDraft({
@@ -295,6 +302,19 @@ describe("isSavablePlanDraft", () => {
         workoutDuration: null,
       })
     ).toBe(true);
+  });
+});
+
+describe("wholePlanNumber", () => {
+  it("reads an empty field as unset and anything else as not a number", () => {
+    // An optional field reads `null` as cleared (ADR 0017), so text that
+    // isn't a whole number must never answer `null`.
+    expect(wholePlanNumber("")).toBeNull();
+    expect(wholePlanNumber("   ")).toBeNull();
+    expect(wholePlanNumber("45")).toBe(45);
+    expect(wholePlanNumber("45.5")).toBeNaN();
+    expect(wholePlanNumber("-3")).toBeNaN();
+    expect(wholePlanNumber("abc")).toBeNaN();
   });
 });
 

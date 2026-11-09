@@ -172,20 +172,26 @@ const NEW_SET = { reps: 10, rest: 90, weight: 0 } as const;
 const DIGITS = /^\d+$/u;
 
 /**
- * The whole number `text` holds, or `null` when it holds none: what the
- * editor's and the create sheet's number fields write into a draft, so a
- * half-typed or out-of-bounds value is kept as "nothing" rather than guessed.
+ * What the editor's and the create sheet's number fields write into a draft:
+ * the whole number `text` holds, `null` when the field is empty — which an
+ * optional field reads as unset (ADR 0017) — and `Number.NaN` for anything
+ * else, so a field holding `45.5` is never mistaken for a cleared one.
+ * `isPlanNumberIn` is what every reader holds the value to.
  */
 export const wholePlanNumber = (text: string): number | null => {
   const trimmed = text.trim();
 
-  if (!DIGITS.test(trimmed)) {
+  if (trimmed === "") {
     return null;
+  }
+
+  if (!DIGITS.test(trimmed)) {
+    return Number.NaN;
   }
 
   const value = Number(trimmed);
 
-  return Number.isSafeInteger(value) ? value : null;
+  return Number.isSafeInteger(value) ? value : Number.NaN;
 };
 
 let keys = 0;
@@ -255,7 +261,12 @@ export const planDraftFrom = (plan: FullPlan): PlanDraft => ({
 export const planUnitsChanged = (draft: PlanDraft, plan: FullPlan) =>
   draft.weightUnit !== plan.weight_unit;
 
-const isWholeNumberIn = (
+/**
+ * Whether the value a number field wrote is a whole number within those
+ * bounds: `null` (an empty field) and `Number.NaN` (text that isn't a whole
+ * number) are both outside. Every reader of such a field goes through it.
+ */
+export const isPlanNumberIn = (
   value: number | null,
   min: number,
   max: number
@@ -291,7 +302,7 @@ export const isSavableTarget = (
 
   const { max, min } = SET_TARGET_BOUNDS[target];
 
-  return isWholeNumberIn(value, min, max);
+  return isPlanNumberIn(value, min, max);
 };
 
 /** Whether a set's three targets are all in the write's bounds. */
@@ -330,9 +341,9 @@ export const isSavablePlanDraft = (
 ): draft is SavablePlanDraft =>
   isSavableName(draft.name) &&
   draft.description.length <= MAX_PLAN_TEXT_LENGTH &&
-  isWholeNumberIn(draft.frequency, MIN_FREQUENCY, MAX_FREQUENCY) &&
+  isPlanNumberIn(draft.frequency, MIN_FREQUENCY, MAX_FREQUENCY) &&
   (draft.workoutDuration === null ||
-    isWholeNumberIn(draft.workoutDuration, 1, MAX_WORKOUT_DURATION_MINUTES)) &&
+    isPlanNumberIn(draft.workoutDuration, 1, MAX_WORKOUT_DURATION_MINUTES)) &&
   draft.workouts.length >= 1 &&
   draft.workouts.every(isSavableWorkout);
 
@@ -653,10 +664,9 @@ export const newPlanDraft = ({
     workouts: [],
   };
 
-  const count =
-    frequency === null
-      ? 0
-      : Math.min(Math.max(frequency, 0), MAX_WORKOUTS_PER_PLAN);
+  const count = isPlanNumberIn(frequency, 0, Number.MAX_SAFE_INTEGER)
+    ? Math.min(frequency, MAX_WORKOUTS_PER_PLAN)
+    : 0;
 
   for (let at = 0; at < count; at += 1) {
     ({ draft } = addDraftWorkout(
