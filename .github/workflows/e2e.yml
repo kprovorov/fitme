@@ -61,46 +61,27 @@ jobs:
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
 
-      # The repo is public, so its logs are too: mask the anon key and the
-      # Postgres URL (it carries the password) before anything can print them.
-      # A step output isn't masked by itself, and a masked value stays masked
-      # in every later step that reads the output. The session-pooler variant
-      # db push uses (5432 instead of 6543) and the password alone are masked
-      # as well.
+      # The repo is public, so its logs are too: mask the Postgres URL (it
+      # carries the password) before anything can print it. A step output isn't
+      # masked by itself, and a masked value stays masked in every later step
+      # that reads the output. The session-pooler variant db push uses (5432
+      # instead of 6543) and the password alone are masked as well. The
+      # branch's anon key and Data API URL are not read: the Data API is off
+      # (ADR 0019) and the Public API is the only door to the branch's data.
       - name: Get branch credentials
         id: branch-details
         run: |
           CREDS=$(pnpm exec supabase branches get "${{ steps.branch-status.outputs.branch_id }}" --remote=${{ vars.SUPABASE_PROJECT_REF }} --output json)
-          ANON_KEY=$(jq -r '.SUPABASE_ANON_KEY' <<< "$CREDS")
           POSTGRES_URL=$(jq -r '.POSTGRES_URL' <<< "$CREDS")
-          for VALUE in "$ANON_KEY" "$POSTGRES_URL"; do
-            if [ -z "$VALUE" ] || [ "$VALUE" = null ]; then
-              echo "::error::supabase branches get returned no anon key or Postgres URL" && exit 1
-            fi
-          done
-          echo "::add-mask::$ANON_KEY"
+          if [ -z "$POSTGRES_URL" ] || [ "$POSTGRES_URL" = null ]; then
+            echo "::error::supabase branches get returned no Postgres URL" && exit 1
+          fi
           echo "::add-mask::$POSTGRES_URL"
           echo "::add-mask::${POSTGRES_URL/:6543\//:5432/}"
           DB_PASSWORD=${POSTGRES_URL#*://*:}
           DB_PASSWORD=${DB_PASSWORD%%@*}
           echo "::add-mask::$DB_PASSWORD"
-          echo "api_url=$(jq -r '.SUPABASE_URL' <<< "$CREDS")" >> "$GITHUB_OUTPUT"
-          echo "anon_key=$ANON_KEY" >> "$GITHUB_OUTPUT"
           echo "postgres_url=$POSTGRES_URL" >> "$GITHUB_OUTPUT"
-        env:
-          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
-
-      # A CLI-created branch clones production's auth config, which trusts only
-      # the production Clerk instance. Add the development instance (the
-      # domain in config.toml's [auth.third_party.clerk]) so the E2E build's
-      # development session tokens are accepted.
-      - name: Trust Clerk development instance on branch
-        run: |
-          curl --fail-with-body -sS -X POST \
-            "https://api.supabase.com/v1/projects/${{ steps.branch-status.outputs.branch_project_ref }}/config/auth/third-party-auth" \
-            -H "Authorization: Bearer $SUPABASE_ACCESS_TOKEN" \
-            -H "Content-Type: application/json" \
-            -d '{"oidc_issuer_url":"https://fitting-rattler-3649.clerk.accounts.dev"}'
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
 
@@ -177,19 +158,17 @@ jobs:
           FITME_DATABASE_URL: ${{ steps.fitme.outputs.database_url }}
 
       # A session token of a throwaway +clerk_test User is accepted by the
-      # branch's Data API and by the Public API, which reads the branch's data
-      # as that User (GET /v1/profile).
-      - name: Check Clerk session tokens on branch and API
+      # Public API, which reads the branch's data as that User
+      # (GET /v1/profile), so the flows below run against a door that works.
+      - name: Check Clerk session tokens on the API
         env:
           CLERK_SECRET_KEY: ${{ secrets.CLERK_DEV_SECRET_KEY }}
-          SUPABASE_URL: ${{ steps.branch-details.outputs.api_url }}
-          SUPABASE_ANON_KEY: ${{ steps.branch-details.outputs.anon_key }}
           API_URL: http://localhost:3003
         run: |
           if [ -z "$CLERK_SECRET_KEY" ]; then
             echo "::error::CLERK_DEV_SECRET_KEY is not set" && exit 1
           fi
-          pnpm --filter @fitme/supabase clerk:check
+          pnpm --filter @fitme/api clerk:check
 
       # Pinned: the installer takes the latest release otherwise, and 2.12.0's
       # iOS driver timed out starting on this runner where 2.11.0's started.

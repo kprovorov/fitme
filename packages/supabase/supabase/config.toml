@@ -4,23 +4,15 @@
 # working directory name when running `supabase init`.
 project_id = "fitme"
 
+# The Data API is off (ADR 0019, FIT-551): no app reads or writes User data
+# through PostgREST, so local stacks match the hosted project, which has it
+# switched off too (FIT-552). Off takes the GraphQL endpoint (graphql_public)
+# with it, and `supabase status` reports no REST URL. Backend apps reach
+# Postgres through the Supavisor pooler with the fitme login (ADR 0003), and
+# clients reach their data through the Public API (apps/api, ADR 0011).
+# Storage is unaffected: it serves the Exercise media bucket on its own.
 [api]
-enabled = true
-# Schemas to expose in your API. Tables, views and stored procedures in this schema will get API
-# endpoints. `public` and `graphql_public` schemas are included by default.
-schemas = ["public", "graphql_public"]
-# Extra schemas to add to the search_path of every request.
-extra_search_path = ["public", "extensions"]
-# The maximum number of rows returns from a view, table, or stored procedure. Limits payload size
-# for accidental or malicious requests.
-max_rows = 1000
-
-[api.tls]
-# Enable HTTPS endpoints locally using a self-signed certificate.
 enabled = false
-# Paths to self-signed certificate pair.
-# cert_path = "../certs/my-cert.pem"
-# key_path = "../certs/my-key.pem"
 
 [db]
 # The database major version to use. This has to be the same as your remote database's. Run `SHOW
@@ -75,12 +67,13 @@ enabled = true
 # The maximum length in bytes of HTTP request headers. (default: 4096)
 # max_header_length = 4096
 
+# Studio is off because the Data API is: the CLI refuses to start it without
+# the REST capability ("Studio cannot be started without the REST API
+# capability"), since its table editor reads rows through PostgREST. Inspect a
+# local database with psql on the stack's `database.sql` endpoint
+# (`supabase status --output-format json`) or `supabase db` commands instead.
 [studio]
-enabled = true
-# External URL of the API server that frontend connects to.
-api_url = "http://127.0.0.1"
-# OpenAI API Key to use for Supabase AI in the Supabase Studio.
-openai_api_key = "env(OPENAI_API_KEY)"
+enabled = false
 
 # Email testing server. Off: only Supabase Auth sends email, and Fitme doesn't
 # use it (Clerk sends its own).
@@ -129,9 +122,11 @@ max_indexes = 5
 # [storage.vector.buckets.documents-openai]
 
 # Fitme has no Supabase Auth users or sign-in (ADR 0001): Clerk is the only
-# identity provider, trusted through [auth.third_party.clerk] below. Auth stays
-# enabled because the stack's signing keys and the third-party trust hang off
-# it; every sign-up is off, so nothing can create a Supabase Auth session.
+# identity provider, and since the Data API is off nothing verifies a Clerk
+# token against Postgres any more, so there is no [auth.third_party.clerk]
+# block (ADR 0019). Auth stays enabled because the stack's signing keys hang
+# off it and the migrations reference the auth schema; every sign-up is off, so
+# nothing can create a Supabase Auth session.
 [auth]
 enabled = true
 # Path to JWT signing keys. Local stacks only: the stack's own signer, a
@@ -145,15 +140,6 @@ enable_signup = false
 
 [auth.sms]
 enable_signup = false
-
-# Local databases trust the Clerk development instance. The production project
-# trusts the production instance (clerk.fitmeproject.com), configured in the
-# dashboard; no [remotes] block, so this local config is never deployed to it.
-# The E2E workflow adds the development instance to its preview branch.
-# Session tokens carry `role: authenticated` from Clerk's Supabase integration.
-[auth.third_party.clerk]
-enabled = true
-domain = "fitting-rattler-3649.clerk.accounts.dev"
 
 [edge_runtime]
 enabled = true

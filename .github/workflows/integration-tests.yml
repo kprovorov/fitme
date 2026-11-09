@@ -32,8 +32,10 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       # Uses the Supabase CLI pinned in @fitme/supabase's devDependencies.
-      # Only Postgres, PostgREST (API gateway), Auth and the Supavisor pooler
-      # (transaction mode, for packages/db) are needed.
+      # Only Postgres, Auth (for its schema, which old migrations reference)
+      # and the Supavisor pooler (transaction mode, for packages/db) are
+      # needed. The Data API is off in config.toml (ADR 0019), so there is no
+      # PostgREST to start and nothing here reads one.
       #
       # The image registry throttles the shared runner IPs now and then
       # (`toomanyrequests: retry-after: 47µs, allowed: 44000/minute`), failing a
@@ -50,32 +52,9 @@ jobs:
             sleep 30
           done
 
-      - name: Export Supabase credentials
-        working-directory: packages/supabase
-        run: |
-          pnpm exec supabase status --env --output-format text > "$RUNNER_TEMP/supabase.env"
-          set -a && . "$RUNNER_TEMP/supabase.env" && set +a
-          echo "::add-mask::$ANON_KEY"
-          echo "SUPABASE_URL=$API_URL" >> "$GITHUB_ENV"
-          echo "SUPABASE_ANON_KEY=$ANON_KEY" >> "$GITHUB_ENV"
-          echo "DATABASE_URL=$DB_URL" >> "$GITHUB_ENV"
-
       - name: Run database tests (pgTAP)
         working-directory: packages/supabase
         run: pnpm exec supabase test db
-
-      # Proves the local stack trusts Clerk development session tokens
-      # ([auth.third_party.clerk] in config.toml). Needs the development
-      # instance's secret key; skipped with a warning when it is not set.
-      - name: Check Clerk third-party trust
-        env:
-          CLERK_SECRET_KEY: ${{ secrets.CLERK_DEV_SECRET_KEY }}
-        run: |
-          if [ -z "$CLERK_SECRET_KEY" ]; then
-            echo "::warning::CLERK_DEV_SECRET_KEY is not set; skipping the Clerk trust check"
-            exit 0
-          fi
-          pnpm --filter @fitme/supabase clerk:check
 
       # asUser / withService through the local Supavisor pooler as the fitme
       # login; the test config reads the pooler's port from `supabase status`

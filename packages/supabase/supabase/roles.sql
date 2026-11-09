@@ -21,6 +21,9 @@ ALTER ROLE fitme WITH PASSWORD 'fitme-local-only';
 -- explicitly (FIT-95, 20261016120000_explicit_table_grants.sql), so local
 -- stacks and CI drop it: a table whose migration forgets its grants fails here
 -- with "permission denied" instead of only on a stack without the default.
+-- anon is named only for this drop: the Data API is closed, so it holds no
+-- table grant at all (FIT-551, 20261109120000_revoke_anon_table_grants.sql,
+-- which narrows the default for anon on hosted projects too).
 -- Functions and sequences keep their defaults.
 ALTER DEFAULT PRIVILEGES FOR ROLE postgres IN SCHEMA public
   REVOKE ALL ON TABLES FROM anon, authenticated, service_role;
