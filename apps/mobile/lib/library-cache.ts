@@ -118,8 +118,27 @@ const write = <T>(key: string, value: T, savedAt: number) => {
 export const readCachedSummary = (language: AppLanguage, slug: string) =>
   read(summaryStorageKey(language, slug), isSummary);
 
-export const readCachedExercise = (language: AppLanguage, slug: string) =>
-  read(exerciseStorageKey(language, slug), isExercise);
+/**
+ * The Exercise in full kept for `language`, as the Library answered it (so
+ * its Equipment is already in `@fitme/core`'s order). A copy kept by a build
+ * from before the Library had Equipment has no `equipment` at all, and the
+ * schema doesn't ask for one: it reads as needing none, the way the Library
+ * answers content it hasn't tagged, rather than costing that copy its whole
+ * Screen offline.
+ */
+export const readCachedExercise = (
+  language: AppLanguage,
+  slug: string
+): CachedEntry<Exercise> | undefined => {
+  const entry = read(exerciseStorageKey(language, slug), isExercise);
+
+  return (
+    entry && {
+      savedAt: entry.savedAt,
+      value: { ...entry.value, equipment: entry.value.equipment ?? [] },
+    }
+  );
+};
 
 export const writeCachedSummary = (
   language: AppLanguage,
