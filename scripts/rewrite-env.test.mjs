@@ -61,9 +61,9 @@ void describe("parseStackOutput", () => {
 });
 
 void describe("rewriteEnvText", () => {
-  void test("leaves the Data API's URL and key alone", () => {
+  void test("leaves every line that isn't a local pooler URL alone", () => {
     const before =
-      "EXPO_PUBLIC_SUPABASE_URL=http://127.0.0.1:54321\nEXPO_PUBLIC_SUPABASE_ANON_KEY=old\nOTHER=1\n";
+      "EXPO_PUBLIC_API_URL=http://localhost:3003\nEXPO_PUBLIC_LIBRARY_URL=http://localhost:3006\nOTHER=1\n";
 
     assert.equal(rewriteEnvText(before, stack), before);
   });

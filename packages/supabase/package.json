@@ -11,7 +11,6 @@
     "./database.types": "./src/database.types.ts"
   },
   "scripts": {
-    "clerk:check": "tsx scripts/check-clerk-trust.ts",
     "clerk:jwt-key": "tsx scripts/clerk-jwt-key.ts",
     "migrate": "supabase migration up",
     "reset": "supabase db reset",

@@ -1,13 +1,16 @@
 -- Table grants on public (FIT-95, 20261016120000_explicit_table_grants.sql):
 -- the migrations grant them explicitly instead of relying on Supabase's
 -- default privileges, which roles.sql drops on local stacks and CI. Without
--- grants, PostgREST and asUser fail with "permission denied" before RLS runs.
--- The expected grants are the hosted project's as of FIT-95; narrowing them
--- is a production change, made in a migration and here together.
+-- grants, asUser and withService fail with "permission denied" before RLS runs.
+-- Since the Data API is closed (FIT-551, ADR 0019,
+-- 20261109120000_revoke_anon_table_grants.sql) anon holds nothing here, and
+-- authenticated and service_role are the only roles with table access, because
+-- asUser and withService run as those (ADR 0003). Widening any of this is a
+-- production change, made in a migration and here together.
 -- Run with `pnpm db test:db` (supabase test db).
 begin;
 
-select plan(13);
+select plan(10);
 
 -- A new table grants what it needs in its own migration, then gets a line
 -- here (and in the checks below if it doesn't take the app tables' grants).
@@ -46,12 +49,27 @@ select is_empty(
   'anon, authenticated and service_role can use the public schema'
 );
 
+-- The Data API is closed, so anon reaches no table at all. It keeps USAGE
+-- above and EXECUTE on current_user_id() (function_grants.test.sql), which the
+-- policies call; neither lets it read a row without a table grant.
+select is_empty(
+  $$
+    select c.relname, acl.privilege_type
+    from pg_catalog.pg_class c
+    cross join lateral aclexplode(c.relacl) acl
+    where c.relnamespace = 'public'::regnamespace
+      and c.relkind in ('r', 'p', 'v', 'm')
+      and acl.grantee = 'anon'::regrole
+  $$,
+  'anon holds no grant on any table or view in public'
+);
+
 -- Tables with narrower grants are checked separately below.
 select is_empty(
   $$
     select c.relname, r.role, p.privilege
     from pg_catalog.pg_class c
-    cross join unnest(array['anon', 'authenticated', 'service_role']) as r(role)
+    cross join unnest(array['authenticated', 'service_role']) as r(role)
     cross join unnest(array[
       'select', 'insert', 'update', 'delete', 'truncate', 'references', 'trigger'
     ]) as p(privilege)
@@ -60,23 +78,12 @@ select is_empty(
       and c.relname not in ('arnold_sessions', 'personal_record_initializations', 'personal_records', 'weekly_goal_changes', 'workout_session_progress')
       and not has_table_privilege(r.role, c.oid, p.privilege)
   $$,
-  'anon, authenticated and service_role hold every privilege on the app tables'
+  'authenticated and service_role hold every privilege on the app tables'
 );
 
 -- arnold_sessions (20261014160000_coach_sessions.sql, renamed by
--- 20261024140000_arnold_sessions.sql): a User reads and
--- records their own sessions, anon nothing.
-select is_empty(
-  $$
-    select acl.privilege_type
-    from pg_catalog.pg_class c
-    cross join lateral aclexplode(c.relacl) acl
-    where c.oid = 'public.arnold_sessions'::regclass
-      and acl.grantee = 'anon'::regrole
-  $$,
-  'anon has no grants on arnold_sessions'
-);
-
+-- 20261024140000_arnold_sessions.sql): a User reads and records their own
+-- sessions.
 select is(
   array(
     select acl.privilege_type::text
@@ -102,18 +109,7 @@ select is_empty(
 );
 
 -- weekly_goal_changes (20261031120000_weekly_goal_changes.sql): an
--- append-only log a User reads and records their own goals in, anon nothing.
-select is_empty(
-  $$
-    select acl.privilege_type
-    from pg_catalog.pg_class c
-    cross join lateral aclexplode(c.relacl) acl
-    where c.oid = 'public.weekly_goal_changes'::regclass
-      and acl.grantee = 'anon'::regrole
-  $$,
-  'anon has no grants on weekly_goal_changes'
-);
-
+-- append-only log a User reads and records their own goals in.
 select is(
   array(
     select acl.privilege_type::text
@@ -147,12 +143,6 @@ select is(
   'authenticated has only row-level CRUD grants on personal_records'
 );
 
-select ok(
-  not has_table_privilege('anon', 'public.personal_records', 'select')
-  and not has_table_privilege('anon', 'public.personal_records', 'insert'),
-  'anon cannot read or write personal_records'
-);
-
 select is(
   array(select acl.privilege_type::text from pg_catalog.pg_class c
     cross join lateral aclexplode(c.relacl) acl
@@ -161,10 +151,6 @@ select is(
   array['INSERT', 'SELECT'],
   'authenticated can only read and insert initialization completion'
 );
-select ok(
-  not has_table_privilege('anon', 'public.personal_record_initializations', 'select')
-  and not has_table_privilege('anon', 'public.personal_record_initializations', 'insert'),
-  'anon cannot read or write initialization completion'
-);
+
 select * from finish();
 rollback;

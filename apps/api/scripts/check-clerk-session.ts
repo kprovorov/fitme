@@ -1,13 +1,17 @@
-// Checks that a Supabase stack trusts Clerk development session tokens:
-// creates a throwaway `+clerk_test` user on the Clerk development instance,
-// mints a session token for it and sends it to the Supabase Data API. Exits
-// non-zero unless the token carries `role: authenticated` and is accepted.
-// With API_URL it also sends the token to that Public API (apps/api) and
-// exits non-zero unless `GET /v1/profile` answers 200, so the API verifies
-// the token and reaches the stack's data as that User.
+// Checks that this Public API accepts a Clerk development session token and
+// reads the caller's data as that User: creates a throwaway `+clerk_test` User
+// on the Clerk development instance, mints a session token for it and sends it
+// to `GET /v1/profile`. Exits non-zero unless the API answers 200 (a new User
+// has no Profile yet, so the answer is `{ data: null }`), which proves the API
+// verified the token against CLERK_JWT_KEY and reached the database as that
+// User through asUser.
 //
-// Env: CLERK_SECRET_KEY (development instance, sk_test_…), SUPABASE_URL,
-// SUPABASE_ANON_KEY, API_URL (optional).
+// The E2E workflow runs it against the API it started on the runner, over a
+// Supabase preview branch. It replaced packages/supabase's Clerk third-party
+// trust check, which sent the same token to the Data API as well; that API is
+// closed (FIT-551, ADR 0019) and the Public API is the only door left.
+//
+// Env: CLERK_SECRET_KEY (development instance, sk_test_…), API_URL.
 
 import { randomUUID } from "node:crypto";
 import { setTimeout as sleep } from "node:timers/promises";
@@ -16,9 +20,9 @@ const CLERK_API_URL = "https://api.clerk.com/v1";
 
 // The API's first database query can fail while the pooler picks up a
 // password set moments before, so it gets a few tries.
-const API_ATTEMPTS = 5;
-const API_RETRY_DELAY_MS = 3000;
-const API_TIMEOUT_MS = 10_000;
+const ATTEMPTS = 5;
+const RETRY_DELAY_MS = 3000;
+const TIMEOUT_MS = 10_000;
 
 type ClerkRequestBody =
   | {
@@ -28,13 +32,6 @@ type ClerkRequestBody =
     }
   | { user_id: string }
   | Record<string, never>;
-
-interface JwtPayload {
-  role?: unknown;
-}
-
-const isJwtPayload = (value: unknown): value is JwtPayload =>
-  typeof value === "object" && value !== null;
 
 const hasClerkField = <Key extends "id" | "jwt">(
   value: unknown,
@@ -93,28 +90,6 @@ const readClerkField = async <Key extends "id" | "jwt">(
   return data;
 };
 
-const decodeJwtPayload = (jwt: string) => {
-  const [, payload] = jwt.split(".");
-
-  if (!payload) {
-    throw new Error("Clerk returned a malformed session token");
-  }
-
-  const claims: unknown = JSON.parse(
-    Buffer.from(payload, "base64url").toString("utf-8")
-  );
-
-  const role = isJwtPayload(claims) ? claims.role : undefined;
-
-  if (role !== "authenticated") {
-    throw new Error(
-      `Clerk session token has role ${JSON.stringify(role)}, expected "authenticated". Is the Supabase integration activated on the Clerk instance?`
-    );
-  }
-
-  return { role };
-};
-
 const checkApi = async (
   apiUrl: string,
   jwt: string,
@@ -124,10 +99,9 @@ const checkApi = async (
   let response: Response | undefined;
 
   try {
-    // A new User has no Profile yet, so the API answers { data: null }.
     response = await fetch(`${apiUrl}/v1/profile`, {
       headers: { Authorization: `Bearer ${jwt}` },
-      signal: AbortSignal.timeout(API_TIMEOUT_MS),
+      signal: AbortSignal.timeout(TIMEOUT_MS),
     });
   } catch (error) {
     failure = String(error);
@@ -146,27 +120,23 @@ const checkApi = async (
   }
 
   console.error(
-    `GET /v1/profile failed with ${failure} (attempt ${attempt}/${API_ATTEMPTS})`
+    `GET /v1/profile failed with ${failure} (attempt ${attempt}/${ATTEMPTS})`
   );
 
-  if (attempt < API_ATTEMPTS) {
-    await sleep(API_RETRY_DELAY_MS);
-
-    await checkApi(apiUrl, jwt, attempt + 1);
-
-    return;
+  if (attempt >= ATTEMPTS) {
+    throw new Error(
+      `The Public API at ${apiUrl} never answered GET /v1/profile with 200 (last: ${failure})`
+    );
   }
 
-  throw new Error(
-    `The Public API at ${apiUrl} never answered GET /v1/profile with 200 (last: ${failure})`
-  );
+  await sleep(RETRY_DELAY_MS);
+
+  await checkApi(apiUrl, jwt, attempt + 1);
 };
 
 const main = async () => {
   const secretKey = requireEnv("CLERK_SECRET_KEY");
-  const supabaseUrl = requireEnv("SUPABASE_URL");
-  const anonKey = requireEnv("SUPABASE_ANON_KEY");
-  const apiUrl = process.env.API_URL;
+  const apiUrl = requireEnv("API_URL");
 
   // Sessions can only be created through the Backend API on development
   // instances, and this script must never create users in production.
@@ -177,7 +147,7 @@ const main = async () => {
   const user = await readClerkField(
     await clerkRequest(secretKey, "POST", "/users", {
       email_address: [
-        `trust-check-${randomUUID()}+clerk_test@fitmeproject.com`,
+        `session-check-${randomUUID()}+clerk_test@fitmeproject.com`,
       ],
       password: randomUUID(),
       skip_password_checks: true,
@@ -204,29 +174,7 @@ const main = async () => {
       "jwt"
     );
 
-    decodeJwtPayload(jwt);
-
-    // PostgREST rejects a token it cannot verify with 401 and otherwise runs
-    // the request as the token's `role` claim, checked above. The test User
-    // has no Plans, so RLS answers an empty list.
-    const response = await fetch(
-      `${supabaseUrl}/rest/v1/plans?select=id&limit=1`,
-      { headers: { Authorization: `Bearer ${jwt}`, apikey: anonKey } }
-    );
-
-    if (!response.ok) {
-      throw new Error(
-        `Supabase rejected the Clerk session token with ${response.status}: ${await response.text()}`
-      );
-    }
-
-    console.log(
-      `Supabase at ${supabaseUrl} accepts Clerk development session tokens as authenticated.`
-    );
-
-    if (apiUrl !== undefined && apiUrl !== "") {
-      await checkApi(apiUrl, jwt);
-    }
+    await checkApi(apiUrl, jwt);
   } finally {
     // A failed cleanup must not mask the outcome of the check.
     try {

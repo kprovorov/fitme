@@ -1,9 +1,11 @@
 -- EXECUTE grants on the SECURITY DEFINER functions in public (FIT-326): they
--- run with their owner's rights, so anon (anyone holding the publishable key)
--- may call none of them but current_user_id(). Postgres grants EXECUTE to
--- PUBLIC by default and Supabase's default privileges grant it to anon too,
--- so a new one revokes both in its own migration and gets a line here. The
--- legacy RPCs are gone (20261027120000_drop_legacy_rpcs.sql, FIT-339).
+-- run with their owner's rights, so anon may call none of them but
+-- current_user_id(). Postgres grants EXECUTE to PUBLIC by default and
+-- Supabase's default privileges grant it to anon too, so a new one revokes
+-- both in its own migration and gets a line here. The legacy RPCs are gone
+-- (20261027120000_drop_legacy_rpcs.sql, FIT-339), and since the Data API is
+-- closed (FIT-551, ADR 0019) anon reaches no table either
+-- (table_grants.test.sql); these grants are the lock on owner-privileged code.
 -- Run with `pnpm db test:db` (supabase test db).
 begin;
 
@@ -49,9 +51,10 @@ select is_empty(
 );
 
 -- The policy of every app table but arnold_sessions targets PUBLIC and calls
--- current_user_id(), and anon holds those tables' grants
--- (table_grants.test.sql), so without EXECUTE an anon read fails with
--- permission denied instead of finding no rows.
+-- current_user_id(), so the function has to stay callable by every role a
+-- policy can run under, anon included: a policy whose function it may not
+-- execute fails the statement instead of finding no rows. anon holds no table
+-- grant any more (table_grants.test.sql), so this costs it nothing.
 select ok(
   has_function_privilege('anon', 'public.current_user_id()', 'EXECUTE'),
   'anon keeps EXECUTE on current_user_id(), which the RLS policies call'

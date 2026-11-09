@@ -2,7 +2,7 @@
 
 The monorepo behind [Fitme](https://fitmeproject.com), an AI workout planner and tracker: the iOS app, Arnold (Fitme's AI), the backend services and the web apps, on pnpm and Turborepo.
 
-Users sign in with [Clerk](https://clerk.com). Data lives in Supabase Postgres, reached by the Node apps through `@fitme/db` and by the clients with their Clerk session token (row-level security reads the Clerk id); there is no Supabase Auth and there are no Supabase Edge Functions.
+Users sign in with [Clerk](https://clerk.com). Data lives in Supabase Postgres, reached only by the Node apps through `@fitme/db` (row-level security reads the Clerk id); the mobile and web apps reach a User's data through the Public API with their Clerk session token. Supabase's Data API is switched off, there is no Supabase Auth and there are no Supabase Edge Functions.
 
 ## Layout
 
