@@ -72,7 +72,7 @@ import {
   savedArnoldSessionId,
   shownUserMessage,
 } from "~/lib/arnold-chat";
-import type { ArnoldErrorKind } from "~/lib/arnold-chat";
+import type { ArnoldErrorKind, ShownAttachment } from "~/lib/arnold-chat";
 import {
   dropSentAttachments,
   keepSentAttachments,
@@ -479,6 +479,30 @@ const useArnoldChat = (userId: string, composer: Composer) => {
     [events, uriOf]
   );
 
+  const router = useRouter();
+
+  // A tapped photo opens its whole message full-screen, so the viewer can be
+  // swiped through the message's photos. It gets the copies' names and the
+  // Conversation they are kept under, not their paths: the viewer finds each
+  // one on this device itself, the same way a bubble does (ADR 0018).
+  const onOpenAttachment = useCallback(
+    (attachments: readonly ShownAttachment[], index: number) => {
+      const photos = {
+        names: attachments.map((attachment) => attachment.name).join(","),
+        open: attachments[index]?.name ?? "",
+      };
+
+      router.push({
+        // The session is left out until eve has named one: the first message
+        // of a Conversation keeps its copies under `pending` until then,
+        // which is where the viewer looks without it.
+        params: sessionId ? { ...photos, session: sessionId } : photos,
+        pathname: "/arnold/photo-viewer",
+      });
+    },
+    [router, sessionId]
+  );
+
   return {
     errorMessage:
       errorAction === "show"
@@ -490,6 +514,7 @@ const useArnoldChat = (userId: string, composer: Composer) => {
     isLoading,
     messages,
     newConversation,
+    onOpenAttachment,
     onSend,
     sendMessage,
     setInput,

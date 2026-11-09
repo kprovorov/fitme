@@ -21,10 +21,17 @@ import {
   within,
 } from "@testing-library/react-native";
 import type { ReactNode } from "react";
+import { Dimensions } from "react-native";
 
-import { ATTACHMENT_TRAY, CONVERSATION_FULL_NOTICE } from "@/components/chat";
+import {
+  ATTACHMENT_TRAY,
+  CONVERSATION_FULL_NOTICE,
+  SENT_PHOTO_IMAGE,
+  SENT_PHOTOS_PAGER,
+} from "@/components/chat";
 import AddToChatSheet from "~/app/(tabs)/arnold/attachments";
 import ArnoldScreen from "~/app/(tabs)/arnold/index";
+import PhotoViewerScreen from "~/app/(tabs)/arnold/photo-viewer";
 import {
   arnoldAttachmentsOwner,
   clearArnoldAttachments,
@@ -64,6 +71,12 @@ const THUMBNAIL = /^(Photo \d+ of \d+|Фото \d+ з \d+)$/u;
 
 /** A sent Attachment's tile in the User's bubble, in either language. */
 const SENT_PHOTO = /^(Photo \d+ of \d+|Фото \d+ з \d+)$/u;
+
+/**
+ * A page of the full-screen viewer, in either language: its place among the
+ * message's photos, or the photo alone when it carried just the one.
+ */
+const VIEWER_PHOTO = /^(Photo|Фото)( \d+ (of|з) \d+)?$/u;
 
 /** eve's own placeholder for a file it can't show: never on screen. */
 const FILE_PLACEHOLDER = /\[file/u;
@@ -275,12 +288,16 @@ jest.mock("expo-router", () => {
       }: {
         options: {
           title: string;
-          unstable_headerRightItems: () => HeaderItem[];
+          unstable_headerLeftItems?: () => HeaderItem[];
+          unstable_headerRightItems?: () => HeaderItem[];
         };
       }) => (
         <View>
           <RNText>{options.title}</RNText>
-          {options.unstable_headerRightItems().map((item) => (
+          {[
+            ...(options.unstable_headerLeftItems?.() ?? []),
+            ...(options.unstable_headerRightItems?.() ?? []),
+          ].map((item) => (
             <Pressable
               accessibilityLabel={item.accessibilityLabel ?? item.label}
               accessibilityRole="button"
@@ -294,13 +311,16 @@ jest.mock("expo-router", () => {
         </View>
       ),
     },
-    useLocalSearchParams: () => ({}),
+    useLocalSearchParams: () => stub.useStubParams({}),
     useRouter: () => ({ ...stub.stubRouter, setParams: jest.fn() }),
   };
 });
 
 /** The routes the Arnold screen pushes that a test follows. */
-const ARNOLD_ROUTES = { "/arnold/attachments": AddToChatSheet };
+const ARNOLD_ROUTES = {
+  "/arnold/attachments": AddToChatSheet,
+  "/arnold/photo-viewer": PhotoViewerScreen,
+};
 
 /** The screen under the root layout's language sync, with its stack. */
 function App() {
@@ -583,12 +603,69 @@ describe("arnold screen", () => {
      * the moment a send clears it.
      */
     const shownPhotos = () =>
-      screen.queryAllByLabelText(SENT_PHOTO).map((node) => {
-        const { source } = node.props as { source?: { uri: string }[] };
+      screen.queryAllByLabelText(SENT_PHOTO).map((slot) => {
+        // The thumbnail sits inside the control that opens it full-screen,
+        // which is what carries the label; a Photo tile holds no image.
+        const image = within(slot).queryByTestId(SENT_PHOTO_IMAGE);
+
+        const { source } = (image?.props ?? {}) as {
+          source?: { uri: string }[];
+        };
+
         const uri = source?.[0]?.uri;
 
         return uri === undefined ? undefined : fileSystem.read(uri);
       });
+
+    /**
+     * The photos the full-screen viewer shows, in order: the bytes each page
+     * draws. Empty while the viewer is closed.
+     */
+    const viewerPhotos = () => {
+      const pager = screen.queryByTestId(SENT_PHOTOS_PAGER);
+
+      return pager
+        ? within(pager)
+            .queryAllByLabelText(VIEWER_PHOTO)
+            .map(
+              (image) =>
+                (image.props as { source: { uri: string }[] }).source[0]?.uri
+            )
+            .map((uri) =>
+              uri === undefined ? undefined : fileSystem.read(uri)
+            )
+        : [];
+    };
+
+    /** Taps the sent photo at `position` in the Conversation, as the User does. */
+    const openPhoto = async (position: number) => {
+      const slot = screen.getAllByLabelText(SENT_PHOTO)[position - 1];
+
+      if (!slot) {
+        throw new Error(`no sent photo at ${position}`);
+      }
+
+      await userEvent.setup().press(slot);
+    };
+
+    /** Swipes the viewer to the page at `index`, as a native scroll reports it. */
+    const swipeViewerTo = async (index: number) => {
+      const { width } = Dimensions.get("window");
+
+      await act(async () => {
+        await fireEvent(
+          screen.getByTestId(SENT_PHOTOS_PAGER),
+          "momentumScrollEnd",
+          {
+            nativeEvent: {
+              contentOffset: { x: index * width, y: 0 },
+              contentSize: { height: 0, width: 0 },
+              layoutMeasurement: { height: 0, width: 0 },
+            },
+          }
+        );
+      });
+    };
 
     it("offers no way to add one while they are off", async () => {
       await renderArnold();
@@ -821,7 +898,7 @@ describe("arnold screen", () => {
       // A copy the disk cut short passes the check that it is there, and
       // only loading it finds out: the tile stands for it from then on.
       await act(async () => {
-        await fireEvent(screen.getByLabelText(SENT_PHOTO), "error", {
+        await fireEvent(screen.getByTestId(SENT_PHOTO_IMAGE), "error", {
           nativeEvent: { error: "The file could not be decoded" },
         });
       });
@@ -859,6 +936,108 @@ describe("arnold screen", () => {
         expect(screen.getByText(FAKE_ARNOLD_REPLY)).toBeTruthy()
       );
       expect(screen.queryAllByLabelText(SENT_PHOTO)).toEqual([]);
+    });
+
+    describe("the full-screen viewer", () => {
+      /** Sends `names` as one message's photos and waits for the answer. */
+      const sendPhotos = async (...names: readonly string[]) => {
+        mockAttachmentsEnabled = true;
+        mockPickLibraryPhotos.mockResolvedValue({
+          failed: 0,
+          images: names.map((name) => photo(name)),
+        });
+        await renderArnold();
+        await pickPhotos();
+        await send("What is this machine?");
+
+        await waitFor(() =>
+          expect(screen.getByText(FAKE_ARNOLD_REPLY)).toBeTruthy()
+        );
+      };
+
+      it("opens the photo that was tapped, and closes back to the Conversation", async () => {
+        await sendPhotos("gym", "plan");
+
+        expect(viewerPhotos()).toEqual([]);
+
+        await openPhoto(2);
+
+        // The message's photos, so the viewer can be swiped through them,
+        // opened on the one that was tapped.
+        expect(viewerPhotos()).toEqual(["gym-bytes", "plan-bytes"]);
+        expect(screen.getByText("Photo 2 of 2")).toBeTruthy();
+
+        await userEvent.setup().press(screen.getByLabelText("Close"));
+
+        expect(viewerPhotos()).toEqual([]);
+        // Back to the Conversation, with its photos as they were.
+        expect(screen.getByText("What is this machine?")).toBeTruthy();
+        expect(shownPhotos()).toEqual(["gym-bytes", "plan-bytes"]);
+      });
+
+      it("is swiped through a message's photos in order", async () => {
+        await sendPhotos("gym", "plan", "rack");
+        await openPhoto(1);
+
+        expect(viewerPhotos()).toEqual([
+          "gym-bytes",
+          "plan-bytes",
+          "rack-bytes",
+        ]);
+        expect(screen.getByText("Photo 1 of 3")).toBeTruthy();
+
+        await swipeViewerTo(1);
+
+        expect(screen.getByText("Photo 2 of 3")).toBeTruthy();
+
+        await swipeViewerTo(2);
+
+        expect(screen.getByText("Photo 3 of 3")).toBeTruthy();
+      });
+
+      it("names one photo on its own without a place among others", async () => {
+        await sendPhotos("gym");
+        await openPhoto(1);
+
+        expect(viewerPhotos()).toEqual(["gym-bytes"]);
+        // Nothing to be one of, so it is named as the photo it is. The
+        // bubble's own thumbnail still says where it sits in the message.
+        expect(screen.getAllByText("Photo").length).toBeGreaterThan(0);
+        expect(screen.queryByText("Photo 1 of 1")).toBeNull();
+      });
+
+      it("opens nothing from a Photo tile", async () => {
+        await sendPhotos("gym");
+
+        // A copy the disk cut short: only loading it finds out, and the tile
+        // stands for it from then on. There is no photo to open.
+        await act(async () => {
+          await fireEvent(screen.getByTestId(SENT_PHOTO_IMAGE), "error", {
+            nativeEvent: { error: "The file could not be decoded" },
+          });
+        });
+
+        expect(shownPhotos()).toEqual([undefined]);
+        expect(screen.getByText("Photo")).toBeTruthy();
+
+        // The tile is no control, so a press on it reaches no handler at all.
+        await act(async () => {
+          await fireEvent.press(screen.getByLabelText(SENT_PHOTO));
+        });
+
+        expect(viewerPhotos()).toEqual([]);
+        expect(screen.queryByLabelText("Close")).toBeNull();
+      });
+
+      it("names the photo and its close button in Ukrainian", async () => {
+        setDeviceLanguages(["uk-UA"]);
+        await sendPhotos("gym", "plan");
+        await openPhoto(1);
+
+        expect(viewerPhotos()).toEqual(["gym-bytes", "plan-bytes"]);
+        expect(screen.getByText("Фото 1 з 2")).toBeTruthy();
+        expect(screen.getByLabelText("Закрити")).toBeTruthy();
+      });
     });
 
     it("tells Segment how many went, and nothing about them", async () => {

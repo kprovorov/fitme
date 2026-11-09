@@ -1,7 +1,7 @@
 import type { ThreadMessage } from "@assistant-ui/react-native";
 import { createContext, use } from "react";
 
-import type { ShownUserMessage } from "~/lib/arnold-chat";
+import type { ShownAttachment, ShownUserMessage } from "~/lib/arnold-chat";
 
 import type { StreamingStore } from "./streaming-store";
 
@@ -29,6 +29,15 @@ export interface ChatContextValue {
   messages: readonly ThreadMessage[];
   /** Starts a Conversation of its own, as the header's "+" does. */
   onNewConversation?: () => void;
+  /**
+   * Opens the full-screen viewer on one message's Attachments, at the one
+   * tapped (ADR 0018). The whole list goes, so the viewer can be swiped
+   * through the message's photos; without it a sent photo doesn't open.
+   */
+  onOpenAttachment?: (
+    attachments: readonly ShownAttachment[],
+    index: number
+  ) => void;
   /** Removes one picked Attachment, by its id (a thumbnail's ×). */
   onRemoveAttachment?: (id: string) => void;
   onSend: () => void;
