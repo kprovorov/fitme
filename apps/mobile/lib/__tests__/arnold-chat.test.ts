@@ -1,18 +1,28 @@
-import { afterEach, describe, expect, it } from "@jest/globals";
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  jest,
+} from "@jest/globals";
 import type { MessageStreamEvent } from "eve/client";
 
 import { storage } from "~/lib/mmkv";
+import type * as InMemoryFileSystem from "~/test-utils/in-memory-file-system";
 
 import {
   arnoldErrorAction,
   arnoldErrorKind,
   arnoldRunConfig,
   clearSavedArnoldConversation,
+  echoedAttachmentNames,
   getArnoldUrl,
   isRefusedSend,
   loadSavedArnoldConversation,
   saveArnoldConversation,
   saveArnoldSession,
+  savedArnoldSessionId,
   shownUserMessage,
 } from "../arnold-chat";
 import {
@@ -20,7 +30,26 @@ import {
   SELECTED_MODEL_KEY,
   writeCachedArnoldModels,
 } from "../arnold-model";
+import {
+  keepSentAttachments,
+  sentAttachmentUri,
+} from "../arnold-sent-attachments";
 import { i18n } from "../i18n";
+
+// The device copies of sent Attachments go through the file system, which
+// the Conversation's own lifecycle takes away: an in-memory one, so a test
+// sees what is left (`test-utils/in-memory-file-system.ts`).
+jest.mock(
+  "expo-file-system",
+  () =>
+    jest.requireActual<typeof InMemoryFileSystem>(
+      "~/test-utils/in-memory-file-system"
+    ).fileSystemModule
+);
+
+const { fileSystem } = jest.requireActual<typeof InMemoryFileSystem>(
+  "~/test-utils/in-memory-file-system"
+);
 
 /** The shape eve's `ClientError` gives a refused request. */
 function clientError(status: number, code?: string) {
@@ -187,6 +216,140 @@ describe("arnoldErrorKind", () => {
     expect(
       arnoldErrorKind(new TypeError("Cannot read properties of undefined"))
     ).toBe("generic");
+  });
+});
+
+describe("a saved Conversation's Attachments", () => {
+  /** A re-encoded JPEG the picker left in the cache, holding its own bytes. */
+  const picked = (name: string): string => {
+    const uri = `file:///memory/cache/${name}.jpg`;
+    fileSystem.write(uri, `${name}-bytes`);
+
+    return uri;
+  };
+
+  beforeEach(() => {
+    fileSystem.reset();
+  });
+
+  it("takes the first message's copies under the session eve names", async () => {
+    const names = await keepSentAttachments("user_binds", undefined, [
+      picked("gym"),
+    ]);
+
+    saveArnoldSession("user_binds", { sessionId: "ses_1", streamIndex: 0 });
+
+    expect(sentAttachmentUri("user_binds", "ses_1", names[0] ?? "")).toBe(
+      `file:///memory/document/arnold-attachments/user_binds/ses_1/${names[0]}`
+    );
+  });
+
+  it("drops them when a new session replaces the saved one", async () => {
+    saveArnoldConversation("user_replaced", {
+      session: { sessionId: "ses_1", streamIndex: 0 },
+    });
+
+    const names = await keepSentAttachments("user_replaced", "ses_1", [
+      picked("gym"),
+    ]);
+
+    saveArnoldSession("user_replaced", { sessionId: "ses_2", streamIndex: 0 });
+
+    expect(
+      sentAttachmentUri("user_replaced", "ses_1", names[0] ?? "")
+    ).toBeUndefined();
+  });
+
+  it("keeps them while the Conversation is the same one", async () => {
+    saveArnoldConversation("user_resumed", {
+      session: { sessionId: "ses_1", streamIndex: 0 },
+    });
+
+    const names = await keepSentAttachments("user_resumed", "ses_1", [
+      picked("gym"),
+    ]);
+
+    saveArnoldSession("user_resumed", { sessionId: "ses_1", streamIndex: 7 });
+
+    expect(
+      sentAttachmentUri("user_resumed", "ses_1", names[0] ?? "")
+    ).toBeTruthy();
+  });
+
+  it("forgets them with the Conversation", async () => {
+    const names = await keepSentAttachments("user_cleared", "ses_1", [
+      picked("gym"),
+    ]);
+
+    clearSavedArnoldConversation("user_cleared");
+
+    expect(
+      sentAttachmentUri("user_cleared", "ses_1", names[0] ?? "")
+    ).toBeUndefined();
+  });
+
+  it("forgets them when the Conversation's session is gone", async () => {
+    const names = await keepSentAttachments("user_gone", "ses_1", [
+      picked("gym"),
+    ]);
+
+    saveArnoldSession("user_gone", undefined);
+
+    expect(
+      sentAttachmentUri("user_gone", "ses_1", names[0] ?? "")
+    ).toBeUndefined();
+  });
+});
+
+describe("echoedAttachmentNames", () => {
+  const echo = (
+    turnId: string,
+    filenames: readonly string[]
+  ): MessageStreamEvent => ({
+    data: {
+      message: "What is this machine?",
+      parts: [
+        { text: "What is this machine?", type: "text" },
+        ...filenames.map((filename) => ({
+          filename,
+          mediaType: "image/jpeg",
+          size: 10,
+          type: "file" as const,
+        })),
+      ],
+      sequence: 1,
+      turnId,
+    },
+    meta: { at: "2026-01-01T00:00:00.000Z", id: `evt_${turnId}` },
+    type: "message.received",
+  });
+
+  it("names every Attachment the Conversation's messages carry", () => {
+    expect([
+      ...echoedAttachmentNames([
+        echo("turn_0", ["a.jpg"]),
+        echo("turn_1", ["b.jpg", "c.jpg"]),
+      ]),
+    ]).toEqual(["a.jpg", "b.jpg", "c.jpg"]);
+  });
+
+  it("names none for a Conversation of text alone", () => {
+    expect(echoedAttachmentNames([echo("turn_0", [])]).size).toBe(0);
+    expect(echoedAttachmentNames([]).size).toBe(0);
+  });
+});
+
+describe("savedArnoldSessionId", () => {
+  it("answers the session a send keeps its Attachments under", () => {
+    saveArnoldConversation("user_session_id", {
+      session: { sessionId: "ses_9", streamIndex: 0 },
+    });
+
+    expect(savedArnoldSessionId("user_session_id")).toBe("ses_9");
+  });
+
+  it("answers nothing before eve has named one", () => {
+    expect(savedArnoldSessionId("user_no_session")).toBeUndefined();
   });
 });
 

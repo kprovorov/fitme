@@ -8,6 +8,10 @@ import type { ClientSessionState, MessageStreamEvent } from "eve/client";
 import { z } from "zod";
 
 import { getSelectedArnoldModelId } from "~/lib/arnold-model";
+import {
+  followSentAttachments,
+  forgetSentAttachments,
+} from "~/lib/arnold-sent-attachments";
 import { i18n } from "~/lib/i18n";
 import { storage } from "~/lib/mmkv";
 
@@ -196,6 +200,36 @@ export const shownUserMessage = (
   };
 };
 
+/**
+ * Every Attachment name the Conversation's own messages carry: the
+ * `filename`s of the file parts eve echoed back, which are the device copies
+ * a bubble is drawn from (ADR 0018).
+ *
+ * It is what tells an acknowledged send from one that went nowhere. A turn
+ * can fail *after* eve has echoed its message, which leaves the message in
+ * the Conversation while the screen still treats the send as refused, so the
+ * copies it wrote may only be dropped when no message names them.
+ */
+export const echoedAttachmentNames = (
+  events: readonly MessageStreamEvent[]
+): ReadonlySet<string> => {
+  const names = new Set<string>();
+
+  for (const event of events) {
+    if (event.type !== "message.received") {
+      continue;
+    }
+
+    for (const part of event.data.parts ?? []) {
+      if (part.type === "file" && part.filename) {
+        names.add(part.filename);
+      }
+    }
+  }
+
+  return names;
+};
+
 /** The User's current Conversation, enough for eve to resume it. */
 export interface SavedArnoldConversation {
   /** An ordered prefix of the session's stream, to render before resuming. */
@@ -243,9 +277,19 @@ export const loadSavedArnoldConversation = (
   return events ? { events, session } : { session };
 };
 
+/**
+ * The eve session the User's saved Conversation is on, which a send keeps its
+ * Attachments' device copies under; `undefined` before eve has named one (the
+ * first message of a Conversation) or with no Conversation saved.
+ */
+export const savedArnoldSessionId = (userId: string): string | undefined =>
+  readJson<ClientSessionState>(sessionKey(userId))?.sessionId;
+
 export const clearSavedArnoldConversation = (userId: string) => {
   storage.remove(sessionKey(userId));
   storage.remove(eventsKey(userId));
+  // The Conversation is forgotten, so its Attachments go with it (ADR 0018).
+  forgetSentAttachments(userId);
 };
 
 export const saveArnoldConversation = (
@@ -271,6 +315,10 @@ export const saveArnoldConversation = (
  * Records the session cursor as soon as eve reports it, so a screen reopened
  * mid-answer resumes it. Saved events stay while the session is the same one;
  * no session (a reset) forgets the Conversation.
+ *
+ * A session eve has just named takes the Attachments sent before it had a
+ * name, and one replacing the saved session takes the copies of the
+ * Conversation it replaced away with it (ADR 0018).
  */
 export const saveArnoldSession = (
   userId: string,
@@ -286,6 +334,7 @@ export const saveArnoldSession = (
 
   if (saved?.sessionId !== session.sessionId) {
     storage.remove(eventsKey(userId));
+    followSentAttachments(userId, session.sessionId);
   }
 
   storage.set(sessionKey(userId), JSON.stringify(session));
