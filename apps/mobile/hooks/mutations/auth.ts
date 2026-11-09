@@ -33,7 +33,10 @@ export const useDeleteUserMutation = createMutation({
 
     const userId = clerk.user.id;
     await clerk.user.delete();
-    // The server wipes Arnold Conversations; drop this device's copy too.
+    // The server wipes Arnold Conversations; drop this device's copy too,
+    // with every device copy of the Attachments they sent (ADR 0018), before
+    // the sign-out below. The account is gone by now, so nothing is removed
+    // for a deletion that failed.
     clearSavedArnoldConversation(userId);
     // The deletion already ended the session; a failed sign-out must not
     // report the deleted account as still there
