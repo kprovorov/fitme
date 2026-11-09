@@ -138,6 +138,48 @@ export const sentAttachmentUri = (
 };
 
 /**
+ * Where the copy named `filename` is now, in whichever Conversation directory
+ * of the User's holds it, or `undefined` when this device hasn't got it.
+ *
+ * It is for a caller that can't follow the Conversation it was opened from
+ * (the full-screen viewer, a route outside the runtime): a first message's
+ * copies are written to `pending` and move under the session as soon as eve
+ * names it, so a caller holding the directory it read a moment ago would look
+ * where the photo no longer is. A name is this module's own and unique, so
+ * finding it by name alone is exact; `dropSentAttachments` searches the same
+ * way for the same reason.
+ *
+ * A bubble doesn't use this: the Arnold screen knows the live session, and
+ * asking per name there is a file check on every streamed chunk.
+ */
+export const findSentAttachmentUri = (
+  userId: string,
+  filename: string
+): string | undefined => {
+  if (!COPY_NAME.test(filename)) {
+    return;
+  }
+
+  const user = userDirectory(userId);
+
+  try {
+    if (!user.exists) {
+      return;
+    }
+
+    for (const conversation of user.list()) {
+      const file = new File(conversation, filename);
+
+      if (file.exists) {
+        return file.uri;
+      }
+    }
+  } catch (error) {
+    captureException(error);
+  }
+};
+
+/**
  * Takes the copies of a send that went nowhere back off the device: Arnold
  * refused it or it failed, so its Attachments are in the composer again and
  * a retry writes its own copies. The caller must have checked that no message

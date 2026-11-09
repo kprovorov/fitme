@@ -28,8 +28,8 @@ const MAX_ZOOM = 4;
 export interface ShownPhoto {
   /** Its identity within the message, for the page's key. */
   id: string;
-  /** Its copy on this device, or nothing when this device hasn't got it. */
-  uri?: string;
+  /** Its device copy's name, which is what finds the photo on this device. */
+  name: string;
 }
 
 /**
@@ -71,21 +71,41 @@ const Photo = ({
   height,
   label,
   photo,
+  uriFor,
   width,
 }: {
   height: number;
   label: string;
   photo: ShownPhoto;
+  uriFor: (name: string) => string | undefined;
   width: number;
 }) => {
-  // A copy that is on the device but can't be drawn (one the disk cut short),
-  // which only loading it finds out. The tile stands for it from then on,
-  // rather than a blank page with a title over it.
+  const [uri, setUri] = useState(() => uriFor(photo.name));
+  // A copy nothing can be drawn from: one this device never had, or one it
+  // has but can't decode (a copy the disk cut short), which only loading it
+  // finds out. The tile stands for it then, rather than a blank page with a
+  // title over it.
   const [unreadable, setUnreadable] = useState(false);
-  const onError = useCallback(() => setUnreadable(true), []);
+
+  // A copy that moved while this page was on screen is not a copy that's
+  // gone: a first message's go from `pending` to the session's directory as
+  // soon as eve names it. So a photo that fails to load is looked for once
+  // more before the tile stands in for it.
+  const onError = useCallback(() => {
+    const moved = uriFor(photo.name);
+
+    if (moved !== undefined && moved !== uri) {
+      setUri(moved);
+
+      return;
+    }
+
+    setUnreadable(true);
+  }, [photo.name, uri, uriFor]);
+
   const page = { height, width };
 
-  if (!photo.uri || unreadable) {
+  if (uri === undefined || unreadable) {
     return (
       <View style={page}>
         <MissingPhoto label={label} />
@@ -110,7 +130,7 @@ const Photo = ({
         accessible
         contentFit="contain"
         onError={onError}
-        source={{ uri: photo.uri }}
+        source={{ uri }}
         style={page}
       />
     </ScrollView>
@@ -143,6 +163,7 @@ export const SentPhotosView = ({
   labelFor,
   onPageChange,
   photos,
+  uriFor,
 }: {
   /** Which photo to open on, its place among `photos`. */
   initialIndex: number;
@@ -150,6 +171,8 @@ export const SentPhotosView = ({
   labelFor: (index: number) => string;
   onPageChange: (index: number) => void;
   photos: readonly ShownPhoto[];
+  /** Where a photo's copy is on this device now, asked for by its name. */
+  uriFor: (name: string) => string | undefined;
 }) => {
   const window = useWindowDimensions();
 
@@ -213,6 +236,7 @@ export const SentPhotosView = ({
           key={photo.id}
           label={labelFor(index)}
           photo={photo}
+          uriFor={uriFor}
           width={width}
         />
       ))}

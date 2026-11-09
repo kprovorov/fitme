@@ -1060,6 +1060,48 @@ describe("arnold screen", () => {
         expect(screen.getByText("Photo 2 of 2")).toBeTruthy();
       });
 
+      it("keeps showing a first message's photo once eve names the session", async () => {
+        mockAttachmentsEnabled = true;
+        mockPickLibraryPhotos.mockResolvedValue({
+          failed: 0,
+          images: [photo("gym")],
+        });
+        await renderArnold();
+        await pickPhotos();
+
+        // Held, so the message's photos are on screen and tappable while the
+        // send is still on its way and eve hasn't named the Conversation:
+        // the copies are under `pending` for now.
+        const release = fakeArnold.holdNextSend();
+        await send("What is this machine?");
+        await openPhoto(1);
+
+        expect(viewerPhotos()).toEqual(["gym-bytes"]);
+
+        // eve names the session, which moves the copies out of `pending`
+        // under it, from under the open viewer.
+        release();
+        await waitFor(() =>
+          expect(screen.getByText(FAKE_ARNOLD_REPLY)).toBeTruthy()
+        );
+
+        // The photo the viewer was drawing is no longer where it was, so
+        // loading it fails; it is still on the device, so the viewer finds
+        // it again rather than standing a tile in for it.
+        await act(async () => {
+          await fireEvent(
+            within(screen.getByTestId(SENT_PHOTOS_PAGER)).getByLabelText(
+              VIEWER_PHOTO
+            ),
+            "error",
+            { nativeEvent: { error: "No such file" } }
+          );
+        });
+
+        // Its bytes, not `undefined`, which is what a Photo tile reads as.
+        expect(viewerPhotos()).toEqual(["gym-bytes"]);
+      });
+
       it("names the photo and its close button in Ukrainian", async () => {
         setDeviceLanguages(["uk-UA"]);
         await sendPhotos("gym", "plan");

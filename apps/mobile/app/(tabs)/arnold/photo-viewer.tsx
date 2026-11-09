@@ -5,7 +5,7 @@ import { useTranslation } from "react-i18next";
 import { View } from "react-native";
 
 import { SentPhotosView } from "@/components/chat";
-import { sentAttachmentUri } from "~/lib/arnold-sent-attachments";
+import { findSentAttachmentUri } from "~/lib/arnold-sent-attachments";
 
 /**
  * One message's Attachments, as large as the Screen holds (ADR 0018):
@@ -27,36 +27,33 @@ const PhotoViewerScreen = () => {
   const router = useRouter();
   const { t } = useTranslation();
 
-  const {
-    names = "",
-    open = "",
-    session,
-  } = useLocalSearchParams<{
+  const { names = "", open = "" } = useLocalSearchParams<{
     /** The message's Attachments, by their device copies' names, in order. */
     names?: string;
     /** The one that was tapped, which the viewer opens on. */
     open?: string;
-    /** The Conversation the message was sent in; absent before eve named it. */
-    session?: string;
   }>();
 
   const userId = user?.id;
   const sent = useMemo(() => names.split(","), [names]);
 
   const photos = useMemo(
-    () =>
-      sent.map((name, index) => {
-        const uri = userId
-          ? sentAttachmentUri(userId, session, name)
-          : undefined;
+    // The place is part of the id because an Attachment eve never named has
+    // nothing else to be told apart by, as in the bubble.
+    () => sent.map((name, index) => ({ id: `${index}:${name}`, name })),
+    [sent]
+  );
 
-        // The place is part of the id because an Attachment eve never named
-        // has nothing else to be told apart by, as in the bubble.
-        return uri === undefined
-          ? { id: `${index}:${name}` }
-          : { id: `${index}:${name}`, uri };
-      }),
-    [sent, session, userId]
+  // Where a copy is *now*, asked for by name rather than under a Conversation
+  // this Screen was handed: a first message's copies are written to `pending`
+  // and move under the session as soon as eve names it, which can happen
+  // while the viewer is already open on them (the send is still in flight
+  // when its photos are tappable). A directory read when the viewer opened
+  // would then be the one the photo has just left.
+  const uriFor = useCallback(
+    (name: string) =>
+      userId ? findSentAttachmentUri(userId, name) : undefined,
+    [userId]
   );
 
   const openedAt = sent.indexOf(open);
@@ -107,6 +104,7 @@ const PhotoViewerScreen = () => {
           labelFor={labelFor}
           onPageChange={setPage}
           photos={photos}
+          uriFor={uriFor}
         />
       </View>
     </>
