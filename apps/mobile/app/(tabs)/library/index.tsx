@@ -7,8 +7,12 @@ import { ExerciseRowChevron } from "~/components/exercises/exercise-row";
 import ExercisesView from "~/components/views/exercises-view";
 import { useHeaderSearch } from "~/hooks/header-search";
 
-/** The Library tab's Muscle group choice: kept while the app runs. */
+/**
+ * The Library tab's Muscle group and Equipment choices: each kept while the
+ * app runs, under its own store's key.
+ */
 const MUSCLE_CHOICE_KEY = "library";
+const EQUIPMENT_CHOICE_KEY = "library";
 
 const LibraryScreen = () => {
   const { t } = useTranslation();
@@ -34,6 +38,7 @@ const LibraryScreen = () => {
       />
       <ExercisesView
         contentContainerClassName="px-sm pt-2.5"
+        equipmentChoiceKey={EQUIPMENT_CHOICE_KEY}
         muscleChoiceKey={MUSCLE_CHOICE_KEY}
         onExercisePress={onExercisePress}
         onSearchChange={onSearchChange}

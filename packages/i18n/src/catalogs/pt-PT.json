@@ -8,6 +8,7 @@
   "library": {
     "search": "Pesquisar exercícios",
     "muscles": "Músculos",
+    "equipment": "Equipamento",
     "removeMuscleGroup": "Remover {{muscleGroup}}",
     "reset": "Repor",
     "confirm": "Concluir",

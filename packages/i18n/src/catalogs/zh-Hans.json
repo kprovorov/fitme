@@ -8,6 +8,7 @@
   "library": {
     "search": "搜索训练动作",
     "muscles": "肌群",
+    "equipment": "器械",
     "removeMuscleGroup": "移除{{muscleGroup}}",
     "reset": "重置",
     "confirm": "完成",

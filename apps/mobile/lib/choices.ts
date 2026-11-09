@@ -1,4 +1,5 @@
 import type {
+  Equipment,
   ExperienceLevel,
   Gender,
   Goal,
@@ -18,6 +19,7 @@ import { i18n } from "~/lib/i18n";
  * data for the servers; the app never shows them.
  */
 export interface ChoiceLabels {
+  equipment: (id: Equipment) => string;
   experienceLevel: (id: ExperienceLevel) => string;
   experienceLevelDescription: (id: ExperienceLevel) => string;
   gender: (id: Gender) => string;
@@ -48,6 +50,7 @@ export const choiceLabels = (t: TFunction): ChoiceLabels => {
         : t(`choices.${section}.${id}` as never, { defaultValue: id });
 
   return {
+    equipment: label("equipment"),
     experienceLevel: label("experienceLevel"),
     experienceLevelDescription: label("experienceLevelDescription"),
     gender: label("gender"),

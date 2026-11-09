@@ -4,6 +4,7 @@
  */
 import { afterEach } from "@jest/globals";
 
+import { resetEquipmentChoices } from "~/hooks/equipment-choice";
 import { resetMuscleChoices } from "~/hooks/muscle-choice";
 import { resetPlanDrafts } from "~/hooks/plan-draft";
 import { resetDeviceLanguages } from "~/test-utils/device-locales";
@@ -55,6 +56,7 @@ afterEach(() => {
 // tab's choice lives in memory, outliving its screen.
 afterEach(() => {
   resetMuscleChoices();
+  resetEquipmentChoices();
 });
 
 // Every test starts with no Plan editor draft, as the app does: a draft

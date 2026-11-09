@@ -8,6 +8,7 @@
   "library": {
     "search": "Szukaj ćwiczeń",
     "muscles": "Mięśnie",
+    "equipment": "Sprzęt",
     "removeMuscleGroup": "Usuń {{muscleGroup}}",
     "reset": "Resetuj",
     "confirm": "Gotowe",
