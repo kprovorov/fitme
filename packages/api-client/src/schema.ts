@@ -257,7 +257,7 @@ export interface paths {
     put?: never;
     /**
      * Create a Plan
-     * @description Creates the Plan with its Workouts, Exercises and sets in one transaction: nothing is saved unless all of it is. Only `name` and `frequency` are required: `goal`, `place`, `experience_level` and `workout_duration` are optional, and one left out (or sent as `null`) is unset on the Plan, which answers it as `null` ever after. Every Exercise slug is checked against the Library first. The server gives each Workout its `cover`, a Library Cover suiting the muscle group its Exercises train most, different for each Workout while the Library has enough (`null` when it has none); a request can't choose one. By default the new Plan becomes the User's active one and every other Plan goes inactive. Not idempotent: a retried request can create a second Plan.
+     * @description Creates the Plan with its Workouts, Exercises and sets in one transaction: nothing is saved unless all of it is. `goal`, `place`, `experience_level` and `workout_duration` are optional: one left out (or sent as `null`) is unset on the Plan, which answers it as `null` ever after. Everything else (`name`, `frequency`, `description` and `workouts`) is required. Every Exercise slug is checked against the Library first. The server gives each Workout its `cover`, a Library Cover suiting the muscle group its Exercises train most, different for each Workout while the Library has enough (`null` when it has none); a request can't choose one. By default the new Plan becomes the User's active one and every other Plan goes inactive. Not idempotent: a retried request can create a second Plan.
      */
     post: {
       parameters: {
@@ -2714,7 +2714,7 @@ export interface components {
       /** @example Three full-body days */
       description: string;
       /**
-       * @description Left out (or `null`), the Plan has none
+       * @description Optional: `null` is no detail at all
        * @enum {string|null}
        */
       experience_level?: "beginner" | "intermediate" | "advanced" | null;
@@ -2724,7 +2724,7 @@ export interface components {
        */
       frequency: number;
       /**
-       * @description Left out (or `null`), the Plan has none
+       * @description Optional: `null` is no detail at all
        * @enum {string|null}
        */
       goal?:
@@ -2738,12 +2738,12 @@ export interface components {
       name: string;
       note?: string | null;
       /**
-       * @description Left out (or `null`), the Plan has none
+       * @description Optional: `null` is no detail at all
        * @enum {string|null}
        */
       place?: "gym" | "home" | null;
       /**
-       * @description Minutes. Left out (or `null`), the Plan has none
+       * @description Minutes. Optional: `null` is no detail at all
        * @example 60
        */
       workout_duration?: number | null;
@@ -2792,7 +2792,7 @@ export interface components {
        */
       description?: string;
       /**
-       * @description Left out (or `null`), the Plan has none
+       * @description Optional: `null` is no detail at all
        * @enum {string|null}
        */
       experience_level?: "beginner" | "intermediate" | "advanced" | null;
@@ -2802,7 +2802,7 @@ export interface components {
        */
       frequency: number;
       /**
-       * @description Left out (or `null`), the Plan has none
+       * @description Optional: `null` is no detail at all
        * @enum {string|null}
        */
       goal?:
@@ -2817,12 +2817,12 @@ export interface components {
       /** @description Left out (or `null`), the Plan has none */
       note?: string | null;
       /**
-       * @description Left out (or `null`), the Plan has none
+       * @description Optional: `null` is no detail at all
        * @enum {string|null}
        */
       place?: "gym" | "home" | null;
       /**
-       * @description Minutes. Left out (or `null`), the Plan has none
+       * @description Minutes. Optional: `null` is no detail at all
        * @example 60
        */
       workout_duration?: number | null;
@@ -2885,7 +2885,7 @@ export interface components {
       /** @example Three full-body days */
       description?: string;
       /**
-       * @description Left out (or `null`), the Plan has none
+       * @description Optional: `null` is no detail at all
        * @enum {string|null}
        */
       experience_level?: "beginner" | "intermediate" | "advanced" | null;
@@ -2895,7 +2895,7 @@ export interface components {
        */
       frequency?: number;
       /**
-       * @description Left out (or `null`), the Plan has none
+       * @description Optional: `null` is no detail at all
        * @enum {string|null}
        */
       goal?:
@@ -2909,12 +2909,12 @@ export interface components {
       name?: string;
       note?: string | null;
       /**
-       * @description Left out (or `null`), the Plan has none
+       * @description Optional: `null` is no detail at all
        * @enum {string|null}
        */
       place?: "gym" | "home" | null;
       /**
-       * @description Minutes. Left out (or `null`), the Plan has none
+       * @description Minutes. Optional: `null` is no detail at all
        * @example 60
        */
       workout_duration?: number | null;

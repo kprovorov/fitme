@@ -37,9 +37,12 @@ import type { Weighed } from "../services.js";
 
 /**
  * What a write says about one of the four details a Plan may leave unset
- * (ADR 0017).
+ * (ADR 0017). It says only what holds on every write: `null` is no detail at
+ * all. What leaving the field out means differs by route (unset on `POST`,
+ * cleared on `PUT`, unchanged on `PATCH`), so each route's own description
+ * says it.
  */
-const UNSET_DETAIL = "Left out (or `null`), the Plan has none";
+const UNSET_DETAIL = "Optional: `null` is no detail at all";
 
 /** A Plan's own columns, shared by the summary and the Plan in full. */
 const planColumns = {
@@ -374,7 +377,7 @@ const NewPlanBody = z
 
 const createPlanRoute = createRoute({
   description:
-    "Creates the Plan with its Workouts, Exercises and sets in one transaction: nothing is saved unless all of it is. Only `name` and `frequency` are required: `goal`, `place`, `experience_level` and `workout_duration` are optional, and one left out (or sent as `null`) is unset on the Plan, which answers it as `null` ever after. Every Exercise slug is checked against the Library first. The server gives each Workout its `cover`, a Library Cover suiting the muscle group its Exercises train most, different for each Workout while the Library has enough (`null` when it has none); a request can't choose one. By default the new Plan becomes the User's active one and every other Plan goes inactive. Not idempotent: a retried request can create a second Plan.",
+    "Creates the Plan with its Workouts, Exercises and sets in one transaction: nothing is saved unless all of it is. `goal`, `place`, `experience_level` and `workout_duration` are optional: one left out (or sent as `null`) is unset on the Plan, which answers it as `null` ever after. Everything else (`name`, `frequency`, `description` and `workouts`) is required. Every Exercise slug is checked against the Library first. The server gives each Workout its `cover`, a Library Cover suiting the muscle group its Exercises train most, different for each Workout while the Library has enough (`null` when it has none); a request can't choose one. By default the new Plan becomes the User's active one and every other Plan goes inactive. Not idempotent: a retried request can create a second Plan.",
   method: "post",
   middleware: [requires("write")] as const,
   path: "/",

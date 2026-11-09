@@ -478,7 +478,7 @@
             "type": "string",
             "nullable": true,
             "enum": ["beginner", "intermediate", "advanced", null],
-            "description": "Left out (or `null`), the Plan has none"
+            "description": "Optional: `null` is no detail at all"
           },
           "frequency": {
             "type": "integer",
@@ -498,7 +498,7 @@
               "general-health-fitness",
               null
             ],
-            "description": "Left out (or `null`), the Plan has none"
+            "description": "Optional: `null` is no detail at all"
           },
           "name": {
             "type": "string",
@@ -515,14 +515,14 @@
             "type": "string",
             "nullable": true,
             "enum": ["gym", "home", null],
-            "description": "Left out (or `null`), the Plan has none"
+            "description": "Optional: `null` is no detail at all"
           },
           "workout_duration": {
             "type": "integer",
             "nullable": true,
             "minimum": 1,
             "maximum": 600,
-            "description": "Minutes. Left out (or `null`), the Plan has none",
+            "description": "Minutes. Optional: `null` is no detail at all",
             "example": 60
           },
           "workouts": {
@@ -648,7 +648,7 @@
             "type": "string",
             "nullable": true,
             "enum": ["beginner", "intermediate", "advanced", null],
-            "description": "Left out (or `null`), the Plan has none"
+            "description": "Optional: `null` is no detail at all"
           },
           "frequency": {
             "type": "integer",
@@ -668,7 +668,7 @@
               "general-health-fitness",
               null
             ],
-            "description": "Left out (or `null`), the Plan has none"
+            "description": "Optional: `null` is no detail at all"
           },
           "name": {
             "type": "string",
@@ -686,14 +686,14 @@
             "type": "string",
             "nullable": true,
             "enum": ["gym", "home", null],
-            "description": "Left out (or `null`), the Plan has none"
+            "description": "Optional: `null` is no detail at all"
           },
           "workout_duration": {
             "type": "integer",
             "nullable": true,
             "minimum": 1,
             "maximum": 600,
-            "description": "Minutes. Left out (or `null`), the Plan has none",
+            "description": "Minutes. Optional: `null` is no detail at all",
             "example": 60
           },
           "workouts": {
@@ -821,7 +821,7 @@
             "type": "string",
             "nullable": true,
             "enum": ["beginner", "intermediate", "advanced", null],
-            "description": "Left out (or `null`), the Plan has none"
+            "description": "Optional: `null` is no detail at all"
           },
           "frequency": {
             "type": "integer",
@@ -841,7 +841,7 @@
               "general-health-fitness",
               null
             ],
-            "description": "Left out (or `null`), the Plan has none"
+            "description": "Optional: `null` is no detail at all"
           },
           "name": {
             "type": "string",
@@ -858,14 +858,14 @@
             "type": "string",
             "nullable": true,
             "enum": ["gym", "home", null],
-            "description": "Left out (or `null`), the Plan has none"
+            "description": "Optional: `null` is no detail at all"
           },
           "workout_duration": {
             "type": "integer",
             "nullable": true,
             "minimum": 1,
             "maximum": 600,
-            "description": "Minutes. Left out (or `null`), the Plan has none",
+            "description": "Minutes. Optional: `null` is no detail at all",
             "example": 60
           }
         },
@@ -1843,7 +1843,7 @@
         }
       },
       "post": {
-        "description": "Creates the Plan with its Workouts, Exercises and sets in one transaction: nothing is saved unless all of it is. Only `name` and `frequency` are required: `goal`, `place`, `experience_level` and `workout_duration` are optional, and one left out (or sent as `null`) is unset on the Plan, which answers it as `null` ever after. Every Exercise slug is checked against the Library first. The server gives each Workout its `cover`, a Library Cover suiting the muscle group its Exercises train most, different for each Workout while the Library has enough (`null` when it has none); a request can't choose one. By default the new Plan becomes the User's active one and every other Plan goes inactive. Not idempotent: a retried request can create a second Plan.",
+        "description": "Creates the Plan with its Workouts, Exercises and sets in one transaction: nothing is saved unless all of it is. `goal`, `place`, `experience_level` and `workout_duration` are optional: one left out (or sent as `null`) is unset on the Plan, which answers it as `null` ever after. Everything else (`name`, `frequency`, `description` and `workouts`) is required. Every Exercise slug is checked against the Library first. The server gives each Workout its `cover`, a Library Cover suiting the muscle group its Exercises train most, different for each Workout while the Library has enough (`null` when it has none); a request can't choose one. By default the new Plan becomes the User's active one and every other Plan goes inactive. Not idempotent: a retried request can create a second Plan.",
         "security": [
           {
             "bearerAuth": []
