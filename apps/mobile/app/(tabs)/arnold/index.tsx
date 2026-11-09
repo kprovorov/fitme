@@ -57,7 +57,6 @@ import type { ArnoldAttachment } from "~/hooks/arnold-attachments";
 import { useSelectedArnoldModel } from "~/hooks/arnold-model";
 import { useIsProQuery } from "~/hooks/revenueCat";
 import { readAttachmentDataUrl } from "~/lib/arnold-attachment-picker";
-import { ATTACHMENTS_ENABLED } from "~/lib/arnold-attachments";
 import {
   arnoldErrorAction,
   arnoldErrorKind,
@@ -640,22 +639,20 @@ const ArnoldChat = ({
         >
           <ConversationScrollButton />
           <PromptInput>
-            {ATTACHMENTS_ENABLED ? (
-              <Link asChild href="/arnold/attachments">
-                {/* Disabled once the Conversation is full of photos: the
-                    sheet would have nothing to offer, so the composer says
-                    why and offers a new Conversation instead. */}
-                <PromptInputAction
-                  accessibilityLabel={t("arnold.composer.addToChat")}
-                  disabled={isConversationFull}
-                >
-                  <SymbolImage
-                    className="text-body text-muted-foreground"
-                    name="plus"
-                  />
-                </PromptInputAction>
-              </Link>
-            ) : null}
+            <Link asChild href="/arnold/attachments">
+              {/* Disabled once the Conversation is full of photos: the sheet
+                  would have nothing to offer, so the composer says why and
+                  offers a new Conversation instead. */}
+              <PromptInputAction
+                accessibilityLabel={t("arnold.composer.addToChat")}
+                disabled={isConversationFull}
+              >
+                <SymbolImage
+                  className="text-body text-muted-foreground"
+                  name="plus"
+                />
+              </PromptInputAction>
+            </Link>
             <PromptInputBody>
               <PromptInputTextarea
                 placeholder={t("arnold.composer.placeholder")}
