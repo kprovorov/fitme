@@ -302,7 +302,7 @@ describe("filtering and paging", () => {
   it("has no chip row when nothing is chosen", async () => {
     await renderView();
 
-    expect(screen.queryByTestId("muscle-group-chips")).toBeNull();
+    expect(screen.queryByTestId("choice-chips")).toBeNull();
   });
 
   it("removes a Muscle group from its chip at once, and the last chip leaves no row", async () => {
@@ -310,7 +310,7 @@ describe("filtering and paging", () => {
     await renderView();
     list.mockClear();
 
-    const chips = screen.getByTestId("muscle-group-chips");
+    const chips = screen.getByTestId("choice-chips");
     expect(chips.props.className).toContain("flex-wrap");
     expect(
       within(chips)
@@ -336,7 +336,7 @@ describe("filtering and paging", () => {
     await advance(0);
 
     expect(list).toHaveBeenLastCalledWith({ limit: 20, offset: 0 });
-    expect(screen.queryByTestId("muscle-group-chips")).toBeNull();
+    expect(screen.queryByTestId("choice-chips")).toBeNull();
     expect(screen.getByText("Bench Press 01")).toBeTruthy();
   });
 

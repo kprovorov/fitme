@@ -10,6 +10,7 @@
     "muscles": "Músculs",
     "equipment": "Equipament",
     "removeMuscleGroup": "Elimina {{muscleGroup}}",
+    "removeEquipment": "Elimina {{equipment}}",
     "reset": "Restableix",
     "confirm": "Fet",
     "loadErrorTitle": "No s'han pogut carregar els exercicis",

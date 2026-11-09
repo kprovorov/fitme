@@ -10,6 +10,7 @@
     "muscles": "근육",
     "equipment": "장비",
     "removeMuscleGroup": "{{muscleGroup}} 제거",
+    "removeEquipment": "{{equipment}} 제거",
     "reset": "초기화",
     "confirm": "완료",
     "loadErrorTitle": "종목을 불러오지 못했어요",

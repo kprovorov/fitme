@@ -10,6 +10,7 @@
     "muscles": "Spieren",
     "equipment": "Materiaal",
     "removeMuscleGroup": "{{muscleGroup}} verwijderen",
+    "removeEquipment": "{{equipment}} verwijderen",
     "reset": "Wissen",
     "confirm": "Klaar",
     "loadErrorTitle": "Oefeningen laden mislukt",

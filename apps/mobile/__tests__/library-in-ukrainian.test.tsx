@@ -101,7 +101,7 @@ describe("the Library tab in Ukrainian", () => {
       "Пошук вправ"
     );
     expect(screen.getByRole("button", { name: "М’язи" })).toBeTruthy();
-    expect(screen.queryByTestId("muscle-group-chips")).toBeNull();
+    expect(screen.queryByTestId("choice-chips")).toBeNull();
     expect(screen.getByText("Жим лежачи")).toBeTruthy();
   });
 
@@ -112,7 +112,7 @@ describe("the Library tab in Ukrainian", () => {
     await settle(client);
 
     expect(
-      within(screen.getByTestId("muscle-group-chips"))
+      within(screen.getByTestId("choice-chips"))
         .getAllByRole("button")
         .map((chip) => chip.props.accessibilityLabel)
     ).toEqual(["Видалити Груди", "Видалити Трицепс"]);

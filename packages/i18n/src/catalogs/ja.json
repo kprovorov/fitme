@@ -10,6 +10,7 @@
     "muscles": "部位",
     "equipment": "器具",
     "removeMuscleGroup": "{{muscleGroup}}を解除",
+    "removeEquipment": "{{equipment}}を解除",
     "reset": "リセット",
     "confirm": "完了",
     "loadErrorTitle": "種目を読み込めませんでした",

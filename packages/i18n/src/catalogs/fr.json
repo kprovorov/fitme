@@ -10,6 +10,7 @@
     "muscles": "Muscles",
     "equipment": "Équipement",
     "removeMuscleGroup": "Retirer {{muscleGroup}}",
+    "removeEquipment": "Retirer {{equipment}}",
     "reset": "Réinitialiser",
     "confirm": "Terminé",
     "loadErrorTitle": "Impossible de charger les exercices",

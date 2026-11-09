@@ -10,6 +10,7 @@
     "muscles": "肌群",
     "equipment": "器材",
     "removeMuscleGroup": "移除{{muscleGroup}}",
+    "removeEquipment": "移除{{equipment}}",
     "reset": "重設",
     "confirm": "完成",
     "loadErrorTitle": "無法載入訓練動作",

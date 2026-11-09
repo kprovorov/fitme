@@ -10,6 +10,7 @@
     "muscles": "Muskeln",
     "equipment": "Geräte",
     "removeMuscleGroup": "{{muscleGroup}} entfernen",
+    "removeEquipment": "{{equipment}} entfernen",
     "reset": "Zurücksetzen",
     "confirm": "Fertig",
     "loadErrorTitle": "Übungen konnten nicht geladen werden",

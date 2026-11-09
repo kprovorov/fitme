@@ -10,6 +10,7 @@
     "muscles": "М’язи",
     "equipment": "Обладнання",
     "removeMuscleGroup": "Видалити {{muscleGroup}}",
+    "removeEquipment": "Видалити {{equipment}}",
     "reset": "Скинути",
     "confirm": "Готово",
     "loadErrorTitle": "Не вдалося завантажити вправи",
