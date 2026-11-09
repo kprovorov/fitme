@@ -3,6 +3,7 @@ import { useCallback } from "react";
 import { useTranslation } from "react-i18next";
 import { ActivityIndicator, ScrollView, View } from "react-native";
 
+import { EquipmentBadges } from "~/components/exercises/equipment-badges";
 import ExerciseVideo from "~/components/exercises/exercise-video";
 import { Button } from "~/components/ui/button";
 import { Text } from "~/components/ui/text";
@@ -36,6 +37,7 @@ const ExerciseScreen = () => {
               <ExerciseVideo url={exercise.video_url} />
             </View>
           ) : null}
+          <EquipmentBadges equipment={exercise.equipment} />
           <P>{exercise.description}</P>
           <Muted>{exercise.instructions}</Muted>
         </VStack>
