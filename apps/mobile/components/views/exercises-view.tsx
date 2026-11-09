@@ -78,7 +78,7 @@ const ExercisesView = ({
   // Where the screen's Equipment choice is kept, its own key like the Muscle
   // group one. Left out, the screen has no Equipment pill and filters by none.
   equipmentChoiceKey?: string;
-  // The Muscles pill can't open the sheet (the picker, while saving).
+  // Neither pill can open its sheet (the picker, while saving).
   musclesDisabled?: boolean;
   // Pull to refresh (the Library tab).
   refreshable?: boolean;
