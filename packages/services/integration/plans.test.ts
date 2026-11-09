@@ -278,7 +278,9 @@ describe("plan services", () => {
       expect(plan).toStrictEqual({
         created_at: "2026-01-01T00:00:00+00:00",
         description: "Older plan description",
-        experience_level: "intermediate",
+        // `seedPlan` sends neither, and the columns lost their defaults
+        // (ADR 0017), so both read back unset.
+        experience_level: null,
         frequency: 3,
         goal: "muscle-gain",
         id: older.id,
@@ -287,7 +289,7 @@ describe("plan services", () => {
         note: "Keep it",
         place: "gym",
         updated_at: jsonTimestamp,
-        workout_duration: 60,
+        workout_duration: null,
         workouts: [
           {
             cover: dayACover,
@@ -562,7 +564,8 @@ describe("plan services", () => {
       expect(activated).toStrictEqual({
         created_at: "2026-02-01T00:00:00+00:00",
         description: "Second description",
-        experience_level: "intermediate",
+        // Unset, as `seedPlan` leaves them (ADR 0017).
+        experience_level: null,
         frequency: 3,
         goal: "muscle-gain",
         id: second.id,
@@ -571,7 +574,7 @@ describe("plan services", () => {
         note: "Keep it",
         place: "gym",
         updated_at: jsonTimestamp,
-        workout_duration: 60,
+        workout_duration: null,
         workouts: [
           {
             cover: dayACover,

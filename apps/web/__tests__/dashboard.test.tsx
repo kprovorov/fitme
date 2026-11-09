@@ -231,6 +231,38 @@ describe("dashboard view", () => {
     expect(markup).toContain("Day A");
   });
 
+  // ADR 0017: a Plan built by hand leaves the four details unset.
+  it("leaves out each detail an unset Plan hasn't got, and its duration", async () => {
+    const result = await load(
+      serving(
+        [
+          plan({
+            experience_level: null,
+            goal: null,
+            place: null,
+            workout_duration: null,
+          }),
+        ],
+        []
+      )
+    );
+
+    if (!result.ok) {
+      throw new Error("Expected the read to succeed");
+    }
+
+    const markup = renderToStaticMarkup(<DashboardView data={result.data} />);
+
+    expect(markup).toContain("Full body");
+    // The schedule keeps the frequency and drops the unset duration, so no
+    // term reads blank and no bare unit is left behind.
+    expect(markup).toContain("3x / week");
+    expect(markup).not.toContain(" min");
+    expect(
+      ["Goal", "Place", "Level"].filter((term) => markup.includes(term))
+    ).toStrictEqual([]);
+  });
+
   it("renders the empty state without Plans or sessions", async () => {
     const result = await load(serving([], []));
 

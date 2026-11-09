@@ -1,3 +1,42 @@
 # Deliberate breaking API changes CI allows, one per line, copied from the
 # oasdiff error or warning (see "apps/library" in AGENTS.md). Empty unless a
 # removal is under review.
+
+# FIT-558: a Plan's goal, place, experience level and workout duration are
+# optional (ADR 0017), so every response carrying a Plan answers them as
+# nullable. Safe because MIN_APP_VERSION is 2.6.1 (FIT-556), the first release
+# whose build shows an unset Plan detail cleanly; every older build is cut off
+# by the minimum version gate. Empty this file again in the follow-up once
+# this is on `main`.
+GET /v1/plans the response property `data/items/experience_level` became nullable for the status `200`
+GET /v1/plans the response property `data/items/goal` became nullable for the status `200`
+GET /v1/plans the response property `data/items/place` became nullable for the status `200`
+GET /v1/plans the response property `data/items/workout_duration` became nullable for the status `200`
+POST /v1/plans the response property `data/experience_level` became nullable for the status `201`
+POST /v1/plans the response property `data/goal` became nullable for the status `201`
+POST /v1/plans the response property `data/place` became nullable for the status `201`
+POST /v1/plans the response property `data/workout_duration` became nullable for the status `201`
+GET /v1/plans/active the response property `data/experience_level` became nullable for the status `200`
+GET /v1/plans/active the response property `data/goal` became nullable for the status `200`
+GET /v1/plans/active the response property `data/place` became nullable for the status `200`
+GET /v1/plans/active the response property `data/workout_duration` became nullable for the status `200`
+GET /v1/plans/{id} the response property `data/experience_level` became nullable for the status `200`
+GET /v1/plans/{id} the response property `data/goal` became nullable for the status `200`
+GET /v1/plans/{id} the response property `data/place` became nullable for the status `200`
+GET /v1/plans/{id} the response property `data/workout_duration` became nullable for the status `200`
+PATCH /v1/plans/{id} the response property `data/experience_level` became nullable for the status `200`
+PATCH /v1/plans/{id} the response property `data/goal` became nullable for the status `200`
+PATCH /v1/plans/{id} the response property `data/place` became nullable for the status `200`
+PATCH /v1/plans/{id} the response property `data/workout_duration` became nullable for the status `200`
+PUT /v1/plans/{id} the response property `data/experience_level` became nullable for the status `200`
+PUT /v1/plans/{id} the response property `data/goal` became nullable for the status `200`
+PUT /v1/plans/{id} the response property `data/place` became nullable for the status `200`
+PUT /v1/plans/{id} the response property `data/workout_duration` became nullable for the status `200`
+POST /v1/plans/{id}/activate the response property `data/experience_level` became nullable for the status `200`
+POST /v1/plans/{id}/activate the response property `data/goal` became nullable for the status `200`
+POST /v1/plans/{id}/activate the response property `data/place` became nullable for the status `200`
+POST /v1/plans/{id}/activate the response property `data/workout_duration` became nullable for the status `200`
+PUT /v1/plans/{id}/workouts the response property `data/experience_level` became nullable for the status `200`
+PUT /v1/plans/{id}/workouts the response property `data/goal` became nullable for the status `200`
+PUT /v1/plans/{id}/workouts the response property `data/place` became nullable for the status `200`
+PUT /v1/plans/{id}/workouts the response property `data/workout_duration` became nullable for the status `200`

@@ -787,17 +787,49 @@ const PLAN_FIELDS = [
   "workouts",
 ] as const;
 
-/** A Plan's details as its writes take them, but its description. */
+/**
+ * One of the four details a Plan may leave unset (ADR 0017): left out or
+ * `null` it passes, and anything else must be a value the API would take.
+ */
+const isUnsetOr = (
+  value: RequestBody,
+  isValid: (value: RequestBody) => boolean
+) => value === undefined || value === null || isValid(value);
+
+/**
+ * The four details a write may leave unset (ADR 0017), as the Plan then
+ * stores them: `null` for each one left out.
+ */
+const planDetailsOf = (
+  body: Body
+): Required<
+  Pick<SeedPlan, "experience_level" | "goal" | "place" | "workout_duration">
+> => ({
+  experience_level: (body.experience_level as ExperienceLevel) ?? null,
+  goal: (body.goal as Goal) ?? null,
+  place: (body.place as Place) ?? null,
+  workout_duration: (body.workout_duration as number) ?? null,
+});
+
+/**
+ * A Plan's details as its writes take them, but its description. Only the
+ * name and the frequency are required: the four details are optional
+ * (ADR 0017).
+ */
 const hasPlanDetails = (body: Body) =>
-  experienceLevels.some((level) => level === body.experience_level) &&
+  isUnsetOr(body.experience_level, (level) =>
+    experienceLevels.some((known) => known === level)
+  ) &&
   isInteger(body.frequency, MIN_FREQUENCY, MAX_FREQUENCY) &&
-  goals.some((goal) => goal === body.goal) &&
+  isUnsetOr(body.goal, (goal) => goals.some((known) => known === goal)) &&
   isText(body.name, MAX_PLAN_NAME_LENGTH, 1) &&
   (body.note === undefined ||
     body.note === null ||
     isText(body.note, MAX_PLAN_TEXT_LENGTH)) &&
-  places.some((place) => place === body.place) &&
-  isInteger(body.workout_duration, 1, MAX_WORKOUT_DURATION_MINUTES);
+  isUnsetOr(body.place, (place) => places.some((known) => known === place)) &&
+  isUnsetOr(body.workout_duration, (duration) =>
+    isInteger(duration, 1, MAX_WORKOUT_DURATION_MINUTES)
+  );
 
 /** `POST /v1/plans`'s schema (`apps/api/src/routes/plans.ts`), the bounds included. */
 const isNewPlan = (
@@ -805,6 +837,8 @@ const isNewPlan = (
 ): body is RequestBody &
   Body & {
     activate?: boolean;
+    description: string;
+    frequency: number;
     name: string;
     workouts: NewPlanWorkout[];
   } =>
@@ -1021,6 +1055,9 @@ const createPlan = async (body: RequestBody): Promise<Response> => {
   }
 
   const plan = {
+    ...planDetailsOf(body),
+    description: body.description ?? null,
+    frequency: body.frequency,
     id: backend.id("plan"),
     is_active: activate,
     name: body.name,
@@ -1147,13 +1184,10 @@ const savePlan = async (
   );
 
   Object.assign(plan, {
+    ...planDetailsOf(body),
     description: body.description ?? null,
-    experience_level: body.experience_level,
     frequency: body.frequency,
-    goal: body.goal,
     name: body.name,
-    place: body.place,
-    workout_duration: body.workout_duration,
     workouts: body.workouts.map((workout, index) => {
       const workoutId = workout.id ?? backend.id("workout");
 

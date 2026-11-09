@@ -22,6 +22,30 @@ import type {
   DashboardSession,
 } from "~/lib/dashboard";
 
+/**
+ * One of a Plan's four optional details (ADR 0017), shown only when the Plan
+ * has it: an unset one leaves out its whole term, rather than reading blank.
+ */
+const PlanDetail = ({
+  label,
+  value,
+}: {
+  label: string;
+  value: string | undefined;
+}) =>
+  value === undefined ? null : (
+    <div>
+      <dt className="text-muted-foreground">{label}</dt>
+      <dd className="text-subhead-emphasized">{value}</dd>
+    </div>
+  );
+
+/** A Plan's schedule: its frequency, and its workout duration when it has one. */
+const scheduleOf = (plan: DashboardPlan) =>
+  plan.workout_duration === null
+    ? `${plan.frequency}x / week`
+    : `${plan.frequency}x / week · ${plan.workout_duration} min`;
+
 const PlanCard = ({ plan }: { plan: DashboardPlan }) => (
   <Card>
     <CardHeader>
@@ -39,39 +63,24 @@ const PlanCard = ({ plan }: { plan: DashboardPlan }) => (
     </CardHeader>
     <CardContent>
       <dl className="text-subhead grid grid-cols-2 gap-x-6 gap-y-2 sm:grid-cols-4">
-        <div>
-          <dt className="text-muted-foreground">Goal</dt>
-          <dd className="text-subhead-emphasized">
-            {getGoalLabel(
-              // SAFETY: This helper returns undefined for strings outside Goal.
-              plan.goal as Goal
-            )}
-          </dd>
-        </div>
-        <div>
-          <dt className="text-muted-foreground">Place</dt>
-          <dd className="text-subhead-emphasized">
-            {getPlaceLabel(
-              // SAFETY: This helper returns undefined for strings outside Place.
-              plan.place as Place
-            )}
-          </dd>
-        </div>
-        <div>
-          <dt className="text-muted-foreground">Level</dt>
-          <dd className="text-subhead-emphasized">
-            {getExperienceLevelLabel(
-              // SAFETY: This helper returns undefined for strings outside ExperienceLevel.
-              plan.experience_level as ExperienceLevel
-            )}
-          </dd>
-        </div>
-        <div>
-          <dt className="text-muted-foreground">Schedule</dt>
-          <dd className="text-subhead-emphasized">
-            {plan.frequency}x / week · {plan.workout_duration} min
-          </dd>
-        </div>
+        <PlanDetail
+          label="Goal"
+          // SAFETY: This helper returns undefined for strings outside Goal.
+          value={getGoalLabel(plan.goal as Goal)}
+        />
+        <PlanDetail
+          label="Place"
+          // SAFETY: This helper returns undefined for strings outside Place.
+          value={getPlaceLabel(plan.place as Place)}
+        />
+        <PlanDetail
+          label="Level"
+          value={getExperienceLevelLabel(
+            // SAFETY: This helper returns undefined for strings outside ExperienceLevel.
+            plan.experience_level as ExperienceLevel
+          )}
+        />
+        <PlanDetail label="Schedule" value={scheduleOf(plan)} />
       </dl>
       {plan.created_at ? (
         <p className="text-caption-1 text-muted-foreground mt-4">

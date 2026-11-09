@@ -163,7 +163,8 @@
           },
           "experience_level": {
             "type": "string",
-            "description": "`beginner`, `intermediate` or `advanced`",
+            "nullable": true,
+            "description": "`beginner`, `intermediate` or `advanced`, `null` when the Plan has none",
             "example": "intermediate"
           },
           "frequency": {
@@ -173,6 +174,8 @@
           },
           "goal": {
             "type": "string",
+            "nullable": true,
+            "description": "`null` when the Plan has none",
             "example": "build_muscle"
           },
           "id": {
@@ -194,7 +197,8 @@
           },
           "place": {
             "type": "string",
-            "description": "`gym` or `home`",
+            "nullable": true,
+            "description": "`gym` or `home`, `null` when the Plan has none",
             "example": "gym"
           },
           "updated_at": {
@@ -205,7 +209,8 @@
           },
           "workout_duration": {
             "type": "integer",
-            "description": "Minutes",
+            "nullable": true,
+            "description": "Minutes, `null` when the Plan has none",
             "example": 60
           },
           "workouts": {
@@ -277,7 +282,8 @@
           },
           "experience_level": {
             "type": "string",
-            "description": "`beginner`, `intermediate` or `advanced`",
+            "nullable": true,
+            "description": "`beginner`, `intermediate` or `advanced`, `null` when the Plan has none",
             "example": "intermediate"
           },
           "frequency": {
@@ -287,6 +293,8 @@
           },
           "goal": {
             "type": "string",
+            "nullable": true,
+            "description": "`null` when the Plan has none",
             "example": "build_muscle"
           },
           "id": {
@@ -308,7 +316,8 @@
           },
           "place": {
             "type": "string",
-            "description": "`gym` or `home`",
+            "nullable": true,
+            "description": "`gym` or `home`, `null` when the Plan has none",
             "example": "gym"
           },
           "updated_at": {
@@ -319,7 +328,8 @@
           },
           "workout_duration": {
             "type": "integer",
-            "description": "Minutes",
+            "nullable": true,
+            "description": "Minutes, `null` when the Plan has none",
             "example": 60
           },
           "weight_unit": {
@@ -466,7 +476,9 @@
           },
           "experience_level": {
             "type": "string",
-            "enum": ["beginner", "intermediate", "advanced"]
+            "nullable": true,
+            "enum": ["beginner", "intermediate", "advanced", null],
+            "description": "Optional: `null` is no detail at all"
           },
           "frequency": {
             "type": "integer",
@@ -477,13 +489,16 @@
           },
           "goal": {
             "type": "string",
+            "nullable": true,
             "enum": [
               "muscle-gain",
               "fat-loss",
               "recomposition",
               "strength-performance",
-              "general-health-fitness"
-            ]
+              "general-health-fitness",
+              null
+            ],
+            "description": "Optional: `null` is no detail at all"
           },
           "name": {
             "type": "string",
@@ -498,13 +513,16 @@
           },
           "place": {
             "type": "string",
-            "enum": ["gym", "home"]
+            "nullable": true,
+            "enum": ["gym", "home", null],
+            "description": "Optional: `null` is no detail at all"
           },
           "workout_duration": {
             "type": "integer",
+            "nullable": true,
             "minimum": 1,
             "maximum": 600,
-            "description": "Minutes",
+            "description": "Minutes. Optional: `null` is no detail at all",
             "example": 60
           },
           "workouts": {
@@ -517,16 +535,7 @@
             "description": "Every Workout of the Plan, in rotation order: the first is up next. Every `order` comes from the array positions"
           }
         },
-        "required": [
-          "description",
-          "experience_level",
-          "frequency",
-          "goal",
-          "name",
-          "place",
-          "workout_duration",
-          "workouts"
-        ],
+        "required": ["description", "frequency", "name", "workouts"],
         "additionalProperties": false
       },
       "NewPlanWorkout": {
@@ -637,7 +646,9 @@
           },
           "experience_level": {
             "type": "string",
-            "enum": ["beginner", "intermediate", "advanced"]
+            "nullable": true,
+            "enum": ["beginner", "intermediate", "advanced", null],
+            "description": "Optional: `null` is no detail at all"
           },
           "frequency": {
             "type": "integer",
@@ -648,13 +659,16 @@
           },
           "goal": {
             "type": "string",
+            "nullable": true,
             "enum": [
               "muscle-gain",
               "fat-loss",
               "recomposition",
               "strength-performance",
-              "general-health-fitness"
-            ]
+              "general-health-fitness",
+              null
+            ],
+            "description": "Optional: `null` is no detail at all"
           },
           "name": {
             "type": "string",
@@ -670,13 +684,16 @@
           },
           "place": {
             "type": "string",
-            "enum": ["gym", "home"]
+            "nullable": true,
+            "enum": ["gym", "home", null],
+            "description": "Optional: `null` is no detail at all"
           },
           "workout_duration": {
             "type": "integer",
+            "nullable": true,
             "minimum": 1,
             "maximum": 600,
-            "description": "Minutes",
+            "description": "Minutes. Optional: `null` is no detail at all",
             "example": 60
           },
           "workouts": {
@@ -689,15 +706,7 @@
             "description": "Every Workout of the Plan, in rotation order: the first is up next. Every `order` comes from the array positions"
           }
         },
-        "required": [
-          "experience_level",
-          "frequency",
-          "goal",
-          "name",
-          "place",
-          "workout_duration",
-          "workouts"
-        ],
+        "required": ["frequency", "name", "workouts"],
         "additionalProperties": false
       },
       "SavedPlanWorkout": {
@@ -810,7 +819,9 @@
           },
           "experience_level": {
             "type": "string",
-            "enum": ["beginner", "intermediate", "advanced"]
+            "nullable": true,
+            "enum": ["beginner", "intermediate", "advanced", null],
+            "description": "Optional: `null` is no detail at all"
           },
           "frequency": {
             "type": "integer",
@@ -821,13 +832,16 @@
           },
           "goal": {
             "type": "string",
+            "nullable": true,
             "enum": [
               "muscle-gain",
               "fat-loss",
               "recomposition",
               "strength-performance",
-              "general-health-fitness"
-            ]
+              "general-health-fitness",
+              null
+            ],
+            "description": "Optional: `null` is no detail at all"
           },
           "name": {
             "type": "string",
@@ -842,13 +856,16 @@
           },
           "place": {
             "type": "string",
-            "enum": ["gym", "home"]
+            "nullable": true,
+            "enum": ["gym", "home", null],
+            "description": "Optional: `null` is no detail at all"
           },
           "workout_duration": {
             "type": "integer",
+            "nullable": true,
             "minimum": 1,
             "maximum": 600,
-            "description": "Minutes",
+            "description": "Minutes. Optional: `null` is no detail at all",
             "example": 60
           }
         },
@@ -1826,7 +1843,7 @@
         }
       },
       "post": {
-        "description": "Creates the Plan with its Workouts, Exercises and sets in one transaction: nothing is saved unless all of it is. Every Exercise slug is checked against the Library first. The server gives each Workout its `cover`, a Library Cover suiting the muscle group its Exercises train most, different for each Workout while the Library has enough (`null` when it has none); a request can't choose one. By default the new Plan becomes the User's active one and every other Plan goes inactive. Not idempotent: a retried request can create a second Plan.",
+        "description": "Creates the Plan with its Workouts, Exercises and sets in one transaction: nothing is saved unless all of it is. `goal`, `place`, `experience_level` and `workout_duration` are optional: one left out (or sent as `null`) is unset on the Plan, which answers it as `null` ever after. Everything else (`name`, `frequency`, `description` and `workouts`) is required. Every Exercise slug is checked against the Library first. The server gives each Workout its `cover`, a Library Cover suiting the muscle group its Exercises train most, different for each Workout while the Library has enough (`null` when it has none); a request can't choose one. By default the new Plan becomes the User's active one and every other Plan goes inactive. Not idempotent: a retried request can create a second Plan.",
         "security": [
           {
             "bearerAuth": []
@@ -1957,7 +1974,8 @@
                         },
                         "experience_level": {
                           "type": "string",
-                          "description": "`beginner`, `intermediate` or `advanced`",
+                          "nullable": true,
+                          "description": "`beginner`, `intermediate` or `advanced`, `null` when the Plan has none",
                           "example": "intermediate"
                         },
                         "frequency": {
@@ -1967,6 +1985,8 @@
                         },
                         "goal": {
                           "type": "string",
+                          "nullable": true,
+                          "description": "`null` when the Plan has none",
                           "example": "build_muscle"
                         },
                         "id": {
@@ -1988,7 +2008,8 @@
                         },
                         "place": {
                           "type": "string",
-                          "description": "`gym` or `home`",
+                          "nullable": true,
+                          "description": "`gym` or `home`, `null` when the Plan has none",
                           "example": "gym"
                         },
                         "updated_at": {
@@ -1999,7 +2020,8 @@
                         },
                         "workout_duration": {
                           "type": "integer",
-                          "description": "Minutes",
+                          "nullable": true,
+                          "description": "Minutes, `null` when the Plan has none",
                           "example": 60
                         },
                         "weight_unit": {
@@ -2161,7 +2183,7 @@
         }
       },
       "put": {
-        "description": "Saves the whole Plan in one transaction: nothing changes unless all of it is saved. Send every detail and every Workout, Exercise and set the Plan should have, in order. **A row sent with its `id` keeps it** and is updated in place, a row sent without one is created, and a row of the Plan the body leaves out is deleted; an optional field left out is cleared. So past Workout Sessions stay linked to the Workouts kept (a deleted Workout's Workout Sessions keep their logged sets but lose the link, and an open one keeps running), and a kept Workout keeps its `cover`: only new Workouts get one, picked as creating a Plan does, among the Covers the kept ones don't hold. An `id` must be one of this Plan's rows, under the same parent it was read under: a row can't move to another Workout or Exercise. Every Exercise slug is checked against the Library first. Whether the Plan is active doesn't change. The last save wins: there's no version check, so a change made since the Plan was read is overwritten. A repeat is harmless.",
+        "description": "Saves the whole Plan in one transaction: nothing changes unless all of it is saved. Send every detail and every Workout, Exercise and set the Plan should have, in order. **A row sent with its `id` keeps it** and is updated in place, a row sent without one is created, and a row of the Plan the body leaves out is deleted; an optional field left out is cleared, the optional details `goal`, `place`, `experience_level` and `workout_duration` among them (`name` and `frequency` are always required). So past Workout Sessions stay linked to the Workouts kept (a deleted Workout's Workout Sessions keep their logged sets but lose the link, and an open one keeps running), and a kept Workout keeps its `cover`: only new Workouts get one, picked as creating a Plan does, among the Covers the kept ones don't hold. An `id` must be one of this Plan's rows, under the same parent it was read under: a row can't move to another Workout or Exercise. Every Exercise slug is checked against the Library first. Whether the Plan is active doesn't change. The last save wins: there's no version check, so a change made since the Plan was read is overwritten. A repeat is harmless.",
         "security": [
           {
             "bearerAuth": []
@@ -2281,7 +2303,7 @@
         }
       },
       "patch": {
-        "description": "Changes only the given metadata fields (`note: null` clears the note). The Plan's Workouts, Exercises and sets, and their ids, are left as they are: a body with `workouts` is refused. Doesn't change which Plan is active. A 404 changes nothing.",
+        "description": "Changes only the given metadata fields. `null` clears the note, and the optional details `goal`, `place`, `experience_level` and `workout_duration` the same way; `name` and `frequency` can be changed but never cleared. The Plan's Workouts, Exercises and sets, and their ids, are left as they are: a body with `workouts` is refused. Doesn't change which Plan is active. A 404 changes nothing.",
         "security": [
           {
             "bearerAuth": []

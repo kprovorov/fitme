@@ -132,6 +132,17 @@ const toolPlanWith = (exercise: {
 
 const servicePlan = servicePlanWith(BENCH.slug);
 
+/**
+ * The four details a Plan built by hand leaves unset (ADR 0017): the services
+ * answer each as `null`, and the tools pass them through.
+ */
+const UNSET_DETAILS = {
+  experience_level: null,
+  goal: null,
+  place: null,
+  workout_duration: null,
+} as const;
+
 const toolPlan = toolPlanWith({
   exercise_slug: BENCH.slug,
   muscle_groups: BENCH.muscle_groups,
@@ -179,6 +190,19 @@ describe("list_plans", () => {
     const result = await call(client, "list_plans");
 
     expect(JSON.parse(result.text)).toStrictEqual([]);
+  });
+
+  it("passes a Plan's unset details through as null", async () => {
+    const unset = { ...planSummary, ...UNSET_DETAILS };
+
+    const client = await connectWithServices({
+      listPlans: () => Promise.resolve([unset]),
+    });
+
+    const result = await call(client, "list_plans");
+
+    expect(result.isError).toBeFalsy();
+    expect(JSON.parse(result.text)).toStrictEqual([unset]);
   });
 
   it("reports a database failure as a tool error without the SQL", async () => {
@@ -239,6 +263,17 @@ describe("get_plan", () => {
       })
     );
     expect(reported).toStrictEqual([expect.any(LibraryUnavailableError)]);
+  });
+
+  it("passes a Plan's unset details through as null", async () => {
+    const client = await connectWithServices({
+      getPlan: () => Promise.resolve({ ...servicePlan, ...UNSET_DETAILS }),
+    });
+
+    const result = await call(client, "get_plan", { planId: PLAN_ID });
+
+    expect(result.isError).toBeFalsy();
+    expect(result.json).toStrictEqual({ ...toolPlan, ...UNSET_DETAILS });
   });
 
   it("does not return soft-deleted or foreign plans", async () => {
@@ -382,6 +417,27 @@ describe("create_plan", () => {
     expect(result.isError).toBeTruthy();
     expect(createPlan).not.toHaveBeenCalled();
   });
+
+  // The four are optional in the Public API (ADR 0017), never here: Arnold's
+  // Plans always carry every detail.
+  it.each(["experience_level", "goal", "place", "workout_duration"])(
+    "still rejects a plan without %s before calling the service",
+    async (detail) => {
+      const createPlan = vi.fn<UserServices["createPlan"]>(() =>
+        Promise.resolve(servicePlan)
+      );
+
+      const client = await connectWithServices({ createPlan });
+      const without: Partial<typeof plan> = { ...plan };
+
+      Reflect.deleteProperty(without, detail);
+
+      const result = await call(client, "create_plan", without);
+
+      expect(result.isError).toBeTruthy();
+      expect(createPlan).not.toHaveBeenCalled();
+    }
+  );
 
   it("reports a database failure as a tool error without the SQL", async () => {
     const client = await connectWithServices({

@@ -1,8 +1,9 @@
 import { ApiError } from "@fitme/api-client";
 /**
- * The fake Public API's `PUT /v1/plans/{id}`, through the real client, as the
- * Plan builder's edit saves will reach it: the services' semantics (ADR 0016)
- * over its in-memory rows.
+ * The fake Public API's Plan writes, through the real client, as the Plan
+ * builder's saves will reach them: `PUT /v1/plans/{id}` with the services'
+ * semantics (ADR 0016) over its in-memory rows, and `POST /v1/plans` taking
+ * the four optional details (ADR 0017).
  */
 import { beforeEach, describe, expect, it } from "@jest/globals";
 
@@ -136,6 +137,40 @@ describe("the fake's PUT /v1/plans/{id}", () => {
     expect(backend.nestedPlan(backend.plans[0])).toEqual(before);
   });
 
+  // ADR 0017: the four details are optional, and the save clears the ones it
+  // isn't sent, as the whole-Plan save does.
+  it("saves a Plan whose four details are left out, answering each as null", async () => {
+    const { data: answer } = await save({
+      frequency: 4,
+      name: "Only a name",
+      workouts: [
+        {
+          exercises: [
+            { exercise_slug: "squat", id: "workout-a-e1", sets: [set(60)] },
+          ],
+          id: "workout-a",
+          name: "Day A",
+        },
+      ],
+    });
+
+    expect(answer?.data).toMatchObject({
+      experience_level: null,
+      frequency: 4,
+      goal: null,
+      name: "Only a name",
+      place: null,
+      workout_duration: null,
+    });
+
+    // The rows really hold them unset: a later read answers the same.
+    const read = await publicApi().GET("/v1/plans/{id}", {
+      params: { path: { id: "plan-1" } },
+    });
+
+    expect(read.data).toEqual(answer);
+  });
+
   it("answers 400 unknown_exercises and 404 not_found as the API does", async () => {
     const unknown = await save({
       ...details,
@@ -162,5 +197,70 @@ describe("the fake's PUT /v1/plans/{id}", () => {
 
     expect((unknown as ApiError).code).toBe("unknown_exercises");
     expect((missing as ApiError).status).toBe(404);
+  });
+});
+
+describe("the fake's POST /v1/plans", () => {
+  // ADR 0017: a Plan built by hand carries only a name and a frequency.
+  it("creates a Plan without the four details, answering each as null", async () => {
+    const { data: answer } = await publicApi().POST("/v1/plans", {
+      body: {
+        description: "",
+        frequency: 2,
+        name: "Built by hand",
+        workouts: [
+          {
+            description: "",
+            exercises: [{ exercise_slug: "squat", sets: [set(60)] }],
+            name: "Workout A",
+          },
+        ],
+      } as never,
+    });
+
+    const created = answer?.data;
+
+    if (!created) {
+      throw new Error("The create answered no Plan");
+    }
+
+    expect(created).toMatchObject({
+      experience_level: null,
+      frequency: 2,
+      goal: null,
+      is_active: true,
+      name: "Built by hand",
+      place: null,
+      workout_duration: null,
+    });
+
+    const read = await publicApi().GET("/v1/plans/{id}", {
+      params: { path: { id: created.id } },
+    });
+
+    expect(read.data?.data).toEqual(created);
+  });
+
+  it("still stores the four details a create does send", async () => {
+    const { data: answer } = await publicApi().POST("/v1/plans", {
+      body: {
+        ...details,
+        description: "",
+        workouts: [
+          {
+            description: "",
+            exercises: [{ exercise_slug: "squat", sets: [set(60)] }],
+            name: "Workout A",
+          },
+        ],
+      } as never,
+    });
+
+    expect(answer?.data).toMatchObject({
+      experience_level: "beginner",
+      goal: "muscle-gain",
+      place: "home",
+      workout_duration: 45,
+    });
   });
 });
