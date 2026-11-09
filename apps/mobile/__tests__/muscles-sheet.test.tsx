@@ -172,7 +172,7 @@ describe("the Muscles sheet over the Library tab", () => {
     expect(screen.getByRole("button", { name: "Muscles" })).toBeTruthy();
     // Chips follow the confirmed choice, in core's order, not tap order.
     expect(
-      within(screen.getByTestId("muscle-group-chips"))
+      within(screen.getByTestId("choice-chips"))
         .getAllByRole("button")
         .map((chip) => chip.props.accessibilityLabel)
     ).toEqual(["Remove Chest", "Remove Quadriceps"]);

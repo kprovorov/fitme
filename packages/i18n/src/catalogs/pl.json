@@ -10,6 +10,7 @@
     "muscles": "Mięśnie",
     "equipment": "Sprzęt",
     "removeMuscleGroup": "Usuń {{muscleGroup}}",
+    "removeEquipment": "Usuń {{equipment}}",
     "reset": "Resetuj",
     "confirm": "Gotowe",
     "loadErrorTitle": "Nie udało się wczytać ćwiczeń",

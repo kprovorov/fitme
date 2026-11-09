@@ -340,7 +340,7 @@ describe("the Exercise picker", () => {
     expect(screen.getAllByTestId(ADD_ICON)).toHaveLength(3);
     expect(screen.queryByTestId(REPLACE_ICON)).toBeNull();
     expect(screen.queryByText("Add")).toBeNull();
-    expect(screen.queryByTestId("muscle-group-chips")).toBeNull();
+    expect(screen.queryByTestId("choice-chips")).toBeNull();
   });
 
   it("opens as Replace Exercise on the replaced one's first muscle group", async () => {
@@ -413,7 +413,7 @@ describe("the Exercise picker", () => {
     );
     await settle();
 
-    expect(screen.queryByTestId("muscle-group-chips")).toBeNull();
+    expect(screen.queryByTestId("choice-chips")).toBeNull();
     // Push Up trains chest, so it was hidden while Quadriceps was chosen.
     expect(screen.getByText("Push Up")).toBeTruthy();
   });

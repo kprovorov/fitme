@@ -1,6 +1,4 @@
-import type { MuscleGroup } from "@fitme/core";
 import type { ExerciseSummary } from "@fitme/library-sdk";
-import { useRouter } from "expo-router";
 import type React from "react";
 import { useCallback, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -12,22 +10,20 @@ import {
 } from "react-native";
 import type { NativeScrollEvent, NativeSyntheticEvent } from "react-native";
 
+import { ExerciseFilters } from "~/components/exercises/exercise-filters";
 import {
   ExerciseRow,
   ExerciseRowSeparator,
 } from "~/components/exercises/exercise-row";
-import { MuscleGroupChips } from "~/components/exercises/muscle-group-chips";
 import { Button } from "~/components/ui/button";
 import { ErrorMessage } from "~/components/ui/error-message";
 import { Text } from "~/components/ui/text";
 import { H3 } from "~/components/ui/typography";
-import { VStack } from "~/components/ui/vstack";
-import { useEquipmentChoice } from "~/hooks/equipment-choice";
 import {
-  getMuscleChoice,
-  setMuscleChoice,
-  useMuscleChoice,
-} from "~/hooks/muscle-choice";
+  setEquipmentChoice,
+  useEquipmentChoice,
+} from "~/hooks/equipment-choice";
+import { setMuscleChoice, useMuscleChoice } from "~/hooks/muscle-choice";
 import { useExerciseSearch } from "~/hooks/queries/library";
 import { i18n } from "~/lib/i18n";
 
@@ -47,18 +43,16 @@ const noop = () => {
 const NO_EQUIPMENT_KEY = "none";
 
 /**
- * The Library, searched and filtered by Muscle group: the Library tab and the
- * Exercise picker. It is the screen's scroll container, a virtualised list
- * loading the next page as the User nears its end. The Muscles pill opens the
- * Muscles sheet over the screen, which hands the confirmed choice back under
- * `muscleChoiceKey` (`hooks/muscle-choice.ts`), the screen's own. Each chosen
- * group shows as a chip under the pill; its × removes that group at once.
- *
- * A screen given an `equipmentChoiceKey` also gets the Equipment pill after
- * the Muscles pill, over its own Equipment choice
- * (`hooks/equipment-choice.ts`): the list then narrows to Exercises needing
- * any of the chosen Equipment as well as matching the Muscle groups and the
- * search.
+ * The Library, searched and filtered: the Library tab and the Exercise
+ * picker. It is the screen's scroll container, a virtualised list loading the
+ * next page as the User nears its end. Its header is `ExerciseFilters`: the
+ * Muscles pill over the screen's own Muscle group choice
+ * (`muscleChoiceKey`, `hooks/muscle-choice.ts`), the Equipment pill over its
+ * Equipment choice when it has one (`equipmentChoiceKey`,
+ * `hooks/equipment-choice.ts`; left out, the screen has neither the pill nor
+ * a choice), and the chip row of what both have narrowed the list to. The
+ * list is the Exercises matching the search, working any chosen Muscle group
+ * and needing any chosen Equipment; "Show All Exercises" clears all three.
  */
 const ExercisesView = ({
   onExercisePress = noop,
@@ -95,7 +89,6 @@ const ExercisesView = ({
   onSearchChange: (search: string) => void;
 }) => {
   const { t } = useTranslation(undefined, { i18n });
-  const router = useRouter();
   const muscleGroups = useMuscleChoice(muscleChoiceKey);
   // Without a key the choice is a screen's own empty one, read all the same
   // so the hook order never changes.
@@ -163,31 +156,13 @@ const ExercisesView = ({
   const showAll = useCallback(() => {
     onSearchChange("");
     setMuscleChoice(muscleChoiceKey, []);
-  }, [muscleChoiceKey, onSearchChange]);
 
-  const openMuscles = useCallback(() => {
-    router.push({
-      params: { choice: muscleChoiceKey },
-      pathname: "/muscles",
-    });
-  }, [muscleChoiceKey, router]);
-
-  const openEquipment = useCallback(() => {
-    router.push({
-      params: { choice: equipmentChoiceKey },
-      pathname: "/equipment",
-    });
-  }, [equipmentChoiceKey, router]);
-
-  const removeMuscleGroup = useCallback(
-    (group: MuscleGroup) => {
-      setMuscleChoice(
-        muscleChoiceKey,
-        getMuscleChoice(muscleChoiceKey).filter((chosen) => chosen !== group)
-      );
-    },
-    [muscleChoiceKey]
-  );
+    // A screen without the pill has no Equipment choice to clear, and its
+    // stand-in key is never written to.
+    if (equipmentChoiceKey !== undefined) {
+      setEquipmentChoice(equipmentChoiceKey, []);
+    }
+  }, [equipmentChoiceKey, muscleChoiceKey, onSearchChange]);
 
   const shown = isError ? [] : (exercises ?? []);
   const lastIndex = shown.length - 1;
@@ -283,36 +258,13 @@ const ExercisesView = ({
       ListEmptyComponent={renderEmpty()}
       ListFooterComponent={renderFooter() ?? undefined}
       ListHeaderComponent={
-        <VStack className="mb-sm items-stretch">
-          <View className="gap-xs flex-row items-center self-start">
-            <Button
-              disabled={musclesDisabled}
-              fill={false}
-              icon="chevron.down"
-              iconPosition="trailing"
-              label={t("library.muscles")}
-              onPress={openMuscles}
-              size="sm"
-              variant="secondary"
-            />
-            {equipmentChoiceKey === undefined ? null : (
-              <Button
-                disabled={musclesDisabled}
-                fill={false}
-                icon="chevron.down"
-                iconPosition="trailing"
-                label={t("library.equipment")}
-                onPress={openEquipment}
-                size="sm"
-                variant="secondary"
-              />
-            )}
-          </View>
-          <MuscleGroupChips
-            groups={muscleGroups}
-            onRemove={removeMuscleGroup}
-          />
-        </VStack>
+        <ExerciseFilters
+          disabled={musclesDisabled}
+          equipment={equipment}
+          equipmentChoiceKey={equipmentChoiceKey}
+          muscleChoiceKey={muscleChoiceKey}
+          muscleGroups={muscleGroups}
+        />
       }
       onEndReached={onEndReached}
       onEndReachedThreshold={END_REACHED_THRESHOLD}
