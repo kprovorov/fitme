@@ -19,6 +19,7 @@ import {
   fireEvent,
   render,
   screen,
+  waitFor,
   within,
 } from "@testing-library/react-native";
 import type { ReactNode } from "react";
@@ -39,7 +40,11 @@ import {
   libraryExerciseNamed,
 } from "~/test-utils/fake-public-api";
 import { InAppLanguage } from "~/test-utils/in-app-language";
-import { createTestQueryClient, settle } from "~/test-utils/query-client";
+import {
+  createTestQueryClient,
+  settle,
+  until,
+} from "~/test-utils/query-client";
 import {
   dismissedToRoute,
   PushedRoutes,
@@ -473,6 +478,49 @@ describe("saving a Plan built by hand", () => {
     await press("Save");
 
     expect(savedPlan().name).toBe("Full body");
+  });
+
+  it("keeps Cancel off while the create is on its way", async () => {
+    await openChoice();
+    await buildByHand({ frequency: "1" });
+    await addExerciseTo("Workout A", "Barbell back squat");
+
+    const resume = fakePublicApi.pause(CREATE);
+    await fireEvent.press(screen.getByLabelText("Save"));
+    await until(() => fakePublicApi.count(CREATE) === 1);
+
+    // Leaving now would make the Plan, and make it active, with nothing on
+    // screen to say so.
+    await waitFor(() => {
+      expect(screen.getByLabelText("Cancel")).toBeDisabled();
+    });
+
+    resume();
+    await settle(client);
+
+    expect(savedPlan().name).toBe("Full body");
+  });
+
+  it("refuses to save when the measurement system changed while building", async () => {
+    await openChoice();
+    await buildByHand({ frequency: "1" });
+    await addExerciseTo("Workout A", "Barbell back squat");
+
+    // The User switched to imperial on another device, so the targets they
+    // typed are in the unit before it.
+    backend.profiles[0].measurement_system = "us";
+    await client.invalidateQueries({ queryKey: ["profile"] });
+    await settle(client);
+
+    expect(
+      screen.getByText(
+        "Your weight units changed on another device, so these targets are in the old one. Close the editor and open it again."
+      )
+    ).toBeTruthy();
+    expect(screen.getByLabelText("Save")).toBeDisabled();
+
+    await press("Save");
+    expect(fakePublicApi.count(CREATE)).toBe(0);
   });
 
   it("shows how long to wait when the create was rate limited", async () => {

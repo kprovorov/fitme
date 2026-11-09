@@ -25,7 +25,9 @@ import {
   usePlanDraftOpening,
 } from "~/hooks/plan-draft";
 import { useCreatePlanMutation, usePlanQuery } from "~/hooks/queries/plans";
+import type { FullPlan } from "~/hooks/queries/plans";
 import { useProfileQuery } from "~/hooks/queries/profiles";
+import type { Profile } from "~/hooks/queries/profiles";
 import {
   addDraftWorkout,
   adoptSavedIds,
@@ -71,6 +73,35 @@ const saveFailureMessage = (t: TFunction, error: ApiError | null) => {
   }
 
   return t("planEditor.errors.saveFailed");
+};
+
+/**
+ * Whether the draft's weights are in another unit than the User's are now:
+ * their measurement system was switched somewhere else while the editor was
+ * open. For an edit the API converted every stored weight, so the Plan reads
+ * back in the other unit; for a Plan being built the Profile does. Saving the
+ * draft now would write 60 kg as 60 lbs, so Save is off until it's reopened.
+ */
+const hasStaleUnits = ({
+  draft,
+  isCreating,
+  plan,
+  profile,
+}: {
+  draft: PlanDraft | undefined;
+  isCreating: boolean;
+  plan: FullPlan | null | undefined;
+  profile: Profile | null | undefined;
+}): boolean => {
+  if (!draft) {
+    return false;
+  }
+
+  if (isCreating) {
+    return profile !== undefined && draft.weightUnit !== weightUnitOf(profile);
+  }
+
+  return Boolean(plan && planUnitsChanged(draft, plan));
 };
 
 /**
@@ -295,12 +326,7 @@ const PlanEditorScreen = () => {
 
   const draft = entry?.draft;
 
-  // The User's measurement system was switched somewhere else while the
-  // editor was open, so the API converted every stored weight and the
-  // draft's targets are in the unit before it. Saving them would write
-  // 60 kg as 60 lbs, so Save is off until the editor is reopened.
-  const staleUnits =
-    draft !== undefined && plan && planUnitsChanged(draft, plan);
+  const staleUnits = hasStaleUnits({ draft, isCreating, plan, profile });
 
   const isSavable =
     draft !== undefined && !staleUnits && isSavablePlanDraft(draft);
@@ -323,8 +349,10 @@ const PlanEditorScreen = () => {
 
     if (isCreating) {
       // A create can only be saved once: the editor still knows no Plan id,
-      // so a second Save would create a second Plan. It closes on the
-      // answer either way and lands on the Plan it just made.
+      // so a second Save would create a second Plan. It closes on the answer
+      // whatever has the focus and lands on the Plan it just made, so an
+      // edit typed in the moment between Save and its answer is lost — the
+      // edit path's rebase needs a Plan id this Screen hasn't got.
       createPlan(
         { plan: createPlanBody(draft), source: "builder" },
         {
@@ -398,6 +426,9 @@ const PlanEditorScreen = () => {
 
   const cancelItems = () => [
     {
+      // A create is on its way and can't be called back: leaving now would
+      // make the Plan, and make it active, with nothing on screen to say so.
+      disabled: isCreatingPlan,
       label: t("common.cancel"),
       onPress: cancel,
       type: "button" as const,

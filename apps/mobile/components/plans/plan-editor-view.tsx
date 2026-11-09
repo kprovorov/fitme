@@ -71,20 +71,10 @@ interface ChoiceOption<TValue extends string> {
 }
 
 /** A field with its label above it, as every field of the editor has. */
-const Field = ({
-  children,
-  error,
-  label,
-}: {
-  children: ReactNode;
-  /** Shown under the field, for one that can't show its own message. */
-  error?: string;
-  label: string;
-}) => (
+const Field = ({ children, label }: { children: ReactNode; label: string }) => (
   <View className="flex flex-col items-stretch justify-center gap-2">
     <Label>{label}</Label>
     {children}
-    {error ? <ErrorMessage>{error}</ErrorMessage> : null}
   </View>
 );
 
