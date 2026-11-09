@@ -20,6 +20,20 @@ export const openUrl = async (url: string): Promise<void> => {
 };
 
 /**
+ * Opens Fitme's own page in the system Settings, where a permission the User
+ * refused (camera access for an Arnold Attachment) can be turned back on.
+ * Like `openUrl`, a system that refuses is reported rather than left as an
+ * unhandled rejection.
+ */
+export const openAppSettings = async (): Promise<void> => {
+  try {
+    await Linking.openSettings();
+  } catch (error) {
+    Sentry.captureException(error);
+  }
+};
+
+/**
  * Opens a web page of ours (the Terms, the privacy policy, a link in an Arnold
  * answer) in the in-app browser, so it never depends on the device letting the
  * app hand off to Safari. When the in-app browser throws (a URL that isn't

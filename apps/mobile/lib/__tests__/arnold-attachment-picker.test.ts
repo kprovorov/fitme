@@ -1,8 +1,9 @@
 /**
- * The photo picker and the re-encoder behind Arnold's Attachments, over
- * stood-in native modules: what the system picker is asked for, and that
- * every picked image comes back as a JPEG of at most 1600 px on its longest
- * side (ADR 0018), whatever size and format it had.
+ * The camera, the photo picker and the re-encoder behind Arnold's
+ * Attachments, over stood-in native modules: what each is asked for, what a
+ * refused camera permission answers, and that every image comes back as a
+ * JPEG of at most 1600 px on its longest side (ADR 0018), whatever size and
+ * format it had.
  */
 import { beforeEach, describe, expect, it, jest } from "@jest/globals";
 
@@ -11,6 +12,7 @@ import {
   pickLibraryPhotos,
   readAttachmentDataUrl,
   shrinkToJpeg,
+  takePhoto,
 } from "~/lib/arnold-attachment-picker";
 
 interface SaveOptions {
@@ -91,6 +93,11 @@ jest.mock("expo-image-manipulator", () => ({
 const mockLaunchImageLibrary =
   jest.fn<(options: unknown) => Promise<unknown>>();
 
+const mockLaunchCamera = jest.fn<(options: unknown) => Promise<unknown>>();
+
+const mockRequestCameraPermissions =
+  jest.fn<() => Promise<{ canAskAgain: boolean; granted: boolean }>>();
+
 const mockCaptureException = jest.fn();
 
 jest.mock("@sentry/react-native", () => ({
@@ -98,8 +105,10 @@ jest.mock("@sentry/react-native", () => ({
 }));
 
 jest.mock("expo-image-picker", () => ({
+  launchCameraAsync: (options: unknown) => mockLaunchCamera(options),
   launchImageLibraryAsync: (options: unknown) =>
     mockLaunchImageLibrary(options),
+  requestCameraPermissionsAsync: () => mockRequestCameraPermissions(),
 }));
 
 /** The base64 the stood-in file system answers per path. */
@@ -142,6 +151,8 @@ beforeEach(() => {
   mockResizes.length = 0;
   mockSaves.length = 0;
   mockLaunchImageLibrary.mockReset();
+  mockLaunchCamera.mockReset();
+  mockRequestCameraPermissions.mockReset();
 });
 
 describe("pickLibraryPhotos", () => {
@@ -257,5 +268,98 @@ describe("readAttachmentDataUrl", () => {
     await expect(
       readAttachmentDataUrl("file:///cache/purged.jpg")
     ).rejects.toThrow("No such file");
+  });
+});
+
+describe("takePhoto", () => {
+  /** Camera access granted, as the first prompt or an earlier yes gives it. */
+  const allowCamera = () =>
+    mockRequestCameraPermissions.mockResolvedValue({
+      canAskAgain: false,
+      granted: true,
+    });
+
+  it("asks for the camera permission before opening the camera", async () => {
+    allowCamera();
+    mockLaunchCamera.mockResolvedValue(picks("file:///shot.heic"));
+
+    await takePhoto();
+
+    expect(mockRequestCameraPermissions).toHaveBeenCalledTimes(1);
+    // Images only, so the camera never offers to record a video, and no
+    // EXIF: re-encoding drops it and nothing here reads it.
+    expect(mockLaunchCamera).toHaveBeenCalledWith({
+      exif: false,
+      mediaTypes: ["images"],
+    });
+  });
+
+  it("answers the photo as a JPEG, decoded within the bounds", async () => {
+    allowCamera();
+    mockDecoded.set("file:///shot.heic", { height: 4032, width: 3024 });
+    mockLaunchCamera.mockResolvedValue(picks("file:///shot.heic"));
+
+    const photo = await takePhoto();
+
+    expect(photo).toEqual({
+      image: {
+        height: MAX_ATTACHMENT_EDGE,
+        uri: "file:///shot.heic.jpg",
+        width: 1200,
+      },
+      status: "taken",
+    });
+    expect(mockSaves).toEqual([{ compress: 0.7, format: "jpeg" }]);
+    expect(mockManipulated).toEqual([
+      { options: DECODE_BOUNDS, uri: "file:///shot.heic" },
+    ]);
+  });
+
+  it("answers denied, and opens no camera, when the permission is off for good", async () => {
+    // iOS after a "Don't Allow": nothing in the app can prompt again, so
+    // the caller's only way back is Settings.
+    mockRequestCameraPermissions.mockResolvedValue({
+      canAskAgain: false,
+      granted: false,
+    });
+
+    await expect(takePhoto()).resolves.toEqual({ status: "denied" });
+    expect(mockLaunchCamera).not.toHaveBeenCalled();
+    expect(mockManipulated).toEqual([]);
+  });
+
+  it("answers cancelled when the platform can still prompt", async () => {
+    // Android's soft deny: the prompt the User just refused is where they
+    // turn it on, so sending them to Settings would be wrong.
+    mockRequestCameraPermissions.mockResolvedValue({
+      canAskAgain: true,
+      granted: false,
+    });
+
+    await expect(takePhoto()).resolves.toEqual({ status: "cancelled" });
+    expect(mockLaunchCamera).not.toHaveBeenCalled();
+  });
+
+  it("answers cancelled, and re-encodes nothing, when the User backs out", async () => {
+    allowCamera();
+    mockLaunchCamera.mockResolvedValue({ assets: null, canceled: true });
+
+    await expect(takePhoto()).resolves.toEqual({ status: "cancelled" });
+    expect(mockManipulated).toEqual([]);
+  });
+
+  it("answers cancelled when the camera comes back with no photo", async () => {
+    allowCamera();
+    mockLaunchCamera.mockResolvedValue({ assets: [], canceled: false });
+
+    await expect(takePhoto()).resolves.toEqual({ status: "cancelled" });
+  });
+
+  it("fails when the photo can't be re-encoded, so the caller can say so", async () => {
+    allowCamera();
+    mockLaunchCamera.mockResolvedValue(picks("file:///broken.heic"));
+    mockFailFor.add("file:///broken.heic");
+
+    await expect(takePhoto()).rejects.toThrow("Could not decode the image");
   });
 });

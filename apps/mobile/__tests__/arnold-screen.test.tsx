@@ -6,8 +6,9 @@
  * be refused or fail to see the screen's error states. Its own text is
  * checked in each device language. The header's options render as text through
  * the `Stack.Screen` stub, and the "+" sheet is mounted over the screen when
- * the composer pushes it, as the stack presents it, with the photo picker and
- * the re-encoder behind it stood in at their module.
+ * the composer pushes it, as the stack presents it, with the camera, the
+ * camera permission, the photo picker and the re-encoder behind it stood in
+ * at their module.
  */
 import { beforeEach, describe, expect, it, jest } from "@jest/globals";
 import { captureException } from "@sentry/react-native";
@@ -21,7 +22,8 @@ import {
   within,
 } from "@testing-library/react-native";
 import type { ReactNode } from "react";
-import { Dimensions } from "react-native";
+import { Alert, Dimensions, Linking } from "react-native";
+import type { AlertButton } from "react-native";
 
 import {
   ATTACHMENT_TRAY,
@@ -37,7 +39,11 @@ import {
   clearArnoldAttachments,
   setConversationAttachmentCount,
 } from "~/hooks/arnold-attachments";
-import type { PickedImage, PickedPhotos } from "~/lib/arnold-attachment-picker";
+import type {
+  CameraPhoto,
+  PickedImage,
+  PickedPhotos,
+} from "~/lib/arnold-attachment-picker";
 import {
   loadSavedArnoldConversation,
   savedArnoldSessionId,
@@ -53,6 +59,8 @@ import { PushedRoutes, resetStubRouter } from "~/test-utils/router-stub";
 
 const mockPresentPaywall = jest.fn();
 
+const openSettings = jest.spyOn(Linking, "openSettings");
+
 /** What the fake's refusals say: never shown to the User. */
 const SERVER_MESSAGE = /Arnold says no/u;
 
@@ -62,6 +70,7 @@ const SEND = /Send message|Надіслати повідомлення/u;
 
 /** The Attachments controls, in either device language. */
 const ADD_TO_CHAT = /Add to chat|Додати до чату/u;
+const CAMERA = /^(Camera|Камера)$/u;
 
 /** The header's New conversation button, in either device language. */
 const NEW_CONVERSATION = /^(New conversation|Нова розмова)$/u;
@@ -205,12 +214,18 @@ const dataUrlFor = (uri: string) =>
 
 const mockReadAttachmentDataUrl = jest.fn<(uri: string) => Promise<string>>();
 
-// The one module importing `expo-image-picker` and `expo-image-manipulator`
-// (its own test covers what they are asked for), so no native picker and no
-// re-encoding under Jest: a picked photo is a file uri the composer shows.
+/** What the camera answers, the permission it needs included. */
+const mockTakePhoto = jest.fn<() => Promise<CameraPhoto>>();
+
+// The one module importing `expo-image-picker`, `expo-image-manipulator`
+// and `expo-file-system` (its own test covers what they are asked for), so
+// no native picker, no camera, no permission prompt, no re-encoding and no
+// file read under Jest: a picked or taken photo is a file uri the composer
+// shows, and its bytes are the uri encoded.
 jest.mock("~/lib/arnold-attachment-picker", () => ({
   pickLibraryPhotos: (limit: number) => mockPickLibraryPhotos(limit),
   readAttachmentDataUrl: (uri: string) => mockReadAttachmentDataUrl(uri),
+  takePhoto: () => mockTakePhoto(),
 }));
 
 // The device this Conversation keeps its sent photos on (ADR 0018), in
@@ -356,6 +371,13 @@ beforeEach(() => {
     Promise.resolve(dataUrlFor(uri))
   );
   jest.mocked(captureException).mockClear();
+  mockTakePhoto.mockReset();
+  // Re-spying keeps the calls of the test before it, so it is cleared too.
+  jest.spyOn(Alert, "alert").mockReturnValue(undefined).mockClear();
+  // The real `openAppSettings` (its own test covers it), stopped at the
+  // system call, so pressing Open Settings is followed all the way.
+  openSettings.mockReset();
+  openSettings.mockResolvedValue(undefined);
   clearArnoldAttachments();
   resetStubRouter();
   mockPresentPaywall.mockClear();
@@ -573,6 +595,33 @@ describe("arnold screen", () => {
       await userEvent
         .setup()
         .press(screen.getByRole("button", { name: PHOTOS }));
+    };
+
+    /** Opens the sheet and presses Camera. */
+    const useCamera = async () => {
+      await openSheet();
+      await userEvent
+        .setup()
+        .press(screen.getByRole("button", { name: CAMERA }));
+    };
+
+    /** The alerts shown so far, newest last. */
+    const alerts = () =>
+      jest.mocked(Alert.alert).mock.calls as [string, string, AlertButton[]?][];
+
+    /** Presses `label` in the last alert, as the User does. */
+    const pressInAlert = async (label: string) => {
+      const button = (alerts().at(-1)?.[2] ?? []).find(
+        (candidate) => candidate.text === label
+      );
+
+      if (!button?.onPress) {
+        throw new Error(`No "${label}" button in the last alert`);
+      }
+
+      await act(async () => {
+        await button.onPress?.();
+      });
     };
 
     /**
@@ -1376,6 +1425,126 @@ describe("arnold screen", () => {
       await waitFor(() => expect(screen.getByText("Ask Arnold")).toBeTruthy());
       expect(fakeArnold.sent).toEqual([]);
       expect(screen.queryByText("What is this machine?")).toBeNull();
+    });
+
+    it("shows the photo the User took with the camera", async () => {
+      mockAttachmentsEnabled = true;
+      mockTakePhoto.mockResolvedValue({
+        image: photo("machine"),
+        status: "taken",
+      });
+      await renderArnold();
+      await useCamera();
+
+      expect(thumbnails()).toEqual(["file:///photos/machine.jpg"]);
+      expect(screen.getByLabelText("Photo 1 of 1")).toBeTruthy();
+      expect(screen.getByLabelText("Remove photo 1 of 1")).toBeTruthy();
+      // The sheet is gone once there is something to look at, as a pick
+      // from the library closes it.
+      expect(screen.queryByRole("button", { name: CAMERA })).toBeNull();
+    });
+
+    it("counts a taken photo toward the message's four", async () => {
+      mockAttachmentsEnabled = true;
+      mockPickLibraryPhotos.mockResolvedValue({
+        failed: 0,
+        images: [photo("a"), photo("b"), photo("c")],
+      });
+      await renderArnold();
+      await pickPhotos();
+      mockTakePhoto.mockResolvedValue({ image: photo("d"), status: "taken" });
+      await useCamera();
+
+      expect(thumbnails()).toHaveLength(4);
+
+      // Full: neither button opens anything that could take a fifth.
+      await openSheet();
+      await userEvent
+        .setup()
+        .press(screen.getByRole("button", { name: CAMERA }));
+
+      expect(mockTakePhoto).toHaveBeenCalledTimes(1);
+      expect(thumbnails()).toHaveLength(4);
+      expect(
+        screen.getByText("You can add up to 4 photos to a message.")
+      ).toBeTruthy();
+    });
+
+    it("offers Settings when camera access is off", async () => {
+      mockAttachmentsEnabled = true;
+      // iOS only prompts once: a User who said no gets this without a
+      // prompt, so the alert is the only way back.
+      mockTakePhoto.mockResolvedValue({ status: "denied" });
+      await renderArnold();
+      await useCamera();
+
+      expect(alerts().at(-1)?.slice(0, 2)).toEqual([
+        "Camera Access Needed",
+        "Fitme needs access to your camera to take photos for Arnold. You can turn it on in Settings.",
+      ]);
+      expect((alerts().at(-1)?.[2] ?? []).map((button) => button.text)).toEqual(
+        ["Cancel", "Open Settings"]
+      );
+
+      await pressInAlert("Open Settings");
+
+      expect(openSettings).toHaveBeenCalledTimes(1);
+      // Nothing was taken, and the sheet is still there to try again from.
+      expect(thumbnails()).toEqual([]);
+      expect(screen.getByRole("button", { name: CAMERA })).toBeTruthy();
+    });
+
+    it("changes nothing when the User backs out of the camera", async () => {
+      mockAttachmentsEnabled = true;
+      mockTakePhoto.mockResolvedValue({ status: "cancelled" });
+      await renderArnold();
+      await useCamera();
+
+      expect(thumbnails()).toEqual([]);
+      expect(alerts()).toEqual([]);
+      expect(screen.getByRole("button", { name: CAMERA })).toBeTruthy();
+    });
+
+    it("says so when the photo taken can't be read", async () => {
+      mockAttachmentsEnabled = true;
+      // No camera at all (a simulator), or a photo the re-encoder refused.
+      mockTakePhoto.mockRejectedValue(new Error("No camera available"));
+      await renderArnold();
+      await useCamera();
+
+      expect(
+        screen.getByText("Couldn't add that photo. Try another one.")
+      ).toBeTruthy();
+      expect(thumbnails()).toEqual([]);
+    });
+
+    it("takes a photo and offers Settings in Ukrainian", async () => {
+      mockAttachmentsEnabled = true;
+      setDeviceLanguages(["uk-UA"]);
+      mockTakePhoto.mockResolvedValue({
+        image: photo("machine"),
+        status: "taken",
+      });
+      await renderArnold();
+      await useCamera();
+
+      expect(screen.getByLabelText("Фото 1 з 1")).toBeTruthy();
+      expect(screen.queryByLabelText("Photo 1 of 1")).toBeNull();
+
+      mockTakePhoto.mockResolvedValue({ status: "denied" });
+      await useCamera();
+
+      expect(alerts().at(-1)?.slice(0, 2)).toEqual([
+        "Потрібен доступ до камери",
+        "Застосунку Fitme потрібен доступ до камери, щоб робити фото для Arnold. Увімкніть його в Параметрах.",
+      ]);
+      expect((alerts().at(-1)?.[2] ?? []).map((button) => button.text)).toEqual(
+        ["Скасувати", "Відкрити Параметри"]
+      );
+
+      await pressInAlert("Відкрити Параметри");
+
+      expect(openSettings).toHaveBeenCalledTimes(1);
     });
 
     it("picks photos and says the message is full in Ukrainian", async () => {
