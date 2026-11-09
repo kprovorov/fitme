@@ -19,9 +19,16 @@ export interface ChatContextValue {
   errorMessage?: string | null;
   input: string;
   isGenerating: boolean;
+  /**
+   * The Conversation holds as many Attachments as it can (ADR 0018): the
+   * composer says so and offers a new Conversation, the only way on.
+   */
+  isConversationFull?: boolean;
   /** A saved Conversation is replaying; sends wait for it. */
   isLoading?: boolean;
   messages: readonly ThreadMessage[];
+  /** Starts a Conversation of its own, as the header's "+" does. */
+  onNewConversation?: () => void;
   /** Removes one picked Attachment, by its id (a thumbnail's ×). */
   onRemoveAttachment?: (id: string) => void;
   onSend: () => void;

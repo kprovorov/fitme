@@ -70,8 +70,8 @@
       "pickFailed": "Couldn't add that photo. Try another one.",
       "perMessageLimit_one": "You can add up to {{count, number}} photo to a message.",
       "perMessageLimit_other": "You can add up to {{count, number}} photos to a message.",
-      "conversationFull_one": "This conversation has reached {{count, number}} photo. Start a new conversation to send more.",
-      "conversationFull_other": "This conversation has reached {{count, number}} photos. Start a new conversation to send more.",
+      "conversationFull_one": "A conversation can hold {{count, number}} photo. Start a new conversation to add more.",
+      "conversationFull_other": "A conversation can hold {{count, number}} photos. Start a new conversation to add more.",
       "photo": "Photo",
       "sentPhoto": "Photo {{position, number}} of {{total, number}}",
       "cameraDenied": {

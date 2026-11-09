@@ -70,8 +70,8 @@
       "pickFailed": "Dieses Foto konnte nicht hinzugefügt werden. Versuche ein anderes.",
       "perMessageLimit_one": "Du kannst einer Nachricht bis zu {{count, number}} Foto hinzufügen.",
       "perMessageLimit_other": "Du kannst einer Nachricht bis zu {{count, number}} Fotos hinzufügen.",
-      "conversationFull_one": "Dieses Gespräch enthält bereits {{count, number}} Foto. Starte ein neues Gespräch, um weitere zu senden.",
-      "conversationFull_other": "Dieses Gespräch enthält bereits {{count, number}} Fotos. Starte ein neues Gespräch, um weitere zu senden.",
+      "conversationFull_one": "Ein Gespräch fasst {{count, number}} Foto. Starte ein neues Gespräch, um weitere hinzuzufügen.",
+      "conversationFull_other": "Ein Gespräch fasst {{count, number}} Fotos. Starte ein neues Gespräch, um weitere hinzuzufügen.",
       "photo": "Foto",
       "sentPhoto": "Foto {{position, number}} von {{total, number}}",
       "cameraDenied": {

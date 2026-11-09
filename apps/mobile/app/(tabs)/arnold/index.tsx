@@ -44,9 +44,14 @@ import {
   addArnoldAttachments,
   arnoldAttachmentsOwner,
   clearArnoldAttachments,
+  conversationHasRoomFor,
+  markAttachmentsSending,
+  releaseSendingAttachments,
   removeArnoldAttachment,
+  setConversationAttachmentCount,
   useArnoldAttachments,
   useArnoldAttachmentsOwner,
+  useIsConversationFull,
 } from "~/hooks/arnold-attachments";
 import type { ArnoldAttachment } from "~/hooks/arnold-attachments";
 import { useSelectedArnoldModel } from "~/hooks/arnold-model";
@@ -77,6 +82,9 @@ import { getClerk } from "~/lib/clerk";
 import { segmentClient } from "~/lib/segment";
 
 const getArnoldToken = async () => (await getClerk().session?.getToken()) ?? "";
+
+/** A resolver for a read that only counts Attachments: it finds no file. */
+const NO_ATTACHMENT_URI = () => undefined;
 
 /**
  * Arnold runtime for one User. Their current Conversation is saved per
@@ -174,6 +182,38 @@ const useArnoldChat = (userId: string, composer: Composer) => {
 
   // Which Conversation the screen is on: bumped whenever one replaces it.
   const conversationRef = useRef(0);
+
+  // Every Attachment the Conversation carries, counted exactly as the bubbles
+  // show them, so a send still on its way counts before Arnold echoes it and
+  // a reopened screen counts what the saved event log replayed. eve resends
+  // each one on every model call, hence the cap (ADR 0018).
+  const conversationAttachments = useMemo(() => {
+    let total = 0;
+
+    for (const message of messages) {
+      if (message.role === "user") {
+        total += shownUserMessage(
+          message,
+          messageText(message),
+          events,
+          // How many it carried is all the cap needs, and resolving a name
+          // is a file check (`uriOf`), so nothing is looked for here.
+          NO_ATTACHMENT_URI
+        ).attachments.length;
+      }
+    }
+
+    return total;
+  }, [events, messages]);
+
+  // The "+" sheet is a screen of its own, outside this runtime, so it reads
+  // the count from the store rather than the Conversation. Declared before
+  // the error handling below, so that by the time a refused send's
+  // Attachments are given back the Conversation has stopped counting them
+  // and there is room for them in the composer.
+  useEffect(() => {
+    setConversationAttachmentCount(conversationAttachments);
+  }, [conversationAttachments]);
 
   const errorAction = arnoldErrorAction(eveError);
 
@@ -282,6 +322,10 @@ const useArnoldChat = (userId: string, composer: Composer) => {
       const sentUnder = savedArnoldSessionId(userId);
       lastSentRef.current = { attachments, copies: [], owner: sentBy, text };
       const conversation = conversationRef.current;
+      // The composer has let go of these and the Conversation hasn't got
+      // them yet, so their slots are held until one of the two is true
+      // again: nothing else may take what this message is about to fill.
+      markAttachmentsSending(attachments.length, sentBy);
       // The bytes go inline, as `data:` URL file parts after the text
       // (ADR 0018), read from the device only now: the runtime turns an
       // `image` content part into the eve file part Arnold's channel takes.
@@ -298,6 +342,9 @@ const useArnoldChat = (userId: string, composer: Composer) => {
         // being lost without a word.
         captureException(error);
         lastSentRef.current = null;
+        // Given back before the photos are, or there would be no room left
+        // for the very photos that are going back into the composer.
+        releaseSendingAttachments(attachments.length, sentBy);
 
         // Not into a Conversation started since: the message belongs to the
         // one the User left, and so do its photos.
@@ -333,10 +380,13 @@ const useArnoldChat = (userId: string, composer: Composer) => {
         // read. This message was for the one they left, so it goes nowhere.
         lastSentRef.current = null;
         dropSentAttachments(userId, copies);
+        releaseSendingAttachments(attachments.length, sentBy);
 
         return;
       }
 
+      // From here the Conversation carries them: its own count, synced
+      // below, takes over the hold.
       aui.thread.append({
         content: [
           // An image-only message carries no text part at all, rather than
@@ -369,6 +419,17 @@ const useArnoldChat = (userId: string, composer: Composer) => {
 
       // Photos alone are a message: "what is this machine?" can be a photo.
       if ((!text && attachments.length === 0) || isBusy) {
+        return;
+      }
+
+      // The Conversation's cap is the app's alone to keep (ADR 0018), so no
+      // send may walk past it: the server would only find out by having a
+      // turn cancelled mid-answer. Unreachable while the composer counts
+      // them too, and the backstop if it ever doesn't.
+      if (
+        attachments.length > 0 &&
+        !conversationHasRoomFor(attachments.length)
+      ) {
         return;
       }
 
@@ -451,6 +512,9 @@ const ArnoldChat = ({
   // the "+" sheet, a screen away, picks them. They are this User's alone.
   useArnoldAttachmentsOwner(userId);
   const attachments = useArnoldAttachments();
+  // The Conversation's own cap, counting what's picked: at it, "+" is
+  // disabled and the composer offers a new Conversation (ADR 0018).
+  const isConversationFull = useIsConversationFull();
   const { t } = useTranslation();
   const { model } = useSelectedArnoldModel();
 
@@ -539,6 +603,8 @@ const ArnoldChat = ({
         value={{
           ...chat,
           attachments,
+          isConversationFull,
+          onNewConversation: newConversation,
           onRemoveAttachment: removeArnoldAttachment,
           onSend: handleSend,
         }}
@@ -555,8 +621,12 @@ const ArnoldChat = ({
           <PromptInput>
             {ATTACHMENTS_ENABLED ? (
               <Link asChild href="/arnold/attachments">
+                {/* Disabled once the Conversation is full of photos: the
+                    sheet would have nothing to offer, so the composer says
+                    why and offers a new Conversation instead. */}
                 <PromptInputAction
                   accessibilityLabel={t("arnold.composer.addToChat")}
+                  disabled={isConversationFull}
                 >
                   <SymbolImage
                     className="text-body text-muted-foreground"

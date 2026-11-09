@@ -14,7 +14,9 @@ import { GLASS_ENABLED } from "~/components/ui/swift-ui";
 import {
   addArnoldAttachments,
   arnoldAttachmentsOwner,
+  MAX_ATTACHMENTS_PER_CONVERSATION,
   MAX_ATTACHMENTS_PER_MESSAGE,
+  useIsConversationFull,
   useRemainingAttachmentSlots,
 } from "~/hooks/arnold-attachments";
 import { pickLibraryPhotos } from "~/lib/arnold-attachment-picker";
@@ -64,9 +66,11 @@ const AddToChatSheet = () => {
   const router = useRouter();
   const { t } = useTranslation();
   const remaining = useRemainingAttachmentSlots();
-  // The message takes no more: Photos is disabled and says why, so the cap
-  // is met here rather than when the send fails, and no tap goes nowhere.
+  // Nothing more fits: Photos is disabled and says why, so the cap is met
+  // here rather than when the send fails, and no tap goes nowhere. Which cap
+  // it is decides the message, since only one of them has a way out.
   const isFull = remaining <= 0;
+  const isConversationFull = useIsConversationFull();
   // While the system picker is up and the photos are being re-encoded: the
   // picker covers the sheet, but a second tap landing either side of it
   // would open a second one.
@@ -74,6 +78,16 @@ const AddToChatSheet = () => {
   // Shown when nothing the User picked could be read: the sheet stays open,
   // so they can try another photo rather than wonder what happened.
   const [hasFailed, setHasFailed] = useState(false);
+
+  // Which cap is full: the Conversation's is the one to say, since it holds
+  // whatever the User does next with this message (ADR 0018).
+  const fullMessage = isConversationFull
+    ? t("arnold.attachments.conversationFull", {
+        count: MAX_ATTACHMENTS_PER_CONVERSATION,
+      })
+    : t("arnold.attachments.perMessageLimit", {
+        count: MAX_ATTACHMENTS_PER_MESSAGE,
+      });
 
   const pickPhotos = useCallback(async () => {
     // The picker reads 0 as "no limit", so it is never opened without room.
@@ -141,11 +155,7 @@ const AddToChatSheet = () => {
           {isFull || hasFailed ? (
             <View className="border-continuous bg-card rounded-xl px-3 py-2.5">
               <Text className="text-footnote text-muted-foreground">
-                {isFull
-                  ? t("arnold.attachments.perMessageLimit", {
-                      count: MAX_ATTACHMENTS_PER_MESSAGE,
-                    })
-                  : t("arnold.attachments.pickFailed")}
+                {isFull ? fullMessage : t("arnold.attachments.pickFailed")}
               </Text>
             </View>
           ) : null}

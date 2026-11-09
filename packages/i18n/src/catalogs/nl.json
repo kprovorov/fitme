@@ -70,8 +70,8 @@
       "pickFailed": "Deze foto kon niet worden toegevoegd. Probeer een andere.",
       "perMessageLimit_one": "Je kunt maximaal {{count, number}} foto aan een bericht toevoegen.",
       "perMessageLimit_other": "Je kunt maximaal {{count, number}} foto's aan een bericht toevoegen.",
-      "conversationFull_one": "Dit gesprek bevat al {{count, number}} foto. Begin een nieuw gesprek om er meer te versturen.",
-      "conversationFull_other": "Dit gesprek bevat al {{count, number}} foto's. Begin een nieuw gesprek om er meer te versturen.",
+      "conversationFull_one": "Een gesprek kan {{count, number}} foto bevatten. Begin een nieuw gesprek om er meer toe te voegen.",
+      "conversationFull_other": "Een gesprek kan {{count, number}} foto's bevatten. Begin een nieuw gesprek om er meer toe te voegen.",
       "photo": "Foto",
       "sentPhoto": "Foto {{position, number}} van {{total, number}}",
       "cameraDenied": {

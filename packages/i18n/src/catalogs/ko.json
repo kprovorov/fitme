@@ -62,7 +62,7 @@
       "removePhoto": "사진 {{total, number}}장 중 {{position, number}}번째 삭제",
       "pickFailed": "사진을 추가하지 못했어요. 다른 사진으로 시도해 주세요.",
       "perMessageLimit_other": "메시지 하나에 사진을 최대 {{count, number}}장까지 추가할 수 있어요.",
-      "conversationFull_other": "이 대화의 사진이 {{count, number}}장에 도달했어요. 사진을 더 보내려면 새 대화를 시작해 주세요.",
+      "conversationFull_other": "대화 하나에 사진은 최대 {{count, number}}장까지 담을 수 있어요. 더 추가하려면 새 대화를 시작해 주세요.",
       "photo": "사진",
       "sentPhoto": "사진 {{total, number}}장 중 {{position, number}}번째",
       "cameraDenied": {

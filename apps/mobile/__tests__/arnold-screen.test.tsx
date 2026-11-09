@@ -22,12 +22,13 @@ import {
 } from "@testing-library/react-native";
 import type { ReactNode } from "react";
 
-import { ATTACHMENT_TRAY } from "@/components/chat";
+import { ATTACHMENT_TRAY, CONVERSATION_FULL_NOTICE } from "@/components/chat";
 import AddToChatSheet from "~/app/(tabs)/arnold/attachments";
 import ArnoldScreen from "~/app/(tabs)/arnold/index";
 import {
   arnoldAttachmentsOwner,
   clearArnoldAttachments,
+  setConversationAttachmentCount,
 } from "~/hooks/arnold-attachments";
 import type { PickedImage, PickedPhotos } from "~/lib/arnold-attachment-picker";
 import {
@@ -156,6 +157,12 @@ jest.mock("~/components/markdown", () => {
 });
 
 jest.mock("~/components/symbol-image", () => ({ SymbolImage: () => null }));
+
+// The notice's New conversation action is the `Button` Primitive, whose
+// SwiftUI views can't mount under Jest.
+jest.mock("~/components/ui/button", () =>
+  jest.requireActual("~/test-utils/button-stub")
+);
 
 /** The signed-in Clerk User; a test changes it and renders again. */
 let mockUserId = "user_arnold_screen";
@@ -1139,6 +1146,296 @@ describe("arnold screen", () => {
       expect(
         screen.getByText("В одне повідомлення можна додати не більше 4 фото.")
       ).toBeTruthy();
+    });
+
+    describe("the Conversation's photo cap", () => {
+      /** The full-of-photos notice, in either device language. */
+      const CONVERSATION_FULL =
+        /^(A conversation can hold 10 photos\. Start a new conversation to add more\.|У розмові може бути до 10 фото\. Почніть нову розмову, щоб додати ще\.)$/u;
+
+      /** The composer's "+". */
+      const addToChat = () => screen.getByLabelText(ADD_TO_CHAT);
+
+      /** The New conversation button inside the notice, not the header's. */
+      const noticeReset = () =>
+        within(screen.getByTestId(CONVERSATION_FULL_NOTICE)).getByRole(
+          "button",
+          { name: NEW_CONVERSATION }
+        );
+
+      /**
+       * Picks `count` photos and sends them, waiting for Arnold's answer, so
+       * the next send isn't refused while a turn still runs.
+       */
+      const sendPhotos = async (count: number, text: string) => {
+        mockPickLibraryPhotos.mockResolvedValue({
+          failed: 0,
+          images: Array.from({ length: count }, (_, index) =>
+            photo(`${text}-${index}`)
+          ),
+        });
+        await pickPhotos();
+        await send(text);
+
+        const turns = fakeArnold.sent.length;
+
+        await waitFor(() =>
+          expect(screen.getAllByText(FAKE_ARNOLD_REPLY)).toHaveLength(turns)
+        );
+      };
+
+      /** Fills the Conversation: 4 + 4 + 2 Attachments, over three turns. */
+      const fillConversation = async () => {
+        await sendPhotos(4, "first");
+        await sendPhotos(4, "second");
+        await sendPhotos(2, "third");
+      };
+
+      it('disables "+" and offers a new Conversation at ten photos', async () => {
+        mockAttachmentsEnabled = true;
+        await renderArnold();
+        await fillConversation();
+
+        // Ten in, so eve would resend ten images on every model call: the
+        // Conversation takes no more, and says so where the User is looking.
+        expect(addToChat()).toBeDisabled();
+        expect(screen.getByText(CONVERSATION_FULL)).toBeTruthy();
+
+        // The sheet would have nothing to offer, so "+" opens none.
+        await userEvent.setup().press(addToChat());
+        expect(screen.queryByRole("button", { name: PHOTOS })).toBeNull();
+      });
+
+      it("starts a fresh Conversation from the notice, with room again", async () => {
+        mockAttachmentsEnabled = true;
+        await renderArnold();
+        await fillConversation();
+
+        await userEvent.setup().press(noticeReset());
+
+        await waitFor(() =>
+          expect(screen.getByText("Ask Arnold")).toBeTruthy()
+        );
+        expect(screen.queryByText(CONVERSATION_FULL)).toBeNull();
+        expect(addToChat()).toBeEnabled();
+
+        // A whole message's worth of slots in the new Conversation.
+        mockPickLibraryPhotos.mockResolvedValue({ failed: 0, images: [] });
+        await pickPhotos();
+        expect(mockPickLibraryPhotos).toHaveBeenLastCalledWith(4);
+      });
+
+      it("offers only the slots the Conversation has left", async () => {
+        mockAttachmentsEnabled = true;
+        await renderArnold();
+        await sendPhotos(4, "first");
+        await sendPhotos(4, "second");
+
+        // Eight sent, so the next message takes two however many a message
+        // holds, and the picker is never asked for a slot a send can't use.
+        expect(addToChat()).toBeEnabled();
+        mockPickLibraryPhotos.mockResolvedValue({ failed: 0, images: [] });
+        await pickPhotos();
+
+        expect(mockPickLibraryPhotos).toHaveBeenLastCalledWith(2);
+      });
+
+      it("counts the photos in the composer, before they are sent", async () => {
+        mockAttachmentsEnabled = true;
+        await renderArnold();
+        await sendPhotos(4, "first");
+        await sendPhotos(4, "second");
+        mockPickLibraryPhotos.mockResolvedValue({
+          failed: 0,
+          images: [photo("ninth"), photo("tenth")],
+        });
+        await pickPhotos();
+
+        expect(addToChat()).toBeDisabled();
+        expect(screen.getByText(CONVERSATION_FULL)).toBeTruthy();
+
+        // Dropping one leaves room for one, so the notice goes.
+        const [first] = screen.getAllByLabelText(REMOVE_PHOTO);
+        await userEvent.setup().press(first);
+
+        expect(screen.queryByText(CONVERSATION_FULL)).toBeNull();
+        expect(addToChat()).toBeEnabled();
+      });
+
+      it("counts a send's photos while they are still being copied", async () => {
+        mockAttachmentsEnabled = true;
+        await renderArnold();
+        await sendPhotos(4, "first");
+        await sendPhotos(4, "second");
+        mockPickLibraryPhotos.mockResolvedValue({
+          failed: 0,
+          images: [photo("ninth"), photo("tenth")],
+        });
+        // The device copy is a second await after the photos are read
+        // (FIT-585), and the hold has to span it too: nothing is busy
+        // meanwhile, so the sheet is one tap away.
+        const copy = fileSystem.holdNextCopy();
+        await pickPhotos();
+        await send("The last two");
+        await copy.started;
+
+        expect(screen.getByText(CONVERSATION_FULL)).toBeTruthy();
+        expect(addToChat()).toBeDisabled();
+
+        await act(async () => {
+          copy.release();
+          await Promise.resolve();
+        });
+
+        await waitFor(() => expect(fakeArnold.sent).toHaveLength(3));
+        expect(
+          fakeArnold.sent.flatMap((message) =>
+            message.parts.filter((part) => part.type === "file")
+          )
+        ).toHaveLength(10);
+        expect(addToChat()).toBeDisabled();
+      });
+
+      it("counts a send's photos while they are still being read", async () => {
+        mockAttachmentsEnabled = true;
+        await renderArnold();
+        await sendPhotos(4, "first");
+        await sendPhotos(4, "second");
+
+        let readStarted!: () => void;
+
+        const reading = new Promise<void>((resolve) => {
+          readStarted = resolve;
+        });
+
+        let finishTheRead!: () => void;
+
+        const read = new Promise<void>((resolve) => {
+          finishTheRead = resolve;
+        });
+
+        mockReadAttachmentDataUrl.mockImplementation(async (uri) => {
+          readStarted();
+          await read;
+
+          return dataUrlFor(uri);
+        });
+        mockPickLibraryPhotos.mockResolvedValue({
+          failed: 0,
+          images: [photo("ninth"), photo("tenth")],
+        });
+        await pickPhotos();
+        await send("The last two");
+        await reading;
+
+        // Held mid-read, the two are in neither the composer nor the
+        // Conversation. Counting them nowhere would offer their slots
+        // again, and the Conversation would end up over its cap.
+        expect(screen.getByText(CONVERSATION_FULL)).toBeTruthy();
+        expect(addToChat()).toBeDisabled();
+
+        await act(async () => {
+          finishTheRead();
+          await Promise.resolve();
+        });
+
+        await waitFor(() => expect(fakeArnold.sent).toHaveLength(3));
+        expect(
+          fakeArnold.sent.flatMap((message) =>
+            message.parts.filter((part) => part.type === "file")
+          )
+        ).toHaveLength(10);
+        expect(screen.getByText(CONVERSATION_FULL)).toBeTruthy();
+        expect(addToChat()).toBeDisabled();
+      });
+
+      it("gives a refused send its photos back even at the cap", async () => {
+        mockAttachmentsEnabled = true;
+        await renderArnold();
+        await sendPhotos(4, "first");
+        await sendPhotos(4, "second");
+        fakeArnold.failNextSend({ status: 500 });
+        mockPickLibraryPhotos.mockResolvedValue({
+          failed: 0,
+          images: [photo("ninth"), photo("tenth")],
+        });
+        await pickPhotos();
+        await send("The last two");
+
+        await waitFor(() =>
+          expect(screen.getByText(/Something went wrong/u)).toBeTruthy()
+        );
+
+        // The refused message is out of the Conversation, so its photos are
+        // the composer's again (FIT-586): the Conversation must have stopped
+        // counting them by then, or there would be no room to give them back
+        // and the User would be left re-picking both.
+        expect(thumbnails()).toEqual([
+          "file:///photos/ninth.jpg",
+          "file:///photos/tenth.jpg",
+        ]);
+        expect(screen.getByDisplayValue("The last two")).toBeTruthy();
+      });
+
+      it("gives the slots back when a send's photos can't be read", async () => {
+        mockAttachmentsEnabled = true;
+        await renderArnold();
+        await sendPhotos(4, "first");
+        await sendPhotos(4, "second");
+        mockReadAttachmentDataUrl.mockRejectedValue(new Error("No such file"));
+        mockPickLibraryPhotos.mockResolvedValue({
+          failed: 0,
+          images: [photo("ninth"), photo("tenth")],
+        });
+        await pickPhotos();
+        await send("The last two");
+
+        await waitFor(() => expect(captureException).toHaveBeenCalled());
+
+        // Nothing was sent, so the two are the composer's again: holding
+        // their slots would leave no room for the photos going back into it.
+        expect(thumbnails()).toEqual([
+          "file:///photos/ninth.jpg",
+          "file:///photos/tenth.jpg",
+        ]);
+        expect(screen.getByDisplayValue("The last two")).toBeTruthy();
+      });
+
+      it("still counts them after the screen is closed and reopened", async () => {
+        mockAttachmentsEnabled = true;
+        const { unmount } = await renderArnold();
+        await fillConversation();
+        expect(addToChat()).toBeDisabled();
+
+        // Closed and opened again, with the count the last screen left
+        // forgotten, as an app restart forgets it: it has to come back off
+        // the saved event log and nothing else.
+        await unmount();
+        setConversationAttachmentCount(0);
+        await renderArnold();
+
+        await waitFor(() => expect(addToChat()).toBeDisabled());
+        expect(screen.getByText(CONVERSATION_FULL)).toBeTruthy();
+      });
+
+      it("says the Conversation is full in Ukrainian", async () => {
+        mockAttachmentsEnabled = true;
+        setDeviceLanguages(["uk-UA"]);
+        await renderArnold();
+        await fillConversation();
+
+        expect(
+          screen.getByText(
+            "У розмові може бути до 10 фото. Почніть нову розмову, щоб додати ще."
+          )
+        ).toBeTruthy();
+        expect(within(noticeReset()).getByText("Нова розмова")).toBeTruthy();
+        expect(
+          screen.queryByText(
+            "A conversation can hold 10 photos. Start a new conversation to add more."
+          )
+        ).toBeNull();
+      });
     });
 
     it("names a sent photo in Ukrainian", async () => {

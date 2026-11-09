@@ -18,6 +18,7 @@ export { messageText } from "./message-text";
 // Prompt Input
 export {
   ATTACHMENT_TRAY,
+  CONVERSATION_FULL_NOTICE,
   PromptInput,
   PromptInputAction,
   PromptInputBody,

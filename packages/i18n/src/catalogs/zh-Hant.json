@@ -62,7 +62,7 @@
       "removePhoto": "移除第{{position, number}}張照片，共{{total, number}}張",
       "pickFailed": "無法新增這張照片。請換一張再試一次。",
       "perMessageLimit_other": "每則訊息最多可新增{{count, number}}張照片。",
-      "conversationFull_other": "此對話已達到{{count, number}}張照片的上限。請新增對話以傳送更多照片。",
+      "conversationFull_other": "每個對話最多可包含{{count, number}}張照片。請新增對話以新增更多照片。",
       "photo": "照片",
       "sentPhoto": "第{{position, number}}張照片，共{{total, number}}張",
       "cameraDenied": {
