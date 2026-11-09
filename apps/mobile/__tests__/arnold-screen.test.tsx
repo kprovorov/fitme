@@ -627,13 +627,14 @@ describe("arnold screen", () => {
       return pager
         ? within(pager)
             .queryAllByLabelText(VIEWER_PHOTO)
-            .map(
-              (image) =>
-                (image.props as { source: { uri: string }[] }).source[0]?.uri
-            )
-            .map((uri) =>
-              uri === undefined ? undefined : fileSystem.read(uri)
-            )
+            .map((page) => {
+              // A page whose copy this device hasn't got draws no photo at
+              // all: the Photo tile stands in its place, as in the bubble.
+              const { source } = page.props as { source?: { uri: string }[] };
+              const uri = source?.[0]?.uri;
+
+              return uri === undefined ? undefined : fileSystem.read(uri);
+            })
         : [];
     };
 
@@ -1027,6 +1028,36 @@ describe("arnold screen", () => {
 
         expect(viewerPhotos()).toEqual([]);
         expect(screen.queryByLabelText("Close")).toBeNull();
+      });
+
+      it("keeps a missing copy's place, so the numbers are the bubble's", async () => {
+        await sendPhotos("gym", "plan");
+
+        // The first photo's copy goes off the device behind the app's back
+        // (iOS purged it, the disk refused it), so its bubble shows a tile
+        // where the photo was and the second photo is still there.
+        const [sessionId] = fakeArnold.sessionIds;
+
+        const [first] = fileSystem.filesUnder(
+          `file:///memory/document/arnold-attachments/user_arnold_screen/${sessionId}`
+        );
+
+        fileSystem.remove(first ?? "");
+
+        await screen.unmount();
+        await renderArnold();
+        await waitFor(() =>
+          expect(screen.getByText(FAKE_ARNOLD_REPLY)).toBeTruthy()
+        );
+        expect(shownPhotos()).toEqual([undefined, "plan-bytes"]);
+
+        // Tapping the photo that is still there opens it, and it is still
+        // the second of two: the one this device lost keeps its page, so the
+        // viewer counts what the message carried, not what it could draw.
+        await openPhoto(2);
+
+        expect(viewerPhotos()).toEqual([undefined, "plan-bytes"]);
+        expect(screen.getByText("Photo 2 of 2")).toBeTruthy();
       });
 
       it("names the photo and its close button in Ukrainian", async () => {

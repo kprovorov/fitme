@@ -8,16 +8,19 @@ import { SentPhotosView } from "@/components/chat";
 import { sentAttachmentUri } from "~/lib/arnold-sent-attachments";
 
 /**
- * One Attachment of a message, full-screen (ADR 0018): tapping a sent photo
- * in the Conversation opens its message's photos here, in the order they
- * were sent, to swipe between and pinch-zoom.
+ * One message's Attachments, as large as the Screen holds (ADR 0018):
+ * tapping a sent photo in the Conversation opens them here, in the order
+ * they were sent, to swipe between and pinch-zoom.
  *
  * It takes the copies' names rather than their paths, and finds each one on
  * this device itself (`sentAttachmentUri`), so where a copy lives stays in
- * one module and no file path travels through a route. A name this device
- * hasn't got a copy for is left out: a bubble only makes a photo it could
- * draw tappable, so the opened one is always there, and a copy that goes
- * between the tap and this Screen leaves the viewer saying so.
+ * one module and no file path travels through a route.
+ *
+ * Every Attachment the message carried gets its page, including the ones
+ * this device has no copy for, which show the Photo tile their bubble
+ * showed: a photo is then always the number its bubble gave it, and the one
+ * that was tapped is always the one that opens, whichever copies this device
+ * is missing and whether or not one is lost between the tap and this Screen.
  */
 const PhotoViewerScreen = () => {
   const { user } = useUser();
@@ -38,42 +41,55 @@ const PhotoViewerScreen = () => {
   }>();
 
   const userId = user?.id;
+  const sent = useMemo(() => names.split(","), [names]);
 
-  const photos = useMemo(() => {
-    if (!userId) {
-      return [];
-    }
+  const photos = useMemo(
+    () =>
+      sent.map((name, index) => {
+        const uri = userId
+          ? sentAttachmentUri(userId, session, name)
+          : undefined;
 
-    return names.split(",").flatMap((name) => {
-      const uri = sentAttachmentUri(userId, session, name);
+        // The place is part of the id because an Attachment eve never named
+        // has nothing else to be told apart by, as in the bubble.
+        return uri === undefined
+          ? { id: `${index}:${name}` }
+          : { id: `${index}:${name}`, uri };
+      }),
+    [sent, session, userId]
+  );
 
-      return uri === undefined ? [] : [{ name, uri }];
-    });
-  }, [names, session, userId]);
-
-  const openedAt = photos.findIndex((photo) => photo.name === open);
+  const openedAt = sent.indexOf(open);
   const initialIndex = openedAt === -1 ? 0 : openedAt;
   const [page, setPage] = useState(initialIndex);
 
-  // Its place among them, as the bubble's thumbnail reads it, so VoiceOver
-  // says the same thing here; one photo on its own has no place to give.
+  // Its place among the message's photos, exactly as the bubble's thumbnail
+  // reads it, so VoiceOver says the same thing in both; one photo on its own
+  // has no place to give.
   const labelFor = useCallback(
     (index: number) =>
-      photos.length > 1
+      sent.length > 1
         ? t("arnold.attachments.sentPhoto", {
             position: index + 1,
-            total: photos.length,
+            total: sent.length,
           })
         : t("arnold.attachments.viewer.image"),
-    [photos.length, t]
+    [sent.length, t]
   );
 
   return (
     <>
       <Stack.Screen
         options={{
-          headerTransparent: true,
+          // Not transparent, unlike the rest of this stack: the photos sit
+          // below the header rather than under it, so a screenshot of a
+          // phone, which is the shape of the screen and so fills it, keeps
+          // its first lines instead of losing them behind the chrome.
+          headerTransparent: false,
           title: labelFor(page),
+          // Top left, where a viewer opened over something else closes
+          // (QuickLook's and Mail's Done), not where this stack's sheets put
+          // their ✓.
           unstable_headerLeftItems: () => [
             {
               accessibilityLabel: t("arnold.attachments.viewer.close"),
@@ -90,7 +106,7 @@ const PhotoViewerScreen = () => {
           initialIndex={initialIndex}
           labelFor={labelFor}
           onPageChange={setPage}
-          uris={photos.map((photo) => photo.uri)}
+          photos={photos}
         />
       </View>
     </>
