@@ -252,13 +252,17 @@ export type WorkoutSessionExerciseSet = Model & {
 
 export interface PlanData {
   description: string;
-  experience_level: ExperienceLevel;
+  /** Optional (ADR 0017): left out or `null`, the Plan has none. */
+  experience_level?: ExperienceLevel | null;
   frequency: number;
-  goal: Goal;
+  /** Optional (ADR 0017): left out or `null`, the Plan has none. */
+  goal?: Goal | null;
   name: string;
   note?: string;
-  place: Place;
-  workout_duration: number;
+  /** Optional (ADR 0017): left out or `null`, the Plan has none. */
+  place?: Place | null;
+  /** Minutes, optional (ADR 0017): left out or `null`, the Plan has none. */
+  workout_duration?: number | null;
   workouts: WorkoutData[];
 }
 

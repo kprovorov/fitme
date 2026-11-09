@@ -257,7 +257,7 @@ export interface paths {
     put?: never;
     /**
      * Create a Plan
-     * @description Creates the Plan with its Workouts, Exercises and sets in one transaction: nothing is saved unless all of it is. Every Exercise slug is checked against the Library first. The server gives each Workout its `cover`, a Library Cover suiting the muscle group its Exercises train most, different for each Workout while the Library has enough (`null` when it has none); a request can't choose one. By default the new Plan becomes the User's active one and every other Plan goes inactive. Not idempotent: a retried request can create a second Plan.
+     * @description Creates the Plan with its Workouts, Exercises and sets in one transaction: nothing is saved unless all of it is. Only `name` and `frequency` are required: `goal`, `place`, `experience_level` and `workout_duration` are optional, and one left out (or sent as `null`) is unset on the Plan, which answers it as `null` ever after. Every Exercise slug is checked against the Library first. The server gives each Workout its `cover`, a Library Cover suiting the muscle group its Exercises train most, different for each Workout while the Library has enough (`null` when it has none); a request can't choose one. By default the new Plan becomes the User's active one and every other Plan goes inactive. Not idempotent: a retried request can create a second Plan.
      */
     post: {
       parameters: {
@@ -372,17 +372,20 @@ export interface paths {
                 /** @example Three full-body days */
                 description: string | null;
                 /**
-                 * @description `beginner`, `intermediate` or `advanced`
+                 * @description `beginner`, `intermediate` or `advanced`, `null` when the Plan has none
                  * @example intermediate
                  */
-                experience_level: string;
+                experience_level: string | null;
                 /**
                  * @description Workouts a week
                  * @example 3
                  */
                 frequency: number;
-                /** @example build_muscle */
-                goal: string;
+                /**
+                 * @description `null` when the Plan has none
+                 * @example build_muscle
+                 */
+                goal: string | null;
                 /** Format: uuid */
                 id: string;
                 /** @description The User's active Plan; at most one is */
@@ -391,20 +394,20 @@ export interface paths {
                 name: string | null;
                 note: string | null;
                 /**
-                 * @description `gym` or `home`
+                 * @description `gym` or `home`, `null` when the Plan has none
                  * @example gym
                  */
-                place: string;
+                place: string | null;
                 /**
                  * @description ISO 8601
                  * @example 2026-10-21T09:00:00+00:00
                  */
                 updated_at: string | null;
                 /**
-                 * @description Minutes
+                 * @description Minutes, `null` when the Plan has none
                  * @example 60
                  */
-                workout_duration: number;
+                workout_duration: number | null;
                 weight_unit: components["schemas"]["WeightUnit"];
                 /** @description In rotation order: the first is up next */
                 workouts: components["schemas"]["PlanWorkout"][];
@@ -514,7 +517,7 @@ export interface paths {
     };
     /**
      * Save a whole Plan
-     * @description Saves the whole Plan in one transaction: nothing changes unless all of it is saved. Send every detail and every Workout, Exercise and set the Plan should have, in order. **A row sent with its `id` keeps it** and is updated in place, a row sent without one is created, and a row of the Plan the body leaves out is deleted; an optional field left out is cleared. So past Workout Sessions stay linked to the Workouts kept (a deleted Workout's Workout Sessions keep their logged sets but lose the link, and an open one keeps running), and a kept Workout keeps its `cover`: only new Workouts get one, picked as creating a Plan does, among the Covers the kept ones don't hold. An `id` must be one of this Plan's rows, under the same parent it was read under: a row can't move to another Workout or Exercise. Every Exercise slug is checked against the Library first. Whether the Plan is active doesn't change. The last save wins: there's no version check, so a change made since the Plan was read is overwritten. A repeat is harmless.
+     * @description Saves the whole Plan in one transaction: nothing changes unless all of it is saved. Send every detail and every Workout, Exercise and set the Plan should have, in order. **A row sent with its `id` keeps it** and is updated in place, a row sent without one is created, and a row of the Plan the body leaves out is deleted; an optional field left out is cleared, the optional details `goal`, `place`, `experience_level` and `workout_duration` among them (`name` and `frequency` are always required). So past Workout Sessions stay linked to the Workouts kept (a deleted Workout's Workout Sessions keep their logged sets but lose the link, and an open one keeps running), and a kept Workout keeps its `cover`: only new Workouts get one, picked as creating a Plan does, among the Covers the kept ones don't hold. An `id` must be one of this Plan's rows, under the same parent it was read under: a row can't move to another Workout or Exercise. Every Exercise slug is checked against the Library first. Whether the Plan is active doesn't change. The last save wins: there's no version check, so a change made since the Plan was read is overwritten. A repeat is harmless.
      */
     put: {
       parameters: {
@@ -667,7 +670,7 @@ export interface paths {
     head?: never;
     /**
      * Change a Plan's details
-     * @description Changes only the given metadata fields (`note: null` clears the note). The Plan's Workouts, Exercises and sets, and their ids, are left as they are: a body with `workouts` is refused. Doesn't change which Plan is active. A 404 changes nothing.
+     * @description Changes only the given metadata fields. `null` clears the note, and the optional details `goal`, `place`, `experience_level` and `workout_duration` the same way; `name` and `frequency` can be changed but never cleared. The Plan's Workouts, Exercises and sets, and their ids, are left as they are: a body with `workouts` is refused. Doesn't change which Plan is active. A 404 changes nothing.
      */
     patch: {
       parameters: {
@@ -2540,17 +2543,20 @@ export interface components {
       /** @example Three full-body days */
       description: string | null;
       /**
-       * @description `beginner`, `intermediate` or `advanced`
+       * @description `beginner`, `intermediate` or `advanced`, `null` when the Plan has none
        * @example intermediate
        */
-      experience_level: string;
+      experience_level: string | null;
       /**
        * @description Workouts a week
        * @example 3
        */
       frequency: number;
-      /** @example build_muscle */
-      goal: string;
+      /**
+       * @description `null` when the Plan has none
+       * @example build_muscle
+       */
+      goal: string | null;
       /** Format: uuid */
       id: string;
       /** @description The User's active Plan; at most one is */
@@ -2559,20 +2565,20 @@ export interface components {
       name: string | null;
       note: string | null;
       /**
-       * @description `gym` or `home`
+       * @description `gym` or `home`, `null` when the Plan has none
        * @example gym
        */
-      place: string;
+      place: string | null;
       /**
        * @description ISO 8601
        * @example 2026-10-21T09:00:00+00:00
        */
       updated_at: string | null;
       /**
-       * @description Minutes
+       * @description Minutes, `null` when the Plan has none
        * @example 60
        */
-      workout_duration: number;
+      workout_duration: number | null;
       /** @description In rotation order: the first is up next */
       workouts: components["schemas"]["WorkoutSummary"][];
     };
@@ -2603,17 +2609,20 @@ export interface components {
       /** @example Three full-body days */
       description: string | null;
       /**
-       * @description `beginner`, `intermediate` or `advanced`
+       * @description `beginner`, `intermediate` or `advanced`, `null` when the Plan has none
        * @example intermediate
        */
-      experience_level: string;
+      experience_level: string | null;
       /**
        * @description Workouts a week
        * @example 3
        */
       frequency: number;
-      /** @example build_muscle */
-      goal: string;
+      /**
+       * @description `null` when the Plan has none
+       * @example build_muscle
+       */
+      goal: string | null;
       /** Format: uuid */
       id: string;
       /** @description The User's active Plan; at most one is */
@@ -2622,20 +2631,20 @@ export interface components {
       name: string | null;
       note: string | null;
       /**
-       * @description `gym` or `home`
+       * @description `gym` or `home`, `null` when the Plan has none
        * @example gym
        */
-      place: string;
+      place: string | null;
       /**
        * @description ISO 8601
        * @example 2026-10-21T09:00:00+00:00
        */
       updated_at: string | null;
       /**
-       * @description Minutes
+       * @description Minutes, `null` when the Plan has none
        * @example 60
        */
-      workout_duration: number;
+      workout_duration: number | null;
       weight_unit: components["schemas"]["WeightUnit"];
       /** @description In rotation order: the first is up next */
       workouts: components["schemas"]["PlanWorkout"][];
@@ -2704,30 +2713,40 @@ export interface components {
       activate: boolean;
       /** @example Three full-body days */
       description: string;
-      /** @enum {string} */
-      experience_level: "beginner" | "intermediate" | "advanced";
+      /**
+       * @description Left out (or `null`), the Plan has none
+       * @enum {string|null}
+       */
+      experience_level?: "beginner" | "intermediate" | "advanced" | null;
       /**
        * @description Workouts a week
        * @example 3
        */
       frequency: number;
-      /** @enum {string} */
-      goal:
+      /**
+       * @description Left out (or `null`), the Plan has none
+       * @enum {string|null}
+       */
+      goal?:
         | "muscle-gain"
         | "fat-loss"
         | "recomposition"
         | "strength-performance"
-        | "general-health-fitness";
+        | "general-health-fitness"
+        | null;
       /** @example Full body */
       name: string;
       note?: string | null;
-      /** @enum {string} */
-      place: "gym" | "home";
       /**
-       * @description Minutes
+       * @description Left out (or `null`), the Plan has none
+       * @enum {string|null}
+       */
+      place?: "gym" | "home" | null;
+      /**
+       * @description Minutes. Left out (or `null`), the Plan has none
        * @example 60
        */
-      workout_duration: number;
+      workout_duration?: number | null;
       /** @description Every Workout of the Plan, in rotation order: the first is up next. Every `order` comes from the array positions */
       workouts: components["schemas"]["NewPlanWorkout"][];
     };
@@ -2772,31 +2791,41 @@ export interface components {
        * @example Three full-body days
        */
       description?: string;
-      /** @enum {string} */
-      experience_level: "beginner" | "intermediate" | "advanced";
+      /**
+       * @description Left out (or `null`), the Plan has none
+       * @enum {string|null}
+       */
+      experience_level?: "beginner" | "intermediate" | "advanced" | null;
       /**
        * @description Workouts a week
        * @example 3
        */
       frequency: number;
-      /** @enum {string} */
-      goal:
+      /**
+       * @description Left out (or `null`), the Plan has none
+       * @enum {string|null}
+       */
+      goal?:
         | "muscle-gain"
         | "fat-loss"
         | "recomposition"
         | "strength-performance"
-        | "general-health-fitness";
+        | "general-health-fitness"
+        | null;
       /** @example Full body */
       name: string;
       /** @description Left out (or `null`), the Plan has none */
       note?: string | null;
-      /** @enum {string} */
-      place: "gym" | "home";
       /**
-       * @description Minutes
+       * @description Left out (or `null`), the Plan has none
+       * @enum {string|null}
+       */
+      place?: "gym" | "home" | null;
+      /**
+       * @description Minutes. Left out (or `null`), the Plan has none
        * @example 60
        */
-      workout_duration: number;
+      workout_duration?: number | null;
       /** @description Every Workout of the Plan, in rotation order: the first is up next. Every `order` comes from the array positions */
       workouts: components["schemas"]["SavedPlanWorkout"][];
     };
@@ -2855,30 +2884,40 @@ export interface components {
     PlanChanges: {
       /** @example Three full-body days */
       description?: string;
-      /** @enum {string} */
-      experience_level?: "beginner" | "intermediate" | "advanced";
+      /**
+       * @description Left out (or `null`), the Plan has none
+       * @enum {string|null}
+       */
+      experience_level?: "beginner" | "intermediate" | "advanced" | null;
       /**
        * @description Workouts a week
        * @example 3
        */
       frequency?: number;
-      /** @enum {string} */
+      /**
+       * @description Left out (or `null`), the Plan has none
+       * @enum {string|null}
+       */
       goal?:
         | "muscle-gain"
         | "fat-loss"
         | "recomposition"
         | "strength-performance"
-        | "general-health-fitness";
+        | "general-health-fitness"
+        | null;
       /** @example Full body */
       name?: string;
       note?: string | null;
-      /** @enum {string} */
-      place?: "gym" | "home";
       /**
-       * @description Minutes
+       * @description Left out (or `null`), the Plan has none
+       * @enum {string|null}
+       */
+      place?: "gym" | "home" | null;
+      /**
+       * @description Minutes. Left out (or `null`), the Plan has none
        * @example 60
        */
-      workout_duration?: number;
+      workout_duration?: number | null;
     };
     ProfileChanges: {
       /** @example 31 */

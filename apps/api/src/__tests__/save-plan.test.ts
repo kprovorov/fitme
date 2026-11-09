@@ -376,9 +376,10 @@ describe("pUT /v1/plans/{id}", () => {
       }),
     ],
     [
-      "no goal",
+      // The four optional details may be left out (ADR 0017); the name can't.
+      "no name",
       invalid((payload) => {
-        Reflect.deleteProperty(payload, "goal");
+        Reflect.deleteProperty(payload, "name");
       }),
     ],
     [

@@ -35,6 +35,12 @@ import {
 } from "../schemas.js";
 import type { Weighed } from "../services.js";
 
+/**
+ * What a write says about one of the four details a Plan may leave unset
+ * (ADR 0017).
+ */
+const UNSET_DETAIL = "Left out (or `null`), the Plan has none";
+
 /** A Plan's own columns, shared by the summary and the Plan in full. */
 const planColumns = {
   created_at: z.string().nullable().openapi({
@@ -45,28 +51,35 @@ const planColumns = {
     .string()
     .nullable()
     .openapi({ example: "Three full-body days" }),
-  experience_level: z.string().openapi({
-    description: "`beginner`, `intermediate` or `advanced`",
+  experience_level: z.string().nullable().openapi({
+    description:
+      "`beginner`, `intermediate` or `advanced`, `null` when the Plan has none",
     example: "intermediate",
   }),
   frequency: z.number().int().openapi({
     description: "Workouts a week",
     example: 3,
   }),
-  goal: z.string().openapi({ example: "build_muscle" }),
+  goal: z.string().nullable().openapi({
+    description: "`null` when the Plan has none",
+    example: "build_muscle",
+  }),
   id: z.uuid(),
   is_active: z.boolean().openapi({
     description: "The User's active Plan; at most one is",
   }),
   name: z.string().nullable().openapi({ example: "Full body" }),
   note: z.string().nullable(),
-  place: z.string().openapi({ description: "`gym` or `home`", example: "gym" }),
+  place: z.string().nullable().openapi({
+    description: "`gym` or `home`, `null` when the Plan has none",
+    example: "gym",
+  }),
   updated_at: z.string().nullable().openapi({
     description: "ISO 8601",
     example: "2026-10-21T09:00:00+00:00",
   }),
-  workout_duration: z.number().int().openapi({
-    description: "Minutes",
+  workout_duration: z.number().int().nullable().openapi({
+    description: "Minutes, `null` when the Plan has none",
     example: 60,
   }),
 };
@@ -305,18 +318,29 @@ const PlanWorkoutsInput = z
       "Every Workout of the Plan, in rotation order: the first is up next. Every `order` comes from the array positions",
   });
 
-/** A Plan's metadata as a write takes it (create, or change on its own). */
+/**
+ * A Plan's metadata as a write takes it (create, or change on its own). Only
+ * the name and the frequency are required: a Plan's goal, place, experience
+ * level and workout duration are optional (ADR 0017), so a write may leave one
+ * out or send it as `null`, and the Plan then has none.
+ */
 const planMetadataFields = {
   description: z
     .string()
     .max(MAX_PLAN_TEXT_LENGTH)
     .openapi({ example: "Three full-body days" }),
-  experience_level: z.enum(experienceLevels),
+  experience_level: z
+    .enum(experienceLevels)
+    .nullable()
+    .optional()
+    .openapi({ description: UNSET_DETAIL }),
   frequency: z.number().int().min(MIN_FREQUENCY).max(MAX_FREQUENCY).openapi({
     description: "Workouts a week",
     example: 3,
   }),
-  goal: z.enum(goals),
+  goal: z.enum(goals).nullable().optional().openapi({
+    description: UNSET_DETAIL,
+  }),
   name: z
     .string()
     .trim()
@@ -324,13 +348,17 @@ const planMetadataFields = {
     .max(MAX_PLAN_NAME_LENGTH)
     .openapi({ example: "Full body" }),
   note: z.string().max(MAX_PLAN_TEXT_LENGTH).nullable().optional(),
-  place: z.enum(places),
+  place: z.enum(places).nullable().optional().openapi({
+    description: UNSET_DETAIL,
+  }),
   workout_duration: z
     .number()
     .int()
     .min(1)
     .max(MAX_WORKOUT_DURATION_MINUTES)
-    .openapi({ description: "Minutes", example: 60 }),
+    .nullable()
+    .optional()
+    .openapi({ description: `Minutes. ${UNSET_DETAIL}`, example: 60 }),
 };
 
 const NewPlanBody = z
@@ -346,7 +374,7 @@ const NewPlanBody = z
 
 const createPlanRoute = createRoute({
   description:
-    "Creates the Plan with its Workouts, Exercises and sets in one transaction: nothing is saved unless all of it is. Every Exercise slug is checked against the Library first. The server gives each Workout its `cover`, a Library Cover suiting the muscle group its Exercises train most, different for each Workout while the Library has enough (`null` when it has none); a request can't choose one. By default the new Plan becomes the User's active one and every other Plan goes inactive. Not idempotent: a retried request can create a second Plan.",
+    "Creates the Plan with its Workouts, Exercises and sets in one transaction: nothing is saved unless all of it is. Only `name` and `frequency` are required: `goal`, `place`, `experience_level` and `workout_duration` are optional, and one left out (or sent as `null`) is unset on the Plan, which answers it as `null` ever after. Every Exercise slug is checked against the Library first. The server gives each Workout its `cover`, a Library Cover suiting the muscle group its Exercises train most, different for each Workout while the Library has enough (`null` when it has none); a request can't choose one. By default the new Plan becomes the User's active one and every other Plan goes inactive. Not idempotent: a retried request can create a second Plan.",
   method: "post",
   middleware: [requires("write")] as const,
   path: "/",
@@ -468,7 +496,7 @@ const SavedPlanBody = z
 
 const savePlanRoute = createRoute({
   description:
-    "Saves the whole Plan in one transaction: nothing changes unless all of it is saved. Send every detail and every Workout, Exercise and set the Plan should have, in order. **A row sent with its `id` keeps it** and is updated in place, a row sent without one is created, and a row of the Plan the body leaves out is deleted; an optional field left out is cleared. So past Workout Sessions stay linked to the Workouts kept (a deleted Workout's Workout Sessions keep their logged sets but lose the link, and an open one keeps running), and a kept Workout keeps its `cover`: only new Workouts get one, picked as creating a Plan does, among the Covers the kept ones don't hold. An `id` must be one of this Plan's rows, under the same parent it was read under: a row can't move to another Workout or Exercise. Every Exercise slug is checked against the Library first. Whether the Plan is active doesn't change. The last save wins: there's no version check, so a change made since the Plan was read is overwritten. A repeat is harmless.",
+    "Saves the whole Plan in one transaction: nothing changes unless all of it is saved. Send every detail and every Workout, Exercise and set the Plan should have, in order. **A row sent with its `id` keeps it** and is updated in place, a row sent without one is created, and a row of the Plan the body leaves out is deleted; an optional field left out is cleared, the optional details `goal`, `place`, `experience_level` and `workout_duration` among them (`name` and `frequency` are always required). So past Workout Sessions stay linked to the Workouts kept (a deleted Workout's Workout Sessions keep their logged sets but lose the link, and an open one keeps running), and a kept Workout keeps its `cover`: only new Workouts get one, picked as creating a Plan does, among the Covers the kept ones don't hold. An `id` must be one of this Plan's rows, under the same parent it was read under: a row can't move to another Workout or Exercise. Every Exercise slug is checked against the Library first. Whether the Plan is active doesn't change. The last save wins: there's no version check, so a change made since the Plan was read is overwritten. A repeat is harmless.",
   method: "put",
   middleware: [requires("write")] as const,
   path: "/{id}",
@@ -513,7 +541,7 @@ const PlanChangesBody = z
 
 const updatePlanRoute = createRoute({
   description:
-    "Changes only the given metadata fields (`note: null` clears the note). The Plan's Workouts, Exercises and sets, and their ids, are left as they are: a body with `workouts` is refused. Doesn't change which Plan is active. A 404 changes nothing.",
+    "Changes only the given metadata fields. `null` clears the note, and the optional details `goal`, `place`, `experience_level` and `workout_duration` the same way; `name` and `frequency` can be changed but never cleared. The Plan's Workouts, Exercises and sets, and their ids, are left as they are: a body with `workouts` is refused. Doesn't change which Plan is active. A 404 changes nothing.",
   method: "patch",
   middleware: [requires("write")] as const,
   path: "/{id}",

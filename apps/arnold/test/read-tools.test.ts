@@ -136,6 +136,18 @@ const plan = {
   ],
 };
 
+/**
+ * The Plan a User built by hand (ADR 0017): its goal, place, experience level
+ * and workout duration unset, as the services answer them.
+ */
+const unsetDetailsPlan = {
+  ...plan,
+  experience_level: null,
+  goal: null,
+  place: null,
+  workout_duration: null,
+};
+
 const loggedSet = { ...set, logged_at: null, reps_completed: 8 };
 
 const history = [
@@ -268,6 +280,23 @@ describe("get_active_plan", () => {
     );
   });
 
+  it("answers a Plan whose details are unset, passing each on as null", async () => {
+    plans.getActivePlan.mockResolvedValue(unsetDetailsPlan);
+
+    const answer = await getActivePlan.execute({}, alice);
+
+    expect(answer).toMatchObject({
+      experience_level: null,
+      goal: null,
+      place: null,
+      workout_duration: null,
+    });
+    // The Exercises are still named from the library.
+    expect(shownPlanSchema.parse(answer).workouts[0].exercises[0].name).toBe(
+      "Bench Press"
+    );
+  });
+
   it("tells the model when no Plan is active", async () => {
     plans.getActivePlan.mockResolvedValue(null);
 
@@ -295,6 +324,14 @@ describe("get_plans", () => {
     expect(db.asUser).toHaveBeenCalledWith("user_alice", expect.any(Function));
     expect(plans.listPlans).toHaveBeenCalledWith(tx, "user_alice");
     expect(seenArguments()).not.toContain("user_mallory");
+  });
+
+  it("lists a Plan whose details are unset, passing each on as null", async () => {
+    plans.listPlans.mockResolvedValue([unsetDetailsPlan]);
+
+    await expect(getPlans.execute({}, alice)).resolves.toStrictEqual([
+      unsetDetailsPlan,
+    ]);
   });
 
   it("refuses to run without a Clerk User owning the session", async () => {
@@ -657,6 +694,16 @@ describe("display_workout_plan", () => {
     await expect(run(proposed(exercise("made-up-fly", "Fly")))).rejects.toThrow(
       "made-up-fly"
     );
+  });
+
+  // Arnold's Plans always carry a goal, whatever the Public API now takes
+  // (ADR 0017): the card's input is unchanged.
+  it("still refuses a card without a goal", () => {
+    const { goal: _goal, ...withoutGoal } = proposed(
+      exercise("bench-press", "Bench press")
+    );
+
+    expect(() => parseInput(displayWorkoutPlan, withoutGoal)).toThrow(/goal/iu);
   });
 
   it("asks to retry when the library fails", async () => {

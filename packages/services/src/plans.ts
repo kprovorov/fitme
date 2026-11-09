@@ -24,16 +24,20 @@ import { recordWeeklyGoal } from "./weekly-goals";
 export interface PlanRow {
   created_at: string | null;
   description: string | null;
-  experience_level: string;
+  /** Unset on a Plan built by hand (ADR 0017). */
+  experience_level: string | null;
   frequency: number;
-  goal: string;
+  /** Unset on a Plan built by hand (ADR 0017). */
+  goal: string | null;
   id: string;
   is_active: boolean;
   name: string | null;
   note: string | null;
-  place: string;
+  /** Unset on a Plan built by hand (ADR 0017). */
+  place: string | null;
   updated_at: string | null;
-  workout_duration: number;
+  /** Minutes, unset on a Plan built by hand (ADR 0017). */
+  workout_duration: number | null;
 }
 
 /**
@@ -113,16 +117,16 @@ const planQuery = {
 interface PlanQueryRow {
   createdAtJson: string | null;
   description: string | null;
-  experienceLevel: string;
+  experienceLevel: string | null;
   frequency: number;
-  goal: string;
+  goal: string | null;
   id: string;
   isActive: boolean;
   name: string | null;
   note: string | null;
-  place: string;
+  place: string | null;
   updatedAtJson: string | null;
-  workoutDuration: number;
+  workoutDuration: number | null;
 }
 
 const toPlanRow = (plan: PlanQueryRow): PlanRow => ({
@@ -425,16 +429,20 @@ export interface PlanWorkoutInput {
   name: string;
 }
 
-/** A Plan's own columns, as a Plan write takes them. */
+/**
+ * A Plan's own columns, as a Plan write takes them. Only the name and the
+ * frequency are required: the four details are optional (ADR 0017), and left
+ * out or `null` the Plan has none of them.
+ */
 export interface PlanMetadata {
   description: string;
-  experience_level: string;
+  experience_level?: string | null;
   frequency: number;
-  goal: string;
+  goal?: string | null;
   name: string;
   note?: string | null;
-  place: string;
-  workout_duration: number;
+  place?: string | null;
+  workout_duration?: number | null;
 }
 
 /** A Plan to create; every `order` comes from the array positions (1-based). */
@@ -1113,8 +1121,12 @@ export const savePlan = async (
       ...metadataColumns(details),
       // Left out clears them, rather than leaving them as they were
       description: details.description ?? null,
+      experienceLevel: details.experience_level ?? null,
+      goal: details.goal ?? null,
       note: details.note ?? null,
+      place: details.place ?? null,
       updatedAt: sql`now()`,
+      workoutDuration: details.workout_duration ?? null,
     })
     .where(eq(plans.id, planId));
 

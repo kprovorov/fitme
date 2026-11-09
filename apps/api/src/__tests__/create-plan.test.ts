@@ -382,9 +382,10 @@ describe("pOST /v1/plans", () => {
 
   it.each([
     [
-      "a missing field",
+      // The four optional details may be left out (ADR 0017); the frequency can't.
+      "a missing required field",
       invalid((payload) => {
-        Reflect.deleteProperty(payload, "goal");
+        Reflect.deleteProperty(payload, "frequency");
       }),
     ],
     [
