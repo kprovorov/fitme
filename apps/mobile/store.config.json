@@ -21,7 +21,7 @@
           "exercise",
           "free"
         ],
-        "releaseNotes": "Edit your plans: change plan details, add, remove or reorder workouts, and customize each workout. Pick or swap exercises from the Library and adjust sets, reps, weights and rest.\n\nSpanish and Catalan: use Fitme and chat with Arnold in two more languages.\n\nSmoother progress tracking: exercise history loads more sessions as you scroll, and switching between metric and imperial refreshes weights throughout the app.\n\nFixes and polish: clearer loading errors with retry options, larger buttons for key actions, and fixes for opening links.",
+        "releaseNotes": "Send Arnold photos: a machine you don't know how to use, a screenshot of a plan from another app, or a still of your form. Attach up to four photos and ask about them. Take one with the camera or pick them from your library, send them with or without a message, and tap a sent photo to see it full-screen.\n\nFind exercises by equipment: filter the Library and the workout exercise picker by the gear you actually have, and see what each exercise needs on its own screen.\n\nNine more languages: French, German, Italian, Portuguese, Polish, Chinese, Japanese, Korean and Dutch. Fitme and Arnold follow your phone's language.",
         "marketingUrl": "https://fitmeproject.com",
         "supportUrl": "https://fitmeproject.com/support",
         "privacyPolicyUrl": "https://fitmeproject.com/privacy-policy"
@@ -47,7 +47,7 @@
           "workout",
           "ші"
         ],
-        "releaseNotes": "Редагування планів: змінюйте деталі плану, додавайте, видаляйте та впорядковуйте тренування. Додавайте чи замінюйте вправи з бібліотеки, налаштовуйте підходи, повторення, вагу та відпочинок.\n\nІспанська та каталонська: користуйтеся Fitme та спілкуйтеся з Arnold ще двома мовами.\n\nЗручніше стежити за прогресом: історія вправ підвантажує попередні тренування під час прокручування, а перемикання між метричною та імперською системами оновлює вагу в усьому застосунку.\n\nВиправлення та покращення: зрозуміліші помилки завантаження з можливістю повторити спробу, більші кнопки основних дій і виправлення відкриття посилань.",
+        "releaseNotes": "Надсилайте Arnold фото: тренажер, яким не вмієте користуватися, знімок плану з іншого застосунку або кадр із вашою технікою. Додайте до чотирьох фото й запитайте про них. Зробіть знімок камерою або виберіть фото з галереї, надсилайте їх із текстом або без, а щоб розглянути надіслане фото, торкніться його.\n\nШукайте вправи за обладнанням: фільтруйте бібліотеку та вибір вправ під час тренування за тим, що у вас справді є, і дивіться, що потрібно для кожної вправи, на її екрані.\n\nЩе дев'ять мов: французька, німецька, італійська, португальська, польська, китайська, японська, корейська та нідерландська. Fitme й Arnold використовують мову вашого телефона.",
         "marketingUrl": "https://fitmeproject.com",
         "supportUrl": "https://fitmeproject.com/support",
         "privacyPolicyUrl": "https://fitmeproject.com/privacy-policy"
@@ -69,7 +69,7 @@
           "progreso",
           "entrenador"
         ],
-        "releaseNotes": "Edita tus planes: cambia los detalles del plan y añade, elimina o reordena entrenamientos. Añade o sustituye ejercicios de la biblioteca y ajusta las series, las repeticiones, el peso y el descanso.\n\nEspañol y catalán: usa Fitme y habla con Arnold en dos idiomas más.\n\nSigue tu progreso con más comodidad: el historial de ejercicios carga más sesiones al desplazarte, y cambiar entre el sistema métrico y el imperial actualiza los pesos en toda la app.\n\nCorrecciones y mejoras: errores de carga más claros con opciones para reintentar, botones más grandes para las acciones principales y correcciones al abrir enlaces.",
+        "releaseNotes": "Envía fotos a Arnold: una máquina que no sabes usar, la captura de un plan de otra app o una imagen de tu técnica. Adjunta hasta cuatro fotos y pregúntale por ellas. Hazlas con la cámara o elígelas de tu galería, envíalas con mensaje o sin él, y toca una foto enviada para verla a pantalla completa.\n\nBusca ejercicios por equipamiento: filtra la biblioteca y el selector de ejercicios del entrenamiento según el equipamiento que tengas, y consulta lo que necesita cada ejercicio en su propia pantalla.\n\nNueve idiomas más: francés, alemán, italiano, portugués, polaco, chino, japonés, coreano y neerlandés. Fitme y Arnold siguen el idioma de tu teléfono.",
         "marketingUrl": "https://fitmeproject.com",
         "supportUrl": "https://fitmeproject.com/support",
         "privacyPolicyUrl": "https://fitmeproject.com/privacy-policy"
@@ -91,7 +91,7 @@
           "progrés",
           "entrenador"
         ],
-        "releaseNotes": "Edita els teus plans: canvia els detalls del pla i afegeix, elimina o reordena entrenaments. Afegeix o substitueix exercicis de la biblioteca i ajusta les sèries, les repeticions, el pes i el descans.\n\nEspanyol i català: fes servir Fitme i parla amb Arnold en dos idiomes més.\n\nSegueix el teu progrés amb més comoditat: l’historial d’exercicis carrega més sessions mentre et desplaces, i canviar entre el sistema mètric i l’imperial actualitza els pesos a tota l’app.\n\nCorreccions i millores: errors de càrrega més clars amb opcions per tornar-ho a provar, botons més grans per a les accions principals i correccions en obrir enllaços.",
+        "releaseNotes": "Envia fotos a l'Arnold: una màquina que no saps fer servir, la captura d'un pla d'una altra app o una imatge de la teva tècnica. Adjunta fins a quatre fotos i pregunta-li per elles. Fes-les amb la càmera o tria-les de la galeria, envia-les amb missatge o sense, i toca una foto enviada per veure-la a pantalla completa.\n\nBusca exercicis per equipament: filtra la biblioteca i el selector d'exercicis de l'entrenament segons l'equipament que tinguis, i consulta què necessita cada exercici a la seva pròpia pantalla.\n\nNou idiomes més: francès, alemany, italià, portuguès, polonès, xinès, japonès, coreà i neerlandès. El Fitme i l'Arnold segueixen l'idioma del teu telèfon.",
         "marketingUrl": "https://fitmeproject.com",
         "supportUrl": "https://fitmeproject.com/support",
         "privacyPolicyUrl": "https://fitmeproject.com/privacy-policy"
