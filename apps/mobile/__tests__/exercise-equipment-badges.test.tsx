@@ -65,6 +65,9 @@ const BENCH_PRESS = libraryExercise("bench-press", {
 /** Content the Library hasn't tagged yet. */
 const UNTAGGED = libraryExercise("good-morning", { equipment: [] });
 
+/** Older than the hour a kept Exercise stays fresh for. */
+const STALE_MS = 2 * 60 * 60 * 1000;
+
 let client: QueryClient;
 let fake: FakeLibrary;
 
@@ -123,7 +126,10 @@ describe("an Exercise's Equipment", () => {
  * copy alone.
  */
 const keptOnDevice = (exercise: Exercise) => {
-  writeCachedExercise("en", exercise);
+  // Saved long enough ago to be stale, so the screen does ask the Library
+  // again: what it shows is the copy surviving that failure, not a copy the
+  // query never looked past.
+  writeCachedExercise("en", exercise, Date.now() - STALE_MS);
   fake.failWith(new LibraryUnavailableError());
 };
 
@@ -160,5 +166,24 @@ describe("an Exercise read offline, from the copy kept on the device", () => {
 
     expect(screen.getByText("About bench-press.")).toBeTruthy();
     expect(screen.queryByTestId("equipment-badges")).toBeNull();
+  });
+});
+
+describe("a copy of an Exercise the device can't read", () => {
+  it("counts as no copy at all, rather than breaking the screen", async () => {
+    // `equipment` saved as something that isn't a list of ids: the schema
+    // behind `readCachedExercise` rejects the whole copy, so the screen asks
+    // the Library instead of mapping over it.
+    writeCachedExercise("en", {
+      ...BENCH_PRESS,
+      // SAFETY: the one shape the typed API can't write, which is the point:
+      // only a corrupted copy holds an `equipment` that isn't a list of ids.
+      equipment: "barbell" as never,
+    });
+
+    await renderScreen("bench-press");
+
+    // Answered by the Library, which has it tagged in core's order.
+    expect(shownEquipment()).toEqual(["Barbell", "Bench"]);
   });
 });

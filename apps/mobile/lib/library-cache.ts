@@ -57,6 +57,9 @@ const summarySchema = z.object({
 const exerciseSchema = summarySchema.extend({
   description: z.string(),
   instructions: z.string(),
+  // Optional, since a copy kept before the Library had Equipment carries
+  // none; anything else there is malformed, and counts as no copy at all.
+  equipment: z.array(z.string()).optional(),
 });
 
 const coverSchema = z.object({
