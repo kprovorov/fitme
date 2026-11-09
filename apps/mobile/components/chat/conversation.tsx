@@ -124,7 +124,7 @@ const ConversationMessage = ({
       <Message from="user">
         <UserMessageBody
           {...(userMessage?.(item) ?? {
-            attachmentCount: 0,
+            attachments: [],
             text: messageText(item),
           })}
         />

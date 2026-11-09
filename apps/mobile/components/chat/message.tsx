@@ -1,3 +1,4 @@
+import { useCallback, useState } from "react";
 import type { ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { Text, View } from "react-native";
@@ -6,13 +7,14 @@ import { z } from "zod";
 
 import { ChatMarkdown } from "@/components/markdown";
 import { SymbolImage } from "@/components/symbol-image";
+import { Image } from "@/components/tw";
 import type { ShownUserMessage } from "~/lib/arnold-chat";
 import { cn } from "~/lib/utils";
 
 /**
  * Wrapper for a single chat message. Styles automatically based on the sender
- * role – user messages render as right-aligned blue bubbles, assistant messages
- * render full-width.
+ * role – user messages render as right-aligned bubbles in the primary color,
+ * assistant messages render full-width.
  */
 export const Message = ({
   from,
@@ -53,39 +55,73 @@ export const Message = ({
 };
 
 /**
- * One Attachment the User sent, as a tile standing for the photo itself:
- * eve never sends an Attachment's bytes back, and this device's own copy of
- * it is a later ticket's, so the bubble says a photo was sent without
- * showing it. VoiceOver reads the tile and its place among them.
+ * One Attachment the User sent, drawn from the copy this device kept of it
+ * (ADR 0018): eve never sends an Attachment's bytes back, so the photo comes
+ * off the phone rather than out of the Conversation. Without that copy
+ * (another device, a reinstall, a copy the disk refused) a tile stands for
+ * the photo instead, so the message still reads as one that carried one.
+ *
+ * VoiceOver reads either as the photo and its place among them.
  */
 const SentAttachment = ({
   position,
   total,
+  uri,
 }: {
   position: number;
   total: number;
+  uri?: string;
 }) => {
   const { t } = useTranslation();
+  // A copy that is on the device but can't be drawn (a copy the disk cut
+  // short), which only loading it finds out. The tile stands for it then,
+  // rather than an empty square where the photo should be.
+  const [unreadable, setUnreadable] = useState(false);
+  const onError = useCallback(() => setUnreadable(true), []);
+
+  // Both forms are read the same way: what the User sent is a photo either
+  // way, and a copy this phone hasn't got is nothing they did.
+  const label = t("arnold.attachments.sentPhoto", { position, total });
+
+  if (uri && !unreadable) {
+    return (
+      <Image
+        accessibilityLabel={label}
+        // `accessible`, or the label is set on a view VoiceOver never stops
+        // at: expo-image's `isAccessibilityElement` is `accessible ?? false`.
+        accessible
+        className="border-continuous bg-background h-14 w-14 rounded-xl"
+        contentFit="cover"
+        onError={onError}
+        source={{ uri }}
+      />
+    );
+  }
 
   return (
     <View
-      accessibilityLabel={t("arnold.attachments.sentPhoto", {
-        position,
-        total,
-      })}
+      accessibilityLabel={label}
       accessible
-      // Four of them fit a bubble's width on the narrowest phone, so a
-      // message's worth never wraps onto a second row with a gap beside it;
-      // a minimum rather than a size, so the caption still fits at the
-      // largest text size.
-      className="bg-background min-h-14 min-w-14 items-center justify-center gap-1 rounded-xl p-2"
+      // Exactly the thumbnail's height, since it stands in a photo's place:
+      // a message whose copies are only partly on this phone lines its slots
+      // up, whatever the text size. Its width is a minimum, so a language
+      // whose word for it is longer (Polish's `Zdjęcie`) widens the tile
+      // rather than losing letters.
+      className="bg-background h-14 min-w-14 items-center justify-center gap-1 rounded-xl p-2"
       style={{ borderCurve: "continuous" }}
     >
       <SymbolImage
         className="text-muted-foreground text-title-3"
         name="photo"
       />
-      <Text className="text-caption-2 text-muted-foreground dark:text-muted-foreground">
+      <Text
+        className="text-caption-2 text-muted-foreground dark:text-muted-foreground"
+        // The caption is what the symbol already says, and VoiceOver reads
+        // the whole tile from its label, so it scales only as far as the
+        // slot holds rather than pushing the photos beside it out of line.
+        maxFontSizeMultiplier={1.2}
+        numberOfLines={1}
+      >
         {t("arnold.attachments.photo")}
       </Text>
     </View>
@@ -93,22 +129,25 @@ const SentAttachment = ({
 };
 
 /**
- * What a message of the User's holds: a tile per Attachment it carried, then
- * the text they wrote. A photo sent on its own has no text to show.
+ * What a message of the User's holds: its Attachments as thumbnails, in the
+ * order they were sent, then the text they wrote. A photo sent on its own
+ * has no text, so the bubble holds the photo and no empty line.
+ *
+ * A message's four (`MAX_ATTACHMENTS_PER_MESSAGE`) just fit one row inside
+ * the bubble on the narrowest supported iPhone, with about 2 pt to spare, so
+ * a wider slot, a wider gap or more padding around the list wraps the last
+ * one onto a row of its own; the row wraps rather than overflow either way.
  */
-export const UserMessageBody = ({
-  attachmentCount,
-  text,
-}: ShownUserMessage) => (
+export const UserMessageBody = ({ attachments, text }: ShownUserMessage) => (
   <>
-    {attachmentCount > 0 ? (
+    {attachments.length > 0 ? (
       <View className={cn("flex-row flex-wrap gap-2", text && "mb-2")}>
-        {Array.from({ length: attachmentCount }, (_, index) => (
+        {attachments.map((attachment, index) => (
           <SentAttachment
-            // biome-ignore lint/suspicious/noArrayIndexKey: identical tiles with nothing of their own to be keyed by
-            key={index}
+            key={attachment.id}
             position={index + 1}
-            total={attachmentCount}
+            total={attachments.length}
+            uri={attachment.uri}
           />
         ))}
       </View>

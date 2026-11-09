@@ -101,6 +101,14 @@ export const fileSystem = {
   /** A file's contents, or `undefined` when there is no such file. */
   read: (uri: string): string | undefined => contents.get(uri),
 
+  /**
+   * Takes a file off the device behind the app's back: a photo iOS purged,
+   * or one a Conversation carried onto a phone that never had it.
+   */
+  remove: (uri: string): void => {
+    contents.delete(uri);
+  },
+
   /** Empties the device. */
   reset: (): void => {
     contents.clear();

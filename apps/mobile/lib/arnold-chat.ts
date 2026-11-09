@@ -134,54 +134,95 @@ export const isRefusedSend = (message: ThreadMessage): boolean =>
 
 /**
  * eve's own placeholder for a part it can't write out as text, one per line
- * of the summary it shows while a send is on its way (`[file]`, or
- * `[file: <name>]` for a file it was given a name for).
+ * of the summary it shows while a send is on its way: `[file: <name>]` for a
+ * file it was given a name for, which every Attachment of ours is, and
+ * `[file]` for one it wasn't. The name is captured, since it is the device
+ * copy's (`keepSentAttachments`), so the bubble finds the photo before eve
+ * has echoed anything back.
  */
-const FILE_PLACEHOLDER_LINE = /^\[file(?::[^\]]*)?\]$/u;
+const FILE_PLACEHOLDER_LINE = /^\[file(?::\s?(?<name>[^\]]*))?\]$/u;
+
+/** One Attachment a message of the User's carried, as its bubble shows it. */
+export interface ShownAttachment {
+  /**
+   * Its identity within the message: its place among them and its device
+   * copy's name, which the send put on the wire as the part's `filename`.
+   * The place is part of it because an Attachment eve never named (`[file]`)
+   * has nothing else to be told apart by.
+   */
+  id: string;
+  /**
+   * Where its copy is on this device, or `undefined` when this device hasn't
+   * got it (another device, a reinstall, a copy the disk refused): the bubble
+   * shows a Photo tile in its place.
+   */
+  uri?: string;
+}
 
 /** What the User's bubble shows for a message of theirs. */
 export interface ShownUserMessage {
-  /** How many Attachments it carried, so the bubble stands one tile per one. */
-  attachmentCount: number;
+  /** The Attachments it carried, in the order they were sent. */
+  attachments: readonly ShownAttachment[];
   /** Its own text, with nothing of eve's in it. */
   text: string;
 }
 
 /**
- * What to show for a user message: its text, and how many Attachments it
- * carried (ADR 0018). Neither is simply read off the message, since eve
- * writes a sent Attachment two different ways:
+ * What to show for a user message: its text, and the Attachments it carried
+ * with the device copy each one is drawn from (ADR 0018). Neither the text
+ * nor the Attachments are simply read off the message, since eve writes a
+ * sent Attachment two different ways:
  *
  * - until Arnold echoes it, the message is eve's own summary of what was
- *   sent, one `[file]` line per Attachment and no file part at all, so the
- *   lines are counted and taken out: the User wrote neither;
+ *   sent, a `[file: <name>]` line per Attachment and no file part at all, so
+ *   the lines are read and taken out: the User wrote neither;
  * - once echoed, the text is the User's alone and the file parts carry
  *   metadata only (eve never sends an Attachment's bytes back), which
- *   `@assistant-ui/eve` drops for want of a URL — so they are counted off
- *   the turn's `message.received` event instead, which the saved Conversation
- *   keeps, so a reopened screen counts them too.
+ *   `@assistant-ui/eve` drops for want of a URL — so they are read off the
+ *   turn's `message.received` event instead, which the saved Conversation
+ *   keeps, so a reopened screen shows the same photos.
+ *
+ * Either way an Attachment is its copy's name, which `uriOf` resolves to the
+ * file on this device (`sentAttachmentUri`), or to nothing for one this
+ * device hasn't got, which the bubble shows as a Photo tile.
  *
  * `text` is the message's own text parts joined, which the caller has.
  */
 export const shownUserMessage = (
   message: ThreadMessage,
   text: string,
-  events: readonly MessageStreamEvent[]
+  events: readonly MessageStreamEvent[],
+  uriOf: (name: string) => string | undefined
 ): ShownUserMessage => {
+  const shown = (names: readonly string[]): readonly ShownAttachment[] =>
+    names.map((name, index) => {
+      const id = `${index}:${name}`;
+      const uri = uriOf(name);
+
+      return uri === undefined ? { id } : { id, uri };
+    });
+
   if (message.metadata.custom.optimistic === true) {
     // Only the trailing ones: eve writes the text parts first and a line
     // per file after them, so a `[file]` the User typed themselves, which
     // is theirs to see, is anywhere else.
     const lines = text.split("\n");
-    let own = lines.length;
+    const names: string[] = [];
 
-    while (own > 0 && FILE_PLACEHOLDER_LINE.test(lines[own - 1] ?? "")) {
-      own -= 1;
+    for (let line = lines.length - 1; line >= 0; line -= 1) {
+      const placeholder = FILE_PLACEHOLDER_LINE.exec(lines[line] ?? "");
+
+      if (!placeholder) {
+        break;
+      }
+
+      // Read from the last line up, so they go back into sending order.
+      names.unshift(placeholder.groups?.name ?? "");
     }
 
     return {
-      attachmentCount: lines.length - own,
-      text: lines.slice(0, own).join("\n"),
+      attachments: shown(names),
+      text: lines.slice(0, lines.length - names.length).join("\n"),
     };
   }
 
@@ -195,7 +236,11 @@ export const shownUserMessage = (
     echo?.type === "message.received" ? (echo.data.parts ?? []) : [];
 
   return {
-    attachmentCount: parts.filter((part) => part.type === "file").length,
+    attachments: shown(
+      parts.flatMap((part) =>
+        part.type === "file" ? [part.filename ?? ""] : []
+      )
+    ),
     text,
   };
 };
