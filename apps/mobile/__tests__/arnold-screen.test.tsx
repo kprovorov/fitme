@@ -1262,6 +1262,40 @@ describe("arnold screen", () => {
         expect(addToChat()).toBeEnabled();
       });
 
+      it("counts a send's photos while they are still being copied", async () => {
+        mockAttachmentsEnabled = true;
+        await renderArnold();
+        await sendPhotos(4, "first");
+        await sendPhotos(4, "second");
+        mockPickLibraryPhotos.mockResolvedValue({
+          failed: 0,
+          images: [photo("ninth"), photo("tenth")],
+        });
+        // The device copy is a second await after the photos are read
+        // (FIT-585), and the hold has to span it too: nothing is busy
+        // meanwhile, so the sheet is one tap away.
+        const copy = fileSystem.holdNextCopy();
+        await pickPhotos();
+        await send("The last two");
+        await copy.started;
+
+        expect(screen.getByText(CONVERSATION_FULL)).toBeTruthy();
+        expect(addToChat()).toBeDisabled();
+
+        await act(async () => {
+          copy.release();
+          await Promise.resolve();
+        });
+
+        await waitFor(() => expect(fakeArnold.sent).toHaveLength(3));
+        expect(
+          fakeArnold.sent.flatMap((message) =>
+            message.parts.filter((part) => part.type === "file")
+          )
+        ).toHaveLength(10);
+        expect(addToChat()).toBeDisabled();
+      });
+
       it("counts a send's photos while they are still being read", async () => {
         mockAttachmentsEnabled = true;
         await renderArnold();
