@@ -9,6 +9,10 @@ import { Alert } from "react-native";
 
 import { ExerciseRowSymbol } from "~/components/exercises/exercise-row";
 import ExercisesView from "~/components/views/exercises-view";
+import {
+  newEquipmentChoiceKey,
+  useEquipmentChoiceOpening,
+} from "~/hooks/equipment-choice";
 import { useHeaderSearch } from "~/hooks/header-search";
 import {
   newMuscleChoiceKey,
@@ -30,7 +34,9 @@ const isMuscleGroup = (value: string | undefined): value is MuscleGroup =>
  * The Exercise picker, a page sheet over an open Workout Session: adds the
  * picked Exercise, or, given `replaceExerciseId` (a Workout Session Exercise),
  * swaps it in place, starting on `muscleGroup` (the replaced one's first).
- * It searches from the native header search bar, empty on every open.
+ * It searches from the native header search bar, empty on every open, and
+ * narrows the list by Muscle group and Equipment through the same pills and
+ * sheets as the Library tab, each choice its own per opening.
  * It closes once saved; a failure says so in an alert and keeps it open.
  */
 const ExercisePickerScreen = () => {
@@ -60,6 +66,12 @@ const ExercisePickerScreen = () => {
     isMuscleGroup(muscleGroup) ? [muscleGroup] : []
   );
 
+  // The Equipment choice starts empty every opening, Replace included: the
+  // gear around the User is what they narrow by, not the Exercise they are
+  // swapping out. Forgotten once closed, and never the Library tab's.
+  const equipmentChoiceKey = useMemo(() => newEquipmentChoiceKey(), []);
+  useEquipmentChoiceOpening(equipmentChoiceKey, []);
+
   // A failed edit may still have been saved (a lost answer): read again
   // either way.
   const rereadSession = useCallback(() => {
@@ -79,7 +91,7 @@ const ExercisePickerScreen = () => {
   // swipe down, or a second tap's save), which would pop the session too.
   const left = useRef<boolean>(false);
   const saving = useRef<boolean>(false);
-  // While a save is in flight the Muscles sheet stays shut: closing on save
+  // While a save is in flight neither choice sheet opens: closing on save
   // pops the top route, which must be the picker.
   const [isSaving, setIsSaving] = useState(false);
   useEffect(
@@ -215,6 +227,7 @@ const ExercisePickerScreen = () => {
       {/* The list is the sheet's scroll container: no ScrollView around it. */}
       <ExercisesView
         contentContainerClassName="px-md"
+        equipmentChoiceKey={equipmentChoiceKey}
         muscleChoiceKey={muscleChoiceKey}
         musclesDisabled={isSaving}
         onExercisePress={(...args) => {
