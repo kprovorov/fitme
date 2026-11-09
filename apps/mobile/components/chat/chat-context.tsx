@@ -28,10 +28,10 @@ export interface ChatContextValue {
   setInput: (value: string) => void;
   streamingStore: StreamingStore;
   /**
-   * What a message of the User's shows: its own text, and how many
-   * Attachments it carried. Neither is simply read off the message (see
-   * `shownUserMessage`); without it a bubble shows its text parts and no
-   * Attachment.
+   * What a message of the User's shows: its own text, and the Attachments it
+   * carried with the device copy each is drawn from. Neither is simply read
+   * off the message (see `shownUserMessage`); without it a bubble shows its
+   * text parts and no Attachment.
    */
   userMessage?: (message: ThreadMessage) => ShownUserMessage;
 }

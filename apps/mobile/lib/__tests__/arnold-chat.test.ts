@@ -471,9 +471,9 @@ describe("shownUserMessage", () => {
   const echoed = (text: string, turnId = "turn_0") =>
     message({ status: "complete", turnId }, text);
 
-  /** A `message.received` echo of `attachments` files, with its text. */
+  /** A `message.received` echo of named files, with its text. */
   const received = (
-    attachments: number,
+    filenames: readonly string[],
     text: string,
     turnId = "turn_0"
   ): MessageStreamEvent =>
@@ -484,7 +484,8 @@ describe("shownUserMessage", () => {
         // eve's echo carries a file's metadata only, never its bytes.
         parts: [
           ...(text ? [{ text, type: "text" }] : []),
-          ...Array.from({ length: attachments }, () => ({
+          ...filenames.map((filename) => ({
+            filename,
             mediaType: "image/jpeg",
             size: 1024,
             type: "file",
@@ -497,85 +498,129 @@ describe("shownUserMessage", () => {
       type: "message.received",
     }) as unknown as MessageStreamEvent;
 
-  it("counts the Attachments eve's own optimistic message stands for", () => {
-    expect(
-      shownUserMessage(
-        optimistic("What is this machine?\n[file]\n[file]"),
-        "What is this machine?\n[file]\n[file]",
-        []
-      )
-    ).toEqual({ attachmentCount: 2, text: "What is this machine?" });
+  /** A device holding a copy of every name but `gone.jpg`. */
+  const onDevice = (name: string) =>
+    name && name !== "gone.jpg" ? `file:///copies/${name}` : undefined;
+
+  it("reads the Attachments eve's own optimistic message stands for", () => {
+    const text = "What is this machine?\n[file: a.jpg]\n[file: b.jpg]";
+
+    expect(shownUserMessage(optimistic(text), text, [], onDevice)).toEqual({
+      attachments: [
+        { id: "0:a.jpg", uri: "file:///copies/a.jpg" },
+        { id: "1:b.jpg", uri: "file:///copies/b.jpg" },
+      ],
+      text: "What is this machine?",
+    });
   });
 
   it("reads a photo sent with no text as a message with no text", () => {
-    expect(shownUserMessage(optimistic("[file]"), "[file]", [])).toEqual({
-      attachmentCount: 1,
+    expect(
+      shownUserMessage(
+        optimistic("[file: a.jpg]"),
+        "[file: a.jpg]",
+        [],
+        onDevice
+      )
+    ).toEqual({
+      attachments: [{ id: "0:a.jpg", uri: "file:///copies/a.jpg" }],
       text: "",
     });
   });
 
-  it("drops a placeholder eve named the file in", () => {
-    const text = "Look\n[file: photo.jpg]";
+  it("stands a nameless placeholder for an Attachment with no copy", () => {
+    const text = "Look\n[file]";
 
-    expect(shownUserMessage(optimistic(text), text, [])).toEqual({
-      attachmentCount: 1,
+    expect(shownUserMessage(optimistic(text), text, [], onDevice)).toEqual({
+      attachments: [{ id: "0:" }],
+      text: "Look",
+    });
+  });
+
+  it("leaves off the copy this device hasn't got", () => {
+    const text = "Look\n[file: gone.jpg]\n[file: b.jpg]";
+
+    expect(shownUserMessage(optimistic(text), text, [], onDevice)).toEqual({
+      attachments: [
+        { id: "0:gone.jpg" },
+        { id: "1:b.jpg", uri: "file:///copies/b.jpg" },
+      ],
       text: "Look",
     });
   });
 
   it("keeps a placeholder the User typed above their own text", () => {
     // eve writes its own after the text, so one in the middle is theirs.
-    const text = "[file]\nis how you write it\n[file]";
+    const text = "[file]\nis how you write it\n[file: a.jpg]";
 
-    expect(shownUserMessage(optimistic(text), text, [])).toEqual({
-      attachmentCount: 1,
+    expect(shownUserMessage(optimistic(text), text, [], onDevice)).toEqual({
+      attachments: [{ id: "0:a.jpg", uri: "file:///copies/a.jpg" }],
       text: "[file]\nis how you write it",
     });
   });
 
-  it("counts the files of the echo of its turn", () => {
+  it("reads the files of the echo of its turn, in order", () => {
     const echo = echoed("What is this machine?");
 
     expect(
-      shownUserMessage(echo, "What is this machine?", [
-        received(2, "What is this machine?"),
-      ])
-    ).toEqual({ attachmentCount: 2, text: "What is this machine?" });
+      shownUserMessage(
+        echo,
+        "What is this machine?",
+        [received(["a.jpg", "b.jpg"], "What is this machine?")],
+        onDevice
+      )
+    ).toEqual({
+      attachments: [
+        { id: "0:a.jpg", uri: "file:///copies/a.jpg" },
+        { id: "1:b.jpg", uri: "file:///copies/b.jpg" },
+      ],
+      text: "What is this machine?",
+    });
   });
 
-  it("counts none for a message sent without Attachments", () => {
+  it("reads none for a message sent without Attachments", () => {
     const echo = echoed("How heavy should I squat?");
 
     expect(
-      shownUserMessage(echo, "How heavy should I squat?", [
-        received(0, "How heavy should I squat?"),
-      ])
-    ).toEqual({ attachmentCount: 0, text: "How heavy should I squat?" });
+      shownUserMessage(
+        echo,
+        "How heavy should I squat?",
+        [received([], "How heavy should I squat?")],
+        onDevice
+      )
+    ).toEqual({ attachments: [], text: "How heavy should I squat?" });
   });
 
-  it("counts only its own turn's files", () => {
+  it("reads only its own turn's files", () => {
     const echo = echoed("Second", "turn_1");
 
     expect(
-      shownUserMessage(echo, "Second", [
-        received(2, "First", "turn_0"),
-        received(1, "Second", "turn_1"),
-      ])
-    ).toEqual({ attachmentCount: 1, text: "Second" });
+      shownUserMessage(
+        echo,
+        "Second",
+        [
+          received(["a.jpg", "b.jpg"], "First", "turn_0"),
+          received(["c.jpg"], "Second", "turn_1"),
+        ],
+        onDevice
+      )
+    ).toEqual({
+      attachments: [{ id: "0:c.jpg", uri: "file:///copies/c.jpg" }],
+      text: "Second",
+    });
   });
 
   it("keeps text of the User's own that looks like a placeholder", () => {
     const echo = echoed("[file]");
 
-    expect(shownUserMessage(echo, "[file]", [received(0, "[file]")])).toEqual({
-      attachmentCount: 0,
-      text: "[file]",
-    });
+    expect(
+      shownUserMessage(echo, "[file]", [received([], "[file]")], onDevice)
+    ).toEqual({ attachments: [], text: "[file]" });
   });
 
-  it("counts none for an echo the saved events don't reach", () => {
-    expect(shownUserMessage(echoed("Older"), "Older", [])).toEqual({
-      attachmentCount: 0,
+  it("reads none for an echo the saved events don't reach", () => {
+    expect(shownUserMessage(echoed("Older"), "Older", [], onDevice)).toEqual({
+      attachments: [],
       text: "Older",
     });
   });

@@ -13,6 +13,7 @@ import { beforeEach, describe, expect, it, jest } from "@jest/globals";
 import { captureException } from "@sentry/react-native";
 import {
   act,
+  fireEvent,
   render,
   screen,
   userEvent,
@@ -566,6 +567,22 @@ describe("arnold screen", () => {
         : [];
     };
 
+    /**
+     * What each Attachment of the Conversation's own messages shows, in the
+     * order it was sent: the bytes of the photo its thumbnail is drawn from,
+     * or `undefined` where a Photo tile stands for a copy this device hasn't
+     * got. A picked Attachment is named the same way, so this reads the
+     * Conversation only once the composer's tray is empty, which it is from
+     * the moment a send clears it.
+     */
+    const shownPhotos = () =>
+      screen.queryAllByLabelText(SENT_PHOTO).map((node) => {
+        const { source } = node.props as { source?: { uri: string }[] };
+        const uri = source?.[0]?.uri;
+
+        return uri === undefined ? undefined : fileSystem.read(uri);
+      });
+
     it("offers no way to add one while they are off", async () => {
       await renderArnold();
 
@@ -748,7 +765,7 @@ describe("arnold screen", () => {
       );
     });
 
-    it("shows a Photo tile per Attachment, before and after the echo", async () => {
+    it("shows the photos it sent, in order, before and after the echo", async () => {
       mockAttachmentsEnabled = true;
       mockPickLibraryPhotos.mockResolvedValue({
         failed: 0,
@@ -762,7 +779,9 @@ describe("arnold screen", () => {
       await send("What is this machine?");
 
       expect(screen.getByText("What is this machine?")).toBeTruthy();
-      expect(screen.getAllByLabelText(SENT_PHOTO)).toHaveLength(2);
+      // Drawn from the copies this device kept, before Arnold has said a
+      // word about the message (ADR 0018).
+      expect(shownPhotos()).toEqual(["gym-bytes", "plan-bytes"]);
       expect(screen.queryByText(FILE_PLACEHOLDER)).toBeNull();
 
       release();
@@ -771,13 +790,60 @@ describe("arnold screen", () => {
       );
 
       // Arnold's echo replaces that message, and carries the files as
-      // metadata only, so the tiles stand for them there too.
+      // metadata only, so the photos still come off the device there.
       expect(screen.getByText("What is this machine?")).toBeTruthy();
-      expect(screen.getAllByLabelText(SENT_PHOTO)).toHaveLength(2);
+      expect(shownPhotos()).toEqual(["gym-bytes", "plan-bytes"]);
       expect(screen.queryByText(FILE_PLACEHOLDER)).toBeNull();
     });
 
-    it("shows no tile on a message sent without one", async () => {
+    it("stands a tile in for a copy that is there but can't be drawn", async () => {
+      mockAttachmentsEnabled = true;
+      mockPickLibraryPhotos.mockResolvedValue({
+        failed: 0,
+        images: [photo("gym")],
+      });
+      await renderArnold();
+      await pickPhotos();
+      await send("What is this machine?");
+
+      await waitFor(() =>
+        expect(screen.getByText(FAKE_ARNOLD_REPLY)).toBeTruthy()
+      );
+      expect(shownPhotos()).toEqual(["gym-bytes"]);
+
+      // A copy the disk cut short passes the check that it is there, and
+      // only loading it finds out: the tile stands for it from then on.
+      await act(async () => {
+        await fireEvent(screen.getByLabelText(SENT_PHOTO), "error", {
+          nativeEvent: { error: "The file could not be decoded" },
+        });
+      });
+
+      expect(shownPhotos()).toEqual([undefined]);
+      expect(screen.getByText("Photo")).toBeTruthy();
+    });
+
+    it("shows a photo sent on its own, with no empty line under it", async () => {
+      mockAttachmentsEnabled = true;
+      mockPickLibraryPhotos.mockResolvedValue({
+        failed: 0,
+        images: [photo("gym")],
+      });
+      await renderArnold();
+      await pickPhotos();
+      await userEvent.setup().press(screen.getByLabelText(SEND));
+
+      await waitFor(() =>
+        expect(screen.getByText(FAKE_ARNOLD_REPLY)).toBeTruthy()
+      );
+      expect(shownPhotos()).toEqual(["gym-bytes"]);
+      expect(screen.queryByText(FILE_PLACEHOLDER)).toBeNull();
+      // The bubble holds the photo and nothing else: an empty text part is
+      // what eve projects for a message that carried no text of its own.
+      expect(screen.queryByText("")).toBeNull();
+    });
+
+    it("shows nothing of the sort on a message sent without one", async () => {
       mockAttachmentsEnabled = true;
       await renderArnold();
       await send("How heavy should I squat?");
@@ -1075,7 +1141,7 @@ describe("arnold screen", () => {
       ).toBeTruthy();
     });
 
-    it("names a sent photo's tile in Ukrainian", async () => {
+    it("names a sent photo in Ukrainian", async () => {
       mockAttachmentsEnabled = true;
       setDeviceLanguages(["uk-UA"]);
       mockPickLibraryPhotos.mockResolvedValue({
@@ -1089,17 +1155,17 @@ describe("arnold screen", () => {
       await waitFor(() =>
         expect(screen.getByText(FAKE_ARNOLD_REPLY)).toBeTruthy()
       );
+      expect(shownPhotos()).toEqual(["gym-bytes", "plan-bytes"]);
       expect(screen.getByLabelText("Фото 1 з 2")).toBeTruthy();
       expect(screen.getByLabelText("Фото 2 з 2")).toBeTruthy();
-      expect(screen.getAllByText("Фото")).toHaveLength(2);
       expect(screen.queryByLabelText("Photo 1 of 2")).toBeNull();
     });
 
     /**
      * The device copy of a sent Attachment (ADR 0018): eve's echo carries an
      * Attachment's metadata and never its bytes, so what a bubble shows comes
-     * from the phone. Nothing on screen changes yet; these read the copies the
-     * way a reopened or restarted app does, through the saved Conversation.
+     * from the phone. These read the copies both the way a reopened or
+     * restarted app does, through the saved Conversation, and off the screen.
      */
     describe("the device copy", () => {
       /** Sends two photos and waits for Arnold's answer and the saved turn. */
@@ -1174,6 +1240,37 @@ describe("arnold screen", () => {
         );
 
         expect(keptPhotos("user_arnold_screen")).toEqual(["gym-bytes"]);
+        // The replayed Conversation shows the same photo: its name is in the
+        // saved events, and the copy is still on the device.
+        expect(shownPhotos()).toEqual(["gym-bytes"]);
+        expect(screen.queryByText(FILE_PLACEHOLDER)).toBeNull();
+      });
+
+      it("shows a Photo tile where the copy is gone, and keeps the rest", async () => {
+        mockAttachmentsEnabled = true;
+        await sendTwoPhotos();
+
+        // The first photo leaves the device behind the app's back, as a
+        // Conversation carried onto another phone or a reinstall has none.
+        const [sessionId] = fakeArnold.sessionIds;
+
+        const [first] = fileSystem.filesUnder(
+          `file:///memory/document/arnold-attachments/user_arnold_screen/${sessionId}`
+        );
+
+        fileSystem.remove(first ?? "");
+
+        await screen.unmount();
+        await renderArnold();
+        await waitFor(() =>
+          expect(screen.getByText(FAKE_ARNOLD_REPLY)).toBeTruthy()
+        );
+
+        // A tile in its place, the photo that is still there beside it.
+        expect(shownPhotos()).toEqual([undefined, "plan-bytes"]);
+        expect(screen.getByText("Photo")).toBeTruthy();
+        expect(screen.getByText("What is this machine?")).toBeTruthy();
+        expect(screen.queryByText(FILE_PLACEHOLDER)).toBeNull();
       });
 
       it("takes them away with the Conversation the '+' resets", async () => {
@@ -1364,6 +1461,10 @@ describe("arnold screen", () => {
         );
 
         expect(keptPhotos("user_arnold_screen")).toEqual([undefined]);
+        // A Photo tile stands for it, named in the App language.
+        expect(shownPhotos()).toEqual([undefined]);
+        expect(screen.getByText("Photo")).toBeTruthy();
+        expect(screen.getByLabelText("Photo 1 of 1")).toBeTruthy();
       });
     });
   });

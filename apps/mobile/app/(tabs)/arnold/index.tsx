@@ -3,6 +3,7 @@ import {
   useEveError,
   useEveEvents,
   useEveReset,
+  useEveSession,
 } from "@assistant-ui/eve";
 import {
   AssistantRuntimeProvider,
@@ -70,6 +71,7 @@ import type { ArnoldErrorKind } from "~/lib/arnold-chat";
 import {
   dropSentAttachments,
   keepSentAttachments,
+  sentAttachmentUri,
 } from "~/lib/arnold-sent-attachments";
 import { getClerk } from "~/lib/clerk";
 import { segmentClient } from "~/lib/segment";
@@ -140,9 +142,15 @@ const useArnoldChat = (userId: string, composer: Composer) => {
   );
 
   const isRunning = useAuiState((s) => s.thread.isRunning);
-  // The Attachments a sent message carried are counted off its turn's echo,
-  // which `@assistant-ui/eve` leaves out of the message (`shownUserMessage`).
+  // A sent message's Attachments are read off its turn's echo, which
+  // `@assistant-ui/eve` leaves out of the message (`shownUserMessage`), and
+  // drawn from the copies this device keeps under the Conversation they were
+  // sent in. The session id comes from the runtime, so the bubbles follow
+  // the Conversation: eve names a new session while its first message is
+  // already on screen, and `saveArnoldSession` moves that message's copies
+  // under it in the same call, before this render (ADR 0018).
   const events = useEveEvents();
+  const sessionId = useEveSession()?.sessionId;
   const isLoading = useAuiState((s) => s.thread.isLoading);
   const eveError = useEveError();
   const resetSession = useEveReset();
@@ -271,7 +279,7 @@ const useArnoldChat = (userId: string, composer: Composer) => {
       const sentBy = arnoldAttachmentsOwner();
       // The Conversation the copies go under, read before the awaits with
       // the owner, so a reset meanwhile can't send them somewhere else.
-      const sessionId = savedArnoldSessionId(userId);
+      const sentUnder = savedArnoldSessionId(userId);
       lastSentRef.current = { attachments, copies: [], owner: sentBy, text };
       const conversation = conversationRef.current;
       // The bytes go inline, as `data:` URL file parts after the text
@@ -309,7 +317,7 @@ const useArnoldChat = (userId: string, composer: Composer) => {
       // the message.
       const copies = await keepSentAttachments(
         userId,
-        sessionId,
+        sentUnder,
         attachments.map((attachment) => attachment.uri)
       );
 
@@ -374,10 +382,40 @@ const useArnoldChat = (userId: string, composer: Composer) => {
     [input, isBusy, sendMessage, setInput]
   );
 
+  // Where each copy of this Conversation's is, looked up once per name:
+  // asking the device is a file check, and every bubble on screen is drawn
+  // again on each streamed chunk. A copy's place doesn't change while the
+  // Conversation does not, so the answers are kept until it does.
+  // Kept under the Conversation they were looked up in, since a new one, or
+  // another User, puts the copies somewhere else.
+  const foundUris = useRef({
+    conversation: "",
+    uris: new Map<string, string | undefined>(),
+  });
+
+  const uriOf = useCallback(
+    (name: string) => {
+      const conversation = `${userId}\n${sessionId ?? ""}`;
+      let found = foundUris.current;
+
+      if (found.conversation !== conversation) {
+        found = { conversation, uris: new Map() };
+        foundUris.current = found;
+      }
+
+      if (!found.uris.has(name)) {
+        found.uris.set(name, sentAttachmentUri(userId, sessionId, name));
+      }
+
+      return found.uris.get(name);
+    },
+    [sessionId, userId]
+  );
+
   const userMessage = useCallback(
     (message: ThreadMessage) =>
-      shownUserMessage(message, messageText(message), events),
-    [events]
+      shownUserMessage(message, messageText(message), events, uriOf),
+    [events, uriOf]
   );
 
   return {
