@@ -192,6 +192,7 @@
   },
   "planEditor": {
     "title": "Plan bearbeiten",
+    "createTitle": "Neuer Plan",
     "save": "Speichern",
     "details": "Details",
     "name": "Name",
@@ -204,6 +205,7 @@
     "goal": "Ziel",
     "experience": "Erfahrungsstufe",
     "place": "Ort",
+    "unset": "Nicht festgelegt",
     "workouts": "Trainings",
     "workoutsHint": "In Rotationsreihenfolge: Das erste ist als Nächstes dran.",
     "noWorkouts": "Ein Plan braucht mindestens ein Training.",
@@ -254,13 +256,25 @@
       "descriptionTooLong": "Die Beschreibung darf höchstens {{max, number(useGrouping: false)}} Zeichen lang sein",
       "frequencyRange": "Trainings pro Woche müssen eine ganze Zahl von {{min, number(useGrouping: false)}} bis {{max, number(useGrouping: false)}} sein",
       "durationRange": "Die Trainingsdauer muss eine ganze Anzahl Minuten sein, höchstens {{max, number(useGrouping: false)}}",
-      "choiceRequired": "Wähle eine Option",
       "saveFailed": "Dein Plan konnte nicht gespeichert werden. Bitte prüfe deine Verbindung und versuche es erneut.",
       "saveRateLimited": "Dein Plan konnte nicht gespeichert werden. Zu viele Anfragen. Bitte versuche es in {{seconds, number}} s erneut.",
       "unknownExercises": "Dieser Plan enthält unbekannte Übungen und kann nicht gespeichert werden. Ersetze sie und versuche es erneut.",
       "libraryUnavailable": "Die Übungen dieses Plans konnten nicht geprüft werden. Versuche es erneut.",
       "unitsChanged": "Deine Gewichtseinheit wurde auf einem anderen Gerät geändert. Diese Zielwerte verwenden noch die alte Einheit. Schließe den Editor und öffne ihn erneut."
     }
+  },
+  "planBuilder": {
+    "title": "Plan erstellen",
+    "question": "Wie soll dieser Plan entstehen?",
+    "byHand": "Selbst erstellen",
+    "byHandHint": "Wähle deine Trainings, Übungen und Sätze selbst.",
+    "askArnold": "Arnold fragen",
+    "askArnoldHint": "Die KI von Fitme erstellt einen Plan für deine Ziele.",
+    "pro": "Pro",
+    "detailsTitle": "Neuer Plan",
+    "detailsHint": "Nur ein Name und wie oft du trainierst. Alles andere kannst du später ändern.",
+    "continue": "Weiter",
+    "back": "Zurück"
   },
   "plannedWorkout": {
     "stats": {

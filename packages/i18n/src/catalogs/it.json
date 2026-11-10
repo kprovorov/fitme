@@ -206,6 +206,7 @@
   },
   "planEditor": {
     "title": "Modifica piano",
+    "createTitle": "Nuovo piano",
     "save": "Salva",
     "details": "Dettagli",
     "name": "Nome",
@@ -218,6 +219,7 @@
     "goal": "Obiettivo",
     "experience": "Livello di esperienza",
     "place": "Luogo",
+    "unset": "Non impostato",
     "workouts": "Allenamenti",
     "workoutsHint": "In ordine di rotazione: il primo è il prossimo.",
     "noWorkouts": "Un piano deve contenere almeno un allenamento.",
@@ -268,13 +270,25 @@
       "descriptionTooLong": "La descrizione può contenere al massimo {{max, number(useGrouping: false)}} caratteri",
       "frequencyRange": "Gli allenamenti a settimana devono essere un numero intero da {{min, number(useGrouping: false)}} a {{max, number(useGrouping: false)}}",
       "durationRange": "La durata dell'allenamento deve essere un numero intero di minuti, al massimo {{max, number(useGrouping: false)}}",
-      "choiceRequired": "Scegli un'opzione",
       "saveFailed": "Impossibile salvare il piano. Controlla la connessione e riprova.",
       "saveRateLimited": "Impossibile salvare il piano. Troppe richieste: riprova tra {{seconds, number}} s.",
       "unknownExercises": "Questo piano contiene esercizi che non conosciamo e non può essere salvato. Sostituiscili e riprova.",
       "libraryUnavailable": "Impossibile verificare gli esercizi di questo piano. Riprova.",
       "unitsChanged": "Le unità di peso sono cambiate su un altro dispositivo, quindi questi obiettivi usano ancora le unità precedenti. Chiudi l'editor e riaprilo."
     }
+  },
+  "planBuilder": {
+    "title": "Crea piano",
+    "question": "Come vuoi creare questo piano?",
+    "byHand": "Crealo tu",
+    "byHandHint": "Scegli i tuoi allenamenti, esercizi e serie.",
+    "askArnold": "Chiedi ad Arnold",
+    "askArnoldHint": "L'IA di Fitme crea un piano in base ai tuoi obiettivi.",
+    "pro": "Pro",
+    "detailsTitle": "Nuovo piano",
+    "detailsHint": "Solo un nome e quanto spesso ti alleni. Tutto il resto si cambia dopo.",
+    "continue": "Continua",
+    "back": "Indietro"
   },
   "plannedWorkout": {
     "stats": {

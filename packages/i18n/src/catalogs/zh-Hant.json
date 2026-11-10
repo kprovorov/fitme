@@ -178,6 +178,7 @@
   },
   "planEditor": {
     "title": "編輯計畫",
+    "createTitle": "新增計畫",
     "save": "儲存",
     "details": "詳情",
     "name": "名稱",
@@ -190,6 +191,7 @@
     "goal": "目標",
     "experience": "經驗水平",
     "place": "地點",
+    "unset": "未設定",
     "workouts": "訓練",
     "workoutsHint": "按輪換順序排列：第一項就是下次訓練。",
     "noWorkouts": "計畫中至少需要一項訓練。",
@@ -240,13 +242,25 @@
       "descriptionTooLong": "描述不能超過{{max, number(useGrouping: false)}}個字元",
       "frequencyRange": "每週訓練次數必須是{{min, number(useGrouping: false)}}至{{max, number(useGrouping: false)}}之間的整數",
       "durationRange": "訓練分鐘數必須是整數，且不超過{{max, number(useGrouping: false)}}",
-      "choiceRequired": "請選擇一項",
       "saveFailed": "無法儲存你的計畫。請檢查網路連線後再試一次。",
       "saveRateLimited": "無法儲存你的計畫。請求過於頻繁，請在{{seconds, number}}秒後再試一次。",
       "unknownExercises": "此計畫包含未知動作，無法儲存。請替換後再試一次。",
       "libraryUnavailable": "無法驗證此計畫中的動作，請再試一次。",
       "unitsChanged": "你在另一台裝置上變更了重量單位，這些目標仍使用舊單位。請關閉編輯器後重新開啟。"
     }
+  },
+  "planBuilder": {
+    "title": "建立計畫",
+    "question": "你想怎麼建立這個計畫？",
+    "byHand": "自己建立",
+    "byHandHint": "自行挑選訓練、動作和組數。",
+    "askArnold": "詢問 Arnold",
+    "askArnoldHint": "Fitme 的 AI 會依你的目標安排計畫。",
+    "pro": "Pro",
+    "detailsTitle": "新增計畫",
+    "detailsHint": "只需名稱和每週訓練次數，其餘稍後都能修改。",
+    "continue": "繼續",
+    "back": "返回"
   },
   "plannedWorkout": {
     "stats": {

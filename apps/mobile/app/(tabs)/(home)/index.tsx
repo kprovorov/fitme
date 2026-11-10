@@ -123,7 +123,11 @@ const HomeScreen = () => {
     }
   }, [profile, user, router]);
 
-  const handleCreatePlan = useCallback(() => router.push("/planner"), [router]);
+  const handleCreatePlan = useCallback(
+    () => router.push("/plans/create"),
+    [router]
+  );
+
   const handleManagePlans = useCallback(() => router.push("/plans"), [router]);
   const openProfile = useCallback(() => router.push("/profile"), [router]);
 

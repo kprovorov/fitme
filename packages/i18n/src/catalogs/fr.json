@@ -206,6 +206,7 @@
   },
   "planEditor": {
     "title": "Modifier le programme",
+    "createTitle": "Nouveau programme",
     "save": "Enregistrer",
     "details": "Détails",
     "name": "Nom",
@@ -218,6 +219,7 @@
     "goal": "Objectif",
     "experience": "Niveau d'expérience",
     "place": "Lieu",
+    "unset": "Non défini",
     "workouts": "Séances",
     "workoutsHint": "Dans l'ordre de rotation : la première est la prochaine à faire.",
     "noWorkouts": "Un programme doit contenir au moins une séance.",
@@ -268,13 +270,25 @@
       "descriptionTooLong": "La description doit contenir au maximum {{max, number(useGrouping: false)}} caractères",
       "frequencyRange": "Le nombre de séances par semaine doit être un entier de {{min, number(useGrouping: false)}} à {{max, number(useGrouping: false)}}",
       "durationRange": "La durée des séances doit être un nombre entier de minutes, au maximum {{max, number(useGrouping: false)}}",
-      "choiceRequired": "Choisis une option",
       "saveFailed": "Impossible d'enregistrer ton programme. Vérifie ta connexion et réessaie.",
       "saveRateLimited": "Impossible d'enregistrer ton programme. Trop de requêtes : réessaie dans {{seconds, number}} s.",
       "unknownExercises": "Ce programme contient des exercices inconnus et ne peut pas être enregistré. Remplace-les et réessaie.",
       "libraryUnavailable": "Impossible de vérifier les exercices de ce programme. Réessaie.",
       "unitsChanged": "Tes unités de poids ont changé sur un autre appareil. Ces objectifs utilisent donc les anciennes unités. Ferme l'éditeur et ouvre-le à nouveau."
     }
+  },
+  "planBuilder": {
+    "title": "Créer un programme",
+    "question": "Comment créer ce programme ?",
+    "byHand": "Le créer vous-même",
+    "byHandHint": "Choisissez vos séances, exercices et séries.",
+    "askArnold": "Demander à Arnold",
+    "askArnoldHint": "L'IA de Fitme crée un programme selon vos objectifs.",
+    "pro": "Pro",
+    "detailsTitle": "Nouveau programme",
+    "detailsHint": "Juste un nom et votre fréquence d'entraînement. Tout le reste est modifiable plus tard.",
+    "continue": "Continuer",
+    "back": "Retour"
   },
   "plannedWorkout": {
     "stats": {

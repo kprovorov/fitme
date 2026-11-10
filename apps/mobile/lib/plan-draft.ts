@@ -138,24 +138,61 @@ export type SavableDraftWorkout = Omit<DraftWorkout, "exercises"> & {
 
 /**
  * A draft every required field of which is in bounds: what `savePlanBody`
- * takes, so a body never goes out with a detail or a target the write can't
- * express.
+ * and `createPlanBody` take, so a body never goes out with a detail or a
+ * target the write can't express. Only the name and the frequency are
+ * required: the four details stay nullable, since a Plan may leave each
+ * unset (ADR 0017).
  */
 export type SavablePlanDraft = Omit<PlanDraft, "workouts"> & {
-  experienceLevel: ExperienceLevel;
   frequency: number;
-  goal: Goal;
-  place: Place;
-  workoutDuration: number;
   workouts: SavableDraftWorkout[];
 };
 
 /** `PUT /v1/plans/{id}`'s body: the whole Plan, each row with its id. */
 export type SavedPlanBody = components["schemas"]["SavedPlan"];
 
+/**
+ * `POST /v1/plans`'s body, bar `activate`: a Plan the builder is creating,
+ * so no row carries an id yet.
+ */
+export type NewPlanBody = Omit<components["schemas"]["NewPlan"], "activate">;
+
+/**
+ * The `planId` the Plan editor is opened under while it is creating a Plan
+ * rather than editing one: no Plan exists yet, so there is nothing to read
+ * and Save goes through `POST /v1/plans`. A real Plan id is a uuid, so it is
+ * never this.
+ */
+export const NEW_PLAN_ID = "new";
+
 /** What a new Exercise's sets start at: 3 × 10 reps, bodyweight, 90 s rest. */
 export const NEW_EXERCISE_SET_COUNT = 3;
 const NEW_SET = { reps: 10, rest: 90, weight: 0 } as const;
+
+const DIGITS = /^\d+$/u;
+
+/**
+ * What the editor's and the create sheet's number fields write into a draft:
+ * the whole number `text` holds, `null` when the field is empty — which an
+ * optional field reads as unset (ADR 0017) — and `Number.NaN` for anything
+ * else, so a field holding `45.5` is never mistaken for a cleared one.
+ * `isPlanNumberIn` is what every reader holds the value to.
+ */
+export const wholePlanNumber = (text: string): number | null => {
+  const trimmed = text.trim();
+
+  if (trimmed === "") {
+    return null;
+  }
+
+  if (!DIGITS.test(trimmed)) {
+    return Number.NaN;
+  }
+
+  const value = Number(trimmed);
+
+  return Number.isSafeInteger(value) ? value : Number.NaN;
+};
 
 let keys = 0;
 
@@ -224,7 +261,12 @@ export const planDraftFrom = (plan: FullPlan): PlanDraft => ({
 export const planUnitsChanged = (draft: PlanDraft, plan: FullPlan) =>
   draft.weightUnit !== plan.weight_unit;
 
-const isWholeNumberIn = (
+/**
+ * Whether the value a number field wrote is a whole number within those
+ * bounds: `null` (an empty field) and `Number.NaN` (text that isn't a whole
+ * number) are both outside. Every reader of such a field goes through it.
+ */
+export const isPlanNumberIn = (
   value: number | null,
   min: number,
   max: number
@@ -260,7 +302,7 @@ export const isSavableTarget = (
 
   const { max, min } = SET_TARGET_BOUNDS[target];
 
-  return isWholeNumberIn(value, min, max);
+  return isPlanNumberIn(value, min, max);
 };
 
 /** Whether a set's three targets are all in the write's bounds. */
@@ -288,22 +330,20 @@ export const isSavableWorkout = (
 
 /**
  * Whether the draft can be saved: a name and a frequency within
- * `@fitme/core`'s bounds, a Workout duration within its own, at least one
- * Workout, every Workout savable (a name, an Exercise, and every set's
- * targets in bounds), and each of the four details set, since the whole-Plan
- * save still requires them (clearing one comes with the migration, ADR
- * 0017). It's what Save is enabled by.
+ * `@fitme/core`'s bounds, at least one Workout, and every Workout savable (a
+ * name, an Exercise, and every set's targets in bounds). The goal, place,
+ * experience level and Workout duration are optional (ADR 0017): each may be
+ * unset, and a duration that is set must be within its own bounds. It's what
+ * Save is enabled by.
  */
 export const isSavablePlanDraft = (
   draft: PlanDraft
 ): draft is SavablePlanDraft =>
   isSavableName(draft.name) &&
   draft.description.length <= MAX_PLAN_TEXT_LENGTH &&
-  isWholeNumberIn(draft.frequency, MIN_FREQUENCY, MAX_FREQUENCY) &&
-  isWholeNumberIn(draft.workoutDuration, 1, MAX_WORKOUT_DURATION_MINUTES) &&
-  draft.goal !== null &&
-  draft.place !== null &&
-  draft.experienceLevel !== null &&
+  isPlanNumberIn(draft.frequency, MIN_FREQUENCY, MAX_FREQUENCY) &&
+  (draft.workoutDuration === null ||
+    isPlanNumberIn(draft.workoutDuration, 1, MAX_WORKOUT_DURATION_MINUTES)) &&
   draft.workouts.length >= 1 &&
   draft.workouts.every(isSavableWorkout);
 
@@ -315,21 +355,79 @@ const textOrNothing = (value: string) => {
 };
 
 /**
+ * The four optional details as both Plan writes take them, each one optional
+ * (ADR 0017).
+ */
+type PlanDetailsBody = Pick<
+  SavedPlanBody,
+  "experience_level" | "goal" | "place" | "workout_duration"
+>;
+
+/**
+ * The four optional details, each left out when the Plan hasn't got it
+ * (ADR 0017): a create then stores it unset, and a save clears it. Only the
+ * ones the User set go out.
+ */
+const planDetails = (draft: SavablePlanDraft): PlanDetailsBody => {
+  const details: PlanDetailsBody = {};
+
+  if (draft.experienceLevel !== null) {
+    details.experience_level = draft.experienceLevel;
+  }
+
+  if (draft.goal !== null) {
+    details.goal = draft.goal;
+  }
+
+  if (draft.place !== null) {
+    details.place = draft.place;
+  }
+
+  if (draft.workoutDuration !== null) {
+    details.workout_duration = draft.workoutDuration;
+  }
+
+  return details;
+};
+
+/**
+ * The body `POST /v1/plans` takes for a Plan built by hand: no row has an id
+ * yet, and only the details the User set go out, so the Plan stores the rest
+ * unset (ADR 0017). The Plan's own description and every Workout's are
+ * required by the create's schema, so an empty one goes out as `""`.
+ */
+export const createPlanBody = (draft: SavablePlanDraft): NewPlanBody => ({
+  ...planDetails(draft),
+  description: draft.description.trim(),
+  frequency: draft.frequency,
+  name: draft.name.trim(),
+  workouts: draft.workouts.map((workout) => ({
+    description: workout.description,
+    exercises: workout.exercises.map((exercise) => ({
+      exercise_slug: exercise.exerciseSlug,
+      sets: exercise.sets.map((set) => ({
+        reps_recommended: set.reps,
+        rest_recommended: set.rest,
+        weight_recommended: set.weight,
+      })),
+    })),
+    name: workout.name.trim(),
+  })),
+});
+
+/**
  * The body `PUT /v1/plans/{id}` takes, field by field: the write's schema is
  * strict, so nothing the read carries along (`order`, `cover`, `plan_id`,
  * the timestamps) and nothing the draft holds for itself (`key`) may go
- * back. Every row sent with its id keeps it, and an empty description is
- * left out, which clears it.
+ * back. Every row sent with its id keeps it, and an empty description — or a
+ * detail the User cleared — is left out, which clears it.
  */
 export const savePlanBody = (draft: SavablePlanDraft): SavedPlanBody => ({
+  ...planDetails(draft),
   ...textOrNothing(draft.description),
-  experience_level: draft.experienceLevel,
   frequency: draft.frequency,
-  goal: draft.goal,
   name: draft.name.trim(),
   note: draft.note,
-  place: draft.place,
-  workout_duration: draft.workoutDuration,
   workouts: draft.workouts.map((workout) => {
     const savedWorkout: SavedPlanBody["workouts"][number] = {
       ...textOrNothing(workout.description),
@@ -531,6 +629,53 @@ export const addDraftWorkout = (draft: PlanDraft, name: string) => {
     draft: { ...draft, workouts: [...draft.workouts, workout] },
     key: workout.key,
   };
+};
+
+/**
+ * The draft a create starts from (the create sheet's name and frequency):
+ * one empty Workout per weekly session, named by letter, and no detail set —
+ * the goal, place, experience level and Workout duration are the User's to
+ * fill in or leave unset (ADR 0017). `weightUnit` is the User's own, so the
+ * set rows label the targets they type.
+ */
+export const newPlanDraft = ({
+  frequency,
+  name,
+  nameFor,
+  weightUnit,
+}: {
+  /** `null` when the create sheet gave none, which Save then refuses. */
+  frequency: number | null;
+  name: string;
+  /** The catalog's name for a letter, so the Workouts read in the App language. */
+  nameFor: (letter: string) => string;
+  weightUnit: PlanDraft["weightUnit"];
+}): PlanDraft => {
+  let draft: PlanDraft = {
+    description: "",
+    experienceLevel: null,
+    frequency,
+    goal: null,
+    name,
+    note: null,
+    place: null,
+    weightUnit,
+    workoutDuration: null,
+    workouts: [],
+  };
+
+  const count = isPlanNumberIn(frequency, 0, Number.MAX_SAFE_INTEGER)
+    ? Math.min(frequency, MAX_WORKOUTS_PER_PLAN)
+    : 0;
+
+  for (let at = 0; at < count; at += 1) {
+    ({ draft } = addDraftWorkout(
+      draft,
+      nextWorkoutName(draft.workouts, nameFor)
+    ));
+  }
+
+  return draft;
 };
 
 /** The Workout of the draft with that key, or `undefined` once it's gone. */

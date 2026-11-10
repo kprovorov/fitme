@@ -249,7 +249,7 @@ describe("the first tab's header and Plan menu", () => {
     await fireEvent.press(
       screen.getByRole("menuitem", { name: "Create Plan" })
     );
-    expect(mockPush).toHaveBeenLastCalledWith("/planner");
+    expect(mockPush).toHaveBeenLastCalledWith("/plans/create");
   });
 
   it("offers Manage Plans in the empty state when the User has Plans but none active", async () => {

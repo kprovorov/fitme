@@ -68,7 +68,7 @@ const PlansListView = () => {
   return (
     <VStack className="items-stretch">
       {renderPlans()}
-      <Link asChild href="/planner">
+      <Link asChild href="/plans/create">
         <Button label={t("plans.createNew")} size="lg" />
       </Link>
     </VStack>

@@ -171,6 +171,13 @@ const save = async () => {
   await settle(client);
 };
 
+/** Clears one of the optional details, through its Not set option. */
+const clear = async (testID: string) => {
+  await fireEvent.press(
+    within(screen.getByTestId(testID)).getByLabelText("Not set")
+  );
+};
+
 /** Removes a Workout through its row's menu, as the User would. */
 const removeWorkout = async (name: string) => {
   await press(`Actions for ${name}`);
@@ -309,6 +316,41 @@ describe("saving", () => {
     expect(savedPlan().experience_level).toBe("beginner");
     expect(savedPlan().place).toBe("home");
     expect(savedPlan().workout_duration).toBe(45);
+  });
+
+  it("saves a detail the User cleared as unset (ADR 0017)", async () => {
+    await openEditor();
+
+    // Each choice offers Not set, so a detail set before can be cleared.
+    await clear("plan-goal");
+    await clear("plan-experience");
+    await clear("plan-place");
+    await type("plan-duration", "");
+    // Save stays on: none of the four is required any more.
+    expect(screen.getByLabelText("Save")).not.toBeDisabled();
+    await save();
+
+    expect(savedPlan().goal).toBeNull();
+    expect(savedPlan().experience_level).toBeNull();
+    expect(savedPlan().place).toBeNull();
+    expect(savedPlan().workout_duration).toBeNull();
+  });
+
+  it("refuses a duration that isn't a whole number, rather than clearing it", async () => {
+    await openEditor();
+
+    await type("plan-duration", "45.5");
+
+    expect(screen.getByLabelText("Save")).toBeDisabled();
+    expect(
+      screen.getByText(
+        "Workout duration must be a whole number of minutes, at most 600"
+      )
+    ).toBeTruthy();
+    await save();
+
+    // Nothing is written, so the Plan keeps the duration it had.
+    expect(fakePublicApi.count(SAVE)).toBe(0);
   });
 
   it("saves a reordered rotation, every Workout keeping its id", async () => {

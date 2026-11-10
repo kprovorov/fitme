@@ -248,7 +248,7 @@ describe("the empty History", () => {
     expect(screen.queryByRole("button", { name: START_LABEL })).toBeNull();
     await fireEvent.press(button("Create a Plan"));
 
-    expect(mockPush).toHaveBeenCalledWith("/planner");
+    expect(mockPush).toHaveBeenCalledWith("/plans/create");
   });
 
   it("isn't shown once a Workout Session is finished, even one with nothing logged", async () => {

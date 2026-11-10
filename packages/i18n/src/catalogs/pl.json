@@ -220,6 +220,7 @@
   },
   "planEditor": {
     "title": "Edytuj plan",
+    "createTitle": "Nowy plan",
     "save": "Zapisz",
     "details": "Szczegóły",
     "name": "Nazwa",
@@ -232,6 +233,7 @@
     "goal": "Cel",
     "experience": "Poziom zaawansowania",
     "place": "Miejsce",
+    "unset": "Nie ustawiono",
     "workouts": "Treningi",
     "workoutsHint": "W kolejności rotacji: pierwszy jest następny.",
     "noWorkouts": "Plan wymaga co najmniej jednego treningu.",
@@ -282,13 +284,25 @@
       "descriptionTooLong": "Limit znaków w opisie: {{max, number(useGrouping: false)}}",
       "frequencyRange": "Liczba treningów w tygodniu musi być liczbą całkowitą od {{min, number(useGrouping: false)}} do {{max, number(useGrouping: false)}}",
       "durationRange": "Czas treningu musi być całkowitą liczbą minut, nie większą niż {{max, number(useGrouping: false)}}",
-      "choiceRequired": "Wybierz jedną opcję",
       "saveFailed": "Nie udało się zapisać planu. Sprawdź połączenie i spróbuj ponownie.",
       "saveRateLimited": "Nie udało się zapisać planu. Zbyt wiele żądań. Spróbuj ponownie za {{seconds, number}} s.",
       "unknownExercises": "Ten plan zawiera nieznane ćwiczenia, więc nie można go zapisać. Zastąp je i spróbuj ponownie.",
       "libraryUnavailable": "Nie udało się sprawdzić ćwiczeń w tym planie. Spróbuj ponownie.",
       "unitsChanged": "Jednostki ciężaru zmieniły się na innym urządzeniu, więc te wartości docelowe są w poprzednich jednostkach. Zamknij edytor i otwórz go ponownie."
     }
+  },
+  "planBuilder": {
+    "title": "Utwórz plan",
+    "question": "Jak chcesz utworzyć ten plan?",
+    "byHand": "Utwórz samodzielnie",
+    "byHandHint": "Wybierz własne treningi, ćwiczenia i serie.",
+    "askArnold": "Zapytaj Arnolda",
+    "askArnoldHint": "SI Fitme ułoży plan pod Twoje cele.",
+    "pro": "Pro",
+    "detailsTitle": "Nowy plan",
+    "detailsHint": "Tylko nazwa i częstotliwość treningów. Resztę zmienisz później.",
+    "continue": "Dalej",
+    "back": "Wstecz"
   },
   "plannedWorkout": {
     "stats": {

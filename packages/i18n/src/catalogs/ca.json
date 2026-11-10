@@ -206,6 +206,7 @@
   },
   "planEditor": {
     "title": "Edita el pla",
+    "createTitle": "Pla nou",
     "save": "Desa",
     "details": "Detalls",
     "name": "Nom",
@@ -218,6 +219,7 @@
     "goal": "Objectiu",
     "experience": "Nivell d'experiència",
     "place": "Lloc",
+    "unset": "Sense definir",
     "workouts": "Entrenaments",
     "workoutsHint": "En ordre de rotació: el primer és el següent.",
     "noWorkouts": "Un pla necessita com a mínim un entrenament.",
@@ -268,13 +270,25 @@
       "descriptionTooLong": "La descripció pot tenir com a màxim {{max, number(useGrouping: false)}} caràcters",
       "frequencyRange": "Els entrenaments per setmana han de ser un nombre enter d'{{min, number(useGrouping: false)}} a {{max, number(useGrouping: false)}}",
       "durationRange": "La durada de l'entrenament ha de ser un nombre enter de minuts, com a màxim {{max, number(useGrouping: false)}}",
-      "choiceRequired": "Tria una opció",
       "saveFailed": "No s'ha pogut desar el pla. Comprova la connexió i torna-ho a provar.",
       "saveRateLimited": "No s'ha pogut desar el pla. Massa sol·licituds: torna-ho a provar en {{seconds, number}} s.",
       "unknownExercises": "Aquest pla té exercicis que no coneixem, així que no es pot desar. Substitueix-los i torna-ho a provar.",
       "libraryUnavailable": "No s'han pogut comprovar els exercicis d'aquest pla. Torna-ho a provar.",
       "unitsChanged": "Les teves unitats de pes han canviat en un altre dispositiu, així que aquests objectius són en les antigues. Tanca l'editor i torna'l a obrir."
     }
+  },
+  "planBuilder": {
+    "title": "Crea un pla",
+    "question": "Com vols crear aquest pla?",
+    "byHand": "Crea'l tu mateix",
+    "byHandHint": "Tria els teus entrenaments, exercicis i sèries.",
+    "askArnold": "Pregunta a l'Arnold",
+    "askArnoldHint": "La IA de Fitme crea un pla segons els teus objectius.",
+    "pro": "Pro",
+    "detailsTitle": "Pla nou",
+    "detailsHint": "Només un nom i amb quina freqüència entrenes. La resta es pot canviar més endavant.",
+    "continue": "Continua",
+    "back": "Enrere"
   },
   "plannedWorkout": {
     "stats": {

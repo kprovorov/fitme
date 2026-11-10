@@ -197,7 +197,10 @@ export const WorkoutPlanCard = ({ plan }: { plan: WorkoutPlan }) => {
       return;
     }
 
-    createPlan(body, { onSuccess: () => setSaved(true) });
+    createPlan(
+      { plan: body, source: "arnold" },
+      { onSuccess: () => setSaved(true) }
+    );
   }, [createPlan, plan]);
 
   const placeIcon: SFSymbol = plan.place === "home" ? "house" : "building.2";

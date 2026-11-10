@@ -35,7 +35,9 @@ import {
   canAddDraftWorkout,
   isSavableWorkout,
   moveDraftWorkout,
+  isPlanNumberIn,
   removeDraftWorkout,
+  wholePlanNumber,
 } from "~/lib/plan-draft";
 import type { DraftChange, DraftWorkout, PlanDraft } from "~/lib/plan-draft";
 
@@ -50,39 +52,30 @@ interface PlanEditorViewProps {
   saveError?: string | null;
 }
 
-const DIGITS = /^\d+$/u;
-
-/** The whole number `text` holds, or `null` when it holds none. */
-const wholeNumber = (text: string): number | null => {
-  const trimmed = text.trim();
-
-  if (!DIGITS.test(trimmed)) {
-    return null;
-  }
-
-  const value = Number(trimmed);
-
-  return Number.isSafeInteger(value) ? value : null;
-};
-
 const isOutside = (value: number | null, min: number, max: number) =>
-  value === null || value < min || value > max;
+  !isPlanNumberIn(value, min, max);
+
+/**
+ * What a cleared choice is while the `Picker` holds it: it has no value for
+ * "nothing", so the Unset option carries the empty string and the draft gets
+ * `null` back (ADR 0017).
+ */
+const UNSET = "";
+
+/** One of the four optional details, as its `Picker` holds it. */
+type Choice<TValue extends string> = TValue | typeof UNSET;
+
+/** One option of such a detail's `Picker`, the Unset one included. */
+interface ChoiceOption<TValue extends string> {
+  label: string;
+  value: Choice<TValue>;
+}
 
 /** A field with its label above it, as every field of the editor has. */
-const Field = ({
-  children,
-  error,
-  label,
-}: {
-  children: ReactNode;
-  /** Shown under the field, for one that can't show its own message. */
-  error?: string;
-  label: string;
-}) => (
+const Field = ({ children, label }: { children: ReactNode; label: string }) => (
   <View className="flex flex-col items-stretch justify-center gap-2">
     <Label>{label}</Label>
     {children}
-    {error ? <ErrorMessage>{error}</ErrorMessage> : null}
   </View>
 );
 
@@ -110,7 +103,7 @@ const NumberField = ({
   const change = useCallback(
     (typed: string) => {
       setText(typed);
-      onChangeNumber(wholeNumber(typed));
+      onChangeNumber(wholePlanNumber(typed));
     },
     [onChangeNumber]
   );
@@ -279,41 +272,65 @@ const PlanEditorView = ({
   );
 
   const setGoal = useCallback(
-    (goal: Goal) => onChange((drafted) => ({ ...drafted, goal })),
+    (goal: Choice<Goal>) =>
+      onChange((drafted) => ({
+        ...drafted,
+        goal: goal === UNSET ? null : goal,
+      })),
     [onChange]
   );
 
   const setExperienceLevel = useCallback(
-    (experienceLevel: ExperienceLevel) =>
-      onChange((drafted) => ({ ...drafted, experienceLevel })),
+    (experienceLevel: Choice<ExperienceLevel>) =>
+      onChange((drafted) => ({
+        ...drafted,
+        experienceLevel: experienceLevel === UNSET ? null : experienceLevel,
+      })),
     [onChange]
   );
 
   const setPlace = useCallback(
-    (place: Place) => onChange((drafted) => ({ ...drafted, place })),
+    (place: Choice<Place>) =>
+      onChange((drafted) => ({
+        ...drafted,
+        place: place === UNSET ? null : place,
+      })),
     [onChange]
   );
 
-  const goalOptions = useMemo(
-    () => goals.map((goal) => ({ label: labels.goal(goal), value: goal })),
-    [labels]
+  // Each choice can be cleared back to unset, so every list starts with the
+  // Unset option (ADR 0017).
+  const unset = t("planEditor.unset");
+
+  const goalOptions = useMemo<ChoiceOption<Goal>[]>(
+    () => [
+      { label: unset, value: UNSET },
+      ...goals.map((goal) => ({ label: labels.goal(goal), value: goal })),
+    ],
+    [labels, unset]
   );
 
-  const levelOptions = useMemo(
-    () =>
-      experienceLevels.map((level) => ({
+  const levelOptions = useMemo<ChoiceOption<ExperienceLevel>[]>(
+    () => [
+      { label: unset, value: UNSET },
+      ...experienceLevels.map((level) => ({
         label: labels.experienceLevel(level),
         value: level,
       })),
-    [labels]
+    ],
+    [labels, unset]
   );
 
-  const placeOptions = useMemo(
-    () => places.map((place) => ({ label: labels.place(place), value: place })),
-    [labels]
+  const placeOptions = useMemo<ChoiceOption<Place>[]>(
+    () => [
+      { label: unset, value: UNSET },
+      ...places.map((place) => ({
+        label: labels.place(place),
+        value: place,
+      })),
+    ],
+    [labels, unset]
   );
-
-  const choiceRequired = t("planEditor.errors.choiceRequired");
 
   const descriptionError =
     draft.description.trim().length > MAX_PLAN_TEXT_LENGTH
@@ -371,6 +388,10 @@ const PlanEditorView = ({
         />
         <NumberField
           error={
+            // Optional (ADR 0017): an empty field is unset, not an error.
+            // Text that isn't a whole number is `NaN`, never `null`, so it
+            // is an error rather than a Plan whose duration was cleared.
+            draft.workoutDuration !== null &&
             isOutside(draft.workoutDuration, 1, MAX_WORKOUT_DURATION_MINUTES)
               ? t("planEditor.errors.durationRange", {
                   max: MAX_WORKOUT_DURATION_MINUTES,
@@ -385,37 +406,28 @@ const PlanEditorView = ({
         />
         {/* A menu `Picker` only draws its own label inside a Form, so each
             one gets the same label above it as the fields have. */}
-        <Field
-          error={draft.goal === null ? choiceRequired : undefined}
-          label={t("planEditor.goal")}
-        >
+        <Field label={t("planEditor.goal")}>
           <Select
             onValueChange={setGoal}
             options={goalOptions}
             testID="plan-goal"
-            value={draft.goal ?? undefined}
+            value={draft.goal ?? UNSET}
           />
         </Field>
-        <Field
-          error={draft.experienceLevel === null ? choiceRequired : undefined}
-          label={t("planEditor.experience")}
-        >
+        <Field label={t("planEditor.experience")}>
           <Select
             onValueChange={setExperienceLevel}
             options={levelOptions}
             testID="plan-experience"
-            value={draft.experienceLevel ?? undefined}
+            value={draft.experienceLevel ?? UNSET}
           />
         </Field>
-        <Field
-          error={draft.place === null ? choiceRequired : undefined}
-          label={t("planEditor.place")}
-        >
+        <Field label={t("planEditor.place")}>
           <Select
             onValueChange={setPlace}
             options={placeOptions}
             testID="plan-place"
-            value={draft.place ?? undefined}
+            value={draft.place ?? UNSET}
           />
         </Field>
       </View>

@@ -192,6 +192,7 @@
   },
   "planEditor": {
     "title": "Schema bewerken",
+    "createTitle": "Nieuw schema",
     "save": "Opslaan",
     "details": "Details",
     "name": "Naam",
@@ -204,6 +205,7 @@
     "goal": "Doel",
     "experience": "Ervaringsniveau",
     "place": "Locatie",
+    "unset": "Niet ingesteld",
     "workouts": "Trainingen",
     "workoutsHint": "In rotatievolgorde: de eerste is als volgende aan de beurt.",
     "noWorkouts": "Een schema heeft minstens één training nodig.",
@@ -254,13 +256,25 @@
       "descriptionTooLong": "De beschrijving mag maximaal {{max, number(useGrouping: false)}} tekens bevatten",
       "frequencyRange": "Trainingen per week moeten een geheel getal zijn van {{min, number(useGrouping: false)}} tot {{max, number(useGrouping: false)}}",
       "durationRange": "Trainingsduur moet een geheel aantal minuten zijn, maximaal {{max, number(useGrouping: false)}}",
-      "choiceRequired": "Maak een keuze",
       "saveFailed": "Je schema kon niet worden opgeslagen. Controleer je verbinding en probeer het opnieuw.",
       "saveRateLimited": "Je schema kon niet worden opgeslagen. Te veel verzoeken: probeer het over {{seconds, number}} s opnieuw.",
       "unknownExercises": "Dit schema bevat onbekende oefeningen en kan niet worden opgeslagen. Vervang ze en probeer het opnieuw.",
       "libraryUnavailable": "De oefeningen in dit schema konden niet worden gecontroleerd. Probeer het opnieuw.",
       "unitsChanged": "Je gewichtseenheid is op een ander apparaat gewijzigd. Deze doelen staan nog in de oude eenheid. Sluit de editor en open deze opnieuw."
     }
+  },
+  "planBuilder": {
+    "title": "Schema maken",
+    "question": "Hoe wil je dit schema maken?",
+    "byHand": "Zelf maken",
+    "byHandHint": "Kies je eigen trainingen, oefeningen en sets.",
+    "askArnold": "Vraag het Arnold",
+    "askArnoldHint": "De AI van Fitme maakt een schema rond jouw doelen.",
+    "pro": "Pro",
+    "detailsTitle": "Nieuw schema",
+    "detailsHint": "Alleen een naam en hoe vaak je traint. De rest pas je later aan.",
+    "continue": "Doorgaan",
+    "back": "Terug"
   },
   "plannedWorkout": {
     "stats": {

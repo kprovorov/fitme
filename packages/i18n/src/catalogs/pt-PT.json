@@ -206,6 +206,7 @@
   },
   "planEditor": {
     "title": "Editar plano",
+    "createTitle": "Novo plano",
     "save": "Guardar",
     "details": "Detalhes",
     "name": "Nome",
@@ -218,6 +219,7 @@
     "goal": "Objetivo",
     "experience": "Nível de experiência",
     "place": "Local",
+    "unset": "Não definido",
     "workouts": "Treinos",
     "workoutsHint": "Na ordem de rotação: o primeiro é o próximo.",
     "noWorkouts": "Um plano precisa de pelo menos um treino.",
@@ -268,13 +270,25 @@
       "descriptionTooLong": "A descrição deve ter no máximo {{max, number(useGrouping: false)}} caracteres",
       "frequencyRange": "Os treinos por semana devem ser um número inteiro de {{min, number(useGrouping: false)}} a {{max, number(useGrouping: false)}}",
       "durationRange": "A duração do treino deve ser um número inteiro de minutos, no máximo {{max, number(useGrouping: false)}}",
-      "choiceRequired": "Escolhe uma opção",
       "saveFailed": "Não foi possível guardar o teu plano. Verifica a tua ligação e tenta novamente.",
       "saveRateLimited": "Não foi possível guardar o teu plano. Demasiados pedidos: tenta novamente dentro de {{seconds, number}} s.",
       "unknownExercises": "Este plano contém exercícios desconhecidos e não pode ser guardado. Substitui-os e tenta novamente.",
       "libraryUnavailable": "Não foi possível verificar os exercícios deste plano. Tenta novamente.",
       "unitsChanged": "As tuas unidades de peso mudaram noutro dispositivo, por isso estes objetivos estão na unidade antiga. Fecha o editor e volta a abri-lo."
     }
+  },
+  "planBuilder": {
+    "title": "Criar plano",
+    "question": "Como quer criar este plano?",
+    "byHand": "Criar você mesmo",
+    "byHandHint": "Escolha os seus treinos, exercícios e séries.",
+    "askArnold": "Pedir ao Arnold",
+    "askArnoldHint": "A IA do Fitme cria um plano para os seus objetivos.",
+    "pro": "Pro",
+    "detailsTitle": "Novo plano",
+    "detailsHint": "Apenas um nome e com que frequência treina. O resto pode mudar mais tarde.",
+    "continue": "Continuar",
+    "back": "Voltar"
   },
   "plannedWorkout": {
     "stats": {

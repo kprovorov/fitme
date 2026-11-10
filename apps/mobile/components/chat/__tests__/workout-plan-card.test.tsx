@@ -220,14 +220,14 @@ describe("WorkoutPlanCard", () => {
     expect(screen.getByText("Listed: Old Plan")).toBeTruthy();
   });
 
-  it("fires Plan Saved and Plan Activated once each, on success", async () => {
+  it("fires Plan Saved from Arnold and Plan Activated once each, on success", async () => {
     const client = await renderCard();
 
     await save(client);
 
     const [created] = backend.plans;
     expect(tracked()).toEqual([
-      ["Plan Saved", { plan_id: created?.id }],
+      ["Plan Saved", { plan_id: created?.id, source: "arnold" }],
       ["Plan Activated", { plan_id: created?.id }],
     ]);
   });

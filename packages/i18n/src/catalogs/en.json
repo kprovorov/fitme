@@ -192,6 +192,7 @@
   },
   "planEditor": {
     "title": "Edit Plan",
+    "createTitle": "New Plan",
     "save": "Save",
     "details": "Details",
     "name": "Name",
@@ -204,6 +205,7 @@
     "goal": "Goal",
     "experience": "Experience level",
     "place": "Place",
+    "unset": "Not set",
     "workouts": "Workouts",
     "workoutsHint": "In rotation order: the first one is up next.",
     "noWorkouts": "A plan needs at least one workout.",
@@ -254,13 +256,25 @@
       "descriptionTooLong": "Description must be at most {{max, number(useGrouping: false)}} characters",
       "frequencyRange": "Workouts a week must be a whole number from {{min, number(useGrouping: false)}} to {{max, number(useGrouping: false)}}",
       "durationRange": "Workout duration must be a whole number of minutes, at most {{max, number(useGrouping: false)}}",
-      "choiceRequired": "Choose one",
       "saveFailed": "Couldn't save your plan. Please check your connection and try again.",
       "saveRateLimited": "Couldn't save your plan. Too many requests: please try again in {{seconds, number}} s.",
       "unknownExercises": "This plan has exercises we don't know, so it can't be saved. Replace them and try again.",
       "libraryUnavailable": "Couldn't check this plan's exercises. Try again.",
       "unitsChanged": "Your weight units changed on another device, so these targets are in the old one. Close the editor and open it again."
     }
+  },
+  "planBuilder": {
+    "title": "Create Plan",
+    "question": "How should this plan be made?",
+    "byHand": "Build it yourself",
+    "byHandHint": "Pick your own workouts, exercises and sets.",
+    "askArnold": "Ask Arnold",
+    "askArnoldHint": "Fitme's AI builds a plan around your goals.",
+    "pro": "Pro",
+    "detailsTitle": "New Plan",
+    "detailsHint": "Just a name and how often you train. You can change everything else later.",
+    "continue": "Continue",
+    "back": "Back"
   },
   "plannedWorkout": {
     "stats": {

@@ -35,7 +35,7 @@ const PlansScreen = () => {
               },
               label: t("plans.create"),
               onPress: () => {
-                router.push("/planner");
+                router.push("/plans/create");
               },
               type: "button",
             },

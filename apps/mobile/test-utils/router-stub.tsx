@@ -56,6 +56,7 @@ interface PushedRoute {
 const listeners = new Set<() => void>();
 let routes: PushedRoute[] = [];
 let nextKey = 0;
+let dismissedTo: string | null = null;
 
 const setRoutes = (next: PushedRoute[]) => {
   routes = next;
@@ -84,7 +85,10 @@ const toRoute = (href: Href): PushedRoute => {
 export const stubRouter = {
   back: () => setRoutes(routes.slice(0, -1)),
   dismiss: (count = 1) => setRoutes(routes.slice(0, -count)),
-  dismissTo: () => setRoutes([]),
+  dismissTo: (href: Href) => {
+    dismissedTo = hrefSchema.parse(href).pathname;
+    setRoutes([]);
+  },
   push: (href: Href) => setRoutes([...routes, toRoute(href)]),
   replace: (href: Href) => setRoutes([...routes.slice(0, -1), toRoute(href)]),
 };
@@ -92,7 +96,13 @@ export const stubRouter = {
 /** Every route pushed and not popped yet, oldest first. */
 export const pushedRoutes = () => routes;
 
-export const resetStubRouter = () => setRoutes([]);
+/** The route the last `router.dismissTo` went to, or `null` for none. */
+export const dismissedToRoute = () => dismissedTo;
+
+export const resetStubRouter = () => {
+  dismissedTo = null;
+  setRoutes([]);
+};
 
 const subscribe = (listener: () => void) => {
   listeners.add(listener);
