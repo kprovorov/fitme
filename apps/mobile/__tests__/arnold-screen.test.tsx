@@ -245,18 +245,6 @@ const { fileSystem } = jest.requireActual<typeof InMemoryFileSystem>(
 
 jest.mock("expo-router/react-navigation", () => ({ useHeaderHeight: () => 0 }));
 
-let mockAttachmentsEnabled = false;
-
-// Attachments are off, as they ship, unless a test turns them on. A getter
-// defined in place (a spread would copy the flag's value once, when the
-// factory runs).
-jest.mock("~/lib/arnold-attachments", () =>
-  Object.defineProperties(
-    {},
-    { ATTACHMENTS_ENABLED: { get: () => mockAttachmentsEnabled } }
-  )
-);
-
 jest.mock("~/hooks/revenueCat", () => ({
   useIsProQuery: () => ({ data: true, isPending: false }),
 }));
@@ -363,7 +351,6 @@ async function send(text: string) {
 }
 
 beforeEach(() => {
-  mockAttachmentsEnabled = false;
   mockUserId = "user_arnold_screen";
   mockPickLibraryPhotos.mockReset();
   mockReadAttachmentDataUrl.mockReset();
@@ -717,22 +704,13 @@ describe("arnold screen", () => {
       });
     };
 
-    it("offers no way to add one while they are off", async () => {
-      await renderArnold();
-
-      expect(screen.queryByLabelText("Add to chat")).toBeNull();
-      expect(screen.getByPlaceholderText("Message Arnold")).toBeTruthy();
-    });
-
-    it('offers the composer\'s "+" once they are on', async () => {
-      mockAttachmentsEnabled = true;
+    it('offers the composer\'s "+"', async () => {
       await renderArnold();
 
       expect(screen.getByLabelText("Add to chat")).toBeTruthy();
     });
 
     it('names the composer\'s "+" in Ukrainian on a Ukrainian device', async () => {
-      mockAttachmentsEnabled = true;
       setDeviceLanguages(["uk-UA"]);
       await renderArnold();
 
@@ -741,7 +719,6 @@ describe("arnold screen", () => {
     });
 
     it("shows the picked photos above the text field, named for VoiceOver", async () => {
-      mockAttachmentsEnabled = true;
       mockPickLibraryPhotos.mockResolvedValue({
         failed: 0,
         images: [photo("gym"), photo("plan")],
@@ -771,7 +748,6 @@ describe("arnold screen", () => {
     });
 
     it("drops the photo whose × the User presses", async () => {
-      mockAttachmentsEnabled = true;
       mockPickLibraryPhotos.mockResolvedValue({
         failed: 0,
         images: [photo("gym"), photo("plan")],
@@ -788,7 +764,6 @@ describe("arnold screen", () => {
     });
 
     it("asks only for the slots left, then says when the message is full", async () => {
-      mockAttachmentsEnabled = true;
       mockPickLibraryPhotos.mockResolvedValue({
         failed: 0,
         images: [photo("a"), photo("b")],
@@ -819,7 +794,6 @@ describe("arnold screen", () => {
     });
 
     it("says so, and keeps the sheet open, when no photo could be read", async () => {
-      mockAttachmentsEnabled = true;
       // A RAW or a broken file: the picker gave it, the re-encoder couldn't.
       mockPickLibraryPhotos.mockResolvedValue({ failed: 1, images: [] });
       await renderArnold();
@@ -833,7 +807,6 @@ describe("arnold screen", () => {
     });
 
     it("changes nothing when the User cancels the picker", async () => {
-      mockAttachmentsEnabled = true;
       mockPickLibraryPhotos.mockResolvedValue(null);
       await renderArnold();
       await pickPhotos();
@@ -844,7 +817,6 @@ describe("arnold screen", () => {
     });
 
     it("sends them as JPEG data URLs after the text, in pick order", async () => {
-      mockAttachmentsEnabled = true;
       mockPickLibraryPhotos.mockResolvedValue({
         failed: 0,
         images: [photo("gym"), photo("plan")],
@@ -874,7 +846,6 @@ describe("arnold screen", () => {
     });
 
     it("sends a photo with no text at all", async () => {
-      mockAttachmentsEnabled = true;
       mockPickLibraryPhotos.mockResolvedValue({
         failed: 0,
         images: [photo("gym")],
@@ -900,7 +871,6 @@ describe("arnold screen", () => {
     });
 
     it("shows the photos it sent, in order, before and after the echo", async () => {
-      mockAttachmentsEnabled = true;
       mockPickLibraryPhotos.mockResolvedValue({
         failed: 0,
         images: [photo("gym"), photo("plan")],
@@ -931,7 +901,6 @@ describe("arnold screen", () => {
     });
 
     it("stands a tile in for a copy that is there but can't be drawn", async () => {
-      mockAttachmentsEnabled = true;
       mockPickLibraryPhotos.mockResolvedValue({
         failed: 0,
         images: [photo("gym")],
@@ -958,7 +927,6 @@ describe("arnold screen", () => {
     });
 
     it("shows a photo sent on its own, with no empty line under it", async () => {
-      mockAttachmentsEnabled = true;
       mockPickLibraryPhotos.mockResolvedValue({
         failed: 0,
         images: [photo("gym")],
@@ -978,7 +946,6 @@ describe("arnold screen", () => {
     });
 
     it("shows nothing of the sort on a message sent without one", async () => {
-      mockAttachmentsEnabled = true;
       await renderArnold();
       await send("How heavy should I squat?");
 
@@ -991,7 +958,6 @@ describe("arnold screen", () => {
     describe("the full-screen viewer", () => {
       /** Sends `names` as one message's photos and waits for the answer. */
       const sendPhotos = async (...names: readonly string[]) => {
-        mockAttachmentsEnabled = true;
         mockPickLibraryPhotos.mockResolvedValue({
           failed: 0,
           images: names.map((name) => photo(name)),
@@ -1110,7 +1076,6 @@ describe("arnold screen", () => {
       });
 
       it("keeps showing a first message's photo once eve names the session", async () => {
-        mockAttachmentsEnabled = true;
         mockPickLibraryPhotos.mockResolvedValue({
           failed: 0,
           images: [photo("gym")],
@@ -1163,7 +1128,6 @@ describe("arnold screen", () => {
     });
 
     it("tells Segment how many went, and nothing about them", async () => {
-      mockAttachmentsEnabled = true;
       mockPickLibraryPhotos.mockResolvedValue({
         failed: 0,
         images: [photo("gym"), photo("plan")],
@@ -1179,7 +1143,6 @@ describe("arnold screen", () => {
     });
 
     it("tells Segment nothing about a message sent without one", async () => {
-      mockAttachmentsEnabled = true;
       await renderArnold();
       await send("How heavy should I squat?");
 
@@ -1188,7 +1151,6 @@ describe("arnold screen", () => {
     });
 
     it("gives a failed send's text and photos back to the composer", async () => {
-      mockAttachmentsEnabled = true;
       mockPickLibraryPhotos.mockResolvedValue({
         failed: 0,
         images: [photo("gym"), photo("plan")],
@@ -1218,7 +1180,6 @@ describe("arnold screen", () => {
     });
 
     it("gives them back when Arnold refuses the send, before the paywall", async () => {
-      mockAttachmentsEnabled = true;
       mockPickLibraryPhotos.mockResolvedValue({
         failed: 0,
         images: [photo("gym"), photo("plan")],
@@ -1242,7 +1203,6 @@ describe("arnold screen", () => {
     });
 
     it("gives back a failed send that was a photo and nothing else", async () => {
-      mockAttachmentsEnabled = true;
       mockPickLibraryPhotos.mockResolvedValue({
         failed: 0,
         images: [photo("gym")],
@@ -1263,7 +1223,6 @@ describe("arnold screen", () => {
     });
 
     it("sends the same photos again when the User retries", async () => {
-      mockAttachmentsEnabled = true;
       mockPickLibraryPhotos.mockResolvedValue({
         failed: 0,
         images: [photo("gym"), photo("plan")],
@@ -1306,7 +1265,6 @@ describe("arnold screen", () => {
     });
 
     it("gives a message back when a photo can't be read off the device", async () => {
-      mockAttachmentsEnabled = true;
       mockPickLibraryPhotos.mockResolvedValue({
         failed: 0,
         images: [photo("gym"), photo("plan")],
@@ -1330,7 +1288,6 @@ describe("arnold screen", () => {
     });
 
     it("gives a message back to nobody once another User has signed in", async () => {
-      mockAttachmentsEnabled = true;
       mockPickLibraryPhotos.mockResolvedValue({
         failed: 0,
         images: [photo("gym")],
@@ -1383,7 +1340,6 @@ describe("arnold screen", () => {
     });
 
     it("sends nothing into a Conversation started while a photo was read", async () => {
-      mockAttachmentsEnabled = true;
       mockPickLibraryPhotos.mockResolvedValue({
         failed: 0,
         images: [photo("gym")],
@@ -1428,7 +1384,6 @@ describe("arnold screen", () => {
     });
 
     it("shows the photo the User took with the camera", async () => {
-      mockAttachmentsEnabled = true;
       mockTakePhoto.mockResolvedValue({
         image: photo("machine"),
         status: "taken",
@@ -1445,7 +1400,6 @@ describe("arnold screen", () => {
     });
 
     it("counts a taken photo toward the message's four", async () => {
-      mockAttachmentsEnabled = true;
       mockPickLibraryPhotos.mockResolvedValue({
         failed: 0,
         images: [photo("a"), photo("b"), photo("c")],
@@ -1471,7 +1425,6 @@ describe("arnold screen", () => {
     });
 
     it("offers Settings when camera access is off", async () => {
-      mockAttachmentsEnabled = true;
       // iOS only prompts once: a User who said no gets this without a
       // prompt, so the alert is the only way back.
       mockTakePhoto.mockResolvedValue({ status: "denied" });
@@ -1495,7 +1448,6 @@ describe("arnold screen", () => {
     });
 
     it("changes nothing when the User backs out of the camera", async () => {
-      mockAttachmentsEnabled = true;
       mockTakePhoto.mockResolvedValue({ status: "cancelled" });
       await renderArnold();
       await useCamera();
@@ -1506,7 +1458,6 @@ describe("arnold screen", () => {
     });
 
     it("says so when the photo taken can't be read", async () => {
-      mockAttachmentsEnabled = true;
       // No camera at all (a simulator), or a photo the re-encoder refused.
       mockTakePhoto.mockRejectedValue(new Error("No camera available"));
       await renderArnold();
@@ -1519,7 +1470,6 @@ describe("arnold screen", () => {
     });
 
     it("takes a photo and offers Settings in Ukrainian", async () => {
-      mockAttachmentsEnabled = true;
       setDeviceLanguages(["uk-UA"]);
       mockTakePhoto.mockResolvedValue({
         image: photo("machine"),
@@ -1548,7 +1498,6 @@ describe("arnold screen", () => {
     });
 
     it("picks photos and says the message is full in Ukrainian", async () => {
-      mockAttachmentsEnabled = true;
       setDeviceLanguages(["uk-UA"]);
       mockPickLibraryPhotos.mockResolvedValue({
         failed: 0,
@@ -1613,7 +1562,6 @@ describe("arnold screen", () => {
       };
 
       it('disables "+" and offers a new Conversation at ten photos', async () => {
-        mockAttachmentsEnabled = true;
         await renderArnold();
         await fillConversation();
 
@@ -1628,7 +1576,6 @@ describe("arnold screen", () => {
       });
 
       it("starts a fresh Conversation from the notice, with room again", async () => {
-        mockAttachmentsEnabled = true;
         await renderArnold();
         await fillConversation();
 
@@ -1647,7 +1594,6 @@ describe("arnold screen", () => {
       });
 
       it("offers only the slots the Conversation has left", async () => {
-        mockAttachmentsEnabled = true;
         await renderArnold();
         await sendPhotos(4, "first");
         await sendPhotos(4, "second");
@@ -1662,7 +1608,6 @@ describe("arnold screen", () => {
       });
 
       it("counts the photos in the composer, before they are sent", async () => {
-        mockAttachmentsEnabled = true;
         await renderArnold();
         await sendPhotos(4, "first");
         await sendPhotos(4, "second");
@@ -1684,7 +1629,6 @@ describe("arnold screen", () => {
       });
 
       it("counts a send's photos while they are still being copied", async () => {
-        mockAttachmentsEnabled = true;
         await renderArnold();
         await sendPhotos(4, "first");
         await sendPhotos(4, "second");
@@ -1718,7 +1662,6 @@ describe("arnold screen", () => {
       });
 
       it("counts a send's photos while they are still being read", async () => {
-        mockAttachmentsEnabled = true;
         await renderArnold();
         await sendPhotos(4, "first");
         await sendPhotos(4, "second");
@@ -1771,7 +1714,6 @@ describe("arnold screen", () => {
       });
 
       it("gives a refused send its photos back even at the cap", async () => {
-        mockAttachmentsEnabled = true;
         await renderArnold();
         await sendPhotos(4, "first");
         await sendPhotos(4, "second");
@@ -1799,7 +1741,6 @@ describe("arnold screen", () => {
       });
 
       it("gives the slots back when a send's photos can't be read", async () => {
-        mockAttachmentsEnabled = true;
         await renderArnold();
         await sendPhotos(4, "first");
         await sendPhotos(4, "second");
@@ -1823,7 +1764,6 @@ describe("arnold screen", () => {
       });
 
       it("still counts them after the screen is closed and reopened", async () => {
-        mockAttachmentsEnabled = true;
         const { unmount } = await renderArnold();
         await fillConversation();
         expect(addToChat()).toBeDisabled();
@@ -1840,7 +1780,6 @@ describe("arnold screen", () => {
       });
 
       it("says the Conversation is full in Ukrainian", async () => {
-        mockAttachmentsEnabled = true;
         setDeviceLanguages(["uk-UA"]);
         await renderArnold();
         await fillConversation();
@@ -1860,7 +1799,6 @@ describe("arnold screen", () => {
     });
 
     it("names a sent photo in Ukrainian", async () => {
-      mockAttachmentsEnabled = true;
       setDeviceLanguages(["uk-UA"]);
       mockPickLibraryPhotos.mockResolvedValue({
         failed: 0,
@@ -1907,7 +1845,6 @@ describe("arnold screen", () => {
       };
 
       it("keeps one photo per Attachment, found again by the echo's name", async () => {
-        mockAttachmentsEnabled = true;
         await sendTwoPhotos();
 
         // Found from MMKV and the file system alone, which is all the app
@@ -1919,7 +1856,6 @@ describe("arnold screen", () => {
       });
 
       it("keeps them under the Conversation, not loose on the device", async () => {
-        mockAttachmentsEnabled = true;
         await sendTwoPhotos();
 
         const [sessionId] = fakeArnold.sessionIds;
@@ -1932,7 +1868,6 @@ describe("arnold screen", () => {
       });
 
       it("keeps them through a reopened screen", async () => {
-        mockAttachmentsEnabled = true;
         const { unmount } = await renderArnold();
         mockPickLibraryPhotos.mockResolvedValue({
           failed: 0,
@@ -1965,7 +1900,6 @@ describe("arnold screen", () => {
       });
 
       it("shows a Photo tile where the copy is gone, and keeps the rest", async () => {
-        mockAttachmentsEnabled = true;
         await sendTwoPhotos();
 
         // The first photo leaves the device behind the app's back, as a
@@ -1992,7 +1926,6 @@ describe("arnold screen", () => {
       });
 
       it("takes them away with the Conversation the '+' resets", async () => {
-        mockAttachmentsEnabled = true;
         await sendTwoPhotos();
 
         await userEvent.setup().press(screen.getByLabelText(NEW_CONVERSATION));
@@ -2008,7 +1941,6 @@ describe("arnold screen", () => {
       });
 
       it("keeps them through a sign-out, and never shows another User's", async () => {
-        mockAttachmentsEnabled = true;
         await sendTwoPhotos();
 
         const theirs = keptPhotos("user_arnold_screen");
@@ -2027,7 +1959,6 @@ describe("arnold screen", () => {
       });
 
       it("takes back the copies of a send Arnold refused", async () => {
-        mockAttachmentsEnabled = true;
         mockPickLibraryPhotos.mockResolvedValue({
           failed: 0,
           images: [photo("gym"), photo("plan")],
@@ -2055,7 +1986,6 @@ describe("arnold screen", () => {
       });
 
       it("keeps the copies of a message Arnold had already echoed", async () => {
-        mockAttachmentsEnabled = true;
         mockPickLibraryPhotos.mockResolvedValue({
           failed: 0,
           images: [photo("gym")],
@@ -2083,7 +2013,6 @@ describe("arnold screen", () => {
       });
 
       it("keeps only the retry's copies when a failed send is sent again", async () => {
-        mockAttachmentsEnabled = true;
         mockPickLibraryPhotos.mockResolvedValue({
           failed: 0,
           images: [photo("gym")],
@@ -2118,7 +2047,6 @@ describe("arnold screen", () => {
       });
 
       it("drops a send whose Conversation was replaced mid-copy", async () => {
-        mockAttachmentsEnabled = true;
         mockPickLibraryPhotos.mockResolvedValue({
           failed: 0,
           images: [photo("gym")],
@@ -2153,7 +2081,6 @@ describe("arnold screen", () => {
       });
 
       it("sends a photo it could not copy, and keeps nothing for it", async () => {
-        mockAttachmentsEnabled = true;
         mockPickLibraryPhotos.mockResolvedValue({
           failed: 0,
           // Never written to the stand-in device: the cache the re-encoder
