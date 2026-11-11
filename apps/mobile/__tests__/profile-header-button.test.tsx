@@ -11,6 +11,7 @@ import { beforeEach, describe, expect, it, jest } from "@jest/globals";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { fireEvent, render, screen } from "@testing-library/react-native";
 import type { ReactNode } from "react";
+import { useLayoutEffect, useState } from "react";
 import { Platform, Pressable, Text } from "react-native";
 
 import HomeScreen from "~/app/(tabs)/(home)/index";
@@ -41,34 +42,53 @@ interface MockHeaderOptions {
 // buttons, each named by what VoiceOver reads. Top-level (and
 // `mock`-prefixed, so the factory may use it) because the React Compiler
 // rewrites components declared inside a `jest.mock` factory.
-const MockHeader = ({ options }: { options: MockHeaderOptions }) => (
-  <>
-    {options.headerTitle ? (
-      options.headerTitle()
-    ) : options.title ? (
-      <Text>{options.title}</Text>
-    ) : null}
-    {options.headerShown ? <Text>header shown</Text> : null}
-    {options.headerBackButtonDisplayMode ? <Text>back button</Text> : null}
-    {options.headerRight?.()}
-    {(options.unstable_headerRightItems?.() ?? []).some(
-      (item) => item.type === "menu"
-    ) ? (
-      <Text>header menu</Text>
-    ) : null}
-    {(options.unstable_headerRightItems?.() ?? [])
-      .filter((item) => item.type === "button")
-      .map((item) => (
-        <Pressable
-          accessibilityLabel={item.accessibilityLabel ?? item.label}
-          accessibilityRole="button"
-          key={item.label}
-          onPress={item.onPress}
-          testID={`header-${item.icon?.name}`}
-        />
-      ))}
-  </>
-);
+const MockHeader = ({ options }: { options: MockHeaderOptions }) => {
+  // SceneView keeps its own hooks before invoking the header renderers.
+  const [initialTitle] = useState(options.title);
+  const title = options.title ?? initialTitle;
+
+  return (
+    <>
+      {options.headerTitle ? (
+        options.headerTitle()
+      ) : title ? (
+        <Text>{title}</Text>
+      ) : null}
+      {options.headerShown ? <Text>header shown</Text> : null}
+      {options.headerBackButtonDisplayMode ? <Text>back button</Text> : null}
+      {options.headerRight?.()}
+      {(options.unstable_headerRightItems?.() ?? []).some(
+        (item) => item.type === "menu"
+      ) ? (
+        <Text>header menu</Text>
+      ) : null}
+      {(options.unstable_headerRightItems?.() ?? [])
+        .filter((item) => item.type === "button")
+        .map((item) => (
+          <Pressable
+            accessibilityLabel={item.accessibilityLabel ?? item.label}
+            accessibilityRole="button"
+            key={item.label}
+            onPress={item.onPress}
+            testID={`header-${item.icon?.name}`}
+          />
+        ))}
+    </>
+  );
+};
+
+const MockHeaderScreen = ({ options }: { options: MockHeaderOptions }) => {
+  // Native stack renders defaults before Stack.Screen installs its options.
+  const [configured, setConfigured] = useState(false);
+
+  useLayoutEffect(() => {
+    queueMicrotask(() => setConfigured(true));
+  }, []);
+
+  return (
+    <MockHeader options={configured ? options : { title: options.title }} />
+  );
+};
 
 const mockPush = jest.fn();
 
@@ -77,7 +97,7 @@ jest.mock("expo-router", () => ({
   router: { replace: jest.fn() },
   Stack: {
     Screen: (props: { options: MockHeaderOptions }) => (
-      <MockHeader {...props} />
+      <MockHeaderScreen {...props} />
     ),
   },
   useNavigation: () => ({}),
@@ -218,7 +238,7 @@ describe("profile from the first tab's header", () => {
 });
 
 describe("the first tab's header and Plan menu", () => {
-  it("shows the Fitme logo as the title, with a spoken label", async () => {
+  it("installs the custom title after the default header without changing hooks", async () => {
     await mount(<HomeScreen />);
 
     expect(screen.getByRole("image", { name: "Fitme" })).toBeTruthy();
