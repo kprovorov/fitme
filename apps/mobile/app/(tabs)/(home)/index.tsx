@@ -60,6 +60,9 @@ const HomeHeaderTitle = () => {
   );
 };
 
+const renderHomeProfileButton = () => <HomeProfileButton />;
+const renderHomeHeaderTitle = () => <HomeHeaderTitle />;
+
 const HomeScreen = () => {
   const { t } = useTranslation();
   const { user } = useUser();
@@ -218,10 +221,10 @@ const HomeScreen = () => {
           // Android's native stack has no header items, so Profile is a text
           // button there; iOS shows the items below and ignores this.
           headerRight:
-            Platform.OS === "android" ? HomeProfileButton : undefined,
+            Platform.OS === "android" ? renderHomeProfileButton : undefined,
           // The Fitme logo in the title's place; `title` still names the tab
           // for the back button of the screens pushed over it.
-          headerTitle: HomeHeaderTitle,
+          headerTitle: renderHomeHeaderTitle,
           headerTransparent: true,
           title: t("tabs.workout"),
           unstable_headerRightItems: () => [

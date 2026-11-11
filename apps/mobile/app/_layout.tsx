@@ -1,6 +1,6 @@
-/* oxlint-disable import/no-duplicates -- Initialize translations before any route or component imports. */
-import "~/lib/i18n";
+/* oxlint-disable import/no-duplicates -- Install synchronous polyfills, then initialize translations before routes or components. */
 import "@/polyfills";
+import "~/lib/i18n";
 import {
   NunitoSans_400Regular,
   NunitoSans_600SemiBold,

@@ -1,3 +1,5 @@
+import "core-js/actual/array/to-sorted";
+import "core-js/actual/array/to-reversed";
 import structuredClone from "@ungap/structured-clone";
 import { Platform } from "react-native";
 import { z } from "zod";

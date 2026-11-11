@@ -13,6 +13,7 @@ import {
   screen,
   within,
 } from "@testing-library/react-native";
+import { Platform } from "react-native";
 
 import HomeScreen from "~/app/(tabs)/(home)/index";
 import { PLANS_QUERY_KEY } from "~/hooks/queries/plans";
@@ -53,6 +54,12 @@ jest.mock("@clerk/expo", () => ({
 jest.mock("react-native-purchases", () => ({
   __esModule: true,
   default: { invalidateCustomerInfoCache: () => Promise.resolve() },
+}));
+
+// The startup regression exercises array methods, not clone/stream setup.
+jest.mock("@ungap/structured-clone", () => ({
+  __esModule: true,
+  default: jest.fn(),
 }));
 
 // The real Clerk SDK (reached through the Workout cards) opens a MessagePort
@@ -188,6 +195,48 @@ beforeEach(() => {
 });
 
 describe("the Workout tab's Plans", () => {
+  it("renders populated workout cards when copying array methods need polyfills", async () => {
+    const methods = ["toSorted", "toReversed"] as const;
+
+    const originals = methods.map((method) =>
+      Object.getOwnPropertyDescriptor(Array.prototype, method)
+    );
+
+    const os = Platform.OS;
+
+    try {
+      for (const method of methods) {
+        Reflect.deleteProperty(Array.prototype, method);
+      }
+
+      // Load the real startup module without the unrelated native stream setup.
+      Platform.OS = "web";
+
+      jest.requireActual("@/polyfills");
+      Platform.OS = os;
+
+      backend.seedPlan(STRENGTH);
+      await mount();
+
+      expect(cardNames()).toEqual(["Push", "Legs"]);
+      expect(cardOf("workout-push").getByText("3 exercises")).toBeTruthy();
+      expect(cardOf("workout-legs").getByText("2 exercises")).toBeTruthy();
+    } finally {
+      Platform.OS = os;
+
+      for (const [index, method] of methods.entries()) {
+        const original = originals[index];
+
+        if (original) {
+          // oxlint-disable-next-line eslint/no-extend-native -- Restore the original runtime after the missing-method simulation.
+          Object.defineProperty(Array.prototype, method, original);
+        } else {
+          Reflect.deleteProperty(Array.prototype, method);
+        }
+      }
+    }
+  });
+
   it("shows the active Plan's Workouts from the API", async () => {
     backend.seedPlan(STRENGTH);
     await mount();
