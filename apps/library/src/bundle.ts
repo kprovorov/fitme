@@ -94,13 +94,20 @@ const MuscleGroups = z
   });
 
 /**
- * The Equipment an Exercise needs, from `@fitme/core`, none repeated. It's
- * optional while `fitme-exercises` tags its content: an untagged Exercise is
- * served with no Equipment at all. Once every Exercise is tagged it becomes
- * required with at least one value.
+ * The Equipment an Exercise needs, from `@fitme/core`, none repeated, at least
+ * one: an Exercise that needs no gear lists `bodyweight`.
  */
 const EquipmentList = z
-  .array(KnownEquipment)
+  .array(KnownEquipment, {
+    error: (issue) =>
+      issue.input === undefined
+        ? "required: list the Equipment the Exercise needs (bodyweight when it needs none)"
+        : undefined,
+  })
+  .min(1, {
+    error:
+      "must list at least one Equipment (bodyweight when the Exercise needs none)",
+  })
   .refine((needed) => new Set(needed).size === needed.length, {
     error: "Equipment must not repeat",
   });
@@ -108,7 +115,7 @@ const EquipmentList = z
 const image = media(["jpg", "png", "webp"]);
 
 const BundleExerciseSchema = z.strictObject({
-  equipment: EquipmentList.optional(),
+  equipment: EquipmentList,
   locales: Locales,
   muscle_groups: MuscleGroups,
   slug: z

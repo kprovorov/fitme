@@ -469,8 +469,7 @@ describe("gET /exercises", () => {
     expect(body.total).toBe(5);
     expect(body.hasMore).toBeFalsy();
     expect(body.data[0]).toStrictEqual({
-      // untagged in the bundle, so no Equipment
-      equipment: [],
+      equipment: ["bodyweight"],
       muscle_groups: ["quadriceps", "glutes"],
       name: "Back Squat",
       slug: "squat",
@@ -706,7 +705,7 @@ describe("gET /exercises several muscle groups", () => {
   });
 });
 
-/** A Library whose Exercises are tagged with Equipment, one left untagged. */
+/** A Library whose Exercises are tagged with Equipment, one needing no gear. */
 const taggedApp = createApp({
   ...base,
   library: serveLibrary(
@@ -732,7 +731,7 @@ const taggedApp = createApp({
           ["dumbbell"]
         ),
         libraryExercise("pull-up", "Pull-Up", ["lats"], ["pull_up_bar"]),
-        libraryExercise("sit-up", "Sit-Up", ["abs"]),
+        libraryExercise("sit-up", "Sit-Up", ["abs"], ["bodyweight"]),
       ],
     },
     SUPABASE_URL
@@ -813,7 +812,7 @@ describe("gET /exercises Equipment filter", () => {
     expect(names(second.body)).toStrictEqual(["Goblet Squat"]);
   });
 
-  it("never matches an Exercise the Library hasn't tagged", async () => {
+  it("matches every Exercise when given every Equipment", async () => {
     const { body } = await tagged(`?equipment=${equipment.join(",")}`);
 
     expect(names(body)).toStrictEqual([
@@ -821,8 +820,15 @@ describe("gET /exercises Equipment filter", () => {
       "Deadlift",
       "Goblet Squat",
       "Pull-Up",
+      "Sit-Up",
     ]);
-    expect(body.total).toBe(4);
+    expect(body.total).toBe(5);
+  });
+
+  it("finds an Exercise needing no gear through bodyweight", async () => {
+    const { body } = await tagged("?equipment=bodyweight");
+
+    expect(names(body)).toStrictEqual(["Sit-Up"]);
   });
 
   it("answers a known Equipment no Exercise needs with an empty page", async () => {
@@ -972,8 +978,7 @@ describe("gET /exercises?slugs (batch lookup)", () => {
     ]);
     expect(body.missing).toStrictEqual(["nope", "gone"]);
     expect(body.data[0]).toStrictEqual({
-      // untagged in the bundle, so no Equipment
-      equipment: [],
+      equipment: ["bodyweight"],
       muscle_groups: ["quadriceps", "glutes"],
       name: "Back Squat",
       slug: "squat",
@@ -1087,8 +1092,7 @@ describe("gET /exercises/:slug", () => {
     expect(response.status).toBe(200);
     await expect(response.json()).resolves.toStrictEqual({
       description: "Bench Press is a compound pushing movement.\n",
-      // untagged in the bundle, so no Equipment
-      equipment: [],
+      equipment: ["bodyweight"],
       instructions: "1. Lie on the bench.\n2. Press.\n",
       muscle_groups: ["chest", "triceps"],
       name: "Bench Press",
@@ -1125,7 +1129,7 @@ describe("exercise Equipment", () => {
             "Жим лежачи"
           ),
           libraryExercise("pull-up", "Pull-Up", ["lats"], ["pull_up_bar"]),
-          libraryExercise("sit-up", "Sit-Up", ["abs"]),
+          libraryExercise("sit-up", "Sit-Up", ["abs"], ["bodyweight"]),
         ],
       },
       SUPABASE_URL
@@ -1142,11 +1146,11 @@ describe("exercise Equipment", () => {
     );
   };
 
-  it("lists it in core's order, and none for an untagged Exercise", async () => {
+  it("lists it in core's order", async () => {
     await expect(equipmentBySlug("/exercises")).resolves.toStrictEqual({
       "bench-press": ["barbell", "bench"],
       "pull-up": ["pull_up_bar"],
-      "sit-up": [],
+      "sit-up": ["bodyweight"],
     });
   });
 
@@ -1155,7 +1159,7 @@ describe("exercise Equipment", () => {
       equipmentBySlug("/exercises?slugs=sit-up,bench-press")
     ).resolves.toStrictEqual({
       "bench-press": ["barbell", "bench"],
-      "sit-up": [],
+      "sit-up": ["bodyweight"],
     });
   });
 
@@ -1181,7 +1185,7 @@ describe("exercise Equipment", () => {
     ).resolves.toStrictEqual({
       "bench-press": ["barbell", "bench"],
       "pull-up": ["pull_up_bar"],
-      "sit-up": [],
+      "sit-up": ["bodyweight"],
     });
   });
 
@@ -1199,6 +1203,7 @@ describe("exercise Equipment", () => {
       properties: {
         equipment: {
           items: { $ref: "#/components/schemas/Equipment" },
+          minItems: 1,
           type: "array",
         },
       },

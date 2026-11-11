@@ -16,9 +16,9 @@ export const Language = z.enum(appLanguages).openapi("Language");
  * fields, so adding a field is one change here.
  */
 const summaryFields = {
-  equipment: z.array(Equipment).openapi({
+  equipment: z.array(Equipment).min(1).openapi({
     description:
-      "Every piece of Equipment the Exercise needs, in a fixed order. Empty for an Exercise the Library hasn't tagged yet.",
+      "Every piece of Equipment the Exercise needs, in a fixed order: at least one, `bodyweight` for an Exercise that needs no gear.",
   }),
   muscle_groups: z.array(MuscleGroup),
   name: z.string().openapi({ example: "Bench Press" }),
