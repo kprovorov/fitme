@@ -46,7 +46,8 @@
             "items": {
               "$ref": "#/components/schemas/Equipment"
             },
-            "description": "Every piece of Equipment the Exercise needs, in a fixed order. Empty for an Exercise the Library hasn't tagged yet."
+            "minItems": 1,
+            "description": "Every piece of Equipment the Exercise needs, in a fixed order: at least one, `bodyweight` for an Exercise that needs no gear."
           },
           "muscle_groups": {
             "type": "array",
@@ -186,7 +187,8 @@
             "items": {
               "$ref": "#/components/schemas/Equipment"
             },
-            "description": "Every piece of Equipment the Exercise needs, in a fixed order. Empty for an Exercise the Library hasn't tagged yet."
+            "minItems": 1,
+            "description": "Every piece of Equipment the Exercise needs, in a fixed order: at least one, `bodyweight` for an Exercise that needs no gear."
           },
           "muscle_groups": {
             "type": "array",

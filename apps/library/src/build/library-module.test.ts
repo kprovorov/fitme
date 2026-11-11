@@ -103,8 +103,7 @@ describe("generateLibraryModule", () => {
     const { library } = await importModule(result.ok ? result.source : "");
     const squat = {
       description: "Squat is a compound pushing movement.\n",
-      // untagged in the bundle, so no Equipment
-      equipment: [],
+      equipment: ["bodyweight"],
       instructions: "1. Lie on the bench.\n2. Press.\n",
       muscle_groups: ["chest", "triceps"],
       name: "Squat",
@@ -122,7 +121,7 @@ describe("generateLibraryModule", () => {
     });
   });
 
-  it("serves each Exercise's Equipment in core's order, and an untagged one none", async () => {
+  it("serves each Exercise's Equipment in core's order", async () => {
     const result = await generate({
       LIBRARY_BUNDLE: await writeBundle(
         libraryBundle([
@@ -131,7 +130,7 @@ describe("generateLibraryModule", () => {
             "bench",
             "barbell",
           ]),
-          libraryExercise("lunge", "Lunge"),
+          libraryExercise("lunge", "Lunge", ["quadriceps"], ["bodyweight"]),
         ])
       ),
       SUPABASE_URL,
@@ -147,7 +146,7 @@ describe("generateLibraryModule", () => {
         ]
       )
     ).toEqual([
-      ["lunge", []],
+      ["lunge", ["bodyweight"]],
       ["squat", ["barbell", "bench"]],
     ]);
   });
@@ -353,6 +352,20 @@ describe("generateLibraryModule", () => {
         { ...libraryExercise("squat", "Squat"), equipment: ["kettlebell"] },
       ]),
       /: exercises\.0\.equipment\.0: unknown Equipment "kettlebell" \(known: barbell, /,
+    ],
+    [
+      "a missing Equipment",
+      bundleOf([
+        (({ equipment: _, ...untagged }) => untagged)(
+          libraryExercise("squat", "Squat")
+        ),
+      ]),
+      /: exercises\.0\.equipment: required: list the Equipment the Exercise needs \(bodyweight when it needs none\)$/,
+    ],
+    [
+      "an empty Equipment list",
+      bundleOf([{ ...libraryExercise("squat", "Squat"), equipment: [] }]),
+      /: exercises\.0\.equipment: must list at least one Equipment \(bodyweight when the Exercise needs none\)$/,
     ],
     [
       "a repeated Equipment value",

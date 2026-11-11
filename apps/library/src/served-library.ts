@@ -71,9 +71,9 @@ export const coverObjectPath = (id: string, image: BundleMedia) =>
 
 /**
  * An Exercise's Equipment in `@fitme/core`'s order, whatever order the bundle
- * wrote it in, and none at all for an Exercise the content hasn't tagged.
+ * wrote it in.
  */
-const servedEquipment = (needed: BundleExercise["equipment"] = []) => {
+const servedEquipment = (needed: BundleExercise["equipment"]) => {
   const neededEquipment = new Set(needed);
 
   return equipment.filter((item) => neededEquipment.has(item));
