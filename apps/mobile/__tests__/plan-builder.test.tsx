@@ -63,6 +63,9 @@ const mockIsPro = { current: false };
 
 const mockPresentPaywall = jest.fn();
 
+/** Every options object a `<Stack.Screen>` was rendered with. */
+const mockScreenOptions: object[] = [];
+
 jest.mock("expo-router", () => {
   const stub = jest.requireActual<typeof import("~/test-utils/router-stub")>(
     "~/test-utils/router-stub"
@@ -71,7 +74,15 @@ jest.mock("expo-router", () => {
   return {
     Link: ({ children }: { children: ReactNode }) => children,
     router: stub.stubRouter,
-    Stack: { Screen: stub.StackScreenStub },
+    Stack: {
+      // Records what each Screen asks of its header, since the stub never
+      // remounts a Screen when the options change, as the native stack does.
+      Screen: (props: Parameters<typeof stub.StackScreenStub>[0]) => {
+        mockScreenOptions.push(props.options ?? {});
+
+        return stub.StackScreenStub(props);
+      },
+    },
     useLocalSearchParams: () => stub.useStubParams(mockParams.current),
     useNavigation: () => ({ isFocused: () => true }),
     // The guard blocks the swipe away, which Jest can't make, so the test
@@ -273,6 +284,7 @@ beforeEach(() => {
     libraryExerciseNamed("Bench press"),
   ]);
   resetStubRouter();
+  mockScreenOptions.length = 0;
   mockParams.current = {};
   mockIsPro.current = false;
 });
@@ -305,6 +317,20 @@ describe("the Create Plan choice", () => {
 });
 
 describe("the create sheet", () => {
+  it("leaves showing the header to the root layout", async () => {
+    await openChoice();
+    await press("Build it yourself");
+
+    // Turning the header on from inside the modal remounts its content on
+    // iOS, which loses the step (FIT-628): `app/_layout.tsx` sets both.
+    for (const options of mockScreenOptions) {
+      expect(options).not.toHaveProperty("headerShown");
+      expect(options).not.toHaveProperty("headerTransparent");
+    }
+
+    expect(screen.getByText("New Plan")).toBeTruthy();
+  });
+
   it("opens the editor on one empty lettered Workout per weekly session", async () => {
     await openChoice();
     await buildByHand({ frequency: "3", name: "Push pull legs" });

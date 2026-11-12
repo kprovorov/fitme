@@ -143,7 +143,12 @@ const RootLayout = () => {
           />
           <Stack.Screen
             name="plans/create"
+            // The header is on from the start: turning it on from inside the
+            // Screen (its own Stack.Screen) remounts the modal's content and
+            // loses its step (FIT-628).
             options={{
+              headerShown: true,
+              headerTransparent: true,
               presentation: "modal",
             }}
           />
@@ -184,7 +189,10 @@ const RootLayout = () => {
           />
           <Stack.Screen
             name="exercises/[exerciseSlug]/guide"
+            // Its header is on from the start, like the Create Plan modal's
+            // (FIT-628), so the sheet doesn't remount turning it on.
             options={{
+              headerShown: true,
               presentation: "formSheet",
               sheetAllowedDetents: [0.5, 1],
               sheetGrabberVisible: true,
