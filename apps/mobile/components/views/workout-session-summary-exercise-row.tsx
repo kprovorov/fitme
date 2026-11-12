@@ -6,7 +6,6 @@ import { Pressable } from "react-native";
 import ExerciseImage from "~/components/exercises/exercise-image";
 import { SymbolImage } from "~/components/symbol-image";
 import { Text } from "~/components/ui/text";
-import { useExerciseHistoryQuery } from "~/hooks/queries/exercises";
 import { shownExercise } from "~/hooks/queries/library";
 import type { ShownExercise } from "~/hooks/queries/library";
 import type { WorkoutSessionExercise } from "~/hooks/queries/workout-sessions";
@@ -15,6 +14,8 @@ import { useI18n } from "~/lib/i18n";
 interface WorkoutSessionSummaryExerciseRowProps {
   /** The Exercise as resolved by `useExercises`. */
   exercise: ShownExercise | undefined;
+  /** Whether the session earned a Personal record for this Exercise. */
+  isPersonalRecord: boolean;
   planId: string | null;
   sessionId: string;
   workoutId: string | null;
@@ -23,6 +24,7 @@ interface WorkoutSessionSummaryExerciseRowProps {
 
 const WorkoutSessionSummaryExerciseRow = ({
   exercise: resolved,
+  isPersonalRecord,
   planId,
   workoutId,
   sessionId,
@@ -35,36 +37,9 @@ const WorkoutSessionSummaryExerciseRow = ({
   const exercise =
     resolved ?? shownExercise(workoutSessionExercise.exercise_slug, null);
 
-  const { data: history } = useExerciseHistoryQuery({
-    variables: { exerciseSlug: workoutSessionExercise.exercise_slug },
-  });
-
   const setsLogged = workoutSessionExercise.sets.filter(
     (set) => set.reps_completed !== null
   ).length;
-
-  const sessionMaxWeight = Math.max(
-    0,
-    ...workoutSessionExercise.sets.map((set) => set.weight_completed ?? 0)
-  );
-
-  // The best before this session, over the history pages read so far: the
-  // first page is 20 Workout Sessions, so an Exercise with a longer history
-  // is compared against its most recent ones (the record itself is the
-  // server's, and lands on an entry later).
-  let priorMaxWeight = 0;
-
-  for (const page of history?.pages ?? []) {
-    for (const entry of page.data) {
-      if (entry.session.id !== sessionId) {
-        for (const set of entry.sets) {
-          priorMaxWeight = Math.max(priorMaxWeight, set.weight_completed ?? 0);
-        }
-      }
-    }
-  }
-
-  const isNewRecord = sessionMaxWeight > 0 && sessionMaxWeight > priorMaxWeight;
 
   // The Exercise's screen lives under the session's Plan and Workout: none
   // once either is gone.
@@ -98,7 +73,7 @@ const WorkoutSessionSummaryExerciseRow = ({
       <Text className="flex-1" numberOfLines={1} variant="large">
         {exercise.name}
       </Text>
-      {isNewRecord ? (
+      {isPersonalRecord ? (
         <SymbolImage
           className="text-body-emphasized text-primary"
           name="trophy.fill"
