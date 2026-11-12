@@ -52,11 +52,8 @@ jest.mock("expo-router", () => ({
 }));
 
 jest.mock("~/hooks/queries/workout-sessions", () => ({
+  useWorkoutSessionHistoryQuery: () => ({ data: undefined }),
   useWorkoutSessionQuery: () => ({ data: mockSessions.current[0] }),
-}));
-
-jest.mock("~/hooks/queries/exercises", () => ({
-  useExerciseHistoryQuery: () => ({ data: { pageParams: [], pages: [] } }),
 }));
 
 jest.mock("react-native-safe-area-context", () => ({

@@ -36,8 +36,12 @@ import {
   closePlanUpdatePrompt,
   showPlanUpdatePrompt,
 } from "~/hooks/plan-update-prompt";
-import { useWorkoutSessionQuery } from "~/hooks/queries/workout-sessions";
+import {
+  fetchWorkoutSessionHistory,
+  useWorkoutSessionQuery,
+} from "~/hooks/queries/workout-sessions";
 import { storage } from "~/lib/mmkv";
+import { publicApi } from "~/lib/public-api";
 import { libraryExercise, serveLibrary } from "~/test-utils/fake-library";
 import {
   backend,
@@ -453,15 +457,6 @@ describe("the Workout Summary", () => {
     expect(fakePublicApi.count(READ)).toBe(1);
   });
 
-  it("marks the Exercises whose weight is a Personal record", async () => {
-    await mountSummary();
-
-    const bench = screen.getByLabelText("Bench Press, 2 sets");
-    const squat = screen.getByLabelText("Squat, 1 set");
-    expect(within(bench).queryAllByTestId(TROPHY)).toHaveLength(1);
-    expect(within(squat).queryAllByTestId(TROPHY)).toHaveLength(0);
-  });
-
   it("opens its Exercises under the session's Plan and Workout", async () => {
     await mountSummary();
 
@@ -501,6 +496,113 @@ describe("the Workout Summary", () => {
     await settle(queryClient);
 
     expect(screen.getByText("Workout Complete!")).toBeTruthy();
+  });
+});
+
+describe("the Workout Summary's Personal records", () => {
+  /** Finishes `s1` through the Public API, which awards its Personal records. */
+  const finishSession = async () => {
+    await publicApi().POST("/v1/workout-sessions/{id}/finish", {
+      params: { path: { id: "s1" } },
+    });
+  };
+
+  /** The Exercises the Summary shows a trophy on, by row label. */
+  const trophies = (labels: string[]) =>
+    labels.filter(
+      (label) =>
+        within(screen.getByLabelText(label)).queryAllByTestId(TROPHY).length > 0
+    );
+
+  /** The Exercises History's read says the session earned a record for. */
+  const historyRecords = async () => {
+    const { sessions } = await fetchWorkoutSessionHistory();
+
+    return (
+      sessions
+        .find(({ id }) => id === "s1")
+        ?.personal_records.map(({ exercise_slug }) => exercise_slug) ?? []
+    );
+  };
+
+  it("shows no trophy on a first-ever Workout Session, as History shows no record", async () => {
+    backend.seed({
+      exercises: [
+        { name: "Bench Press", sets: [5, 5] },
+        { name: "Squat", sets: [5] },
+      ],
+      id: "s1",
+      workoutId: "workout-1",
+    });
+    setSet("s1-e1-s1", { weight_completed: 60 });
+    setSet("s1-e1-s2", { weight_completed: 70 });
+    setSet("s1-e2-s1", { weight_completed: 100 });
+    await finishSession();
+
+    await mountSummary();
+
+    expect(trophies(["Bench Press, 2 sets", "Squat, 1 set"])).toEqual([]);
+    await expect(historyRecords()).resolves.toEqual([]);
+  });
+
+  it("shows the trophy on an Exercise that beat its earlier weight, as History does", async () => {
+    // Earlier: Bench Press at 60 kg, Squat at 120 kg.
+    backend.seed({
+      exercises: [
+        { name: "Bench Press", sets: [5] },
+        { name: "Squat", sets: [5] },
+      ],
+      finished: true,
+      id: "s0",
+    });
+    setSet("s0-e1-s1", { weight_completed: 60 });
+    setSet("s0-e2-s1", { weight_completed: 120 });
+    // Now: Bench Press up to 70 kg, Squat below its best.
+    backend.seed({
+      exercises: [
+        { name: "Bench Press", sets: [5, 5] },
+        { name: "Squat", sets: [5] },
+      ],
+      id: "s1",
+      workoutId: "workout-1",
+    });
+    setSet("s1-e1-s1", { weight_completed: 60 });
+    setSet("s1-e1-s2", { weight_completed: 70 });
+    setSet("s1-e2-s1", { weight_completed: 100 });
+    await finishSession();
+
+    await mountSummary();
+
+    expect(trophies(["Bench Press, 2 sets", "Squat, 1 set"])).toEqual([
+      "Bench Press, 2 sets",
+    ]);
+    await expect(historyRecords()).resolves.toEqual(["bench-press"]);
+  });
+
+  it("shows the trophy on an Exercise that earned a reps record, as History does", async () => {
+    // Earlier: Bench Press 5 × 60 kg.
+    backend.seed({
+      exercises: [{ name: "Bench Press", sets: [5] }],
+      finished: true,
+      id: "s0",
+    });
+    setSet("s0-e1-s1", { weight_completed: 60 });
+    // Now: 8 × 60 kg, the same weight for more reps.
+    backend.seed({
+      exercises: [{ name: "Bench Press", sets: [8] }],
+      id: "s1",
+      workoutId: "workout-1",
+    });
+    setSet("s1-e1-s1", { weight_completed: 60 });
+    await finishSession();
+
+    await mountSummary();
+
+    expect(trophies(["Bench Press, 1 set"])).toEqual(["Bench Press, 1 set"]);
+    expect(backend.personalRecords).toEqual([
+      expect.objectContaining({ exercise_slug: "bench-press", kind: "reps" }),
+    ]);
+    await expect(historyRecords()).resolves.toEqual(["bench-press"]);
   });
 });
 

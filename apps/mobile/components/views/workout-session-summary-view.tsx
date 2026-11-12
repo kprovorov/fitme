@@ -16,6 +16,7 @@ import { Separator } from "~/components/ui/separator";
 import { Text } from "~/components/ui/text";
 import { VStack } from "~/components/ui/vstack";
 import { useExercises } from "~/hooks/queries/library";
+import { useWorkoutSessionHistoryQuery } from "~/hooks/queries/workout-sessions";
 import type { WorkoutSession } from "~/hooks/queries/workout-sessions";
 import { useI18n } from "~/lib/i18n";
 
@@ -51,6 +52,18 @@ const WorkoutSessionSummaryView = ({
 
   const shownBySlug = useExercises(
     exercises.map(({ exercise_slug }) => exercise_slug)
+  );
+
+  // The Personal records are the server's (ADR 0015), as History shows them:
+  // the session's own entry in History's read. A first result is the
+  // baseline, so a first-ever session earns none; until History is read,
+  // no trophy shows.
+  const { data: history } = useWorkoutSessionHistoryQuery();
+
+  const recordSlugs = new Set(
+    history?.sessions
+      .find(({ id }) => id === workoutSession.id)
+      ?.personal_records.map(({ exercise_slug }) => exercise_slug)
   );
 
   const muscleGroups = new Set<MuscleGroup>(
@@ -131,6 +144,7 @@ const WorkoutSessionSummaryView = ({
             {index > 0 && <Separator />}
             <WorkoutSessionSummaryExerciseRow
               exercise={shownBySlug[exercise.exercise_slug]}
+              isPersonalRecord={recordSlugs.has(exercise.exercise_slug)}
               planId={workoutSession.plan?.id ?? null}
               sessionId={workoutSession.id}
               workoutId={workoutSession.workout?.id ?? null}
