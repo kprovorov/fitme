@@ -115,6 +115,7 @@ export default function LoginForm({
           onSubmitEditing={focusPassword}
           placeholder={t("auth.fields.email")}
           returnKeyType="next"
+          submitBehavior="submit"
           spellCheck={false}
           testID="login-email-input"
           textContentType="emailAddress"

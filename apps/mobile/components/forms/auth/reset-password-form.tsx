@@ -132,6 +132,7 @@ export default function ResetPasswordForm({
           passwordRules={`minlength: ${PASSWORD_MIN_LENGTH};`}
           placeholder={t("resetPassword.newPasswordPlaceholder")}
           returnKeyType="next"
+          submitBehavior="submit"
           testID="reset-password-input"
           textContentType="newPassword"
           value={password.value}

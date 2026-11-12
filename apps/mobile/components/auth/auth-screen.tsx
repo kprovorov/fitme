@@ -1,4 +1,5 @@
 import { useHeaderHeight } from "expo-router/react-navigation";
+import { useState } from "react";
 import type { ReactElement, ReactNode } from "react";
 import {
   Keyboard,
@@ -6,6 +7,7 @@ import {
   useWindowDimensions,
   View,
 } from "react-native";
+import type { LayoutChangeEvent } from "react-native";
 import {
   KeyboardAwareScrollView,
   KeyboardStickyView as NativeKeyboardStickyView,
@@ -16,6 +18,21 @@ import { withUniwind } from "uniwind";
 
 const KeyboardStickyView = withUniwind(NativeKeyboardStickyView);
 const handleDismissKeyboard = () => Keyboard.dismiss();
+
+/**
+ * The sticky action bar's height before it has laid out: `py-sm` around a
+ * `lg` Button (16 + 50 + 16). An error message above the Button makes it
+ * taller, which `onLayout` then measures.
+ */
+const STICKY_ACTION_HEIGHT = 82;
+
+/**
+ * The gap asked for between the focused field and the sticky action above
+ * the keyboard (`sm`). The scroll view aims at the caret's bottom, which sits
+ * a few points above the field's bottom stroke, so this keeps the stroke
+ * clear of the Button.
+ */
+const FOCUSED_FIELD_GAP = 16;
 
 export interface AuthFormParts {
   action: ReactElement;
@@ -59,11 +76,17 @@ export const AuthScreen = ({
   const { height } = useWindowDimensions();
   const keyboard = useKeyboardState();
   const sticky = keyboard.isVisible;
+  const [stickyHeight, setStickyHeight] = useState(STICKY_ACTION_HEIGHT);
+
+  const handleStickyLayout = (event: LayoutChangeEvent) =>
+    setStickyHeight(Math.ceil(event.nativeEvent.layout.height));
 
   return (
     <View className="bg-background flex-1">
       <KeyboardAwareScrollView
-        bottomOffset={82}
+        // The focused field scrolls to sit above the sticky action, not
+        // under it.
+        bottomOffset={stickyHeight + FOCUSED_FIELD_GAP}
         className="flex-1"
         contentContainerClassName="items-stretch gap-md px-sm"
         contentContainerStyle={{
@@ -76,7 +99,7 @@ export const AuthScreen = ({
           paddingTop: welcome ? insets.top + 32 : SPACING[spacing].top,
         }}
         contentInsetAdjustmentBehavior={welcome ? "never" : "automatic"}
-        extraKeyboardSpace={sticky ? 82 : 0}
+        extraKeyboardSpace={sticky ? stickyHeight : 0}
         keyboardDismissMode="interactive"
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
@@ -97,7 +120,12 @@ export const AuthScreen = ({
       </KeyboardAwareScrollView>
       {sticky ? (
         <KeyboardStickyView className="absolute inset-x-0 bottom-0">
-          <View className="bg-background px-sm py-sm">{action}</View>
+          <View
+            className="bg-background px-sm py-sm"
+            onLayout={handleStickyLayout}
+          >
+            {action}
+          </View>
         </KeyboardStickyView>
       ) : null}
     </View>

@@ -142,6 +142,7 @@ export default function RegisterForm({
           onSubmitEditing={focusEmail}
           placeholder={t("auth.fields.name")}
           returnKeyType="next"
+          submitBehavior="submit"
           testID="name-input"
           textContentType="name"
           value={name.value}
@@ -160,6 +161,7 @@ export default function RegisterForm({
           placeholder={t("auth.fields.email")}
           ref={emailRef}
           returnKeyType="next"
+          submitBehavior="submit"
           spellCheck={false}
           testID="email-input"
           textContentType="emailAddress"
