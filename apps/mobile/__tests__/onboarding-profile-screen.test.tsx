@@ -269,10 +269,10 @@ describe("onboarding ProfileScreen", () => {
 
     resume();
     await settle(queryClient);
-    expect(router.dismissTo).toHaveBeenCalledWith("/planner");
+    expect(router.dismissTo).toHaveBeenCalledWith("/plans/create");
   });
 
-  it("creates the Profile through the Public API, then moves on to the planner", async () => {
+  it("creates the Profile through the Public API, then moves on to the Create Plan choice", async () => {
     await mount();
 
     await fillAndSubmit();
@@ -316,7 +316,7 @@ describe("onboarding ProfileScreen", () => {
       gender: "male",
       weight_unit: "metric",
     });
-    expect(router.dismissTo).toHaveBeenCalledWith("/planner");
+    expect(router.dismissTo).toHaveBeenCalledWith("/plans/create");
   });
 
   it("sends only the changed fields when onboarding runs again, never making a second Profile", async () => {
@@ -349,7 +349,7 @@ describe("onboarding ProfileScreen", () => {
         weight: 80,
       },
     ]);
-    expect(router.dismissTo).toHaveBeenCalledWith("/planner");
+    expect(router.dismissTo).toHaveBeenCalledWith("/plans/create");
   });
 
   it("lets a value saved before today's bounds through a re-run", async () => {
@@ -365,7 +365,7 @@ describe("onboarding ProfileScreen", () => {
       age: 4,
       gender: "male",
     });
-    expect(router.dismissTo).toHaveBeenCalledWith("/planner");
+    expect(router.dismissTo).toHaveBeenCalledWith("/plans/create");
   });
 
   it("says how long to wait when there were too many requests", async () => {

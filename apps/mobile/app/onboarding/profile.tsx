@@ -83,7 +83,9 @@ const ProfileScreen = () => {
         });
       }
 
-      router.dismissTo("/planner");
+      // The Create Plan choice, as every other way of creating a Plan: Build it
+      // yourself is free, Ask Arnold is Pro (FIT-634).
+      router.dismissTo("/plans/create");
     },
     [measurementSystem, user]
   );
