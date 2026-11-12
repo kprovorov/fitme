@@ -6,6 +6,7 @@ import { useTranslation } from "react-i18next";
 import { View } from "react-native";
 
 import type { FullPlan, PlanSet } from "~/hooks/queries/plans";
+import { useI18n } from "~/lib/i18n";
 import { describeSetTarget, formatSetTarget } from "~/lib/set-inputs";
 import { cn } from "~/lib/utils";
 
@@ -67,7 +68,8 @@ const WorkoutExerciseSetsTableView = ({
   sets,
   weightUnit,
 }: WorkoutExerciseSetsTableViewProps) => {
-  const { i18n, t } = useTranslation();
+  const { t } = useTranslation();
+  const i18n = useI18n();
   const weightLabel = unitName(i18n, weightUnit);
 
   return (
@@ -98,7 +100,9 @@ const WorkoutExerciseSetsTableView = ({
             key={set.id}
           >
             <Cell className="w-7">{`#${set.order}`}</Cell>
-            <Cell className="flex-1">{formatSetTarget(set, weightLabel)}</Cell>
+            <Cell className="flex-1">
+              {formatSetTarget(set, weightLabel, i18n)}
+            </Cell>
             <Cell className="text-muted-foreground flex-1">
               {formatRest(set.rest_recommended)}
             </Cell>

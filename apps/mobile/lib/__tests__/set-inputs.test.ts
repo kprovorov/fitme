@@ -1,9 +1,12 @@
+import type { AppLanguage } from "@fitme/core";
+import { createI18n, setDeviceConventions } from "@fitme/i18n";
 import { describe, expect, it } from "@jest/globals";
 
 import {
   describeSetTarget,
   formatSetTarget,
   formatSetWeight,
+  planTargetValue,
   setRepsField,
   setWeightField,
 } from "../set-inputs";
@@ -85,9 +88,63 @@ describe("setRepsField", () => {
 describe("formatSetWeight", () => {
   it("shows a weight as the field takes it, without trailing zeros", () => {
     expect(formatSetWeight(80)).toBe("80");
-    expect(formatSetWeight(1.5)).toBe("1,5");
-    expect(formatSetWeight(22.25)).toBe("22,25");
+    expect(formatSetWeight(1.5)).toBe("1.5");
+    expect(formatSetWeight(22.25)).toBe("22.25");
     expect(formatSetWeight(0)).toBe("0");
+  });
+
+  it.each<[AppLanguage, string, string]>([
+    ["ja", "JP", "82.5"],
+    ["ko", "KR", "82.5"],
+    ["zh-Hans", "CN", "82.5"],
+    ["zh-Hant", "TW", "82.5"],
+    ["de", "DE", "82,5"],
+    ["fr", "FR", "82,5"],
+    ["it", "IT", "82,5"],
+    ["nl", "NL", "82,5"],
+    ["pl", "PL", "82,5"],
+    ["pt-BR", "BR", "82,5"],
+    ["pt-PT", "PT", "82,5"],
+    ["en", "DE", "82,5"],
+    ["en", "US", "82.5"],
+  ])(
+    "formats %s weights on a %s device without grouping",
+    (language, region, expected) => {
+      const translator = createI18n(language);
+      setDeviceConventions(translator, { region, uses24hourClock: null });
+      expect(formatSetWeight(82.5, translator)).toBe(expected);
+      expect(
+        formatSetTarget(
+          { reps_recommended: 6, weight_recommended: 82.5 },
+          "kg",
+          translator
+        )
+      ).toBe(`6×${expected}kg`);
+
+      for (const weight of [0, 22.25, 82.5, 10_000]) {
+        const text = formatSetWeight(weight, translator);
+        expect(setWeightField.parse(text)).toBe(weight);
+        expect(
+          planTargetValue(text, { decimals: 2, max: 10_000, min: 0 })
+        ).toBe(weight);
+      }
+
+      expect(formatSetWeight(10_000, translator)).toBe("10000");
+    }
+  );
+
+  it("keeps the existing rounding and accepts either typed decimal separator", () => {
+    expect(formatSetWeight(1.005)).toBe("1");
+    expect(formatSetWeight(1.235)).toBe("1.24");
+    expect(formatSetWeight(-0.001)).toBe("0");
+
+    for (const text of ["82.50", "82,50", "82.", "82,"]) {
+      const expected = text.endsWith("50") ? 82.5 : 82;
+      expect(setWeightField.parse(text)).toBe(expected);
+      expect(planTargetValue(text, { decimals: 2, max: 10_000, min: 0 })).toBe(
+        expected
+      );
+    }
   });
 });
 
@@ -98,7 +155,7 @@ describe("formatSetTarget", () => {
     ).toBe("12×45kg");
     expect(
       formatSetTarget({ reps_recommended: 8, weight_recommended: 22.5 }, "lbs")
-    ).toBe("8×22,5lbs");
+    ).toBe("8×22.5lbs");
   });
 
   it("shows reps alone without a weight", () => {

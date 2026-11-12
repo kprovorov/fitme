@@ -8,7 +8,7 @@ The bare and framed captures in `../iphone/` and `../framed/` are source materia
 
 ## Making a Screenshot set
 
-A set's images are exported from the App Store frames in the Fitme Figma file (page AppStore Screenshots, the `App Store · <version> · EN / UK` sections). Spanish and Catalan use the same layout with caption-only Figma exports and local phone composition through `../compose-app-store.py`; see the marketing README's [App Store upload](../README.md#app-store-upload) section. This keeps the native captures local while retaining the existing framed phone geometry. Three rules, each one a thing that has gone wrong:
+A set's images are exported from the App Store frames in the Fitme Figma file (page AppStore Screenshots, the `App Store · <version> · EN / UK` sections). Spanish, Catalan and the additional eleven-language capture run use the same layout with editable caption-only Figma exports and local phone composition through `../compose-app-store.py`; see the marketing README's [App Store upload](../README.md#app-store-upload) section. This keeps the native captures local while retaining the existing framed phone geometry. Three rules, each one a thing that has gone wrong:
 
 1. **Each frame's phone is a framed capture, not a drawn one.** The phone is an image layer holding the matching `../framed/<locale>/<scene>.png`, which already has the bezel drawn around the capture at the right place. Never draw a phone in Figma and never put a bare `../iphone/` capture inside one: the first sets shipped that way (#458) and their screens sat off-centre, spilling past the phone's right and bottom edges. See the marketing README's [App Store upload](../README.md#app-store-upload) section for the layer name and the export steps (1×, then flattened to RGB). The framed PNGs are source material and never committed here as they are: they're 1332×2748 with transparency, and a set's images are 1320×2868 flattened RGB. Their locale tags differ too (`framed/uk-UA/` feeds `uk`, and `framed/ca-ES/` feeds `ca`).
 2. **Look at every exported PNG before committing it, edges included.** The [check](#the-check) proves the size, the numbering, that each file decodes as a PNG and that it carries no transparency. It cannot see a screen sitting outside its bezel, so a green check is not a visual pass. Open each image itself — the PNG in this repo, never a Figma section screenshot or a scaled-down `node.screenshot`, which is what missed #458 — to judge what it shows. Reading the whole 1320×2868 file still shrinks it too far to judge the framing, so cut the edges as well:
@@ -25,6 +25,16 @@ A set's images are exported from the App Store frames in the Fitme Figma file (p
 3. **Say in the pull request description that you looked at every image and at its edge tiles.** A set reviewed from a thumbnail is not reviewed.
 
 Everything after this point is how the committed images are checked, staged and uploaded; none of it looks at what an image shows.
+
+## Localized caption composition
+
+Captured 2026-11-11 to 2026-11-12: eleven additional Listing sets, each with ten reviewed PNGs: `de-DE`, `fr-FR`, `it`, `ja`, `ko`, `nl-NL`, `pl`, `pt-BR`, `pt-PT`, `zh-Hans` and `zh-Hant`. The marketing README's [additional locale capture run](../README.md#additional-locale-capture-run) maps Listing folders to native source folders and App languages. The original `en-US`, `uk`, `es-ES` and `ca` sets remain unchanged. See the [capture manifest](../capture-manifest-2026-11-11.json) for per-image hashes and review results.
+
+Use the caption-only sections of the [Fitme Figma file](https://www.figma.com/design/8RPWsghaJBjkkjGzPypuH0), with phone layers hidden. Export `01.png`–`10.png` at 1×, then compose with the matching already-framed native PNGs using `../compose-app-store.py`. The compositor preserves the 962 px phone width and (179, 820) placement and writes 1320×2868 flattened RGB PNGs. Do not upload the native captures to Figma. Pro badges stay on scenes 01, 04 and 10; all caption text remains editable in Figma.
+
+This run accepts a locale only after native scene review plus all ten full-image and 100 individual edge-tile reviews. Hash checks cover original/framed/export files and unchanged Figma-header/native-safe-rectangle pixels; dimensions and transparency checks remain necessary too. Copy accepted files into the canonical folders only after those reviews, checking SHA256 equality after the copy. A local copy is not a metadata push or screenshot publication. Keep all public listing entries free of hand-written screenshot paths.
+
+Normalization displays 09:41 with a green charging battery and gray cellular dots; source pixels are preserved. The frame supplies an illustrated Dynamic Island. Server-provided model descriptions remain English. The capture Library has genuine Brazilian and Traditional Chinese translations for `31` and `28` of 77 Exercises respectively, with whole-English fallback elsewhere. These sets do not assert full regional Library coverage.
 
 ## Layout
 

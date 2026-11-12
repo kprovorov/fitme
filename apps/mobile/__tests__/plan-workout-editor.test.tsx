@@ -466,6 +466,26 @@ describe("the Exercises of a Workout", () => {
 });
 
 describe("the sets of an Exercise", () => {
+  it("initializes weights by device region and preserves a partial decimal through a region change", async () => {
+    const sets = backend.plans[0]?.workouts[0]?.exercises[0]?.sets;
+
+    if (!Array.isArray(sets)) {
+      throw new TypeError("Expected seeded planned sets");
+    }
+
+    Object.assign(sets[0], { weight_recommended: 60.5 });
+    await openEditor("en-DE");
+    await openWorkout("Day A");
+    expect(card().getByTestId("draft-set-weight-1").props.value).toBe("60,5");
+
+    await typeSet("draft-set-weight-1", "62,");
+    await act(() => setDeviceLanguages(["en-US"]));
+    expect(card().getByTestId("draft-set-weight-1").props.value).toBe("62,");
+    await typeSet("draft-set-weight-1", "62.5");
+    await save();
+    expect(savedSets(0, 0)[0].weight_recommended).toBe(62.5);
+  });
+
   it("saves edited reps, weight and rest", async () => {
     await openEditor();
     await openWorkout("Day A");

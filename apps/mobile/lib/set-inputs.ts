@@ -134,9 +134,19 @@ export const planTargetValue = (
   return decimals === 0 && !Number.isInteger(value) ? null : value;
 };
 
-/** A stored weight as the weight field shows it: `,` separator, no trailing zeros. */
-export const formatSetWeight = (weight: number) =>
-  String(Math.round(weight * 100) / 100).replace(".", ",");
+/** A stored weight in the device's conventions, ungrouped for the field's parser. */
+export const formatSetWeight = (
+  weight: number,
+  translator: Translator = i18n
+) => {
+  const rounded = Math.round(weight * 100) / 100;
+
+  return formatNumber(translator, rounded === 0 ? 0 : rounded, {
+    maximumFractionDigits: MAX_WEIGHT_DECIMALS,
+    minimumFractionDigits: 0,
+    useGrouping: false,
+  });
+};
 
 /**
  * A set's recommendation as its table's target cell, reps × weight: `12×45kg`,
@@ -148,10 +158,11 @@ export const formatSetTarget = (
     reps_recommended: reps,
     weight_recommended: weight,
   }: { reps_recommended: number | null; weight_recommended: number | null },
-  weightLabel: string | undefined
+  weightLabel: string | undefined,
+  translator: Translator = i18n
 ) => {
   const weightText = weight
-    ? `${formatSetWeight(weight)}${weightLabel ?? ""}`
+    ? `${formatSetWeight(weight, translator)}${weightLabel ?? ""}`
     : null;
 
   if (reps && weightText) {

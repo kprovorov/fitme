@@ -139,13 +139,13 @@ const SessionTable = ({
           </Row>
         </View>
         {logged.map((set: ExerciseHistorySet) => {
-          const target = formatSetTarget(set, weightLabel);
+          const target = formatSetTarget(set, weightLabel, i18n);
 
           // Bodyweight sets log no weight.
           const weight =
             set.weight_completed === null
               ? null
-              : formatSetWeight(set.weight_completed);
+              : formatSetWeight(set.weight_completed, i18n);
 
           const loggedText = [
             formatCount(i18n, "reps", set.reps_completed),

@@ -141,8 +141,11 @@ const dateFormat = (
  * `12,500` / `12 500`. The catalogs' `{{…, number}}` placeholders format the
  * same way.
  */
-export const formatNumber = (translator: Translator, value: number): string =>
-  numberFormat(formatLocale(translator)).format(value);
+export const formatNumber = (
+  translator: Translator,
+  value: number,
+  options?: Intl.NumberFormatOptions
+): string => numberFormat(formatLocale(translator), options).format(value);
 
 /** The dates the app shows, each in the locale's own order and words. */
 const DATE_STYLES = {
@@ -171,13 +174,41 @@ const DATE_STYLES = {
 
 export type DateStyle = keyof typeof DATE_STYLES;
 
+const DATE_WHITESPACE = /\s+/gu;
+const CJK_DATE_LOCALE = /^(?:ja|ko|zh)(?:-|$)/u;
+
 /** A date in one of the app's styles, as the App language and device region write it. */
 export const formatDate = (
   translator: Translator,
   date: Date,
   style: DateStyle
-): string =>
-  dateFormat(formatLocale(translator), DATE_STYLES[style]).format(date);
+): string => {
+  const locale = formatLocale(translator);
+  const compactCjk = style === "shortDayMonth" && CJK_DATE_LOCALE.test(locale);
+
+  const format = dateFormat(
+    locale,
+    compactCjk ? { day: "numeric", month: "numeric" } : DATE_STYLES[style]
+  );
+
+  if (
+    style === "shortDayMonth" &&
+    (locale === "pt" || locale.startsWith("pt-"))
+  ) {
+    return format
+      .formatToParts(date)
+      .map(({ type, value }) =>
+        type === "literal" && value.trim() === "de" ? " " : value
+      )
+      .join("")
+      .replaceAll(DATE_WHITESPACE, " ")
+      .trim();
+  }
+
+  const text = format.format(date);
+
+  return compactCjk ? text.replaceAll(DATE_WHITESPACE, "") : text;
+};
 
 /** A time of day on the device's clock: `18:05` or `6:05 PM`. */
 export const formatTime = (translator: Translator, date: Date): string => {

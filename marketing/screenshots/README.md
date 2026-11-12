@@ -12,10 +12,36 @@ The Spanish and Catalan additions were captured on 2026-11-05 from this checkout
 
 The Spanish tab is now `Entreno`, shortened from `Entrenamiento`, and the Catalan tab is `Entrena`, shortened from `Entrenament`. In both locales, the four scenes showing the tab bar plus the matching Arnold model-picker backdrop (`arnold-generated-plan`, `arnold-plan-change`, `next-workout`, `history` and `arnold-model-picker`) were recaptured from the Release app and regenerated in all three formats. This copy-only refresh rebuilt the app's Release JavaScript/Hermes bundle against the unchanged native Release binary from the same checkout. Both Arnold plans are fresh model responses.
 
+## Additional locale capture run
+
+Captured 2026-11-11 to 2026-11-12: eleven additional locales, ten scenes each, in bare, framed and App Store formats (330 PNGs). The original English, Ukrainian, Spanish and Catalan sets remain unchanged. The [capture manifest](capture-manifest-2026-11-11.json) maps every file and records build provenance, dimensions, hashes and review results.
+
+| Source folder | App language | Listing folder |
+| ------------- | ------------ | -------------- |
+| `de-DE`       | `de`         | `de-DE`        |
+| `fr-FR`       | `fr`         | `fr-FR`        |
+| `it-IT`       | `it`         | `it`           |
+| `ja-JP`       | `ja`         | `ja`           |
+| `ko-KR`       | `ko`         | `ko`           |
+| `nl-NL`       | `nl`         | `nl-NL`        |
+| `pl-PL`       | `pl`         | `pl`           |
+| `pt-BR`       | `pt-BR`      | `pt-BR`        |
+| `pt-PT`       | `pt-PT`      | `pt-PT`        |
+| `zh-Hans-CN`  | `zh-Hans`    | `zh-Hans`      |
+| `zh-Hant-TW`  | `zh-Hant`    | `zh-Hant`      |
+
+These additions use a fresh dedicated iPhone 18 Pro simulator on iOS 27.2 and this checkout's arm64 Release build (base `b821787f`). Capture-time repairs restore the composer's native glass material, shorten Italian table headings and Polish/Chinese combined durations, compact Portuguese and CJK chart dates, and use the regional decimal separator in set weights and targets without grouping. Scoped Library names were shortened where native review exposed clipping. Complete Brazilian Portuguese and Traditional Chinese entries replace the English fallbacks that appeared in generated plans. The [capture manifest](capture-manifest-2026-11-11.json) records provenance, dimensions and every PNG's SHA256.
+
+A dedicated Clerk development account uses isolated local history and real Fitme Pro authorization. Each locale's workout was logged and finished in the app, earning two actual PRs and rotating the next workout. Arnold generated a real unsaved localized plan and changed exactly four bench targets to 85 kg; read-only checks confirmed the other targets and baseline history were preserved. Final all-locale verification: `all eleven native sets, 110 full App Store exports and 1,100 edge tiles passed review`.
+
+Editable caption-only sections in the [Fitme Figma file](https://www.figma.com/design/8RPWsghaJBjkkjGzPypuH0) keep phone layers hidden. Export at 1×, then compose locally through `compose-app-store.py`; native captures stay local. The existing 962 px phone at (179, 820) and Pro badges on scenes 01, 04 and 10 are retained. Each accepted locale receives native scene review, ten full App Store image reviews and 100 individual edge-tile reviews, plus native/header pixel checks. Canonical copies must match the reviewed SHA256 hashes. No App Store Connect upload was performed.
+
+Known limits: normalization displays 09:41 with a green charging battery and gray cellular dots. Native pixels are preserved; `frame.py` supplies the illustrated Island. Server-provided model descriptions remain English. The capture Library maps the existing European Portuguese and Simplified Chinese content to `pt-PT` and `zh-Hans`; Brazilian Portuguese and Traditional Chinese use genuine regional translations for `31` and `28` of 77 Exercises, with whole-English fallback elsewhere. All content visible in the accepted scenes was reviewed; this is not a full regional Library release. Private account, runtime and content-source files are excluded from the screenshot assets.
+
 The frames are drawn illustrations, not official device mockups. Generate them without resizing the source capture:
 
 ```sh
-for locale in en-US uk-UA es-ES ca-ES; do
+for locale in en-US uk-UA es-ES ca-ES de-DE fr-FR it-IT ja-JP ko-KR nl-NL pl-PL pt-BR pt-PT zh-Hans-CN zh-Hant-TW; do
   for f in marketing/screenshots/iphone/$locale/*.png; do
     python3 marketing/screenshots/frame.py "$f" "marketing/screenshots/framed/$locale/$(basename "$f")"
   done

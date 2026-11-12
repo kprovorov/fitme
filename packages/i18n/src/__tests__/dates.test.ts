@@ -1,5 +1,5 @@
 import type { AppLanguage } from "@fitme/core";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
 import { createI18n } from "..";
 import {
@@ -112,6 +112,106 @@ describe("dates", () => {
       "Wed, Oct 21, 2026"
     );
   });
+
+  it.each<[AppLanguage, string | null, string, string]>([
+    ["pt-BR", null, "21 set.", "5 out."],
+    ["pt-PT", null, "21/09", "5/10"],
+    ["pt-PT", "BR", "21 set.", "5 out."],
+    ["pt-BR", "PT", "21/09", "5/10"],
+  ])(
+    "compacts Portuguese chart dates in %s with region %s",
+    (language, region, september, october) => {
+      const instance = on(language, region);
+
+      expect(
+        formatDate(instance, new Date(2026, 8, 21, 12), "shortDayMonth")
+      ).toBe(september);
+      expect(
+        formatDate(instance, new Date(2026, 9, 5, 12), "shortDayMonth")
+      ).toBe(october);
+      expect(formatDate(instance, new Date(2026, 8, 21, 12), "dayMonth")).toBe(
+        "21 de setembro"
+      );
+    }
+  );
+
+  it("normalizes split Portuguese connector literals from native Intl", () => {
+    const instance = on("pt-BR", "BR");
+
+    const parts = vi
+      .spyOn(Intl.DateTimeFormat.prototype, "formatToParts")
+      .mockReturnValueOnce([
+        { type: "literal", value: "\u00A0" },
+        { type: "day", value: "21" },
+        { type: "literal", value: "\u00A0" },
+        { type: "literal", value: "de" },
+        { type: "literal", value: "\u202F" },
+        { type: "month", value: "set." },
+        { type: "literal", value: " " },
+      ]);
+
+    try {
+      expect(formatDate(instance, evening, "shortDayMonth")).toBe("21 set.");
+    } finally {
+      parts.mockRestore();
+    }
+  });
+
+  it.each<[AppLanguage, string, string, string]>([
+    ["ja", "JP", "10/12", "10月12日"],
+    ["ko", "KR", "10.12.", "10월 12일"],
+    ["zh-Hans", "CN", "10/12", "10月12日"],
+    ["zh-Hant", "TW", "10/12", "10月12日"],
+  ])(
+    "compacts two-digit %s chart ticks while preserving full dates",
+    (language, region, compact, full) => {
+      const instance = on(language, region);
+      const date = new Date(2026, 9, 12, 12);
+      expect(formatDate(instance, date, "shortDayMonth")).toBe(compact);
+      expect(formatDate(instance, date, "dayMonth")).toBe(full);
+      expect(
+        formatDate(instance, new Date(2026, 9, 26, 12), "shortDayMonth")
+      ).toBe(language === "ko" ? "10.26." : "10/26");
+    }
+  );
+
+  it("removes split native CJK whitespace without changing Intl punctuation or order", () => {
+    // Native Intl can join split NBSP literals differently from Node.
+    // TypeScript declares format as a method; Intl exposes it as a getter.
+    const prototype: { readonly format: unknown } =
+      Intl.DateTimeFormat.prototype;
+
+    const format = vi
+      .spyOn(prototype, "format", "get")
+      .mockReturnValueOnce(() => "\u00A010.\u202F \u00A012.\u00A0");
+
+    try {
+      expect(formatDate(on("ko", "KR"), evening, "shortDayMonth")).toBe(
+        "10.12."
+      );
+    } finally {
+      format.mockRestore();
+    }
+  });
+
+  it.each<[AppLanguage, string, string]>([
+    ["de", "DE", "12. Okt."],
+    ["fr", "FR", "12 oct."],
+    ["it", "IT", "12 ott"],
+    ["nl", "NL", "12 okt"],
+    ["pl", "PL", "12 paź"],
+  ])(
+    "preserves %s chart month words and separators",
+    (language, region, expected) => {
+      expect(
+        formatDate(
+          on(language, region),
+          new Date(2026, 9, 12, 12),
+          "shortDayMonth"
+        )
+      ).toBe(expected);
+    }
+  );
 
   it("writes an English month and year", () => {
     expect(formatDate(on("en", "US"), evening, "monthYear")).toBe(

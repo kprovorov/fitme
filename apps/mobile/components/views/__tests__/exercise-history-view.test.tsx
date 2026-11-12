@@ -212,6 +212,26 @@ describe("ExerciseHistoryView", () => {
     expect(screen.getByText("2 March 2020")).toBeTruthy();
   });
 
+  it("updates logged weights and targets when only the device region changes", async () => {
+    seedSession("old", "2020-03-02T10:00:00.000Z", [
+      { reps: 12, weight: 82.5 },
+    ]);
+    Object.assign(backend.sets[0] ?? {}, { weight_recommended: 82.5 });
+    setDeviceLanguages(["en-DE"]);
+    await mount(
+      <InAppLanguage>
+        <ExerciseHistoryView exerciseSlug="shoulder-press" />
+      </InAppLanguage>
+    );
+    expect(screen.getByText("12×82,5kg")).toBeTruthy();
+    expect(screen.getByText("82,5")).toBeTruthy();
+
+    await act(() => setDeviceLanguages(["en-US"]));
+    expect(screen.getByText("12×82.5kg")).toBeTruthy();
+    expect(screen.getByText("82.5")).toBeTruthy();
+    expect(screen.queryByText("82,5")).toBeNull();
+  });
+
   it("shows nothing when the session being logged is the only entry", async () => {
     seedSession("current", "2026-10-27T10:00:00.000Z", [{ reps: 12 }]);
     await mount(
