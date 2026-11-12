@@ -5,9 +5,10 @@ import { ActivityIndicator, ScrollView, View } from "react-native";
 
 import { EquipmentBadges } from "~/components/exercises/equipment-badges";
 import ExerciseVideo from "~/components/exercises/exercise-video";
+import { InstructionSteps } from "~/components/exercises/instruction-steps";
 import { Button } from "~/components/ui/button";
 import { Text } from "~/components/ui/text";
-import { Muted, P } from "~/components/ui/typography";
+import { P } from "~/components/ui/typography";
 import { VStack } from "~/components/ui/vstack";
 import { useExercise, useExerciseDetailQuery } from "~/hooks/queries/library";
 
@@ -39,7 +40,7 @@ const ExerciseScreen = () => {
           ) : null}
           <EquipmentBadges equipment={exercise.equipment} />
           <P>{exercise.description}</P>
-          <Muted>{exercise.instructions}</Muted>
+          <InstructionSteps instructions={exercise.instructions} />
         </VStack>
       );
     }

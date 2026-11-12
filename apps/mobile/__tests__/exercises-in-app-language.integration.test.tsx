@@ -307,7 +307,8 @@ describe("an Exercise's detail screen", () => {
 
     await expect(screen.findByText("Про присідання.")).resolves.toBeTruthy();
     expect(screen.getByTestId("title")).toHaveTextContent("Присідання");
-    expect(screen.getByText("- Станьте.\n- Присядьте.")).toBeTruthy();
+    expect(screen.getByText("Станьте.")).toBeTruthy();
+    expect(screen.getByText("Присядьте.")).toBeTruthy();
   });
 
   it("shows an untranslated Exercise wholly in English", async () => {
@@ -315,7 +316,7 @@ describe("an Exercise's detail screen", () => {
 
     await expect(screen.findByText("About the lunge.")).resolves.toBeTruthy();
     expect(screen.getByTestId("title")).toHaveTextContent("Lunge");
-    expect(screen.getByText("- Step forward.")).toBeTruthy();
+    expect(screen.getByText("Step forward.")).toBeTruthy();
   });
 
   it("follows the App language when it changes", async () => {
