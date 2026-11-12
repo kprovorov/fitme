@@ -13,6 +13,8 @@ const Layout = () => {
   const pathname = usePathname();
   // SAFETY: The imported design tokens define --color-foreground as a hex color string.
   const foreground = useCSSVariable("--color-foreground") as string;
+  // SAFETY: The imported design tokens define --color-background as a hex color string.
+  const background = useCSSVariable("--color-background") as string;
   useLayoutEffect(() => {
     invalidateAuthOperation(pathname);
 
@@ -36,9 +38,12 @@ const Layout = () => {
       screenOptions={{
         headerBackButtonDisplayMode: "minimal",
         headerShown: true,
+        // An opaque header in the Screen's own color: a form scrolled up
+        // goes under it rather than under the floating back button.
+        headerShadowVisible: false,
+        headerStyle: { backgroundColor: background },
         headerTintColor: foreground,
         headerTitle: "",
-        headerTransparent: true,
       }}
     />
   );
