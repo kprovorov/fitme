@@ -70,10 +70,20 @@ const WorkoutSessionExerciseSetsTableView = ({
   const weightLabel = unitName(i18n, weightUnit);
   const [localSets, setLocalSets] = useState<LocalSet[]>([]);
 
-  const maxOrder = Math.max(
-    ...workoutSessionExerciseSets.map((set) => set.order),
-    0
+  const sortedSets = workoutSessionExerciseSets.toSorted(
+    (a, b) => a.order - b.order
   );
+
+  const lastSet = sortedSets.at(-1);
+
+  const maxOrder = lastSet?.order ?? 0;
+
+  // An added set starts from the Exercise's last one, as the Plan editor's
+  // Add Set does: what was logged, or its targets while it isn't.
+  const addedSetValues = lastSet && {
+    reps: lastSet.reps_completed ?? lastSet.reps_recommended ?? 0,
+    weight: lastSet.weight_completed ?? lastSet.weight_recommended ?? 0,
+  };
 
   const handleAddSet = () => {
     const newOrder = maxOrder + localSets.length + 1;
@@ -129,25 +139,23 @@ const WorkoutSessionExerciseSetsTableView = ({
         <View className={SET_CHECK_COLUMN_CLASS} />
       </View>
 
-      {workoutSessionExerciseSets
-        .toSorted((a, b) => a.order - b.order)
-        .map((workoutSessionExerciseSet, index, sorted) => {
-          const locked = sorted
-            .slice(0, index)
-            .some((s) => s.reps_completed === null);
+      {sortedSets.map((workoutSessionExerciseSet, index, sorted) => {
+        const locked = sorted
+          .slice(0, index)
+          .some((s) => s.reps_completed === null);
 
-          return (
-            <WorkoutSessionExerciseSetRowView
-              exerciseId={exerciseId}
-              key={workoutSessionExerciseSet.id}
-              locked={locked}
-              onSetLogged={handleSetLogged}
-              sessionId={sessionId}
-              weightLabel={weightLabel}
-              workoutSessionExerciseSet={workoutSessionExerciseSet}
-            />
-          );
-        })}
+        return (
+          <WorkoutSessionExerciseSetRowView
+            exerciseId={exerciseId}
+            key={workoutSessionExerciseSet.id}
+            locked={locked}
+            onSetLogged={handleSetLogged}
+            sessionId={sessionId}
+            weightLabel={weightLabel}
+            workoutSessionExerciseSet={workoutSessionExerciseSet}
+          />
+        );
+      })}
 
       {!readOnly &&
         localSets.map((localSet, index) => {
@@ -160,6 +168,7 @@ const WorkoutSessionExerciseSetsTableView = ({
           return (
             <WorkoutSessionExerciseSetRowView
               exerciseId={exerciseId}
+              initialValues={addedSetValues}
               key={localSet.id}
               localSetId={localSet.id}
               locked={locked}

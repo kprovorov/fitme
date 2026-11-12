@@ -29,6 +29,11 @@ import { Text } from "../ui/text";
 
 interface WorkoutSessionExerciseSetRowViewProps {
   exerciseId: string;
+  /**
+   * A set not saved yet: the reps and weight it starts from (the set before
+   * it), 0 for each one not given.
+   */
+  initialValues?: { reps: number; weight: number };
   localSetId?: string;
   locked?: boolean;
   onSetCreated?: (localSetId?: string) => void;
@@ -41,15 +46,19 @@ interface WorkoutSessionExerciseSetRowViewProps {
   workoutSessionExerciseSet: WorkoutSessionSet | null;
 }
 
-const getSetValues = (set: WorkoutSessionSet | null) => ({
+const getSetValues = (
+  set: WorkoutSessionSet | null,
+  initialValues: { reps: number; weight: number } | undefined
+) => ({
   repsCompleted: set?.reps_completed ?? null,
-  repsRecommended: set?.reps_recommended ?? 0,
+  repsRecommended: set?.reps_recommended ?? initialValues?.reps ?? 0,
   weightCompleted: set?.weight_completed ?? null,
-  weightRecommended: set?.weight_recommended ?? 0,
+  weightRecommended: set?.weight_recommended ?? initialValues?.weight ?? 0,
 });
 
 const WorkoutSessionExerciseSetRowView = ({
   exerciseId,
+  initialValues,
   workoutSessionExerciseSet,
   localSetId,
   order = 0,
@@ -154,7 +163,7 @@ const WorkoutSessionExerciseSetRowView = ({
   const setOrder = isNewSet ? order : workoutSessionExerciseSet.order;
 
   const { weightRecommended, repsRecommended, weightCompleted, repsCompleted } =
-    getSetValues(workoutSessionExerciseSet);
+    getSetValues(workoutSessionExerciseSet, initialValues);
 
   const handleEdit = () => setIsEditing(true);
   // A logged set reads as done until it's opened for editing.
