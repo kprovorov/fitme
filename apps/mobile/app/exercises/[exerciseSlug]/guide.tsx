@@ -79,7 +79,6 @@ const ExerciseGuideScreen = () => {
     <>
       <Stack.Screen
         options={{
-          headerShown: true,
           headerTitleStyle: {
             fontFamily: "NunitoSans12pt-Bold",
             fontWeight: "bold",

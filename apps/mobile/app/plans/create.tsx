@@ -177,13 +177,13 @@ const CreatePlanScreen = () => {
   return (
     <>
       <Stack.Screen
+        // headerShown and headerTransparent are the root layout's: changing
+        // them from here remounts this modal's content (FIT-628).
         options={{
-          headerShown: true,
           headerTitleStyle: {
             fontFamily: "NunitoSans12pt-Bold",
             fontWeight: "bold",
           },
-          headerTransparent: true,
           title: isNaming
             ? t("planBuilder.detailsTitle")
             : t("planBuilder.title"),
