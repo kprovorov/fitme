@@ -145,7 +145,7 @@ const settle = () =>
  * Opens the Squat of Workout Session `s1`: set 1 of 12×45 kg with 90 s of
  * rest, set 2 of 10 reps with no target weight.
  */
-const openExercise = async () => {
+const openExercise = async (weightRecommended = 45) => {
   backend.seed({
     exercises: [{ name: "Squat", sets: [null, null] }],
     id: "s1",
@@ -153,7 +153,7 @@ const openExercise = async () => {
   Object.assign(backend.sets[0] ?? {}, {
     reps_recommended: 12,
     rest_recommended: 90,
-    weight_recommended: 45,
+    weight_recommended: weightRecommended,
   });
   queryClient = createTestQueryClient();
   await render(
@@ -242,6 +242,33 @@ describe("the sets table in Ukrainian", () => {
     expect(
       screen.getByText("Забагато запитів. Спробуйте ще раз через 7 с.")
     ).toBeTruthy();
+  });
+});
+
+describe("set weight conventions", () => {
+  it("updates recommended cells and placeholders but preserves text being edited", async () => {
+    setDeviceLanguages(["en-DE"]);
+    await openExercise(82.5);
+    expect(screen.getByText("12×82,5kg")).toBeTruthy();
+    expect(screen.getByTestId("set-weight-input-1").props.placeholder).toBe(
+      "82,5"
+    );
+
+    await fireEvent.changeText(screen.getByTestId("set-weight-input-1"), "82,");
+    await act(() => setDeviceLanguages(["en-US"]));
+    expect(screen.getByText("12×82.5kg")).toBeTruthy();
+    expect(screen.getByTestId("set-weight-input-1").props.placeholder).toBe(
+      "82.5"
+    );
+    expect(screen.getByTestId("set-weight-input-1").props.value).toBe("82,");
+
+    await fireEvent.changeText(
+      screen.getByTestId("set-weight-input-1"),
+      "82,50"
+    );
+    await logSet(1);
+    expect(backend.sets[0]?.weight_completed).toBe(82.5);
+    expect(screen.getByText("82.5")).toBeTruthy();
   });
 });
 

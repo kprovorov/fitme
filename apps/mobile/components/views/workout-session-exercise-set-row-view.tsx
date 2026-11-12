@@ -15,6 +15,7 @@ import type { SavedWorkoutSessionExerciseSet } from "~/hooks/queries/workout-ses
 import { WORKOUT_SESSION_QUERY_KEY } from "~/hooks/queries/workout-sessions";
 import type { WorkoutSessionSet } from "~/hooks/queries/workout-sessions";
 import { IS_E2E } from "~/lib/constants";
+import { useI18n } from "~/lib/i18n";
 import { segmentClient } from "~/lib/segment";
 import { formatSetTarget, formatSetWeight } from "~/lib/set-inputs";
 import { cn } from "~/lib/utils";
@@ -59,6 +60,7 @@ const WorkoutSessionExerciseSetRowView = ({
   weightLabel,
 }: WorkoutSessionExerciseSetRowViewProps) => {
   const { t } = useTranslation();
+  const i18n = useI18n();
   const queryClient = useQueryClient();
   const isNewSet = workoutSessionExerciseSet === null;
   const pendingSetData = useRef<{ weight: number; reps: number } | null>(null);
@@ -234,7 +236,7 @@ const WorkoutSessionExerciseSetRowView = ({
           >
             {isNewSet
               ? "–"
-              : formatSetTarget(workoutSessionExerciseSet, weightLabel)}
+              : formatSetTarget(workoutSessionExerciseSet, weightLabel, i18n)}
           </Text>
         </>
       }
@@ -242,7 +244,7 @@ const WorkoutSessionExerciseSetRowView = ({
       onSubmit={handleSubmit}
       recommendedValues={{
         reps: (repsCompleted ?? repsRecommended).toString(),
-        weight: formatSetWeight(weightCompleted ?? weightRecommended),
+        weight: formatSetWeight(weightCompleted ?? weightRecommended, i18n),
       }}
       setIndex={setOrder}
     />

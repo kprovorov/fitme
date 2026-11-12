@@ -10,6 +10,7 @@ import { useTranslation } from "react-i18next";
 import { Pressable, View } from "react-native";
 import { z } from "zod";
 
+import { useI18n } from "~/lib/i18n";
 import {
   formatSetWeight,
   setRepsField,
@@ -162,6 +163,7 @@ const WorkoutSessionExerciseSetForm = ({
   setIndex,
 }: WorkoutSessionExerciseSetFormProps) => {
   const { t } = useTranslation();
+  const i18n = useI18n();
 
   const form = useForm<
     WorkoutSessionExerciseSetFormInput,
@@ -180,10 +182,10 @@ const WorkoutSessionExerciseSetForm = ({
   const showsLoggedValues = isDone && !isEditing;
 
   // The fields then show what is sent, so what was stored: `05` as `5`,
-  // `1.50` as `1,5`.
+  // `1.50` in the device's decimal convention, without trailing zeros.
   const submit = form.handleSubmit((values) => {
     if (values.weight !== null) {
-      form.setValue("weight", formatSetWeight(values.weight));
+      form.setValue("weight", formatSetWeight(values.weight, i18n));
     }
 
     if (values.reps !== null) {

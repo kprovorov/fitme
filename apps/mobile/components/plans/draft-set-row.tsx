@@ -1,4 +1,5 @@
 import { MAX_WEIGHT_DECIMALS } from "@fitme/core";
+import type { Translator } from "@fitme/i18n";
 import { useCallback, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { View } from "react-native";
@@ -13,6 +14,7 @@ import { Button } from "~/components/ui/button";
 import { ErrorMessage } from "~/components/ui/error-message";
 import { Input } from "~/components/ui/input";
 import { Text } from "~/components/ui/text";
+import { useI18n } from "~/lib/i18n";
 import {
   isSavableTarget,
   removeDraftSet,
@@ -31,12 +33,18 @@ const INPUT_CLASS = "min-h-10 text-center";
 const TARGETS = ["reps", "weight", "rest"] as const;
 
 /** A target as its field shows it: the weight with its own separator. */
-const targetText = (value: number | null, target: DraftSetTarget) => {
+const targetText = (
+  value: number | null,
+  target: DraftSetTarget,
+  translator: Translator
+) => {
   if (value === null) {
     return "";
   }
 
-  return target === "weight" ? formatSetWeight(value) : String(value);
+  return target === "weight"
+    ? formatSetWeight(value, translator)
+    : String(value);
 };
 
 /** One target's field: the row owns its text, this owns its press handler. */
@@ -108,12 +116,13 @@ const DraftSetRow = ({
   workoutKey,
 }: DraftSetRowProps) => {
   const { t } = useTranslation();
+  const i18n = useI18n();
 
   // What the User typed, so a half-typed number isn't rewritten under them.
   const [typed, setTyped] = useState(() => ({
-    reps: targetText(set.reps, "reps"),
-    rest: targetText(set.rest, "rest"),
-    weight: targetText(set.weight, "weight"),
+    reps: targetText(set.reps, "reps", i18n),
+    rest: targetText(set.rest, "rest", i18n),
+    weight: targetText(set.weight, "weight", i18n),
   }));
 
   const change = useCallback(

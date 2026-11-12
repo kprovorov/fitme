@@ -10,6 +10,7 @@ import {
   formatUnit,
   formatWeight,
   formatWorkoutDuration,
+  setDeviceConventions,
   spokenCompactVolume,
   spokenUnit,
   unitName,
@@ -133,6 +134,19 @@ describe("number formatting", () => {
     expect(formatNumber(uk, 62.5)).toBe("62,5");
     expect(formatNumber(en, 12_500)).toBe("12,500");
     expect(formatNumber(uk, 12_500)).toBe(`12${NBSP}500`);
+  });
+
+  it("accepts field precision and grouping options without changing defaults", () => {
+    const translator = createI18n("en");
+    setDeviceConventions(translator, { region: "DE", uses24hourClock: null });
+    expect(
+      formatNumber(translator, 10_000.125, {
+        maximumFractionDigits: 2,
+        useGrouping: false,
+      })
+    ).toBe("10000,13");
+    expect(formatNumber(translator, 10_000.125)).toBe("10.000,125");
+    expect(formatNumber(en, 10_000)).toBe("10,000");
   });
 });
 

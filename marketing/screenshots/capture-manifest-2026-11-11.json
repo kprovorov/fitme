@@ -1,0 +1,2482 @@
+{
+  "captureDatesEuropeMadrid": {
+    "first": "2026-11-11",
+    "last": "2026-11-12"
+  },
+  "device": {
+    "model": "iPhone 18 Pro",
+    "runtime": "iOS 27.2",
+    "simulator": true
+  },
+  "sourceBaseCommit": "b821787fcb9b5a0383eaa3ec12489e3b6d1c393a",
+  "sourceRepairs": [
+    "Preserved the composer's native glass material enum",
+    "Short Italian table headings obiett. and rip.",
+    "Compact Polish and Chinese combined durations keep monthly stats aligned",
+    "Compact Portuguese and CJK chart dates preserve readable spacing",
+    "Set weights and targets follow the device-region decimal separator without grouping",
+    "Scoped Library titles and complete regional entries for captured Exercises"
+  ],
+  "dimensions": {
+    "bare": [1206, 2622],
+    "framed": [1332, 2748],
+    "appStore": [1320, 2868]
+  },
+  "counts": {
+    "newLocales": 11,
+    "scenesPerLocale": 10,
+    "newPngFiles": 330,
+    "nativeScenesReviewed": 110,
+    "fullAppStoreExportsReviewed": 110,
+    "edgeTilesReviewed": 1100
+  },
+  "composition": {
+    "figmaDesignUrl": "https://www.figma.com/design/8RPWsghaJBjkkjGzPypuH0",
+    "captionOnlyFigmaExports": true,
+    "phoneCompositionLocal": true,
+    "nativeSourcePixelsUnedited": true,
+    "framedSafeRectanglePixelsMatch": true,
+    "appStorePhoneSize": [962, 1985],
+    "appStorePhoneOrigin": [179, 820]
+  },
+  "knownLimitations": [
+    "Capture normalization shows 09:41, a green charging battery and gray cellular dots.",
+    "Model-picker descriptions supplied by the server remain English; picker controls are localized.",
+    "Capture Library coverage is 31/77 for Brazilian Portuguese and 28/77 for Traditional Chinese; captured scenes were reviewed separately.",
+    "Framed phones are illustrations; raw captures contain no drawn camera cutout."
+  ],
+  "appStoreConnectUploadPerformed": false,
+  "locales": [
+    {
+      "sourceLocale": "de-DE",
+      "listingLocale": "de-DE",
+      "images": [
+        {
+          "scene": "arnold-generated-plan",
+          "appStorePosition": 1,
+          "files": {
+            "bare": {
+              "path": "marketing/screenshots/iphone/de-DE/arnold-generated-plan.png",
+              "archivePath": "bare/de-DE/arnold-generated-plan.png",
+              "sha256": "91d4cbdca6200846bc22b78b586875fed16d349eabe00a5d6e4e61cff8758440"
+            },
+            "framed": {
+              "path": "marketing/screenshots/framed/de-DE/arnold-generated-plan.png",
+              "archivePath": "framed/de-DE/arnold-generated-plan.png",
+              "sha256": "6f0593122656a3edae5a9794f5540626cdfcc6b45ee9a8710c1ada6f0cc473e3"
+            },
+            "appStore": {
+              "path": "marketing/screenshots/app-store/iphone-6.9/de-DE/01.png",
+              "archivePath": "app-store/de-DE/01.png",
+              "sha256": "0f5009464dbc2a0908baa44598b2cdc8555808e99a637686e3a78ac7049a12e9"
+            }
+          }
+        },
+        {
+          "scene": "workout-log-set",
+          "appStorePosition": 2,
+          "files": {
+            "bare": {
+              "path": "marketing/screenshots/iphone/de-DE/workout-log-set.png",
+              "archivePath": "bare/de-DE/workout-log-set.png",
+              "sha256": "eb7bda90eeb3e7afacde49c67dbe2b781161e0b5214cf93d19a6c72569e86ad6"
+            },
+            "framed": {
+              "path": "marketing/screenshots/framed/de-DE/workout-log-set.png",
+              "archivePath": "framed/de-DE/workout-log-set.png",
+              "sha256": "c36354c2739a2a6dad5e860ba3f4243ae534ae6feffc974d371dae112563128f"
+            },
+            "appStore": {
+              "path": "marketing/screenshots/app-store/iphone-6.9/de-DE/02.png",
+              "archivePath": "app-store/de-DE/02.png",
+              "sha256": "58dc72d8f07284ac8171e3041dab621fd165211c25d1db98fbecfa603a7d990e"
+            }
+          }
+        },
+        {
+          "scene": "workout-summary-prs",
+          "appStorePosition": 3,
+          "files": {
+            "bare": {
+              "path": "marketing/screenshots/iphone/de-DE/workout-summary-prs.png",
+              "archivePath": "bare/de-DE/workout-summary-prs.png",
+              "sha256": "3fb6f00675be440bd2b2c6c89973c8f9f290cdf28cf4a97e43c61079d4583d1f"
+            },
+            "framed": {
+              "path": "marketing/screenshots/framed/de-DE/workout-summary-prs.png",
+              "archivePath": "framed/de-DE/workout-summary-prs.png",
+              "sha256": "ff4992668eea0e02f35435eb624ff2c6f5c7cbf894a907835c2f70a1aad4a977"
+            },
+            "appStore": {
+              "path": "marketing/screenshots/app-store/iphone-6.9/de-DE/03.png",
+              "archivePath": "app-store/de-DE/03.png",
+              "sha256": "f5f71ec7a797826aea8bbbeeefa59e7e89796983d1457f0a926bf919c1b65f6e"
+            }
+          }
+        },
+        {
+          "scene": "arnold-plan-change",
+          "appStorePosition": 4,
+          "files": {
+            "bare": {
+              "path": "marketing/screenshots/iphone/de-DE/arnold-plan-change.png",
+              "archivePath": "bare/de-DE/arnold-plan-change.png",
+              "sha256": "926cb8a229142da82d8b5b07379d03356862fc708da4530bf9957452d26beac0"
+            },
+            "framed": {
+              "path": "marketing/screenshots/framed/de-DE/arnold-plan-change.png",
+              "archivePath": "framed/de-DE/arnold-plan-change.png",
+              "sha256": "74e8c3f9db57aed20ff692815cc721b7fdffd785d127eccb066a317d0772517e"
+            },
+            "appStore": {
+              "path": "marketing/screenshots/app-store/iphone-6.9/de-DE/04.png",
+              "archivePath": "app-store/de-DE/04.png",
+              "sha256": "220cad1c4fac09067fbed31a43780a747ddcf3217ac42abb266a4ba395b9beba"
+            }
+          }
+        },
+        {
+          "scene": "exercise-progress",
+          "appStorePosition": 5,
+          "files": {
+            "bare": {
+              "path": "marketing/screenshots/iphone/de-DE/exercise-progress.png",
+              "archivePath": "bare/de-DE/exercise-progress.png",
+              "sha256": "8c41e673a56c0c4ec155c052ad75f5147afc48435b0bcd6ba9668e967d22601c"
+            },
+            "framed": {
+              "path": "marketing/screenshots/framed/de-DE/exercise-progress.png",
+              "archivePath": "framed/de-DE/exercise-progress.png",
+              "sha256": "b5908366618d83fc10b632893486d56aa5842b6732ef9bc7a55cf2cf0fe3f1f3"
+            },
+            "appStore": {
+              "path": "marketing/screenshots/app-store/iphone-6.9/de-DE/05.png",
+              "archivePath": "app-store/de-DE/05.png",
+              "sha256": "23ab1f25616b866768eb938397ece5ae9b35538305bdc072b70370d4afc36a40"
+            }
+          }
+        },
+        {
+          "scene": "next-workout",
+          "appStorePosition": 6,
+          "files": {
+            "bare": {
+              "path": "marketing/screenshots/iphone/de-DE/next-workout.png",
+              "archivePath": "bare/de-DE/next-workout.png",
+              "sha256": "72f6a01caa6c0958aaf841169703a5a20b2aa55fe0ecff014f25e0d1509e7da1"
+            },
+            "framed": {
+              "path": "marketing/screenshots/framed/de-DE/next-workout.png",
+              "archivePath": "framed/de-DE/next-workout.png",
+              "sha256": "7755346324ffdc3412d74d3a487e499465b31a44dd3eff3c1f431f24682e9ccb"
+            },
+            "appStore": {
+              "path": "marketing/screenshots/app-store/iphone-6.9/de-DE/06.png",
+              "archivePath": "app-store/de-DE/06.png",
+              "sha256": "eebcf14e0134b3dc8a172e508e98b9ccfc24132596c0747eccb139fcdf5ba63e"
+            }
+          }
+        },
+        {
+          "scene": "update-plan",
+          "appStorePosition": 7,
+          "files": {
+            "bare": {
+              "path": "marketing/screenshots/iphone/de-DE/update-plan.png",
+              "archivePath": "bare/de-DE/update-plan.png",
+              "sha256": "2c06baf3dc65f1bd98ae534e40d90c59126afb42cbdf7ba8736bba651f1f99bf"
+            },
+            "framed": {
+              "path": "marketing/screenshots/framed/de-DE/update-plan.png",
+              "archivePath": "framed/de-DE/update-plan.png",
+              "sha256": "d6838e549d7d1b592f9943dcbbbef173b2541dfec7c62e3d5e595e19f850efe3"
+            },
+            "appStore": {
+              "path": "marketing/screenshots/app-store/iphone-6.9/de-DE/07.png",
+              "archivePath": "app-store/de-DE/07.png",
+              "sha256": "6f6b71bb7775732b239568b12f44677318dfa302d376a97b27ff7fe9ec0a9832"
+            }
+          }
+        },
+        {
+          "scene": "exercise-video",
+          "appStorePosition": 8,
+          "files": {
+            "bare": {
+              "path": "marketing/screenshots/iphone/de-DE/exercise-video.png",
+              "archivePath": "bare/de-DE/exercise-video.png",
+              "sha256": "4ccc3fa6c0f72312a5114217c3f6e37aa9e4b6e2114038f6ace0159d6b0c50f9"
+            },
+            "framed": {
+              "path": "marketing/screenshots/framed/de-DE/exercise-video.png",
+              "archivePath": "framed/de-DE/exercise-video.png",
+              "sha256": "9a59b0b0ce80a54ab2158ceb032f0ce916cd8282e64b474dc374f121f287bf8f"
+            },
+            "appStore": {
+              "path": "marketing/screenshots/app-store/iphone-6.9/de-DE/08.png",
+              "archivePath": "app-store/de-DE/08.png",
+              "sha256": "7fa587f66e1b43d310df45bac339021bd80140d29b4744fdeda44b7a80cc3b88"
+            }
+          }
+        },
+        {
+          "scene": "history",
+          "appStorePosition": 9,
+          "files": {
+            "bare": {
+              "path": "marketing/screenshots/iphone/de-DE/history.png",
+              "archivePath": "bare/de-DE/history.png",
+              "sha256": "1ba35d1f8d90fc032e68d44da1be4d41597ca66e6a5a2c1cf07c2a7f1de975a7"
+            },
+            "framed": {
+              "path": "marketing/screenshots/framed/de-DE/history.png",
+              "archivePath": "framed/de-DE/history.png",
+              "sha256": "fca1526d981402fccd5e08cb1622f54e6f2b431ca81f15e43886097607a749e8"
+            },
+            "appStore": {
+              "path": "marketing/screenshots/app-store/iphone-6.9/de-DE/09.png",
+              "archivePath": "app-store/de-DE/09.png",
+              "sha256": "f56e4582c84340b86a6423e77146f0982386033c2f50e479b07e8c46c4c41c8c"
+            }
+          }
+        },
+        {
+          "scene": "arnold-model-picker",
+          "appStorePosition": 10,
+          "files": {
+            "bare": {
+              "path": "marketing/screenshots/iphone/de-DE/arnold-model-picker.png",
+              "archivePath": "bare/de-DE/arnold-model-picker.png",
+              "sha256": "4f927be2b6b46015c26fcb03138c09bfbe5d49d3e42b6ce5a9a1a7adac6e9368"
+            },
+            "framed": {
+              "path": "marketing/screenshots/framed/de-DE/arnold-model-picker.png",
+              "archivePath": "framed/de-DE/arnold-model-picker.png",
+              "sha256": "8c237af939cd249a687564d179c5e7ecae7835c86e222e44f2cf7e8793f0f16e"
+            },
+            "appStore": {
+              "path": "marketing/screenshots/app-store/iphone-6.9/de-DE/10.png",
+              "archivePath": "app-store/de-DE/10.png",
+              "sha256": "ddd8f232d3b48d216f79d406c0363b5bb46d5596edb4c868048a8c68e4d93988"
+            }
+          }
+        }
+      ],
+      "nativeReviewed": true,
+      "fullExportsReviewed": 10,
+      "edgeTilesReviewed": 100,
+      "nativeWorkoutAndArnoldWorkflowVerified": true,
+      "workflowVerificationEvidence": "Detailed read-only database verification"
+    },
+    {
+      "sourceLocale": "fr-FR",
+      "listingLocale": "fr-FR",
+      "images": [
+        {
+          "scene": "arnold-generated-plan",
+          "appStorePosition": 1,
+          "files": {
+            "bare": {
+              "path": "marketing/screenshots/iphone/fr-FR/arnold-generated-plan.png",
+              "archivePath": "bare/fr-FR/arnold-generated-plan.png",
+              "sha256": "f3d8951070f81fa350226bb14119bea754aca00f75c39641b3eba25d021a9517"
+            },
+            "framed": {
+              "path": "marketing/screenshots/framed/fr-FR/arnold-generated-plan.png",
+              "archivePath": "framed/fr-FR/arnold-generated-plan.png",
+              "sha256": "609e91b566046995988472f81eea089a4c9647c694f794bbdd5ebb69c5fd792d"
+            },
+            "appStore": {
+              "path": "marketing/screenshots/app-store/iphone-6.9/fr-FR/01.png",
+              "archivePath": "app-store/fr-FR/01.png",
+              "sha256": "8185e4eeb288cc6285525dcb187a8b45b2df3005a5c4b2ea4d65a21950a920a4"
+            }
+          }
+        },
+        {
+          "scene": "workout-log-set",
+          "appStorePosition": 2,
+          "files": {
+            "bare": {
+              "path": "marketing/screenshots/iphone/fr-FR/workout-log-set.png",
+              "archivePath": "bare/fr-FR/workout-log-set.png",
+              "sha256": "5e47c8e902f0afc91edc2d31aa63ad448fa63783244b17d07267c55551a569d3"
+            },
+            "framed": {
+              "path": "marketing/screenshots/framed/fr-FR/workout-log-set.png",
+              "archivePath": "framed/fr-FR/workout-log-set.png",
+              "sha256": "141018713543b38bba1741a31e6f096ef5e48dcb9ef5ce592bf5abe02d02e10c"
+            },
+            "appStore": {
+              "path": "marketing/screenshots/app-store/iphone-6.9/fr-FR/02.png",
+              "archivePath": "app-store/fr-FR/02.png",
+              "sha256": "313b7519b778e53bdf8769ae4fb653437b695041829e61093f87509c85198538"
+            }
+          }
+        },
+        {
+          "scene": "workout-summary-prs",
+          "appStorePosition": 3,
+          "files": {
+            "bare": {
+              "path": "marketing/screenshots/iphone/fr-FR/workout-summary-prs.png",
+              "archivePath": "bare/fr-FR/workout-summary-prs.png",
+              "sha256": "12b901c439a2d905b71c6c5b576a7d816e6bd97d28cf7d9dc2fb85a29088d8bc"
+            },
+            "framed": {
+              "path": "marketing/screenshots/framed/fr-FR/workout-summary-prs.png",
+              "archivePath": "framed/fr-FR/workout-summary-prs.png",
+              "sha256": "a4a120a4ac562ab3598843387bb481254dbefc6b170433ee58856c1d08956255"
+            },
+            "appStore": {
+              "path": "marketing/screenshots/app-store/iphone-6.9/fr-FR/03.png",
+              "archivePath": "app-store/fr-FR/03.png",
+              "sha256": "635f052ab9686f0b4e1e0f25b860e5b99e7dbf020cf1d120f99a5cff5c3d9499"
+            }
+          }
+        },
+        {
+          "scene": "arnold-plan-change",
+          "appStorePosition": 4,
+          "files": {
+            "bare": {
+              "path": "marketing/screenshots/iphone/fr-FR/arnold-plan-change.png",
+              "archivePath": "bare/fr-FR/arnold-plan-change.png",
+              "sha256": "97f7710c3c502c3f251f12f86450411fef722daad9e0ffa5f6574f0d7f1f4fd5"
+            },
+            "framed": {
+              "path": "marketing/screenshots/framed/fr-FR/arnold-plan-change.png",
+              "archivePath": "framed/fr-FR/arnold-plan-change.png",
+              "sha256": "d999869d8c4c372bd717c98ad25319a52a3290a1de2a4613dc2d0dff027715a5"
+            },
+            "appStore": {
+              "path": "marketing/screenshots/app-store/iphone-6.9/fr-FR/04.png",
+              "archivePath": "app-store/fr-FR/04.png",
+              "sha256": "b801bedec5f8fb3b1074eedc32c9f97aaba725ead209d47300c84debad8d0ff0"
+            }
+          }
+        },
+        {
+          "scene": "exercise-progress",
+          "appStorePosition": 5,
+          "files": {
+            "bare": {
+              "path": "marketing/screenshots/iphone/fr-FR/exercise-progress.png",
+              "archivePath": "bare/fr-FR/exercise-progress.png",
+              "sha256": "1d6d5db46e1064e557b741df30e797e98b9a9193f21f01238bfda8174b9a8c2f"
+            },
+            "framed": {
+              "path": "marketing/screenshots/framed/fr-FR/exercise-progress.png",
+              "archivePath": "framed/fr-FR/exercise-progress.png",
+              "sha256": "7608c1c52a6ab4b729ee3c1662483b44e7965e9743e0aa1e8ac296a0f827156b"
+            },
+            "appStore": {
+              "path": "marketing/screenshots/app-store/iphone-6.9/fr-FR/05.png",
+              "archivePath": "app-store/fr-FR/05.png",
+              "sha256": "7ac34f7438ad9031c3f4d61c5a671574f366bdffada64285be0236f53af3f0f4"
+            }
+          }
+        },
+        {
+          "scene": "next-workout",
+          "appStorePosition": 6,
+          "files": {
+            "bare": {
+              "path": "marketing/screenshots/iphone/fr-FR/next-workout.png",
+              "archivePath": "bare/fr-FR/next-workout.png",
+              "sha256": "0d1baa6f48f3922263ec12d04c7887cd81392bdb8368a95d8b1ea2495ea37b43"
+            },
+            "framed": {
+              "path": "marketing/screenshots/framed/fr-FR/next-workout.png",
+              "archivePath": "framed/fr-FR/next-workout.png",
+              "sha256": "b3791f8e2e5e7692664ed122bc22c3fc59a1c36e7fd18f7ce3e10140d6023dc0"
+            },
+            "appStore": {
+              "path": "marketing/screenshots/app-store/iphone-6.9/fr-FR/06.png",
+              "archivePath": "app-store/fr-FR/06.png",
+              "sha256": "02d42a86aa5c3286bb79a33594e21b6f59a33ac1ce68694d43873ac4274e5ff6"
+            }
+          }
+        },
+        {
+          "scene": "update-plan",
+          "appStorePosition": 7,
+          "files": {
+            "bare": {
+              "path": "marketing/screenshots/iphone/fr-FR/update-plan.png",
+              "archivePath": "bare/fr-FR/update-plan.png",
+              "sha256": "1c13f930820c3eec412a29e512b64c66d1ca38fb65105f6d0d70e242d8d00467"
+            },
+            "framed": {
+              "path": "marketing/screenshots/framed/fr-FR/update-plan.png",
+              "archivePath": "framed/fr-FR/update-plan.png",
+              "sha256": "63693d02051acb53679ecf5de25b91b0100de43ab71bb83a56a40f19641dc0b4"
+            },
+            "appStore": {
+              "path": "marketing/screenshots/app-store/iphone-6.9/fr-FR/07.png",
+              "archivePath": "app-store/fr-FR/07.png",
+              "sha256": "9d6eb12f48170af9f64971a99127fc39ab0ad1611f60de45564d74e59837d5c1"
+            }
+          }
+        },
+        {
+          "scene": "exercise-video",
+          "appStorePosition": 8,
+          "files": {
+            "bare": {
+              "path": "marketing/screenshots/iphone/fr-FR/exercise-video.png",
+              "archivePath": "bare/fr-FR/exercise-video.png",
+              "sha256": "e07734a2cc6d2647b1729bd2a58313fa3068ca9b40aa72d9c068914c7e42f2ed"
+            },
+            "framed": {
+              "path": "marketing/screenshots/framed/fr-FR/exercise-video.png",
+              "archivePath": "framed/fr-FR/exercise-video.png",
+              "sha256": "8d3e0ec2cc8e35a22571fe4c18d5dc501e814d16b32fb1ab822d4fd7554da63c"
+            },
+            "appStore": {
+              "path": "marketing/screenshots/app-store/iphone-6.9/fr-FR/08.png",
+              "archivePath": "app-store/fr-FR/08.png",
+              "sha256": "04d0486d4ec66819521e68edb3ebbb3e165f100fe1762be86381fc7881e50b83"
+            }
+          }
+        },
+        {
+          "scene": "history",
+          "appStorePosition": 9,
+          "files": {
+            "bare": {
+              "path": "marketing/screenshots/iphone/fr-FR/history.png",
+              "archivePath": "bare/fr-FR/history.png",
+              "sha256": "d8e87b92be5838710c7e20f365e09a0ce1c2970c118922a231fcf4149bf91807"
+            },
+            "framed": {
+              "path": "marketing/screenshots/framed/fr-FR/history.png",
+              "archivePath": "framed/fr-FR/history.png",
+              "sha256": "129708f6be4850489eb8d97a10b2348ef46dca72e132aad056884d181a43350c"
+            },
+            "appStore": {
+              "path": "marketing/screenshots/app-store/iphone-6.9/fr-FR/09.png",
+              "archivePath": "app-store/fr-FR/09.png",
+              "sha256": "cc187225b26986ec0d5216539aa77215e942a0431fdd939dac2983f6a520cbf0"
+            }
+          }
+        },
+        {
+          "scene": "arnold-model-picker",
+          "appStorePosition": 10,
+          "files": {
+            "bare": {
+              "path": "marketing/screenshots/iphone/fr-FR/arnold-model-picker.png",
+              "archivePath": "bare/fr-FR/arnold-model-picker.png",
+              "sha256": "cb8e72447cdcf2f022b5c9df6e0caedb372d118ce23231b92f167b07925253f4"
+            },
+            "framed": {
+              "path": "marketing/screenshots/framed/fr-FR/arnold-model-picker.png",
+              "archivePath": "framed/fr-FR/arnold-model-picker.png",
+              "sha256": "fe6076c91698ab6c75b11330f9ff37d178c44e46d1167e945a72750389df5691"
+            },
+            "appStore": {
+              "path": "marketing/screenshots/app-store/iphone-6.9/fr-FR/10.png",
+              "archivePath": "app-store/fr-FR/10.png",
+              "sha256": "9ce4cadcc25d24c89afd550416df8dc5410e424e9b58899ee897621c897fcf4d"
+            }
+          }
+        }
+      ],
+      "nativeReviewed": true,
+      "fullExportsReviewed": 10,
+      "edgeTilesReviewed": 100,
+      "nativeWorkoutAndArnoldWorkflowVerified": true,
+      "workflowVerificationEvidence": "Recovered original verification result, not a restored detailed database snapshot"
+    },
+    {
+      "sourceLocale": "it-IT",
+      "listingLocale": "it",
+      "images": [
+        {
+          "scene": "arnold-generated-plan",
+          "appStorePosition": 1,
+          "files": {
+            "bare": {
+              "path": "marketing/screenshots/iphone/it-IT/arnold-generated-plan.png",
+              "archivePath": "bare/it-IT/arnold-generated-plan.png",
+              "sha256": "30a7106779dfc96134f81fa454f7ff196af0b882a46de8f4950b71d949a0e678"
+            },
+            "framed": {
+              "path": "marketing/screenshots/framed/it-IT/arnold-generated-plan.png",
+              "archivePath": "framed/it-IT/arnold-generated-plan.png",
+              "sha256": "1dbfeb165964e55215ff0e6f3ceba6413a83c8d3a403d4960d6ce94b67e98684"
+            },
+            "appStore": {
+              "path": "marketing/screenshots/app-store/iphone-6.9/it/01.png",
+              "archivePath": "app-store/it/01.png",
+              "sha256": "67a36470de055d94064ea6c1d3ec9ce3945c9979bd98e1622f1c297d604758b9"
+            }
+          }
+        },
+        {
+          "scene": "workout-log-set",
+          "appStorePosition": 2,
+          "files": {
+            "bare": {
+              "path": "marketing/screenshots/iphone/it-IT/workout-log-set.png",
+              "archivePath": "bare/it-IT/workout-log-set.png",
+              "sha256": "f3e23affa1906d784bf63762ad1c39725e2e1722f50fd384801be6b58281c90c"
+            },
+            "framed": {
+              "path": "marketing/screenshots/framed/it-IT/workout-log-set.png",
+              "archivePath": "framed/it-IT/workout-log-set.png",
+              "sha256": "b94e982d324f2a8660533138396aa53d88c6583f9d1b2b226c8061b28698d674"
+            },
+            "appStore": {
+              "path": "marketing/screenshots/app-store/iphone-6.9/it/02.png",
+              "archivePath": "app-store/it/02.png",
+              "sha256": "f4659241011dae65826bfe71a551a103227bf4c5425738f3736270d9d78cf04f"
+            }
+          }
+        },
+        {
+          "scene": "workout-summary-prs",
+          "appStorePosition": 3,
+          "files": {
+            "bare": {
+              "path": "marketing/screenshots/iphone/it-IT/workout-summary-prs.png",
+              "archivePath": "bare/it-IT/workout-summary-prs.png",
+              "sha256": "8463ec4a0cc30e9a35ee3249c762224a97fa973231c35cad66d3efa9c0157f14"
+            },
+            "framed": {
+              "path": "marketing/screenshots/framed/it-IT/workout-summary-prs.png",
+              "archivePath": "framed/it-IT/workout-summary-prs.png",
+              "sha256": "c26ff8f5b8e3bfac36ab79c064fd951838dee700ed004d6f61da7690d4229d4a"
+            },
+            "appStore": {
+              "path": "marketing/screenshots/app-store/iphone-6.9/it/03.png",
+              "archivePath": "app-store/it/03.png",
+              "sha256": "4a7a728ecbfa7536989d47aca26fd3ea6d458f529f4010e3858e133d380a0e6c"
+            }
+          }
+        },
+        {
+          "scene": "arnold-plan-change",
+          "appStorePosition": 4,
+          "files": {
+            "bare": {
+              "path": "marketing/screenshots/iphone/it-IT/arnold-plan-change.png",
+              "archivePath": "bare/it-IT/arnold-plan-change.png",
+              "sha256": "a69932fda7d70eca1a53499d8d2ced532468518b96e22568b2dc0960333459fb"
+            },
+            "framed": {
+              "path": "marketing/screenshots/framed/it-IT/arnold-plan-change.png",
+              "archivePath": "framed/it-IT/arnold-plan-change.png",
+              "sha256": "7a2600745ad3df1bd84982f20de4d091fbf311cc35a33de71d80eac366855d67"
+            },
+            "appStore": {
+              "path": "marketing/screenshots/app-store/iphone-6.9/it/04.png",
+              "archivePath": "app-store/it/04.png",
+              "sha256": "da9e5043d2735573f4301e4bebad43726b584c304a8fba1e565a8c2f5ff9d764"
+            }
+          }
+        },
+        {
+          "scene": "exercise-progress",
+          "appStorePosition": 5,
+          "files": {
+            "bare": {
+              "path": "marketing/screenshots/iphone/it-IT/exercise-progress.png",
+              "archivePath": "bare/it-IT/exercise-progress.png",
+              "sha256": "d0d34895daf4c659dea86da3c8c33a23cb213041fc926c9ec4dabef09958684b"
+            },
+            "framed": {
+              "path": "marketing/screenshots/framed/it-IT/exercise-progress.png",
+              "archivePath": "framed/it-IT/exercise-progress.png",
+              "sha256": "ca96826ebbb3236c35666b3cb76900932aa5f51055c5af5d182ef07e33daad93"
+            },
+            "appStore": {
+              "path": "marketing/screenshots/app-store/iphone-6.9/it/05.png",
+              "archivePath": "app-store/it/05.png",
+              "sha256": "741db5b017de3e71dc07e47be2c218d6f118bb8dbaa7b89e42a599f1aa7504bf"
+            }
+          }
+        },
+        {
+          "scene": "next-workout",
+          "appStorePosition": 6,
+          "files": {
+            "bare": {
+              "path": "marketing/screenshots/iphone/it-IT/next-workout.png",
+              "archivePath": "bare/it-IT/next-workout.png",
+              "sha256": "e5aa244960e3c1f0e30e64564c03ad1317f015d1cbefbff3deea51edf482bb90"
+            },
+            "framed": {
+              "path": "marketing/screenshots/framed/it-IT/next-workout.png",
+              "archivePath": "framed/it-IT/next-workout.png",
+              "sha256": "4917e171dc32aea8ef7a88f5438fd2d731c4ab9ce4ea566892629d6ed40621f9"
+            },
+            "appStore": {
+              "path": "marketing/screenshots/app-store/iphone-6.9/it/06.png",
+              "archivePath": "app-store/it/06.png",
+              "sha256": "3822b52e5f00a3a423195f80a2acac11ab25d31d9e40e8fb1b564d581fcba1d6"
+            }
+          }
+        },
+        {
+          "scene": "update-plan",
+          "appStorePosition": 7,
+          "files": {
+            "bare": {
+              "path": "marketing/screenshots/iphone/it-IT/update-plan.png",
+              "archivePath": "bare/it-IT/update-plan.png",
+              "sha256": "e3718ce7a59412fd404f1b0710379a8a9a4488cbd5f0fff428b5500a48b16a5a"
+            },
+            "framed": {
+              "path": "marketing/screenshots/framed/it-IT/update-plan.png",
+              "archivePath": "framed/it-IT/update-plan.png",
+              "sha256": "b2e8534dd00b7017eb73fe0aa522fcf9d2db638433a95c650ad947a24b4c5193"
+            },
+            "appStore": {
+              "path": "marketing/screenshots/app-store/iphone-6.9/it/07.png",
+              "archivePath": "app-store/it/07.png",
+              "sha256": "03daffb451ccadd4184c20cec1a0d21830450bf68d3f73e3157ecd7c28d5b6cb"
+            }
+          }
+        },
+        {
+          "scene": "exercise-video",
+          "appStorePosition": 8,
+          "files": {
+            "bare": {
+              "path": "marketing/screenshots/iphone/it-IT/exercise-video.png",
+              "archivePath": "bare/it-IT/exercise-video.png",
+              "sha256": "a9e3f706f1d7cb378273e729c6a648561c0fa4b5e94e81a25e3a30a561243aee"
+            },
+            "framed": {
+              "path": "marketing/screenshots/framed/it-IT/exercise-video.png",
+              "archivePath": "framed/it-IT/exercise-video.png",
+              "sha256": "a9eff109072a9576631dd2ad10619f94c7c19fe509f461a509f1a467ed174240"
+            },
+            "appStore": {
+              "path": "marketing/screenshots/app-store/iphone-6.9/it/08.png",
+              "archivePath": "app-store/it/08.png",
+              "sha256": "32b92078fdc73692d28543b2feccea126274631a10a8df62c70f90dfd84e65c7"
+            }
+          }
+        },
+        {
+          "scene": "history",
+          "appStorePosition": 9,
+          "files": {
+            "bare": {
+              "path": "marketing/screenshots/iphone/it-IT/history.png",
+              "archivePath": "bare/it-IT/history.png",
+              "sha256": "74656fc165292e7944fac852a53e58d61949ce1d44f188f5cdb74f31b426020d"
+            },
+            "framed": {
+              "path": "marketing/screenshots/framed/it-IT/history.png",
+              "archivePath": "framed/it-IT/history.png",
+              "sha256": "417c5e2601f074fa3cd8e02f315a2fe0955f5e1a925859047616fe9acf7ad8bf"
+            },
+            "appStore": {
+              "path": "marketing/screenshots/app-store/iphone-6.9/it/09.png",
+              "archivePath": "app-store/it/09.png",
+              "sha256": "ab736b8a6fa240a3ced5db813ec9f6e17061c994b7e9175d0846e3a8edd3eecf"
+            }
+          }
+        },
+        {
+          "scene": "arnold-model-picker",
+          "appStorePosition": 10,
+          "files": {
+            "bare": {
+              "path": "marketing/screenshots/iphone/it-IT/arnold-model-picker.png",
+              "archivePath": "bare/it-IT/arnold-model-picker.png",
+              "sha256": "87bf487a14dc571173fb0fb756148a9124bc5360725501edb2d41c2dd3aa53b7"
+            },
+            "framed": {
+              "path": "marketing/screenshots/framed/it-IT/arnold-model-picker.png",
+              "archivePath": "framed/it-IT/arnold-model-picker.png",
+              "sha256": "4b96fafdd7c09f0b2513e6d4558b300f9680049c456c391d821080c327c45bac"
+            },
+            "appStore": {
+              "path": "marketing/screenshots/app-store/iphone-6.9/it/10.png",
+              "archivePath": "app-store/it/10.png",
+              "sha256": "fb00eeb770de755596132b5012ac82fde0937a3418ece70caca14710cc6abb05"
+            }
+          }
+        }
+      ],
+      "nativeReviewed": true,
+      "fullExportsReviewed": 10,
+      "edgeTilesReviewed": 100,
+      "nativeWorkoutAndArnoldWorkflowVerified": true,
+      "workflowVerificationEvidence": "Detailed read-only database verification"
+    },
+    {
+      "sourceLocale": "nl-NL",
+      "listingLocale": "nl-NL",
+      "images": [
+        {
+          "scene": "arnold-generated-plan",
+          "appStorePosition": 1,
+          "files": {
+            "bare": {
+              "path": "marketing/screenshots/iphone/nl-NL/arnold-generated-plan.png",
+              "archivePath": "bare/nl-NL/arnold-generated-plan.png",
+              "sha256": "a120371dab1a4a287ca66208872b7f3808b85dc6caf2eae9898cad1e1c347ad2"
+            },
+            "framed": {
+              "path": "marketing/screenshots/framed/nl-NL/arnold-generated-plan.png",
+              "archivePath": "framed/nl-NL/arnold-generated-plan.png",
+              "sha256": "ac85dc1eadac093dbc713a5e4b698bb19b075420442ac4f19b93b7e0a1a9ed13"
+            },
+            "appStore": {
+              "path": "marketing/screenshots/app-store/iphone-6.9/nl-NL/01.png",
+              "archivePath": "app-store/nl-NL/01.png",
+              "sha256": "6fd5c7f4968c90755490e3666b51e21813d8836ef76c908a5f647fb972a60894"
+            }
+          }
+        },
+        {
+          "scene": "workout-log-set",
+          "appStorePosition": 2,
+          "files": {
+            "bare": {
+              "path": "marketing/screenshots/iphone/nl-NL/workout-log-set.png",
+              "archivePath": "bare/nl-NL/workout-log-set.png",
+              "sha256": "fe1b465c1ac3dcdb8d9c47fd1676a16c95b892300abe9faa18c80aef384c107b"
+            },
+            "framed": {
+              "path": "marketing/screenshots/framed/nl-NL/workout-log-set.png",
+              "archivePath": "framed/nl-NL/workout-log-set.png",
+              "sha256": "7a3784c945336b64828b6b532fdd631ae31c0d758064dee584aa23d5166da465"
+            },
+            "appStore": {
+              "path": "marketing/screenshots/app-store/iphone-6.9/nl-NL/02.png",
+              "archivePath": "app-store/nl-NL/02.png",
+              "sha256": "5586118cbc6ba22906fcda6f1dd527898980321f2dba61cfc293af8623407d2d"
+            }
+          }
+        },
+        {
+          "scene": "workout-summary-prs",
+          "appStorePosition": 3,
+          "files": {
+            "bare": {
+              "path": "marketing/screenshots/iphone/nl-NL/workout-summary-prs.png",
+              "archivePath": "bare/nl-NL/workout-summary-prs.png",
+              "sha256": "6978d0519aae448087dc4046b11d4bb587ff15190b86668b041a000e09f0326c"
+            },
+            "framed": {
+              "path": "marketing/screenshots/framed/nl-NL/workout-summary-prs.png",
+              "archivePath": "framed/nl-NL/workout-summary-prs.png",
+              "sha256": "9e2495fa8b3512f5721fffe7ac7adf88cd7fc388df56a152407aea0bd9bbd73a"
+            },
+            "appStore": {
+              "path": "marketing/screenshots/app-store/iphone-6.9/nl-NL/03.png",
+              "archivePath": "app-store/nl-NL/03.png",
+              "sha256": "59fdbba054a2d1b89fa3a1fb4bf2e068096b40fb9a8268472abdc0b8a63b3962"
+            }
+          }
+        },
+        {
+          "scene": "arnold-plan-change",
+          "appStorePosition": 4,
+          "files": {
+            "bare": {
+              "path": "marketing/screenshots/iphone/nl-NL/arnold-plan-change.png",
+              "archivePath": "bare/nl-NL/arnold-plan-change.png",
+              "sha256": "73e43ae5baaa4e47d0b31ce77f04d04f090f5701485e79d3e3a2c8f65574b7a7"
+            },
+            "framed": {
+              "path": "marketing/screenshots/framed/nl-NL/arnold-plan-change.png",
+              "archivePath": "framed/nl-NL/arnold-plan-change.png",
+              "sha256": "c98b6c2c217f6e05c7cee16a4338a99c22e434a49d8168c31232e0c14e160f10"
+            },
+            "appStore": {
+              "path": "marketing/screenshots/app-store/iphone-6.9/nl-NL/04.png",
+              "archivePath": "app-store/nl-NL/04.png",
+              "sha256": "55c59a7bdc85d3f44442f215285bdff57d6c677eb9783c0e7237a4861c2de314"
+            }
+          }
+        },
+        {
+          "scene": "exercise-progress",
+          "appStorePosition": 5,
+          "files": {
+            "bare": {
+              "path": "marketing/screenshots/iphone/nl-NL/exercise-progress.png",
+              "archivePath": "bare/nl-NL/exercise-progress.png",
+              "sha256": "3458e8da61d45df525d204751921ef1368a13af01d215d776469145befde286e"
+            },
+            "framed": {
+              "path": "marketing/screenshots/framed/nl-NL/exercise-progress.png",
+              "archivePath": "framed/nl-NL/exercise-progress.png",
+              "sha256": "02cc97ef199a9cbcb43ac5b248032dc738670c1d56e5bf052be4e0fe8039767b"
+            },
+            "appStore": {
+              "path": "marketing/screenshots/app-store/iphone-6.9/nl-NL/05.png",
+              "archivePath": "app-store/nl-NL/05.png",
+              "sha256": "8872daa33cd5954887e089d130d04da9165e104079af6406f7fa912219421313"
+            }
+          }
+        },
+        {
+          "scene": "next-workout",
+          "appStorePosition": 6,
+          "files": {
+            "bare": {
+              "path": "marketing/screenshots/iphone/nl-NL/next-workout.png",
+              "archivePath": "bare/nl-NL/next-workout.png",
+              "sha256": "0f4727d5290c3cfadc3a67ad75cec8796bb8f405400719e3c101f25cfc4310b8"
+            },
+            "framed": {
+              "path": "marketing/screenshots/framed/nl-NL/next-workout.png",
+              "archivePath": "framed/nl-NL/next-workout.png",
+              "sha256": "0cd07228163e523251dd59fea4bdd54e5007d41eb7d0d4ae189df47cf55d3506"
+            },
+            "appStore": {
+              "path": "marketing/screenshots/app-store/iphone-6.9/nl-NL/06.png",
+              "archivePath": "app-store/nl-NL/06.png",
+              "sha256": "56b34c1b05cc0510f4eb9246a0c27aafc8b19d16846d0118adfa3f15be755de0"
+            }
+          }
+        },
+        {
+          "scene": "update-plan",
+          "appStorePosition": 7,
+          "files": {
+            "bare": {
+              "path": "marketing/screenshots/iphone/nl-NL/update-plan.png",
+              "archivePath": "bare/nl-NL/update-plan.png",
+              "sha256": "50639a6bdd4d73f9379947c901f76173736652c4a9fb9458d36e2b4bde9ebfb8"
+            },
+            "framed": {
+              "path": "marketing/screenshots/framed/nl-NL/update-plan.png",
+              "archivePath": "framed/nl-NL/update-plan.png",
+              "sha256": "90059a7050dc31407388f045c70ed4f1a80c533f3d837127f7cf5880f0be91f1"
+            },
+            "appStore": {
+              "path": "marketing/screenshots/app-store/iphone-6.9/nl-NL/07.png",
+              "archivePath": "app-store/nl-NL/07.png",
+              "sha256": "504f5dd81a2f03308f93d3f3505984bdcdd351323c0a27a7a9d60855c1109ddb"
+            }
+          }
+        },
+        {
+          "scene": "exercise-video",
+          "appStorePosition": 8,
+          "files": {
+            "bare": {
+              "path": "marketing/screenshots/iphone/nl-NL/exercise-video.png",
+              "archivePath": "bare/nl-NL/exercise-video.png",
+              "sha256": "1cb8a5bb515cc290c6fb554612bd4ca25c7dd923b0b50d031a55e76b12c1f319"
+            },
+            "framed": {
+              "path": "marketing/screenshots/framed/nl-NL/exercise-video.png",
+              "archivePath": "framed/nl-NL/exercise-video.png",
+              "sha256": "b0cc4106311713b08cfa279a15d0c27bd4238b537fafb7fc419d63b2c4f29914"
+            },
+            "appStore": {
+              "path": "marketing/screenshots/app-store/iphone-6.9/nl-NL/08.png",
+              "archivePath": "app-store/nl-NL/08.png",
+              "sha256": "4d04fd262e0f9a96d24eaf0d3101f942db3f87c6761d21ec51c15c7454f5166c"
+            }
+          }
+        },
+        {
+          "scene": "history",
+          "appStorePosition": 9,
+          "files": {
+            "bare": {
+              "path": "marketing/screenshots/iphone/nl-NL/history.png",
+              "archivePath": "bare/nl-NL/history.png",
+              "sha256": "ec22ea84cb6792f7d25f620fa4d9530d39fa4cc80834ae93a17334ecd1f04bf1"
+            },
+            "framed": {
+              "path": "marketing/screenshots/framed/nl-NL/history.png",
+              "archivePath": "framed/nl-NL/history.png",
+              "sha256": "911e06325e2cbf227be7a866b9f70160cec28e6459cadc1f53e6385c4f19ecb8"
+            },
+            "appStore": {
+              "path": "marketing/screenshots/app-store/iphone-6.9/nl-NL/09.png",
+              "archivePath": "app-store/nl-NL/09.png",
+              "sha256": "37f6282bc7b619630a036b2b656805b2dd5456eb3ce77c7ece1641a1f734e5e7"
+            }
+          }
+        },
+        {
+          "scene": "arnold-model-picker",
+          "appStorePosition": 10,
+          "files": {
+            "bare": {
+              "path": "marketing/screenshots/iphone/nl-NL/arnold-model-picker.png",
+              "archivePath": "bare/nl-NL/arnold-model-picker.png",
+              "sha256": "9e223d96520f1a0d6f8bbc5377e7ef17352aafb92176783e00eacc6309736692"
+            },
+            "framed": {
+              "path": "marketing/screenshots/framed/nl-NL/arnold-model-picker.png",
+              "archivePath": "framed/nl-NL/arnold-model-picker.png",
+              "sha256": "4e56821ca8942c2bbf2aee65667b1855c574f441c683aa653e611cf945d1f6c5"
+            },
+            "appStore": {
+              "path": "marketing/screenshots/app-store/iphone-6.9/nl-NL/10.png",
+              "archivePath": "app-store/nl-NL/10.png",
+              "sha256": "1768dd8e514b1907e1de72698837e2fe7ab5d6f8cf72611ea932de7ec6b1eb52"
+            }
+          }
+        }
+      ],
+      "nativeReviewed": true,
+      "fullExportsReviewed": 10,
+      "edgeTilesReviewed": 100,
+      "nativeWorkoutAndArnoldWorkflowVerified": true,
+      "workflowVerificationEvidence": "Detailed read-only database verification"
+    },
+    {
+      "sourceLocale": "pl-PL",
+      "listingLocale": "pl",
+      "images": [
+        {
+          "scene": "arnold-generated-plan",
+          "appStorePosition": 1,
+          "files": {
+            "bare": {
+              "path": "marketing/screenshots/iphone/pl-PL/arnold-generated-plan.png",
+              "archivePath": "bare/pl-PL/arnold-generated-plan.png",
+              "sha256": "6740241f241d479e0f21c5dc20acc5b7026adc50d38fc1dfe862d4403ff6fb97"
+            },
+            "framed": {
+              "path": "marketing/screenshots/framed/pl-PL/arnold-generated-plan.png",
+              "archivePath": "framed/pl-PL/arnold-generated-plan.png",
+              "sha256": "fb0c11edfbbfa8b3bd5e82c4b350837b5888bbf84afbdb108ecfc46492617cca"
+            },
+            "appStore": {
+              "path": "marketing/screenshots/app-store/iphone-6.9/pl/01.png",
+              "archivePath": "app-store/pl/01.png",
+              "sha256": "1313fbded41cdbb73fd5717b5aa50f339d85471f7bc5a095788edf0b7a6135f0"
+            }
+          }
+        },
+        {
+          "scene": "workout-log-set",
+          "appStorePosition": 2,
+          "files": {
+            "bare": {
+              "path": "marketing/screenshots/iphone/pl-PL/workout-log-set.png",
+              "archivePath": "bare/pl-PL/workout-log-set.png",
+              "sha256": "ed786148790421268e5e4d890a7858070416346853e363d5e3d7512dbf856a6f"
+            },
+            "framed": {
+              "path": "marketing/screenshots/framed/pl-PL/workout-log-set.png",
+              "archivePath": "framed/pl-PL/workout-log-set.png",
+              "sha256": "e878a10d24119c2c3f868e2714af7ac701f2f425b3789c57fa7db16090a94ac2"
+            },
+            "appStore": {
+              "path": "marketing/screenshots/app-store/iphone-6.9/pl/02.png",
+              "archivePath": "app-store/pl/02.png",
+              "sha256": "2f14479d0cc0a64bfcb8c4cc3048ad0f619c8d85816fc240546c6ad568fd379b"
+            }
+          }
+        },
+        {
+          "scene": "workout-summary-prs",
+          "appStorePosition": 3,
+          "files": {
+            "bare": {
+              "path": "marketing/screenshots/iphone/pl-PL/workout-summary-prs.png",
+              "archivePath": "bare/pl-PL/workout-summary-prs.png",
+              "sha256": "8d6cd4d2cf45ec696e323d3b9811ba9c5f9e2cd61c034e65a8a76c39bd22a39a"
+            },
+            "framed": {
+              "path": "marketing/screenshots/framed/pl-PL/workout-summary-prs.png",
+              "archivePath": "framed/pl-PL/workout-summary-prs.png",
+              "sha256": "18eff5d28a394f80ef574786326400e5fe798ea600e1fad8367dd006cc655393"
+            },
+            "appStore": {
+              "path": "marketing/screenshots/app-store/iphone-6.9/pl/03.png",
+              "archivePath": "app-store/pl/03.png",
+              "sha256": "3c516899bfcd774ea58347327c2d49b885ce94dcf42e472284f4a7e2c6749791"
+            }
+          }
+        },
+        {
+          "scene": "arnold-plan-change",
+          "appStorePosition": 4,
+          "files": {
+            "bare": {
+              "path": "marketing/screenshots/iphone/pl-PL/arnold-plan-change.png",
+              "archivePath": "bare/pl-PL/arnold-plan-change.png",
+              "sha256": "f2781c47c7ee934e11ebf14ffc20659950d496b9925c69cebd6c89c58504c9b5"
+            },
+            "framed": {
+              "path": "marketing/screenshots/framed/pl-PL/arnold-plan-change.png",
+              "archivePath": "framed/pl-PL/arnold-plan-change.png",
+              "sha256": "616a833f333f75240a8307321b1e060f892ab0b22587c5ec31f1466cefe36602"
+            },
+            "appStore": {
+              "path": "marketing/screenshots/app-store/iphone-6.9/pl/04.png",
+              "archivePath": "app-store/pl/04.png",
+              "sha256": "89922f512bc85bf0a8bed2a3258a27562246af1794f342ad03f691a0f8debb76"
+            }
+          }
+        },
+        {
+          "scene": "exercise-progress",
+          "appStorePosition": 5,
+          "files": {
+            "bare": {
+              "path": "marketing/screenshots/iphone/pl-PL/exercise-progress.png",
+              "archivePath": "bare/pl-PL/exercise-progress.png",
+              "sha256": "18cd236a09151cf6e4ec65451d8ea98971ad49500068b88182e0d07ed234a3cc"
+            },
+            "framed": {
+              "path": "marketing/screenshots/framed/pl-PL/exercise-progress.png",
+              "archivePath": "framed/pl-PL/exercise-progress.png",
+              "sha256": "cc75db8b38753ff3167bd1444029445e6250721d86c3204abcf6bbe34ef96f8b"
+            },
+            "appStore": {
+              "path": "marketing/screenshots/app-store/iphone-6.9/pl/05.png",
+              "archivePath": "app-store/pl/05.png",
+              "sha256": "6e353b955193ca3b07a1a90394a0d83dd48538d7f282e59afab21afe0441a520"
+            }
+          }
+        },
+        {
+          "scene": "next-workout",
+          "appStorePosition": 6,
+          "files": {
+            "bare": {
+              "path": "marketing/screenshots/iphone/pl-PL/next-workout.png",
+              "archivePath": "bare/pl-PL/next-workout.png",
+              "sha256": "185360b2632ea55f10ffca7bcf694671635ee76e49a91c0e8d918fc9eb430f2b"
+            },
+            "framed": {
+              "path": "marketing/screenshots/framed/pl-PL/next-workout.png",
+              "archivePath": "framed/pl-PL/next-workout.png",
+              "sha256": "9920e91b26bd2cb6e26418676dda47532a259b3b1f19141d86a370b120335574"
+            },
+            "appStore": {
+              "path": "marketing/screenshots/app-store/iphone-6.9/pl/06.png",
+              "archivePath": "app-store/pl/06.png",
+              "sha256": "ebc2ba52a4e0a55adf5d69e65edbcbd690aab5386b5c4325f794872c5f345679"
+            }
+          }
+        },
+        {
+          "scene": "update-plan",
+          "appStorePosition": 7,
+          "files": {
+            "bare": {
+              "path": "marketing/screenshots/iphone/pl-PL/update-plan.png",
+              "archivePath": "bare/pl-PL/update-plan.png",
+              "sha256": "01755cfad4b9733dca5fecca00547ef9afea985bc77e2efce6527d74746884eb"
+            },
+            "framed": {
+              "path": "marketing/screenshots/framed/pl-PL/update-plan.png",
+              "archivePath": "framed/pl-PL/update-plan.png",
+              "sha256": "e0c12fc6c0066ca5be2723568f3786b04be99ee74fb0549e2104a8d8301ab3c9"
+            },
+            "appStore": {
+              "path": "marketing/screenshots/app-store/iphone-6.9/pl/07.png",
+              "archivePath": "app-store/pl/07.png",
+              "sha256": "42f55dffa2074c42d8f2041bf7d69dc3646adc308d0b0cda44fd96892dff0888"
+            }
+          }
+        },
+        {
+          "scene": "exercise-video",
+          "appStorePosition": 8,
+          "files": {
+            "bare": {
+              "path": "marketing/screenshots/iphone/pl-PL/exercise-video.png",
+              "archivePath": "bare/pl-PL/exercise-video.png",
+              "sha256": "9ddf23cd093363547b7bcdaf0359bfc94ce301e56836234ca5ab4951c1bdb786"
+            },
+            "framed": {
+              "path": "marketing/screenshots/framed/pl-PL/exercise-video.png",
+              "archivePath": "framed/pl-PL/exercise-video.png",
+              "sha256": "329d04619bea3606f64b05cb5eeea7ca61852cfb960a97513860ab45e685f91b"
+            },
+            "appStore": {
+              "path": "marketing/screenshots/app-store/iphone-6.9/pl/08.png",
+              "archivePath": "app-store/pl/08.png",
+              "sha256": "1b65974aa45726e6f6d67c955f59eb442bea2a43cf6cc494a13a4af8ac8bb979"
+            }
+          }
+        },
+        {
+          "scene": "history",
+          "appStorePosition": 9,
+          "files": {
+            "bare": {
+              "path": "marketing/screenshots/iphone/pl-PL/history.png",
+              "archivePath": "bare/pl-PL/history.png",
+              "sha256": "3ecdb19bb8a20c7dc7c926dff81d8cc5f80fa77f160851898e87ee39f0894f2d"
+            },
+            "framed": {
+              "path": "marketing/screenshots/framed/pl-PL/history.png",
+              "archivePath": "framed/pl-PL/history.png",
+              "sha256": "f551f885bd179603284f5f37aef3a6f832cf5003340a096f0c8fc464dd3fbed6"
+            },
+            "appStore": {
+              "path": "marketing/screenshots/app-store/iphone-6.9/pl/09.png",
+              "archivePath": "app-store/pl/09.png",
+              "sha256": "683b13f18235aff4e55c8e0245182efe06877001c7442e41ad1a8d89d0f966fd"
+            }
+          }
+        },
+        {
+          "scene": "arnold-model-picker",
+          "appStorePosition": 10,
+          "files": {
+            "bare": {
+              "path": "marketing/screenshots/iphone/pl-PL/arnold-model-picker.png",
+              "archivePath": "bare/pl-PL/arnold-model-picker.png",
+              "sha256": "b9c046c680c65c11b1b97ad4a1e2825a524eebf6e96e118682547c865cc06b8f"
+            },
+            "framed": {
+              "path": "marketing/screenshots/framed/pl-PL/arnold-model-picker.png",
+              "archivePath": "framed/pl-PL/arnold-model-picker.png",
+              "sha256": "903699f02d21981ee01692a2650aec5149324f2d9e69389ed903e7bcb9274451"
+            },
+            "appStore": {
+              "path": "marketing/screenshots/app-store/iphone-6.9/pl/10.png",
+              "archivePath": "app-store/pl/10.png",
+              "sha256": "f4840f6dcd197205d93688cfbc1300d3c903aec215e3137d7f5ce0d5eb939af7"
+            }
+          }
+        }
+      ],
+      "nativeReviewed": true,
+      "fullExportsReviewed": 10,
+      "edgeTilesReviewed": 100,
+      "nativeWorkoutAndArnoldWorkflowVerified": true,
+      "workflowVerificationEvidence": "Detailed read-only database verification"
+    },
+    {
+      "sourceLocale": "pt-BR",
+      "listingLocale": "pt-BR",
+      "images": [
+        {
+          "scene": "arnold-generated-plan",
+          "appStorePosition": 1,
+          "files": {
+            "bare": {
+              "path": "marketing/screenshots/iphone/pt-BR/arnold-generated-plan.png",
+              "archivePath": "bare/pt-BR/arnold-generated-plan.png",
+              "sha256": "27bbf71c7fec1ae889d3f8565d72126df1d6f8253b9befc5b933a12e1ea42e89"
+            },
+            "framed": {
+              "path": "marketing/screenshots/framed/pt-BR/arnold-generated-plan.png",
+              "archivePath": "framed/pt-BR/arnold-generated-plan.png",
+              "sha256": "8e350e5e7ac2b3bebf6f51c48c580be71a3305c7a66a5a7fbb64f3a4481f83d2"
+            },
+            "appStore": {
+              "path": "marketing/screenshots/app-store/iphone-6.9/pt-BR/01.png",
+              "archivePath": "app-store/pt-BR/01.png",
+              "sha256": "084ea6bda917e5dbfb63b69ffa693e1a67b3c069b259ffd78cf10b32df004ff9"
+            }
+          }
+        },
+        {
+          "scene": "workout-log-set",
+          "appStorePosition": 2,
+          "files": {
+            "bare": {
+              "path": "marketing/screenshots/iphone/pt-BR/workout-log-set.png",
+              "archivePath": "bare/pt-BR/workout-log-set.png",
+              "sha256": "917da491c3c8d83b4072709466994fc5cd0882b2e57b49bb3d8926a40f832932"
+            },
+            "framed": {
+              "path": "marketing/screenshots/framed/pt-BR/workout-log-set.png",
+              "archivePath": "framed/pt-BR/workout-log-set.png",
+              "sha256": "910e2605509487cfb22901bdb33ca43d14f96812f9bb60021683186d424504b4"
+            },
+            "appStore": {
+              "path": "marketing/screenshots/app-store/iphone-6.9/pt-BR/02.png",
+              "archivePath": "app-store/pt-BR/02.png",
+              "sha256": "28f0ee5148339ed670fbc1609641a97111c8d0229614500365c2bc386afbd4ed"
+            }
+          }
+        },
+        {
+          "scene": "workout-summary-prs",
+          "appStorePosition": 3,
+          "files": {
+            "bare": {
+              "path": "marketing/screenshots/iphone/pt-BR/workout-summary-prs.png",
+              "archivePath": "bare/pt-BR/workout-summary-prs.png",
+              "sha256": "37f1156557d562c06c289b41d4987c1cf30e6230ffe55dfcf00f76a11fe00e39"
+            },
+            "framed": {
+              "path": "marketing/screenshots/framed/pt-BR/workout-summary-prs.png",
+              "archivePath": "framed/pt-BR/workout-summary-prs.png",
+              "sha256": "b39f2060095d1e91f7d20b6493fdab4b5b454c24ca9397272ae2310894fb58e3"
+            },
+            "appStore": {
+              "path": "marketing/screenshots/app-store/iphone-6.9/pt-BR/03.png",
+              "archivePath": "app-store/pt-BR/03.png",
+              "sha256": "edfe53da232f138c13968d425e349d0d4661d818f7f67a520cb112f17e894236"
+            }
+          }
+        },
+        {
+          "scene": "arnold-plan-change",
+          "appStorePosition": 4,
+          "files": {
+            "bare": {
+              "path": "marketing/screenshots/iphone/pt-BR/arnold-plan-change.png",
+              "archivePath": "bare/pt-BR/arnold-plan-change.png",
+              "sha256": "d1e986d7536fb6798af97a9b444949a7f3ae63b6abf8f646b5e7157df3123af2"
+            },
+            "framed": {
+              "path": "marketing/screenshots/framed/pt-BR/arnold-plan-change.png",
+              "archivePath": "framed/pt-BR/arnold-plan-change.png",
+              "sha256": "faa03f1781c6ced047095caef42066f17905a6e3bcc70d96c270505c4b5af90d"
+            },
+            "appStore": {
+              "path": "marketing/screenshots/app-store/iphone-6.9/pt-BR/04.png",
+              "archivePath": "app-store/pt-BR/04.png",
+              "sha256": "ea7521a5a9cfa149feef62b5152279694ac706af10864fc2414379cc5d7b794c"
+            }
+          }
+        },
+        {
+          "scene": "exercise-progress",
+          "appStorePosition": 5,
+          "files": {
+            "bare": {
+              "path": "marketing/screenshots/iphone/pt-BR/exercise-progress.png",
+              "archivePath": "bare/pt-BR/exercise-progress.png",
+              "sha256": "12178ac084327cee1393b702768b82c40e7de3e3fabedc861a3819c2103b0b28"
+            },
+            "framed": {
+              "path": "marketing/screenshots/framed/pt-BR/exercise-progress.png",
+              "archivePath": "framed/pt-BR/exercise-progress.png",
+              "sha256": "12ad8f584ea62463d5748788ab0facc749c4fd89dbc9a32ddb5c924971f43e72"
+            },
+            "appStore": {
+              "path": "marketing/screenshots/app-store/iphone-6.9/pt-BR/05.png",
+              "archivePath": "app-store/pt-BR/05.png",
+              "sha256": "cb6aaa6a7b1e3d1f14ee4286315d524fc4c0f14aa32871807275a3bc72a14bc2"
+            }
+          }
+        },
+        {
+          "scene": "next-workout",
+          "appStorePosition": 6,
+          "files": {
+            "bare": {
+              "path": "marketing/screenshots/iphone/pt-BR/next-workout.png",
+              "archivePath": "bare/pt-BR/next-workout.png",
+              "sha256": "2335757b94805fc58d5cfb390112c4342260620b6020d54b0778f78fe7ef7e36"
+            },
+            "framed": {
+              "path": "marketing/screenshots/framed/pt-BR/next-workout.png",
+              "archivePath": "framed/pt-BR/next-workout.png",
+              "sha256": "2bf96cba5795afe9e1314e9fbf59b3f26046a91226f24310edc040564f00cbba"
+            },
+            "appStore": {
+              "path": "marketing/screenshots/app-store/iphone-6.9/pt-BR/06.png",
+              "archivePath": "app-store/pt-BR/06.png",
+              "sha256": "c5959b17fddb3ff8d9551d2a6f3980477c6bbeb15c2ac1636af3302a68fb6296"
+            }
+          }
+        },
+        {
+          "scene": "update-plan",
+          "appStorePosition": 7,
+          "files": {
+            "bare": {
+              "path": "marketing/screenshots/iphone/pt-BR/update-plan.png",
+              "archivePath": "bare/pt-BR/update-plan.png",
+              "sha256": "9ca65f772113772f408ac61816ed6c85bb06d96915775d94f37ac520d351e3d4"
+            },
+            "framed": {
+              "path": "marketing/screenshots/framed/pt-BR/update-plan.png",
+              "archivePath": "framed/pt-BR/update-plan.png",
+              "sha256": "63d4fbeb91bff6023323a3e59871d19db631b688fbe4a2006d542917a65b4eaf"
+            },
+            "appStore": {
+              "path": "marketing/screenshots/app-store/iphone-6.9/pt-BR/07.png",
+              "archivePath": "app-store/pt-BR/07.png",
+              "sha256": "863d84218cb42f79aa0d8409236e3800d04d8b361867822f29cb5a1c82e73336"
+            }
+          }
+        },
+        {
+          "scene": "exercise-video",
+          "appStorePosition": 8,
+          "files": {
+            "bare": {
+              "path": "marketing/screenshots/iphone/pt-BR/exercise-video.png",
+              "archivePath": "bare/pt-BR/exercise-video.png",
+              "sha256": "04c9d568e59b360ecdbf491bf76f803c03ce58289f67480dafe3debd67378998"
+            },
+            "framed": {
+              "path": "marketing/screenshots/framed/pt-BR/exercise-video.png",
+              "archivePath": "framed/pt-BR/exercise-video.png",
+              "sha256": "2b0bb5a656de561b96d1e62a5fa321eb6d4f26add678a329fb11cf6d37fb61a4"
+            },
+            "appStore": {
+              "path": "marketing/screenshots/app-store/iphone-6.9/pt-BR/08.png",
+              "archivePath": "app-store/pt-BR/08.png",
+              "sha256": "9785caef9a03b85a37aded18b0fe2149797635c0b4545012b71df0437191951f"
+            }
+          }
+        },
+        {
+          "scene": "history",
+          "appStorePosition": 9,
+          "files": {
+            "bare": {
+              "path": "marketing/screenshots/iphone/pt-BR/history.png",
+              "archivePath": "bare/pt-BR/history.png",
+              "sha256": "214232e8b04e576074745b418cfbeeae6239a1cceafffd095b8c497f44a31792"
+            },
+            "framed": {
+              "path": "marketing/screenshots/framed/pt-BR/history.png",
+              "archivePath": "framed/pt-BR/history.png",
+              "sha256": "d539d99bebd2750e745713c5f1d20d67dfce1a5c8401d52fbe180928bdcd59b0"
+            },
+            "appStore": {
+              "path": "marketing/screenshots/app-store/iphone-6.9/pt-BR/09.png",
+              "archivePath": "app-store/pt-BR/09.png",
+              "sha256": "d4644a4cb12ade9c95d1ab7be6dc898dec0367f69899a3979470663b49ec5609"
+            }
+          }
+        },
+        {
+          "scene": "arnold-model-picker",
+          "appStorePosition": 10,
+          "files": {
+            "bare": {
+              "path": "marketing/screenshots/iphone/pt-BR/arnold-model-picker.png",
+              "archivePath": "bare/pt-BR/arnold-model-picker.png",
+              "sha256": "81339a922276bdbc87e7cf4b56afd3e3990396d0e589fa491f49545e14d2004d"
+            },
+            "framed": {
+              "path": "marketing/screenshots/framed/pt-BR/arnold-model-picker.png",
+              "archivePath": "framed/pt-BR/arnold-model-picker.png",
+              "sha256": "de02ca0e0c74dc1b301acc124d75dd25235be724d44da5c661612ef02ce10159"
+            },
+            "appStore": {
+              "path": "marketing/screenshots/app-store/iphone-6.9/pt-BR/10.png",
+              "archivePath": "app-store/pt-BR/10.png",
+              "sha256": "4352ba8183fd52e21a6266b1216b18cd196ad024b244524d80cdf63c6fa6ef3d"
+            }
+          }
+        }
+      ],
+      "nativeReviewed": true,
+      "fullExportsReviewed": 10,
+      "edgeTilesReviewed": 100,
+      "nativeWorkoutAndArnoldWorkflowVerified": true,
+      "workflowVerificationEvidence": "Detailed read-only database verification"
+    },
+    {
+      "sourceLocale": "pt-PT",
+      "listingLocale": "pt-PT",
+      "images": [
+        {
+          "scene": "arnold-generated-plan",
+          "appStorePosition": 1,
+          "files": {
+            "bare": {
+              "path": "marketing/screenshots/iphone/pt-PT/arnold-generated-plan.png",
+              "archivePath": "bare/pt-PT/arnold-generated-plan.png",
+              "sha256": "73074d4caf7587688be0289c7e0d2af96484612926a8b9df6c5fa79a8ec978b7"
+            },
+            "framed": {
+              "path": "marketing/screenshots/framed/pt-PT/arnold-generated-plan.png",
+              "archivePath": "framed/pt-PT/arnold-generated-plan.png",
+              "sha256": "69ccc83a76c45e4f57e022f6e7620db1e9763c6b086a83fd83f4fe07eb5c490a"
+            },
+            "appStore": {
+              "path": "marketing/screenshots/app-store/iphone-6.9/pt-PT/01.png",
+              "archivePath": "app-store/pt-PT/01.png",
+              "sha256": "959c9a3860abc522b4ab56f444adf20fc545d30c64a0ef485b2b67a37af4788c"
+            }
+          }
+        },
+        {
+          "scene": "workout-log-set",
+          "appStorePosition": 2,
+          "files": {
+            "bare": {
+              "path": "marketing/screenshots/iphone/pt-PT/workout-log-set.png",
+              "archivePath": "bare/pt-PT/workout-log-set.png",
+              "sha256": "91caf8f3f368d191a57a9832820e90236f8948c2fc197686daa992a14a1c873f"
+            },
+            "framed": {
+              "path": "marketing/screenshots/framed/pt-PT/workout-log-set.png",
+              "archivePath": "framed/pt-PT/workout-log-set.png",
+              "sha256": "44f5f1e27642cffc7ad8b78a54f0957b2bcef40188fdba7648b7a8ac4e7b834d"
+            },
+            "appStore": {
+              "path": "marketing/screenshots/app-store/iphone-6.9/pt-PT/02.png",
+              "archivePath": "app-store/pt-PT/02.png",
+              "sha256": "f0cabd68cd3bd99f810004420ff45452d3eec2f147c93122fc16b39a8ba529d4"
+            }
+          }
+        },
+        {
+          "scene": "workout-summary-prs",
+          "appStorePosition": 3,
+          "files": {
+            "bare": {
+              "path": "marketing/screenshots/iphone/pt-PT/workout-summary-prs.png",
+              "archivePath": "bare/pt-PT/workout-summary-prs.png",
+              "sha256": "0dd5e30a89b0c66e9eb51a905bbdfeb615034caa4ecf96502e84053ebdfddda2"
+            },
+            "framed": {
+              "path": "marketing/screenshots/framed/pt-PT/workout-summary-prs.png",
+              "archivePath": "framed/pt-PT/workout-summary-prs.png",
+              "sha256": "70089022edcf72d00b272856eb56785a5132be0ed50399dd1301bda81089ff59"
+            },
+            "appStore": {
+              "path": "marketing/screenshots/app-store/iphone-6.9/pt-PT/03.png",
+              "archivePath": "app-store/pt-PT/03.png",
+              "sha256": "4d0d1d4b80e6a35d7f88467608b35c841ebe606fc726f343549a7f6bf94674db"
+            }
+          }
+        },
+        {
+          "scene": "arnold-plan-change",
+          "appStorePosition": 4,
+          "files": {
+            "bare": {
+              "path": "marketing/screenshots/iphone/pt-PT/arnold-plan-change.png",
+              "archivePath": "bare/pt-PT/arnold-plan-change.png",
+              "sha256": "252e87eed6d67c2d5c8e54e363f27528c62b17d8027ed9a252045cc38ba1c27e"
+            },
+            "framed": {
+              "path": "marketing/screenshots/framed/pt-PT/arnold-plan-change.png",
+              "archivePath": "framed/pt-PT/arnold-plan-change.png",
+              "sha256": "f948413300b8ecbe85d9d28098b031f325f07abd0ac9f4c0d65f31b85a4dc4e2"
+            },
+            "appStore": {
+              "path": "marketing/screenshots/app-store/iphone-6.9/pt-PT/04.png",
+              "archivePath": "app-store/pt-PT/04.png",
+              "sha256": "5cf4033c8d560c5bee50e1ae936437cd5298e31a78a34750ec35cd37469f4032"
+            }
+          }
+        },
+        {
+          "scene": "exercise-progress",
+          "appStorePosition": 5,
+          "files": {
+            "bare": {
+              "path": "marketing/screenshots/iphone/pt-PT/exercise-progress.png",
+              "archivePath": "bare/pt-PT/exercise-progress.png",
+              "sha256": "4c31ac308278a7623848e9b2836f6b48fd85d1d9e58f369e59d2615e51c59aae"
+            },
+            "framed": {
+              "path": "marketing/screenshots/framed/pt-PT/exercise-progress.png",
+              "archivePath": "framed/pt-PT/exercise-progress.png",
+              "sha256": "da05d2a30d910b9c6ab5a6192bb9cbf40d756555b793b9d80a76190e9c4067ee"
+            },
+            "appStore": {
+              "path": "marketing/screenshots/app-store/iphone-6.9/pt-PT/05.png",
+              "archivePath": "app-store/pt-PT/05.png",
+              "sha256": "4508f10463fca9259d60618d644e36ca55edcff6c3e5986da2a7a5c6b3863502"
+            }
+          }
+        },
+        {
+          "scene": "next-workout",
+          "appStorePosition": 6,
+          "files": {
+            "bare": {
+              "path": "marketing/screenshots/iphone/pt-PT/next-workout.png",
+              "archivePath": "bare/pt-PT/next-workout.png",
+              "sha256": "e7417e802e51882fd3724f42a4bba9796d68d5c18b127ee9cb3672f90d5f553b"
+            },
+            "framed": {
+              "path": "marketing/screenshots/framed/pt-PT/next-workout.png",
+              "archivePath": "framed/pt-PT/next-workout.png",
+              "sha256": "da4b5bc58542127befb7b0630a04f7a83f59d8f60a50548706456eff31eb1fc0"
+            },
+            "appStore": {
+              "path": "marketing/screenshots/app-store/iphone-6.9/pt-PT/06.png",
+              "archivePath": "app-store/pt-PT/06.png",
+              "sha256": "683163f084a4a8b24e1a11262e97c9e8b4cfc87775cfb94d2785cee261633e6e"
+            }
+          }
+        },
+        {
+          "scene": "update-plan",
+          "appStorePosition": 7,
+          "files": {
+            "bare": {
+              "path": "marketing/screenshots/iphone/pt-PT/update-plan.png",
+              "archivePath": "bare/pt-PT/update-plan.png",
+              "sha256": "e8e89649926cf6d28e267f87c74a19ae4447712285c65eb5202fce4009562fd4"
+            },
+            "framed": {
+              "path": "marketing/screenshots/framed/pt-PT/update-plan.png",
+              "archivePath": "framed/pt-PT/update-plan.png",
+              "sha256": "df5a1f9ca7ac22a5f1787816032a5acc004082403357e455ff6af54438dca97d"
+            },
+            "appStore": {
+              "path": "marketing/screenshots/app-store/iphone-6.9/pt-PT/07.png",
+              "archivePath": "app-store/pt-PT/07.png",
+              "sha256": "488e1c2bdf3577eca450330cf061f3e5b252e4fb94b4ba37082189e856542a60"
+            }
+          }
+        },
+        {
+          "scene": "exercise-video",
+          "appStorePosition": 8,
+          "files": {
+            "bare": {
+              "path": "marketing/screenshots/iphone/pt-PT/exercise-video.png",
+              "archivePath": "bare/pt-PT/exercise-video.png",
+              "sha256": "c8180d01ea4bce7a8f0c6dbae033826901950b65cddd0cbd020c896ef8a235c9"
+            },
+            "framed": {
+              "path": "marketing/screenshots/framed/pt-PT/exercise-video.png",
+              "archivePath": "framed/pt-PT/exercise-video.png",
+              "sha256": "103d4c331abd55466f423b2c7beb511a4aff5f07120f4edd6918a9f71f203d32"
+            },
+            "appStore": {
+              "path": "marketing/screenshots/app-store/iphone-6.9/pt-PT/08.png",
+              "archivePath": "app-store/pt-PT/08.png",
+              "sha256": "d462e68539041a31751f123e8e9959f5db3fc16ba0e84390265688e0b69a0646"
+            }
+          }
+        },
+        {
+          "scene": "history",
+          "appStorePosition": 9,
+          "files": {
+            "bare": {
+              "path": "marketing/screenshots/iphone/pt-PT/history.png",
+              "archivePath": "bare/pt-PT/history.png",
+              "sha256": "5e6bd993a123820fa6c55a492c94818175ed7e795462e9ae40a4cd895c348b89"
+            },
+            "framed": {
+              "path": "marketing/screenshots/framed/pt-PT/history.png",
+              "archivePath": "framed/pt-PT/history.png",
+              "sha256": "e715abebee7173a4f51085b706e61f098e688f0bd3a3890808360a5e4881e1c6"
+            },
+            "appStore": {
+              "path": "marketing/screenshots/app-store/iphone-6.9/pt-PT/09.png",
+              "archivePath": "app-store/pt-PT/09.png",
+              "sha256": "f3890aa0777465724b7522a34781ba67b7b41867130c6d576cca866d777a4953"
+            }
+          }
+        },
+        {
+          "scene": "arnold-model-picker",
+          "appStorePosition": 10,
+          "files": {
+            "bare": {
+              "path": "marketing/screenshots/iphone/pt-PT/arnold-model-picker.png",
+              "archivePath": "bare/pt-PT/arnold-model-picker.png",
+              "sha256": "88050ca34df89dd7ae7e4287c0d162d7bfbcc97b576a297f35a4025a2c46e2ce"
+            },
+            "framed": {
+              "path": "marketing/screenshots/framed/pt-PT/arnold-model-picker.png",
+              "archivePath": "framed/pt-PT/arnold-model-picker.png",
+              "sha256": "517a82bc03c39f1d4722ff60a3ab0afc83aaa2291615752543d1defc9a2287e5"
+            },
+            "appStore": {
+              "path": "marketing/screenshots/app-store/iphone-6.9/pt-PT/10.png",
+              "archivePath": "app-store/pt-PT/10.png",
+              "sha256": "60eb7b3f14249939242977b7ae9f0b60bea44d1a503c00e727d60ed32bcdbd61"
+            }
+          }
+        }
+      ],
+      "nativeReviewed": true,
+      "fullExportsReviewed": 10,
+      "edgeTilesReviewed": 100,
+      "nativeWorkoutAndArnoldWorkflowVerified": true,
+      "workflowVerificationEvidence": "Detailed read-only database verification"
+    },
+    {
+      "sourceLocale": "ja-JP",
+      "listingLocale": "ja",
+      "images": [
+        {
+          "scene": "arnold-generated-plan",
+          "appStorePosition": 1,
+          "files": {
+            "bare": {
+              "path": "marketing/screenshots/iphone/ja-JP/arnold-generated-plan.png",
+              "archivePath": "bare/ja-JP/arnold-generated-plan.png",
+              "sha256": "5fe9130f44424d6c0c4d05a105e71ed264f1026d74fba2c893bb289e25ff5ac2"
+            },
+            "framed": {
+              "path": "marketing/screenshots/framed/ja-JP/arnold-generated-plan.png",
+              "archivePath": "framed/ja-JP/arnold-generated-plan.png",
+              "sha256": "b389429b29eac102d227095d4352459b65b0322bd8c33f33839730ab049bd880"
+            },
+            "appStore": {
+              "path": "marketing/screenshots/app-store/iphone-6.9/ja/01.png",
+              "archivePath": "app-store/ja/01.png",
+              "sha256": "71eb43922ac3bb72010972d28bdc0baa9377eefc1a0e517559be4770f0e0d584"
+            }
+          }
+        },
+        {
+          "scene": "workout-log-set",
+          "appStorePosition": 2,
+          "files": {
+            "bare": {
+              "path": "marketing/screenshots/iphone/ja-JP/workout-log-set.png",
+              "archivePath": "bare/ja-JP/workout-log-set.png",
+              "sha256": "8957254d899ccccf664922f49326f1042c05ab94ba742b92615c70f2c7b81344"
+            },
+            "framed": {
+              "path": "marketing/screenshots/framed/ja-JP/workout-log-set.png",
+              "archivePath": "framed/ja-JP/workout-log-set.png",
+              "sha256": "5a986a2957a70b55a4b72de2e83b770a45a01517af71e5f017662dec516fb0d7"
+            },
+            "appStore": {
+              "path": "marketing/screenshots/app-store/iphone-6.9/ja/02.png",
+              "archivePath": "app-store/ja/02.png",
+              "sha256": "aa1629ade3fe992e703c886b2d73707d982abc583a71f785acb420fe91225a42"
+            }
+          }
+        },
+        {
+          "scene": "workout-summary-prs",
+          "appStorePosition": 3,
+          "files": {
+            "bare": {
+              "path": "marketing/screenshots/iphone/ja-JP/workout-summary-prs.png",
+              "archivePath": "bare/ja-JP/workout-summary-prs.png",
+              "sha256": "40956561352b657e9aa7926dd58c99cfd5046d4c9c29ada47c5cc4312f62df4c"
+            },
+            "framed": {
+              "path": "marketing/screenshots/framed/ja-JP/workout-summary-prs.png",
+              "archivePath": "framed/ja-JP/workout-summary-prs.png",
+              "sha256": "1934725b920f8a758bf1a5f7ac7cd563460df4784725c31e97fcc12b0b41ded1"
+            },
+            "appStore": {
+              "path": "marketing/screenshots/app-store/iphone-6.9/ja/03.png",
+              "archivePath": "app-store/ja/03.png",
+              "sha256": "e968d8323b67193713f69b6d23bf1c540cdec3f87c5c3de95269cbffd937e7d9"
+            }
+          }
+        },
+        {
+          "scene": "arnold-plan-change",
+          "appStorePosition": 4,
+          "files": {
+            "bare": {
+              "path": "marketing/screenshots/iphone/ja-JP/arnold-plan-change.png",
+              "archivePath": "bare/ja-JP/arnold-plan-change.png",
+              "sha256": "a99a6ac72fea1e1bcecaf552fb197fb64394e0865a17560c41b8ee9a7b4c3e21"
+            },
+            "framed": {
+              "path": "marketing/screenshots/framed/ja-JP/arnold-plan-change.png",
+              "archivePath": "framed/ja-JP/arnold-plan-change.png",
+              "sha256": "c97a842ec7cde32926490878f678b171e063e12ee3367e8dffc2255cb3195a2c"
+            },
+            "appStore": {
+              "path": "marketing/screenshots/app-store/iphone-6.9/ja/04.png",
+              "archivePath": "app-store/ja/04.png",
+              "sha256": "6cee935966c637199be65268c5b6669f135278e4fa793644d59c9109de4fc564"
+            }
+          }
+        },
+        {
+          "scene": "exercise-progress",
+          "appStorePosition": 5,
+          "files": {
+            "bare": {
+              "path": "marketing/screenshots/iphone/ja-JP/exercise-progress.png",
+              "archivePath": "bare/ja-JP/exercise-progress.png",
+              "sha256": "fac2628224be61a54e364503dd20afe99d069eaf96c3e0da3eb4540486f2324e"
+            },
+            "framed": {
+              "path": "marketing/screenshots/framed/ja-JP/exercise-progress.png",
+              "archivePath": "framed/ja-JP/exercise-progress.png",
+              "sha256": "48f699e207416d18d60700f86fca38aa6f929a1f594ae74ebb78274d258a051f"
+            },
+            "appStore": {
+              "path": "marketing/screenshots/app-store/iphone-6.9/ja/05.png",
+              "archivePath": "app-store/ja/05.png",
+              "sha256": "1fd873b2111113129e9ef5b6ad0b52cfcfc516bfda81f9116205ebaaa643e68f"
+            }
+          }
+        },
+        {
+          "scene": "next-workout",
+          "appStorePosition": 6,
+          "files": {
+            "bare": {
+              "path": "marketing/screenshots/iphone/ja-JP/next-workout.png",
+              "archivePath": "bare/ja-JP/next-workout.png",
+              "sha256": "c11c45eaaa0e42a80b0e234d9a8de2c5f1be915939e5a828f6141d3d7f05ff47"
+            },
+            "framed": {
+              "path": "marketing/screenshots/framed/ja-JP/next-workout.png",
+              "archivePath": "framed/ja-JP/next-workout.png",
+              "sha256": "3b02edadd16c95a1bc917e138fb9b2a5d381cc91ac33ba7d4e30c0859a9ce257"
+            },
+            "appStore": {
+              "path": "marketing/screenshots/app-store/iphone-6.9/ja/06.png",
+              "archivePath": "app-store/ja/06.png",
+              "sha256": "868d8f4e666192c67dffcbd9c0034b748db8b2524d56ed3ba2fddcad49dd69aa"
+            }
+          }
+        },
+        {
+          "scene": "update-plan",
+          "appStorePosition": 7,
+          "files": {
+            "bare": {
+              "path": "marketing/screenshots/iphone/ja-JP/update-plan.png",
+              "archivePath": "bare/ja-JP/update-plan.png",
+              "sha256": "f65fd2aa950799a6b012fa1a99acc98a973c57b2b61a8f41e9744bde88def77a"
+            },
+            "framed": {
+              "path": "marketing/screenshots/framed/ja-JP/update-plan.png",
+              "archivePath": "framed/ja-JP/update-plan.png",
+              "sha256": "c7fcc4989c3e53c106db6167a380bd7a6ca54073865e3f7e92197f780de443bf"
+            },
+            "appStore": {
+              "path": "marketing/screenshots/app-store/iphone-6.9/ja/07.png",
+              "archivePath": "app-store/ja/07.png",
+              "sha256": "0a9b7dad476d1d80f4af5c4d4161b1fe7cb40fae61d864cbd02e90c9ae52df40"
+            }
+          }
+        },
+        {
+          "scene": "exercise-video",
+          "appStorePosition": 8,
+          "files": {
+            "bare": {
+              "path": "marketing/screenshots/iphone/ja-JP/exercise-video.png",
+              "archivePath": "bare/ja-JP/exercise-video.png",
+              "sha256": "b65c255bd3abe703de8a8e2c9571aa71cd6530688d886378fc8ee24d48201a44"
+            },
+            "framed": {
+              "path": "marketing/screenshots/framed/ja-JP/exercise-video.png",
+              "archivePath": "framed/ja-JP/exercise-video.png",
+              "sha256": "fbb4b1d74a3fa2686c45653b0b08d147945d6f822f30ec0021a47c1eae40845b"
+            },
+            "appStore": {
+              "path": "marketing/screenshots/app-store/iphone-6.9/ja/08.png",
+              "archivePath": "app-store/ja/08.png",
+              "sha256": "9431a917d261cea5306193758257d7efb10223c2e49c1165839de306c5c2eef7"
+            }
+          }
+        },
+        {
+          "scene": "history",
+          "appStorePosition": 9,
+          "files": {
+            "bare": {
+              "path": "marketing/screenshots/iphone/ja-JP/history.png",
+              "archivePath": "bare/ja-JP/history.png",
+              "sha256": "75f220f4ef33e1e5112fb6f39212d70d9490f7fadc6bf5ed05994fededc81e44"
+            },
+            "framed": {
+              "path": "marketing/screenshots/framed/ja-JP/history.png",
+              "archivePath": "framed/ja-JP/history.png",
+              "sha256": "a8d52434683243195effe4f06ce15a8c5a9b008f6462154ae59329eab7071e76"
+            },
+            "appStore": {
+              "path": "marketing/screenshots/app-store/iphone-6.9/ja/09.png",
+              "archivePath": "app-store/ja/09.png",
+              "sha256": "a9fc4f7a0f42d2d551f2fb94754fa16e9103232e11c07d3d1b1527f54b5c74ee"
+            }
+          }
+        },
+        {
+          "scene": "arnold-model-picker",
+          "appStorePosition": 10,
+          "files": {
+            "bare": {
+              "path": "marketing/screenshots/iphone/ja-JP/arnold-model-picker.png",
+              "archivePath": "bare/ja-JP/arnold-model-picker.png",
+              "sha256": "0bec0106548004634de3854a2dbd7190a17cd4232e6d02a817f6866b07709511"
+            },
+            "framed": {
+              "path": "marketing/screenshots/framed/ja-JP/arnold-model-picker.png",
+              "archivePath": "framed/ja-JP/arnold-model-picker.png",
+              "sha256": "a072a17170d49eecdeecde40950ab55cda4afe43efbe0032bc9bbf8098b89a4f"
+            },
+            "appStore": {
+              "path": "marketing/screenshots/app-store/iphone-6.9/ja/10.png",
+              "archivePath": "app-store/ja/10.png",
+              "sha256": "5915cf88523c0ed15faffbfb5593183dada41ae266de96ad95547ea96aee53a3"
+            }
+          }
+        }
+      ],
+      "nativeReviewed": true,
+      "fullExportsReviewed": 10,
+      "edgeTilesReviewed": 100,
+      "nativeWorkoutAndArnoldWorkflowVerified": true,
+      "workflowVerificationEvidence": "Detailed read-only database verification"
+    },
+    {
+      "sourceLocale": "ko-KR",
+      "listingLocale": "ko",
+      "images": [
+        {
+          "scene": "arnold-generated-plan",
+          "appStorePosition": 1,
+          "files": {
+            "bare": {
+              "path": "marketing/screenshots/iphone/ko-KR/arnold-generated-plan.png",
+              "archivePath": "bare/ko-KR/arnold-generated-plan.png",
+              "sha256": "ab6d443254b86b731dc3a58bda9c74ee81c4261500556e8fb66d4aa608d0fa68"
+            },
+            "framed": {
+              "path": "marketing/screenshots/framed/ko-KR/arnold-generated-plan.png",
+              "archivePath": "framed/ko-KR/arnold-generated-plan.png",
+              "sha256": "8e6ee57d5a4b00532fe8c00b328b1510e264ddbaca0f434dba49207bccbc684f"
+            },
+            "appStore": {
+              "path": "marketing/screenshots/app-store/iphone-6.9/ko/01.png",
+              "archivePath": "app-store/ko/01.png",
+              "sha256": "a9ada474e400731af652eac7758f8d1af8ce1fbc9ad3672b965b7b2eb80a436a"
+            }
+          }
+        },
+        {
+          "scene": "workout-log-set",
+          "appStorePosition": 2,
+          "files": {
+            "bare": {
+              "path": "marketing/screenshots/iphone/ko-KR/workout-log-set.png",
+              "archivePath": "bare/ko-KR/workout-log-set.png",
+              "sha256": "5905cbcb41606ad671ad1cde9e5262e400caa451b95605a2130d865d6fe50b5f"
+            },
+            "framed": {
+              "path": "marketing/screenshots/framed/ko-KR/workout-log-set.png",
+              "archivePath": "framed/ko-KR/workout-log-set.png",
+              "sha256": "dd8f44e1086624fb146cb2775259826f5d37df16caf0fb9f1e9ea42e5fe4aaa5"
+            },
+            "appStore": {
+              "path": "marketing/screenshots/app-store/iphone-6.9/ko/02.png",
+              "archivePath": "app-store/ko/02.png",
+              "sha256": "4312c1a28be7b3cd20014b97346f240ac302184e966405c89602a116a185ebf4"
+            }
+          }
+        },
+        {
+          "scene": "workout-summary-prs",
+          "appStorePosition": 3,
+          "files": {
+            "bare": {
+              "path": "marketing/screenshots/iphone/ko-KR/workout-summary-prs.png",
+              "archivePath": "bare/ko-KR/workout-summary-prs.png",
+              "sha256": "3bcd1e6459bdea3234588d663d4e2a17a6d6ae1136dfb2cf5b345dbec92404ba"
+            },
+            "framed": {
+              "path": "marketing/screenshots/framed/ko-KR/workout-summary-prs.png",
+              "archivePath": "framed/ko-KR/workout-summary-prs.png",
+              "sha256": "fe6c718b386ab6c389b9c41c3200d15636b93cca335324aea6fed704ee9105e5"
+            },
+            "appStore": {
+              "path": "marketing/screenshots/app-store/iphone-6.9/ko/03.png",
+              "archivePath": "app-store/ko/03.png",
+              "sha256": "ca2eab97d4a94fb4262752f98b58e92706b99979beb4586a9b475ed8d4331712"
+            }
+          }
+        },
+        {
+          "scene": "arnold-plan-change",
+          "appStorePosition": 4,
+          "files": {
+            "bare": {
+              "path": "marketing/screenshots/iphone/ko-KR/arnold-plan-change.png",
+              "archivePath": "bare/ko-KR/arnold-plan-change.png",
+              "sha256": "5d648a1803fa4c636301fc4f738c1e7452d34c58e3525903c569ef7909482831"
+            },
+            "framed": {
+              "path": "marketing/screenshots/framed/ko-KR/arnold-plan-change.png",
+              "archivePath": "framed/ko-KR/arnold-plan-change.png",
+              "sha256": "f2e97cebb9d28770ee0a167513ad6687168a1a08e63faebff6b6872b333b2cfe"
+            },
+            "appStore": {
+              "path": "marketing/screenshots/app-store/iphone-6.9/ko/04.png",
+              "archivePath": "app-store/ko/04.png",
+              "sha256": "651e3cb3ecb32f40720f12af9ec968bb193000b2ceae70d8f44c5850fd50b868"
+            }
+          }
+        },
+        {
+          "scene": "exercise-progress",
+          "appStorePosition": 5,
+          "files": {
+            "bare": {
+              "path": "marketing/screenshots/iphone/ko-KR/exercise-progress.png",
+              "archivePath": "bare/ko-KR/exercise-progress.png",
+              "sha256": "6c5f92cdee9e917d654f6a7c1d93f85b11277f820e51fba9426e7991d6e238b3"
+            },
+            "framed": {
+              "path": "marketing/screenshots/framed/ko-KR/exercise-progress.png",
+              "archivePath": "framed/ko-KR/exercise-progress.png",
+              "sha256": "3e1854852f70ea2841ee753e341f5861b50c5a22bbb37a52bc3058b3e48ad792"
+            },
+            "appStore": {
+              "path": "marketing/screenshots/app-store/iphone-6.9/ko/05.png",
+              "archivePath": "app-store/ko/05.png",
+              "sha256": "b801c13cb8620a3c33ca3c36c70c28832b77f234955c61b4266eb2d120aebabc"
+            }
+          }
+        },
+        {
+          "scene": "next-workout",
+          "appStorePosition": 6,
+          "files": {
+            "bare": {
+              "path": "marketing/screenshots/iphone/ko-KR/next-workout.png",
+              "archivePath": "bare/ko-KR/next-workout.png",
+              "sha256": "b9c92ceeadc0fe6d40d5cd1438f16851436cad5a2044008da488ff42f66935e9"
+            },
+            "framed": {
+              "path": "marketing/screenshots/framed/ko-KR/next-workout.png",
+              "archivePath": "framed/ko-KR/next-workout.png",
+              "sha256": "9ca74b62f19131ed618b0701878f425380ffd9729dadad9ecee894cd2abc89ec"
+            },
+            "appStore": {
+              "path": "marketing/screenshots/app-store/iphone-6.9/ko/06.png",
+              "archivePath": "app-store/ko/06.png",
+              "sha256": "841e88e0076019654c0f5ea16d712f0af4df332ff6761f99629a3dce706f66d3"
+            }
+          }
+        },
+        {
+          "scene": "update-plan",
+          "appStorePosition": 7,
+          "files": {
+            "bare": {
+              "path": "marketing/screenshots/iphone/ko-KR/update-plan.png",
+              "archivePath": "bare/ko-KR/update-plan.png",
+              "sha256": "f738ccbfab09899ca7c8b3c598583f069e00b3a979f60234aba738a704b7451c"
+            },
+            "framed": {
+              "path": "marketing/screenshots/framed/ko-KR/update-plan.png",
+              "archivePath": "framed/ko-KR/update-plan.png",
+              "sha256": "c38ce5eaa581dadaf74b62b5a4b4af801cb3d2dd11aa28d6072f09fe2c63a27a"
+            },
+            "appStore": {
+              "path": "marketing/screenshots/app-store/iphone-6.9/ko/07.png",
+              "archivePath": "app-store/ko/07.png",
+              "sha256": "d5fc67858714b1c938e9d47c67cd2dca9e1767caa1db54ccbc00669e49e8694d"
+            }
+          }
+        },
+        {
+          "scene": "exercise-video",
+          "appStorePosition": 8,
+          "files": {
+            "bare": {
+              "path": "marketing/screenshots/iphone/ko-KR/exercise-video.png",
+              "archivePath": "bare/ko-KR/exercise-video.png",
+              "sha256": "d4658460e258ee0876173efb761cbc270e3daf90d8b93dd5a5d6a509a904130b"
+            },
+            "framed": {
+              "path": "marketing/screenshots/framed/ko-KR/exercise-video.png",
+              "archivePath": "framed/ko-KR/exercise-video.png",
+              "sha256": "bc8e33873073fb8fb77f4384364bed24230612e8da656e716f132e13d4de4441"
+            },
+            "appStore": {
+              "path": "marketing/screenshots/app-store/iphone-6.9/ko/08.png",
+              "archivePath": "app-store/ko/08.png",
+              "sha256": "66de8902273d8eac13f5853133e99882329dbcd25c890086576b20d987995074"
+            }
+          }
+        },
+        {
+          "scene": "history",
+          "appStorePosition": 9,
+          "files": {
+            "bare": {
+              "path": "marketing/screenshots/iphone/ko-KR/history.png",
+              "archivePath": "bare/ko-KR/history.png",
+              "sha256": "82b4e264d7913cc240a5f208ef58dff912956bbd17f9e78f8c427f461d548155"
+            },
+            "framed": {
+              "path": "marketing/screenshots/framed/ko-KR/history.png",
+              "archivePath": "framed/ko-KR/history.png",
+              "sha256": "a2e24109ed80351a422bac0c59ed25e7f6c49c03a35cd9f08f4592d099b77ebd"
+            },
+            "appStore": {
+              "path": "marketing/screenshots/app-store/iphone-6.9/ko/09.png",
+              "archivePath": "app-store/ko/09.png",
+              "sha256": "1b9fd7dc4d4e1f8d4b89a6717748b0d80393a8f6274fb23ffe9a89f493b00981"
+            }
+          }
+        },
+        {
+          "scene": "arnold-model-picker",
+          "appStorePosition": 10,
+          "files": {
+            "bare": {
+              "path": "marketing/screenshots/iphone/ko-KR/arnold-model-picker.png",
+              "archivePath": "bare/ko-KR/arnold-model-picker.png",
+              "sha256": "b58eca6ae2728b6f63d5ddca3b9dcd05530d5e9d67e6bf446af0aecc015914c8"
+            },
+            "framed": {
+              "path": "marketing/screenshots/framed/ko-KR/arnold-model-picker.png",
+              "archivePath": "framed/ko-KR/arnold-model-picker.png",
+              "sha256": "5ff2b54eaa1c0c1d8606af787b93dac88402209b86ffd13bf17d1c33b5f6cc8d"
+            },
+            "appStore": {
+              "path": "marketing/screenshots/app-store/iphone-6.9/ko/10.png",
+              "archivePath": "app-store/ko/10.png",
+              "sha256": "b58f4a97d2afc14a35929d69ba51a38c4206886e80a5ad57832babbbd80cb777"
+            }
+          }
+        }
+      ],
+      "nativeReviewed": true,
+      "fullExportsReviewed": 10,
+      "edgeTilesReviewed": 100,
+      "nativeWorkoutAndArnoldWorkflowVerified": true,
+      "workflowVerificationEvidence": "Detailed read-only database verification"
+    },
+    {
+      "sourceLocale": "zh-Hans-CN",
+      "listingLocale": "zh-Hans",
+      "images": [
+        {
+          "scene": "arnold-generated-plan",
+          "appStorePosition": 1,
+          "files": {
+            "bare": {
+              "path": "marketing/screenshots/iphone/zh-Hans-CN/arnold-generated-plan.png",
+              "archivePath": "bare/zh-Hans-CN/arnold-generated-plan.png",
+              "sha256": "6a1ba83ed586647a85378bcdb8ab8e45d4b64693541a30b616c59da1d724c14b"
+            },
+            "framed": {
+              "path": "marketing/screenshots/framed/zh-Hans-CN/arnold-generated-plan.png",
+              "archivePath": "framed/zh-Hans-CN/arnold-generated-plan.png",
+              "sha256": "23d6e4f019fb4f7423eff6801c4100bea9a5b3b1b9ca06e06bf81c1452edde64"
+            },
+            "appStore": {
+              "path": "marketing/screenshots/app-store/iphone-6.9/zh-Hans/01.png",
+              "archivePath": "app-store/zh-Hans/01.png",
+              "sha256": "5a56c4624daaf5801e271bbeaa42b9aacb004e0c3c57721c37f1c53956b23d42"
+            }
+          }
+        },
+        {
+          "scene": "workout-log-set",
+          "appStorePosition": 2,
+          "files": {
+            "bare": {
+              "path": "marketing/screenshots/iphone/zh-Hans-CN/workout-log-set.png",
+              "archivePath": "bare/zh-Hans-CN/workout-log-set.png",
+              "sha256": "84e0c152c8b164be33283fb4772075f40accf0a18fb3769de51be4352b47655d"
+            },
+            "framed": {
+              "path": "marketing/screenshots/framed/zh-Hans-CN/workout-log-set.png",
+              "archivePath": "framed/zh-Hans-CN/workout-log-set.png",
+              "sha256": "1a9ab7f5329c61f9e877770f905791917790e561c707fd089bffbb6e3fddbb01"
+            },
+            "appStore": {
+              "path": "marketing/screenshots/app-store/iphone-6.9/zh-Hans/02.png",
+              "archivePath": "app-store/zh-Hans/02.png",
+              "sha256": "69d81a47e244339609144c9d71f747042a1fd15f96cb4364c7ab0992f1232d08"
+            }
+          }
+        },
+        {
+          "scene": "workout-summary-prs",
+          "appStorePosition": 3,
+          "files": {
+            "bare": {
+              "path": "marketing/screenshots/iphone/zh-Hans-CN/workout-summary-prs.png",
+              "archivePath": "bare/zh-Hans-CN/workout-summary-prs.png",
+              "sha256": "c068a52a1bdb8f6a22b5575e42ba32264f66d462c2b6a0c06e5d16451559d5b0"
+            },
+            "framed": {
+              "path": "marketing/screenshots/framed/zh-Hans-CN/workout-summary-prs.png",
+              "archivePath": "framed/zh-Hans-CN/workout-summary-prs.png",
+              "sha256": "7a666b49c731cc0cf66273781cfef331d995a60211fad7bf676bafb091b9c92c"
+            },
+            "appStore": {
+              "path": "marketing/screenshots/app-store/iphone-6.9/zh-Hans/03.png",
+              "archivePath": "app-store/zh-Hans/03.png",
+              "sha256": "c0f72920b0895a34cef71dc4369d77354766fcecf9766f888f0cc3d2cae19128"
+            }
+          }
+        },
+        {
+          "scene": "arnold-plan-change",
+          "appStorePosition": 4,
+          "files": {
+            "bare": {
+              "path": "marketing/screenshots/iphone/zh-Hans-CN/arnold-plan-change.png",
+              "archivePath": "bare/zh-Hans-CN/arnold-plan-change.png",
+              "sha256": "c71aec62202cc1c93f2424b32bae3d384f06133604d49510ce94ea7b5f449203"
+            },
+            "framed": {
+              "path": "marketing/screenshots/framed/zh-Hans-CN/arnold-plan-change.png",
+              "archivePath": "framed/zh-Hans-CN/arnold-plan-change.png",
+              "sha256": "58f568baccfce63b9d9d5439a5941292179902acff87c3fbe9c5ed388ef58d13"
+            },
+            "appStore": {
+              "path": "marketing/screenshots/app-store/iphone-6.9/zh-Hans/04.png",
+              "archivePath": "app-store/zh-Hans/04.png",
+              "sha256": "f69de689c59ed24531e13dea20bb36ea19da3176d6b87fea7645f88b99e389bc"
+            }
+          }
+        },
+        {
+          "scene": "exercise-progress",
+          "appStorePosition": 5,
+          "files": {
+            "bare": {
+              "path": "marketing/screenshots/iphone/zh-Hans-CN/exercise-progress.png",
+              "archivePath": "bare/zh-Hans-CN/exercise-progress.png",
+              "sha256": "a75de63db9b913ba3f1cc821bc18371e7aaad1e9b4ff126b0c24aef83a19f1c7"
+            },
+            "framed": {
+              "path": "marketing/screenshots/framed/zh-Hans-CN/exercise-progress.png",
+              "archivePath": "framed/zh-Hans-CN/exercise-progress.png",
+              "sha256": "2f59550d2f53285eb919a33ce060f48432041a96f005ba667d73f23cd9614bcc"
+            },
+            "appStore": {
+              "path": "marketing/screenshots/app-store/iphone-6.9/zh-Hans/05.png",
+              "archivePath": "app-store/zh-Hans/05.png",
+              "sha256": "be82664489060c1c41a7b6b7f1f71c3e08beb579d4d96482be03c376fb870677"
+            }
+          }
+        },
+        {
+          "scene": "next-workout",
+          "appStorePosition": 6,
+          "files": {
+            "bare": {
+              "path": "marketing/screenshots/iphone/zh-Hans-CN/next-workout.png",
+              "archivePath": "bare/zh-Hans-CN/next-workout.png",
+              "sha256": "2eeb9b487918ec2e8303dffe8784a1626b4aa18b8d8fc78e3dde4280495bda3d"
+            },
+            "framed": {
+              "path": "marketing/screenshots/framed/zh-Hans-CN/next-workout.png",
+              "archivePath": "framed/zh-Hans-CN/next-workout.png",
+              "sha256": "cf9436654a04c7dd239cbf0fbef16a82d14a72ffcc8f6de022590c4fb3bdf907"
+            },
+            "appStore": {
+              "path": "marketing/screenshots/app-store/iphone-6.9/zh-Hans/06.png",
+              "archivePath": "app-store/zh-Hans/06.png",
+              "sha256": "8e321b5e4629884f333f9ad6bc98648b0ffa08a0d6ff7a202a331d185a21c3bc"
+            }
+          }
+        },
+        {
+          "scene": "update-plan",
+          "appStorePosition": 7,
+          "files": {
+            "bare": {
+              "path": "marketing/screenshots/iphone/zh-Hans-CN/update-plan.png",
+              "archivePath": "bare/zh-Hans-CN/update-plan.png",
+              "sha256": "72d754ccc8cfa129b7ca036ad4f5100b7c9225b757c1ae63e60a1b2c747a300f"
+            },
+            "framed": {
+              "path": "marketing/screenshots/framed/zh-Hans-CN/update-plan.png",
+              "archivePath": "framed/zh-Hans-CN/update-plan.png",
+              "sha256": "eb558df510c3b0e51011c785ebce2d7a032afac05c0b426eb0b1a15772d351f8"
+            },
+            "appStore": {
+              "path": "marketing/screenshots/app-store/iphone-6.9/zh-Hans/07.png",
+              "archivePath": "app-store/zh-Hans/07.png",
+              "sha256": "1cf015219668ce38a7e16b9a3c6e562840e3c8c9abaf3699ca979049c506c68f"
+            }
+          }
+        },
+        {
+          "scene": "exercise-video",
+          "appStorePosition": 8,
+          "files": {
+            "bare": {
+              "path": "marketing/screenshots/iphone/zh-Hans-CN/exercise-video.png",
+              "archivePath": "bare/zh-Hans-CN/exercise-video.png",
+              "sha256": "5428bba56abe18853726c1e62456a7fffafa1f862252865fb8f8c2c306a250f0"
+            },
+            "framed": {
+              "path": "marketing/screenshots/framed/zh-Hans-CN/exercise-video.png",
+              "archivePath": "framed/zh-Hans-CN/exercise-video.png",
+              "sha256": "16ca3b3982c33cb53f5bf8896410555d89ea75d40c3272260f0e37f07191dc55"
+            },
+            "appStore": {
+              "path": "marketing/screenshots/app-store/iphone-6.9/zh-Hans/08.png",
+              "archivePath": "app-store/zh-Hans/08.png",
+              "sha256": "8eb9a36df72d843fa3b4061524b139514fbd861679ab1a2e4ca2ca0663653469"
+            }
+          }
+        },
+        {
+          "scene": "history",
+          "appStorePosition": 9,
+          "files": {
+            "bare": {
+              "path": "marketing/screenshots/iphone/zh-Hans-CN/history.png",
+              "archivePath": "bare/zh-Hans-CN/history.png",
+              "sha256": "46cc88fdf156de58c696d7912ce7ed10f451c57d6c9c7e129e91b3b2aeae6cb6"
+            },
+            "framed": {
+              "path": "marketing/screenshots/framed/zh-Hans-CN/history.png",
+              "archivePath": "framed/zh-Hans-CN/history.png",
+              "sha256": "f4a960ef2f6a4f2a964cdb688cc1b1805332c355f5545b6c93a1a78c205cb57d"
+            },
+            "appStore": {
+              "path": "marketing/screenshots/app-store/iphone-6.9/zh-Hans/09.png",
+              "archivePath": "app-store/zh-Hans/09.png",
+              "sha256": "e44d0cf903058a7b3a31595a5c67da8851bc8ad4a9ca8823a5d550419fbcf73e"
+            }
+          }
+        },
+        {
+          "scene": "arnold-model-picker",
+          "appStorePosition": 10,
+          "files": {
+            "bare": {
+              "path": "marketing/screenshots/iphone/zh-Hans-CN/arnold-model-picker.png",
+              "archivePath": "bare/zh-Hans-CN/arnold-model-picker.png",
+              "sha256": "2ba199d65a7f2ea29f84d9e0737097fdd04f0f5d0238a7ea7d9f5d1eb84293c2"
+            },
+            "framed": {
+              "path": "marketing/screenshots/framed/zh-Hans-CN/arnold-model-picker.png",
+              "archivePath": "framed/zh-Hans-CN/arnold-model-picker.png",
+              "sha256": "3f85591e1ca1edbaf66869dd3c84283ebf4443dd02e48c96756d045ae540f672"
+            },
+            "appStore": {
+              "path": "marketing/screenshots/app-store/iphone-6.9/zh-Hans/10.png",
+              "archivePath": "app-store/zh-Hans/10.png",
+              "sha256": "7f50d8818d6e9f3735be0ecc6893239fc9d0e05135b5940dd110704cb75d642c"
+            }
+          }
+        }
+      ],
+      "nativeReviewed": true,
+      "fullExportsReviewed": 10,
+      "edgeTilesReviewed": 100,
+      "nativeWorkoutAndArnoldWorkflowVerified": true,
+      "workflowVerificationEvidence": "Detailed read-only database verification"
+    },
+    {
+      "sourceLocale": "zh-Hant-TW",
+      "listingLocale": "zh-Hant",
+      "images": [
+        {
+          "scene": "arnold-generated-plan",
+          "appStorePosition": 1,
+          "files": {
+            "bare": {
+              "path": "marketing/screenshots/iphone/zh-Hant-TW/arnold-generated-plan.png",
+              "archivePath": "bare/zh-Hant-TW/arnold-generated-plan.png",
+              "sha256": "047afebaeb8a4cc0f98362e78ae840a60de6e4fd4c4499c0747bac4e526050fa"
+            },
+            "framed": {
+              "path": "marketing/screenshots/framed/zh-Hant-TW/arnold-generated-plan.png",
+              "archivePath": "framed/zh-Hant-TW/arnold-generated-plan.png",
+              "sha256": "c3f368d37ff655f3e5d50b1e9e454b13d4be167d3e59d1b3cc351856f4aed4c2"
+            },
+            "appStore": {
+              "path": "marketing/screenshots/app-store/iphone-6.9/zh-Hant/01.png",
+              "archivePath": "app-store/zh-Hant/01.png",
+              "sha256": "b5f59b6724cbbef011199fdd55f194e9083b086e515eeede8b746ae61cd3c399"
+            }
+          }
+        },
+        {
+          "scene": "workout-log-set",
+          "appStorePosition": 2,
+          "files": {
+            "bare": {
+              "path": "marketing/screenshots/iphone/zh-Hant-TW/workout-log-set.png",
+              "archivePath": "bare/zh-Hant-TW/workout-log-set.png",
+              "sha256": "6000f9c20744eaeef869c4f95d3340c5063e0c405078a26f271a4eec4c70eefa"
+            },
+            "framed": {
+              "path": "marketing/screenshots/framed/zh-Hant-TW/workout-log-set.png",
+              "archivePath": "framed/zh-Hant-TW/workout-log-set.png",
+              "sha256": "d580ab1229a854d87326773618d17205faa18398e191d37b6c1dc3824232450f"
+            },
+            "appStore": {
+              "path": "marketing/screenshots/app-store/iphone-6.9/zh-Hant/02.png",
+              "archivePath": "app-store/zh-Hant/02.png",
+              "sha256": "901fdfbdb2be6c5988a17490c1693fd7e96538a8ffa7bda1f1499244531037f9"
+            }
+          }
+        },
+        {
+          "scene": "workout-summary-prs",
+          "appStorePosition": 3,
+          "files": {
+            "bare": {
+              "path": "marketing/screenshots/iphone/zh-Hant-TW/workout-summary-prs.png",
+              "archivePath": "bare/zh-Hant-TW/workout-summary-prs.png",
+              "sha256": "99f1f06b64db7d94836f221a71f543398ce7f54c28818ed2912468e9fb1781e9"
+            },
+            "framed": {
+              "path": "marketing/screenshots/framed/zh-Hant-TW/workout-summary-prs.png",
+              "archivePath": "framed/zh-Hant-TW/workout-summary-prs.png",
+              "sha256": "16d9f71cf975ee388fb019c38d679343df051bf0e1878c6c31db1421e074b6ea"
+            },
+            "appStore": {
+              "path": "marketing/screenshots/app-store/iphone-6.9/zh-Hant/03.png",
+              "archivePath": "app-store/zh-Hant/03.png",
+              "sha256": "418ad20cde3c65545b7290d99a2e9bb36792b6cfe82bffd7c750630312d9aec0"
+            }
+          }
+        },
+        {
+          "scene": "arnold-plan-change",
+          "appStorePosition": 4,
+          "files": {
+            "bare": {
+              "path": "marketing/screenshots/iphone/zh-Hant-TW/arnold-plan-change.png",
+              "archivePath": "bare/zh-Hant-TW/arnold-plan-change.png",
+              "sha256": "5af92753fbc90a4859fcec243eed73b432493303718398fc93b203c549d3d4af"
+            },
+            "framed": {
+              "path": "marketing/screenshots/framed/zh-Hant-TW/arnold-plan-change.png",
+              "archivePath": "framed/zh-Hant-TW/arnold-plan-change.png",
+              "sha256": "22355400b3dc9c440a337f86875b2ebfc5ca8db75b7eee93365ff11c10f08255"
+            },
+            "appStore": {
+              "path": "marketing/screenshots/app-store/iphone-6.9/zh-Hant/04.png",
+              "archivePath": "app-store/zh-Hant/04.png",
+              "sha256": "e87b5744bfd89c689698a5f6326b016ec67dd244e516fd71569df15dd1cdac52"
+            }
+          }
+        },
+        {
+          "scene": "exercise-progress",
+          "appStorePosition": 5,
+          "files": {
+            "bare": {
+              "path": "marketing/screenshots/iphone/zh-Hant-TW/exercise-progress.png",
+              "archivePath": "bare/zh-Hant-TW/exercise-progress.png",
+              "sha256": "0a7a1ad7aa05e0b58dcda5fea1b44cec3b221a8288d1a23a7ab0a8cff723acf7"
+            },
+            "framed": {
+              "path": "marketing/screenshots/framed/zh-Hant-TW/exercise-progress.png",
+              "archivePath": "framed/zh-Hant-TW/exercise-progress.png",
+              "sha256": "3e5e09c566bfb9005fa06dbbbef08d471776db2da0f9dae57db2815c674e80ad"
+            },
+            "appStore": {
+              "path": "marketing/screenshots/app-store/iphone-6.9/zh-Hant/05.png",
+              "archivePath": "app-store/zh-Hant/05.png",
+              "sha256": "713215f4c38e598b0b03133eaab794ba5541ae022c8a91dce8982d3ac19c832d"
+            }
+          }
+        },
+        {
+          "scene": "next-workout",
+          "appStorePosition": 6,
+          "files": {
+            "bare": {
+              "path": "marketing/screenshots/iphone/zh-Hant-TW/next-workout.png",
+              "archivePath": "bare/zh-Hant-TW/next-workout.png",
+              "sha256": "1b7a4a937b0b8c5c1c49426c581934f178d9665006047ddb40488e47fbaa340d"
+            },
+            "framed": {
+              "path": "marketing/screenshots/framed/zh-Hant-TW/next-workout.png",
+              "archivePath": "framed/zh-Hant-TW/next-workout.png",
+              "sha256": "e572480244b0fa78c0b2ced518f7b19f6c38df165dc53d15cd1f747509108525"
+            },
+            "appStore": {
+              "path": "marketing/screenshots/app-store/iphone-6.9/zh-Hant/06.png",
+              "archivePath": "app-store/zh-Hant/06.png",
+              "sha256": "7c10533471acd4b3849605cd039b249f84826fc01b0cc093aff340989358d11b"
+            }
+          }
+        },
+        {
+          "scene": "update-plan",
+          "appStorePosition": 7,
+          "files": {
+            "bare": {
+              "path": "marketing/screenshots/iphone/zh-Hant-TW/update-plan.png",
+              "archivePath": "bare/zh-Hant-TW/update-plan.png",
+              "sha256": "57213c977a0b9bd7d7f2b4f00c5e152f59bd0687f28bf339b6e20f2152591b17"
+            },
+            "framed": {
+              "path": "marketing/screenshots/framed/zh-Hant-TW/update-plan.png",
+              "archivePath": "framed/zh-Hant-TW/update-plan.png",
+              "sha256": "35014c98d63b6715d9c8bc50b24195aaf16c57b637c1b7aed6c7f20882688e04"
+            },
+            "appStore": {
+              "path": "marketing/screenshots/app-store/iphone-6.9/zh-Hant/07.png",
+              "archivePath": "app-store/zh-Hant/07.png",
+              "sha256": "d3823f5cd2e14c0f827385a8f0702fd09935b6596b41e3fff57b3b668d570672"
+            }
+          }
+        },
+        {
+          "scene": "exercise-video",
+          "appStorePosition": 8,
+          "files": {
+            "bare": {
+              "path": "marketing/screenshots/iphone/zh-Hant-TW/exercise-video.png",
+              "archivePath": "bare/zh-Hant-TW/exercise-video.png",
+              "sha256": "ee433b55a196e9116bc76312d688dedbe808ea33b8c38dbec18d7d26373fabf6"
+            },
+            "framed": {
+              "path": "marketing/screenshots/framed/zh-Hant-TW/exercise-video.png",
+              "archivePath": "framed/zh-Hant-TW/exercise-video.png",
+              "sha256": "6a8cd33dad1bad5c18ffa64f2cf5bbae219b8d2809ec75b3e31ca375a5437dff"
+            },
+            "appStore": {
+              "path": "marketing/screenshots/app-store/iphone-6.9/zh-Hant/08.png",
+              "archivePath": "app-store/zh-Hant/08.png",
+              "sha256": "fabcf3007a8aa9d8b61cf4754c60dcbf44335e44bf463fe9fe827e0ee8551744"
+            }
+          }
+        },
+        {
+          "scene": "history",
+          "appStorePosition": 9,
+          "files": {
+            "bare": {
+              "path": "marketing/screenshots/iphone/zh-Hant-TW/history.png",
+              "archivePath": "bare/zh-Hant-TW/history.png",
+              "sha256": "4e911ea79f729c22dfdb5ea52b70baf52bf19759f68a0559d48b646c0e580557"
+            },
+            "framed": {
+              "path": "marketing/screenshots/framed/zh-Hant-TW/history.png",
+              "archivePath": "framed/zh-Hant-TW/history.png",
+              "sha256": "c897916181cd9e992eb68cba62f8da3140672664343ec915f6c6445a50694bcb"
+            },
+            "appStore": {
+              "path": "marketing/screenshots/app-store/iphone-6.9/zh-Hant/09.png",
+              "archivePath": "app-store/zh-Hant/09.png",
+              "sha256": "d0149d45543487c6b8e3cb2b59d2e71af47e5e38b04f2ad1e424b20723c978f8"
+            }
+          }
+        },
+        {
+          "scene": "arnold-model-picker",
+          "appStorePosition": 10,
+          "files": {
+            "bare": {
+              "path": "marketing/screenshots/iphone/zh-Hant-TW/arnold-model-picker.png",
+              "archivePath": "bare/zh-Hant-TW/arnold-model-picker.png",
+              "sha256": "d4e571019ccf6eac48b6614f9b7705f19b60bd2b87cd6728f005eef3e8f53857"
+            },
+            "framed": {
+              "path": "marketing/screenshots/framed/zh-Hant-TW/arnold-model-picker.png",
+              "archivePath": "framed/zh-Hant-TW/arnold-model-picker.png",
+              "sha256": "3c487e9fa8080c445aa189225f0754e7712e29080d7e4f4f8c8f490b998b49b7"
+            },
+            "appStore": {
+              "path": "marketing/screenshots/app-store/iphone-6.9/zh-Hant/10.png",
+              "archivePath": "app-store/zh-Hant/10.png",
+              "sha256": "741068aa3bb2802c84c51953a5ada1f6a6301f4f06d60bde2a62f4880d2c1513"
+            }
+          }
+        }
+      ],
+      "nativeReviewed": true,
+      "fullExportsReviewed": 10,
+      "edgeTilesReviewed": 100,
+      "nativeWorkoutAndArnoldWorkflowVerified": true,
+      "workflowVerificationEvidence": "Detailed read-only database verification"
+    }
+  ]
+}

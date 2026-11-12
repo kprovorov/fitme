@@ -89,7 +89,7 @@ describe("PlannedWorkoutExerciseCard", () => {
       ).toBeTruthy();
     }
 
-    for (const text of ["12×45kg", "10×50,5kg", "8×45kg", "1:30", "0:45"]) {
+    for (const text of ["12×45kg", "10×50.5kg", "8×45kg", "1:30", "0:45"]) {
       expect(screen.getByText(text)).toBeTruthy();
     }
 

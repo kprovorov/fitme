@@ -416,7 +416,7 @@
     "thousandLbs_other": "{{count, number}}千磅"
   },
   "duration": {
-    "hoursMinutes": "{{hours, number}}小時{{minutes, number}}分鐘",
+    "hoursMinutes": "{{hours, number}}小時{{minutes, number}}分",
     "minutes": "{{minutes, number}}分鐘"
   },
   "finishWorkout": {

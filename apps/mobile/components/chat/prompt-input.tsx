@@ -37,7 +37,12 @@ const AnimatedGlassContainer = withUniwind(
   createAnimatedComponent(GlassContainer)
 );
 
-const StyledGlassView = withUniwind(GlassView);
+// Auto-mapping treats glassEffectStyle as a ViewStyle and turns it into an
+// array. Map only the actual style prop so Expo receives its material enum.
+const StyledGlassView = withUniwind(GlassView, {
+  style: { fromClassName: "className" },
+});
+
 const StyledBlurView = withUniwind(BlurView);
 
 const PromptInputError = ({ message }: { message: string }) => (
