@@ -11,7 +11,11 @@ const Image = withUniwind(ExpoImage);
 const Placeholder = withUniwind(View);
 
 interface SymbolImageProps {
-  /** VoiceOver label, for a symbol that says something on its own. */
+  /**
+   * VoiceOver label, for a symbol that says something on its own. Without one
+   * the symbol is decoration, hidden from VoiceOver and from the label of the
+   * row around it.
+   */
   accessibilityLabel?: string;
   /**
    * The text style and color of the text the symbol sits next to
@@ -79,6 +83,12 @@ export const SymbolImage = ({
       }
     : {};
 
+  // Without a label the symbol only decorates. `accessible={false}` alone
+  // doesn't keep it quiet: UIKit names a symbol image ("chevron.right" is
+  // "Forward"), and a row composing its label from its children reads that
+  // name unless the image is hidden from accessibility (FIT-631).
+  const isDecorative = accessibilityLabel === undefined;
+
   const boxClassName = pointSize
     ? "text-(length:--symbol-point-size)! h-(--symbol-height)! w-(--symbol-width)!"
     : undefined;
@@ -88,7 +98,8 @@ export const SymbolImage = ({
       {process.env.EXPO_OS === "ios" ? (
         <Image
           accessibilityLabel={accessibilityLabel}
-          accessible={accessibilityLabel !== undefined}
+          accessible={!isDecorative}
+          accessibilityElementsHidden={isDecorative}
           className={cn(classNames, boxClassName)}
           contentFit="scale-down"
           onLoad={handleLoad}
