@@ -75,6 +75,12 @@
     "reveal": "no_focus"
   },
   {
+    "label": "Run library",
+    "command": "pnpm",
+    "args": ["dev:library"],
+    "reveal": "no_focus"
+  },
+  {
     "label": "Start Supabase",
     "command": "pnpm",
     "args": ["db", "start"],
@@ -85,6 +91,26 @@
     "label": "Test",
     "command": "pnpm",
     "args": ["test"]
+  },
+  {
+    "label": "Watch mobile tests",
+    "command": "pnpm",
+    "args": ["--filter", "@fitme/mobile", "test:watch"]
+  },
+  {
+    "label": "Watch web tests",
+    "command": "pnpm",
+    "args": ["--filter", "@fitme/web", "exec", "vitest"]
+  },
+  {
+    "label": "Check UI literals",
+    "command": "pnpm",
+    "args": ["literal-check"]
+  },
+  {
+    "label": "Check translations",
+    "command": "pnpm",
+    "args": ["text-check"]
   },
   {
     "label": "Check",
