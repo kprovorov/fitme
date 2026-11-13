@@ -128,7 +128,7 @@ const ProfileScreen = () => {
             fontSize: largeTitle.fontSize,
           },
           headerTitle: t("onboarding.profile.title"),
-          headerTitleStyle: { fontFamily: "NunitoSans12pt-Bold" },
+          headerTitleStyle: { fontFamily: "NunitoSans-Bold" },
         }}
       />
       {isLoadError ? (

@@ -264,7 +264,7 @@ const HistoryScreen = () => {
         options={{
           // Inline, as Figma has it (and as the Library tab's is).
           headerTitleStyle: {
-            fontFamily: "NunitoSans12pt-Bold",
+            fontFamily: "NunitoSans-Bold",
             fontWeight: "bold",
           },
           headerTransparent: true,
