@@ -110,6 +110,8 @@ const NumberField = ({
 
   const field = (
     <Input
+      // The unit beside the field is part of what it holds (minutes).
+      accessibilityLabel={unit ? `${label}, ${unit}` : label}
       containerClassName={unit ? "flex-1" : undefined}
       error={error}
       keyboardType="number-pad"
@@ -356,6 +358,7 @@ const PlanEditorView = ({
         <H4>{t("planEditor.details")}</H4>
         <Field label={t("planEditor.name")}>
           <Input
+            accessibilityLabel={t("planEditor.name")}
             error={nameError}
             onChangeText={setName}
             placeholder={t("planEditor.namePlaceholder")}
@@ -365,6 +368,7 @@ const PlanEditorView = ({
         </Field>
         <Field label={t("planEditor.description")}>
           <Textarea
+            accessibilityLabel={t("planEditor.description")}
             error={descriptionError}
             onChangeText={setDescription}
             placeholder={t("planEditor.descriptionPlaceholder")}

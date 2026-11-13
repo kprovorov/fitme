@@ -151,6 +151,17 @@ const renderPlanScreen = async () => {
   await settle(client);
 };
 
+/** The editor on its own, as a Plan's Edit Plan opens it. */
+const renderEditor = async () => {
+  client = createTestQueryClient();
+  await render(
+    <QueryClientProvider client={client}>
+      <PlanEditorScreen />
+    </QueryClientProvider>
+  );
+  await settle(client);
+};
+
 /** Presses a control by its spoken label: a header item, or a menu's item. */
 const press = async (label: string) => {
   await fireEvent.press(screen.getByLabelText(label));
@@ -246,6 +257,23 @@ describe("opening the editor", () => {
     );
     expect(editor.getByText("Day A")).toBeTruthy();
     expect(editor.getByText("Day C")).toBeTruthy();
+  });
+
+  it("labels each field by the label it shows, for VoiceOver", async () => {
+    await renderEditor();
+
+    expect(screen.getByTestId("plan-name").props.accessibilityLabel).toBe(
+      "Name"
+    );
+    expect(
+      screen.getByTestId("plan-description").props.accessibilityLabel
+    ).toBe("Description");
+    expect(screen.getByTestId("plan-frequency").props.accessibilityLabel).toBe(
+      "Workouts a week"
+    );
+    expect(screen.getByTestId("plan-duration").props.accessibilityLabel).toBe(
+      "Workout duration, minutes"
+    );
   });
 
   it("shows its load error with Try Again when the Plan can't be read", async () => {
@@ -596,6 +624,13 @@ describe("in Ukrainian", () => {
     ).toBeTruthy();
     expect(screen.getByText("Тренування")).toBeTruthy();
     expect(screen.getByText("Мета")).toBeTruthy();
+    // VoiceOver reads each field by its label, in the App language.
+    expect(
+      screen.getByTestId("plan-description").props.accessibilityLabel
+    ).toBe("Опис");
+    expect(screen.getByTestId("plan-duration").props.accessibilityLabel).toBe(
+      "Тривалість тренування, хвилин"
+    );
 
     await type("plan-name", "");
     expect(screen.getByText("Вкажіть назву плану")).toBeTruthy();

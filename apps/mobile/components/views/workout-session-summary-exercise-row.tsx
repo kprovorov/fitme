@@ -8,14 +8,25 @@ import { SymbolImage } from "~/components/symbol-image";
 import { Text } from "~/components/ui/text";
 import { shownExercise } from "~/hooks/queries/library";
 import type { ShownExercise } from "~/hooks/queries/library";
-import type { WorkoutSessionExercise } from "~/hooks/queries/workout-sessions";
+import type {
+  WorkoutSessionExercise,
+  WorkoutSessionHistory,
+  WorkoutSessionHistoryEntry,
+} from "~/hooks/queries/workout-sessions";
 import { useI18n } from "~/lib/i18n";
+import { spokenPersonalRecords } from "~/lib/personal-records";
 
 interface WorkoutSessionSummaryExerciseRowProps {
   /** The Exercise as resolved by `useExercises`. */
   exercise: ShownExercise | undefined;
-  /** Whether the session earned a Personal record for this Exercise. */
-  isPersonalRecord: boolean;
+  /**
+   * The Personal record the session earned for this Exercise, as History
+   * read it, with the unit History's weights are in; `null` for none.
+   */
+  personalRecord: {
+    record: WorkoutSessionHistoryEntry["personal_records"][number];
+    weightUnit: WorkoutSessionHistory["weightUnit"];
+  } | null;
   planId: string | null;
   sessionId: string;
   workoutId: string | null;
@@ -24,7 +35,7 @@ interface WorkoutSessionSummaryExerciseRowProps {
 
 const WorkoutSessionSummaryExerciseRow = ({
   exercise: resolved,
-  isPersonalRecord,
+  personalRecord,
   planId,
   workoutId,
   sessionId,
@@ -51,12 +62,27 @@ const WorkoutSessionSummaryExerciseRow = ({
     );
   };
 
+  const label = t("workoutSummary.exercise", {
+    name: exercise.name,
+    sets: formatCount(i18n, "sets", setsLogged),
+  });
+
   return (
     <Pressable
-      accessibilityLabel={t("workoutSummary.exercise", {
-        name: exercise.name,
-        sets: formatCount(i18n, "sets", setsLogged),
-      })}
+      accessibilityLabel={
+        // Read after the rest of the row, as History's row reads its records.
+        personalRecord
+          ? t("history.entryWithRecords", {
+              entry: label,
+              records: spokenPersonalRecords({
+                exerciseName: () => exercise.name,
+                i18n,
+                records: [personalRecord.record],
+                weightUnit: personalRecord.weightUnit,
+              }),
+            })
+          : label
+      }
       accessibilityRole={canOpen ? "button" : undefined}
       className="px-md flex w-full flex-row items-center justify-center gap-2 active:opacity-80"
       disabled={!canOpen}
@@ -73,7 +99,7 @@ const WorkoutSessionSummaryExerciseRow = ({
       <Text className="flex-1" numberOfLines={1} variant="large">
         {exercise.name}
       </Text>
-      {isPersonalRecord ? (
+      {personalRecord ? (
         <SymbolImage
           className="text-body-emphasized text-primary"
           name="trophy.fill"

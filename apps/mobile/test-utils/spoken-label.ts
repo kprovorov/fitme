@@ -6,7 +6,10 @@
  * `accessibilityElementsHidden` is set. Text reads as itself, and an SF Symbol
  * image without a label reads as its symbol's name, since UIKit gives a
  * symbol image one ("chevron.right" is "Forward"), which is what a decorative
- * symbol has to keep out of the row's label.
+ * symbol has to keep out of the row's label. A Text reads as its text, and a
+ * View nested in it as U+FFFC, the object replacement character, with nothing
+ * of what's inside it: iOS draws such a View as an attachment in the Text's
+ * attributed string, which is all VoiceOver reads of it.
  */
 
 interface HostNode {
@@ -20,6 +23,23 @@ interface HostNode {
 }
 
 const SF_SOURCE = /^sf:\/?(.+)$/u;
+
+/** What VoiceOver reads of a View inside a Text. */
+export const OBJECT_REPLACEMENT_CHARACTER = "\uFFFC";
+
+const isText = (node: HostNode) => node.type === "Text";
+
+/** A Text's attributed string: its text, each nested View an attachment. */
+const textContent = (node: HostNode): string =>
+  node.children
+    .map((child) => {
+      if (typeof child === "string") {
+        return child;
+      }
+
+      return isText(child) ? textContent(child) : OBJECT_REPLACEMENT_CHARACTER;
+    })
+    .join("");
 
 const symbolName = (source: unknown): string | null => {
   if (typeof source === "string") {
@@ -50,6 +70,10 @@ const ownLabel = (node: HostNode): string | null => {
 
   if (typeof accessibilityLabel === "string") {
     return accessibilityLabel;
+  }
+
+  if (isText(node)) {
+    return textContent(node);
   }
 
   return symbolName(node.props.source);
