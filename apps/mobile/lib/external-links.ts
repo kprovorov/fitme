@@ -4,7 +4,7 @@ import { Linking } from "react-native";
 
 /** Our Terms of Service and privacy policy, on the marketing site. */
 export const TERMS_URL = "https://fitmeproject.com/terms";
-export const PRIVACY_POLICY_URL = "https://fitmeproject.com/privacy-policy";
+export const PRIVACY_POLICY_URL = "https://fitmeproject.com/privacy";
 
 /**
  * Hands a URL to the system (a `mailto:`, a store link, a page another app
