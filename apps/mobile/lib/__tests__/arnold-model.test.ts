@@ -15,12 +15,10 @@ const list: ArnoldModelList = {
   defaultId: "openai/gpt-5.5",
   models: [
     {
-      description: "Fast and capable",
       id: "openai/gpt-5.5",
       label: "GPT-5.5",
     },
     {
-      description: "Quick answers",
       id: "anthropic/claude-haiku-4.5",
       label: "Claude Haiku 4.5",
     },
@@ -57,6 +55,20 @@ describe("arnold.models cache", () => {
 
   it("reads back the list it wrote", () => {
     writeCachedArnoldModels(list);
+    expect(readCachedArnoldModels()).toEqual(list);
+  });
+
+  it("reads a list cached with descriptions, dropping them", () => {
+    storage.set(
+      MODELS_KEY,
+      JSON.stringify({
+        ...list,
+        models: list.models.map((model) => ({
+          ...model,
+          description: "Served by an older API",
+        })),
+      })
+    );
     expect(readCachedArnoldModels()).toEqual(list);
   });
 

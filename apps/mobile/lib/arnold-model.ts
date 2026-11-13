@@ -8,8 +8,9 @@ export const SELECTED_MODEL_KEY = "arnold.model";
 /** The last list `GET /v1/arnold/models` answered, the same for every User. */
 export const MODELS_KEY = "arnold.models";
 
+// No `description`: the picker shows labels only, and a field this schema
+// required couldn't leave the API until every build reading it is cut off.
 const arnoldModelSchema = z.object({
-  description: z.string(),
   id: z.string(),
   label: z.string(),
 });
