@@ -4,6 +4,7 @@
  */
 import { afterEach } from "@jest/globals";
 
+import { clearAddedSets } from "~/hooks/added-sets";
 import { resetEquipmentChoices } from "~/hooks/equipment-choice";
 import { resetMuscleChoices } from "~/hooks/muscle-choice";
 import { resetPlanDrafts } from "~/hooks/plan-draft";
@@ -63,6 +64,12 @@ afterEach(() => {
 // lives in memory, outliving the editor that made it.
 afterEach(() => {
   resetPlanDrafts();
+});
+
+// Every test starts with no set added to a Workout Session, as the app does:
+// an added set lives in memory until it's logged, outliving its screen.
+afterEach(() => {
+  clearAddedSets();
 });
 
 // Every test starts with the fake Public API's User signed in, whoever the

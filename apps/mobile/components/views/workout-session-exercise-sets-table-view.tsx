@@ -1,9 +1,9 @@
 import { unitName } from "@fitme/i18n";
-import { useState } from "react";
 import type { ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { View } from "react-native";
 
+import { addSet, dropAddedSet, useAddedSets } from "~/hooks/added-sets";
 import type { SavedWorkoutSessionExerciseSet } from "~/hooks/queries/workout-session-exercise-sets";
 import type {
   WorkoutSession,
@@ -36,11 +36,6 @@ interface WorkoutSessionExerciseSetsTableViewProps {
   workoutSessionExerciseSets: WorkoutSessionSet[];
 }
 
-interface LocalSet {
-  id: string;
-  order: number;
-}
-
 const ColumnLabel = ({
   children,
   className,
@@ -68,7 +63,9 @@ const WorkoutSessionExerciseSetsTableView = ({
 }: WorkoutSessionExerciseSetsTableViewProps) => {
   const { i18n, t } = useTranslation();
   const weightLabel = unitName(i18n, weightUnit);
-  const [localSets, setLocalSets] = useState<LocalSet[]>([]);
+  // Added sets live outside this table, so the session screen and the
+  // Workout Session Exercise screen show the same ones until they're logged.
+  const localSets = useAddedSets(exerciseId);
 
   const sortedSets = workoutSessionExerciseSets.toSorted(
     (a, b) => a.order - b.order
@@ -86,14 +83,7 @@ const WorkoutSessionExerciseSetsTableView = ({
   };
 
   const handleAddSet = () => {
-    const newOrder = maxOrder + localSets.length + 1;
-
-    const newLocalSet: LocalSet = {
-      id: `local-${Date.now()}-${newOrder}`,
-      order: newOrder,
-    };
-
-    setLocalSets([...localSets, newLocalSet]);
+    addSet(exerciseId, maxOrder + localSets.length + 1);
   };
 
   const handleSetLogged = (set: SavedWorkoutSessionExerciseSet) => {
@@ -122,7 +112,7 @@ const WorkoutSessionExerciseSetsTableView = ({
       return;
     }
 
-    setLocalSets(localSets.filter((set) => set.id !== localId));
+    dropAddedSet(exerciseId, localId);
   };
 
   return (
