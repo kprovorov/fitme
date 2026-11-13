@@ -148,17 +148,6 @@ jobs:
             --title "v$NEW_VERSION" \
             --notes-file /tmp/changelog.md
 
-      # Continuous Linear pipeline: records the shipped release with every
-      # issue referenced by commits since the previous release tag.
-      - name: Create Linear release
-        uses: linear/linear-release-action@v0
-        with:
-          access_key: ${{ secrets.LINEAR_ACCESS_KEY }}
-          version: v${{ steps.version.outputs.new_version }}
-          base_ref: ${{ steps.bump.outputs.previous_tag }}
-          links: |
-            GitHub release=${{ github.server_url }}/${{ github.repository }}/releases/tag/v${{ steps.version.outputs.new_version }}
-
   # A tag pushed with GITHUB_TOKEN doesn't trigger other workflows, so the
   # build runs from here instead of on `push: tags`.
   # A job calling a reusable workflow can't set timeout-minutes: the limit is
