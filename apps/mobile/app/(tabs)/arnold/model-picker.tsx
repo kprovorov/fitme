@@ -17,13 +17,11 @@ import { useSelectedArnoldModel } from "~/hooks/arnold-model";
 import { i18n } from "~/lib/i18n";
 
 const ModelRow = ({
-  description,
   id,
   label,
   selected,
   onSelect,
 }: {
-  description: string;
   id: string;
   label: string;
   selected: boolean;
@@ -38,12 +36,7 @@ const ModelRow = ({
       className="active:bg-muted flex-row items-center gap-3.5 px-5 py-3.5"
       onPress={handlePress}
     >
-      <View className="flex-1">
-        <Text className="text-body text-foreground">{label}</Text>
-        <Text className="text-footnote text-muted-foreground">
-          {description}
-        </Text>
-      </View>
+      <Text className="text-body text-foreground flex-1">{label}</Text>
       {selected ? (
         <SymbolImage
           className="text-body-emphasized text-foreground"
@@ -105,7 +98,6 @@ const ModelPickerSheet = () => {
         {models ? (
           models.map((candidate) => (
             <ModelRow
-              description={candidate.description}
               id={candidate.id}
               key={candidate.id}
               label={candidate.label}
