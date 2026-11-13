@@ -16,11 +16,11 @@
     "@fitme/db": "workspace:*",
     "@fitme/observability": "workspace:*",
     "@fitme/services": "workspace:*",
-    "@hono/node-server": "^2.1.5",
-    "@sentry/node": "^11.8.0",
+    "@hono/node-server": "^2.1.8",
+    "@sentry/node": "^11.12.0",
     "@vercel/functions": "^3.10.1",
     "drizzle-orm": "^0.45.4",
-    "hono": "^4.13.13",
+    "hono": "^4.13.18",
     "pg": "^8.23.1"
   },
   "devDependencies": {

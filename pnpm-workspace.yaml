@@ -74,9 +74,18 @@ auditConfig:
     # (the fix is zod >= 4.6.6). Forcing zod 4 on the CLI would likely break
     # it. Drop once @expo/cli moves to zod 4.
     - GHSA-mrhx-c7xc-m3w5
-    # node-forge 1.4.0: no patched release (accepted in FIT-330). Drop once
-    # node-forge ships a fix and @expo/cli is on it.
+    # node-forge: no patched release (accepted in FIT-330; 1.4.3 still flagged,
+    # FIT-471). Drop once node-forge ships a fix and @expo/cli is on it.
     - GHSA-86w9-cpqp-85rv
+    # glob 10 / 13 and their minimatch 9 / 10 (FIT-471): only mobile's build and
+    # test tooling asks for them (Expo's @expo/cli, config, metro-config and
+    # fingerprint, @sentry/react-native's @sentry/bundler-plugins 10, Jest and
+    # its test-exclude), never the app binary or a deployed backend (the
+    # backends' @sentry/bundler-plugins 11 is on glob 14). Neither glob's
+    # AbortSignal bypass nor minimatch's ReDoS takes outside input there.
+    # Recheck on every Expo SDK, Jest or @sentry/react-native bump.
+    - GHSA-3g3m-2fjr-6pw4
+    - GHSA-g3hv-75wg-m249
     # deepmerge 4.3.1 under apps__mobile > @segment/analytics-react-native: no
     # patched release (FIT-364). Segment only deep-merges the device context it
     # builds itself and the traits auth-sync.tsx passes to identify ({ email,
