@@ -33,6 +33,25 @@ import { createTestQueryClient, settle } from "~/test-utils/query-client";
 
 const mockSessions: { current: WorkoutSession[] } = { current: [] };
 
+// History's read, which the Summary takes its Personal records from: only the
+// fields it reads.
+const mockHistory: {
+  current:
+    | {
+        sessions: {
+          id: string;
+          personal_records: {
+            exercise_slug: string;
+            kind: "reps" | "weight";
+            reps: number;
+            weight: number;
+          }[];
+        }[];
+        weightUnit: "kg" | "lbs";
+      }
+    | undefined;
+} = { current: undefined };
+
 jest.mock("expo-router", () => ({
   Link: ({ children }: { children: ReactNode }) => children,
   Stack: {
@@ -52,7 +71,7 @@ jest.mock("expo-router", () => ({
 }));
 
 jest.mock("~/hooks/queries/workout-sessions", () => ({
-  useWorkoutSessionHistoryQuery: () => ({ data: undefined }),
+  useWorkoutSessionHistoryQuery: () => ({ data: mockHistory.current }),
   useWorkoutSessionQuery: () => ({ data: mockSessions.current[0] }),
 }));
 
@@ -152,6 +171,7 @@ const mount = async (children: ReactNode) => {
 
 beforeEach(() => {
   mockSessions.current = [longSession];
+  mockHistory.current = undefined;
   serveLibrary([
     libraryExercise("bench-press", {
       translations: { uk: { name: "Жим лежачи" } },
@@ -181,5 +201,33 @@ describe("the Workout Summary in Ukrainian", () => {
     expect(screen.getByText("Жим лежачи")).toBeTruthy();
     expect(screen.getByLabelText("Жим лежачи, 2 підходи")).toBeTruthy();
     expect(screen.getByText("Продовжити")).toBeTruthy();
+  });
+
+  it("reads a row's Personal record the way History's row does", async () => {
+    mockHistory.current = {
+      sessions: [
+        {
+          id: "session-1",
+          personal_records: [
+            {
+              exercise_slug: "bench-press",
+              kind: "weight",
+              reps: 10,
+              weight: 50,
+            },
+          ],
+        },
+      ],
+      weightUnit: "kg",
+    };
+    await mount(<WorkoutSessionSummaryScreen />);
+
+    expect(
+      screen.getByLabelText(
+        "Жим лежачи, 2 підходи. Особистий рекорд: Жим лежачи, 50 кілограмів × 10 повторень"
+      )
+    ).toBeTruthy();
+    // A row without one reads as before.
+    expect(screen.getByLabelText("Push up, 2 підходи")).toBeTruthy();
   });
 });

@@ -60,11 +60,17 @@ const WorkoutSessionSummaryView = ({
   // no trophy shows.
   const { data: history } = useWorkoutSessionHistoryQuery();
 
-  const recordSlugs = new Set(
-    history?.sessions
-      .find(({ id }) => id === workoutSession.id)
-      ?.personal_records.map(({ exercise_slug }) => exercise_slug)
-  );
+  const records = history?.sessions.find(
+    ({ id }) => id === workoutSession.id
+  )?.personal_records;
+
+  const personalRecordFor = (slug: string) => {
+    const record = records?.find(({ exercise_slug }) => exercise_slug === slug);
+
+    return history && record
+      ? { record, weightUnit: history.weightUnit }
+      : null;
+  };
 
   const muscleGroups = new Set<MuscleGroup>(
     exercises.flatMap(
@@ -144,7 +150,7 @@ const WorkoutSessionSummaryView = ({
             {index > 0 && <Separator />}
             <WorkoutSessionSummaryExerciseRow
               exercise={shownBySlug[exercise.exercise_slug]}
-              isPersonalRecord={recordSlugs.has(exercise.exercise_slug)}
+              personalRecord={personalRecordFor(exercise.exercise_slug)}
               planId={workoutSession.plan?.id ?? null}
               sessionId={workoutSession.id}
               workoutId={workoutSession.workout?.id ?? null}

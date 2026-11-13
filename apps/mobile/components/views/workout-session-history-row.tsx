@@ -19,6 +19,7 @@ import type {
 } from "~/hooks/queries/workout-sessions";
 import { useStackedLayout } from "~/hooks/stacked-layout";
 import { useI18n } from "~/lib/i18n";
+import { spokenPersonalRecords } from "~/lib/personal-records";
 
 /** The row's disclosure indicator. */
 const Chevron = () => (
@@ -75,20 +76,6 @@ const WorkoutSessionHistoryRow = ({
     volume: spokenUnit(i18n, entry.volume, weightUnit),
   });
 
-  const recordResults = records.map((record) => {
-    const result = {
-      exercise: exercises[record.exercise_slug]?.name ?? record.exercise_slug,
-      reps: formatCount(i18n, "reps", record.reps),
-    };
-
-    return record.weight === 0
-      ? t("history.bodyweightRecordResult", result)
-      : t("history.recordResult", {
-          ...result,
-          weight: spokenUnit(i18n, record.weight, weightUnit),
-        });
-  });
-
   const dateTile = (
     <View className="border-continuous bg-secondary min-h-11 min-w-11 items-center justify-center rounded-xl px-1">
       <Text variant="muted">{formatDate(i18n, startedAt, "weekday")}</Text>
@@ -103,9 +90,11 @@ const WorkoutSessionHistoryRow = ({
           records.length > 0
             ? t("history.entryWithRecords", {
                 entry: label,
-                records: t("history.personalRecords", {
-                  count: records.length,
-                  records: recordResults.join("; "),
+                records: spokenPersonalRecords({
+                  exerciseName: (slug) => exercises[slug]?.name ?? slug,
+                  i18n,
+                  records,
+                  weightUnit,
                 }),
               })
             : label

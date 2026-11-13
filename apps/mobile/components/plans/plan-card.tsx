@@ -6,13 +6,7 @@ import { SymbolImage } from "~/components/symbol-image";
 import type { PlanSummary } from "~/hooks/queries/plans";
 import { useChoiceLabels } from "~/lib/choices";
 
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "../ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
 import { HStack } from "../ui/hstack";
 import { Text } from "../ui/text";
 import { P } from "../ui/typography";
@@ -75,22 +69,23 @@ const PlanCard = ({ plan }: PlanCardProps) => {
         >
           {plan.name}
         </CardTitle>
-        <CardDescription>
-          <HStack className="flex-wrap justify-start">
-            {details.map((item) => (
-              <View
-                className="flex flex-row items-center justify-center gap-1"
-                key={item.key}
-              >
-                <SymbolImage
-                  className="text-muted-foreground text-subhead-emphasized"
-                  name={item.icon}
-                />
-                <Text variant="small">{item.label}</Text>
-              </View>
-            ))}
-          </HStack>
-        </CardDescription>
+        {/* A row of Views, never inside CardDescription's Text: iOS draws a
+            View nested in Text as an attachment, which VoiceOver reads as an
+            object replacement character and nothing of the text inside it. */}
+        <HStack className="flex-wrap justify-start">
+          {details.map((item) => (
+            <View
+              className="flex flex-row items-center justify-center gap-1"
+              key={item.key}
+            >
+              <SymbolImage
+                className="text-muted-foreground text-subhead-emphasized"
+                name={item.icon}
+              />
+              <Text variant="small">{item.label}</Text>
+            </View>
+          ))}
+        </HStack>
       </CardHeader>
       {plan.description?.trim() ? (
         <CardContent className="mt-sm">

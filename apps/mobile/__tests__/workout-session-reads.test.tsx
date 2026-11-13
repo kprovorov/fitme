@@ -573,9 +573,11 @@ describe("the Workout Summary's Personal records", () => {
 
     await mountSummary();
 
-    expect(trophies(["Bench Press, 2 sets", "Squat, 1 set"])).toEqual([
-      "Bench Press, 2 sets",
-    ]);
+    // The row reads its record after the rest, worded as History's row is.
+    const benchPress =
+      "Bench Press, 2 sets. Personal record: Bench Press, 70 kilograms × 5 reps";
+
+    expect(trophies([benchPress, "Squat, 1 set"])).toEqual([benchPress]);
     await expect(historyRecords()).resolves.toEqual(["bench-press"]);
   });
 
@@ -598,7 +600,10 @@ describe("the Workout Summary's Personal records", () => {
 
     await mountSummary();
 
-    expect(trophies(["Bench Press, 1 set"])).toEqual(["Bench Press, 1 set"]);
+    const benchPress =
+      "Bench Press, 1 set. Personal record: Bench Press, 60 kilograms × 8 reps";
+
+    expect(trophies([benchPress])).toEqual([benchPress]);
     expect(backend.personalRecords).toEqual([
       expect.objectContaining({ exercise_slug: "bench-press", kind: "reps" }),
     ]);

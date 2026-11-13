@@ -24,6 +24,10 @@ import {
 } from "~/test-utils/fake-public-api";
 import { InAppLanguage } from "~/test-utils/in-app-language";
 import { createTestQueryClient, settle } from "~/test-utils/query-client";
+import {
+  OBJECT_REPLACEMENT_CHARACTER,
+  spokenLabel,
+} from "~/test-utils/spoken-label";
 
 const mockDismissTo = jest.fn();
 const mockPlanId = { current: "plan-1" };
@@ -184,6 +188,24 @@ describe("the Plan list in Ukrainian", () => {
     expect(screen.getAllByText("3 рази на тиждень")).toHaveLength(2);
     expect(screen.getAllByText("Спортзал")).toHaveLength(2);
     expect(screen.getByText("Створити новий план тренувань")).toBeTruthy();
+  });
+
+  it("reads each Plan's card as its name and the details it shows", async () => {
+    await mount(<PlansScreen />);
+
+    // The card's press target, the first accessible element around its name.
+    let card = screen.getByText("Гіпертрофія");
+
+    while (card.props.accessible !== true && card.parent) {
+      card = card.parent;
+    }
+
+    const label = spokenLabel(card);
+
+    expect(label).toBe(
+      "Гіпертрофія, Сила та результативність, Середній рівень, 3 рази на тиждень, Спортзал, About Гіпертрофія"
+    );
+    expect(label).not.toContain(OBJECT_REPLACEMENT_CHARACTER);
   });
 
   it("says when the Plans can't load", async () => {
