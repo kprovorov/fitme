@@ -32,14 +32,18 @@ jest.mock("@expo/ui/swift-ui/modifiers", () => {
 
   return {
     accessibilityLabel: modifier("accessibilityLabel"),
+    buttonStyle: modifier("buttonStyle"),
     contentShape: modifier("contentShape"),
     disabled: modifier("disabled"),
+    font: modifier("font"),
     foregroundStyle: modifier("foregroundStyle"),
     frame: modifier("frame"),
     interactiveDismissDisabled: modifier("interactiveDismissDisabled"),
     labelsHidden: modifier("labelsHidden"),
     listRowBackground: modifier("listRowBackground"),
     listRowSeparatorTint: modifier("listRowSeparatorTint"),
+    menuIndicator: modifier("menuIndicator"),
+    menuStyle: modifier("menuStyle"),
     pickerStyle: modifier("pickerStyle"),
     scrollContentBackground: modifier("scrollContentBackground"),
     shapes: { rectangle: () => "rectangle" },
@@ -104,6 +108,7 @@ jest.mock("@expo/ui/swift-ui", () => {
     Divider: view("Divider"),
     Form: view("Form"),
     Group: view("Group"),
+    HStack: view("HStack"),
     Host: view("Host"),
     Image: view("Image"),
     Label: view("Label"),
@@ -168,7 +173,6 @@ describe("native controls", () => {
     ["Switch", "Toggle", <Switch key="switch" value />],
     ["Slider", "Slider", <Slider key="slider" value={1} />],
     ["Picker", "Picker", <Picker key="picker" options={options} />],
-    ["Select", "Picker", <Select key="select" options={options} />],
     ["Tabs", "Picker", <Tabs key="tabs" options={options} />],
     ["RadioGroup", "Form", <RadioGroup key="radio" options={options} />],
     [
@@ -199,6 +203,18 @@ describe("native controls", () => {
     await render(element);
 
     expect(argsOf(view, "tint")).toEqual(["text-primary"]);
+  });
+
+  it("draws a select's chosen option in primary, flush in a plain menu", async () => {
+    await render(<Select options={options} value="us" />);
+
+    // The menu's label, then the option in its menu.
+    expect(screen.getAllByText("US")).toHaveLength(2);
+    expect(argsOf("HStack", "foregroundStyle")).toEqual(["text-primary"]);
+    // A plain button menu draws only its label: no system inset before the
+    // value, unlike a menu-style Picker (FIT-637).
+    expect(argsOf("Menu", "buttonStyle")).toEqual(["plain"]);
+    expect(argsOf("Picker", "pickerStyle")).toEqual(["inline"]);
   });
 
   it("sets a radio group's header and footer in muted-foreground", async () => {
