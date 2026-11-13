@@ -317,43 +317,30 @@ export type WorkoutExerciseSetInput = Omit<WorkoutExerciseSetData, "order">;
 
 /**
  * Models Arnold can run on, by their Vercel AI Gateway id
- * (`<creator>/<model>`), the only list: `apps/arnold` rejects any id outside it.
+ * (`<creator>/<model>`), the only list: `apps/arnold` rejects any id outside
+ * it, except the retired ids it still runs on their successor. One medium
+ * model per creator, each taking images (Attachments, ADR 0018).
  */
 export const arnoldModels = [
   {
-    description: "Fast and capable, balanced for everyday coaching",
-    id: "openai/gpt-5.5",
-    label: "GPT-5.5",
+    description: "Quick and balanced, the best fit for everyday coaching",
+    id: "openai/gpt-6.1-terra",
+    label: "GPT-6.1 Terra",
   },
   {
-    description: "GPT-5.6 Luna variant",
-    id: "openai/gpt-5.6-luna",
-    label: "GPT-5.6 Luna",
+    description: "Clear, natural writing for detailed plans and explanations",
+    id: "anthropic/claude-sonnet-5.5",
+    label: "Claude Sonnet 5.5",
   },
   {
-    description: "GPT-5.6 Sol variant",
-    id: "openai/gpt-5.6-sol",
-    label: "GPT-5.6 Sol",
+    description: "Strong at reading photos, screenshots and documents",
+    id: "google/gemini-4-hydrogen",
+    label: "Gemini 4 Hydrogen",
   },
   {
-    description: "GPT-5.6 Terra variant",
-    id: "openai/gpt-5.6-terra",
-    label: "GPT-5.6 Terra",
-  },
-  {
-    description: "Strong reasoning with a natural conversational tone",
-    id: "anthropic/claude-sonnet-5",
-    label: "Claude Sonnet 5",
-  },
-  {
-    description: "Most thorough answers for complex plans and analysis",
-    id: "anthropic/claude-opus-5",
-    label: "Claude Opus 5",
-  },
-  {
-    description: "Quickest replies for short questions",
-    id: "anthropic/claude-haiku-4.5",
-    label: "Claude Haiku 4.5",
+    description: "Direct, thorough answers that double-check the details",
+    id: "spacexai/grok-4.7",
+    label: "Grok 4.7",
   },
 ] as const satisfies readonly {
   description: string;
@@ -365,7 +352,7 @@ export type ArnoldModel = (typeof arnoldModels)[number];
 
 export type ArnoldModelId = ArnoldModel["id"];
 
-export const defaultArnoldModelId: ArnoldModelId = "openai/gpt-5.5";
+export const defaultArnoldModelId: ArnoldModelId = "openai/gpt-6.1-terra";
 
 export const isArnoldModelId = (value: unknown): value is ArnoldModelId =>
   arnoldModels.some((model) => model.id === value);

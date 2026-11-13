@@ -81,7 +81,7 @@ Arnold is Fitme's AI, in a chat, with direct access to your Fitme data. It can:
 
 Details worth mentioning:
 
-- **Pick your model.** Choose the model behind Arnold: GPT-5.5 (default, balanced for everyday coaching), GPT-5.6 variants, Claude Sonnet 5 (strong reasoning, natural tone), Claude Opus 5 (most thorough, for complex plans and analysis) or Claude Haiku 4.5 (quickest replies). New models show up without an app update.
+- **Pick your model.** Choose the model behind Arnold, one from each of four AI labs: GPT-6.1 Terra (default, quick and balanced for everyday coaching), Claude Sonnet 5.5 (clear, natural writing for detailed plans and explanations), Gemini 4 Hydrogen (strong at reading photos, screenshots and documents) or Grok 4.7 (direct, thorough answers that double-check the details). New models show up without an app update.
 - **Picks up where you left off.** Your current Conversation is saved, so you can close the app and come back to it. Tap "+" for a fresh one.
 - **Acts only for you.** Arnold can only read and change your own data, and it can't touch your account.
 

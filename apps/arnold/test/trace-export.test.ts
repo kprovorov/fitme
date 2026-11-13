@@ -13,7 +13,7 @@ import {
 const span: SpanExportContext = {
   attributes: {},
   audience: "private",
-  name: "chat openai/gpt-5.5",
+  name: "chat openai/gpt-6.1-terra",
   spanId: "span",
   traceId: "trace",
 };
