@@ -392,6 +392,20 @@ describe("a Plan's screen", () => {
 });
 
 describe("activating a Plan", () => {
+  it("offers Activate Plan on a Plan that isn't active", async () => {
+    await mount(null);
+
+    expect(screen.getByText("Activate Plan")).toBeTruthy();
+  });
+
+  it("doesn't offer Activate Plan on the active Plan", async () => {
+    mockPlanId.current = "plan-2";
+    await mount(null);
+
+    expect(screen.getByText("Edit Plan")).toBeTruthy();
+    expect(screen.queryByText("Activate Plan")).toBeNull();
+  });
+
   it("makes it the active Plan through the API, every other one inactive", async () => {
     await mount(<ActivePlanName />);
     expect(beside().getByText("Hypertrophy")).toBeTruthy();
