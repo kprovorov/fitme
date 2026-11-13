@@ -5,6 +5,8 @@
  * Ukrainian. The real Screens, with the Public API swapped for its fake and
  * the Library for its fake (both from `test-utils/`). An unset detail isn't
  * shown at all: no badge, no "Not set", no `null`, and nothing reported.
+ * So is a Plan without a name (`plans.name` is nullable), with a Workout
+ * Session of it still open (no `finished_at`).
  */
 import {
   afterEach,
@@ -262,6 +264,44 @@ describe("a Plan with unset details on its own screens", () => {
 
     expect(screen.getByText("Duration")).toBeTruthy();
     expect(screen.getByText("45 min")).toBeTruthy();
+  });
+});
+
+describe("a Plan without a name", () => {
+  beforeEach(() => {
+    backend.plans[0].name = null;
+    backend.plans[0].description = null;
+    // A Workout Session of it still open: it has no `finished_at` yet.
+    backend.seed({
+      exercises: [{ name: "Squat", sets: [null] }],
+      id: "open-session",
+      planId: "plan-bare",
+      workoutId: "workout-bare",
+    });
+  });
+
+  it("renders on the Workout tab with its open Workout Session", async () => {
+    await mount(<HomeScreen />);
+
+    expect(screen.getByText("3× per week")).toBeTruthy();
+    const card = within(screen.getByTestId("workout-card-workout-bare"));
+    expect(card.getByText("Continue")).toBeTruthy();
+    expectNothingBroken();
+  });
+
+  it("renders on the Plan list next to a named Plan", async () => {
+    await mount(<PlansScreen />);
+
+    expect(screen.getByText("Half filled")).toBeTruthy();
+    expect(screen.getAllByText("3× per week")).toHaveLength(2);
+    expectNothingBroken();
+  });
+
+  it("renders its own screen and lists its Workouts", async () => {
+    await mount(<PlanScreen />);
+
+    expect(screen.getByText("Day one")).toBeTruthy();
+    expectNothingBroken();
   });
 });
 

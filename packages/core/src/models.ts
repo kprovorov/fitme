@@ -156,9 +156,13 @@ export interface Identifiable {
   id: string;
 }
 
+/**
+ * Every table carrying `created_at` / `updated_at` has them nullable
+ * (`database.types.ts`), so a row can come back without either.
+ */
 export interface Timestamped {
-  created_at: string;
-  updated_at: string;
+  created_at: string | null;
+  updated_at: string | null;
 }
 
 export type Model = Identifiable & Timestamped;
@@ -176,7 +180,8 @@ export type Profile = Model & {
 export type Plan = Model & {
   // User id (JWT sub claim)
   user_id: string;
-  name: string;
+  /** `plans.name` is nullable, so a Plan can carry `null`. */
+  name: string | null;
   /** `plans.description` is nullable, so a Plan can carry `null`. */
   description: string | null;
   /** Unset on a Plan built by hand (ADR 0017): it isn't shown. */
@@ -188,7 +193,8 @@ export type Plan = Model & {
   experience_level: ExperienceLevel | null;
   /** Minutes, unset on a Plan built by hand (ADR 0017): it isn't shown. */
   workout_duration: number | null;
-  note?: string;
+  /** `plans.note` is nullable: a Plan without a note carries `null`. */
+  note: string | null;
   is_active: boolean;
   workouts: Workout[];
 };
@@ -226,7 +232,8 @@ export type WorkoutSession = Model & {
   plan_id: string | null;
   user_id: string;
   started_at: string;
-  finished_at: string;
+  /** `null` while the Workout Session is open. */
+  finished_at: string | null;
   exercises: WorkoutSessionExercise[];
   workout: Workout | null;
 };

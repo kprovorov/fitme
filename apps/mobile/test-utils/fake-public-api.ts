@@ -146,7 +146,7 @@ export interface SeedPlanSet {
 export interface SeedPlan {
   /** When it was soft-deleted; `null` (the default) while it's live. */
   deleted_at?: string | null;
-  /** Its description; `About <name>` unless given, `null` for none. */
+  /** Its description; `About <name>` unless given (`null` without a name), `null` for none. */
   description?: string | null;
   /**
    * Its experience level; `intermediate` unless given, `null` for a Plan
@@ -160,7 +160,8 @@ export interface SeedPlan {
   id: string;
   /** Whether it's the User's active Plan; `false` unless given. */
   is_active?: boolean;
-  name: string;
+  /** Its name; `plans.name` is nullable, so `null` for a Plan without one. */
+  name: string | null;
   /** Where it's trained; `gym` unless given, `null` for unset. */
   place?: Place | null;
   /**
@@ -233,7 +234,10 @@ const nestedPlan = ({
   workouts,
 }: SeedPlan) => ({
   deleted_at,
-  description: description === undefined ? `About ${name}` : description,
+  description:
+    description === undefined && name !== null
+      ? `About ${name}`
+      : (description ?? null),
   experience_level,
   frequency,
   goal,
