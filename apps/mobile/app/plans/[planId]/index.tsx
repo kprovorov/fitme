@@ -192,7 +192,8 @@ const PlanScreen = () => {
           },
           headerTransparent: true,
           title: plan?.name ?? "",
-          // Its actions need the Plan: whether it's active decides Archive.
+          // Its actions need the Plan: whether it's active decides Activate and
+          // Archive.
           unstable_headerRightItems: () =>
             plan
               ? [
@@ -218,27 +219,35 @@ const PlanScreen = () => {
                           },
                           type: "action",
                         },
-                        {
-                          icon: {
-                            name: "bolt",
-                            type: "sfSymbol",
-                          },
-                          label: t("plans.activate.action"),
-                          onPress: () => {
-                            Alert.alert(
-                              t("plans.activate.title"),
-                              t("plans.activate.message"),
-                              [
-                                { style: "cancel", text: t("common.cancel") },
-                                {
-                                  onPress: activate,
-                                  text: t("plans.activate.confirm"),
+                        // The active Plan has nothing to activate.
+                        ...(plan.is_active
+                          ? []
+                          : [
+                              {
+                                icon: {
+                                  name: "bolt",
+                                  type: "sfSymbol",
+                                } as const,
+                                label: t("plans.activate.action"),
+                                onPress: () => {
+                                  Alert.alert(
+                                    t("plans.activate.title"),
+                                    t("plans.activate.message"),
+                                    [
+                                      {
+                                        style: "cancel",
+                                        text: t("common.cancel"),
+                                      },
+                                      {
+                                        onPress: activate,
+                                        text: t("plans.activate.confirm"),
+                                      },
+                                    ]
+                                  );
                                 },
-                              ]
-                            );
-                          },
-                          type: "action",
-                        },
+                                type: "action" as const,
+                              },
+                            ]),
                         {
                           destructive: true,
                           icon: {
