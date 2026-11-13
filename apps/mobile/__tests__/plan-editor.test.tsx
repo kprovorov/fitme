@@ -272,7 +272,7 @@ describe("opening the editor", () => {
       "Workouts a week"
     );
     expect(screen.getByTestId("plan-duration").props.accessibilityLabel).toBe(
-      "Workout duration"
+      "Workout duration, minutes"
     );
   });
 
@@ -629,7 +629,7 @@ describe("in Ukrainian", () => {
       screen.getByTestId("plan-description").props.accessibilityLabel
     ).toBe("Опис");
     expect(screen.getByTestId("plan-duration").props.accessibilityLabel).toBe(
-      "Тривалість тренування"
+      "Тривалість тренування, хвилин"
     );
 
     await type("plan-name", "");

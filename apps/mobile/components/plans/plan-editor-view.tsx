@@ -110,7 +110,8 @@ const NumberField = ({
 
   const field = (
     <Input
-      accessibilityLabel={label}
+      // The unit beside the field is part of what it holds (minutes).
+      accessibilityLabel={unit ? `${label}, ${unit}` : label}
       containerClassName={unit ? "flex-1" : undefined}
       error={error}
       keyboardType="number-pad"
