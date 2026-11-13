@@ -47,7 +47,11 @@ const ChoiceTile = ({
     className="border-continuous bg-card rounded-card flex-row items-center gap-3 p-4 active:opacity-80"
     onPress={onPress}
   >
-    <SymbolImage className="text-primary text-title-2" name={icon} />
+    {/* One width for every icon, so each tile's text starts at the same x
+        whichever symbol it has (FIT-637). */}
+    <View className="w-8 shrink-0 items-center">
+      <SymbolImage className="text-primary text-title-2" name={icon} />
+    </View>
     <View className="flex-1 flex-col items-start justify-center gap-1">
       <View className="flex-row flex-wrap items-center gap-2">
         <Text variant="large">{label}</Text>

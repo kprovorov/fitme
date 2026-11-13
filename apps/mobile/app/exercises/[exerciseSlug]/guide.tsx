@@ -7,7 +7,7 @@ import ExerciseVideo from "~/components/exercises/exercise-video";
 import { InstructionSteps } from "~/components/exercises/instruction-steps";
 import { Button } from "~/components/ui/button";
 import { Text } from "~/components/ui/text";
-import { H4, Muted } from "~/components/ui/typography";
+import { Muted } from "~/components/ui/typography";
 import { useExercise, useExerciseDetailQuery } from "~/hooks/queries/library";
 
 const ExerciseGuideScreen = () => {
@@ -31,7 +31,6 @@ const ExerciseGuideScreen = () => {
     if (exercise) {
       return (
         <>
-          <H4>{exercise.name}</H4>
           {exercise.video_url ? (
             <View className="border-continuous w-full overflow-hidden rounded-2xl">
               <ExerciseVideo url={exercise.video_url} />

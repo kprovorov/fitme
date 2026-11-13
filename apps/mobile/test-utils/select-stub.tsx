@@ -1,6 +1,6 @@
 /**
- * Stand-in for `~/components/ui/select`, whose SwiftUI `Picker` can't mount
- * under Jest: its label and the chosen option's label as text, and every
+ * Stand-in for `~/components/ui/select`, whose SwiftUI `Menu` can't mount
+ * under Jest: the chosen option's label as text, and every
  * option as a `radio` named by its label, so a test picks one the way a User
  * would. Use it with
  * `jest.mock("~/components/ui/select", () => jest.requireActual("~/test-utils/select-stub"))`.
@@ -36,7 +36,6 @@ const Option = <TValue extends Value>({
 };
 
 export const Select = <TValue extends Value>({
-  label,
   onValueChange,
   options,
   testID,
@@ -46,7 +45,6 @@ export const Select = <TValue extends Value>({
 
   return (
     <View testID={testID}>
-      {label ? <Text>{label}</Text> : null}
       {chosen ? <Text>{chosen.label}</Text> : null}
       {options.map((option) => (
         <Option

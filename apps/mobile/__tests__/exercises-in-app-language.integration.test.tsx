@@ -307,6 +307,8 @@ describe("an Exercise's detail screen", () => {
 
     await expect(screen.findByText("Про присідання.")).resolves.toBeTruthy();
     expect(screen.getByTestId("title")).toHaveTextContent("Присідання");
+    // The sheet's header names it; the content doesn't again (FIT-637).
+    expect(screen.getAllByText("Присідання")).toHaveLength(1);
     expect(screen.getByText("Станьте.")).toBeTruthy();
     expect(screen.getByText("Присядьте.")).toBeTruthy();
   });
@@ -336,6 +338,8 @@ describe("an Exercise's guide", () => {
 
     await expect(screen.findByText("Про присідання.")).resolves.toBeTruthy();
     expect(screen.getByTestId("title")).toHaveTextContent("Присідання");
+    // The sheet's header names it; the content doesn't again (FIT-637).
+    expect(screen.getAllByText("Присідання")).toHaveLength(1);
     expect(screen.getByText("Станьте.")).toBeTruthy();
     expect(screen.getByText("Присядьте.")).toBeTruthy();
   });
