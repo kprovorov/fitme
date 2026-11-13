@@ -9,7 +9,7 @@ const Layout = () => (
       screenOptions={{
         headerBackButtonDisplayMode: "minimal",
         headerTitleStyle: {
-          fontFamily: "NunitoSans12pt-Bold",
+          fontFamily: "NunitoSans-Bold",
           fontWeight: "bold",
         },
         // headerShown: false,

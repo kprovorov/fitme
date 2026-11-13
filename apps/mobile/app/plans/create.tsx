@@ -185,7 +185,7 @@ const CreatePlanScreen = () => {
         // them from here remounts this modal's content (FIT-628).
         options={{
           headerTitleStyle: {
-            fontFamily: "NunitoSans12pt-Bold",
+            fontFamily: "NunitoSans-Bold",
             fontWeight: "bold",
           },
           title: isNaming

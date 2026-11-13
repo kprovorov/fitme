@@ -268,7 +268,7 @@ const MeasurementSystemScreen = () => {
           headerBackButtonDisplayMode: "minimal",
           headerShown: true,
           headerTitleStyle: {
-            fontFamily: "NunitoSans12pt-Bold",
+            fontFamily: "NunitoSans-Bold",
             fontWeight: "bold",
           },
           headerTransparent: true,

@@ -4,9 +4,9 @@
 
 /* The font roles from the tokens, mapped to the font files the app loads */
 @theme {
-  --font-nunito-sans-regular: "NunitoSans12pt-Regular";
-  --font-nunito-sans-semibold: "NunitoSans12pt-SemiBold";
-  --font-nunito-sans-bold: "NunitoSans12pt-Bold";
+  --font-nunito-sans-regular: "NunitoSans-Regular";
+  --font-nunito-sans-semibold: "NunitoSans-SemiBold";
+  --font-nunito-sans-bold: "NunitoSans-Bold";
   --font-ibm-plex-mono: "IBM Plex Mono";
   --font-ibm-plex-mono-semibold: "IBMPlexMono-SemiBold";
 }
