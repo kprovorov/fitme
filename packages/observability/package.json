@@ -16,7 +16,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@sentry/node": "^11.8.0"
+    "@sentry/node": "^11.12.0"
   },
   "devDependencies": {
     "@fitme/typescript-config": "workspace:*",
