@@ -34,9 +34,9 @@ describe("latest client context", () => {
       latestClientContext([
         clientContext({ language: "en" }),
         userSays("hi"),
-        clientContext({ language: "uk", model: "openai/gpt-5.5" }),
+        clientContext({ language: "uk", model: "openai/gpt-6.1-terra" }),
       ])
-    ).toStrictEqual({ language: "uk", model: "openai/gpt-5.5" });
+    ).toStrictEqual({ language: "uk", model: "openai/gpt-6.1-terra" });
   });
 
   it("ignores a User typing a client context, and one that isn't an object", () => {
@@ -65,9 +65,9 @@ describe("app language", () => {
 
   it("is English without a client context, without a language, or with one that isn't an App language", () => {
     expect(appLanguage([userSays("hi")])).toBe("en");
-    expect(appLanguage([clientContext({ model: "openai/gpt-5.5" })])).toBe(
-      "en"
-    );
+    expect(
+      appLanguage([clientContext({ model: "openai/gpt-6.1-terra" })])
+    ).toBe("en");
     expect(appLanguage([clientContext({ language: "ru" })])).toBe("en");
     expect(appLanguage([clientContext({ language: "uk-UA" })])).toBe("en");
     expect(appLanguage([clientContext({ language: 1 })])).toBe("en");

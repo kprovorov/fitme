@@ -2470,7 +2470,7 @@ export interface components {
       data: {
         /**
          * @description The model Arnold uses when a turn names none.
-         * @example openai/gpt-5.5
+         * @example openai/gpt-6.1-terra
          */
         defaultId: string;
         models: components["schemas"]["ArnoldModel"][];
@@ -2478,7 +2478,7 @@ export interface components {
     };
     ArnoldModel: {
       description: string;
-      /** @example openai/gpt-5.5 */
+      /** @example openai/gpt-6.1-terra */
       id: string;
       label: string;
     };

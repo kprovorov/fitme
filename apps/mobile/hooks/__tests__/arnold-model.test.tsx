@@ -17,7 +17,7 @@ import { createTestQueryClient, settle } from "~/test-utils/query-client";
 
 import { useSelectedArnoldModel } from "../arnold-model";
 
-const HAIKU = "anthropic/claude-haiku-4.5";
+const SONNET = "anthropic/claude-sonnet-5.5";
 
 const { EXPO_PUBLIC_API_URL } = process.env;
 
@@ -64,10 +64,10 @@ describe("useSelectedArnoldModel", () => {
     const { result } = await renderSelectedModel();
 
     await act(() => {
-      result.current.setSelectedId(HAIKU);
+      result.current.setSelectedId(SONNET);
     });
 
-    expect(storage.getString("arnold.model")).toBe(HAIKU);
-    expect(result.current.model?.id).toBe(HAIKU);
+    expect(storage.getString("arnold.model")).toBe(SONNET);
+    expect(result.current.model?.id).toBe(SONNET);
   });
 });
