@@ -167,4 +167,4 @@ Ready-made iPhone simulator screenshots (raw, framed and App Store exports) in E
 - Launched: 17 March 2025 ([launch post](https://fitmeproject.com/blog/fitme-is-officially-live))
 - Made by: Kirill (Kyrylo) Provorov, solo founder
 - Social: [X @fitmeproject](https://x.com/fitmeproject), [Instagram @fitmeprojectcom](https://www.instagram.com/fitmeprojectcom), [Threads @fitmeprojectcom](https://www.threads.net/@fitmeprojectcom)
-- Support, privacy policy, terms: fitmeproject.com/support, /privacy-policy, /terms
+- Support, privacy policy, terms: fitmeproject.com/support, /privacy, /terms
