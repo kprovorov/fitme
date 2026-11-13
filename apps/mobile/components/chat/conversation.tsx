@@ -459,6 +459,9 @@ export const Conversation = ({
             estimatedItemSize={80}
             extraData={isGenerating}
             keyboardDismissMode="interactive"
+            // A tap on a sent photo opens it with the composer focused: the
+            // default ("never") swallowed it to dismiss the keyboard.
+            keyboardShouldPersistTaps="handled"
             keyExtractor={messageKeyExtractor}
             ListFooterComponent={
               <Animated.View style={footerSpacerStyle}>

@@ -123,7 +123,9 @@ jest.mock("react-native-reanimated", () => {
   };
 });
 
-// The list renders its rows and footer (the empty state) without layout.
+// The list renders its rows and footer (the empty state) without layout. It
+// keeps the list's `keyboardShouldPersistTaps` on its root, since Jest has no
+// keyboard to swallow a tap with.
 jest.mock("@legendapp/list/react-native", () => {
   const { View } =
     jest.requireActual<typeof import("react-native")>("react-native");
@@ -131,16 +133,22 @@ jest.mock("@legendapp/list/react-native", () => {
   return {
     LegendList: <T,>({
       data,
+      keyboardShouldPersistTaps,
       keyExtractor,
       ListFooterComponent,
       renderItem,
     }: {
       data: readonly T[];
+      keyboardShouldPersistTaps?: string;
       keyExtractor: (item: T) => string;
       ListFooterComponent: ReactNode;
       renderItem: (info: { item: T }) => ReactNode;
     }) => (
-      <View>
+      <View
+        // @ts-expect-error -- a View has no such prop; the test reads it back.
+        keyboardShouldPersistTaps={keyboardShouldPersistTaps}
+        testID="conversation-list"
+      >
         {data.map((item) => (
           <View key={keyExtractor(item)}>{renderItem({ item })}</View>
         ))}
@@ -989,6 +997,32 @@ describe("arnold screen", () => {
         // Back to the Conversation, with its photos as they were.
         expect(screen.getByText("What is this machine?")).toBeTruthy();
         expect(shownPhotos()).toEqual(["gym-bytes", "plan-bytes"]);
+      });
+
+      it("opens from a tap while the composer has focus, keeping the draft", async () => {
+        await sendPhotos("gym");
+
+        const user = userEvent.setup();
+        await user.type(screen.getByPlaceholderText(COMPOSER), "Half-typed");
+
+        // With the keyboard up, iOS hands the first tap on a row to the list
+        // (to dismiss the keyboard) unless the list lets its children handle
+        // it: the photo's own press must open the viewer.
+        expect(
+          screen.getByTestId("conversation-list").props
+            .keyboardShouldPersistTaps
+        ).toBe("handled");
+
+        await openPhoto(1);
+
+        expect(viewerPhotos()).toEqual(["gym-bytes"]);
+
+        await user.press(screen.getByLabelText("Close"));
+
+        expect(viewerPhotos()).toEqual([]);
+        expect(screen.getByPlaceholderText(COMPOSER).props.value).toBe(
+          "Half-typed"
+        );
       });
 
       it("is swiped through a message's photos in order", async () => {
