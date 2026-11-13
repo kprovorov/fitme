@@ -52,12 +52,18 @@ Each app has an `.env.example`. Copy it to `.env` for `apps/mobile` and `apps/li
 
 Native Apple and Google sign-in also need provider registrations and public build configuration. See [Enable native sign-in on mobile](docs/agents/mobile-auth.md).
 
+## Zed
+
+Open the repository root in Zed after `pnpm install`, then install **Oxc** from `zed: extensions`. TypeScript (vtsls) and Tailwind CSS support are built into Zed. The checked-in [settings](.zed/settings.json) use Oxfmt on save, Oxlint safe fixes, and each app's Tailwind v4 CSS entry point for completions, including mobile's Uniwind classes.
+
+Use `task: spawn` for the [project tasks](.zed/tasks.json): run individual apps, watch mobile or web tests, and check UI literals or translations. Start only the apps needed for your current work. Use React Native DevTools for the running Expo app and Xcode for native iOS debugging.
+
 ## Checks
 
 ```bash
 pnpm test                # unit tests in every workspace
 pnpm typecheck
-pnpm check               # Ultracite (Biome); pnpm fix applies its fixes
+pnpm check               # Ultracite (Oxlint + Oxfmt); pnpm fix applies its fixes
 pnpm literal-check       # no color literals or arbitrary sizes in the UI
 ```
 
