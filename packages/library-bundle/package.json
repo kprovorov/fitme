@@ -1,0 +1,23 @@
+{
+  "name": "@fitme/library-bundle",
+  "version": "0.0.0",
+  "private": true,
+  "description": "The library.json bundle fitme-exercises publishes: its version 1 schema, shared by the Library API's build and the writers that read the bundle.",
+  "type": "module",
+  "main": "./src/schema.ts",
+  "types": "./src/schema.ts",
+  "exports": {
+    ".": "./src/schema.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@fitme/core": "workspace:*",
+    "zod": "4.6.7"
+  },
+  "devDependencies": {
+    "@fitme/typescript-config": "workspace:*",
+    "typescript": "~5.9.2"
+  }
+}

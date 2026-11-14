@@ -1,4 +1,8 @@
-import type { BundleCover, BundleExercise, LibraryBundle } from "../bundle";
+import type {
+  BundleCover,
+  BundleExercise,
+  LibraryBundle,
+} from "@fitme/library-bundle";
 
 export const fakeOid = (char: string) => char.repeat(64);
 

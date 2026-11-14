@@ -189,5 +189,5 @@ export type BundleExercise = z.infer<typeof BundleExerciseSchema>;
 export type LibraryBundle = z.infer<typeof LibraryBundleSchema>;
 
 export type BundleMedia =
-  | BundleExercise["thumbnail" | "video"]
-  | BundleCover["image"];
+  | z.infer<typeof BundleExerciseSchema>["thumbnail" | "video"]
+  | z.infer<typeof BundleCoverSchema>["image"];

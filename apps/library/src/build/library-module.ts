@@ -2,7 +2,7 @@ import { readFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import type { GetCommandOptions } from "@vercel/blob";
 import { z } from "zod";
-import { LibraryBundle } from "../bundle";
+import { LibraryBundle } from "@fitme/library-bundle";
 import { PLACEHOLDER_SUPABASE_URL, serveLibrary } from "../served-library";
 
 /** The pathname `fitme-exercises` publishes the bundle at in the private Blob store. */

@@ -16,6 +16,7 @@
   "dependencies": {
     "@clerk/backend": "^3.29.0",
     "@fitme/core": "workspace:*",
+    "@fitme/library-bundle": "workspace:*",
     "@fitme/observability": "workspace:*",
     "@fitme/rate-limit": "workspace:*",
     "@hono/node-server": "^2.1.8",

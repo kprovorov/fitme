@@ -1,11 +1,11 @@
 import { readFileSync } from "node:fs";
 
 import { appLanguages, equipment, muscleGroups } from "@fitme/core/models";
+import { LibraryBundle } from "@fitme/library-bundle";
+import type { BundleExercise as LibraryExercise } from "@fitme/library-bundle";
 import { describe, expect, it, vi } from "vitest";
 
 import { serverSecretsFromEnv } from "./auth";
-import { LibraryBundle } from "./bundle";
-import type { BundleExercise as LibraryExercise } from "./bundle";
 import { createApp } from "./create-app";
 import type { AppDeps } from "./create-app";
 import {
