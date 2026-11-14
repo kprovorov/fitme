@@ -35,9 +35,19 @@ import {
 } from "~/test-utils/query-client";
 import { signInAs } from "~/test-utils/signed-in-user";
 
-jest.mock("expo-router", () => ({
-  Stack: { Screen: () => null },
-}));
+// The header's title, as text.
+jest.mock("expo-router", () => {
+  const { Text: MockText } =
+    jest.requireActual<typeof import("react-native")>("react-native");
+
+  return {
+    Stack: {
+      Screen: ({ options }: { options?: { title?: string } }) => (
+        <MockText testID="screen-title">{options?.title}</MockText>
+      ),
+    },
+  };
+});
 
 jest.mock("@sentry/react-native", () => ({ captureException: jest.fn() }));
 
@@ -244,6 +254,7 @@ describe("MeasurementSystemScreen", () => {
 
   it("switches through the Public API, converting every height and weight", async () => {
     await mount();
+    expect(screen.getByTestId("screen-title")).toHaveTextContent("Units");
     expect(screen.getByText("Measurement System")).toBeTruthy();
     expect(shown()).toHaveTextContent("metric");
 
@@ -652,6 +663,7 @@ describe("measurementSystemScreen on a Ukrainian device", () => {
   it("offers the measurement systems in Ukrainian and confirms in Ukrainian", async () => {
     await mountInUkrainian();
 
+    expect(screen.getByTestId("screen-title")).toHaveTextContent("Одиниці");
     expect(screen.getByText("Система вимірювання")).toBeTruthy();
     expect(screen.getByText("Метрична")).toBeTruthy();
     expect(screen.getByText("США")).toBeTruthy();
