@@ -14,7 +14,7 @@
     "typecheck": "pnpm generate && tsc --noEmit"
   },
   "dependencies": {
-    "@clerk/backend": "^3.25.0",
+    "@clerk/backend": "^3.29.0",
     "@fitme/core": "workspace:*",
     "@fitme/observability": "workspace:*",
     "@fitme/rate-limit": "workspace:*",

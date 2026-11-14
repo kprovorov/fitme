@@ -12,7 +12,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@clerk/backend": "^3.25.0",
+    "@clerk/backend": "^3.29.0",
     "@fitme/db": "workspace:*",
     "@fitme/observability": "workspace:*",
     "@fitme/services": "workspace:*",
