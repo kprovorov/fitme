@@ -10,7 +10,9 @@ import { resetMuscleChoices } from "~/hooks/muscle-choice";
 import { resetPlanDrafts } from "~/hooks/plan-draft";
 import { resetDeviceLanguages } from "~/test-utils/device-locales";
 import { fakeArnold } from "~/test-utils/fake-arnold";
+import { fakeClerk } from "~/test-utils/fake-clerk";
 import { fakePublicApi } from "~/test-utils/fake-public-api";
+import { fakeRevenueCat } from "~/test-utils/fake-revenuecat";
 import { clearTestQueryClients } from "~/test-utils/query-client";
 import { resetSignedInUser } from "~/test-utils/signed-in-user";
 
@@ -70,6 +72,20 @@ afterEach(() => {
 // an added set lives in memory until it's logged, outliving its screen.
 afterEach(() => {
   clearAddedSets();
+});
+
+// Every test starts with a free RevenueCat customer, no restore counted or
+// failing and no customer info listener left from the last one.
+afterEach(() => {
+  fakeRevenueCat.reset();
+});
+
+// Every test starts with the fake Clerk User as configured by default: its
+// name, email addresses, providers and password, no call recorded, no
+// failure queued and a fresh session. Before the signed-in User is reset,
+// which signs that User back in.
+afterEach(() => {
+  fakeClerk.reset();
 });
 
 // Every test starts with the fake Public API's User signed in, whoever the

@@ -50,6 +50,8 @@ paths = [
   '''\.test\.tsx?$''',
   '''^(?:apps|packages)/[^/]+/integration/''',
   '''^apps/mobile/e2e/''',
+  # The mobile test helpers' fakes (fake-clerk.ts's made-up User password).
+  '''^apps/mobile/test-utils/''',
 ]
 
 [[rules.allowlists]]
