@@ -99,9 +99,10 @@ fi
 
 root="$(git -C "$(dirname "$0")" rev-parse --show-toplevel)"
 
-# Never let a token or project id from the caller's environment pick what is
-# read: the run authenticates as the identity chosen here, in this project.
-unset INFISICAL_TOKEN INFISICAL_PROJECT_ID
+# Never let the caller's environment pick the token, project, environment or
+# folders: the run reads `dev` of this repo's project, as the identity chosen
+# here. (A login profile or org the caller selects still applies.)
+unset INFISICAL_TOKEN INFISICAL_PROJECT_ID INFISICAL_ENVIRONMENT INFISICAL_SECRET_PATH
 
 run_flags=(--env="$INFISICAL_ENV" --project-config-dir="$root" --silent)
 if [[ "$machine_identity" == 1 ]]; then
@@ -114,7 +115,8 @@ if [[ "$machine_identity" == 1 ]]; then
   fi
   # The CLI reads the client id and secret from the environment, so neither
   # goes on a command line. The token reaches `run` the same way.
-  if ! INFISICAL_TOKEN="$(infisical login --method=universal-auth --silent --plain 2>/dev/null)" ||
+  # --plain prints the token on stdout only, so the CLI's errors stay visible.
+  if ! INFISICAL_TOKEN="$(infisical login --method=universal-auth --silent --plain)" ||
     [[ -z "$INFISICAL_TOKEN" ]]; then
     unset INFISICAL_TOKEN
     echo "$0: the machine identity couldn't log in to Infisical." >&2
@@ -128,15 +130,19 @@ fi
 # `infisical run` exits 1 both when it can't fetch and whenever the command
 # fails, whatever its code. So an inner sh creates a marker before the command
 # runs (no marker: it never started) and writes the command's code into it.
-# The command never sees the machine identity's credentials or token.
-marker="$(mktemp)"
-rm -f "$marker"
-trap 'rm -f "$marker"' EXIT
+# The inner sh traps (never ignores) the stop signals, so Ctrl-C still reaches
+# the command and its 130 is recorded. The command never sees the machine
+# identity's credentials or token.
+marker_dir="$(mktemp -d)"
+marker="$marker_dir/status"
+trap 'rm -rf "$marker_dir"' EXIT
+# Ctrl-C reaches the whole process group: wait for the command and keep its code.
+trap : INT
 
 set +e
 # shellcheck disable=SC2016 # expanded by the inner sh, not here
 infisical run "${run_flags[@]}" "${paths[@]}" -- \
-  /bin/sh -c 'm=$1; shift; : >"$m"
+  /bin/sh -c 'm=$1; shift; : >"$m"; trap : INT TERM HUP
 env -u INFISICAL_TOKEN -u INFISICAL_UNIVERSAL_AUTH_CLIENT_ID -u INFISICAL_UNIVERSAL_AUTH_CLIENT_SECRET "$@"
 s=$?; echo "$s" >"$m"; exit "$s"' \
   with-dev-env "$marker" "$@"
