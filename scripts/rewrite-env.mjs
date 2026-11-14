@@ -1,19 +1,30 @@
 /// <reference types="node" />
 /// <reference lib="es2023.array" />
 
-// Points a checkout's env files at its own local Supabase stack: the pooler
-// port of a local FITME_DATABASE_URL. A remote value is left alone, and so is a
-// dir without a package.json (a renamed app's leftover env file). Run by
-// scripts/setup.sh after `supabase start`. No app reads the Data API's URL or
-// key any more (FIT-549), so those are left as they are.
+// Points the apps that reach Postgres at the checkout's own local Supabase
+// stack: sets FITME_DATABASE_URL in each one's `.env` to the stack's pooler,
+// with the app's own application_name. The file is created (owner-only) when
+// it's missing, the line added when the file hasn't got it, and every other
+// line left alone. A value pointing at a remote database is left as it is. Run
+// by scripts/setup.sh after `supabase start`.
 //
 // Usage: node scripts/rewrite-env.mjs <checkout> <supabase start --output-format json output>
 // Prints the stack's MCP URL on stdout, and each file it changed on stderr.
 import fs from "node:fs";
 import path from "node:path";
 
-const LOCAL_POOLER_URL =
-  /^(?<prefix>FITME_DATABASE_URL=["']?postgres(?:ql)?:\/\/[^@\s]*@(?:127\.0\.0\.1|localhost):)[^/\n]+/mu;
+// The app directories under apps/ whose `.env` gets the line; each one's
+// directory name is its application_name.
+export const DATABASE_APPS = ["api", "arnold", "mcp", "webhooks"];
+
+const LOCAL_POOLER_USER = "fitme.pooler-dev";
+
+// The fitme login's development password (packages/supabase/supabase/roles.sql).
+const LOCAL_POOLER_PASSWORD = "fitme-local-only";
+
+const DATABASE_URL_LINE = /^FITME_DATABASE_URL=(?<value>.*)$/u;
+const QUOTED = /^(?<quote>["'])(?<inner>.*)\k<quote>$/u;
+const LOCAL_HOSTS = new Set(["127.0.0.1", "localhost"]);
 
 // The CLI prints progress lines before the JSON, which is on one line.
 /** @param {string} output Supabase CLI output. */
@@ -50,40 +61,65 @@ export const parseStackOutput = (output) => {
   };
 };
 
-// Values may be quoted: `infisical export` (scripts/pull-env.sh) writes KEY='value'.
 /**
- * @param {string} text Env file contents.
- * @param {{poolerPort: number}} stack Local stack connection details.
+ * @param {number} poolerPort The stack's pooler port.
+ * @param {string} app The app's application_name.
  */
-export const rewriteEnvText = (text, { poolerPort }) =>
-  text.replace(LOCAL_POOLER_URL, `$<prefix>${poolerPort}`);
+export const localDatabaseUrl = (poolerPort, app) =>
+  `postgresql://${LOCAL_POOLER_USER}:${LOCAL_POOLER_PASSWORD}@127.0.0.1:${poolerPort}/postgres?application_name=${app}`;
 
-/**
- * @param {string} checkout Checkout root directory.
- * @yields {string} Env file paths belonging to current workspaces.
- */
-const envFiles = function* envFiles(checkout) {
-  for (const parent of ["apps", "packages"]) {
-    const parentDir = path.join(checkout, parent);
+// A Postgres URL on any host but this machine's. Values may be quoted:
+// `infisical export` (scripts/pull-env.sh) writes KEY='value'. An empty value,
+// a placeholder or anything else that isn't a URL counts as local.
+/** @param {string} value The line's value, as written. */
+const isRemote = (value) => {
+  const unquoted = QUOTED.exec(value.trim())?.groups?.inner ?? value.trim();
 
-    if (!fs.existsSync(parentDir)) {
-      continue;
-    }
-
-    for (const dir of fs.readdirSync(parentDir)) {
-      const full = path.join(parentDir, dir);
-
-      if (!fs.existsSync(path.join(full, "package.json"))) {
-        continue;
-      }
-
-      for (const name of fs.readdirSync(full)) {
-        if (name.startsWith(".env") && !name.endsWith(".example")) {
-          yield path.join(full, name);
-        }
-      }
-    }
+  if (!URL.canParse(unquoted)) {
+    return false;
   }
+
+  const { hostname, protocol } = new URL(unquoted);
+
+  return (
+    (protocol === "postgres:" || protocol === "postgresql:") &&
+    !LOCAL_HOSTS.has(hostname)
+  );
+};
+
+/**
+ * @param {string} text Env file contents (empty for a missing file).
+ * @param {{app: string, poolerPort: number}} target The app and its stack.
+ */
+export const setDatabaseUrl = (text, { app, poolerPort }) => {
+  const line = `FITME_DATABASE_URL=${localDatabaseUrl(poolerPort, app)}`;
+  const lines = text === "" ? [] : text.split("\n");
+  let found = false;
+
+  const updated = lines.map((current) => {
+    const value = DATABASE_URL_LINE.exec(current)?.groups?.value;
+
+    if (value === undefined) {
+      return current;
+    }
+
+    found = true;
+
+    return isRemote(value) ? current : line;
+  });
+
+  if (found) {
+    return updated.join("\n");
+  }
+
+  // A file ending in a newline splits into a trailing "": add the line before it.
+  if (updated.at(-1) === "") {
+    updated.splice(-1, 0, line);
+  } else {
+    updated.push(line, "");
+  }
+
+  return updated.join("\n");
 };
 
 /** @param {string[]} args Command-line arguments. */
@@ -98,12 +134,20 @@ const main = ([checkout, output]) => {
 
   const stack = parseStackOutput(output);
 
-  for (const file of envFiles(checkout)) {
-    const before = fs.readFileSync(file, "utf-8");
-    const after = rewriteEnvText(before, stack);
+  for (const app of DATABASE_APPS) {
+    const dir = path.join(checkout, "apps", app);
+
+    if (!fs.existsSync(path.join(dir, "package.json"))) {
+      continue;
+    }
+
+    const file = path.join(dir, ".env");
+    const before = fs.existsSync(file) ? fs.readFileSync(file, "utf-8") : "";
+    const after = setDatabaseUrl(before, { app, poolerPort: stack.poolerPort });
 
     if (after !== before) {
-      fs.writeFileSync(file, after);
+      // `mode` only applies when the file is created; an existing one keeps its own.
+      fs.writeFileSync(file, after, { mode: 0o600 });
       console.error(
         `Pointed ${path.relative(checkout, file)} at the local stack`
       );

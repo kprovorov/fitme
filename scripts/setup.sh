@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # T3 Code worktree setup: install deps, copy local env files from the main
-# checkout, then start this checkout's Supabase stack, point the env files at it
-# and register its MCP server with Claude Code.
+# checkout, then start this checkout's Supabase stack, write its database URL
+# into the database apps' .env and register its MCP server with Claude Code.
 set -euo pipefail
 
 worktree="${T3CODE_WORKTREE_PATH:-$(git rev-parse --show-toplevel)}"
@@ -58,6 +58,10 @@ if [[ "$root" != "$worktree" ]]; then
     for src in "$dir"/.env*; do
       [[ -f "$src" && "$src" != *.example ]] || continue
       rel="${src#"$root"/}"
+      # Arnold's local file is .env now. eve ranks .env.local above .env, so a
+      # copied .env.local (an older checkout's, pointing at its own stack) would
+      # win over the URL written below: bring its values in as .env instead.
+      [[ "$rel" == apps/arnold/.env.local ]] && rel="apps/arnold/.env"
       dest="$worktree/$rel"
       if [[ ! -e "$dest" ]]; then
         mkdir -p "$(dirname "$dest")"
@@ -73,10 +77,12 @@ fi
 log "stale Supabase stacks"
 scripts/destroy-stale-stacks.sh || warn "couldn't destroy stale Supabase stacks"
 
-# The copied env files point at another checkout's stack (or at placeholders),
-# so start this checkout's own and rewrite the pooler port. A remote value is
-# left alone. Not fatal: without Docker the
-# install above still stands, the env files just keep their old values.
+# Start this checkout's own stack, then write its database URL into the .env of
+# each app that reaches Postgres (apps/api, apps/arnold, apps/mcp,
+# apps/webhooks), creating the file or the line when missing: a copied file
+# points at another checkout's stack, and Infisical needn't hold the value. A
+# remote value is left alone. Not fatal: without Docker the install above still
+# stands, the env files just keep their old values.
 log "supabase start"
 if ! stack="$(cd packages/supabase && pnpm exec supabase start --output-format json)"; then
   warn "couldn't start the local Supabase stack, so the env files weren't updated"
@@ -86,7 +92,7 @@ fi
 # The rewriter is Node in its own file, not a heredoc: the bash 3.2 macOS ships
 # matches quotes inside a heredoc in `$(...)`, so one stray quote in inline JS
 # made this whole file a syntax error (exit 2). It prints the stack's MCP URL.
-log "point the env files at the local stack"
+log "write the local stack's database URL into the env files"
 if ! mcp_url="$(node scripts/rewrite-env.mjs "$worktree" "$stack")"; then
   warn "couldn't point the env files at the local stack"
   exit 0
