@@ -73,7 +73,7 @@ pnpm api build           # tsdown bundle → apps/api/dist
 pnpm api test            # vitest (Hono app via app.request, test-signed Clerk tokens, fake services)
 pnpm api test:integration # vitest against the local Supabase stack through its pooler (the real services facade)
 pnpm api openapi         # regenerate apps/api/openapi.json (commit it; CI fails when it's stale)
-scripts/with-dev-env.sh Mcp -- API_URL=http://localhost:3003 pnpm api clerk:check # prove a running Public API accepts a Clerk dev session token and reads that User's data (CLERK_SECRET_KEY sk_test_…, from the Mcp folder, and API_URL); bare, it has no CLERK_SECRET_KEY
+API_URL=http://localhost:3003 scripts/with-dev-env.sh Mcp -- pnpm api clerk:check # prove a running Public API accepts a Clerk dev session token and reads that User's data (CLERK_SECRET_KEY sk_test_…, from the Mcp folder, and API_URL); bare, it has no CLERK_SECRET_KEY
 pnpm api-client generate # regenerate packages/api-client/src/schema.ts from apps/api/openapi.json (commit it; CI fails when it's stale)
 pnpm webhooks build      # tsdown bundle → apps/webhooks/dist
 pnpm webhooks test       # vitest (Hono app via app.request, signed payloads, fake services)
