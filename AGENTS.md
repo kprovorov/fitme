@@ -502,9 +502,9 @@ A write takes only what it needs from the API's answer and refetches or invalida
 
 ## Environment Variables
 
-Env files live next to each app. Every value comes from Infisical (project Fitme, one folder per app, `dev` for local and `prod` synced to each Vercel project's Production): change it there, never in Vercel or by hand in a local file (the one exception is `apps/api`'s `MIN_APP_VERSION*`, Vercel only), and `scripts/pull-env.sh` rewrites the local files. Read `docs/agents/secrets.md` before adding, changing or rotating a variable.
+Every value comes from Infisical (project Fitme, one folder per app, `dev` for local and `prod` synced to each Vercel project's Production): change it there, never in Vercel or in a local file (the one exception is `apps/api`'s `MIN_APP_VERSION*`, Vercel only). Infisical `dev` is the only copy of the dev values: nothing pulls them to disk, and an app gets them when it starts through `scripts/with-dev-env.sh` (see Commands). The only env file setup writes is the `.env` of the four DB apps (`apps/api`, `apps/arnold`, `apps/mcp`, `apps/webhooks`), holding `FITME_DATABASE_URL` for the checkout's own Supabase stack (`node scripts/rewrite-env.mjs "$PWD"` rewrites it by hand). Any `.env` may also hold a variable Infisical doesn't have (a local toggle, `LIBRARY_BUNDLE`); it can't change one Infisical has, since the process environment wins over a `.env`: a different local value for one of those is an Infisical personal override. Read `docs/agents/secrets.md` before adding, changing or rotating a variable.
 
-`apps/mobile/.env` (prefix `EXPO_PUBLIC_` for client exposure):
+`apps/mobile` (Infisical `/Mobile`; prefix `EXPO_PUBLIC_` for client exposure; the app config reads them at prebuild too):
 
 - `EXPO_PUBLIC_API_URL` — `apps/api` base URL (`http://localhost:3003` locally and in the E2E workflow's build, which runs the API on its runner; production builds get `https://api.fitmeproject.com` from the EAS `production` environment, never from an `eas.json` build profile). Required for the writes that go through the Public API (unset, they fail with the screen's error state); unset skips the minimum version check
 - `EXPO_PUBLIC_LIBRARY_URL` — the Library API (`http://localhost:3006` locally, `pnpm dev:library`, which serves the made-up fixture bundle, so a local database's slugs show their slug names unless `LIBRARY_BUNDLE` points at a real bundle; production and the E2E workflow's builds use `https://library.fitmeproject.com`, which accepts development-instance Clerk tokens too; EAS `production` environment). Unset → every Exercise shows its slug's name
@@ -517,7 +517,7 @@ Env files live next to each app. Every value comes from Infisical (project Fitme
 - `EXPO_PUBLIC_REVENUECAT_ANDROID_API_KEY`
 - `EXPO_PUBLIC_DEVTOOLS_SYNC` — `true` turns on `react-query-external-sync` (`components/providers.tsx`, socket on `localhost:42831`) in non-production builds; leave unset unless its desktop devtools app is running, or the failed socket shows a red LogBox toast on every launch
 
-`apps/web/.env.local`:
+`apps/web` (Infisical `/Web`):
 
 - `PUBLIC_API_URL` — `apps/api` base URL (`http://localhost:3003` locally, `pnpm dev:api`; `https://api.fitmeproject.com` deployed), which the dashboard's Server Components read through. Server-only on purpose, never `NEXT_PUBLIC_`. Unset → the dashboard shows its error state
 - `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY`
@@ -579,7 +579,7 @@ Env files live next to each app. Every value comes from Infisical (project Fitme
 - `SENTRY_AUTH_TOKEN`, `SENTRY_ORG`, `SENTRY_PROJECT` — build time: source map upload for the release; set on Vercel by the Sentry integration; no token → the upload is skipped
 - `VERCEL_ENV`, `VERCEL_GIT_COMMIT_SHA` — set by Vercel: each event's `environment` and `release`
 
-`apps/site/.env.local` (see `apps/site/.env.example`): App Store id/url, support email, social links, GTM id, PostHog key, and `NEXT_PUBLIC_SENTRY_DSN` (the `fitme-site` Sentry project; unset locally, so nothing is sent) plus the build-time `SENTRY_AUTH_TOKEN`, `SENTRY_ORG`, `SENTRY_PROJECT` (source map upload; set on Vercel by the Sentry integration, no token → skipped).
+`apps/site` (Infisical `/Site`, see `apps/site/.env.example`): App Store id/url, support email, social links, GTM id, PostHog key, and `NEXT_PUBLIC_SENTRY_DSN` (the `fitme-site` Sentry project; unset locally, so nothing is sent) plus the build-time `SENTRY_AUTH_TOKEN`, `SENTRY_ORG`, `SENTRY_PROJECT` (source map upload; set on Vercel by the Sentry integration, no token → skipped).
 
 Backend apps that use `@fitme/db`:
 

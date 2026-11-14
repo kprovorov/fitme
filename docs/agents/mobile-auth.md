@@ -35,7 +35,7 @@ Follow [Clerk's native Google setup](https://clerk.com/docs/expo/guides/configur
 
 ## Set public build configuration
 
-Manage local values through Infisical `dev` `/Mobile` and regenerate the env file with `scripts/pull-env.sh`, as described in [Secrets](secrets.md). Configure the corresponding public values in each EAS build environment too.
+Manage local values in Infisical `dev` `/Mobile`; a native build started through `scripts/with-dev-env.sh Mobile -- pnpm ios` reads them at prebuild, as described in [Secrets](secrets.md). Configure the corresponding public values in each EAS build environment too.
 
 | Variable | Value |
 | --- | --- |

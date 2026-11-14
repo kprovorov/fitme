@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
-# T3 Code worktree setup: install deps, copy local env files from the main
-# checkout, then start this checkout's Supabase stack, write its database URL
-# into the database apps' .env and register its MCP server with Claude Code.
+# T3 Code worktree setup: install deps, then start this checkout's Supabase
+# stack, write its database URL into the database apps' .env and register its
+# MCP server with Claude Code. No other env is written: apps start through
+# scripts/with-dev-env.sh, which injects Infisical `dev` (docs/agents/secrets.md).
 set -euo pipefail
 
 worktree="${T3CODE_WORKTREE_PATH:-$(git rev-parse --show-toplevel)}"
@@ -40,50 +41,6 @@ pnpm exec husky
 log "Playwright Chromium"
 pnpm exec playwright install chromium-headless-shell || warn "couldn't install Playwright's Chromium"
 
-# Env files are gitignored, so new worktrees don't get them. Infisical (`dev`)
-# is their source: pull each app's file from it, never overwriting one already
-# present (a rerun keeps this worktree's stack ports). Then copy every
-# apps/*/.env* and packages/*/.env* still missing from the main checkout (all
-# of them without the Infisical CLI or a login). Copies, not symlinks: each
-# worktree runs its own Supabase stack (`[experimental] stack`), so its URLs and
-# ports can differ, and editing them must not touch the main checkout's files.
-# A dir without a package.json isn't an app or package (a renamed app leaves its
-# gitignored .env and node_modules behind), so it's skipped.
-if [[ "$root" != "$worktree" ]]; then
-  log "env files"
-  scripts/pull-env.sh --keep-existing || warn "couldn't pull every env file from Infisical, copying the rest from the main checkout"
-
-  for dir in "$root"/apps/* "$root"/packages/*; do
-    [[ -f "$dir/package.json" ]] || continue
-    for src in "$dir"/.env*; do
-      [[ -f "$src" && "$src" != *.example ]] || continue
-      rel="${src#"$root"/}"
-      # Arnold's two files are merged below.
-      [[ "$rel" == apps/arnold/.env || "$rel" == apps/arnold/.env.local ]] && continue
-      dest="$worktree/$rel"
-      if [[ ! -e "$dest" ]]; then
-        mkdir -p "$(dirname "$dest")"
-        cp "$src" "$dest"
-        log "Copied $rel"
-      fi
-    done
-  done
-
-  # Arnold's local file is .env now. eve ranks .env.local above .env, so a
-  # copied .env.local (an older checkout's, pointing at its own stack) would win
-  # over the URL written below. Merge the main checkout's two files into one
-  # .env instead, .env.local's line winning for a variable both set.
-  arnold_env="$worktree/apps/arnold/.env"
-  arnold_sources=()
-  for src in "$root/apps/arnold/.env.local" "$root/apps/arnold/.env"; do
-    [[ -f "$src" ]] && arnold_sources+=("$src")
-  done
-  if [[ -d "$worktree/apps/arnold" && ! -e "$arnold_env" && ${#arnold_sources[@]} -gt 0 ]]; then
-    (umask 077 && awk '{ key = $0; sub(/=.*/, "", key) } !seen[key]++' "${arnold_sources[@]}" >"$arnold_env")
-    log "Copied apps/arnold/.env from the main checkout's Arnold env files"
-  fi
-fi
-
 # A thread deleted without settling never runs settle.sh, so its stack outlives
 # its worktree; sweep those before starting another one. Not fatal.
 log "stale Supabase stacks"
@@ -91,13 +48,14 @@ scripts/destroy-stale-stacks.sh || warn "couldn't destroy stale Supabase stacks"
 
 # Start this checkout's own stack, then write its database URL into the .env of
 # each app that reaches Postgres (apps/api, apps/arnold, apps/mcp,
-# apps/webhooks), creating the file or the line when missing: a copied file
-# points at another checkout's stack, and Infisical needn't hold the value. A
-# remote value is left alone. Not fatal: without Docker the install above still
-# stands, the env files just keep their old values.
+# apps/webhooks), creating the file or the line when missing: it's the one value
+# local to a worktree, so Infisical doesn't hold it. A remote value is left
+# alone. Not fatal: without Docker the install above still stands, the DB apps
+# just have no database URL yet (rerun the writer once the stack is up, see
+# docs/agents/secrets.md).
 log "supabase start"
 if ! stack="$(cd packages/supabase && pnpm exec supabase start --output-format json)"; then
-  warn "couldn't start the local Supabase stack, so the env files weren't updated"
+  warn "couldn't start the local Supabase stack, so no database URL was written"
   exit 0
 fi
 

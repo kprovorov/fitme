@@ -48,7 +48,7 @@ pnpm dev:arnold          # :3005
 pnpm dev:library         # :3006, serving the made-up fixture library
 ```
 
-Each app has an `.env.example`. Copy it to `.env` for `apps/mobile`, `apps/library` and `apps/arnold`, or to `.env.local` for `apps/web` and `apps/site`. Worktree setup writes `FITME_DATABASE_URL` for the worktree's own Supabase stack into the `.env` of `apps/api`, `apps/arnold`, `apps/mcp` and `apps/webhooks`. AGENTS.md lists what each variable does.
+Apps get their env from Infisical `dev` when they start through `scripts/with-dev-env.sh` (`infisical login` first; AGENTS.md Commands has each app's command). Nothing is pulled to disk: worktree setup only writes `FITME_DATABASE_URL` for the checkout's own Supabase stack into the `.env` of `apps/api`, `apps/arnold`, `apps/mcp` and `apps/webhooks`. Each app's `.env.example` lists what it reads, and AGENTS.md what each variable does; [Secrets](docs/agents/secrets.md) describes the flow.
 
 Native Apple and Google sign-in also need provider registrations and public build configuration. See [Enable native sign-in on mobile](docs/agents/mobile-auth.md).
 
