@@ -1,7 +1,7 @@
 import { jest } from "@jest/globals";
 import type * as ReactNative from "react-native";
 
-import type { GoogleClientIds } from "~/components/auth/provider-config";
+import type { GoogleClientIds } from "~/lib/google-client-ids";
 
 jest.mock("expo-router/react-navigation", () => ({ useHeaderHeight: () => 0 }));
 
@@ -62,6 +62,6 @@ export const setGoogleClientIds = (ids: GoogleClientIds) => {
   mockGoogleClientIds = ids;
 };
 
-jest.mock("~/components/auth/provider-config", () => ({
+jest.mock("~/lib/google-client-ids", () => ({
   googleClientIds: () => mockGoogleClientIds,
 }));

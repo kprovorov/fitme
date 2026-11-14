@@ -13,8 +13,10 @@ import { router } from "expo-router";
 import { Platform } from "react-native";
 
 import AuthWelcomeView from "~/components/views/auth-welcome-view";
+import LoginView from "~/components/views/login-view";
+import RegisterView from "~/components/views/register-view";
 import { segmentClient } from "~/lib/segment";
-import { signInProviders } from "~/lib/sign-in-providers";
+import type { signInProviders } from "~/lib/sign-in-providers";
 import { setGoogleClientIds } from "~/test-utils/auth-ui";
 
 interface NativeResult {
@@ -175,9 +177,18 @@ describe("signed-out Welcome", () => {
   });
 });
 
-describe("sign-in providers (ADR 0021)", () => {
+const SCREENS = [
+  ["Welcome", AuthWelcomeView],
+  ["login", LoginView],
+  ["register", RegisterView],
+] as const;
+
+describe.each(SCREENS)("sign-in providers on %s (ADR 0021)", (_, View) => {
   it("offers Apple and Google on iOS when the build has the Google ids", async () => {
-    await show();
+    await render(<View />);
+    await expect(
+      screen.findByRole("button", { name: "Continue with Apple" })
+    ).resolves.toBeTruthy();
     expect(
       screen.getByRole("button", { name: "Continue with Google" })
     ).toBeTruthy();
@@ -185,30 +196,68 @@ describe("sign-in providers (ADR 0021)", () => {
 
   it("offers Google but never Apple on Android", async () => {
     Platform.OS = "android";
-    setGoogleClientIds({ ...googleIds, iosClientId: "", iosUrlScheme: "" });
-    await render(<AuthWelcomeView />);
-    expect(
-      screen.getByRole("button", { name: "Continue with Google" })
-    ).toBeTruthy();
+    await render(<View />);
+    await expect(
+      screen.findByRole("button", { name: "Continue with Google" })
+    ).resolves.toBeTruthy();
     expect(
       screen.queryByRole("button", { name: "Continue with Apple" })
     ).toBeNull();
   });
 
-  it("hides Google and warns when the build lacks its ids", async () => {
+  it("hides Google when the build lacks its ids", async () => {
     setGoogleClientIds(noGoogleIds);
-    await show();
+    await render(<View />);
+    await expect(
+      screen.findByRole("button", { name: "Continue with Apple" })
+    ).resolves.toBeTruthy();
     expect(
       screen.queryByRole("button", { name: "Continue with Google" })
     ).toBeNull();
+  });
+});
+
+describe("the sign-in provider rule", () => {
+  // A fresh module each time, so the warning's once-per-build memory starts
+  // empty whatever ran before.
+  const freshSignInProviders = () => {
+    let rule: typeof signInProviders = () => [];
+
+    jest.isolateModules(() => {
+      ({ signInProviders: rule } = jest.requireActual<
+        typeof import("~/lib/sign-in-providers")
+      >("~/lib/sign-in-providers"));
+    });
+
+    return rule;
+  };
+
+  it("warns once when the build lacks the Google ids", () => {
+    setGoogleClientIds(noGoogleIds);
+    const rule = freshSignInProviders();
+
+    expect(rule()).toEqual(["apple"]);
+    expect(rule()).toEqual(["apple"]);
+    expect(console.warn).toHaveBeenCalledTimes(1);
     expect(console.warn).toHaveBeenCalledWith(
       expect.stringContaining("EXPO_PUBLIC_CLERK_GOOGLE_")
     );
   });
 
+  it("doesn't warn when the build has the Google ids", () => {
+    expect(freshSignInProviders()()).toEqual(["apple", "google"]);
+    expect(console.warn).not.toHaveBeenCalled();
+  });
+
   it("hides Google on iOS when its native callback scheme is missing", () => {
     setGoogleClientIds({ ...googleIds, iosUrlScheme: "" });
-    expect(signInProviders()).toEqual(["apple"]);
+    expect(freshSignInProviders()()).toEqual(["apple"]);
+  });
+
+  it("needs only the web client id on Android", () => {
+    Platform.OS = "android";
+    setGoogleClientIds({ ...noGoogleIds, webClientId: googleIds.webClientId });
+    expect(freshSignInProviders()()).toEqual(["google"]);
   });
 });
 

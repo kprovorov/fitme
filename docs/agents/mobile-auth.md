@@ -4,7 +4,7 @@ Fitme uses custom auth screens and Clerk's native Apple and Google hooks. The na
 
 ## Which providers a build offers
 
-One rule, in `apps/mobile/lib/sign-in-providers.ts` (`signInProviders()`), decides it for Welcome, login, registration and Account & Security ([ADR 0021](../adr/0021-sign-in-methods-are-linked-through-the-browser.md)):
+One rule, in `apps/mobile/lib/sign-in-providers.ts` (`signInProviders()`), decides it for Welcome, login and registration, and will for Account & Security ([ADR 0021](../adr/0021-sign-in-methods-are-linked-through-the-browser.md)):
 
 - **Apple** shows on iOS always and never on Android.
 - **Google** shows whenever the build carries valid `EXPO_PUBLIC_CLERK_GOOGLE_*` client ids (the web client id on both platforms, plus the iOS client id and its matching URL scheme on iOS). Without them it is hidden and a warning is logged.

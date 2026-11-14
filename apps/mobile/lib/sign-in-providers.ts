@@ -1,7 +1,7 @@
 import { Platform } from "react-native";
 
-import { googleClientIds } from "~/components/auth/provider-config";
-import type { GoogleClientIds } from "~/components/auth/provider-config";
+import { googleClientIds } from "~/lib/google-client-ids";
+import type { GoogleClientIds } from "~/lib/google-client-ids";
 
 export type SocialProvider = "apple" | "google";
 
@@ -42,8 +42,8 @@ const warnGoogleMissing = (ids: GoogleClientIds) => {
 };
 
 /**
- * The sign-in providers this build offers (ADR 0021), for login, registration
- * and Account & Security alike: Apple on iOS always and never on Android;
+ * The sign-in providers this build offers (ADR 0021), the one rule for Welcome,
+ * login and registration (and Account & Security once it exists): Apple on iOS always and never on Android;
  * Google whenever the build carries its client ids, hidden with a warning
  * otherwise. Clerk's instance settings are never consulted.
  */
