@@ -624,6 +624,94 @@
     },
     "deleteFailed": "Dein Konto konnte nicht gelöscht werden"
   },
+  "accountSecurity": {
+    "title": "Konto & Sicherheit",
+    "sections": {
+      "signIn": "Anmeldung",
+      "methods": "Anmeldemethoden"
+    },
+    "email": "E-Mail",
+    "passwordRow": "Passwort ändern",
+    "connected": "Verbunden",
+    "connectedAs": "Verbunden als {{email}}",
+    "notConnected": "Nicht verbunden",
+    "connect": "Verbinden",
+    "connecting": "Wird verbunden…",
+    "disconnect": "Trennen",
+    "disconnecting": "Wird getrennt…",
+    "addAnotherMethod": "Füge zuerst eine andere Anmeldemethode hinzu",
+    "disconnectConfirm": {
+      "title": "{{provider}} trennen?",
+      "message": "Du kannst dich dann nicht mehr mit {{provider}} anmelden."
+    },
+    "errors": {
+      "connectFailed": "{{provider}} konnte nicht verbunden werden. Versuche es erneut.",
+      "disconnectFailed": "{{provider}} konnte nicht getrennt werden. Versuche es erneut.",
+      "appleUnavailable": "Die Anmeldung mit Apple ist noch nicht verfügbar. Nutze vorerst Google oder deine E-Mail.",
+      "alreadyLinked": "Dieses {{provider}}-Konto ist bereits mit einem anderen Fitme-Konto verbunden."
+    },
+    "deleteAccount": "Konto löschen"
+  },
+  "changeEmail": {
+    "title": "E-Mail ändern",
+    "current": "Aktuelle E-Mail",
+    "new": "Neue E-Mail",
+    "description": "Wir senden einen Code an deine neue E-Mail, um sie zu bestätigen.",
+    "submit": "Code senden",
+    "errors": {
+      "emailInUse": "E-Mail wird bereits verwendet",
+      "invalidEmail": "Gib eine gültige E-Mail-Adresse ein.",
+      "sameEmail": "Das ist bereits deine E-Mail.",
+      "failed": "Deine E-Mail konnte nicht geändert werden. Versuche es erneut."
+    },
+    "success": "E-Mail geändert"
+  },
+  "changePassword": {
+    "title": "Passwort ändern",
+    "description": "Auf deinen anderen Geräten wirst du abgemeldet.",
+    "current": "Aktuelles Passwort",
+    "new": "Neues Passwort",
+    "confirm": "Neues Passwort bestätigen",
+    "submit": "Passwort ändern",
+    "errors": {
+      "tooShort": "Das Passwort muss mindestens {{min}} Zeichen lang sein.",
+      "mismatch": "Die Passwörter stimmen nicht überein",
+      "wrongCurrent": "Das aktuelle Passwort ist falsch.",
+      "failed": "Dein Passwort konnte nicht geändert werden. Versuche es erneut."
+    },
+    "success": "Passwort geändert"
+  },
+  "confirmIdentity": {
+    "title": "Bestätige, dass du es bist",
+    "password": {
+      "description": "Gib dein Passwort ein, um fortzufahren.",
+      "placeholder": "Passwort",
+      "forgot": "Passwort vergessen?"
+    },
+    "code": {
+      "description": "Gib den Code ein, den wir an {{email}} gesendet haben, um fortzufahren.",
+      "placeholder": "Code",
+      "resend": "Neuen Code senden"
+    },
+    "continue": "Weiter",
+    "errors": {
+      "passwordIncorrect": "Das Passwort ist falsch. Versuche es erneut.",
+      "wrongCode": "Der Code stimmt nicht. Versuche es erneut.",
+      "codeNotSent": "Der Code konnte nicht gesendet werden. Versuche es erneut.",
+      "failed": "Wir konnten nicht bestätigen, dass du es bist. Versuche es erneut."
+    }
+  },
+  "deleteAccount": {
+    "title": "Konto löschen?",
+    "message": "Deine Trainings, Pläne, dein Profil und deine Chats mit Arnold werden endgültig gelöscht. Das kann nicht rückgängig gemacht werden.",
+    "proWarning": {
+      "appStore": "Dein App-Store-Abo wird nicht automatisch gekündigt. Verwalte es im App Store, um die Abrechnung zu beenden.",
+      "googlePlay": "Dein Google-Play-Abo wird nicht automatisch gekündigt. Verwalte es in Google Play, um die Abrechnung zu beenden."
+    },
+    "manageSubscription": "Abo verwalten",
+    "confirm": "Konto löschen",
+    "failed": "Dein Konto konnte nicht gelöscht werden. Versuche es erneut."
+  },
   "measurementSystem": {
     "title": "Maßsystem",
     "loadError": "Dein Maßsystem konnte nicht geladen werden. Bitte prüfe deine Verbindung und versuche es erneut.",
@@ -667,14 +755,16 @@
     "description": {
       "signUp": "Gib den Code aus unserer E-Mail ein, um dein Konto zu aktivieren",
       "reset": "Gib den Code aus unserer E-Mail ein, um dein Passwort zurückzusetzen",
-      "signIn": "Gib den Code aus unserer E-Mail ein, um dich auf diesem Gerät zu bestätigen"
+      "signIn": "Gib den Code aus unserer E-Mail ein, um dich auf diesem Gerät zu bestätigen",
+      "changeEmail": "Gib den Code ein, den wir an deine neue Adresse gesendet haben"
     },
     "codePlaceholder": "Code",
     "verify": "Bestätigen",
     "errors": {
       "signUpIncomplete": "Dein Konto konnte nicht vollständig erstellt werden. Bitte versuche es erneut.",
       "resetIncomplete": "Der Code konnte nicht bestätigt werden. Bitte versuche es erneut.",
-      "signInIncomplete": "Du konntest nicht angemeldet werden. Bitte versuche es erneut."
+      "signInIncomplete": "Du konntest nicht angemeldet werden. Bitte versuche es erneut.",
+      "changeEmailIncomplete": "Wir konnten deine E-Mail nicht ändern. Versuche es erneut."
     },
     "resendButton": "Code erneut senden",
     "resentNotice": "Wir haben dir einen neuen Code gesendet.",
@@ -685,7 +775,8 @@
     "changeEmail": "Ändern",
     "loading": "Wird bestätigt",
     "expired": "Diese Bestätigung ist abgelaufen. Starte erneut, um einen neuen Code zu erhalten.",
-    "startOver": "Erneut starten"
+    "startOver": "Erneut starten",
+    "changeEmailTitle": "Bestätige deine neue E-Mail"
   },
   "forgotPassword": {
     "screenTitle": "Passwort vergessen",

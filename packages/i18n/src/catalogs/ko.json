@@ -593,6 +593,94 @@
     },
     "deleteFailed": "계정을 삭제하지 못했어요"
   },
+  "accountSecurity": {
+    "title": "계정 및 보안",
+    "sections": {
+      "signIn": "로그인",
+      "methods": "로그인 방법"
+    },
+    "email": "이메일",
+    "passwordRow": "비밀번호 변경",
+    "connected": "연결됨",
+    "connectedAs": "{{email}}(으)로 연결됨",
+    "notConnected": "연결 안 됨",
+    "connect": "연결",
+    "connecting": "연결 중…",
+    "disconnect": "연결 해제",
+    "disconnecting": "연결 해제 중…",
+    "addAnotherMethod": "먼저 다른 로그인 방법을 추가해 주세요",
+    "disconnectConfirm": {
+      "title": "{{provider}} 연결을 해제할까요?",
+      "message": "더 이상 {{provider}}(으)로 로그인할 수 없어요."
+    },
+    "errors": {
+      "connectFailed": "{{provider}}을(를) 연결하지 못했어요. 다시 시도해 주세요.",
+      "disconnectFailed": "{{provider}} 연결을 해제하지 못했어요. 다시 시도해 주세요.",
+      "appleUnavailable": "Apple 로그인은 아직 사용할 수 없어요. 지금은 Google이나 이메일을 사용해 주세요.",
+      "alreadyLinked": "이 {{provider}} 계정은 이미 다른 Fitme 계정에 연결되어 있어요."
+    },
+    "deleteAccount": "계정 삭제"
+  },
+  "changeEmail": {
+    "title": "이메일 변경",
+    "current": "현재 이메일",
+    "new": "새 이메일",
+    "description": "확인을 위해 새 이메일로 코드를 보내 드릴게요.",
+    "submit": "코드 보내기",
+    "errors": {
+      "emailInUse": "이미 사용 중인 이메일이에요",
+      "invalidEmail": "올바른 이메일 주소를 입력해 주세요.",
+      "sameEmail": "이미 사용 중인 내 이메일이에요.",
+      "failed": "이메일을 변경하지 못했어요. 다시 시도해 주세요."
+    },
+    "success": "이메일을 변경했어요"
+  },
+  "changePassword": {
+    "title": "비밀번호 변경",
+    "description": "다른 기기에서는 로그아웃돼요.",
+    "current": "현재 비밀번호",
+    "new": "새 비밀번호",
+    "confirm": "새 비밀번호 확인",
+    "submit": "비밀번호 변경",
+    "errors": {
+      "tooShort": "비밀번호는 {{min}}자 이상이어야 해요.",
+      "mismatch": "비밀번호가 일치하지 않아요",
+      "wrongCurrent": "현재 비밀번호가 올바르지 않아요.",
+      "failed": "비밀번호를 변경하지 못했어요. 다시 시도해 주세요."
+    },
+    "success": "비밀번호를 변경했어요"
+  },
+  "confirmIdentity": {
+    "title": "본인 확인",
+    "password": {
+      "description": "계속하려면 비밀번호를 입력해 주세요.",
+      "placeholder": "비밀번호",
+      "forgot": "비밀번호를 잊으셨나요?"
+    },
+    "code": {
+      "description": "계속하려면 {{email}}(으)로 보낸 코드를 입력해 주세요.",
+      "placeholder": "코드",
+      "resend": "새 코드 보내기"
+    },
+    "continue": "계속",
+    "errors": {
+      "passwordIncorrect": "비밀번호가 올바르지 않아요. 다시 시도해 주세요.",
+      "wrongCode": "코드가 올바르지 않아요. 다시 시도해 주세요.",
+      "codeNotSent": "코드를 보내지 못했어요. 다시 시도해 주세요.",
+      "failed": "본인 확인을 하지 못했어요. 다시 시도해 주세요."
+    }
+  },
+  "deleteAccount": {
+    "title": "계정을 삭제할까요?",
+    "message": "운동 기록, 플랜, 프로필, Arnold와의 채팅이 영구적으로 삭제돼요. 이 작업은 되돌릴 수 없어요.",
+    "proWarning": {
+      "appStore": "App Store 구독은 자동으로 취소되지 않아요. 결제를 중단하려면 App Store에서 관리해 주세요.",
+      "googlePlay": "Google Play 구독은 자동으로 취소되지 않아요. 결제를 중단하려면 Google Play에서 관리해 주세요."
+    },
+    "manageSubscription": "구독 관리",
+    "confirm": "계정 삭제",
+    "failed": "계정을 삭제하지 못했어요. 다시 시도해 주세요."
+  },
   "measurementSystem": {
     "title": "측정 단위",
     "loadError": "측정 단위를 불러오지 못했어요. 연결 상태를 확인하고 다시 시도해 주세요.",
@@ -636,14 +724,16 @@
     "description": {
       "signUp": "계정을 활성화하려면 이메일로 보내드린 코드를 입력해 주세요",
       "reset": "비밀번호를 재설정하려면 이메일로 보내드린 코드를 입력해 주세요",
-      "signIn": "이 기기에서 본인임을 확인하려면 보내드린 코드를 입력해 주세요"
+      "signIn": "이 기기에서 본인임을 확인하려면 보내드린 코드를 입력해 주세요",
+      "changeEmail": "새 이메일 주소로 보낸 코드를 입력해 주세요"
     },
     "codePlaceholder": "코드",
     "verify": "확인",
     "errors": {
       "signUpIncomplete": "계정 생성을 완료하지 못했어요. 다시 시도해 주세요.",
       "resetIncomplete": "코드를 확인하지 못했어요. 다시 시도해 주세요.",
-      "signInIncomplete": "로그인하지 못했어요. 다시 시도해 주세요."
+      "signInIncomplete": "로그인하지 못했어요. 다시 시도해 주세요.",
+      "changeEmailIncomplete": "이메일을 변경하지 못했어요. 다시 시도해 주세요."
     },
     "resendButton": "코드 다시 보내기",
     "resentNotice": "새 코드를 보내드렸어요.",
@@ -654,7 +744,8 @@
     "changeEmail": "변경하기",
     "loading": "확인 중",
     "expired": "인증이 만료됐어요. 새 코드를 받으려면 다시 시작해 주세요.",
-    "startOver": "다시 시작"
+    "startOver": "다시 시작",
+    "changeEmailTitle": "새 이메일 확인"
   },
   "forgotPassword": {
     "screenTitle": "비밀번호 찾기",

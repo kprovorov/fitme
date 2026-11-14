@@ -686,6 +686,94 @@
     },
     "deleteFailed": "Nie udało się usunąć konta"
   },
+  "accountSecurity": {
+    "title": "Konto i bezpieczeństwo",
+    "sections": {
+      "signIn": "Logowanie",
+      "methods": "Metody logowania"
+    },
+    "email": "E-mail",
+    "passwordRow": "Zmień hasło",
+    "connected": "Połączono",
+    "connectedAs": "Połączono jako {{email}}",
+    "notConnected": "Nie połączono",
+    "connect": "Połącz",
+    "connecting": "Łączenie…",
+    "disconnect": "Odłącz",
+    "disconnecting": "Odłączanie…",
+    "addAnotherMethod": "Najpierw dodaj inny sposób logowania",
+    "disconnectConfirm": {
+      "title": "Odłączyć {{provider}}?",
+      "message": "Nie będziesz już mógł logować się przez {{provider}}."
+    },
+    "errors": {
+      "connectFailed": "Nie udało się połączyć {{provider}}. Spróbuj ponownie.",
+      "disconnectFailed": "Nie udało się odłączyć {{provider}}. Spróbuj ponownie.",
+      "appleUnavailable": "Logowanie przez Apple nie jest jeszcze dostępne. Na razie użyj Google lub adresu e-mail.",
+      "alreadyLinked": "To konto {{provider}} jest już połączone z innym kontem Fitme."
+    },
+    "deleteAccount": "Usuń konto"
+  },
+  "changeEmail": {
+    "title": "Zmień e-mail",
+    "current": "Obecny e-mail",
+    "new": "Nowy e-mail",
+    "description": "Wyślemy kod na nowy adres e-mail, aby go potwierdzić.",
+    "submit": "Wyślij kod",
+    "errors": {
+      "emailInUse": "E-mail jest już używany",
+      "invalidEmail": "Wpisz prawidłowy adres e-mail.",
+      "sameEmail": "To już jest Twój e-mail.",
+      "failed": "Nie udało się zmienić e-maila. Spróbuj ponownie."
+    },
+    "success": "E-mail zmieniony"
+  },
+  "changePassword": {
+    "title": "Zmień hasło",
+    "description": "Zostaniesz wylogowany na innych urządzeniach.",
+    "current": "Obecne hasło",
+    "new": "Nowe hasło",
+    "confirm": "Potwierdź nowe hasło",
+    "submit": "Zmień hasło",
+    "errors": {
+      "tooShort": "Minimalna długość hasła: {{min}}.",
+      "mismatch": "Hasła nie są takie same",
+      "wrongCurrent": "Obecne hasło jest nieprawidłowe.",
+      "failed": "Nie udało się zmienić hasła. Spróbuj ponownie."
+    },
+    "success": "Hasło zmienione"
+  },
+  "confirmIdentity": {
+    "title": "Potwierdź, że to Ty",
+    "password": {
+      "description": "Wpisz hasło, aby kontynuować.",
+      "placeholder": "Hasło",
+      "forgot": "Nie pamiętasz hasła?"
+    },
+    "code": {
+      "description": "Wpisz kod wysłany na {{email}}, aby kontynuować.",
+      "placeholder": "Kod",
+      "resend": "Wyślij nowy kod"
+    },
+    "continue": "Kontynuuj",
+    "errors": {
+      "passwordIncorrect": "Nieprawidłowe hasło. Spróbuj ponownie.",
+      "wrongCode": "Ten kod jest nieprawidłowy. Spróbuj ponownie.",
+      "codeNotSent": "Nie udało się wysłać kodu. Spróbuj ponownie.",
+      "failed": "Nie udało się potwierdzić, że to Ty. Spróbuj ponownie."
+    }
+  },
+  "deleteAccount": {
+    "title": "Usunąć konto?",
+    "message": "Twoje treningi, plany, profil i czaty z Arnoldem zostaną trwale usunięte. Tej operacji nie można cofnąć.",
+    "proWarning": {
+      "appStore": "Twoja subskrypcja w App Store nie zostanie anulowana automatycznie. Zarządzaj nią w App Store, aby zatrzymać płatności.",
+      "googlePlay": "Twoja subskrypcja w Google Play nie zostanie anulowana automatycznie. Zarządzaj nią w Google Play, aby zatrzymać płatności."
+    },
+    "manageSubscription": "Zarządzaj subskrypcją",
+    "confirm": "Usuń konto",
+    "failed": "Nie udało się usunąć konta. Spróbuj ponownie."
+  },
   "measurementSystem": {
     "title": "System jednostek",
     "loadError": "Nie udało się wczytać systemu jednostek. Sprawdź połączenie i spróbuj ponownie.",
@@ -729,14 +817,16 @@
     "description": {
       "signUp": "Wpisz kod wysłany e-mailem, aby aktywować konto",
       "reset": "Wpisz kod wysłany e-mailem, aby zresetować hasło",
-      "signIn": "Wpisz wysłany kod, aby potwierdzić swoją tożsamość na tym urządzeniu"
+      "signIn": "Wpisz wysłany kod, aby potwierdzić swoją tożsamość na tym urządzeniu",
+      "changeEmail": "Wpisz kod wysłany na nowy adres"
     },
     "codePlaceholder": "Kod",
     "verify": "Potwierdź",
     "errors": {
       "signUpIncomplete": "Nie udało się dokończyć tworzenia konta. Spróbuj ponownie.",
       "resetIncomplete": "Nie udało się potwierdzić kodu. Spróbuj ponownie.",
-      "signInIncomplete": "Nie udało się zalogować. Spróbuj ponownie."
+      "signInIncomplete": "Nie udało się zalogować. Spróbuj ponownie.",
+      "changeEmailIncomplete": "Nie udało się zmienić e-maila. Spróbuj ponownie."
     },
     "resendButton": "Wyślij kod ponownie",
     "resentNotice": "Wysłaliśmy ci nowy kod.",
@@ -747,7 +837,8 @@
     "changeEmail": "Zmień go",
     "loading": "Potwierdzanie",
     "expired": "Kod weryfikacyjny wygasł. Zacznij ponownie, aby otrzymać nowy kod.",
-    "startOver": "Zacznij ponownie"
+    "startOver": "Zacznij ponownie",
+    "changeEmailTitle": "Potwierdź nowy e-mail"
   },
   "forgotPassword": {
     "screenTitle": "Odzyskaj hasło",

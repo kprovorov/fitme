@@ -593,6 +593,94 @@
     },
     "deleteFailed": "無法刪除你的帳號"
   },
+  "accountSecurity": {
+    "title": "帳號與安全性",
+    "sections": {
+      "signIn": "登入",
+      "methods": "登入方式"
+    },
+    "email": "電子信箱",
+    "passwordRow": "變更密碼",
+    "connected": "已連結",
+    "connectedAs": "已連結 {{email}}",
+    "notConnected": "未連結",
+    "connect": "連結",
+    "connecting": "正在連結…",
+    "disconnect": "解除連結",
+    "disconnecting": "正在解除…",
+    "addAnotherMethod": "請先新增其他登入方式",
+    "disconnectConfirm": {
+      "title": "要解除連結 {{provider}} 嗎？",
+      "message": "你將無法再使用 {{provider}} 登入。"
+    },
+    "errors": {
+      "connectFailed": "無法連結 {{provider}}，請再試一次。",
+      "disconnectFailed": "無法解除連結 {{provider}}，請再試一次。",
+      "appleUnavailable": "目前尚無法使用 Apple 登入。請先使用 Google 或電子信箱。",
+      "alreadyLinked": "這個 {{provider}} 帳號已連結到另一個 Fitme 帳號。"
+    },
+    "deleteAccount": "刪除帳號"
+  },
+  "changeEmail": {
+    "title": "變更電子信箱",
+    "current": "目前的電子信箱",
+    "new": "新的電子信箱",
+    "description": "我們會寄驗證碼到你的新電子信箱以進行確認。",
+    "submit": "傳送驗證碼",
+    "errors": {
+      "emailInUse": "這個電子信箱已被使用",
+      "invalidEmail": "請輸入有效的電子信箱地址。",
+      "sameEmail": "這已經是你的電子信箱。",
+      "failed": "無法變更你的電子信箱，請再試一次。"
+    },
+    "success": "電子信箱已變更"
+  },
+  "changePassword": {
+    "title": "變更密碼",
+    "description": "你將在其他裝置上登出。",
+    "current": "目前的密碼",
+    "new": "新密碼",
+    "confirm": "確認新密碼",
+    "submit": "變更密碼",
+    "errors": {
+      "tooShort": "密碼至少需要 {{min}} 個字元。",
+      "mismatch": "兩次輸入的密碼不一致",
+      "wrongCurrent": "目前的密碼不正確。",
+      "failed": "無法變更你的密碼，請再試一次。"
+    },
+    "success": "密碼已變更"
+  },
+  "confirmIdentity": {
+    "title": "確認是你本人",
+    "password": {
+      "description": "請輸入密碼以繼續。",
+      "placeholder": "密碼",
+      "forgot": "忘記密碼？"
+    },
+    "code": {
+      "description": "請輸入我們寄到 {{email}} 的驗證碼以繼續。",
+      "placeholder": "驗證碼",
+      "resend": "重新傳送驗證碼"
+    },
+    "continue": "繼續",
+    "errors": {
+      "passwordIncorrect": "密碼不正確，請再試一次。",
+      "wrongCode": "驗證碼不正確，請再試一次。",
+      "codeNotSent": "無法傳送驗證碼，請再試一次。",
+      "failed": "無法確認是你本人，請再試一次。"
+    }
+  },
+  "deleteAccount": {
+    "title": "要刪除你的帳號嗎？",
+    "message": "你的訓練、計畫、個人檔案和與 Arnold 的聊天將被永久刪除。此動作無法復原。",
+    "proWarning": {
+      "appStore": "你的 App Store 訂閱不會自動取消。請在 App Store 中管理訂閱以停止扣款。",
+      "googlePlay": "你的 Google Play 訂閱不會自動取消。請在 Google Play 中管理訂閱以停止扣款。"
+    },
+    "manageSubscription": "管理訂閱",
+    "confirm": "刪除帳號",
+    "failed": "無法刪除你的帳號，請再試一次。"
+  },
   "measurementSystem": {
     "title": "度量衡單位",
     "loadError": "無法載入你的度量衡單位。請檢查網路連線後再試一次。",
@@ -636,14 +724,16 @@
     "description": {
       "signUp": "輸入我們傳送到你電子信箱的驗證碼以啟用帳號",
       "reset": "輸入我們傳送到你電子信箱的驗證碼以重設密碼",
-      "signIn": "輸入我們傳送的驗證碼，確認是你在此裝置上登入"
+      "signIn": "輸入我們傳送的驗證碼，確認是你在此裝置上登入",
+      "changeEmail": "請輸入我們寄到你新電子信箱的驗證碼"
     },
     "codePlaceholder": "驗證碼",
     "verify": "驗證",
     "errors": {
       "signUpIncomplete": "無法完成帳號建立，請再試一次。",
       "resetIncomplete": "無法驗證此驗證碼，請再試一次。",
-      "signInIncomplete": "無法登入，請再試一次。"
+      "signInIncomplete": "無法登入，請再試一次。",
+      "changeEmailIncomplete": "無法變更你的電子信箱，請再試一次。"
     },
     "resendButton": "重新傳送驗證碼",
     "resentNotice": "我們已向你傳送新的驗證碼。",
@@ -654,7 +744,8 @@
     "changeEmail": "更換電子信箱",
     "loading": "正在驗證",
     "expired": "此次驗證已過期。請重新開始以獲取新的驗證碼。",
-    "startOver": "重新開始"
+    "startOver": "重新開始",
+    "changeEmailTitle": "確認你的新電子信箱"
   },
   "forgotPassword": {
     "screenTitle": "忘記密碼",

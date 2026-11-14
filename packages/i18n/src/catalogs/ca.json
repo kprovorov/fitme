@@ -655,6 +655,94 @@
     },
     "deleteFailed": "No s'ha pogut eliminar el compte"
   },
+  "accountSecurity": {
+    "title": "Compte i seguretat",
+    "sections": {
+      "signIn": "Inici de sessió",
+      "methods": "Mètodes d'inici de sessió"
+    },
+    "email": "Correu electrònic",
+    "passwordRow": "Canvia la contrasenya",
+    "connected": "Connectat",
+    "connectedAs": "Connectat com a {{email}}",
+    "notConnected": "No connectat",
+    "connect": "Connecta",
+    "connecting": "S'està connectant…",
+    "disconnect": "Desconnecta",
+    "disconnecting": "S'està desconnectant…",
+    "addAnotherMethod": "Primer afegeix una altra manera d'iniciar sessió",
+    "disconnectConfirm": {
+      "title": "Vols desconnectar {{provider}}?",
+      "message": "Ja no podràs iniciar sessió amb {{provider}}."
+    },
+    "errors": {
+      "connectFailed": "No s'ha pogut connectar {{provider}}. Torna-ho a provar.",
+      "disconnectFailed": "No s'ha pogut desconnectar {{provider}}. Torna-ho a provar.",
+      "appleUnavailable": "Encara no es pot iniciar sessió amb Apple. De moment, fes servir Google o el teu correu.",
+      "alreadyLinked": "Aquest compte de {{provider}} ja està connectat a un altre compte de Fitme."
+    },
+    "deleteAccount": "Elimina el compte"
+  },
+  "changeEmail": {
+    "title": "Canvia el correu",
+    "current": "Correu actual",
+    "new": "Correu nou",
+    "description": "T'enviarem un codi al correu nou per confirmar-lo.",
+    "submit": "Envia el codi",
+    "errors": {
+      "emailInUse": "Correu en ús",
+      "invalidEmail": "Introdueix un correu electrònic vàlid.",
+      "sameEmail": "Aquest ja és el teu correu.",
+      "failed": "No s'ha pogut canviar el correu. Torna-ho a provar."
+    },
+    "success": "Correu canviat"
+  },
+  "changePassword": {
+    "title": "Canvia la contrasenya",
+    "description": "Es tancarà la sessió als teus altres dispositius.",
+    "current": "Contrasenya actual",
+    "new": "Contrasenya nova",
+    "confirm": "Confirma la contrasenya nova",
+    "submit": "Canvia la contrasenya",
+    "errors": {
+      "tooShort": "La contrasenya ha de tenir com a mínim {{min}} caràcters.",
+      "mismatch": "Les contrasenyes no coincideixen",
+      "wrongCurrent": "La contrasenya actual no és correcta.",
+      "failed": "No s'ha pogut canviar la contrasenya. Torna-ho a provar."
+    },
+    "success": "Contrasenya canviada"
+  },
+  "confirmIdentity": {
+    "title": "Confirma que ets tu",
+    "password": {
+      "description": "Introdueix la contrasenya per continuar.",
+      "placeholder": "Contrasenya",
+      "forgot": "Has oblidat la contrasenya?"
+    },
+    "code": {
+      "description": "Introdueix el codi que hem enviat a {{email}} per continuar.",
+      "placeholder": "Codi",
+      "resend": "Envia un codi nou"
+    },
+    "continue": "Continua",
+    "errors": {
+      "passwordIncorrect": "La contrasenya no és correcta. Torna-ho a provar.",
+      "wrongCode": "Aquest codi no és correcte. Torna-ho a provar.",
+      "codeNotSent": "No s'ha pogut enviar el codi. Torna-ho a provar.",
+      "failed": "No s'ha pogut confirmar que ets tu. Torna-ho a provar."
+    }
+  },
+  "deleteAccount": {
+    "title": "Vols eliminar el compte?",
+    "message": "Els teus entrenaments, plans, perfil i xats amb Arnold s'eliminaran per sempre. No es pot desfer.",
+    "proWarning": {
+      "appStore": "La teva subscripció de l'App Store no es cancel·larà automàticament. Gestiona-la a l'App Store per deixar de pagar.",
+      "googlePlay": "La teva subscripció de Google Play no es cancel·larà automàticament. Gestiona-la a Google Play per deixar de pagar."
+    },
+    "manageSubscription": "Gestiona la subscripció",
+    "confirm": "Elimina el compte",
+    "failed": "No s'ha pogut eliminar el compte. Torna-ho a provar."
+  },
   "measurementSystem": {
     "title": "Sistema d'unitats",
     "loadError": "No s'ha pogut carregar el sistema d'unitats. Comprova la connexió i torna-ho a provar.",
@@ -698,14 +786,16 @@
     "description": {
       "signUp": "Introdueix el codi que t'hem enviat per correu per activar el compte",
       "reset": "Introdueix el codi que t'hem enviat per correu per restablir la contrasenya",
-      "signIn": "Introdueix el codi que t'hem enviat per confirmar la teva identitat en aquest dispositiu"
+      "signIn": "Introdueix el codi que t'hem enviat per confirmar la teva identitat en aquest dispositiu",
+      "changeEmail": "Introdueix el codi que hem enviat a la teva adreça nova"
     },
     "codePlaceholder": "Codi",
     "verify": "Verifica",
     "errors": {
       "signUpIncomplete": "No s'ha pogut acabar de crear el compte. Torna-ho a provar.",
       "resetIncomplete": "No s'ha pogut verificar el codi. Torna-ho a provar.",
-      "signInIncomplete": "No s'ha pogut iniciar la sessió. Torna-ho a provar."
+      "signInIncomplete": "No s'ha pogut iniciar la sessió. Torna-ho a provar.",
+      "changeEmailIncomplete": "No hem pogut canviar el correu. Torna-ho a provar."
     },
     "resendButton": "Torna a enviar el codi",
     "resentNotice": "T'hem enviat un codi nou.",
@@ -716,7 +806,8 @@
     "changeEmail": "Canvia'l",
     "loading": "S'està verificant",
     "expired": "Aquesta verificació ha caducat. Torna a començar per obtenir un altre codi.",
-    "startOver": "Torna a començar"
+    "startOver": "Torna a començar",
+    "changeEmailTitle": "Confirma el correu nou"
   },
   "forgotPassword": {
     "screenTitle": "Contrasenya oblidada",

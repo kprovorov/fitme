@@ -655,6 +655,94 @@
     },
     "deleteFailed": "Não foi possível eliminar a tua conta"
   },
+  "accountSecurity": {
+    "title": "Conta e segurança",
+    "sections": {
+      "signIn": "Início de sessão",
+      "methods": "Métodos de início de sessão"
+    },
+    "email": "Email",
+    "passwordRow": "Alterar palavra-passe",
+    "connected": "Ligado",
+    "connectedAs": "Ligado como {{email}}",
+    "notConnected": "Não ligado",
+    "connect": "Ligar",
+    "connecting": "A ligar…",
+    "disconnect": "Desligar",
+    "disconnecting": "A desligar…",
+    "addAnotherMethod": "Adiciona primeiro outra forma de iniciar sessão",
+    "disconnectConfirm": {
+      "title": "Desligar {{provider}}?",
+      "message": "Deixarás de poder iniciar sessão com {{provider}}."
+    },
+    "errors": {
+      "connectFailed": "Não foi possível ligar {{provider}}. Tenta novamente.",
+      "disconnectFailed": "Não foi possível desligar {{provider}}. Tenta novamente.",
+      "appleUnavailable": "O início de sessão com a Apple ainda não está disponível. Por agora, usa o Google ou o teu email.",
+      "alreadyLinked": "Esta conta {{provider}} já está ligada a outra conta Fitme."
+    },
+    "deleteAccount": "Eliminar conta"
+  },
+  "changeEmail": {
+    "title": "Alterar email",
+    "current": "Email atual",
+    "new": "Novo email",
+    "description": "Vamos enviar um código para o teu novo email para o confirmar.",
+    "submit": "Enviar código",
+    "errors": {
+      "emailInUse": "Email em uso",
+      "invalidEmail": "Introduz um email válido.",
+      "sameEmail": "Esse já é o teu email.",
+      "failed": "Não foi possível alterar o teu email. Tenta novamente."
+    },
+    "success": "Email alterado"
+  },
+  "changePassword": {
+    "title": "Alterar palavra-passe",
+    "description": "Vais terminar sessão nos teus outros dispositivos.",
+    "current": "Palavra-passe atual",
+    "new": "Nova palavra-passe",
+    "confirm": "Confirma a nova palavra-passe",
+    "submit": "Alterar palavra-passe",
+    "errors": {
+      "tooShort": "A palavra-passe tem de ter pelo menos {{min}} caracteres.",
+      "mismatch": "As palavras-passe não coincidem",
+      "wrongCurrent": "A palavra-passe atual está incorreta.",
+      "failed": "Não foi possível alterar a tua palavra-passe. Tenta novamente."
+    },
+    "success": "Palavra-passe alterada"
+  },
+  "confirmIdentity": {
+    "title": "Confirma que és tu",
+    "password": {
+      "description": "Introduz a tua palavra-passe para continuar.",
+      "placeholder": "Palavra-passe",
+      "forgot": "Esqueceste-te da palavra-passe?"
+    },
+    "code": {
+      "description": "Introduz o código que enviámos para {{email}} para continuar.",
+      "placeholder": "Código",
+      "resend": "Enviar um novo código"
+    },
+    "continue": "Continuar",
+    "errors": {
+      "passwordIncorrect": "Palavra-passe incorreta. Tenta novamente.",
+      "wrongCode": "Esse código não está certo. Tenta novamente.",
+      "codeNotSent": "Não foi possível enviar o código. Tenta novamente.",
+      "failed": "Não foi possível confirmar que és tu. Tenta novamente."
+    }
+  },
+  "deleteAccount": {
+    "title": "Eliminar a tua conta?",
+    "message": "Os teus treinos, planos, perfil e conversas com o Arnold vão ser eliminados para sempre. Isto não pode ser anulado.",
+    "proWarning": {
+      "appStore": "A tua subscrição da App Store não vai ser cancelada automaticamente. Gere-a na App Store para deixar de pagar.",
+      "googlePlay": "A tua subscrição do Google Play não vai ser cancelada automaticamente. Gere-a no Google Play para deixar de pagar."
+    },
+    "manageSubscription": "Gerir subscrição",
+    "confirm": "Eliminar conta",
+    "failed": "Não foi possível eliminar a tua conta. Tenta novamente."
+  },
   "measurementSystem": {
     "title": "Sistema de unidades",
     "loadError": "Não foi possível carregar o teu sistema de unidades. Verifica a tua ligação e tenta novamente.",
@@ -698,14 +786,16 @@
     "description": {
       "signUp": "Introduz o código que enviámos por email para ativar a tua conta",
       "reset": "Introduz o código que enviámos por email para repor a tua palavra-passe",
-      "signIn": "Introduz o código que enviámos para confirmar a tua identidade neste dispositivo"
+      "signIn": "Introduz o código que enviámos para confirmar a tua identidade neste dispositivo",
+      "changeEmail": "Introduz o código que enviámos para o teu novo endereço"
     },
     "codePlaceholder": "Código",
     "verify": "Verificar",
     "errors": {
       "signUpIncomplete": "Não foi possível concluir a criação da tua conta. Tenta novamente.",
       "resetIncomplete": "Não foi possível verificar o código. Tenta novamente.",
-      "signInIncomplete": "Não foi possível iniciar sessão na tua conta. Tenta novamente."
+      "signInIncomplete": "Não foi possível iniciar sessão na tua conta. Tenta novamente.",
+      "changeEmailIncomplete": "Não foi possível alterar o teu email. Tenta novamente."
     },
     "resendButton": "Reenviar código",
     "resentNotice": "Enviámos um novo código.",
@@ -716,7 +806,8 @@
     "changeEmail": "Alterar",
     "loading": "A verificar",
     "expired": "Esta verificação expirou. Começa novamente para receberes outro código.",
-    "startOver": "Começar novamente"
+    "startOver": "Começar novamente",
+    "changeEmailTitle": "Confirma o teu novo email"
   },
   "forgotPassword": {
     "screenTitle": "Recuperar palavra-passe",

@@ -655,6 +655,94 @@
     },
     "deleteFailed": "No se ha podido eliminar tu cuenta"
   },
+  "accountSecurity": {
+    "title": "Cuenta y seguridad",
+    "sections": {
+      "signIn": "Inicio de sesión",
+      "methods": "Métodos de inicio de sesión"
+    },
+    "email": "Correo electrónico",
+    "passwordRow": "Cambiar contraseña",
+    "connected": "Conectado",
+    "connectedAs": "Conectado como {{email}}",
+    "notConnected": "No conectado",
+    "connect": "Conectar",
+    "connecting": "Conectando…",
+    "disconnect": "Desconectar",
+    "disconnecting": "Desconectando…",
+    "addAnotherMethod": "Primero añade otra forma de iniciar sesión",
+    "disconnectConfirm": {
+      "title": "¿Desconectar {{provider}}?",
+      "message": "Ya no podrás iniciar sesión con {{provider}}."
+    },
+    "errors": {
+      "connectFailed": "No se ha podido conectar {{provider}}. Inténtalo de nuevo.",
+      "disconnectFailed": "No se ha podido desconectar {{provider}}. Inténtalo de nuevo.",
+      "appleUnavailable": "Iniciar sesión con Apple aún no está disponible. De momento, usa Google o tu correo.",
+      "alreadyLinked": "Esta cuenta de {{provider}} ya está conectada a otra cuenta de Fitme."
+    },
+    "deleteAccount": "Eliminar cuenta"
+  },
+  "changeEmail": {
+    "title": "Cambiar correo",
+    "current": "Correo actual",
+    "new": "Correo nuevo",
+    "description": "Te enviaremos un código a tu nuevo correo para confirmarlo.",
+    "submit": "Enviar código",
+    "errors": {
+      "emailInUse": "Correo en uso",
+      "invalidEmail": "Introduce un correo electrónico válido.",
+      "sameEmail": "Ese ya es tu correo.",
+      "failed": "No se ha podido cambiar tu correo. Inténtalo de nuevo."
+    },
+    "success": "Correo cambiado"
+  },
+  "changePassword": {
+    "title": "Cambiar contraseña",
+    "description": "Se cerrará tu sesión en tus otros dispositivos.",
+    "current": "Contraseña actual",
+    "new": "Contraseña nueva",
+    "confirm": "Confirma la contraseña nueva",
+    "submit": "Cambiar contraseña",
+    "errors": {
+      "tooShort": "La contraseña debe tener al menos {{min}} caracteres.",
+      "mismatch": "Las contraseñas no coinciden",
+      "wrongCurrent": "La contraseña actual no es correcta.",
+      "failed": "No se ha podido cambiar tu contraseña. Inténtalo de nuevo."
+    },
+    "success": "Contraseña cambiada"
+  },
+  "confirmIdentity": {
+    "title": "Confirma que eres tú",
+    "password": {
+      "description": "Introduce tu contraseña para continuar.",
+      "placeholder": "Contraseña",
+      "forgot": "¿Has olvidado la contraseña?"
+    },
+    "code": {
+      "description": "Introduce el código que hemos enviado a {{email}} para continuar.",
+      "placeholder": "Código",
+      "resend": "Enviar un código nuevo"
+    },
+    "continue": "Continuar",
+    "errors": {
+      "passwordIncorrect": "La contraseña no es correcta. Inténtalo de nuevo.",
+      "wrongCode": "Ese código no es correcto. Inténtalo de nuevo.",
+      "codeNotSent": "No se ha podido enviar el código. Inténtalo de nuevo.",
+      "failed": "No se ha podido confirmar que eres tú. Inténtalo de nuevo."
+    }
+  },
+  "deleteAccount": {
+    "title": "¿Eliminar tu cuenta?",
+    "message": "Tus entrenamientos, planes, perfil y chats con Arnold se eliminarán para siempre. Esto no se puede deshacer.",
+    "proWarning": {
+      "appStore": "Tu suscripción de App Store no se cancelará automáticamente. Gestiónala en App Store para dejar de pagar.",
+      "googlePlay": "Tu suscripción de Google Play no se cancelará automáticamente. Gestiónala en Google Play para dejar de pagar."
+    },
+    "manageSubscription": "Gestionar suscripción",
+    "confirm": "Eliminar cuenta",
+    "failed": "No se ha podido eliminar tu cuenta. Inténtalo de nuevo."
+  },
   "measurementSystem": {
     "title": "Sistema de unidades",
     "loadError": "No se ha podido cargar tu sistema de unidades. Comprueba tu conexión e inténtalo de nuevo.",
@@ -698,14 +786,16 @@
     "description": {
       "signUp": "Introduce el código que te hemos enviado por correo para activar tu cuenta",
       "reset": "Introduce el código que te hemos enviado por correo para restablecer tu contraseña",
-      "signIn": "Introduce el código que te hemos enviado para confirmar tu identidad en este dispositivo"
+      "signIn": "Introduce el código que te hemos enviado para confirmar tu identidad en este dispositivo",
+      "changeEmail": "Introduce el código que hemos enviado a tu nueva dirección"
     },
     "codePlaceholder": "Código",
     "verify": "Verificar",
     "errors": {
       "signUpIncomplete": "No se ha podido terminar de crear tu cuenta. Inténtalo de nuevo.",
       "resetIncomplete": "No se ha podido verificar el código. Inténtalo de nuevo.",
-      "signInIncomplete": "No se ha podido iniciar sesión. Inténtalo de nuevo."
+      "signInIncomplete": "No se ha podido iniciar sesión. Inténtalo de nuevo.",
+      "changeEmailIncomplete": "No hemos podido cambiar tu correo. Inténtalo de nuevo."
     },
     "resendButton": "Reenviar código",
     "resentNotice": "Te hemos enviado un código nuevo.",
@@ -716,7 +806,8 @@
     "changeEmail": "Cambiarlo",
     "loading": "Verificando",
     "expired": "Esta verificación ha caducado. Empieza de nuevo para obtener otro código.",
-    "startOver": "Empezar de nuevo"
+    "startOver": "Empezar de nuevo",
+    "changeEmailTitle": "Confirma tu nuevo correo"
   },
   "forgotPassword": {
     "screenTitle": "Contraseña olvidada",

@@ -593,6 +593,94 @@
     },
     "deleteFailed": "アカウントを削除できませんでした"
   },
+  "accountSecurity": {
+    "title": "アカウントとセキュリティ",
+    "sections": {
+      "signIn": "サインイン",
+      "methods": "サインイン方法"
+    },
+    "email": "メールアドレス",
+    "passwordRow": "パスワードを変更",
+    "connected": "連携済み",
+    "connectedAs": "{{email}} で連携済み",
+    "notConnected": "未連携",
+    "connect": "連携",
+    "connecting": "連携中…",
+    "disconnect": "連携を解除",
+    "disconnecting": "解除中…",
+    "addAnotherMethod": "先に別のサインイン方法を追加してください",
+    "disconnectConfirm": {
+      "title": "{{provider}} の連携を解除しますか？",
+      "message": "{{provider}} でログインできなくなります。"
+    },
+    "errors": {
+      "connectFailed": "{{provider}} と連携できませんでした。もう一度お試しください。",
+      "disconnectFailed": "{{provider}} の連携を解除できませんでした。もう一度お試しください。",
+      "appleUnavailable": "Apple でのサインインはまだご利用いただけません。今は Google またはメールアドレスをお使いください。",
+      "alreadyLinked": "この {{provider}} アカウントは、すでに別の Fitme アカウントと連携しています。"
+    },
+    "deleteAccount": "アカウントを削除"
+  },
+  "changeEmail": {
+    "title": "メールアドレスを変更",
+    "current": "現在のメールアドレス",
+    "new": "新しいメールアドレス",
+    "description": "確認のため、新しいメールアドレスにコードを送信します。",
+    "submit": "コードを送信",
+    "errors": {
+      "emailInUse": "このメールアドレスは使用中です",
+      "invalidEmail": "有効なメールアドレスを入力してください。",
+      "sameEmail": "すでにお使いのメールアドレスです。",
+      "failed": "メールアドレスを変更できませんでした。もう一度お試しください。"
+    },
+    "success": "メールアドレスを変更しました"
+  },
+  "changePassword": {
+    "title": "パスワードを変更",
+    "description": "ほかのデバイスではログアウトされます。",
+    "current": "現在のパスワード",
+    "new": "新しいパスワード",
+    "confirm": "新しいパスワード（確認）",
+    "submit": "パスワードを変更",
+    "errors": {
+      "tooShort": "パスワードは {{min}} 文字以上にしてください。",
+      "mismatch": "パスワードが一致しません",
+      "wrongCurrent": "現在のパスワードが正しくありません。",
+      "failed": "パスワードを変更できませんでした。もう一度お試しください。"
+    },
+    "success": "パスワードを変更しました"
+  },
+  "confirmIdentity": {
+    "title": "本人確認",
+    "password": {
+      "description": "続けるにはパスワードを入力してください。",
+      "placeholder": "パスワード",
+      "forgot": "パスワードを忘れた場合"
+    },
+    "code": {
+      "description": "続けるには {{email}} に送信したコードを入力してください。",
+      "placeholder": "コード",
+      "resend": "新しいコードを送信"
+    },
+    "continue": "続ける",
+    "errors": {
+      "passwordIncorrect": "パスワードが正しくありません。もう一度お試しください。",
+      "wrongCode": "コードが正しくありません。もう一度お試しください。",
+      "codeNotSent": "コードを送信できませんでした。もう一度お試しください。",
+      "failed": "本人確認ができませんでした。もう一度お試しください。"
+    }
+  },
+  "deleteAccount": {
+    "title": "アカウントを削除しますか？",
+    "message": "ワークアウト、プラン、プロフィール、Arnold とのチャットはすべて完全に削除されます。この操作は取り消せません。",
+    "proWarning": {
+      "appStore": "App Store のサブスクリプションは自動では解約されません。請求を止めるには App Store で管理してください。",
+      "googlePlay": "Google Play のサブスクリプションは自動では解約されません。請求を止めるには Google Play で管理してください。"
+    },
+    "manageSubscription": "サブスクリプションを管理",
+    "confirm": "アカウントを削除",
+    "failed": "アカウントを削除できませんでした。もう一度お試しください。"
+  },
   "measurementSystem": {
     "title": "単位系",
     "loadError": "単位系を読み込めませんでした。接続を確認して、もう一度お試しください。",
@@ -636,14 +724,16 @@
     "description": {
       "signUp": "アカウントを有効にするには、メールで届いたコードを入力してください",
       "reset": "パスワードをリセットするには、メールで届いたコードを入力してください",
-      "signIn": "この端末で本人確認をするため、メールで届いたコードを入力してください"
+      "signIn": "この端末で本人確認をするため、メールで届いたコードを入力してください",
+      "changeEmail": "新しいメールアドレスに送信したコードを入力してください"
     },
     "codePlaceholder": "コード",
     "verify": "確認",
     "errors": {
       "signUpIncomplete": "アカウントの作成を完了できませんでした。もう一度お試しください。",
       "resetIncomplete": "コードを確認できませんでした。もう一度お試しください。",
-      "signInIncomplete": "ログインできませんでした。もう一度お試しください。"
+      "signInIncomplete": "ログインできませんでした。もう一度お試しください。",
+      "changeEmailIncomplete": "メールアドレスを変更できませんでした。もう一度お試しください。"
     },
     "resendButton": "コードを再送",
     "resentNotice": "新しいコードを送信しました。",
@@ -654,7 +744,8 @@
     "changeEmail": "変更する",
     "loading": "確認中",
     "expired": "認証の有効期限が切れました。最初からやり直して、新しいコードを取得してください。",
-    "startOver": "最初からやり直す"
+    "startOver": "最初からやり直す",
+    "changeEmailTitle": "新しいメールアドレスを確認"
   },
   "forgotPassword": {
     "screenTitle": "パスワードを忘れた場合",
