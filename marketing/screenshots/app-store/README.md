@@ -152,6 +152,8 @@ When the EAS build quota is used up, `scripts/release-ios-local.sh [vX.Y.Z]` rel
 
 A tag without the listing config skips the push; a tag without this script pushes the listing text only. A failed push leaves the submitted build alone and prints how to retry just the push: `scripts/release-ios-local.sh --listing-only vX.Y.Z` (no build or submit). Either way the script deletes the staging directory and puts the stamped files and the branch back, so the checkout is clean afterwards.
 
+To smoke-test the script, run it as a dry run: `FITME_RELEASE_DRY_RUN=1 scripts/release-ios-local.sh --listing-only vX.Y.Z` runs the checkout, `prepare` and the cleanup but only prints the `git fetch`, `pnpm install`, EAS and Infisical commands, so nothing reaches App Store Connect. Never smoke-test it with PATH stubs: the EAS calls run under `pnpm exec`, which resolves ahead of them.
+
 ## How EAS CLI 27.2.0 uploads screenshots
 
 The design above is built around the pinned CLI's screenshot behaviour, found in FIT-500: it keeps a remote image whose basename and byte size match, deletes the rest of a configured set, uploads, reorders, skips a missing file with a warning after deleting, and never clears a set from an empty or absent entry. The details, sources and authentication are in the marketing screenshots README's [App Store upload](../README.md#app-store-upload) section.

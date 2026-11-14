@@ -34,6 +34,9 @@ high:
   - apps/mobile/hooks/revenueCat.ts
   - apps/mobile/app/_layout.tsx
   - apps/mobile/components/views/{login,register,forgot-password,reset-password,verify-code}-view.tsx
+  # App Store release: the local build, submit and production listing push
+  - scripts/release-ios-local.sh
+  - apps/mobile/store.config.json
   # MCP: OAuth, per-request User context, services
   - apps/mcp/src/app.ts
   - apps/mcp/src/auth.ts
@@ -62,6 +65,9 @@ medium:
   - apps/web/proxy.ts
   - apps/web/lib/routes.ts
   - packages/supabase/scripts/**
+  # Release tooling: the local preview build, the Screenshot sets' staging
+  - scripts/preview-ios-local.sh
+  - scripts/app-store-screenshots.mjs
   # Backend logic on User data
   - packages/services/**
   - packages/db/**
