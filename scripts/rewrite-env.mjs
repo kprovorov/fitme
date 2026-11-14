@@ -97,7 +97,12 @@ export const setDatabaseUrl = (text, { app, poolerPort }) => {
   let found = false;
 
   const updated = lines.map((current) => {
-    const value = DATABASE_URL_LINE.exec(current)?.groups?.value;
+    // A CRLF file keeps its line endings.
+    const ending = current.endsWith("\r") ? "\r" : "";
+
+    const value = DATABASE_URL_LINE.exec(
+      current.slice(0, current.length - ending.length)
+    )?.groups?.value;
 
     if (value === undefined) {
       return current;
@@ -105,7 +110,7 @@ export const setDatabaseUrl = (text, { app, poolerPort }) => {
 
     found = true;
 
-    return isRemote(value) ? current : line;
+    return isRemote(value) ? current : `${line}${ending}`;
   });
 
   if (found) {

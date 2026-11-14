@@ -119,6 +119,19 @@ void describe("setDatabaseUrl", () => {
     }
   });
 
+  void test("reads a CRLF file's lines, keeping their endings", () => {
+    const remote = `A=1\r\n${REMOTE}\r\n`;
+
+    assert.equal(setDatabaseUrl(remote, target), remote);
+    assert.equal(
+      setDatabaseUrl(
+        "A=1\r\nFITME_DATABASE_URL=postgresql://u:p@127.0.0.1:1/postgres\r\n",
+        target
+      ),
+      `A=1\r\n${localLine("api")}\r\n`
+    );
+  });
+
   void test("leaves a commented-out line alone", () => {
     assert.equal(
       setDatabaseUrl("# FITME_DATABASE_URL=old\n", target),

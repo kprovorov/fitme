@@ -58,10 +58,8 @@ if [[ "$root" != "$worktree" ]]; then
     for src in "$dir"/.env*; do
       [[ -f "$src" && "$src" != *.example ]] || continue
       rel="${src#"$root"/}"
-      # Arnold's local file is .env now. eve ranks .env.local above .env, so a
-      # copied .env.local (an older checkout's, pointing at its own stack) would
-      # win over the URL written below: bring its values in as .env instead.
-      [[ "$rel" == apps/arnold/.env.local ]] && rel="apps/arnold/.env"
+      # Arnold's two files are merged below.
+      [[ "$rel" == apps/arnold/.env || "$rel" == apps/arnold/.env.local ]] && continue
       dest="$worktree/$rel"
       if [[ ! -e "$dest" ]]; then
         mkdir -p "$(dirname "$dest")"
@@ -70,6 +68,20 @@ if [[ "$root" != "$worktree" ]]; then
       fi
     done
   done
+
+  # Arnold's local file is .env now. eve ranks .env.local above .env, so a
+  # copied .env.local (an older checkout's, pointing at its own stack) would win
+  # over the URL written below. Merge the main checkout's two files into one
+  # .env instead, .env.local's line winning for a variable both set.
+  arnold_env="$worktree/apps/arnold/.env"
+  arnold_sources=()
+  for src in "$root/apps/arnold/.env.local" "$root/apps/arnold/.env"; do
+    [[ -f "$src" ]] && arnold_sources+=("$src")
+  done
+  if [[ -d "$worktree/apps/arnold" && ! -e "$arnold_env" && ${#arnold_sources[@]} -gt 0 ]]; then
+    (umask 077 && awk '{ key = $0; sub(/=.*/, "", key) } !seen[key]++' "${arnold_sources[@]}" >"$arnold_env")
+    log "Copied apps/arnold/.env from the main checkout's Arnold env files"
+  fi
 fi
 
 # A thread deleted without settling never runs settle.sh, so its stack outlives
