@@ -1,7 +1,7 @@
 import { jest } from "@jest/globals";
 import type * as ReactNative from "react-native";
 
-import type { NativeAuthConfig } from "~/components/auth/provider-config";
+import type { GoogleClientIds } from "~/lib/google-client-ids";
 
 jest.mock("expo-router/react-navigation", () => ({ useHeaderHeight: () => 0 }));
 
@@ -45,7 +45,6 @@ jest.mock("expo-apple-authentication", () => {
     ),
     AppleAuthenticationButtonStyle: { WHITE: 2 },
     AppleAuthenticationButtonType: { CONTINUE: 2 },
-    isAvailableAsync: jest.fn(() => Promise.resolve(true)),
   };
 });
 
@@ -53,18 +52,16 @@ jest.mock("~/components/tw", () => ({
   Image: jest.requireActual<typeof ReactNative>("react-native").Image,
 }));
 
-let mockProviderConfig: NativeAuthConfig = {
-  appleEnabled: false,
-  googleEnabled: false,
-  googleIosClientId: "",
-  googleIosUrlScheme: "",
-  googleWebClientId: "",
+let mockGoogleClientIds: GoogleClientIds = {
+  iosClientId: "",
+  iosUrlScheme: "",
+  webClientId: "",
 };
 
-export const setAuthProviderConfig = (config: NativeAuthConfig) => {
-  mockProviderConfig = config;
+export const setGoogleClientIds = (ids: GoogleClientIds) => {
+  mockGoogleClientIds = ids;
 };
 
-jest.mock("~/components/auth/provider-config", () => ({
-  nativeAuthConfig: () => mockProviderConfig,
+jest.mock("~/lib/google-client-ids", () => ({
+  googleClientIds: () => mockGoogleClientIds,
 }));

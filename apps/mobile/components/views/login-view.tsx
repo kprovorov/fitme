@@ -15,9 +15,9 @@ import LoginForm from "~/components/forms/auth/login-form";
 import type { LoginFormValues } from "~/components/forms/auth/login-form";
 import { ErrorMessage } from "~/components/ui/error-message";
 import { Text } from "~/components/ui/text";
-import { useAvailableSocialProviders } from "~/hooks/native-social-auth";
 import { IS_E2E } from "~/lib/constants";
 import { segmentClient } from "~/lib/segment";
+import { signInProviders } from "~/lib/sign-in-providers";
 
 const openRecovery = () => router.push("/auth/forgot-password");
 
@@ -25,7 +25,7 @@ const LoginView = () => {
   const { t } = useTranslation();
   const { signIn } = useSignIn();
   const operation = useAuthOperation();
-  const providers = useAvailableSocialProviders();
+  const providers = signInProviders();
   const busy = operation.pending !== null;
   const handleEdit = operation.clearError;
 

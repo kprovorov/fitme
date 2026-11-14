@@ -11,7 +11,7 @@ import { SymbolImage } from "~/components/symbol-image";
 import { Button } from "~/components/ui/button";
 import { ErrorMessage } from "~/components/ui/error-message";
 import { Text } from "~/components/ui/text";
-import { useAvailableSocialProviders } from "~/hooks/native-social-auth";
+import { signInProviders } from "~/lib/sign-in-providers";
 
 const FEATURES = [
   { icon: "bolt.fill", key: "auth.intro.plans" },
@@ -26,7 +26,7 @@ const AuthWelcomeView = () => {
   const { t } = useTranslation();
   const operation = useAuthOperation();
   const busy = operation.pending !== null;
-  const providers = useAvailableSocialProviders();
+  const providers = signInProviders();
   const hasSocial = providers.length > 0;
 
   return (

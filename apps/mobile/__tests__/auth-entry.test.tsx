@@ -1,13 +1,23 @@
 /* oxlint-disable import/no-duplicates -- Install native auth stubs before importing screens, then configure them through the named import. */
 import "~/test-utils/auth-ui";
-import { beforeEach, describe, expect, it, jest } from "@jest/globals";
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  jest,
+} from "@jest/globals";
 import { act, fireEvent, render, screen } from "@testing-library/react-native";
 import { router } from "expo-router";
+import { Platform } from "react-native";
 
 import AuthWelcomeView from "~/components/views/auth-welcome-view";
-import { configuredSocialProviders } from "~/hooks/native-social-auth";
+import LoginView from "~/components/views/login-view";
+import RegisterView from "~/components/views/register-view";
 import { segmentClient } from "~/lib/segment";
-import { setAuthProviderConfig } from "~/test-utils/auth-ui";
+import type { signInProviders } from "~/lib/sign-in-providers";
+import { setGoogleClientIds } from "~/test-utils/auth-ui";
 
 interface NativeResult {
   createdSessionId: string | null;
@@ -111,20 +121,28 @@ jest.mock("~/components/ui/button", () =>
   jest.requireActual("~/test-utils/button-stub")
 );
 
-const config = {
-  appleEnabled: true,
-  googleEnabled: true,
-  googleIosClientId: "123-ios.apps.googleusercontent.com",
-  googleIosUrlScheme: "com.googleusercontent.apps.123-ios",
-  googleWebClientId: "123-web.apps.googleusercontent.com",
+const googleIds = {
+  iosClientId: "123-ios.apps.googleusercontent.com",
+  iosUrlScheme: "com.googleusercontent.apps.123-ios",
+  webClientId: "123-web.apps.googleusercontent.com",
 };
+
+const noGoogleIds = { iosClientId: "", iosUrlScheme: "", webClientId: "" };
+
+const platform = Platform.OS;
 
 beforeEach(() => {
   jest.clearAllMocks();
-  setAuthProviderConfig(config);
+  setGoogleClientIds(googleIds);
+  jest.spyOn(console, "warn").mockImplementation(() => {});
   mockResult = { createdSessionId: null };
   mockApple.mockImplementation(() => Promise.resolve(mockResult));
   mockGoogle.mockImplementation(() => Promise.resolve(mockResult));
+});
+
+afterEach(() => {
+  Platform.OS = platform;
+  jest.restoreAllMocks();
 });
 
 const show = async () => {
@@ -143,12 +161,9 @@ describe("signed-out Welcome", () => {
     expect(router.push).toHaveBeenCalledWith("/auth/login");
   });
 
-  it("uses the email-only fallback when providers are not enabled", async () => {
-    setAuthProviderConfig({
-      ...config,
-      appleEnabled: false,
-      googleEnabled: false,
-    });
+  it("uses the email-only fallback on Android without the Google ids", async () => {
+    Platform.OS = "android";
+    setGoogleClientIds(noGoogleIds);
     await render(<AuthWelcomeView />);
     expect(
       screen.getByRole("button", { name: "Continue with Email" })
@@ -160,10 +175,89 @@ describe("signed-out Welcome", () => {
       screen.queryByRole("button", { name: "Continue with Google" })
     ).toBeNull();
   });
+});
 
-  it("does not offer Google when its native callback scheme is missing", () => {
-    setAuthProviderConfig({ ...config, googleIosUrlScheme: "" });
-    expect(configuredSocialProviders()).toEqual(["apple"]);
+const SCREENS = [
+  ["Welcome", AuthWelcomeView],
+  ["login", LoginView],
+  ["register", RegisterView],
+] as const;
+
+describe.each(SCREENS)("sign-in providers on %s (ADR 0021)", (_, View) => {
+  it("offers Apple and Google on iOS when the build has the Google ids", async () => {
+    await render(<View />);
+    await expect(
+      screen.findByRole("button", { name: "Continue with Apple" })
+    ).resolves.toBeTruthy();
+    expect(
+      screen.getByRole("button", { name: "Continue with Google" })
+    ).toBeTruthy();
+  });
+
+  it("offers Google but never Apple on Android", async () => {
+    Platform.OS = "android";
+    await render(<View />);
+    await expect(
+      screen.findByRole("button", { name: "Continue with Google" })
+    ).resolves.toBeTruthy();
+    expect(
+      screen.queryByRole("button", { name: "Continue with Apple" })
+    ).toBeNull();
+  });
+
+  it("hides Google when the build lacks its ids", async () => {
+    setGoogleClientIds(noGoogleIds);
+    await render(<View />);
+    await expect(
+      screen.findByRole("button", { name: "Continue with Apple" })
+    ).resolves.toBeTruthy();
+    expect(
+      screen.queryByRole("button", { name: "Continue with Google" })
+    ).toBeNull();
+  });
+});
+
+describe("the sign-in provider rule", () => {
+  // A fresh module each time, so the warning's once-per-build memory starts
+  // empty whatever ran before.
+  const freshSignInProviders = () => {
+    let rule: typeof signInProviders = () => [];
+
+    jest.isolateModules(() => {
+      ({ signInProviders: rule } = jest.requireActual<
+        typeof import("~/lib/sign-in-providers")
+      >("~/lib/sign-in-providers"));
+    });
+
+    return rule;
+  };
+
+  it("warns once when the build lacks the Google ids", () => {
+    setGoogleClientIds(noGoogleIds);
+    const rule = freshSignInProviders();
+
+    expect(rule()).toEqual(["apple"]);
+    expect(rule()).toEqual(["apple"]);
+    expect(console.warn).toHaveBeenCalledTimes(1);
+    expect(console.warn).toHaveBeenCalledWith(
+      expect.stringContaining("EXPO_PUBLIC_CLERK_GOOGLE_")
+    );
+  });
+
+  it("doesn't warn when the build has the Google ids", () => {
+    expect(freshSignInProviders()()).toEqual(["apple", "google"]);
+    expect(console.warn).not.toHaveBeenCalled();
+  });
+
+  it("hides Google on iOS when its native callback scheme is missing", () => {
+    setGoogleClientIds({ ...googleIds, iosUrlScheme: "" });
+    expect(freshSignInProviders()()).toEqual(["apple"]);
+  });
+
+  it("needs only the web client id on Android", () => {
+    Platform.OS = "android";
+    setGoogleClientIds({ ...noGoogleIds, webClientId: googleIds.webClientId });
+    expect(freshSignInProviders()()).toEqual(["google"]);
   });
 });
 

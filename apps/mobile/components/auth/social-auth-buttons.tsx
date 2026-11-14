@@ -13,7 +13,7 @@ import { Button } from "~/components/ui/button";
 import { Separator } from "~/components/ui/separator";
 import { Text } from "~/components/ui/text";
 import { useNativeSocialAuth } from "~/hooks/native-social-auth";
-import type { SocialProvider } from "~/hooks/native-social-auth";
+import type { SocialProvider } from "~/lib/sign-in-providers";
 
 import type { useAuthOperation } from "./operation";
 
