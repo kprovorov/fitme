@@ -27,6 +27,9 @@ import { createTestQueryClient, settle } from "~/test-utils/query-client";
 
 const MODELS_ROUTE = "GET /v1/arnold/models";
 
+// The sheet is rendered alone, outside a navigator with a header.
+jest.mock("expo-router/react-navigation", () => ({ useHeaderHeight: () => 0 }));
+
 jest.mock("expo-router", () => ({
   useRouter: () => ({ back: jest.fn() }),
 }));
