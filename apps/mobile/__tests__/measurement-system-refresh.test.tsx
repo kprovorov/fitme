@@ -281,7 +281,7 @@ const mount = async () => {
 /** Picks `system`, confirms it, then waits for the switch to settle. */
 const switchTo = async (system: string) => {
   await fireEvent.press(screen.getByTestId(`option-${system}`));
-  await fireEvent.press(screen.getByTestId("dialog-Confirm"));
+  await fireEvent.press(screen.getByTestId("dialog-Switch"));
   await settle(queryClient);
 };
 
@@ -392,7 +392,7 @@ describe("switching the measurement system", () => {
     await mount();
     const resumeSwitch = fakePublicApi.pause(PROFILE_PATCH);
     await fireEvent.press(screen.getByTestId("option-us"));
-    await fireEvent.press(screen.getByTestId("dialog-Confirm"));
+    await fireEvent.press(screen.getByTestId("dialog-Switch"));
     await until(() => fakePublicApi.count(PROFILE_PATCH) === 1);
     // A refresh of the Profile lands while the switch waits for its answer,
     // so the answer can't be shown as is; then every read of it is refused.
@@ -433,7 +433,7 @@ describe("switching the measurement system", () => {
     await mount();
     const resumeSwitch = fakePublicApi.pause(PROFILE_PATCH);
     await fireEvent.press(screen.getByTestId("option-us"));
-    await fireEvent.press(screen.getByTestId("dialog-Confirm"));
+    await fireEvent.press(screen.getByTestId("dialog-Switch"));
     await until(() => fakePublicApi.count(PROFILE_PATCH) === 1);
     // A refresh of the Profile lands while the switch waits for its answer,
     // so the answer can't be shown as is and the Profile is read again. That

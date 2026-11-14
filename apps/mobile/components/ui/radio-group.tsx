@@ -6,6 +6,7 @@ import {
 } from "@expo/ui/swift-ui";
 import {
   disabled as disabledModifier,
+  font,
   foregroundStyle,
   listRowBackground,
   listRowSeparatorTint,
@@ -16,7 +17,11 @@ import {
 } from "@expo/ui/swift-ui/modifiers";
 import { useCallback } from "react";
 
-import { SwiftUIHost, useSwiftUITheme } from "~/components/ui/swift-ui";
+import {
+  SwiftUIHost,
+  useSwiftUIFont,
+  useSwiftUITheme,
+} from "~/components/ui/swift-ui";
 import { cn } from "~/lib/utils";
 
 import type { PickerOption, PickerValue } from "./picker";
@@ -54,6 +59,11 @@ const RadioGroup = <TValue extends PickerValue>({
   testID,
 }: RadioGroupProps<TValue>) => {
   const theme = useSwiftUITheme();
+  // The HIG text styles in Nunito Sans, as the grouped lists in Figma draw
+  // them, rather than SwiftUI's system font.
+  const headerFont = useSwiftUIFont("text-footnote-emphasized");
+  const footerFont = useSwiftUIFont("text-footnote");
+  const optionFont = useSwiftUIFont("text-body");
 
   const handleSelectionChange = useCallback(
     // SAFETY: SwiftUI reports a selected option's tag, and every option tag is a TValue.
@@ -71,14 +81,24 @@ const RadioGroup = <TValue extends PickerValue>({
         <Section
           footer={
             footer ? (
-              <SwiftUIText modifiers={[foregroundStyle(theme.mutedForeground)]}>
+              <SwiftUIText
+                modifiers={[
+                  font(footerFont),
+                  foregroundStyle(theme.mutedForeground),
+                ]}
+              >
                 {footer}
               </SwiftUIText>
             ) : undefined
           }
           header={
             label ? (
-              <SwiftUIText modifiers={[foregroundStyle(theme.mutedForeground)]}>
+              <SwiftUIText
+                modifiers={[
+                  font(headerFont),
+                  foregroundStyle(theme.mutedForeground),
+                ]}
+              >
                 {label}
               </SwiftUIText>
             ) : undefined
@@ -96,7 +116,10 @@ const RadioGroup = <TValue extends PickerValue>({
             testID={testID}
           >
             {options.map((option) => (
-              <SwiftUIText key={option.value} modifiers={[tag(option.value)]}>
+              <SwiftUIText
+                key={option.value}
+                modifiers={[font(optionFont), tag(option.value)]}
+              >
                 {option.label}
               </SwiftUIText>
             ))}

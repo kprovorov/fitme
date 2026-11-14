@@ -171,6 +171,12 @@ const MeasurementSystemScreen = () => {
   );
 
   /**
+   * The system the confirmation last asked about, kept after it closes so its
+   * title and message don't change while the native alert animates away.
+   */
+  const [askedSystem, setAskedSystem] = useState<MeasurementSystem>("metric");
+
+  /**
    * The system being switched to, from Confirm until the Profile has been
    * read again, or `null` when no switch is running. Set in the same handler
    * that clears `pendingSystem`, so the picker never has a render in between
@@ -247,6 +253,7 @@ const MeasurementSystemScreen = () => {
       }
 
       setPendingSystem(system);
+      setAskedSystem(system);
     },
     [isLoaded, isSwitching, savedSystem]
   );
@@ -272,7 +279,7 @@ const MeasurementSystemScreen = () => {
             fontWeight: "bold",
           },
           headerTransparent: true,
-          title: t("measurementSystem.title"),
+          title: t("measurementSystem.unitsTitle"),
         }}
       />
       {!(isLoaded || isProfileError) && (
@@ -305,6 +312,7 @@ const MeasurementSystemScreen = () => {
             footer={labels.measurementSystemDescription(
               shownSystem ?? savedSystem
             )}
+            label={t("measurementSystem.title")}
             onValueChange={handleValueChange}
             options={options}
             value={shownSystem ?? savedSystem}
@@ -314,7 +322,7 @@ const MeasurementSystemScreen = () => {
             actions={[
               { label: t("common.cancel"), role: "cancel" },
               {
-                label: t("common.confirm"),
+                label: t("measurementSystem.switchConfirm.confirm"),
                 onPress: () => {
                   if (pendingSystem) {
                     setSwitchingTo(pendingSystem);
@@ -326,9 +334,11 @@ const MeasurementSystemScreen = () => {
               },
             ]}
             isPresented={pendingSystem !== null}
-            message={t("measurementSystem.confirm.message")}
+            message={t(
+              `measurementSystem.switchConfirm.message.${askedSystem}`
+            )}
             onIsPresentedChange={handleIsPresentedChange}
-            title={t("measurementSystem.confirm.title")}
+            title={t(`measurementSystem.switchConfirm.title.${askedSystem}`)}
           />
         </View>
       )}
