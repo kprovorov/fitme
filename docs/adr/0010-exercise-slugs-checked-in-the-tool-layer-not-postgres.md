@@ -1,5 +1,5 @@
 ---
-status: accepted
+status: accepted, partly superseded by ADR 0018 (slugs checked against an in-memory Library index)
 date: 2026-10-22
 ---
 
