@@ -44,7 +44,11 @@
     },
     "dev": {
       "cache": false,
-      "persistent": true
+      "persistent": true,
+      // Every outside variable reaches a dev server, so env injected by
+      // scripts/with-dev-env.sh (Infisical `dev`) gets past strict mode.
+      // Uncached, so no cache key depends on it; every other task stays strict.
+      "passThroughEnv": ["*"]
     },
     "lint": {
       "dependsOn": ["^lint"]
