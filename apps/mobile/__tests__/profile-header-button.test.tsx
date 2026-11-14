@@ -4,27 +4,32 @@
  * which is a stack screen over the tabs with a back button. The title is the
  * Fitme logo, and Manage Plans and Create Plan sit behind the sliders button
  * next to the Workouts heading, not in a header menu. The header is rendered
- * as plain buttons named by their spoken label, the menu as the dropdown
- * stand-in, with the Public API swapped for its fake.
+ * as plain buttons named by their spoken label (a custom item as its own
+ * element), the menu as the dropdown stand-in, with the Public API and Clerk
+ * swapped for their fakes. The Profile button shows the User's Profile photo,
+ * and the `person.fill` symbol while Clerk loads or when the photo fails.
  */
 import { beforeEach, describe, expect, it, jest } from "@jest/globals";
 import { QueryClientProvider } from "@tanstack/react-query";
-import { fireEvent, render, screen } from "@testing-library/react-native";
+import { act, fireEvent, render, screen } from "@testing-library/react-native";
 import type { ReactNode } from "react";
 import { useLayoutEffect, useState } from "react";
-import { Platform, Pressable, Text } from "react-native";
+import { Platform, Pressable, Text, View } from "react-native";
 
 import HomeScreen from "~/app/(tabs)/(home)/index";
 import ProfileScreen from "~/app/profile";
+import { PROFILE_PHOTO_IMAGE } from "~/components/profile/profile-photo-button";
 import { setDeviceLanguages } from "~/test-utils/device-locales";
+import { DEFAULT_IMAGE_URL, fakeClerk } from "~/test-utils/fake-clerk";
 import { backend, FAKE_USER_ID } from "~/test-utils/fake-public-api";
 import { InAppLanguage } from "~/test-utils/in-app-language";
 import { createTestQueryClient, settle } from "~/test-utils/query-client";
 
 interface MockHeaderItem {
   accessibilityLabel?: string;
+  element?: ReactNode;
   icon?: { name: string };
-  label: string;
+  label?: string;
   onPress?: () => void;
   type: string;
 }
@@ -73,6 +78,13 @@ const MockHeader = ({ options }: { options: MockHeaderOptions }) => {
             testID={`header-${item.icon?.name}`}
           />
         ))}
+      <View>
+        {
+          (options.unstable_headerRightItems?.() ?? []).find(
+            (item) => item.type === "custom"
+          )?.element
+        }
+      </View>
     </>
   );
 };
@@ -110,16 +122,13 @@ jest.mock("expo-router", () => ({
   }),
 }));
 
-const mockUser = {
-  fullName: "Tony Stark",
-  id: "user-1",
-  primaryEmailAddress: { emailAddress: "tony@example.com" },
-  reload: () => Promise.resolve(),
-};
-
-jest.mock("@clerk/expo", () => ({
-  useUser: () => ({ isLoaded: true, user: mockUser }),
-}));
+jest.mock(
+  "@clerk/expo",
+  () =>
+    jest.requireActual<typeof import("~/test-utils/fake-clerk")>(
+      "~/test-utils/fake-clerk"
+    ).clerkModule
+);
 
 jest.mock("react-native-purchases", () => ({
   __esModule: true,
@@ -129,15 +138,6 @@ jest.mock("react-native-purchases", () => ({
 jest.mock("react-native-purchases-ui", () => ({
   __esModule: true,
   default: { presentPaywall: jest.fn() },
-}));
-
-// The real Clerk SDK opens a MessagePort at import that keeps Jest alive.
-jest.mock("~/lib/clerk", () => ({
-  getClerk: () => ({ signOut: jest.fn(), user: mockUser }),
-  getCurrentUserId: () =>
-    jest.requireActual<typeof import("~/test-utils/fake-public-api")>(
-      "~/test-utils/fake-public-api"
-    ).FAKE_USER_ID,
 }));
 
 jest.mock("~/lib/segment", () => ({
@@ -151,7 +151,17 @@ jest.mock("~/hooks/revenueCat", () => ({
 
 jest.mock("~/components/exercises/exercise-image", () => () => null);
 
-jest.mock("~/components/symbol-image", () => ({ SymbolImage: () => null }));
+// A symbol as its name, so a test sees which one a button shows.
+jest.mock("~/components/symbol-image", () => {
+  const { View: MockView } =
+    jest.requireActual<typeof import("react-native")>("react-native");
+
+  return {
+    SymbolImage: ({ name }: { name: string }) => (
+      <MockView testID={`symbol-${name}`} />
+    ),
+  };
+});
 
 jest.mock("~/components/ui/button", () =>
   jest.requireActual("~/test-utils/button-stub")
@@ -183,18 +193,99 @@ beforeEach(() => {
   });
 });
 
-describe("profile from the first tab's header", () => {
-  it("pushes Profile from a person button in the header", async () => {
+const PHOTO_URL = "https://img.clerk.com/tony.jpg";
+
+/** The iOS Profile button: the photo's, or the native symbol item. */
+const profileButton = () =>
+  screen
+    .getAllByRole("button", { name: "Profile" })
+    .find(
+      (button) =>
+        button.props.testID === "profile-photo-button" ||
+        button.props.testID === "header-person.fill"
+    );
+
+/** The photo failing to load, as expo-image reports it. */
+const failPhoto = async () => {
+  await fireEvent(screen.getByTestId(PROFILE_PHOTO_IMAGE), "error", {
+    nativeEvent: { error: "Couldn't load the image" },
+  });
+};
+
+describe("the Profile button's photo", () => {
+  it("shows the User's Profile photo and pushes Profile", async () => {
+    fakeClerk.setUser({ imageUrl: PHOTO_URL });
     await mount(<HomeScreen />);
 
-    const button = screen.getByRole("button", { name: "Profile" });
-    expect(button.props.testID).toBe("header-person.fill");
+    const button = profileButton();
+    expect(button?.props.testID).toBe("profile-photo-button");
+    expect(screen.getByTestId(PROFILE_PHOTO_IMAGE).props.source).toEqual([
+      expect.objectContaining({ uri: PHOTO_URL }),
+    ]);
+    expect(screen.queryByTestId("header-person.fill")).toBeNull();
 
-    void fireEvent.press(button);
+    await fireEvent.press(button as NonNullable<typeof button>);
 
     expect(mockPush).toHaveBeenCalledWith("/profile");
   });
 
+  it("shows Clerk's default picture for a User without a photo", async () => {
+    await mount(<HomeScreen />);
+
+    expect(profileButton()?.props.testID).toBe("profile-photo-button");
+    expect(screen.getByTestId(PROFILE_PHOTO_IMAGE).props.source).toEqual([
+      expect.objectContaining({ uri: DEFAULT_IMAGE_URL }),
+    ]);
+  });
+
+  it("shows person.fill while Clerk is loading, then the photo", async () => {
+    fakeClerk.setUser({ imageUrl: PHOTO_URL });
+    fakeClerk.setLoaded(false);
+    await mount(<HomeScreen />);
+
+    const button = profileButton();
+    expect(button?.props.testID).toBe("header-person.fill");
+    expect(screen.queryByTestId(PROFILE_PHOTO_IMAGE)).toBeNull();
+
+    await fireEvent.press(button as NonNullable<typeof button>);
+    expect(mockPush).toHaveBeenCalledWith("/profile");
+
+    await act(() => {
+      fakeClerk.setLoaded(true);
+    });
+    expect(profileButton()?.props.testID).toBe("profile-photo-button");
+  });
+
+  it("falls back to person.fill when the photo fails to load", async () => {
+    fakeClerk.setUser({ imageUrl: PHOTO_URL });
+    await mount(<HomeScreen />);
+
+    await failPhoto();
+
+    const button = profileButton();
+    expect(button?.props.testID).toBe("header-person.fill");
+    expect(screen.queryByTestId(PROFILE_PHOTO_IMAGE)).toBeNull();
+
+    await fireEvent.press(button as NonNullable<typeof button>);
+    expect(mockPush).toHaveBeenCalledWith("/profile");
+  });
+
+  it("tries a new photo again after one failed", async () => {
+    fakeClerk.setUser({ imageUrl: PHOTO_URL });
+    await mount(<HomeScreen />);
+    await failPhoto();
+
+    await act(() => {
+      fakeClerk.setUser({ imageUrl: "https://img.clerk.com/tony-2.jpg" });
+    });
+
+    expect(screen.getByTestId(PROFILE_PHOTO_IMAGE).props.source).toEqual([
+      expect.objectContaining({ uri: "https://img.clerk.com/tony-2.jpg" }),
+    ]);
+  });
+});
+
+describe("profile from the first tab's header", () => {
   it("offers a Profile text button on Android, which has no header items", async () => {
     const os = Platform.OS;
     Platform.OS = "android";
@@ -206,7 +297,9 @@ describe("profile from the first tab's header", () => {
 
       // The text button, beside the iOS-only item the stand-in also draws.
       const textButton = buttons.find(
-        (button) => button.props.testID !== "header-person.fill"
+        (button) =>
+          button.props.testID !== "header-person.fill" &&
+          button.props.testID !== "profile-photo-button"
       );
 
       expect(textButton).toBeDefined();

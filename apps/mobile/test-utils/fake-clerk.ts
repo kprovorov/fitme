@@ -256,6 +256,9 @@ let needsReverification: string | null = null;
 let reverifications: readonly PendingReverification[] = [];
 let uploads = 0;
 
+/** Whether Clerk has loaded, as `useUser` and `useAuth` answer it. */
+let loaded = true;
+
 let version = 0;
 const listeners = new Set<() => void>();
 
@@ -635,6 +638,11 @@ const useAuthSnapshot = () =>
 const useUser = () => {
   const { signedIn, user: shown } = useAuthSnapshot();
 
+  // Clerk's own answer while it loads: neither signed in nor out, no User.
+  if (!loaded) {
+    return { isLoaded: false, isSignedIn: undefined, user: undefined };
+  }
+
   return { isLoaded: true, isSignedIn: signedIn, user: shown };
 };
 
@@ -644,6 +652,16 @@ const getToken = () =>
 
 const useAuth = () => {
   const { signedIn } = useAuthSnapshot();
+
+  if (!loaded) {
+    return {
+      getToken,
+      isLoaded: false,
+      isSignedIn: undefined,
+      signOut,
+      userId: undefined,
+    };
+  }
 
   return {
     getToken,
@@ -816,11 +834,22 @@ export const fakeClerk = {
     needsReverification = null;
     reverifications = [];
     uploads = 0;
+    loaded = true;
     changed();
   },
   /** The reverification Clerk is asking for (the oldest), or `null`. */
   get reverification(): PendingReverification | null {
     return reverifications[0] ?? null;
+  },
+  /**
+   * Holds Clerk loading (`false`) or finishes it (`true`, the default): while
+   * it loads, `useUser` and `useAuth` answer `isLoaded: false` and no User, as
+   * Clerk's hooks do. Only the hooks: `getClerk()` stays loaded, so the Public
+   * API's token getter never waits on it.
+   */
+  setLoaded: (value: boolean) => {
+    loaded = value;
+    changed();
   },
   /** Replaces the User; whatever the config leaves out takes its default. */
   setUser: (config: FakeUserConfig) => {
