@@ -756,6 +756,94 @@
     },
     "deleteFailed": "Não foi possível excluir sua conta"
   },
+  "accountSecurity": {
+    "title": "Conta e segurança",
+    "sections": {
+      "signIn": "Login",
+      "methods": "Métodos de login"
+    },
+    "email": "E-mail",
+    "passwordRow": "Alterar senha",
+    "connected": "Conectado",
+    "connectedAs": "Conectado como {{email}}",
+    "notConnected": "Não conectado",
+    "connect": "Conectar",
+    "connecting": "Conectando…",
+    "disconnect": "Desconectar",
+    "disconnecting": "Desconectando…",
+    "addAnotherMethod": "Adicione outra forma de login primeiro",
+    "disconnectConfirm": {
+      "title": "Desconectar {{provider}}?",
+      "message": "Você não poderá mais entrar com {{provider}}."
+    },
+    "errors": {
+      "connectFailed": "Não foi possível conectar {{provider}}. Tente novamente.",
+      "disconnectFailed": "Não foi possível desconectar {{provider}}. Tente novamente.",
+      "appleUnavailable": "O login com a Apple ainda não está disponível. Por enquanto, use o Google ou seu e-mail.",
+      "alreadyLinked": "Esta conta {{provider}} já está conectada a outra conta do Fitme."
+    },
+    "deleteAccount": "Excluir conta"
+  },
+  "changeEmail": {
+    "title": "Alterar e-mail",
+    "current": "E-mail atual",
+    "new": "Novo e-mail",
+    "description": "Vamos enviar um código para o seu novo e-mail para confirmá-lo.",
+    "submit": "Enviar código",
+    "errors": {
+      "emailInUse": "E-mail em uso",
+      "invalidEmail": "Digite um e-mail válido.",
+      "sameEmail": "Esse já é o seu e-mail.",
+      "failed": "Não foi possível alterar seu e-mail. Tente novamente."
+    },
+    "success": "E-mail alterado"
+  },
+  "changePassword": {
+    "title": "Alterar senha",
+    "description": "Você será desconectado dos seus outros dispositivos.",
+    "current": "Senha atual",
+    "new": "Nova senha",
+    "confirm": "Confirme a nova senha",
+    "submit": "Alterar senha",
+    "errors": {
+      "tooShort": "A senha deve ter pelo menos {{min}} caracteres.",
+      "mismatch": "As senhas não coincidem",
+      "wrongCurrent": "A senha atual está incorreta.",
+      "failed": "Não foi possível alterar sua senha. Tente novamente."
+    },
+    "success": "Senha alterada"
+  },
+  "confirmIdentity": {
+    "title": "Confirme que é você",
+    "password": {
+      "description": "Digite sua senha para continuar.",
+      "placeholder": "Senha",
+      "forgot": "Esqueceu a senha?"
+    },
+    "code": {
+      "description": "Digite o código que enviamos para {{email}} para continuar.",
+      "placeholder": "Código",
+      "resend": "Enviar um novo código"
+    },
+    "continue": "Continuar",
+    "errors": {
+      "passwordIncorrect": "Senha incorreta. Tente novamente.",
+      "wrongCode": "Esse código não está certo. Tente novamente.",
+      "codeNotSent": "Não foi possível enviar o código. Tente novamente.",
+      "failed": "Não foi possível confirmar que é você. Tente novamente."
+    }
+  },
+  "deleteAccount": {
+    "title": "Excluir sua conta?",
+    "message": "Seus treinos, planos, perfil e conversas com o Arnold serão excluídos permanentemente. Isso não pode ser desfeito.",
+    "proWarning": {
+      "appStore": "Sua assinatura da App Store não será cancelada automaticamente. Gerencie-a na App Store para parar a cobrança.",
+      "googlePlay": "Sua assinatura do Google Play não será cancelada automaticamente. Gerencie-a no Google Play para parar a cobrança."
+    },
+    "manageSubscription": "Gerenciar assinatura",
+    "confirm": "Excluir conta",
+    "failed": "Não foi possível excluir sua conta. Tente novamente."
+  },
   "measurementSystem": {
     "title": "Sistema de medidas",
     "loadError": "Não foi possível carregar seu sistema de medidas. Verifique sua conexão e tente novamente.",
@@ -799,14 +887,16 @@
     "description": {
       "signUp": "Digite o código que enviamos por e-mail para ativar sua conta",
       "reset": "Digite o código que enviamos por e-mail para redefinir sua senha",
-      "signIn": "Digite o código que enviamos para confirmar sua identidade neste dispositivo"
+      "signIn": "Digite o código que enviamos para confirmar sua identidade neste dispositivo",
+      "changeEmail": "Digite o código que enviamos para o seu novo endereço"
     },
     "codePlaceholder": "Código",
     "verify": "Verificar",
     "errors": {
       "signUpIncomplete": "Não foi possível concluir a criação da sua conta. Tente novamente.",
       "resetIncomplete": "Não foi possível verificar o código. Tente novamente.",
-      "signInIncomplete": "Não foi possível entrar na sua conta. Tente novamente."
+      "signInIncomplete": "Não foi possível entrar na sua conta. Tente novamente.",
+      "changeEmailIncomplete": "Não foi possível alterar seu e-mail. Tente novamente."
     },
     "resendButton": "Reenviar código",
     "resentNotice": "Enviamos um novo código.",
@@ -817,7 +907,8 @@
     "changeEmail": "Alterar",
     "loading": "Verificando",
     "expired": "Esta verificação expirou. Comece novamente para receber outro código.",
-    "startOver": "Começar novamente"
+    "startOver": "Começar novamente",
+    "changeEmailTitle": "Confirme seu novo e-mail"
   },
   "forgotPassword": {
     "screenTitle": "Esqueci a senha",

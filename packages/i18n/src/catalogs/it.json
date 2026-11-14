@@ -756,6 +756,94 @@
     },
     "deleteFailed": "Impossibile eliminare il tuo account"
   },
+  "accountSecurity": {
+    "title": "Account e sicurezza",
+    "sections": {
+      "signIn": "Accesso",
+      "methods": "Metodi di accesso"
+    },
+    "email": "Email",
+    "passwordRow": "Cambia password",
+    "connected": "Collegato",
+    "connectedAs": "Collegato come {{email}}",
+    "notConnected": "Non collegato",
+    "connect": "Collega",
+    "connecting": "Collegamento…",
+    "disconnect": "Scollega",
+    "disconnecting": "Scollegamento…",
+    "addAnotherMethod": "Aggiungi prima un altro modo per accedere",
+    "disconnectConfirm": {
+      "title": "Scollegare {{provider}}?",
+      "message": "Non potrai più accedere con {{provider}}."
+    },
+    "errors": {
+      "connectFailed": "Impossibile collegare {{provider}}. Riprova.",
+      "disconnectFailed": "Impossibile scollegare {{provider}}. Riprova.",
+      "appleUnavailable": "L'accesso con Apple non è ancora disponibile. Per ora usa Google o la tua email.",
+      "alreadyLinked": "Questo account {{provider}} è già collegato a un altro account Fitme."
+    },
+    "deleteAccount": "Elimina account"
+  },
+  "changeEmail": {
+    "title": "Cambia email",
+    "current": "Email attuale",
+    "new": "Nuova email",
+    "description": "Invieremo un codice alla tua nuova email per confermarla.",
+    "submit": "Invia codice",
+    "errors": {
+      "emailInUse": "Email già in uso",
+      "invalidEmail": "Inserisci un indirizzo email valido.",
+      "sameEmail": "È già la tua email.",
+      "failed": "Impossibile cambiare la tua email. Riprova."
+    },
+    "success": "Email cambiata"
+  },
+  "changePassword": {
+    "title": "Cambia password",
+    "description": "Verrai disconnesso dagli altri dispositivi.",
+    "current": "Password attuale",
+    "new": "Nuova password",
+    "confirm": "Conferma la nuova password",
+    "submit": "Cambia password",
+    "errors": {
+      "tooShort": "La password deve contenere almeno {{min}} caratteri.",
+      "mismatch": "Le password non corrispondono",
+      "wrongCurrent": "La password attuale non è corretta.",
+      "failed": "Impossibile cambiare la password. Riprova."
+    },
+    "success": "Password cambiata"
+  },
+  "confirmIdentity": {
+    "title": "Conferma che sei tu",
+    "password": {
+      "description": "Inserisci la password per continuare.",
+      "placeholder": "Password",
+      "forgot": "Password dimenticata?"
+    },
+    "code": {
+      "description": "Inserisci il codice che abbiamo inviato a {{email}} per continuare.",
+      "placeholder": "Codice",
+      "resend": "Invia un nuovo codice"
+    },
+    "continue": "Continua",
+    "errors": {
+      "passwordIncorrect": "Password non corretta. Riprova.",
+      "wrongCode": "Il codice non è corretto. Riprova.",
+      "codeNotSent": "Impossibile inviare il codice. Riprova.",
+      "failed": "Impossibile confermare che sei tu. Riprova."
+    }
+  },
+  "deleteAccount": {
+    "title": "Eliminare il tuo account?",
+    "message": "I tuoi allenamenti, piani, profilo e chat con Arnold verranno eliminati definitivamente. L'operazione non può essere annullata.",
+    "proWarning": {
+      "appStore": "Il tuo abbonamento dell'App Store non verrà annullato automaticamente. Gestiscilo nell'App Store per interrompere i pagamenti.",
+      "googlePlay": "Il tuo abbonamento di Google Play non verrà annullato automaticamente. Gestiscilo in Google Play per interrompere i pagamenti."
+    },
+    "manageSubscription": "Gestisci abbonamento",
+    "confirm": "Elimina account",
+    "failed": "Impossibile eliminare il tuo account. Riprova."
+  },
   "measurementSystem": {
     "title": "Sistema di misura",
     "loadError": "Impossibile caricare il sistema di misura. Controlla la connessione e riprova.",
@@ -799,14 +887,16 @@
     "description": {
       "signUp": "Inserisci il codice che ti abbiamo inviato via email per attivare il tuo account",
       "reset": "Inserisci il codice che ti abbiamo inviato via email per reimpostare la password",
-      "signIn": "Inserisci il codice che ti abbiamo inviato per confermare la tua identità su questo dispositivo"
+      "signIn": "Inserisci il codice che ti abbiamo inviato per confermare la tua identità su questo dispositivo",
+      "changeEmail": "Inserisci il codice che abbiamo inviato al tuo nuovo indirizzo"
     },
     "codePlaceholder": "Codice",
     "verify": "Verifica",
     "errors": {
       "signUpIncomplete": "Impossibile completare la creazione del tuo account. Riprova.",
       "resetIncomplete": "Impossibile verificare il codice. Riprova.",
-      "signInIncomplete": "Impossibile effettuare l'accesso. Riprova."
+      "signInIncomplete": "Impossibile effettuare l'accesso. Riprova.",
+      "changeEmailIncomplete": "Non siamo riusciti a cambiare la tua email. Riprova."
     },
     "resendButton": "Invia di nuovo il codice",
     "resentNotice": "Ti abbiamo inviato un nuovo codice.",
@@ -817,7 +907,8 @@
     "changeEmail": "Cambiala",
     "loading": "Verifica in corso",
     "expired": "Questa verifica è scaduta. Ricomincia per ricevere un nuovo codice.",
-    "startOver": "Ricomincia"
+    "startOver": "Ricomincia",
+    "changeEmailTitle": "Conferma la nuova email"
   },
   "forgotPassword": {
     "screenTitle": "Password dimenticata",

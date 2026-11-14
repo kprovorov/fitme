@@ -724,6 +724,94 @@
     },
     "deleteFailed": "Je account kon niet worden verwijderd"
   },
+  "accountSecurity": {
+    "title": "Account en beveiliging",
+    "sections": {
+      "signIn": "Inloggen",
+      "methods": "Inlogmethoden"
+    },
+    "email": "E-mail",
+    "passwordRow": "Wachtwoord wijzigen",
+    "connected": "Gekoppeld",
+    "connectedAs": "Gekoppeld als {{email}}",
+    "notConnected": "Niet gekoppeld",
+    "connect": "Koppelen",
+    "connecting": "Koppelen…",
+    "disconnect": "Ontkoppelen",
+    "disconnecting": "Ontkoppelen…",
+    "addAnotherMethod": "Voeg eerst een andere inlogmethode toe",
+    "disconnectConfirm": {
+      "title": "{{provider}} ontkoppelen?",
+      "message": "Je kunt dan niet meer inloggen met {{provider}}."
+    },
+    "errors": {
+      "connectFailed": "{{provider}} kon niet worden gekoppeld. Probeer het opnieuw.",
+      "disconnectFailed": "{{provider}} kon niet worden ontkoppeld. Probeer het opnieuw.",
+      "appleUnavailable": "Inloggen met Apple is nog niet beschikbaar. Gebruik voorlopig Google of je e-mail.",
+      "alreadyLinked": "Dit {{provider}}-account is al gekoppeld aan een ander Fitme-account."
+    },
+    "deleteAccount": "Account verwijderen"
+  },
+  "changeEmail": {
+    "title": "E-mail wijzigen",
+    "current": "Huidig e-mailadres",
+    "new": "Nieuw e-mailadres",
+    "description": "We sturen een code naar je nieuwe e-mailadres om het te bevestigen.",
+    "submit": "Code versturen",
+    "errors": {
+      "emailInUse": "E-mailadres al in gebruik",
+      "invalidEmail": "Voer een geldig e-mailadres in.",
+      "sameEmail": "Dat is al je e-mailadres.",
+      "failed": "Je e-mailadres kon niet worden gewijzigd. Probeer het opnieuw."
+    },
+    "success": "E-mailadres gewijzigd"
+  },
+  "changePassword": {
+    "title": "Wachtwoord wijzigen",
+    "description": "Je wordt uitgelogd op je andere apparaten.",
+    "current": "Huidig wachtwoord",
+    "new": "Nieuw wachtwoord",
+    "confirm": "Bevestig nieuw wachtwoord",
+    "submit": "Wachtwoord wijzigen",
+    "errors": {
+      "tooShort": "Je wachtwoord moet minstens {{min}} tekens hebben.",
+      "mismatch": "Wachtwoorden komen niet overeen",
+      "wrongCurrent": "Het huidige wachtwoord is onjuist.",
+      "failed": "Je wachtwoord kon niet worden gewijzigd. Probeer het opnieuw."
+    },
+    "success": "Wachtwoord gewijzigd"
+  },
+  "confirmIdentity": {
+    "title": "Bevestig dat jij het bent",
+    "password": {
+      "description": "Voer je wachtwoord in om door te gaan.",
+      "placeholder": "Wachtwoord",
+      "forgot": "Wachtwoord vergeten?"
+    },
+    "code": {
+      "description": "Voer de code in die we naar {{email}} hebben gestuurd om door te gaan.",
+      "placeholder": "Code",
+      "resend": "Nieuwe code versturen"
+    },
+    "continue": "Doorgaan",
+    "errors": {
+      "passwordIncorrect": "Wachtwoord onjuist. Probeer het opnieuw.",
+      "wrongCode": "Die code klopt niet. Probeer het opnieuw.",
+      "codeNotSent": "De code kon niet worden verstuurd. Probeer het opnieuw.",
+      "failed": "We konden niet bevestigen dat jij het bent. Probeer het opnieuw."
+    }
+  },
+  "deleteAccount": {
+    "title": "Je account verwijderen?",
+    "message": "Je trainingen, plannen, profiel en chats met Arnold worden definitief verwijderd. Dit kan niet ongedaan worden gemaakt.",
+    "proWarning": {
+      "appStore": "Je App Store-abonnement wordt niet automatisch opgezegd. Beheer het in de App Store om de betalingen te stoppen.",
+      "googlePlay": "Je Google Play-abonnement wordt niet automatisch opgezegd. Beheer het in Google Play om de betalingen te stoppen."
+    },
+    "manageSubscription": "Abonnement beheren",
+    "confirm": "Account verwijderen",
+    "failed": "Je account kon niet worden verwijderd. Probeer het opnieuw."
+  },
   "measurementSystem": {
     "title": "Eenhedenstelsel",
     "loadError": "Je eenhedenstelsel kon niet worden geladen. Controleer je verbinding en probeer het opnieuw.",
@@ -767,14 +855,16 @@
     "description": {
       "signUp": "Vul de code in die we je hebben gemaild om je account te activeren",
       "reset": "Vul de code in die we je hebben gemaild om je wachtwoord opnieuw in te stellen",
-      "signIn": "Vul de code in die we je hebben gestuurd om te bevestigen dat jij dit apparaat gebruikt"
+      "signIn": "Vul de code in die we je hebben gestuurd om te bevestigen dat jij dit apparaat gebruikt",
+      "changeEmail": "Voer de code in die we naar je nieuwe adres hebben gestuurd"
     },
     "codePlaceholder": "Code",
     "verify": "Controleren",
     "errors": {
       "signUpIncomplete": "Je account kon niet worden aangemaakt. Probeer het opnieuw.",
       "resetIncomplete": "De code kon niet worden gecontroleerd. Probeer het opnieuw.",
-      "signInIncomplete": "Inloggen is niet gelukt. Probeer het opnieuw."
+      "signInIncomplete": "Inloggen is niet gelukt. Probeer het opnieuw.",
+      "changeEmailIncomplete": "We konden je e-mailadres niet wijzigen. Probeer het opnieuw."
     },
     "resendButton": "Code opnieuw versturen",
     "resentNotice": "We hebben je een nieuwe code gestuurd.",
@@ -785,7 +875,8 @@
     "changeEmail": "Aanpassen",
     "loading": "Controleren",
     "expired": "Deze verificatie is verlopen. Begin opnieuw om een nieuwe code te krijgen.",
-    "startOver": "Opnieuw beginnen"
+    "startOver": "Opnieuw beginnen",
+    "changeEmailTitle": "Bevestig je nieuwe e-mailadres"
   },
   "forgotPassword": {
     "screenTitle": "Wachtwoord vergeten",

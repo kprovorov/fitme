@@ -724,6 +724,94 @@
     },
     "deleteFailed": "Couldn't delete your account"
   },
+  "accountSecurity": {
+    "title": "Account & Security",
+    "sections": {
+      "signIn": "Sign-in",
+      "methods": "Sign-in Methods"
+    },
+    "email": "Email",
+    "passwordRow": "Change Password",
+    "connected": "Connected",
+    "connectedAs": "Connected as {{email}}",
+    "notConnected": "Not connected",
+    "connect": "Connect",
+    "connecting": "Connecting…",
+    "disconnect": "Disconnect",
+    "disconnecting": "Disconnecting…",
+    "addAnotherMethod": "Add another way to sign in first",
+    "disconnectConfirm": {
+      "title": "Disconnect {{provider}}?",
+      "message": "You won't be able to log in with {{provider}} anymore."
+    },
+    "errors": {
+      "connectFailed": "Couldn't connect {{provider}}. Try again.",
+      "disconnectFailed": "Couldn't disconnect {{provider}}. Try again.",
+      "appleUnavailable": "Signing in with Apple isn't available yet. Use Google or your email for now.",
+      "alreadyLinked": "This {{provider}} account is already connected to another Fitme account."
+    },
+    "deleteAccount": "Delete Account"
+  },
+  "changeEmail": {
+    "title": "Change Email",
+    "current": "Current email",
+    "new": "New email",
+    "description": "We'll send a code to your new email to confirm it.",
+    "submit": "Send Code",
+    "errors": {
+      "emailInUse": "Email in use",
+      "invalidEmail": "Enter a valid email address.",
+      "sameEmail": "That's already your email.",
+      "failed": "Couldn't change your email. Try again."
+    },
+    "success": "Email changed"
+  },
+  "changePassword": {
+    "title": "Change Password",
+    "description": "You'll be logged out on your other devices.",
+    "current": "Current password",
+    "new": "New password",
+    "confirm": "Confirm new password",
+    "submit": "Change Password",
+    "errors": {
+      "tooShort": "Password must be at least {{min}} characters.",
+      "mismatch": "Passwords don't match",
+      "wrongCurrent": "Current password is incorrect.",
+      "failed": "Couldn't change your password. Try again."
+    },
+    "success": "Password changed"
+  },
+  "confirmIdentity": {
+    "title": "Confirm it's you",
+    "password": {
+      "description": "Enter your password to continue.",
+      "placeholder": "Password",
+      "forgot": "Forgot password?"
+    },
+    "code": {
+      "description": "Enter the code we sent to {{email}} to continue.",
+      "placeholder": "Code",
+      "resend": "Send a new code"
+    },
+    "continue": "Continue",
+    "errors": {
+      "passwordIncorrect": "Password is incorrect. Try again.",
+      "wrongCode": "That code isn't right. Try again.",
+      "codeNotSent": "Couldn't send the code. Try again.",
+      "failed": "Couldn't confirm it's you. Try again."
+    }
+  },
+  "deleteAccount": {
+    "title": "Delete your account?",
+    "message": "Your workouts, plans, profile and Arnold chats will be permanently deleted. This can't be undone.",
+    "proWarning": {
+      "appStore": "Your App Store subscription won't be cancelled automatically. Manage it in the App Store to stop billing.",
+      "googlePlay": "Your Google Play subscription won't be cancelled automatically. Manage it in Google Play to stop billing."
+    },
+    "manageSubscription": "Manage Subscription",
+    "confirm": "Delete Account",
+    "failed": "Couldn't delete your account. Try again."
+  },
   "measurementSystem": {
     "title": "Measurement System",
     "loadError": "Couldn't load your measurement system. Please check your connection and try again.",
@@ -767,14 +855,16 @@
     "description": {
       "signUp": "Enter the code we emailed you to activate your account",
       "reset": "Enter the code we emailed you to reset your password",
-      "signIn": "Enter the code we sent you to confirm it's you on this device"
+      "signIn": "Enter the code we sent you to confirm it's you on this device",
+      "changeEmail": "Enter the code we emailed to your new address"
     },
     "codePlaceholder": "Code",
     "verify": "Verify",
     "errors": {
       "signUpIncomplete": "We couldn't finish creating your account. Please try again.",
       "resetIncomplete": "We couldn't verify the code. Please try again.",
-      "signInIncomplete": "We couldn't sign you in. Please try again."
+      "signInIncomplete": "We couldn't sign you in. Please try again.",
+      "changeEmailIncomplete": "We couldn't change your email. Please try again."
     },
     "resendButton": "Resend code",
     "resentNotice": "We sent you a new code.",
@@ -785,7 +875,8 @@
     "changeEmail": "Change it",
     "loading": "Verifying",
     "expired": "This verification has expired. Start again to get a new code.",
-    "startOver": "Start again"
+    "startOver": "Start again",
+    "changeEmailTitle": "Confirm your new email"
   },
   "forgotPassword": {
     "screenTitle": "Forgot Password",
