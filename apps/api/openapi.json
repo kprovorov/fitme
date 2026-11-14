@@ -1202,6 +1202,39 @@
         "required": ["reps_completed", "weight_completed"],
         "additionalProperties": false
       },
+      "LifetimeTotalsResponse": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/LifetimeTotals"
+          },
+          "weight_unit": {
+            "$ref": "#/components/schemas/WeightUnit"
+          }
+        },
+        "required": ["data", "weight_unit"]
+      },
+      "LifetimeTotals": {
+        "type": "object",
+        "properties": {
+          "duration_seconds": {
+            "type": "integer",
+            "description": "`finished_at − started_at` summed over the qualifying Workout Sessions, in whole seconds",
+            "example": 131400
+          },
+          "volume": {
+            "type": "number",
+            "description": "Weight × reps over the qualifying Workout Sessions' logged sets, in `weight_unit`; a set without a weight adds 0",
+            "example": 182400.5
+          },
+          "workout_count": {
+            "type": "integer",
+            "description": "How many Workout Sessions qualify",
+            "example": 42
+          }
+        },
+        "required": ["duration_seconds", "volume", "workout_count"]
+      },
       "WorkoutSession": {
         "type": "object",
         "properties": {
@@ -3826,6 +3859,60 @@
           },
           "415": {
             "description": "The body isn't `application/json`",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too many requests from this User; retry after `Retry-After`",
+            "headers": {
+              "Retry-After": {
+                "schema": {
+                  "type": "string",
+                  "description": "Seconds until the limit resets",
+                  "example": "30"
+                },
+                "required": true,
+                "description": "Seconds until the limit resets"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/workout-sessions/totals": {
+      "get": {
+        "description": "The User's Lifetime totals: what their qualifying Workout Sessions add up to. A Workout Session qualifies once it's finished and at least one of its sets has positive reps, the same rule History's month overview and the Weekly goal count by. Zeros for a User with none. The volume is in `weight_unit`, the User's Profile's (`kg` without a Profile).",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Get the User's Lifetime totals",
+        "responses": {
+          "200": {
+            "description": "The User's Lifetime totals",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LifetimeTotalsResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No valid Clerk session token",
             "content": {
               "application/json": {
                 "schema": {

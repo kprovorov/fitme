@@ -343,6 +343,48 @@ const getWorkoutSession = createRoute({
   summary: "Get one of the User's Workout Sessions",
 });
 
+const LifetimeTotals = z
+  .object({
+    data: z
+      .object({
+        duration_seconds: z.int().openapi({
+          description:
+            "`finished_at − started_at` summed over the qualifying Workout Sessions, in whole seconds",
+          example: 131_400,
+        }),
+        volume: z.number().openapi({
+          description:
+            "Weight × reps over the qualifying Workout Sessions' logged sets, in `weight_unit`; a set without a weight adds 0",
+          example: 182_400.5,
+        }),
+        workout_count: z.int().openapi({
+          description: "How many Workout Sessions qualify",
+          example: 42,
+        }),
+      })
+      .openapi("LifetimeTotals"),
+    weight_unit: WeightUnit,
+  })
+  .openapi("LifetimeTotalsResponse");
+
+const lifetimeTotalsRoute = createRoute({
+  description:
+    "The User's Lifetime totals: what their qualifying Workout Sessions add up to. A Workout Session qualifies once it's finished and at least one of its sets has positive reps, the same rule History's month overview and the Weekly goal count by. Zeros for a User with none. The volume is in `weight_unit`, the User's Profile's (`kg` without a Profile).",
+  method: "get",
+  middleware: [requires("read")] as const,
+  path: "/totals",
+  responses: {
+    200: {
+      content: { "application/json": { schema: LifetimeTotals } },
+      description: "The User's Lifetime totals",
+    },
+    401: unauthorizedResponse,
+    429: rateLimitedResponse,
+  },
+  security: bearerSecurity,
+  summary: "Get the User's Lifetime totals",
+});
+
 const slugField = (description: string) =>
   z.string().openapi({ description, example: "barbell-bench-press" });
 
@@ -474,6 +516,18 @@ const applyPlanUpdateRoute = createRoute({
 export const workoutSessions = new OpenAPIHono<ApiEnv>({
   defaultHook: invalidRequest,
 })
+  // Before `/{id}`, which would read `totals` as a Workout Session id.
+  .openapi(lifetimeTotalsRoute, async (c) => {
+    const { weight_unit: weightUnit, ...totals } = await c.var
+      .getServices()
+      .getLifetimeTotals();
+
+    // Parsed through the contract, so fields beyond it never go out.
+    return c.json(
+      LifetimeTotals.parse({ data: totals, weight_unit: weightUnit }),
+      200
+    );
+  })
   .openapi(getWorkoutSession, async (c) => {
     const { id } = c.req.valid("param");
     const found = await c.var.getServices().getWorkoutSession(id);

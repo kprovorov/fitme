@@ -17,6 +17,8 @@ import type {
   ExerciseHistoryPage,
   ExerciseHistoryQuery,
 } from "@fitme/services/exercises";
+import { getLifetimeTotals } from "@fitme/services/lifetime-totals";
+import type { LifetimeTotals } from "@fitme/services/lifetime-totals";
 import {
   applyPlanUpdate,
   previewPlanUpdate,
@@ -185,6 +187,11 @@ export interface UserServices {
   getExerciseHistory: (
     query: ExerciseHistoryQuery
   ) => Promise<Weighed<ExerciseHistoryPage>>;
+  /**
+   * The User's Lifetime totals over their qualifying Workout Sessions (finished,
+   * with a set with positive reps), the volume in `weight_unit`.
+   */
+  getLifetimeTotals: () => Promise<LifetimeTotals>;
   /** A live Plan of the User in full, or `null` (missing, deleted, foreign). */
   getPlan: (planId: string) => Promise<Weighed<PlanDetail> | null>;
   getProfile: () => Promise<ProfileWithUnits | null>;
@@ -344,6 +351,9 @@ export const createServicesFromEnv: ServicesFactory = (userId) => {
     getActivePlan: () => weighed((tx) => getActivePlan(tx, userId)),
     getExerciseHistory: (query) =>
       inUnits((tx) => getExerciseHistory(tx, userId, query)),
+    // The service locks the Profile units first and answers the unit itself.
+    getLifetimeTotals: () =>
+      asUser(userId, (tx) => getLifetimeTotals(tx, userId)),
     getPlan: (planId) => weighed((tx) => getPlan(tx, userId, planId)),
     getProfile: () => asUser(userId, (tx) => getProfile(tx, userId)),
     getWeeklyGoals: (timeZone) =>
