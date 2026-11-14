@@ -579,7 +579,7 @@ Backend apps that use `@fitme/db`:
 
 - `FITME_DATABASE_URL` — the `fitme` login's Supavisor transaction-pooler connection string with `?application_name=<app>` (locally `postgresql://fitme.pooler-dev:fitme-local-only@127.0.0.1:<pooler port>/postgres?application_name=<app>`; each stack's pooler port is in `supabase status --output-format json`). Service-role strength; server environments only.
 
-`apps/mcp` (see `apps/mcp/.env.example`; read from the process environment, not auto-loaded from a file):
+`apps/mcp` (see `apps/mcp/.env.example`; read from the process environment; `dev` loads `apps/mcp/.env` if it exists, a variable already set in the process environment winning):
 
 - `PORT` (default 3002)
 - `FITME_DATABASE_URL` — required (500 without it); see above, with `?application_name=mcp`. Every user tool runs through it.

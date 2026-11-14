@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "build": "tsdown",
-    "dev": "tsx watch src/index.ts",
+    "dev": "tsx watch --env-file-if-exists=.env src/index.ts",
     "start": "node dist/node/index.js",
     "test": "vitest run",
     "test:integration": "vitest run --config vitest.integration.config.ts",
