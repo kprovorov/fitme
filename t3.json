@@ -16,17 +16,17 @@
     },
     {
       "name": "Run all",
-      "command": "pnpm dev",
+      "command": "./scripts/with-dev-env.sh -- pnpm dev",
       "icon": "play"
     },
     {
       "name": "Run mobile",
-      "command": "pnpm mobile dev",
+      "command": "./scripts/with-dev-env.sh Mobile -- pnpm mobile dev",
       "icon": "play"
     },
     {
       "name": "Build mobile",
-      "command": "pnpm ios --no-bundler",
+      "command": "./scripts/with-dev-env.sh Mobile -- pnpm ios --no-bundler",
       "icon": "build"
     },
     {
@@ -41,34 +41,39 @@
     },
     {
       "name": "Run web",
-      "command": "pnpm dev:web",
+      "command": "./scripts/with-dev-env.sh Web -- pnpm dev:web",
       "icon": "play",
       "previewUrl": "http://localhost:3000"
     },
     {
       "name": "Run site",
-      "command": "pnpm dev:site",
+      "command": "./scripts/with-dev-env.sh Site -- pnpm dev:site",
       "icon": "play",
       "previewUrl": "http://localhost:3001"
     },
     {
       "name": "Run MCP",
-      "command": "pnpm dev:mcp",
+      "command": "./scripts/with-dev-env.sh Mcp -- pnpm dev:mcp",
       "icon": "play"
     },
     {
       "name": "Run API",
-      "command": "pnpm dev:api",
+      "command": "./scripts/with-dev-env.sh Api -- pnpm dev:api",
       "icon": "play"
     },
     {
       "name": "Run webhooks",
-      "command": "pnpm dev:webhooks",
+      "command": "./scripts/with-dev-env.sh Webhooks -- pnpm dev:webhooks",
       "icon": "play"
     },
     {
       "name": "Run arnold",
-      "command": "pnpm dev:arnold",
+      "command": "./scripts/with-dev-env.sh Arnold -- pnpm dev:arnold",
+      "icon": "play"
+    },
+    {
+      "name": "Run library",
+      "command": "./scripts/with-dev-env.sh Library -- pnpm dev:library",
       "icon": "play"
     },
     {
