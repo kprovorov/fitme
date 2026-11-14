@@ -12,6 +12,10 @@ A personal workout planner: a person signs up, fills in a fitness profile, build
 
 **App language**: The language Fitme speaks to a User in: one of the languages Fitme supports, taken from the User's device settings and never stored. Portuguese has Brazilian and European variants; Chinese has Simplified and Traditional scripts. How dates and numbers look follows the device's region. _Avoid_: Locale, lang, UI language
 
+**Profile photo**: The picture a User chooses to show next to their name. It belongs to the User, as their name does, not to the Profile. A User without one shows the default picture Clerk gives every User. _Avoid_: Avatar, profile picture, userpic
+
+**Subscription**: Whether a User has Fitme Pro, which unlocks Arnold and AI-built Plans, or is on Free. Pro is billed through an app store and may be a trial, renewing or cancelled-but-still-active. _Avoid_: Plan, tier, membership
+
 **User id**: The Clerk identifier of a User. The single key under which all User-owned data (Profile, Plans, Workout Sessions, Conversations) is stored and authorised. _Avoid_: UUID, auth uid, sub
 
 ### Training
@@ -25,6 +29,8 @@ A personal workout planner: a person signs up, fills in a fitness profile, build
 **Weekly goal**: The number of Workout Sessions a User aims to complete in a Monday–Sunday week, taken from their active Plan's training frequency and retained for that week; frequency changes apply from the following Monday. Only finished Workout Sessions with at least one set containing positive reps count toward it. _Avoid_: Weekly target, workout quota
 
 **Weekly streak**: Consecutive weeks in which a User meets their Weekly goal; a first partial week may start a streak without a penalty for missing that partial week's goal. Meeting the current week's goal extends the streak immediately, an unfinished current week preserves it until the week ends, and a missed completed week or a completed week without a known goal breaks it. _Avoid_: Daily streak, training streak
+
+**Lifetime totals**: How much a User has trained since joining: the number of their Workout Sessions that count (finished, with at least one set containing positive reps, the Weekly goal's rule), the time those took and the volume lifted in them, in the User's unit. History's month overview counts the same Workout Sessions for one month. _Avoid_: Stats, all-time stats, lifetime stats
 
 **Personal record (PR)**: A logged set with positive reps that exceeds the User's highest weight for the same Exercise in earlier finished Workout Sessions, or exceeds the highest reps recorded at that highest weight; explicit zero weight allows bodyweight rep records while missing weight does not. First-ever results establish a baseline, ties earn no record, and an earned record is retained when the User changes measurement system. _Avoid_: Workout record, best workout
 
