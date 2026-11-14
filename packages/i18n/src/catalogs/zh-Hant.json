@@ -529,6 +529,8 @@
   },
   "profileForm": {
     "name": "姓名",
+    "firstName": "名字",
+    "lastName": "姓氏",
     "gender": "性別",
     "parameters": "身體資料",
     "age": "年齡",
@@ -545,6 +547,10 @@
       "heightRequired": "請填寫身高",
       "weightRequired": "請填寫體重",
       "nameTooLong": "姓名不能超過{{max, number(useGrouping: false)}}個字元",
+      "firstNameRequired": "請填寫名字",
+      "firstNameTooLong": "名字不能超過{{max, number(useGrouping: false)}}個字元",
+      "lastNameRequired": "請填寫姓氏",
+      "lastNameTooLong": "姓氏不能超過{{max, number(useGrouping: false)}}個字元",
       "tooManyDecimals": "數值最多保留{{max, number(useGrouping: false)}}位小數",
       "saveFailed": "無法儲存你的個人資料。請檢查網路連線後再試一次。",
       "saveRateLimited": "無法儲存你的個人資料。請求過於頻繁，請在{{seconds, number}}秒後再試一次。"
@@ -681,6 +687,27 @@
     "loadError": "無法載入你的個人資料。請檢查網路連線後再試一次。",
     "save": "儲存"
   },
+  "profilePhoto": {
+    "title": "個人照片",
+    "change": "更換照片",
+    "buttonLabel": "更換個人照片",
+    "chooseFromLibrary": "從照片圖庫選擇",
+    "takePhoto": "拍照",
+    "removePhoto": "移除照片",
+    "uploadFailed": {
+      "title": "無法更換照片",
+      "message": "你的照片沒有更換。請檢查網路連線後再試一次。"
+    },
+    "removeFailed": {
+      "title": "無法移除照片",
+      "message": "你的照片沒有移除。請檢查網路連線後再試一次。"
+    },
+    "cameraDenied": {
+      "title": "需要相機權限",
+      "message": "Fitme 需要取用相機，才能拍攝你的個人照片。你可以在「設定」中開啟權限。",
+      "openSettings": "開啟設定"
+    }
+  },
   "settings": {
     "title": "設定",
     "measurementSystem": "度量衡單位",
@@ -782,6 +809,7 @@
   },
   "measurementSystem": {
     "title": "度量衡單位",
+    "unitsTitle": "單位",
     "loadError": "無法載入你的度量衡單位。請檢查網路連線後再試一次。",
     "confirm": {
       "title": "確定要變更嗎？",
@@ -795,10 +823,24 @@
       "title": "無法變更單位",
       "message": "你的測量資料未變更，請再試一次。",
       "rateLimited": "你的測量資料未變更。請求過於頻繁，請在{{seconds, number}}秒後再試一次。"
+    },
+    "switchConfirm": {
+      "title": {
+        "metric": "要切換為公制單位嗎？",
+        "us": "要切換為美制單位嗎？",
+        "uk": "要切換為英制單位嗎？"
+      },
+      "message": {
+        "metric": "你的個人資料和訓練紀錄將換算為公制單位。",
+        "us": "你的個人資料和訓練紀錄將換算為美制單位。",
+        "uk": "你的個人資料和訓練紀錄將換算為英制單位。"
+      },
+      "confirm": "切換"
     }
   },
   "legal": {
     "title": "法律資訊",
+    "privacyTitle": "法律與隱私權",
     "privacyPolicy": "隱私權政策",
     "terms": "服務條款",
     "deleteAccount": "刪除帳號",
@@ -815,7 +857,16 @@
       "x": "Fitme 的 X 專頁",
       "instagram": "Fitme 的 Instagram 專頁",
       "threads": "Fitme 的 Threads 專頁"
-    }
+    },
+    "contactSection": "聯絡我們",
+    "emailSupport": "寄信給客服",
+    "followSection": "追蹤 Fitme",
+    "rows": {
+      "x": "X",
+      "instagram": "Instagram",
+      "threads": "Threads"
+    },
+    "addressCopied": "已拷貝地址"
   },
   "verifyCode": {
     "screenTitle": "驗證碼",

@@ -558,6 +558,8 @@
   },
   "profileForm": {
     "name": "Naam",
+    "firstName": "Voornaam",
+    "lastName": "Achternaam",
     "gender": "Geslacht",
     "parameters": "Lichaamsgegevens",
     "age": "Leeftijd",
@@ -577,6 +579,10 @@
       "heightRequired": "Lengte is verplicht",
       "weightRequired": "Gewicht is verplicht",
       "nameTooLong": "De naam mag maximaal {{max, number(useGrouping: false)}} tekens bevatten",
+      "firstNameRequired": "Voornaam is verplicht",
+      "firstNameTooLong": "De voornaam mag maximaal {{max, number(useGrouping: false)}} tekens bevatten",
+      "lastNameRequired": "Achternaam is verplicht",
+      "lastNameTooLong": "De achternaam mag maximaal {{max, number(useGrouping: false)}} tekens bevatten",
       "tooManyDecimals": "Het getal mag maximaal {{max, number(useGrouping: false)}} decimalen bevatten",
       "saveFailed": "Je profiel kon niet worden opgeslagen. Controleer je verbinding en probeer het opnieuw.",
       "saveRateLimited": "Je profiel kon niet worden opgeslagen. Te veel verzoeken: probeer het over {{seconds, number}} s opnieuw."
@@ -713,6 +719,27 @@
     "loadError": "Je profiel kon niet worden geladen. Controleer je verbinding en probeer het opnieuw.",
     "save": "Opslaan"
   },
+  "profilePhoto": {
+    "title": "Profielfoto",
+    "change": "Foto wijzigen",
+    "buttonLabel": "Profielfoto wijzigen",
+    "chooseFromLibrary": "Kies uit bibliotheek",
+    "takePhoto": "Maak foto",
+    "removePhoto": "Verwijder foto",
+    "uploadFailed": {
+      "title": "Kan foto niet wijzigen",
+      "message": "Je foto is niet gewijzigd. Controleer je verbinding en probeer het opnieuw."
+    },
+    "removeFailed": {
+      "title": "Kan foto niet verwijderen",
+      "message": "Je foto is niet verwijderd. Controleer je verbinding en probeer het opnieuw."
+    },
+    "cameraDenied": {
+      "title": "Toegang tot camera nodig",
+      "message": "Fitme heeft toegang tot je camera nodig om je profielfoto te maken. Je kunt dit inschakelen in Instellingen.",
+      "openSettings": "Instellingen openen"
+    }
+  },
   "settings": {
     "title": "Instellingen",
     "measurementSystem": "Eenhedenstelsel",
@@ -814,6 +841,7 @@
   },
   "measurementSystem": {
     "title": "Eenhedenstelsel",
+    "unitsTitle": "Eenheden",
     "loadError": "Je eenhedenstelsel kon niet worden geladen. Controleer je verbinding en probeer het opnieuw.",
     "confirm": {
       "title": "Weet je het zeker?",
@@ -827,10 +855,24 @@
       "title": "Eenheden wijzigen mislukt",
       "message": "Je metingen zijn niet gewijzigd. Probeer het opnieuw.",
       "rateLimited": "Je metingen zijn niet gewijzigd. Te veel verzoeken: probeer het over {{seconds, number}} s opnieuw."
+    },
+    "switchConfirm": {
+      "title": {
+        "metric": "Overstappen op metrische eenheden?",
+        "us": "Overstappen op Amerikaanse eenheden?",
+        "uk": "Overstappen op Britse eenheden?"
+      },
+      "message": {
+        "metric": "Je profiel en trainingsgeschiedenis worden omgerekend naar metrische eenheden.",
+        "us": "Je profiel en trainingsgeschiedenis worden omgerekend naar Amerikaanse eenheden.",
+        "uk": "Je profiel en trainingsgeschiedenis worden omgerekend naar Britse eenheden."
+      },
+      "confirm": "Overstappen"
     }
   },
   "legal": {
     "title": "Juridisch",
+    "privacyTitle": "Juridisch en privacy",
     "privacyPolicy": "Privacybeleid",
     "terms": "Gebruiksvoorwaarden",
     "deleteAccount": "Account verwijderen",
@@ -847,7 +889,16 @@
       "x": "Fitme op X",
       "instagram": "Fitme op Instagram",
       "threads": "Fitme op Threads"
-    }
+    },
+    "contactSection": "Contact",
+    "emailSupport": "Mail de support",
+    "followSection": "Volg Fitme",
+    "rows": {
+      "x": "X",
+      "instagram": "Instagram",
+      "threads": "Threads"
+    },
+    "addressCopied": "Adres gekopieerd"
   },
   "verifyCode": {
     "screenTitle": "Code controleren",

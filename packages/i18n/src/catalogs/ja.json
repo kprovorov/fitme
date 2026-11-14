@@ -529,6 +529,8 @@
   },
   "profileForm": {
     "name": "名前",
+    "firstName": "名",
+    "lastName": "姓",
     "gender": "性別",
     "parameters": "身体情報",
     "age": "年齢",
@@ -545,6 +547,10 @@
       "heightRequired": "身長を入力してください",
       "weightRequired": "体重を入力してください",
       "nameTooLong": "名前は{{max, number(useGrouping: false)}}文字以内で入力してください",
+      "firstNameRequired": "名を入力してください",
+      "firstNameTooLong": "名は{{max, number(useGrouping: false)}}文字以内で入力してください",
+      "lastNameRequired": "姓を入力してください",
+      "lastNameTooLong": "姓は{{max, number(useGrouping: false)}}文字以内で入力してください",
       "tooManyDecimals": "小数点以下は{{max, number(useGrouping: false)}}桁までです",
       "saveFailed": "プロフィールを保存できませんでした。接続を確認して、もう一度お試しください。",
       "saveRateLimited": "プロフィールを保存できませんでした。リクエストが多すぎます。{{seconds, number}}秒後にお試しください。"
@@ -681,6 +687,27 @@
     "loadError": "プロフィールを読み込めませんでした。接続を確認して、もう一度お試しください。",
     "save": "保存"
   },
+  "profilePhoto": {
+    "title": "プロフィール写真",
+    "change": "写真を変更",
+    "buttonLabel": "プロフィール写真を変更",
+    "chooseFromLibrary": "ライブラリから選択",
+    "takePhoto": "写真を撮る",
+    "removePhoto": "写真を削除",
+    "uploadFailed": {
+      "title": "写真を変更できませんでした",
+      "message": "写真は変更されていません。接続を確認して、もう一度お試しください。"
+    },
+    "removeFailed": {
+      "title": "写真を削除できませんでした",
+      "message": "写真は削除されていません。接続を確認して、もう一度お試しください。"
+    },
+    "cameraDenied": {
+      "title": "カメラへのアクセスが必要です",
+      "message": "プロフィール写真を撮るには、Fitmeにカメラへのアクセスを許可してください。設定で変更できます。",
+      "openSettings": "設定を開く"
+    }
+  },
   "settings": {
     "title": "設定",
     "measurementSystem": "単位系",
@@ -782,6 +809,7 @@
   },
   "measurementSystem": {
     "title": "単位系",
+    "unitsTitle": "単位",
     "loadError": "単位系を読み込めませんでした。接続を確認して、もう一度お試しください。",
     "confirm": {
       "title": "変更しますか？",
@@ -795,10 +823,24 @@
       "title": "単位を変更できませんでした",
       "message": "測定値は変更されていません。もう一度お試しください。",
       "rateLimited": "測定値は変更されていません。リクエストが多すぎます。{{seconds, number}}秒後にお試しください。"
+    },
+    "switchConfirm": {
+      "title": {
+        "metric": "メートル法に切り替えますか？",
+        "us": "米国式の単位に切り替えますか？",
+        "uk": "英国式の単位に切り替えますか？"
+      },
+      "message": {
+        "metric": "プロフィールとワークアウト履歴がメートル法に換算されます。",
+        "us": "プロフィールとワークアウト履歴が米国式の単位に換算されます。",
+        "uk": "プロフィールとワークアウト履歴が英国式の単位に換算されます。"
+      },
+      "confirm": "切り替える"
     }
   },
   "legal": {
     "title": "法的情報",
+    "privacyTitle": "法的情報とプライバシー",
     "privacyPolicy": "プライバシーポリシー",
     "terms": "利用規約",
     "deleteAccount": "アカウントを削除",
@@ -815,7 +857,16 @@
       "x": "XでFitmeを見る",
       "instagram": "InstagramでFitmeを見る",
       "threads": "ThreadsでFitmeを見る"
-    }
+    },
+    "contactSection": "お問い合わせ",
+    "emailSupport": "サポートにメール",
+    "followSection": "Fitmeをフォロー",
+    "rows": {
+      "x": "X",
+      "instagram": "Instagram",
+      "threads": "Threads"
+    },
+    "addressCopied": "アドレスをコピーしました"
   },
   "verifyCode": {
     "screenTitle": "コードを確認",
