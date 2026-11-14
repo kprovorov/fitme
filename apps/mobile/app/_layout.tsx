@@ -24,6 +24,7 @@ import { Uniwind } from "uniwind";
 
 import MinimumVersionGate from "~/components/minimum-version-gate";
 import Providers from "~/components/providers";
+import { Toaster } from "~/components/ui/toast";
 
 import "../global.css";
 import { PlanUpdateSheetHost } from "~/components/workout-sessions/plan-update-sheet";
@@ -203,6 +204,8 @@ const RootLayout = () => {
       </MinimumVersionGate>
       <PlanUpdateSheetHost />
       <PortalHost />
+      {/* The one Toaster: `showToast` (`lib/toast.tsx`) shows its toasts. */}
+      <Toaster />
       <StatusBar />
     </Providers>
   );

@@ -18,6 +18,10 @@
  * keeps Jest alive for seconds after the last test. A test file that checks
  * what's reported mocks it again with its own `jest.fn`s.
  *
+ * `sonner-native` is `toast-stub.tsx`: `toast.custom` keeps each toast and
+ * its `Toaster` renders them all, so a test that renders the app's `Toaster`
+ * (`~/components/ui/toast`) beside its Screen reads a toast's text.
+ *
  * `expo-localization` reports an English device (`en-US`), so every screen
  * renders in English; a test sets another device language with
  * `setDeviceLanguages` (`device-locales.ts`).
@@ -35,6 +39,7 @@ import { setI18n } from "react-i18next";
 import type * as DeviceLocales from "~/test-utils/device-locales";
 import type * as FakeLibrary from "~/test-utils/fake-library";
 import type * as FakePublicApi from "~/test-utils/fake-public-api";
+import type * as ToastStub from "~/test-utils/toast-stub";
 
 setI18n(createI18n("en"));
 
@@ -78,3 +83,9 @@ jest.mock("@sentry/react-native", () => ({
   captureException: jest.fn(),
   setUser: jest.fn(),
 }));
+
+jest.mock(
+  "sonner-native",
+  () =>
+    jest.requireActual<typeof ToastStub>("~/test-utils/toast-stub").sonnerModule
+);
