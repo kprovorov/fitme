@@ -14,6 +14,12 @@
 # CLI logged in. EAS injects the production EXPO_PUBLIC_* variables (Public
 # visibility); SENTRY_AUTH_TOKEN is Secret on EAS, which local builds don't get,
 # so it comes from Infisical `prod` /Mobile.
+#
+# Dry run: FITME_RELEASE_DRY_RUN=1 prints every command that would reach the
+# network (git fetch, pnpm install, EAS, Infisical, the listing push) instead of
+# running it; the checkout, stamping and cleanup run as usual. It's the only
+# way to smoke-test this script: PATH stubs don't work, since commands under
+# `pnpm exec` resolve ahead of them (FIT-521).
 set -euo pipefail
 
 USAGE="Usage: scripts/release-ios-local.sh [--listing-only] [vX.Y.Z]"
@@ -49,9 +55,25 @@ cleanup() {
   fi
 }
 
+dry_run=false
+if [[ "${FITME_RELEASE_DRY_RUN:-}" == 1 ]]; then
+  dry_run=true
+fi
+
+# Runs a command that reaches the network, or only prints it in a dry run.
+run() {
+  if [[ "$dry_run" == true ]]; then
+    printf '[dry run]'
+    printf ' %q' "$@"
+    printf '\n'
+    return 0
+  fi
+  "$@"
+}
+
 # Runs a command in the mobile workspace (apps/mobile), where EAS has to run.
 mobile() {
-  pnpm --dir "$repo" --filter @fitme/mobile exec "$@"
+  run pnpm --dir "$repo" --filter @fitme/mobile exec "$@"
 }
 
 # Stamps the version from the tag into a JSON file (committed as a
@@ -113,7 +135,10 @@ main() {
   done
 
   repo="$(git rev-parse --show-toplevel)"
-  git -C "$repo" fetch -q --tags origin
+  if [[ "$dry_run" == true ]]; then
+    echo "Dry run: printing every network command instead of running it."
+  fi
+  run git -C "$repo" fetch -q --tags origin
 
   if [[ -z "$tag" ]]; then
     tag="$(git -C "$repo" tag -l 'v*' --sort=-v:refname | head -1)"
@@ -141,11 +166,11 @@ main() {
   fi
   # The build and submit run the Mac's `eas`, the listing push the pinned one;
   # both share the `eas login` session.
-  if [[ "$listing_only" == false ]] && ! eas whoami >/dev/null; then
+  if [[ "$listing_only" == false ]] && ! run eas whoami >/dev/null; then
     echo "Run eas login first" >&2
     exit 1
   fi
-  if ! npx --yes "$EAS_METADATA_CLI" whoami >/dev/null; then
+  if ! run npx --yes "$EAS_METADATA_CLI" whoami >/dev/null; then
     echo "Run eas login first (checked with $EAS_METADATA_CLI)" >&2
     exit 1
   fi
@@ -163,7 +188,7 @@ main() {
   fi
 
   # The listing push needs it too: EAS reads the app config (app.config.ts).
-  pnpm --dir "$repo" install --frozen-lockfile
+  run pnpm --dir "$repo" install --frozen-lockfile
 
   # Stamp the version from the tag (app.json is committed as 0.0.0).
   stamp "$repo/apps/mobile/app.json" .expo.version "${tag#v}"
