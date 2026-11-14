@@ -19,7 +19,7 @@
   "dependencies": {
     "@assistant-ui/eve": "0.0.24",
     "@assistant-ui/react-native": "0.1.48",
-    "@clerk/expo": "4.13.0",
+    "@clerk/expo": "4.16.1",
     "@clerk/expo-google-signin": "1.1.0",
     "@expo-google-fonts/ibm-plex-mono": "0.4.1",
     "@expo-google-fonts/nunito-sans": "0.4.2",

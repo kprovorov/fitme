@@ -25,6 +25,7 @@ interface TokenClaims {
 
 interface TokenHeader {
   alg: string;
+  cat: string;
   kid: string;
   typ: string;
 }
@@ -34,10 +35,13 @@ type ClerkSessionOptions = Parameters<typeof clerkSession>[0];
 const base64url = (value: TokenClaims | TokenHeader) =>
   Buffer.from(JSON.stringify(value)).toString("base64url");
 
+// The `cat` header Clerk puts on every session token; @clerk/backend 3.27+ refuses one without it.
+const SESSION_TOKEN_CATEGORY = "cl_B7d4PD111AAA";
+
 const now = () => Math.floor(Date.now() / 1000);
 
 const clerkToken = (claims: TokenClaims, privateKey = signer.privateKey) => {
-  const unsigned = `${base64url({ alg: "RS256", kid: "ins_test", typ: "JWT" })}.${base64url(
+  const unsigned = `${base64url({ alg: "RS256", cat: SESSION_TOKEN_CATEGORY, kid: "ins_test", typ: "JWT" })}.${base64url(
     {
       exp: now() + 60,
       iat: now() - 5,
