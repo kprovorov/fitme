@@ -7,11 +7,13 @@ import {
   formatDuration,
   formatHeight,
   formatNumber,
+  formatTrainingTime,
   formatUnit,
   formatWeight,
   formatWorkoutDuration,
   setDeviceConventions,
   spokenCompactVolume,
+  spokenTrainingTime,
   spokenUnit,
   unitName,
 } from "../format";
@@ -87,6 +89,10 @@ describe("count formatting", () => {
       ],
     ],
     [
+      "hours",
+      ["1 година", "2 години", "5 годин", "11 годин", "21 година", "22 години"],
+    ],
+    [
       "minutes",
       [
         "1 хвилина",
@@ -109,6 +115,7 @@ describe("count formatting", () => {
     ["exercises", "exercise", "exercises"],
     ["workouts", "workout", "workouts"],
     ["workoutSessions", "workout session", "workout sessions"],
+    ["hours", "hour", "hours"],
     ["minutes", "minute", "minutes"],
     ["entries", "entry", "entries"],
   ])("counts %s in English", (kind, one, other) => {
@@ -285,5 +292,60 @@ describe("compact volume formatting", () => {
       "300.4 thousand pounds"
     );
     expect(spokenCompactVolume(uk, 2000, "lbs")).toBe("2 тисячі фунтів");
+  });
+});
+
+describe("training time formatting", () => {
+  const SECOND = 1000;
+  const MINUTE = 60 * SECOND;
+  const HOUR = 60 * MINUTE;
+
+  it("shows whole hours from an hour on, rounding down", () => {
+    expect(formatTrainingTime(en, HOUR)).toBe("1h");
+    expect(formatTrainingTime(en, 36 * HOUR + 59 * MINUTE)).toBe("36h");
+    expect(formatTrainingTime(en, 1234 * HOUR)).toBe("1,234h");
+    expect(formatTrainingTime(uk, 36 * HOUR)).toBe("36 год");
+    expect(formatTrainingTime(uk, 1234 * HOUR)).toBe(`1${NBSP}234 год`);
+  });
+
+  it("shows minutes while under an hour", () => {
+    expect(formatTrainingTime(en, 42 * MINUTE + 20 * SECOND)).toBe("42min");
+    expect(formatTrainingTime(uk, 42 * MINUTE)).toBe("42 хв");
+  });
+
+  it("rounds to the minute, so 59.5 minutes is an hour", () => {
+    expect(formatTrainingTime(en, 59 * MINUTE + 30 * SECOND)).toBe("1h");
+  });
+
+  it("shows no training as zero hours", () => {
+    expect(formatTrainingTime(en, 0)).toBe("0h");
+    expect(formatTrainingTime(en, 20 * SECOND)).toBe("0h");
+    expect(formatTrainingTime(uk, 0)).toBe("0 год");
+  });
+
+  it("reads a negative or unreadable length as no training", () => {
+    expect(formatTrainingTime(en, -MINUTE)).toBe("0h");
+    expect(formatTrainingTime(en, Number.NaN)).toBe("0h");
+    expect(spokenTrainingTime(en, Number.NaN)).toBe("0 hours");
+  });
+
+  it("spells it out for VoiceOver in English", () => {
+    expect(spokenTrainingTime(en, 0)).toBe("0 hours");
+    expect(spokenTrainingTime(en, HOUR)).toBe("1 hour");
+    expect(spokenTrainingTime(en, 36 * HOUR)).toBe("36 hours");
+    expect(spokenTrainingTime(en, MINUTE)).toBe("1 minute");
+    expect(spokenTrainingTime(en, 42 * MINUTE)).toBe("42 minutes");
+  });
+
+  it("spells Ukrainian hours out for VoiceOver, with each plural form", () => {
+    expect(spokenTrainingTime(uk, HOUR)).toBe("1 година");
+    expect(spokenTrainingTime(uk, 3 * HOUR)).toBe("3 години");
+    expect(spokenTrainingTime(uk, 36 * HOUR)).toBe("36 годин");
+  });
+
+  it("spells Ukrainian minutes out for VoiceOver, with each plural form", () => {
+    expect(spokenTrainingTime(uk, 21 * MINUTE)).toBe("21 хвилина");
+    expect(spokenTrainingTime(uk, 42 * MINUTE)).toBe("42 хвилини");
+    expect(spokenTrainingTime(uk, 45 * MINUTE)).toBe("45 хвилин");
   });
 });

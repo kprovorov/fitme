@@ -32,6 +32,7 @@
   },
   "counts": {
     "entries_other": "{{count, number}}件",
+    "hours_other": "{{count, number}}時間",
     "exercises_other": "{{count, number}}種目",
     "minutes_other": "{{count, number}}分",
     "reps_other": "{{count, number}}回",
@@ -417,6 +418,7 @@
   },
   "duration": {
     "hoursMinutes": "{{hours, number}}時間{{minutes, number}}分",
+    "hours": "{{hours, number}}時間",
     "minutes": "{{minutes, number}}分"
   },
   "finishWorkout": {
@@ -575,7 +577,104 @@
     "rate": {
       "title": "アプリは気に入りましたか？",
       "action": "App Storeで評価する"
-    }
+    },
+    "memberSince": "{{date}}から利用",
+    "totals": {
+      "workouts": "ワークアウト",
+      "time": "時間",
+      "volume": "総負荷量",
+      "label": "{{title}}：{{value}}",
+      "unavailable": "利用できません"
+    },
+    "newUser": {
+      "start": "ワークアウトを始める",
+      "resume": "ワークアウトを再開",
+      "createPlan": "プランを作成"
+    },
+    "sections": {
+      "account": "アカウント",
+      "preferences": "設定",
+      "help": "ヘルプ"
+    },
+    "rows": {
+      "editProfile": "プロフィールを編集",
+      "accountSecurity": "アカウントとセキュリティ",
+      "subscription": "サブスクリプション",
+      "units": "単位",
+      "language": "言語",
+      "support": "サポート",
+      "rateFitme": "Fitmeを評価",
+      "legalPrivacy": "法的情報とプライバシー"
+    },
+    "logOut": "ログアウト",
+    "logOutFailed": "ログアウトできませんでした。接続を確認して、もう一度お試しください。",
+    "version": "Fitme {{version}} ({{build}})"
+  },
+  "subscription": {
+    "title": "サブスクリプション",
+    "heading": "ご利用中のサブスクリプション",
+    "free": {
+      "title": "Freeをご利用中です",
+      "description": "ProでArnold AIとAIが作成するプランが使えます。",
+      "upgrade": "Proにアップグレード"
+    },
+    "pro": "Fitme Pro",
+    "renewsOn": "{{date}}に更新",
+    "trialEndsOn": "{{date}}にトライアル終了",
+    "endsOn": "{{date}}に終了",
+    "lifetime": "買い切り",
+    "manage": "管理",
+    "loading": "サブスクリプションを読み込み中",
+    "loadError": "サブスクリプションを読み込めませんでした",
+    "productLine": "Fitme Pro · {{period}}",
+    "periods": {
+      "weekly": "毎週",
+      "monthly": "毎月",
+      "twoMonths": "2か月ごと",
+      "threeMonths": "3か月ごと",
+      "sixMonths": "6か月ごと",
+      "yearly": "毎年",
+      "lifetime": "買い切り"
+    },
+    "rows": {
+      "subscription": "サブスクリプション",
+      "status": "ステータス",
+      "renewsOn": "更新日",
+      "trialEndsOn": "トライアル終了日",
+      "endsOn": "終了日"
+    },
+    "status": {
+      "active": "有効",
+      "trial": "無料トライアル",
+      "cancelled": "解約済み",
+      "lifetime": "買い切り"
+    },
+    "billing": {
+      "appStore": "App Storeで請求",
+      "playStore": "Google Playで請求"
+    },
+    "manageSubscription": "サブスクリプションを管理",
+    "restore": "購入を復元",
+    "restored": "購入を復元しました",
+    "nothingToRestore": "復元できる購入はありません",
+    "restoreFailed": "購入を復元できませんでした。接続を確認して、もう一度お試しください。"
+  },
+  "languages": {
+    "en": "English",
+    "uk": "Українська",
+    "es": "Español",
+    "ca": "Català",
+    "fr": "Français",
+    "de": "Deutsch",
+    "it": "Italiano",
+    "pt-BR": "Português (Brasil)",
+    "pt-PT": "Português (Portugal)",
+    "pl": "Polski",
+    "zh-Hans": "简体中文",
+    "zh-Hant": "繁體中文",
+    "ja": "日本語",
+    "ko": "한국어",
+    "nl": "Nederlands"
   },
   "editProfile": {
     "title": "プロフィールを編集",

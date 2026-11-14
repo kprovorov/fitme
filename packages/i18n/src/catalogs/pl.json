@@ -35,6 +35,10 @@
     "entries_few": "{{count, number}} wpisy",
     "entries_many": "{{count, number}} wpisów",
     "entries_other": "{{count, number}} wpisu",
+    "hours_one": "{{count, number}} godzina",
+    "hours_few": "{{count, number}} godziny",
+    "hours_many": "{{count, number}} godzin",
+    "hours_other": "{{count, number}} godziny",
     "exercises_one": "{{count, number}} ćwiczenie",
     "exercises_few": "{{count, number}} ćwiczenia",
     "exercises_many": "{{count, number}} ćwiczeń",
@@ -483,6 +487,7 @@
   },
   "duration": {
     "hoursMinutes": "{{hours, number}} h {{minutes, number}} min",
+    "hours": "{{hours, number}} h",
     "minutes": "{{minutes, number}} min"
   },
   "finishWorkout": {
@@ -668,7 +673,104 @@
     "rate": {
       "title": "Podoba ci się aplikacja?",
       "action": "Oceń ją w App Store!"
-    }
+    },
+    "memberSince": "Data dołączenia: {{date}}",
+    "totals": {
+      "workouts": "Treningi",
+      "time": "Czas",
+      "volume": "Objętość",
+      "label": "{{title}}: {{value}}",
+      "unavailable": "Niedostępne"
+    },
+    "newUser": {
+      "start": "Rozpocznij trening",
+      "resume": "Wznów trening",
+      "createPlan": "Utwórz plan"
+    },
+    "sections": {
+      "account": "Konto",
+      "preferences": "Preferencje",
+      "help": "Pomoc"
+    },
+    "rows": {
+      "editProfile": "Edytuj profil",
+      "accountSecurity": "Konto i bezpieczeństwo",
+      "subscription": "Subskrypcja",
+      "units": "Jednostki",
+      "language": "Język",
+      "support": "Pomoc techniczna",
+      "rateFitme": "Oceń Fitme",
+      "legalPrivacy": "Informacje prawne i prywatność"
+    },
+    "logOut": "Wyloguj się",
+    "logOutFailed": "Nie udało się wylogować. Sprawdź połączenie i spróbuj ponownie.",
+    "version": "Fitme {{version}} ({{build}})"
+  },
+  "subscription": {
+    "title": "Subskrypcja",
+    "heading": "Twoja subskrypcja",
+    "free": {
+      "title": "Korzystasz z Free",
+      "description": "Pro odblokowuje Arnold AI i plany tworzone przez AI.",
+      "upgrade": "Przejdź na Pro"
+    },
+    "pro": "Fitme Pro",
+    "renewsOn": "Odnowienie: {{date}}",
+    "trialEndsOn": "Okres próbny do: {{date}}",
+    "endsOn": "Koniec: {{date}}",
+    "lifetime": "Dożywotnia",
+    "manage": "Zarządzaj",
+    "loading": "Wczytywanie subskrypcji",
+    "loadError": "Nie udało się wczytać subskrypcji",
+    "productLine": "Fitme Pro · {{period}}",
+    "periods": {
+      "weekly": "Tygodniowa",
+      "monthly": "Miesięczna",
+      "twoMonths": "Co 2 miesiące",
+      "threeMonths": "Co 3 miesiące",
+      "sixMonths": "Co 6 miesięcy",
+      "yearly": "Roczna",
+      "lifetime": "Dożywotnia"
+    },
+    "rows": {
+      "subscription": "Subskrypcja",
+      "status": "Status",
+      "renewsOn": "Odnowienie",
+      "trialEndsOn": "Koniec okresu próbnego",
+      "endsOn": "Koniec"
+    },
+    "status": {
+      "active": "Aktywna",
+      "trial": "Okres próbny",
+      "cancelled": "Anulowana",
+      "lifetime": "Dożywotnia"
+    },
+    "billing": {
+      "appStore": "Rozliczana przez App Store",
+      "playStore": "Rozliczana przez Google Play"
+    },
+    "manageSubscription": "Zarządzaj subskrypcją",
+    "restore": "Przywróć zakupy",
+    "restored": "Zakupy przywrócone",
+    "nothingToRestore": "Brak zakupów do przywrócenia",
+    "restoreFailed": "Nie udało się przywrócić zakupów. Sprawdź połączenie i spróbuj ponownie."
+  },
+  "languages": {
+    "en": "English",
+    "uk": "Українська",
+    "es": "Español",
+    "ca": "Català",
+    "fr": "Français",
+    "de": "Deutsch",
+    "it": "Italiano",
+    "pt-BR": "Português (Brasil)",
+    "pt-PT": "Português (Portugal)",
+    "pl": "Polski",
+    "zh-Hans": "简体中文",
+    "zh-Hant": "繁體中文",
+    "ja": "日本語",
+    "ko": "한국어",
+    "nl": "Nederlands"
   },
   "editProfile": {
     "title": "Edytuj profil",

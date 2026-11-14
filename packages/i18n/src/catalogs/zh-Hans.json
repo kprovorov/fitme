@@ -32,6 +32,7 @@
   },
   "counts": {
     "entries_other": "{{count, number}}条记录",
+    "hours_other": "{{count, number}}小时",
     "exercises_other": "{{count, number}}个动作",
     "minutes_other": "{{count, number}}分钟",
     "reps_other": "{{count, number}}次",
@@ -417,6 +418,7 @@
   },
   "duration": {
     "hoursMinutes": "{{hours, number}}小时{{minutes, number}}分",
+    "hours": "{{hours, number}}小时",
     "minutes": "{{minutes, number}}分钟"
   },
   "finishWorkout": {
@@ -575,7 +577,104 @@
     "rate": {
       "title": "喜欢这款应用吗？",
       "action": "去 App Store 给个评分吧！"
-    }
+    },
+    "memberSince": "{{date}}加入",
+    "totals": {
+      "workouts": "训练次数",
+      "time": "时间",
+      "volume": "训练总量",
+      "label": "{{title}}：{{value}}",
+      "unavailable": "不可用"
+    },
+    "newUser": {
+      "start": "开始训练",
+      "resume": "继续训练",
+      "createPlan": "创建计划"
+    },
+    "sections": {
+      "account": "账户",
+      "preferences": "偏好设置",
+      "help": "帮助"
+    },
+    "rows": {
+      "editProfile": "编辑个人资料",
+      "accountSecurity": "账户与安全",
+      "subscription": "订阅",
+      "units": "单位",
+      "language": "语言",
+      "support": "支持",
+      "rateFitme": "为 Fitme 评分",
+      "legalPrivacy": "法律与隐私"
+    },
+    "logOut": "退出登录",
+    "logOutFailed": "无法退出登录。请检查网络连接后重试。",
+    "version": "Fitme {{version}} ({{build}})"
+  },
+  "subscription": {
+    "title": "订阅",
+    "heading": "你的订阅",
+    "free": {
+      "title": "你正在使用 Free",
+      "description": "Pro 解锁 Arnold AI 和 AI 生成的计划。",
+      "upgrade": "升级到 Pro"
+    },
+    "pro": "Fitme Pro",
+    "renewsOn": "将于 {{date}} 续订",
+    "trialEndsOn": "试用将于 {{date}} 结束",
+    "endsOn": "将于 {{date}} 结束",
+    "lifetime": "终身",
+    "manage": "管理",
+    "loading": "正在加载订阅",
+    "loadError": "无法加载订阅",
+    "productLine": "Fitme Pro · {{period}}",
+    "periods": {
+      "weekly": "每周",
+      "monthly": "每月",
+      "twoMonths": "每 2 个月",
+      "threeMonths": "每 3 个月",
+      "sixMonths": "每 6 个月",
+      "yearly": "每年",
+      "lifetime": "终身"
+    },
+    "rows": {
+      "subscription": "订阅",
+      "status": "状态",
+      "renewsOn": "续订日期",
+      "trialEndsOn": "试用结束日期",
+      "endsOn": "结束日期"
+    },
+    "status": {
+      "active": "有效",
+      "trial": "免费试用",
+      "cancelled": "已取消",
+      "lifetime": "终身"
+    },
+    "billing": {
+      "appStore": "通过 App Store 付费",
+      "playStore": "通过 Google Play 付费"
+    },
+    "manageSubscription": "管理订阅",
+    "restore": "恢复购买",
+    "restored": "购买已恢复",
+    "nothingToRestore": "没有可恢复的购买",
+    "restoreFailed": "无法恢复购买。请检查网络连接后重试。"
+  },
+  "languages": {
+    "en": "English",
+    "uk": "Українська",
+    "es": "Español",
+    "ca": "Català",
+    "fr": "Français",
+    "de": "Deutsch",
+    "it": "Italiano",
+    "pt-BR": "Português (Brasil)",
+    "pt-PT": "Português (Portugal)",
+    "pl": "Polski",
+    "zh-Hans": "简体中文",
+    "zh-Hant": "繁體中文",
+    "ja": "日本語",
+    "ko": "한국어",
+    "nl": "Nederlands"
   },
   "editProfile": {
     "title": "编辑个人资料",

@@ -35,6 +35,10 @@
     "entries_few": "{{count, number}} записи",
     "entries_many": "{{count, number}} записів",
     "entries_other": "{{count, number}} запису",
+    "hours_one": "{{count, number}} година",
+    "hours_few": "{{count, number}} години",
+    "hours_many": "{{count, number}} годин",
+    "hours_other": "{{count, number}} години",
     "exercises_one": "{{count, number}} вправа",
     "exercises_few": "{{count, number}} вправи",
     "exercises_many": "{{count, number}} вправ",
@@ -483,6 +487,7 @@
   },
   "duration": {
     "hoursMinutes": "{{hours, number}} год {{minutes, number}} хв",
+    "hours": "{{hours, number}} год",
     "minutes": "{{minutes, number}} хв"
   },
   "finishWorkout": {
@@ -668,7 +673,104 @@
     "rate": {
       "title": "Подобається застосунок?",
       "action": "Оцініть його в App Store!"
-    }
+    },
+    "memberSince": "Дата реєстрації: {{date}}",
+    "totals": {
+      "workouts": "Тренування",
+      "time": "Час",
+      "volume": "Обсяг",
+      "label": "{{title}}: {{value}}",
+      "unavailable": "Недоступно"
+    },
+    "newUser": {
+      "start": "Почати тренування",
+      "resume": "Продовжити тренування",
+      "createPlan": "Створити план"
+    },
+    "sections": {
+      "account": "Обліковий запис",
+      "preferences": "Налаштування",
+      "help": "Допомога"
+    },
+    "rows": {
+      "editProfile": "Редагувати профіль",
+      "accountSecurity": "Обліковий запис і безпека",
+      "subscription": "Підписка",
+      "units": "Одиниці",
+      "language": "Мова",
+      "support": "Підтримка",
+      "rateFitme": "Оцінити Fitme",
+      "legalPrivacy": "Правова інформація і конфіденційність"
+    },
+    "logOut": "Вийти",
+    "logOutFailed": "Не вдалося вийти. Перевірте з’єднання і спробуйте ще раз.",
+    "version": "Fitme {{version}} ({{build}})"
+  },
+  "subscription": {
+    "title": "Підписка",
+    "heading": "Ваша підписка",
+    "free": {
+      "title": "У вас Free",
+      "description": "Pro відкриває Arnold AI і плани, створені ШІ.",
+      "upgrade": "Перейти на Pro"
+    },
+    "pro": "Fitme Pro",
+    "renewsOn": "Поновиться {{date}}",
+    "trialEndsOn": "Пробний період до {{date}}",
+    "endsOn": "Закінчується {{date}}",
+    "lifetime": "Довічно",
+    "manage": "Керувати",
+    "loading": "Завантаження підписки",
+    "loadError": "Не вдалося завантажити підписку",
+    "productLine": "Fitme Pro · {{period}}",
+    "periods": {
+      "weekly": "Щотижня",
+      "monthly": "Щомісяця",
+      "twoMonths": "Кожні 2 місяці",
+      "threeMonths": "Кожні 3 місяці",
+      "sixMonths": "Кожні 6 місяців",
+      "yearly": "Щороку",
+      "lifetime": "Довічно"
+    },
+    "rows": {
+      "subscription": "Підписка",
+      "status": "Статус",
+      "renewsOn": "Поновлення",
+      "trialEndsOn": "Кінець пробного періоду",
+      "endsOn": "Закінчення"
+    },
+    "status": {
+      "active": "Активна",
+      "trial": "Пробний період",
+      "cancelled": "Скасована",
+      "lifetime": "Довічна"
+    },
+    "billing": {
+      "appStore": "Оплата через App Store",
+      "playStore": "Оплата через Google Play"
+    },
+    "manageSubscription": "Керувати підпискою",
+    "restore": "Відновити покупки",
+    "restored": "Покупки відновлено",
+    "nothingToRestore": "Немає покупок для відновлення",
+    "restoreFailed": "Не вдалося відновити покупки. Перевірте з’єднання і спробуйте ще раз."
+  },
+  "languages": {
+    "en": "English",
+    "uk": "Українська",
+    "es": "Español",
+    "ca": "Català",
+    "fr": "Français",
+    "de": "Deutsch",
+    "it": "Italiano",
+    "pt-BR": "Português (Brasil)",
+    "pt-PT": "Português (Portugal)",
+    "pl": "Polski",
+    "zh-Hans": "简体中文",
+    "zh-Hant": "繁體中文",
+    "ja": "日本語",
+    "ko": "한국어",
+    "nl": "Nederlands"
   },
   "editProfile": {
     "title": "Редагувати профіль",

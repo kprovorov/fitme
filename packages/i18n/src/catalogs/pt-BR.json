@@ -34,6 +34,9 @@
     "entries_one": "{{count, number}} registro",
     "entries_other": "{{count, number}} registros",
     "entries_many": "{{count, number}} registros",
+    "hours_one": "{{count, number}} hora",
+    "hours_many": "{{count, number}} horas",
+    "hours_other": "{{count, number}} horas",
     "exercises_one": "{{count, number}} exercício",
     "exercises_other": "{{count, number}} exercícios",
     "exercises_many": "{{count, number}} exercícios",
@@ -461,6 +464,7 @@
   },
   "duration": {
     "hoursMinutes": "{{hours, number}}h {{minutes, number}}min",
+    "hours": "{{hours, number}}h",
     "minutes": "{{minutes, number}}min"
   },
   "finishWorkout": {
@@ -637,7 +641,104 @@
     "rate": {
       "title": "Gostou do app?",
       "action": "Avalie na App Store!"
-    }
+    },
+    "memberSince": "Membro desde {{date}}",
+    "totals": {
+      "workouts": "Treinos",
+      "time": "Tempo",
+      "volume": "Volume",
+      "label": "{{title}}: {{value}}",
+      "unavailable": "Indisponível"
+    },
+    "newUser": {
+      "start": "Começar um treino",
+      "resume": "Retomar treino",
+      "createPlan": "Criar plano"
+    },
+    "sections": {
+      "account": "Conta",
+      "preferences": "Preferências",
+      "help": "Ajuda"
+    },
+    "rows": {
+      "editProfile": "Editar perfil",
+      "accountSecurity": "Conta e segurança",
+      "subscription": "Assinatura",
+      "units": "Unidades",
+      "language": "Idioma",
+      "support": "Suporte",
+      "rateFitme": "Avaliar o Fitme",
+      "legalPrivacy": "Informações legais e privacidade"
+    },
+    "logOut": "Sair",
+    "logOutFailed": "Não foi possível sair. Verifique sua conexão e tente novamente.",
+    "version": "Fitme {{version}} ({{build}})"
+  },
+  "subscription": {
+    "title": "Assinatura",
+    "heading": "Sua assinatura",
+    "free": {
+      "title": "Você está no Free",
+      "description": "O Pro libera o Arnold AI e planos criados por IA.",
+      "upgrade": "Assinar Pro"
+    },
+    "pro": "Fitme Pro",
+    "renewsOn": "Renova em {{date}}",
+    "trialEndsOn": "O teste termina em {{date}}",
+    "endsOn": "Termina em {{date}}",
+    "lifetime": "Vitalícia",
+    "manage": "Gerenciar",
+    "loading": "Carregando assinatura",
+    "loadError": "Não foi possível carregar a assinatura",
+    "productLine": "Fitme Pro · {{period}}",
+    "periods": {
+      "weekly": "Semanal",
+      "monthly": "Mensal",
+      "twoMonths": "A cada 2 meses",
+      "threeMonths": "A cada 3 meses",
+      "sixMonths": "A cada 6 meses",
+      "yearly": "Anual",
+      "lifetime": "Vitalícia"
+    },
+    "rows": {
+      "subscription": "Assinatura",
+      "status": "Status",
+      "renewsOn": "Renova em",
+      "trialEndsOn": "O teste termina em",
+      "endsOn": "Termina em"
+    },
+    "status": {
+      "active": "Ativa",
+      "trial": "Teste grátis",
+      "cancelled": "Cancelada",
+      "lifetime": "Vitalícia"
+    },
+    "billing": {
+      "appStore": "Cobrada pela App Store",
+      "playStore": "Cobrada pelo Google Play"
+    },
+    "manageSubscription": "Gerenciar assinatura",
+    "restore": "Restaurar compras",
+    "restored": "Compras restauradas",
+    "nothingToRestore": "Nenhuma compra para restaurar",
+    "restoreFailed": "Não foi possível restaurar as compras. Verifique sua conexão e tente novamente."
+  },
+  "languages": {
+    "en": "English",
+    "uk": "Українська",
+    "es": "Español",
+    "ca": "Català",
+    "fr": "Français",
+    "de": "Deutsch",
+    "it": "Italiano",
+    "pt-BR": "Português (Brasil)",
+    "pt-PT": "Português (Portugal)",
+    "pl": "Polski",
+    "zh-Hans": "简体中文",
+    "zh-Hant": "繁體中文",
+    "ja": "日本語",
+    "ko": "한국어",
+    "nl": "Nederlands"
   },
   "editProfile": {
     "title": "Editar perfil",

@@ -32,6 +32,7 @@
   },
   "counts": {
     "entries_other": "기록 {{count, number}}개",
+    "hours_other": "{{count, number}}시간",
     "exercises_other": "{{count, number}}개 종목",
     "minutes_other": "{{count, number}}분",
     "reps_other": "{{count, number}}회",
@@ -417,6 +418,7 @@
   },
   "duration": {
     "hoursMinutes": "{{hours, number}}시간 {{minutes, number}}분",
+    "hours": "{{hours, number}}시간",
     "minutes": "{{minutes, number}}분"
   },
   "finishWorkout": {
@@ -575,7 +577,104 @@
     "rate": {
       "title": "앱이 마음에 드시나요?",
       "action": "App Store에서 평가해 주세요!"
-    }
+    },
+    "memberSince": "가입: {{date}}",
+    "totals": {
+      "workouts": "운동",
+      "time": "시간",
+      "volume": "볼륨",
+      "label": "{{title}}: {{value}}",
+      "unavailable": "사용할 수 없음"
+    },
+    "newUser": {
+      "start": "운동 시작하기",
+      "resume": "운동 이어 하기",
+      "createPlan": "계획 만들기"
+    },
+    "sections": {
+      "account": "계정",
+      "preferences": "환경설정",
+      "help": "도움말"
+    },
+    "rows": {
+      "editProfile": "프로필 편집",
+      "accountSecurity": "계정 및 보안",
+      "subscription": "구독",
+      "units": "단위",
+      "language": "언어",
+      "support": "지원",
+      "rateFitme": "Fitme 평가하기",
+      "legalPrivacy": "법적 정보 및 개인정보 보호"
+    },
+    "logOut": "로그아웃",
+    "logOutFailed": "로그아웃하지 못했어요. 연결을 확인하고 다시 시도해 주세요.",
+    "version": "Fitme {{version}} ({{build}})"
+  },
+  "subscription": {
+    "title": "구독",
+    "heading": "내 구독",
+    "free": {
+      "title": "Free를 이용 중이에요",
+      "description": "Pro로 Arnold AI와 AI가 만든 계획을 이용할 수 있어요.",
+      "upgrade": "Pro로 업그레이드"
+    },
+    "pro": "Fitme Pro",
+    "renewsOn": "{{date}}에 갱신",
+    "trialEndsOn": "{{date}}에 체험 종료",
+    "endsOn": "{{date}}에 종료",
+    "lifetime": "평생",
+    "manage": "관리",
+    "loading": "구독 정보를 불러오는 중",
+    "loadError": "구독 정보를 불러오지 못했어요",
+    "productLine": "Fitme Pro · {{period}}",
+    "periods": {
+      "weekly": "매주",
+      "monthly": "매월",
+      "twoMonths": "2개월마다",
+      "threeMonths": "3개월마다",
+      "sixMonths": "6개월마다",
+      "yearly": "매년",
+      "lifetime": "평생"
+    },
+    "rows": {
+      "subscription": "구독",
+      "status": "상태",
+      "renewsOn": "갱신일",
+      "trialEndsOn": "체험 종료일",
+      "endsOn": "종료일"
+    },
+    "status": {
+      "active": "활성",
+      "trial": "무료 체험",
+      "cancelled": "해지됨",
+      "lifetime": "평생"
+    },
+    "billing": {
+      "appStore": "App Store를 통해 결제",
+      "playStore": "Google Play를 통해 결제"
+    },
+    "manageSubscription": "구독 관리",
+    "restore": "구매 복원",
+    "restored": "구매를 복원했어요",
+    "nothingToRestore": "복원할 구매가 없어요",
+    "restoreFailed": "구매를 복원하지 못했어요. 연결을 확인하고 다시 시도해 주세요."
+  },
+  "languages": {
+    "en": "English",
+    "uk": "Українська",
+    "es": "Español",
+    "ca": "Català",
+    "fr": "Français",
+    "de": "Deutsch",
+    "it": "Italiano",
+    "pt-BR": "Português (Brasil)",
+    "pt-PT": "Português (Portugal)",
+    "pl": "Polski",
+    "zh-Hans": "简体中文",
+    "zh-Hant": "繁體中文",
+    "ja": "日本語",
+    "ko": "한국어",
+    "nl": "Nederlands"
   },
   "editProfile": {
     "title": "프로필 편집",
