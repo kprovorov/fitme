@@ -16,8 +16,8 @@ export default defineAgent({
     },
   },
   limits: {
-    // A Conversation ends 30 days after it started; the next message the app
-    // sends needs a new one.
+    // A Conversation ends after 30 days without a message (an idle timeout
+    // since eve 0.82); the next message the app sends needs a new one.
     sessionTimeoutMs: THIRTY_DAYS_MS,
   },
   // The client picks the model per turn (clientContext `{ model }`), from

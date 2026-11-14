@@ -65,6 +65,7 @@ const sendMessage = async (message: string | UserContent) => {
       getEventStream: unexpectedOperation,
       getStreamTailIndex: unexpectedOperation,
       id: SESSION_ID,
+      prewarm: unexpectedOperation,
       reset: unexpectedOperation,
       respond: unexpectedOperation,
       send: async (payload) => {
