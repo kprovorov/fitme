@@ -31,7 +31,7 @@ CI runs the suite on every pull request (`.github/workflows/integration-tests.ym
 
 ## Environment
 
-See `.env.example`. The variables are read from the process environment (Vercel project settings in production); `.env` files are not loaded automatically.
+See `.env.example`. The variables are read from the process environment (Vercel project settings in production); `pnpm dev` also loads a `.env` beside the app when one exists (a variable already set in the process environment wins); `pnpm start` and the tests load no file.
 
 | Variable | Purpose |
 | --- | --- |
