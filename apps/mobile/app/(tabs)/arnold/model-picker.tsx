@@ -1,4 +1,5 @@
 import { useRouter } from "expo-router";
+import { useHeaderHeight } from "expo-router/react-navigation";
 import { useCallback } from "react";
 import { useTranslation } from "react-i18next";
 import {
@@ -12,6 +13,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { AndroidGrabber } from "@/components/grabber";
 import { SymbolImage } from "@/components/symbol-image";
+import { GLASS_ENABLED } from "~/components/ui/swift-ui";
 import { useSelectedArnoldModel } from "~/hooks/arnold-model";
 // The app's instance, named so it's started wherever the sheet renders.
 import { i18n } from "~/lib/i18n";
@@ -67,9 +69,17 @@ const NoModels = ({ isLoading }: { isLoading: boolean }) => {
   );
 };
 
+/**
+ * The models Arnold can answer with. The sheet fits its contents, and a glass
+ * header floats over them, so the list clears the header with its own
+ * padding: the scroll view's automatic inset would push the last row below
+ * the height the sheet measured. It still scrolls, for when the rows outgrow
+ * the screen (the largest text size on the smallest iPhone).
+ */
 const ModelPickerSheet = () => {
   const { t } = useTranslation(undefined, { i18n });
   const { isLoading, model, models, setSelectedId } = useSelectedArnoldModel();
+  const headerHeight = useHeaderHeight();
   const insets = useSafeAreaInsets();
   const router = useRouter();
 
@@ -83,12 +93,14 @@ const ModelPickerSheet = () => {
 
   return (
     <ScrollView
-      className="flex-1"
       contentContainerStyle={{
+        // iOS floats the sheet above the home indicator itself.
         paddingBottom:
           process.env.EXPO_OS === "android" ? insets.bottom : undefined,
+        paddingTop: GLASS_ENABLED ? headerHeight : undefined,
       }}
-      contentInsetAdjustmentBehavior="automatic"
+      contentInsetAdjustmentBehavior="never"
+      scrollIndicatorInsets={{ top: GLASS_ENABLED ? headerHeight : 0 }}
     >
       <AndroidGrabber />
       <View className="pt-2 pb-4">
