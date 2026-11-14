@@ -587,6 +587,8 @@
   },
   "profileForm": {
     "name": "Nom",
+    "firstName": "Nom",
+    "lastName": "Cognoms",
     "gender": "Gènere",
     "parameters": "Dades personals",
     "age": "Edat",
@@ -609,6 +611,10 @@
       "heightRequired": "L'alçada és obligatòria",
       "weightRequired": "El pes és obligatori",
       "nameTooLong": "El nom pot tenir com a màxim {{max, number(useGrouping: false)}} caràcters",
+      "firstNameRequired": "El nom és obligatori",
+      "firstNameTooLong": "El nom pot tenir com a màxim {{max, number(useGrouping: false)}} caràcters",
+      "lastNameRequired": "Els cognoms són obligatoris",
+      "lastNameTooLong": "Els cognoms poden tenir com a màxim {{max, number(useGrouping: false)}} caràcters",
       "tooManyDecimals": "El nombre pot tenir com a màxim {{max, number(useGrouping: false)}} decimals",
       "saveFailed": "No s'ha pogut desar el perfil. Comprova la connexió i torna-ho a provar.",
       "saveRateLimited": "No s'ha pogut desar el perfil. Massa sol·licituds: torna-ho a provar d'aquí a {{seconds, number}} s."
@@ -745,6 +751,27 @@
     "loadError": "No s'ha pogut carregar el perfil. Comprova la connexió i torna-ho a provar.",
     "save": "Desa"
   },
+  "profilePhoto": {
+    "title": "Foto de perfil",
+    "change": "Canvia la foto",
+    "buttonLabel": "Canvia la foto de perfil",
+    "chooseFromLibrary": "Tria de la fototeca",
+    "takePhoto": "Fes una foto",
+    "removePhoto": "Elimina la foto",
+    "uploadFailed": {
+      "title": "No s'ha pogut canviar la foto",
+      "message": "La foto no s'ha canviat. Comprova la connexió i torna-ho a provar."
+    },
+    "removeFailed": {
+      "title": "No s'ha pogut eliminar la foto",
+      "message": "La foto no s'ha eliminat. Comprova la connexió i torna-ho a provar."
+    },
+    "cameraDenied": {
+      "title": "Cal accés a la càmera",
+      "message": "Fitme necessita accés a la càmera per fer la teva foto de perfil. El pots activar a Configuració.",
+      "openSettings": "Obre Configuració"
+    }
+  },
   "settings": {
     "title": "Configuració",
     "measurementSystem": "Sistema d'unitats",
@@ -846,6 +873,7 @@
   },
   "measurementSystem": {
     "title": "Sistema d'unitats",
+    "unitsTitle": "Unitats",
     "loadError": "No s'ha pogut carregar el sistema d'unitats. Comprova la connexió i torna-ho a provar.",
     "confirm": {
       "title": "Vols continuar?",
@@ -859,10 +887,24 @@
       "title": "No s'han pogut canviar les unitats",
       "message": "Les mesures no han canviat. Torna-ho a provar.",
       "rateLimited": "Les mesures no han canviat. Massa sol·licituds: torna-ho a provar d'aquí a {{seconds, number}} s."
+    },
+    "switchConfirm": {
+      "title": {
+        "metric": "Vols canviar a unitats mètriques?",
+        "us": "Vols canviar a unitats dels EUA?",
+        "uk": "Vols canviar a unitats del Regne Unit?"
+      },
+      "message": {
+        "metric": "El teu perfil i l'historial d'entrenaments es convertiran a unitats mètriques.",
+        "us": "El teu perfil i l'historial d'entrenaments es convertiran a unitats dels EUA.",
+        "uk": "El teu perfil i l'historial d'entrenaments es convertiran a unitats del Regne Unit."
+      },
+      "confirm": "Canvia"
     }
   },
   "legal": {
     "title": "Informació legal",
+    "privacyTitle": "Informació legal i privadesa",
     "privacyPolicy": "Política de privacitat",
     "terms": "Condicions del servei",
     "deleteAccount": "Elimina el compte",
@@ -879,7 +921,16 @@
       "x": "Fitme a X",
       "instagram": "Fitme a Instagram",
       "threads": "Fitme a Threads"
-    }
+    },
+    "contactSection": "Contacte",
+    "emailSupport": "Escriu al suport",
+    "followSection": "Segueix Fitme",
+    "rows": {
+      "x": "X",
+      "instagram": "Instagram",
+      "threads": "Threads"
+    },
+    "addressCopied": "Adreça copiada"
   },
   "verifyCode": {
     "screenTitle": "Verifica el codi",

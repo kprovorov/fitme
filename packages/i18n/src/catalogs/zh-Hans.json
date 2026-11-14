@@ -529,6 +529,8 @@
   },
   "profileForm": {
     "name": "姓名",
+    "firstName": "名",
+    "lastName": "姓",
     "gender": "性别",
     "parameters": "身体数据",
     "age": "年龄",
@@ -545,6 +547,10 @@
       "heightRequired": "请填写身高",
       "weightRequired": "请填写体重",
       "nameTooLong": "姓名不能超过{{max, number(useGrouping: false)}}个字符",
+      "firstNameRequired": "请填写名",
+      "firstNameTooLong": "名不能超过{{max, number(useGrouping: false)}}个字符",
+      "lastNameRequired": "请填写姓",
+      "lastNameTooLong": "姓不能超过{{max, number(useGrouping: false)}}个字符",
       "tooManyDecimals": "数值最多保留{{max, number(useGrouping: false)}}位小数",
       "saveFailed": "无法保存你的个人资料。请检查网络连接后重试。",
       "saveRateLimited": "无法保存你的个人资料。请求过于频繁，请在{{seconds, number}}秒后重试。"
@@ -681,6 +687,27 @@
     "loadError": "无法加载你的个人资料。请检查网络连接后重试。",
     "save": "保存"
   },
+  "profilePhoto": {
+    "title": "头像",
+    "change": "更换照片",
+    "buttonLabel": "更换头像",
+    "chooseFromLibrary": "从相册选取",
+    "takePhoto": "拍照",
+    "removePhoto": "移除照片",
+    "uploadFailed": {
+      "title": "无法更换照片",
+      "message": "你的照片未更换。请检查网络连接后重试。"
+    },
+    "removeFailed": {
+      "title": "无法移除照片",
+      "message": "你的照片未移除。请检查网络连接后重试。"
+    },
+    "cameraDenied": {
+      "title": "需要相机权限",
+      "message": "Fitme 需要使用相机来拍摄你的头像。你可以在设置中开启权限。",
+      "openSettings": "打开设置"
+    }
+  },
   "settings": {
     "title": "设置",
     "measurementSystem": "计量单位制",
@@ -782,6 +809,7 @@
   },
   "measurementSystem": {
     "title": "计量单位制",
+    "unitsTitle": "单位",
     "loadError": "无法加载你的计量单位制。请检查网络连接后重试。",
     "confirm": {
       "title": "确定要更改吗？",
@@ -795,10 +823,24 @@
       "title": "无法更改单位",
       "message": "你的测量数据未更改，请重试。",
       "rateLimited": "你的测量数据未更改。请求过于频繁，请在{{seconds, number}}秒后重试。"
+    },
+    "switchConfirm": {
+      "title": {
+        "metric": "切换为公制单位？",
+        "us": "切换为美制单位？",
+        "uk": "切换为英制单位？"
+      },
+      "message": {
+        "metric": "你的个人资料和训练记录将转换为公制单位。",
+        "us": "你的个人资料和训练记录将转换为美制单位。",
+        "uk": "你的个人资料和训练记录将转换为英制单位。"
+      },
+      "confirm": "切换"
     }
   },
   "legal": {
     "title": "法律信息",
+    "privacyTitle": "法律与隐私",
     "privacyPolicy": "隐私政策",
     "terms": "服务条款",
     "deleteAccount": "删除账户",
@@ -815,7 +857,16 @@
       "x": "Fitme 的 X 主页",
       "instagram": "Fitme 的 Instagram 主页",
       "threads": "Fitme 的 Threads 主页"
-    }
+    },
+    "contactSection": "联系我们",
+    "emailSupport": "发邮件给支持团队",
+    "followSection": "关注 Fitme",
+    "rows": {
+      "x": "X",
+      "instagram": "Instagram",
+      "threads": "Threads"
+    },
+    "addressCopied": "地址已复制"
   },
   "verifyCode": {
     "screenTitle": "验证码",

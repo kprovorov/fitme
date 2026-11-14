@@ -587,6 +587,8 @@
   },
   "profileForm": {
     "name": "Nom",
+    "firstName": "Prénom",
+    "lastName": "Nom",
     "gender": "Genre",
     "parameters": "Informations personnelles",
     "age": "Âge",
@@ -609,6 +611,10 @@
       "heightRequired": "La taille est obligatoire",
       "weightRequired": "Le poids est obligatoire",
       "nameTooLong": "Le nom doit contenir au maximum {{max, number(useGrouping: false)}} caractères",
+      "firstNameRequired": "Le prénom est obligatoire",
+      "firstNameTooLong": "Le prénom doit contenir au maximum {{max, number(useGrouping: false)}} caractères",
+      "lastNameRequired": "Le nom est obligatoire",
+      "lastNameTooLong": "Le nom doit contenir au maximum {{max, number(useGrouping: false)}} caractères",
       "tooManyDecimals": "Le nombre doit avoir au maximum {{max, number(useGrouping: false)}} décimales",
       "saveFailed": "Impossible d'enregistrer ton profil. Vérifie ta connexion et réessaie.",
       "saveRateLimited": "Impossible d'enregistrer ton profil. Trop de requêtes : réessaie dans {{seconds, number}} s."
@@ -745,6 +751,27 @@
     "loadError": "Impossible de charger ton profil. Vérifie ta connexion et réessaie.",
     "save": "Enregistrer"
   },
+  "profilePhoto": {
+    "title": "Photo de profil",
+    "change": "Changer de photo",
+    "buttonLabel": "Changer la photo de profil",
+    "chooseFromLibrary": "Choisir dans la photothèque",
+    "takePhoto": "Prendre une photo",
+    "removePhoto": "Supprimer la photo",
+    "uploadFailed": {
+      "title": "Impossible de changer la photo",
+      "message": "Ta photo n'a pas été changée. Vérifie ta connexion et réessaie."
+    },
+    "removeFailed": {
+      "title": "Impossible de supprimer la photo",
+      "message": "Ta photo n'a pas été supprimée. Vérifie ta connexion et réessaie."
+    },
+    "cameraDenied": {
+      "title": "Accès à l'appareil photo nécessaire",
+      "message": "Fitme a besoin d'accéder à ton appareil photo pour prendre ta photo de profil. Tu peux l'autoriser dans les réglages.",
+      "openSettings": "Ouvrir les réglages"
+    }
+  },
   "settings": {
     "title": "Réglages",
     "measurementSystem": "Système de mesure",
@@ -846,6 +873,7 @@
   },
   "measurementSystem": {
     "title": "Système de mesure",
+    "unitsTitle": "Unités",
     "loadError": "Impossible de charger ton système de mesure. Vérifie ta connexion et réessaie.",
     "confirm": {
       "title": "Confirmer le changement ?",
@@ -859,10 +887,24 @@
       "title": "Impossible de changer les unités",
       "message": "Tes mesures n'ont pas été modifiées. Réessaie.",
       "rateLimited": "Tes mesures n'ont pas été modifiées. Trop de requêtes : réessaie dans {{seconds, number}} s."
+    },
+    "switchConfirm": {
+      "title": {
+        "metric": "Passer aux unités métriques ?",
+        "us": "Passer aux unités américaines ?",
+        "uk": "Passer aux unités britanniques ?"
+      },
+      "message": {
+        "metric": "Ton profil et ton historique d'entraînements seront convertis en unités métriques.",
+        "us": "Ton profil et ton historique d'entraînements seront convertis en unités américaines.",
+        "uk": "Ton profil et ton historique d'entraînements seront convertis en unités britanniques."
+      },
+      "confirm": "Changer"
     }
   },
   "legal": {
     "title": "Informations légales",
+    "privacyTitle": "Mentions légales et confidentialité",
     "privacyPolicy": "Politique de confidentialité",
     "terms": "Conditions d'utilisation",
     "deleteAccount": "Supprimer le compte",
@@ -879,7 +921,16 @@
       "x": "Fitme sur X",
       "instagram": "Fitme sur Instagram",
       "threads": "Fitme sur Threads"
-    }
+    },
+    "contactSection": "Contact",
+    "emailSupport": "Écrire au support",
+    "followSection": "Suivre Fitme",
+    "rows": {
+      "x": "X",
+      "instagram": "Instagram",
+      "threads": "Threads"
+    },
+    "addressCopied": "Adresse copiée"
   },
   "verifyCode": {
     "screenTitle": "Vérifier le code",

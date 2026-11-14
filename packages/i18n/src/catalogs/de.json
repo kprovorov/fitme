@@ -558,6 +558,8 @@
   },
   "profileForm": {
     "name": "Name",
+    "firstName": "Vorname",
+    "lastName": "Nachname",
     "gender": "Geschlecht",
     "parameters": "Körperdaten",
     "age": "Alter",
@@ -577,6 +579,10 @@
       "heightRequired": "Die Größe ist erforderlich",
       "weightRequired": "Das Gewicht ist erforderlich",
       "nameTooLong": "Der Name darf höchstens {{max, number(useGrouping: false)}} Zeichen lang sein",
+      "firstNameRequired": "Der Vorname ist erforderlich",
+      "firstNameTooLong": "Der Vorname darf höchstens {{max, number(useGrouping: false)}} Zeichen lang sein",
+      "lastNameRequired": "Der Nachname ist erforderlich",
+      "lastNameTooLong": "Der Nachname darf höchstens {{max, number(useGrouping: false)}} Zeichen lang sein",
       "tooManyDecimals": "Die Zahl darf höchstens {{max, number(useGrouping: false)}} Nachkommastellen haben",
       "saveFailed": "Dein Profil konnte nicht gespeichert werden. Bitte prüfe deine Verbindung und versuche es erneut.",
       "saveRateLimited": "Dein Profil konnte nicht gespeichert werden. Zu viele Anfragen. Bitte versuche es in {{seconds, number}} s erneut."
@@ -713,6 +719,27 @@
     "loadError": "Dein Profil konnte nicht geladen werden. Bitte prüfe deine Verbindung und versuche es erneut.",
     "save": "Speichern"
   },
+  "profilePhoto": {
+    "title": "Profilfoto",
+    "change": "Foto ändern",
+    "buttonLabel": "Profilfoto ändern",
+    "chooseFromLibrary": "Aus Mediathek wählen",
+    "takePhoto": "Foto aufnehmen",
+    "removePhoto": "Foto entfernen",
+    "uploadFailed": {
+      "title": "Foto konnte nicht geändert werden",
+      "message": "Dein Foto wurde nicht geändert. Prüfe deine Verbindung und versuche es erneut."
+    },
+    "removeFailed": {
+      "title": "Foto konnte nicht entfernt werden",
+      "message": "Dein Foto wurde nicht entfernt. Prüfe deine Verbindung und versuche es erneut."
+    },
+    "cameraDenied": {
+      "title": "Kamerazugriff erforderlich",
+      "message": "Fitme braucht Zugriff auf deine Kamera, um dein Profilfoto aufzunehmen. Du kannst ihn in den Einstellungen erlauben.",
+      "openSettings": "Einstellungen öffnen"
+    }
+  },
   "settings": {
     "title": "Einstellungen",
     "measurementSystem": "Maßsystem",
@@ -814,6 +841,7 @@
   },
   "measurementSystem": {
     "title": "Maßsystem",
+    "unitsTitle": "Einheiten",
     "loadError": "Dein Maßsystem konnte nicht geladen werden. Bitte prüfe deine Verbindung und versuche es erneut.",
     "confirm": {
       "title": "Bist du sicher?",
@@ -827,10 +855,24 @@
       "title": "Einheiten konnten nicht geändert werden",
       "message": "Deine Messwerte wurden nicht geändert. Bitte versuche es erneut.",
       "rateLimited": "Deine Messwerte wurden nicht geändert. Zu viele Anfragen. Bitte versuche es in {{seconds, number}} s erneut."
+    },
+    "switchConfirm": {
+      "title": {
+        "metric": "Zu metrischen Einheiten wechseln?",
+        "us": "Zu US-Einheiten wechseln?",
+        "uk": "Zu britischen Einheiten wechseln?"
+      },
+      "message": {
+        "metric": "Dein Profil und dein Trainingsverlauf werden in metrische Einheiten umgerechnet.",
+        "us": "Dein Profil und dein Trainingsverlauf werden in US-Einheiten umgerechnet.",
+        "uk": "Dein Profil und dein Trainingsverlauf werden in britische Einheiten umgerechnet."
+      },
+      "confirm": "Wechseln"
     }
   },
   "legal": {
     "title": "Rechtliches",
+    "privacyTitle": "Rechtliches & Datenschutz",
     "privacyPolicy": "Datenschutzerklärung",
     "terms": "Nutzungsbedingungen",
     "deleteAccount": "Konto löschen",
@@ -847,7 +889,16 @@
       "x": "Fitme auf X",
       "instagram": "Fitme auf Instagram",
       "threads": "Fitme auf Threads"
-    }
+    },
+    "contactSection": "Kontakt",
+    "emailSupport": "Support kontaktieren",
+    "followSection": "Folge Fitme",
+    "rows": {
+      "x": "X",
+      "instagram": "Instagram",
+      "threads": "Threads"
+    },
+    "addressCopied": "Adresse kopiert"
   },
   "verifyCode": {
     "screenTitle": "Code bestätigen",

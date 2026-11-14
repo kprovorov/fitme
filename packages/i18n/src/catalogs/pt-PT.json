@@ -587,6 +587,8 @@
   },
   "profileForm": {
     "name": "Nome",
+    "firstName": "Nome",
+    "lastName": "Apelido",
     "gender": "Género",
     "parameters": "Dados pessoais",
     "age": "Idade",
@@ -609,6 +611,10 @@
       "heightRequired": "Indica a tua altura",
       "weightRequired": "Indica o teu peso",
       "nameTooLong": "O nome deve ter no máximo {{max, number(useGrouping: false)}} caracteres",
+      "firstNameRequired": "Indica o teu nome",
+      "firstNameTooLong": "O nome deve ter no máximo {{max, number(useGrouping: false)}} caracteres",
+      "lastNameRequired": "Indica o teu apelido",
+      "lastNameTooLong": "O apelido deve ter no máximo {{max, number(useGrouping: false)}} caracteres",
       "tooManyDecimals": "O número deve ter no máximo {{max, number(useGrouping: false)}} casas decimais",
       "saveFailed": "Não foi possível guardar o teu perfil. Verifica a tua ligação e tenta novamente.",
       "saveRateLimited": "Não foi possível guardar o teu perfil. Demasiados pedidos: tenta novamente dentro de {{seconds, number}} s."
@@ -745,6 +751,27 @@
     "loadError": "Não foi possível carregar o teu perfil. Verifica a tua ligação e tenta novamente.",
     "save": "Guardar"
   },
+  "profilePhoto": {
+    "title": "Foto de perfil",
+    "change": "Alterar foto",
+    "buttonLabel": "Alterar foto de perfil",
+    "chooseFromLibrary": "Escolher da fototeca",
+    "takePhoto": "Tirar foto",
+    "removePhoto": "Remover foto",
+    "uploadFailed": {
+      "title": "Não foi possível alterar a foto",
+      "message": "A tua foto não foi alterada. Verifica a tua ligação e tenta novamente."
+    },
+    "removeFailed": {
+      "title": "Não foi possível remover a foto",
+      "message": "A tua foto não foi removida. Verifica a tua ligação e tenta novamente."
+    },
+    "cameraDenied": {
+      "title": "Acesso à câmara necessário",
+      "message": "O Fitme precisa de acesso à tua câmara para tirar a tua foto de perfil. Podes permitir o acesso nas Definições.",
+      "openSettings": "Abrir Definições"
+    }
+  },
   "settings": {
     "title": "Definições",
     "measurementSystem": "Sistema de unidades",
@@ -846,6 +873,7 @@
   },
   "measurementSystem": {
     "title": "Sistema de unidades",
+    "unitsTitle": "Unidades",
     "loadError": "Não foi possível carregar o teu sistema de unidades. Verifica a tua ligação e tenta novamente.",
     "confirm": {
       "title": "Tens a certeza?",
@@ -859,10 +887,24 @@
       "title": "Não foi possível alterar as unidades",
       "message": "As tuas medidas não foram alteradas. Tenta novamente.",
       "rateLimited": "As tuas medidas não foram alteradas. Demasiados pedidos: tenta novamente dentro de {{seconds, number}} s."
+    },
+    "switchConfirm": {
+      "title": {
+        "metric": "Mudar para unidades métricas?",
+        "us": "Mudar para unidades dos EUA?",
+        "uk": "Mudar para unidades do Reino Unido?"
+      },
+      "message": {
+        "metric": "O teu perfil e o teu histórico de treinos serão convertidos para unidades métricas.",
+        "us": "O teu perfil e o teu histórico de treinos serão convertidos para unidades dos EUA.",
+        "uk": "O teu perfil e o teu histórico de treinos serão convertidos para unidades do Reino Unido."
+      },
+      "confirm": "Mudar"
     }
   },
   "legal": {
     "title": "Informações legais",
+    "privacyTitle": "Informações legais e privacidade",
     "privacyPolicy": "Política de privacidade",
     "terms": "Termos de serviço",
     "deleteAccount": "Eliminar conta",
@@ -879,7 +921,16 @@
       "x": "Fitme no X",
       "instagram": "Fitme no Instagram",
       "threads": "Fitme no Threads"
-    }
+    },
+    "contactSection": "Contacto",
+    "emailSupport": "Contactar o suporte",
+    "followSection": "Segue o Fitme",
+    "rows": {
+      "x": "X",
+      "instagram": "Instagram",
+      "threads": "Threads"
+    },
+    "addressCopied": "Endereço copiado"
   },
   "verifyCode": {
     "screenTitle": "Verificar código",

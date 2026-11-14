@@ -529,6 +529,8 @@
   },
   "profileForm": {
     "name": "이름",
+    "firstName": "이름",
+    "lastName": "성",
     "gender": "성별",
     "parameters": "신체 정보",
     "age": "나이",
@@ -545,6 +547,10 @@
       "heightRequired": "키를 입력해 주세요",
       "weightRequired": "체중을 입력해 주세요",
       "nameTooLong": "이름은 {{max, number(useGrouping: false)}}자 이하여야 해요",
+      "firstNameRequired": "이름을 입력해 주세요",
+      "firstNameTooLong": "이름은 {{max, number(useGrouping: false)}}자 이하여야 해요",
+      "lastNameRequired": "성을 입력해 주세요",
+      "lastNameTooLong": "성은 {{max, number(useGrouping: false)}}자 이하여야 해요",
       "tooManyDecimals": "숫자는 소수점 이하 {{max, number(useGrouping: false)}}자리까지 입력할 수 있어요",
       "saveFailed": "프로필을 저장하지 못했어요. 연결 상태를 확인하고 다시 시도해 주세요.",
       "saveRateLimited": "프로필을 저장하지 못했어요. 요청이 너무 많으니 {{seconds, number}}초 후에 다시 시도해 주세요."
@@ -681,6 +687,27 @@
     "loadError": "프로필을 불러오지 못했어요. 연결 상태를 확인하고 다시 시도해 주세요.",
     "save": "저장"
   },
+  "profilePhoto": {
+    "title": "프로필 사진",
+    "change": "사진 변경",
+    "buttonLabel": "프로필 사진 변경",
+    "chooseFromLibrary": "사진 보관함에서 선택",
+    "takePhoto": "사진 찍기",
+    "removePhoto": "사진 삭제",
+    "uploadFailed": {
+      "title": "사진을 변경하지 못했어요",
+      "message": "사진이 변경되지 않았어요. 연결 상태를 확인하고 다시 시도해 주세요."
+    },
+    "removeFailed": {
+      "title": "사진을 삭제하지 못했어요",
+      "message": "사진이 삭제되지 않았어요. 연결 상태를 확인하고 다시 시도해 주세요."
+    },
+    "cameraDenied": {
+      "title": "카메라 접근 권한이 필요해요",
+      "message": "프로필 사진을 찍으려면 Fitme에 카메라 접근 권한이 필요해요. 설정에서 허용할 수 있어요.",
+      "openSettings": "설정 열기"
+    }
+  },
   "settings": {
     "title": "설정",
     "measurementSystem": "측정 단위",
@@ -782,6 +809,7 @@
   },
   "measurementSystem": {
     "title": "측정 단위",
+    "unitsTitle": "단위",
     "loadError": "측정 단위를 불러오지 못했어요. 연결 상태를 확인하고 다시 시도해 주세요.",
     "confirm": {
       "title": "계속할까요?",
@@ -795,10 +823,24 @@
       "title": "단위를 변경하지 못했어요",
       "message": "측정값은 변경되지 않았어요. 다시 시도해 주세요.",
       "rateLimited": "측정값은 변경되지 않았어요. 요청이 너무 많으니 {{seconds, number}}초 후에 다시 시도해 주세요."
+    },
+    "switchConfirm": {
+      "title": {
+        "metric": "미터법으로 전환할까요?",
+        "us": "미국식 단위로 전환할까요?",
+        "uk": "영국식 단위로 전환할까요?"
+      },
+      "message": {
+        "metric": "프로필과 운동 기록이 미터법으로 변환돼요.",
+        "us": "프로필과 운동 기록이 미국식 단위로 변환돼요.",
+        "uk": "프로필과 운동 기록이 영국식 단위로 변환돼요."
+      },
+      "confirm": "전환"
     }
   },
   "legal": {
     "title": "법적 정보",
+    "privacyTitle": "법적 정보 및 개인정보 보호",
     "privacyPolicy": "개인정보 처리방침",
     "terms": "이용약관",
     "deleteAccount": "계정 삭제",
@@ -815,7 +857,16 @@
       "x": "X의 Fitme",
       "instagram": "Instagram의 Fitme",
       "threads": "Threads의 Fitme"
-    }
+    },
+    "contactSection": "문의",
+    "emailSupport": "지원팀에 이메일 보내기",
+    "followSection": "Fitme 팔로우",
+    "rows": {
+      "x": "X",
+      "instagram": "Instagram",
+      "threads": "Threads"
+    },
+    "addressCopied": "주소를 복사했어요"
   },
   "verifyCode": {
     "screenTitle": "코드 확인",
