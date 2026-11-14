@@ -15,6 +15,11 @@ updates:
     schedule:
       interval: weekly
       day: monday
+    # Wait at least as long as pnpm's minimumReleaseAge (1 day by default from
+    # pnpm 11), or the install refuses a version proposed the day it ships
+    # (ERR_PNPM_MINIMUM_RELEASE_AGE_VIOLATION).
+    cooldown:
+      default-days: 1
     # Keep the exact pins every dependency has in apps/mobile/package.json.
     versioning-strategy: increase
     allow:
