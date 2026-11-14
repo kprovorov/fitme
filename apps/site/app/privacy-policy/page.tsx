@@ -95,14 +95,15 @@ const ArnoldSection = () => (
       <strong>How long Arnold conversations are kept</strong>
     </p>
     <p>
-      A conversation ends 30 days after it starts. While it is active, and for 7
-      days after it ends, Vercel keeps its content (Your messages, photos and
-      Arnold&apos;s answers) so that it can be shown again; Vercel deletes every
-      copy of that content no later than 96 days after the conversation ends.
-      Technical records of a conversation, such as its identifiers and when it
-      ran, may be kept by Vercel for up to one year. Deleting Your Account ends
-      every Arnold conversation, so none of them can be continued, and their
-      remaining content is then deleted on the same schedule.
+      A conversation ends once 30 days pass without a new message in it. While
+      it is active, and for 7 days after it ends, Vercel keeps its content (Your
+      messages, photos and Arnold&apos;s answers) so that it can be shown again;
+      Vercel deletes every copy of that content no later than 96 days after the
+      conversation ends. Technical records of a conversation, such as its
+      identifiers and when it ran, may be kept by Vercel for up to one year.
+      Deleting Your Account ends every Arnold conversation, so none of them can
+      be continued, and their remaining content is then deleted on the same
+      schedule.
     </p>
   </>
 );
@@ -231,11 +232,11 @@ const PersonalDataHandling = () => (
       data for longer time periods.
     </p>
     <p>
-      Arnold conversations end 30 days after they start. Vercel keeps a
-      conversation&apos;s content for 7 days after it ends and deletes every
-      copy of it no later than 96 days after it ends; technical records of the
-      conversation, such as its identifiers and when it ran, may be kept for up
-      to one year. Vercel AI Gateway does not retain Your prompts or
+      Arnold conversations end once 30 days pass without a new message. Vercel
+      keeps a conversation&apos;s content for 7 days after it ends and deletes
+      every copy of it no later than 96 days after it ends; technical records of
+      the conversation, such as its identifiers and when it ran, may be kept for
+      up to one year. Vercel AI Gateway does not retain Your prompts or
       Arnold&apos;s answers; the AI provider that processed a request may keep
       it for a limited time under its own terms. Photos You send Arnold are also
       kept on Your Device until You start a new conversation or delete Your
@@ -344,7 +345,7 @@ const PersonalDataHandling = () => (
 const PrivacyPolicyPage = () => (
   <Prose className="p-6">
     <h1>Privacy Policy</h1>
-    <p>Last updated: November 13, 2026</p>
+    <p>Last updated: November 14, 2026</p>
     <p>
       This Privacy Policy describes Our policies and procedures on the
       collection, use and disclosure of Your information when You use the
