@@ -33,6 +33,8 @@
   "counts": {
     "entries_one": "{{count, number}} Eintrag",
     "entries_other": "{{count, number}} Einträge",
+    "hours_one": "{{count, number}} Stunde",
+    "hours_other": "{{count, number}} Stunden",
     "exercises_one": "{{count, number}} Übung",
     "exercises_other": "{{count, number}} Übungen",
     "minutes_one": "{{count, number}} Minute",
@@ -439,6 +441,7 @@
   },
   "duration": {
     "hoursMinutes": "{{hours, number}} h {{minutes, number}} min",
+    "hours": "{{hours, number}} h",
     "minutes": "{{minutes, number}} min"
   },
   "finishWorkout": {
@@ -606,7 +609,104 @@
     "rate": {
       "title": "Gefällt dir die App?",
       "action": "Bewerte sie im App Store!"
-    }
+    },
+    "memberSince": "Mitglied seit {{date}}",
+    "totals": {
+      "workouts": "Trainings",
+      "time": "Zeit",
+      "volume": "Volumen",
+      "label": "{{title}}: {{value}}",
+      "unavailable": "Nicht verfügbar"
+    },
+    "newUser": {
+      "start": "Training starten",
+      "resume": "Training fortsetzen",
+      "createPlan": "Plan erstellen"
+    },
+    "sections": {
+      "account": "Konto",
+      "preferences": "Einstellungen",
+      "help": "Hilfe"
+    },
+    "rows": {
+      "editProfile": "Profil bearbeiten",
+      "accountSecurity": "Konto & Sicherheit",
+      "subscription": "Abo",
+      "units": "Einheiten",
+      "language": "Sprache",
+      "support": "Support",
+      "rateFitme": "Fitme bewerten",
+      "legalPrivacy": "Rechtliches & Datenschutz"
+    },
+    "logOut": "Abmelden",
+    "logOutFailed": "Abmelden fehlgeschlagen. Prüfe deine Verbindung und versuche es erneut.",
+    "version": "Fitme {{version}} ({{build}})"
+  },
+  "subscription": {
+    "title": "Abo",
+    "heading": "Dein Abo",
+    "free": {
+      "title": "Du nutzt Free",
+      "description": "Mit Pro bekommst du Arnold AI und von KI erstellte Pläne.",
+      "upgrade": "Auf Pro upgraden"
+    },
+    "pro": "Fitme Pro",
+    "renewsOn": "Verlängert sich am {{date}}",
+    "trialEndsOn": "Testphase endet am {{date}}",
+    "endsOn": "Endet am {{date}}",
+    "lifetime": "Lebenslang",
+    "manage": "Verwalten",
+    "loading": "Abo wird geladen",
+    "loadError": "Abo konnte nicht geladen werden",
+    "productLine": "Fitme Pro · {{period}}",
+    "periods": {
+      "weekly": "Wöchentlich",
+      "monthly": "Monatlich",
+      "twoMonths": "Alle 2 Monate",
+      "threeMonths": "Alle 3 Monate",
+      "sixMonths": "Alle 6 Monate",
+      "yearly": "Jährlich",
+      "lifetime": "Lebenslang"
+    },
+    "rows": {
+      "subscription": "Abo",
+      "status": "Status",
+      "renewsOn": "Verlängert sich am",
+      "trialEndsOn": "Testphase endet am",
+      "endsOn": "Endet am"
+    },
+    "status": {
+      "active": "Aktiv",
+      "trial": "Kostenlose Testphase",
+      "cancelled": "Gekündigt",
+      "lifetime": "Lebenslang"
+    },
+    "billing": {
+      "appStore": "Abgerechnet über den App Store",
+      "playStore": "Abgerechnet über Google Play"
+    },
+    "manageSubscription": "Abo verwalten",
+    "restore": "Käufe wiederherstellen",
+    "restored": "Käufe wiederhergestellt",
+    "nothingToRestore": "Keine Käufe zum Wiederherstellen",
+    "restoreFailed": "Käufe konnten nicht wiederhergestellt werden. Prüfe deine Verbindung und versuche es erneut."
+  },
+  "languages": {
+    "en": "English",
+    "uk": "Українська",
+    "es": "Español",
+    "ca": "Català",
+    "fr": "Français",
+    "de": "Deutsch",
+    "it": "Italiano",
+    "pt-BR": "Português (Brasil)",
+    "pt-PT": "Português (Portugal)",
+    "pl": "Polski",
+    "zh-Hans": "简体中文",
+    "zh-Hant": "繁體中文",
+    "ja": "日本語",
+    "ko": "한국어",
+    "nl": "Nederlands"
   },
   "editProfile": {
     "title": "Profil bearbeiten",

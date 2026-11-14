@@ -34,6 +34,9 @@
     "entries_one": "{{count, number}} entrada",
     "entries_other": "{{count, number}} entrades",
     "entries_many": "{{count, number}} entrades",
+    "hours_one": "{{count, number}} hora",
+    "hours_many": "{{count, number}} hores",
+    "hours_other": "{{count, number}} hores",
     "exercises_one": "{{count, number}} exercici",
     "exercises_other": "{{count, number}} exercicis",
     "exercises_many": "{{count, number}} exercicis",
@@ -461,6 +464,7 @@
   },
   "duration": {
     "hoursMinutes": "{{hours, number}} h {{minutes, number}} min",
+    "hours": "{{hours, number}} h",
     "minutes": "{{minutes, number}} min"
   },
   "finishWorkout": {
@@ -637,7 +641,104 @@
     "rate": {
       "title": "T'agrada l'app?",
       "action": "Valora-la a l'App Store!"
-    }
+    },
+    "memberSince": "Membre des de {{date}}",
+    "totals": {
+      "workouts": "Entrenaments",
+      "time": "Temps",
+      "volume": "Volum",
+      "label": "{{title}}: {{value}}",
+      "unavailable": "No disponible"
+    },
+    "newUser": {
+      "start": "Comença un entrenament",
+      "resume": "Reprèn l'entrenament",
+      "createPlan": "Crea un pla"
+    },
+    "sections": {
+      "account": "Compte",
+      "preferences": "Preferències",
+      "help": "Ajuda"
+    },
+    "rows": {
+      "editProfile": "Edita el perfil",
+      "accountSecurity": "Compte i seguretat",
+      "subscription": "Subscripció",
+      "units": "Unitats",
+      "language": "Idioma",
+      "support": "Assistència",
+      "rateFitme": "Valora Fitme",
+      "legalPrivacy": "Informació legal i privadesa"
+    },
+    "logOut": "Tanca la sessió",
+    "logOutFailed": "No s'ha pogut tancar la sessió. Comprova la connexió i torna-ho a provar.",
+    "version": "Fitme {{version}} ({{build}})"
+  },
+  "subscription": {
+    "title": "Subscripció",
+    "heading": "La teva subscripció",
+    "free": {
+      "title": "Tens Free",
+      "description": "Pro desbloqueja Arnold AI i els plans creats amb IA.",
+      "upgrade": "Passa a Pro"
+    },
+    "pro": "Fitme Pro",
+    "renewsOn": "Es renova el {{date}}",
+    "trialEndsOn": "La prova acaba el {{date}}",
+    "endsOn": "Acaba el {{date}}",
+    "lifetime": "Per sempre",
+    "manage": "Gestiona",
+    "loading": "Carregant la subscripció",
+    "loadError": "No s'ha pogut carregar la subscripció",
+    "productLine": "Fitme Pro · {{period}}",
+    "periods": {
+      "weekly": "Setmanal",
+      "monthly": "Mensual",
+      "twoMonths": "Cada 2 mesos",
+      "threeMonths": "Cada 3 mesos",
+      "sixMonths": "Cada 6 mesos",
+      "yearly": "Anual",
+      "lifetime": "Per sempre"
+    },
+    "rows": {
+      "subscription": "Subscripció",
+      "status": "Estat",
+      "renewsOn": "Es renova el",
+      "trialEndsOn": "La prova acaba el",
+      "endsOn": "Acaba el"
+    },
+    "status": {
+      "active": "Activa",
+      "trial": "Prova gratuïta",
+      "cancelled": "Cancel·lada",
+      "lifetime": "Per sempre"
+    },
+    "billing": {
+      "appStore": "Facturada a través de l'App Store",
+      "playStore": "Facturada a través de Google Play"
+    },
+    "manageSubscription": "Gestiona la subscripció",
+    "restore": "Restaura les compres",
+    "restored": "Compres restaurades",
+    "nothingToRestore": "No hi ha compres per restaurar",
+    "restoreFailed": "No s'han pogut restaurar les compres. Comprova la connexió i torna-ho a provar."
+  },
+  "languages": {
+    "en": "English",
+    "uk": "Українська",
+    "es": "Español",
+    "ca": "Català",
+    "fr": "Français",
+    "de": "Deutsch",
+    "it": "Italiano",
+    "pt-BR": "Português (Brasil)",
+    "pt-PT": "Português (Portugal)",
+    "pl": "Polski",
+    "zh-Hans": "简体中文",
+    "zh-Hant": "繁體中文",
+    "ja": "日本語",
+    "ko": "한국어",
+    "nl": "Nederlands"
   },
   "editProfile": {
     "title": "Edita el perfil",

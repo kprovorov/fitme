@@ -33,6 +33,8 @@
   "counts": {
     "entries_one": "{{count, number}} registratie",
     "entries_other": "{{count, number}} registraties",
+    "hours_one": "{{count, number}} uur",
+    "hours_other": "{{count, number}} uur",
     "exercises_one": "{{count, number}} oefening",
     "exercises_other": "{{count, number}} oefeningen",
     "minutes_one": "{{count, number}} minuut",
@@ -439,6 +441,7 @@
   },
   "duration": {
     "hoursMinutes": "{{hours, number}} u {{minutes, number}} min",
+    "hours": "{{hours, number}} u",
     "minutes": "{{minutes, number}} min"
   },
   "finishWorkout": {
@@ -606,7 +609,104 @@
     "rate": {
       "title": "Bevalt de app?",
       "action": "Beoordeel de app in de App Store!"
-    }
+    },
+    "memberSince": "Lid sinds {{date}}",
+    "totals": {
+      "workouts": "Trainingen",
+      "time": "Tijd",
+      "volume": "Volume",
+      "label": "{{title}}: {{value}}",
+      "unavailable": "Niet beschikbaar"
+    },
+    "newUser": {
+      "start": "Training starten",
+      "resume": "Training hervatten",
+      "createPlan": "Schema maken"
+    },
+    "sections": {
+      "account": "Account",
+      "preferences": "Voorkeuren",
+      "help": "Hulp"
+    },
+    "rows": {
+      "editProfile": "Profiel bewerken",
+      "accountSecurity": "Account en beveiliging",
+      "subscription": "Abonnement",
+      "units": "Eenheden",
+      "language": "Taal",
+      "support": "Ondersteuning",
+      "rateFitme": "Fitme beoordelen",
+      "legalPrivacy": "Juridisch en privacy"
+    },
+    "logOut": "Uitloggen",
+    "logOutFailed": "Uitloggen is mislukt. Controleer je verbinding en probeer het opnieuw.",
+    "version": "Fitme {{version}} ({{build}})"
+  },
+  "subscription": {
+    "title": "Abonnement",
+    "heading": "Je abonnement",
+    "free": {
+      "title": "Je gebruikt Free",
+      "description": "Met Pro krijg je Arnold AI en schema's gemaakt door AI.",
+      "upgrade": "Overstappen op Pro"
+    },
+    "pro": "Fitme Pro",
+    "renewsOn": "Wordt verlengd op {{date}}",
+    "trialEndsOn": "Proefperiode eindigt op {{date}}",
+    "endsOn": "Eindigt op {{date}}",
+    "lifetime": "Levenslang",
+    "manage": "Beheren",
+    "loading": "Abonnement laden",
+    "loadError": "Abonnement kon niet worden geladen",
+    "productLine": "Fitme Pro · {{period}}",
+    "periods": {
+      "weekly": "Wekelijks",
+      "monthly": "Maandelijks",
+      "twoMonths": "Elke 2 maanden",
+      "threeMonths": "Elke 3 maanden",
+      "sixMonths": "Elke 6 maanden",
+      "yearly": "Jaarlijks",
+      "lifetime": "Levenslang"
+    },
+    "rows": {
+      "subscription": "Abonnement",
+      "status": "Status",
+      "renewsOn": "Wordt verlengd op",
+      "trialEndsOn": "Proefperiode eindigt op",
+      "endsOn": "Eindigt op"
+    },
+    "status": {
+      "active": "Actief",
+      "trial": "Gratis proefperiode",
+      "cancelled": "Opgezegd",
+      "lifetime": "Levenslang"
+    },
+    "billing": {
+      "appStore": "Gefactureerd via de App Store",
+      "playStore": "Gefactureerd via Google Play"
+    },
+    "manageSubscription": "Abonnement beheren",
+    "restore": "Aankopen herstellen",
+    "restored": "Aankopen hersteld",
+    "nothingToRestore": "Geen aankopen om te herstellen",
+    "restoreFailed": "Aankopen konden niet worden hersteld. Controleer je verbinding en probeer het opnieuw."
+  },
+  "languages": {
+    "en": "English",
+    "uk": "Українська",
+    "es": "Español",
+    "ca": "Català",
+    "fr": "Français",
+    "de": "Deutsch",
+    "it": "Italiano",
+    "pt-BR": "Português (Brasil)",
+    "pt-PT": "Português (Portugal)",
+    "pl": "Polski",
+    "zh-Hans": "简体中文",
+    "zh-Hant": "繁體中文",
+    "ja": "日本語",
+    "ko": "한국어",
+    "nl": "Nederlands"
   },
   "editProfile": {
     "title": "Profiel bewerken",

@@ -15,6 +15,7 @@ export type Unit = "cm" | "in" | "kg" | "lbs";
 export type CountKind =
   | "entries"
   | "exercises"
+  | "hours"
   | "minutes"
   | "reps"
   | "sets"
@@ -278,15 +279,22 @@ export const formatHeight = (
 };
 
 const MINUTE_MS = 60_000;
+const MINUTES_PER_HOUR = 60;
+
+/** A length in whole minutes: rounded, and never negative or not a number. */
+const totalMinutesOf = (durationMs: number): number =>
+  Number.isFinite(durationMs)
+    ? Math.max(0, Math.round(durationMs / MINUTE_MS))
+    : 0;
 
 /** A length of time in hours and minutes: `42min`, `12h 5min` (`12 год 5 хв`). */
 export const formatDuration = (
   translator: Translator,
   durationMs: number
 ): string => {
-  const totalMinutes = Math.max(0, Math.round(durationMs / MINUTE_MS));
-  const hours = Math.floor(totalMinutes / 60);
-  const minutes = totalMinutes % 60;
+  const totalMinutes = totalMinutesOf(durationMs);
+  const hours = Math.floor(totalMinutes / MINUTES_PER_HOUR);
+  const minutes = totalMinutes % MINUTES_PER_HOUR;
 
   return hours > 0
     ? translator.t("duration.hoursMinutes", { hours, minutes })
@@ -303,6 +311,46 @@ export const formatWorkoutDuration = (
     translator,
     new Date(finishedAt).getTime() - new Date(startedAt).getTime()
   );
+
+/**
+ * Training time, whole hours or minutes under an hour, rounded to the minute:
+ * no training at all is in hours, so it reads `0h`, not `0min`.
+ */
+const trainingTime = (durationMs: number) => {
+  const totalMinutes = totalMinutesOf(durationMs);
+
+  return totalMinutes > 0 && totalMinutes < MINUTES_PER_HOUR
+    ? ({ kind: "minutes", value: totalMinutes } as const)
+    : ({
+        kind: "hours",
+        value: Math.floor(totalMinutes / MINUTES_PER_HOUR),
+      } as const);
+};
+
+/**
+ * The Lifetime totals' training time: whole hours (`36h`, `36 год`), or
+ * minutes while under an hour (`42min`).
+ */
+export const formatTrainingTime = (
+  translator: Translator,
+  durationMs: number
+): string => {
+  const { kind, value } = trainingTime(durationMs);
+
+  return kind === "hours"
+    ? translator.t("duration.hours", { hours: value })
+    : translator.t("duration.minutes", { minutes: value });
+};
+
+/** `formatTrainingTime` spelled out for VoiceOver: `36 hours`, `42 minutes`. */
+export const spokenTrainingTime = (
+  translator: Translator,
+  durationMs: number
+): string => {
+  const { kind, value } = trainingTime(durationMs);
+
+  return formatCount(translator, kind, value);
+};
 
 const THOUSAND = 1000;
 

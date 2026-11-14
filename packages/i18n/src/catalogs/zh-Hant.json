@@ -32,6 +32,7 @@
   },
   "counts": {
     "entries_other": "{{count, number}}筆紀錄",
+    "hours_other": "{{count, number}}小時",
     "exercises_other": "{{count, number}}個動作",
     "minutes_other": "{{count, number}}分鐘",
     "reps_other": "{{count, number}}次",
@@ -417,6 +418,7 @@
   },
   "duration": {
     "hoursMinutes": "{{hours, number}}小時{{minutes, number}}分",
+    "hours": "{{hours, number}}小時",
     "minutes": "{{minutes, number}}分鐘"
   },
   "finishWorkout": {
@@ -575,7 +577,104 @@
     "rate": {
       "title": "喜歡這款App嗎？",
       "action": "到 App Store 給個評分吧！"
-    }
+    },
+    "memberSince": "{{date}}加入",
+    "totals": {
+      "workouts": "訓練次數",
+      "time": "時間",
+      "volume": "訓練總量",
+      "label": "{{title}}：{{value}}",
+      "unavailable": "無法使用"
+    },
+    "newUser": {
+      "start": "開始訓練",
+      "resume": "繼續訓練",
+      "createPlan": "建立計畫"
+    },
+    "sections": {
+      "account": "帳號",
+      "preferences": "偏好設定",
+      "help": "說明"
+    },
+    "rows": {
+      "editProfile": "編輯個人檔案",
+      "accountSecurity": "帳號與安全性",
+      "subscription": "訂閱",
+      "units": "單位",
+      "language": "語言",
+      "support": "支援",
+      "rateFitme": "為 Fitme 評分",
+      "legalPrivacy": "法律與隱私權"
+    },
+    "logOut": "登出",
+    "logOutFailed": "無法登出。請檢查網路連線後再試一次。",
+    "version": "Fitme {{version}} ({{build}})"
+  },
+  "subscription": {
+    "title": "訂閱",
+    "heading": "你的訂閱",
+    "free": {
+      "title": "你正在使用 Free",
+      "description": "Pro 可解鎖 Arnold AI 和 AI 建立的計畫。",
+      "upgrade": "升級為 Pro"
+    },
+    "pro": "Fitme Pro",
+    "renewsOn": "將於 {{date}} 續訂",
+    "trialEndsOn": "試用將於 {{date}} 結束",
+    "endsOn": "將於 {{date}} 結束",
+    "lifetime": "終身",
+    "manage": "管理",
+    "loading": "正在載入訂閱",
+    "loadError": "無法載入訂閱",
+    "productLine": "Fitme Pro · {{period}}",
+    "periods": {
+      "weekly": "每週",
+      "monthly": "每月",
+      "twoMonths": "每 2 個月",
+      "threeMonths": "每 3 個月",
+      "sixMonths": "每 6 個月",
+      "yearly": "每年",
+      "lifetime": "終身"
+    },
+    "rows": {
+      "subscription": "訂閱",
+      "status": "狀態",
+      "renewsOn": "續訂日期",
+      "trialEndsOn": "試用結束日期",
+      "endsOn": "結束日期"
+    },
+    "status": {
+      "active": "有效",
+      "trial": "免費試用",
+      "cancelled": "已取消",
+      "lifetime": "終身"
+    },
+    "billing": {
+      "appStore": "透過 App Store 付費",
+      "playStore": "透過 Google Play 付費"
+    },
+    "manageSubscription": "管理訂閱",
+    "restore": "回復購買項目",
+    "restored": "已回復購買項目",
+    "nothingToRestore": "沒有可回復的購買項目",
+    "restoreFailed": "無法回復購買項目。請檢查網路連線後再試一次。"
+  },
+  "languages": {
+    "en": "English",
+    "uk": "Українська",
+    "es": "Español",
+    "ca": "Català",
+    "fr": "Français",
+    "de": "Deutsch",
+    "it": "Italiano",
+    "pt-BR": "Português (Brasil)",
+    "pt-PT": "Português (Portugal)",
+    "pl": "Polski",
+    "zh-Hans": "简体中文",
+    "zh-Hant": "繁體中文",
+    "ja": "日本語",
+    "ko": "한국어",
+    "nl": "Nederlands"
   },
   "editProfile": {
     "title": "編輯個人資料",
