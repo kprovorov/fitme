@@ -11,7 +11,7 @@ import { useTranslation } from "react-i18next";
 import { AccessibilityInfo, Platform, Pressable, Text } from "react-native";
 
 import { Toaster } from "~/components/ui/toast";
-import { showToast } from "~/lib/toast";
+import { showToast, toastDuration } from "~/lib/toast";
 
 // A Screen that shows a toast from the catalog, with the app's Toaster beside
 // it as the root layout renders it.
@@ -36,7 +36,7 @@ describe("showToast", () => {
 
   beforeEach(() => {
     announce = jest
-      .spyOn(AccessibilityInfo, "announceForAccessibility")
+      .spyOn(AccessibilityInfo, "announceForAccessibilityWithOptions")
       .mockReturnValue(undefined);
   });
 
@@ -72,7 +72,7 @@ describe("showToast", () => {
 
     await fireEvent.press(screen.getByText("Try Again"));
 
-    expect(announce).toHaveBeenCalledWith(MESSAGE);
+    expect(announce).toHaveBeenCalledWith(MESSAGE, { queue: true });
   });
 
   it("leaves Android to the toast's own live region", async () => {
@@ -85,10 +85,34 @@ describe("showToast", () => {
     expect(screen.getByText(MESSAGE)).toBeTruthy();
   });
 
-  it("starts each test with no toast on screen", async () => {
+  // The two run in order: the first leaves a toast, which the stand-in never
+  // hides, and the second finds it gone (`resetToasts` in after-each.ts).
+  it("leaves a toast behind", async () => {
+    await render(<Toaster />);
+    await act(() => {
+      showToast("Left over");
+    });
+
+    expect(screen.getByText("Left over")).toBeTruthy();
+  });
+
+  it("starts the next test with no toast on screen", async () => {
     await render(<Toaster />);
 
-    expect(screen.queryByText("First")).toBeNull();
-    expect(screen.queryByText(MESSAGE)).toBeNull();
+    expect(screen.queryByText("Left over")).toBeNull();
+  });
+});
+
+describe("toastDuration", () => {
+  it("keeps a short message up for sonner-native's 4 s", () => {
+    expect(toastDuration("")).toBe(4000);
+  });
+
+  it("keeps a longer message up longer, to read it", () => {
+    expect(toastDuration(MESSAGE)).toBe(4000 + MESSAGE.length * 60);
+  });
+
+  it("never keeps one up for more than 10 s", () => {
+    expect(toastDuration("x".repeat(500))).toBe(10_000);
   });
 });
