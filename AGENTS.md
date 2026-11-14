@@ -33,16 +33,22 @@ packages/typescript-config              — shared tsconfig presets
 ```bash
 pnpm install
 
+# Starting an app: through scripts/with-dev-env.sh, which injects the app's Infisical `dev` folder (Api, Arnold, Library, Mcp, Mobile, Site,
+# Web, Webhooks; none = all eight) into its environment, nothing written to disk (needs `infisical login`; it starts nothing without it).
+# The editor tasks (.zed/tasks.json) and the T3 actions (t3.json) run exactly these. A bare script (`pnpm dev:api`) starts the app
+# without Infisical's values: only its own `.env` (the DB apps' FITME_DATABASE_URL, written by setup) and the defaults, so anything
+# needing a secret answers "not configured" or a 500.
+scripts/with-dev-env.sh -- pnpm dev                       # turbo run dev (all apps)
+scripts/with-dev-env.sh Mobile -- pnpm dev:mobile         # expo start
+scripts/with-dev-env.sh Web -- pnpm dev:web               # next dev on :3000
+scripts/with-dev-env.sh Site -- pnpm dev:site             # next dev on :3001
+scripts/with-dev-env.sh Mcp -- pnpm dev:mcp               # tsx watch MCP server on :3002 (MCP endpoint at /)
+scripts/with-dev-env.sh Api -- pnpm dev:api               # tsx watch REST API on :3003
+scripts/with-dev-env.sh Webhooks -- pnpm dev:webhooks     # tsx watch webhooks app on :3004 (POST /clerk needs CLERK_WEBHOOK_SIGNING_SECRET, which dev doesn't hold: add it to apps/webhooks/.env)
+scripts/with-dev-env.sh Arnold -- pnpm dev:arnold         # eve dev (no TUI) on :3005 against the local stack
+scripts/with-dev-env.sh Library -- pnpm dev:library       # generate + tsx watch Library API on :3006, serving the fixture bundle
+
 # Root (Turborepo)
-pnpm dev                 # turbo run dev (all apps)
-pnpm dev:mobile          # expo start
-pnpm dev:web             # next dev on :3000
-pnpm dev:site            # next dev on :3001
-pnpm dev:mcp             # tsx watch MCP server on :3002 (MCP endpoint at /)
-pnpm dev:api             # tsx watch REST API on :3003
-pnpm dev:webhooks        # tsx watch webhooks app on :3004 (needs FITME_DATABASE_URL, CLERK_WEBHOOK_SIGNING_SECRET)
-pnpm dev:arnold          # eve dev (no TUI) on :3005 against the local stack (apps/arnold/.env: CLERK_JWT_KEY, FITME_DATABASE_URL, AI_GATEWAY_API_KEY)
-pnpm dev:library         # generate + tsx watch Library API on :3006, serving the fixture bundle (apps/library/.env: Clerk keys and/or server secrets to call it)
 pnpm build               # turbo run build
 pnpm test                # turbo run test (jest in mobile, vitest in core, api-client, design-tokens, i18n, library-sdk, observability, rate-limit, mcp, api, webhooks, arnold, library and web)
 pnpm typecheck           # turbo run typecheck
@@ -55,8 +61,8 @@ pnpm text-check          # no hardcoded visible text in the mobile app's .ts / .
 pnpm knip                # unused files, exports, dependencies and binaries across the workspace (knip.jsonc: every ignore names its reason; not in CI)
 
 # Per workspace
-pnpm ios                 # expo run:ios       (alias for pnpm --filter @fitme/mobile ios)
-pnpm mobile android      # expo run:android
+scripts/with-dev-env.sh Mobile -- pnpm ios # expo run:ios (alias for pnpm --filter @fitme/mobile ios); the app config reads env at prebuild
+scripts/with-dev-env.sh Mobile -- pnpm mobile android # expo run:android
 pnpm mobile lint         # expo lint
 pnpm web build           # next build
 pnpm site build          # next build (marketing site)
@@ -67,7 +73,7 @@ pnpm api build           # tsdown bundle → apps/api/dist
 pnpm api test            # vitest (Hono app via app.request, test-signed Clerk tokens, fake services)
 pnpm api test:integration # vitest against the local Supabase stack through its pooler (the real services facade)
 pnpm api openapi         # regenerate apps/api/openapi.json (commit it; CI fails when it's stale)
-pnpm api clerk:check     # prove a running Public API accepts a Clerk dev session token and reads that User's data (CLERK_SECRET_KEY sk_test_…, API_URL)
+scripts/with-dev-env.sh Mcp -- API_URL=http://localhost:3003 pnpm api clerk:check # prove a running Public API accepts a Clerk dev session token and reads that User's data (CLERK_SECRET_KEY sk_test_…, from the Mcp folder, and API_URL); bare, it has no CLERK_SECRET_KEY
 pnpm api-client generate # regenerate packages/api-client/src/schema.ts from apps/api/openapi.json (commit it; CI fails when it's stale)
 pnpm webhooks build      # tsdown bundle → apps/webhooks/dist
 pnpm webhooks test       # vitest (Hono app via app.request, signed payloads, fake services)
@@ -77,7 +83,7 @@ pnpm library test        # generate + vitest (Hono app via app.request, test-sig
 pnpm library openapi     # regenerate apps/library/openapi.json (commit it; CI fails when it's stale)
 pnpm arnold build        # eve build → apps/arnold/.output
 pnpm arnold test         # vitest (channel auth, Pro check, model selection, turn limits, tool wiring; no database or model)
-pnpm arnold eval         # eve eval: model-behaviour evals with stubbed tools (apps/arnold/evals; needs AI_GATEWAY_API_KEY in apps/arnold/.env, no database or Clerk token); run by hand before prompt or model changes, not in CI. `pnpm arnold eval show-my-plan` runs one
+scripts/with-dev-env.sh Arnold -- pnpm arnold eval # eve eval: model-behaviour evals with stubbed tools (apps/arnold/evals; needs AI_GATEWAY_API_KEY from the Arnold folder, no database or Clerk token; bare, every turn fails at the model call); run by hand before prompt or model changes, not in CI. `scripts/with-dev-env.sh Arnold -- pnpm arnold eval show-my-plan` runs one
 pnpm --filter @fitme/db test:integration # vitest through the local Supavisor pooler as the fitme login (needs a local stack)
 pnpm --filter @fitme/services test:integration # services inside withService/asUser through the local pooler (needs a local stack)
 pnpm db start            # supabase start     (alias for pnpm --filter @fitme/supabase start; Supabase CLI v3 can't read a stack v2 started: "Unable to decode state … Missing key … pin" → scripts/destroy-stale-stacks.sh "$PWD" destroys it with v2, then start again)

@@ -13,20 +13,20 @@
   },
   {
     "label": "Run all",
-    "command": "pnpm",
-    "args": ["dev"],
+    "command": "./scripts/with-dev-env.sh",
+    "args": ["--", "pnpm", "dev"],
     "reveal": "no_focus"
   },
   {
     "label": "Run mobile",
-    "command": "pnpm",
-    "args": ["mobile", "dev"],
+    "command": "./scripts/with-dev-env.sh",
+    "args": ["Mobile", "--", "pnpm", "mobile", "dev"],
     "reveal": "no_focus"
   },
   {
     "label": "Build mobile",
-    "command": "pnpm",
-    "args": ["ios", "--no-bundler"],
+    "command": "./scripts/with-dev-env.sh",
+    "args": ["Mobile", "--", "pnpm", "ios", "--no-bundler"],
     "reveal": "no_focus",
     "hide": "on_success"
   },
@@ -40,44 +40,44 @@
   },
   {
     "label": "Run web",
-    "command": "pnpm",
-    "args": ["dev:web"],
+    "command": "./scripts/with-dev-env.sh",
+    "args": ["Web", "--", "pnpm", "dev:web"],
     "reveal": "no_focus"
   },
   {
     "label": "Run site",
-    "command": "pnpm",
-    "args": ["dev:site"],
+    "command": "./scripts/with-dev-env.sh",
+    "args": ["Site", "--", "pnpm", "dev:site"],
     "reveal": "no_focus"
   },
   {
     "label": "Run MCP",
-    "command": "pnpm",
-    "args": ["dev:mcp"],
+    "command": "./scripts/with-dev-env.sh",
+    "args": ["Mcp", "--", "pnpm", "dev:mcp"],
     "reveal": "no_focus"
   },
   {
     "label": "Run API",
-    "command": "pnpm",
-    "args": ["dev:api"],
+    "command": "./scripts/with-dev-env.sh",
+    "args": ["Api", "--", "pnpm", "dev:api"],
     "reveal": "no_focus"
   },
   {
     "label": "Run webhooks",
-    "command": "pnpm",
-    "args": ["dev:webhooks"],
+    "command": "./scripts/with-dev-env.sh",
+    "args": ["Webhooks", "--", "pnpm", "dev:webhooks"],
     "reveal": "no_focus"
   },
   {
     "label": "Run arnold",
-    "command": "pnpm",
-    "args": ["dev:arnold"],
+    "command": "./scripts/with-dev-env.sh",
+    "args": ["Arnold", "--", "pnpm", "dev:arnold"],
     "reveal": "no_focus"
   },
   {
     "label": "Run library",
-    "command": "pnpm",
-    "args": ["dev:library"],
+    "command": "./scripts/with-dev-env.sh",
+    "args": ["Library", "--", "pnpm", "dev:library"],
     "reveal": "no_focus"
   },
   {
