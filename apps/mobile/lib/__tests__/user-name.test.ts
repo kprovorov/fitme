@@ -1,22 +1,6 @@
 import { describe, expect, it } from "@jest/globals";
 
-import { getProfileHeader, splitFullName } from "../user-name";
-
-describe("splitFullName", () => {
-  it("makes a single word the first name", () => {
-    expect(splitFullName("Pepper")).toEqual({
-      firstName: "Pepper",
-      lastName: "",
-    });
-  });
-
-  it("splits on the first space, keeping the rest as the last name", () => {
-    expect(splitFullName("  Mary  Jane Watson ")).toEqual({
-      firstName: "Mary",
-      lastName: "Jane Watson",
-    });
-  });
-});
+import { getProfileHeader } from "../user-name";
 
 describe("getProfileHeader", () => {
   it("shows the name with the email beneath it", () => {

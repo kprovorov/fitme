@@ -252,6 +252,7 @@ let password: string | null = FAKE_PASSWORD;
 let deleted = false;
 let calls: ClerkCall[] = [];
 let failures = new Map<ClerkMethod, ClerkFailure[]>();
+let holds = new Map<ClerkMethod, Promise<void>[]>();
 let needsReverification: string | null = null;
 let reverifications: readonly PendingReverification[] = [];
 let uploads = 0;
@@ -289,6 +290,8 @@ const reach = async (method: ClerkMethod, params?: unknown) => {
   calls.push(params === undefined ? { method } : { method, params });
   // The request goes out before Clerk answers.
   await Promise.resolve();
+  // A held call waits for the test to let Clerk answer.
+  await holds.get(method)?.shift();
   const failure = failures.get(method)?.shift();
 
   if (failure !== undefined) {
@@ -817,6 +820,24 @@ export const fakeClerk = {
   failNext: (method: ClerkMethod, failure: ClerkFailure) => {
     failures.set(method, [...(failures.get(method) ?? []), failure]);
   },
+  /**
+   * Holds Clerk's answer to the next `method` call until the function it
+   * returns is called: the call is recorded at once, and changes the User
+   * (or fails) only once released.
+   */
+  holdNext: (method: ClerkMethod) => {
+    let release: () => void = () => {
+      // Replaced as the promise is made.
+    };
+
+    const held = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+
+    holds.set(method, [...(holds.get(method) ?? []), held]);
+
+    return release;
+  },
   /** The User's password, `null` without one. */
   get password() {
     return password;
@@ -831,6 +852,7 @@ export const fakeClerk = {
     deleted = false;
     calls = [];
     failures = new Map();
+    holds = new Map();
     needsReverification = null;
     reverifications = [];
     uploads = 0;

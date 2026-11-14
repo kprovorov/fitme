@@ -13,8 +13,10 @@ import ProfileForm, {
   profileSaveErrorMessage,
 } from "~/components/forms/profile-form";
 import type { ProfileFormValues } from "~/components/forms/profile-form";
+import { Avatar, AvatarFallback, AvatarImage } from "~/components/ui/avatar";
 import { Button } from "~/components/ui/button";
 import { ErrorMessage } from "~/components/ui/error-message";
+import { Text } from "~/components/ui/text";
 import { VStack } from "~/components/ui/vstack";
 import { useUpdateProfileMutation } from "~/hooks/mutations/profiles";
 import { useProfileQuery } from "~/hooks/queries/profiles";
@@ -25,6 +27,37 @@ const useDeviceMeasurementSystem = (): MeasurementSystem => {
   const locales = useLocales();
 
   return locales[0]?.measurementSystem ?? "metric";
+};
+
+/** Clerk's first and last name, each `""` without one, as the fields show them. */
+const clerkNames = (
+  user: { firstName: string | null; lastName: string | null } | null | undefined
+) => ({ firstName: user?.firstName ?? "", lastName: user?.lastName ?? "" });
+
+/**
+ * The User's Profile photo, as Clerk serves it (its default picture without
+ * one of their own); changing it is the Profile Photo sheet's.
+ */
+const ProfilePhoto = ({
+  fullName,
+  imageUrl,
+}: {
+  fullName: string | null;
+  imageUrl: string;
+}) => {
+  const { t } = useTranslation(undefined, { i18n });
+  const initial = (fullName ?? "").trim().charAt(0).toUpperCase();
+
+  return (
+    <View className="items-center pt-2">
+      <Avatar alt={t("profilePhoto.title")} className="size-22">
+        <AvatarImage source={{ uri: imageUrl }} testID="edit-profile-photo" />
+        <AvatarFallback>
+          <Text className="text-title-1-emphasized">{initial}</Text>
+        </AvatarFallback>
+      </Avatar>
+    </View>
+  );
 };
 
 const EditProfileScreen = () => {
@@ -46,7 +79,7 @@ const EditProfileScreen = () => {
   // is an error, a 429 giving the wait.
   const isLoadError = isProfileError && profile === undefined;
   const loadWaitSeconds = rateLimitedFor(profileError);
-  const name = user?.fullName ?? "";
+  const { firstName, lastName } = clerkNames(user);
 
   // Stored values are in the profile's system; the device locale only matters
   // when there is no profile yet.
@@ -82,7 +115,14 @@ const EditProfileScreen = () => {
   }, [refetchProfile]);
 
   const handleSubmit = useCallback(
-    ({ age, gender, height, name: formName, weight }: ProfileFormValues) => {
+    ({
+      age,
+      firstName: formFirstName,
+      gender,
+      height,
+      lastName: formLastName,
+      weight,
+    }: ProfileFormValues) => {
       // The form is only rendered once the User and Profile have loaded.
       if (!user) {
         return;
@@ -93,17 +133,18 @@ const EditProfileScreen = () => {
       updateProfile(
         {
           age,
+          firstName: formFirstName ?? firstName,
           gender,
           height,
+          lastName: formLastName ?? lastName,
           measurementSystem,
-          name: formName ?? name,
           profile: profile ?? null,
           weight,
         },
         { onSuccess: () => router.back() }
       );
     },
-    [measurementSystem, name, profile, updateProfile, user]
+    [firstName, lastName, measurementSystem, profile, updateProfile, user]
   );
 
   return (
@@ -147,8 +188,9 @@ const EditProfileScreen = () => {
           defaultValues={{
             age: profile?.age ?? undefined,
             gender: genderOf(profile),
+            firstName,
             height: profile?.height ?? undefined,
-            name,
+            lastName,
             weight: profile?.weight ?? undefined,
           }}
           footer={
@@ -156,10 +198,15 @@ const EditProfileScreen = () => {
               <ErrorMessage>{profileSaveErrorMessage(t, error)}</ErrorMessage>
             )
           }
+          heading={
+            <ProfilePhoto fullName={user.fullName} imageUrl={user.imageUrl} />
+          }
           isSubmitting={isPending}
+          layout="fields"
           measurementSystem={measurementSystem}
           onSubmit={handleSubmit}
-          showName
+          requireChange
+          showNames
           submitLabel={t("editProfile.save")}
           submitTestID="edit-profile-save-button"
         />

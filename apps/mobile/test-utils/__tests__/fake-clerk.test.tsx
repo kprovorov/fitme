@@ -328,6 +328,32 @@ describe("fake Clerk User", () => {
     expect(currentUser().firstName).toBe("Pepper");
   });
 
+  it("holds a call's answer until the test releases it", async () => {
+    const release = fakeClerk.holdNext("update");
+    let settled = false;
+
+    const updating = (async () => {
+      await currentUser().update({ firstName: "Pepper" });
+      settled = true;
+    })();
+
+    await act(async () => {
+      await Promise.resolve();
+    });
+
+    // Recorded at once, applied only once Clerk answers.
+    expect(fakeClerk.calls).toEqual([
+      { method: "update", params: { firstName: "Pepper" } },
+    ]);
+    expect(settled).toBe(false);
+    expect(currentUser().firstName).toBe("Tony");
+
+    release();
+    await updating;
+
+    expect(currentUser().firstName).toBe("Pepper");
+  });
+
   it("passes a reverified call straight through until Clerk asks", async () => {
     const { result } = await renderHook(() =>
       useReverification(() => currentUser().delete())
