@@ -97,6 +97,11 @@ if ! mcp_url="$(node scripts/rewrite-env.mjs "$worktree" "$stack")"; then
   warn "couldn't point the env files at the local stack"
   exit 0
 fi
+# An older setup wrote Arnold's file as .env.local, which eve ranks above .env,
+# so its database URL would still win. Left alone: it may hold hand edits.
+if [[ -f apps/arnold/.env.local ]]; then
+  warn "apps/arnold/.env.local overrides apps/arnold/.env (eve ranks it higher): move what you need into .env and delete it"
+fi
 if [[ -z "$mcp_url" ]]; then
   warn "the stack has no MCP URL, so supabase-local wasn't registered"
   exit 0
