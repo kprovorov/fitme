@@ -2,8 +2,12 @@ import { createHash } from "node:crypto";
 
 import { appLanguages, equipment } from "@fitme/core/models";
 import type { AppLanguage, MuscleGroup } from "@fitme/core/models";
+import type {
+  BundleExercise,
+  BundleMedia,
+  LibraryBundle,
+} from "@fitme/library-bundle";
 
-import type { BundleExercise, BundleMedia, LibraryBundle } from "./bundle";
 import type { Exercise } from "./schemas";
 
 /** A Cover as the API serves it: the same in every App language. */

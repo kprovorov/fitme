@@ -8,6 +8,8 @@ on:
       - apps/library/**
       # The muscle group enum in openapi.json is muscleGroups from @fitme/core.
       - packages/core/**
+      # The bundle schema the build validates library.json against.
+      - packages/library-bundle/**
       - .github/oasdiff/**
       - .github/workflows/library-api.yml
       - pnpm-lock.yaml
