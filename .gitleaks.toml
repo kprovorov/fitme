@@ -54,7 +54,12 @@ paths = [
 
 [[rules.allowlists]]
 regexTarget = "match"
-regexes = ['''not-a-bcrypt-digest''']
+regexes = [
+  '''not-a-bcrypt-digest''',
+  # The fitme login's local-stack password (supabase/roles.sql), which
+  # scripts/rewrite-env.mjs writes into the worktree's env files.
+  '''fitme-local-only''',
+]
 
 # A reference, not a value: Supabase config's `env(NAME)`, a shell `$NAME`, a
 # template literal's `${…}`.

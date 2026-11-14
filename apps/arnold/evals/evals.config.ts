@@ -2,6 +2,6 @@ import { defineEvalConfig } from "eve/evals";
 
 // Run locally with `pnpm arnold eval` before prompt or model changes, not in
 // CI: every eval talks to a real model through AI Gateway (AI_GATEWAY_API_KEY
-// in apps/arnold/.env.local). Tools are stubbed per session, so no database or
+// in apps/arnold/.env). Tools are stubbed per session, so no database or
 // Clerk token is needed (agent/lib/eval-runner.ts).
 export default defineEvalConfig({});

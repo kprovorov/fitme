@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # T3 Code worktree setup: install deps, copy local env files from the main
-# checkout, then start this checkout's Supabase stack, point the env files at it
-# and register its MCP server with Claude Code.
+# checkout, then start this checkout's Supabase stack, write its database URL
+# into the database apps' .env and register its MCP server with Claude Code.
 set -euo pipefail
 
 worktree="${T3CODE_WORKTREE_PATH:-$(git rev-parse --show-toplevel)}"
@@ -58,6 +58,8 @@ if [[ "$root" != "$worktree" ]]; then
     for src in "$dir"/.env*; do
       [[ -f "$src" && "$src" != *.example ]] || continue
       rel="${src#"$root"/}"
+      # Arnold's two files are merged below.
+      [[ "$rel" == apps/arnold/.env || "$rel" == apps/arnold/.env.local ]] && continue
       dest="$worktree/$rel"
       if [[ ! -e "$dest" ]]; then
         mkdir -p "$(dirname "$dest")"
@@ -66,6 +68,20 @@ if [[ "$root" != "$worktree" ]]; then
       fi
     done
   done
+
+  # Arnold's local file is .env now. eve ranks .env.local above .env, so a
+  # copied .env.local (an older checkout's, pointing at its own stack) would win
+  # over the URL written below. Merge the main checkout's two files into one
+  # .env instead, .env.local's line winning for a variable both set.
+  arnold_env="$worktree/apps/arnold/.env"
+  arnold_sources=()
+  for src in "$root/apps/arnold/.env.local" "$root/apps/arnold/.env"; do
+    [[ -f "$src" ]] && arnold_sources+=("$src")
+  done
+  if [[ -d "$worktree/apps/arnold" && ! -e "$arnold_env" && ${#arnold_sources[@]} -gt 0 ]]; then
+    (umask 077 && awk '{ key = $0; sub(/=.*/, "", key) } !seen[key]++' "${arnold_sources[@]}" >"$arnold_env")
+    log "Copied apps/arnold/.env from the main checkout's Arnold env files"
+  fi
 fi
 
 # A thread deleted without settling never runs settle.sh, so its stack outlives
@@ -73,10 +89,12 @@ fi
 log "stale Supabase stacks"
 scripts/destroy-stale-stacks.sh || warn "couldn't destroy stale Supabase stacks"
 
-# The copied env files point at another checkout's stack (or at placeholders),
-# so start this checkout's own and rewrite the pooler port. A remote value is
-# left alone. Not fatal: without Docker the
-# install above still stands, the env files just keep their old values.
+# Start this checkout's own stack, then write its database URL into the .env of
+# each app that reaches Postgres (apps/api, apps/arnold, apps/mcp,
+# apps/webhooks), creating the file or the line when missing: a copied file
+# points at another checkout's stack, and Infisical needn't hold the value. A
+# remote value is left alone. Not fatal: without Docker the install above still
+# stands, the env files just keep their old values.
 log "supabase start"
 if ! stack="$(cd packages/supabase && pnpm exec supabase start --output-format json)"; then
   warn "couldn't start the local Supabase stack, so the env files weren't updated"
@@ -86,10 +104,15 @@ fi
 # The rewriter is Node in its own file, not a heredoc: the bash 3.2 macOS ships
 # matches quotes inside a heredoc in `$(...)`, so one stray quote in inline JS
 # made this whole file a syntax error (exit 2). It prints the stack's MCP URL.
-log "point the env files at the local stack"
+log "write the local stack's database URL into the env files"
 if ! mcp_url="$(node scripts/rewrite-env.mjs "$worktree" "$stack")"; then
   warn "couldn't point the env files at the local stack"
   exit 0
+fi
+# An older setup wrote Arnold's file as .env.local, which eve ranks above .env,
+# so its database URL would still win. Left alone: it may hold hand edits.
+if [[ -f apps/arnold/.env.local ]]; then
+  warn "apps/arnold/.env.local overrides apps/arnold/.env (eve ranks it higher): move what you need into .env and delete it"
 fi
 if [[ -z "$mcp_url" ]]; then
   warn "the stack has no MCP URL, so supabase-local wasn't registered"

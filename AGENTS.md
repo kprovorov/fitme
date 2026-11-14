@@ -41,7 +41,7 @@ pnpm dev:site            # next dev on :3001
 pnpm dev:mcp             # tsx watch MCP server on :3002 (MCP endpoint at /)
 pnpm dev:api             # tsx watch REST API on :3003
 pnpm dev:webhooks        # tsx watch webhooks app on :3004 (needs FITME_DATABASE_URL, CLERK_WEBHOOK_SIGNING_SECRET)
-pnpm dev:arnold          # eve dev (no TUI) on :3005 against the local stack (apps/arnold/.env.local: CLERK_JWT_KEY, FITME_DATABASE_URL, AI_GATEWAY_API_KEY)
+pnpm dev:arnold          # eve dev (no TUI) on :3005 against the local stack (apps/arnold/.env: CLERK_JWT_KEY, FITME_DATABASE_URL, AI_GATEWAY_API_KEY)
 pnpm dev:library         # generate + tsx watch Library API on :3006, serving the fixture bundle (apps/library/.env: Clerk keys and/or server secrets to call it)
 pnpm build               # turbo run build
 pnpm test                # turbo run test (jest in mobile, vitest in core, api-client, design-tokens, i18n, library-sdk, observability, rate-limit, mcp, api, webhooks, arnold, library and web)
@@ -77,7 +77,7 @@ pnpm library test        # generate + vitest (Hono app via app.request, test-sig
 pnpm library openapi     # regenerate apps/library/openapi.json (commit it; CI fails when it's stale)
 pnpm arnold build        # eve build → apps/arnold/.output
 pnpm arnold test         # vitest (channel auth, Pro check, model selection, turn limits, tool wiring; no database or model)
-pnpm arnold eval         # eve eval: model-behaviour evals with stubbed tools (apps/arnold/evals; needs AI_GATEWAY_API_KEY in apps/arnold/.env.local, no database or Clerk token); run by hand before prompt or model changes, not in CI. `pnpm arnold eval show-my-plan` runs one
+pnpm arnold eval         # eve eval: model-behaviour evals with stubbed tools (apps/arnold/evals; needs AI_GATEWAY_API_KEY in apps/arnold/.env, no database or Clerk token); run by hand before prompt or model changes, not in CI. `pnpm arnold eval show-my-plan` runs one
 pnpm --filter @fitme/db test:integration # vitest through the local Supavisor pooler as the fitme login (needs a local stack)
 pnpm --filter @fitme/services test:integration # services inside withService/asUser through the local pooler (needs a local stack)
 pnpm db start            # supabase start     (alias for pnpm --filter @fitme/supabase start; Supabase CLI v3 can't read a stack v2 started: "Unable to decode state … Missing key … pin" → scripts/destroy-stale-stacks.sh "$PWD" destroys it with v2, then start again)
@@ -546,7 +546,7 @@ Env files live next to each app. Every value comes from Infisical (project Fitme
 - `ARNOLD_URL` — Arnold's base URL (`http://localhost:3005` locally), for resetting a deleted User's Arnold sessions
 - `ARNOLD_RESET_SECRET` — the same value as Arnold's; it or `ARNOLD_URL` unset → a deletion with recorded Arnold sessions answers 500 (reported); one without needs neither
 
-`apps/arnold` (see `apps/arnold/.env.example`; `eve dev` loads `apps/arnold/.env.local`; deployed, the Vercel project's environment):
+`apps/arnold` (see `apps/arnold/.env.example`; `eve dev` loads `apps/arnold/.env`; deployed, the Vercel project's environment):
 
 - `CLERK_JWT_KEY` — the Clerk instance's PEM public key (`pnpm --silent db clerk:jwt-key`); the channel verifies session tokens against it. Missing → requests with a token answer 500 (reported to Sentry once per instance, and at startup on production).
 - `REVENUECAT_SECRET_KEY` — RevenueCat's secret API key (v1, `sk_…`), server-only; the channel checks the "Fitme Pro" entitlement with it. Missing → every request with a valid token answers 503 `arnold_pro_check_unavailable`.

@@ -20,7 +20,7 @@ root="$(git -C "$(dirname "$0")" rev-parse --show-toplevel)"
 # app directory, Infisical folder, env file name (the one each app loads)
 apps=(
   "api Api .env"
-  "arnold Arnold .env.local"
+  "arnold Arnold .env"
   "library Library .env"
   "mcp Mcp .env"
   "mobile Mobile .env"

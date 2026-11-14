@@ -11,7 +11,7 @@ One folder per app, the same in both environments. A value two apps share sits a
 | Folder | App | Local file | Vercel project | Sync |
 | --- | --- | --- | --- | --- |
 | `/Api` | `apps/api` | `apps/api/.env` | `fitme-api` | `api-sync` |
-| `/Arnold` | `apps/arnold` | `apps/arnold/.env.local` | `fitme-arnold` | `arnold-sync` |
+| `/Arnold` | `apps/arnold` | `apps/arnold/.env` | `fitme-arnold` | `arnold-sync` |
 | `/Library` | `apps/library` | `apps/library/.env` | `fitme-library` | `library-sync` |
 | `/Mcp` | `apps/mcp` | `apps/mcp/.env` | `fitme-mcp` | `mcp-sync` |
 | `/Mobile` | `apps/mobile` | `apps/mobile/.env` | (EAS, not synced) | none |
@@ -65,7 +65,7 @@ The Claude Code shell hook refuses the commands that break these (AGENTS.md Shel
 
 ## Local development
 
-`scripts/pull-env.sh [--keep-existing] [environment]` (default `dev`) writes every app's local file from its folder, references expanded, mode 600, overwriting the files it writes (with `--keep-existing`, only the missing ones). It needs the Infisical CLI logged in (`infisical login`). `scripts/setup.sh` runs it with `--keep-existing` in every worktree (never the main checkout), then copies from the main checkout whatever it couldn't pull, then points the files at the worktree's own Supabase stack. A local value you change by hand is overwritten on the next pull: change it in Infisical `dev` instead.
+`scripts/pull-env.sh [--keep-existing] [environment]` (default `dev`) writes every app's local file from its folder, references expanded, mode 600, overwriting the files it writes (with `--keep-existing`, only the missing ones). It needs the Infisical CLI logged in (`infisical login`). `scripts/setup.sh` runs it with `--keep-existing` in every worktree (never the main checkout), then copies from the main checkout whatever it couldn't pull, then writes the worktree's own Supabase stack's `FITME_DATABASE_URL` (with the app's `application_name`) into the `.env` of `apps/api`, `apps/arnold`, `apps/mcp` and `apps/webhooks`, creating the file or the line when missing and leaving a remote value alone (`scripts/rewrite-env.mjs`). A main checkout's old `apps/arnold/.env.local` is merged with its `apps/arnold/.env` into the worktree's one `apps/arnold/.env` (`.env.local`'s line wins for a variable both set), since eve ranks `.env.local` above `.env`. A local value you change by hand is overwritten on the next pull: change it in Infisical `dev` instead.
 
 ## Not in Infisical yet
 
