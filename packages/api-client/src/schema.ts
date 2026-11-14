@@ -1821,6 +1821,65 @@ export interface paths {
     };
     trace?: never;
   };
+  "/v1/workout-sessions/totals": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Get the User's Lifetime totals
+     * @description The User's Lifetime totals: what their qualifying Workout Sessions add up to. A Workout Session qualifies once it's finished and at least one of its sets has positive reps, the same rule History's month overview and the Weekly goal count by. Zeros for a User with none. The volume is in `weight_unit`, the User's Profile's (`kg` without a Profile).
+     */
+    get: {
+      parameters: {
+        query?: never;
+        header?: never;
+        path?: never;
+        cookie?: never;
+      };
+      requestBody?: never;
+      responses: {
+        /** @description The User's Lifetime totals */
+        200: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["LifetimeTotalsResponse"];
+          };
+        };
+        /** @description No valid Clerk session token */
+        401: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["Error"];
+          };
+        };
+        /** @description Too many requests from this User; retry after `Retry-After` */
+        429: {
+          headers: {
+            /** @description Seconds until the limit resets */
+            "Retry-After": string;
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["Error"];
+          };
+        };
+      };
+    };
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   "/v1/workout-sessions/{id}": {
     parameters: {
       query?: never;
@@ -3110,6 +3169,27 @@ export interface components {
        * @example 80.5
        */
       weight_completed: number;
+    };
+    LifetimeTotalsResponse: {
+      data: components["schemas"]["LifetimeTotals"];
+      weight_unit: components["schemas"]["WeightUnit"];
+    };
+    LifetimeTotals: {
+      /**
+       * @description `finished_at − started_at` summed over the qualifying Workout Sessions, in whole seconds
+       * @example 131400
+       */
+      duration_seconds: number;
+      /**
+       * @description Weight × reps over the qualifying Workout Sessions' logged sets, in `weight_unit`; a set without a weight adds 0
+       * @example 182400.5
+       */
+      volume: number;
+      /**
+       * @description How many Workout Sessions qualify
+       * @example 42
+       */
+      workout_count: number;
     };
     WorkoutSession: {
       /**
