@@ -2,89 +2,20 @@ import { useSignInWithApple } from "@clerk/expo/apple";
 import { useSignInWithGoogle } from "@clerk/expo/google";
 import type { StartGoogleAuthenticationFlowReturnType } from "@clerk/expo/google";
 import { useSignIn, useSignUp } from "@clerk/expo/legacy";
-import { isAvailableAsync } from "expo-apple-authentication";
 import { router } from "expo-router";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback } from "react";
 import { useTranslation } from "react-i18next";
-import { Platform } from "react-native";
 import { z } from "zod";
 
-import { nativeAuthConfig } from "~/components/auth/provider-config";
 import { IS_E2E } from "~/lib/constants";
 import { segmentClient } from "~/lib/segment";
-
-export type SocialProvider = "apple" | "google";
-
-const GOOGLE_CLIENT_ID = /^\d+-[a-z0-9-]+\.apps\.googleusercontent\.com$/iu;
-const GOOGLE_CLIENT_SUFFIX = /\.apps\.googleusercontent\.com$/u;
+import type { SocialProvider } from "~/lib/sign-in-providers";
 
 const nativeCancellationSchema = z.object({
   code: z.enum(["ERR_REQUEST_CANCELED", "SIGN_IN_CANCELLED", "-5"]),
 });
 
 type NativeResult = StartGoogleAuthenticationFlowReturnType;
-
-export const configuredSocialProviders = (): SocialProvider[] => {
-  const config = nativeAuthConfig();
-  const providers: SocialProvider[] = [];
-
-  if (Platform.OS === "ios" && config.appleEnabled) {
-    providers.push("apple");
-  }
-
-  const iosReady =
-    GOOGLE_CLIENT_ID.test(config.googleIosClientId) &&
-    config.googleIosUrlScheme ===
-      `com.googleusercontent.apps.${config.googleIosClientId.replace(GOOGLE_CLIENT_SUFFIX, "")}`;
-
-  if (
-    config.googleEnabled &&
-    GOOGLE_CLIENT_ID.test(config.googleWebClientId) &&
-    (Platform.OS === "android" || (Platform.OS === "ios" && iosReady))
-  ) {
-    providers.push("google");
-  }
-
-  return providers;
-};
-
-export const useAvailableSocialProviders = (): SocialProvider[] => {
-  const configured = configuredSocialProviders();
-  const appleConfigured = configured.includes("apple");
-  const [appleAvailable, setAppleAvailable] = useState(false);
-
-  if (!appleConfigured && appleAvailable) {
-    setAppleAvailable(false);
-  }
-
-  useEffect(() => {
-    let mounted = true;
-
-    if (appleConfigured) {
-      isAvailableAsync()
-        .then((available) => {
-          if (mounted) {
-            setAppleAvailable(available);
-          }
-
-          return available;
-        })
-        .catch(() => {
-          if (mounted) {
-            setAppleAvailable(false);
-          }
-        });
-    }
-
-    return () => {
-      mounted = false;
-    };
-  }, [appleConfigured]);
-
-  return configured.filter(
-    (provider) => provider !== "apple" || appleAvailable
-  );
-};
 
 const nativeResult = async (
   start: () => Promise<NativeResult>

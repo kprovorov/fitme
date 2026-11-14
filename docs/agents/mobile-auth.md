@@ -1,6 +1,15 @@
 # Enable native sign-in on mobile
 
-Fitme uses custom auth screens and Clerk's native Apple and Google hooks. The native packages and build plugins are included in the mobile app. Configure the provider for the Clerk instance used by the build before enabling its button.
+Fitme uses custom auth screens and Clerk's native Apple and Google hooks. The native packages and build plugins are included in the mobile app. Configure each provider for the Clerk instance a build uses before shipping that build.
+
+## Which providers a build offers
+
+One rule, in `apps/mobile/lib/sign-in-providers.ts` (`signInProviders()`), decides it for Welcome, login, registration and Account & Security ([ADR 0021](../adr/0021-sign-in-methods-are-linked-through-the-browser.md)):
+
+- **Apple** shows on iOS always and never on Android.
+- **Google** shows whenever the build carries valid `EXPO_PUBLIC_CLERK_GOOGLE_*` client ids (the web client id on both platforms, plus the iOS client id and its matching URL scheme on iOS). Without them it is hidden and a warning is logged.
+
+There is no flag, and the app never asks Clerk which providers the instance enables. So an iOS build talking to a Clerk instance without Apple configured still shows the Apple button, which then fails on tap: configure the instance first.
 
 ## Register the native app
 
@@ -39,13 +48,11 @@ Manage local values in Infisical `dev` `/Mobile`; a native build started through
 
 | Variable | Value |
 | --- | --- |
-| `EXPO_PUBLIC_AUTH_APPLE_ENABLED` | `true` after Apple and the native app registration are configured |
-| `EXPO_PUBLIC_AUTH_GOOGLE_ENABLED` | `true` after Google and the native app registrations are configured |
 | `EXPO_PUBLIC_CLERK_GOOGLE_WEB_CLIENT_ID` | Web OAuth client id |
 | `EXPO_PUBLIC_CLERK_GOOGLE_IOS_CLIENT_ID` | iOS OAuth client id |
 | `EXPO_PUBLIC_CLERK_GOOGLE_IOS_URL_SCHEME` | `com.googleusercontent.apps.` followed by the iOS client id without `.apps.googleusercontent.com` |
 
-The readiness flags default to false. Builds without a configured provider use the email fallback from Figma. A flag applies to that build, so enable Google only for platforms whose provider registration is complete.
+Apple needs no variable. Set the Google ids only once Google and the native app registrations are complete: their presence is what shows the Google button. A build without them offers Apple on iOS and email, and an Android build without them uses the email fallback from Figma.
 
 `app.config.ts` exposes Google's public values through Expo's `extra` field. This is required because Expo does not inline app env variables into Clerk's code in `node_modules`. The Google plugin adds the configured callback scheme to the iOS app.
 

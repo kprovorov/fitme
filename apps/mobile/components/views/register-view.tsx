@@ -14,13 +14,13 @@ import { SocialAuthButtons } from "~/components/auth/social-auth-buttons";
 import RegisterForm from "~/components/forms/auth/register-form";
 import type { RegisterFormValues } from "~/components/forms/auth/register-form";
 import { ErrorMessage } from "~/components/ui/error-message";
-import { useAvailableSocialProviders } from "~/hooks/native-social-auth";
+import { signInProviders } from "~/lib/sign-in-providers";
 
 const RegisterView = () => {
   const { t } = useTranslation();
   const { signUp } = useSignUp();
   const operation = useAuthOperation();
-  const providers = useAvailableSocialProviders();
+  const providers = signInProviders();
   const busy = operation.pending !== null;
   const handleEdit = operation.clearError;
 

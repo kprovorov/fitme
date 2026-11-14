@@ -31,6 +31,21 @@ const mockSignUp = {
   },
 };
 
+// Apple is offered on iOS whatever the build (ADR 0021), so its button and
+// Clerk's native hooks behind it render here too; no test presses it.
+jest.mock("@clerk/expo/apple", () => ({
+  useSignInWithApple: () => ({ startAppleAuthenticationFlow: jest.fn() }),
+}));
+
+jest.mock("@clerk/expo/google", () => ({
+  useSignInWithGoogle: () => ({ startGoogleAuthenticationFlow: jest.fn() }),
+}));
+
+jest.mock("@clerk/expo/legacy", () => ({
+  useSignIn: () => ({ signIn: undefined }),
+  useSignUp: () => ({ signUp: undefined }),
+}));
+
 jest.mock("@clerk/expo", () => ({
   isClerkAPIResponseError: (error: { isClerkApiError?: boolean }) =>
     error.isClerkApiError === true,
