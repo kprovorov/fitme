@@ -3,7 +3,6 @@ import {
   MAX_REPS,
   MAX_WEIGHT,
 } from "@fitme/core/limits";
-import { LibraryUnavailableError } from "@fitme/library-sdk";
 import type {
   WorkoutSessionDetail,
   WorkoutSessionSet,
@@ -667,24 +666,9 @@ describe("pOST /v1/workout-sessions/:id/exercises", () => {
     expect(reported).toStrictEqual([]);
   });
 
-  it("answers a reported 503 library_unavailable when the Library fails, before any service call", async () => {
-    const { app, library, reported } = testApp({ services: fakeServices({}) });
-    const outage = new LibraryUnavailableError();
-    library.failWith(outage);
-
-    const response = await send(app, "POST", path, {
-      exercise_slug: "barbell-back-squat",
-    });
-
-    expect(response.status).toBe(503);
-    const responseBody = await response.json();
-    expect(responseBody.error.code).toBe("library_unavailable");
-    expect(reported).toStrictEqual([outage]);
-  });
-
-  it("answers a reported 503 library_unavailable when the Library isn't configured", async () => {
-    const { app, reported } = testApp({
-      library: null,
+  it("answers a reported 503 library_unavailable when the Library index can't load, before any service call", async () => {
+    const { app, libraryIndex, reported } = testApp({
+      indexLoads: "fail",
       services: fakeServices({}),
     });
 
@@ -695,7 +679,7 @@ describe("pOST /v1/workout-sessions/:id/exercises", () => {
     expect(response.status).toBe(503);
     const responseBody = await response.json();
     expect(responseBody.error.code).toBe("library_unavailable");
-    expect(reported).toHaveLength(1);
+    expect(reported).toStrictEqual([libraryIndex.state.outage]);
   });
 
   it.each([
@@ -917,10 +901,11 @@ describe("pUT /v1/workout-session-exercises/:id", () => {
     expect(reported).toStrictEqual([]);
   });
 
-  it("answers a reported 503 library_unavailable when the Library fails, before any service call", async () => {
-    const { app, library, reported } = testApp({ services: fakeServices({}) });
-    const outage = new LibraryUnavailableError();
-    library.failWith(outage);
+  it("answers a reported 503 library_unavailable when the Library index can't load, before any service call", async () => {
+    const { app, libraryIndex, reported } = testApp({
+      indexLoads: "fail",
+      services: fakeServices({}),
+    });
 
     const response = await send(app, "PUT", path, {
       exercise_slug: "barbell-back-squat",
@@ -929,7 +914,7 @@ describe("pUT /v1/workout-session-exercises/:id", () => {
     expect(response.status).toBe(503);
     const responseBody = await response.json();
     expect(responseBody.error.code).toBe("library_unavailable");
-    expect(reported).toStrictEqual([outage]);
+    expect(reported).toStrictEqual([libraryIndex.state.outage]);
   });
 
   it.each([

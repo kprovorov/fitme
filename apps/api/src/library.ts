@@ -1,11 +1,20 @@
 import { pickCovers } from "@fitme/core/covers";
 import type { MuscleGroup } from "@fitme/core/models";
+import { createLibraryIndex } from "@fitme/library-bundle/library-index";
+import type {
+  IndexExercise,
+  LibraryIndex,
+} from "@fitme/library-bundle/library-index";
+import { libraryBundleSource } from "@fitme/library-bundle/source";
 import { createLibrary } from "@fitme/library-sdk";
-import type { Cover, ExerciseSummary, Library } from "@fitme/library-sdk";
+import type { Library } from "@fitme/library-sdk";
+
+export type { LibraryIndex } from "@fitme/library-bundle/library-index";
 
 /**
- * Builds the Library client writes check their Exercise slugs with,
- * or returns `null` when the API isn't configured for it.
+ * Builds the Library client the Cover backfill reads Covers with, or returns
+ * `null` when the API isn't configured for it. No write route uses it: they
+ * check against the Library index.
  */
 export type LibraryFactory = () => Library | null;
 
@@ -24,59 +33,59 @@ export const createLibraryFromEnv: LibraryFactory = () => {
   return createLibrary({ token: () => Promise.resolve(secret), url });
 };
 
-/** What one batch lookup says about a write's Exercise slugs. */
+/**
+ * The instance's Library index (ADR 0018) over the bundle the environment
+ * names: production's Blob store, LIBRARY_BUNDLE or the committed fixture
+ * anywhere else. Loaded on the first write that asks; every failed load is
+ * reported through `reportError`.
+ */
+export const libraryIndexFromEnv = (
+  reportError: (error: Error) => Promise<void>
+): LibraryIndex =>
+  createLibraryIndex({
+    load: libraryBundleSource({
+      env: {
+        BLOB_STORE_ID: process.env.BLOB_STORE_ID,
+        LIBRARY_BUNDLE: process.env.LIBRARY_BUNDLE,
+        VERCEL_ENV: process.env.VERCEL_ENV,
+      },
+    }).load,
+    reportError,
+  });
+
+/** What the Library index says about a write's Exercise slugs. */
 export type SlugCheck =
-  | { exercises: ExerciseSummary[]; status: "known" }
+  | { exercises: IndexExercise[]; status: "known" }
   | { slugs: string[]; status: "unknown" }
   | { status: "unavailable" };
 
 /**
- * Checks every slug a write carries with one batch lookup, before the
- * services open their transaction (ADR 0010). The library failing, or not
- * being configured, is reported and answers `unavailable`, so the write
+ * Checks every slug a write carries against the Library index, before the
+ * services open their transaction (ADR 0010, ADR 0018). With no index (its
+ * load failed, which it reported) the answer is `unavailable`, so the write
  * never goes ahead with unchecked Exercises. Known slugs answer the
- * Exercises the lookup found.
+ * Exercises the index has, with their muscle groups.
  */
 export const checkExerciseSlugs = async ({
-  library,
-  reportError,
+  index,
   slugs,
 }: {
-  library: Library | null;
-  reportError: (error: Error) => Promise<void>;
+  index: LibraryIndex;
   slugs: string[];
 }): Promise<SlugCheck> => {
-  if (!library) {
-    await reportError(
-      new Error(
-        "Missing LIBRARY_URL or LIBRARY_PUBLIC_API_SECRET environment variable"
-      )
-    );
+  const found = await index.lookup(slugs);
 
-    return { status: "unavailable" };
+  if (found.status === "unavailable") {
+    return found;
   }
 
-  try {
-    const { data, missing } = await library.lookup(slugs);
-
-    return missing.length > 0
-      ? { slugs: missing, status: "unknown" }
-      : { exercises: data, status: "known" };
-  } catch (error) {
-    await reportError(
-      error instanceof Error
-        ? error
-        : new Error("Library lookup failed", { cause: error })
-    );
-
-    return { status: "unavailable" };
-  }
+  return found.missing.length > 0
+    ? { slugs: found.missing, status: "unknown" }
+    : { exercises: found.exercises, status: "known" };
 };
 
 /** A check the write can't go ahead on. */
-type RefusedCheck =
-  | Exclude<SlugCheck, { status: "known" }>
-  | { status: "covers_unavailable" };
+type RefusedCheck = Exclude<SlugCheck, { status: "known" }>;
 
 /** What a Plan write's Workouts need from the Library: their slugs checked, then a Cover each. */
 export type CoveredCheck =
@@ -103,70 +112,56 @@ export type CoverPickerCheck =
   | { pickCovers: CoverPicker; status: "known" };
 
 /**
- * Checks every slug a Plan write's Workouts carry (`checkExerciseSlugs`),
- * then reads the Covers with one `covers()` call (only when `readCovers`,
- * since a write creating no Workout needs none), and answers a picker over
- * them and the muscle groups the lookup answered. `covers()` failing is
- * reported and answers `covers_unavailable`, so a Workout is never created
- * without its Cover. A Library without Covers picks `null` for each.
+ * Checks every slug a Plan write's Workouts carry against the index, and
+ * answers a picker over the index's Covers and the muscle groups it has for
+ * those slugs, both from the same lookup. An index without Covers picks
+ * `null` for each.
  */
 export const checkSlugsForCovers = async ({
-  library,
+  index,
   random,
-  readCovers = true,
-  reportError,
   workouts,
 }: {
-  library: Library | null;
+  index: LibraryIndex;
   random?: () => number;
-  readCovers?: boolean;
-  reportError: (error: Error) => Promise<void>;
   workouts: readonly WorkoutToCover[];
 }): Promise<CoverPickerCheck> => {
-  const check = await checkExerciseSlugs({
-    library,
-    reportError,
-    slugs: [
-      ...new Set(
-        workouts.flatMap((workout) =>
-          workout.exercises.map((exercise) => exercise.exercise_slug)
-        )
-      ),
-    ],
-  });
+  const found = await index.lookup([
+    ...new Set(
+      workouts.flatMap((workout) =>
+        workout.exercises.map((exercise) => exercise.exercise_slug)
+      )
+    ),
+  ]);
 
-  if (check.status !== "known") {
-    return check;
+  if (found.status === "unavailable") {
+    return found;
   }
 
-  let covers: Cover[] = [];
-
-  if (readCovers) {
-    try {
-      // SAFETY: A known check had a library to look the slugs up in.
-      covers = await (library as Library).covers();
-    } catch (error) {
-      await reportError(
-        error instanceof Error
-          ? error
-          : new Error("Library covers lookup failed", { cause: error })
-      );
-
-      return { status: "covers_unavailable" };
-    }
+  if (found.missing.length > 0) {
+    return { slugs: found.missing, status: "unknown" };
   }
 
-  const muscleGroups = new Map<string, readonly MuscleGroup[]>(
-    check.exercises.map((exercise) => [exercise.slug, exercise.muscle_groups])
+  // The index keeps muscle groups as the bundle writes them, so a group this
+  // build doesn't know yet is compared like any other.
+  const muscleGroups = new Map(
+    found.exercises.map((exercise) => [
+      exercise.slug,
+      // SAFETY: pickCovers only compares groups for equality, so one this build's MuscleGroup doesn't list is matched like any other.
+      exercise.muscle_groups as MuscleGroup[],
+    ])
   );
+
+  const covers = found.covers.map((cover) => ({
+    id: cover.id,
+    // SAFETY: as above, pickCovers only compares the groups for equality.
+    muscleGroups: cover.muscle_groups as MuscleGroup[],
+  }));
 
   return {
     pickCovers: (toCover, usedCoverIds) =>
       pickCovers({
-        covers: covers.map((cover) => ({
-          id: cover.id,
-          muscleGroups: cover.muscle_groups,
-        })),
+        covers,
         random,
         usedCoverIds,
         workouts: toCover.map((workout) => ({
@@ -194,25 +189,20 @@ export const checkSlugsAndPickCovers = async (
     : check;
 };
 
-/** The 503 a write answers when the Library can't be read. */
-const libraryUnavailable = (message: string) => ({
-  body: { error: { code: "library_unavailable", message } },
-  status: 503 as const,
-});
-
-/** The error a write answers when the Library refused it or couldn't be read. */
+/** The error a write answers when the index refused it or couldn't be loaded. */
 export const refusalOf = (check: RefusedCheck) => {
   switch (check.status) {
     case "unavailable": {
-      return libraryUnavailable(
-        "The Library is unavailable, so the Exercises couldn't be checked; try again"
-      );
-    }
-
-    case "covers_unavailable": {
-      return libraryUnavailable(
-        "The Library is unavailable, so the Workouts' Covers couldn't be picked; try again"
-      );
+      return {
+        body: {
+          error: {
+            code: "library_unavailable",
+            message:
+              "The Library is unavailable, so the Exercises couldn't be checked; try again",
+          },
+        },
+        status: 503 as const,
+      };
     }
 
     case "unknown": {

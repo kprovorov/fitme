@@ -1,7 +1,6 @@
 import { randomBytes } from "node:crypto";
 
 import { asUser, workoutSessionExercises } from "@fitme/db";
-import { createFakeLibrary } from "@fitme/library-sdk/fake";
 import { deleteTestUsers } from "@fitme/services/delete-test-users";
 import { and, eq } from "drizzle-orm";
 import { afterAll, beforeEach, describe, expect, it } from "vitest";
@@ -9,25 +8,34 @@ import { z } from "zod";
 
 import { createApp } from "../src/create-app.js";
 import { createServicesFromEnv } from "../src/services.js";
-import { clerk, libraryExercise, signedInAs } from "../src/test/harness.js";
+import {
+  clerk,
+  libraryExercise,
+  signedInAs,
+  switchableLibraryIndex,
+} from "../src/test/harness.js";
 
 /**
  * The Plan Update through the Public API with the real services facade,
  * through `asUser` on the local stack's pooler: previewed and applied end to
  * end, applied once however often it's asked.
  */
-const library = createFakeLibrary(
+/** Nothing these tests check is reported. */
+const report = () => Promise.resolve();
+
+const library = switchableLibraryIndex(
   ["barbell-back-squat", "barbell-deadlift"].map((slug) =>
     libraryExercise(slug)
-  )
+  ),
+  { reportError: report }
 );
 
 const app = createApp({
   clerkJwtKey: clerk.jwtKey,
-  createLibrary: () => library,
   createServices: createServicesFromEnv,
   identifyUser: () => {},
-  reportError: () => Promise.resolve(),
+  libraryIndex: library.index,
+  reportError: report,
 });
 
 /** A made-up id in Clerk's `user_…` format, unique per run. */

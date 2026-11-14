@@ -2,22 +2,29 @@
   "name": "@fitme/library-bundle",
   "version": "0.0.0",
   "private": true,
-  "description": "The library.json bundle fitme-exercises publishes: its version 1 schema, shared by the Library API's build and the writers that read the bundle.",
+  "description": "The library.json bundle fitme-exercises publishes: its version 1 schema, shared by the Library API build, and the Library index the writers check Exercise slugs and pick Covers against (ADR 0018).",
   "type": "module",
   "main": "./src/schema.ts",
   "types": "./src/schema.ts",
   "exports": {
-    ".": "./src/schema.ts"
+    ".": "./src/schema.ts",
+    "./library-index": "./src/library-index.ts",
+    "./source": "./src/source.ts"
   },
   "scripts": {
+    "test": "vitest run",
+    "test:watch": "vitest",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "@fitme/core": "workspace:*",
+    "@vercel/blob": "^2.8.2",
     "zod": "4.6.7"
   },
   "devDependencies": {
     "@fitme/typescript-config": "workspace:*",
-    "typescript": "~5.9.2"
+    "@types/node": "24.19.2",
+    "typescript": "~5.9.2",
+    "vitest": "^5.0.5"
   }
 }

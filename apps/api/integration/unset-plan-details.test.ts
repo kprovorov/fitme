@@ -1,13 +1,16 @@
 import { randomBytes } from "node:crypto";
 
-import { createFakeLibrary } from "@fitme/library-sdk/fake";
-import type { FakeLibrary } from "@fitme/library-sdk/fake";
 import { deleteTestUsers } from "@fitme/services/delete-test-users";
 import { afterAll, describe, expect, it } from "vitest";
 
 import { createApp } from "../src/create-app.js";
 import { createServicesFromEnv } from "../src/services.js";
-import { clerk, libraryExercise, signedInAs } from "../src/test/harness.js";
+import {
+  clerk,
+  libraryExercise,
+  signedInAs,
+  switchableLibraryIndex,
+} from "../src/test/harness.js";
 
 /**
  * A Plan's goal, place, experience level and workout duration are optional
@@ -17,16 +20,20 @@ import { clerk, libraryExercise, signedInAs } from "../src/test/harness.js";
  * answers them as `null`.
  */
 
-const library: FakeLibrary = createFakeLibrary([
-  libraryExercise("barbell-back-squat", ["quadriceps"]),
-]);
+/** Nothing these tests check is reported. */
+const report = () => Promise.resolve();
+
+const library = switchableLibraryIndex(
+  [libraryExercise("barbell-back-squat", ["quadriceps"])],
+  { reportError: report }
+);
 
 const app = createApp({
   clerkJwtKey: clerk.jwtKey,
-  createLibrary: () => library,
   createServices: createServicesFromEnv,
   identifyUser: () => {},
-  reportError: () => Promise.resolve(),
+  libraryIndex: library.index,
+  reportError: report,
 });
 
 /** A made-up id in Clerk's `user_…` format, unique per run. */

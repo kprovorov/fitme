@@ -1,4 +1,3 @@
-import type { Library } from "@fitme/library-sdk";
 import {
   identifyUser,
   observeHono,
@@ -12,8 +11,8 @@ import { logger } from "hono/logger";
 
 import { BEARER_AUTH, requireCaller } from "./auth.js";
 import type { ApiEnv } from "./auth.js";
-import { createLibraryFromEnv } from "./library.js";
-import type { LibraryFactory } from "./library.js";
+import { libraryIndexFromEnv } from "./library.js";
+import type { LibraryIndex } from "./library.js";
 import { rateLimitCallers, rateLimiterFromEnv } from "./rate-limit.js";
 import type { RateLimiter } from "./rate-limit.js";
 import { publicV1, userV1 } from "./routes/v1.js";
@@ -24,12 +23,15 @@ import type { ServicesFactory } from "./services.js";
 export interface AppDeps {
   /** The Clerk instance's PEM public key session tokens are verified against. */
   clerkJwtKey: string | undefined;
-  /** Builds the Library client; `null` when it isn't configured. */
-  createLibrary: LibraryFactory;
   /** Builds a verified User's services; `null` when the database isn't configured. */
   createServices: ServicesFactory;
   /** Sets the request's User (their Clerk id only) on what error reporting sends. */
   identifyUser: (userId: string) => void;
+  /**
+   * The Library index writes check their Exercise slugs and pick Covers
+   * against (`libraryIndexFromEnv` over `reportError` unless given).
+   */
+  libraryIndex: LibraryIndex;
   /** Counts each caller's requests (`rateLimiterFromEnv` unless given). */
   rateLimiter: RateLimiter;
   /** Reports an unhandled error before the 500 goes out. */
@@ -39,11 +41,10 @@ export interface AppDeps {
 /**
  * The real dependencies: the environment and @fitme/observability. The rate
  * limiter is built only when none is given (it throws in production without
- * Upstash).
+ * Upstash), and the Library index over the reporter in use.
  */
-const defaultDeps = (): Omit<AppDeps, "rateLimiter"> => ({
+const defaultDeps = (): Omit<AppDeps, "libraryIndex" | "rateLimiter"> => ({
   clerkJwtKey: process.env.CLERK_JWT_KEY,
-  createLibrary: createLibraryFromEnv,
   createServices: createServicesFromEnv,
   identifyUser,
   reportError,
@@ -66,13 +67,14 @@ const health = createRoute({
 export const createApp = (deps: Partial<AppDeps> = {}) => {
   const {
     clerkJwtKey,
-    createLibrary,
     createServices,
     identifyUser: identify,
     reportError: report,
   } = { ...defaultDeps(), ...deps };
 
   const rateLimiter = deps.rateLimiter ?? rateLimiterFromEnv(process.env);
+  // One per instance, loaded on the first write that asks (ADR 0018).
+  const libraryIndex = deps.libraryIndex ?? libraryIndexFromEnv(report);
 
   // Invalid input on any route answers 400 invalid_request unless the route
   // says otherwise.
@@ -93,19 +95,11 @@ export const createApp = (deps: Partial<AppDeps> = {}) => {
 
   // Every route from here on (unknown ones too) needs a verified caller.
   app.use(requireCaller({ clerkJwtKey, createServices }));
-  // Built on first use, then shared by every request.
-  let library: Library | null | undefined;
   // Error reporting knows the User by their Clerk id only. Routes get the
-  // Library and the reporter for the answers they give themselves.
+  // Library index and the reporter for the answers they give themselves.
   app.use(async (c, next) => {
     identify(c.var.caller.userId);
-    c.set("getLibrary", () => {
-      if (library === undefined) {
-        library = createLibrary();
-      }
-
-      return library;
-    });
+    c.set("libraryIndex", libraryIndex);
     c.set("reportError", report);
 
     await next();

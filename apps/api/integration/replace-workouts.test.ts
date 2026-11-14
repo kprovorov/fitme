@@ -1,9 +1,6 @@
 import { randomBytes } from "node:crypto";
 
 import { asUser } from "@fitme/db";
-import { LibraryUnavailableError } from "@fitme/library-sdk";
-import { createFakeLibrary } from "@fitme/library-sdk/fake";
-import type { FakeLibrary } from "@fitme/library-sdk/fake";
 import { deleteTestUsers } from "@fitme/services/delete-test-users";
 import { createPlan, deletePlan, getPlan } from "@fitme/services/plans";
 import type { PlanWorkoutInput } from "@fitme/services/plans";
@@ -21,6 +18,7 @@ import {
   libraryCover,
   libraryExercise,
   signedInAs,
+  switchableLibraryIndex,
 } from "../src/test/harness.js";
 
 /** A Cover for leg days and one for hinge days, so each Workout's pick is certain. */
@@ -29,9 +27,18 @@ const HINGE_COVER = "9e8d7c6b-5a4f-4e3d-8c2b-1a0f9e8d7c6b";
 
 /**
  * PUT /v1/plans/{id}/workouts with the real services facade, through
- * `asUser` on the local stack's pooler, and the fake Library.
+ * `asUser` on the local stack's pooler, and a Library index in memory.
  */
-const library: FakeLibrary = createFakeLibrary(
+const reported: unknown[] = [];
+
+/** Records what the app and its Library index report. */
+const report = (error: unknown) => {
+  reported.push(error);
+
+  return Promise.resolve();
+};
+
+const library = switchableLibraryIndex(
   [
     libraryExercise("barbell-back-squat", ["quadriceps"]),
     libraryExercise("barbell-deadlift", ["hamstrings"]),
@@ -41,21 +48,16 @@ const library: FakeLibrary = createFakeLibrary(
       libraryCover(LEGS_COVER, ["quadriceps"]),
       libraryCover(HINGE_COVER, ["hamstrings"]),
     ],
+    reportError: report,
   }
 );
 
-const reported: unknown[] = [];
-
 const app = createApp({
   clerkJwtKey: clerk.jwtKey,
-  createLibrary: () => library,
   createServices: createServicesFromEnv,
   identifyUser: () => {},
-  reportError: (error) => {
-    reported.push(error);
-
-    return Promise.resolve();
-  },
+  libraryIndex: library.index,
+  reportError: report,
 });
 
 /** A made-up id in Clerk's `user_…` format, unique per run. */
@@ -134,7 +136,7 @@ const planOf = (userId: string, planId: string) =>
 
 describe("pUT /v1/plans/{id}/workouts against the local stack", () => {
   beforeEach(() => {
-    library.failWith(null);
+    library.reset();
     reported.length = 0;
   });
 
@@ -302,8 +304,7 @@ describe("pUT /v1/plans/{id}/workouts against the local stack", () => {
       createPlan(tx, owner, newPlan("Outage"), { activate: false })
     );
 
-    const outage = new LibraryUnavailableError();
-    library.failWith(outage);
+    const outage = library.goCold();
 
     const { body, status } = await put(owner, plan.id, replacement());
 

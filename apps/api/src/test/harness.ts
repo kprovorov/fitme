@@ -1,6 +1,7 @@
 import type { MuscleGroup } from "@fitme/core/models";
+import { createLibraryIndex } from "@fitme/library-bundle/library-index";
+import type { LibraryIndex } from "@fitme/library-bundle/library-index";
 import type { Cover, ExerciseSummary } from "@fitme/library-sdk";
-import { createFakeLibrary } from "@fitme/library-sdk/fake";
 import { memoryRateLimiter } from "@fitme/rate-limit";
 
 import { createApp } from "../create-app.js";
@@ -61,10 +62,111 @@ export const libraryCover = (
 /** The Exercises the test app's Library knows by default. */
 export const KNOWN_SLUGS = ["barbell-back-squat", "barbell-deadlift"];
 
+/** How a test's Library index loads its bundle. */
+export type IndexLoads =
+  /** Every load answers the bundle. */
+  | "ok"
+  /** Every load fails: an instance with no index, which answers 503. */
+  | "fail"
+  /** The first load answers the bundle and every reload fails. */
+  | "reload-fails";
+
+/** The error a failing test index load rejects with. */
+const indexOutage = () => new Error("Blob is unavailable");
+
 /**
- * The app over fake services and a fake Library knowing
- * `KNOWN_SLUGS` and no Covers unless given (`library.failWith` for an outage), trusting `clerk`, with a
- * recording reporter and Sentry user. `servicesFor` records the User id each facade was built for.
+ * A Library index over `exercises` and `covers` in memory, as the Library
+ * API's bundle would list them, on a clock tests move through `clock.now`.
+ * `loads` counts its loads, and `loading` decides how they go.
+ */
+export const testLibraryIndex = ({
+  covers = [],
+  exercises = KNOWN_SLUGS.map((slug) => libraryExercise(slug)),
+  loading = "ok",
+  reportError,
+}: {
+  covers?: readonly Cover[];
+  exercises?: readonly ExerciseSummary[];
+  loading?: IndexLoads;
+  reportError: (error: Error) => Promise<void>;
+}) => {
+  const clock = { now: 0 };
+  const state = { loads: 0, outage: indexOutage() };
+
+  const bundle = {
+    covers: covers.map((cover) => ({
+      id: cover.id,
+      muscle_groups: cover.muscle_groups,
+    })),
+    exercises: exercises.map((exercise) => ({
+      muscle_groups: exercise.muscle_groups,
+      slug: exercise.slug,
+    })),
+    version: 1,
+  };
+
+  const index = createLibraryIndex({
+    load: () => {
+      state.loads += 1;
+
+      const fails =
+        loading === "fail" || (loading === "reload-fails" && state.loads > 1);
+
+      return fails ? Promise.reject(state.outage) : Promise.resolve(bundle);
+    },
+    now: () => clock.now,
+    reportError,
+  });
+
+  return { clock, index, state };
+};
+
+/**
+ * A Library index over `exercises` and `covers` that a test can swap for a
+ * cold one that can't load (`goCold`, answering the error it reports), and
+ * back (`reset`), for suites sharing one app across tests.
+ */
+export const switchableLibraryIndex = (
+  exercises: readonly ExerciseSummary[],
+  {
+    covers,
+    reportError,
+  }: {
+    covers?: readonly Cover[];
+    reportError: (error: Error) => Promise<void>;
+  }
+) => {
+  const warm = testLibraryIndex({ covers, exercises, reportError }).index;
+  let current = warm;
+
+  const index: LibraryIndex = { lookup: (slugs) => current.lookup(slugs) };
+
+  return {
+    goCold: () => {
+      const cold = testLibraryIndex({
+        covers,
+        exercises,
+        loading: "fail",
+        reportError,
+      });
+
+      current = cold.index;
+
+      return cold.state.outage;
+    },
+    index,
+    reset: () => {
+      current = warm;
+    },
+  };
+};
+
+/**
+ * The app over fake services and a Library index knowing `KNOWN_SLUGS` and no
+ * Covers unless given (`indexLoads` for one that can't load, or can't reload),
+ * trusting `clerk`, with a recording reporter and Sentry user. `servicesFor`
+ * records the User id each facade was built for; `libraryIndex` is the index
+ * with its clock and load count.
  */
 export const testApp = (
   options: {
@@ -74,18 +176,13 @@ export const testApp = (
     covers?: Cover[];
     /** The Library's Exercises; `KNOWN_SLUGS` by default. */
     exercises?: ExerciseSummary[];
+    /** How the index's loads go; every one succeeds by default. */
+    indexLoads?: IndexLoads;
     /** Counts requests; by default one no test reaches (in memory, unlimited in practice). */
     rateLimiter?: RateLimiter;
-    /** `null` for an API without the Library configured. */
-    library?: null;
     services?: UserServices | null;
   } = {}
 ) => {
-  const library = createFakeLibrary(
-    options.exercises ?? KNOWN_SLUGS.map((slug) => libraryExercise(slug)),
-    { covers: options.covers }
-  );
-
   const clerkJwtKey =
     "clerkJwtKey" in options ? options.clerkJwtKey : clerk.jwtKey;
 
@@ -96,9 +193,21 @@ export const testApp = (
   const identified: string[] = [];
   const servicesFor: string[] = [];
 
+  const reportError = (error: unknown) => {
+    reported.push(error);
+
+    return Promise.resolve();
+  };
+
+  const libraryIndex = testLibraryIndex({
+    covers: options.covers,
+    exercises: options.exercises,
+    loading: options.indexLoads,
+    reportError,
+  });
+
   const deps: AppDeps = {
     clerkJwtKey,
-    createLibrary: () => (options.library === null ? null : library),
     createServices: (userId) => {
       servicesFor.push(userId);
 
@@ -107,15 +216,18 @@ export const testApp = (
     identifyUser: (userId) => {
       identified.push(userId);
     },
+    libraryIndex: libraryIndex.index,
     rateLimiter:
       options.rateLimiter ??
       memoryRateLimiter({ limit: Number.MAX_SAFE_INTEGER, windowMs: 60_000 }),
-    reportError: (error) => {
-      reported.push(error);
-
-      return Promise.resolve();
-    },
+    reportError,
   };
 
-  return { app: createApp(deps), identified, library, reported, servicesFor };
+  return {
+    app: createApp(deps),
+    identified,
+    libraryIndex,
+    reported,
+    servicesFor,
+  };
 };

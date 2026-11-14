@@ -1,9 +1,6 @@
 import { randomBytes } from "node:crypto";
 
 import { asUser, plans, profiles, withService } from "@fitme/db";
-import { LibraryUnavailableError } from "@fitme/library-sdk";
-import { createFakeLibrary } from "@fitme/library-sdk/fake";
-import type { FakeLibrary } from "@fitme/library-sdk/fake";
 import { deleteTestUsers } from "@fitme/services/delete-test-users";
 import { createPlan } from "@fitme/services/plans";
 import type { CreatePlanOptions, NewPlan } from "@fitme/services/plans";
@@ -17,6 +14,7 @@ import {
   libraryCover,
   libraryExercise,
   signedInAs,
+  switchableLibraryIndex,
 } from "../src/test/harness.js";
 
 /** A Cover for leg days and one for hinge days, so each Workout's pick is certain. */
@@ -25,9 +23,18 @@ const HINGE_COVER = "9e8d7c6b-5a4f-4e3d-8c2b-1a0f9e8d7c6b";
 
 /**
  * POST /v1/plans with the real services facade, through `asUser` on the local
- * stack's pooler, and the fake Library.
+ * stack's pooler, and a Library index in memory.
  */
-const library: FakeLibrary = createFakeLibrary(
+const reported: unknown[] = [];
+
+/** Records what the app and its Library index report. */
+const report = (error: unknown) => {
+  reported.push(error);
+
+  return Promise.resolve();
+};
+
+const library = switchableLibraryIndex(
   [
     libraryExercise("barbell-back-squat", ["quadriceps"]),
     libraryExercise("barbell-deadlift", ["hamstrings"]),
@@ -37,21 +44,16 @@ const library: FakeLibrary = createFakeLibrary(
       libraryCover(LEGS_COVER, ["quadriceps"]),
       libraryCover(HINGE_COVER, ["hamstrings"]),
     ],
+    reportError: report,
   }
 );
 
-const reported: unknown[] = [];
-
 const app = createApp({
   clerkJwtKey: clerk.jwtKey,
-  createLibrary: () => library,
   createServices: createServicesFromEnv,
   identifyUser: () => {},
-  reportError: (error) => {
-    reported.push(error);
-
-    return Promise.resolve();
-  },
+  libraryIndex: library.index,
+  reportError: report,
 });
 
 /** A made-up id in Clerk's `user_…` format, unique per run. */
@@ -166,7 +168,7 @@ describe("pOST /v1/plans against the local stack", () => {
   });
 
   beforeEach(() => {
-    library.failWith(null);
+    library.reset();
     reported.length = 0;
   });
 
@@ -279,8 +281,7 @@ describe("pOST /v1/plans against the local stack", () => {
   });
 
   it("answers a reported 503 library_unavailable during an outage, writing nothing", async () => {
-    const outage = new LibraryUnavailableError();
-    library.failWith(outage);
+    const outage = library.goCold();
 
     const { body: answer, status } = await post(refused, newPlan("Outage"));
 
