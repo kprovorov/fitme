@@ -124,17 +124,20 @@ jest.mock("~/components/ui/radio-group", () => {
     RadioGroup: ({
       disabled,
       footer,
+      label,
       onValueChange,
       options,
       value,
     }: {
       disabled?: boolean;
       footer?: string;
+      label?: string;
       onValueChange: (value: string) => void;
       options: { label: string; value: string }[];
       value: string;
     }) => (
       <MockView accessibilityState={{ disabled: !!disabled }} testID="picker">
+        <MockText>{label}</MockText>
         <MockText testID="picker-value">{value}</MockText>
         {options.map((option) => (
           <MockOption
@@ -164,17 +167,20 @@ jest.mock("~/components/ui/alert-dialog", () => {
     AlertDialog: ({
       actions,
       isPresented,
+      message,
       onIsPresentedChange,
       title,
     }: {
       actions: { label: string; onPress?: () => void }[];
       isPresented: boolean;
+      message: string;
       onIsPresentedChange: (isPresented: boolean) => void;
       title: string;
     }) =>
       isPresented ? (
         <MockView testID="confirm-dialog">
           <MockText>{title}</MockText>
+          <MockText>{message}</MockText>
           {actions.map((action) => (
             <MockAction
               key={action.label}
@@ -218,7 +224,7 @@ const shown = () => screen.getByTestId("picker-value");
 /** Picks `system` and confirms it, then waits for the switch to settle. */
 const switchTo = async (system: string) => {
   await fireEvent.press(screen.getByTestId(`option-${system}`));
-  await fireEvent.press(screen.getByText("Confirm"));
+  await fireEvent.press(screen.getByText("Switch"));
   await settle(queryClient);
 };
 
@@ -238,6 +244,7 @@ describe("MeasurementSystemScreen", () => {
 
   it("switches through the Public API, converting every height and weight", async () => {
     await mount();
+    expect(screen.getByText("Measurement System")).toBeTruthy();
     expect(shown()).toHaveTextContent("metric");
 
     await switchTo("us");
@@ -269,7 +276,7 @@ describe("MeasurementSystemScreen", () => {
     const resume = fakePublicApi.pause(PROFILE_PATCH);
 
     await fireEvent.press(screen.getByTestId("option-us"));
-    await fireEvent.press(screen.getByText("Confirm"));
+    await fireEvent.press(screen.getByText("Switch"));
     await until(() => fakePublicApi.count(PROFILE_PATCH) === 1);
 
     expect(shown()).toHaveTextContent("us");
@@ -283,6 +290,58 @@ describe("MeasurementSystemScreen", () => {
     await settle(queryClient);
     expect(shown()).toHaveTextContent("us");
     expect(screen.getByTestId("picker")).not.toBeDisabled();
+  });
+
+  it.each([
+    [
+      "us",
+      "Switch to US units?",
+      "Your profile and workout history will be converted to US units.",
+    ],
+    [
+      "uk",
+      "Switch to UK units?",
+      "Your profile and workout history will be converted to UK units.",
+    ],
+  ] as const)(
+    "asks before converting to %s, and Switch converts",
+    async (system, title, message) => {
+      await mount();
+
+      await fireEvent.press(screen.getByTestId(`option-${system}`));
+
+      expect(screen.getByText(title)).toBeTruthy();
+      expect(screen.getByText(message)).toBeTruthy();
+      // Nothing is sent until the User says so.
+      expect(writes()).toEqual([]);
+
+      await fireEvent.press(screen.getByText("Switch"));
+      await settle(queryClient);
+
+      expect(writes()).toEqual([
+        expect.objectContaining({
+          body: { measurement_system: system },
+          route: PROFILE_PATCH,
+        }),
+      ]);
+      expect(backend.profile(FAKE_USER_ID)?.measurement_system).toBe(system);
+      expect(shown()).toHaveTextContent(system);
+    }
+  );
+
+  it("asks about metric units when switching back from US", async () => {
+    backend.profiles = [];
+    backend.seedProfile(FAKE_USER_ID, { measurement_system: "us" });
+    await mount();
+
+    await fireEvent.press(screen.getByTestId("option-metric"));
+
+    expect(screen.getByText("Switch to metric units?")).toBeTruthy();
+    expect(
+      screen.getByText(
+        "Your profile and workout history will be converted to metric units."
+      )
+    ).toBeTruthy();
   });
 
   it("goes back to the saved system after Cancel, and the option can be picked again", async () => {
@@ -473,7 +532,7 @@ describe("MeasurementSystemScreen", () => {
     const { unmount } = await mount();
     const resumeSwitch = fakePublicApi.pause(PROFILE_PATCH);
     await fireEvent.press(screen.getByTestId("option-us"));
-    await fireEvent.press(screen.getByText("Confirm"));
+    await fireEvent.press(screen.getByText("Switch"));
     await until(() => fakePublicApi.count(PROFILE_PATCH) === 1);
     // Clearing the cache drops the switch from it, not its callbacks.
     const [switching] = queryClient.getMutationCache().getAll();
@@ -515,7 +574,7 @@ describe("MeasurementSystemScreen", () => {
     fakePublicApi.failNext(PROFILE_PATCH, "lost");
     const resumeReads = fakePublicApi.pause(PROFILE_GET);
     await fireEvent.press(screen.getByTestId("option-us"));
-    await fireEvent.press(screen.getByText("Confirm"));
+    await fireEvent.press(screen.getByText("Switch"));
     await until(() => fakePublicApi.count(PROFILE_GET) === 2);
     const [switching] = queryClient.getMutationCache().getAll();
 
@@ -553,7 +612,7 @@ describe("MeasurementSystemScreen", () => {
     fakePublicApi.failNext(PROFILE_PATCH, { status: 500 });
 
     await fireEvent.press(screen.getByTestId("option-us"));
-    await fireEvent.press(screen.getByText("Confirm"));
+    await fireEvent.press(screen.getByText("Switch"));
     await until(() => fakePublicApi.count(PROFILE_PATCH) === 1);
     await unmount();
     resume();
@@ -593,6 +652,7 @@ describe("measurementSystemScreen on a Ukrainian device", () => {
   it("offers the measurement systems in Ukrainian and confirms in Ukrainian", async () => {
     await mountInUkrainian();
 
+    expect(screen.getByText("Система вимірювання")).toBeTruthy();
     expect(screen.getByText("Метрична")).toBeTruthy();
     expect(screen.getByText("США")).toBeTruthy();
     expect(screen.getByText("Велика Британія")).toBeTruthy();
@@ -600,9 +660,9 @@ describe("measurementSystemScreen on a Ukrainian device", () => {
 
     await fireEvent.press(screen.getByTestId("option-us"));
 
-    expect(screen.getByText("Ви впевнені?")).toBeTruthy();
+    expect(screen.getByText("Перейти на одиниці США?")).toBeTruthy();
     expect(screen.getByText("Скасувати")).toBeTruthy();
-    await fireEvent.press(screen.getByText("Підтвердити"));
+    await fireEvent.press(screen.getByText("Перейти"));
     await settle(queryClient);
 
     // The system is the User's choice, apart from the App language.
@@ -610,6 +670,25 @@ describe("measurementSystemScreen on a Ukrainian device", () => {
       measurement_system: "us",
     });
     expect(screen.getByText("Фути, дюйми та фунти")).toBeTruthy();
+  });
+
+  it("cancels in Ukrainian without sending anything", async () => {
+    await mountInUkrainian();
+
+    await fireEvent.press(screen.getByTestId("option-uk"));
+
+    expect(screen.getByText("Перейти на британські одиниці?")).toBeTruthy();
+    expect(
+      screen.getByText(
+        "Ваш профіль та історію тренувань буде переведено в британські одиниці."
+      )
+    ).toBeTruthy();
+    await fireEvent.press(screen.getByText("Скасувати"));
+    await settle(queryClient);
+
+    expect(writes()).toEqual([]);
+    expect(shown()).toHaveTextContent("metric");
+    expect(backend.profile(FAKE_USER_ID)?.measurement_system).toBe("metric");
   });
 
   it("says in Ukrainian how long to wait when there were too many requests", async () => {
@@ -620,7 +699,7 @@ describe("measurementSystemScreen on a Ukrainian device", () => {
     });
 
     await fireEvent.press(screen.getByTestId("option-us"));
-    await fireEvent.press(screen.getByText("Підтвердити"));
+    await fireEvent.press(screen.getByText("Перейти"));
     await settle(queryClient);
 
     expect(alerts()).toEqual([
