@@ -535,7 +535,7 @@ Env files live next to each app. Every value comes from Infisical (project Fitme
 - `SENTRY_AUTH_TOKEN`, `SENTRY_ORG`, `SENTRY_PROJECT` — build time: source map upload for the release; set on Vercel by the Sentry integration; no token → the upload is skipped
 - `VERCEL_ENV`, `VERCEL_GIT_COMMIT_SHA` — set by Vercel: each event's `environment` and `release`
 
-`apps/webhooks` (see `apps/webhooks/.env.example`; read from the process environment, not auto-loaded from a file):
+`apps/webhooks` (see `apps/webhooks/.env.example`; read from the process environment; `dev` loads `apps/webhooks/.env` if it exists, a variable already set in the environment winning):
 
 - `PORT` (default 3004)
 - `CLERK_WEBHOOK_SIGNING_SECRET` — the Clerk webhook endpoint's signing secret (`whsec_…`); unset → `POST /clerk` answers 500 (reported)
