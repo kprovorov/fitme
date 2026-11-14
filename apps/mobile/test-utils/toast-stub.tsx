@@ -3,7 +3,8 @@
  * module): the real one animates through Reanimated and lays toasts out in a
  * native overlay, which Jest never draws, so a test couldn't read a toast.
  *
- * `toast.custom` keeps each toast's content, in the order shown, and
+ * `toast.custom` keeps each toast's content (and its options, read with
+ * `shownToastOptions`), in the order shown, and
  * `Toaster` renders all of them, so a screen test that renders the app's
  * `Toaster` (`~/components/ui/toast`) next to its Screen finds the message
  * with `getByText`. Nothing hides itself: a toast stays until `resetToasts`
@@ -14,6 +15,12 @@ import type { ReactElement } from "react";
 import { Fragment, useSyncExternalStore } from "react";
 
 let toasts: readonly ReactElement[] = [];
+let options: readonly ToastOptions[] = [];
+
+interface ToastOptions {
+  duration?: number;
+}
+
 const listeners = new Set<() => void>();
 
 const subscribe = (listener: () => void) => {
@@ -30,9 +37,13 @@ const notify = () => {
   }
 };
 
+/** The options each toast was shown with, in order (its `duration`). */
+export const shownToastOptions = () => options;
+
 /** Forgets every toast shown, as if each had hidden itself. */
 export const resetToasts = () => {
   toasts = [];
+  options = [];
   notify();
 };
 
@@ -50,8 +61,9 @@ export const sonnerModule = {
     );
   },
   toast: {
-    custom: (content: ReactElement) => {
+    custom: (content: ReactElement, given: ToastOptions = {}) => {
       toasts = [...toasts, content];
+      options = [...options, given];
       notify();
 
       return toasts.length;

@@ -12,6 +12,7 @@ import { AccessibilityInfo, Platform, Pressable, Text } from "react-native";
 
 import { Toaster } from "~/components/ui/toast";
 import { showToast, toastDuration } from "~/lib/toast";
+import { shownToastOptions } from "~/test-utils/toast-stub";
 
 // A Screen that shows a toast from the catalog, with the app's Toaster beside
 // it as the root layout renders it.
@@ -110,6 +111,14 @@ describe("toastDuration", () => {
 
   it("keeps a longer message up longer, to read it", () => {
     expect(toastDuration(MESSAGE)).toBe(4000 + MESSAGE.length * 60);
+  });
+
+  it("is the duration a toast is shown with", async () => {
+    await act(() => {
+      showToast(MESSAGE);
+    });
+
+    expect(shownToastOptions()).toEqual([{ duration: toastDuration(MESSAGE) }]);
   });
 
   it("never keeps one up for more than 10 s", () => {
