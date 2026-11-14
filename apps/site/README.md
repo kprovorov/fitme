@@ -3,11 +3,11 @@
 Marketing site for Fitme (fitmeproject.com): landing page, blog, support, privacy policy and terms.
 
 ```bash
-pnpm dev:site        # next dev on :3001
+scripts/with-dev-env.sh Site -- pnpm dev:site   # next dev on :3001, with Infisical dev's /Site values (from the repo root)
 pnpm site build      # next build
 ```
 
-Copy `.env.example` to `.env.local` and fill in the values.
+`.env.example` lists the variables it reads; their values come from Infisical `dev` `/Site` (see [Secrets](../../docs/agents/secrets.md)).
 
 - Blog posts are MDX files in `blog/` with `title`, `summary` and `publishedAt` frontmatter. The cover image lives at `public/blog/<publishedAt>.png`.
 - `public/.well-known/apple-app-site-association` enables universal links for the iOS app.

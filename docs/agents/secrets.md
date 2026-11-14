@@ -1,24 +1,26 @@
 # Secrets
 
-Every env var an app reads, secret or public config, lives in Infisical (the exceptions are under Not in Infisical yet): the project **Fitme** in the `provorovcom` organization, whose id is in the committed `.infisical.json` (an id, not a credential: every read needs a logged-in member), so the CLI run anywhere in the repo uses it without `--projectId`. Vercel and the local env files are copies of it, never edited by hand. The variables themselves are documented in `AGENTS.md` (Environment Variables); this file is about where they live and how they move.
+Every env var an app reads, secret or public config, lives in Infisical (the exceptions are under Not in Infisical yet): the project **Fitme** in the `provorovcom` organization, whose id is in the committed `.infisical.json` (an id, not a credential: every read needs a logged-in member), so the CLI run anywhere in the repo uses it without `--projectId`. Vercel is a copy of it, never edited by hand, and local development reads it directly: nothing pulls it to disk (Local development). The variables themselves are documented in `AGENTS.md` (Environment Variables); this file is about where they live and how they move.
 
 ## Layout
 
-Two environments: `dev` (local development, the values in the local env files, and CI's repository secrets) and `prod` (the Vercel Production deployments and the release workflows). `staging` is unused.
+Two environments: `dev` (local development, injected when an app starts, and CI's repository secrets) and `prod` (the Vercel Production deployments and the release workflows). `staging` is unused.
 
 One folder per app, the same in both environments. A value two apps share sits at the folder root and each app's folder references it (`${prod.LIBRARY_ARNOLD_SECRET}`, `${prod.FITME_DATABASE_URL_BASE}?application_name=api`), so it changes in one place.
 
-| Folder | App | Local file | Vercel project | Sync |
+| Folder | App | Local `.env` | Vercel project | Sync |
 | --- | --- | --- | --- | --- |
-| `/Api` | `apps/api` | `apps/api/.env` | `fitme-api` | `api-sync` |
-| `/Arnold` | `apps/arnold` | `apps/arnold/.env` | `fitme-arnold` | `arnold-sync` |
-| `/Library` | `apps/library` | `apps/library/.env` | `fitme-library` | `library-sync` |
-| `/Mcp` | `apps/mcp` | `apps/mcp/.env` | `fitme-mcp` | `mcp-sync` |
-| `/Mobile` | `apps/mobile` | `apps/mobile/.env` | (EAS, not synced) | none |
-| `/Site` | `apps/site` | `apps/site/.env.local` | `fitme-site` | `site-sync` |
-| `/Web` | `apps/web` | `apps/web/.env.local` | `fitme-web` | `web-sync` |
-| `/Webhooks` | `apps/webhooks` | `apps/webhooks/.env` | `fitme-webhooks` | `webhooks-sync` |
+| `/Api` | `apps/api` | `apps/api/.env`: `FITME_DATABASE_URL` | `fitme-api` | `api-sync` |
+| `/Arnold` | `apps/arnold` | `apps/arnold/.env`: `FITME_DATABASE_URL` | `fitme-arnold` | `arnold-sync` |
+| `/Library` | `apps/library` | none | `fitme-library` | `library-sync` |
+| `/Mcp` | `apps/mcp` | `apps/mcp/.env`: `FITME_DATABASE_URL` | `fitme-mcp` | `mcp-sync` |
+| `/Mobile` | `apps/mobile` | none | (EAS, not synced) | none |
+| `/Site` | `apps/site` | none | `fitme-site` | `site-sync` |
+| `/Web` | `apps/web` | none | `fitme-web` | `web-sync` |
+| `/Webhooks` | `apps/webhooks` | `apps/webhooks/.env`: `FITME_DATABASE_URL` | `fitme-webhooks` | `webhooks-sync` |
 | `/GitHub` | GitHub Actions | none | none | `github-repo-sync` (`dev`), `github-production-sync` (`prod`) |
+
+The Local `.env` column is what setup writes: only the database URL of the checkout's own stack, which `dev` doesn't hold (Local development). Any app may also have a `.env` (`.env.local` for `apps/web` and `apps/site`) holding what the developer adds.
 
 `/GitHub` follows the environments too: `dev` `/GitHub` holds what CI uses against the development side (`CLERK_DEV_SECRET_KEY`, `SUPABASE_ACCESS_TOKEN`) and syncs to the repository secrets; `prod` `/GitHub` holds the release credential (`EXPO_TOKEN`) and syncs to the GitHub `production` environment, which only the release and mobile build workflows use. `SUPABASE_ACCESS_TOKEN` is only for the E2E workflow and must be a scoped personal access token, never a classic one: **Development Branches** read-write (create, get, list, delete the preview branch), **API Keys** read (`branches get`), **Auth Config** read-write (the branch's Clerk third-party auth) and **Database** read-write (`/database/query`: migrations and the `fitme` password), on the organization (each preview branch is a new project, which a project-scoped token may not reach). Database read-write still reaches the production database, so treat it as a production credential. It stays a repository secret because E2E runs from feature branches and the `production` environment only allows `main` and `v*` tags. GitHub can't export a secret, so each goes into Infisical by hand (or is regenerated); until then GitHub keeps its own value. The GitHub syncs (through the `github` App Connection) run like the Vercel ones: `overwrite-destination`, no deletion, subfolders not included. `CLERK_DEV_SECRET_KEY` is synced already.
 
@@ -65,7 +67,14 @@ The Claude Code shell hook refuses the commands that break these (AGENTS.md Shel
 
 ## Local development
 
-`scripts/pull-env.sh [--keep-existing] [environment]` (default `dev`) writes every app's local file from its folder, references expanded, mode 600, overwriting the files it writes (with `--keep-existing`, only the missing ones). It needs the Infisical CLI logged in (`infisical login`). `scripts/setup.sh` runs it with `--keep-existing` in every worktree (never the main checkout), then copies from the main checkout whatever it couldn't pull, then writes the worktree's own Supabase stack's `FITME_DATABASE_URL` (with the app's `application_name`) into the `.env` of `apps/api`, `apps/arnold`, `apps/mcp` and `apps/webhooks`, creating the file or the line when missing and leaving a remote value alone (`scripts/rewrite-env.mjs`). A main checkout's old `apps/arnold/.env.local` is merged with its `apps/arnold/.env` into the worktree's one `apps/arnold/.env` (`.env.local`'s line wins for a variable both set), since eve ranks `.env.local` above `.env`. A local value you change by hand is overwritten on the next pull: change it in Infisical `dev` instead.
+Infisical `dev` is the only copy of the dev values. Nothing pulls them to disk: an app starts through `scripts/with-dev-env.sh [Folder ...] -- <command>`, which runs the command with those folders of `dev` in its environment (none named: all eight app folders, never `/GitHub`), and only `dev`. It needs the Infisical CLI logged in (`infisical login`), or a machine identity's `INFISICAL_UNIVERSAL_AUTH_CLIENT_ID` / `INFISICAL_UNIVERSAL_AUTH_CLIENT_SECRET` in the environment, and starts nothing when it can't get the values. The editor tasks and the T3 actions run it, and AGENTS.md (Commands) gives each app's command. A value changed in Infisical applies the next time the app starts. A bare `pnpm dev:<app>` starts without Infisical's values, so anything needing a secret answers "not configured" or a 500.
+
+A local `.env` beside an app holds two kinds of line:
+
+- **The database URL.** Each checkout runs its own Supabase stack, so `FITME_DATABASE_URL` is the one value local to a checkout, and `dev` doesn't hold it. `scripts/setup.sh` starts the stack and writes the line, with the app's `application_name`, into the `.env` of `apps/api`, `apps/arnold`, `apps/mcp` and `apps/webhooks`, creating the file (mode 600) or the line when missing, leaving every other line and a remote value alone (`scripts/rewrite-env.mjs`). That is the only env setup writes; it copies nothing from the main checkout. To write it by hand in any checkout, the main one included, start its stack (`pnpm db start`) and run `node scripts/rewrite-env.mjs "$PWD"` from the checkout's root: it reads the port from `supabase status`.
+- **What Infisical doesn't have**, added by the developer: a local toggle (`EXPO_PUBLIC_DEVTOOLS_SYNC`), `LIBRARY_BUNDLE` pointing at a real bundle, `CLERK_WEBHOOK_SIGNING_SECRET` for the webhooks app. Node's `--env-file-if-exists`, Next, Expo and eve all let the process environment win over a `.env`, so such a file can add a variable but never change one Infisical has. A different value on your machine for a variable Infisical has (the mobile app pointed at a LAN address) is an Infisical personal override, which the CLI applies by default.
+
+Each app's `.env.example` lists what the app reads, secrets empty. The integration suites need neither Infisical nor a `.env`: they read the stack's pooler URL from `supabase status` themselves.
 
 ## Not in Infisical yet
 

@@ -237,6 +237,50 @@ void describe("the CLI", () => {
     assert.equal(fs.existsSync(path.join(root, "apps/arnold")), false);
   });
 
+  void test("asks `supabase status` for the stack when given no output", () => {
+    const root = checkout();
+    const bin = tempDir("rewrite-env-bin-");
+    const json = path.join(bin, "status.json");
+    // `supabase status` prints the JSON alone, as one line.
+    fs.writeFileSync(json, stackOutput().split("\n")[1] ?? "");
+    const args = path.join(bin, "args");
+    fs.writeFileSync(
+      path.join(bin, "pnpm"),
+      `#!/bin/sh\necho "$PWD $*" >"${args}"\ncat "${json}"\n`,
+      { mode: 0o755 }
+    );
+
+    const run = spawnSync(process.execPath, [SCRIPT, root], {
+      encoding: "utf-8",
+      env: { ...process.env, PATH: `${bin}:${process.env.PATH ?? ""}` },
+    });
+
+    assert.equal(run.status, 0, run.stderr);
+    assert.equal(run.stdout, "http://127.0.0.1:55321/mcp\n");
+    assert.equal(
+      fs.readFileSync(args, "utf-8"),
+      `${fs.realpathSync(root)} --silent --filter @fitme/supabase exec supabase status --output-format json\n`
+    );
+    assert.equal(read(root, "apps/arnold/.env"), `${localLine("arnold")}\n`);
+  });
+
+  void test("fails when `supabase status` does, writing nothing", () => {
+    const root = checkout();
+    const bin = tempDir("rewrite-env-bin-");
+    fs.writeFileSync(path.join(bin, "pnpm"), "#!/bin/sh\nexit 1\n", {
+      mode: 0o755,
+    });
+
+    const run = spawnSync(process.execPath, [SCRIPT, root], {
+      encoding: "utf-8",
+      env: { ...process.env, PATH: `${bin}:${process.env.PATH ?? ""}` },
+    });
+
+    assert.notEqual(run.status, 0);
+    assert.equal(run.stdout, "");
+    assert.equal(fs.existsSync(path.join(root, "apps/arnold/.env")), false);
+  });
+
   void test("fails without its arguments", () => {
     const run = spawnSync(process.execPath, [SCRIPT], { encoding: "utf-8" });
     assert.notEqual(run.status, 0);

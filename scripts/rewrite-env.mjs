@@ -6,10 +6,13 @@
 // with the app's own application_name. The file is created (owner-only) when
 // it's missing, the line added when the file hasn't got it, and every other
 // line left alone. A value pointing at a remote database is left as it is. Run
-// by scripts/setup.sh after `supabase start`.
+// by scripts/setup.sh after `supabase start`, and by hand in any checkout (the
+// main one included) whose stack is running: without the stack output it asks
+// `supabase status` itself.
 //
-// Usage: node scripts/rewrite-env.mjs <checkout> <supabase start --output-format json output>
+// Usage: node scripts/rewrite-env.mjs <checkout> [<supabase start|status --output-format json output>]
 // Prints the stack's MCP URL on stdout, and each file it changed on stderr.
+import { execFileSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
 
@@ -72,9 +75,9 @@ export const parseStackOutput = (output) => {
 export const localDatabaseUrl = (poolerPort, app) =>
   `postgresql://${LOCAL_POOLER_USER}:${LOCAL_POOLER_PASSWORD}@127.0.0.1:${poolerPort}/postgres?application_name=${app}`;
 
-// A Postgres URL on any host but this machine's. Values may be quoted:
-// `infisical export` (scripts/pull-env.sh) writes KEY='value'. An empty value,
-// a placeholder or anything else that isn't a URL counts as local.
+// A Postgres URL on any host but this machine's. Values may be quoted (an old
+// pulled file, or one written by hand, has KEY='value'). An empty value, a
+// placeholder or anything else that isn't a URL counts as local.
 /** @param {string} value The line's value, as written. */
 const isRemote = (value) => {
   const trimmed = value.trim();
@@ -134,17 +137,50 @@ export const setDatabaseUrl = (text, { app, poolerPort }) => {
   return updated.join("\n");
 };
 
+// The running stack of the checkout, as `supabase status` describes it (the
+// same JSON as `supabase start`'s).
+/** @param {string} checkout Checkout directory. */
+const readStackStatus = (checkout) =>
+  execFileSync(
+    "pnpm",
+    [
+      "--silent",
+      "--filter",
+      "@fitme/supabase",
+      "exec",
+      "supabase",
+      "status",
+      "--output-format",
+      "json",
+    ],
+    { cwd: checkout, encoding: "utf-8", stdio: ["ignore", "pipe", "inherit"] }
+  );
+
 /** @param {string[]} args Command-line arguments. */
 const main = ([checkout, output]) => {
-  if (!(checkout && output)) {
+  if (!checkout) {
     console.error(
-      "Usage: node scripts/rewrite-env.mjs <checkout> <supabase start output>"
+      "Usage: node scripts/rewrite-env.mjs <checkout> [<supabase start or status output>]"
     );
 
     return 2;
   }
 
-  const stack = parseStackOutput(output);
+  let stackOutput = output;
+
+  if (stackOutput === undefined) {
+    try {
+      stackOutput = readStackStatus(checkout);
+    } catch {
+      console.error(
+        "Couldn't read the local stack's status: start it with `pnpm db start`, then run this again."
+      );
+
+      return 1;
+    }
+  }
+
+  const stack = parseStackOutput(stackOutput);
 
   for (const app of DATABASE_APPS) {
     const dir = path.join(checkout, "apps", app);
