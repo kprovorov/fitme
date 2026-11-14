@@ -244,7 +244,11 @@ const HomeScreen = () => {
           // symbol button while Clerk loads or once the photo fails to load.
           unstable_headerRightItems: () => [
             profilePhotoButton
-              ? { element: profilePhotoButton, type: "custom" }
+              ? {
+                  element: profilePhotoButton,
+                  hidesSharedBackground: true,
+                  type: "custom",
+                }
               : {
                   accessibilityLabel: t("profile.title"),
                   icon: {

@@ -14,7 +14,7 @@ import { QueryClientProvider } from "@tanstack/react-query";
 import { act, fireEvent, render, screen } from "@testing-library/react-native";
 import type { ReactNode } from "react";
 import { useLayoutEffect, useState } from "react";
-import { Platform, Pressable, Text, View } from "react-native";
+import { AppState, Platform, Pressable, Text, View } from "react-native";
 
 import HomeScreen from "~/app/(tabs)/(home)/index";
 import ProfileScreen from "~/app/profile";
@@ -268,6 +268,27 @@ describe("the Profile button's photo", () => {
 
     await fireEvent.press(button as NonNullable<typeof button>);
     expect(mockPush).toHaveBeenCalledWith("/profile");
+  });
+
+  it("asks for a failed photo again when the app returns to the foreground", async () => {
+    const addListener = jest.spyOn(AppState, "addEventListener");
+    fakeClerk.setUser({ imageUrl: PHOTO_URL });
+    await mount(<HomeScreen />);
+    await failPhoto();
+    expect(screen.queryByTestId(PROFILE_PHOTO_IMAGE)).toBeNull();
+
+    await act(() => {
+      for (const [type, listener] of addListener.mock.calls) {
+        if (type === "change") {
+          listener("background");
+          listener("active");
+        }
+      }
+    });
+
+    expect(screen.getByTestId(PROFILE_PHOTO_IMAGE).props.source).toEqual([
+      expect.objectContaining({ uri: PHOTO_URL }),
+    ]);
   });
 
   it("tries a new photo again after one failed", async () => {
