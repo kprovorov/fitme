@@ -119,6 +119,17 @@ void describe("setDatabaseUrl", () => {
     }
   });
 
+  void test("leaves a remote URL with an inline comment alone, quoted or not", () => {
+    for (const value of [
+      "'postgresql://u:p@remote.example:6543/postgres' # dev database",
+      "postgresql://u:p@remote.example:6543/postgres # dev database",
+    ]) {
+      const before = `FITME_DATABASE_URL=${value}\n`;
+
+      assert.equal(setDatabaseUrl(before, target), before);
+    }
+  });
+
   void test("reads a CRLF file's lines, keeping their endings", () => {
     const remote = `A=1\r\n${REMOTE}\r\n`;
 

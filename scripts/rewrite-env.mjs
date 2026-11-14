@@ -23,7 +23,11 @@ const LOCAL_POOLER_USER = "fitme.pooler-dev";
 const LOCAL_POOLER_PASSWORD = "fitme-local-only";
 
 const DATABASE_URL_LINE = /^FITME_DATABASE_URL=(?<value>.*)$/u;
-const QUOTED = /^(?<quote>["'])(?<inner>.*)\k<quote>$/u;
+
+// dotenv's value syntax: a quoted value ends at its closing quote, an unquoted
+// one at an inline ` #` comment; whatever follows is a comment.
+const QUOTED = /^(?<quote>["'`])(?<inner>.*?)\k<quote>/u;
+const INLINE_COMMENT = /\s+#.*$/u;
 const LOCAL_HOSTS = new Set(["127.0.0.1", "localhost"]);
 
 // The CLI prints progress lines before the JSON, which is on one line.
@@ -73,7 +77,10 @@ export const localDatabaseUrl = (poolerPort, app) =>
 // a placeholder or anything else that isn't a URL counts as local.
 /** @param {string} value The line's value, as written. */
 const isRemote = (value) => {
-  const unquoted = QUOTED.exec(value.trim())?.groups?.inner ?? value.trim();
+  const trimmed = value.trim();
+
+  const unquoted =
+    QUOTED.exec(trimmed)?.groups?.inner ?? trimmed.replace(INLINE_COMMENT, "");
 
   if (!URL.canParse(unquoted)) {
     return false;
