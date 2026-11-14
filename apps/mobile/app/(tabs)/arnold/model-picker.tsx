@@ -2,9 +2,14 @@ import { useRouter } from "expo-router";
 import { useHeaderHeight } from "expo-router/react-navigation";
 import { useCallback } from "react";
 import { useTranslation } from "react-i18next";
-import { ActivityIndicator, Pressable, Text, View } from "react-native";
+import {
+  ActivityIndicator,
+  Pressable,
+  ScrollView,
+  Text,
+  View,
+} from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { ScopedVariables } from "uniwind";
 
 import { AndroidGrabber } from "@/components/grabber";
 import { SymbolImage } from "@/components/symbol-image";
@@ -12,7 +17,6 @@ import { GLASS_ENABLED } from "~/components/ui/swift-ui";
 import { useSelectedArnoldModel } from "~/hooks/arnold-model";
 // The app's instance, named so it's started wherever the sheet renders.
 import { i18n } from "~/lib/i18n";
-import { cn } from "~/lib/utils";
 
 const ModelRow = ({
   id,
@@ -66,11 +70,11 @@ const NoModels = ({ isLoading }: { isLoading: boolean }) => {
 };
 
 /**
- * The models Arnold can answer with. The sheet fits its contents, and a
- * handful of rows never needs to scroll, so it clears the header itself, as
- * the Attachments sheet does: a glass header floats over the content, and a
- * scroll view's automatic inset would push the last row below the sheet's
- * measured height.
+ * The models Arnold can answer with. The sheet fits its contents, and a glass
+ * header floats over them, so the list clears the header with its own
+ * padding: the scroll view's automatic inset would push the last row below
+ * the height the sheet measured. It still scrolls, for when the rows outgrow
+ * the screen (the largest text size on the smallest iPhone).
  */
 const ModelPickerSheet = () => {
   const { t } = useTranslation(undefined, { i18n });
@@ -88,40 +92,36 @@ const ModelPickerSheet = () => {
   );
 
   return (
-    <ScopedVariables
-      variables={{
-        "--model-picker-bottom": insets.bottom,
-        "--model-picker-top": headerHeight,
+    <ScrollView
+      contentContainerStyle={{
+        // iOS floats the sheet above the home indicator itself.
+        paddingBottom:
+          process.env.EXPO_OS === "android" ? insets.bottom : undefined,
+        paddingTop: GLASS_ENABLED ? headerHeight : undefined,
       }}
+      contentInsetAdjustmentBehavior="never"
+      scrollIndicatorInsets={{ top: GLASS_ENABLED ? headerHeight : 0 }}
     >
-      <View
-        className={cn(
-          // iOS floats the sheet above the home indicator itself.
-          process.env.EXPO_OS === "android" && "pb-(--model-picker-bottom)",
-          GLASS_ENABLED && "pt-(--model-picker-top)"
+      <AndroidGrabber />
+      <View className="pt-2 pb-4">
+        <Text className="text-footnote text-muted-foreground px-5 pb-2">
+          {t("arnold.modelPicker.appliesToNextMessage")}
+        </Text>
+        {models ? (
+          models.map((candidate) => (
+            <ModelRow
+              id={candidate.id}
+              key={candidate.id}
+              label={candidate.label}
+              onSelect={handleSelect}
+              selected={candidate.id === model?.id}
+            />
+          ))
+        ) : (
+          <NoModels isLoading={isLoading} />
         )}
-      >
-        <AndroidGrabber />
-        <View className="pt-2 pb-4">
-          <Text className="text-footnote text-muted-foreground px-5 pb-2">
-            {t("arnold.modelPicker.appliesToNextMessage")}
-          </Text>
-          {models ? (
-            models.map((candidate) => (
-              <ModelRow
-                id={candidate.id}
-                key={candidate.id}
-                label={candidate.label}
-                onSelect={handleSelect}
-                selected={candidate.id === model?.id}
-              />
-            ))
-          ) : (
-            <NoModels isLoading={isLoading} />
-          )}
-        </View>
       </View>
-    </ScopedVariables>
+    </ScrollView>
   );
 };
 
