@@ -1,4 +1,3 @@
-import { LibraryUnavailableError } from "@fitme/library-sdk";
 import { memoryRateLimiter } from "@fitme/rate-limit";
 import type {
   SavedPlan,
@@ -236,19 +235,6 @@ describe("pUT /v1/plans/{id}", () => {
     expect(calls[0].covers).toStrictEqual([LEGS_COVER]);
   });
 
-  it("reads no Covers when every Workout is kept", async () => {
-    const { calls, services } = recordingServices();
-    const { app, library } = testApp({ exercises, services });
-    library.covers = () => Promise.reject(new LibraryUnavailableError());
-    const payload = body();
-    payload.workouts = [payload.workouts[0]];
-
-    const response = await put(app, payload);
-
-    expect(response.status).toBe(200);
-    expect(calls[0].covers).toStrictEqual([]);
-  });
-
   it("answers the weight unit of the User's Profile", async () => {
     const { services } = recordingServices({ weightUnit: "lbs" });
     const { app } = testApp({ exercises, services });
@@ -317,14 +303,12 @@ describe("pUT /v1/plans/{id}", () => {
     expect(reported).toStrictEqual([]);
   });
 
-  it("answers a reported 503 library_unavailable when the Library fails, writing nothing", async () => {
-    const { app, library, reported } = testApp({
+  it("answers a reported 503 library_unavailable when the Library index can't load, writing nothing", async () => {
+    const { app, libraryIndex, reported } = testApp({
+      indexLoads: "fail",
       exercises,
       services: fakeServices({}),
     });
-
-    const outage = new LibraryUnavailableError();
-    library.failWith(outage);
 
     const response = await put(app, body());
 
@@ -336,24 +320,7 @@ describe("pUT /v1/plans/{id}", () => {
           "The Library is unavailable, so the Exercises couldn't be checked; try again",
       },
     });
-    expect(reported).toStrictEqual([outage]);
-  });
-
-  it("answers a reported 503 library_unavailable when a new Workout's Covers can't be read, writing nothing", async () => {
-    const { app, library, reported } = testApp({
-      exercises,
-      services: fakeServices({}),
-    });
-
-    const outage = new LibraryUnavailableError();
-    library.covers = () => Promise.reject(outage);
-
-    const response = await put(app, body());
-
-    expect(response.status).toBe(503);
-    const responseBody = await response.json();
-    expect(responseBody.error.code).toBe("library_unavailable");
-    expect(reported).toStrictEqual([outage]);
+    expect(reported).toStrictEqual([libraryIndex.state.outage]);
   });
 
   it("never shows fields beyond the contract", async () => {

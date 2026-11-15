@@ -2,31 +2,39 @@
 
 import { randomBytes } from "node:crypto";
 
-import { createFakeLibrary } from "@fitme/library-sdk/fake";
 import { deleteTestUsers } from "@fitme/services/delete-test-users";
 import { afterAll, assert, beforeEach, describe, expect, it } from "vitest";
 
 import { createApp } from "../src/create-app.js";
 import { Id, WorkoutSessionExercise } from "../src/schemas.js";
 import { createServicesFromEnv } from "../src/services.js";
-import { clerk, libraryExercise, signedInAs } from "../src/test/harness.js";
+import {
+  clerk,
+  libraryExercise,
+  signedInAs,
+  switchableLibraryIndex,
+} from "../src/test/harness.js";
 
 /**
  * Editing an open Workout Session's Exercises through the Public API with the
  * real services facade, through `asUser` on the local stack's pooler.
  */
-const library = createFakeLibrary(
+/** Nothing these tests check is reported. */
+const report = () => Promise.resolve();
+
+const library = switchableLibraryIndex(
   ["barbell-back-squat", "barbell-deadlift", "walking-lunge"].map((slug) =>
     libraryExercise(slug)
-  )
+  ),
+  { reportError: report }
 );
 
 const app = createApp({
   clerkJwtKey: clerk.jwtKey,
-  createLibrary: () => library,
   createServices: createServicesFromEnv,
   identifyUser: () => {},
-  reportError: () => Promise.resolve(),
+  libraryIndex: library.index,
+  reportError: report,
 });
 
 /** A made-up id in Clerk's `user_…` format, unique per run. */

@@ -8,6 +8,9 @@ import type { RequiredEnv } from "@fitme/observability/node";
 export const REQUIRED_ENV: readonly RequiredEnv[] = [
   "CLERK_JWT_KEY",
   "FITME_DATABASE_URL",
+  // The Library index's Blob store (ADR 0018): without it every write
+  // carrying an Exercise slug answers 503.
+  "BLOB_STORE_ID",
   "LIBRARY_URL",
   "LIBRARY_PUBLIC_API_SECRET",
 ];

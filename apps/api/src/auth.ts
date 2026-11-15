@@ -1,10 +1,10 @@
 import { verifyToken } from "@clerk/backend";
 import { TokenVerificationError } from "@clerk/backend/errors";
-import type { Library } from "@fitme/library-sdk";
 import type { reportError } from "@fitme/observability/node";
 import { z } from "@hono/zod-openapi";
 import { createMiddleware } from "hono/factory";
 
+import type { LibraryIndex } from "./library.js";
 import type { ErrorResponse } from "./schemas.js";
 import type { ServicesFactory, UserServices } from "./services.js";
 
@@ -24,8 +24,8 @@ export type Permission = "read" | "write";
 export interface ApiEnv {
   Variables: {
     caller: Caller;
-    /** The Library client, or `null` when it isn't configured. */
-    getLibrary: () => Library | null;
+    /** The instance's Library index, which writes check their Exercise slugs against. */
+    libraryIndex: LibraryIndex;
     /** The caller's services, built on first use (a 500 when unconfigured). */
     getServices: () => UserServices;
     /** Reports an error a route answers on its own (a 503, say). */

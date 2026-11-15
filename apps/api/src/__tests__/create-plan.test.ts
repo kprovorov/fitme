@@ -1,4 +1,3 @@
-import { LibraryUnavailableError } from "@fitme/library-sdk";
 import type { CreatePlanOptions, NewPlan } from "@fitme/services/plans";
 import { describe, expect, it } from "vitest";
 
@@ -239,24 +238,6 @@ describe("pOST /v1/plans", () => {
     ).toStrictEqual([LEGS_COVER, CHEST_COVER]);
   });
 
-  it("answers a reported 503 library_unavailable when the Covers can't be read, writing nothing", async () => {
-    const { app, library, reported } = testApp({ services: fakeServices({}) });
-    const outage = new LibraryUnavailableError();
-    library.covers = () => Promise.reject(outage);
-
-    const response = await post(app, body());
-
-    expect(response.status).toBe(503);
-    await expect(response.json()).resolves.toStrictEqual({
-      error: {
-        code: "library_unavailable",
-        message:
-          "The Library is unavailable, so the Workouts' Covers couldn't be picked; try again",
-      },
-    });
-    expect(reported).toStrictEqual([outage]);
-  });
-
   it("passes activate: false on, to keep the active Plan", async () => {
     const { calls, services } = recordingServices();
     const { app } = testApp({ services });
@@ -324,10 +305,11 @@ describe("pOST /v1/plans", () => {
     expect(reported).toStrictEqual([]);
   });
 
-  it("answers a reported 503 library_unavailable when the Library fails, writing nothing", async () => {
-    const { app, library, reported } = testApp({ services: fakeServices({}) });
-    const outage = new LibraryUnavailableError();
-    library.failWith(outage);
+  it("answers a reported 503 library_unavailable when the Library index can't load, writing nothing", async () => {
+    const { app, libraryIndex, reported } = testApp({
+      indexLoads: "fail",
+      services: fakeServices({}),
+    });
 
     const response = await post(app, body());
 
@@ -339,26 +321,52 @@ describe("pOST /v1/plans", () => {
           "The Library is unavailable, so the Exercises couldn't be checked; try again",
       },
     });
-    expect(reported).toStrictEqual([outage]);
+    expect(reported).toStrictEqual([libraryIndex.state.outage]);
   });
 
-  it("answers a reported 503 library_unavailable when the Library isn't configured", async () => {
-    const { app, reported } = testApp({
-      library: null,
-      services: fakeServices({}),
+  it("loads the Library index once, on the first write, so a warm instance checks with no call", async () => {
+    const { services } = recordingServices();
+    const { app, libraryIndex } = testApp({ services });
+
+    expect(libraryIndex.state.loads).toBe(0);
+
+    await post(app, body());
+    await post(app, body());
+
+    expect(libraryIndex.state.loads).toBe(1);
+  });
+
+  it("tries the load again on the next write after a failed first load", async () => {
+    const { services } = recordingServices();
+    const { app, libraryIndex } = testApp({ indexLoads: "fail", services });
+
+    await post(app, body());
+    await post(app, body());
+
+    expect(libraryIndex.state.loads).toBe(2);
+  });
+
+  it("keeps checking against the index when a reload fails, reporting the failure", async () => {
+    const { services } = recordingServices();
+
+    const { app, libraryIndex, reported } = testApp({
+      indexLoads: "reload-fails",
+      services,
     });
 
-    const response = await post(app, body());
+    await post(app, body());
+    // Past the reload throttle, so the unknown slug reloads, which fails.
+    libraryIndex.clock.now = 60_000;
+    const payload = body();
+    payload.workouts[0].exercises[0].exercise_slug = "made-up-press";
 
-    expect(response.status).toBe(503);
-    const answer = await response.json();
+    const refused = await post(app, payload);
+    const saved = await post(app, body());
 
-    expect(answer.error.code).toBe("library_unavailable");
-    expect(reported).toStrictEqual([
-      new Error(
-        "Missing LIBRARY_URL or LIBRARY_PUBLIC_API_SECRET environment variable"
-      ),
-    ]);
+    expect(refused.status).toBe(400);
+    expect(saved.status).toBe(201);
+    expect(libraryIndex.state.loads).toBe(2);
+    expect(reported).toStrictEqual([libraryIndex.state.outage]);
   });
 
   it("never shows fields beyond the contract", async () => {

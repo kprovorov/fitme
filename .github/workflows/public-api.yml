@@ -13,6 +13,10 @@ on:
       - .github/workflows/public-api.yml
       # The shared client's types generated from openapi.json.
       - packages/api-client/**
+      # The Library index the writes check against, inlined into the build
+      # with the committed fixture it falls back to.
+      - packages/library-bundle/**
+      - apps/library/fixtures/**
       - pnpm-lock.yaml
       - oxfmt.config.mts
 

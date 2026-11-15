@@ -1,4 +1,3 @@
-import { LibraryUnavailableError } from "@fitme/library-sdk";
 import type { PlanWorkoutInput } from "@fitme/services/plans";
 import { describe, expect, it } from "vitest";
 
@@ -207,24 +206,6 @@ describe("pUT /v1/plans/{id}/workouts", () => {
     expect(reported).toStrictEqual([]);
   });
 
-  it("answers a reported 503 library_unavailable when the Covers can't be read, writing nothing", async () => {
-    const { app, library, reported } = testApp({ services: fakeServices({}) });
-    const outage = new LibraryUnavailableError();
-    library.covers = () => Promise.reject(outage);
-
-    const response = await put(app, JSON.stringify(body()));
-
-    expect(response.status).toBe(503);
-    await expect(response.json()).resolves.toStrictEqual({
-      error: {
-        code: "library_unavailable",
-        message:
-          "The Library is unavailable, so the Workouts' Covers couldn't be picked; try again",
-      },
-    });
-    expect(reported).toStrictEqual([outage]);
-  });
-
   it("answers the weight unit of the User's Profile", async () => {
     const { services } = recordingServices({ weightUnit: "lbs" });
     const { app } = testApp({ services });
@@ -281,10 +262,11 @@ describe("pUT /v1/plans/{id}/workouts", () => {
     expect(reported).toStrictEqual([]);
   });
 
-  it("answers a reported 503 library_unavailable when the Library fails, writing nothing", async () => {
-    const { app, library, reported } = testApp({ services: fakeServices({}) });
-    const outage = new LibraryUnavailableError();
-    library.failWith(outage);
+  it("answers a reported 503 library_unavailable when the Library index can't load, writing nothing", async () => {
+    const { app, libraryIndex, reported } = testApp({
+      indexLoads: "fail",
+      services: fakeServices({}),
+    });
 
     const response = await put(app, JSON.stringify(body()));
 
@@ -296,26 +278,7 @@ describe("pUT /v1/plans/{id}/workouts", () => {
           "The Library is unavailable, so the Exercises couldn't be checked; try again",
       },
     });
-    expect(reported).toStrictEqual([outage]);
-  });
-
-  it("answers a reported 503 library_unavailable when the Library isn't configured", async () => {
-    const { app, reported } = testApp({
-      library: null,
-      services: fakeServices({}),
-    });
-
-    const response = await put(app, JSON.stringify(body()));
-
-    expect(response.status).toBe(503);
-    const result = await response.json();
-
-    expect(result.error.code).toBe("library_unavailable");
-    expect(reported).toStrictEqual([
-      new Error(
-        "Missing LIBRARY_URL or LIBRARY_PUBLIC_API_SECRET environment variable"
-      ),
-    ]);
+    expect(reported).toStrictEqual([libraryIndex.state.outage]);
   });
 
   it("never shows fields beyond the contract", async () => {
