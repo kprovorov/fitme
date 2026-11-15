@@ -1669,6 +1669,7 @@ const pipelines = (commands) => {
 // git's options before its subcommand that take the next word as their value
 // (`git -C apps/mobile commit`), unless it's attached with `=`.
 const GIT_VALUE_OPTIONS = new Set([
+  "--attr-source",
   "-C",
   "-c",
   "--config-env",
@@ -1683,17 +1684,30 @@ const GIT_VALUE_OPTIONS = new Set([
  * letter that means `--no-verify` (only `git commit`'s `-n` does); `values`,
  * the short letters that take a value (attached, or the next word: `-m x`,
  * `-mx`); `optional`, the ones taking only an attached one (`-S<key>`); and
- * `long`, the long options taking the next word as their value.
+ * `long`, the long options taking the next word as their value; and
+ * `noVerifyPrefix` / `verifyPrefix`, the shortest prefixes git expands to
+ * `--no-verify` / `--verify` for that subcommand, since each has its own
+ * options (`git am --no-v` is unambiguous, `git commit --no-ve` could be
+ * `--no-verbose`).
  *
- * @typedef {{ noVerify?: string, values: string, optional: string, long: string[] }} GitHookOptions
- * @typedef {{ noVerify?: string, values: Set<string>, optional: Set<string>, long: Set<string> }} GitHookCommand
+ * @typedef {{ noVerify?: string, values: string, optional: string, long: string[], noVerifyPrefix: string, verifyPrefix: string }} GitHookOptions
+ * @typedef {{ noVerify?: string, values: Set<string>, optional: Set<string>, long: Set<string>, noVerifyPrefix: string, verifyPrefix: string }} GitHookCommand
  */
 
 /** @type {(options: GitHookOptions) => GitHookCommand} */
-const hookCommand = ({ long, noVerify, optional, values }) => ({
+const hookCommand = ({
+  long,
+  noVerify,
+  noVerifyPrefix,
+  optional,
+  values,
+  verifyPrefix,
+}) => ({
   long: new Set(long),
   noVerify,
+  noVerifyPrefix,
   optional: new Set(optional),
+  verifyPrefix,
   values: new Set(values),
 });
 
@@ -1718,8 +1732,10 @@ const GIT_HOOK_COMMANDS = new Map(
           "--trailer",
         ],
         noVerify: "n",
+        noVerifyPrefix: "--no-veri",
         optional: "Su",
         values: "CFcmt",
+        verifyPrefix: "--veri",
       },
     ],
     [
@@ -1733,8 +1749,11 @@ const GIT_HOOK_COMMANDS = new Map(
           "--strategy",
           "--strategy-option",
         ],
+        // `--verify-signatures` shares every shorter prefix.
+        noVerifyPrefix: "--no-verify",
         optional: "S",
         values: "FXms",
+        verifyPrefix: "--verify",
       },
     ],
     [
@@ -1749,7 +1768,9 @@ const GIT_HOOK_COMMANDS = new Map(
           "--whitespace",
         ],
         optional: "CSp",
+        noVerifyPrefix: "--no-v",
         values: "",
+        verifyPrefix: "--v",
       },
     ],
     [
@@ -1763,8 +1784,10 @@ const GIT_HOOK_COMMANDS = new Map(
           "--strategy-option",
           "--whitespace",
         ],
+        noVerifyPrefix: "--no-veri",
         optional: "S",
         values: "Xsx",
+        verifyPrefix: "--veri",
       },
     ],
   ]).map(([name, options]) => [name, hookCommand(options)])
@@ -1773,10 +1796,7 @@ const GIT_HOOK_COMMANDS = new Map(
 const NO_VERIFY = "--no-verify";
 const VERIFY = "--verify";
 
-// git takes a long option's unambiguous prefix: `--no-veri` is `--no-verify`
-// (`--no-ve` could be `--no-verbose`).
-const NO_VERIFY_PREFIX = "--no-veri";
-const VERIFY_PREFIX = "--veri";
+// git takes a long option's unambiguous prefix (`git commit --no-veri`).
 
 /** @type {(word: string, full: string, shortest: string) => boolean} */
 const abbreviates = (word, full, shortest) =>
@@ -1850,9 +1870,9 @@ const skipsGitHooks = (args) => {
       break;
     }
 
-    if (abbreviates(word, NO_VERIFY, NO_VERIFY_PREFIX)) {
+    if (abbreviates(word, NO_VERIFY, command.noVerifyPrefix)) {
       skips = true;
-    } else if (abbreviates(word, VERIFY, VERIFY_PREFIX)) {
+    } else if (abbreviates(word, VERIFY, command.verifyPrefix)) {
       skips = false;
     } else if (takesLongValue(word, command)) {
       index += 1;
