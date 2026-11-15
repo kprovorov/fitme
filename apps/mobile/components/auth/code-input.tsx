@@ -8,12 +8,15 @@ const NON_DIGITS = /\D/gu;
 const CELLS = [0, 1, 2, 3, 4, 5];
 
 export const CodeInput = ({
+  autoFocus,
   value,
   onChange,
   label,
   disabled,
   error,
 }: {
+  /** Focuses the field as it appears, keyboard up. */
+  autoFocus?: boolean;
   value: string;
   onChange: (code: string) => void;
   label: string;
@@ -63,6 +66,7 @@ export const CodeInput = ({
         <TextInput
           accessibilityLabel={label}
           autoComplete="one-time-code"
+          autoFocus={autoFocus}
           autoCorrect={false}
           className="border-continuous px-sm text-body h-full min-h-12 rounded-lg border-0 bg-transparent text-transparent"
           editable={!disabled}

@@ -30,7 +30,12 @@
  * failure)` fails the next such call with a Clerk API error (its `code`) or a
  * network failure (`"network"`), and `requireReverification()` makes the
  * next call wrapped in `useReverification` ask first, until the test (or the
- * screen's own `onNeedsReverification`) completes or cancels it.
+ * screen's own `onNeedsReverification`) completes or cancels it. The
+ * session answers Clerk's reverification ("Confirm it's you"):
+ * `startVerification` offers the password (when the User has one) and an
+ * emailed code to the primary address, `prepareFirstFactorVerification`
+ * sends the code and `attemptFirstFactorVerification` checks the password
+ * or `FAKE_VERIFICATION_CODE`, each recorded and failable like the rest.
  * `after-each.ts` resets it.
  *
  * Only the members the app uses are implemented: a new one is missing rather
@@ -71,15 +76,18 @@ export type FakeProvider = "apple" | "google";
 /** Every Clerk call the fake records and can fail. */
 export type ClerkMethod =
   | "attemptEmailVerification"
+  | "attemptFirstFactorVerification"
   | "createEmailAddress"
   | "createExternalAccount"
   | "delete"
   | "destroyEmailAddress"
   | "destroyExternalAccount"
   | "prepareEmailVerification"
+  | "prepareFirstFactorVerification"
   | "reload"
   | "setProfileImage"
   | "signOut"
+  | "startVerification"
   | "update"
   | "updatePassword";
 
@@ -262,6 +270,13 @@ let uploads = 0;
 
 /** Whether Clerk has loaded, as `useUser` and `useAuth` answer it. */
 let loaded = true;
+
+/** The session's reverification in progress: its level and emailed code. */
+let sessionVerification: {
+  readonly codeSent: boolean;
+  readonly level: string;
+  readonly status: SessionVerificationStatus;
+} | null = null;
 
 let version = 0;
 const listeners = new Set<() => void>();
@@ -596,6 +611,105 @@ const currentUser = (): FakeUserResource => {
 
 const isSignedIn = () => signedInUserId() === user.id;
 
+type SessionVerificationStatus = "complete" | "needs_first_factor";
+
+/** The factors Clerk offers for reverification: the password, if any, then the code. */
+const supportedFirstFactors = () => {
+  const primary = user.emailAddresses.find(
+    ({ id }) => id === user.primaryEmailAddressId
+  );
+
+  return [
+    ...(password === null ? [] : [{ strategy: "password" as const }]),
+    ...(primary
+      ? [
+          {
+            emailAddressId: primary.id,
+            primary: true,
+            safeIdentifier: primary.emailAddress,
+            strategy: "email_code" as const,
+          },
+        ]
+      : []),
+  ];
+};
+
+/** The session's verification as Clerk's `SessionVerificationResource` shows it. */
+const sessionVerificationResource = () => {
+  if (!sessionVerification) {
+    throw apiError("resource_not_found", "No verification in progress.");
+  }
+
+  return {
+    level: sessionVerification.level,
+    status: sessionVerification.status,
+    supportedFirstFactors: supportedFirstFactors(),
+    supportedSecondFactors: null,
+  };
+};
+
+/**
+ * The session's reverification, as `session.startVerification`,
+ * `prepareFirstFactorVerification` and `attemptFirstFactorVerification`
+ * answer it: the password checked against the User's, the emailed code
+ * against `FAKE_VERIFICATION_CODE` once sent.
+ */
+const sessionVerificationMethods = {
+  attemptFirstFactorVerification: async (
+    params:
+      | { readonly code: string; readonly strategy: "email_code" }
+      | { readonly password: string; readonly strategy: "password" }
+  ) => {
+    await reach("attemptFirstFactorVerification", params);
+
+    if (!sessionVerification) {
+      throw apiError("resource_not_found", "No verification in progress.");
+    }
+
+    if (params.strategy === "password") {
+      if (password === null || params.password !== password) {
+        throw apiError(
+          "form_password_incorrect",
+          "Password is incorrect. Try again, or use another method."
+        );
+      }
+    } else if (!sessionVerification.codeSent) {
+      throw apiError("verification_missing", "Send a verification code first.");
+    } else if (params.code !== FAKE_VERIFICATION_CODE) {
+      throw apiError("form_code_incorrect", "Incorrect code");
+    }
+
+    sessionVerification = { ...sessionVerification, status: "complete" };
+
+    return sessionVerificationResource();
+  },
+  prepareFirstFactorVerification: async (params: {
+    readonly emailAddressId: string;
+    readonly strategy: "email_code";
+  }) => {
+    await reach("prepareFirstFactorVerification", params);
+
+    if (!sessionVerification) {
+      throw apiError("resource_not_found", "No verification in progress.");
+    }
+
+    findEmail(params.emailAddressId);
+    sessionVerification = { ...sessionVerification, codeSent: true };
+
+    return sessionVerificationResource();
+  },
+  startVerification: async (params: { readonly level: string }) => {
+    await reach("startVerification", params);
+    sessionVerification = {
+      codeSent: false,
+      level: params.level,
+      status: "needs_first_factor",
+    };
+
+    return sessionVerificationResource();
+  },
+};
+
 const signOut = async () => {
   await reach("signOut");
   signInAs(null);
@@ -608,7 +722,11 @@ const clerkInstance = {
   },
   get session() {
     return isSignedIn()
-      ? { getToken: () => Promise.resolve(FAKE_SESSION_TOKEN), id: "sess_fake" }
+      ? {
+          getToken: () => Promise.resolve(FAKE_SESSION_TOKEN),
+          id: "sess_fake",
+          ...sessionVerificationMethods,
+        }
       : null;
   },
   signOut,
@@ -867,6 +985,7 @@ export const fakeClerk = {
     reverifications = [];
     uploads = 0;
     loaded = true;
+    sessionVerification = null;
     changed();
   },
   /** The reverification Clerk is asking for (the oldest), or `null`. */

@@ -179,6 +179,16 @@ const RootLayout = () => {
             }}
           />
           <Stack.Screen
+            name="confirm-identity"
+            // Clerk's reverification: sized to its contents, with no header
+            // (the sheet titles itself), from any Screen that needs it.
+            options={{
+              presentation: "formSheet",
+              sheetAllowedDetents: "fitToContents",
+              sheetGrabberVisible: true,
+            }}
+          />
+          <Stack.Screen
             name="equipment"
             options={{
               headerShown: true,

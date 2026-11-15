@@ -435,4 +435,94 @@ describe("fake Clerk User", () => {
     expect(fakeClerk.deleted).toBe(false);
     expect(fakeClerk.calls).toEqual([]);
   });
+
+  it("verifies the session with the password or an emailed code", async () => {
+    const session = () => {
+      const { session: current } = getClerk();
+
+      if (!current) {
+        throw new Error("Nobody is signed in");
+      }
+
+      return current;
+    };
+
+    const started = await session().startVerification({
+      level: "first_factor",
+    });
+
+    expect(started.status).toBe("needs_first_factor");
+    expect(started.supportedFirstFactors).toEqual([
+      { strategy: "password" },
+      {
+        emailAddressId: currentUser().primaryEmailAddressId,
+        primary: true,
+        safeIdentifier: "tony@example.com",
+        strategy: "email_code",
+      },
+    ]);
+
+    const wrong = await rejection(
+      session().attemptFirstFactorVerification({
+        password: "wrong",
+        strategy: "password",
+      })
+    );
+
+    expect(getClerkErrorMessage(wrong)).toBe(
+      "Password is incorrect. Try again, or use another method."
+    );
+
+    const verified = await session().attemptFirstFactorVerification({
+      password: FAKE_PASSWORD,
+      strategy: "password",
+    });
+
+    expect(verified.status).toBe("complete");
+
+    await session().startVerification({ level: "first_factor" });
+
+    const unsent = await rejection(
+      session().attemptFirstFactorVerification({
+        code: FAKE_VERIFICATION_CODE,
+        strategy: "email_code",
+      })
+    );
+
+    expect(getClerkErrorMessage(unsent)).toBe(
+      "Send a verification code first."
+    );
+
+    await session().prepareFirstFactorVerification({
+      emailAddressId: currentUser().primaryEmailAddressId ?? "",
+      strategy: "email_code",
+    });
+
+    const byCode = await session().attemptFirstFactorVerification({
+      code: FAKE_VERIFICATION_CODE,
+      strategy: "email_code",
+    });
+
+    expect(byCode.status).toBe("complete");
+    expect(fakeClerk.calls.map(({ method }) => method)).toEqual([
+      "startVerification",
+      "attemptFirstFactorVerification",
+      "attemptFirstFactorVerification",
+      "startVerification",
+      "attemptFirstFactorVerification",
+      "prepareFirstFactorVerification",
+      "attemptFirstFactorVerification",
+    ]);
+  });
+
+  it("offers only the emailed code to a User without a password", async () => {
+    fakeClerk.setUser({ passwordEnabled: false });
+    const { session } = getClerk();
+
+    const started = await session?.startVerification({ level: "first_factor" });
+
+    expect(
+      started?.supportedFirstFactors?.map(({ strategy }) => strategy)
+    ).toEqual(["email_code"]);
+  });
 });
