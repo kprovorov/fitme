@@ -137,6 +137,8 @@ interface EmailState {
 
 interface ExternalAccountState {
   readonly emailAddress: string;
+  /** The code the provider's round trip failed with, `null` while it hasn't. */
+  readonly errorCode?: string | null;
   readonly id: string;
   readonly provider: FakeProvider;
   readonly status: VerificationStatus;
@@ -401,6 +403,7 @@ const findExternalAccount = (id: string) => {
 /** One linked provider as Clerk's `ExternalAccountResource` shows it. */
 const externalAccountResource = ({
   emailAddress,
+  errorCode = null,
   id,
   provider,
   status,
@@ -417,6 +420,10 @@ const externalAccountResource = ({
   id,
   provider,
   verification: {
+    error:
+      errorCode === null
+        ? null
+        : { code: errorCode, longMessage: errorCode, message: errorCode },
     externalVerificationRedirectURL:
       status === "verified"
         ? null
@@ -924,6 +931,27 @@ export const fakeClerk = {
               status: "verified",
             }
           : item
+      ),
+    });
+  },
+  /**
+   * Ends a provider's in-app browser round trip with the provider (or Clerk)
+   * refusing it: the link stays unverified, its verification carrying `code`
+   * (`external_account_exists` for an account already linked elsewhere).
+   */
+  refuseExternalAccount: (provider: FakeProvider, code: string) => {
+    const account = user.externalAccounts.find(
+      (item) => item.provider === provider && item.status === "unverified"
+    );
+
+    if (!account) {
+      throw new Error(`No ${provider} account is waiting to be linked.`);
+    }
+
+    setUserState({
+      ...user,
+      externalAccounts: user.externalAccounts.map((item) =>
+        item.id === account.id ? { ...item, errorCode: code } : item
       ),
     });
   },

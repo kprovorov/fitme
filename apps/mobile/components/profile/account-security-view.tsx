@@ -11,22 +11,27 @@ import {
 import { Button } from "~/components/ui/button";
 import { Separator } from "~/components/ui/separator";
 import { Text } from "~/components/ui/text";
+import { useConnectSignInMethod } from "~/hooks/connect-sign-in-method";
 import { useReverifiedCall } from "~/hooks/reverification";
 import { isClerkNetworkFailure } from "~/lib/clerk";
-import { signInProviders } from "~/lib/sign-in-providers";
+import { PROVIDER_NAMES, signInProviders } from "~/lib/sign-in-providers";
 import type { SocialProvider } from "~/lib/sign-in-providers";
 
 /**
- * How far Disconnect's tap area reaches past the small pill (28 pt), so the
- * target is at least 44 pt.
+ * How far Connect's and Disconnect's tap area reaches past the small pill
+ * (28 pt), so the target is at least 44 pt.
  */
-const DISCONNECT_HIT_SLOP = 8;
+const PILL_HIT_SLOP = 8;
 
-// Brand names, the same in every App language.
-const PROVIDER_NAMES: Record<SocialProvider, string> = {
-  apple: "Apple",
-  google: "Google",
-};
+/**
+ * What a provider not connected's Connect can do: run (`busy` while it does),
+ * or nothing while another Connect or a Disconnect runs (`disabled`).
+ */
+interface ConnectState {
+  readonly busy: boolean;
+  readonly disabled: boolean;
+  readonly handlePress: () => void;
+}
 
 /**
  * What a linked provider's Disconnect can do: nothing while it would leave the
@@ -53,15 +58,19 @@ const SIGN_IN_PROVIDERS: ReadonlySet<string> = new Set(["apple", "google"]);
  * reads the text as one element: the name, then "Connected as <email>" or
  * "Not connected". A linked provider ends in Disconnect, its own element:
  * blocked while it's the User's only way to sign in, which the subtitle and
- * the button's hint say (Figma 1479:5973). Connect comes with its own ticket.
+ * the button's hint say (Figma 1479:5973). One not connected ends in Connect
+ * (Figma 1487:4860), read "Connect <provider>", which shows Connecting…
+ * beside its spinner (read "Connecting <provider>") while it runs.
  */
 const SignInMethodRow = ({
+  connect,
   disconnect,
   email,
   first,
   linked,
   provider,
 }: {
+  connect: ConnectState | null;
   disconnect: DisconnectState | null;
   email: string | null;
   first: boolean;
@@ -115,7 +124,7 @@ const SignInMethodRow = ({
               accessible={false}
               className="absolute inset-0"
               disabled={disconnect.disabled}
-              hitSlop={DISCONNECT_HIT_SLOP}
+              hitSlop={PILL_HIT_SLOP}
               onPress={disconnect.handlePress}
             />
             <Button
@@ -140,6 +149,34 @@ const SignInMethodRow = ({
             />
           </View>
         ) : null}
+        {connect ? (
+          <View>
+            <Pressable
+              accessible={false}
+              className="absolute inset-0"
+              disabled={connect.disabled || connect.busy}
+              hitSlop={PILL_HIT_SLOP}
+              onPress={connect.handlePress}
+            />
+            <Button
+              accessibilityLabel={t(
+                connect.busy
+                  ? "accountSecurity.connectingProvider"
+                  : "accountSecurity.connectProvider",
+                { provider: name }
+              )}
+              disabled={connect.disabled}
+              fill={false}
+              isLoading={connect.busy}
+              label={t("accountSecurity.connect")}
+              loadingLabel={t("accountSecurity.connecting")}
+              onPress={connect.handlePress}
+              size="sm"
+              testID={`connect-${provider}`}
+              variant="secondary"
+            />
+          </View>
+        ) : null}
       </View>
     </View>
   );
@@ -153,12 +190,15 @@ const SignInMethodRow = ({
  * the User keeps another way to sign in (ADR 0021): a password, or another
  * linked provider, counted whether or not this build shows its row (Apple on
  * Android still signs the User in on an iPhone). Disconnect confirms first,
- * then goes through "Confirm it's you" when Clerk asks. The other actions
- * come with their own tickets.
+ * then goes through "Confirm it's you" when Clerk asks. A provider not
+ * linked has Connect (`useConnectSignInMethod`, ADR 0021). Only one Connect
+ * or Disconnect runs at a time. The other actions come with their own
+ * tickets.
  */
 const AccountSecurityView = () => {
   const { t } = useTranslation();
   const { user } = useUser();
+  const { connect, connecting } = useConnectSignInMethod();
 
   const [disconnecting, setDisconnecting] = useState<SocialProvider | null>(
     null
@@ -283,12 +323,28 @@ const AccountSecurityView = () => {
 
             return (
               <SignInMethodRow
+                connect={
+                  account
+                    ? null
+                    : {
+                        busy: connecting === provider,
+                        disabled:
+                          (connecting !== null && connecting !== provider) ||
+                          disconnecting !== null,
+                        handlePress: () => {
+                          void connect(provider);
+                        },
+                      }
+                }
                 disconnect={
                   account
                     ? {
                         blocked,
                         busy: disconnecting === provider,
-                        disabled: blocked || disconnecting !== null,
+                        disabled:
+                          blocked ||
+                          disconnecting !== null ||
+                          connecting !== null,
                         handlePress: () =>
                           confirmDisconnect(provider, account.id),
                       }
