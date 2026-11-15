@@ -41,11 +41,12 @@ const LIBRARY_ETAG = /^"[0-9a-f]{64}"$/u;
 
 const ARNOLD_SECRET = "c".repeat(32);
 const MCP_SECRET = "m".repeat(64);
-const API_SECRET = "a".repeat(48);
+
+/** The Public API's old secret: no caller sends it any more (ADR 0018). */
+const OLD_PUBLIC_API_SECRET = "a".repeat(48);
 
 /** Each server caller with its secret. */
 const SERVER_SECRETS = [
-  ["api", API_SECRET],
   ["arnold", ARNOLD_SECRET],
   ["mcp", MCP_SECRET],
 ] as const;
@@ -58,7 +59,7 @@ const auth: AppDeps["auth"] = {
     development: development.jwtKey,
     production: production.jwtKey,
   },
-  serverSecrets: { api: API_SECRET, arnold: ARNOLD_SECRET, mcp: MCP_SECRET },
+  serverSecrets: { arnold: ARNOLD_SECRET, mcp: MCP_SECRET },
 };
 
 /** A limiter that never refuses, for tests that aren't about limits. */
@@ -261,7 +262,7 @@ describe("auth", () => {
     const response = await callerApp({
       auth: {
         ...auth,
-        serverSecrets: { api: short, arnold: short, mcp: short },
+        serverSecrets: { arnold: short, mcp: short },
       },
     }).request("/caller", bearer(short));
 
@@ -281,7 +282,6 @@ describe("auth", () => {
       const configured = envApp({
         LIBRARY_ARNOLD_SECRET: ARNOLD_SECRET,
         LIBRARY_MCP_SECRET: MCP_SECRET,
-        LIBRARY_PUBLIC_API_SECRET: API_SECRET,
       });
 
       const callers = await Promise.all(
@@ -299,7 +299,7 @@ describe("auth", () => {
 
     it("reads none of the old EXERCISES_* names", async () => {
       const configured = envApp({
-        EXERCISES_API_SECRET: API_SECRET,
+        EXERCISES_API_SECRET: OLD_PUBLIC_API_SECRET,
         EXERCISES_ARNOLD_SECRET: ARNOLD_SECRET,
         EXERCISES_COACH_SECRET: ARNOLD_SECRET,
         EXERCISES_MCP_SECRET: MCP_SECRET,
@@ -313,22 +313,37 @@ describe("auth", () => {
       );
 
       expect(responses.map((response) => response.status)).toStrictEqual([
-        401, 401, 401,
+        401, 401,
       ]);
     });
 
-    it.each([
-      "LIBRARY_ARNOLD_SECRET",
-      "LIBRARY_MCP_SECRET",
-      "LIBRARY_PUBLIC_API_SECRET",
-    ])("accepts nothing with a short %s", async (name) => {
-      const response = await envApp({ [name]: "s".repeat(31) }).request(
+    it("refuses the Public API's old secret", async () => {
+      const configured = envApp({
+        LIBRARY_ARNOLD_SECRET: ARNOLD_SECRET,
+        LIBRARY_MCP_SECRET: MCP_SECRET,
+        LIBRARY_PUBLIC_API_SECRET: OLD_PUBLIC_API_SECRET,
+      });
+
+      const response = await configured.request(
         "/caller",
-        bearer("s".repeat(31))
+        bearer(OLD_PUBLIC_API_SECRET)
       );
 
       expect(response.status).toBe(401);
+      await expect(response.json()).resolves.toStrictEqual(unauthorized);
     });
+
+    it.each(["LIBRARY_ARNOLD_SECRET", "LIBRARY_MCP_SECRET"])(
+      "accepts nothing with a short %s",
+      async (name) => {
+        const response = await envApp({ [name]: "s".repeat(31) }).request(
+          "/caller",
+          bearer("s".repeat(31))
+        );
+
+        expect(response.status).toBe(401);
+      }
+    );
   });
 
   it.each(
@@ -1942,7 +1957,6 @@ describe("rate limiting", () => {
   });
 
   it.each([
-    ["the Public API", API_SECRET],
     ["Arnold", ARNOLD_SECRET],
     ["the MCP server", MCP_SECRET],
   ])("never limits %s", async (_, secret) => {
