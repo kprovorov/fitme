@@ -1,4 +1,8 @@
-import { getClerkInstance, isClerkAPIResponseError } from "@clerk/expo";
+import {
+  getClerkInstance,
+  isClerkAPIResponseError,
+  isClerkRuntimeError,
+} from "@clerk/expo";
 import { tokenCache } from "@clerk/expo/token-cache";
 import { z } from "zod";
 
@@ -50,3 +54,14 @@ const clerkMessageSchema = clerkErrorSchema.transform(formatClerkErrorMessage);
 
 export const getClerkErrorMessage = (error: unknown) =>
   clerkMessageSchema.parse(error);
+
+const NETWORK_FAILURE = /network|fetch|connection|offline/iu;
+
+/**
+ * Whether a Clerk call failed because the device couldn't reach Clerk:
+ * Clerk's own `network_error`, or the `fetch` underneath it throwing.
+ * Such a failure is the User's connection, never reported.
+ */
+export const isClerkNetworkFailure = (error: unknown): boolean =>
+  (isClerkRuntimeError(error) && error.code === "network_error") ||
+  (error instanceof TypeError && NETWORK_FAILURE.test(error.message));
