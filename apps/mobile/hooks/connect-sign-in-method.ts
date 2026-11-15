@@ -103,7 +103,9 @@ export const useConnectSignInMethod = () => {
     async (provider: SocialProvider, startedBy: string | undefined) => {
       const created = await createExternalAccount(provider);
 
-      if (created.status === "cancelled") {
+      // Cancelled, or signed out (or another account) while Clerk answered:
+      // no sign-in is theirs to open now.
+      if (created.status === "cancelled" || !isStillSignedIn(startedBy)) {
         return;
       }
 

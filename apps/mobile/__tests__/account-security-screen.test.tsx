@@ -857,6 +857,22 @@ describe.each([
       ).toMatchObject({ busy: false, disabled: false });
     });
 
+    it("opens no browser when the User signs out before Clerk answers", async () => {
+      const release = fakeClerk.holdNext("createExternalAccount");
+      await mount();
+
+      await connectGoogle();
+      await act(async () => {
+        signInAs(null);
+        release();
+        await Promise.resolve();
+      });
+      await settle(client);
+
+      expect(mockOpenedSessions).toEqual([]);
+      expect(Alert.alert).not.toHaveBeenCalled();
+    });
+
     it("says nothing when Clerk fails after the User has signed out", async () => {
       const release = fakeClerk.holdNext("createExternalAccount");
       fakeClerk.failNext("createExternalAccount", {
