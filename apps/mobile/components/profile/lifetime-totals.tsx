@@ -186,7 +186,7 @@ const useFigures = (totals: Totals | undefined) => {
  * The User's Lifetime totals under Profile's header (Figma's Profile – Pro,
  * 1476:3624): Workouts, Time and Volume, in the answer's `weight_unit`. While
  * they load, and when the read fails with nothing read (a 429 included), each
- * value is "—", with no banner: the rest of Profile works. A User with no
+ * value is "—" (none of it lime), with no banner: the rest of Profile works. A User with no
  * qualifying Workout Session gets the New user state (1476:3838): the zeros,
  * and the button that gets them going.
  */
@@ -214,7 +214,7 @@ const LifetimeTotals = () => {
   return (
     <View className="gap-sm w-full" testID="profile-lifetime-totals">
       <View className={stacked ? "gap-sm" : "gap-sm flex-row"}>
-        {stat("workouts", true)}
+        {stat("workouts", totals !== undefined)}
         {stat("time")}
         {stat("volume")}
       </View>
