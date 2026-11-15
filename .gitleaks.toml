@@ -36,7 +36,7 @@ regexes = [
 [[rules]]
 id = "password-literal"
 description = "A password as a string literal"
-regex = '''(?i)\b(?:[a-z0-9_]*pass(?:word|wd)|(?:[a-z0-9]+_)*(?:pass|pwd))\b["']?\s*(?::|=|=>|\?\?|\|\|)\s*["'`]([^"'`\n]{8,})["'`]'''
+regex = '''(?i)\b(?:[a-z0-9]+-)*(?:[a-z0-9_]*pass(?:word|wd)|(?:[a-z0-9]+_)*(?:pass|pwd))\b["']?\s*(?::|=|=>|\?\?|\|\|)\s*["'`]([^"'`\n]{8,})["'`]'''
 secretGroup = 1
 keywords = ["pass", "pwd"]
 
@@ -58,11 +58,13 @@ paths = [
 ]
 
 # A route or purpose name, never a variable holding a password: the quoted
-# kebab-case key `"reset-password": "…"` (FIT-425). No identifier has a hyphen,
-# so only the names listed here pass; a key like "db-password" is still flagged.
+# kebab-case key `"reset-password": "…"` (FIT-425). The rule's regex takes in a
+# key's kebab-case prefix, so this checks the finding's own match, never the
+# rest of its line: another password on the same line is still flagged, and so
+# is a key like "db-password".
 [[rules.allowlists]]
-regexTarget = "line"
-regexes = ['''["'](?:forgot|reset)-password["']\s*:''']
+regexTarget = "match"
+regexes = ['''^(?:forgot|reset)-password["']\s*:''']
 
 [[rules.allowlists]]
 regexTarget = "match"

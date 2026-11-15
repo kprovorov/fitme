@@ -138,6 +138,16 @@ void describe("gitleaks password-literal", { skip: !hasGitleaks }, () => {
     );
   });
 
+  void test("still flags a password on the same line as a route name", () => {
+    assert.deepEqual(
+      findings(
+        "apps/mobile/lib/config.ts",
+        `const config = { "reset-${WORD}": "verifyCode.description.reset", "${WORD}": ${MADE_UP_SECRET} };\n`
+      ),
+      [RULE]
+    );
+  });
+
   void test("still flags a kebab-case key that isn't a route name", () => {
     assert.deepEqual(
       findings(
