@@ -10,7 +10,9 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { z } from "zod";
 
 import type * as LibraryModule from "../agent/lib/library";
+import type * as LibraryIndexModule from "../agent/lib/library-index";
 import { fakeLibrary } from "./library";
+import { INDEX_OUTAGE, testLibraryIndex } from "./library-index";
 import {
   contextFor,
   inputSchemaOf,
@@ -74,6 +76,15 @@ vi.mock<typeof LibraryModule>(import("../agent/lib/library"), async () => {
 
   return { getLibrary: () => library };
 });
+
+vi.mock<typeof LibraryIndexModule>(
+  import("../agent/lib/library-index"),
+  async () => {
+    const { testLibraryIndex: index } = await import("./library-index");
+
+    return { getLibraryIndex: () => index.get() };
+  }
+);
 
 const { default: getActivePlan } =
   await import("../agent/tools/get_active_plan");
@@ -213,6 +224,7 @@ const run = async (input: ModelInput) =>
 
 const resetReadTools = () => {
   fakeLibrary.failWith(null);
+  testLibraryIndex.reset();
   db.asUser.mockImplementation(async (_userId, fn) => await fn(tx));
   plans.getActivePlan.mockResolvedValue(plan);
   plans.listPlans.mockResolvedValue([plan]);
@@ -690,10 +702,23 @@ describe("display_workout_plan", () => {
     expect(db.asUser).not.toHaveBeenCalled();
   });
 
-  it("refuses a slug the library doesn't know with a tool error, never a result the app would render", async () => {
+  it("refuses a slug the Library index doesn't know with a tool error, never a result the app would render", async () => {
     await expect(run(proposed(exercise("made-up-fly", "Fly")))).rejects.toThrow(
       "made-up-fly"
     );
+  });
+
+  it("sends an old exercise id back to search_exercises by name with a tool error", async () => {
+    await expect(
+      run(proposed(exercise("c0000000-0000-4000-8000-000000000001", "Fly")))
+    ).rejects.toThrow(/search_exercises with the exercise's name/u);
+  });
+
+  it("checks slugs against the Library index, so the card shows while the Library API is down", async () => {
+    fakeLibrary.failWith(libraryDown);
+    const card = proposed(exercise("bench-press", "Bench press"));
+
+    await expect(run(card)).resolves.toStrictEqual(card);
   });
 
   // Arnold's Plans always carry a goal, whatever the Public API now takes
@@ -706,11 +731,15 @@ describe("display_workout_plan", () => {
     expect(() => parseInput(displayWorkoutPlan, withoutGoal)).toThrow(/goal/iu);
   });
 
-  it("asks to retry when the library fails", async () => {
-    fakeLibrary.failWith(libraryDown);
+  it("asks to retry with a tool error when the Library index can't load", async () => {
+    testLibraryIndex.reset({ loads: "fail" });
 
     await expect(
       run(proposed(exercise("bench-press", "Bench")))
     ).rejects.toThrow("Try again");
+    expect(observability.reportError).toHaveBeenCalledWith(
+      INDEX_OUTAGE,
+      expect.anything()
+    );
   });
 });

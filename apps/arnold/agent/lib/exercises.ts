@@ -5,6 +5,7 @@ import { reportError } from "@fitme/observability/node";
 import { z } from "zod";
 
 import { getLibrary } from "./library";
+import { getLibraryIndex } from "./library-index";
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/iu;
 const SLUG_SEPARATORS = /[-_]+/gu;
@@ -53,11 +54,12 @@ export const onLibraryFailure = async <T>(
 };
 
 /**
- * Checks Exercise slugs before a tool writes them (one lookup, outside any
- * transaction): `null` when the library has every one, else an `{ error }`
- * for the model, so nothing gets written. A uuid (an exercise id from an
- * older Conversation) gets an error that sends the model searching by name;
- * a library failure is reported and asks to retry.
+ * Checks Exercise slugs before a tool writes them, against the Library index
+ * (ADR 0018; outside any transaction, and no Library API call): `null` when
+ * the index has every one, else an `{ error }` for the model, so nothing gets
+ * written. A uuid (an exercise id from an older Conversation) gets an error
+ * that sends the model searching by name; an index that can't load (its load
+ * reported why) asks to retry.
  */
 export const checkExerciseSlugs = async (
   slugs: readonly string[]
@@ -70,21 +72,17 @@ export const checkExerciseSlugs = async (
     };
   }
 
-  try {
-    const { missing } = await getLibrary().lookup(slugs);
+  const found = await getLibraryIndex().lookup(slugs);
 
-    return missing.length > 0
-      ? {
-          error: `Unknown exercise_slug(s): ${missing.join(", ")}. Use search_exercises to find a valid exercise_slug; nothing was saved.`,
-        }
-      : null;
-  } catch (error) {
-    return await onLibraryFailure(
-      error,
-      "check",
-      libraryUnavailable("nothing was saved")
-    );
+  if (found.status === "unavailable") {
+    return libraryUnavailable("nothing was saved");
   }
+
+  return found.missing.length > 0
+    ? {
+        error: `Unknown exercise_slug(s): ${found.missing.join(", ")}. Use search_exercises to find a valid exercise_slug; nothing was saved.`,
+      }
+    : null;
 };
 
 /** A Workout Exercise or Workout Session Exercise as the services return it. */

@@ -1,14 +1,13 @@
 import { MAX_EXERCISE_SLUG_LENGTH } from "@fitme/core/limits";
 import type * as Db from "@fitme/db";
-import { LibraryUnavailableError } from "@fitme/library-sdk";
 import type * as Observability from "@fitme/observability/node";
 import type * as EditServices from "@fitme/services/workout-edits";
 import type { ToolContext } from "eve/tools";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { z } from "zod";
 
-import type * as LibraryModule from "../agent/lib/library";
-import { fakeLibrary } from "./library";
+import type * as LibraryIndexModule from "../agent/lib/library-index";
+import { INDEX_OUTAGE, testLibraryIndex } from "./library-index";
 import { contextFor, inputSchemaOf, userIdFields } from "./tool-context";
 import type { TestedTool } from "./tool-context";
 
@@ -73,11 +72,14 @@ vi.mock<typeof Observability>(
   () => observability
 );
 
-vi.mock<typeof LibraryModule>(import("../agent/lib/library"), async () => {
-  const { fakeLibrary: library } = await import("./library");
+vi.mock<typeof LibraryIndexModule>(
+  import("../agent/lib/library-index"),
+  async () => {
+    const { testLibraryIndex: index } = await import("./library-index");
 
-  return { getLibrary: () => library };
-});
+    return { getLibraryIndex: () => index.get() };
+  }
+);
 
 const { default: addExerciseToWorkout } =
   await import("../agent/tools/add_exercise_to_workout");
@@ -193,7 +195,7 @@ const cases: {
 ];
 
 const resetEdits = () => {
-  fakeLibrary.failWith(null);
+  testLibraryIndex.reset();
   observability.reportError.mockResolvedValue(undefined);
   db.asUser.mockImplementation(async (_userId, fn) => await fn(tx));
   edits.addExerciseToWorkout.mockResolvedValue({
@@ -290,7 +292,12 @@ describe.each(slugChecks)(
   ({ field, input, service, tool }) => {
     beforeEach(resetEdits);
 
-    it("refuses a slug the library doesn't know, writing nothing", async () => {
+    it("writes a slug the Library index knows", async () => {
+      await expect(run(tool, input)).resolves.toMatchObject({ success: true });
+      expect(edits[service]).toHaveBeenCalledOnce();
+    });
+
+    it("refuses a slug the Library index doesn't know, writing nothing", async () => {
       await expect(
         run(tool, { ...input, [field]: "made-up-fly" })
       ).resolves.toStrictEqual({
@@ -329,17 +336,17 @@ describe.each(slugChecks)(
       ).toBeFalsy();
     });
 
-    it("asks to retry when the library fails, writing nothing", async () => {
-      const failure = new LibraryUnavailableError();
-      fakeLibrary.failWith(failure);
+    it("asks to retry when the Library index can't load, writing nothing", async () => {
+      testLibraryIndex.reset({ loads: "fail" });
 
       await expect(run(tool, input)).resolves.toStrictEqual({
         error:
           "The exercise library is unavailable right now, so nothing was saved. Try again in a moment.",
       });
       expect(db.asUser).not.toHaveBeenCalled();
+      expect(edits[service]).not.toHaveBeenCalled();
       expect(observability.reportError).toHaveBeenCalledWith(
-        failure,
+        INDEX_OUTAGE,
         expect.anything()
       );
     });
