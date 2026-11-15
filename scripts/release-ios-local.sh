@@ -10,7 +10,7 @@
 #        (default: the latest v* tag; --listing-only skips the build and
 #        submit and only pushes the listing, to retry a failed push)
 #
-# Needs: Xcode, CocoaPods, fastlane, Node 24, jq, `eas login`, and the Infisical
+# Needs: Xcode, CocoaPods, fastlane, Node 26, jq, `eas login`, and the Infisical
 # CLI logged in. EAS injects the production EXPO_PUBLIC_* variables (Public
 # visibility); SENTRY_AUTH_TOKEN is Secret on EAS, which local builds don't get,
 # so it comes from Infisical `prod` /Mobile.

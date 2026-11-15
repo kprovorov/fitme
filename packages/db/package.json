@@ -24,7 +24,7 @@
   },
   "devDependencies": {
     "@fitme/typescript-config": "workspace:*",
-    "@types/node": "^22.15.21",
+    "@types/node": "26.6.6",
     "@types/pg": "^8.23.1",
     "drizzle-kit": "^0.31.11",
     "tsx": "^4.23.15",

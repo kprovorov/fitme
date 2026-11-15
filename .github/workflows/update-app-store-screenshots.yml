@@ -91,7 +91,7 @@ jobs:
 
       - uses: actions/setup-node@v7
         with:
-          node-version: "24"
+          node-version-file: package.json
           cache: "pnpm"
 
       # Checks main's Screenshot sets against the tag's listing config, stages
