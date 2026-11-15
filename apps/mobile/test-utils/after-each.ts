@@ -15,6 +15,7 @@ import { fakePublicApi } from "~/test-utils/fake-public-api";
 import { fakeRevenueCat } from "~/test-utils/fake-revenuecat";
 import { clearTestQueryClients } from "~/test-utils/query-client";
 import { resetSignedInUser } from "~/test-utils/signed-in-user";
+import { resetToasts } from "~/test-utils/toast-stub";
 
 // Drops each test's queries and mutations, with any timer they hold. Runs
 // after @testing-library/react-native's own cleanup (registered when
@@ -92,4 +93,10 @@ afterEach(() => {
 // last one signed in (`signInAs`).
 afterEach(() => {
   resetSignedInUser();
+});
+
+// Every test starts with no toast on screen: the stand-in keeps each one
+// until now, where the real one hides it after a few seconds.
+afterEach(() => {
+  resetToasts();
 });
