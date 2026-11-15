@@ -772,6 +772,10 @@ void describe("git hooks skipped with --no-verify", () => {
     "pnpm install && git commit --no-verify -m x",
     "env GIT_AUTHOR_NAME=me git commit --no-verify -m x",
     "x=$(git commit --no-verify -m x)",
+    "git commit -nm --verify",
+    "git commit -mm --no-verify",
+    "git commit -mfix-m --no-verify",
+    "git commit --no-verify --mess --verify",
   ]) {
     void test(`refuses ${JSON.stringify(command)}`, () => {
       assert.deepEqual(rulesBroken(command), ["no-verify"]);

@@ -1795,28 +1795,37 @@ const gitSubcommand = (args) => {
   return { rest: args.slice(index + 1), subcommand: args[index] };
 };
 
-// Whether a short option cluster (`-anm`) turns verification off: a letter
-// taking a value ends the cluster, since the rest is that value (`-mn` is the
-// message "n"). Answers the letter's effect and whether the next word is a
-// value.
+// Whether a short option cluster (`-anm`) turns verification off, and whether
+// the next word is a value: a letter taking a value ends the cluster, since
+// the rest is that value (`-mn` is the message "n"), and takes the next word
+// only when nothing is attached (`-nm x`, but not `-mm x`).
 /** @type {(word: string, command: GitHookCommand) => { skips: boolean, takesNext: boolean }} */
 const readShortCluster = (word, command) => {
-  for (const letter of word.slice(1)) {
+  let skips = false;
+
+  for (let position = 1; position < word.length; position += 1) {
+    const letter = word[position];
+
     if (letter === command.noVerify) {
-      return { skips: true, takesNext: false };
-    }
-
-    if (command.values.has(letter)) {
-      return { skips: false, takesNext: word.endsWith(letter) };
-    }
-
-    if (command.optional.has(letter)) {
-      return { skips: false, takesNext: false };
+      skips = true;
+    } else if (command.values.has(letter)) {
+      return { skips, takesNext: position === word.length - 1 };
+    } else if (command.optional.has(letter)) {
+      return { skips, takesNext: false };
     }
   }
 
-  return { skips: false, takesNext: false };
+  return { skips, takesNext: false };
 };
+
+// Whether a long option takes the next word as its value, written in full or
+// as a prefix git expands (`--mess x` is `--message x`).
+/** @type {(word: string, command: GitHookCommand) => boolean} */
+const takesLongValue = (word, command) =>
+  command.long.has(word) ||
+  (word.length > 2 &&
+    !word.includes("=") &&
+    [...command.long].some((option) => option.startsWith(word)));
 
 // Whether a `git` command skips the repo's hooks: `--no-verify` (or
 // `git commit -n`) as an option, not as an option's value or a pathspec, and
@@ -1845,7 +1854,7 @@ const skipsGitHooks = (args) => {
       skips = true;
     } else if (abbreviates(word, VERIFY, VERIFY_PREFIX)) {
       skips = false;
-    } else if (command.long.has(word)) {
+    } else if (takesLongValue(word, command)) {
       index += 1;
     } else if (word.startsWith("-") && !word.startsWith("--")) {
       const cluster = readShortCluster(word, command);
