@@ -247,6 +247,25 @@ describe("fake Clerk User", () => {
     ]);
   });
 
+  it("keeps a refused provider link unverified, with the refusal's code", async () => {
+    fakeClerk.setUser({ passwordEnabled: true });
+    await currentUser().createExternalAccount({
+      redirectUrl: "fitme://account-security",
+      strategy: "oauth_google",
+    });
+
+    fakeClerk.refuseExternalAccount("google", "external_account_exists");
+    await currentUser().reload();
+
+    expect(
+      currentUser().externalAccounts.map(({ provider, verification }) => [
+        provider,
+        verification?.status,
+        verification?.error?.code,
+      ])
+    ).toEqual([["google", "unverified", "external_account_exists"]]);
+  });
+
   it("follows an account change from signInAs", async () => {
     await render(<Header />);
 

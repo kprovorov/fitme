@@ -178,6 +178,11 @@ interface PillBaseProps
   /** SF Symbol drawn next to the label. */
   icon?: SFSymbol;
   iconPosition?: ButtonIconPosition;
+  /**
+   * While `isLoading`, the spinner leads this text instead of covering the
+   * label ("Connecting…"), so the pill still says what it's doing.
+   */
+  loadingLabel?: string;
 }
 
 /**
@@ -205,6 +210,7 @@ interface CircleButtonProps extends ButtonBaseProps, Record<"shape", "circle"> {
   icon: SFSymbol;
   iconPosition?: never;
   label?: never;
+  loadingLabel?: never;
 }
 
 type ButtonProps = PillButtonProps | CircleButtonProps;
@@ -351,6 +357,7 @@ const Button = (props: ButtonProps) => {
     iconPosition = "leading",
     isLoading = false,
     label: labelProp,
+    loadingLabel,
     onPress,
     size = "default",
     testID,
@@ -488,6 +495,28 @@ const Button = (props: ButtonProps) => {
   const renderContent = () => {
     if (!isLoading) {
       return renderLabel();
+    }
+
+    // A pill with words for its loading state shows them after the spinner.
+    if (loadingLabel !== undefined && !isCircle) {
+      return (
+        <HStack
+          modifiers={[...contentFrame, ...sizeFrame]}
+          spacing={ICON_LABEL_SPACING}
+        >
+          <ProgressView
+            modifiers={[controlSize("small"), tint(contentColor)]}
+          />
+          <SwiftUIText
+            modifiers={[
+              font({ family: labelFont.family, size: labelFont.size }),
+              foregroundStyle(contentColor),
+            ]}
+          >
+            {loadingLabel}
+          </SwiftUIText>
+        </HStack>
+      );
     }
 
     // A loading button is also disabled, which greys out its fill, so the

@@ -1,8 +1,9 @@
 /**
  * The Account & Security screen, opened from the redesigned Profile's Account
  * list: the real screen over the fake Clerk User, on iOS and Android, in
- * English and Ukrainian, Disconnect included. Its other actions (change
- * email and password, connect, delete) come with their own tickets.
+ * English and Ukrainian, with the in-app browser stood in: Connect and
+ * Disconnect. Its other actions (change email and password, delete) come
+ * with their own tickets.
  */
 import {
   afterEach,
@@ -36,16 +37,21 @@ import { setDeviceLanguages } from "~/test-utils/device-locales";
 import { fakeClerk } from "~/test-utils/fake-clerk";
 import { InAppLanguage } from "~/test-utils/in-app-language";
 import { createTestQueryClient, settle } from "~/test-utils/query-client";
+import { signInAs } from "~/test-utils/signed-in-user";
+
+const mockRouter = { back: jest.fn(), push: jest.fn(), replace: jest.fn() };
 
 jest.mock("expo-router", () => {
   const { Text: MockText } =
     jest.requireActual<typeof import("react-native")>("react-native");
 
-  const mockRouter = { back: jest.fn(), push: jest.fn(), replace: jest.fn() };
-
   return {
     Link: ({ children }: { children: ReactNode }) => children,
-    router: mockRouter,
+    // Read lazily: the imports, this factory included, run before the
+    // module's own declarations.
+    get router() {
+      return mockRouter;
+    },
     Stack: {
       Screen: ({ options }: { options?: { title?: string } }) =>
         options?.title ? <MockText>{options.title}</MockText> : null,
@@ -53,6 +59,32 @@ jest.mock("expo-router", () => {
     useRouter: () => mockRouter,
   };
 });
+
+interface AuthSessionResult {
+  readonly type: "cancel" | "dismiss" | "success";
+  readonly url?: string;
+}
+
+/**
+ * The in-app browser sheet: what the provider's sign-in ends in. A test
+ * sets it per case (finishing the round trip on the fake Clerk User first).
+ */
+let mockAuthSession: (
+  url: string,
+  redirectUrl: string
+) => Promise<AuthSessionResult> = () => Promise.resolve({ type: "cancel" });
+
+const mockOpenedSessions: { redirectUrl: string; url: string }[] = [];
+
+jest.mock("expo-web-browser", () => ({
+  openAuthSessionAsync: (url: string, redirectUrl: string) => {
+    mockOpenedSessions.push({ redirectUrl, url });
+
+    return mockAuthSession(url, redirectUrl);
+  },
+  openBrowserAsync: jest.fn(),
+  WebBrowserPresentationStyle: { AUTOMATIC: "automatic" },
+}));
 
 jest.mock(
   "@clerk/expo",
@@ -100,8 +132,10 @@ jest.mock("~/lib/google-client-ids", () => ({
   googleClientIds: () => mockGoogleClientIds,
 }));
 
+let client = createTestQueryClient();
+
 const mount = async (screenElement: ReactNode = <AccountSecurityScreen />) => {
-  const client = createTestQueryClient();
+  client = createTestQueryClient();
   await render(
     <QueryClientProvider client={client}>
       <InAppLanguage>{screenElement}</InAppLanguage>
@@ -110,12 +144,25 @@ const mount = async (screenElement: ReactNode = <AccountSecurityScreen />) => {
   await settle(client);
 };
 
+/** The redirect Clerk sends the browser back to: the app's own scheme. */
+const REDIRECT_URL = "fitme://account-security";
+
 const COPY = {
   en: {
     addAnotherMethod: "Add another way to sign in first",
     apple: "Apple",
     cancel: "Cancel",
+    alreadyLinked:
+      "This Google account is already connected to another Fitme account.",
+    appleUnavailable:
+      "Signing in with Apple isn't available yet. Use Google or your email for now.",
+    connect: "Connect",
+    connectApple: "Connect Apple",
+    connectFailed: "Couldn't connect Google. Try again.",
+    connectGoogle: "Connect Google",
     connectedAs: "Connected as kirill@gmail.com",
+    connecting: "Connecting…",
+    connectingGoogle: "Connecting Google",
     deleteAccount: "Delete Account",
     disconnect: "Disconnect",
     disconnectAppleTitle: "Disconnect Apple?",
@@ -135,7 +182,16 @@ const COPY = {
     addAnotherMethod: "Спершу додай інший спосіб входу",
     apple: "Apple",
     cancel: "Скасувати",
+    alreadyLinked: "Цей акаунт Google уже під’єднано до іншого акаунта Fitme.",
+    appleUnavailable:
+      "Вхід через Apple поки недоступний. Поки що використовуй Google або ел. пошту.",
+    connect: "Під’єднати",
+    connectApple: "Під’єднати Apple",
+    connectFailed: "Не вдалося під’єднати Google. Спробуй ще раз.",
+    connectGoogle: "Під’єднати Google",
     connectedAs: "Під’єднано як kirill@gmail.com",
+    connecting: "Під’єднання…",
+    connectingGoogle: "Під’єднання Google",
     deleteAccount: "Видалити акаунт",
     disconnect: "Від’єднати",
     disconnectAppleTitle: "Від’єднати Apple?",
@@ -206,6 +262,8 @@ describe.each([
 
   beforeEach(() => {
     jest.clearAllMocks();
+    mockOpenedSessions.length = 0;
+    mockAuthSession = () => Promise.resolve({ type: "cancel" });
     jest.spyOn(console, "warn").mockReturnValue(undefined);
     jest.spyOn(Alert, "alert").mockReturnValue(undefined);
     mockGoogleClientIds = GOOGLE_IDS;
@@ -341,10 +399,12 @@ describe.each([
       expect(button.props.accessibilityState).toMatchObject({
         disabled: false,
       });
-      // Apple isn't linked: nothing to disconnect there.
+      // Apple isn't linked: nothing to disconnect there, only Connect.
       expect(
-        within(screen.getByTestId("sign-in-method-apple")).queryByRole("button")
-      ).toBeNull();
+        within(screen.getByTestId("sign-in-method-apple"))
+          .getAllByRole("button")
+          .map(({ props }) => props.accessibilityLabel)
+      ).toEqual([copy.connectApple]);
 
       await fireEvent.press(button);
 
@@ -366,11 +426,12 @@ describe.each([
       expect(
         screen.getByLabelText(copy.google).props.accessibilityValue
       ).toEqual({ text: copy.notConnected });
+      // Disconnected: Google can be connected again.
       expect(
-        within(screen.getByTestId("sign-in-method-google")).queryByRole(
-          "button"
-        )
-      ).toBeNull();
+        within(screen.getByTestId("sign-in-method-google"))
+          .getAllByRole("button")
+          .map(({ props }) => props.accessibilityLabel)
+      ).toEqual([copy.connectGoogle]);
       expect(alertCalls()).toHaveLength(1);
     });
 
@@ -597,6 +658,358 @@ describe.each([
       expect(
         screen.getByLabelText(copy.google).props.accessibilityValue
       ).toEqual({ text: copy.notConnected });
+    });
+  });
+
+  describe("Connect", () => {
+    beforeEach(() => {
+      // "Confirm it's you" isn't mounted here: a test that opened it leaves
+      // it open, as only the sheet itself says it closed.
+      markConfirmSheetClosed();
+      fakeClerk.setUser({
+        emailAddresses: ["kirill@example.com"],
+        passwordEnabled: true,
+      });
+    });
+
+    const googleRow = () => screen.getByLabelText(copy.google);
+
+    const connectGoogle = async () => {
+      await fireEvent.press(screen.getByLabelText(copy.connectGoogle));
+      await settle(client);
+    };
+
+    it("links Google through the in-app browser and shows it Connected", async () => {
+      mockAuthSession = () => {
+        fakeClerk.completeExternalAccount("google");
+
+        return Promise.resolve({ type: "success", url: REDIRECT_URL });
+      };
+
+      await mount();
+
+      expect(googleRow().props.accessibilityValue).toEqual({
+        text: copy.notConnected,
+      });
+      await connectGoogle();
+
+      expect(fakeClerk.calls).toEqual([
+        {
+          method: "createExternalAccount",
+          params: { redirectUrl: REDIRECT_URL, strategy: "oauth_google" },
+        },
+        { method: "reload" },
+      ]);
+      expect(mockOpenedSessions).toEqual([
+        {
+          redirectUrl: REDIRECT_URL,
+          url: expect.stringMatching(
+            /^https:\/\/accounts\.example\.com\/oauth\/google\?id=/u
+          ),
+        },
+      ]);
+      expect(googleRow().props.accessibilityValue).toEqual({
+        text: copy.connectedAs.replace(
+          "kirill@gmail.com",
+          "tony@google.example"
+        ),
+      });
+      expect(screen.getByText("tony@google.example")).toBeTruthy();
+      expect(screen.queryByLabelText(copy.connectGoogle)).toBeNull();
+      expect(Alert.alert).not.toHaveBeenCalled();
+    });
+
+    it("shows Connecting on the provider while the browser is open, with the other Connect held", async () => {
+      let finish: (result: AuthSessionResult) => void = () => undefined;
+      mockAuthSession = () =>
+        new Promise((resolve) => {
+          finish = resolve;
+        });
+      await mount();
+
+      await connectGoogle();
+
+      expect(screen.getByText(copy.connecting)).toBeTruthy();
+      expect(
+        screen.getByLabelText(copy.connectingGoogle).props.accessibilityState
+      ).toMatchObject({ busy: true, disabled: true });
+      expect(
+        screen.getByLabelText(copy.connectApple).props.accessibilityState
+      ).toMatchObject({ disabled: true });
+
+      await act(async () => {
+        finish({ type: "cancel" });
+        await Promise.resolve();
+      });
+      await settle(client);
+
+      expect(screen.queryByText(copy.connecting)).toBeNull();
+      expect(
+        screen.getByLabelText(copy.connectApple).props.accessibilityState
+      ).toMatchObject({ disabled: false });
+    });
+
+    it("leaves Google Not connected, with no message, when the browser is closed", async () => {
+      await mount();
+
+      await connectGoogle();
+
+      expect(mockOpenedSessions).toHaveLength(1);
+      // The unverified link is taken back off the User: a retry starts clean.
+      expect(fakeClerk.calls.map(({ method }) => method)).toEqual([
+        "createExternalAccount",
+        "reload",
+        "destroyExternalAccount",
+      ]);
+      expect(getClerk().user?.externalAccounts).toEqual([]);
+      expect(googleRow().props.accessibilityValue).toEqual({
+        text: copy.notConnected,
+      });
+      expect(
+        screen.getByLabelText(copy.connectGoogle).props.accessibilityState
+      ).toMatchObject({ busy: false, disabled: false });
+      expect(Alert.alert).not.toHaveBeenCalled();
+    });
+
+    it("holds Google's Disconnect while Apple connects", async () => {
+      let finish: (result: AuthSessionResult) => void = () => undefined;
+      mockAuthSession = () =>
+        new Promise((resolve) => {
+          finish = resolve;
+        });
+      fakeClerk.setUser({
+        emailAddresses: ["kirill@example.com"],
+        externalAccounts: [{ email: "kirill@gmail.com", provider: "google" }],
+        passwordEnabled: true,
+      });
+      await mount();
+
+      await fireEvent.press(screen.getByLabelText(copy.connectApple));
+      await settle(client);
+
+      expect(
+        disconnectButton("sign-in-method-google", copy.disconnect).props
+          .accessibilityState
+      ).toMatchObject({ disabled: true });
+
+      await act(async () => {
+        finish({ type: "cancel" });
+        await Promise.resolve();
+      });
+      await settle(client);
+
+      expect(
+        disconnectButton("sign-in-method-google", copy.disconnect).props
+          .accessibilityState
+      ).toMatchObject({ disabled: false });
+    });
+
+    it("starts one Connect for two quick taps", async () => {
+      let finish: (result: AuthSessionResult) => void = () => undefined;
+      mockAuthSession = () =>
+        new Promise((resolve) => {
+          finish = resolve;
+        });
+      await mount();
+      const button = screen.getByLabelText(copy.connectGoogle);
+
+      const tap = () =>
+        button.props.onClick({ nativeEvent: {}, persist: () => undefined });
+
+      // Both taps reach the button before it re-renders as busy.
+      await act(async () => {
+        tap();
+        tap();
+        await Promise.resolve();
+      });
+      await settle(client);
+
+      expect(
+        fakeClerk.calls.filter(
+          ({ method }) => method === "createExternalAccount"
+        )
+      ).toHaveLength(1);
+      expect(mockOpenedSessions).toHaveLength(1);
+
+      await act(async () => {
+        finish({ type: "cancel" });
+        await Promise.resolve();
+      });
+      await settle(client);
+    });
+
+    it("says so when Clerk fails, and opens no browser", async () => {
+      fakeClerk.failNext("createExternalAccount", {
+        code: "internal_clerk_error",
+        status: 500,
+      });
+      await mount();
+
+      await connectGoogle();
+
+      expect(mockOpenedSessions).toEqual([]);
+      expect(Alert.alert).toHaveBeenCalledWith(copy.connectFailed);
+      expect(googleRow().props.accessibilityValue).toEqual({
+        text: copy.notConnected,
+      });
+      expect(
+        screen.getByLabelText(copy.connectGoogle).props.accessibilityState
+      ).toMatchObject({ busy: false, disabled: false });
+    });
+
+    it("opens no browser when the User signs out before Clerk answers", async () => {
+      const release = fakeClerk.holdNext("createExternalAccount");
+      await mount();
+
+      await connectGoogle();
+      await act(async () => {
+        signInAs(null);
+        release();
+        await Promise.resolve();
+      });
+      await settle(client);
+
+      expect(mockOpenedSessions).toEqual([]);
+      expect(Alert.alert).not.toHaveBeenCalled();
+    });
+
+    it("says nothing when Clerk fails after the User has signed out", async () => {
+      const release = fakeClerk.holdNext("createExternalAccount");
+      fakeClerk.failNext("createExternalAccount", {
+        code: "internal_clerk_error",
+        status: 500,
+      });
+      await mount();
+
+      await connectGoogle();
+      await act(async () => {
+        signInAs(null);
+        release();
+        await Promise.resolve();
+      });
+      await settle(client);
+
+      expect(mockOpenedSessions).toEqual([]);
+      expect(Alert.alert).not.toHaveBeenCalled();
+    });
+
+    it("says the Google account is linked elsewhere when the provider refuses it", async () => {
+      mockAuthSession = () => {
+        fakeClerk.refuseExternalAccount("google", "external_account_exists");
+
+        return Promise.resolve({ type: "success", url: REDIRECT_URL });
+      };
+
+      await mount();
+
+      await connectGoogle();
+
+      expect(Alert.alert).toHaveBeenCalledWith(copy.alreadyLinked);
+      expect(googleRow().props.accessibilityValue).toEqual({
+        text: copy.notConnected,
+      });
+    });
+
+    it("says Apple isn't available yet when Clerk can't start Apple's sign-in", async () => {
+      fakeClerk.failNext("createExternalAccount", {
+        code: "oauth_config_missing",
+        status: 422,
+      });
+      await mount();
+
+      await fireEvent.press(screen.getByLabelText(copy.connectApple));
+      await settle(client);
+
+      expect(mockOpenedSessions).toEqual([]);
+      expect(Alert.alert).toHaveBeenCalledWith(copy.appleUnavailable);
+      expect(screen.queryByText(copy.connecting)).toBeNull();
+      expect(
+        screen.getByLabelText(copy.apple).props.accessibilityValue
+      ).toEqual({ text: copy.notConnected });
+    });
+
+    it("says Connect failed, not Apple's setup, when Clerk itself fails on Apple", async () => {
+      fakeClerk.failNext("createExternalAccount", {
+        code: "internal_clerk_error",
+        status: 500,
+      });
+      await mount();
+
+      await fireEvent.press(screen.getByLabelText(copy.connectApple));
+      await settle(client);
+
+      expect(Alert.alert).toHaveBeenCalledWith(
+        copy.connectFailed.replace("Google", "Apple")
+      );
+    });
+
+    it("says Apple isn't available yet when Apple's sign-in comes back unlinked", async () => {
+      mockAuthSession = () => {
+        fakeClerk.refuseExternalAccount("apple", "oauth_access_denied");
+
+        return Promise.resolve({ type: "success", url: REDIRECT_URL });
+      };
+
+      await mount();
+
+      await fireEvent.press(screen.getByLabelText(copy.connectApple));
+      await settle(client);
+
+      expect(Alert.alert).toHaveBeenCalledWith(copy.appleUnavailable);
+      expect(screen.queryByText(copy.connecting)).toBeNull();
+    });
+
+    it("runs nothing when the User cancels Confirm it's you", async () => {
+      fakeClerk.requireReverification();
+      await mount();
+
+      await connectGoogle();
+
+      expect(mockRouter.push).toHaveBeenCalledWith("/confirm-identity");
+      expect(screen.getByText(copy.connecting)).toBeTruthy();
+
+      await act(async () => {
+        fakeClerk.cancelReverification();
+        await Promise.resolve();
+      });
+      await settle(client);
+
+      expect(fakeClerk.calls).toEqual([]);
+      expect(mockOpenedSessions).toEqual([]);
+      expect(Alert.alert).not.toHaveBeenCalled();
+      expect(screen.queryByText(copy.connecting)).toBeNull();
+      expect(googleRow().props.accessibilityValue).toEqual({
+        text: copy.notConnected,
+      });
+    });
+
+    it("connects once the User has confirmed it's them", async () => {
+      fakeClerk.requireReverification();
+      mockAuthSession = () => {
+        fakeClerk.completeExternalAccount("google");
+
+        return Promise.resolve({ type: "success", url: REDIRECT_URL });
+      };
+
+      await mount();
+
+      await connectGoogle();
+      await act(async () => {
+        fakeClerk.completeReverification();
+        await Promise.resolve();
+      });
+      await settle(client);
+
+      expect(fakeClerk.calls.map(({ method }) => method)).toEqual([
+        "createExternalAccount",
+        "reload",
+      ]);
+      expect(googleRow().props.accessibilityValue).toEqual({
+        text: copy.connectedAs.replace(
+          "kirill@gmail.com",
+          "tony@google.example"
+        ),
+      });
     });
   });
 });

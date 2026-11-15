@@ -83,3 +83,20 @@ export const openWebPage = async (url: string): Promise<void> => {
     await openUrl(url);
   }
 };
+
+/**
+ * Runs a provider's sign-in in the in-app browser's auth session, which
+ * closes itself once the provider sends the browser to `redirectUrl` (the
+ * app's own scheme): `returned` then, `closed` when the User closed the
+ * sheet first (or a browser already open kept this one from opening). It
+ * never says whether the sign-in worked: the caller asks Clerk. A browser
+ * that can't open at all rejects.
+ */
+export const openAuthSession = async (
+  url: string,
+  redirectUrl: string
+): Promise<"closed" | "returned"> => {
+  const result = await WebBrowser.openAuthSessionAsync(url, redirectUrl);
+
+  return result.type === "success" ? "returned" : "closed";
+};
