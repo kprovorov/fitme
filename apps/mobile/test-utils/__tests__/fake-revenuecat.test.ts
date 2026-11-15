@@ -167,6 +167,27 @@ describe("fake RevenueCat customer", () => {
     expect(again.isPro.data).toBe(false);
   });
 
+  it("holds reads until released, then answers the customer as it stands", async () => {
+    const release = fakeRevenueCat.holdReads();
+    let answered = false;
+
+    const read = Purchases.getCustomerInfo().then((info) => {
+      answered = true;
+
+      return info;
+    });
+
+    fakeRevenueCat.setPro("renewing");
+    await Promise.resolve();
+    expect(answered).toBe(false);
+
+    release();
+    const info = await read;
+
+    expect(info.entitlements.active[proEntitlement]?.isActive).toBe(true);
+    await expect(Purchases.getCustomerInfo()).resolves.toBeTruthy();
+  });
+
   it("records a restore, and fails one on demand", async () => {
     fakeRevenueCat.setPro("lifetime");
 

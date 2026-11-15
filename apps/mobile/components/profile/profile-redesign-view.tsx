@@ -11,6 +11,7 @@ import {
   ProfileListRow,
   ProfileListSection,
 } from "~/components/profile/profile-list";
+import SubscriptionCard from "~/components/profile/subscription-card";
 import { Avatar, AvatarFallback, AvatarImage } from "~/components/ui/avatar";
 import { Button } from "~/components/ui/button";
 import { Text } from "~/components/ui/text";
@@ -122,8 +123,8 @@ const VersionLine = () => {
 
 /**
  * The redesigned Profile (Figma's Profile – Free, 1476:3301), shown while the
- * Profile redesign flag is on. Lifetime totals and the Subscription card come
- * with their own tickets.
+ * Profile redesign flag is on. Lifetime totals come with their own ticket,
+ * between the header and the Subscription card.
  */
 const ProfileRedesignView = () => {
   const { t } = useTranslation();
@@ -152,6 +153,8 @@ const ProfileRedesignView = () => {
   return (
     <View className="gap-md w-full pt-2.5 pb-14">
       <ProfileHeader />
+
+      <SubscriptionCard />
 
       <ProfileListSection title={t("profile.sections.account")}>
         <ProfileListRow

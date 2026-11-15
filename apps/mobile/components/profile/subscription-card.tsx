@@ -1,0 +1,205 @@
+import { formatDate } from "@fitme/i18n";
+import { useCallback } from "react";
+import { useTranslation } from "react-i18next";
+import { View } from "react-native";
+import RevenueCatUI from "react-native-purchases-ui";
+
+import { Badge } from "~/components/ui/badge";
+import { Button } from "~/components/ui/button";
+import { Text } from "~/components/ui/text";
+import { useSubscriptionQuery } from "~/hooks/revenueCat";
+import { openUrl } from "~/lib/external-links";
+import { useI18n } from "~/lib/i18n";
+import type { Subscription } from "~/lib/subscription";
+
+/** The card's surface (Figma's `PlanCard`): `card` fill, border, `sm` padding. */
+const CARD_CLASS =
+  "gap-sm rounded-card border-border bg-card p-sm w-full border";
+
+const presentPaywall = () => {
+  void RevenueCatUI.presentPaywall();
+};
+
+/**
+ * While the Subscription loads (Figma's Plan loading, 1476:3701): grey bars
+ * where the Free card's text and button go, never the Free card itself, read
+ * by VoiceOver as one element saying it's loading.
+ */
+const SubscriptionSkeleton = () => {
+  const { t } = useTranslation();
+
+  return (
+    <View
+      accessibilityLabel={t("subscription.loading")}
+      accessibilityRole="progressbar"
+      accessible
+      className={CARD_CLASS}
+      testID="subscription-card-loading"
+    >
+      <View className="gap-xs w-full">
+        <View className="bg-muted h-5.5 w-35 rounded-full" />
+        <View className="bg-muted h-4 w-4/5 rounded-full" />
+        <View className="bg-muted h-4 w-3/5 rounded-full" />
+      </View>
+      <View className="bg-muted h-(--size-button-pill-lg) w-full rounded-full" />
+    </View>
+  );
+};
+
+/** A failed read (Figma's Plan error, 1476:3767), with Try Again. */
+const SubscriptionError = ({
+  isRetrying,
+  onRetry,
+}: {
+  isRetrying: boolean;
+  onRetry: () => void;
+}) => {
+  const { t } = useTranslation();
+
+  return (
+    <View className={`${CARD_CLASS} flex-row items-center`}>
+      <Text className="text-headline-emphasized text-foreground flex-1">
+        {t("subscription.loadError")}
+      </Text>
+      <Button
+        fill={false}
+        isLoading={isRetrying}
+        label={t("common.tryAgain")}
+        onPress={onRetry}
+        size="sm"
+        variant="secondary"
+      />
+    </View>
+  );
+};
+
+/** Free (Figma's Profile – Free, 1476:3301): what Pro adds and the upgrade. */
+const FreeCard = () => {
+  const { t } = useTranslation();
+
+  return (
+    <View className={CARD_CLASS}>
+      <View className="w-full gap-1">
+        <Text className="text-headline-emphasized text-foreground">
+          {t("subscription.free.title")}
+        </Text>
+        <Text className="text-subhead text-muted-foreground">
+          {t("subscription.free.description")}
+        </Text>
+      </View>
+      <Button
+        label={t("subscription.free.upgrade")}
+        onPress={presentPaywall}
+        size="lg"
+      />
+    </View>
+  );
+};
+
+/** What happens next to a Pro Subscription: its date, or Lifetime. */
+const useStatusLine = (
+  subscription: Extract<Subscription, { kind: "pro" }>
+): string => {
+  const { t } = useTranslation();
+  const i18n = useI18n();
+  const { expiresAt, status } = subscription;
+
+  if (expiresAt === null) {
+    return t("subscription.lifetime");
+  }
+
+  const date = formatDate(i18n, expiresAt, "dayMonthYear");
+
+  switch (status) {
+    case "renewing": {
+      return t("subscription.renewsOn", { date });
+    }
+
+    case "trial": {
+      return t("subscription.trialEndsOn", { date });
+    }
+
+    case "cancelled":
+    case "lifetime":
+    case "promotional": {
+      return t("subscription.endsOn", { date });
+    }
+  }
+};
+
+/**
+ * Fitme Pro (Figma's Profile – Pro, 1476:3624): the badge, its state line and
+ * Manage, which opens the store's page and is hidden when there's none (a
+ * lifetime purchase, a promotional grant).
+ */
+const ProCard = ({
+  subscription,
+}: {
+  subscription: Extract<Subscription, { kind: "pro" }>;
+}) => {
+  const { t } = useTranslation();
+  const statusLine = useStatusLine(subscription);
+  const { managementURL } = subscription;
+
+  const manage = useCallback(() => {
+    if (managementURL) {
+      void openUrl(managementURL);
+    }
+  }, [managementURL]);
+
+  return (
+    <View className={`${CARD_CLASS} flex-row items-center`}>
+      <View className="gap-xs flex-1 items-start">
+        <Badge>
+          <Text>{t("subscription.pro")}</Text>
+        </Badge>
+        <Text className="text-subhead text-muted-foreground">{statusLine}</Text>
+      </View>
+      {managementURL ? (
+        <Button
+          fill={false}
+          label={t("subscription.manage")}
+          onPress={manage}
+          size="sm"
+          variant="secondary"
+        />
+      ) : null}
+    </View>
+  );
+};
+
+/**
+ * The User's Subscription on Profile, from RevenueCat's client
+ * `customerInfo`: a skeleton while it loads, Free with the upgrade, or Fitme
+ * Pro with its state and Manage. A failed read is its own error with Try
+ * Again; the rest of Profile never waits on it. A failed refresh keeps what
+ * was read.
+ */
+const SubscriptionCard = () => {
+  const {
+    data: subscription,
+    isError,
+    isFetching,
+    refetch,
+  } = useSubscriptionQuery();
+
+  const retry = useCallback(() => {
+    void refetch();
+  }, [refetch]);
+
+  if (subscription?.kind === "pro") {
+    return <ProCard subscription={subscription} />;
+  }
+
+  if (subscription?.kind === "free") {
+    return <FreeCard />;
+  }
+
+  return isError ? (
+    <SubscriptionError isRetrying={isFetching} onRetry={retry} />
+  ) : (
+    <SubscriptionSkeleton />
+  );
+};
+
+export default SubscriptionCard;
