@@ -285,6 +285,20 @@ describe.each([
     }
   );
 
+  it("recovers a failed read when Profile is pulled to refresh", async () => {
+    seedTrainedUser();
+    fakePublicApi.failNext(TOTALS, { retryAfterSeconds: 12, status: 429 });
+    await mount();
+    expect(screen.getAllByText("—")).toHaveLength(3);
+
+    const { refreshControl } = screen.getByTestId("profile-scroll").props;
+    await act(() => refreshControl.props.onRefresh());
+    await settle(queryClient);
+
+    expectFigures(copy.trained);
+    expect(fakePublicApi.count(TOTALS)).toBe(2);
+  });
+
   it("shows — while the totals load", async () => {
     seedTrainedUser();
     const resume = fakePublicApi.pause(TOTALS);
