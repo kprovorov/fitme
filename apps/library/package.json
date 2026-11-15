@@ -30,11 +30,14 @@
   },
   "devDependencies": {
     "@fitme/typescript-config": "workspace:*",
-    "@types/node": "24.19.2",
+    "@types/node": "26.6.6",
     "@vercel/blob": "^2.8.2",
     "tsdown": "^0.23.1",
     "tsx": "^4.23.15",
     "typescript": "~5.9.2",
     "vitest": "^5.0.5"
+  },
+  "engines": {
+    "node": "26.x"
   }
 }
