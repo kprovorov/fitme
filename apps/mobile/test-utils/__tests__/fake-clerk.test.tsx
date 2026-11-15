@@ -261,6 +261,32 @@ describe("fake Clerk User", () => {
     expect(screen.getByText("Tony Stark")).toBeOnTheScreen();
   });
 
+  it("answers no User while Clerk is loading, then the User once it has", async () => {
+    fakeClerk.setLoaded(false);
+
+    const { result } = await renderHook(() => ({
+      auth: clerkModule.useAuth(),
+      user: useUser(),
+    }));
+
+    expect(result.current.user).toEqual({
+      isLoaded: false,
+      isSignedIn: undefined,
+      user: undefined,
+    });
+    expect(result.current.auth.isLoaded).toBe(false);
+    expect(result.current.auth.userId).toBeUndefined();
+    // Only the hooks: the instance stays loaded for the Public API's token.
+    expect(getClerk().loaded).toBe(true);
+
+    await act(() => {
+      fakeClerk.setLoaded(true);
+    });
+    expect(result.current.user.isLoaded).toBe(true);
+    expect(result.current.user.user?.fullName).toBe("Tony Stark");
+    expect(result.current.auth.userId).toBe(FAKE_USER_ID);
+  });
+
   it("deletes the User and signs out", async () => {
     await render(
       <>

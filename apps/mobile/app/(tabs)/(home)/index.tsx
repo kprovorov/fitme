@@ -14,6 +14,10 @@ import {
 import Purchases from "react-native-purchases";
 
 import Logo from "~/components/brand/logo";
+import {
+  ProfilePhotoButton,
+  useProfilePhoto,
+} from "~/components/profile/profile-photo-button";
 import { Button } from "~/components/ui/button";
 import { Text } from "~/components/ui/text";
 import { H1 } from "~/components/ui/typography";
@@ -133,6 +137,15 @@ const HomeScreen = () => {
 
   const handleManagePlans = useCallback(() => router.push("/plans"), [router]);
   const openProfile = useCallback(() => router.push("/profile"), [router]);
+  const profilePhoto = useProfilePhoto();
+
+  const profilePhotoButton = profilePhoto.uri ? (
+    <ProfilePhotoButton
+      onError={profilePhoto.handleError}
+      onPress={openProfile}
+      uri={profilePhoto.uri}
+    />
+  ) : null;
 
   const retryPlans = useCallback(() => {
     void refetchPlanReads();
@@ -227,17 +240,25 @@ const HomeScreen = () => {
           headerTitle: renderHomeHeaderTitle,
           headerTransparent: true,
           title: t("tabs.workout"),
+          // The Profile photo while it can be shown; the `person.fill`
+          // symbol button while Clerk loads or once the photo fails to load.
           unstable_headerRightItems: () => [
-            {
-              accessibilityLabel: t("profile.title"),
-              icon: {
-                name: "person.fill",
-                type: "sfSymbol",
-              },
-              label: t("profile.title"),
-              onPress: openProfile,
-              type: "button",
-            },
+            profilePhotoButton
+              ? {
+                  element: profilePhotoButton,
+                  hidesSharedBackground: true,
+                  type: "custom",
+                }
+              : {
+                  accessibilityLabel: t("profile.title"),
+                  icon: {
+                    name: "person.fill",
+                    type: "sfSymbol",
+                  },
+                  label: t("profile.title"),
+                  onPress: openProfile,
+                  type: "button",
+                },
           ],
         }}
       />
