@@ -3,11 +3,12 @@ import { useTranslation } from "react-i18next";
 import { useCSSVariable } from "uniwind";
 
 /**
- * Change Email, pushed from Account & Security: the new address, then the
- * shared code screen for it. Opaque headers in the Screen's own color, as
- * the auth Screens have, so a form scrolled up goes under the header.
+ * Change Email's header, on both its Screens (the new address and the code):
+ * pushed on the root stack, so its back button goes back a step, opaque in
+ * the Screen's own color, as the auth Screens' is, so a form scrolled up goes
+ * under it.
  */
-const ChangeEmailLayout = () => {
+export const ChangeEmailHeader = () => {
   const { t } = useTranslation();
   // SAFETY: The imported design tokens define --color-foreground as a hex color string.
   const foreground = useCSSVariable("--color-foreground") as string;
@@ -15,8 +16,8 @@ const ChangeEmailLayout = () => {
   const background = useCSSVariable("--color-background") as string;
 
   return (
-    <Stack
-      screenOptions={{
+    <Stack.Screen
+      options={{
         headerBackButtonDisplayMode: "minimal",
         headerShadowVisible: false,
         headerShown: true,
@@ -31,5 +32,3 @@ const ChangeEmailLayout = () => {
     />
   );
 };
-
-export default ChangeEmailLayout;

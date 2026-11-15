@@ -1,6 +1,7 @@
 import { Redirect, useLocalSearchParams } from "expo-router";
 
 import { parseVerificationIntent } from "~/components/auth/verification";
+import { ChangeEmailHeader } from "~/components/change-email-header";
 import VerifyCodeView from "~/components/views/verify-code-view";
 
 /** The shared code screen for Change Email (`purpose=change-email`). */
@@ -17,11 +18,14 @@ const ChangeEmailCodeScreen = () => {
   }
 
   return (
-    <VerifyCodeView
-      emailAddressId={intent.emailAddressId}
-      key={intent.emailAddressId}
-      purpose="change-email"
-    />
+    <>
+      <ChangeEmailHeader />
+      <VerifyCodeView
+        emailAddressId={intent.emailAddressId}
+        key={intent.emailAddressId}
+        purpose="change-email"
+      />
+    </>
   );
 };
 
