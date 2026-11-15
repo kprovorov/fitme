@@ -54,6 +54,7 @@ import {
   measurementSystems,
   personalRecordFor,
   places,
+  qualifiesForProgress,
   recordResult,
 } from "@fitme/core";
 import type {
@@ -1382,18 +1383,31 @@ const getTotals = (): Response => {
   let volume = 0;
 
   for (const session of backend.sessions) {
-    if (
-      session.finished_at === null ||
-      (session.user_id ?? FAKE_USER_ID) !== FAKE_USER_ID
-    ) {
-      continue;
-    }
-
     const sets = sessionBody(session).exercises.flatMap(
       (exercise) => exercise.sets
     );
 
-    if (!sets.some((set) => (set.reps_completed ?? 0) > 0)) {
+    const progress = {
+      completed_rep_count: sets.reduce(
+        (total, set) => total + (set.reps_completed ?? 0),
+        0
+      ),
+      finished_at: session.finished_at,
+      started_at: session.started_at,
+      volume: sets
+        .filter((set) => set.logged_at !== null)
+        .reduce(
+          (total, set) =>
+            total + (set.weight_completed ?? 0) * (set.reps_completed ?? 0),
+          0
+        ),
+    };
+
+    if (
+      session.finished_at === null ||
+      !qualifiesForProgress(progress) ||
+      (session.user_id ?? FAKE_USER_ID) !== FAKE_USER_ID
+    ) {
       continue;
     }
 
@@ -1401,13 +1415,7 @@ const getTotals = (): Response => {
     durationSeconds +=
       (Date.parse(session.finished_at) - Date.parse(session.started_at)) /
       MS_PER_SECOND;
-    volume += sets
-      .filter((set) => set.logged_at !== null)
-      .reduce(
-        (total, set) =>
-          total + (set.weight_completed ?? 0) * (set.reps_completed ?? 0),
-        0
-      );
+    volume += progress.volume;
   }
 
   return json(200, {
