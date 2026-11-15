@@ -7,8 +7,12 @@ import { z } from "zod";
 
 import type { ErrorResponse } from "./schemas";
 
-/** The callers that aren't Users: the Public API, Arnold and the MCP server. */
-const SERVER_CALLERS = ["api", "arnold", "mcp"] as const;
+/**
+ * The callers that aren't Users: Arnold and the MCP server. The Public API
+ * checks slugs against the Library index instead (ADR 0018), so its old
+ * `LIBRARY_PUBLIC_API_SECRET` opens nothing.
+ */
+const SERVER_CALLERS = ["arnold", "mcp"] as const;
 
 /** A caller that isn't a User, identified by its own secret. */
 export type ServerCallerName = (typeof SERVER_CALLERS)[number];
@@ -33,7 +37,6 @@ export interface AuthEnv {
 export const serverSecretsFromEnv = (
   env: Record<string, string | undefined>
 ): AuthConfig["serverSecrets"] => ({
-  api: env.LIBRARY_PUBLIC_API_SECRET,
   arnold: env.LIBRARY_ARNOLD_SECRET,
   mcp: env.LIBRARY_MCP_SECRET,
 });
