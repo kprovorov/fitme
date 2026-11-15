@@ -7,6 +7,7 @@ import { useCallback } from "react";
 import { useTranslation } from "react-i18next";
 import { View } from "react-native";
 
+import LifetimeTotals from "~/components/profile/lifetime-totals";
 import {
   ProfileListRow,
   ProfileListSection,
@@ -125,8 +126,8 @@ const VersionLine = () => {
 
 /**
  * The redesigned Profile (Figma's Profile – Free, 1476:3301), shown while the
- * Profile redesign flag is on. Lifetime totals come with their own ticket,
- * between the header and the Subscription card.
+ * Profile redesign flag is on: the header, the Lifetime totals (or the New
+ * user state), the Subscription card, then the lists.
  */
 const ProfileRedesignView = () => {
   const { t } = useTranslation();
@@ -155,6 +156,8 @@ const ProfileRedesignView = () => {
   return (
     <View className="gap-md w-full pt-2.5 pb-14">
       <ProfileHeader />
+
+      <LifetimeTotals />
 
       <SubscriptionCard />
 

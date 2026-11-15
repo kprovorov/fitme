@@ -33,6 +33,7 @@ jest.mock("expo-router", () => {
       Screen: ({ options }: { options?: { title?: string } }) =>
         options?.title ? <MockText>{options.title}</MockText> : null,
     },
+    useRouter: () => ({ push: jest.fn(), replace: jest.fn() }),
   };
 });
 

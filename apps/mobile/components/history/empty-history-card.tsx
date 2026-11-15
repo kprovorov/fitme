@@ -13,7 +13,7 @@ import { H3 } from "~/components/ui/typography";
 import type { FullPlan, PlanWorkout } from "~/hooks/queries/plans";
 import type { OpenWorkoutSession } from "~/hooks/queries/workout-sessions";
 import {
-  nextWorkoutOf,
+  nextStepOf,
   openSessionPath,
   useStartWorkout,
   workoutSessionPath,
@@ -127,29 +127,28 @@ interface EmptyHistoryCardProps {
 
 /**
  * History with no finished Workout Session, after Figma's empty state: what
- * shows up here, and the one next step. Resume the open Workout Session
- * first (a User has at most one, ADR 0013, with or without an active Plan),
- * else Start the active Plan's next Workout, else Create a plan. An active
- * Plan with no Workout has nothing to start, so it gets Create a plan too.
+ * shows up here, and the one next step (`nextStepOf`, shared with Profile's
+ * New user state): Resume the open Workout Session, else Start the active
+ * Plan's next Workout, else Create a plan.
  */
 export const EmptyHistoryCard = ({
   activePlan,
   openSession,
 }: EmptyHistoryCardProps) => {
   const { t } = useTranslation();
-  const nextWorkout = activePlan ? nextWorkoutOf(activePlan) : undefined;
+  const step = nextStepOf(activePlan, openSession);
 
   let action: ReactNode;
 
-  if (openSession) {
-    action = <ResumeAction openSession={openSession} />;
-  } else if (activePlan && nextWorkout) {
+  if (step.kind === "resume") {
+    action = <ResumeAction openSession={step.openSession} />;
+  } else if (step.kind === "start") {
     action = (
       <StartAction
         // A new Workout is a new Start: its pending state is that Workout's.
-        key={nextWorkout.id}
-        plan={activePlan}
-        workout={nextWorkout}
+        key={step.workout.id}
+        plan={step.plan}
+        workout={step.workout}
       />
     );
   } else {
