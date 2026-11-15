@@ -1,4 +1,5 @@
 import { useUser } from "@clerk/expo";
+import { router } from "expo-router";
 import { useTranslation } from "react-i18next";
 import { View } from "react-native";
 
@@ -72,11 +73,13 @@ const SignInMethodRow = ({
 
 /**
  * Account & Security (Figma 1479:5771), opened from the redesigned Profile:
- * the User's email, Change Password while they have a password, the sign-in
- * methods this build offers (ADR 0021) with whether each is linked, and
- * Delete Account at the bottom. The actions on each come with their own
- * tickets, so no row is a control yet.
+ * the User's email, Change Password while they have a password (opening
+ * the Change Password Screen), the sign-in methods this build offers (ADR
+ * 0021) with whether each is linked, and Delete Account at the bottom. The
+ * other actions come with their own tickets.
  */
+const openChangePassword = () => router.push("/change-password");
+
 const AccountSecurityView = () => {
   const { t } = useTranslation();
   const { user } = useUser();
@@ -108,6 +111,7 @@ const AccountSecurityView = () => {
         {user.passwordEnabled ? (
           <ProfileListRow
             label={t("accountSecurity.passwordRow")}
+            onPress={openChangePassword}
             testID="account-password"
           />
         ) : null}
