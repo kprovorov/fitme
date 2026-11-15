@@ -4,7 +4,9 @@ name: Shell Scripts
 # Node helpers they call. Only on pull requests touching them, since the parse
 # check needs a macOS runner. The project skills too: scripts/skills-links.test.mjs
 # checks every .agents/skills/<name> has its .claude/skills/<name> symlink. And
-# the shell-rule hook (.claude/hooks), whose tests nothing else runs.
+# the shell-rule hook (.claude/hooks), whose tests nothing else runs. And the
+# Node and pnpm pins: scripts/version-pins.test.mjs checks the manifests, the
+# lockfile and the mobile EAS profile agree, so a change to any of them runs it.
 on:
   pull_request:
     paths:
@@ -12,6 +14,13 @@ on:
       - .agents/skills/**
       - .claude/skills/**
       - .claude/hooks/**
+      - package.json
+      - apps/*/package.json
+      - packages/*/package.json
+      - apps/*/vercel.json
+      - apps/mobile/eas.json
+      - pnpm-lock.yaml
+      - pnpm-workspace.yaml
       - .github/workflows/shell-scripts.yml
 
 permissions:
