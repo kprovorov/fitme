@@ -1,4 +1,63 @@
-# Validation, 2026-11-02
+# Validation, 2026-11-15
+
+## Maintenance against current main
+
+**Outcome: in sync (model, property, bounds unchanged); SQL runner updated for an environment failure; no current-code exclusivity violation found within the stated bounds.**
+
+Audited source: `49f5c66aff5548e52cb1710f47675b1716964585`, equal to `origin/main` after `git fetch` on 2026-11-15. Previous sync: `aec8c67dcc21f6df6b0b4be43706264ae1edabf1` (147 commits). No product code, migration, property, model or bound was changed.
+
+Tools: Node 24.22.2, TLC 1.7.4 (cached jar, pinned SHA-256 unchanged), OpenJDK 27, PostgreSQL 17.11 (Homebrew).
+
+### Baseline
+
+The unchanged runner: both TLC configurations PASS (2,360 / 2,770 distinct states, queues exhausted), then the SQL replay crashed: `pg_ctl` could not start, and `postgres.log` read `FATAL: postmaster became multithreaded during startup` / `HINT: Set the LC_ALL environment variable to a valid locale.` The shell had no `LANG` or `LC_*`. This is an environment failure of the runner, not a counterexample and not a stale pass. Rerun with `LC_ALL=C` in the caller's environment: all three PASS.
+
+### Correspondence audit
+
+Read the changed lines of every covered source file since the previous sync (`git diff -w`, no truncation: `workout-sessions.ts`, `db/src/index.ts`, `db/src/client.ts`, `schema.ts`/`relations.ts` for sessions, `delete-user-data.ts`, `plans.ts`, `plan-update.ts`, `personal-records.ts`, `profile.ts`, `weekly-goals.ts`, both facades) and the full messages of the commits below:
+
+| Commit | Change and correspondence decision |
+| --- | --- |
+| `e00c3eb4`, `d43a84be`, `c0dd8ebc` — Ultracite/Oxfmt fixes | Rewrites across `workout-sessions.ts`, `db/src/index.ts`, `db/src/client.ts`, `delete-user-data.ts`, `personal-records.ts`, `profile.ts`, `weekly-goals.ts`, `plan-update.ts`, the facades and the integration tests: type-only imports, explicit `!== null` / `!== undefined` / `!== ""` checks for truthiness, `return await`, `toSorted`, a moved `lockSessionTables`, an explicit export list replacing `export *`, sequential promise chains replacing awaited loops in `initializePersonalRecords` (still awaited before its completion insert) and in `plan-update.ts` (`inSequence`, same statements in the same order; its one session write, `plan_changes_applied_at`, unchanged), `getWeeklyGoals` turned into an arrow function, `listWeeklyGoalChanges` inlining `jsonTimestamp`. `lockProfileUnits`, `recordWeeklyGoal`, `awardPersonalRecords` and `lockPersonalRecordHistory` changed only in such syntax. Read `findOpenSession`, `insertOrResume`, `startWorkoutSession`, `finishWorkoutSession`, `deleteWorkoutSession` and `inRoleTransaction` line by line: same statements, same order, same transaction boundary. The new string checks are equivalent for the values involved (uuids and timestamp text are never empty). No effect. |
+| `f0bd5762` — whole-Plan save, PR #500 | New `savePlan` path. `deleteLeftOut` deletes the Plan's left-out Workouts, whose sessions lose the link through the existing `ON DELETE SET NULL`: exactly `RemoveWorkout`, which does not release the User's key. Kept rows are updated by raw `UPDATE … FROM (VALUES …)` writing only Workout `order`, `name`, `description` (and Exercise/set fields): no session write, no Workout id change. Same modeled transition; recorded in `SKILL.md`. |
+| `1149e21d` — optional Plan details, PR #546 | Migration `20261109130000_plan_details_optional.sql` alters `plans` only; schema diff touches `plans.workoutDuration` only. No effect. |
+| `54184cda` — close the Data API, PR #544 | Migration `20261109120000_revoke_anon_table_grants.sql` revokes anon's grants on all `public` tables, `workout_sessions` included, without naming it, so the name-matching guard did not trip. Grants cannot create, reopen or reassign a session or alter the index, and RLS/authentication is excluded: no modeled effect. Recorded the guard's name-only matching as a stated limit. |
+| `45442045`, `525d7334`, `66a440ac` — Exercise history, Lifetime totals | `getExerciseHistory` and `getLifetimeTotals` only read sessions and the progress cache; new facade methods wrap them in `asUser`. No effect. |
+| `0560208e`, `c7d78700`, `3154c21c`, `86dd2aef`, `ba4c464e` — docs, glossary; `741f8f96` — mobile UI languages, which among covered files changed one `GLOSSARY.md` line | `GLOSSARY.md` reformatted to one line per term; the Workout Session promise ("at most one … open at a time") is word-for-word unchanged. ADR 0013 unchanged. |
+
+Searched every writer of `workoutSessions` / `workouts` in services and apps (builder form, raw `sql` with interpolated tables, the literal `workout_sessions`, and aliased imports such as `workoutsTable`), and compared the files naming `workoutSessions` at both commits (only `db/src/index.ts`'s new explicit export list is new): the same insert (start), update (finish claim; Plan Update's `plan_changes_applied_at`), and deletes (single session; account deletion) as at the previous sync, plus `savePlan`'s Workout deletion above; `updatePlan`'s Workout deletion is unchanged. API facade diff: start/finish/delete lines unchanged; in both API and MCP facades each is one `asUser` transaction. No new insertion, reopen or ownership-reassignment path.
+
+### Verification changes
+
+- `scripts/replay.mjs`: Postgres subprocesses get `LC_ALL=C` (matching `initdb --no-locale`), so the replay no longer depends on the caller's locale.
+- `scripts/replay.test.mjs`: new regression "SQL replay starts without an inherited locale". Before the fix all three replay tests failed on this shell with the postmaster abort; after it, 3/3 pass.
+- `SKILL.md`: sync commit, `savePlan` in the correspondence table, read-only services row, facade wording (start/finish/delete), the two new migrations and the guard's name-only limit, the locale note, and a TLC fallback for `/statechart` when `mise` is absent.
+
+### Results
+
+| Check | Outcome and result |
+| --- | --- |
+| One User, three insertion transactions, optional initial orphan | In sync: PASS, 2,360 distinct / 9,401 generated, queue exhausted |
+| Two Users, three insertion transactions, optional initial orphan | In sync: PASS, 2,770 distinct / 12,045 generated, queue exhausted |
+| Extracted actual index, isolated PostgreSQL replay | Updated runner: PASS, with no locale in the caller's environment |
+| Scratch migration with `UNIQUE` removed | Expected failure, caught by TLC and Postgres |
+| Scratch migration indexed by `workout_id` | Expected failure, caught by TLC and Postgres |
+| Unmodified source after both mutations | PASS in both TLC configs and SQL |
+| Migration-guard regressions | In sync: PASS 4/4 |
+| Replay isolation regressions | Updated: PASS 3/3 (host address, service file, no locale) |
+| Installed `/statechart` on both configs | `OneOpenPerUser` and `NoDeadlock` hold; 2,360 / 2,770 states, over the 500-state chart budget, so no chart. Needed `TLA2TOOLS` pointed at the cached jar (no `mise` here). |
+
+The two index mutations are the "can still fail" evidence: the model and property are unchanged, and both mutants still fail in TLC and reproduce two committed open sessions in Postgres.
+
+### Evidence
+
+Local temporary evidence (not permanent): final proof `/var/folders/44/gp14q5mn7zv0w9yvnpbxsymc0000gn/T/fitme-session-proof-kixP4k`, mutation logs `/var/folders/44/gp14q5mn7zv0w9yvnpbxsymc0000gn/T/fitme-session-mutations-uVagSU`, crashed baseline `/var/folders/44/gp14q5mn7zv0w9yvnpbxsymc0000gn/T/fitme-session-proof-oBKxBp`.
+
+### Remaining limits
+
+Unchanged from the previous validation. In addition, the migration guard matches only the table and index names, so a migration reaching `workout_sessions` through `ALL TABLES IN SCHEMA` or dynamic SQL passes it unseen and needs a manual review, as this one did.
+
+## Previous validation, 2026-11-02
 
 ## Maintenance against current main
 

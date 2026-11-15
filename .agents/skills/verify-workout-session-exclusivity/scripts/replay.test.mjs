@@ -41,3 +41,27 @@ for (const scenario of ["host address", "service file"]) {
     }
   });
 }
+
+// On macOS a postmaster started with no locale in its environment can abort
+// ("postmaster became multithreaded during startup"). The replay must start
+// without one from the caller.
+void test("SQL replay starts without an inherited locale", () => {
+  const out = mkdtempSync(path.join(tmpdir(), "fitme-replay-env-"));
+
+  const before = Object.fromEntries(
+    Object.entries(process.env).filter(
+      ([key]) => key === "LANG" || key.startsWith("LC_")
+    )
+  );
+
+  try {
+    for (const key of Object.keys(before)) {
+      Reflect.deleteProperty(process.env, key);
+    }
+
+    assert.equal(replay(indexSql, out), false);
+  } finally {
+    Object.assign(process.env, before);
+    rmSync(out, { recursive: true, force: true });
+  }
+});
