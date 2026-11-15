@@ -129,6 +129,14 @@ describe.each(["en", "uk"] as const)("Change Password (%s)", (language) => {
     expect(screen.getByRole("button", { name: text.submit })).toBeDisabled();
   });
 
+  it("ignores the keyboard's Go while a field is empty", async () => {
+    await fill({ current: "" });
+    await fireEvent(screen.getByLabelText(text.confirm), "submitEditing");
+
+    expect(passwordUpdates()).toEqual([]);
+    expect(screen.queryByText(text.wrongCurrent)).toBeNull();
+  });
+
   it("changes the password, signs the other sessions out and goes back", async () => {
     await fill();
     await submit();

@@ -1,8 +1,9 @@
 import { isClerkAPIResponseError, useUser } from "@clerk/expo";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { captureException } from "@sentry/react-native";
 import { router } from "expo-router";
 import type { TFunction } from "i18next";
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { ComponentRef } from "react";
 import { useController, useForm } from "react-hook-form";
 import { useTranslation } from "react-i18next";
@@ -18,6 +19,7 @@ import { ErrorMessage } from "~/components/ui/error-message";
 import { Text } from "~/components/ui/text";
 import { VStack } from "~/components/ui/vstack";
 import { useReverifiedCall } from "~/hooks/reverification";
+import { isClerkNetworkFailure } from "~/lib/clerk";
 import { PASSWORD_MIN_LENGTH } from "~/lib/constants";
 import { showToast } from "~/lib/toast";
 
@@ -66,7 +68,8 @@ const isWrongCurrentPassword = (error: unknown) => {
     parsed.data.errors.some(
       (item) =>
         item.code === "form_password_incorrect" ||
-        item.meta?.paramName === "current_password"
+        (item.code === "form_password_validation_failed" &&
+          item.meta?.paramName === "current_password")
     )
   );
 };
@@ -100,12 +103,29 @@ const ChangePasswordView = () => {
   const confirmPasswordRef = useRef<ComponentRef<typeof TextInput>>(null);
 
   const updatePassword = useReverifiedCall(
-    async (currentPassword: string, newPassword: string) =>
-      await user?.updatePassword({
+    async (currentPassword: string, newPassword: string) => {
+      // Signed out meanwhile (another tab, an account deletion): nothing to
+      // change, and never a "Password changed" for it.
+      if (!user) {
+        throw new Error("No signed-in User to change the password of");
+      }
+
+      return await user.updatePassword({
         currentPassword,
         newPassword,
         signOutOfOtherSessions: true,
-      })
+      });
+    }
+  );
+
+  // A save answering after the User has left must not pop another Screen.
+  const mounted = useRef(true);
+
+  useEffect(
+    () => () => {
+      mounted.current = false;
+    },
+    []
   );
 
   const save = useCallback(
@@ -118,7 +138,10 @@ const ChangePasswordView = () => {
         // Cancelled "Confirm it's you": nothing changed, the form stays.
         if (result.status === "done") {
           showToast(t("changePassword.success"));
-          router.back();
+
+          if (mounted.current) {
+            router.back();
+          }
         }
       } catch (error) {
         if (isWrongCurrentPassword(error)) {
@@ -130,7 +153,16 @@ const ChangePasswordView = () => {
           return;
         }
 
-        setFormError(getAuthErrorMessage(error));
+        // Clerk's own words, or the connection message; anything else is
+        // a bug, reported and shown as this Screen's own failure.
+        if (isClerkAPIResponseError(error) || isClerkNetworkFailure(error)) {
+          setFormError(getAuthErrorMessage(error));
+
+          return;
+        }
+
+        captureException(error);
+        setFormError(t("changePassword.errors.failed"));
       }
     },
     [setError, t, updatePassword]
@@ -161,38 +193,39 @@ const ChangePasswordView = () => {
     []
   );
 
-  const { onBlur: handleCurrentPasswordBlur } = currentPassword;
-  const { onBlur: handleNewPasswordBlur } = newPassword;
-  const { onBlur: handleConfirmPasswordBlur } = confirmPassword;
+  const { onBlur: handleCurrentPasswordBlur, onChange: changeCurrentPassword } =
+    currentPassword;
+
+  const { onBlur: handleNewPasswordBlur, onChange: changeNewPassword } =
+    newPassword;
+
+  const { onBlur: handleConfirmPasswordBlur, onChange: changeConfirmPassword } =
+    confirmPassword;
 
   // Typing again clears what the last save said about the form.
   const handleCurrentPasswordChange = useCallback(
     (value: string) => {
-      currentPassword.onChange(value);
+      changeCurrentPassword(value);
       clearFormError();
     },
-    [clearFormError, currentPassword]
+    [clearFormError, changeCurrentPassword]
   );
 
   const handleNewPasswordChange = useCallback(
     (value: string) => {
-      newPassword.onChange(value);
+      changeNewPassword(value);
       clearFormError();
     },
-    [clearFormError, newPassword]
+    [clearFormError, changeNewPassword]
   );
 
   const handleConfirmPasswordChange = useCallback(
     (value: string) => {
-      confirmPassword.onChange(value);
+      changeConfirmPassword(value);
       clearFormError();
     },
-    [clearFormError, confirmPassword]
+    [clearFormError, changeConfirmPassword]
   );
-
-  const handleSave = useCallback(() => {
-    void submit();
-  }, [submit]);
 
   const busy = formState.isSubmitting;
 
@@ -201,6 +234,13 @@ const ChangePasswordView = () => {
     currentPassword.value.length > 0 &&
     newPassword.value.length > 0 &&
     confirmPassword.value.length > 0;
+
+  // The keyboard's Go saves only what the button would.
+  const handleSave = () => {
+    if (filled && !busy) {
+      void submit();
+    }
+  };
 
   return (
     <AuthScreen
