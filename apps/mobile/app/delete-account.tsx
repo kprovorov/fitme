@@ -113,7 +113,7 @@ const DeleteAccountSheet = () => {
         testID="delete-account-sheet"
       >
         <AndroidGrabber />
-        <View className="gap-sm px-sm pt-md pb-sm">
+        <View className="gap-sm px-sm pt-md pb-2">
           <View className="gap-xs px-xs">
             <Text
               accessibilityRole="header"
