@@ -11,7 +11,7 @@
 # The version stays app.json's 0.0.0 placeholder, which the minimum version gate
 # never blocks.
 #
-# Needs: Xcode, CocoaPods, fastlane, Node 24 and `eas login`. EAS injects the
+# Needs: Xcode, CocoaPods, fastlane, Node 26 and `eas login`. EAS injects the
 # `preview` environment's EXPO_PUBLIC_* variables (Public visibility). Its
 # SENTRY_AUTH_TOKEN is Secret, which local builds don't get, so the source map
 # upload is skipped: no prod secret is needed.
