@@ -16,8 +16,6 @@ export * from "./personal-records";
 
 export * from "./training-progress";
 
-export type * from "./types";
-
 export * from "./utils";
 
 export * from "./weekly-goals";
