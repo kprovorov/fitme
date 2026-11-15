@@ -70,7 +70,7 @@ appId: com.fitmeproject.ios
 
 # Each field opens a wheel at the bottom; scroll it to set a value
 - tapOn:
-    text: "Age.*"
+    id: "profile-age-field"
 - waitForAnimationToEnd
 - swipe:
     start: "50%,87%"
@@ -79,7 +79,7 @@ appId: com.fitmeproject.ios
 - waitForAnimationToEnd
 
 - tapOn:
-    text: "Weight.*"
+    id: "profile-weight-field"
 - waitForAnimationToEnd
 - swipe:
     start: "50%,80%"
@@ -88,7 +88,7 @@ appId: com.fitmeproject.ios
 - waitForAnimationToEnd
 
 - tapOn:
-    text: "Height.*"
+    id: "profile-height-field"
 - waitForAnimationToEnd
 - swipe:
     start: "50%,80%"

@@ -253,6 +253,9 @@ let deleted = false;
 let calls: ClerkCall[] = [];
 let failures = new Map<ClerkMethod, ClerkFailure[]>();
 let holds = new Map<ClerkMethod, Promise<void>[]>();
+
+/** Releases every held call, so a test that leaves one held hangs nothing. */
+let releaseHolds: (() => void)[] = [];
 let needsReverification: string | null = null;
 let reverifications: readonly PendingReverification[] = [];
 let uploads = 0;
@@ -835,6 +838,7 @@ export const fakeClerk = {
     });
 
     holds.set(method, [...(holds.get(method) ?? []), held]);
+    releaseHolds = [...releaseHolds, release];
 
     return release;
   },
@@ -853,6 +857,12 @@ export const fakeClerk = {
     calls = [];
     failures = new Map();
     holds = new Map();
+
+    for (const release of releaseHolds) {
+      release();
+    }
+
+    releaseHolds = [];
     needsReverification = null;
     reverifications = [];
     uploads = 0;

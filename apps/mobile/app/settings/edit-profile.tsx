@@ -22,6 +22,7 @@ import { useUpdateProfileMutation } from "~/hooks/mutations/profiles";
 import { useProfileQuery } from "~/hooks/queries/profiles";
 import { i18n } from "~/lib/i18n";
 import { genderOf, measurementSystemOf } from "~/lib/profile";
+import { getProfileHeader } from "~/lib/user-name";
 
 const useDeviceMeasurementSystem = (): MeasurementSystem => {
   const locales = useLocales();
@@ -39,14 +40,17 @@ const clerkNames = (
  * one of their own); changing it is the Profile Photo sheet's.
  */
 const ProfilePhoto = ({
+  email,
   fullName,
   imageUrl,
 }: {
+  email: string | undefined;
   fullName: string | null;
   imageUrl: string;
 }) => {
   const { t } = useTranslation(undefined, { i18n });
-  const initial = (fullName ?? "").trim().charAt(0).toUpperCase();
+  // The Profile screen's initial: the name's, or the email's without one.
+  const { initial } = getProfileHeader({ email, fullName });
 
   return (
     <View className="items-center pt-2 pb-2">
@@ -199,7 +203,11 @@ const EditProfileScreen = () => {
             )
           }
           heading={
-            <ProfilePhoto fullName={user.fullName} imageUrl={user.imageUrl} />
+            <ProfilePhoto
+              email={user.primaryEmailAddress?.emailAddress}
+              fullName={user.fullName}
+              imageUrl={user.imageUrl}
+            />
           }
           isSubmitting={isPending}
           layout="fields"

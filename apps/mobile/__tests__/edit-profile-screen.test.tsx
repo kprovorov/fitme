@@ -772,18 +772,25 @@ describe("editProfileScreen on a Ukrainian device", () => {
     await mountInUkrainian();
 
     for (const text of [
-      "Ім’я",
-      "Прізвище",
       "Стать",
-      "Вік",
       "32 роки",
-      "Вага",
       "62,5 кг",
-      "Зріст",
       "170,5 см",
       "Зберегти",
     ]) {
       expect(screen.getByText(text)).toBeTruthy();
+    }
+
+    // Each field carries its own name for VoiceOver; the label above it is
+    // only seen.
+    expect(screen.getByLabelText("Ім’я")).toHaveDisplayValue("Тарас");
+    expect(screen.getByLabelText("Прізвище")).toHaveDisplayValue("Шевченко");
+
+    for (const name of ["Вік", "Вага", "Зріст"]) {
+      expect(screen.getByRole("button", { name })).toBeTruthy();
+      expect(
+        screen.getByText(name, { includeHiddenElements: true })
+      ).toBeTruthy();
     }
 
     expect(screen.getByLabelText("Жінка")).toBeTruthy();

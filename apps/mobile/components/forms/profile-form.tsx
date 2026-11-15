@@ -35,12 +35,7 @@ import {
   Text as NativeText,
   View,
 } from "react-native";
-import type {
-  NativeScrollEvent,
-  NativeSyntheticEvent,
-  ScrollViewInstance,
-  ViewInstance,
-} from "react-native";
+import type { ScrollViewInstance, ViewInstance } from "react-native";
 import Animated, {
   useAnimatedStyle,
   withTiming,
@@ -86,6 +81,9 @@ const WHEEL_HEIGHT = 200;
 
 /** Long enough for the wheel's drawer (150 ms) to have opened. */
 const WHEEL_SETTLED_MS = 200;
+
+/** Long enough for an error under a field to have laid out. */
+const ERROR_SETTLED_MS = 50;
 
 /** Space kept between a revealed field and the Save bar. */
 const REVEAL_MARGIN = 16;
@@ -319,7 +317,10 @@ const ParameterField = ({
 
   return (
     <View className="flex flex-col items-stretch gap-2" ref={handleRef}>
-      <Label>{label}</Label>
+      {/* The field below carries this name for VoiceOver. */}
+      <Label accessibilityElementsHidden importantForAccessibility="no">
+        {label}
+      </Label>
       <Pressable
         accessibilityHint={error}
         accessibilityLabel={label}
@@ -358,13 +359,13 @@ interface NameFieldProps {
 const NAME_FIELDS = {
   firstName: {
     autoComplete: "given-name",
-    label: "profileForm.firstName",
+    labelKey: "profileForm.firstName",
     testID: "edit-profile-first-name-input",
     textContentType: "givenName",
   },
   lastName: {
     autoComplete: "family-name",
-    label: "profileForm.lastName",
+    labelKey: "profileForm.lastName",
     testID: "edit-profile-last-name-input",
     textContentType: "familyName",
   },
@@ -373,7 +374,10 @@ const NAME_FIELDS = {
 /** First Name or Last Name under its label, with its error under it. */
 const NameField = ({ control, disabled, name, onFocus }: NameFieldProps) => {
   const { t } = useTranslation();
-  const { autoComplete, label, testID, textContentType } = NAME_FIELDS[name];
+
+  const { autoComplete, labelKey, testID, textContentType } = NAME_FIELDS[name];
+
+  const label = t(labelKey);
 
   const {
     field: { onBlur, onChange, value },
@@ -382,9 +386,12 @@ const NameField = ({ control, disabled, name, onFocus }: NameFieldProps) => {
 
   return (
     <View className="flex flex-col items-stretch justify-center gap-2">
-      <Label>{t(label)}</Label>
+      {/* The field below carries this name for VoiceOver. */}
+      <Label accessibilityElementsHidden importantForAccessibility="no">
+        {label}
+      </Label>
       <Input
-        accessibilityLabel={t(label)}
+        accessibilityLabel={label}
         autoCapitalize="words"
         autoComplete={autoComplete}
         editable={!disabled}
@@ -393,7 +400,7 @@ const NameField = ({ control, disabled, name, onFocus }: NameFieldProps) => {
         onBlur={onBlur}
         onChangeText={onChange}
         onFocus={onFocus}
-        placeholder={t(label)}
+        placeholder={label}
         testID={testID}
         textContentType={textContentType}
         value={value}
@@ -699,9 +706,13 @@ const useParameterTexts = (
 
 /**
  * Scrolls a labelled field up until all of it (its error included) shows
- * above the Save bar, both measured where they are on screen (`fields`
- * layout); otherwise, to the end of the form. The form hands it each field's
- * view, the Save bar's and its scroll events.
+ * above the Save bar (`fields` layout); otherwise, to the end of the form.
+ * Everything is measured where it is on screen: the field, the Save bar, the
+ * scroll view's frame (`viewportRef`, a plain View around it) and the form's
+ * content (`contentRef`), whose distance from that frame is how far the form
+ * is scrolled, the header's inset included. `revealField(field, delayMs)`
+ * waits for the layout to settle first, and a newer reveal or leaving the
+ * Screen cancels one still waiting.
  */
 const useRevealField = (
   layout: "fields" | "rows",
@@ -712,7 +723,18 @@ const useRevealField = (
   );
 
   const footerRef = useRef<ViewInstance>(null);
-  const scrollOffset = useRef(0);
+  const viewportRef = useRef<ViewInstance>(null);
+  const contentRef = useRef<ViewInstance>(null);
+  const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(
+    () => () => {
+      if (timer.current) {
+        clearTimeout(timer.current);
+      }
+    },
+    []
+  );
 
   const handleFieldView = useCallback(
     (field: ProfileField, view: ViewInstance | null) => {
@@ -721,42 +743,56 @@ const useRevealField = (
     []
   );
 
-  const handleScroll = useCallback(
-    ({ nativeEvent }: NativeSyntheticEvent<NativeScrollEvent>) => {
-      scrollOffset.current = nativeEvent.contentOffset.y;
-    },
-    []
-  );
-
-  const revealField = useCallback(
+  const reveal = useCallback(
     (field?: ProfileField) => {
       const view = field ? fieldViews.current[field] : undefined;
       const footer = footerRef.current;
+      const viewport = viewportRef.current;
+      const content = contentRef.current;
       const scrollView = scrollViewRef.current;
 
-      if (layout !== "fields" || !view || !footer || !scrollView) {
+      if (layout !== "fields" || !view || !footer || !viewport || !content) {
         scrollView?.scrollToEnd({ animated: true });
 
         return;
       }
 
-      footer.measureInWindow((_x, footerTop) => {
-        view.measureInWindow((_fieldX, fieldTop, _width, fieldHeight) => {
-          const overflow = fieldTop + fieldHeight + REVEAL_MARGIN - footerTop;
+      viewport.measureInWindow((_x, viewportTop) => {
+        content.measureInWindow((_contentX, contentTop) => {
+          footer.measureInWindow((_footerX, footerTop) => {
+            view.measureInWindow((_fieldX, fieldTop, _width, fieldHeight) => {
+              const overflow =
+                fieldTop + fieldHeight + REVEAL_MARGIN - footerTop;
 
-          if (overflow > 0) {
-            scrollView.scrollTo({
-              animated: true,
-              y: scrollOffset.current + overflow,
+              if (overflow > 0) {
+                scrollView?.scrollTo({
+                  animated: true,
+                  y: viewportTop - contentTop + overflow,
+                });
+              }
             });
-          }
+          });
         });
       });
     },
     [layout, scrollViewRef]
   );
 
-  return { footerRef, handleFieldView, handleScroll, revealField };
+  const revealField = useCallback(
+    (field: ProfileField | undefined, delayMs: number) => {
+      if (timer.current) {
+        clearTimeout(timer.current);
+      }
+
+      timer.current = setTimeout(() => {
+        timer.current = null;
+        reveal(field);
+      }, delayMs);
+    },
+    [reveal]
+  );
+
+  return { contentRef, footerRef, handleFieldView, revealField, viewportRef };
 };
 
 const ProfileForm = ({
@@ -801,7 +837,7 @@ const ProfileForm = ({
     height: withTiming(showWheel ? WHEEL_HEIGHT : 0, { duration: 150 }),
   }));
 
-  const { footerRef, handleFieldView, handleScroll, revealField } =
+  const { contentRef, footerRef, handleFieldView, revealField, viewportRef } =
     useRevealField(layout, scrollViewRef);
 
   const toggleWheel = useCallback(
@@ -811,7 +847,7 @@ const ProfileForm = ({
 
       if (next) {
         // Once the wheel has opened and the scroll view has shrunk for it.
-        setTimeout(() => revealField(field), WHEEL_SETTLED_MS);
+        revealField(field, WHEEL_SETTLED_MS);
       }
     },
     [revealField, showWheel]
@@ -893,82 +929,83 @@ const ProfileForm = ({
               : [],
         }}
       />
-      <ScrollView
-        contentInsetAdjustmentBehavior="automatic"
-        keyboardShouldPersistTaps="handled"
-        onScroll={handleScroll}
-        ref={scrollViewRef}
-        scrollEventThrottle={16}
-        showsVerticalScrollIndicator={false}
-      >
-        {/* Tap-outside-to-dismiss only; keep the fields individually accessible */}
-        <Pressable
-          accessible={false}
-          onPress={handleBackgroundPress}
-          className="w-full flex-1"
+      <View className="flex-1" ref={viewportRef}>
+        <ScrollView
+          contentInsetAdjustmentBehavior="automatic"
+          keyboardShouldPersistTaps="handled"
+          ref={scrollViewRef}
+          showsVerticalScrollIndicator={false}
         >
-          <View
-            className={cn(
-              "flex flex-col items-stretch justify-center",
-              isFields ? "gap-sm p-sm" : "gap-8 p-6"
-            )}
+          {/* Tap-outside-to-dismiss only; keep the fields individually accessible */}
+          <Pressable
+            accessible={false}
+            onPress={handleBackgroundPress}
+            className="w-full flex-1"
           >
-            {heading}
+            <View
+              className={cn(
+                "flex flex-col items-stretch justify-center",
+                isFields ? "gap-sm p-sm" : "gap-8 p-6"
+              )}
+              ref={contentRef}
+            >
+              {heading}
 
-            {showNames ? (
-              <>
-                <NameField
-                  control={form.control}
-                  disabled={isFormSubmitting}
-                  name="firstName"
-                  onFocus={handleNameFocus}
-                />
-                <NameField
-                  control={form.control}
-                  disabled={isFormSubmitting}
-                  name="lastName"
-                  onFocus={handleNameFocus}
-                />
-              </>
-            ) : null}
+              {showNames ? (
+                <>
+                  <NameField
+                    control={form.control}
+                    disabled={isFormSubmitting}
+                    name="firstName"
+                    onFocus={handleNameFocus}
+                  />
+                  <NameField
+                    control={form.control}
+                    disabled={isFormSubmitting}
+                    name="lastName"
+                    onFocus={handleNameFocus}
+                  />
+                </>
+              ) : null}
 
-            <View className="flex flex-col items-stretch justify-center gap-2">
-              <View className="flex flex-col items-start justify-start gap-0">
-                {isFields ? (
-                  <Label>{t("profileForm.gender")}</Label>
-                ) : (
-                  <H4>{t("profileForm.gender")}</H4>
-                )}
-                {!isFields && form.formState.errors.gender ? (
+              <View className="flex flex-col items-stretch justify-center gap-2">
+                <View className="flex flex-col items-start justify-start gap-0">
+                  {isFields ? (
+                    <Label>{t("profileForm.gender")}</Label>
+                  ) : (
+                    <H4>{t("profileForm.gender")}</H4>
+                  )}
+                  {!isFields && form.formState.errors.gender ? (
+                    <ErrorMessage>
+                      {form.formState.errors.gender.message}
+                    </ErrorMessage>
+                  ) : null}
+                </View>
+
+                <Controller
+                  control={form.control}
+                  name="gender"
+                  render={renderGenderField}
+                />
+
+                {isFields && form.formState.errors.gender ? (
                   <ErrorMessage>
                     {form.formState.errors.gender.message}
                   </ErrorMessage>
                 ) : null}
               </View>
 
-              <Controller
-                control={form.control}
-                name="gender"
-                render={renderGenderField}
-              />
+              {isFields ? (
+                <ParameterFields {...parameters} />
+              ) : (
+                <ParameterRows {...parameters} />
+              )}
 
-              {isFields && form.formState.errors.gender ? (
-                <ErrorMessage>
-                  {form.formState.errors.gender.message}
-                </ErrorMessage>
-              ) : null}
+              {footer}
             </View>
-
-            {isFields ? (
-              <ParameterFields {...parameters} />
-            ) : (
-              <ParameterRows {...parameters} />
-            )}
-
-            {footer}
-          </View>
-        </Pressable>
-      </ScrollView>
+          </Pressable>
+        </ScrollView>
+      </View>
 
       <ScopedVariables
         variables={{ "--profile-footer-bottom": Math.max(24, insets.bottom) }}
@@ -994,7 +1031,7 @@ const ProfileForm = ({
 
                 if (field && isFields) {
                   // Once the error under it has laid out.
-                  setTimeout(() => revealField(field), 50);
+                  revealField(field, ERROR_SETTLED_MS);
                 }
               })();
             }}
