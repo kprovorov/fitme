@@ -24,10 +24,10 @@ import { Uniwind } from "uniwind";
 
 import MinimumVersionGate from "~/components/minimum-version-gate";
 import Providers from "~/components/providers";
-import { Toaster } from "~/components/ui/toast";
+import { GLASS_ENABLED } from "~/components/ui/swift-ui";
 
 import "../global.css";
-import { GLASS_ENABLED } from "~/components/ui/swift-ui";
+import { Toaster } from "~/components/ui/toast";
 import { PlanUpdateSheetHost } from "~/components/workout-sessions/plan-update-sheet";
 import { SCROLL_EDGE_EFFECTS } from "~/lib/constants";
 // Starts the translations in the App language before anything renders.
