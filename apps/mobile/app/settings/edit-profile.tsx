@@ -42,10 +42,13 @@ const clerkNames = (
  * remounts the image, so one that failed to load before is tried again.
  */
 const ProfilePhoto = ({
+  disabled,
   email,
   fullName,
   imageUrl,
 }: {
+  /** While the form saves: its `router.back()` would close the sheet instead. */
+  disabled: boolean;
   email: string | undefined;
   fullName: string | null;
   imageUrl: string;
@@ -61,7 +64,9 @@ const ProfilePhoto = ({
       <Pressable
         accessibilityLabel={t("profilePhoto.buttonLabel")}
         accessibilityRole="button"
-        className="items-center gap-2 active:opacity-80"
+        accessibilityState={{ disabled }}
+        className="items-center gap-3 active:opacity-80"
+        disabled={disabled}
         onPress={openSheet}
         testID="edit-profile-photo-button"
       >
@@ -223,6 +228,7 @@ const EditProfileScreen = () => {
           }
           heading={
             <ProfilePhoto
+              disabled={isPending}
               email={user.primaryEmailAddress?.emailAddress}
               fullName={user.fullName}
               imageUrl={user.imageUrl}

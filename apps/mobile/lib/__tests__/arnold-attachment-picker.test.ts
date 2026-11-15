@@ -403,15 +403,15 @@ describe("takePhoto", () => {
 
 /** The decode bounds a Profile photo is loaded within. */
 const PROFILE_DECODE_BOUNDS = {
-  maxHeight: PROFILE_PHOTO_EDGE,
-  maxWidth: PROFILE_PHOTO_EDGE,
+  maxHeight: PROFILE_PHOTO_EDGE * 2,
+  maxWidth: PROFILE_PHOTO_EDGE * 2,
 };
 
 /** The system's square crop, which both Profile photo picks open with. */
 const SQUARE_CROP = { allowsEditing: true, aspect: [1, 1] };
 
 describe("cropToSquareJpeg", () => {
-  it("keeps the centre square of a wide photo, as a JPEG", async () => {
+  it("keeps the centre square of a small wide photo, as a JPEG", async () => {
     mockDecoded.set("file:///wide.heic", { height: 768, width: 1024 });
 
     const image = await cropToSquareJpeg("file:///wide.heic");
@@ -441,11 +441,14 @@ describe("cropToSquareJpeg", () => {
     ]);
   });
 
-  it("brings a square the decode bounds left larger down to 1024 px", async () => {
-    mockDecoded.set("file:///huge.png", { height: 3000, width: 3000 });
+  it("crops a 4:3 photo decoded within the bounds, then brings it down to 1024 px", async () => {
+    mockDecoded.set("file:///photo.heic", { height: 1536, width: 2048 });
 
-    const image = await cropToSquareJpeg("file:///huge.png");
+    const image = await cropToSquareJpeg("file:///photo.heic");
 
+    expect(mockCrops).toEqual([
+      { height: 1536, originX: 256, originY: 0, width: 1536 },
+    ]);
     expect(mockResizes).toEqual([
       { height: PROFILE_PHOTO_EDGE, width: PROFILE_PHOTO_EDGE },
     ]);

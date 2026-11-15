@@ -3,7 +3,7 @@
  * picker, the re-encoding every picked image goes through, and reading the
  * JPEG back as the `data:` URL a send carries (ADR 0018). The Profile photo
  * comes from here too: the same camera and picker, cropped square and
- * re-encoded the same way before Edit Profile uploads it. It is the only
+ * re-encoded the same way before the Profile Photo sheet uploads it. It is the only
  * module importing `expo-image-picker`, `expo-image-manipulator` and
  * `expo-file-system`, so a screen test stands this one module in and never
  * touches a native module, the camera permission included.
@@ -221,9 +221,13 @@ export const takePhoto = (): Promise<CameraPhoto> =>
 /** The side of a Profile photo, in pixels: Clerk shows it at most this big. */
 export const PROFILE_PHOTO_EDGE = 1024;
 
+/** The box a Profile photo is decoded within, before its square is cut. */
+const PROFILE_PHOTO_DECODE_BOUND = PROFILE_PHOTO_EDGE * 2;
+
 /**
  * Re-encodes the image at `uri` as a square JPEG of at most
  * `PROFILE_PHOTO_EDGE` a side, its centre kept, in the cache directory.
+ * The decode is bounded like an Attachment's, at twice the edge.
  *
  * The system's crop UI already answers a square, but not always to the
  * pixel, so the square is made here. Decoding from the pixels drops every
@@ -231,11 +235,12 @@ export const PROFILE_PHOTO_EDGE = 1024;
  * Clerk gets says nothing about where it was taken.
  */
 export const cropToSquareJpeg = async (uri: string): Promise<PickedImage> => {
-  // Decoded within the bounds, so a 12 MP photo never reaches memory in
-  // full; its shorter side is then the square's.
+  // Decoded within twice the edge, so a 12 MP photo never reaches memory in
+  // full, yet a 4:3 or 16:9 one still has a shorter side past the edge to
+  // crop the square from.
   const context = ImageManipulator.manipulate(uri, {
-    maxHeight: PROFILE_PHOTO_EDGE,
-    maxWidth: PROFILE_PHOTO_EDGE,
+    maxHeight: PROFILE_PHOTO_DECODE_BOUND,
+    maxWidth: PROFILE_PHOTO_DECODE_BOUND,
   });
 
   const decoded = await context.renderAsync();
@@ -248,8 +253,8 @@ export const cropToSquareJpeg = async (uri: string): Promise<PickedImage> => {
     width: side,
   });
 
-  // Only when the decode bounds left it larger than asked: resizing a
-  // square already under them would blow it up again.
+  // Only when the square is larger than asked: resizing one already under
+  // the edge would blow it up.
   const squared = await (
     side > PROFILE_PHOTO_EDGE
       ? cropped.resize({

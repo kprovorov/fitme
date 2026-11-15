@@ -62,8 +62,10 @@ const ProfilePhotoSheet = () => {
   /** Uploads the picked photo as the User's, then closes the sheet. */
   const upload = useCallback(
     async (image: PickedImage) => {
+      // Signed out while the picker was up: there's no one to upload for,
+      // which the caller says as the failed upload it is.
       if (!user) {
-        return;
+        throw new Error("No signed-in User to upload the Profile photo for");
       }
 
       await user.setProfileImage({
@@ -156,6 +158,9 @@ const ProfilePhotoSheet = () => {
     >
       <Stack.Screen
         options={{
+          // Never swiped away mid-upload: its `router.back()` would then pop
+          // Edit Profile instead.
+          gestureEnabled: !isBusy,
           headerTitleStyle: {
             fontFamily: "NunitoSans-Bold",
             fontWeight: "bold",
@@ -171,7 +176,7 @@ const ProfilePhotoSheet = () => {
         )}
       >
         <AndroidGrabber />
-        <View className="px-md pb-md gap-3 pt-2">
+        <View className="px-md gap-3 pt-2 pb-2">
           <Button
             disabled={isBusy}
             isLoading={busy === "library"}
