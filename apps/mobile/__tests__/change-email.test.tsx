@@ -29,7 +29,11 @@ import ConfirmIdentityScreen from "~/app/confirm-identity";
 import { Toaster } from "~/components/ui/toast";
 import { getClerk } from "~/lib/clerk";
 import { setDeviceLanguages } from "~/test-utils/device-locales";
-import { FAKE_VERIFICATION_CODE, fakeClerk } from "~/test-utils/fake-clerk";
+import {
+  FAKE_PASSWORD,
+  FAKE_VERIFICATION_CODE,
+  fakeClerk,
+} from "~/test-utils/fake-clerk";
 import { InAppLanguage } from "~/test-utils/in-app-language";
 import {
   dismissedToRoute,
@@ -75,11 +79,13 @@ const STRINGS = {
   en: {
     cancel: "Cancel",
     changeIt: "Change it",
+    continue: "Continue",
     code: "Code",
     email: "Email",
     emailInUse: "Email in use",
     heading: "Change your email",
     newEmail: "New email",
+    password: "Password",
     resend: "Resend code",
     resent: "We sent you a new code.",
     sendCode: "Send Code",
@@ -91,11 +97,13 @@ const STRINGS = {
   uk: {
     cancel: "Скасувати",
     changeIt: "Змінити",
+    continue: "Продовжити",
     code: "Код",
     email: "Ел. пошта",
     emailInUse: "Ця адреса вже використовується",
     heading: "Зміни ел. пошту",
     newEmail: "Нова ел. пошта",
+    password: "Пароль",
     resend: "Надіслати код ще раз",
     resent: "Ми надіслали вам новий код.",
     sendCode: "Надіслати код",
@@ -282,6 +290,62 @@ describe.each(["en", "uk"] as const)("Change Email (%s)", (language) => {
     expect(methods().filter((m) => m === "destroyEmailAddress")).toHaveLength(
       1
     );
+  });
+
+  it("asks Confirm it's you before Change it takes a stale session's address off", async () => {
+    await reachCodeScreen();
+    fakeClerk.requireReverification();
+
+    await fireEvent.press(screen.getByRole("link", { name: text.changeIt }));
+    await expect(
+      screen.findByRole("button", { name: text.cancel })
+    ).resolves.toBeOnTheScreen();
+    await fireEvent.press(screen.getByRole("button", { name: text.cancel }));
+
+    // Cancelled: still on the code screen, the address still there.
+    await waitFor(() =>
+      expect(pushedRoutes().map(({ pathname }) => pathname)).toEqual([
+        "/change-email",
+        "/change-email/verify-code",
+      ])
+    );
+    expect(addresses()).toHaveLength(2);
+    expect(methods()).not.toContain("destroyEmailAddress");
+
+    // Confirmed: taken off, back on the form.
+    fakeClerk.requireReverification();
+    await fireEvent.press(screen.getByRole("link", { name: text.changeIt }));
+    await fireEvent.changeText(
+      await screen.findByLabelText(text.password),
+      FAKE_PASSWORD
+    );
+    await fireEvent.press(screen.getByRole("button", { name: text.continue }));
+
+    await waitFor(() =>
+      expect(addresses()).toEqual([{ emailAddress: OLD_EMAIL, primary: true }])
+    );
+    expect(pushedRoutes().map(({ pathname }) => pathname)).toEqual([
+      "/change-email",
+    ]);
+  });
+
+  it("opens nothing, and keeps nothing, for a form left while its code was on the way", async () => {
+    const release = fakeClerk.holdNext("prepareEmailVerification");
+    await openForm();
+    await sendCodeTo(NEW_EMAIL);
+
+    await act(() => {
+      stubRouter.back();
+    });
+    await act(() => {
+      release();
+    });
+    await flushTimers();
+
+    await waitFor(() =>
+      expect(addresses()).toEqual([{ emailAddress: OLD_EMAIL, primary: true }])
+    );
+    expect(pushedRoutes()).toEqual([]);
   });
 
   it("adds nothing when the User cancels Confirm it's you", async () => {

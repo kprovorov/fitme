@@ -1,6 +1,6 @@
 import { isClerkAPIResponseError, useUser } from "@clerk/expo";
 import { useRouter } from "expo-router";
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { View } from "react-native";
 import { z } from "zod";
@@ -12,6 +12,7 @@ import { Button } from "~/components/ui/button";
 import { ErrorMessage } from "~/components/ui/error-message";
 import { Input } from "~/components/ui/input";
 import { useReverifiedCall } from "~/hooks/reverification";
+import { dropUnusedEmailAddress } from "~/lib/email-addresses";
 
 /** Clerk's answer for an address another account (or this one) already has. */
 const EMAIL_IN_USE_CODES = new Set([
@@ -106,6 +107,16 @@ const ChangeEmailView = () => {
   const [email, setEmail] = useState("");
   const [failure, setFailure] = useState<Failure | null>(null);
   const [sending, setSending] = useState(false);
+  // Whether the form is still on screen: a code asked for by a form the
+  // User has left opens nothing.
+  const mounted = useRef(true);
+  useEffect(() => {
+    mounted.current = true;
+
+    return () => {
+      mounted.current = false;
+    };
+  }, []);
 
   const addEmail = useReverifiedCall(
     async (address: string): Promise<AddedAddress | undefined> =>
@@ -159,6 +170,15 @@ const ChangeEmailView = () => {
     setSending(true);
     setFailure(null);
     const outcome = await requestCode(() => addressFor(address));
+
+    if (!mounted.current) {
+      if (outcome.status === "sent") {
+        await dropUnusedEmailAddress(outcome.id);
+      }
+
+      return;
+    }
+
     setSending(false);
 
     if (outcome.status === "sent") {

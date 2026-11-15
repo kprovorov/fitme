@@ -20,8 +20,9 @@ import { ErrorMessage } from "~/components/ui/error-message";
 import { Text } from "~/components/ui/text";
 import { isWrongCodeError } from "~/hooks/confirm-identity";
 import { useReverifiedCall } from "~/hooks/reverification";
-import { getClerk, isClerkNetworkFailure } from "~/lib/clerk";
+import { isClerkNetworkFailure } from "~/lib/clerk";
 import { IS_E2E } from "~/lib/constants";
+import { dropUnusedEmailAddress } from "~/lib/email-addresses";
 import { segmentClient } from "~/lib/segment";
 import { showToast } from "~/lib/toast";
 
@@ -32,7 +33,9 @@ interface CodeVerification {
   email: string | null;
   id: string | null;
   resend: () => Promise<string | undefined>;
+  /** `cancelled`: the User backed out of "Confirm it's you"; stay put. */
   reset: () => Promise<{
+    cancelled?: boolean;
     error: unknown;
   }>;
   verify: (code: string, current: () => boolean) => Promise<string | undefined>;
@@ -184,29 +187,6 @@ const useSignInVerification = (
 const ACCOUNT_SECURITY_ROUTE = "/account-security";
 
 /**
- * Takes an email address the User added but never made primary back off
- * their account: one they left before verifying, or one whose swap never
- * happened. The primary address is never touched. A failure is reported,
- * not shown: the User has already left.
- */
-const dropUnusedEmailAddress = async (emailAddressId: string) => {
-  const { user } = getClerk();
-  const address = user?.emailAddresses.find(({ id }) => id === emailAddressId);
-
-  if (!(user && address) || user.primaryEmailAddressId === emailAddressId) {
-    return;
-  }
-
-  try {
-    await address.destroy();
-  } catch (error) {
-    if (!isClerkNetworkFailure(error)) {
-      captureException(error);
-    }
-  }
-};
-
-/**
  * Change Email's code step (`purpose=change-email`): the code went to the
  * address the User is adding (`emailAddressId`). Once Clerk verifies it, it
  * becomes the primary address (through "Confirm it's you" when Clerk asks)
@@ -222,6 +202,13 @@ const useChangeEmailVerification = (
   const { t } = useTranslation();
   const settled = useRef(false);
   const address = user?.emailAddresses.find(({ id }) => id === emailAddressId);
+
+  // Removing an email address is a sensitive action too: "Change it" asks
+  // "Confirm it's you" when the session has gone stale on this Screen.
+  const removeAddress = useReverifiedCall(
+    async (target: { destroy: () => Promise<unknown> }) =>
+      await target.destroy()
+  );
 
   const makePrimary = useReverifiedCall(
     async (id: string) => await user?.update({ primaryEmailAddressId: id })
@@ -258,7 +245,14 @@ const useChangeEmailVerification = (
     },
     reset: async () => {
       try {
-        await address?.destroy();
+        if (address) {
+          const removed = await removeAddress(address);
+
+          if (removed.status === "cancelled") {
+            return { cancelled: true, error: null };
+          }
+        }
+
         // Taken off: leaving the Screen has nothing left to drop.
         settled.current = true;
 
@@ -369,9 +363,9 @@ const CodeVerificationContent = ({
   const restart = useCallback(
     () =>
       operation.run("restart", async (current) => {
-        const { error } = await flow.reset();
+        const { cancelled, error } = await flow.reset();
 
-        if (!current()) {
+        if (!current() || cancelled) {
           return;
         }
 
