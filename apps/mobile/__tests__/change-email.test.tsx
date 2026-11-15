@@ -277,6 +277,44 @@ describe.each(["en", "uk"] as const)("Change Email (%s)", (language) => {
     ]);
   });
 
+  it("keeps the User on the screen while the old address can't be removed", async () => {
+    await reachCodeScreen();
+    fakeClerk.failNext("destroyEmailAddress", "network");
+    await enterCode(FAKE_VERIFICATION_CODE);
+    await expect(screen.findByText(text.failed)).resolves.toBeOnTheScreen();
+
+    // Still failing: back keeps the User here, told why.
+    fakeClerk.failNext("destroyEmailAddress", "network");
+    await act(() => {
+      stubRouter.back();
+    });
+
+    await waitFor(() =>
+      expect(screen.getAllByText(text.failed).length).toBeGreaterThan(1)
+    );
+    expect(pushedRoutes().map(({ pathname }) => pathname)).toEqual([
+      "/change-email",
+      "/change-email/verify-code",
+    ]);
+    expect(addresses()).toHaveLength(2);
+  });
+
+  it("takes the old address off on Change it after a failed removal", async () => {
+    await reachCodeScreen();
+    fakeClerk.failNext("destroyEmailAddress", "network");
+    await enterCode(FAKE_VERIFICATION_CODE);
+    await expect(screen.findByText(text.failed)).resolves.toBeOnTheScreen();
+
+    await fireEvent.press(screen.getByRole("link", { name: text.changeIt }));
+
+    await waitFor(() =>
+      expect(addresses()).toEqual([{ emailAddress: NEW_EMAIL, primary: true }])
+    );
+    expect(pushedRoutes().map(({ pathname }) => pathname)).toEqual([
+      "/change-email",
+    ]);
+  });
+
   it("shows Email in use on the form for a taken address", async () => {
     fakeClerk.failNext("createEmailAddress", {
       code: "form_identifier_exists",

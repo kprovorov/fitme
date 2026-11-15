@@ -264,11 +264,19 @@ const useChangeEmailVerification = (
     guarded: !!address && (!isPrimary || !!oldAddress),
     id: address?.id ?? null,
     leave: async () => {
-      // Whichever address the change would leave behind: the new one before
-      // the swap, the old one after it.
-      const target = isPrimary ? oldAddress : address;
+      // Whichever address the change would leave behind, as Clerk has the
+      // account now (a render can lag a removal that just landed): the new
+      // one before the swap, the old one after it.
+      const current = getClerk().user;
+      const swapped = current?.primaryEmailAddressId === emailAddressId;
 
-      if (!target || (settled.current && !isPrimary)) {
+      const target = current?.emailAddresses.find(({ id }) =>
+        swapped
+          ? id === previousId && id !== emailAddressId
+          : id === emailAddressId
+      );
+
+      if (!target || (settled.current && !swapped)) {
         return false;
       }
 
@@ -281,11 +289,21 @@ const useChangeEmailVerification = (
 
         settled.current = true;
       } catch (error) {
-        // Never trap the User on the Screen: the unmount fallback tries
-        // again, and a failure is reported there.
         if (!isClerkNetworkFailure(error)) {
           captureException(error);
         }
+
+        // After the swap the old address must go before the User does: once
+        // the Screen is gone, nothing knows it's left over, and it could
+        // still get a reset code. So they stay, told why, and try again.
+        if (swapped) {
+          showToast(t("changeEmail.errors.failed"));
+
+          return true;
+        }
+
+        // Before it, the new address is unverified and harmless: the User
+        // goes, and the unmount fallback tries again.
       }
 
       return false;
@@ -298,9 +316,13 @@ const useChangeEmailVerification = (
       }
     },
     reset: async () => {
+      // After the swap the new address is primary and can't go: what's left
+      // to take off is the old one.
+      const target = isPrimary ? oldAddress : address;
+
       try {
-        if (address) {
-          const removed = await removeAddress(address);
+        if (target) {
+          const removed = await removeAddress(target);
 
           if (removed.status === "cancelled") {
             return { cancelled: true, error: null };
