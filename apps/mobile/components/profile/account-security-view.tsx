@@ -82,28 +82,39 @@ const SignInMethodRow = ({
           className="flex-1 gap-0.5"
         >
           <Text className="text-body text-foreground">{name}</Text>
+          {/* An email keeps one line, cut in the middle; the reason a
+              Disconnect is blocked is a sentence, which wraps. */}
           <Text
             className="text-footnote text-muted-foreground"
             ellipsizeMode="middle"
-            numberOfLines={1}
+            numberOfLines={disconnect?.blocked ? undefined : 1}
           >
             {subtitle}
           </Text>
         </View>
         {disconnect ? (
           <Button
+            accessibilityLabel={
+              disconnect.busy ? t("accountSecurity.disconnecting") : undefined
+            }
             accessibilityHint={
               disconnect.blocked
                 ? t("accountSecurity.addAnotherMethod")
                 : undefined
             }
-            disabled={disconnect.disabled}
-            isLoading={disconnect.busy}
-            label={
-              disconnect.busy
-                ? t("accountSecurity.disconnecting")
-                : t("accountSecurity.disconnect")
+            // A native style keeps its label's color when disabled: grey it,
+            // as Figma's blocked Disconnect is.
+            contentColorClassName={
+              disconnect.disabled && !disconnect.busy
+                ? "text-muted-foreground"
+                : undefined
             }
+            disabled={disconnect.disabled}
+            fill={false}
+            isLoading={disconnect.busy}
+            // The spinner takes the label's place at the label's width, so
+            // the pill doesn't grow; VoiceOver hears what's happening.
+            label={t("accountSecurity.disconnect")}
             onPress={disconnect.handlePress}
             size="sm"
             testID={`disconnect-${provider}`}
