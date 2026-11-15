@@ -10,6 +10,7 @@ import { Text } from "~/components/ui/text";
 import { useSubscriptionQuery } from "~/hooks/revenueCat";
 import { openUrl } from "~/lib/external-links";
 import { useI18n } from "~/lib/i18n";
+import { nextEventOf } from "~/lib/subscription";
 import type { ProSubscription } from "~/lib/subscription";
 
 /**
@@ -43,7 +44,7 @@ const presentPaywall = () => {
  * where the Free card's text and button go, never the Free card itself, read
  * by VoiceOver as one element saying it's loading.
  */
-const SubscriptionSkeleton = () => {
+export const SubscriptionSkeleton = () => {
   const { t } = useTranslation();
 
   return (
@@ -65,7 +66,7 @@ const SubscriptionSkeleton = () => {
 };
 
 /** A failed read (Figma frame 1476:3767), with Try Again. */
-const SubscriptionError = ({
+export const SubscriptionError = ({
   isRetrying,
   onRetry,
 }: {
@@ -93,7 +94,7 @@ const SubscriptionError = ({
 };
 
 /** Free (Figma's Profile – Free, 1476:3301): what Pro adds and the upgrade. */
-const FreeCard = () => {
+export const FreeCard = () => {
   const { t } = useTranslation();
 
   return (
@@ -119,27 +120,15 @@ const FreeCard = () => {
 const useStatusLine = (subscription: ProSubscription): string => {
   const { t } = useTranslation();
   const i18n = useI18n();
+  const next = nextEventOf(subscription);
 
-  if (subscription.status === "lifetime") {
+  if (next === null) {
     return t("subscription.lifetime");
   }
 
-  const date = formatDate(i18n, subscription.expiresAt, "dayMonthYear");
+  const date = formatDate(i18n, next.date, "dayMonthYear");
 
-  switch (subscription.status) {
-    case "renewing": {
-      return t("subscription.renewsOn", { date });
-    }
-
-    case "trial": {
-      return t("subscription.trialEndsOn", { date });
-    }
-
-    case "cancelled":
-    case "promotional": {
-      return t("subscription.endsOn", { date });
-    }
-  }
+  return t(`subscription.${next.kind}`, { date });
 };
 
 /**

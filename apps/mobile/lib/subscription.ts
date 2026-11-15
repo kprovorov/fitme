@@ -16,6 +16,10 @@ export type ProSubscription = {
   readonly kind: "pro";
   /** The store's page for managing it; `null` when there's none. */
   readonly managementURL: string | null;
+  /** The product the entitlement was bought as (or granted under). */
+  readonly productIdentifier: string;
+  /** Where it's billed: RevenueCat's store (`APP_STORE`, `PROMOTIONAL`…). */
+  readonly store: string;
 } & (
   | { readonly expiresAt: null; readonly status: "lifetime" }
   | { readonly expiresAt: Date; readonly status: DatedProStatus }
@@ -57,16 +61,115 @@ export const subscriptionOf = (
     return FREE;
   }
 
-  const { managementURL } = customerInfo;
+  const pro = {
+    kind: "pro",
+    managementURL: customerInfo.managementURL,
+    productIdentifier: entitlement.productIdentifier,
+    store: entitlement.store,
+  } as const;
 
   if (entitlement.expirationDate === null) {
-    return { expiresAt: null, kind: "pro", managementURL, status: "lifetime" };
+    return { ...pro, expiresAt: null, status: "lifetime" };
   }
 
   return {
+    ...pro,
     expiresAt: new Date(entitlement.expirationDate),
-    kind: "pro",
-    managementURL,
     status: datedStatusOf(entitlement),
   };
 };
+
+/**
+ * What happens next to a dated Pro Subscription, and when: it renews, its
+ * trial ends, or it ends (cancelled, or a promotional grant running out);
+ * `null` for lifetime, which has no date. The Profile card's state line and
+ * the Subscription screen's date row both read it.
+ */
+export const nextEventOf = (
+  subscription: ProSubscription
+): {
+  readonly date: Date;
+  readonly kind: "endsOn" | "renewsOn" | "trialEndsOn";
+} | null => {
+  switch (subscription.status) {
+    case "lifetime": {
+      return null;
+    }
+
+    case "renewing": {
+      return { date: subscription.expiresAt, kind: "renewsOn" };
+    }
+
+    case "trial": {
+      return { date: subscription.expiresAt, kind: "trialEndsOn" };
+    }
+
+    case "cancelled":
+    case "promotional": {
+      return { date: subscription.expiresAt, kind: "endsOn" };
+    }
+  }
+};
+
+/** Where a Subscription is billed, `null` for a store we don't name. */
+export type BillingStore = "appStore" | "playStore";
+
+/**
+ * The store billing a Pro Subscription: the App Store or Google Play, and
+ * `null` for anything else (a promotional grant, which nobody bills, or a
+ * store Fitme doesn't sell through).
+ */
+export const billingStoreOf = (
+  subscription: ProSubscription
+): BillingStore | null => {
+  switch (subscription.store) {
+    case "APP_STORE":
+    case "MAC_APP_STORE": {
+      return "appStore";
+    }
+
+    case "PLAY_STORE": {
+      return "playStore";
+    }
+
+    default: {
+      return null;
+    }
+  }
+};
+
+/** A billing period the catalogs name (`subscription.periods`). */
+export type BillingPeriod =
+  | "monthly"
+  | "sixMonths"
+  | "threeMonths"
+  | "twoMonths"
+  | "weekly"
+  | "yearly";
+
+const BILLING_PERIODS = {
+  P12M: "yearly",
+  P1M: "monthly",
+  P1W: "weekly",
+  P1Y: "yearly",
+  P2M: "twoMonths",
+  P3M: "threeMonths",
+  P6M: "sixMonths",
+  P7D: "weekly",
+} as const satisfies Record<string, BillingPeriod>;
+
+const isNamedPeriod = (
+  period: string
+): period is keyof typeof BILLING_PERIODS =>
+  Object.hasOwn(BILLING_PERIODS, period);
+
+/**
+ * A store product's ISO 8601 `subscriptionPeriod` (`P1M`, `P1Y`) as a period
+ * the catalogs name, `null` for none or one they don't.
+ */
+export const billingPeriodOf = (
+  subscriptionPeriod: string | null | undefined
+): BillingPeriod | null =>
+  subscriptionPeriod && isNamedPeriod(subscriptionPeriod)
+    ? BILLING_PERIODS[subscriptionPeriod]
+    : null;

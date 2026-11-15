@@ -1,7 +1,7 @@
 import { proEntitlement } from "@fitme/core";
 import Purchases from "react-native-purchases";
 import type { CustomerInfo } from "react-native-purchases";
-import { createQuery } from "react-query-kit";
+import { createMutation, createQuery } from "react-query-kit";
 
 import { subscriptionOf } from "~/lib/subscription";
 import type { Subscription } from "~/lib/subscription";
@@ -43,4 +43,37 @@ export const useSubscriptionQuery = createQuery<Subscription>({
     subscriptionOf(IS_E2E ? null : await Purchases.getCustomerInfo()),
   queryKey: ["rc-customer-info", "subscription"],
   retry: false,
+});
+
+/**
+ * The billing period (ISO 8601, `P1M`, `P1Y`) of the store product a
+ * Subscription was bought as, `null` when the store doesn't sell it (a
+ * promotional grant) or has none. Its Subscription screen's plan line reads
+ * it; a failure leaves the line without a period, so it isn't retried.
+ */
+export const useProductPeriodQuery = createQuery<
+  string | null,
+  { productIdentifier: string }
+>({
+  fetcher: async ({ productIdentifier }): Promise<string | null> => {
+    const products = await Purchases.getProducts([productIdentifier]);
+
+    return products[0]?.subscriptionPeriod ?? null;
+  },
+  queryKey: ["rc-product-period"],
+  retry: false,
+  staleTime: Number.POSITIVE_INFINITY,
+});
+
+/**
+ * Restore Purchases: asks the store for the User's purchases, answering
+ * whether that left them with Fitme Pro. RevenueCat tells the customer info
+ * listener (`auth-sync.tsx`), which reads the Subscription again.
+ */
+export const useRestorePurchasesMutation = createMutation<boolean>({
+  mutationFn: async (): Promise<boolean> => {
+    const customerInfo = await Purchases.restorePurchases();
+
+    return subscriptionOf(customerInfo).kind === "pro";
+  },
 });
