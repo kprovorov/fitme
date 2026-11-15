@@ -903,7 +903,6 @@
     }
   },
   "legal": {
-    "title": "Informações legais",
     "privacyTitle": "Informações legais e privacidade",
     "privacyPolicy": "Política de privacidade",
     "terms": "Termos de serviço",
@@ -916,12 +915,6 @@
   },
   "support": {
     "title": "Suporte",
-    "contact": "Entre em contato quando quiser se tiver dúvidas ou sugestões",
-    "social": {
-      "x": "Fitme no X",
-      "instagram": "Fitme no Instagram",
-      "threads": "Fitme no Threads"
-    },
     "contactSection": "Contato",
     "emailSupport": "Falar com o suporte",
     "followSection": "Siga o Fitme",

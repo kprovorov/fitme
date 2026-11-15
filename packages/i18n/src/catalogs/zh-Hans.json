@@ -839,7 +839,6 @@
     }
   },
   "legal": {
-    "title": "法律信息",
     "privacyTitle": "法律与隐私",
     "privacyPolicy": "隐私政策",
     "terms": "服务条款",
@@ -852,12 +851,6 @@
   },
   "support": {
     "title": "支持",
-    "contact": "如果你有任何问题或建议，欢迎随时联系我们",
-    "social": {
-      "x": "Fitme 的 X 主页",
-      "instagram": "Fitme 的 Instagram 主页",
-      "threads": "Fitme 的 Threads 主页"
-    },
     "contactSection": "联系我们",
     "emailSupport": "发邮件给支持团队",
     "followSection": "关注 Fitme",

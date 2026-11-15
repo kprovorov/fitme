@@ -871,7 +871,6 @@
     }
   },
   "legal": {
-    "title": "Rechtliches",
     "privacyTitle": "Rechtliches & Datenschutz",
     "privacyPolicy": "Datenschutzerklärung",
     "terms": "Nutzungsbedingungen",
@@ -884,12 +883,6 @@
   },
   "support": {
     "title": "Hilfe",
-    "contact": "Melde dich jederzeit bei uns, wenn du Fragen oder Feedback hast",
-    "social": {
-      "x": "Fitme auf X",
-      "instagram": "Fitme auf Instagram",
-      "threads": "Fitme auf Threads"
-    },
     "contactSection": "Kontakt",
     "emailSupport": "Support kontaktieren",
     "followSection": "Folge Fitme",

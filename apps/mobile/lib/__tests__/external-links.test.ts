@@ -87,6 +87,27 @@ describe("openUrl", () => {
 
     expect(captureException).toHaveBeenCalledWith(failure);
   });
+
+  it("runs the caller's fallback instead of reporting when the system can't open it", async () => {
+    const onUnopened = jest.fn<() => void>();
+
+    openURL.mockRejectedValue(new Error("Unable to open URL"));
+
+    await openUrl("mailto:support@fitmeproject.com", { onUnopened });
+
+    expect(onUnopened).toHaveBeenCalledTimes(1);
+    expect(captureException).not.toHaveBeenCalled();
+  });
+
+  it("leaves the fallback alone when the system opens the URL", async () => {
+    const onUnopened = jest.fn<() => void>();
+
+    openURL.mockResolvedValue(undefined);
+
+    await openUrl("mailto:support@fitmeproject.com", { onUnopened });
+
+    expect(onUnopened).not.toHaveBeenCalled();
+  });
 });
 
 describe("openAppSettings", () => {

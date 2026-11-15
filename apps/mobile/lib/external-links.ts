@@ -9,12 +9,24 @@ export const PRIVACY_POLICY_URL = "https://fitmeproject.com/privacy";
 /**
  * Hands a URL to the system (a `mailto:`, a store link, a page another app
  * claims). The system can refuse (`Unable to open URL`): that's reported,
- * never left as an unhandled rejection.
+ * never left as an unhandled rejection. A caller with its own answer to a
+ * refusal passes `onUnopened` (Support copies the address when no mail app
+ * can take a `mailto:`), which then runs instead of the report: a phone
+ * without a mail app is no bug of ours.
  */
-export const openUrl = async (url: string): Promise<void> => {
+export const openUrl = async (
+  url: string,
+  { onUnopened }: { onUnopened?: () => Promise<void> | void } = {}
+): Promise<void> => {
   try {
     await Linking.openURL(url);
   } catch (error) {
+    if (onUnopened) {
+      await onUnopened();
+
+      return;
+    }
+
     Sentry.captureException(error);
   }
 };

@@ -935,7 +935,6 @@
     }
   },
   "legal": {
-    "title": "Правова інформація",
     "privacyTitle": "Правова інформація і конфіденційність",
     "privacyPolicy": "Політика конфіденційності",
     "terms": "Умови використання",
@@ -948,12 +947,6 @@
   },
   "support": {
     "title": "Підтримка",
-    "contact": "Пишіть нам будь-коли, якщо маєте запитання чи відгуки",
-    "social": {
-      "x": "Fitme в X",
-      "instagram": "Fitme в Instagram",
-      "threads": "Fitme в Threads"
-    },
     "contactSection": "Контакти",
     "emailSupport": "Написати в підтримку",
     "followSection": "Стежте за Fitme",
