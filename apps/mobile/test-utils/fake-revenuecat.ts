@@ -22,7 +22,8 @@
  * answers the product's `subscriptionPeriod`), store, expiry date and
  * `managementURL`; `setFree()` takes it back; `failReads()` fails every
  * `getCustomerInfo` with RevenueCat's network error until the customer is
- * set again. `restorePurchases` answers the customer and counts in
+ * set again. `holdReads()` holds every read until the function it returns is
+ * called. `restorePurchases` answers the customer and counts in
  * `restores`, and `failNextRestore()` fails the next one. Every change tells
  * the `addCustomerInfoUpdateListener` listeners, as the SDK does.
  * `after-each.ts` resets it.
@@ -260,10 +261,25 @@ const setCustomer = (next: Customer) => {
 const customerInfoNow = (): CustomerInfo =>
   customerInfoOf(customer.kind === "failing" ? { kind: "free" } : customer);
 
-const readCustomer = (): Promise<CustomerInfo> =>
+let heldReads: (() => void)[] | null = null;
+
+const answerRead = (): Promise<CustomerInfo> =>
   customer.kind === "failing"
     ? Promise.reject(purchasesError())
     : Promise.resolve(customerInfoOf(customer));
+
+/** A customer read, answered once any hold on reads is released. */
+const readCustomer = (): Promise<CustomerInfo> => {
+  const held = heldReads;
+
+  if (held === null) {
+    return answerRead();
+  }
+
+  return new Promise<void>((resolve) => {
+    held.push(resolve);
+  }).then(answerRead);
+};
 
 /** Each product's price by its billing period (`lifetime` for none). */
 const PRICES: Readonly<Record<string, number>> = {
@@ -362,12 +378,31 @@ export const fakeRevenueCat = {
   failReads: () => {
     setCustomer({ kind: "failing" });
   },
+  /**
+   * Holds every customer read until the function it returns is called,
+   * which answers them with the customer as it stands then.
+   */
+  holdReads: () => {
+    const held: (() => void)[] = [];
+    heldReads = held;
+
+    return () => {
+      if (heldReads === held) {
+        heldReads = null;
+      }
+
+      for (const release of held) {
+        release();
+      }
+    };
+  },
   /** Fails the next `restorePurchases`; each call queues one more. */
   failNextRestore: () => {
     restoreFailures += 1;
   },
   reset: () => {
     customer = { kind: "free" };
+    heldReads = null;
     restores = 0;
     restoreFailures = 0;
     listeners.clear();

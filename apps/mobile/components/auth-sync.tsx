@@ -87,6 +87,7 @@ const AuthSync = () => {
 
     const listener = () => {
       void queryClient.invalidateQueries({ queryKey: ["rc-is-pro"] });
+      void queryClient.invalidateQueries({ queryKey: ["rc-customer-info"] });
     };
 
     Purchases.addCustomerInfoUpdateListener(listener);
