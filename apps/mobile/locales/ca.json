@@ -1,5 +1,5 @@
 {
   "ios": {
-    "NSCameraUsageDescription": "Fitme utilitza la càmera perquè puguis fer una foto, enviar-la a l'Arnold, el teu entrenador amb IA, i preguntar-li sobre ella."
+    "NSCameraUsageDescription": "Fitme utilitza la càmera perquè puguis fer la teva foto de perfil o una foto per enviar a l'Arnold, el teu entrenador amb IA, i preguntar-li sobre ella."
   }
 }

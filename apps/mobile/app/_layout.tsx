@@ -27,6 +27,7 @@ import Providers from "~/components/providers";
 import { Toaster } from "~/components/ui/toast";
 
 import "../global.css";
+import { GLASS_ENABLED } from "~/components/ui/swift-ui";
 import { PlanUpdateSheetHost } from "~/components/workout-sessions/plan-update-sheet";
 import { SCROLL_EDGE_EFFECTS } from "~/lib/constants";
 // Starts the translations in the App language before anything renders.
@@ -186,6 +187,19 @@ const RootLayout = () => {
               sheetAllowedDetents: [0.5, 1],
               sheetGrabberVisible: true,
               sheetInitialDetentIndex: 0,
+            }}
+          />
+          <Stack.Screen
+            name="profile-photo"
+            // Short enough to fit its contents, under a header that floats
+            // over them where there's glass (the sheet clears it itself).
+            options={{
+              headerShown: true,
+              headerTransparent: GLASS_ENABLED,
+              presentation: "formSheet",
+              sheetAllowedDetents: "fitToContents",
+              sheetCornerRadius: Platform.OS === "android" ? 28 : undefined,
+              sheetGrabberVisible: true,
             }}
           />
           <Stack.Screen
