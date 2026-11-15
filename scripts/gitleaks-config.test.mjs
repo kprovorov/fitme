@@ -81,8 +81,8 @@ const findings = (file, content) => {
   );
 };
 
-describe("gitleaks password-literal", { skip: !hasGitleaks }, () => {
-  test("lets a catalog's UI strings about passwords through", () => {
+void describe("gitleaks password-literal", { skip: !hasGitleaks }, () => {
+  void test("lets a catalog's UI strings about passwords through", () => {
     const catalog = JSON.stringify(
       {
         auth: {
@@ -103,7 +103,7 @@ describe("gitleaks password-literal", { skip: !hasGitleaks }, () => {
     }
   });
 
-  test("lets kebab-case route and purpose names through", () => {
+  void test("lets kebab-case route and purpose names through", () => {
     const source = [
       "const descriptions = {",
       `  "reset-${WORD}": "verifyCode.description.reset",`,
@@ -118,7 +118,7 @@ describe("gitleaks password-literal", { skip: !hasGitleaks }, () => {
     );
   });
 
-  test("still flags a password outside the allowlisted paths", () => {
+  void test("still flags a password outside the allowlisted paths", () => {
     assert.deepEqual(
       findings(
         "apps/mobile/lib/sign-in.ts",
@@ -128,7 +128,7 @@ describe("gitleaks password-literal", { skip: !hasGitleaks }, () => {
     );
   });
 
-  test("still flags a password in a JSON file outside the catalogs", () => {
+  void test("still flags a password in a JSON file outside the catalogs", () => {
     assert.deepEqual(
       findings(
         "packages/i18n/src/config.json",
@@ -138,7 +138,7 @@ describe("gitleaks password-literal", { skip: !hasGitleaks }, () => {
     );
   });
 
-  test("still flags a kebab-case key that isn't a route name", () => {
+  void test("still flags a kebab-case key that isn't a route name", () => {
     assert.deepEqual(
       findings(
         "apps/mobile/lib/config.ts",
