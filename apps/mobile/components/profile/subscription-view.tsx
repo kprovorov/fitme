@@ -2,7 +2,7 @@ import { formatDate } from "@fitme/i18n";
 import { useQueryClient } from "@tanstack/react-query";
 import { useCallback } from "react";
 import { useTranslation } from "react-i18next";
-import { View } from "react-native";
+import { useWindowDimensions, View } from "react-native";
 
 import {
   FreeCard,
@@ -28,10 +28,16 @@ import type { ProSubscription } from "~/lib/subscription";
 import { showToast } from "~/lib/toast";
 
 /**
+ * The text scale from which a detail row puts its value under its label: at
+ * the accessibility Dynamic Type sizes the two side by side break mid-word.
+ */
+const STACKED_FONT_SCALE = 1.5;
+
+/**
  * A detail row (Figma's `ListRow`, type detail): the label, and its value
- * after it, at least 44 pt tall. Every row but the group's first draws the
- * separator above it, inset by the row's leading padding. VoiceOver reads the
- * label with the value.
+ * after it (under it at the accessibility text sizes), at least 44 pt tall.
+ * Every row but the group's first draws the separator above it, inset by the
+ * row's leading padding. VoiceOver reads the label with the value.
  */
 const DetailRow = ({
   first = false,
@@ -43,23 +49,48 @@ const DetailRow = ({
   label: string;
   testID?: string;
   value: string;
-}) => (
-  <View
-    accessibilityLabel={label}
-    accessibilityValue={{ text: value }}
-    accessible
-    className="pl-sm"
-    testID={testID}
-  >
-    {first ? null : <Separator />}
-    <View className="gap-xs pr-sm min-h-11 flex-row items-center py-3">
-      <Text className="text-body text-foreground grow">{label}</Text>
-      <Text className="text-body text-muted-foreground shrink text-right">
-        {value}
-      </Text>
+}) => {
+  const { fontScale } = useWindowDimensions();
+  const stacked = fontScale >= STACKED_FONT_SCALE;
+
+  return (
+    <View
+      accessibilityLabel={label}
+      accessibilityValue={{ text: value }}
+      accessible
+      className="pl-sm"
+      testID={testID}
+    >
+      {first ? null : <Separator />}
+      <View
+        className={
+          stacked
+            ? "pr-sm min-h-11 gap-1 py-3"
+            : "gap-xs pr-sm min-h-11 flex-row items-center py-3"
+        }
+      >
+        <Text
+          className={
+            stacked
+              ? "text-body text-foreground"
+              : "text-body text-foreground grow"
+          }
+        >
+          {label}
+        </Text>
+        <Text
+          className={
+            stacked
+              ? "text-body text-muted-foreground"
+              : "text-body text-muted-foreground shrink text-right"
+          }
+        >
+          {value}
+        </Text>
+      </View>
     </View>
-  </View>
-);
+  );
+};
 
 /**
  * The plan line's product: "Fitme Pro · <period>" from the store product's
@@ -199,6 +230,8 @@ const RestorePurchases = () => {
 
   return (
     <Button
+      contentColorClassName="text-primary"
+      fill
       isLoading={isPending}
       label={t("subscription.restore")}
       onPress={restore}
