@@ -221,6 +221,9 @@ importers:
       ultracite:
         specifier: 8.1.1
         version: 8.1.1(eslint@9.39.5(jiti@2.7.0)(supports-color@10.2.2))(oxfmt@0.75.0)(oxlint@1.91.0(oxlint-tsgolint@7.0.2006))(prettier@3.9.10)
+      zod:
+        specifier: 4.6.7
+        version: 4.6.7
 
   apps/api:
     dependencies:
