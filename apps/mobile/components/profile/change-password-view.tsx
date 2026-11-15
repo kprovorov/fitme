@@ -39,10 +39,37 @@ const createSchema = (t: TFunction) =>
 
 type ChangePasswordValues = z.infer<ReturnType<typeof createSchema>>;
 
-/** Clerk's answer to a current password that isn't the User's. */
-const isWrongCurrentPassword = (error: unknown) =>
-  isClerkAPIResponseError(error) &&
-  error.errors.some((item) => item.code === "form_password_incorrect");
+/**
+ * Clerk's answer to a current password that isn't the User's: on
+ * `updatePassword` it's `form_password_validation_failed` naming the
+ * `current_password` param (seen on the development instance);
+ * `form_password_incorrect` is the same answer elsewhere.
+ */
+const clerkErrorsSchema = z.object({
+  errors: z.array(
+    z.object({
+      code: z.string(),
+      meta: z.object({ paramName: z.string().optional() }).optional(),
+    })
+  ),
+});
+
+const isWrongCurrentPassword = (error: unknown) => {
+  if (!isClerkAPIResponseError(error)) {
+    return false;
+  }
+
+  const parsed = clerkErrorsSchema.safeParse(error);
+
+  return (
+    parsed.success &&
+    parsed.data.errors.some(
+      (item) =>
+        item.code === "form_password_incorrect" ||
+        item.meta?.paramName === "current_password"
+    )
+  );
+};
 
 /**
  * Change Password (Figma 1480:4898), from Account & Security: the current
@@ -229,6 +256,11 @@ const ChangePasswordView = () => {
           textContentType="newPassword"
           value={newPassword.value}
         />
+        {newPasswordState.error ? null : (
+          <Text variant="muted">
+            {t("auth.password.minimum", { count: PASSWORD_MIN_LENGTH })}
+          </Text>
+        )}
         <PasswordInput
           accessibilityLabel={t("changePassword.confirm")}
           autoComplete="new-password"
@@ -245,11 +277,6 @@ const ChangePasswordView = () => {
           textContentType="newPassword"
           value={confirmPassword.value}
         />
-        {newPasswordState.error ? null : (
-          <Text variant="muted">
-            {t("auth.password.minimum", { count: PASSWORD_MIN_LENGTH })}
-          </Text>
-        )}
       </VStack>
     </AuthScreen>
   );
