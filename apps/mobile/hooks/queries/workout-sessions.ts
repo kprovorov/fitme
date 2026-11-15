@@ -205,6 +205,34 @@ export const useOwnOpenWorkoutSession = (
     : null;
 };
 
+/**
+ * The User's Lifetime totals, as `GET /v1/workout-sessions/totals` answers
+ * them: their qualifying Workout Sessions' count, summed duration (seconds)
+ * and volume, in `weight_unit`.
+ */
+export type LifetimeTotals = components["schemas"]["LifetimeTotalsResponse"];
+
+export const LIFETIME_TOTALS_QUERY_KEY = ["lifetime-totals"];
+
+/**
+ * The User's Lifetime totals (`GET /v1/workout-sessions/totals`), which
+ * Profile shows. Never retried: a failure, a 429 included, shows "—" until
+ * the next read. Rejects with an `ApiError`.
+ */
+export const useLifetimeTotalsQuery = createQuery<LifetimeTotals>({
+  fetcher: async () => {
+    const { data } = await publicApi().GET("/v1/workout-sessions/totals");
+
+    if (!data) {
+      throw new ApiError("Public API answered without Lifetime totals");
+    }
+
+    return data;
+  },
+  queryKey: LIFETIME_TOTALS_QUERY_KEY,
+  retry: false,
+});
+
 export interface FinishWorkoutSessionVariables {
   sessionId: string;
 }

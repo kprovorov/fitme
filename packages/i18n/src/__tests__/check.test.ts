@@ -24,8 +24,8 @@ describe("catalog validation", () => {
 
   it("fails a key in only one catalog", () => {
     expect(
-      checkCatalogs({ en: { ...en, extra: "Only English" }, uk })
-    ).toStrictEqual(['"extra" is missing from uk']);
+      checkCatalogs({ en: { ...en, workouts: "Only English" }, uk })
+    ).toStrictEqual(['"workouts" is missing from uk']);
     expect(
       checkCatalogs({
         en,
@@ -132,8 +132,8 @@ describe("catalog validation", () => {
   });
 
   it("fails an empty section", () => {
-    expect(checkCatalogs({ en: { ...en, settings: {} }, uk })).toStrictEqual([
-      'en: "settings" is an empty section',
+    expect(checkCatalogs({ en: { ...en, workouts: {} }, uk })).toStrictEqual([
+      'en: "workouts" is an empty section',
     ]);
   });
 
@@ -147,6 +147,41 @@ describe("catalog validation", () => {
     expect(
       checkCatalogs({ en: { ...en, tabs: { home: ["Home"] } }, uk })
     ).toStrictEqual(['en: "tabs.home" is not a string']);
+  });
+});
+
+describe("section order", () => {
+  it("fails a top-level section out of alphabetical order", () => {
+    expect(
+      checkCatalogs({ en: { tabs: en.tabs, counts: en.counts }, uk })
+    ).toStrictEqual([
+      'en: section "counts" is out of order: top-level sections are sorted, so it goes before "tabs"',
+    ]);
+  });
+
+  it("names each section out of order, in every catalog", () => {
+    expect(
+      checkCatalogs({
+        en: { tabs: en.tabs, auth: { title: "Sign in" }, counts: en.counts },
+        uk: {
+          auth: { title: "Увійти" },
+          tabs: uk.tabs,
+          counts: uk.counts,
+        },
+      })
+    ).toStrictEqual([
+      'en: section "auth" is out of order: top-level sections are sorted, so it goes before "tabs"',
+      'uk: section "counts" is out of order: top-level sections are sorted, so it goes before "tabs"',
+    ]);
+  });
+
+  it("leaves nested keys in any order", () => {
+    expect(
+      checkCatalogs({
+        en: { ...en, tabs: { library: "Library", home: "Home" } },
+        uk: { ...uk, tabs: { library: "Бібліотека", home: "Головна" } },
+      })
+    ).toStrictEqual([]);
   });
 });
 

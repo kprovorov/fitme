@@ -6,9 +6,11 @@ import {
   formatNumber,
   spokenCompactVolume,
 } from "@fitme/i18n";
+import type { ComponentProps } from "react";
 import { useTranslation } from "react-i18next";
 import { View } from "react-native";
 
+import { StatItem } from "~/components/stat-item";
 import { Badge } from "~/components/ui/badge";
 import { Separator } from "~/components/ui/separator";
 import { Text } from "~/components/ui/text";
@@ -18,44 +20,24 @@ import type { WeeklyGoals } from "~/hooks/queries/weekly-goals";
 import type { WorkoutSessionHistory } from "~/hooks/queries/workout-sessions";
 import { useStackedLayout } from "~/hooks/stacked-layout";
 import { useI18n } from "~/lib/i18n";
-import { cn } from "~/lib/utils";
 
-interface StatProps {
-  accent?: boolean;
+/** One of this month's figures, read as `Workouts: 3 workouts`. */
+const Stat = ({
+  spokenValue,
+  title,
+  ...props
+}: Omit<ComponentProps<typeof StatItem>, "accessibilityLabel"> & {
   /** What VoiceOver reads for the value: `3 workouts`, `136.2 tonnes`. */
   spokenValue: string;
-  /** One under another (large text) rather than side by side. */
-  stacked: boolean;
-  title: string;
-  value: string;
-}
-
-/** One summary figure: a large value over its caption (Figma's StatItem). */
-const Stat = ({
-  accent = false,
-  spokenValue,
-  stacked,
-  title,
-  value,
-}: StatProps) => {
+}) => {
   const { t } = useTranslation();
 
   return (
-    <View
+    <StatItem
+      {...props}
       accessibilityLabel={t("history.statLabel", { title, value: spokenValue })}
-      accessible
-      className={stacked ? "gap-0.5" : "flex-1 gap-0.5"}
-    >
-      <Text
-        className={cn(
-          "text-title-2-emphasized",
-          accent ? "text-primary" : "text-foreground"
-        )}
-      >
-        {value}
-      </Text>
-      <Text className="text-footnote text-muted-foreground">{title}</Text>
-    </View>
+      title={title}
+    />
   );
 };
 

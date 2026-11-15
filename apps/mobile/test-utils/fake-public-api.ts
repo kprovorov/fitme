@@ -54,6 +54,7 @@ import {
   measurementSystems,
   personalRecordFor,
   places,
+  qualifiesForProgress,
   recordResult,
 } from "@fitme/core";
 import type {
@@ -1367,6 +1368,66 @@ const listSessions = (
   });
 };
 
+const MS_PER_SECOND = 1000;
+
+/**
+ * `getLifetimeTotals`: what the User's qualifying Workout Sessions add up to
+ * (finished, with a set with positive reps, `@fitme/core`'s
+ * `qualifiesForProgress` rule): their count, `finished_at − started_at`
+ * summed in whole seconds, and weight × reps over their logged sets, in the
+ * Profile's unit. Zeros for a User with none.
+ */
+const getTotals = (): Response => {
+  let workoutCount = 0;
+  let durationSeconds = 0;
+  let volume = 0;
+
+  for (const session of backend.sessions) {
+    const sets = sessionBody(session).exercises.flatMap(
+      (exercise) => exercise.sets
+    );
+
+    const progress = {
+      completed_rep_count: sets.reduce(
+        (total, set) => total + (set.reps_completed ?? 0),
+        0
+      ),
+      finished_at: session.finished_at,
+      started_at: session.started_at,
+      volume: sets
+        .filter((set) => set.logged_at !== null)
+        .reduce(
+          (total, set) =>
+            total + (set.weight_completed ?? 0) * (set.reps_completed ?? 0),
+          0
+        ),
+    };
+
+    if (
+      session.finished_at === null ||
+      !qualifiesForProgress(progress) ||
+      (session.user_id ?? FAKE_USER_ID) !== FAKE_USER_ID
+    ) {
+      continue;
+    }
+
+    workoutCount += 1;
+    durationSeconds +=
+      (Date.parse(session.finished_at) - Date.parse(session.started_at)) /
+      MS_PER_SECOND;
+    volume += progress.volume;
+  }
+
+  return json(200, {
+    data: {
+      duration_seconds: Math.floor(durationSeconds),
+      volume: round2(volume),
+      workout_count: workoutCount,
+    },
+    weight_unit: weightUnit(),
+  });
+};
+
 /**
  * `getWorkoutSession`: the User's Workout Session in full; 404 for a missing
  * or another User's.
@@ -2255,6 +2316,12 @@ const ROUTES: {
     handler: startSession,
     path: /^\/v1\/workout-sessions$/u,
     route: "POST /v1/workout-sessions",
+  },
+  // Before `/{id}`, which `totals` would otherwise match.
+  {
+    handler: getTotals,
+    path: /^\/v1\/workout-sessions\/totals$/u,
+    route: "GET /v1/workout-sessions/totals",
   },
   {
     handler: getSession,

@@ -2,6 +2,7 @@ import { ApiError, rateLimitedFor } from "@fitme/api-client";
 import { useQueryClient } from "@tanstack/react-query";
 import { Alert } from "react-native";
 
+import type { FullPlan, PlanWorkout } from "~/hooks/queries/plans";
 import {
   OPEN_WORKOUT_SESSION_QUERY_KEY,
   seedWorkoutSession,
@@ -37,6 +38,37 @@ export const nextWorkoutOf = <W extends { order: number }>(plan: {
 }): W | undefined =>
   // A copy: plan.workouts is the query cache's array, never sorted in place.
   plan.workouts.toSorted((a, b) => a.order - b.order)[0];
+
+/**
+ * What a User with no finished Workout Session does next (History's empty
+ * card, Profile's New user state): resume the open Workout Session first (a
+ * User has at most one, ADR 0013, with or without an active Plan), else start
+ * the active Plan's next Workout, else create a Plan. An active Plan with no
+ * Workout has nothing to start, so it's Create a Plan too.
+ */
+export type NextStep =
+  | { kind: "createPlan" }
+  | { kind: "resume"; openSession: OpenWorkoutSession }
+  | { kind: "start"; plan: FullPlan; workout: PlanWorkout };
+
+/**
+ * The next step, from the open Workout Session and the active Plan as their
+ * reads answered them (`null` for none: both read, never guessed).
+ */
+export const nextStepOf = (
+  activePlan: FullPlan | null,
+  openSession: OpenWorkoutSession | null
+): NextStep => {
+  if (openSession) {
+    return { kind: "resume", openSession };
+  }
+
+  const workout = activePlan ? nextWorkoutOf(activePlan) : undefined;
+
+  return activePlan && workout
+    ? { kind: "start", plan: activePlan, workout }
+    : { kind: "createPlan" };
+};
 
 const alertStartFailed = (waitSeconds: number | null) => {
   Alert.alert(

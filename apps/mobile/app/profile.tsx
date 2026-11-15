@@ -8,6 +8,11 @@ import Purchases from "react-native-purchases";
 
 import ProfileRedesignView from "~/components/profile/profile-redesign-view";
 import ProfileView from "~/components/views/profile-view";
+import { useActivePlanQuery } from "~/hooks/queries/plans";
+import {
+  LIFETIME_TOTALS_QUERY_KEY,
+  OPEN_WORKOUT_SESSION_QUERY_KEY,
+} from "~/hooks/queries/workout-sessions";
 import { isProfileRedesignEnabled } from "~/lib/feature-flags";
 
 const IS_E2E = process.env.EXPO_PUBLIC_E2E_ENABLED === "true";
@@ -38,6 +43,13 @@ const ProfileScreen = () => {
       queryClient.refetchQueries({
         queryKey: ["rc-customer-info"],
       }),
+      // The Lifetime totals, and the reads the New user state's button
+      // rests on: none is retried, so a failed one recovers here.
+      queryClient.refetchQueries({ queryKey: LIFETIME_TOTALS_QUERY_KEY }),
+      queryClient.refetchQueries({
+        queryKey: OPEN_WORKOUT_SESSION_QUERY_KEY,
+      }),
+      queryClient.refetchQueries({ queryKey: useActivePlanQuery.getKey() }),
     ]);
     setRefreshing(false);
   }, [queryClient, user]);
@@ -62,6 +74,7 @@ const ProfileScreen = () => {
         refreshControl={
           <RefreshControl onRefresh={onRefresh} refreshing={refreshing} />
         }
+        testID="profile-scroll"
       >
         {isRedesign ? <ProfileRedesignView /> : <ProfileView />}
       </ScrollView>

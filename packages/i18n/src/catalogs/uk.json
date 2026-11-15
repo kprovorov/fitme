@@ -1,68 +1,31 @@
 {
-  "tabs": {
-    "workout": "Тренування",
-    "history": "Історія",
-    "arnold": "Arnold AI",
-    "library": "Бібліотека"
-  },
-  "library": {
-    "search": "Пошук вправ",
-    "muscles": "М’язи",
-    "equipment": "Обладнання",
-    "removeMuscleGroup": "Видалити {{muscleGroup}}",
-    "removeEquipment": "Видалити {{equipment}}",
-    "reset": "Скинути",
-    "confirm": "Готово",
-    "loadErrorTitle": "Не вдалося завантажити вправи",
-    "loadError": "Не вдалося завантажити вправи. Перевірте з’єднання і спробуйте ще раз.",
-    "loadMoreError": "Не вдалося завантажити більше вправ. Перевірте з’єднання і спробуйте ще раз.",
-    "emptyTitle": "Вправ не знайдено",
-    "empty": "Жодна вправа не підходить. Спробуйте іншу назву чи групу м’язів.",
-    "showAll": "Показати всі вправи"
-  },
-  "exercise": {
-    "gone": "Цієї вправи більше немає в бібліотеці.",
-    "loadError": "Не вдалося завантажити вправу. Перевірте з’єднання і спробуйте ще раз."
-  },
-  "exerciseHistory": {
-    "title": "Прогрес",
-    "loadError": "Не вдалося завантажити історію цієї вправи. Перевірте з'єднання та спробуйте ще раз.",
-    "set": "Підхід {{order, number}}: {{logged}}",
-    "target": "Ціль {{target}}"
-  },
-  "counts": {
-    "entries_one": "{{count, number}} запис",
-    "entries_few": "{{count, number}} записи",
-    "entries_many": "{{count, number}} записів",
-    "entries_other": "{{count, number}} запису",
-    "hours_one": "{{count, number}} година",
-    "hours_few": "{{count, number}} години",
-    "hours_many": "{{count, number}} годин",
-    "hours_other": "{{count, number}} години",
-    "exercises_one": "{{count, number}} вправа",
-    "exercises_few": "{{count, number}} вправи",
-    "exercises_many": "{{count, number}} вправ",
-    "exercises_other": "{{count, number}} вправи",
-    "minutes_one": "{{count, number}} хвилина",
-    "minutes_few": "{{count, number}} хвилини",
-    "minutes_many": "{{count, number}} хвилин",
-    "minutes_other": "{{count, number}} хвилини",
-    "reps_one": "{{count, number}} повторення",
-    "reps_few": "{{count, number}} повторення",
-    "reps_many": "{{count, number}} повторень",
-    "reps_other": "{{count, number}} повторення",
-    "sets_one": "{{count, number}} підхід",
-    "sets_few": "{{count, number}} підходи",
-    "sets_many": "{{count, number}} підходів",
-    "sets_other": "{{count, number}} підходу",
-    "workoutSessions_one": "{{count, number}} тренування",
-    "workoutSessions_few": "{{count, number}} тренування",
-    "workoutSessions_many": "{{count, number}} тренувань",
-    "workoutSessions_other": "{{count, number}} тренування",
-    "workouts_one": "{{count, number}} тренування",
-    "workouts_few": "{{count, number}} тренування",
-    "workouts_many": "{{count, number}} тренувань",
-    "workouts_other": "{{count, number}} тренування"
+  "accountSecurity": {
+    "title": "Акаунт і безпека",
+    "sections": {
+      "signIn": "Вхід",
+      "methods": "Способи входу"
+    },
+    "email": "Ел. пошта",
+    "passwordRow": "Змінити пароль",
+    "connected": "Під’єднано",
+    "connectedAs": "Під’єднано як {{email}}",
+    "notConnected": "Не під’єднано",
+    "connect": "Під’єднати",
+    "connecting": "Під’єднання…",
+    "disconnect": "Від’єднати",
+    "disconnecting": "Від’єднання…",
+    "addAnotherMethod": "Спершу додай інший спосіб входу",
+    "disconnectConfirm": {
+      "title": "Від’єднати {{provider}}?",
+      "message": "Ти більше не зможеш входити через {{provider}}."
+    },
+    "errors": {
+      "connectFailed": "Не вдалося під’єднати {{provider}}. Спробуй ще раз.",
+      "disconnectFailed": "Не вдалося від’єднати {{provider}}. Спробуй ще раз.",
+      "appleUnavailable": "Вхід через Apple поки недоступний. Поки що використовуй Google або ел. пошту.",
+      "alreadyLinked": "Цей акаунт {{provider}} уже під’єднано до іншого акаунта Fitme."
+    },
+    "deleteAccount": "Видалити акаунт"
   },
   "arnold": {
     "title": "Arnold",
@@ -132,6 +95,626 @@
         "generic": "Не вдалося зберегти план. Спробуйте ще раз."
       }
     }
+  },
+  "auth": {
+    "welcome": "Вітаємо у Fitme!",
+    "fields": {
+      "email": "Ел. пошта",
+      "passwordPlaceholder": "Пароль",
+      "name": "Ім’я",
+      "code": "Код"
+    },
+    "validation": {
+      "invalidEmail": "Неправильна адреса ел. пошти",
+      "passwordRequired": "Введіть пароль.",
+      "nameTooShort_one": "Ім’я має містити щонайменше {{count}} символ.",
+      "nameTooShort_few": "Ім’я має містити щонайменше {{count}} символи.",
+      "nameTooShort_many": "Ім’я має містити щонайменше {{count}} символів.",
+      "nameTooShort_other": "Ім’я має містити щонайменше {{count}} символу.",
+      "passwordTooShort_one": "Пароль має містити щонайменше {{count}} символ.",
+      "passwordTooShort_few": "Пароль має містити щонайменше {{count}} символи.",
+      "passwordTooShort_many": "Пароль має містити щонайменше {{count}} символів.",
+      "passwordTooShort_other": "Пароль має містити щонайменше {{count}} символу."
+    },
+    "login": {
+      "title": "Вхід",
+      "subtitle": "Увійдіть в акаунт, щоб відкрити свої тренування",
+      "continue": "Увійти",
+      "forgotPasswordLink": "Забули пароль?",
+      "noAccount": "Уперше у Fitme?",
+      "registerLink": "Створити акаунт",
+      "cantSignInHere": "Цей акаунт поки не може тут увійти.",
+      "heading": "З поверненням",
+      "loading": "Входимо"
+    },
+    "deviceCode": {
+      "title": "Перевірте пошту",
+      "subtitle": "Введіть код, який ми надіслали, щоб підтвердити, що це ви на цьому пристрої",
+      "verify": "Підтвердити",
+      "resend": "Надіслати новий код",
+      "differentAccount": "Увійти в інший акаунт"
+    },
+    "register": {
+      "title": "Реєстрація",
+      "subtitle": "Створіть акаунт, щоб почати",
+      "submit": "Створити акаунт",
+      "haveAccount": "Вже маєте акаунт?",
+      "loginLink": "Увійти",
+      "heading": "Створи свій акаунт",
+      "loading": "Створюємо акаунт"
+    },
+    "intro": {
+      "heading": "Тренуйся розумніше,\nа не довше.",
+      "description": "Fitme — твій персональний ШІ-тренер. Він створює план і записує кожен підхід.",
+      "plans": "План саме для тебе",
+      "logging": "Усі підходи й повторення збережено",
+      "guides": "Відеоінструкції до вправ",
+      "email": "Продовжити з ел. поштою"
+    },
+    "social": {
+      "apple": "Продовжити з Apple",
+      "google": "Продовжити з Google",
+      "connectingGoogle": "Підключаємо Google",
+      "incomplete": "Не вдалося завершити вхід. Спробуй ще раз або продовж з ел. поштою."
+    },
+    "password": {
+      "show": "Показати пароль",
+      "hide": "Приховати пароль",
+      "minimum": "Щонайменше {{count}} символів"
+    },
+    "legal": {
+      "prefix": "Продовжуючи, ти погоджуєшся з",
+      "terms": "Умовами використання",
+      "and": "та",
+      "privacy": "Політикою конфіденційності Fitme"
+    },
+    "or": "або",
+    "errors": {
+      "credentials": "Неправильна ел. пошта або пароль. Спробуй ще раз.",
+      "connection": "Перевір з’єднання та спробуй ще раз."
+    }
+  },
+  "changeEmail": {
+    "title": "Змінити ел. пошту",
+    "current": "Поточна ел. пошта",
+    "new": "Нова ел. пошта",
+    "description": "Ми надішлемо код на нову адресу, щоб її підтвердити.",
+    "submit": "Надіслати код",
+    "errors": {
+      "emailInUse": "Ця адреса вже використовується",
+      "invalidEmail": "Введи дійсну адресу ел. пошти.",
+      "sameEmail": "Це вже твоя адреса.",
+      "failed": "Не вдалося змінити ел. пошту. Спробуй ще раз."
+    },
+    "success": "Ел. пошту змінено"
+  },
+  "changePassword": {
+    "title": "Змінити пароль",
+    "description": "На інших пристроях тебе буде виведено з акаунта.",
+    "current": "Поточний пароль",
+    "new": "Новий пароль",
+    "confirm": "Підтверди новий пароль",
+    "submit": "Змінити пароль",
+    "errors": {
+      "tooShort": "Мінімальна довжина пароля: {{min}}.",
+      "mismatch": "Паролі не збігаються",
+      "wrongCurrent": "Поточний пароль неправильний.",
+      "failed": "Не вдалося змінити пароль. Спробуй ще раз."
+    },
+    "success": "Пароль змінено"
+  },
+  "choices": {
+    "equipment": {
+      "barbell": "Штанга",
+      "dumbbell": "Гантель",
+      "cable": "Блок",
+      "machine": "Тренажер",
+      "smith_machine": "Машина Сміта",
+      "bench": "Лава",
+      "pull_up_bar": "Турнік",
+      "landmine": "Лендмайн",
+      "bodyweight": "Власна вага"
+    },
+    "experienceLevel": {
+      "beginner": "Початківець",
+      "intermediate": "Середній рівень",
+      "advanced": "Досвідчений"
+    },
+    "experienceLevelDescription": {
+      "beginner": "0–6 міс. досвіду",
+      "intermediate": "6 міс. – 3 роки досвіду",
+      "advanced": "3+ роки досвіду"
+    },
+    "gender": {
+      "male": "Чоловік",
+      "female": "Жінка"
+    },
+    "goal": {
+      "muscle-gain": "Набір м’язової маси",
+      "fat-loss": "Схуднення",
+      "recomposition": "Рекомпозиція",
+      "strength-performance": "Сила та результативність",
+      "general-health-fitness": "Здоров’я та загальна форма"
+    },
+    "measurementSystem": {
+      "metric": "Метрична",
+      "us": "США",
+      "uk": "Велика Британія"
+    },
+    "measurementSystemDescription": {
+      "metric": "Сантиметри та кілограми",
+      "us": "Фути, дюйми та фунти",
+      "uk": "Фути, дюйми та фунти"
+    },
+    "muscleGroup": {
+      "chest": "Груди",
+      "back": "Спина",
+      "shoulders": "Плечі",
+      "biceps": "Біцепс",
+      "triceps": "Трицепс",
+      "forearms": "Передпліччя",
+      "abs": "Прес",
+      "obliques": "Косі м’язи живота",
+      "quadriceps": "Квадрицепс",
+      "hamstrings": "Задня поверхня стегна",
+      "glutes": "Сідниці",
+      "calves": "Литки",
+      "traps": "Трапеції",
+      "lats": "Найширші м’язи спини",
+      "lower-back": "Поперек",
+      "cardio": "Кардіо",
+      "full-body": "Усе тіло"
+    },
+    "place": {
+      "gym": "Спортзал",
+      "home": "Вдома"
+    }
+  },
+  "common": {
+    "cancel": "Скасувати",
+    "confirm": "Підтвердити",
+    "tryAgain": "Спробувати ще раз",
+    "genericError": "Щось пішло не так. Спробуйте пізніше.",
+    "rateLimited": "Забагато запитів: спробуйте ще раз через {{seconds, number}} с."
+  },
+  "compactUnits": {
+    "t": "{{value, number}} т",
+    "thousandLbs": "{{value, number}} тис. фунт"
+  },
+  "confirmIdentity": {
+    "title": "Підтверди, що це ти",
+    "password": {
+      "description": "Введи пароль, щоб продовжити.",
+      "placeholder": "Пароль",
+      "forgot": "Забули пароль?"
+    },
+    "code": {
+      "description": "Введи код, який ми надіслали на {{email}}, щоб продовжити.",
+      "placeholder": "Код",
+      "resend": "Надіслати новий код"
+    },
+    "continue": "Продовжити",
+    "errors": {
+      "passwordIncorrect": "Неправильний пароль. Спробуй ще раз.",
+      "wrongCode": "Код неправильний. Спробуй ще раз.",
+      "codeNotSent": "Не вдалося надіслати код. Спробуй ще раз.",
+      "failed": "Не вдалося підтвердити, що це ти. Спробуй ще раз."
+    }
+  },
+  "counts": {
+    "entries_one": "{{count, number}} запис",
+    "entries_few": "{{count, number}} записи",
+    "entries_many": "{{count, number}} записів",
+    "entries_other": "{{count, number}} запису",
+    "hours_one": "{{count, number}} година",
+    "hours_few": "{{count, number}} години",
+    "hours_many": "{{count, number}} годин",
+    "hours_other": "{{count, number}} години",
+    "exercises_one": "{{count, number}} вправа",
+    "exercises_few": "{{count, number}} вправи",
+    "exercises_many": "{{count, number}} вправ",
+    "exercises_other": "{{count, number}} вправи",
+    "minutes_one": "{{count, number}} хвилина",
+    "minutes_few": "{{count, number}} хвилини",
+    "minutes_many": "{{count, number}} хвилин",
+    "minutes_other": "{{count, number}} хвилини",
+    "reps_one": "{{count, number}} повторення",
+    "reps_few": "{{count, number}} повторення",
+    "reps_many": "{{count, number}} повторень",
+    "reps_other": "{{count, number}} повторення",
+    "sets_one": "{{count, number}} підхід",
+    "sets_few": "{{count, number}} підходи",
+    "sets_many": "{{count, number}} підходів",
+    "sets_other": "{{count, number}} підходу",
+    "workoutSessions_one": "{{count, number}} тренування",
+    "workoutSessions_few": "{{count, number}} тренування",
+    "workoutSessions_many": "{{count, number}} тренувань",
+    "workoutSessions_other": "{{count, number}} тренування",
+    "workouts_one": "{{count, number}} тренування",
+    "workouts_few": "{{count, number}} тренування",
+    "workouts_many": "{{count, number}} тренувань",
+    "workouts_other": "{{count, number}} тренування"
+  },
+  "deleteAccount": {
+    "title": "Видалити акаунт?",
+    "message": "Твої тренування, плани, профіль і чати з Arnold буде видалено назавжди. Це не можна скасувати.",
+    "proWarning": {
+      "appStore": "Твою підписку в App Store не буде скасовано автоматично. Керуй нею в App Store, щоб припинити оплату.",
+      "googlePlay": "Твою підписку в Google Play не буде скасовано автоматично. Керуй нею в Google Play, щоб припинити оплату."
+    },
+    "manageSubscription": "Керувати підпискою",
+    "confirm": "Видалити акаунт",
+    "failed": "Не вдалося видалити акаунт. Спробуй ще раз."
+  },
+  "duration": {
+    "hoursMinutes": "{{hours, number}} год {{minutes, number}} хв",
+    "hours": "{{hours, number}} год",
+    "minutes": "{{minutes, number}} хв"
+  },
+  "editProfile": {
+    "title": "Редагувати профіль",
+    "loadError": "Не вдалося завантажити профіль. Перевірте з’єднання й спробуйте ще раз.",
+    "save": "Зберегти"
+  },
+  "exercise": {
+    "gone": "Цієї вправи більше немає в бібліотеці.",
+    "loadError": "Не вдалося завантажити вправу. Перевірте з’єднання і спробуйте ще раз."
+  },
+  "exerciseHistory": {
+    "title": "Прогрес",
+    "loadError": "Не вдалося завантажити історію цієї вправи. Перевірте з'єднання та спробуйте ще раз.",
+    "set": "Підхід {{order, number}}: {{logged}}",
+    "target": "Ціль {{target}}"
+  },
+  "finishWorkout": {
+    "confirm": {
+      "title": "Завершити тренування?",
+      "unloggedSets_one": "{{count, number}} запланований підхід не записано.",
+      "unloggedSets_few": "{{count, number}} заплановані підходи не записано.",
+      "unloggedSets_many": "{{count, number}} запланованих підходів не записано.",
+      "unloggedSets_other": "{{count, number}} запланованого підходу не записано.",
+      "cancel": "Скасувати",
+      "finish": "Завершити"
+    },
+    "failed": {
+      "title": "Не вдалося завершити тренування",
+      "network": "Перевірте з’єднання і спробуйте ще раз.",
+      "rateLimited": "Забагато запитів: спробуйте ще раз через {{seconds, number}} с."
+    },
+    "suggestion": {
+      "title": "Тренування виконано!",
+      "description": "Ви записали всі заплановані підходи.",
+      "close": "Закрити",
+      "keepTrainingHint": "Закриває підказку і продовжує тренування",
+      "finish": "Завершити тренування",
+      "finishHint": "Завершує це тренування",
+      "keepTraining": "Продовжити тренування"
+    }
+  },
+  "forgotPassword": {
+    "screenTitle": "Забули пароль",
+    "title": "Забув пароль?",
+    "description": "Введи ел. пошту, з якою зареєструвався. Ми надішлемо 6-значний код.",
+    "emailPlaceholder": "Електронна пошта",
+    "invalidEmail": "Некоректна електронна пошта",
+    "submit": "Надіслати код",
+    "remember": "Згадав пароль?",
+    "login": "Увійдіть тут",
+    "loading": "Надсилаємо код"
+  },
+  "forms": {
+    "numberMin": "Число має бути не менше за {{min, number(useGrouping: false)}}",
+    "numberMax": "Число має бути не більше за {{max, number(useGrouping: false)}}"
+  },
+  "history": {
+    "empty": {
+      "title": "Ще немає тренувань",
+      "body": "Завершіть перше тренування, і воно з’явиться тут разом із часом, підходами, об’ємом і рекордами.",
+      "start": "Почати «{{name}}»",
+      "nextUp": "Далі в «{{plan}}» · {{exercises}}",
+      "resume": "Продовжити тренування",
+      "resumeNamed": "Продовжити «{{name}}»",
+      "inProgress": "У вас є незавершене тренування.",
+      "createPlan": "Створити план"
+    },
+    "loadError": "Не вдалося завантажити тренування. Перевірте з’єднання і спробуйте ще раз.",
+    "untitledWorkout": "Тренування",
+    "duration": "Тривалість {{duration}}",
+    "thisMonth": "Цей місяць",
+    "stats": {
+      "workouts": "Тренування",
+      "time": "Час",
+      "volume": "Обсяг"
+    },
+    "statLabel": "{{title}}: {{value}}",
+    "entry": "{{name}}, {{date}}, {{duration}}, {{sets}}, {{volume}}",
+    "streak": {
+      "badge_one": "Серія: {{count, number}} тиждень!",
+      "badge_few": "Серія: {{count, number}} тижні!",
+      "badge_many": "Серія: {{count, number}} тижнів!",
+      "badge_other": "Серія: {{count, number}} тижня!",
+      "spoken_one": "Серія тренувань: {{count, number}} тиждень",
+      "spoken_few": "Серія тренувань: {{count, number}} тижні",
+      "spoken_many": "Серія тренувань: {{count, number}} тижнів",
+      "spoken_other": "Серія тренувань: {{count, number}} тижня"
+    },
+    "weeklyGoal": {
+      "title": "Ціль на тиждень · {{workouts}}",
+      "weeksHit_one": "Виконано {{hit, number}} з {{count, number}} тижня",
+      "weeksHit_few": "Виконано {{hit, number}} з {{count, number}} тижнів",
+      "weeksHit_many": "Виконано {{hit, number}} з {{count, number}} тижнів",
+      "weeksHit_other": "Виконано {{hit, number}} з {{count, number}} тижня",
+      "now": "Зараз",
+      "extra": "+{{count, number}}",
+      "thisWeek": "Цей тиждень",
+      "weekOf": "Тиждень з {{date}}",
+      "progress_one": "{{done, number}} з {{count, number}} тренування",
+      "progress_few": "{{done, number}} з {{count, number}} тренувань",
+      "progress_many": "{{done, number}} з {{count, number}} тренувань",
+      "progress_other": "{{done, number}} з {{count, number}} тренування",
+      "overGoal": "понад ціль: {{count, number}}",
+      "goalMet": "ціль досягнуто",
+      "goalMissed": "ціль не досягнуто",
+      "inProgress": "триває",
+      "firstWeek": "перший відстежений тиждень",
+      "noGoal": "ціль не записана",
+      "weekLabel": "{{week}}: {{details}}"
+    },
+    "personalRecord": "Рекорд",
+    "entryWithRecords": "{{entry}}. {{records}}",
+    "personalRecords_one": "Особистий рекорд: {{records}}",
+    "personalRecords_few": "Особисті рекорди: {{records}}",
+    "personalRecords_many": "Особисті рекорди: {{records}}",
+    "personalRecords_other": "Особисті рекорди: {{records}}",
+    "recordResult": "{{exercise}}, {{weight}} × {{reps}}",
+    "bodyweightRecordResult": "{{exercise}}, власна вага × {{reps}}"
+  },
+  "home": {
+    "managePlans": "Керувати планами",
+    "createPlan": "Створити план",
+    "workouts": "Тренування",
+    "planMenu": "Параметри плану",
+    "logo": "Fitme",
+    "card": {
+      "preview": "Огляд",
+      "previewNamed": "Огляд: {{name}}",
+      "start": "Почати",
+      "startNamed": "Почати: {{name}}",
+      "continue": "Продовжити",
+      "continueNamed": "Продовжити: {{name}}",
+      "moreMuscleGroups": "+{{count, number}}",
+      "moreMuscleGroupsSpoken_one": "і ще {{count, number}} група м’язів",
+      "moreMuscleGroupsSpoken_few": "і ще {{count, number}} групи м’язів",
+      "moreMuscleGroupsSpoken_many": "і ще {{count, number}} груп м’язів",
+      "moreMuscleGroupsSpoken_other": "і ще {{count, number}} групи м’язів"
+    },
+    "allSet": "Чудова робота! Усе готово!",
+    "empty": {
+      "title": "Немає активного плану",
+      "message": "У вас немає активного плану тренувань. Створіть його, щоб почати.",
+      "inactiveMessage": "Активуйте один зі своїх планів або створіть новий.",
+      "action": "Створити план тренувань"
+    },
+    "loadError": {
+      "title": "Не вдалося завантажити план",
+      "message": "Перевірте з’єднання й спробуйте ще раз."
+    }
+  },
+  "languages": {
+    "en": "English",
+    "uk": "Українська",
+    "es": "Español",
+    "ca": "Català",
+    "fr": "Français",
+    "de": "Deutsch",
+    "it": "Italiano",
+    "pt-BR": "Português (Brasil)",
+    "pt-PT": "Português (Portugal)",
+    "pl": "Polski",
+    "zh-Hans": "简体中文",
+    "zh-Hant": "繁體中文",
+    "ja": "日本語",
+    "ko": "한국어",
+    "nl": "Nederlands"
+  },
+  "legal": {
+    "privacyTitle": "Правова інформація",
+    "privacyPolicy": "Політика конфіденційності",
+    "terms": "Умови використання",
+    "deleteAccount": "Видалити акаунт",
+    "deleteConfirm": {
+      "title": "Ви впевнені, що хочете видалити акаунт?",
+      "message": "Цю дію не можна скасувати. Ваш акаунт буде видалено назавжди, а ваші дані — з наших серверів.",
+      "confirm": "Так, видалити мій акаунт"
+    }
+  },
+  "library": {
+    "search": "Пошук вправ",
+    "muscles": "М’язи",
+    "equipment": "Обладнання",
+    "removeMuscleGroup": "Видалити {{muscleGroup}}",
+    "removeEquipment": "Видалити {{equipment}}",
+    "reset": "Скинути",
+    "confirm": "Готово",
+    "loadErrorTitle": "Не вдалося завантажити вправи",
+    "loadError": "Не вдалося завантажити вправи. Перевірте з’єднання і спробуйте ще раз.",
+    "loadMoreError": "Не вдалося завантажити більше вправ. Перевірте з’єднання і спробуйте ще раз.",
+    "emptyTitle": "Вправ не знайдено",
+    "empty": "Жодна вправа не підходить. Спробуйте іншу назву чи групу м’язів.",
+    "showAll": "Показати всі вправи"
+  },
+  "measurementSystem": {
+    "title": "Система вимірювання",
+    "unitsTitle": "Одиниці",
+    "loadError": "Не вдалося завантажити систему вимірювання. Перевірте з’єднання й спробуйте ще раз.",
+    "confirm": {
+      "title": "Ви впевнені?",
+      "message": "Зміна системи вимірювання вплине на всі ваші вимірювання. Дані профілю та історію тренувань буде переведено в нову систему."
+    },
+    "checkFailed": {
+      "title": "Не вдалося перевірити одиниці",
+      "message": "Перевірте з’єднання, а потім спробуйте ще раз, щоб побачити, яку систему збережено."
+    },
+    "changeFailed": {
+      "title": "Не вдалося змінити одиниці",
+      "message": "Ваші вимірювання не змінено. Спробуйте ще раз.",
+      "rateLimited": "Ваші вимірювання не змінено. Забагато запитів: спробуйте ще раз через {{seconds, number}} с."
+    },
+    "switchConfirm": {
+      "title": {
+        "metric": "Перейти на метричні одиниці?",
+        "us": "Перейти на одиниці США?",
+        "uk": "Перейти на британські одиниці?"
+      },
+      "message": {
+        "metric": "Ваш профіль та історію тренувань буде переведено в метричні одиниці.",
+        "us": "Ваш профіль та історію тренувань буде переведено в одиниці США.",
+        "uk": "Ваш профіль та історію тренувань буде переведено в британські одиниці."
+      },
+      "confirm": "Перейти"
+    }
+  },
+  "notFound": {
+    "title": "Отакої!",
+    "description": "Такого екрана не існує.",
+    "goHome": "На головний екран"
+  },
+  "onboarding": {
+    "welcome": {
+      "title": "Вітаємо у Fitme!",
+      "description": "Ваш особистий AI-тренер уже чекає на вас. Почнімо!",
+      "getStarted": "Почати",
+      "skip": "Пропустити"
+    },
+    "profile": {
+      "title": "Розкажіть про себе",
+      "description": "Ми використаємо ці дані, щоб підлаштувати Fitme під вас.",
+      "next": "Далі",
+      "loadError": "Не вдалося завантажити профіль. Перевірте з’єднання й спробуйте ще раз."
+    }
+  },
+  "planBuilder": {
+    "title": "Створити план",
+    "question": "Як створити цей план?",
+    "byHand": "Створити самостійно",
+    "byHandHint": "Оберіть свої тренування, вправи та підходи.",
+    "askArnold": "Запитати Arnold",
+    "askArnoldHint": "ШІ Fitme складе план під ваші цілі.",
+    "pro": "Pro",
+    "detailsTitle": "Новий план",
+    "detailsHint": "Лише назва та частота тренувань. Усе інше можна змінити згодом.",
+    "continue": "Продовжити",
+    "back": "Назад"
+  },
+  "planEditor": {
+    "title": "Редагувати план",
+    "createTitle": "Новий план",
+    "save": "Зберегти",
+    "details": "Деталі",
+    "name": "Назва",
+    "namePlaceholder": "Назва плану",
+    "description": "Опис",
+    "descriptionPlaceholder": "Для чого цей план",
+    "frequency": "Тренувань на тиждень",
+    "duration": "Тривалість тренування",
+    "durationUnit": "хвилин",
+    "goal": "Мета",
+    "experience": "Рівень підготовки",
+    "place": "Місце",
+    "unset": "Не вказано",
+    "workouts": "Тренування",
+    "workoutsHint": "У порядку ротації: перше — наступне.",
+    "noWorkouts": "У плані має бути хоча б одне тренування.",
+    "workoutActions": "Дії для «{{name}}»",
+    "moveUp": "Перемістити «{{name}}» вище",
+    "moveDown": "Перемістити «{{name}}» нижче",
+    "remove": "Видалити «{{name}}»",
+    "addWorkout": "Додати тренування",
+    "newWorkoutName": "Тренування {{letter}}",
+    "openWorkout": "Редагувати «{{name}}»",
+    "workoutNeedsExercise": "Потрібна хоча б одна вправа",
+    "workoutNeedsFixing": "Перевірте назву та підходи цього тренування",
+    "workout": {
+      "title": "Редагувати тренування",
+      "name": "Назва",
+      "namePlaceholder": "Назва тренування",
+      "exercises": "Вправи",
+      "exercisesHint": "У порядку виконання.",
+      "noExercises": "Додайте вправу до цього тренування.",
+      "addExercise": "Додати вправу",
+      "exerciseActions": "Дії для «{{name}}»",
+      "moveUp": "Перемістити «{{name}}» вище",
+      "moveDown": "Перемістити «{{name}}» нижче",
+      "replace": "Замінити «{{name}}»",
+      "remove": "Видалити «{{name}}»",
+      "removeSet": "Видалити підхід {{order, number}}",
+      "errors": {
+        "nameRequired": "Вкажіть назву тренування",
+        "repsRange": "Повторень має бути цілим числом від {{min, number(useGrouping: false)}} до {{max, number(useGrouping: false)}}",
+        "weightRange": "Вага має бути числом від {{min, number(useGrouping: false)}} до {{max, number(useGrouping: false)}}",
+        "restRange": "Відпочинок має бути цілим числом секунд від {{min, number(useGrouping: false)}} до {{max, number(useGrouping: false)}}"
+      }
+    },
+    "picker": {
+      "addTitle": "Додати вправу",
+      "replaceTitle": "Замінити вправу",
+      "addExercise": "Додати «{{name}}»",
+      "replaceWith": "Замінити на «{{name}}»"
+    },
+    "discard": {
+      "title": "Скасувати зміни?",
+      "message": "Ваші зміни в цьому плані буде втрачено.",
+      "confirm": "Скасувати зміни"
+    },
+    "errors": {
+      "nameRequired": "Вкажіть назву плану",
+      "nameTooLong": "Назва має містити не більше ніж {{max, number(useGrouping: false)}} символів",
+      "descriptionTooLong": "Опис має містити не більше ніж {{max, number(useGrouping: false)}} символів",
+      "frequencyRange": "Тренувань на тиждень має бути цілим числом від {{min, number(useGrouping: false)}} до {{max, number(useGrouping: false)}}",
+      "durationRange": "Тривалість тренування має бути цілим числом хвилин, не більше ніж {{max, number(useGrouping: false)}}",
+      "saveFailed": "Не вдалося зберегти план. Перевірте з’єднання й спробуйте ще раз.",
+      "saveRateLimited": "Не вдалося зберегти план. Забагато запитів: спробуйте ще раз через {{seconds, number}} с.",
+      "unknownExercises": "У цьому плані є невідомі нам вправи, тому його не можна зберегти. Замініть їх і спробуйте ще раз.",
+      "libraryUnavailable": "Не вдалося перевірити вправи цього плану. Спробуйте ще раз.",
+      "unitsChanged": "Ваші одиниці ваги змінилися на іншому пристрої, тож ці цілі — у старих. Закрийте редактор і відкрийте його знову."
+    }
+  },
+  "planUpdate": {
+    "title": "Оновити план?",
+    "description": "Зберегти сьогоднішні зміни в «{{workout}}» у плані «{{plan}}».",
+    "failed": "Не вдалося оновити план. Перевірте з’єднання і спробуйте ще раз.",
+    "rateLimited": "Забагато запитів. Спробуйте ще раз через {{seconds, number}} с.",
+    "update": "Оновити план",
+    "updateHint": "Зберігає ці зміни в плані, потім показує підсумок тренування",
+    "retry": "Повторити",
+    "keep": "Залишити план без змін",
+    "keepHint": "Залишає план без змін і показує підсумок тренування",
+    "changes": {
+      "replace": "Замінити «{{replaced}}» на «{{exercise}}»",
+      "add": "Додати «{{exercise}}»",
+      "remove": "Видалити «{{exercise}}»",
+      "addSets_one": "Додати {{count, number}} підхід до «{{exercise}}»",
+      "addSets_few": "Додати {{count, number}} підходи до «{{exercise}}»",
+      "addSets_many": "Додати {{count, number}} підходів до «{{exercise}}»",
+      "addSets_other": "Додати {{count, number}} підходу до «{{exercise}}»",
+      "line": "{{change}} · {{sets}}",
+      "spokenLine": "{{change}}: {{sets}}",
+      "spokenSet": "{{reps}} по {{weight}}"
+    }
+  },
+  "plannedWorkout": {
+    "stats": {
+      "duration": "Тривалість",
+      "exercises": "Вправи",
+      "sets": "Підходи"
+    },
+    "durationMinutes": "{{minutes, number}} хв",
+    "noExercises": "У цьому тренуванні ще немає вправ.",
+    "gone": "Цього тренування більше немає",
+    "goBack": "Назад",
+    "edit": "Редагувати тренування",
+    "loadError": "Не вдалося завантажити тренування. Перевірте з’єднання й спробуйте ще раз.",
+    "exerciseDetailsHint": "Відкриває опис вправи"
   },
   "planner": {
     "title": "Створити план тренувань",
@@ -222,321 +805,134 @@
       "rateLimited": "Забагато запитів: спробуйте ще раз через {{seconds, number}} с."
     }
   },
-  "planEditor": {
-    "title": "Редагувати план",
-    "createTitle": "Новий план",
-    "save": "Зберегти",
-    "details": "Деталі",
-    "name": "Назва",
-    "namePlaceholder": "Назва плану",
-    "description": "Опис",
-    "descriptionPlaceholder": "Для чого цей план",
-    "frequency": "Тренувань на тиждень",
-    "duration": "Тривалість тренування",
-    "durationUnit": "хвилин",
-    "goal": "Мета",
-    "experience": "Рівень підготовки",
-    "place": "Місце",
-    "unset": "Не вказано",
-    "workouts": "Тренування",
-    "workoutsHint": "У порядку ротації: перше — наступне.",
-    "noWorkouts": "У плані має бути хоча б одне тренування.",
-    "workoutActions": "Дії для «{{name}}»",
-    "moveUp": "Перемістити «{{name}}» вище",
-    "moveDown": "Перемістити «{{name}}» нижче",
-    "remove": "Видалити «{{name}}»",
-    "addWorkout": "Додати тренування",
-    "newWorkoutName": "Тренування {{letter}}",
-    "openWorkout": "Редагувати «{{name}}»",
-    "workoutNeedsExercise": "Потрібна хоча б одна вправа",
-    "workoutNeedsFixing": "Перевірте назву та підходи цього тренування",
-    "workout": {
-      "title": "Редагувати тренування",
-      "name": "Назва",
-      "namePlaceholder": "Назва тренування",
-      "exercises": "Вправи",
-      "exercisesHint": "У порядку виконання.",
-      "noExercises": "Додайте вправу до цього тренування.",
-      "addExercise": "Додати вправу",
-      "exerciseActions": "Дії для «{{name}}»",
-      "moveUp": "Перемістити «{{name}}» вище",
-      "moveDown": "Перемістити «{{name}}» нижче",
-      "replace": "Замінити «{{name}}»",
-      "remove": "Видалити «{{name}}»",
-      "removeSet": "Видалити підхід {{order, number}}",
-      "errors": {
-        "nameRequired": "Вкажіть назву тренування",
-        "repsRange": "Повторень має бути цілим числом від {{min, number(useGrouping: false)}} до {{max, number(useGrouping: false)}}",
-        "weightRange": "Вага має бути числом від {{min, number(useGrouping: false)}} до {{max, number(useGrouping: false)}}",
-        "restRange": "Відпочинок має бути цілим числом секунд від {{min, number(useGrouping: false)}} до {{max, number(useGrouping: false)}}"
-      }
+  "profile": {
+    "title": "Профіль",
+    "pro": {
+      "title": "У вас Pro!",
+      "description": "Вам доступні всі наші функції. Скасувати підписку можна будь-коли.",
+      "manage": "Керувати підпискою"
     },
-    "picker": {
-      "addTitle": "Додати вправу",
-      "replaceTitle": "Замінити вправу",
-      "addExercise": "Додати «{{name}}»",
-      "replaceWith": "Замінити на «{{name}}»"
+    "free": {
+      "title": "У вас безкоштовний план",
+      "description": "Оформіть Fitme Pro, щоб отримати необмежений доступ до всіх наших функцій",
+      "upgrade": "Перейти на Pro"
     },
-    "discard": {
-      "title": "Скасувати зміни?",
-      "message": "Ваші зміни в цьому плані буде втрачено.",
-      "confirm": "Скасувати зміни"
+    "editProfile": "Редагувати профіль",
+    "settings": "Налаштування",
+    "support": "Підтримка",
+    "legal": "Правова інформація",
+    "logout": "Вийти",
+    "rate": {
+      "title": "Подобається застосунок?",
+      "action": "Оцініть його в App Store!"
     },
+    "memberSince": "Дата реєстрації: {{date}}",
+    "totals": {
+      "workouts": "Тренування",
+      "time": "Час",
+      "volume": "Обсяг",
+      "label": "{{title}}: {{value}}",
+      "unavailable": "Недоступно"
+    },
+    "newUser": {
+      "start": "Почати тренування",
+      "resume": "Продовжити тренування",
+      "createPlan": "Створити план"
+    },
+    "sections": {
+      "account": "Обліковий запис",
+      "preferences": "Налаштування",
+      "help": "Допомога"
+    },
+    "rows": {
+      "editProfile": "Редагувати профіль",
+      "accountSecurity": "Обліковий запис і безпека",
+      "subscription": "Підписка",
+      "units": "Одиниці",
+      "language": "Мова",
+      "support": "Підтримка",
+      "rateFitme": "Оцінити Fitme",
+      "legalPrivacy": "Правова інформація і конфіденційність"
+    },
+    "logOut": "Вийти",
+    "logOutFailed": "Не вдалося вийти. Перевірте з’єднання і спробуйте ще раз.",
+    "version": "Fitme {{version}} ({{build}})"
+  },
+  "profileForm": {
+    "name": "Ім’я",
+    "firstName": "Ім’я",
+    "lastName": "Прізвище",
+    "gender": "Стать",
+    "parameters": "Особисті параметри",
+    "age": "Вік",
+    "weight": "Вага",
+    "height": "Зріст",
+    "notSet": "Не вказано",
+    "done": "Готово",
+    "ageValue_one": "{{count, number}} рік",
+    "ageValue_few": "{{count, number}} роки",
+    "ageValue_many": "{{count, number}} років",
+    "ageValue_other": "{{count, number}} року",
+    "feet_one": "{{count, number}} фут",
+    "feet_few": "{{count, number}} фути",
+    "feet_many": "{{count, number}} футів",
+    "feet_other": "{{count, number}} фута",
+    "inches_one": "{{count, number}} дюйм",
+    "inches_few": "{{count, number}} дюйми",
+    "inches_many": "{{count, number}} дюймів",
+    "inches_other": "{{count, number}} дюйма",
     "errors": {
-      "nameRequired": "Вкажіть назву плану",
-      "nameTooLong": "Назва має містити не більше ніж {{max, number(useGrouping: false)}} символів",
-      "descriptionTooLong": "Опис має містити не більше ніж {{max, number(useGrouping: false)}} символів",
-      "frequencyRange": "Тренувань на тиждень має бути цілим числом від {{min, number(useGrouping: false)}} до {{max, number(useGrouping: false)}}",
-      "durationRange": "Тривалість тренування має бути цілим числом хвилин, не більше ніж {{max, number(useGrouping: false)}}",
-      "saveFailed": "Не вдалося зберегти план. Перевірте з’єднання й спробуйте ще раз.",
-      "saveRateLimited": "Не вдалося зберегти план. Забагато запитів: спробуйте ще раз через {{seconds, number}} с.",
-      "unknownExercises": "У цьому плані є невідомі нам вправи, тому його не можна зберегти. Замініть їх і спробуйте ще раз.",
-      "libraryUnavailable": "Не вдалося перевірити вправи цього плану. Спробуйте ще раз.",
-      "unitsChanged": "Ваші одиниці ваги змінилися на іншому пристрої, тож ці цілі — у старих. Закрийте редактор і відкрийте його знову."
+      "ageRequired": "Вкажіть вік",
+      "genderRequired": "Вкажіть стать",
+      "heightRequired": "Вкажіть зріст",
+      "weightRequired": "Вкажіть вагу",
+      "nameTooLong": "Ім’я має містити не більше ніж {{max, number(useGrouping: false)}} символів",
+      "firstNameRequired": "Вкажіть ім’я",
+      "firstNameTooLong": "Ім’я має містити не більше ніж {{max, number(useGrouping: false)}} символів",
+      "lastNameRequired": "Вкажіть прізвище",
+      "lastNameTooLong": "Прізвище має містити не більше ніж {{max, number(useGrouping: false)}} символів",
+      "tooManyDecimals": "Забагато знаків після коми (щонайбільше {{max, number(useGrouping: false)}})",
+      "saveFailed": "Не вдалося зберегти профіль. Перевірте з’єднання й спробуйте ще раз.",
+      "saveRateLimited": "Не вдалося зберегти профіль. Забагато запитів: спробуйте ще раз через {{seconds, number}} с."
     }
   },
-  "planBuilder": {
-    "title": "Створити план",
-    "question": "Як створити цей план?",
-    "byHand": "Створити самостійно",
-    "byHandHint": "Оберіть свої тренування, вправи та підходи.",
-    "askArnold": "Запитати Arnold",
-    "askArnoldHint": "ШІ Fitme складе план під ваші цілі.",
-    "pro": "Pro",
-    "detailsTitle": "Новий план",
-    "detailsHint": "Лише назва та частота тренувань. Усе інше можна змінити згодом.",
-    "continue": "Продовжити",
-    "back": "Назад"
-  },
-  "plannedWorkout": {
-    "stats": {
-      "duration": "Тривалість",
-      "exercises": "Вправи",
-      "sets": "Підходи"
+  "profilePhoto": {
+    "title": "Фото профілю",
+    "change": "Змінити фото",
+    "buttonLabel": "Змінити фото профілю",
+    "chooseFromLibrary": "Вибрати з медіатеки",
+    "takePhoto": "Зробити фото",
+    "removePhoto": "Видалити фото",
+    "uploadFailed": {
+      "title": "Не вдалося змінити фото",
+      "message": "Фото не змінено. Перевірте з’єднання й спробуйте ще раз."
     },
-    "durationMinutes": "{{minutes, number}} хв",
-    "noExercises": "У цьому тренуванні ще немає вправ.",
-    "gone": "Цього тренування більше немає",
-    "goBack": "Назад",
-    "edit": "Редагувати тренування",
-    "loadError": "Не вдалося завантажити тренування. Перевірте з’єднання й спробуйте ще раз.",
-    "exerciseDetailsHint": "Відкриває опис вправи"
-  },
-  "home": {
-    "managePlans": "Керувати планами",
-    "createPlan": "Створити план",
-    "workouts": "Тренування",
-    "planMenu": "Параметри плану",
-    "logo": "Fitme",
-    "card": {
-      "preview": "Огляд",
-      "previewNamed": "Огляд: {{name}}",
-      "start": "Почати",
-      "startNamed": "Почати: {{name}}",
-      "continue": "Продовжити",
-      "continueNamed": "Продовжити: {{name}}",
-      "moreMuscleGroups": "+{{count, number}}",
-      "moreMuscleGroupsSpoken_one": "і ще {{count, number}} група м’язів",
-      "moreMuscleGroupsSpoken_few": "і ще {{count, number}} групи м’язів",
-      "moreMuscleGroupsSpoken_many": "і ще {{count, number}} груп м’язів",
-      "moreMuscleGroupsSpoken_other": "і ще {{count, number}} групи м’язів"
+    "removeFailed": {
+      "title": "Не вдалося видалити фото",
+      "message": "Фото не видалено. Перевірте з’єднання й спробуйте ще раз."
     },
-    "allSet": "Чудова робота! Усе готово!",
-    "empty": {
-      "title": "Немає активного плану",
-      "message": "У вас немає активного плану тренувань. Створіть його, щоб почати.",
-      "inactiveMessage": "Активуйте один зі своїх планів або створіть новий.",
-      "action": "Створити план тренувань"
-    },
-    "loadError": {
-      "title": "Не вдалося завантажити план",
-      "message": "Перевірте з’єднання й спробуйте ще раз."
+    "cameraDenied": {
+      "title": "Потрібен доступ до камери",
+      "message": "Застосунку Fitme потрібен доступ до камери, щоб зробити фото профілю. Увімкніть його в Параметрах.",
+      "openSettings": "Відкрити Параметри"
     }
   },
-  "startWorkout": {
-    "start": "Почати тренування",
-    "continue": "Продовжити тренування",
-    "continueNamed": "Продовжити «{{name}}»",
-    "finishFirst": "Спершу завершіть поточне тренування",
-    "finishFirstNamed": "Спершу завершіть «{{name}}»",
-    "failed": {
-      "title": "Не вдалося почати тренування",
-      "network": "Перевірте з’єднання й спробуйте ще раз.",
-      "rateLimited": "Забагато запитів: спробуйте ще раз через {{seconds, number}} с."
-    }
-  },
-  "workoutCard": {
-    "exercises_one": "{{count, number}} вправа",
-    "exercises_few": "{{count, number}} вправи",
-    "exercises_many": "{{count, number}} вправ",
-    "exercises_other": "{{count, number}} вправи",
-    "toWorkout": "Перейти до тренування",
-    "openHint": "Відкриває тренування",
-    "openInProgressHint": "Відкриває тренування, що триває"
-  },
-  "choices": {
-    "equipment": {
-      "barbell": "Штанга",
-      "dumbbell": "Гантель",
-      "cable": "Блок",
-      "machine": "Тренажер",
-      "smith_machine": "Машина Сміта",
-      "bench": "Лава",
-      "pull_up_bar": "Турнік",
-      "landmine": "Лендмайн",
-      "bodyweight": "Власна вага"
-    },
-    "experienceLevel": {
-      "beginner": "Початківець",
-      "intermediate": "Середній рівень",
-      "advanced": "Досвідчений"
-    },
-    "experienceLevelDescription": {
-      "beginner": "0–6 міс. досвіду",
-      "intermediate": "6 міс. – 3 роки досвіду",
-      "advanced": "3+ роки досвіду"
-    },
-    "gender": {
-      "male": "Чоловік",
-      "female": "Жінка"
-    },
-    "goal": {
-      "muscle-gain": "Набір м’язової маси",
-      "fat-loss": "Схуднення",
-      "recomposition": "Рекомпозиція",
-      "strength-performance": "Сила та результативність",
-      "general-health-fitness": "Здоров’я та загальна форма"
-    },
-    "measurementSystem": {
-      "metric": "Метрична",
-      "us": "США",
-      "uk": "Велика Британія"
-    },
-    "measurementSystemDescription": {
-      "metric": "Сантиметри та кілограми",
-      "us": "Фути, дюйми та фунти",
-      "uk": "Фути, дюйми та фунти"
-    },
-    "muscleGroup": {
-      "chest": "Груди",
-      "back": "Спина",
-      "shoulders": "Плечі",
-      "biceps": "Біцепс",
-      "triceps": "Трицепс",
-      "forearms": "Передпліччя",
-      "abs": "Прес",
-      "obliques": "Косі м’язи живота",
-      "quadriceps": "Квадрицепс",
-      "hamstrings": "Задня поверхня стегна",
-      "glutes": "Сідниці",
-      "calves": "Литки",
-      "traps": "Трапеції",
-      "lats": "Найширші м’язи спини",
-      "lower-back": "Поперек",
-      "cardio": "Кардіо",
-      "full-body": "Усе тіло"
-    },
-    "place": {
-      "gym": "Спортзал",
-      "home": "Вдома"
-    }
-  },
-  "unitNames": {
-    "cm": "см",
-    "in": "дюйм",
-    "kg": "кг",
-    "lbs": "фунт"
-  },
-  "units": {
-    "cm": "{{value, number}} см",
-    "in": "{{value, number}} дюйм",
-    "kg": "{{value, number}} кг",
-    "lbs": "{{value, number}} фунт"
-  },
-  "spokenUnits": {
-    "cm_one": "{{count, number}} сантиметр",
-    "cm_few": "{{count, number}} сантиметри",
-    "cm_many": "{{count, number}} сантиметрів",
-    "cm_other": "{{count, number}} сантиметра",
-    "in_one": "{{count, number}} дюйм",
-    "in_few": "{{count, number}} дюйми",
-    "in_many": "{{count, number}} дюймів",
-    "in_other": "{{count, number}} дюйма",
-    "kg_one": "{{count, number}} кілограм",
-    "kg_few": "{{count, number}} кілограми",
-    "kg_many": "{{count, number}} кілограмів",
-    "kg_other": "{{count, number}} кілограма",
-    "lbs_one": "{{count, number}} фунт",
-    "lbs_few": "{{count, number}} фунти",
-    "lbs_many": "{{count, number}} фунтів",
-    "lbs_other": "{{count, number}} фунта"
-  },
-  "compactUnits": {
-    "t": "{{value, number}} т",
-    "thousandLbs": "{{value, number}} тис. фунт"
-  },
-  "spokenCompactUnits": {
-    "t_one": "{{count, number}} тонна",
-    "t_few": "{{count, number}} тонни",
-    "t_many": "{{count, number}} тонн",
-    "t_other": "{{count, number}} тонни",
-    "thousandLbs_one": "{{count, number}} тисяча фунтів",
-    "thousandLbs_few": "{{count, number}} тисячі фунтів",
-    "thousandLbs_many": "{{count, number}} тисяч фунтів",
-    "thousandLbs_other": "{{count, number}} тисячі фунтів"
-  },
-  "duration": {
-    "hoursMinutes": "{{hours, number}} год {{minutes, number}} хв",
-    "hours": "{{hours, number}} год",
-    "minutes": "{{minutes, number}} хв"
-  },
-  "finishWorkout": {
-    "confirm": {
-      "title": "Завершити тренування?",
-      "unloggedSets_one": "{{count, number}} запланований підхід не записано.",
-      "unloggedSets_few": "{{count, number}} заплановані підходи не записано.",
-      "unloggedSets_many": "{{count, number}} запланованих підходів не записано.",
-      "unloggedSets_other": "{{count, number}} запланованого підходу не записано.",
-      "cancel": "Скасувати",
-      "finish": "Завершити"
-    },
-    "failed": {
-      "title": "Не вдалося завершити тренування",
-      "network": "Перевірте з’єднання і спробуйте ще раз.",
-      "rateLimited": "Забагато запитів: спробуйте ще раз через {{seconds, number}} с."
-    },
-    "suggestion": {
-      "title": "Тренування виконано!",
-      "description": "Ви записали всі заплановані підходи.",
-      "close": "Закрити",
-      "keepTrainingHint": "Закриває підказку і продовжує тренування",
-      "finish": "Завершити тренування",
-      "finishHint": "Завершує це тренування",
-      "keepTraining": "Продовжити тренування"
-    }
-  },
-  "planUpdate": {
-    "title": "Оновити план?",
-    "description": "Зберегти сьогоднішні зміни в «{{workout}}» у плані «{{plan}}».",
-    "failed": "Не вдалося оновити план. Перевірте з’єднання і спробуйте ще раз.",
-    "rateLimited": "Забагато запитів. Спробуйте ще раз через {{seconds, number}} с.",
-    "update": "Оновити план",
-    "updateHint": "Зберігає ці зміни в плані, потім показує підсумок тренування",
-    "retry": "Повторити",
-    "keep": "Залишити план без змін",
-    "keepHint": "Залишає план без змін і показує підсумок тренування",
-    "changes": {
-      "replace": "Замінити «{{replaced}}» на «{{exercise}}»",
-      "add": "Додати «{{exercise}}»",
-      "remove": "Видалити «{{exercise}}»",
-      "addSets_one": "Додати {{count, number}} підхід до «{{exercise}}»",
-      "addSets_few": "Додати {{count, number}} підходи до «{{exercise}}»",
-      "addSets_many": "Додати {{count, number}} підходів до «{{exercise}}»",
-      "addSets_other": "Додати {{count, number}} підходу до «{{exercise}}»",
-      "line": "{{change}} · {{sets}}",
-      "spokenLine": "{{change}}: {{sets}}",
-      "spokenSet": "{{reps}} по {{weight}}"
-    }
+  "resetPassword": {
+    "screenTitle": "Скидання пароля",
+    "title": "Встановіть новий пароль",
+    "description": "Обери пароль, який не використовуєш в інших акаунтах.",
+    "newPasswordPlaceholder": "Новий пароль",
+    "confirmPasswordPlaceholder": "Підтвердьте пароль",
+    "passwordTooShort_one": "Пароль має містити щонайменше {{count}} символ.",
+    "passwordTooShort_few": "Пароль має містити щонайменше {{count}} символи.",
+    "passwordTooShort_many": "Пароль має містити щонайменше {{count}} символів.",
+    "passwordTooShort_other": "Пароль має містити щонайменше {{count}} символу.",
+    "passwordsDontMatch": "Паролі не збігаються.",
+    "submit": "Оновити пароль",
+    "passwordChanged": "Пароль змінено. Увійдіть з новим паролем.",
+    "loading": "Оновлюємо пароль",
+    "changedMind": "Передумав?",
+    "backToLogin": "Повернутися до входу"
   },
   "sets": {
     "columns": {
@@ -596,121 +992,56 @@
       "over": "Відпочинок завершено"
     }
   },
-  "forms": {
-    "numberMin": "Число має бути не менше за {{min, number(useGrouping: false)}}",
-    "numberMax": "Число має бути не більше за {{max, number(useGrouping: false)}}"
-  },
-  "onboarding": {
-    "welcome": {
-      "title": "Вітаємо у Fitme!",
-      "description": "Ваш особистий AI-тренер уже чекає на вас. Почнімо!",
-      "getStarted": "Почати",
-      "skip": "Пропустити"
+  "settings": {
+    "title": "Налаштування",
+    "measurementSystem": "Система вимірювання",
+    "deleteAccount": "Видалити акаунт",
+    "deleteConfirm": {
+      "title": "Видалити акаунт",
+      "message": "Ваш акаунт і всі пов’язані з ним дані буде видалено назавжди. Цю дію не можна скасувати.",
+      "confirm": "Видалити"
     },
-    "profile": {
-      "title": "Розкажіть про себе",
-      "description": "Ми використаємо ці дані, щоб підлаштувати Fitme під вас.",
-      "next": "Далі",
-      "loadError": "Не вдалося завантажити профіль. Перевірте з’єднання й спробуйте ще раз."
+    "deleteFailed": "Не вдалося видалити акаунт"
+  },
+  "spokenCompactUnits": {
+    "t_one": "{{count, number}} тонна",
+    "t_few": "{{count, number}} тонни",
+    "t_many": "{{count, number}} тонн",
+    "t_other": "{{count, number}} тонни",
+    "thousandLbs_one": "{{count, number}} тисяча фунтів",
+    "thousandLbs_few": "{{count, number}} тисячі фунтів",
+    "thousandLbs_many": "{{count, number}} тисяч фунтів",
+    "thousandLbs_other": "{{count, number}} тисячі фунтів"
+  },
+  "spokenUnits": {
+    "cm_one": "{{count, number}} сантиметр",
+    "cm_few": "{{count, number}} сантиметри",
+    "cm_many": "{{count, number}} сантиметрів",
+    "cm_other": "{{count, number}} сантиметра",
+    "in_one": "{{count, number}} дюйм",
+    "in_few": "{{count, number}} дюйми",
+    "in_many": "{{count, number}} дюймів",
+    "in_other": "{{count, number}} дюйма",
+    "kg_one": "{{count, number}} кілограм",
+    "kg_few": "{{count, number}} кілограми",
+    "kg_many": "{{count, number}} кілограмів",
+    "kg_other": "{{count, number}} кілограма",
+    "lbs_one": "{{count, number}} фунт",
+    "lbs_few": "{{count, number}} фунти",
+    "lbs_many": "{{count, number}} фунтів",
+    "lbs_other": "{{count, number}} фунта"
+  },
+  "startWorkout": {
+    "start": "Почати тренування",
+    "continue": "Продовжити тренування",
+    "continueNamed": "Продовжити «{{name}}»",
+    "finishFirst": "Спершу завершіть поточне тренування",
+    "finishFirstNamed": "Спершу завершіть «{{name}}»",
+    "failed": {
+      "title": "Не вдалося почати тренування",
+      "network": "Перевірте з’єднання й спробуйте ще раз.",
+      "rateLimited": "Забагато запитів: спробуйте ще раз через {{seconds, number}} с."
     }
-  },
-  "profileForm": {
-    "name": "Ім’я",
-    "firstName": "Ім’я",
-    "lastName": "Прізвище",
-    "gender": "Стать",
-    "parameters": "Особисті параметри",
-    "age": "Вік",
-    "weight": "Вага",
-    "height": "Зріст",
-    "notSet": "Не вказано",
-    "done": "Готово",
-    "ageValue_one": "{{count, number}} рік",
-    "ageValue_few": "{{count, number}} роки",
-    "ageValue_many": "{{count, number}} років",
-    "ageValue_other": "{{count, number}} року",
-    "feet_one": "{{count, number}} фут",
-    "feet_few": "{{count, number}} фути",
-    "feet_many": "{{count, number}} футів",
-    "feet_other": "{{count, number}} фута",
-    "inches_one": "{{count, number}} дюйм",
-    "inches_few": "{{count, number}} дюйми",
-    "inches_many": "{{count, number}} дюймів",
-    "inches_other": "{{count, number}} дюйма",
-    "errors": {
-      "ageRequired": "Вкажіть вік",
-      "genderRequired": "Вкажіть стать",
-      "heightRequired": "Вкажіть зріст",
-      "weightRequired": "Вкажіть вагу",
-      "nameTooLong": "Ім’я має містити не більше ніж {{max, number(useGrouping: false)}} символів",
-      "firstNameRequired": "Вкажіть ім’я",
-      "firstNameTooLong": "Ім’я має містити не більше ніж {{max, number(useGrouping: false)}} символів",
-      "lastNameRequired": "Вкажіть прізвище",
-      "lastNameTooLong": "Прізвище має містити не більше ніж {{max, number(useGrouping: false)}} символів",
-      "tooManyDecimals": "Забагато знаків після коми (щонайбільше {{max, number(useGrouping: false)}})",
-      "saveFailed": "Не вдалося зберегти профіль. Перевірте з’єднання й спробуйте ще раз.",
-      "saveRateLimited": "Не вдалося зберегти профіль. Забагато запитів: спробуйте ще раз через {{seconds, number}} с."
-    }
-  },
-  "common": {
-    "cancel": "Скасувати",
-    "confirm": "Підтвердити",
-    "tryAgain": "Спробувати ще раз",
-    "genericError": "Щось пішло не так. Спробуйте пізніше.",
-    "rateLimited": "Забагато запитів: спробуйте ще раз через {{seconds, number}} с."
-  },
-  "profile": {
-    "title": "Профіль",
-    "pro": {
-      "title": "У вас Pro!",
-      "description": "Вам доступні всі наші функції. Скасувати підписку можна будь-коли.",
-      "manage": "Керувати підпискою"
-    },
-    "free": {
-      "title": "У вас безкоштовний план",
-      "description": "Оформіть Fitme Pro, щоб отримати необмежений доступ до всіх наших функцій",
-      "upgrade": "Перейти на Pro"
-    },
-    "editProfile": "Редагувати профіль",
-    "settings": "Налаштування",
-    "support": "Підтримка",
-    "legal": "Правова інформація",
-    "logout": "Вийти",
-    "rate": {
-      "title": "Подобається застосунок?",
-      "action": "Оцініть його в App Store!"
-    },
-    "memberSince": "Дата реєстрації: {{date}}",
-    "totals": {
-      "workouts": "Тренування",
-      "time": "Час",
-      "volume": "Обсяг",
-      "label": "{{title}}: {{value}}",
-      "unavailable": "Недоступно"
-    },
-    "newUser": {
-      "start": "Почати тренування",
-      "resume": "Продовжити тренування",
-      "createPlan": "Створити план"
-    },
-    "sections": {
-      "account": "Обліковий запис",
-      "preferences": "Налаштування",
-      "help": "Допомога"
-    },
-    "rows": {
-      "editProfile": "Редагувати профіль",
-      "accountSecurity": "Обліковий запис і безпека",
-      "subscription": "Підписка",
-      "units": "Одиниці",
-      "language": "Мова",
-      "support": "Підтримка",
-      "rateFitme": "Оцінити Fitme",
-      "legalPrivacy": "Правова інформація і конфіденційність"
-    },
-    "logOut": "Вийти",
-    "logOutFailed": "Не вдалося вийти. Перевірте з’єднання і спробуйте ще раз.",
-    "version": "Fitme {{version}} ({{build}})"
   },
   "subscription": {
     "title": "Підписка",
@@ -761,190 +1092,6 @@
     "nothingToRestore": "Немає покупок для відновлення",
     "restoreFailed": "Не вдалося відновити покупки. Перевірте з’єднання і спробуйте ще раз."
   },
-  "languages": {
-    "en": "English",
-    "uk": "Українська",
-    "es": "Español",
-    "ca": "Català",
-    "fr": "Français",
-    "de": "Deutsch",
-    "it": "Italiano",
-    "pt-BR": "Português (Brasil)",
-    "pt-PT": "Português (Portugal)",
-    "pl": "Polski",
-    "zh-Hans": "简体中文",
-    "zh-Hant": "繁體中文",
-    "ja": "日本語",
-    "ko": "한국어",
-    "nl": "Nederlands"
-  },
-  "editProfile": {
-    "title": "Редагувати профіль",
-    "loadError": "Не вдалося завантажити профіль. Перевірте з’єднання й спробуйте ще раз.",
-    "save": "Зберегти"
-  },
-  "profilePhoto": {
-    "title": "Фото профілю",
-    "change": "Змінити фото",
-    "buttonLabel": "Змінити фото профілю",
-    "chooseFromLibrary": "Вибрати з медіатеки",
-    "takePhoto": "Зробити фото",
-    "removePhoto": "Видалити фото",
-    "uploadFailed": {
-      "title": "Не вдалося змінити фото",
-      "message": "Фото не змінено. Перевірте з’єднання й спробуйте ще раз."
-    },
-    "removeFailed": {
-      "title": "Не вдалося видалити фото",
-      "message": "Фото не видалено. Перевірте з’єднання й спробуйте ще раз."
-    },
-    "cameraDenied": {
-      "title": "Потрібен доступ до камери",
-      "message": "Застосунку Fitme потрібен доступ до камери, щоб зробити фото профілю. Увімкніть його в Параметрах.",
-      "openSettings": "Відкрити Параметри"
-    }
-  },
-  "settings": {
-    "title": "Налаштування",
-    "measurementSystem": "Система вимірювання",
-    "deleteAccount": "Видалити акаунт",
-    "deleteConfirm": {
-      "title": "Видалити акаунт",
-      "message": "Ваш акаунт і всі пов’язані з ним дані буде видалено назавжди. Цю дію не можна скасувати.",
-      "confirm": "Видалити"
-    },
-    "deleteFailed": "Не вдалося видалити акаунт"
-  },
-  "accountSecurity": {
-    "title": "Акаунт і безпека",
-    "sections": {
-      "signIn": "Вхід",
-      "methods": "Способи входу"
-    },
-    "email": "Ел. пошта",
-    "passwordRow": "Змінити пароль",
-    "connected": "Під’єднано",
-    "connectedAs": "Під’єднано як {{email}}",
-    "notConnected": "Не під’єднано",
-    "connect": "Під’єднати",
-    "connecting": "Під’єднання…",
-    "disconnect": "Від’єднати",
-    "disconnecting": "Від’єднання…",
-    "addAnotherMethod": "Спершу додай інший спосіб входу",
-    "disconnectConfirm": {
-      "title": "Від’єднати {{provider}}?",
-      "message": "Ти більше не зможеш входити через {{provider}}."
-    },
-    "errors": {
-      "connectFailed": "Не вдалося під’єднати {{provider}}. Спробуй ще раз.",
-      "disconnectFailed": "Не вдалося від’єднати {{provider}}. Спробуй ще раз.",
-      "appleUnavailable": "Вхід через Apple поки недоступний. Поки що використовуй Google або ел. пошту.",
-      "alreadyLinked": "Цей акаунт {{provider}} уже під’єднано до іншого акаунта Fitme."
-    },
-    "deleteAccount": "Видалити акаунт"
-  },
-  "changeEmail": {
-    "title": "Змінити ел. пошту",
-    "current": "Поточна ел. пошта",
-    "new": "Нова ел. пошта",
-    "description": "Ми надішлемо код на нову адресу, щоб її підтвердити.",
-    "submit": "Надіслати код",
-    "errors": {
-      "emailInUse": "Ця адреса вже використовується",
-      "invalidEmail": "Введи дійсну адресу ел. пошти.",
-      "sameEmail": "Це вже твоя адреса.",
-      "failed": "Не вдалося змінити ел. пошту. Спробуй ще раз."
-    },
-    "success": "Ел. пошту змінено"
-  },
-  "changePassword": {
-    "title": "Змінити пароль",
-    "description": "На інших пристроях тебе буде виведено з акаунта.",
-    "current": "Поточний пароль",
-    "new": "Новий пароль",
-    "confirm": "Підтверди новий пароль",
-    "submit": "Змінити пароль",
-    "errors": {
-      "tooShort": "Мінімальна довжина пароля: {{min}}.",
-      "mismatch": "Паролі не збігаються",
-      "wrongCurrent": "Поточний пароль неправильний.",
-      "failed": "Не вдалося змінити пароль. Спробуй ще раз."
-    },
-    "success": "Пароль змінено"
-  },
-  "confirmIdentity": {
-    "title": "Підтверди, що це ти",
-    "password": {
-      "description": "Введи пароль, щоб продовжити.",
-      "placeholder": "Пароль",
-      "forgot": "Забули пароль?"
-    },
-    "code": {
-      "description": "Введи код, який ми надіслали на {{email}}, щоб продовжити.",
-      "placeholder": "Код",
-      "resend": "Надіслати новий код"
-    },
-    "continue": "Продовжити",
-    "errors": {
-      "passwordIncorrect": "Неправильний пароль. Спробуй ще раз.",
-      "wrongCode": "Код неправильний. Спробуй ще раз.",
-      "codeNotSent": "Не вдалося надіслати код. Спробуй ще раз.",
-      "failed": "Не вдалося підтвердити, що це ти. Спробуй ще раз."
-    }
-  },
-  "deleteAccount": {
-    "title": "Видалити акаунт?",
-    "message": "Твої тренування, плани, профіль і чати з Arnold буде видалено назавжди. Це не можна скасувати.",
-    "proWarning": {
-      "appStore": "Твою підписку в App Store не буде скасовано автоматично. Керуй нею в App Store, щоб припинити оплату.",
-      "googlePlay": "Твою підписку в Google Play не буде скасовано автоматично. Керуй нею в Google Play, щоб припинити оплату."
-    },
-    "manageSubscription": "Керувати підпискою",
-    "confirm": "Видалити акаунт",
-    "failed": "Не вдалося видалити акаунт. Спробуй ще раз."
-  },
-  "measurementSystem": {
-    "title": "Система вимірювання",
-    "unitsTitle": "Одиниці",
-    "loadError": "Не вдалося завантажити систему вимірювання. Перевірте з’єднання й спробуйте ще раз.",
-    "confirm": {
-      "title": "Ви впевнені?",
-      "message": "Зміна системи вимірювання вплине на всі ваші вимірювання. Дані профілю та історію тренувань буде переведено в нову систему."
-    },
-    "checkFailed": {
-      "title": "Не вдалося перевірити одиниці",
-      "message": "Перевірте з’єднання, а потім спробуйте ще раз, щоб побачити, яку систему збережено."
-    },
-    "changeFailed": {
-      "title": "Не вдалося змінити одиниці",
-      "message": "Ваші вимірювання не змінено. Спробуйте ще раз.",
-      "rateLimited": "Ваші вимірювання не змінено. Забагато запитів: спробуйте ще раз через {{seconds, number}} с."
-    },
-    "switchConfirm": {
-      "title": {
-        "metric": "Перейти на метричні одиниці?",
-        "us": "Перейти на одиниці США?",
-        "uk": "Перейти на британські одиниці?"
-      },
-      "message": {
-        "metric": "Ваш профіль та історію тренувань буде переведено в метричні одиниці.",
-        "us": "Ваш профіль та історію тренувань буде переведено в одиниці США.",
-        "uk": "Ваш профіль та історію тренувань буде переведено в британські одиниці."
-      },
-      "confirm": "Перейти"
-    }
-  },
-  "legal": {
-    "privacyTitle": "Правова інформація",
-    "privacyPolicy": "Політика конфіденційності",
-    "terms": "Умови використання",
-    "deleteAccount": "Видалити акаунт",
-    "deleteConfirm": {
-      "title": "Ви впевнені, що хочете видалити акаунт?",
-      "message": "Цю дію не можна скасувати. Ваш акаунт буде видалено назавжди, а ваші дані — з наших серверів.",
-      "confirm": "Так, видалити мій акаунт"
-    }
-  },
   "support": {
     "title": "Підтримка",
     "contactSection": "Контакти",
@@ -956,6 +1103,29 @@
       "threads": "Threads"
     },
     "addressCopied": "Адресу скопійовано"
+  },
+  "tabs": {
+    "workout": "Тренування",
+    "history": "Історія",
+    "arnold": "Arnold AI",
+    "library": "Бібліотека"
+  },
+  "unitNames": {
+    "cm": "см",
+    "in": "дюйм",
+    "kg": "кг",
+    "lbs": "фунт"
+  },
+  "units": {
+    "cm": "{{value, number}} см",
+    "in": "{{value, number}} дюйм",
+    "kg": "{{value, number}} кг",
+    "lbs": "{{value, number}} фунт"
+  },
+  "updateRequired": {
+    "title": "Потрібне оновлення",
+    "description": "Ця версія Fitme більше не підтримується. Оновіть застосунок, щоб і далі тренуватися.",
+    "update": "Оновити"
   },
   "verifyCode": {
     "screenTitle": "Підтвердження коду",
@@ -986,43 +1156,14 @@
     "startOver": "Почати знову",
     "changeEmailTitle": "Підтверди нову ел. пошту"
   },
-  "forgotPassword": {
-    "screenTitle": "Забули пароль",
-    "title": "Забув пароль?",
-    "description": "Введи ел. пошту, з якою зареєструвався. Ми надішлемо 6-значний код.",
-    "emailPlaceholder": "Електронна пошта",
-    "invalidEmail": "Некоректна електронна пошта",
-    "submit": "Надіслати код",
-    "remember": "Згадав пароль?",
-    "login": "Увійдіть тут",
-    "loading": "Надсилаємо код"
-  },
-  "resetPassword": {
-    "screenTitle": "Скидання пароля",
-    "title": "Встановіть новий пароль",
-    "description": "Обери пароль, який не використовуєш в інших акаунтах.",
-    "newPasswordPlaceholder": "Новий пароль",
-    "confirmPasswordPlaceholder": "Підтвердьте пароль",
-    "passwordTooShort_one": "Пароль має містити щонайменше {{count}} символ.",
-    "passwordTooShort_few": "Пароль має містити щонайменше {{count}} символи.",
-    "passwordTooShort_many": "Пароль має містити щонайменше {{count}} символів.",
-    "passwordTooShort_other": "Пароль має містити щонайменше {{count}} символу.",
-    "passwordsDontMatch": "Паролі не збігаються.",
-    "submit": "Оновити пароль",
-    "passwordChanged": "Пароль змінено. Увійдіть з новим паролем.",
-    "loading": "Оновлюємо пароль",
-    "changedMind": "Передумав?",
-    "backToLogin": "Повернутися до входу"
-  },
-  "updateRequired": {
-    "title": "Потрібне оновлення",
-    "description": "Ця версія Fitme більше не підтримується. Оновіть застосунок, щоб і далі тренуватися.",
-    "update": "Оновити"
-  },
-  "notFound": {
-    "title": "Отакої!",
-    "description": "Такого екрана не існує.",
-    "goHome": "На головний екран"
+  "workoutCard": {
+    "exercises_one": "{{count, number}} вправа",
+    "exercises_few": "{{count, number}} вправи",
+    "exercises_many": "{{count, number}} вправ",
+    "exercises_other": "{{count, number}} вправи",
+    "toWorkout": "Перейти до тренування",
+    "openHint": "Відкриває тренування",
+    "openInProgressHint": "Відкриває тренування, що триває"
   },
   "workoutSession": {
     "finish": "Завершити",
@@ -1065,69 +1206,6 @@
     "howTo": "Як виконувати?",
     "guideHint": "Відкриває інструкцію до вправи"
   },
-  "history": {
-    "empty": {
-      "title": "Ще немає тренувань",
-      "body": "Завершіть перше тренування, і воно з’явиться тут разом із часом, підходами, об’ємом і рекордами.",
-      "start": "Почати «{{name}}»",
-      "nextUp": "Далі в «{{plan}}» · {{exercises}}",
-      "resume": "Продовжити тренування",
-      "resumeNamed": "Продовжити «{{name}}»",
-      "inProgress": "У вас є незавершене тренування.",
-      "createPlan": "Створити план"
-    },
-    "loadError": "Не вдалося завантажити тренування. Перевірте з’єднання і спробуйте ще раз.",
-    "untitledWorkout": "Тренування",
-    "duration": "Тривалість {{duration}}",
-    "thisMonth": "Цей місяць",
-    "stats": {
-      "workouts": "Тренування",
-      "time": "Час",
-      "volume": "Обсяг"
-    },
-    "statLabel": "{{title}}: {{value}}",
-    "entry": "{{name}}, {{date}}, {{duration}}, {{sets}}, {{volume}}",
-    "streak": {
-      "badge_one": "Серія: {{count, number}} тиждень!",
-      "badge_few": "Серія: {{count, number}} тижні!",
-      "badge_many": "Серія: {{count, number}} тижнів!",
-      "badge_other": "Серія: {{count, number}} тижня!",
-      "spoken_one": "Серія тренувань: {{count, number}} тиждень",
-      "spoken_few": "Серія тренувань: {{count, number}} тижні",
-      "spoken_many": "Серія тренувань: {{count, number}} тижнів",
-      "spoken_other": "Серія тренувань: {{count, number}} тижня"
-    },
-    "weeklyGoal": {
-      "title": "Ціль на тиждень · {{workouts}}",
-      "weeksHit_one": "Виконано {{hit, number}} з {{count, number}} тижня",
-      "weeksHit_few": "Виконано {{hit, number}} з {{count, number}} тижнів",
-      "weeksHit_many": "Виконано {{hit, number}} з {{count, number}} тижнів",
-      "weeksHit_other": "Виконано {{hit, number}} з {{count, number}} тижня",
-      "now": "Зараз",
-      "extra": "+{{count, number}}",
-      "thisWeek": "Цей тиждень",
-      "weekOf": "Тиждень з {{date}}",
-      "progress_one": "{{done, number}} з {{count, number}} тренування",
-      "progress_few": "{{done, number}} з {{count, number}} тренувань",
-      "progress_many": "{{done, number}} з {{count, number}} тренувань",
-      "progress_other": "{{done, number}} з {{count, number}} тренування",
-      "overGoal": "понад ціль: {{count, number}}",
-      "goalMet": "ціль досягнуто",
-      "goalMissed": "ціль не досягнуто",
-      "inProgress": "триває",
-      "firstWeek": "перший відстежений тиждень",
-      "noGoal": "ціль не записана",
-      "weekLabel": "{{week}}: {{details}}"
-    },
-    "personalRecord": "Рекорд",
-    "entryWithRecords": "{{entry}}. {{records}}",
-    "personalRecords_one": "Особистий рекорд: {{records}}",
-    "personalRecords_few": "Особисті рекорди: {{records}}",
-    "personalRecords_many": "Особисті рекорди: {{records}}",
-    "personalRecords_other": "Особисті рекорди: {{records}}",
-    "recordResult": "{{exercise}}, {{weight}} × {{reps}}",
-    "bodyweightRecordResult": "{{exercise}}, власна вага × {{reps}}"
-  },
   "workoutSummary": {
     "title": "Тренування завершено!",
     "stats": {
@@ -1136,83 +1214,5 @@
     "statLabel": "{{title}}: {{value}}",
     "continue": "Продовжити",
     "exercise": "{{name}}, {{sets}}"
-  },
-  "auth": {
-    "welcome": "Вітаємо у Fitme!",
-    "fields": {
-      "email": "Ел. пошта",
-      "passwordPlaceholder": "Пароль",
-      "name": "Ім’я",
-      "code": "Код"
-    },
-    "validation": {
-      "invalidEmail": "Неправильна адреса ел. пошти",
-      "passwordRequired": "Введіть пароль.",
-      "nameTooShort_one": "Ім’я має містити щонайменше {{count}} символ.",
-      "nameTooShort_few": "Ім’я має містити щонайменше {{count}} символи.",
-      "nameTooShort_many": "Ім’я має містити щонайменше {{count}} символів.",
-      "nameTooShort_other": "Ім’я має містити щонайменше {{count}} символу.",
-      "passwordTooShort_one": "Пароль має містити щонайменше {{count}} символ.",
-      "passwordTooShort_few": "Пароль має містити щонайменше {{count}} символи.",
-      "passwordTooShort_many": "Пароль має містити щонайменше {{count}} символів.",
-      "passwordTooShort_other": "Пароль має містити щонайменше {{count}} символу."
-    },
-    "login": {
-      "title": "Вхід",
-      "subtitle": "Увійдіть в акаунт, щоб відкрити свої тренування",
-      "continue": "Увійти",
-      "forgotPasswordLink": "Забули пароль?",
-      "noAccount": "Уперше у Fitme?",
-      "registerLink": "Створити акаунт",
-      "cantSignInHere": "Цей акаунт поки не може тут увійти.",
-      "heading": "З поверненням",
-      "loading": "Входимо"
-    },
-    "deviceCode": {
-      "title": "Перевірте пошту",
-      "subtitle": "Введіть код, який ми надіслали, щоб підтвердити, що це ви на цьому пристрої",
-      "verify": "Підтвердити",
-      "resend": "Надіслати новий код",
-      "differentAccount": "Увійти в інший акаунт"
-    },
-    "register": {
-      "title": "Реєстрація",
-      "subtitle": "Створіть акаунт, щоб почати",
-      "submit": "Створити акаунт",
-      "haveAccount": "Вже маєте акаунт?",
-      "loginLink": "Увійти",
-      "heading": "Створи свій акаунт",
-      "loading": "Створюємо акаунт"
-    },
-    "intro": {
-      "heading": "Тренуйся розумніше,\nа не довше.",
-      "description": "Fitme — твій персональний ШІ-тренер. Він створює план і записує кожен підхід.",
-      "plans": "План саме для тебе",
-      "logging": "Усі підходи й повторення збережено",
-      "guides": "Відеоінструкції до вправ",
-      "email": "Продовжити з ел. поштою"
-    },
-    "social": {
-      "apple": "Продовжити з Apple",
-      "google": "Продовжити з Google",
-      "connectingGoogle": "Підключаємо Google",
-      "incomplete": "Не вдалося завершити вхід. Спробуй ще раз або продовж з ел. поштою."
-    },
-    "password": {
-      "show": "Показати пароль",
-      "hide": "Приховати пароль",
-      "minimum": "Щонайменше {{count}} символів"
-    },
-    "legal": {
-      "prefix": "Продовжуючи, ти погоджуєшся з",
-      "terms": "Умовами використання",
-      "and": "та",
-      "privacy": "Політикою конфіденційності Fitme"
-    },
-    "or": "або",
-    "errors": {
-      "credentials": "Неправильна ел. пошта або пароль. Спробуй ще раз.",
-      "connection": "Перевір з’єднання та спробуй ще раз."
-    }
   }
 }

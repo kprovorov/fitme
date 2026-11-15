@@ -10,6 +10,7 @@ import { PLANS_QUERY_KEY, usePlanQuery } from "~/hooks/queries/plans";
 import { useProfileQuery } from "~/hooks/queries/profiles";
 import type { Profile } from "~/hooks/queries/profiles";
 import {
+  LIFETIME_TOTALS_QUERY_KEY,
   OPEN_WORKOUT_SESSION_QUERY_KEY,
   useWorkoutSessionHistoryQuery,
   useWorkoutSessionQuery,
@@ -40,6 +41,8 @@ const WEIGHED_QUERY_KEYS: QueryKey[] = [
   OPEN_WORKOUT_SESSION_QUERY_KEY,
   useWorkoutSessionHistoryQuery.getKey(),
   EXERCISE_HISTORY_QUERY_KEY,
+  // Profile's Lifetime totals: their volume.
+  LIFETIME_TOTALS_QUERY_KEY,
 ];
 
 /**
