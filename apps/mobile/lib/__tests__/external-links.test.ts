@@ -87,6 +87,55 @@ describe("openUrl", () => {
 
     expect(captureException).toHaveBeenCalledWith(failure);
   });
+
+  it("runs the caller's fallback instead of reporting when the system can't open it", async () => {
+    const onUnopened = jest.fn<() => void>();
+
+    openURL.mockRejectedValue(new Error("Unable to open URL"));
+
+    await openUrl("mailto:support@fitmeproject.com", { onUnopened });
+
+    expect(onUnopened).toHaveBeenCalledTimes(1);
+    expect(captureException).not.toHaveBeenCalled();
+  });
+
+  it("still reports a failure that isn't the system's refusal, and runs the fallback", async () => {
+    const failure = new Error("Native module failure");
+    const onUnopened = jest.fn<() => void>();
+
+    openURL.mockRejectedValue(failure);
+
+    await openUrl("mailto:support@fitmeproject.com", { onUnopened });
+
+    expect(onUnopened).toHaveBeenCalledTimes(1);
+    expect(captureException).toHaveBeenCalledWith(failure);
+  });
+
+  it("reports, never rejects, when the fallback throws", async () => {
+    const failure = new Error("Clipboard unavailable");
+
+    openURL.mockRejectedValue(new Error("Unable to open URL"));
+
+    await expect(
+      openUrl("mailto:support@fitmeproject.com", {
+        onUnopened: () => {
+          throw failure;
+        },
+      })
+    ).resolves.toBeUndefined();
+
+    expect(captureException).toHaveBeenCalledWith(failure);
+  });
+
+  it("leaves the fallback alone when the system opens the URL", async () => {
+    const onUnopened = jest.fn<() => void>();
+
+    openURL.mockResolvedValue(undefined);
+
+    await openUrl("mailto:support@fitmeproject.com", { onUnopened });
+
+    expect(onUnopened).not.toHaveBeenCalled();
+  });
 });
 
 describe("openAppSettings", () => {

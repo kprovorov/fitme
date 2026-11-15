@@ -839,7 +839,6 @@
     }
   },
   "legal": {
-    "title": "법적 정보",
     "privacyTitle": "법적 정보 및 개인정보 보호",
     "privacyPolicy": "개인정보 처리방침",
     "terms": "이용약관",
@@ -852,12 +851,6 @@
   },
   "support": {
     "title": "지원",
-    "contact": "질문이나 의견이 있으면 언제든지 연락해 주세요",
-    "social": {
-      "x": "X의 Fitme",
-      "instagram": "Instagram의 Fitme",
-      "threads": "Threads의 Fitme"
-    },
     "contactSection": "문의",
     "emailSupport": "지원팀에 이메일 보내기",
     "followSection": "Fitme 팔로우",

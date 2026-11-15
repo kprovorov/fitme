@@ -1,12 +1,11 @@
 import { Stack } from "expo-router";
 import { useTranslation } from "react-i18next";
-import { Pressable, ScrollView } from "react-native";
+import { ScrollView } from "react-native";
 
-import { SymbolImage } from "~/components/symbol-image";
 import { AlertDialog } from "~/components/ui/alert-dialog";
-import { MenuList, MenuListItem } from "~/components/ui/menu-list";
-import { Separator } from "~/components/ui/separator";
-import { Text, TextClassContext } from "~/components/ui/text";
+import { ListRow, ListSection } from "~/components/ui/list-row";
+import { MenuListItem } from "~/components/ui/menu-list";
+import { Text } from "~/components/ui/text";
 import { useDeleteUserMutation } from "~/hooks/mutations/auth";
 import {
   openWebPage,
@@ -14,31 +13,6 @@ import {
   TERMS_URL,
 } from "~/lib/external-links";
 import { i18n } from "~/lib/i18n";
-
-const openPrivacy = () => openWebPage(PRIVACY_POLICY_URL);
-const openTerms = () => openWebPage(TERMS_URL);
-
-const LegalLink = ({
-  label,
-  onPress,
-}: {
-  label: string;
-  onPress: () => void;
-}) => (
-  <TextClassContext.Provider value="web:pointer-events-none">
-    <Pressable
-      accessibilityRole="link"
-      className="active:bg-accent flex-1 flex-row items-center justify-between gap-2 p-4"
-      onPress={onPress}
-    >
-      <Text>{label}</Text>
-      <SymbolImage
-        className="text-body text-muted-foreground shrink-0"
-        name="arrow.up.right.square"
-      />
-    </Pressable>
-  </TextClassContext.Provider>
-);
 
 const LegalScreen = () => {
   const { mutate: deleteUser } = useDeleteUserMutation();
@@ -55,30 +29,36 @@ const LegalScreen = () => {
             fontWeight: "bold",
           },
           headerTransparent: true,
-          title: t("legal.title"),
+          title: t("legal.privacyTitle"),
         }}
       />
 
       <ScrollView
-        className="flex-1 p-6"
+        className="flex-1"
+        contentContainerClassName="gap-sm px-sm pt-2.5 pb-6"
         contentInsetAdjustmentBehavior="automatic"
         showsVerticalScrollIndicator={false}
       >
-        <MenuList>
-          <LegalLink
+        <ListSection>
+          <ListRow
+            accessibilityRole="link"
             label={t("legal.privacyPolicy")}
-            onPress={(...args) => {
-              void openPrivacy(...args);
+            onPress={() => {
+              void openWebPage(PRIVACY_POLICY_URL);
             }}
+            separator={false}
           />
-          <Separator />
-          <LegalLink
+          <ListRow
+            accessibilityRole="link"
             label={t("legal.terms")}
-            onPress={(...args) => {
-              void openTerms(...args);
+            onPress={() => {
+              void openWebPage(TERMS_URL);
             }}
           />
-          <Separator />
+        </ListSection>
+
+        {/* Stays until Delete Account's only home is Account & Security (FIT-703). */}
+        <ListSection>
           <AlertDialog
             actions={[
               { label: t("common.cancel"), role: "cancel" },
@@ -96,7 +76,7 @@ const LegalScreen = () => {
               <Text>{t("legal.deleteAccount")}</Text>
             </MenuListItem>
           </AlertDialog>
-        </MenuList>
+        </ListSection>
       </ScrollView>
     </>
   );

@@ -14,13 +14,19 @@ import { cn } from "~/lib/utils";
  * their pressed highlight; its fill and radius are Card's.
  */
 const MenuList = ({
+  bordered = false,
   className,
   ref,
   ...props
-}: ViewProps & { ref?: React.RefObject<ViewRef | null> }) => (
+}: ViewProps & {
+  /** Card's 1 pt `border` stroke too, as Profile's grouped lists have it. */
+  bordered?: boolean;
+  ref?: React.RefObject<ViewRef | null>;
+}) => (
   <View
     className={cn(
       "rounded-card border-continuous bg-card overflow-hidden",
+      bordered && "border-border border",
       className
     )}
     ref={ref}

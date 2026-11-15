@@ -935,8 +935,7 @@
     }
   },
   "legal": {
-    "title": "Informacje prawne",
-    "privacyTitle": "Informacje prawne i prywatność",
+    "privacyTitle": "Prawo i prywatność",
     "privacyPolicy": "Polityka prywatności",
     "terms": "Regulamin",
     "deleteAccount": "Usuń konto",
@@ -948,12 +947,6 @@
   },
   "support": {
     "title": "Pomoc",
-    "contact": "Skontaktuj się z nami w dowolnym momencie, jeśli masz pytania lub uwagi",
-    "social": {
-      "x": "Fitme na X",
-      "instagram": "Fitme na Instagramie",
-      "threads": "Fitme na Threads"
-    },
     "contactSection": "Kontakt",
     "emailSupport": "Napisz do pomocy",
     "followSection": "Obserwuj Fitme",

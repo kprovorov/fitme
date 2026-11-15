@@ -839,7 +839,6 @@
     }
   },
   "legal": {
-    "title": "法的情報",
     "privacyTitle": "法的情報とプライバシー",
     "privacyPolicy": "プライバシーポリシー",
     "terms": "利用規約",
@@ -852,12 +851,6 @@
   },
   "support": {
     "title": "サポート",
-    "contact": "ご質問やご意見がありましたら、いつでもお気軽にお問い合わせください",
-    "social": {
-      "x": "XでFitmeを見る",
-      "instagram": "InstagramでFitmeを見る",
-      "threads": "ThreadsでFitmeを見る"
-    },
     "contactSection": "お問い合わせ",
     "emailSupport": "サポートにメール",
     "followSection": "Fitmeをフォロー",

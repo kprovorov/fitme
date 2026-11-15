@@ -871,7 +871,6 @@
     }
   },
   "legal": {
-    "title": "Juridisch",
     "privacyTitle": "Juridisch en privacy",
     "privacyPolicy": "Privacybeleid",
     "terms": "Gebruiksvoorwaarden",
@@ -884,12 +883,6 @@
   },
   "support": {
     "title": "Hulp",
-    "contact": "Neem gerust contact met ons op als je vragen of feedback hebt",
-    "social": {
-      "x": "Fitme op X",
-      "instagram": "Fitme op Instagram",
-      "threads": "Fitme op Threads"
-    },
     "contactSection": "Contact",
     "emailSupport": "Mail de support",
     "followSection": "Volg Fitme",

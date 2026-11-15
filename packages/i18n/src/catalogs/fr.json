@@ -903,8 +903,7 @@
     }
   },
   "legal": {
-    "title": "Informations légales",
-    "privacyTitle": "Mentions légales et confidentialité",
+    "privacyTitle": "Mentions légales",
     "privacyPolicy": "Politique de confidentialité",
     "terms": "Conditions d'utilisation",
     "deleteAccount": "Supprimer le compte",
@@ -916,12 +915,6 @@
   },
   "support": {
     "title": "Assistance",
-    "contact": "Contacte-nous à tout moment si tu as des questions ou des remarques",
-    "social": {
-      "x": "Fitme sur X",
-      "instagram": "Fitme sur Instagram",
-      "threads": "Fitme sur Threads"
-    },
     "contactSection": "Contact",
     "emailSupport": "Écrire au support",
     "followSection": "Suivre Fitme",

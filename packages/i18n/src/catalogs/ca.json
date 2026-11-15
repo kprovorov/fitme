@@ -903,8 +903,7 @@
     }
   },
   "legal": {
-    "title": "Informació legal",
-    "privacyTitle": "Informació legal i privadesa",
+    "privacyTitle": "Legal i privadesa",
     "privacyPolicy": "Política de privacitat",
     "terms": "Condicions del servei",
     "deleteAccount": "Elimina el compte",
@@ -916,12 +915,6 @@
   },
   "support": {
     "title": "Ajuda",
-    "contact": "Pots contactar amb nosaltres en qualsevol moment si tens preguntes o comentaris",
-    "social": {
-      "x": "Fitme a X",
-      "instagram": "Fitme a Instagram",
-      "threads": "Fitme a Threads"
-    },
     "contactSection": "Contacte",
     "emailSupport": "Escriu al suport",
     "followSection": "Segueix Fitme",

@@ -215,14 +215,14 @@ describe("profile and Settings on a Ukrainian device", () => {
   it("shows Support in Ukrainian", async () => {
     await mount(<SupportScreen />);
 
-    expect(screen.getByText("Підтримка")).toBeTruthy();
-    expect(
-      screen.getByText("Пишіть нам будь-коли, якщо маєте запитання чи відгуки")
-    ).toBeTruthy();
-    expect(screen.getByText("support@fitmeproject.com")).toBeTruthy();
-
-    for (const label of ["Fitme в X", "Fitme в Instagram", "Fitme в Threads"]) {
-      expect(screen.getByLabelText(label)).toBeTruthy();
+    for (const text of [
+      "Підтримка",
+      "Контакти",
+      "Написати в підтримку",
+      "support@fitmeproject.com",
+      "Стежте за Fitme",
+    ]) {
+      expect(screen.getByText(text)).toBeTruthy();
     }
   });
 });
