@@ -1,7 +1,7 @@
 import { proEntitlement } from "@fitme/core";
 import Purchases from "react-native-purchases";
 import type { CustomerInfo } from "react-native-purchases";
-import { createQuery } from "react-query-kit";
+import { createMutation, createQuery } from "react-query-kit";
 
 import { subscriptionOf } from "~/lib/subscription";
 import type { Subscription } from "~/lib/subscription";
@@ -43,4 +43,52 @@ export const useSubscriptionQuery = createQuery<Subscription>({
     subscriptionOf(IS_E2E ? null : await Purchases.getCustomerInfo()),
   queryKey: ["rc-customer-info", "subscription"],
   retry: false,
+});
+
+/**
+ * The billing period (ISO 8601, `P1M`, `P1Y`) of the store product a
+ * Subscription was bought as, `null` when the store doesn't sell it or has
+ * none. On Google Play one subscription has several base plans, each its own
+ * product (`<subscription>:<base plan>`), so the one bought is matched by its
+ * base plan. Its Subscription screen's plan line reads it; a failure leaves
+ * the line without a period, so it isn't retried.
+ */
+export const useProductPeriodQuery = createQuery<
+  string | null,
+  { productIdentifier: string; productPlanIdentifier: string | null }
+>({
+  fetcher: async ({
+    productIdentifier,
+    productPlanIdentifier,
+  }): Promise<string | null> => {
+    const products = await Purchases.getProducts([productIdentifier]);
+
+    const planIdentifier =
+      productPlanIdentifier === null
+        ? productIdentifier
+        : `${productIdentifier}:${productPlanIdentifier}`;
+
+    const product =
+      products.find(({ identifier }) => identifier === planIdentifier) ??
+      (productPlanIdentifier === null ? products[0] : undefined);
+
+    return product?.subscriptionPeriod ?? null;
+  },
+  queryKey: ["rc-product-period"],
+  retry: false,
+  staleTime: Number.POSITIVE_INFINITY,
+});
+
+/**
+ * Restore Purchases: asks the store for the User's purchases, answering
+ * whether that left them with Fitme Pro. The caller reads the Subscription
+ * again afterwards (RevenueCat's customer info listener in `auth-sync.tsx`
+ * does too, but only when the customer changed).
+ */
+export const useRestorePurchasesMutation = createMutation<boolean>({
+  mutationFn: async (): Promise<boolean> => {
+    const customerInfo = await Purchases.restorePurchases();
+
+    return subscriptionOf(customerInfo).kind === "pro";
+  },
 });

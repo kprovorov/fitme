@@ -38,6 +38,8 @@ const openEditProfile = () => router.push("/settings/edit-profile");
 
 const openAccountSecurity = () => router.push("/account-security");
 
+const openSubscription = () => router.push("/subscription");
+
 const openUnits = () => router.push("/settings/measurement-system");
 
 const openSupport = () => router.push("/support");
@@ -173,7 +175,11 @@ const ProfileRedesignView = () => {
           onPress={openAccountSecurity}
           testID="account-security-link"
         />
-        <ProfileListRow label={t("profile.rows.subscription")} />
+        <ProfileListRow
+          label={t("profile.rows.subscription")}
+          onPress={openSubscription}
+          testID="subscription-link"
+        />
       </ProfileListSection>
 
       <ProfileListSection title={t("profile.sections.preferences")}>
