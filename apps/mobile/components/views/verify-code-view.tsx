@@ -20,7 +20,7 @@ import { ErrorMessage } from "~/components/ui/error-message";
 import { Text } from "~/components/ui/text";
 import { isWrongCodeError } from "~/hooks/confirm-identity";
 import { useReverifiedCall } from "~/hooks/reverification";
-import { isClerkNetworkFailure } from "~/lib/clerk";
+import { getClerk, isClerkNetworkFailure } from "~/lib/clerk";
 import { IS_E2E } from "~/lib/constants";
 import { dropUnusedEmailAddress } from "~/lib/email-addresses";
 import { segmentClient } from "~/lib/segment";
@@ -213,6 +213,9 @@ const useChangeEmailVerification = (
   const { t } = useTranslation();
   const settled = useRef(false);
   const address = user?.emailAddresses.find(({ id }) => id === emailAddressId);
+  // The address the User is leaving, kept across a retry: once the swap
+  // lands, it's no longer the primary one.
+  const [previousId, setPreviousId] = useState<string | null>(null);
 
   // Removing an email address is a sensitive action too: "Change it" asks
   // "Confirm it's you" when the session has gone stale on this Screen.
@@ -246,19 +249,31 @@ const useChangeEmailVerification = (
 
   const isPrimary = user?.primaryEmailAddressId === emailAddressId;
 
+  // Swapped, but the old address is still on the account (its removal
+  // failed): leaving takes it off as well.
+  const oldAddress = isPrimary
+    ? user?.emailAddresses.find(
+        ({ id }) => id === previousId && id !== emailAddressId
+      )
+    : undefined;
+
   return {
     // Still shown once the address is primary, while the old one goes.
     available: !!user && !!address,
     email: address?.emailAddress ?? null,
-    guarded: !!address && !isPrimary,
+    guarded: !!address && (!isPrimary || !!oldAddress),
     id: address?.id ?? null,
     leave: async () => {
-      if (settled.current || !address || isPrimary) {
+      // Whichever address the change would leave behind: the new one before
+      // the swap, the old one after it.
+      const target = isPrimary ? oldAddress : address;
+
+      if (!target || (settled.current && !isPrimary)) {
         return false;
       }
 
       try {
-        const removed = await removeAddress(address);
+        const removed = await removeAddress(target);
 
         if (removed.status === "cancelled") {
           return true;
@@ -320,30 +335,41 @@ const useChangeEmailVerification = (
         return;
       }
 
-      const previousId = user.primaryEmailAddressId;
-      const swapped = await makePrimary(emailAddressId);
+      const leaving = previousId ?? user.primaryEmailAddressId;
+      setPreviousId(leaving);
 
-      // Cancelled "Confirm it's you": the new address stays verified, and
-      // Verify swaps it without another code.
-      if (swapped.status === "cancelled") {
-        return;
+      if (user.primaryEmailAddressId !== emailAddressId) {
+        const swapped = await makePrimary(emailAddressId);
+
+        // Cancelled "Confirm it's you": the new address stays verified, and
+        // Verify swaps it without another code.
+        if (swapped.status === "cancelled") {
+          return;
+        }
       }
 
       settled.current = true;
 
-      const previous = swapped.value?.emailAddresses.find(
-        ({ id }) => id === previousId
+      // The change isn't done until the old address is gone: while it's on
+      // the account it can still receive a reset code. A failure keeps the
+      // User here to try again; nothing is reported done before that.
+      const previous = getClerk().user?.emailAddresses.find(
+        ({ id }) => id === leaving && id !== emailAddressId
       );
 
-      // The old address goes even if the User has left meanwhile: the
-      // session was just confirmed, so Clerk doesn't ask again. A failure
-      // is ours to look into, not the User's to retry: the new address is
-      // primary already.
-      try {
-        await previous?.destroy();
-      } catch (error) {
-        if (!isClerkNetworkFailure(error)) {
-          captureException(error);
+      if (previous) {
+        try {
+          const removed = await removeAddress(previous);
+
+          if (removed.status === "cancelled") {
+            return;
+          }
+        } catch (error) {
+          if (!isClerkNetworkFailure(error)) {
+            captureException(error);
+          }
+
+          return t("changeEmail.errors.failed");
         }
       }
 

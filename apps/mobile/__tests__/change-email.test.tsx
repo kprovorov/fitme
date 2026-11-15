@@ -84,6 +84,7 @@ const STRINGS = {
     code: "Code",
     email: "Email",
     emailInUse: "Email in use",
+    failed: "Couldn't change your email. Try again.",
     heading: "Change your email",
     newEmail: "New email",
     password: "Password",
@@ -102,6 +103,7 @@ const STRINGS = {
     code: "Код",
     email: "Ел. пошта",
     emailInUse: "Ця адреса вже використовується",
+    failed: "Не вдалося змінити ел. пошту. Спробуй ще раз.",
     heading: "Зміни ел. пошту",
     newEmail: "Нова ел. пошта",
     password: "Пароль",
@@ -228,6 +230,51 @@ describe.each(["en", "uk"] as const)("Change Email (%s)", (language) => {
     expect(methods().filter((m) => m === "destroyEmailAddress")).toHaveLength(
       1
     );
+  });
+
+  it("stays on the code screen until the old address is gone", async () => {
+    await reachCodeScreen();
+    fakeClerk.failNext("destroyEmailAddress", "network");
+
+    await enterCode(FAKE_VERIFICATION_CODE);
+
+    await expect(screen.findByText(text.failed)).resolves.toBeOnTheScreen();
+    expect(dismissedToRoute()).toBeNull();
+    expect(screen.queryByText(text.success)).toBeNull();
+    // The new address is primary; the old one is still there.
+    expect(addresses()).toEqual([
+      { emailAddress: NEW_EMAIL, primary: true },
+      { emailAddress: OLD_EMAIL, primary: false },
+    ]);
+
+    // Verify again: no new code, no second swap, the old address goes.
+    await fireEvent.press(screen.getByRole("button", { name: text.verify }));
+
+    await waitFor(() => expect(dismissedToRoute()).toBe("/account-security"));
+    expect(addresses()).toEqual([{ emailAddress: NEW_EMAIL, primary: true }]);
+    expect(methods().filter((m) => m === "update")).toHaveLength(1);
+    expect(
+      methods().filter((m) => m === "attemptEmailVerification")
+    ).toHaveLength(1);
+    expect(screen.getByText(text.success)).toBeOnTheScreen();
+  });
+
+  it("takes the old address off when the User leaves after its removal failed", async () => {
+    await reachCodeScreen();
+    fakeClerk.failNext("destroyEmailAddress", "network");
+    await enterCode(FAKE_VERIFICATION_CODE);
+    await expect(screen.findByText(text.failed)).resolves.toBeOnTheScreen();
+
+    await act(() => {
+      stubRouter.back();
+    });
+
+    await waitFor(() =>
+      expect(addresses()).toEqual([{ emailAddress: NEW_EMAIL, primary: true }])
+    );
+    expect(pushedRoutes().map(({ pathname }) => pathname)).toEqual([
+      "/change-email",
+    ]);
   });
 
   it("shows Email in use on the form for a taken address", async () => {
