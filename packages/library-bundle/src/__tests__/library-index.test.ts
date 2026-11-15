@@ -153,21 +153,58 @@ describe("the Library index", () => {
 
     const first = index.lookup(["bench-press"]);
     const second = index.lookup(["bench-press"]);
-    // A known slug asked meanwhile waits for the reload too.
-    const third = index.lookup(["squat"]);
     await Promise.resolve();
     release();
 
-    const answers = await Promise.all([first, second, third]);
+    const answers = await Promise.all([first, second]);
 
     expect(state.calls).toBe(2);
-    expect(answers.map((answer) => answer.status)).toStrictEqual([
-      "ready",
-      "ready",
-      "ready",
-    ]);
-    expect(answers[0]).toMatchObject({ missing: [] });
-    expect(answers[1]).toMatchObject({ missing: [] });
+    expect(answers).toMatchObject([{ missing: [] }, { missing: [] }]);
+  });
+
+  it("answers known slugs from the current index while a reload runs", async () => {
+    let release = () => {};
+    const state = { calls: 0 };
+
+    const { clock, index } = indexOver(() => {
+      state.calls += 1;
+
+      if (state.calls === 1) {
+        return Promise.resolve(bundle([SQUAT]));
+      }
+
+      return new Promise((resolve) => {
+        release = () => resolve(bundle([SQUAT, BENCH]));
+      });
+    });
+
+    await index.lookup(["squat"]);
+    clock.now = RELOAD_INTERVAL_MS;
+    const miss = index.lookup(["bench-press"]);
+
+    await expect(index.lookup(["squat"])).resolves.toMatchObject({
+      missing: [],
+    });
+
+    release();
+    await expect(miss).resolves.toMatchObject({ missing: [] });
+  });
+
+  it("fails a load that takes too long, reporting it", async () => {
+    const reported: Error[] = [];
+
+    const index = createLibraryIndex({
+      load: () => new Promise(() => {}),
+      loadTimeoutMs: 20,
+      reportError: (error) => {
+        reported.push(error);
+      },
+    });
+
+    await expect(index.lookup(["squat"])).resolves.toStrictEqual({
+      status: "unavailable",
+    });
+    expect(reported[0]?.message).toMatch(/timed out/u);
   });
 
   it("shares one first load between concurrent checks", async () => {

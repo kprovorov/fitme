@@ -1,3 +1,5 @@
+import { setTimeout as delay } from "node:timers/promises";
+
 import { z } from "zod";
 
 import { BUNDLE_VERSION } from "./schema";
@@ -105,6 +107,9 @@ export interface LibraryIndex {
 /** How often a miss may reload the bundle: at most once a minute per instance. */
 export const RELOAD_INTERVAL_MS = 60_000;
 
+/** How long a load may take before it counts as failed, so a slow Blob never holds a write. */
+export const LOAD_TIMEOUT_MS = 10_000;
+
 /**
  * The instance's Library index, loaded on the first lookup and kept for the
  * life of the instance (nothing invalidates it: the Library is added to,
@@ -115,15 +120,19 @@ export const RELOAD_INTERVAL_MS = 60_000;
  * - A failed first load answers `unavailable`, and the next lookup loads again.
  * - A lookup with a missing slug reloads once `reloadIntervalMs` has passed
  *   since the last load began, then answers again from the new index. Lookups
- *   arriving while a load runs wait for it, so a burst is one load.
+ *   missing a slug while a load runs wait for it, so a burst is one load;
+ *   lookups whose slugs are all known answer at once from the current index.
+ * - A load taking over `loadTimeoutMs` fails (reported) like any other.
  */
 export const createLibraryIndex = ({
   load,
+  loadTimeoutMs = LOAD_TIMEOUT_MS,
   now = Date.now,
   reloadIntervalMs = RELOAD_INTERVAL_MS,
   reportError,
 }: {
   load: () => Promise<unknown>;
+  loadTimeoutMs?: number;
   now?: () => number;
   reloadIntervalMs?: number;
   reportError: (error: Error) => Promise<void> | void;
@@ -132,9 +141,29 @@ export const createLibraryIndex = ({
   let loading: Promise<void> | null = null;
   let lastLoadAt = Number.NEGATIVE_INFINITY;
 
+  /** `load`, rejecting once it has taken `loadTimeoutMs`. */
+  const loadInTime = async () => {
+    const controller = new AbortController();
+
+    const timeout = delay(loadTimeoutMs, undefined, {
+      signal: controller.signal,
+    }).then(() => {
+      throw new Error(`Library index load timed out after ${loadTimeoutMs} ms`);
+    });
+
+    // Aborted once the load wins: nothing waits on it then.
+    timeout.catch(() => undefined);
+
+    try {
+      return await Promise.race([load(), timeout]);
+    } finally {
+      controller.abort();
+    }
+  };
+
   const loadOnce = async () => {
     try {
-      current = readLibraryIndex(await load());
+      current = readLibraryIndex(await loadInTime());
     } catch (error) {
       await reportError(
         error instanceof Error
@@ -178,7 +207,7 @@ export const createLibraryIndex = ({
 
   return {
     lookup: async (slugs) => {
-      if (loading || !current) {
+      if (!current) {
         await reload();
       }
 
@@ -192,7 +221,9 @@ export const createLibraryIndex = ({
         return first;
       }
 
-      if (now() - lastLoadAt < reloadIntervalMs) {
+      // A miss joins a load already running; otherwise it reloads only once
+      // the throttle allows.
+      if (!loading && now() - lastLoadAt < reloadIntervalMs) {
         return first;
       }
 

@@ -2,6 +2,7 @@ import { pickCovers } from "@fitme/core/covers";
 import type { MuscleGroup } from "@fitme/core/models";
 import { createLibraryIndex } from "@fitme/library-bundle/library-index";
 import type {
+  IndexCover,
   IndexExercise,
   LibraryIndex,
 } from "@fitme/library-bundle/library-index";
@@ -59,20 +60,24 @@ export type SlugCheck =
   | { slugs: string[]; status: "unknown" }
   | { status: "unavailable" };
 
-/**
- * Checks every slug a write carries against the Library index, before the
- * services open their transaction (ADR 0010, ADR 0018). With no index (its
- * load failed, which it reported) the answer is `unavailable`, so the write
- * never goes ahead with unchecked Exercises. Known slugs answer the
- * Exercises the index has, with their muscle groups.
- */
-export const checkExerciseSlugs = async ({
+/** A check the write can't go ahead on. */
+type RefusedCheck = Exclude<SlugCheck, { status: "known" }>;
+
+/** One index lookup of `slugs`, refused unless every one is known. */
+const lookUpSlugs = async ({
   index,
   slugs,
 }: {
   index: LibraryIndex;
   slugs: string[];
-}): Promise<SlugCheck> => {
+}): Promise<
+  | RefusedCheck
+  | {
+      covers: IndexCover[];
+      exercises: IndexExercise[];
+      status: "known";
+    }
+> => {
   const found = await index.lookup(slugs);
 
   if (found.status === "unavailable") {
@@ -81,11 +86,26 @@ export const checkExerciseSlugs = async ({
 
   return found.missing.length > 0
     ? { slugs: found.missing, status: "unknown" }
-    : { exercises: found.exercises, status: "known" };
+    : { covers: found.covers, exercises: found.exercises, status: "known" };
 };
 
-/** A check the write can't go ahead on. */
-type RefusedCheck = Exclude<SlugCheck, { status: "known" }>;
+/**
+ * Checks every slug a write carries against the Library index, before the
+ * services open their transaction (ADR 0010, ADR 0018). With no index (its
+ * load failed, which it reported) the answer is `unavailable`, so the write
+ * never goes ahead with unchecked Exercises. Known slugs answer the
+ * Exercises the index has, with their muscle groups.
+ */
+export const checkExerciseSlugs = async (options: {
+  index: LibraryIndex;
+  slugs: string[];
+}): Promise<SlugCheck> => {
+  const check = await lookUpSlugs(options);
+
+  return check.status === "known"
+    ? { exercises: check.exercises, status: "known" }
+    : check;
+};
 
 /** What a Plan write's Workouts need from the Library: their slugs checked, then a Cover each. */
 export type CoveredCheck =
@@ -126,20 +146,19 @@ export const checkSlugsForCovers = async ({
   random?: () => number;
   workouts: readonly WorkoutToCover[];
 }): Promise<CoverPickerCheck> => {
-  const found = await index.lookup([
-    ...new Set(
-      workouts.flatMap((workout) =>
-        workout.exercises.map((exercise) => exercise.exercise_slug)
-      )
-    ),
-  ]);
+  const found = await lookUpSlugs({
+    index,
+    slugs: [
+      ...new Set(
+        workouts.flatMap((workout) =>
+          workout.exercises.map((exercise) => exercise.exercise_slug)
+        )
+      ),
+    ],
+  });
 
-  if (found.status === "unavailable") {
+  if (found.status !== "known") {
     return found;
-  }
-
-  if (found.missing.length > 0) {
-    return { slugs: found.missing, status: "unknown" };
   }
 
   // The index keeps muscle groups as the bundle writes them, so a group this

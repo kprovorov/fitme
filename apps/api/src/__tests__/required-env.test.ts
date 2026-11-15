@@ -15,6 +15,7 @@ describe("required environment variables", () => {
     expect(missing).toStrictEqual([
       "CLERK_JWT_KEY",
       "FITME_DATABASE_URL",
+      "BLOB_STORE_ID",
       "LIBRARY_URL",
       "LIBRARY_PUBLIC_API_SECRET",
     ]);
