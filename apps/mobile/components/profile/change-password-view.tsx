@@ -242,6 +242,12 @@ const ChangePasswordView = () => {
     }
   };
 
+  // No User, or one without a password (a deep link, a sign-out meanwhile):
+  // there's nothing to change, and no Set Password.
+  if (!user?.passwordEnabled) {
+    return null;
+  }
+
   return (
     <AuthScreen
       action={

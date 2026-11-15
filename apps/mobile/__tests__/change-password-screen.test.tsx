@@ -58,6 +58,8 @@ const STRINGS = {
     cancel: "Cancel",
     confirm: "Confirm new password",
     confirmTitle: "Confirm it's you",
+    continue: "Continue",
+    password: "Password",
     current: "Current password",
     mismatch: "Passwords don't match",
     new: "New password",
@@ -71,6 +73,8 @@ const STRINGS = {
     cancel: "Скасувати",
     confirm: "Підтверди новий пароль",
     confirmTitle: "Підтверди, що це ти",
+    continue: "Продовжити",
+    password: "Пароль",
     current: "Поточний пароль",
     mismatch: "Паролі не збігаються",
     new: "Новий пароль",
@@ -129,6 +133,14 @@ describe.each(["en", "uk"] as const)("Change Password (%s)", (language) => {
     expect(screen.getByRole("button", { name: text.submit })).toBeDisabled();
   });
 
+  it("shows nothing for a User without a password", async () => {
+    fakeClerk.setUser({ passwordEnabled: false });
+
+    await waitFor(() =>
+      expect(screen.queryByLabelText(text.current)).toBeNull()
+    );
+  });
+
   it("ignores the keyboard's Go while a field is empty", async () => {
     await fill({ current: "" });
     await fireEvent(screen.getByLabelText(text.confirm), "submitEditing");
@@ -166,11 +178,17 @@ describe.each(["en", "uk"] as const)("Change Password (%s)", (language) => {
     ).resolves.toBeOnTheScreen();
     expect(passwordUpdates()).toEqual([]);
 
-    fakeClerk.completeReverification();
+    await fireEvent.changeText(
+      screen.getByLabelText(text.password),
+      FAKE_PASSWORD
+    );
+    await fireEvent.press(screen.getByRole("button", { name: text.continue }));
 
     await expect(screen.findByText(text.success)).resolves.toBeOnTheScreen();
     expect(passwordUpdates()).toHaveLength(1);
     expect(fakeClerk.password).toBe(NEW_PASSWORD);
+    // The sheet closed, then Change Password went back too.
+    expect(pushedRoutes()).toEqual([]);
   });
 
   it("names the minimum length for a new password that's too short", async () => {
