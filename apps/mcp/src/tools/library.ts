@@ -1,4 +1,6 @@
 import { pickCovers } from "@fitme/core/covers";
+import type { MuscleGroup } from "@fitme/core/models";
+import type { IndexCover } from "@fitme/library-bundle/library-index";
 import { exerciseNameFromSlug } from "@fitme/library-sdk";
 import type { ExerciseSummary, Library } from "@fitme/library-sdk";
 import type { PlanDetail } from "@fitme/services/plans";
@@ -10,7 +12,7 @@ import { ToolError } from "./helpers.js";
 
 const MAX_SLUG_LENGTH = 100;
 
-/** An Exercise by its Exercise slug; whether it exists is checked with the library. */
+/** An Exercise by its Exercise slug; whether it exists is checked against the Library index. */
 export const exerciseSlugSchema = z
   .string()
   .trim()
@@ -22,11 +24,11 @@ export const exerciseSlugSchema = z
 
 export const LIBRARY_UNAVAILABLE_MESSAGE = "Library unavailable, try again.";
 
-/** Known Exercises by slug, from one lookup. */
+/** Known Exercises by slug, from one Library API lookup (reads). */
 export type KnownExercises = ReadonlyMap<string, ExerciseSummary>;
 
 /**
- * Runs a call a tool can't answer without (a search, a write's slug check):
+ * Runs a call a tool can't answer without (a search, `get_exercise`):
  * the library failing is reported, then shown as a `ToolError`.
  */
 export const fromLibrary = async <T>(
@@ -47,50 +49,67 @@ const bySlug = (exercises: ExerciseSummary[]): KnownExercises =>
   new Map(exercises.map((exercise) => [exercise.slug, exercise]));
 
 /**
- * Checks every slug a write carries with one lookup, before the services
- * open their transaction (ADR 0010): an unknown one is a `ToolError` naming
- * it, so nothing is written. Answers the Exercises, to name the result.
+ * What the Library index (ADR 0018) says about a write's slugs, once every
+ * one is known: their muscle groups, and the Covers to pick from.
+ */
+export interface CheckedSlugs {
+  covers: IndexCover[];
+  /** Each known slug's muscle groups, as the bundle writes them. */
+  muscleGroups: ReadonlyMap<string, readonly string[]>;
+}
+
+/**
+ * Checks every slug a write carries against the Library index, before the
+ * services open their transaction (ADR 0010, ADR 0018), so no write waits
+ * on the Library API: an unknown one is a `ToolError` naming it, unreported,
+ * and an index that can't be loaded (reported by the index itself) is the
+ * Library tool error. Nothing is written either way.
  */
 export const requireKnownSlugs = async (
   ctx: ToolContext,
   slugs: string[]
-): Promise<KnownExercises> => {
-  const { data, missing } = await fromLibrary(ctx, (library) =>
-    library.lookup(slugs)
-  );
+): Promise<CheckedSlugs> => {
+  const found = await ctx.libraryIndex.lookup(slugs);
 
-  if (missing.length > 0) {
+  if (found.status === "unavailable") {
+    throw new ToolError(LIBRARY_UNAVAILABLE_MESSAGE);
+  }
+
+  if (found.missing.length > 0) {
     throw new ToolError(
-      `Unknown exercise_slug(s): ${missing.join(", ")}. Use list_exercises to look up valid Exercise slugs.`
+      `Unknown exercise_slug(s): ${found.missing.join(", ")}. Use list_exercises to look up valid Exercise slugs.`
     );
   }
 
-  return bySlug(data);
+  return {
+    covers: found.covers,
+    muscleGroups: new Map(
+      found.exercises.map((exercise) => [exercise.slug, exercise.muscle_groups])
+    ),
+  };
 };
 
 /**
- * Gives each Workout a write creates its Cover (ADR 0014): one `covers()`
- * call, then the picker, by the muscle groups `known` (the write's slug
- * check) has for its Exercises, distinct within the Plan while there are
- * enough. Before the services' transaction, so a failing library is the
- * Library tool error with nothing written; no Covers gives every Workout
+ * Gives each Workout a write creates its Cover (ADR 0014), from the Covers
+ * and muscle groups the write's slug check (`checked`) answered, distinct
+ * within the Plan while there are enough; no Covers gives every Workout
  * `null`.
  */
-export const withCovers = async <W extends { exercises: WithSlug[] }>(
-  ctx: ToolContext,
+export const withCovers = <W extends { exercises: WithSlug[] }>(
   workouts: W[],
-  known: KnownExercises
-): Promise<(W & { cover: string | null })[]> => {
-  const covers = await fromLibrary(ctx, (library) => library.covers());
-
+  checked: CheckedSlugs
+): (W & { cover: string | null })[] => {
   const picked = pickCovers({
-    covers: covers.map((cover) => ({
+    covers: checked.covers.map((cover) => ({
       id: cover.id,
-      muscleGroups: cover.muscle_groups,
+      // SAFETY: pickCovers only compares muscle groups for equality, so one this build's MuscleGroup doesn't list is matched like any other.
+      muscleGroups: cover.muscle_groups as MuscleGroup[],
     })),
     workouts: workouts.map((workout) => ({
       exercises: workout.exercises.map((exercise) => ({
-        muscleGroups: known.get(exercise.exercise_slug)?.muscle_groups ?? [],
+        // SAFETY: as above, pickCovers only compares the groups for equality.
+        muscleGroups: (checked.muscleGroups.get(exercise.exercise_slug) ??
+          []) as MuscleGroup[],
       })),
     })),
   });

@@ -21,7 +21,8 @@ import {
 import type { AuthVariables } from "./auth.js";
 import { createToolContext } from "./context.js";
 import type { ReportError } from "./context.js";
-import type { LibraryFactory } from "./library.js";
+import { libraryIndexFromEnv } from "./library.js";
+import type { LibraryFactory, LibraryIndex } from "./library.js";
 import { answerUnsupportedProtocolVersion } from "./protocol-version.js";
 import { createMcpServer } from "./server.js";
 import type { ServicesFactory } from "./services.js";
@@ -38,6 +39,11 @@ export interface CreateAppOptions {
    * verified Clerk id only. Defaults to @fitme/observability's.
    */
   identifyUser?: (userId: string) => void;
+  /**
+   * Overrides the instance's Library index (used by tests); by default
+   * `libraryIndexFromEnv`, reporting through `reportError`.
+   */
+  libraryIndex?: LibraryIndex;
   logRequests?: boolean;
   /**
    * Reports an unexpected failure: unhandled errors on the endpoint and tools
@@ -80,9 +86,13 @@ export const createApp = ({
   createLibrary,
   createServices,
   identifyUser = identifyObservedUser,
+  libraryIndex,
   logRequests = true,
   reportError,
 }: CreateAppOptions) => {
+  // One per instance, so a warm instance checks writes with no network call
+  const index = libraryIndex ?? libraryIndexFromEnv(reportError);
+
   const app = new Hono<{ Variables: AuthVariables }>();
 
   // First, so the request span covers every other middleware
@@ -140,6 +150,7 @@ export const createApp = ({
     const context = createToolContext({
       createLibrary,
       createServices,
+      libraryIndex: index,
       reportError,
       user: c.get("clerkUser"),
     });

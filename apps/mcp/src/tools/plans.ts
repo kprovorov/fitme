@@ -12,9 +12,7 @@ import {
   withServices,
 } from "./helpers.js";
 import {
-  lookupForRead,
   namedPlan,
-  namePlan,
   requireKnownSlugs,
   withCovers,
   workoutSlugs,
@@ -85,11 +83,13 @@ const registerPlanWriteTools = (server: McpServer, ctx: ToolContext) => {
       title: "Create plan",
     },
     withServices(ctx, async (plan, services) => {
-      const known = await requireKnownSlugs(ctx, workoutSlugs(plan.workouts));
-      const workouts = await withCovers(ctx, plan.workouts, known);
+      const checked = await requireKnownSlugs(ctx, workoutSlugs(plan.workouts));
 
+      const workouts = withCovers(plan.workouts, checked);
+
+      // Named after the transaction, like any read: never fails the write
       return asJson(
-        namePlan(await services.createPlan({ ...plan, workouts }), known)
+        await namedPlan(ctx, await services.createPlan({ ...plan, workouts }))
       );
     })
   );
@@ -137,7 +137,7 @@ const registerPlanWriteTools = (server: McpServer, ctx: ToolContext) => {
       // without workouts, the Workouts and their Covers stay as they are
       const changes =
         workouts && checked
-          ? { ...metadata, workouts: await withCovers(ctx, workouts, checked) }
+          ? { ...metadata, workouts: withCovers(workouts, checked) }
           : metadata;
 
       const updated = requireFound(
@@ -145,11 +145,8 @@ const registerPlanWriteTools = (server: McpServer, ctx: ToolContext) => {
         planNotFound(planId)
       );
 
-      // without workouts, the Plan keeps Exercises nothing has looked up yet
-      const known =
-        checked ?? (await lookupForRead(ctx, workoutSlugs(updated.workouts)));
-
-      return asJson(namePlan(updated, known));
+      // Named after the transaction, like any read: never fails the write
+      return asJson(await namedPlan(ctx, updated));
     })
   );
 

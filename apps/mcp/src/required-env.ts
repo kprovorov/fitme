@@ -8,6 +8,9 @@ export const REQUIRED_ENV: readonly RequiredEnv[] = [
   "CLERK_SECRET_KEY",
   "CLERK_PUBLISHABLE_KEY",
   "FITME_DATABASE_URL",
+  // The Library index's Blob store (ADR 0018): without it every Plan write
+  // carrying Exercise slugs is the "Library unavailable" tool error.
+  "BLOB_STORE_ID",
   "LIBRARY_URL",
   "LIBRARY_MCP_SECRET",
 ];

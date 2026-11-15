@@ -1,6 +1,5 @@
 import { LibraryUnavailableError } from "@fitme/library-sdk";
 import type { Cover } from "@fitme/library-sdk";
-import { createFakeLibrary } from "@fitme/library-sdk/fake";
 import type { NewPlan } from "@fitme/services/plans";
 import { describe, expect, it, vi } from "vitest";
 
@@ -11,9 +10,11 @@ import {
   connectWithServices,
   fakeLibrary,
   ignoreReports,
+  INDEX_OUTAGE,
   PLAN_ID,
   recordingReporter,
   SQUAT,
+  testIndex,
 } from "./harness.js";
 
 /** An Exercise uuid, as tools took Exercises before slugs. */
@@ -167,8 +168,8 @@ const cover = (id: string, muscleGroups: Cover["muscle_groups"]): Cover => ({
   muscle_groups: muscleGroups,
 });
 
-const libraryWith = (covers: Cover[]) =>
-  createFakeLibrary([BENCH, SQUAT], { covers });
+/** A Library index over BENCH and SQUAT with `covers`. */
+const indexWith = (covers: Cover[]) => testIndex({ covers });
 
 describe("list_plans", () => {
   it("returns the User's plans from the service", async () => {
@@ -362,7 +363,7 @@ describe("create_plan", () => {
     expect(reported).toStrictEqual([]);
   });
 
-  it("fails when the library is unavailable, reports it and writes nothing", async () => {
+  it("creates the plan while the Library API is down, naming Exercises from their slugs", async () => {
     const createPlan = vi.fn<UserServices["createPlan"]>(() =>
       Promise.resolve(servicePlan)
     );
@@ -377,10 +378,37 @@ describe("create_plan", () => {
 
     const result = await call(client, "create_plan", plan);
 
+    expect(result.isError).toBeFalsy();
+    expect(createPlan).toHaveBeenCalledWith({
+      ...plan,
+      workouts: uncovered(workoutsInput),
+    });
+    expect(result.json).toMatchObject({
+      workouts: [{ exercises: [{ muscle_groups: [], name: "Bench press" }] }],
+    });
+    expect(reported).toStrictEqual([expect.any(LibraryUnavailableError)]);
+  });
+
+  it("fails when the Library index can't load, reports it and writes nothing", async () => {
+    const createPlan = vi.fn<UserServices["createPlan"]>(() =>
+      Promise.resolve(servicePlan)
+    );
+
+    const { reportError, reported } = recordingReporter();
+
+    const client = await connectWithServices(
+      { createPlan },
+      reportError,
+      fakeLibrary(),
+      testIndex({ loads: "fail", reportError })
+    );
+
+    const result = await call(client, "create_plan", plan);
+
     expect(result.isError).toBeTruthy();
     expect(result.text).toBe(UNAVAILABLE);
     expect(createPlan).not.toHaveBeenCalled();
-    expect(reported).toStrictEqual([expect.any(LibraryUnavailableError)]);
+    expect(reported).toStrictEqual([INDEX_OUTAGE]);
   });
 
   it("rejects an exercise_id instead of an exercise_slug", async () => {
@@ -517,7 +545,29 @@ describe("update_plan", () => {
     });
   });
 
-  it("fails replacing workouts when the library is unavailable, writing nothing", async () => {
+  it("replaces workouts while the Library API is down", async () => {
+    const updatePlan = vi.fn<UserServices["updatePlan"]>(() =>
+      Promise.resolve(servicePlan)
+    );
+
+    const client = await connectWithServices(
+      { updatePlan },
+      ignoreReports,
+      downLibrary()
+    );
+
+    const result = await call(client, "update_plan", {
+      planId: PLAN_ID,
+      workouts: workoutsInput,
+    });
+
+    expect(result.isError).toBeFalsy();
+    expect(updatePlan).toHaveBeenCalledWith(PLAN_ID, {
+      workouts: uncovered(workoutsInput),
+    });
+  });
+
+  it("fails replacing workouts when the Library index can't load, writing nothing", async () => {
     const updatePlan = vi.fn<UserServices["updatePlan"]>(() =>
       Promise.resolve(servicePlan)
     );
@@ -527,7 +577,8 @@ describe("update_plan", () => {
     const client = await connectWithServices(
       { updatePlan },
       reportError,
-      downLibrary()
+      fakeLibrary(),
+      testIndex({ loads: "fail", reportError })
     );
 
     const result = await call(client, "update_plan", {
@@ -538,7 +589,7 @@ describe("update_plan", () => {
     expect(result.isError).toBeTruthy();
     expect(result.text).toBe(UNAVAILABLE);
     expect(updatePlan).not.toHaveBeenCalled();
-    expect(reported).toHaveLength(1);
+    expect(reported).toStrictEqual([INDEX_OUTAGE]);
   });
 
   it("errors for a missing, deleted or foreign plan", async () => {
@@ -565,7 +616,8 @@ describe("update_plan", () => {
     const client = await connectWithServices(
       { updatePlan },
       ignoreReports,
-      fakeLibrary([BENCH])
+      fakeLibrary(),
+      testIndex({ exercises: [BENCH] })
     );
 
     const result = await call(client, "update_plan", {
@@ -855,7 +907,8 @@ describe("cover assignment", () => {
     const client = await connectWithServices(
       { createPlan },
       ignoreReports,
-      libraryWith([LEGS, CHEST_A])
+      fakeLibrary(),
+      indexWith([LEGS, CHEST_A])
     );
 
     const result = await call(client, "create_plan", {
@@ -885,7 +938,8 @@ describe("cover assignment", () => {
     const client = await connectWithServices(
       { createPlan },
       ignoreReports,
-      libraryWith([CHEST_A, CHEST_B, LEGS])
+      fakeLibrary(),
+      indexWith([CHEST_A, CHEST_B, LEGS])
     );
 
     await call(client, "create_plan", {
@@ -906,7 +960,8 @@ describe("cover assignment", () => {
     const client = await connectWithServices(
       { updatePlan },
       ignoreReports,
-      libraryWith([CHEST_A, LEGS])
+      fakeLibrary(),
+      indexWith([CHEST_A, LEGS])
     );
 
     const result = await call(client, "update_plan", {
@@ -928,58 +983,69 @@ describe("cover assignment", () => {
       Promise.resolve(servicePlan)
     );
 
-    const library = libraryWith([CHEST_A]);
-    const covers = vi.spyOn(library, "covers");
+    const index = indexWith([CHEST_A]);
+    const lookup = vi.spyOn(index, "lookup");
 
     const client = await connectWithServices(
       { updatePlan },
       ignoreReports,
-      library
+      fakeLibrary(),
+      index
     );
 
     await call(client, "update_plan", { name: "Renamed", planId: PLAN_ID });
 
     expect(updatePlan).toHaveBeenCalledWith(PLAN_ID, { name: "Renamed" });
-    expect(covers).not.toHaveBeenCalled();
+    expect(lookup).not.toHaveBeenCalled();
   });
 
-  it("covers() failing is the Library tool error, reported, with nothing written", async () => {
+  it("an index without Covers gives every Workout no Cover", async () => {
     const createPlan = vi.fn<UserServices["createPlan"]>(() =>
       Promise.resolve(servicePlan)
     );
 
-    const updatePlan = vi.fn<UserServices["updatePlan"]>(() =>
+    const client = await connectWithServices(
+      { createPlan },
+      ignoreReports,
+      fakeLibrary(),
+      indexWith([])
+    );
+
+    await call(client, "create_plan", {
+      ...metadata,
+      workouts: [chestDay, legDay],
+    });
+
+    expect(createPlan).toHaveBeenCalledWith({
+      ...metadata,
+      workouts: [
+        { ...chestDay, cover: null },
+        { ...legDay, cover: null },
+      ],
+    });
+  });
+
+  it("never asks the Library API for Covers", async () => {
+    const createPlan = vi.fn<UserServices["createPlan"]>(() =>
       Promise.resolve(servicePlan)
     );
 
-    const failure = new LibraryUnavailableError({ status: 503 });
-    const library = libraryWith([CHEST_A]);
-    vi.spyOn(library, "covers").mockRejectedValue(failure);
-    const { reportError, reported } = recordingReporter();
+    const library = fakeLibrary();
+    const covers = vi.spyOn(library, "covers");
 
     const client = await connectWithServices(
-      { createPlan, updatePlan },
-      reportError,
-      library
+      { createPlan },
+      ignoreReports,
+      library,
+      indexWith([CHEST_A])
     );
 
-    const created = await call(client, "create_plan", {
+    await call(client, "create_plan", { ...metadata, workouts: [chestDay] });
+
+    expect(createPlan).toHaveBeenCalledWith({
       ...metadata,
-      workouts: [chestDay],
+      workouts: [{ ...chestDay, cover: CHEST_A.id }],
     });
-
-    const updated = await call(client, "update_plan", {
-      planId: PLAN_ID,
-      workouts: [chestDay],
-    });
-
-    for (const result of [created, updated]) {
-      expect(result.isError).toBeTruthy();
-      expect(result.text).toBe(UNAVAILABLE);
-    }
-
-    expect(createPlan).not.toHaveBeenCalled();
-    expect(updatePlan).not.toHaveBeenCalled();
-    expect(reported).toStrictEqual([failure, failure]);
+    expect(covers).not.toHaveBeenCalled();
   });
 });

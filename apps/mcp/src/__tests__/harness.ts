@@ -1,4 +1,6 @@
-import type { Exercise, Library } from "@fitme/library-sdk";
+import { createLibraryIndex } from "@fitme/library-bundle/library-index";
+import type { LibraryIndex } from "@fitme/library-bundle/library-index";
+import type { Cover, Exercise, Library } from "@fitme/library-sdk";
 import { createFakeLibrary } from "@fitme/library-sdk/fake";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
@@ -41,6 +43,47 @@ export const SQUAT: Exercise = {
 export const fakeLibrary = (exercises: Exercise[] = [BENCH, SQUAT]) =>
   createFakeLibrary(exercises);
 
+export const ignoreReports: ToolContext["reportError"] = () =>
+  Promise.resolve();
+
+/** The error a failing test index load rejects with. */
+export const INDEX_OUTAGE = new Error("Blob is unavailable");
+
+/**
+ * A Library index (ADR 0018) over `exercises` and `covers` in memory, as the
+ * bundle would list them: by default BENCH and SQUAT, as the fake Library,
+ * and no Covers. With `loads: "fail"` every load rejects with INDEX_OUTAGE,
+ * which the index reports through `reportError`: an instance with no index.
+ */
+export const testIndex = ({
+  covers = [],
+  exercises = [BENCH, SQUAT],
+  loads = "ok",
+  reportError = ignoreReports,
+}: {
+  covers?: readonly Pick<Cover, "id" | "muscle_groups">[];
+  exercises?: readonly Pick<Exercise, "muscle_groups" | "slug">[];
+  loads?: "fail" | "ok";
+  reportError?: ToolContext["reportError"];
+} = {}): LibraryIndex =>
+  createLibraryIndex({
+    load: () =>
+      loads === "fail"
+        ? Promise.reject(INDEX_OUTAGE)
+        : Promise.resolve({
+            covers: covers.map(({ id, muscle_groups }) => ({
+              id,
+              muscle_groups,
+            })),
+            exercises: exercises.map(({ muscle_groups, slug }) => ({
+              muscle_groups,
+              slug,
+            })),
+            version: 1,
+          }),
+    reportError,
+  });
+
 const notFaked = (name: keyof UserServices) => () =>
   Promise.reject(new Error(`${name} is not faked.`));
 
@@ -76,17 +119,20 @@ export const recordingReporter = () => {
   return { reportError, reported };
 };
 
-export const ignoreReports: ToolContext["reportError"] = () =>
-  Promise.resolve();
-
-/** A context whose user tools run on `services` and `library`. */
+/**
+ * A context whose user tools run on `services`, whose reads and searches run
+ * on `library` and whose Plan writes check slugs and pick Covers against
+ * `libraryIndex` (default: both over BENCH and SQUAT, no Covers).
+ */
 export const contextFor = (
   services: UserServices,
   reportError: ToolContext["reportError"] = ignoreReports,
-  library: Library = fakeLibrary()
+  library: Library = fakeLibrary(),
+  libraryIndex: LibraryIndex = testIndex({ reportError })
 ): ToolContext => ({
   getLibrary: () => library,
   getServices: () => services,
+  libraryIndex,
   reportError,
 });
 
@@ -97,6 +143,9 @@ const NO_USER: ToolContext = {
   },
   getServices: () => {
     throw new Error("No User in this test.");
+  },
+  libraryIndex: {
+    lookup: () => Promise.reject(new Error("No Library index in this test.")),
   },
   reportError: ignoreReports,
 };
@@ -117,14 +166,17 @@ export const connect = async (context: ToolContext = NO_USER) => {
 };
 
 /**
- * Connects a client whose service-backed tools run on `faked` services and
- * whose Exercise tools run on `library` (default: BENCH and SQUAT).
+ * Connects a client whose service-backed tools run on `faked` services, whose
+ * Exercise tools run on `library` and whose Plan writes check against
+ * `libraryIndex` (default: both over BENCH and SQUAT).
  */
 export const connectWithServices = (
   faked: Partial<UserServices>,
   reportError?: ToolContext["reportError"],
-  library?: Library
-) => connect(contextFor(fakeServices(faked), reportError, library));
+  library?: Library,
+  libraryIndex?: LibraryIndex
+) =>
+  connect(contextFor(fakeServices(faked), reportError, library, libraryIndex));
 
 export interface ToolOutcome {
   isError: boolean;
