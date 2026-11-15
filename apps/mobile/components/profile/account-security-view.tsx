@@ -1,15 +1,26 @@
-import { useUser } from "@clerk/expo";
+import { isClerkAPIResponseError, useUser } from "@clerk/expo";
+import { captureException } from "@sentry/react-native";
+import { useCallback, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { View } from "react-native";
+import { Alert, Pressable, View } from "react-native";
 
 import {
   ProfileListRow,
   ProfileListSection,
 } from "~/components/profile/profile-list";
+import { Button } from "~/components/ui/button";
 import { Separator } from "~/components/ui/separator";
 import { Text } from "~/components/ui/text";
+import { useReverifiedCall } from "~/hooks/reverification";
+import { isClerkNetworkFailure } from "~/lib/clerk";
 import { signInProviders } from "~/lib/sign-in-providers";
 import type { SocialProvider } from "~/lib/sign-in-providers";
+
+/**
+ * How far Disconnect's tap area reaches past the small pill (28 pt), so the
+ * target is at least 44 pt.
+ */
+const DISCONNECT_HIT_SLOP = 8;
 
 // Brand names, the same in every App language.
 const PROVIDER_NAMES: Record<SocialProvider, string> = {
@@ -18,17 +29,40 @@ const PROVIDER_NAMES: Record<SocialProvider, string> = {
 };
 
 /**
+ * What a linked provider's Disconnect can do: nothing while it would leave the
+ * User no way to sign in (`blocked`), or run while another call isn't.
+ */
+interface DisconnectState {
+  readonly blocked: boolean;
+  readonly busy: boolean;
+  readonly disabled: boolean;
+  readonly handlePress: () => void;
+}
+
+/** Clerk's answer for an external account that's no longer there. */
+const isAlreadyGone = (error: unknown) =>
+  isClerkAPIResponseError(error) &&
+  error.errors.some(({ code }) => code === "resource_not_found");
+
+/** The providers a User can sign in with, in this build or another. */
+const SIGN_IN_PROVIDERS: ReadonlySet<string> = new Set(["apple", "google"]);
+
+/**
  * One sign-in method (Figma's `ListRow`, subtitle type): the provider's name,
  * then the email of the account linked to it, or Not connected. VoiceOver
- * reads it as one element: the name, then "Connected as <email>" or "Not
- * connected". Connect and Disconnect come with their own tickets.
+ * reads the text as one element: the name, then "Connected as <email>" or
+ * "Not connected". A linked provider ends in Disconnect, its own element:
+ * blocked while it's the User's only way to sign in, which the subtitle and
+ * the button's hint say (Figma 1479:5973). Connect comes with its own ticket.
  */
 const SignInMethodRow = ({
+  disconnect,
   email,
   first,
   linked,
   provider,
 }: {
+  disconnect: DisconnectState | null;
   email: string | null;
   first: boolean;
   linked: boolean;
@@ -45,26 +79,67 @@ const SignInMethodRow = ({
       : t("accountSecurity.connected");
   }
 
+  let subtitle = linked && email ? email : status;
+
+  if (disconnect?.blocked) {
+    subtitle = t("accountSecurity.addAnotherMethod");
+  }
+
   return (
-    <View
-      accessibilityLabel={name}
-      accessibilityValue={{ text: status }}
-      accessible
-      className="pl-sm"
-      testID={`sign-in-method-${provider}`}
-    >
+    <View className="pl-sm" testID={`sign-in-method-${provider}`}>
       {first ? null : <Separator />}
       <View className="gap-xs pr-sm min-h-11 flex-row items-center py-3">
-        <View className="flex-1 gap-0.5">
+        <View
+          accessibilityLabel={name}
+          accessibilityValue={{ text: status }}
+          accessible
+          className="flex-1 gap-0.5"
+        >
           <Text className="text-body text-foreground">{name}</Text>
+          {/* An email keeps one line, cut in the middle; the reason a
+              Disconnect is blocked is a sentence, which wraps. */}
           <Text
             className="text-footnote text-muted-foreground"
             ellipsizeMode="middle"
-            numberOfLines={1}
+            numberOfLines={disconnect?.blocked ? undefined : 1}
           >
-            {linked && email ? email : status}
+            {subtitle}
           </Text>
         </View>
+        {disconnect ? (
+          // An invisible Pressable behind the pill takes the taps that miss
+          // it (as `SetCheckCell` does); a blocked one is dimmed whole, as
+          // Figma's is.
+          <View className={disconnect.blocked ? "opacity-50" : undefined}>
+            <Pressable
+              accessible={false}
+              className="absolute inset-0"
+              disabled={disconnect.disabled}
+              hitSlop={DISCONNECT_HIT_SLOP}
+              onPress={disconnect.handlePress}
+            />
+            <Button
+              accessibilityLabel={
+                disconnect.busy ? t("accountSecurity.disconnecting") : undefined
+              }
+              accessibilityHint={
+                disconnect.blocked
+                  ? t("accountSecurity.addAnotherMethod")
+                  : undefined
+              }
+              disabled={disconnect.disabled}
+              fill={false}
+              isLoading={disconnect.busy}
+              // The spinner takes the label's place at the label's width, so
+              // the pill doesn't grow; VoiceOver hears what's happening.
+              label={t("accountSecurity.disconnect")}
+              onPress={disconnect.handlePress}
+              size="sm"
+              testID={`disconnect-${provider}`}
+              variant="secondary"
+            />
+          </View>
+        ) : null}
       </View>
     </View>
   );
@@ -74,12 +149,86 @@ const SignInMethodRow = ({
  * Account & Security (Figma 1479:5771), opened from the redesigned Profile:
  * the User's email, Change Password while they have a password, the sign-in
  * methods this build offers (ADR 0021) with whether each is linked, and
- * Delete Account at the bottom. The actions on each come with their own
- * tickets, so no row is a control yet.
+ * Delete Account at the bottom. A linked provider can be disconnected while
+ * the User keeps another way to sign in (ADR 0021): a password, or another
+ * linked provider, counted whether or not this build shows its row (Apple on
+ * Android still signs the User in on an iPhone). Disconnect confirms first,
+ * then goes through "Confirm it's you" when Clerk asks. The other actions
+ * come with their own tickets.
  */
 const AccountSecurityView = () => {
   const { t } = useTranslation();
   const { user } = useUser();
+
+  const [disconnecting, setDisconnecting] = useState<SocialProvider | null>(
+    null
+  );
+
+  const destroyAccount = useReverifiedCall(
+    async (externalAccountId: string) => {
+      const account = user?.externalAccounts.find(
+        (item) => item.id === externalAccountId
+      );
+
+      // Already gone (disconnected elsewhere): nothing left to do.
+      await account?.destroy();
+    }
+  );
+
+  const disconnect = useCallback(
+    async (provider: SocialProvider, externalAccountId: string) => {
+      setDisconnecting(provider);
+
+      try {
+        await destroyAccount(externalAccountId);
+      } catch (error) {
+        if (isAlreadyGone(error)) {
+          // Disconnected elsewhere: what the User asked for. Read the User
+          // again so the row says so; a failed read only leaves it stale.
+          await user?.reload().catch(() => undefined);
+          setDisconnecting(null);
+
+          return;
+        }
+
+        if (!isClerkNetworkFailure(error)) {
+          captureException(error);
+        }
+
+        Alert.alert(
+          t("accountSecurity.errors.disconnectFailed", {
+            provider: PROVIDER_NAMES[provider],
+          })
+        );
+      }
+
+      // Done, failed or cancelled: the buttons are live again.
+      setDisconnecting(null);
+    },
+    [destroyAccount, t, user]
+  );
+
+  const confirmDisconnect = useCallback(
+    (provider: SocialProvider, externalAccountId: string) => {
+      const name = PROVIDER_NAMES[provider];
+
+      Alert.alert(
+        t("accountSecurity.disconnectConfirm.title", { provider: name }),
+        t("accountSecurity.disconnectConfirm.message", { provider: name }),
+        [
+          { style: "cancel", text: t("common.cancel") },
+          {
+            onPress: () => {
+              void disconnect(provider, externalAccountId);
+            },
+            style: "destructive",
+            text: t("accountSecurity.disconnect"),
+          },
+        ]
+      );
+    },
+    [disconnect, t]
+  );
 
   if (!user) {
     return null;
@@ -95,6 +244,19 @@ const AccountSecurityView = () => {
         account.provider === provider &&
         account.verification?.status === "verified"
     );
+
+  // Only Apple and Google sign a User in: a link to another provider (one
+  // the instance no longer offers) is no way back in.
+  const verifiedAccounts = user.externalAccounts.filter(
+    (account) =>
+      account.verification?.status === "verified" &&
+      SIGN_IN_PROVIDERS.has(account.provider)
+  );
+
+  // A password or another linked provider keeps the User able to sign in.
+  const canDisconnect = (externalAccountId: string) =>
+    user.passwordEnabled ||
+    verifiedAccounts.some((account) => account.id !== externalAccountId);
 
   return (
     <View className="gap-md w-full pt-2.5 pb-14">
@@ -117,9 +279,21 @@ const AccountSecurityView = () => {
         <ProfileListSection title={t("accountSecurity.sections.methods")}>
           {providers.map((provider, index) => {
             const account = linkedAccount(provider);
+            const blocked = account ? !canDisconnect(account.id) : false;
 
             return (
               <SignInMethodRow
+                disconnect={
+                  account
+                    ? {
+                        blocked,
+                        busy: disconnecting === provider,
+                        disabled: blocked || disconnecting !== null,
+                        handlePress: () =>
+                          confirmDisconnect(provider, account.id),
+                      }
+                    : null
+                }
                 email={account?.emailAddress || null}
                 first={index === 0}
                 key={provider}
