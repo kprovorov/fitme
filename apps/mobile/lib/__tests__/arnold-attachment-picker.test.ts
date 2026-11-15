@@ -3,21 +3,33 @@
  * Attachments, over stood-in native modules: what each is asked for, what a
  * refused camera permission answers, and that every image comes back as a
  * JPEG of at most 1600 px on its longest side (ADR 0018), whatever size and
- * format it had.
+ * format it had; and the Profile photo's square picks, cropped to a square
+ * JPEG of at most 1024 px a side.
  */
 import { beforeEach, describe, expect, it, jest } from "@jest/globals";
 
 import {
+  cropToSquareJpeg,
   MAX_ATTACHMENT_EDGE,
   pickLibraryPhotos,
+  pickSquareLibraryPhoto,
+  PROFILE_PHOTO_EDGE,
   readAttachmentDataUrl,
   shrinkToJpeg,
   takePhoto,
+  takeSquarePhoto,
 } from "~/lib/arnold-attachment-picker";
 
 interface SaveOptions {
   compress?: number;
   format?: string;
+}
+
+interface Rect {
+  height: number;
+  originX: number;
+  originY: number;
+  width: number;
 }
 
 interface Size {
@@ -36,6 +48,7 @@ const mockDecoded = new Map<string, { height: number; width: number }>();
 const mockFailFor = new Set<string>();
 const mockManipulated: { options: unknown; uri: string }[] = [];
 const mockResizes: Size[] = [];
+const mockCrops: Rect[] = [];
 const mockSaves: SaveOptions[] = [];
 
 const mockRender = (uri: string, size: { height: number; width: number }) => ({
@@ -64,6 +77,29 @@ jest.mock("expo-image-manipulator", () => ({
       const size = mockDecoded.get(uri) ?? { height: 1200, width: 1600 };
 
       return {
+        // As the native one does: the square cut out, then (when asked) the
+        // resize on top of it.
+        crop: (rect: Rect) => {
+          mockCrops.push(rect);
+          const cropped = { height: rect.height, width: rect.width };
+
+          return {
+            renderAsync: () => Promise.resolve(mockRender(uri, cropped)),
+            resize: (next: Size) => {
+              mockResizes.push(next);
+
+              return {
+                renderAsync: () =>
+                  Promise.resolve(
+                    mockRender(uri, {
+                      height: next.height ?? cropped.height,
+                      width: next.width ?? cropped.width,
+                    })
+                  ),
+              };
+            },
+          };
+        },
         renderAsync: () => Promise.resolve(mockRender(uri, size)),
         resize: (next: Size) => {
           mockResizes.push(next);
@@ -149,6 +185,7 @@ beforeEach(() => {
   mockCaptureException.mockClear();
   mockManipulated.length = 0;
   mockResizes.length = 0;
+  mockCrops.length = 0;
   mockSaves.length = 0;
   mockLaunchImageLibrary.mockReset();
   mockLaunchCamera.mockReset();
@@ -361,5 +398,123 @@ describe("takePhoto", () => {
     mockFailFor.add("file:///broken.heic");
 
     await expect(takePhoto()).rejects.toThrow("Could not decode the image");
+  });
+});
+
+/** The decode bounds a Profile photo is loaded within. */
+const PROFILE_DECODE_BOUNDS = {
+  maxHeight: PROFILE_PHOTO_EDGE,
+  maxWidth: PROFILE_PHOTO_EDGE,
+};
+
+/** The system's square crop, which both Profile photo picks open with. */
+const SQUARE_CROP = { allowsEditing: true, aspect: [1, 1] };
+
+describe("cropToSquareJpeg", () => {
+  it("keeps the centre square of a wide photo, as a JPEG", async () => {
+    mockDecoded.set("file:///wide.heic", { height: 768, width: 1024 });
+
+    const image = await cropToSquareJpeg("file:///wide.heic");
+
+    expect(mockManipulated).toEqual([
+      { options: PROFILE_DECODE_BOUNDS, uri: "file:///wide.heic" },
+    ]);
+    expect(mockCrops).toEqual([
+      { height: 768, originX: 128, originY: 0, width: 768 },
+    ]);
+    expect(mockResizes).toEqual([]);
+    expect(mockSaves).toEqual([{ compress: 0.7, format: "jpeg" }]);
+    expect(image).toEqual({
+      height: 768,
+      uri: "file:///wide.heic.jpg",
+      width: 768,
+    });
+  });
+
+  it("keeps the centre square of a tall photo", async () => {
+    mockDecoded.set("file:///tall.jpg", { height: 1024, width: 577 });
+
+    await cropToSquareJpeg("file:///tall.jpg");
+
+    expect(mockCrops).toEqual([
+      { height: 577, originX: 0, originY: 223, width: 577 },
+    ]);
+  });
+
+  it("brings a square the decode bounds left larger down to 1024 px", async () => {
+    mockDecoded.set("file:///huge.png", { height: 3000, width: 3000 });
+
+    const image = await cropToSquareJpeg("file:///huge.png");
+
+    expect(mockResizes).toEqual([
+      { height: PROFILE_PHOTO_EDGE, width: PROFILE_PHOTO_EDGE },
+    ]);
+    expect(image.width).toBe(PROFILE_PHOTO_EDGE);
+    expect(image.height).toBe(PROFILE_PHOTO_EDGE);
+  });
+});
+
+describe("pickSquareLibraryPhoto", () => {
+  it("asks the system picker for one image, cropped square, with no EXIF", async () => {
+    mockLaunchImageLibrary.mockResolvedValue(picks("file:///me.heic"));
+
+    const image = await pickSquareLibraryPhoto();
+
+    expect(mockLaunchImageLibrary).toHaveBeenCalledWith({
+      ...SQUARE_CROP,
+      exif: false,
+      mediaTypes: ["images"],
+    });
+    expect(image?.uri).toBe("file:///me.heic.jpg");
+    expect(image?.width).toBe(image?.height);
+  });
+
+  it("answers nothing, and re-encodes nothing, when the User cancels", async () => {
+    mockLaunchImageLibrary.mockResolvedValue({ assets: null, canceled: true });
+
+    await expect(pickSquareLibraryPhoto()).resolves.toBeNull();
+    expect(mockManipulated).toEqual([]);
+  });
+
+  it("fails when the photo can't be re-encoded, so the caller can say so", async () => {
+    mockLaunchImageLibrary.mockResolvedValue(picks("file:///raw.dng"));
+    mockFailFor.add("file:///raw.dng");
+
+    await expect(pickSquareLibraryPhoto()).rejects.toThrow(
+      "Could not decode the image"
+    );
+  });
+});
+
+describe("takeSquarePhoto", () => {
+  it("asks for the permission, then opens the camera cropping square", async () => {
+    mockRequestCameraPermissions.mockResolvedValue({
+      canAskAgain: false,
+      granted: true,
+    });
+    mockLaunchCamera.mockResolvedValue(picks("file:///selfie.heic"));
+
+    const photo = await takeSquarePhoto();
+
+    expect(mockRequestCameraPermissions).toHaveBeenCalledTimes(1);
+    expect(mockLaunchCamera).toHaveBeenCalledWith({
+      ...SQUARE_CROP,
+      exif: false,
+      mediaTypes: ["images"],
+    });
+    expect(photo).toEqual({
+      image: { height: 1024, uri: "file:///selfie.heic.jpg", width: 1024 },
+      status: "taken",
+    });
+  });
+
+  it("answers denied, and opens no camera, when the permission is off for good", async () => {
+    mockRequestCameraPermissions.mockResolvedValue({
+      canAskAgain: false,
+      granted: false,
+    });
+
+    await expect(takeSquarePhoto()).resolves.toEqual({ status: "denied" });
+    expect(mockLaunchCamera).not.toHaveBeenCalled();
   });
 });

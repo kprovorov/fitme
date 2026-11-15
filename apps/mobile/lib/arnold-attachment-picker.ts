@@ -1,7 +1,9 @@
 /**
  * Where an Arnold Attachment comes from: the camera, the system photo
  * picker, the re-encoding every picked image goes through, and reading the
- * JPEG back as the `data:` URL a send carries (ADR 0018). It is the only
+ * JPEG back as the `data:` URL a send carries (ADR 0018). The Profile photo
+ * comes from here too: the same camera and picker, cropped square and
+ * re-encoded the same way before Edit Profile uploads it. It is the only
  * module importing `expo-image-picker`, `expo-image-manipulator` and
  * `expo-file-system`, so a screen test stands this one module in and never
  * touches a native module, the camera permission included.
@@ -159,20 +161,15 @@ export type CameraPhoto =
   | { status: "denied" };
 
 /**
- * Opens the camera and answers the photo taken, re-encoded exactly as a
- * picked one is (`shrinkToJpeg`), or what stopped it.
- *
- * The permission is asked for here, so this stays the one module a screen
- * test stands in for the whole camera. iOS shows its prompt, with the
- * purpose string from the app's own `InfoPlist.strings` per App language,
- * only the first time; once the User has said no it answers denied without
- * asking again, which is the alert the caller shows. A platform that can
- * still ask (Android's soft deny) answers cancelled instead, since the
- * prompt, not Settings, is where that User turns it on.
- *
- * A photo the re-encoder can't read throws, like one from the library.
+ * Opens the camera with `options` and answers the photo taken, re-encoded by
+ * `encode`, or what stopped it. The permission is asked for here (see
+ * `takePhoto`), so both the Attachment and the Profile photo camera stay in
+ * this one module.
  */
-export const takePhoto = async (): Promise<CameraPhoto> => {
+const openCamera = async (
+  options: ImagePicker.ImagePickerOptions,
+  encode: (uri: string) => Promise<PickedImage>
+): Promise<CameraPhoto> => {
   const permission = await ImagePicker.requestCameraPermissionsAsync();
 
   if (!permission.granted) {
@@ -187,6 +184,7 @@ export const takePhoto = async (): Promise<CameraPhoto> => {
   }
 
   const result = await ImagePicker.launchCameraAsync({
+    ...options,
     // Never the EXIF: re-encoding drops it, and nothing here reads it.
     exif: false,
     mediaTypes: ["images"],
@@ -200,5 +198,106 @@ export const takePhoto = async (): Promise<CameraPhoto> => {
     return { status: "cancelled" };
   }
 
-  return { image: await shrinkToJpeg(asset.uri), status: "taken" };
+  return { image: await encode(asset.uri), status: "taken" };
 };
+
+/**
+ * Opens the camera and answers the photo taken, re-encoded exactly as a
+ * picked one is (`shrinkToJpeg`), or what stopped it.
+ *
+ * The permission is asked for here, so this stays the one module a screen
+ * test stands in for the whole camera. iOS shows its prompt, with the
+ * purpose string from the app's own `InfoPlist.strings` per App language,
+ * only the first time; once the User has said no it answers denied without
+ * asking again, which is the alert the caller shows. A platform that can
+ * still ask (Android's soft deny) answers cancelled instead, since the
+ * prompt, not Settings, is where that User turns it on.
+ *
+ * A photo the re-encoder can't read throws, like one from the library.
+ */
+export const takePhoto = (): Promise<CameraPhoto> =>
+  openCamera({}, shrinkToJpeg);
+
+/** The side of a Profile photo, in pixels: Clerk shows it at most this big. */
+export const PROFILE_PHOTO_EDGE = 1024;
+
+/**
+ * Re-encodes the image at `uri` as a square JPEG of at most
+ * `PROFILE_PHOTO_EDGE` a side, its centre kept, in the cache directory.
+ *
+ * The system's crop UI already answers a square, but not always to the
+ * pixel, so the square is made here. Decoding from the pixels drops every
+ * EXIF tag, GPS included, exactly as an Attachment's does, so the photo
+ * Clerk gets says nothing about where it was taken.
+ */
+export const cropToSquareJpeg = async (uri: string): Promise<PickedImage> => {
+  // Decoded within the bounds, so a 12 MP photo never reaches memory in
+  // full; its shorter side is then the square's.
+  const context = ImageManipulator.manipulate(uri, {
+    maxHeight: PROFILE_PHOTO_EDGE,
+    maxWidth: PROFILE_PHOTO_EDGE,
+  });
+
+  const decoded = await context.renderAsync();
+  const side = Math.min(decoded.width, decoded.height);
+
+  const cropped = context.crop({
+    height: side,
+    originX: Math.floor((decoded.width - side) / 2),
+    originY: Math.floor((decoded.height - side) / 2),
+    width: side,
+  });
+
+  // Only when the decode bounds left it larger than asked: resizing a
+  // square already under them would blow it up again.
+  const squared = await (
+    side > PROFILE_PHOTO_EDGE
+      ? cropped.resize({
+          height: PROFILE_PHOTO_EDGE,
+          width: PROFILE_PHOTO_EDGE,
+        })
+      : cropped
+  ).renderAsync();
+
+  const saved = await squared.saveAsync({
+    compress: JPEG_QUALITY,
+    format: SaveFormat.JPEG,
+  });
+
+  return { height: saved.height, uri: saved.uri, width: saved.width };
+};
+
+/** The system's crop, square: what both Profile photo picks open with. */
+const SQUARE_CROP: ImagePicker.ImagePickerOptions = {
+  allowsEditing: true,
+  aspect: [1, 1],
+};
+
+/**
+ * The system photo picker for one Profile photo, cropped square by the User
+ * and then by `cropToSquareJpeg`; `null` when they cancelled, so nothing
+ * changes. Images only, so iOS asks for no photo library permission.
+ *
+ * A photo the re-encoder can't read throws: there is no other photo to
+ * fall back on, so the caller says so.
+ */
+export const pickSquareLibraryPhoto = async (): Promise<PickedImage | null> => {
+  const result = await ImagePicker.launchImageLibraryAsync({
+    ...SQUARE_CROP,
+    // Never the EXIF: re-encoding drops it, and nothing here reads it.
+    exif: false,
+    mediaTypes: ["images"],
+  });
+
+  const asset = result.canceled ? undefined : result.assets[0];
+
+  return asset ? await cropToSquareJpeg(asset.uri) : null;
+};
+
+/**
+ * The camera for a Profile photo, cropped square like a picked one
+ * (`pickSquareLibraryPhoto`), with the permission handled as `takePhoto`
+ * handles it: `denied` once camera access is off for good.
+ */
+export const takeSquarePhoto = (): Promise<CameraPhoto> =>
+  openCamera(SQUARE_CROP, cropToSquareJpeg);

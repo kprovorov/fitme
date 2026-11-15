@@ -7,7 +7,7 @@ import { useLocales } from "expo-localization";
 import { router, Stack } from "expo-router";
 import { useCallback } from "react";
 import { useTranslation } from "react-i18next";
-import { ActivityIndicator, View } from "react-native";
+import { ActivityIndicator, Pressable, View } from "react-native";
 
 import ProfileForm, {
   profileSaveErrorMessage,
@@ -37,7 +37,9 @@ const clerkNames = (
 
 /**
  * The User's Profile photo, as Clerk serves it (its default picture without
- * one of their own); changing it is the Profile Photo sheet's.
+ * one of their own), with Change Photo under it: either opens the Profile
+ * Photo sheet, which changes it at once. A new photo is a new URL, which
+ * remounts the image, so one that failed to load before is tried again.
  */
 const ProfilePhoto = ({
   email,
@@ -52,14 +54,31 @@ const ProfilePhoto = ({
   // The Profile screen's initial: the name's, or the email's without one.
   const { initial } = getProfileHeader({ email, fullName });
 
+  const openSheet = useCallback(() => router.push("/profile-photo"), []);
+
   return (
     <View className="items-center pt-2 pb-2">
-      <Avatar alt={t("profilePhoto.title")} className="size-22">
-        <AvatarImage source={{ uri: imageUrl }} testID="edit-profile-photo" />
-        <AvatarFallback>
-          <Text className="text-title-1-emphasized">{initial}</Text>
-        </AvatarFallback>
-      </Avatar>
+      <Pressable
+        accessibilityLabel={t("profilePhoto.buttonLabel")}
+        accessibilityRole="button"
+        className="items-center gap-2 active:opacity-80"
+        onPress={openSheet}
+        testID="edit-profile-photo-button"
+      >
+        <Avatar
+          alt={t("profilePhoto.title")}
+          className="size-22"
+          key={imageUrl}
+        >
+          <AvatarImage source={{ uri: imageUrl }} testID="edit-profile-photo" />
+          <AvatarFallback>
+            <Text className="text-title-1-emphasized">{initial}</Text>
+          </AvatarFallback>
+        </Avatar>
+        <Text className="text-subhead-emphasized text-primary">
+          {t("profilePhoto.change")}
+        </Text>
+      </Pressable>
     </View>
   );
 };

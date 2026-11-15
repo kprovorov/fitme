@@ -1,5 +1,5 @@
 {
   "ios": {
-    "NSCameraUsageDescription": "Fitme verwendet die Kamera, damit du ein Foto aufnehmen, es an Arnold, deinen KI-Coach, senden und Fragen dazu stellen kannst."
+    "NSCameraUsageDescription": "Fitme verwendet die Kamera, damit du dein Profilfoto aufnehmen oder ein Foto an Arnold, deinen KI-Coach, senden und Fragen dazu stellen kannst."
   }
 }

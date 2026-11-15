@@ -1,5 +1,5 @@
 {
   "ios": {
-    "NSCameraUsageDescription": "Fitme는 사진을 찍어 AI 코치 Arnold에게 보내고 질문할 수 있도록 카메라를 사용합니다."
+    "NSCameraUsageDescription": "Fitme는 프로필 사진을 찍거나, 사진을 찍어 AI 코치 Arnold에게 보내고 질문할 수 있도록 카메라를 사용합니다."
   }
 }
