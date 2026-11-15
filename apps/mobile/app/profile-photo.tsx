@@ -2,9 +2,9 @@ import { useUser } from "@clerk/expo";
 import { captureException } from "@sentry/react-native";
 import { Stack, useRouter } from "expo-router";
 import { useHeaderHeight } from "expo-router/react-navigation";
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Alert, View } from "react-native";
+import { Alert, BackHandler, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { ScopedVariables } from "uniwind";
 
@@ -148,6 +148,22 @@ const ProfilePhotoSheet = () => {
   const close = useCallback(() => router.back(), [router]);
 
   const isBusy = busy !== null;
+
+  // Android's Back would close the sheet mid-upload as a swipe would, and
+  // the upload's own `router.back()` would then pop Edit Profile: it's
+  // swallowed until the pick, upload or removal settles.
+  useEffect(() => {
+    if (!isBusy) {
+      return;
+    }
+
+    const subscription = BackHandler.addEventListener(
+      "hardwareBackPress",
+      () => true
+    );
+
+    return () => subscription.remove();
+  }, [isBusy]);
 
   return (
     <ScopedVariables
