@@ -1,25 +1,5 @@
 import type { Equipment, MuscleGroup } from "./models";
 
-const hasMessage = (value: unknown): value is { message: unknown } =>
-  typeof value === "object" && value !== null && "message" in value;
-
-export const handleSupabaseError = (
-  error: unknown,
-  setMessage: (message: string) => void = () => {
-    /* noop */
-  }
-) => {
-  let message: string | undefined;
-
-  if (error instanceof Error) {
-    ({ message } = error);
-  } else if (hasMessage(error)) {
-    message = String(error.message);
-  }
-
-  setMessage(message ?? "Something went wrong. Please try again later.");
-};
-
 export const range = (from: number, to: number): number[] =>
   Array.from({ length: to - from + 1 }, (_, i) => from + i);
 

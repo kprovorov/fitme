@@ -1,41 +1,4 @@
-import type {
-  ExperienceLevel,
-  Gender,
-  Goal,
-  MeasurementSystem,
-  Place,
-} from "./models";
-
-export const getMeasurementSystemLabel = (
-  measurementSystem: MeasurementSystem
-) => {
-  switch (measurementSystem) {
-    case "metric": {
-      return "Metric";
-    }
-
-    case "us": {
-      return "US";
-    }
-
-    case "uk": {
-      return "UK";
-    }
-
-    default: {
-      return measurementSystem;
-    }
-  }
-};
-
-export const getMeasurementSystemDisclaimer = (
-  measurementSystem: MeasurementSystem
-) =>
-  new Map<MeasurementSystem, string>([
-    ["metric", "Centimeters and Kilograms"],
-    ["us", "Feet, Inches and Pounds"],
-    ["uk", "Feet, Inches and Pounds"],
-  ]).get(measurementSystem);
+import type { ExperienceLevel, Goal, MeasurementSystem, Place } from "./models";
 
 export const getWeightLabel = (measurementSystem: MeasurementSystem) =>
   new Map<MeasurementSystem, string>([
@@ -43,29 +6,6 @@ export const getWeightLabel = (measurementSystem: MeasurementSystem) =>
     ["us", "lbs"],
     ["uk", "lbs"],
   ]).get(measurementSystem);
-
-export const getHeightLabel = (measurementSystem: MeasurementSystem) =>
-  new Map<MeasurementSystem, string>([
-    ["metric", "cm"],
-    ["us", "ft"],
-    ["uk", "ft"],
-  ]).get(measurementSystem);
-
-export const getGenderLabel = (gender: Gender) => {
-  switch (gender) {
-    case "male": {
-      return "Male";
-    }
-
-    case "female": {
-      return "Female";
-    }
-
-    default: {
-      return gender;
-    }
-  }
-};
 
 export const getGoalLabel = (goal: Goal) =>
   new Map<Goal, string>([
@@ -87,13 +27,4 @@ export const getExperienceLevelLabel = (experienceLevel: ExperienceLevel) =>
     ["beginner", "Beginner"],
     ["intermediate", "Intermediate"],
     ["advanced", "Advanced"],
-  ]).get(experienceLevel);
-
-export const getExperienceLevelDisclaimer = (
-  experienceLevel: ExperienceLevel
-) =>
-  new Map<ExperienceLevel, string>([
-    ["beginner", "0-6 mo experience"],
-    ["intermediate", "6 mo - 3 yrs experience"],
-    ["advanced", "3+ yrs experience"],
   ]).get(experienceLevel);

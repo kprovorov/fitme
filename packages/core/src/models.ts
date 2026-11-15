@@ -293,21 +293,6 @@ export interface WorkoutExerciseSetData {
   weight_recommended: number;
 }
 
-/**
- * Payload for creating or rewriting a Plan (`createPlan` / `updatePlan` in
- * `@fitme/services`). They derive `order` from each item's position in the
- * arrays, so the payload carries no `order` fields.
- */
-export interface PlanInput extends Omit<PlanData, "workouts"> {
-  workouts: WorkoutInput[];
-}
-
-export interface WorkoutInput {
-  description: string;
-  exercises: WorkoutExerciseInput[];
-  name: string;
-}
-
 export interface WorkoutExerciseInput {
   exercise_slug: string;
   sets: WorkoutExerciseSetInput[];
@@ -353,9 +338,6 @@ export type ArnoldModel = (typeof arnoldModels)[number];
 export type ArnoldModelId = ArnoldModel["id"];
 
 export const defaultArnoldModelId: ArnoldModelId = "openai/gpt-6.1-terra";
-
-export const isArnoldModelId = (value: unknown): value is ArnoldModelId =>
-  arnoldModels.some((model) => model.id === value);
 
 /** The RevenueCat entitlement that makes a User Pro (and unlocks Arnold). */
 export const proEntitlement = "Fitme Pro";
