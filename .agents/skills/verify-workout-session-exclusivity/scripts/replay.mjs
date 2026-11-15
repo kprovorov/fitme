@@ -19,9 +19,15 @@ export const replay = (indexSql, out) => {
 
   // libpq can prefer PGHOSTADDR over an explicit -h socket, and PGSERVICE
   // can load connection settings. No inherited PG* settings reach a child.
-  const postgresEnv = Object.fromEntries(
-    Object.entries(process.env).filter(([name]) => !name.startsWith("PG"))
-  );
+  // LC_ALL=C matches initdb's --no-locale: on macOS a postmaster started with
+  // no locale in its environment aborts ("postmaster became multithreaded
+  // during startup"), and an inherited one has no say in the replay.
+  const postgresEnv = {
+    ...Object.fromEntries(
+      Object.entries(process.env).filter(([name]) => !name.startsWith("PG"))
+    ),
+    LC_ALL: "C",
+  };
 
   const data = path.join(out, "postgres");
   const socket = path.join(out, "socket");
