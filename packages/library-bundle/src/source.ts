@@ -12,17 +12,6 @@ import fixture from "../../../apps/library/fixtures/library.json" with { type: "
 /** The pathname `fitme-exercises` publishes the bundle at in the private Blob store. */
 export const LIBRARY_BLOB = "library.json";
 
-/**
- * Where a relative LIBRARY_BUNDLE is resolved from: the Library API's app
- * directory, as its own build resolves it, so `pnpm dev:library` and the
- * writers read the same file. Every writer runs from its own app directory
- * (`apps/api`, `apps/mcp`, `apps/arnold`), so that's `../library` from the
- * working directory. It's never derived from the module's own URL: a static
- * path there makes Vercel trace (and typecheck) all of `apps/library` into
- * the function.
- */
-const libraryAppRoot = () => path.resolve(process.cwd(), "../library");
-
 /** The variables the bundle source reads (`process.env`). */
 export interface BundleSourceEnv {
   /** Set by connecting the Blob store; the SDK authenticates through Vercel OIDC with it. */
@@ -61,7 +50,8 @@ const parseJson = (name: string, text: string): unknown => {
  *   store, uncached so a release just published is read, over Vercel OIDC
  *   (`BLOB_STORE_ID`); a missing store or blob, or a failed fetch, rejects,
  *   and production never falls back to the fixture;
- * - anywhere else: LIBRARY_BUNDLE (absolute, or relative to `apps/library`),
+ * - anywhere else: LIBRARY_BUNDLE (absolute, or relative to the app's own
+ *   working directory),
  *   or the committed fixture; Blob is never called.
  */
 export const libraryBundleSource = ({
@@ -100,7 +90,11 @@ export const libraryBundleSource = ({
   }
 
   if (env.LIBRARY_BUNDLE) {
-    const name = path.resolve(libraryAppRoot(), env.LIBRARY_BUNDLE);
+    // Absolute, or relative to the app's own working directory. Never a path
+    // built from this module's location or a fixed directory: Vercel's file
+    // tracer follows such a path and drags all of apps/library into the
+    // function, whose build then typechecks it and fails.
+    const name = path.resolve(env.LIBRARY_BUNDLE);
 
     return {
       load: async () => parseJson(name, await readText(name)),

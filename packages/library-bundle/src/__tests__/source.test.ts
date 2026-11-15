@@ -6,9 +6,6 @@ import { readLibraryIndex } from "../library-index";
 import { libraryBundleSource } from "../source";
 import type { BlobGet } from "../source";
 
-/** A relative LIBRARY_BUNDLE is resolved against the sibling `library` app of the working directory. */
-const LIBRARY_APP = path.resolve(process.cwd(), "../library");
-
 const BUNDLE = {
   exercises: [{ muscle_groups: ["chest"], slug: "bench" }],
   version: 1,
@@ -77,7 +74,7 @@ describe("the bundle source", () => {
   });
 
   it.each(["preview", "development", undefined])(
-    "reads LIBRARY_BUNDLE relative to apps/library outside production (VERCEL_ENV %s), never Blob",
+    "reads LIBRARY_BUNDLE relative to the working directory outside production (VERCEL_ENV %s), never Blob",
     async (vercelEnv) => {
       const blob = fakeBlob(JSON.stringify(BUNDLE));
       const read: string[] = [];
@@ -97,9 +94,7 @@ describe("the bundle source", () => {
       });
 
       await expect(source.load()).resolves.toStrictEqual(BUNDLE);
-      expect(read).toStrictEqual([
-        path.resolve(LIBRARY_APP, "../../content/library.json"),
-      ]);
+      expect(read).toStrictEqual([path.resolve("../../content/library.json")]);
       expect(blob.calls).toHaveLength(0);
     }
   );
