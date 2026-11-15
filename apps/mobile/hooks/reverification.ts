@@ -26,6 +26,9 @@ export interface PendingReverification {
 }
 
 let pending: PendingReverification | null = null;
+
+/** Whether "Confirm it's you" is on screen (or on its way). */
+let sheetOpen = false;
 let nextId = 0;
 const listeners = new Set<() => void>();
 
@@ -79,6 +82,13 @@ export const settleReverification = (
   settled[answer]();
 };
 
+/**
+ * The sheet is leaving (answered, swiped away): the next ask opens a new one.
+ */
+export const markConfirmSheetClosed = (): void => {
+  sheetOpen = false;
+};
+
 /** The reverification waiting on "Confirm it's you", or `null`. */
 export const usePendingReverification = (): PendingReverification | null =>
   useSyncExternalStore(subscribe, getSnapshot, getSnapshot);
@@ -109,7 +119,13 @@ export const useReverifiedCall = <Args extends unknown[], Result>(
   const onNeedsReverification = useCallback(
     (properties: NeedsReverification) => {
       askToReverify(properties);
-      router.push(CONFIRM_IDENTITY_ROUTE);
+
+      // An open sheet takes the newer ask over: a second one would leave
+      // the first, its ask cancelled, on the stack underneath.
+      if (!sheetOpen) {
+        sheetOpen = true;
+        router.push(CONFIRM_IDENTITY_ROUTE);
+      }
     },
     [router]
   );

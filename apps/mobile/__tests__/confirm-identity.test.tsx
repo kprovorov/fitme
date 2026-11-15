@@ -66,6 +66,7 @@ const STRINGS = {
     passwordDescription: "Enter your password to continue.",
     passwordIncorrect: "Password is incorrect. Try again.",
     title: "Confirm it's you",
+    tryAgain: "Try Again",
     wrongCode: "That code isn't right. Try again.",
   },
   uk: {
@@ -79,6 +80,7 @@ const STRINGS = {
     passwordDescription: "Введи пароль, щоб продовжити.",
     passwordIncorrect: "Неправильний пароль. Спробуй ще раз.",
     title: "Підтверди, що це ти",
+    tryAgain: "Спробувати ще раз",
     wrongCode: "Код неправильний. Спробуй ще раз.",
   },
 } as const;
@@ -87,22 +89,28 @@ const STRINGS = {
 const { useUser } = clerkModule;
 
 /** A Screen saving the User's first name through a reverified call. */
-const SaveName = () => {
+const SaveName = ({
+  firstName = "Pepper",
+  resultId = "result",
+}: {
+  readonly firstName?: string;
+  readonly resultId?: string;
+}) => {
   const { user } = useUser();
   const [result, setResult] = useState("");
 
   const save = useReverifiedCall(
-    async (firstName: string) => await user?.update({ firstName })
+    async (name: string) => await user?.update({ firstName: name })
   );
 
   const handlePress = useCallback(async () => {
     try {
-      const { status } = await save("Pepper");
+      const { status } = await save(firstName);
       setResult(status);
     } catch {
       setResult("failed");
     }
-  }, [save]);
+  }, [firstName, save]);
 
   return (
     <>
@@ -112,17 +120,18 @@ const SaveName = () => {
           void handlePress();
         }}
       >
-        <Text>Save name</Text>
+        <Text>{`Save ${firstName}`}</Text>
       </Pressable>
-      <Text testID="result">{result}</Text>
+      <Text testID={resultId}>{result}</Text>
     </>
   );
 };
 
-const renderScreen = () =>
+const renderScreen = (second = false) =>
   render(
     <InAppLanguage>
       <SaveName />
+      {second ? <SaveName firstName="Happy" resultId="second-result" /> : null}
       <PushedRoutes screens={{ "/confirm-identity": ConfirmIdentityScreen }} />
     </InAppLanguage>
   );
@@ -132,7 +141,7 @@ const updates = () =>
 
 const methods = () => fakeClerk.calls.map(({ method }) => method);
 
-const saveName = () => fireEvent.press(screen.getByText("Save name"));
+const saveName = () => fireEvent.press(screen.getByText("Save Pepper"));
 
 const result = () => screen.getByTestId("result");
 
@@ -323,5 +332,60 @@ describe.each(["en", "uk"] as const)("Confirm it's you (%s)", (language) => {
 
     await waitFor(() => expect(result()).toHaveTextContent("cancelled"));
     expect(updates()).toEqual([]);
+  });
+
+  it("offers Try Again when Clerk can't start the verification", async () => {
+    fakeClerk.requireReverification();
+    fakeClerk.failNext("startVerification", "network");
+    await renderScreen();
+
+    await saveName();
+    await screen.findByRole("button", { name: text.tryAgain });
+
+    expect(screen.queryByLabelText(text.password)).toBeNull();
+
+    await fireEvent.press(screen.getByRole("button", { name: text.tryAgain }));
+    await fireEvent.changeText(
+      await screen.findByLabelText(text.password),
+      FAKE_PASSWORD
+    );
+    await fireEvent.press(screen.getByRole("button", { name: text.continue }));
+
+    await waitFor(() => expect(result()).toHaveTextContent("done"));
+    expect(updates()).toHaveLength(1);
+  });
+
+  it("shows a newer ask in the open sheet, cancelling the older one", async () => {
+    fakeClerk.requireReverification();
+    await renderScreen(true);
+
+    await saveName();
+    await screen.findByLabelText(text.password);
+    // Another call asks while the sheet is up (it's modal, so the Screen
+    // behind it is hidden from VoiceOver).
+    await fireEvent.press(
+      screen.getByText("Save Happy", { includeHiddenElements: true })
+    );
+
+    await waitFor(() =>
+      expect(
+        screen.getByTestId("result", { includeHiddenElements: true })
+      ).toHaveTextContent("cancelled")
+    );
+    expect(pushedRoutes()).toHaveLength(1);
+
+    await fireEvent.changeText(
+      await screen.findByLabelText(text.password),
+      FAKE_PASSWORD
+    );
+    await fireEvent.press(screen.getByRole("button", { name: text.continue }));
+
+    await waitFor(() =>
+      expect(screen.getByTestId("second-result")).toHaveTextContent("done")
+    );
+    expect(updates()).toEqual([
+      { method: "update", params: { firstName: "Happy" } },
+    ]);
+    expect(pushedRoutes()).toEqual([]);
   });
 });

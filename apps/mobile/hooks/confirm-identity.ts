@@ -227,6 +227,13 @@ export const useConfirmIdentity = (
     void start();
   }, [reverification.id, start]);
 
+  /** Starts the verification again, after a start that failed. */
+  const handleRetry = useCallback(() => {
+    setOperation("start");
+    setErrorKey(null);
+    void start();
+  }, [start]);
+
   const attempt = useCallback(
     async (confirmMethod: ConfirmMethod) => {
       const { session } = clerk;
@@ -306,6 +313,7 @@ export const useConfirmIdentity = (
     code,
     email: emailFactor?.email ?? null,
     handleEmailCode,
+    handleRetry,
     errorKey,
     method,
     operation,

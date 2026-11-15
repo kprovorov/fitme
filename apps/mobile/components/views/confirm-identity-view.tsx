@@ -133,6 +133,8 @@ export const ConfirmIdentityView = ({
   const { email, errorKey, method, operation } = confirm;
   const busy = operation !== null;
   const verifying = operation === "verify";
+  // Clerk couldn't start the verification (offline): nothing to enter yet.
+  const startFailed = method === null && operation === null;
   const cancel = useCallback(() => onDone("cancel"), [onDone]);
   const { verify } = confirm;
 
@@ -213,16 +215,26 @@ export const ConfirmIdentityView = ({
       ) : null}
 
       <View className="gap-xs">
-        <Button
-          accessibilityLabel={
-            verifying ? t("verifyCode.loading") : t("confirmIdentity.continue")
-          }
-          disabled={!confirm.canContinue || busy}
-          isLoading={verifying}
-          label={t("confirmIdentity.continue")}
-          onPress={submit}
-          size="lg"
-        />
+        {startFailed ? (
+          <Button
+            label={t("common.tryAgain")}
+            onPress={confirm.handleRetry}
+            size="lg"
+          />
+        ) : (
+          <Button
+            accessibilityLabel={
+              verifying
+                ? t("verifyCode.loading")
+                : t("confirmIdentity.continue")
+            }
+            disabled={!confirm.canContinue || busy}
+            isLoading={verifying}
+            label={t("confirmIdentity.continue")}
+            onPress={submit}
+            size="lg"
+          />
+        )}
         <Button
           disabled={verifying}
           label={t("common.cancel")}
