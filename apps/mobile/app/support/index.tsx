@@ -1,4 +1,3 @@
-import * as Sentry from "@sentry/react-native";
 import * as Clipboard from "expo-clipboard";
 import { Stack } from "expo-router";
 import { useTranslation } from "react-i18next";
@@ -26,12 +25,8 @@ const SOCIAL_URLS = {
 const emailSupport = (addressCopied: string) =>
   openUrl(`mailto:${SUPPORT_EMAIL}`, {
     onUnopened: async () => {
-      try {
-        await Clipboard.setStringAsync(SUPPORT_EMAIL);
-        showToast(addressCopied);
-      } catch (error) {
-        Sentry.captureException(error);
-      }
+      await Clipboard.setStringAsync(SUPPORT_EMAIL);
+      showToast(addressCopied);
     },
   });
 

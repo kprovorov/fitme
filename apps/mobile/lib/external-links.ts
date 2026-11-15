@@ -6,13 +6,18 @@ import { Linking } from "react-native";
 export const TERMS_URL = "https://fitmeproject.com/terms";
 export const PRIVACY_POLICY_URL = "https://fitmeproject.com/privacy";
 
+/** React Native's answer when nothing on the device can open a URL. */
+const isRefusal = (error: unknown) =>
+  error instanceof Error && error.message.startsWith("Unable to open URL");
+
 /**
  * Hands a URL to the system (a `mailto:`, a store link, a page another app
  * claims). The system can refuse (`Unable to open URL`): that's reported,
  * never left as an unhandled rejection. A caller with its own answer to a
  * refusal passes `onUnopened` (Support copies the address when no mail app
- * can take a `mailto:`), which then runs instead of the report: a phone
- * without a mail app is no bug of ours.
+ * can take a `mailto:`), which then runs on any failure. Only the system's
+ * own refusal goes unreported then, since a phone without a mail app is no
+ * bug of ours; any other failure, and a fallback that throws, still is.
  */
 export const openUrl = async (
   url: string,
@@ -21,13 +26,19 @@ export const openUrl = async (
   try {
     await Linking.openURL(url);
   } catch (error) {
-    if (onUnopened) {
-      await onUnopened();
+    if (!(onUnopened && isRefusal(error))) {
+      Sentry.captureException(error);
+    }
 
+    if (!onUnopened) {
       return;
     }
 
-    Sentry.captureException(error);
+    try {
+      await onUnopened();
+    } catch (fallbackError) {
+      Sentry.captureException(fallbackError);
+    }
   }
 };
 
