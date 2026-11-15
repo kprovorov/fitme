@@ -49,7 +49,7 @@ const ProfilePhoto = ({
   const initial = (fullName ?? "").trim().charAt(0).toUpperCase();
 
   return (
-    <View className="items-center pt-2">
+    <View className="items-center pt-2 pb-2">
       <Avatar alt={t("profilePhoto.title")} className="size-22">
         <AvatarImage source={{ uri: imageUrl }} testID="edit-profile-photo" />
         <AvatarFallback>

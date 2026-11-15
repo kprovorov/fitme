@@ -24,7 +24,7 @@ import {
   useRef,
   useState,
 } from "react";
-import type { ReactNode } from "react";
+import type { ReactNode, RefObject } from "react";
 import { Controller, useController, useForm, useWatch } from "react-hook-form";
 import type { Control, ControllerRenderProps, Resolver } from "react-hook-form";
 import { useTranslation } from "react-i18next";
@@ -35,7 +35,12 @@ import {
   Text as NativeText,
   View,
 } from "react-native";
-import type { ScrollViewInstance } from "react-native";
+import type {
+  NativeScrollEvent,
+  NativeSyntheticEvent,
+  ScrollViewInstance,
+  ViewInstance,
+} from "react-native";
 import Animated, {
   useAnimatedStyle,
   withTiming,
@@ -78,6 +83,12 @@ const PROFILE_FIELDS: ProfileField[] = ["age", "weight", "height"];
 
 /** Height of the wheel picker drawer when expanded. */
 const WHEEL_HEIGHT = 200;
+
+/** Long enough for the wheel's drawer (150 ms) to have opened. */
+const WHEEL_SETTLED_MS = 200;
+
+/** Space kept between a revealed field and the Save bar. */
+const REVEAL_MARGIN = 16;
 
 /** Values the wheels open on (and store) for a field that isn't set yet. */
 const DEFAULT_AGE = 25;
@@ -272,6 +283,8 @@ const ParameterRow = ({
 interface ParameterFieldProps extends Omit<ParameterRowProps, "hasError"> {
   /** The field's error, shown under it. */
   error?: string;
+  /** The field's view (with its error), to measure where it is on screen. */
+  onView: (field: ProfileField, view: ViewInstance | null) => void;
 }
 
 /**
@@ -285,10 +298,17 @@ const ParameterField = ({
   isFocused,
   label,
   onPress,
+  onView,
   value,
 }: ParameterFieldProps) => {
   const { t } = useTranslation();
   const handlePress = useCallback(() => onPress(field), [field, onPress]);
+
+  const handleRef = useCallback(
+    (view: ViewInstance | null) => onView(field, view),
+    [field, onView]
+  );
+
   let stroke = "border-input";
 
   if (error) {
@@ -298,7 +318,7 @@ const ParameterField = ({
   }
 
   return (
-    <View className="flex flex-col items-stretch gap-2">
+    <View className="flex flex-col items-stretch gap-2" ref={handleRef}>
       <Label>{label}</Label>
       <Pressable
         accessibilityHint={error}
@@ -387,6 +407,7 @@ interface ParametersProps {
   focused: ProfileField | null;
   labels: Record<ProfileField, string>;
   onPress: (field: ProfileField) => void;
+  onView: (field: ProfileField, view: ViewInstance | null) => void;
   values: Record<ProfileField, string | undefined>;
 }
 
@@ -396,6 +417,7 @@ const ParameterFields = ({
   focused,
   labels,
   onPress,
+  onView,
   values,
 }: ParametersProps) =>
   PROFILE_FIELDS.map((field) => (
@@ -406,6 +428,7 @@ const ParameterFields = ({
       key={field}
       label={labels[field]}
       onPress={onPress}
+      onView={onView}
       value={values[field]}
     />
   ));
@@ -674,6 +697,68 @@ const useParameterTexts = (
   return { labels, values };
 };
 
+/**
+ * Scrolls a labelled field up until all of it (its error included) shows
+ * above the Save bar, both measured where they are on screen (`fields`
+ * layout); otherwise, to the end of the form. The form hands it each field's
+ * view, the Save bar's and its scroll events.
+ */
+const useRevealField = (
+  layout: "fields" | "rows",
+  scrollViewRef: RefObject<ScrollViewInstance | null>
+) => {
+  const fieldViews = useRef<Partial<Record<ProfileField, ViewInstance | null>>>(
+    {}
+  );
+
+  const footerRef = useRef<ViewInstance>(null);
+  const scrollOffset = useRef(0);
+
+  const handleFieldView = useCallback(
+    (field: ProfileField, view: ViewInstance | null) => {
+      fieldViews.current[field] = view;
+    },
+    []
+  );
+
+  const handleScroll = useCallback(
+    ({ nativeEvent }: NativeSyntheticEvent<NativeScrollEvent>) => {
+      scrollOffset.current = nativeEvent.contentOffset.y;
+    },
+    []
+  );
+
+  const revealField = useCallback(
+    (field?: ProfileField) => {
+      const view = field ? fieldViews.current[field] : undefined;
+      const footer = footerRef.current;
+      const scrollView = scrollViewRef.current;
+
+      if (layout !== "fields" || !view || !footer || !scrollView) {
+        scrollView?.scrollToEnd({ animated: true });
+
+        return;
+      }
+
+      footer.measureInWindow((_x, footerTop) => {
+        view.measureInWindow((_fieldX, fieldTop, _width, fieldHeight) => {
+          const overflow = fieldTop + fieldHeight + REVEAL_MARGIN - footerTop;
+
+          if (overflow > 0) {
+            scrollView.scrollTo({
+              animated: true,
+              y: scrollOffset.current + overflow,
+            });
+          }
+        });
+      });
+    },
+    [layout, scrollViewRef]
+  );
+
+  return { footerRef, handleFieldView, handleScroll, revealField };
+};
+
 const ProfileForm = ({
   defaultValues,
   footer,
@@ -716,19 +801,20 @@ const ProfileForm = ({
     height: withTiming(showWheel ? WHEEL_HEIGHT : 0, { duration: 150 }),
   }));
 
+  const { footerRef, handleFieldView, handleScroll, revealField } =
+    useRevealField(layout, scrollViewRef);
+
   const toggleWheel = useCallback(
-    (show?: boolean) => {
+    (show?: boolean, field?: ProfileField) => {
       const next = show ?? !showWheel;
       setShowWheel(next);
 
       if (next) {
-        // Small delay to ensure animation is complete
-        setTimeout(() => {
-          scrollViewRef.current?.scrollToEnd({ animated: true });
-        }, 160);
+        // Once the wheel has opened and the scroll view has shrunk for it.
+        setTimeout(() => revealField(field), WHEEL_SETTLED_MS);
       }
     },
-    [showWheel]
+    [revealField, showWheel]
   );
 
   const toggleField = useCallback(
@@ -739,7 +825,7 @@ const ProfileForm = ({
         toggleWheel(false);
         setFieldFocused(null);
       } else {
-        toggleWheel(true);
+        toggleWheel(true, field);
         setFieldFocused(field);
         setActiveWheel(field);
       }
@@ -780,6 +866,7 @@ const ProfileForm = ({
     },
     focused: fieldFocused,
     labels,
+    onView: handleFieldView,
     onPress: toggleField,
     values,
   };
@@ -809,7 +896,9 @@ const ProfileForm = ({
       <ScrollView
         contentInsetAdjustmentBehavior="automatic"
         keyboardShouldPersistTaps="handled"
+        onScroll={handleScroll}
         ref={scrollViewRef}
+        scrollEventThrottle={16}
         showsVerticalScrollIndicator={false}
       >
         {/* Tap-outside-to-dismiss only; keep the fields individually accessible */}
@@ -885,6 +974,7 @@ const ProfileForm = ({
         variables={{ "--profile-footer-bottom": Math.max(24, insets.bottom) }}
       >
         <View
+          ref={footerRef}
           className={cn(
             "flex flex-col items-stretch justify-center gap-1",
             isFields ? "p-sm" : "p-6",
@@ -898,7 +988,15 @@ const ProfileForm = ({
             isLoading={isFormSubmitting}
             label={submitLabel}
             onPress={() => {
-              void form.handleSubmit(onSubmit)();
+              void form.handleSubmit(onSubmit, (errors) => {
+                // A field's error can sit under the Save bar: show the first.
+                const field = PROFILE_FIELDS.find((name) => errors[name]);
+
+                if (field && isFields) {
+                  // Once the error under it has laid out.
+                  setTimeout(() => revealField(field), 50);
+                }
+              })();
             }}
             size="lg"
             testID={submitTestID}
