@@ -136,4 +136,18 @@ jobs:
           BASE_REF: ${{ github.base_ref }}
         # git log shows no patch for a merge commit by default, so a secret
         # added while resolving a merge would go unseen without --diff-merges.
-        run: gitleaks git --log-opts="--diff-merges=first-parent origin/${BASE_REF}..HEAD" --redact --no-banner .
+        # --verbose names each finding's rule, file and line (the secret masked
+        # by --redact), so a failure needs no local rerun.
+        run: gitleaks git --log-opts="--diff-merges=first-parent origin/${BASE_REF}..HEAD" --redact --verbose --no-banner .
+
+      # What .gitleaks.toml's password-literal rule flags and lets through
+      # (scripts/gitleaks-config.test.mjs), against the gitleaks installed above.
+      - name: Setup Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version-file: package.json
+
+      - name: gitleaks config tests
+        env:
+          FITME_REQUIRE_GITLEAKS: "1"
+        run: node --test scripts/gitleaks-config.test.mjs

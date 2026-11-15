@@ -52,7 +52,17 @@ paths = [
   '''^apps/mobile/e2e/''',
   # The mobile test helpers' fakes (fake-clerk.ts's made-up User password).
   '''^apps/mobile/test-utils/''',
+  # The translation catalogs: UI strings about passwords, never a password
+  # ("resetPassword": "Reset password"). Only this rule skips them (FIT-425).
+  '''^packages/i18n/src/catalogs/[A-Za-z-]+\.json$''',
 ]
+
+# A route or purpose name, never a variable holding a password: the quoted
+# kebab-case key `"reset-password": "…"` (FIT-425). No identifier has a hyphen,
+# so only the names listed here pass; a key like "db-password" is still flagged.
+[[rules.allowlists]]
+regexTarget = "line"
+regexes = ['''["'](?:forgot|reset)-password["']\s*:''']
 
 [[rules.allowlists]]
 regexTarget = "match"
