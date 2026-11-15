@@ -574,6 +574,25 @@ describe("Button", () => {
     expect(screen.getByRole("button")).toBeDisabled();
   });
 
+  it("keeps a loading pill's words after the spinner when it has a loading label", async () => {
+    await render(
+      <Button isLoading label="Connect" loadingLabel="Connecting…" />
+    );
+
+    expect(screen.getByTestId("spinner")).toBeTruthy();
+    expect(screen.getByText("Connecting…")).toBeTruthy();
+    expect(screen.queryByText("Connect")).toBeNull();
+    expect(screen.getByRole("button")).toBeDisabled();
+  });
+
+  it("shows its label, not the loading one, while it isn't loading", async () => {
+    await render(<Button label="Connect" loadingLabel="Connecting…" />);
+
+    expect(screen.getByText("Connect")).toBeTruthy();
+    expect(screen.queryByText("Connecting…")).toBeNull();
+    expect(screen.queryByTestId("spinner")).toBeNull();
+  });
+
   it("accepts only the documented API", () => {
     const CIRCLE = {
       accessibilityLabel: "Add",

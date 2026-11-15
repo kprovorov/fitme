@@ -5,6 +5,12 @@ import type { GoogleClientIds } from "~/lib/google-client-ids";
 
 export type SocialProvider = "apple" | "google";
 
+/** Each provider's brand name, the same in every App language. */
+export const PROVIDER_NAMES: Record<SocialProvider, string> = {
+  apple: "Apple",
+  google: "Google",
+};
+
 const GOOGLE_CLIENT_ID = /^\d+-[a-z0-9-]+\.apps\.googleusercontent\.com$/iu;
 const GOOGLE_CLIENT_SUFFIX = /\.apps\.googleusercontent\.com$/u;
 

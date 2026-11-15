@@ -12,6 +12,7 @@ interface ButtonProps {
   disabled?: boolean;
   isLoading?: boolean;
   label?: string;
+  loadingLabel?: string;
   onPress?: () => void;
   testID?: string;
 }
@@ -22,21 +23,26 @@ export const Button = ({
   disabled,
   isLoading,
   label,
+  loadingLabel,
   onPress,
   testID,
-}: ButtonProps) => (
-  <Pressable
-    accessibilityHint={accessibilityHint}
-    accessibilityLabel={accessibilityLabel}
-    accessibilityRole="button"
-    accessibilityState={{
-      busy: !!isLoading,
-      disabled: !!(disabled || isLoading),
-    }}
-    disabled={!!(disabled || isLoading)}
-    onPress={onPress}
-    testID={testID}
-  >
-    {label ? <Text>{label}</Text> : null}
-  </Pressable>
-);
+}: ButtonProps) => {
+  const shown = isLoading && loadingLabel ? loadingLabel : label;
+
+  return (
+    <Pressable
+      accessibilityHint={accessibilityHint}
+      accessibilityLabel={accessibilityLabel}
+      accessibilityRole="button"
+      accessibilityState={{
+        busy: !!isLoading,
+        disabled: !!(disabled || isLoading),
+      }}
+      disabled={!!(disabled || isLoading)}
+      onPress={onPress}
+      testID={testID}
+    >
+      {shown ? <Text>{shown}</Text> : null}
+    </Pressable>
+  );
+};
