@@ -26,7 +26,7 @@ The Local `.env` column is what setup writes: only the database URL of the check
 
 `prod` root holds the shared values: the Clerk production keys (`CLERK_SECRET_KEY`, `CLERK_PUBLISHABLE_KEY`, `CLERK_JWT_KEY`) and the development instance's `CLERK_JWT_KEY_DEVELOPMENT`, `FITME_DATABASE_URL_BASE` (the `fitme` login's pooler URL without `application_name`), `LIBRARY_URL`, the server secrets the Library API accepts (`LIBRARY_PUBLIC_API_SECRET`, `LIBRARY_ARNOLD_SECRET`, `LIBRARY_MCP_SECRET`) and `ARNOLD_RESET_SECRET`.
 
-The Public API, Arnold, MCP and the Library API itself read `LIBRARY_URL` and the `LIBRARY_*` secrets (`LIBRARY_PUBLIC_API_SECRET`, `LIBRARY_ARNOLD_SECRET`, `LIBRARY_MCP_SECRET`) and nothing else. The pre-rename `EXERCISES_*` names are gone from Infisical, Vercel and EAS; don't bring them back.
+Arnold, MCP and the Library API itself read `LIBRARY_URL` and the `LIBRARY_*` secrets (`LIBRARY_ARNOLD_SECRET`, `LIBRARY_MCP_SECRET`, and the Library API still `LIBRARY_PUBLIC_API_SECRET`) and nothing else; the Public API reads neither (ADR 0018: it checks slugs against the Library index). The pre-rename `EXERCISES_*` names are gone from Infisical, Vercel and EAS; don't bring them back.
 
 ## Vercel syncs
 

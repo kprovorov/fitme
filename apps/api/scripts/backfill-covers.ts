@@ -1,9 +1,10 @@
 import { parseArgs } from "node:util";
 
+import { createLibraryIndex } from "@fitme/library-bundle/library-index";
 import { sanitizeError } from "@fitme/observability";
 
 import { backfillCovers } from "../src/backfill-covers.js";
-import { createLibraryFromEnv } from "../src/library.js";
+import { libraryBundleSourceFromEnv } from "../src/library.js";
 
 /**
  * The one-off Cover backfill (ADR 0014): `pnpm api backfill:covers
@@ -33,18 +34,37 @@ const run = async () => {
     return 1;
   }
 
-  const library = createLibraryFromEnv();
-
-  if (!library) {
-    console.error("Set LIBRARY_URL and LIBRARY_PUBLIC_API_SECRET");
+  // Never the committed fixture: its made-up Covers would be written to real
+  // Workouts for good, since a covered Workout is never changed again.
+  if (
+    !(process.env.VERCEL_ENV === "production" || process.env.LIBRARY_BUNDLE)
+  ) {
+    console.error(
+      "Set VERCEL_ENV=production (with BLOB_STORE_ID, over Vercel OIDC) or LIBRARY_BUNDLE"
+    );
 
     return 1;
   }
 
+  const source = libraryBundleSourceFromEnv();
+  console.log(`Library bundle: ${source.name}`);
+
+  const index = createLibraryIndex({
+    load: source.load,
+    // One load for the whole run: a slug missing from it stays missing, so a
+    // retry never downloads the bundle again.
+    reloadIntervalMs: Number.POSITIVE_INFINITY,
+    // The load's own failure, printed as the run's error would be; the run
+    // then stops with LibraryIndexUnavailableError.
+    reportError: (failure) => {
+      console.error(sanitizeError(failure));
+    },
+  });
+
   try {
     await backfillCovers({
       dryRun: values["dry-run"],
-      library,
+      index,
       planIds: values.plan,
     });
 

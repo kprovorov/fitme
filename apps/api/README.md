@@ -48,35 +48,37 @@ Responses are JSON. Successful responses wrap the payload in `data`; failures re
 - `src/auth.ts` — `requireCaller` (the verified caller, `{ userId, kind: "session" }`, and their services) and `requires(permission)`, each User-data route's declared `read` / `write`
 - `src/services.ts` — `UserServices`, the per-User facade: each method runs one `@fitme/services` function inside `asUser` for the verified User id (a read carrying weights first share-locks the Profile and reads its weight unit in the same transaction, so a conversion can't commit in between); routes never pass a User id
 - `src/routes/v1.ts` — versioned routers mounting resource routers from `src/routes/`: `publicV1` (no caller) and `userV1` (after auth)
-- `src/library.ts` — the Library API client (`LIBRARY_URL`, `LIBRARY_PUBLIC_API_SECRET`; `https://library.fitmeproject.com` deployed) and `checkExerciseSlugs`, the one batch lookup a write runs before its transaction
+- `src/library.ts` — the Library index (ADR 0018: `libraryIndexFromEnv`, over production's Blob store, `LIBRARY_BUNDLE` or the committed fixture) and `checkExerciseSlugs` / `checkSlugsAndPickCovers`, the one lookup a write runs before its transaction; the Public API has no Library API client
 - `src/schemas.ts` — shared schemas (`ErrorResponse`, `Id`, `MuscleGroup`, `WeightUnit`, the documented 400 and 401 responses) and `invalidRequest`, every router's validation hook
 - `src/openapi.ts` — writes `openapi.json` (`pnpm api openapi`)
 - `src/backfill-covers.ts` / `scripts/backfill-covers.ts` — the one-off Cover backfill and its command (see Cover backfill)
 
 ## Tests
 
-`src/__tests__/` drives `createApp` through `app.request` with Clerk session tokens signed by a test RSA key, fake services (`src/test/harness.ts`: an unfaked method fails the request) and the fake Library from `@fitme/library-sdk/fake`, with a recording reporter and Sentry user.
+`src/__tests__/` drives `createApp` through `app.request` with Clerk session tokens signed by a test RSA key, fake services (`src/test/harness.ts`: an unfaked method fails the request) and a Library index in memory (`testLibraryIndex`), with a recording reporter and Sentry user.
 
 ## Integration tests
 
-`integration/` runs the same seam against a real Supabase stack (`pnpm db start`): the real services facade through `asUser` on the stack's Supavisor pooler (the vitest config reads its URL from `supabase status`; `FITME_DATABASE_URL` overrides it), as made-up Clerk-style `user_…` ids with test-signed tokens, and the fake Library. CI runs it in `.github/workflows/integration-tests.yml`.
+`integration/` runs the same seam against a real Supabase stack (`pnpm db start`): the real services facade through `asUser` on the stack's Supavisor pooler (the vitest config reads its URL from `supabase status`; `FITME_DATABASE_URL` overrides it), as made-up Clerk-style `user_…` ids with test-signed tokens, and a Library index in memory. CI runs it in `.github/workflows/integration-tests.yml`.
 
 `integration/backfill-covers.test.ts` runs the Cover backfill there too, scoped to its own Plans (`planIds`), since other files write Plans on the same stack at once.
 
 ## Cover backfill
 
-A one-off script giving every Workout of a live Plan without a Cover one (ADR 0014; Postgres can't call the Library, so it isn't a migration). It fetches the Library's Covers (and refuses to run, exit 1, when there are none), lists the live Plans with an uncovered Workout through `withService`, looks those Workouts' Exercise slugs up in one batch, then per Plan, one transaction each, runs `@fitme/core`'s `pickCovers` for its uncovered Workouts, keeping the Plan's existing Covers as used, and writes the ids. A Workout with a Cover is never changed, so a second run writes nothing. Each Plan's transaction locks the Plan row, then its Workouts, like `updatePlan` and finishing a Workout Session. A Workout that got an Exercise since the lookup sends its Plan back for one more lookup and retry, then it's skipped (logged; a rerun covers it). A Library failure up front stops it before anything is written; a failure later stops it after the Plans already committed, and a rerun picks up the rest. The process ends about 10 s after its last line (the pool's idle clients), exiting 1 on any failure.
+A one-off script giving every Workout of a live Plan without a Cover one (ADR 0014; Postgres can't call the Library, so it isn't a migration). It reads the Covers from the Library index (ADR 0018, the same bundle the writes check against; it refuses to run, exit 1, when there are none or the index can't be loaded), lists the live Plans with an uncovered Workout through `withService`, looks those Workouts' Exercise slugs' muscle groups up in the index in one batch, then per Plan, one transaction each, runs `@fitme/core`'s `pickCovers` for its uncovered Workouts, keeping the Plan's existing Covers as used, and writes the ids. A Workout with a Cover is never changed, so a second run writes nothing. Each Plan's transaction locks the Plan row, then its Workouts, like `updatePlan` and finishing a Workout Session. A Workout that got an Exercise since the lookup sends its Plan back for one more lookup and retry, then it's skipped (logged; a rerun covers it). An index that can't be loaded up front stops it before anything is written; one failing later stops it after the Plans already committed, and a rerun picks up the rest. The process ends about 10 s after its last line (the pool's idle clients), exiting 1 on any failure.
 
 Environment (read from the process, no file is loaded):
 
 | Variable | Value |
 | --- | --- |
 | `FITME_DATABASE_URL` | the `fitme` login's transaction-pooler URL with `?application_name=backfill` |
-| `LIBRARY_URL` | the Library API (`https://library.fitmeproject.com` for production) |
-| `LIBRARY_PUBLIC_API_SECRET` | the Public API's bearer for it (the same secret `apps/api` uses) |
+| `VERCEL_ENV`, `BLOB_STORE_ID`, `VERCEL_OIDC_TOKEN` | for production's bundle: `VERCEL_ENV=production` reads `library.json` from the private Blob store over Vercel OIDC, as the deployment does |
+| `LIBRARY_BUNDLE` | otherwise: the bundle to read (absolute, or relative to `apps/api`) |
+
+With neither it refuses to run (exit 1): the committed fixture's made-up Covers would stay on real Workouts for good. It prints which bundle it read first, and loads it once for the whole run.
 
 ```bash
-pnpm api backfill:covers --dry-run          # counts per Plan; no Library lookup, no write, no lock
+pnpm api backfill:covers --dry-run          # counts per Plan; reads the index's Covers, no write, no lock
 pnpm api backfill:covers --plan <id>        # one Plan (repeat --plan for more), e.g. a smoke run
 pnpm api backfill:covers                    # every live Plan
 ```

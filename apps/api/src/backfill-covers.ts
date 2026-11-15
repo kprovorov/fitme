@@ -2,11 +2,13 @@ import { pickCovers } from "@fitme/core";
 import type { MuscleGroup } from "@fitme/core";
 import { plans, withService, workoutExercises, workouts } from "@fitme/db";
 import type { Transaction } from "@fitme/db";
-import type { Library } from "@fitme/library-sdk";
+import type { LibraryIndex } from "@fitme/library-bundle/library-index";
 import { and, asc, eq, inArray, isNull, sql } from "drizzle-orm";
 import type { SQL } from "drizzle-orm";
 
-/** The Library answered no Covers: there is nothing to assign. */
+import { LibraryIndexUnavailableError } from "./library.js";
+
+/** The Library index has no Covers: there is nothing to assign. */
 export class NoCoversError extends Error {
   constructor() {
     super(
@@ -26,7 +28,8 @@ export interface BackfillReport {
 export interface BackfillOptions {
   /** Count what would be covered, write nothing and take no locks. */
   dryRun?: boolean;
-  library: Library;
+  /** The Library index (ADR 0018) the Covers and the slugs' muscle groups come from. */
+  index: LibraryIndex;
   /** One line per Plan and a total: ids and counts only, never User data. */
   log?: (line: string) => void;
   /** Only these Plans (a smoke run, or tests sharing a stack); every Plan by default. */
@@ -192,9 +195,20 @@ const coverPlan = async (
   return { covered };
 };
 
+/** One index lookup, or `LibraryIndexUnavailableError` when there's no index. */
+const lookUp = async (index: LibraryIndex, slugs: readonly string[]) => {
+  const found = await index.lookup(slugs);
+
+  if (found.status === "unavailable") {
+    throw new LibraryIndexUnavailableError();
+  }
+
+  return found;
+};
+
 /** Looks `slugs` up in one batch and adds their muscle groups to `known`. */
 const learnSlugs = async (
-  library: Library,
+  index: LibraryIndex,
   known: MuscleGroupsBySlug,
   slugs: string[]
 ) => {
@@ -202,10 +216,11 @@ const learnSlugs = async (
     return;
   }
 
-  const { data, missing } = await library.lookup(slugs);
+  const { exercises, missing } = await lookUp(index, slugs);
 
-  for (const exercise of data) {
-    known.set(exercise.slug, exercise.muscle_groups);
+  for (const exercise of exercises) {
+    // SAFETY: pickCovers only compares groups for equality, so one this build's MuscleGroup doesn't list is matched like any other.
+    known.set(exercise.slug, exercise.muscle_groups as MuscleGroup[]);
   }
 
   // A slug the Library doesn't know trains nothing: the picker falls back to
@@ -217,41 +232,42 @@ const learnSlugs = async (
 
 /**
  * Gives every Workout of a live Plan without a Cover one (ADR 0014): the
- * one-off backfill for Workouts created before Covers. It reads the Library's
- * Covers and the pending Workouts' Exercises, then covers one Plan per
+ * one-off backfill for Workouts created before Covers. It reads the Covers and
+ * the pending Workouts' Exercises' muscle groups from the Library index, then covers one Plan per
  * transaction through `withService`, with `@fitme/core`'s picker, keeping the
  * Plan's existing Covers as used. A Workout with a Cover is never changed, so
  * a second run writes nothing. A Plan whose Workouts got an Exercise since
  * the lookup is looked up again and retried once, then skipped (a rerun
  * covers it).
  *
- * Throws `NoCoversError` when the Library has no Covers, and any Library
- * failure as it is: before anything is written, or after the Plans already
- * covered.
+ * Throws `NoCoversError` when the index has no Covers, and
+ * `LibraryIndexUnavailableError` when it can't be loaded: before anything is
+ * written, or after the Plans already covered.
  */
 export const backfillCovers = async ({
   dryRun = false,
-  library,
+  index,
   log = console.log,
   planIds,
   random,
 }: BackfillOptions): Promise<BackfillReport> => {
-  const libraryCovers = await library.covers();
+  const { covers: indexCovers } = await lookUp(index, []);
 
-  if (libraryCovers.length === 0) {
+  if (indexCovers.length === 0) {
     throw new NoCoversError();
   }
 
-  const covers = libraryCovers.map((cover) => ({
+  const covers = indexCovers.map((cover) => ({
     id: cover.id,
-    muscleGroups: cover.muscle_groups,
+    // SAFETY: as above, pickCovers only compares the groups for equality.
+    muscleGroups: cover.muscle_groups as MuscleGroup[],
   }));
 
   const pending = await withService((tx) => listPending(tx, planIds));
   const known: MuscleGroupsBySlug = new Map();
 
   if (!dryRun) {
-    await learnSlugs(library, known, pending.slugs);
+    await learnSlugs(index, known, pending.slugs);
   }
 
   const report: BackfillReport = { plans: [], written: 0 };
@@ -269,7 +285,7 @@ export const backfillCovers = async ({
       let result = await coverOnce(planId);
 
       if ("unknownSlugs" in result) {
-        await learnSlugs(library, known, result.unknownSlugs);
+        await learnSlugs(index, known, result.unknownSlugs);
         result = await coverOnce(planId);
       }
 

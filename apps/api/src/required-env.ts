@@ -11,6 +11,4 @@ export const REQUIRED_ENV: readonly RequiredEnv[] = [
   // The Library index's Blob store (ADR 0018): without it every write
   // carrying an Exercise slug answers 503.
   "BLOB_STORE_ID",
-  "LIBRARY_URL",
-  "LIBRARY_PUBLIC_API_SECRET",
 ];

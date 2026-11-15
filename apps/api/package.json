@@ -20,7 +20,6 @@
     "@fitme/core": "workspace:*",
     "@fitme/db": "workspace:*",
     "@fitme/library-bundle": "workspace:*",
-    "@fitme/library-sdk": "workspace:*",
     "@fitme/observability": "workspace:*",
     "@fitme/rate-limit": "workspace:*",
     "@fitme/services": "workspace:*",
