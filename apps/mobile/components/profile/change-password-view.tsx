@@ -282,31 +282,34 @@ const ChangePasswordView = () => {
           textContentType="password"
           value={currentPassword.value}
         />
-        <PasswordInput
-          accessibilityHint={t("auth.password.minimum", {
-            count: PASSWORD_MIN_LENGTH,
-          })}
-          accessibilityLabel={t("changePassword.new")}
-          autoComplete="new-password"
-          editable={!busy}
-          error={newPasswordState.error?.message}
-          onBlur={handleNewPasswordBlur}
-          onChangeText={handleNewPasswordChange}
-          onSubmitEditing={focusConfirmPassword}
-          passwordRules={`minlength: ${PASSWORD_MIN_LENGTH};`}
-          placeholder={t("changePassword.new")}
-          ref={newPasswordRef}
-          returnKeyType="next"
-          submitBehavior="submit"
-          testID="new-password-input"
-          textContentType="newPassword"
-          value={newPassword.value}
-        />
-        {newPasswordState.error ? null : (
-          <Text variant="muted">
-            {t("auth.password.minimum", { count: PASSWORD_MIN_LENGTH })}
-          </Text>
-        )}
+        {/* The helper sits under New as tight as a field's error does. */}
+        <View className="gap-xs">
+          <PasswordInput
+            accessibilityHint={t("auth.password.minimum", {
+              count: PASSWORD_MIN_LENGTH,
+            })}
+            accessibilityLabel={t("changePassword.new")}
+            autoComplete="new-password"
+            editable={!busy}
+            error={newPasswordState.error?.message}
+            onBlur={handleNewPasswordBlur}
+            onChangeText={handleNewPasswordChange}
+            onSubmitEditing={focusConfirmPassword}
+            passwordRules={`minlength: ${PASSWORD_MIN_LENGTH};`}
+            placeholder={t("changePassword.new")}
+            ref={newPasswordRef}
+            returnKeyType="next"
+            submitBehavior="submit"
+            testID="new-password-input"
+            textContentType="newPassword"
+            value={newPassword.value}
+          />
+          {newPasswordState.error ? null : (
+            <Text variant="muted">
+              {t("auth.password.minimum", { count: PASSWORD_MIN_LENGTH })}
+            </Text>
+          )}
+        </View>
         <PasswordInput
           accessibilityLabel={t("changePassword.confirm")}
           autoComplete="new-password"
