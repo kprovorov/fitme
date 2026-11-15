@@ -99,7 +99,6 @@ export {
   ExerciseSchema as Exercise,
   ExercisePageSchema as ExercisePage,
   ExerciseBatchSchema as ExerciseBatch,
-  CoverSchema as Cover,
   CoverListSchema as CoverList,
 };
 
@@ -110,8 +109,6 @@ export type Exercise = z.infer<typeof ExerciseSchema>;
 export type ExercisePage = z.infer<typeof ExercisePageSchema>;
 
 export type ExerciseBatch = z.infer<typeof ExerciseBatchSchema>;
-
-export type Cover = z.infer<typeof CoverSchema>;
 
 export type CoverList = z.infer<typeof CoverListSchema>;
 
