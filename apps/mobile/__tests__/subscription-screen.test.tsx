@@ -28,6 +28,7 @@ import { signInAs } from "~/test-utils/signed-in-user";
 jest.mock("expo-router", () => ({
   router: { push: jest.fn(), replace: jest.fn() },
   Stack: { Screen: () => null },
+  useRouter: () => ({ push: jest.fn(), replace: jest.fn() }),
 }));
 
 jest.mock(
