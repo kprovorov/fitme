@@ -777,6 +777,8 @@ void describe("git hooks skipped with --no-verify", () => {
     "git commit -mfix-m --no-verify",
     "git commit --no-verify --mess --verify",
     "git am --no-v 0001.patch",
+    "git am -n 0001.patch",
+    "git am -qn 0001.patch",
     "git --attr-source HEAD commit --no-verify -m x",
   ]) {
     void test(`refuses ${JSON.stringify(command)}`, () => {

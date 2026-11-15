@@ -1681,7 +1681,7 @@ const GIT_VALUE_OPTIONS = new Set([
 
 /**
  * How a subcommand that runs hooks reads its options: `noVerify`, the short
- * letter that means `--no-verify` (only `git commit`'s `-n` does); `values`,
+ * letter that means `--no-verify` (`git commit -n`, `git am -n`); `values`,
  * the short letters that take a value (attached, or the next word: `-m x`,
  * `-mx`); `optional`, the ones taking only an attached one (`-S<key>`); and
  * `long`, the long options taking the next word as their value; and
@@ -1768,6 +1768,7 @@ const GIT_HOOK_COMMANDS = new Map(
           "--whitespace",
         ],
         optional: "CSp",
+        noVerify: "n",
         noVerifyPrefix: "--no-v",
         values: "",
         verifyPrefix: "--v",
