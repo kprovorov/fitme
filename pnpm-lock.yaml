@@ -1007,8 +1007,8 @@ importers:
         specifier: workspace:*
         version: link:../../packages/typescript-config
       '@types/node':
-        specifier: 22.15.21
-        version: 22.15.21
+        specifier: 26.6.6
+        version: 26.6.6
       standardwebhooks:
         specifier: ^1.1.1
         version: 1.1.1
@@ -1023,7 +1023,7 @@ importers:
         version: 5.9.3
       vitest:
         specifier: ^5.0.5
-        version: 5.0.5(@opentelemetry/api@1.9.1)(@types/node@22.15.21)(jsdom@26.1.0(supports-color@10.2.2))(vite@7.3.7(@types/node@22.15.21)(jiti@2.7.0)(lightningcss@1.33.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1))
+        version: 5.0.5(@opentelemetry/api@1.9.1)(@types/node@26.6.6)(jsdom@26.1.0(supports-color@10.2.2))(vite@7.3.7(@types/node@26.6.6)(jiti@2.7.0)(lightningcss@1.33.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1))
 
   packages/api-client:
     dependencies:
