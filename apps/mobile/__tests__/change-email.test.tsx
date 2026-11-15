@@ -63,6 +63,7 @@ jest.mock("expo-router", () => {
     router: stub.stubRouter,
     Stack: { Screen: stub.StackScreenStub },
     useLocalSearchParams: () => stub.useStubParams({}),
+    usePreventRemove: stub.usePreventRemoveStub,
     useRouter: () => stub.stubRouter,
   };
 });
@@ -257,6 +258,50 @@ describe.each(["en", "uk"] as const)("Change Email (%s)", (language) => {
     await enterCode(FAKE_VERIFICATION_CODE);
     await waitFor(() => expect(dismissedToRoute()).toBe("/account-security"));
     expect(addresses()).toEqual([{ emailAddress: NEW_EMAIL, primary: true }]);
+  });
+
+  it("asks Confirm it's you before back takes a stale session's address off", async () => {
+    await reachCodeScreen();
+    fakeClerk.requireReverification();
+
+    await act(() => {
+      stubRouter.back();
+    });
+    await expect(
+      screen.findByRole("button", { name: text.cancel })
+    ).resolves.toBeOnTheScreen();
+    await fireEvent.press(screen.getByRole("button", { name: text.cancel }));
+
+    // Cancelled: still on the code screen, the address still there.
+    await waitFor(() =>
+      expect(pushedRoutes().map(({ pathname }) => pathname)).toEqual([
+        "/change-email",
+        "/change-email/verify-code",
+      ])
+    );
+    expect(addresses()).toHaveLength(2);
+
+    // Confirmed: taken off, back on the form.
+    fakeClerk.requireReverification();
+    await act(() => {
+      stubRouter.back();
+    });
+    await fireEvent.changeText(
+      await screen.findByLabelText(text.password),
+      FAKE_PASSWORD
+    );
+    await fireEvent.press(screen.getByRole("button", { name: text.continue }));
+
+    await waitFor(() =>
+      expect(addresses()).toEqual([{ emailAddress: OLD_EMAIL, primary: true }])
+    );
+    expect(pushedRoutes().map(({ pathname }) => pathname)).toEqual([
+      "/change-email",
+    ]);
+    await flushTimers();
+    expect(methods().filter((m) => m === "destroyEmailAddress")).toHaveLength(
+      1
+    );
   });
 
   it("takes the new address off when the User leaves before verifying", async () => {

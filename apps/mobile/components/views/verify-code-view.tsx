@@ -1,6 +1,6 @@
 import { useSignIn, useSignUp, useUser } from "@clerk/expo";
 import { captureException } from "@sentry/react-native";
-import { router } from "expo-router";
+import { router, usePreventRemove } from "expo-router";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { ActivityIndicator, AppState, Pressable, View } from "react-native";
@@ -195,9 +195,20 @@ const ACCOUNT_SECURITY_ROUTE = "/account-security";
  * toast. Leaving before that ("Change it", back, a swipe) takes the new
  * address off the account, leaving the old one primary.
  */
+/** Change Email's flow, plus what guards leaving its code screen. */
+interface ChangeEmailVerification extends CodeVerification {
+  /** Whether leaving now would leave the new address behind. */
+  readonly guarded: boolean;
+  /**
+   * Takes the new address off before the Screen goes (through "Confirm
+   * it's you" when Clerk asks); answers whether the User stays (cancelled).
+   */
+  readonly leave: () => Promise<boolean>;
+}
+
 const useChangeEmailVerification = (
   emailAddressId: string
-): CodeVerification => {
+): ChangeEmailVerification => {
   const { user } = useUser();
   const { t } = useTranslation();
   const settled = useRef(false);
@@ -214,9 +225,11 @@ const useChangeEmailVerification = (
     async (id: string) => await user?.update({ primaryEmailAddressId: id })
   );
 
-  // The address leaves the account with the Screen, unless it was made
-  // primary or the User already took it off ("Change it"). Deferred a tick,
-  // so a remount (React's strict mode) keeps it.
+  // Back and a swipe take the address off through `leave` first; this is
+  // the fallback for any other way out (a deep link, a sign-out): the
+  // address leaves the account with the Screen, unless it was made primary
+  // or already taken off. Deferred a tick, so a remount (React's strict
+  // mode) keeps it.
   const alive = useRef(true);
   useEffect(() => {
     alive.current = true;
@@ -231,11 +244,37 @@ const useChangeEmailVerification = (
     };
   }, [emailAddressId]);
 
+  const isPrimary = user?.primaryEmailAddressId === emailAddressId;
+
   return {
     // Still shown once the address is primary, while the old one goes.
     available: !!user && !!address,
     email: address?.emailAddress ?? null,
+    guarded: !!address && !isPrimary,
     id: address?.id ?? null,
+    leave: async () => {
+      if (settled.current || !address || isPrimary) {
+        return false;
+      }
+
+      try {
+        const removed = await removeAddress(address);
+
+        if (removed.status === "cancelled") {
+          return true;
+        }
+
+        settled.current = true;
+      } catch (error) {
+        // Never trap the User on the Screen: the unmount fallback tries
+        // again, and a failure is reported there.
+        if (!isClerkNetworkFailure(error)) {
+          captureException(error);
+        }
+      }
+
+      return false;
+    },
     resend: async () => {
       try {
         await address?.prepareVerification({ strategy: "email_code" });
@@ -584,6 +623,24 @@ const ChangeEmailCodeView = ({
   emailAddressId: string;
 }) => {
   const flow = useChangeEmailVerification(emailAddressId);
+
+  // Leaving before verifying (back, a swipe) takes the new address off
+  // first, asking "Confirm it's you" when the session has gone stale; a
+  // cancel keeps the User here.
+  const { leave } = flow;
+
+  const leaveThen = useCallback(
+    async (repeat: () => void) => {
+      if (!(await leave())) {
+        repeat();
+      }
+    },
+    [leave]
+  );
+
+  usePreventRemove(flow.guarded, ({ repeat }) => {
+    void leaveThen(repeat);
+  });
 
   return <CodeVerificationContent flow={flow} purpose="change-email" />;
 };

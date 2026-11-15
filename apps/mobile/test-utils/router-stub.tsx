@@ -24,6 +24,8 @@ import {
   cloneElement,
   createContext,
   useContext,
+  useEffect,
+  useRef,
   useSyncExternalStore,
 } from "react";
 import type { ComponentType, ReactElement, Ref } from "react";
@@ -81,9 +83,41 @@ const toRoute = (href: Href): PushedRoute => {
   return { key: nextKey, params, pathname };
 };
 
+/**
+ * Each pushed route's `usePreventRemove` guard, by route key: while it
+ * prevents, `back` calls its callback instead of popping the route, and the
+ * callback's `repeat` pops it.
+ */
+const removeGuards = new Map<
+  number,
+  {
+    readonly callback?: (options: {
+      data: { action: { type: string } };
+      repeat: () => void;
+    }) => void;
+    readonly prevent: boolean;
+  }
+>();
+
+const popTop = () => setRoutes(routes.slice(0, -1));
+
 /** `useRouter()`'s answer: pushes and pops the routes over the screen. */
 export const stubRouter = {
-  back: () => setRoutes(routes.slice(0, -1)),
+  back: () => {
+    const top = routes.at(-1);
+    const guard = top ? removeGuards.get(top.key) : undefined;
+
+    if (guard?.prevent) {
+      guard.callback?.({
+        data: { action: { type: "GO_BACK" } },
+        repeat: popTop,
+      });
+
+      return;
+    }
+
+    popTop();
+  },
   dismiss: (count = 1) => setRoutes(routes.slice(0, -count)),
   dismissTo: (href: Href) => {
     dismissedTo = hrefSchema.parse(href).pathname;
@@ -101,6 +135,7 @@ export const dismissedToRoute = () => dismissedTo;
 
 export const resetStubRouter = () => {
   dismissedTo = null;
+  removeGuards.clear();
   setRoutes([]);
 };
 
@@ -128,6 +163,49 @@ export const LinkStub = ({
 
 const RouteParams = createContext<Params | null>(null);
 
+const RouteKey = createContext<number | null>(null);
+
+/**
+ * `usePreventRemove` for a pushed route: while `prevent` is true, the stub's
+ * `back` (a back button, a swipe) runs `onBeforeRemove` instead of popping it, as
+ * the native stack does. On the screen the test rendered it does nothing.
+ */
+export const usePreventRemoveStub = (
+  prevent: boolean,
+  onBeforeRemove?: (options: {
+    data: { action: { type: string } };
+    repeat: () => void;
+  }) => void
+) => {
+  const key = useContext(RouteKey);
+  const latest = useRef(onBeforeRemove);
+
+  useEffect(() => {
+    latest.current = onBeforeRemove;
+  });
+
+  useEffect(() => {
+    if (key === null) {
+      return;
+    }
+
+    removeGuards.set(key, {
+      callback: (options) => latest.current?.(options),
+      prevent,
+    });
+
+    return () => {
+      removeGuards.delete(key);
+    };
+  }, [key, prevent]);
+
+  return () => {
+    if (key !== null) {
+      removeGuards.delete(key);
+    }
+  };
+};
+
 /** A pushed route's params, or `base` for the screen the test rendered. */
 export const useStubParams = (base: Params) => useContext(RouteParams) ?? base;
 
@@ -143,9 +221,11 @@ export const PushedRoutes = ({
     const Screen = screens[route.pathname];
 
     return Screen ? (
-      <RouteParams.Provider key={route.key} value={route.params}>
-        <Screen />
-      </RouteParams.Provider>
+      <RouteKey.Provider key={route.key} value={route.key}>
+        <RouteParams.Provider value={route.params}>
+          <Screen />
+        </RouteParams.Provider>
+      </RouteKey.Provider>
     ) : null;
   });
 };
