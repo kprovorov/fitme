@@ -1,5 +1,6 @@
 import { isClerkAPIResponseError, useUser } from "@clerk/expo";
 import { captureException } from "@sentry/react-native";
+import { router } from "expo-router";
 import { useCallback, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Alert, Pressable, View } from "react-native";
@@ -184,8 +185,8 @@ const SignInMethodRow = ({
 
 /**
  * Account & Security (Figma 1479:5771), opened from the redesigned Profile:
- * the User's email, Change Password while they have a password, the sign-in
- * methods this build offers (ADR 0021) with whether each is linked, and
+ * the User's email, Change Password while they have a password (opening
+ * the Change Password Screen), the sign-in methods this build offers (ADR 0021) with whether each is linked, and
  * Delete Account at the bottom. A linked provider can be disconnected while
  * the User keeps another way to sign in (ADR 0021): a password, or another
  * linked provider, counted whether or not this build shows its row (Apple on
@@ -195,6 +196,8 @@ const SignInMethodRow = ({
  * or Disconnect runs at a time. The other actions come with their own
  * tickets.
  */
+const openChangePassword = () => router.push("/change-password");
+
 const AccountSecurityView = () => {
   const { t } = useTranslation();
   const { user } = useUser();
@@ -310,6 +313,7 @@ const AccountSecurityView = () => {
         {user.passwordEnabled ? (
           <ProfileListRow
             label={t("accountSecurity.passwordRow")}
+            onPress={openChangePassword}
             testID="account-password"
           />
         ) : null}

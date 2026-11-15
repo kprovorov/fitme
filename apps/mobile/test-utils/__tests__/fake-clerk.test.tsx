@@ -198,7 +198,14 @@ describe("fake Clerk User", () => {
         currentPassword: "wrong",
         newPassword: "new-password",
       })
-    ).rejects.toMatchObject({ errors: [{ code: "form_password_incorrect" }] });
+    ).rejects.toMatchObject({
+      errors: [
+        {
+          code: "form_password_validation_failed",
+          meta: { paramName: "current_password" },
+        },
+      ],
+    });
 
     await currentUser().updatePassword({
       currentPassword: FAKE_PASSWORD,

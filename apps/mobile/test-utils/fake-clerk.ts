@@ -104,6 +104,8 @@ export type ClerkFailure =
       readonly code: string;
       readonly longMessage?: string;
       readonly message?: string;
+      /** The param Clerk's `meta.paramName` names (`current_password`). */
+      readonly paramName?: string;
       readonly status?: number;
     };
 
@@ -162,6 +164,7 @@ export class ClerkAPIResponseError extends Error {
     readonly code: string;
     readonly longMessage?: string;
     readonly message: string;
+    readonly meta?: { readonly paramName?: string };
   }[];
   readonly status: number;
 
@@ -169,11 +172,14 @@ export class ClerkAPIResponseError extends Error {
     code,
     longMessage,
     message = code,
+    paramName,
     status = 422,
   }: Exclude<ClerkFailure, "network">) {
     super(longMessage ?? message);
     this.name = "ClerkAPIResponseError";
-    this.errors = [{ code, longMessage, message }];
+    this.errors = [
+      { code, longMessage, message, meta: paramName ? { paramName } : {} },
+    ];
     this.status = status;
   }
 }
@@ -208,8 +214,8 @@ const failureError = (failure: ClerkFailure): Error =>
     : new ClerkAPIResponseError(failure);
 
 /** A Clerk API error the fake answers itself (a wrong code, a taken email). */
-const apiError = (code: string, longMessage: string) =>
-  new ClerkAPIResponseError({ code, longMessage });
+const apiError = (code: string, longMessage: string, paramName?: string) =>
+  new ClerkAPIResponseError({ code, longMessage, paramName });
 
 /** A pending reverification: the level asked for and its two answers. */
 export interface PendingReverification {
@@ -578,10 +584,13 @@ const userResource = () => {
     }) => {
       await reach("updatePassword", params);
 
+      // What Clerk answers a wrong current password here (seen on the
+      // development instance), not the sign-in's `form_password_incorrect`.
       if (password !== null && params.currentPassword !== password) {
         throw apiError(
-          "form_password_incorrect",
-          "Password is incorrect. Try again, or use another method."
+          "form_password_validation_failed",
+          "Incorrect password. Please try again.",
+          "current_password"
         );
       }
 

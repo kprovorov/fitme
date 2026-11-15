@@ -281,6 +281,15 @@ describe.each([
     expect(router.push).toHaveBeenCalledWith("/account-security");
   });
 
+  it("opens Change Password from its row", async () => {
+    fakeClerk.setUser({ passwordEnabled: true });
+    await mount();
+
+    await fireEvent.press(screen.getByRole("button", { name: copy.password }));
+
+    expect(router.push).toHaveBeenCalledWith("/change-password");
+  });
+
   it("shows a password User's email, Change Password and Delete Account", async () => {
     fakeClerk.setUser({
       emailAddresses: ["kirill@example.com", "old@example.com"],
