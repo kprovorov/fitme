@@ -1,7 +1,7 @@
 /**
  * The edit-profile screen on the mounted-screen seam: the real screen, form,
  * hooks and Public API client, with the client's `fetch` swapped for the fake
- * Public API (`test-utils/`), Clerk for a signed-in User, and the
+ * Public API (`test-utils/`), Clerk for the fake Clerk User, and the
  * SwiftUI-backed primitives for stand-ins.
  */
 import {
@@ -25,6 +25,7 @@ import { useProfileQuery } from "~/hooks/queries/profiles";
 import { useUpdateMeasurementSystemMutation } from "~/hooks/queries/settings";
 import { i18n } from "~/lib/i18n";
 import { setDeviceLanguages } from "~/test-utils/device-locales";
+import { DEFAULT_IMAGE_URL, fakeClerk } from "~/test-utils/fake-clerk";
 import {
   backend,
   FAKE_SESSION_TOKEN,
@@ -50,43 +51,13 @@ jest.mock("~/lib/segment", () => ({
   segmentClient: { track: jest.fn() },
 }));
 
-// The Clerk User whose screen this is (`useUser`), signed in until a test
-// signs `mockNextUser` in (`signInAs`), which `getClerk` follows.
-const mockUser = {
-  fullName: "Tony Stark" as string | null,
-  id: "user_test",
-  update: jest.fn(async (_name: { firstName: string; lastName: string }) => {
-    // Clerk's answer isn't read.
-  }),
-};
-
-const mockNextUser = {
-  fullName: "Pepper Potts" as string | null,
-  id: "user_next",
-  update: jest.fn(async (_name: { firstName: string; lastName: string }) => {
-    // Clerk's answer isn't read.
-  }),
-};
-
-jest.mock("@clerk/expo", () => ({
-  useUser: () => ({ isLoaded: true, user: mockUser }),
-}));
-
-jest.mock("~/lib/clerk", () => {
-  const signedIn = jest.requireActual<
-    typeof import("~/test-utils/signed-in-user")
-  >("~/test-utils/signed-in-user");
-
-  return {
-    getClerk: () => ({
-      user:
-        [mockUser, mockNextUser].find(
-          ({ id }) => id === signedIn.signedInUserId()
-        ) ?? null,
-    }),
-    getCurrentUserId: signedIn.getCurrentUserId,
-  };
-});
+jest.mock(
+  "@clerk/expo",
+  () =>
+    jest.requireActual<typeof import("~/test-utils/fake-clerk")>(
+      "~/test-utils/fake-clerk"
+    ).clerkModule
+);
 
 jest.mock("react-native-safe-area-context", () => ({
   useSafeAreaInsets: () => ({ bottom: 0, left: 0, right: 0, top: 0 }),
@@ -166,6 +137,12 @@ const PROFILE_PUT = "PUT /v1/profile";
 const LOAD_ERROR =
   "Couldn't load your profile. Please check your connection and try again.";
 
+/** Every name the screen wrote to Clerk, in order. */
+const nameUpdates = () =>
+  fakeClerk.calls
+    .filter(({ method }) => method === "update")
+    .map(({ params }) => params);
+
 /** Every request but the Profile's reads. */
 const writes = () =>
   fakePublicApi.requests.filter(({ route }) => route !== PROFILE_GET);
@@ -190,18 +167,22 @@ const save = async () => {
   await settle(queryClient);
 };
 
-/** Opens a row's wheel and taps `value` on it. */
-const pick = async (row: string, value: number) => {
-  await fireEvent.press(screen.getByText(row));
+/** Opens a field's wheel and taps `value` on it. */
+const pick = async (field: string, value: number) => {
+  await fireEvent.press(screen.getByRole("button", { name: field }));
   await fireEvent.press(screen.getByTestId(`wheel-${value}`));
 };
+
+const FIRST_NAME = "edit-profile-first-name-input";
+const LAST_NAME = "edit-profile-last-name-input";
+const SAVE = "edit-profile-save-button";
 
 describe("EditProfileScreen", () => {
   beforeEach(() => {
     // A metric device, so the form suggests centimeters and kilograms.
     setDeviceLanguages(["en-GB"]);
     jest.clearAllMocks();
-    mockUser.fullName = "Tony Stark";
+    fakeClerk.setUser({ firstName: "Tony", lastName: "Stark" });
     backend.reset();
   });
 
@@ -230,9 +211,30 @@ describe("EditProfileScreen", () => {
 
     expect(screen.getByLabelText("Male")).toBeChecked();
     expect(screen.getByLabelText("Female")).not.toBeChecked();
-    expect(screen.getByTestId("edit-profile-name-input")).toHaveDisplayValue(
-      "Tony Stark"
-    );
+    expect(screen.getByTestId(FIRST_NAME)).toHaveDisplayValue("Tony");
+    expect(screen.getByTestId(LAST_NAME)).toHaveDisplayValue("Stark");
+    // Nothing changed yet.
+    expect(screen.getByTestId(SAVE)).toBeDisabled();
+  });
+
+  it("shows the User's Profile photo from Clerk", async () => {
+    fakeClerk.setUser({ imageUrl: "https://img.clerk.com/tony.jpg" });
+    backend.seedProfile(FAKE_USER_ID);
+    await mount();
+
+    expect(screen.getByLabelText("Profile Photo")).toBeTruthy();
+    expect(screen.getByTestId("edit-profile-photo").props.source).toEqual({
+      uri: "https://img.clerk.com/tony.jpg",
+    });
+  });
+
+  it("shows Clerk's default picture for a User without a photo", async () => {
+    backend.seedProfile(FAKE_USER_ID);
+    await mount();
+
+    expect(screen.getByTestId("edit-profile-photo").props.source).toEqual({
+      uri: DEFAULT_IMAGE_URL,
+    });
   });
 
   it("shows a Profile with a system the app doesn't know in metric units, as the API answers it", async () => {
@@ -333,7 +335,7 @@ describe("EditProfileScreen", () => {
       units: { height: "cm", weight: "kg" },
       weight: 60,
     });
-    expect(mockUser.update).not.toHaveBeenCalled();
+    expect(nameUpdates()).toEqual([]);
     expect(router.back).toHaveBeenCalledTimes(1);
   });
 
@@ -351,7 +353,7 @@ describe("EditProfileScreen", () => {
     // User signs in, whose Profile read is on its way.
     await screen.unmount();
     queryClient.clear();
-    signInAs(mockNextUser.id);
+    signInAs("user_next");
     const resumeRead = fakePublicApi.pause(PROFILE_GET);
 
     const nextUsersRead = queryClient.fetchQuery(
@@ -388,24 +390,12 @@ describe("EditProfileScreen", () => {
     backend.seedProfile(FAKE_USER_ID, { age: 30, height: 170, weight: 60 });
     await mount();
     const clock = jest.spyOn(Date, "now").mockReturnValue(Date.now());
+    const releaseName = fakeClerk.holdNext("update");
 
-    let releaseName: () => void = () => {
-      // Replaced once Clerk is asked.
-    };
-
-    mockUser.update.mockImplementationOnce(
-      () =>
-        new Promise<void>((resolve) => {
-          releaseName = resolve;
-        })
-    );
-    await fireEvent.changeText(
-      screen.getByTestId("edit-profile-name-input"),
-      "Tony Edward Stark"
-    );
+    await fireEvent.changeText(screen.getByTestId(LAST_NAME), "Edward Stark");
     await pick("Age", 31);
-    await fireEvent.press(screen.getByTestId("edit-profile-save-button"));
-    await until(() => mockUser.update.mock.calls.length === 1);
+    await fireEvent.press(screen.getByTestId(SAVE));
+    await until(() => nameUpdates().length === 1);
     const [saving] = queryClient.getMutationCache().getAll();
 
     return {
@@ -504,25 +494,22 @@ describe("EditProfileScreen", () => {
     backend.seedProfile(FAKE_USER_ID);
     await mount();
     const resumeSave = fakePublicApi.pause(PROFILE_PATCH);
-    await fireEvent.changeText(
-      screen.getByTestId("edit-profile-name-input"),
-      "Tony Edward Stark"
-    );
+    await fireEvent.changeText(screen.getByTestId(LAST_NAME), "Edward Stark");
     await pick("Age", 31);
-    await fireEvent.press(screen.getByTestId("edit-profile-save-button"));
+    await fireEvent.press(screen.getByTestId(SAVE));
     await until(() => fakePublicApi.count(PROFILE_PATCH) === 1);
     const [saving] = queryClient.getMutationCache().getAll();
 
     // Signed out while the Profile saves, and another User signs in.
     await screen.unmount();
     queryClient.clear();
-    signInAs(mockNextUser.id);
+    signInAs("user_next");
 
     resumeSave();
     await until(() => saving?.state.status === "success");
 
-    expect(mockUser.update).not.toHaveBeenCalled();
-    expect(mockNextUser.update).not.toHaveBeenCalled();
+    // Neither the User who submitted the form nor the next one gets it.
+    expect(nameUpdates()).toEqual([]);
   });
 
   it("keeps an unchanged stored value out of the request", async () => {
@@ -541,33 +528,85 @@ describe("EditProfileScreen", () => {
     });
   });
 
-  it("sends no Profile request when nothing changed, but still saves a new name", async () => {
+  it("saves the first and last name to Clerk as they are, with no Profile request", async () => {
     backend.seedProfile(FAKE_USER_ID);
     await mount();
 
-    await fireEvent.changeText(
-      screen.getByTestId("edit-profile-name-input"),
-      "Pepper Potts"
-    );
+    await fireEvent.changeText(screen.getByTestId(FIRST_NAME), " Mary Jane ");
+    await fireEvent.changeText(screen.getByTestId(LAST_NAME), "Watson Parker");
     await save();
 
     expect(writes()).toEqual([]);
-    expect(mockUser.update).toHaveBeenCalledWith({
-      firstName: "Pepper",
-      lastName: "Potts",
-    });
+    // No splitting: each field is Clerk's own, trimmed.
+    expect(nameUpdates()).toEqual([
+      { firstName: "Mary Jane", lastName: "Watson Parker" },
+    ]);
     expect(router.back).toHaveBeenCalledTimes(1);
   });
 
-  it("sends nothing at all when nothing changed", async () => {
+  it("keeps Save disabled until something changes", async () => {
+    backend.seedProfile(FAKE_USER_ID, { gender: "female" });
+    await mount();
+
+    expect(screen.getByTestId(SAVE)).toBeDisabled();
+
+    await fireEvent.changeText(screen.getByTestId(FIRST_NAME), "Pepper");
+    expect(screen.getByTestId(SAVE)).toBeEnabled();
+
+    // Back to what was saved: nothing to save again.
+    await fireEvent.changeText(screen.getByTestId(FIRST_NAME), "Tony");
+    expect(screen.getByTestId(SAVE)).toBeDisabled();
+
+    await fireEvent.press(screen.getByLabelText("Male"));
+    expect(screen.getByTestId(SAVE)).toBeEnabled();
+
+    await save();
+    expect(writes().map(({ body }) => body)).toEqual([{ gender: "male" }]);
+    expect(nameUpdates()).toEqual([]);
+  });
+
+  it("refuses to clear a name the User has", async () => {
     backend.seedProfile(FAKE_USER_ID);
     await mount();
 
+    await fireEvent.changeText(screen.getByTestId(FIRST_NAME), "  ");
+    await fireEvent.changeText(screen.getByTestId(LAST_NAME), "");
     await save();
 
+    expect(screen.getByText("First name is required")).toBeTruthy();
+    expect(screen.getByText("Last name is required")).toBeTruthy();
     expect(writes()).toEqual([]);
-    expect(mockUser.update).not.toHaveBeenCalled();
+    expect(nameUpdates()).toEqual([]);
+    expect(router.back).not.toHaveBeenCalled();
+  });
+
+  it("lets a User whose name Clerk never had save the rest", async () => {
+    // Registration keeps a one-word name as the first name alone.
+    fakeClerk.setUser({ firstName: "Pepper", lastName: null });
+    backend.seedProfile(FAKE_USER_ID, { age: 30 });
+    await mount();
+
+    expect(screen.getByTestId(LAST_NAME)).toHaveDisplayValue("");
+
+    await pick("Age", 31);
+    await save();
+
+    expect(writes().map(({ body }) => body)).toEqual([{ age: 31 }]);
+    expect(nameUpdates()).toEqual([]);
     expect(router.back).toHaveBeenCalledTimes(1);
+  });
+
+  it("keeps the edits and shows the error when Clerk refuses the name", async () => {
+    backend.seedProfile(FAKE_USER_ID);
+    await mount();
+    fakeClerk.failNext("update", "network");
+
+    await fireEvent.changeText(screen.getByTestId(FIRST_NAME), "Pepper");
+    await save();
+
+    expect(screen.getByText(SAVE_ERROR)).toBeTruthy();
+    expect(screen.getByTestId(FIRST_NAME)).toHaveDisplayValue("Pepper");
+    expect(router.back).not.toHaveBeenCalled();
   });
 
   it("creates the Profile through the Public API without a saved one", async () => {
@@ -688,7 +727,7 @@ describe("EditProfileScreen", () => {
     backend.seedProfile(FAKE_USER_ID);
     await mount();
 
-    await fireEvent.press(screen.getByText("Age"));
+    await fireEvent.press(screen.getByRole("button", { name: "Age" }));
 
     expect(screen.queryByTestId("wheel-9")).toBeNull();
     expect(screen.getByTestId("wheel-10")).toBeTruthy();
@@ -701,7 +740,7 @@ describe("editProfileScreen on a Ukrainian device", () => {
   beforeEach(() => {
     setDeviceLanguages(["uk-UA"]);
     jest.clearAllMocks();
-    mockUser.fullName = "Тарас Шевченко";
+    fakeClerk.setUser({ firstName: "Тарас", lastName: "Шевченко" });
     backend.reset();
   });
 
@@ -733,27 +772,68 @@ describe("editProfileScreen on a Ukrainian device", () => {
     await mountInUkrainian();
 
     for (const text of [
-      "Ім’я",
       "Стать",
-      "Особисті параметри",
-      "Вік",
       "32 роки",
-      "Вага",
       "62,5 кг",
-      "Зріст",
       "170,5 см",
       "Зберегти",
     ]) {
       expect(screen.getByText(text)).toBeTruthy();
     }
 
+    // Each field carries its own name for VoiceOver; the label above it is
+    // only seen.
+    expect(screen.getByLabelText("Ім’я")).toHaveDisplayValue("Тарас");
+    expect(screen.getByLabelText("Прізвище")).toHaveDisplayValue("Шевченко");
+
+    for (const name of ["Вік", "Вага", "Зріст"]) {
+      expect(screen.getByRole("button", { name })).toBeTruthy();
+      expect(
+        screen.getByText(name, { includeHiddenElements: true })
+      ).toBeTruthy();
+    }
+
     expect(screen.getByLabelText("Жінка")).toBeTruthy();
+    expect(screen.getByLabelText("Фото профілю")).toBeTruthy();
+    expect(screen.getByTestId(FIRST_NAME)).toHaveDisplayValue("Тарас");
+    expect(screen.getByTestId(LAST_NAME)).toHaveDisplayValue("Шевченко");
+    expect(screen.getByTestId(SAVE)).toBeDisabled();
+  });
+
+  it("saves both names to Clerk", async () => {
+    backend.seedProfile(FAKE_USER_ID);
+    await mountInUkrainian();
+
+    await fireEvent.changeText(screen.getByTestId(FIRST_NAME), "Леся");
+    await fireEvent.changeText(screen.getByTestId(LAST_NAME), "Українка");
+    await save();
+
+    expect(nameUpdates()).toEqual([
+      { firstName: "Леся", lastName: "Українка" },
+    ]);
+    expect(router.back).toHaveBeenCalledTimes(1);
+  });
+
+  it("names a cleared name in Ukrainian and writes nothing", async () => {
+    backend.seedProfile(FAKE_USER_ID);
+    await mountInUkrainian();
+
+    await fireEvent.changeText(screen.getByTestId(FIRST_NAME), "");
+    await fireEvent.changeText(screen.getByTestId(LAST_NAME), "");
+    await save();
+
+    expect(screen.getByText("Вкажіть ім’я")).toBeTruthy();
+    expect(screen.getByText("Вкажіть прізвище")).toBeTruthy();
+    expect(nameUpdates()).toEqual([]);
   });
 
   it("names a missing value in Ukrainian and writes nothing", async () => {
     await mountInUkrainian();
 
     expect(screen.getAllByText("Не вказано")).toHaveLength(3);
+    // Save stays off until something changes.
+    expect(screen.getByTestId(SAVE)).toBeDisabled();
+    await fireEvent.changeText(screen.getByTestId(FIRST_NAME), "Тарас Г.");
     await save();
 
     for (const text of [

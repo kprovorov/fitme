@@ -53,19 +53,24 @@ appId: com.fitmeproject.ios
 
 # The E2E User persists between runs, so a fresh name proves the save
 # reached Clerk rather than matching a name left by an earlier run.
-- evalScript: ${output.newName = 'Pepper ' + Date.now()}
+- evalScript: ${output.newLastName = 'Potts' + Date.now()}
 
 - tapOn:
-    id: "edit-profile-name-input"
+    id: "edit-profile-first-name-input"
 - eraseText: 50
-- inputText: ${output.newName}
+- inputText: "Pepper"
+
+- tapOn:
+    id: "edit-profile-last-name-input"
+- eraseText: 50
+- inputText: ${output.newLastName}
 
 - tapOn:
     text: "Female"
 
-# Each row opens a wheel at the bottom; scroll it to set a value
+# Each field opens a wheel at the bottom; scroll it to set a value
 - tapOn:
-    text: "Age.*"
+    id: "profile-age-field"
 - waitForAnimationToEnd
 - swipe:
     start: "50%,87%"
@@ -74,7 +79,7 @@ appId: com.fitmeproject.ios
 - waitForAnimationToEnd
 
 - tapOn:
-    text: "Weight.*"
+    id: "profile-weight-field"
 - waitForAnimationToEnd
 - swipe:
     start: "50%,80%"
@@ -83,7 +88,7 @@ appId: com.fitmeproject.ios
 - waitForAnimationToEnd
 
 - tapOn:
-    text: "Height.*"
+    id: "profile-height-field"
 - waitForAnimationToEnd
 - swipe:
     start: "50%,80%"
@@ -103,12 +108,15 @@ appId: com.fitmeproject.ios
 - assertVisible:
     id: "edit-profile-link"
 - assertVisible:
-    text: ${output.newName}
+    text: "Pepper ${output.newLastName}"
 
-# Edit-profile pre-fills the saved name from Clerk
+# Edit-profile pre-fills the saved names from Clerk
 - tapOn:
     id: "edit-profile-link"
 - waitForAnimationToEnd
 - assertVisible:
-    id: "edit-profile-name-input"
-    text: ${output.newName}
+    id: "edit-profile-first-name-input"
+    text: "Pepper"
+- assertVisible:
+    id: "edit-profile-last-name-input"
+    text: ${output.newLastName}

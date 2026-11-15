@@ -16,6 +16,7 @@ import type { Translator } from "@fitme/i18n";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Stack } from "expo-router";
 import {
+  Fragment,
   useCallback,
   useEffect,
   useMemo,
@@ -23,14 +24,9 @@ import {
   useRef,
   useState,
 } from "react";
-import type { ReactNode } from "react";
+import type { ReactNode, RefObject } from "react";
 import { Controller, useController, useForm, useWatch } from "react-hook-form";
-import type {
-  Control,
-  ControllerFieldState,
-  ControllerRenderProps,
-  Resolver,
-} from "react-hook-form";
+import type { Control, ControllerRenderProps, Resolver } from "react-hook-form";
 import { useTranslation } from "react-i18next";
 import {
   Keyboard,
@@ -39,7 +35,7 @@ import {
   Text as NativeText,
   View,
 } from "react-native";
-import type { ScrollViewInstance } from "react-native";
+import type { ScrollViewInstance, ViewInstance } from "react-native";
 import Animated, {
   useAnimatedStyle,
   withTiming,
@@ -53,6 +49,7 @@ import { Button } from "~/components/ui/button";
 import { ErrorMessage } from "~/components/ui/error-message";
 import { GenderSwitch } from "~/components/ui/gender-switch";
 import { Input } from "~/components/ui/input";
+import { Label } from "~/components/ui/label";
 import { Picker } from "~/components/ui/picker";
 import { Separator } from "~/components/ui/separator";
 import { Text } from "~/components/ui/text";
@@ -82,6 +79,15 @@ const PROFILE_FIELDS: ProfileField[] = ["age", "weight", "height"];
 /** Height of the wheel picker drawer when expanded. */
 const WHEEL_HEIGHT = 200;
 
+/** Long enough for the wheel's drawer (150 ms) to have opened. */
+const WHEEL_SETTLED_MS = 200;
+
+/** Long enough for an error under a field to have laid out. */
+const ERROR_SETTLED_MS = 50;
+
+/** Space kept between a revealed field and the Save bar. */
+const REVEAL_MARGIN = 16;
+
 /** Values the wheels open on (and store) for a field that isn't set yet. */
 const DEFAULT_AGE = 25;
 const DEFAULT_WEIGHT_KG = 80;
@@ -94,7 +100,7 @@ const DEFAULT_HEIGHT_INCHES = 60;
 /** The smallest height or weight step: at most `MAX_BODY_DECIMALS` decimals. */
 const BODY_STEP = 10 ** -MAX_BODY_DECIMALS;
 
-/** The longest Name Clerk's field takes here. */
+/** The longest first or last name the form takes. */
 const MAX_NAME_LENGTH = 50;
 
 // Every message is read when the form validates, so it's in the App language
@@ -112,6 +118,30 @@ const bodyValue = (max: number, requiredMessage: () => string) =>
   });
 
 const ageSchema = numberInRange(MIN_AGE, MAX_AGE, ageRequired);
+
+/**
+ * A first or last name, trimmed, at most `MAX_NAME_LENGTH` characters. A name
+ * the User had can't be cleared, but one Clerk never had (registration keeps
+ * a one-word name as the first name alone) may stay empty, so it never
+ * blocks an unrelated edit. Only rendered (and therefore only set) with
+ * `showNames`.
+ */
+const nameSchema = (
+  saved: string | undefined,
+  requiredMessage: () => string,
+  tooLongMessage: () => string
+) =>
+  z
+    .string()
+    .trim()
+    .max(MAX_NAME_LENGTH, { error: tooLongMessage })
+    .optional()
+    .superRefine((value, ctx) => {
+      if (value === "" && (saved ?? "").trim() !== "") {
+        ctx.addIssue({ code: "custom", message: requiredMessage() });
+      }
+    });
+
 const heightSchema = bodyValue(MAX_BODY_HEIGHT, heightRequired);
 const weightSchema = bodyValue(MAX_BODY_WEIGHT, weightRequired);
 
@@ -146,28 +176,33 @@ const orSaved = (
  */
 const profileFormSchema = (saved: {
   age?: number;
+  firstName?: string;
   height?: number;
+  lastName?: string;
   weight?: number;
 }) =>
   z.object({
     age: orSaved(ageSchema, saved.age, ageRequired),
+    firstName: nameSchema(
+      saved.firstName,
+      () => appI18n.t("profileForm.errors.firstNameRequired"),
+      () =>
+        appI18n.t("profileForm.errors.firstNameTooLong", {
+          max: MAX_NAME_LENGTH,
+        })
+    ),
     gender: z.enum(genders, {
       error: () => appI18n.t("profileForm.errors.genderRequired"),
     }),
     height: orSaved(heightSchema, saved.height, heightRequired),
-    // Only rendered (and therefore only set) when `showName` is enabled.
-    // Clerk's Name is optional, so a User without one can still save the
-    // other fields.
-    name: z
-      .string()
-      .trim()
-      .max(MAX_NAME_LENGTH, {
-        error: () =>
-          appI18n.t("profileForm.errors.nameTooLong", {
-            max: MAX_NAME_LENGTH,
-          }),
-      })
-      .optional(),
+    lastName: nameSchema(
+      saved.lastName,
+      () => appI18n.t("profileForm.errors.lastNameRequired"),
+      () =>
+        appI18n.t("profileForm.errors.lastNameTooLong", {
+          max: MAX_NAME_LENGTH,
+        })
+    ),
     weight: orSaved(weightSchema, saved.weight, weightRequired),
   });
 
@@ -180,10 +215,18 @@ export interface ProfileFormProps {
   heading?: ReactNode;
   /** Overrides the submit button loading state, e.g. with a mutation's `isPending`. */
   isSubmitting?: boolean;
+  /**
+   * `rows` (onboarding): age, weight and height as rows of one card under a
+   * heading. `fields` (Edit Profile): every value under its own label, in a
+   * field like an `Input`, with its error under it.
+   */
+  layout?: "fields" | "rows";
   measurementSystem: MeasurementSystem;
   onSubmit: (values: ProfileFormValues) => void | Promise<void>;
-  /** Renders an optional Name input above the other fields. */
-  showName?: boolean;
+  /** Disables the submit button until a value differs from `defaultValues`. */
+  requireChange?: boolean;
+  /** Renders First Name and Last Name inputs above the other fields. */
+  showNames?: boolean;
   submitLabel: string;
   submitSystemImage?: SFSymbol;
   submitTestID?: string;
@@ -232,6 +275,213 @@ const ParameterRow = ({
         </NativeText>
       </View>
     </Pressable>
+  );
+};
+
+interface ParameterFieldProps extends Omit<ParameterRowProps, "hasError"> {
+  /** The field's error, shown under it. */
+  error?: string;
+  /** The field's view (with its error), to measure where it is on screen. */
+  onView: (field: ProfileField, view: ViewInstance | null) => void;
+}
+
+/**
+ * A value under its label in a field drawn like an `Input`: pressing it opens
+ * the value's wheel. The stroke is `ring` while its wheel is open and
+ * `destructive` with an error, which wins, as an `Input`'s does.
+ */
+const ParameterField = ({
+  error,
+  field,
+  isFocused,
+  label,
+  onPress,
+  onView,
+  value,
+}: ParameterFieldProps) => {
+  const { t } = useTranslation();
+  const handlePress = useCallback(() => onPress(field), [field, onPress]);
+
+  const handleRef = useCallback(
+    (view: ViewInstance | null) => onView(field, view),
+    [field, onView]
+  );
+
+  let stroke = "border-input";
+
+  if (error) {
+    stroke = "border-destructive";
+  } else if (isFocused) {
+    stroke = "border-ring";
+  }
+
+  return (
+    <View className="flex flex-col items-stretch gap-2" ref={handleRef}>
+      {/* The field below carries this name for VoiceOver. */}
+      <Label accessibilityElementsHidden importantForAccessibility="no">
+        {label}
+      </Label>
+      <Pressable
+        accessibilityHint={error}
+        accessibilityLabel={label}
+        accessibilityRole="button"
+        accessibilityState={{ expanded: isFocused }}
+        accessibilityValue={{ text: value ?? t("profileForm.notSet") }}
+        className={cn(
+          "border-continuous px-sm min-h-12 justify-center rounded-lg border",
+          stroke
+        )}
+        onPress={handlePress}
+        testID={`profile-${field}-field`}
+      >
+        <NativeText
+          className={cn(
+            "text-body",
+            value === undefined ? "text-muted-foreground" : "text-foreground"
+          )}
+        >
+          {value ?? t("profileForm.notSet")}
+        </NativeText>
+      </Pressable>
+      {error ? <ErrorMessage>{error}</ErrorMessage> : null}
+    </View>
+  );
+};
+
+interface NameFieldProps {
+  control: Control<ProfileFormValues>;
+  disabled: boolean;
+  name: "firstName" | "lastName";
+  /** Closes an open wheel as the keyboard comes up. */
+  onFocus: () => void;
+}
+
+const NAME_FIELDS = {
+  firstName: {
+    autoComplete: "given-name",
+    labelKey: "profileForm.firstName",
+    testID: "edit-profile-first-name-input",
+    textContentType: "givenName",
+  },
+  lastName: {
+    autoComplete: "family-name",
+    labelKey: "profileForm.lastName",
+    testID: "edit-profile-last-name-input",
+    textContentType: "familyName",
+  },
+} as const;
+
+/** First Name or Last Name under its label, with its error under it. */
+const NameField = ({ control, disabled, name, onFocus }: NameFieldProps) => {
+  const { t } = useTranslation();
+
+  const { autoComplete, labelKey, testID, textContentType } = NAME_FIELDS[name];
+
+  const label = t(labelKey);
+
+  const {
+    field: { onBlur, onChange, value },
+    fieldState: { error },
+  } = useController({ control, name });
+
+  return (
+    <View className="flex flex-col items-stretch justify-center gap-2">
+      {/* The field below carries this name for VoiceOver. */}
+      <Label accessibilityElementsHidden importantForAccessibility="no">
+        {label}
+      </Label>
+      <Input
+        accessibilityLabel={label}
+        autoCapitalize="words"
+        autoComplete={autoComplete}
+        editable={!disabled}
+        error={error?.message}
+        maxLength={MAX_NAME_LENGTH}
+        onBlur={onBlur}
+        onChangeText={onChange}
+        onFocus={onFocus}
+        placeholder={label}
+        testID={testID}
+        textContentType={textContentType}
+        value={value}
+      />
+    </View>
+  );
+};
+
+interface ParametersProps {
+  errors: Partial<Record<ProfileField, string>>;
+  focused: ProfileField | null;
+  labels: Record<ProfileField, string>;
+  onPress: (field: ProfileField) => void;
+  onView: (field: ProfileField, view: ViewInstance | null) => void;
+  values: Record<ProfileField, string | undefined>;
+}
+
+/** Age, weight and height as labelled fields, each with its error (Edit Profile). */
+const ParameterFields = ({
+  errors,
+  focused,
+  labels,
+  onPress,
+  onView,
+  values,
+}: ParametersProps) =>
+  PROFILE_FIELDS.map((field) => (
+    <ParameterField
+      error={errors[field]}
+      field={field}
+      isFocused={focused === field}
+      key={field}
+      label={labels[field]}
+      onPress={onPress}
+      onView={onView}
+      value={values[field]}
+    />
+  ));
+
+/**
+ * Age, weight and height as rows of one card under the Personal Parameters
+ * heading, the errors under the heading (onboarding).
+ */
+const ParameterRows = ({
+  errors,
+  focused,
+  labels,
+  onPress,
+  values,
+}: ParametersProps) => {
+  const { t } = useTranslation();
+
+  return (
+    <View className="flex flex-col items-stretch justify-center gap-2">
+      <View className="flex flex-col items-start justify-start gap-0">
+        <H4>{t("profileForm.parameters")}</H4>
+        {PROFILE_FIELDS.map((field) => (
+          <VStack key={field}>
+            {errors[field] ? (
+              <ErrorMessage>{errors[field]}</ErrorMessage>
+            ) : null}
+          </VStack>
+        ))}
+      </View>
+
+      <View className="bg-card flex flex-col items-stretch justify-center gap-0 rounded-lg">
+        {PROFILE_FIELDS.map((field, index) => (
+          <Fragment key={field}>
+            {index > 0 ? <Separator /> : null}
+            <ParameterRow
+              field={field}
+              hasError={!!errors[field]}
+              isFocused={focused === field}
+              label={labels[field]}
+              onPress={onPress}
+              value={values[field]}
+            />
+          </Fragment>
+        ))}
+      </View>
+    </View>
   );
 };
 
@@ -426,20 +676,140 @@ const ParameterWheel = ({
   );
 };
 
+/** Each parameter's label and its value as the form shows it (`undefined` while unset). */
+const useParameterTexts = (
+  control: Control<ProfileFormValues>,
+  measurementSystem: MeasurementSystem
+) => {
+  const i18n = useI18n();
+  const { t } = useTranslation();
+
+  const [age, weight, height] = useWatch({
+    control,
+    name: ["age", "weight", "height"],
+  });
+
+  const values: Record<ProfileField, string | undefined> = {
+    age: age ? t("profileForm.ageValue", { count: age }) : undefined,
+    height: height ? formatHeight(i18n, height, measurementSystem) : undefined,
+    weight: weight ? formatWeight(i18n, weight, measurementSystem) : undefined,
+  };
+
+  const labels: Record<ProfileField, string> = {
+    age: t("profileForm.age"),
+    height: t("profileForm.height"),
+    weight: t("profileForm.weight"),
+  };
+
+  return { labels, values };
+};
+
+/**
+ * Scrolls a labelled field up until all of it (its error included) shows
+ * above the Save bar (`fields` layout); otherwise, to the end of the form.
+ * Everything is measured where it is on screen: the field, the Save bar, the
+ * scroll view's frame (`viewportRef`, a plain View around it) and the form's
+ * content (`contentRef`), whose distance from that frame is how far the form
+ * is scrolled, the header's inset included. `revealField(field, delayMs)`
+ * waits for the layout to settle first, and a newer reveal or leaving the
+ * Screen cancels one still waiting.
+ */
+const useRevealField = (
+  layout: "fields" | "rows",
+  scrollViewRef: RefObject<ScrollViewInstance | null>
+) => {
+  const fieldViews = useRef<Partial<Record<ProfileField, ViewInstance | null>>>(
+    {}
+  );
+
+  const footerRef = useRef<ViewInstance>(null);
+  const viewportRef = useRef<ViewInstance>(null);
+  const contentRef = useRef<ViewInstance>(null);
+  const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(
+    () => () => {
+      if (timer.current) {
+        clearTimeout(timer.current);
+      }
+    },
+    []
+  );
+
+  const handleFieldView = useCallback(
+    (field: ProfileField, view: ViewInstance | null) => {
+      fieldViews.current[field] = view;
+    },
+    []
+  );
+
+  const reveal = useCallback(
+    (field?: ProfileField) => {
+      const view = field ? fieldViews.current[field] : undefined;
+      const footer = footerRef.current;
+      const viewport = viewportRef.current;
+      const content = contentRef.current;
+      const scrollView = scrollViewRef.current;
+
+      if (layout !== "fields" || !view || !footer || !viewport || !content) {
+        scrollView?.scrollToEnd({ animated: true });
+
+        return;
+      }
+
+      viewport.measureInWindow((_x, viewportTop) => {
+        content.measureInWindow((_contentX, contentTop) => {
+          footer.measureInWindow((_footerX, footerTop) => {
+            view.measureInWindow((_fieldX, fieldTop, _width, fieldHeight) => {
+              const overflow =
+                fieldTop + fieldHeight + REVEAL_MARGIN - footerTop;
+
+              if (overflow > 0) {
+                scrollView?.scrollTo({
+                  animated: true,
+                  y: viewportTop - contentTop + overflow,
+                });
+              }
+            });
+          });
+        });
+      });
+    },
+    [layout, scrollViewRef]
+  );
+
+  const revealField = useCallback(
+    (field: ProfileField | undefined, delayMs: number) => {
+      if (timer.current) {
+        clearTimeout(timer.current);
+      }
+
+      timer.current = setTimeout(() => {
+        timer.current = null;
+        reveal(field);
+      }, delayMs);
+    },
+    [reveal]
+  );
+
+  return { contentRef, footerRef, handleFieldView, revealField, viewportRef };
+};
+
 const ProfileForm = ({
   defaultValues,
   footer,
   heading,
   isSubmitting,
+  layout = "rows",
   measurementSystem,
   onSubmit,
-  showName = false,
+  requireChange = false,
+  showNames = false,
   submitLabel,
   submitSystemImage,
   submitTestID,
 }: ProfileFormProps) => {
   const insets = useSafeAreaInsets();
-  const i18n = useI18n();
   const { t } = useTranslation();
 
   // The saved values the form starts from; later changes to `defaultValues`
@@ -467,19 +837,20 @@ const ProfileForm = ({
     height: withTiming(showWheel ? WHEEL_HEIGHT : 0, { duration: 150 }),
   }));
 
+  const { contentRef, footerRef, handleFieldView, revealField, viewportRef } =
+    useRevealField(layout, scrollViewRef);
+
   const toggleWheel = useCallback(
-    (show?: boolean) => {
+    (show?: boolean, field?: ProfileField) => {
       const next = show ?? !showWheel;
       setShowWheel(next);
 
       if (next) {
-        // Small delay to ensure animation is complete
-        setTimeout(() => {
-          scrollViewRef.current?.scrollToEnd({ animated: true });
-        }, 160);
+        // Once the wheel has opened and the scroll view has shrunk for it.
+        revealField(field, WHEEL_SETTLED_MS);
       }
     },
-    [showWheel]
+    [revealField, showWheel]
   );
 
   const toggleField = useCallback(
@@ -490,7 +861,7 @@ const ProfileForm = ({
         toggleWheel(false);
         setFieldFocused(null);
       } else {
-        toggleWheel(true);
+        toggleWheel(true, field);
         setFieldFocused(field);
         setActiveWheel(field);
       }
@@ -514,31 +885,6 @@ const ProfileForm = ({
 
   const isFormSubmitting = isSubmitting ?? form.formState.isSubmitting;
 
-  const renderNameField = useCallback(
-    ({
-      field: { onChange, onBlur, value },
-      fieldState: { error },
-    }: {
-      field: ControllerRenderProps<ProfileFormValues, "name">;
-      fieldState: ControllerFieldState;
-    }) => (
-      <Input
-        autoCapitalize="words"
-        autoComplete="name"
-        editable={!isFormSubmitting}
-        error={error?.message}
-        maxLength={MAX_NAME_LENGTH}
-        onBlur={onBlur}
-        onChangeText={onChange}
-        onFocus={handleNameFocus}
-        placeholder={t("profileForm.name")}
-        testID="edit-profile-name-input"
-        value={value}
-      />
-    ),
-    [handleNameFocus, isFormSubmitting, t]
-  );
-
   // Re-validate the field after the wheel changes its value.
   const handleWheelChange = useCallback(() => {
     if (activeWheel) {
@@ -546,10 +892,23 @@ const ProfileForm = ({
     }
   }, [activeWheel, form]);
 
-  const [age, weight, height] = useWatch({
-    control: form.control,
-    name: ["age", "weight", "height"],
-  });
+  const { labels, values } = useParameterTexts(form.control, measurementSystem);
+
+  const parameters: ParametersProps = {
+    errors: {
+      age: form.formState.errors.age?.message,
+      height: form.formState.errors.height?.message,
+      weight: form.formState.errors.weight?.message,
+    },
+    focused: fieldFocused,
+    labels,
+    onView: handleFieldView,
+    onPress: toggleField,
+    values,
+  };
+
+  const isFields = layout === "fields";
+  const isUnchanged = requireChange && !form.formState.isDirty;
 
   return (
     <>
@@ -570,123 +929,111 @@ const ProfileForm = ({
               : [],
         }}
       />
-      <ScrollView
-        contentInsetAdjustmentBehavior="automatic"
-        keyboardShouldPersistTaps="handled"
-        ref={scrollViewRef}
-        showsVerticalScrollIndicator={false}
-      >
-        {/* Tap-outside-to-dismiss only; keep the fields individually accessible */}
-        <Pressable
-          accessible={false}
-          onPress={handleBackgroundPress}
-          className="w-full flex-1"
+      <View className="flex-1" ref={viewportRef}>
+        <ScrollView
+          contentInsetAdjustmentBehavior="automatic"
+          keyboardShouldPersistTaps="handled"
+          ref={scrollViewRef}
+          showsVerticalScrollIndicator={false}
         >
-          <View className="flex flex-col items-stretch justify-center gap-8 p-6">
-            {heading}
+          {/* Tap-outside-to-dismiss only; keep the fields individually accessible */}
+          <Pressable
+            accessible={false}
+            onPress={handleBackgroundPress}
+            className="w-full flex-1"
+          >
+            <View
+              className={cn(
+                "flex flex-col items-stretch justify-center",
+                isFields ? "gap-sm p-sm" : "gap-8 p-6"
+              )}
+              ref={contentRef}
+            >
+              {heading}
 
-            {showName ? (
+              {showNames ? (
+                <>
+                  <NameField
+                    control={form.control}
+                    disabled={isFormSubmitting}
+                    name="firstName"
+                    onFocus={handleNameFocus}
+                  />
+                  <NameField
+                    control={form.control}
+                    disabled={isFormSubmitting}
+                    name="lastName"
+                    onFocus={handleNameFocus}
+                  />
+                </>
+              ) : null}
+
               <View className="flex flex-col items-stretch justify-center gap-2">
-                <H4>{t("profileForm.name")}</H4>
+                <View className="flex flex-col items-start justify-start gap-0">
+                  {isFields ? (
+                    <Label>{t("profileForm.gender")}</Label>
+                  ) : (
+                    <H4>{t("profileForm.gender")}</H4>
+                  )}
+                  {!isFields && form.formState.errors.gender ? (
+                    <ErrorMessage>
+                      {form.formState.errors.gender.message}
+                    </ErrorMessage>
+                  ) : null}
+                </View>
+
                 <Controller
                   control={form.control}
-                  name="name"
-                  render={renderNameField}
+                  name="gender"
+                  render={renderGenderField}
                 />
-              </View>
-            ) : null}
 
-            <View className="flex flex-col items-stretch justify-center gap-2">
-              <View className="flex flex-col items-start justify-start gap-0">
-                <H4>{t("profileForm.gender")}</H4>
-                {form.formState.errors.gender ? (
+                {isFields && form.formState.errors.gender ? (
                   <ErrorMessage>
                     {form.formState.errors.gender.message}
                   </ErrorMessage>
                 ) : null}
               </View>
 
-              <Controller
-                control={form.control}
-                name="gender"
-                render={renderGenderField}
-              />
+              {isFields ? (
+                <ParameterFields {...parameters} />
+              ) : (
+                <ParameterRows {...parameters} />
+              )}
+
+              {footer}
             </View>
-
-            <View className="flex flex-col items-stretch justify-center gap-2">
-              <View className="flex flex-col items-start justify-start gap-0">
-                <H4>{t("profileForm.parameters")}</H4>
-                {PROFILE_FIELDS.map((field) => (
-                  <VStack key={field}>
-                    {form.formState.errors[field] ? (
-                      <ErrorMessage>
-                        {form.formState.errors[field]?.message}
-                      </ErrorMessage>
-                    ) : null}
-                  </VStack>
-                ))}
-              </View>
-
-              <View className="bg-card flex flex-col items-stretch justify-center gap-0 rounded-lg">
-                <ParameterRow
-                  field="age"
-                  hasError={!!form.formState.errors.age}
-                  isFocused={fieldFocused === "age"}
-                  label={t("profileForm.age")}
-                  onPress={toggleField}
-                  value={
-                    age ? t("profileForm.ageValue", { count: age }) : undefined
-                  }
-                />
-
-                <Separator />
-
-                <ParameterRow
-                  field="weight"
-                  hasError={!!form.formState.errors.weight}
-                  isFocused={fieldFocused === "weight"}
-                  label={t("profileForm.weight")}
-                  onPress={toggleField}
-                  value={
-                    weight
-                      ? formatWeight(i18n, weight, measurementSystem)
-                      : undefined
-                  }
-                />
-
-                <Separator />
-
-                <ParameterRow
-                  field="height"
-                  hasError={!!form.formState.errors.height}
-                  isFocused={fieldFocused === "height"}
-                  label={t("profileForm.height")}
-                  onPress={toggleField}
-                  value={
-                    height
-                      ? formatHeight(i18n, height, measurementSystem)
-                      : undefined
-                  }
-                />
-              </View>
-            </View>
-
-            {footer}
-          </View>
-        </Pressable>
-      </ScrollView>
+          </Pressable>
+        </ScrollView>
+      </View>
 
       <ScopedVariables
         variables={{ "--profile-footer-bottom": Math.max(24, insets.bottom) }}
       >
-        <View className="flex flex-col items-stretch justify-center gap-1 p-6 pb-(--profile-footer-bottom)">
+        <View
+          ref={footerRef}
+          className={cn(
+            "flex flex-col items-stretch justify-center gap-1",
+            isFields ? "p-sm" : "p-6",
+            "pb-(--profile-footer-bottom)"
+          )}
+        >
           <Button
             icon={submitSystemImage}
             iconPosition="trailing"
+            disabled={isUnchanged}
             isLoading={isFormSubmitting}
             label={submitLabel}
             onPress={() => {
-              void form.handleSubmit(onSubmit)();
+              void form.handleSubmit(onSubmit, (errors) => {
+                // A field's error can sit under the Save bar: show the first.
+                const field = PROFILE_FIELDS.find((name) => errors[name]);
+
+                if (field && isFields) {
+                  // Once the error under it has laid out.
+                  revealField(field, ERROR_SETTLED_MS);
+                }
+              })();
             }}
             size="lg"
             testID={submitTestID}

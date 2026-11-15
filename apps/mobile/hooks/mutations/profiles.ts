@@ -11,7 +11,6 @@ import { useProfileQuery } from "~/hooks/queries/profiles";
 import type { Profile } from "~/hooks/queries/profiles";
 import { getClerk } from "~/lib/clerk";
 import { publicApi } from "~/lib/public-api";
-import { splitFullName } from "~/lib/user-name";
 import { rememberWriteStarter, seedWriteAnswer } from "~/lib/write-answers";
 import type { WriteStarter } from "~/lib/write-answers";
 
@@ -131,16 +130,19 @@ export const useStoreProfileMutation = createMutation<
 });
 
 export interface UpdateProfileData extends StoreProfileData {
-  name: string;
+  /** Clerk's `firstName`, as the User typed it (trimmed). */
+  firstName: string;
+  /** Clerk's `lastName`, as the User typed it (trimmed). */
+  lastName: string;
 }
 
 /**
- * Edit-profile's save: `saveProfile`, then the name to Clerk (only while the
- * User who submitted the form is still signed in); the Profile's
- * answer then shows as the Profile. If the name fails after the Profile was
- * saved, nothing is seeded: the screen reads the Profile again. Seeded in the
- * mutation's own `onMutate` and `onSuccess`, so a screen passes its
- * `onSuccess` to `mutate`.
+ * Edit-profile's save: `saveProfile`, then the first and last name to Clerk
+ * as they are (only while the User who submitted the form is still signed
+ * in, and only when one changed); the Profile's answer then shows as the
+ * Profile. If the name fails after the Profile was saved, nothing is seeded:
+ * the screen reads the Profile again. Seeded in the mutation's own
+ * `onMutate` and `onSuccess`, so a screen passes its `onSuccess` to `mutate`.
  */
 export const useUpdateProfileMutation = createMutation<
   Profile,
@@ -149,7 +151,8 @@ export const useUpdateProfileMutation = createMutation<
   WriteStarter
 >({
   mutationFn: async ({
-    name,
+    firstName,
+    lastName,
     ...data
   }: UpdateProfileData): Promise<Profile> => {
     // The User whose form this is: the name is only ever theirs.
@@ -162,9 +165,10 @@ export const useUpdateProfileMutation = createMutation<
     if (
       user &&
       getClerk().user?.id === user.id &&
-      name !== (user.fullName ?? "")
+      (firstName !== (user.firstName ?? "") ||
+        lastName !== (user.lastName ?? ""))
     ) {
-      await user.update(splitFullName(name));
+      await user.update({ firstName, lastName });
     }
 
     return saved;
