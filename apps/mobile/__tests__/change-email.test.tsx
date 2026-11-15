@@ -315,6 +315,35 @@ describe.each(["en", "uk"] as const)("Change Email (%s)", (language) => {
     ]);
   });
 
+  it("keeps a verified address the swap never reached until it's removed", async () => {
+    await reachCodeScreen();
+    fakeClerk.failNext("update", "network");
+    await enterCode(FAKE_VERIFICATION_CODE);
+    await waitFor(() => expect(methods()).toContain("update"));
+
+    fakeClerk.failNext("destroyEmailAddress", "network");
+    await act(() => {
+      stubRouter.back();
+    });
+
+    await expect(screen.findByText(text.failed)).resolves.toBeOnTheScreen();
+    expect(pushedRoutes().map(({ pathname }) => pathname)).toEqual([
+      "/change-email",
+      "/change-email/verify-code",
+    ]);
+
+    // Back again once it can go: removed, and the old address stays primary.
+    await act(() => {
+      stubRouter.back();
+    });
+    await waitFor(() =>
+      expect(addresses()).toEqual([{ emailAddress: OLD_EMAIL, primary: true }])
+    );
+    expect(pushedRoutes().map(({ pathname }) => pathname)).toEqual([
+      "/change-email",
+    ]);
+  });
+
   it("shows Email in use on the form for a taken address", async () => {
     fakeClerk.failNext("createEmailAddress", {
       code: "form_identifier_exists",

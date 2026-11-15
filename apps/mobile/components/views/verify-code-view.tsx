@@ -296,14 +296,16 @@ const useChangeEmailVerification = (
         // After the swap the old address must go before the User does: once
         // the Screen is gone, nothing knows it's left over, and it could
         // still get a reset code. So they stay, told why, and try again.
-        if (swapped) {
+        // A verified address the swap never reached (it failed, or "Confirm
+        // it's you" was cancelled) is the same: a code can't add it again.
+        if (swapped || target.verification.status === "verified") {
           showToast(t("changeEmail.errors.failed"));
 
           return true;
         }
 
-        // Before it, the new address is unverified and harmless: the User
-        // goes, and the unmount fallback tries again.
+        // An unverified new address is harmless: the User goes, and the
+        // unmount fallback tries again.
       }
 
       return false;
