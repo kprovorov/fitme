@@ -5,6 +5,7 @@
  * Ukrainian; and the redesigned Profile's Subscription row opening it.
  */
 import { beforeEach, describe, expect, it, jest } from "@jest/globals";
+import * as Sentry from "@sentry/react-native";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { fireEvent, render, screen } from "@testing-library/react-native";
 import { router } from "expo-router";
@@ -22,6 +23,7 @@ import { backend } from "~/test-utils/fake-public-api";
 import { fakeRevenueCat } from "~/test-utils/fake-revenuecat";
 import { InAppLanguage } from "~/test-utils/in-app-language";
 import { createTestQueryClient, settle } from "~/test-utils/query-client";
+import { signInAs } from "~/test-utils/signed-in-user";
 
 jest.mock("expo-router", () => ({
   router: { push: jest.fn(), replace: jest.fn() },
@@ -301,7 +303,7 @@ describe.each([
     }
   );
 
-  it("says the restore failed and keeps the screen", async () => {
+  it("says an offline restore failed, keeps the screen and reports nothing", async () => {
     fakeRevenueCat.failNextRestore();
     const client = await mount();
 
@@ -311,6 +313,47 @@ describe.each([
     expect(fakeRevenueCat.restores).toBe(1);
     expect(screen.getByText(copy.restoreFailed)).toBeTruthy();
     expect(screen.getByText(copy.freeTitle)).toBeTruthy();
+    expect(Sentry.captureException).not.toHaveBeenCalled();
+  });
+
+  it("says a store failure failed and reports it", async () => {
+    fakeRevenueCat.failNextRestore("store");
+    const client = await mount();
+
+    await fireEvent.press(screen.getByText(copy.restore));
+    await settle(client);
+
+    expect(screen.getByText(copy.restoreFailed)).toBeTruthy();
+    expect(Sentry.captureException).toHaveBeenCalledTimes(1);
+  });
+
+  it("says nothing when the User backs out of the store's prompt", async () => {
+    fakeRevenueCat.failNextRestore("cancelled");
+    const client = await mount();
+
+    await fireEvent.press(screen.getByText(copy.restore));
+    await settle(client);
+
+    expect(fakeRevenueCat.restores).toBe(1);
+    expect(screen.queryByText(copy.restoreFailed)).toBeNull();
+    expect(screen.queryByText(copy.nothingToRestore)).toBeNull();
+    expect(Sentry.captureException).not.toHaveBeenCalled();
+  });
+
+  it("tells nobody when the User signed out before the restore answered", async () => {
+    const release = fakeRevenueCat.holdReads();
+    const client = await mount(<SubscriptionScreen />, { waitForReads: false });
+    release();
+    await settle(client);
+
+    const hold = fakeRevenueCat.holdReads();
+    await fireEvent.press(screen.getByText(copy.restore));
+    signInAs(null);
+    hold();
+    await settle(client);
+
+    expect(fakeRevenueCat.restores).toBe(1);
+    expect(screen.queryByText(copy.nothingToRestore)).toBeNull();
   });
 
   it("shows what a restore brings back", async () => {
@@ -344,12 +387,13 @@ describe.each([
     expect(row("subscription-status").value).toBe(copy.active);
   });
 
-  it("says it couldn't load and reads again on Try Again", async () => {
+  it("says it couldn't load, keeps Restore and reads again on Try Again", async () => {
     fakeRevenueCat.failReads();
     const client = await mount();
 
     expect(screen.getByText(copy.loadError)).toBeTruthy();
     expect(screen.queryByText(copy.freeTitle)).toBeNull();
+    expect(screen.getByText(copy.restore)).toBeTruthy();
 
     fakeRevenueCat.setPro("trial", { expiresAt: EXPIRES_AT });
     await fireEvent.press(screen.getByText(copy.tryAgain));

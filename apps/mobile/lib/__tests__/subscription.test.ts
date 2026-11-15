@@ -8,6 +8,7 @@ const proOn = (store: string): ProSubscription => ({
   kind: "pro",
   managementURL: null,
   productIdentifier: "fitme_pro_yearly",
+  productPlanIdentifier: null,
   status: "renewing",
   store,
 });

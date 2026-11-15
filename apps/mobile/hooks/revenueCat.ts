@@ -47,18 +47,32 @@ export const useSubscriptionQuery = createQuery<Subscription>({
 
 /**
  * The billing period (ISO 8601, `P1M`, `P1Y`) of the store product a
- * Subscription was bought as, `null` when the store doesn't sell it (a
- * promotional grant) or has none. Its Subscription screen's plan line reads
- * it; a failure leaves the line without a period, so it isn't retried.
+ * Subscription was bought as, `null` when the store doesn't sell it or has
+ * none. On Google Play one subscription has several base plans, each its own
+ * product (`<subscription>:<base plan>`), so the one bought is matched by its
+ * base plan. Its Subscription screen's plan line reads it; a failure leaves
+ * the line without a period, so it isn't retried.
  */
 export const useProductPeriodQuery = createQuery<
   string | null,
-  { productIdentifier: string }
+  { productIdentifier: string; productPlanIdentifier: string | null }
 >({
-  fetcher: async ({ productIdentifier }): Promise<string | null> => {
+  fetcher: async ({
+    productIdentifier,
+    productPlanIdentifier,
+  }): Promise<string | null> => {
     const products = await Purchases.getProducts([productIdentifier]);
 
-    return products[0]?.subscriptionPeriod ?? null;
+    const planIdentifier =
+      productPlanIdentifier === null
+        ? productIdentifier
+        : `${productIdentifier}:${productPlanIdentifier}`;
+
+    const product =
+      products.find(({ identifier }) => identifier === planIdentifier) ??
+      (productPlanIdentifier === null ? products[0] : undefined);
+
+    return product?.subscriptionPeriod ?? null;
   },
   queryKey: ["rc-product-period"],
   retry: false,
@@ -67,8 +81,9 @@ export const useProductPeriodQuery = createQuery<
 
 /**
  * Restore Purchases: asks the store for the User's purchases, answering
- * whether that left them with Fitme Pro. RevenueCat tells the customer info
- * listener (`auth-sync.tsx`), which reads the Subscription again.
+ * whether that left them with Fitme Pro. The caller reads the Subscription
+ * again afterwards (RevenueCat's customer info listener in `auth-sync.tsx`
+ * does too, but only when the customer changed).
  */
 export const useRestorePurchasesMutation = createMutation<boolean>({
   mutationFn: async (): Promise<boolean> => {

@@ -18,6 +18,8 @@ export type ProSubscription = {
   readonly managementURL: string | null;
   /** The product the entitlement was bought as (or granted under). */
   readonly productIdentifier: string;
+  /** Google Play's base plan of that product; `null` on the App Store. */
+  readonly productPlanIdentifier: string | null;
   /** Where it's billed: RevenueCat's store (`APP_STORE`, `PROMOTIONAL`…). */
   readonly store: string;
 } & (
@@ -65,6 +67,7 @@ export const subscriptionOf = (
     kind: "pro",
     managementURL: customerInfo.managementURL,
     productIdentifier: entitlement.productIdentifier,
+    productPlanIdentifier: entitlement.productPlanIdentifier ?? null,
     store: entitlement.store,
   } as const;
 

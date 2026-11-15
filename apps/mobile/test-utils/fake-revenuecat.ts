@@ -24,7 +24,8 @@
  * `getCustomerInfo` with RevenueCat's network error until the customer is
  * set again. `holdReads()` holds every read until the function it returns is
  * called. `restorePurchases` answers the customer and counts in
- * `restores`, and `failNextRestore()` fails the next one. Every change tells
+ * `restores`, and `failNextRestore(failure?)` fails the next one (offline by
+ * default, or the User cancelling or a store problem). Every change tells
  * the `addCustomerInfoUpdateListener` listeners, as the SDK does.
  * `after-each.ts` resets it.
  *
@@ -157,13 +158,45 @@ type Customer =
 const millis = (iso: string | null) =>
   iso === null ? null : new Date(iso).getTime();
 
-const purchasesError = (): FakePurchasesError =>
-  Object.assign(new Error("Error performing request."), {
-    code: "10",
-    readableErrorCode: "NETWORK_ERROR",
-    underlyingErrorMessage: "The Internet connection appears to be offline.",
-    userCancelled: null,
-  });
+/** How a restore fails: offline, the User backing out, or the store. */
+export type RestoreFailure = "cancelled" | "network" | "store";
+
+const purchasesError = (
+  failure: RestoreFailure = "network"
+): FakePurchasesError => {
+  switch (failure) {
+    case "cancelled": {
+      return Object.assign(new Error("Purchase was cancelled."), {
+        code: "1",
+        readableErrorCode: "PURCHASE_CANCELLED",
+        underlyingErrorMessage: "The user cancelled the sign-in.",
+        userCancelled: true,
+      });
+    }
+
+    case "store": {
+      return Object.assign(
+        new Error("There was a problem with the App Store."),
+        {
+          code: "2",
+          readableErrorCode: "STORE_PROBLEM",
+          underlyingErrorMessage: "No active account.",
+          userCancelled: false,
+        }
+      );
+    }
+
+    case "network": {
+      return Object.assign(new Error("Error performing request."), {
+        code: "10",
+        readableErrorCode: "NETWORK_ERROR",
+        underlyingErrorMessage:
+          "The Internet connection appears to be offline.",
+        userCancelled: null,
+      });
+    }
+  }
+};
 
 const entitlementOf = (
   customer: Extract<Customer, { kind: "pro" }>
@@ -240,7 +273,7 @@ const customerInfoOf = (
 
 let customer: Customer = { kind: "free" };
 let restores = 0;
-let restoreFailures = 0;
+let restoreFailures: RestoreFailure[] = [];
 const listeners = new Set<(info: CustomerInfo) => void>();
 
 const setCustomer = (next: Customer) => {
@@ -358,10 +391,10 @@ const Purchases = {
   restorePurchases: (): Promise<CustomerInfo> => {
     restores += 1;
 
-    if (restoreFailures > 0) {
-      restoreFailures -= 1;
+    const failure = restoreFailures.shift();
 
-      return Promise.reject(purchasesError());
+    if (failure) {
+      return Promise.reject(purchasesError(failure));
     }
 
     return readCustomer();
@@ -396,15 +429,19 @@ export const fakeRevenueCat = {
       }
     };
   },
-  /** Fails the next `restorePurchases`; each call queues one more. */
-  failNextRestore: () => {
-    restoreFailures += 1;
+  /**
+   * Fails the next `restorePurchases` with RevenueCat's network error, or
+   * the User cancelling (`cancelled`) or a store problem (`store`); each call
+   * queues one more.
+   */
+  failNextRestore: (failure: RestoreFailure = "network") => {
+    restoreFailures.push(failure);
   },
   reset: () => {
     customer = { kind: "free" };
     heldReads = null;
     restores = 0;
-    restoreFailures = 0;
+    restoreFailures = [];
     listeners.clear();
   },
   /** How many times `restorePurchases` was called, failed ones included. */
