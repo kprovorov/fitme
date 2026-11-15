@@ -1,52 +1,31 @@
 {
-  "tabs": {
-    "workout": "Training",
-    "history": "Geschiedenis",
-    "arnold": "Arnold AI",
-    "library": "Bibliotheek"
-  },
-  "library": {
-    "search": "Oefeningen zoeken",
-    "muscles": "Spieren",
-    "equipment": "Materiaal",
-    "removeMuscleGroup": "{{muscleGroup}} verwijderen",
-    "removeEquipment": "{{equipment}} verwijderen",
-    "reset": "Wissen",
-    "confirm": "Klaar",
-    "loadErrorTitle": "Oefeningen laden mislukt",
-    "loadError": "De oefeningen konden niet worden geladen. Controleer je verbinding en probeer het opnieuw.",
-    "loadMoreError": "Er konden geen extra oefeningen worden geladen. Controleer je verbinding en probeer het opnieuw.",
-    "emptyTitle": "Geen oefeningen gevonden",
-    "empty": "Geen passende oefeningen gevonden. Probeer een andere naam of spiergroep.",
-    "showAll": "Alle oefeningen tonen"
-  },
-  "exercise": {
-    "gone": "Deze oefening staat niet meer in de bibliotheek.",
-    "loadError": "Deze oefening kon niet worden geladen. Controleer je verbinding en probeer het opnieuw."
-  },
-  "exerciseHistory": {
-    "title": "Voortgang",
-    "loadError": "De geschiedenis van deze oefening kon niet worden geladen. Controleer je verbinding en probeer het opnieuw.",
-    "set": "Set {{order, number}}: {{logged}}",
-    "target": "Doel {{target}}"
-  },
-  "counts": {
-    "entries_one": "{{count, number}} registratie",
-    "entries_other": "{{count, number}} registraties",
-    "hours_one": "{{count, number}} uur",
-    "hours_other": "{{count, number}} uur",
-    "exercises_one": "{{count, number}} oefening",
-    "exercises_other": "{{count, number}} oefeningen",
-    "minutes_one": "{{count, number}} minuut",
-    "minutes_other": "{{count, number}} minuten",
-    "reps_one": "{{count, number}} herhaling",
-    "reps_other": "{{count, number}} herhalingen",
-    "sets_one": "{{count, number}} set",
-    "sets_other": "{{count, number}} sets",
-    "workoutSessions_one": "{{count, number}} trainingssessie",
-    "workoutSessions_other": "{{count, number}} trainingssessies",
-    "workouts_one": "{{count, number}} training",
-    "workouts_other": "{{count, number}} trainingen"
+  "accountSecurity": {
+    "title": "Account en beveiliging",
+    "sections": {
+      "signIn": "Inloggen",
+      "methods": "Inlogmethoden"
+    },
+    "email": "E-mail",
+    "passwordRow": "Wachtwoord wijzigen",
+    "connected": "Gekoppeld",
+    "connectedAs": "Gekoppeld als {{email}}",
+    "notConnected": "Niet gekoppeld",
+    "connect": "Koppelen",
+    "connecting": "Koppelen…",
+    "disconnect": "Ontkoppelen",
+    "disconnecting": "Ontkoppelen…",
+    "addAnotherMethod": "Voeg eerst een andere inlogmethode toe",
+    "disconnectConfirm": {
+      "title": "{{provider}} ontkoppelen?",
+      "message": "Je kunt dan niet meer inloggen met {{provider}}."
+    },
+    "errors": {
+      "connectFailed": "{{provider}} kon niet worden gekoppeld. Probeer het opnieuw.",
+      "disconnectFailed": "{{provider}} kon niet worden ontkoppeld. Probeer het opnieuw.",
+      "appleUnavailable": "Inloggen met Apple is nog niet beschikbaar. Gebruik voorlopig Google of je e-mail.",
+      "alreadyLinked": "Dit {{provider}}-account is al gekoppeld aan een ander Fitme-account."
+    },
+    "deleteAccount": "Account verwijderen"
   },
   "arnold": {
     "title": "Arnold",
@@ -110,6 +89,590 @@
         "generic": "Het schema kon niet worden opgeslagen. Probeer het opnieuw."
       }
     }
+  },
+  "auth": {
+    "welcome": "Welkom bij Fitme!",
+    "fields": {
+      "email": "E-mail",
+      "passwordPlaceholder": "Wachtwoord",
+      "name": "Naam",
+      "code": "Code"
+    },
+    "validation": {
+      "invalidEmail": "Ongeldig e-mailadres",
+      "passwordRequired": "Vul je wachtwoord in.",
+      "nameTooShort_one": "Je naam moet minstens {{count}} teken bevatten.",
+      "nameTooShort_other": "Je naam moet minstens {{count}} tekens bevatten.",
+      "passwordTooShort_one": "Je wachtwoord moet minstens {{count}} teken bevatten.",
+      "passwordTooShort_other": "Je wachtwoord moet minstens {{count}} tekens bevatten."
+    },
+    "login": {
+      "title": "Inloggen",
+      "subtitle": "Log in op je account om je trainingen te bekijken",
+      "continue": "Inloggen",
+      "forgotPasswordLink": "Wachtwoord vergeten?",
+      "noAccount": "Nieuw bij Fitme?",
+      "registerLink": "Account aanmaken",
+      "cantSignInHere": "Je kunt met dit account hier nog niet inloggen.",
+      "heading": "Welkom terug",
+      "loading": "Inloggen"
+    },
+    "deviceCode": {
+      "title": "Controleer je e-mail",
+      "subtitle": "Vul de code in die we je hebben gestuurd om te bevestigen dat jij dit apparaat gebruikt",
+      "verify": "Controleren",
+      "resend": "Nieuwe code versturen",
+      "differentAccount": "Een ander account gebruiken"
+    },
+    "register": {
+      "title": "Registreren",
+      "subtitle": "Maak een account aan om te beginnen",
+      "submit": "Account aanmaken",
+      "haveAccount": "Heb je al een account?",
+      "loginLink": "Inloggen",
+      "heading": "Maak je account aan",
+      "loading": "Account aanmaken"
+    },
+    "intro": {
+      "heading": "Train slimmer,\nniet langer.",
+      "description": "Fitme is je persoonlijke AI-trainer. De app maakt je schema en registreert elke set.",
+      "plans": "Een schema op maat",
+      "logging": "Elke set en herhaling geregistreerd",
+      "guides": "Oefenuitleg met video",
+      "email": "Doorgaan met e-mail"
+    },
+    "social": {
+      "apple": "Doorgaan met Apple",
+      "google": "Doorgaan met Google",
+      "connectingGoogle": "Verbinding maken met Google",
+      "incomplete": "Inloggen is niet gelukt. Probeer het opnieuw of ga verder met e-mail."
+    },
+    "password": {
+      "show": "Wachtwoord tonen",
+      "hide": "Wachtwoord verbergen",
+      "minimum": "Minstens {{count}} tekens"
+    },
+    "legal": {
+      "prefix": "Door verder te gaan, ga je akkoord met Fitme's",
+      "terms": "Gebruiksvoorwaarden",
+      "and": "en",
+      "privacy": "Privacybeleid"
+    },
+    "or": "of",
+    "errors": {
+      "credentials": "Je e-mailadres of wachtwoord is onjuist. Probeer het opnieuw.",
+      "connection": "Controleer je verbinding en probeer het opnieuw."
+    }
+  },
+  "changeEmail": {
+    "title": "E-mail wijzigen",
+    "current": "Huidig e-mailadres",
+    "new": "Nieuw e-mailadres",
+    "description": "We sturen een code naar je nieuwe e-mailadres om het te bevestigen.",
+    "submit": "Code versturen",
+    "errors": {
+      "emailInUse": "E-mailadres al in gebruik",
+      "invalidEmail": "Voer een geldig e-mailadres in.",
+      "sameEmail": "Dat is al je e-mailadres.",
+      "failed": "Je e-mailadres kon niet worden gewijzigd. Probeer het opnieuw."
+    },
+    "success": "E-mailadres gewijzigd"
+  },
+  "changePassword": {
+    "title": "Wachtwoord wijzigen",
+    "description": "Je wordt uitgelogd op je andere apparaten.",
+    "current": "Huidig wachtwoord",
+    "new": "Nieuw wachtwoord",
+    "confirm": "Bevestig nieuw wachtwoord",
+    "submit": "Wachtwoord wijzigen",
+    "errors": {
+      "tooShort": "Je wachtwoord moet minstens {{min}} tekens hebben.",
+      "mismatch": "Wachtwoorden komen niet overeen",
+      "wrongCurrent": "Het huidige wachtwoord is onjuist.",
+      "failed": "Je wachtwoord kon niet worden gewijzigd. Probeer het opnieuw."
+    },
+    "success": "Wachtwoord gewijzigd"
+  },
+  "choices": {
+    "equipment": {
+      "barbell": "Halterstang",
+      "dumbbell": "Halter",
+      "cable": "Kabel",
+      "machine": "Toestel",
+      "smith_machine": "Smithmachine",
+      "bench": "Trainingsbank",
+      "pull_up_bar": "Optrekstang",
+      "landmine": "Landmine",
+      "bodyweight": "Lichaamsgewicht"
+    },
+    "experienceLevel": {
+      "beginner": "Beginner",
+      "intermediate": "Enige ervaring",
+      "advanced": "Gevorderd"
+    },
+    "experienceLevelDescription": {
+      "beginner": "0–6 maanden ervaring",
+      "intermediate": "6 maanden–3 jaar ervaring",
+      "advanced": "Meer dan 3 jaar ervaring"
+    },
+    "gender": {
+      "male": "Man",
+      "female": "Vrouw"
+    },
+    "goal": {
+      "muscle-gain": "Spieren opbouwen",
+      "fat-loss": "Afvallen",
+      "recomposition": "Spieren opbouwen en vet verliezen",
+      "strength-performance": "Kracht en prestaties",
+      "general-health-fitness": "Gezondheid en conditie"
+    },
+    "measurementSystem": {
+      "metric": "Metrisch",
+      "us": "Amerikaans",
+      "uk": "Brits"
+    },
+    "measurementSystemDescription": {
+      "metric": "Centimeters en kilogrammen",
+      "us": "Voet, inch en pond",
+      "uk": "Voet, inch en pond"
+    },
+    "muscleGroup": {
+      "chest": "Borst",
+      "back": "Rug",
+      "shoulders": "Schouders",
+      "biceps": "Biceps",
+      "triceps": "Triceps",
+      "forearms": "Onderarmen",
+      "abs": "Buikspieren",
+      "obliques": "Schuine buikspieren",
+      "quadriceps": "Quadriceps",
+      "hamstrings": "Hamstrings",
+      "glutes": "Bilspieren",
+      "calves": "Kuiten",
+      "traps": "Monnikskapspier",
+      "lats": "Brede rugspieren",
+      "lower-back": "Onderrug",
+      "cardio": "Cardio",
+      "full-body": "Hele lichaam"
+    },
+    "place": {
+      "gym": "Sportschool",
+      "home": "Thuis"
+    }
+  },
+  "common": {
+    "cancel": "Annuleren",
+    "confirm": "Bevestigen",
+    "tryAgain": "Opnieuw proberen",
+    "genericError": "Er is iets misgegaan. Probeer het later opnieuw.",
+    "rateLimited": "Te veel verzoeken: probeer het over {{seconds, number}} s opnieuw."
+  },
+  "compactUnits": {
+    "t": "{{value, number}} t",
+    "thousandLbs": "{{value, number}}K lb"
+  },
+  "confirmIdentity": {
+    "title": "Bevestig dat jij het bent",
+    "password": {
+      "description": "Voer je wachtwoord in om door te gaan.",
+      "placeholder": "Wachtwoord",
+      "forgot": "Wachtwoord vergeten?"
+    },
+    "code": {
+      "description": "Voer de code in die we naar {{email}} hebben gestuurd om door te gaan.",
+      "placeholder": "Code",
+      "resend": "Nieuwe code versturen"
+    },
+    "continue": "Doorgaan",
+    "errors": {
+      "passwordIncorrect": "Wachtwoord onjuist. Probeer het opnieuw.",
+      "wrongCode": "Die code klopt niet. Probeer het opnieuw.",
+      "codeNotSent": "De code kon niet worden verstuurd. Probeer het opnieuw.",
+      "failed": "We konden niet bevestigen dat jij het bent. Probeer het opnieuw."
+    }
+  },
+  "counts": {
+    "entries_one": "{{count, number}} registratie",
+    "entries_other": "{{count, number}} registraties",
+    "hours_one": "{{count, number}} uur",
+    "hours_other": "{{count, number}} uur",
+    "exercises_one": "{{count, number}} oefening",
+    "exercises_other": "{{count, number}} oefeningen",
+    "minutes_one": "{{count, number}} minuut",
+    "minutes_other": "{{count, number}} minuten",
+    "reps_one": "{{count, number}} herhaling",
+    "reps_other": "{{count, number}} herhalingen",
+    "sets_one": "{{count, number}} set",
+    "sets_other": "{{count, number}} sets",
+    "workoutSessions_one": "{{count, number}} trainingssessie",
+    "workoutSessions_other": "{{count, number}} trainingssessies",
+    "workouts_one": "{{count, number}} training",
+    "workouts_other": "{{count, number}} trainingen"
+  },
+  "deleteAccount": {
+    "title": "Je account verwijderen?",
+    "message": "Je trainingen, plannen, profiel en chats met Arnold worden definitief verwijderd. Dit kan niet ongedaan worden gemaakt.",
+    "proWarning": {
+      "appStore": "Je App Store-abonnement wordt niet automatisch opgezegd. Beheer het in de App Store om de betalingen te stoppen.",
+      "googlePlay": "Je Google Play-abonnement wordt niet automatisch opgezegd. Beheer het in Google Play om de betalingen te stoppen."
+    },
+    "manageSubscription": "Abonnement beheren",
+    "confirm": "Account verwijderen",
+    "failed": "Je account kon niet worden verwijderd. Probeer het opnieuw."
+  },
+  "duration": {
+    "hoursMinutes": "{{hours, number}} u {{minutes, number}} min",
+    "hours": "{{hours, number}} u",
+    "minutes": "{{minutes, number}} min"
+  },
+  "editProfile": {
+    "title": "Profiel bewerken",
+    "loadError": "Je profiel kon niet worden geladen. Controleer je verbinding en probeer het opnieuw.",
+    "save": "Opslaan"
+  },
+  "exercise": {
+    "gone": "Deze oefening staat niet meer in de bibliotheek.",
+    "loadError": "Deze oefening kon niet worden geladen. Controleer je verbinding en probeer het opnieuw."
+  },
+  "exerciseHistory": {
+    "title": "Voortgang",
+    "loadError": "De geschiedenis van deze oefening kon niet worden geladen. Controleer je verbinding en probeer het opnieuw.",
+    "set": "Set {{order, number}}: {{logged}}",
+    "target": "Doel {{target}}"
+  },
+  "finishWorkout": {
+    "confirm": {
+      "title": "Training afronden?",
+      "unloggedSets_one": "{{count, number}} geplande set is niet geregistreerd.",
+      "unloggedSets_other": "{{count, number}} geplande sets zijn niet geregistreerd.",
+      "cancel": "Annuleren",
+      "finish": "Afronden"
+    },
+    "failed": {
+      "title": "Training afronden mislukt",
+      "network": "Controleer je verbinding en probeer het opnieuw.",
+      "rateLimited": "Te veel verzoeken: probeer het over {{seconds, number}} s opnieuw."
+    },
+    "suggestion": {
+      "title": "Training voltooid!",
+      "description": "Je hebt al je geplande sets geregistreerd.",
+      "close": "Sluiten",
+      "keepTrainingHint": "Sluit deze suggestie en laat de training doorgaan",
+      "finish": "Training afronden",
+      "finishHint": "Rondt deze trainingssessie af",
+      "keepTraining": "Verder trainen"
+    }
+  },
+  "forgotPassword": {
+    "screenTitle": "Wachtwoord vergeten",
+    "title": "Wachtwoord vergeten?",
+    "description": "Vul het e-mailadres in waarmee je je hebt aangemeld. We sturen je een 6-cijferige code.",
+    "emailPlaceholder": "E-mail",
+    "invalidEmail": "Ongeldig e-mailadres",
+    "submit": "Code versturen",
+    "remember": "Weet je het weer?",
+    "login": "Inloggen",
+    "loading": "Code versturen"
+  },
+  "forms": {
+    "numberMin": "Het getal moet groter dan of gelijk zijn aan {{min, number(useGrouping: false)}}",
+    "numberMax": "Het getal moet kleiner dan of gelijk zijn aan {{max, number(useGrouping: false)}}"
+  },
+  "history": {
+    "empty": {
+      "title": "Nog geen trainingen",
+      "body": "Rond je eerste sessie af. Je ziet die hier met de tijd, sets, het volume en je persoonlijke records.",
+      "start": "{{name}} starten",
+      "nextUp": "Volgende in {{plan}} · {{exercises}}",
+      "resume": "Training hervatten",
+      "resumeNamed": "{{name}} hervatten",
+      "inProgress": "Je hebt een lopende training.",
+      "createPlan": "Schema maken"
+    },
+    "loadError": "Je trainingen konden niet worden geladen. Controleer je verbinding en probeer het opnieuw.",
+    "untitledWorkout": "Training",
+    "duration": "Duur {{duration}}",
+    "thisMonth": "Deze maand",
+    "stats": {
+      "workouts": "Trainingen",
+      "time": "Tijd",
+      "volume": "Volume"
+    },
+    "statLabel": "{{title}}: {{value}}",
+    "entry": "{{name}}, {{date}}, {{duration}}, {{sets}}, {{volume}}",
+    "streak": {
+      "badge_one": "{{count, number}} week op rij!",
+      "badge_other": "{{count, number}} weken op rij!",
+      "spoken_one": "Wekelijkse reeks: {{count, number}} week",
+      "spoken_other": "Wekelijkse reeks: {{count, number}} weken"
+    },
+    "weeklyGoal": {
+      "title": "Weekdoel · {{workouts}}",
+      "weeksHit_one": "{{hit, number}} van {{count, number}} week gehaald",
+      "weeksHit_other": "{{hit, number}} van {{count, number}} weken gehaald",
+      "now": "Nu",
+      "extra": "+{{count, number}}",
+      "thisWeek": "Deze week",
+      "weekOf": "Week van {{date}}",
+      "progress_one": "{{done, number}} van {{count, number}} training",
+      "progress_other": "{{done, number}} van {{count, number}} trainingen",
+      "overGoal": "{{count, number}} boven het doel",
+      "goalMet": "doel gehaald",
+      "goalMissed": "doel niet gehaald",
+      "inProgress": "bezig",
+      "firstWeek": "eerste geregistreerde week",
+      "noGoal": "geen doel vastgelegd",
+      "weekLabel": "{{week}}: {{details}}"
+    },
+    "personalRecord": "PR",
+    "entryWithRecords": "{{entry}}. {{records}}",
+    "personalRecords_one": "Persoonlijk record: {{records}}",
+    "personalRecords_other": "Persoonlijke records: {{records}}",
+    "recordResult": "{{exercise}}, {{weight}} × {{reps}}",
+    "bodyweightRecordResult": "{{exercise}}, lichaamsgewicht × {{reps}}"
+  },
+  "home": {
+    "managePlans": "Schema's beheren",
+    "createPlan": "Schema maken",
+    "workouts": "Trainingen",
+    "planMenu": "Schema-opties",
+    "logo": "Fitme",
+    "card": {
+      "preview": "Bekijken",
+      "previewNamed": "{{name}} bekijken",
+      "start": "Starten",
+      "startNamed": "{{name}} starten",
+      "continue": "Doorgaan",
+      "continueNamed": "Doorgaan met {{name}}",
+      "moreMuscleGroups": "+{{count, number}}",
+      "moreMuscleGroupsSpoken_one": "en nog {{count, number}} spiergroep",
+      "moreMuscleGroupsSpoken_other": "en nog {{count, number}} spiergroepen"
+    },
+    "allSet": "Goed gedaan! Je bent helemaal klaar!",
+    "empty": {
+      "title": "Geen actief schema",
+      "message": "Je hebt geen actief trainingsschema. Maak er een om te beginnen.",
+      "inactiveMessage": "Activeer een van je schema's of maak een nieuw schema.",
+      "action": "Trainingsschema maken"
+    },
+    "loadError": {
+      "title": "Je schema kon niet worden geladen",
+      "message": "Controleer je verbinding en probeer het opnieuw."
+    }
+  },
+  "languages": {
+    "en": "English",
+    "uk": "Українська",
+    "es": "Español",
+    "ca": "Català",
+    "fr": "Français",
+    "de": "Deutsch",
+    "it": "Italiano",
+    "pt-BR": "Português (Brasil)",
+    "pt-PT": "Português (Portugal)",
+    "pl": "Polski",
+    "zh-Hans": "简体中文",
+    "zh-Hant": "繁體中文",
+    "ja": "日本語",
+    "ko": "한국어",
+    "nl": "Nederlands"
+  },
+  "legal": {
+    "privacyTitle": "Juridisch en privacy",
+    "privacyPolicy": "Privacybeleid",
+    "terms": "Gebruiksvoorwaarden",
+    "deleteAccount": "Account verwijderen",
+    "deleteConfirm": {
+      "title": "Weet je zeker dat je je account wilt verwijderen?",
+      "message": "Dit kan niet ongedaan worden gemaakt. Je account wordt definitief verwijderd en je gegevens worden van onze servers verwijderd.",
+      "confirm": "Ja, verwijder mijn account"
+    }
+  },
+  "library": {
+    "search": "Oefeningen zoeken",
+    "muscles": "Spieren",
+    "equipment": "Materiaal",
+    "removeMuscleGroup": "{{muscleGroup}} verwijderen",
+    "removeEquipment": "{{equipment}} verwijderen",
+    "reset": "Wissen",
+    "confirm": "Klaar",
+    "loadErrorTitle": "Oefeningen laden mislukt",
+    "loadError": "De oefeningen konden niet worden geladen. Controleer je verbinding en probeer het opnieuw.",
+    "loadMoreError": "Er konden geen extra oefeningen worden geladen. Controleer je verbinding en probeer het opnieuw.",
+    "emptyTitle": "Geen oefeningen gevonden",
+    "empty": "Geen passende oefeningen gevonden. Probeer een andere naam of spiergroep.",
+    "showAll": "Alle oefeningen tonen"
+  },
+  "measurementSystem": {
+    "title": "Eenhedenstelsel",
+    "unitsTitle": "Eenheden",
+    "loadError": "Je eenhedenstelsel kon niet worden geladen. Controleer je verbinding en probeer het opnieuw.",
+    "confirm": {
+      "title": "Weet je het zeker?",
+      "message": "Als je je eenhedenstelsel wijzigt, worden al je metingen aangepast. Je profielgegevens en trainingsgeschiedenis worden omgerekend naar het nieuwe stelsel."
+    },
+    "checkFailed": {
+      "title": "Eenheden controleren mislukt",
+      "message": "Controleer je verbinding en probeer opnieuw te bekijken welk stelsel is opgeslagen."
+    },
+    "changeFailed": {
+      "title": "Eenheden wijzigen mislukt",
+      "message": "Je metingen zijn niet gewijzigd. Probeer het opnieuw.",
+      "rateLimited": "Je metingen zijn niet gewijzigd. Te veel verzoeken: probeer het over {{seconds, number}} s opnieuw."
+    },
+    "switchConfirm": {
+      "title": {
+        "metric": "Overstappen op metrische eenheden?",
+        "us": "Overstappen op Amerikaanse eenheden?",
+        "uk": "Overstappen op Britse eenheden?"
+      },
+      "message": {
+        "metric": "Je profiel en trainingsgeschiedenis worden omgerekend naar metrische eenheden.",
+        "us": "Je profiel en trainingsgeschiedenis worden omgerekend naar Amerikaanse eenheden.",
+        "uk": "Je profiel en trainingsgeschiedenis worden omgerekend naar Britse eenheden."
+      },
+      "confirm": "Overstappen"
+    }
+  },
+  "notFound": {
+    "title": "Oeps!",
+    "description": "Dit scherm bestaat niet.",
+    "goHome": "Naar het beginscherm"
+  },
+  "onboarding": {
+    "welcome": {
+      "title": "Welkom bij Fitme!",
+      "description": "Je persoonlijke AI-trainer staat voor je klaar. Laten we beginnen!",
+      "getStarted": "Aan de slag",
+      "skip": "Overslaan"
+    },
+    "profile": {
+      "title": "Laten we kennismaken",
+      "description": "We gebruiken deze gegevens om de app op jou af te stemmen.",
+      "next": "Volgende",
+      "loadError": "Je profiel kon niet worden geladen. Controleer je verbinding en probeer het opnieuw."
+    }
+  },
+  "planBuilder": {
+    "title": "Schema maken",
+    "question": "Hoe wil je dit schema maken?",
+    "byHand": "Zelf maken",
+    "byHandHint": "Kies je eigen trainingen, oefeningen en sets.",
+    "askArnold": "Vraag het Arnold",
+    "askArnoldHint": "De AI van Fitme maakt een schema rond jouw doelen.",
+    "pro": "Pro",
+    "detailsTitle": "Nieuw schema",
+    "detailsHint": "Alleen een naam en hoe vaak je traint. De rest pas je later aan.",
+    "continue": "Doorgaan",
+    "back": "Terug"
+  },
+  "planEditor": {
+    "title": "Schema bewerken",
+    "createTitle": "Nieuw schema",
+    "save": "Opslaan",
+    "details": "Details",
+    "name": "Naam",
+    "namePlaceholder": "Naam van het schema",
+    "description": "Beschrijving",
+    "descriptionPlaceholder": "Waarvoor is dit schema?",
+    "frequency": "Trainingen per week",
+    "duration": "Trainingsduur",
+    "durationUnit": "minuten",
+    "goal": "Doel",
+    "experience": "Ervaringsniveau",
+    "place": "Locatie",
+    "unset": "Niet ingesteld",
+    "workouts": "Trainingen",
+    "workoutsHint": "In rotatievolgorde: de eerste is als volgende aan de beurt.",
+    "noWorkouts": "Een schema heeft minstens één training nodig.",
+    "workoutActions": "Acties voor {{name}}",
+    "moveUp": "{{name}} omhoog verplaatsen",
+    "moveDown": "{{name}} omlaag verplaatsen",
+    "remove": "{{name}} verwijderen",
+    "addWorkout": "Training toevoegen",
+    "newWorkoutName": "Training {{letter}}",
+    "openWorkout": "{{name}} bewerken",
+    "workoutNeedsExercise": "Heeft minstens één oefening nodig",
+    "workoutNeedsFixing": "Controleer de naam en sets van deze training",
+    "workout": {
+      "title": "Training bewerken",
+      "name": "Naam",
+      "namePlaceholder": "Naam van de training",
+      "exercises": "Oefeningen",
+      "exercisesHint": "In de volgorde waarin je ze doet.",
+      "noExercises": "Voeg een oefening toe aan deze training.",
+      "addExercise": "Oefening toevoegen",
+      "exerciseActions": "Acties voor {{name}}",
+      "moveUp": "{{name}} omhoog verplaatsen",
+      "moveDown": "{{name}} omlaag verplaatsen",
+      "replace": "{{name}} vervangen",
+      "remove": "{{name}} verwijderen",
+      "removeSet": "Set {{order, number}} verwijderen",
+      "errors": {
+        "nameRequired": "Vul een naam voor de training in",
+        "repsRange": "Herhalingen moeten een geheel getal zijn van {{min, number(useGrouping: false)}} tot {{max, number(useGrouping: false)}}",
+        "weightRange": "Gewicht moet een getal zijn van {{min, number(useGrouping: false)}} tot {{max, number(useGrouping: false)}}",
+        "restRange": "Rust moet een geheel aantal seconden zijn van {{min, number(useGrouping: false)}} tot {{max, number(useGrouping: false)}}"
+      }
+    },
+    "picker": {
+      "addTitle": "Oefening toevoegen",
+      "replaceTitle": "Oefening vervangen",
+      "addExercise": "{{name}} toevoegen",
+      "replaceWith": "Vervangen door {{name}}"
+    },
+    "discard": {
+      "title": "Wijzigingen verwerpen?",
+      "message": "Je wijzigingen aan dit schema gaan verloren.",
+      "confirm": "Verwerpen"
+    },
+    "errors": {
+      "nameRequired": "Vul een naam voor het schema in",
+      "nameTooLong": "De naam mag maximaal {{max, number(useGrouping: false)}} tekens bevatten",
+      "descriptionTooLong": "De beschrijving mag maximaal {{max, number(useGrouping: false)}} tekens bevatten",
+      "frequencyRange": "Trainingen per week moeten een geheel getal zijn van {{min, number(useGrouping: false)}} tot {{max, number(useGrouping: false)}}",
+      "durationRange": "Trainingsduur moet een geheel aantal minuten zijn, maximaal {{max, number(useGrouping: false)}}",
+      "saveFailed": "Je schema kon niet worden opgeslagen. Controleer je verbinding en probeer het opnieuw.",
+      "saveRateLimited": "Je schema kon niet worden opgeslagen. Te veel verzoeken: probeer het over {{seconds, number}} s opnieuw.",
+      "unknownExercises": "Dit schema bevat onbekende oefeningen en kan niet worden opgeslagen. Vervang ze en probeer het opnieuw.",
+      "libraryUnavailable": "De oefeningen in dit schema konden niet worden gecontroleerd. Probeer het opnieuw.",
+      "unitsChanged": "Je gewichtseenheid is op een ander apparaat gewijzigd. Deze doelen staan nog in de oude eenheid. Sluit de editor en open deze opnieuw."
+    }
+  },
+  "planUpdate": {
+    "title": "Je schema bijwerken?",
+    "description": "Sla de wijzigingen van vandaag aan {{workout}} op in {{plan}}.",
+    "failed": "Je schema kon niet worden bijgewerkt. Controleer je verbinding en probeer het opnieuw.",
+    "rateLimited": "Te veel verzoeken. Probeer het over {{seconds, number}} s opnieuw.",
+    "update": "Schema bijwerken",
+    "updateHint": "Slaat deze wijzigingen op in je schema en toont daarna de trainingssamenvatting",
+    "retry": "Opnieuw proberen",
+    "keep": "Schema zo houden",
+    "keepHint": "Laat je schema ongewijzigd en toont de trainingssamenvatting",
+    "changes": {
+      "replace": "{{replaced}} vervangen door {{exercise}}",
+      "add": "{{exercise}} toevoegen",
+      "remove": "{{exercise}} verwijderen",
+      "addSets_one": "{{count, number}} set toevoegen aan {{exercise}}",
+      "addSets_other": "{{count, number}} sets toevoegen aan {{exercise}}",
+      "line": "{{change}} · {{sets}}",
+      "spokenLine": "{{change}}: {{sets}}",
+      "spokenSet": "{{reps}} met {{weight}}"
+    }
+  },
+  "plannedWorkout": {
+    "stats": {
+      "duration": "Duur",
+      "exercises": "Oefeningen",
+      "sets": "Sets"
+    },
+    "durationMinutes": "{{minutes, number}} min",
+    "noExercises": "Deze training heeft nog geen oefeningen.",
+    "gone": "Deze training bestaat niet meer",
+    "goBack": "Terug",
+    "edit": "Training bewerken",
+    "loadError": "Deze training kon niet worden geladen. Controleer je verbinding en probeer het opnieuw.",
+    "exerciseDetailsHint": "Opent de details van de oefening"
   },
   "planner": {
     "title": "Trainingsschema maken",
@@ -192,409 +755,6 @@
       "rateLimited": "Te veel verzoeken: probeer het over {{seconds, number}} s opnieuw."
     }
   },
-  "planEditor": {
-    "title": "Schema bewerken",
-    "createTitle": "Nieuw schema",
-    "save": "Opslaan",
-    "details": "Details",
-    "name": "Naam",
-    "namePlaceholder": "Naam van het schema",
-    "description": "Beschrijving",
-    "descriptionPlaceholder": "Waarvoor is dit schema?",
-    "frequency": "Trainingen per week",
-    "duration": "Trainingsduur",
-    "durationUnit": "minuten",
-    "goal": "Doel",
-    "experience": "Ervaringsniveau",
-    "place": "Locatie",
-    "unset": "Niet ingesteld",
-    "workouts": "Trainingen",
-    "workoutsHint": "In rotatievolgorde: de eerste is als volgende aan de beurt.",
-    "noWorkouts": "Een schema heeft minstens één training nodig.",
-    "workoutActions": "Acties voor {{name}}",
-    "moveUp": "{{name}} omhoog verplaatsen",
-    "moveDown": "{{name}} omlaag verplaatsen",
-    "remove": "{{name}} verwijderen",
-    "addWorkout": "Training toevoegen",
-    "newWorkoutName": "Training {{letter}}",
-    "openWorkout": "{{name}} bewerken",
-    "workoutNeedsExercise": "Heeft minstens één oefening nodig",
-    "workoutNeedsFixing": "Controleer de naam en sets van deze training",
-    "workout": {
-      "title": "Training bewerken",
-      "name": "Naam",
-      "namePlaceholder": "Naam van de training",
-      "exercises": "Oefeningen",
-      "exercisesHint": "In de volgorde waarin je ze doet.",
-      "noExercises": "Voeg een oefening toe aan deze training.",
-      "addExercise": "Oefening toevoegen",
-      "exerciseActions": "Acties voor {{name}}",
-      "moveUp": "{{name}} omhoog verplaatsen",
-      "moveDown": "{{name}} omlaag verplaatsen",
-      "replace": "{{name}} vervangen",
-      "remove": "{{name}} verwijderen",
-      "removeSet": "Set {{order, number}} verwijderen",
-      "errors": {
-        "nameRequired": "Vul een naam voor de training in",
-        "repsRange": "Herhalingen moeten een geheel getal zijn van {{min, number(useGrouping: false)}} tot {{max, number(useGrouping: false)}}",
-        "weightRange": "Gewicht moet een getal zijn van {{min, number(useGrouping: false)}} tot {{max, number(useGrouping: false)}}",
-        "restRange": "Rust moet een geheel aantal seconden zijn van {{min, number(useGrouping: false)}} tot {{max, number(useGrouping: false)}}"
-      }
-    },
-    "picker": {
-      "addTitle": "Oefening toevoegen",
-      "replaceTitle": "Oefening vervangen",
-      "addExercise": "{{name}} toevoegen",
-      "replaceWith": "Vervangen door {{name}}"
-    },
-    "discard": {
-      "title": "Wijzigingen verwerpen?",
-      "message": "Je wijzigingen aan dit schema gaan verloren.",
-      "confirm": "Verwerpen"
-    },
-    "errors": {
-      "nameRequired": "Vul een naam voor het schema in",
-      "nameTooLong": "De naam mag maximaal {{max, number(useGrouping: false)}} tekens bevatten",
-      "descriptionTooLong": "De beschrijving mag maximaal {{max, number(useGrouping: false)}} tekens bevatten",
-      "frequencyRange": "Trainingen per week moeten een geheel getal zijn van {{min, number(useGrouping: false)}} tot {{max, number(useGrouping: false)}}",
-      "durationRange": "Trainingsduur moet een geheel aantal minuten zijn, maximaal {{max, number(useGrouping: false)}}",
-      "saveFailed": "Je schema kon niet worden opgeslagen. Controleer je verbinding en probeer het opnieuw.",
-      "saveRateLimited": "Je schema kon niet worden opgeslagen. Te veel verzoeken: probeer het over {{seconds, number}} s opnieuw.",
-      "unknownExercises": "Dit schema bevat onbekende oefeningen en kan niet worden opgeslagen. Vervang ze en probeer het opnieuw.",
-      "libraryUnavailable": "De oefeningen in dit schema konden niet worden gecontroleerd. Probeer het opnieuw.",
-      "unitsChanged": "Je gewichtseenheid is op een ander apparaat gewijzigd. Deze doelen staan nog in de oude eenheid. Sluit de editor en open deze opnieuw."
-    }
-  },
-  "planBuilder": {
-    "title": "Schema maken",
-    "question": "Hoe wil je dit schema maken?",
-    "byHand": "Zelf maken",
-    "byHandHint": "Kies je eigen trainingen, oefeningen en sets.",
-    "askArnold": "Vraag het Arnold",
-    "askArnoldHint": "De AI van Fitme maakt een schema rond jouw doelen.",
-    "pro": "Pro",
-    "detailsTitle": "Nieuw schema",
-    "detailsHint": "Alleen een naam en hoe vaak je traint. De rest pas je later aan.",
-    "continue": "Doorgaan",
-    "back": "Terug"
-  },
-  "plannedWorkout": {
-    "stats": {
-      "duration": "Duur",
-      "exercises": "Oefeningen",
-      "sets": "Sets"
-    },
-    "durationMinutes": "{{minutes, number}} min",
-    "noExercises": "Deze training heeft nog geen oefeningen.",
-    "gone": "Deze training bestaat niet meer",
-    "goBack": "Terug",
-    "edit": "Training bewerken",
-    "loadError": "Deze training kon niet worden geladen. Controleer je verbinding en probeer het opnieuw.",
-    "exerciseDetailsHint": "Opent de details van de oefening"
-  },
-  "home": {
-    "managePlans": "Schema's beheren",
-    "createPlan": "Schema maken",
-    "workouts": "Trainingen",
-    "planMenu": "Schema-opties",
-    "logo": "Fitme",
-    "card": {
-      "preview": "Bekijken",
-      "previewNamed": "{{name}} bekijken",
-      "start": "Starten",
-      "startNamed": "{{name}} starten",
-      "continue": "Doorgaan",
-      "continueNamed": "Doorgaan met {{name}}",
-      "moreMuscleGroups": "+{{count, number}}",
-      "moreMuscleGroupsSpoken_one": "en nog {{count, number}} spiergroep",
-      "moreMuscleGroupsSpoken_other": "en nog {{count, number}} spiergroepen"
-    },
-    "allSet": "Goed gedaan! Je bent helemaal klaar!",
-    "empty": {
-      "title": "Geen actief schema",
-      "message": "Je hebt geen actief trainingsschema. Maak er een om te beginnen.",
-      "inactiveMessage": "Activeer een van je schema's of maak een nieuw schema.",
-      "action": "Trainingsschema maken"
-    },
-    "loadError": {
-      "title": "Je schema kon niet worden geladen",
-      "message": "Controleer je verbinding en probeer het opnieuw."
-    }
-  },
-  "startWorkout": {
-    "start": "Training starten",
-    "continue": "Training voortzetten",
-    "continueNamed": "Doorgaan met {{name}}",
-    "finishFirst": "Rond eerst je lopende training af",
-    "finishFirstNamed": "Rond eerst {{name}} af",
-    "failed": {
-      "title": "Training starten mislukt",
-      "network": "Controleer je verbinding en probeer het opnieuw.",
-      "rateLimited": "Te veel verzoeken: probeer het over {{seconds, number}} s opnieuw."
-    }
-  },
-  "workoutCard": {
-    "exercises_one": "{{count, number}} oefening",
-    "exercises_other": "{{count, number}} oefeningen",
-    "toWorkout": "Naar training",
-    "openHint": "Opent de training",
-    "openInProgressHint": "Opent de lopende training"
-  },
-  "choices": {
-    "equipment": {
-      "barbell": "Halterstang",
-      "dumbbell": "Halter",
-      "cable": "Kabel",
-      "machine": "Toestel",
-      "smith_machine": "Smithmachine",
-      "bench": "Trainingsbank",
-      "pull_up_bar": "Optrekstang",
-      "landmine": "Landmine",
-      "bodyweight": "Lichaamsgewicht"
-    },
-    "experienceLevel": {
-      "beginner": "Beginner",
-      "intermediate": "Enige ervaring",
-      "advanced": "Gevorderd"
-    },
-    "experienceLevelDescription": {
-      "beginner": "0–6 maanden ervaring",
-      "intermediate": "6 maanden–3 jaar ervaring",
-      "advanced": "Meer dan 3 jaar ervaring"
-    },
-    "gender": {
-      "male": "Man",
-      "female": "Vrouw"
-    },
-    "goal": {
-      "muscle-gain": "Spieren opbouwen",
-      "fat-loss": "Afvallen",
-      "recomposition": "Spieren opbouwen en vet verliezen",
-      "strength-performance": "Kracht en prestaties",
-      "general-health-fitness": "Gezondheid en conditie"
-    },
-    "measurementSystem": {
-      "metric": "Metrisch",
-      "us": "Amerikaans",
-      "uk": "Brits"
-    },
-    "measurementSystemDescription": {
-      "metric": "Centimeters en kilogrammen",
-      "us": "Voet, inch en pond",
-      "uk": "Voet, inch en pond"
-    },
-    "muscleGroup": {
-      "chest": "Borst",
-      "back": "Rug",
-      "shoulders": "Schouders",
-      "biceps": "Biceps",
-      "triceps": "Triceps",
-      "forearms": "Onderarmen",
-      "abs": "Buikspieren",
-      "obliques": "Schuine buikspieren",
-      "quadriceps": "Quadriceps",
-      "hamstrings": "Hamstrings",
-      "glutes": "Bilspieren",
-      "calves": "Kuiten",
-      "traps": "Monnikskapspier",
-      "lats": "Brede rugspieren",
-      "lower-back": "Onderrug",
-      "cardio": "Cardio",
-      "full-body": "Hele lichaam"
-    },
-    "place": {
-      "gym": "Sportschool",
-      "home": "Thuis"
-    }
-  },
-  "unitNames": {
-    "cm": "cm",
-    "in": "inch",
-    "kg": "kg",
-    "lbs": "lb"
-  },
-  "units": {
-    "cm": "{{value, number}} cm",
-    "in": "{{value, number}} inch",
-    "kg": "{{value, number}} kg",
-    "lbs": "{{value, number}} lb"
-  },
-  "spokenUnits": {
-    "cm_one": "{{count, number}} centimeter",
-    "cm_other": "{{count, number}} centimeter",
-    "in_one": "{{count, number}} inch",
-    "in_other": "{{count, number}} inch",
-    "kg_one": "{{count, number}} kilogram",
-    "kg_other": "{{count, number}} kilogram",
-    "lbs_one": "{{count, number}} pond",
-    "lbs_other": "{{count, number}} pond"
-  },
-  "compactUnits": {
-    "t": "{{value, number}} t",
-    "thousandLbs": "{{value, number}}K lb"
-  },
-  "spokenCompactUnits": {
-    "t_one": "{{count, number}} ton",
-    "t_other": "{{count, number}} ton",
-    "thousandLbs_one": "{{count, number}} duizend pond",
-    "thousandLbs_other": "{{count, number}} duizend pond"
-  },
-  "duration": {
-    "hoursMinutes": "{{hours, number}} u {{minutes, number}} min",
-    "hours": "{{hours, number}} u",
-    "minutes": "{{minutes, number}} min"
-  },
-  "finishWorkout": {
-    "confirm": {
-      "title": "Training afronden?",
-      "unloggedSets_one": "{{count, number}} geplande set is niet geregistreerd.",
-      "unloggedSets_other": "{{count, number}} geplande sets zijn niet geregistreerd.",
-      "cancel": "Annuleren",
-      "finish": "Afronden"
-    },
-    "failed": {
-      "title": "Training afronden mislukt",
-      "network": "Controleer je verbinding en probeer het opnieuw.",
-      "rateLimited": "Te veel verzoeken: probeer het over {{seconds, number}} s opnieuw."
-    },
-    "suggestion": {
-      "title": "Training voltooid!",
-      "description": "Je hebt al je geplande sets geregistreerd.",
-      "close": "Sluiten",
-      "keepTrainingHint": "Sluit deze suggestie en laat de training doorgaan",
-      "finish": "Training afronden",
-      "finishHint": "Rondt deze trainingssessie af",
-      "keepTraining": "Verder trainen"
-    }
-  },
-  "planUpdate": {
-    "title": "Je schema bijwerken?",
-    "description": "Sla de wijzigingen van vandaag aan {{workout}} op in {{plan}}.",
-    "failed": "Je schema kon niet worden bijgewerkt. Controleer je verbinding en probeer het opnieuw.",
-    "rateLimited": "Te veel verzoeken. Probeer het over {{seconds, number}} s opnieuw.",
-    "update": "Schema bijwerken",
-    "updateHint": "Slaat deze wijzigingen op in je schema en toont daarna de trainingssamenvatting",
-    "retry": "Opnieuw proberen",
-    "keep": "Schema zo houden",
-    "keepHint": "Laat je schema ongewijzigd en toont de trainingssamenvatting",
-    "changes": {
-      "replace": "{{replaced}} vervangen door {{exercise}}",
-      "add": "{{exercise}} toevoegen",
-      "remove": "{{exercise}} verwijderen",
-      "addSets_one": "{{count, number}} set toevoegen aan {{exercise}}",
-      "addSets_other": "{{count, number}} sets toevoegen aan {{exercise}}",
-      "line": "{{change}} · {{sets}}",
-      "spokenLine": "{{change}}: {{sets}}",
-      "spokenSet": "{{reps}} met {{weight}}"
-    }
-  },
-  "sets": {
-    "columns": {
-      "target": "doel",
-      "reps": "herh.",
-      "rest": "rust"
-    },
-    "addSet": "Set toevoegen",
-    "noTarget": "geen doel",
-    "repsAtWeight": "{{reps}} met {{weight}}",
-    "plannedSet": "Set {{order, number}}: {{target}}, {{rest}}",
-    "restSeconds_one": "{{count, number}} seconde rust",
-    "restSeconds_other": "{{count, number}} seconden rust",
-    "noRest": "geen rust",
-    "row": {
-      "repsInput": "Herhalingen voor set {{order, number}}",
-      "weightInput": "Gewicht voor set {{order, number}}",
-      "restInput": "Rust voor set {{order, number}}",
-      "log": "Set {{order, number}} registreren",
-      "edit": "Set {{order, number}} bewerken",
-      "editHint": "Opent de set om deze te bewerken",
-      "logged": "Set {{order, number}}, geregistreerd"
-    },
-    "errors": {
-      "save": "Deze set kon niet worden opgeslagen. Probeer het opnieuw.",
-      "rateLimited": "Te veel verzoeken. Probeer het over {{seconds, number}} s opnieuw."
-    },
-    "form": {
-      "weightNotNumber": "Gewicht moet een getal zijn",
-      "weightNegative": "Gewicht kan niet negatief zijn",
-      "weightTooHigh": "Gewicht mag maximaal {{max}} zijn",
-      "weightDecimals_one": "Gewicht mag maximaal {{count, number}} decimaal bevatten",
-      "weightDecimals_other": "Gewicht mag maximaal {{count, number}} decimalen bevatten",
-      "repsNotNumber": "Herhalingen moeten een getal zijn",
-      "repsNegative": "Herhalingen kunnen niet negatief zijn",
-      "repsTooHigh": "Het aantal herhalingen mag maximaal {{max}} zijn",
-      "repsNotWhole": "Herhalingen moeten een geheel getal zijn"
-    },
-    "rest": {
-      "title": "Rust",
-      "thenSet": "Rust · daarna set {{order, number}}",
-      "left": "Rust, nog {{clock}}",
-      "less_one": "{{count, number}} seconde minder",
-      "less_other": "{{count, number}} seconden minder",
-      "more_one": "{{count, number}} seconde meer",
-      "more_other": "{{count, number}} seconden meer",
-      "skip": "Overslaan",
-      "skipRest": "Rust overslaan",
-      "over": "Rust voorbij"
-    }
-  },
-  "forms": {
-    "numberMin": "Het getal moet groter dan of gelijk zijn aan {{min, number(useGrouping: false)}}",
-    "numberMax": "Het getal moet kleiner dan of gelijk zijn aan {{max, number(useGrouping: false)}}"
-  },
-  "onboarding": {
-    "welcome": {
-      "title": "Welkom bij Fitme!",
-      "description": "Je persoonlijke AI-trainer staat voor je klaar. Laten we beginnen!",
-      "getStarted": "Aan de slag",
-      "skip": "Overslaan"
-    },
-    "profile": {
-      "title": "Laten we kennismaken",
-      "description": "We gebruiken deze gegevens om de app op jou af te stemmen.",
-      "next": "Volgende",
-      "loadError": "Je profiel kon niet worden geladen. Controleer je verbinding en probeer het opnieuw."
-    }
-  },
-  "profileForm": {
-    "name": "Naam",
-    "firstName": "Voornaam",
-    "lastName": "Achternaam",
-    "gender": "Geslacht",
-    "parameters": "Lichaamsgegevens",
-    "age": "Leeftijd",
-    "weight": "Gewicht",
-    "height": "Lengte",
-    "notSet": "Niet ingesteld",
-    "done": "Klaar",
-    "ageValue_one": "{{count, number}} jaar",
-    "ageValue_other": "{{count, number}} jaar",
-    "feet_one": "{{count, number}} ft",
-    "feet_other": "{{count, number}} ft",
-    "inches_one": "{{count, number}} inch",
-    "inches_other": "{{count, number}} inch",
-    "errors": {
-      "ageRequired": "Leeftijd is verplicht",
-      "genderRequired": "Geslacht is verplicht",
-      "heightRequired": "Lengte is verplicht",
-      "weightRequired": "Gewicht is verplicht",
-      "nameTooLong": "De naam mag maximaal {{max, number(useGrouping: false)}} tekens bevatten",
-      "firstNameRequired": "Voornaam is verplicht",
-      "firstNameTooLong": "De voornaam mag maximaal {{max, number(useGrouping: false)}} tekens bevatten",
-      "lastNameRequired": "Achternaam is verplicht",
-      "lastNameTooLong": "De achternaam mag maximaal {{max, number(useGrouping: false)}} tekens bevatten",
-      "tooManyDecimals": "Het getal mag maximaal {{max, number(useGrouping: false)}} decimalen bevatten",
-      "saveFailed": "Je profiel kon niet worden opgeslagen. Controleer je verbinding en probeer het opnieuw.",
-      "saveRateLimited": "Je profiel kon niet worden opgeslagen. Te veel verzoeken: probeer het over {{seconds, number}} s opnieuw."
-    }
-  },
-  "common": {
-    "cancel": "Annuleren",
-    "confirm": "Bevestigen",
-    "tryAgain": "Opnieuw proberen",
-    "genericError": "Er is iets misgegaan. Probeer het later opnieuw.",
-    "rateLimited": "Te veel verzoeken: probeer het over {{seconds, number}} s opnieuw."
-  },
   "profile": {
     "title": "Profiel",
     "pro": {
@@ -648,6 +808,163 @@
     "logOutFailed": "Uitloggen is mislukt. Controleer je verbinding en probeer het opnieuw.",
     "version": "Fitme {{version}} ({{build}})"
   },
+  "profileForm": {
+    "name": "Naam",
+    "firstName": "Voornaam",
+    "lastName": "Achternaam",
+    "gender": "Geslacht",
+    "parameters": "Lichaamsgegevens",
+    "age": "Leeftijd",
+    "weight": "Gewicht",
+    "height": "Lengte",
+    "notSet": "Niet ingesteld",
+    "done": "Klaar",
+    "ageValue_one": "{{count, number}} jaar",
+    "ageValue_other": "{{count, number}} jaar",
+    "feet_one": "{{count, number}} ft",
+    "feet_other": "{{count, number}} ft",
+    "inches_one": "{{count, number}} inch",
+    "inches_other": "{{count, number}} inch",
+    "errors": {
+      "ageRequired": "Leeftijd is verplicht",
+      "genderRequired": "Geslacht is verplicht",
+      "heightRequired": "Lengte is verplicht",
+      "weightRequired": "Gewicht is verplicht",
+      "nameTooLong": "De naam mag maximaal {{max, number(useGrouping: false)}} tekens bevatten",
+      "firstNameRequired": "Voornaam is verplicht",
+      "firstNameTooLong": "De voornaam mag maximaal {{max, number(useGrouping: false)}} tekens bevatten",
+      "lastNameRequired": "Achternaam is verplicht",
+      "lastNameTooLong": "De achternaam mag maximaal {{max, number(useGrouping: false)}} tekens bevatten",
+      "tooManyDecimals": "Het getal mag maximaal {{max, number(useGrouping: false)}} decimalen bevatten",
+      "saveFailed": "Je profiel kon niet worden opgeslagen. Controleer je verbinding en probeer het opnieuw.",
+      "saveRateLimited": "Je profiel kon niet worden opgeslagen. Te veel verzoeken: probeer het over {{seconds, number}} s opnieuw."
+    }
+  },
+  "profilePhoto": {
+    "title": "Profielfoto",
+    "change": "Foto wijzigen",
+    "buttonLabel": "Profielfoto wijzigen",
+    "chooseFromLibrary": "Kies uit bibliotheek",
+    "takePhoto": "Maak foto",
+    "removePhoto": "Verwijder foto",
+    "uploadFailed": {
+      "title": "Kan foto niet wijzigen",
+      "message": "Je foto is niet gewijzigd. Controleer je verbinding en probeer het opnieuw."
+    },
+    "removeFailed": {
+      "title": "Kan foto niet verwijderen",
+      "message": "Je foto is niet verwijderd. Controleer je verbinding en probeer het opnieuw."
+    },
+    "cameraDenied": {
+      "title": "Toegang tot camera nodig",
+      "message": "Fitme heeft toegang tot je camera nodig om je profielfoto te maken. Je kunt dit inschakelen in Instellingen.",
+      "openSettings": "Instellingen openen"
+    }
+  },
+  "resetPassword": {
+    "screenTitle": "Wachtwoord opnieuw instellen",
+    "title": "Stel een nieuw wachtwoord in",
+    "description": "Kies een wachtwoord dat je niet voor andere accounts gebruikt.",
+    "newPasswordPlaceholder": "Nieuw wachtwoord",
+    "confirmPasswordPlaceholder": "Nieuw wachtwoord bevestigen",
+    "passwordTooShort_one": "Je wachtwoord moet minstens {{count}} teken bevatten.",
+    "passwordTooShort_other": "Je wachtwoord moet minstens {{count}} tekens bevatten.",
+    "passwordsDontMatch": "De wachtwoorden komen niet overeen.",
+    "submit": "Wachtwoord bijwerken",
+    "passwordChanged": "Je wachtwoord is gewijzigd. Log in met je nieuwe wachtwoord.",
+    "loading": "Wachtwoord bijwerken",
+    "changedMind": "Toch niet?",
+    "backToLogin": "Terug naar inloggen"
+  },
+  "sets": {
+    "columns": {
+      "target": "doel",
+      "reps": "herh.",
+      "rest": "rust"
+    },
+    "addSet": "Set toevoegen",
+    "noTarget": "geen doel",
+    "repsAtWeight": "{{reps}} met {{weight}}",
+    "plannedSet": "Set {{order, number}}: {{target}}, {{rest}}",
+    "restSeconds_one": "{{count, number}} seconde rust",
+    "restSeconds_other": "{{count, number}} seconden rust",
+    "noRest": "geen rust",
+    "row": {
+      "repsInput": "Herhalingen voor set {{order, number}}",
+      "weightInput": "Gewicht voor set {{order, number}}",
+      "restInput": "Rust voor set {{order, number}}",
+      "log": "Set {{order, number}} registreren",
+      "edit": "Set {{order, number}} bewerken",
+      "editHint": "Opent de set om deze te bewerken",
+      "logged": "Set {{order, number}}, geregistreerd"
+    },
+    "errors": {
+      "save": "Deze set kon niet worden opgeslagen. Probeer het opnieuw.",
+      "rateLimited": "Te veel verzoeken. Probeer het over {{seconds, number}} s opnieuw."
+    },
+    "form": {
+      "weightNotNumber": "Gewicht moet een getal zijn",
+      "weightNegative": "Gewicht kan niet negatief zijn",
+      "weightTooHigh": "Gewicht mag maximaal {{max}} zijn",
+      "weightDecimals_one": "Gewicht mag maximaal {{count, number}} decimaal bevatten",
+      "weightDecimals_other": "Gewicht mag maximaal {{count, number}} decimalen bevatten",
+      "repsNotNumber": "Herhalingen moeten een getal zijn",
+      "repsNegative": "Herhalingen kunnen niet negatief zijn",
+      "repsTooHigh": "Het aantal herhalingen mag maximaal {{max}} zijn",
+      "repsNotWhole": "Herhalingen moeten een geheel getal zijn"
+    },
+    "rest": {
+      "title": "Rust",
+      "thenSet": "Rust · daarna set {{order, number}}",
+      "left": "Rust, nog {{clock}}",
+      "less_one": "{{count, number}} seconde minder",
+      "less_other": "{{count, number}} seconden minder",
+      "more_one": "{{count, number}} seconde meer",
+      "more_other": "{{count, number}} seconden meer",
+      "skip": "Overslaan",
+      "skipRest": "Rust overslaan",
+      "over": "Rust voorbij"
+    }
+  },
+  "settings": {
+    "title": "Instellingen",
+    "measurementSystem": "Eenhedenstelsel",
+    "deleteAccount": "Account verwijderen",
+    "deleteConfirm": {
+      "title": "Account verwijderen",
+      "message": "Hiermee verwijder je je account en alle bijbehorende gegevens definitief. Dit kan niet ongedaan worden gemaakt.",
+      "confirm": "Verwijderen"
+    },
+    "deleteFailed": "Je account kon niet worden verwijderd"
+  },
+  "spokenCompactUnits": {
+    "t_one": "{{count, number}} ton",
+    "t_other": "{{count, number}} ton",
+    "thousandLbs_one": "{{count, number}} duizend pond",
+    "thousandLbs_other": "{{count, number}} duizend pond"
+  },
+  "spokenUnits": {
+    "cm_one": "{{count, number}} centimeter",
+    "cm_other": "{{count, number}} centimeter",
+    "in_one": "{{count, number}} inch",
+    "in_other": "{{count, number}} inch",
+    "kg_one": "{{count, number}} kilogram",
+    "kg_other": "{{count, number}} kilogram",
+    "lbs_one": "{{count, number}} pond",
+    "lbs_other": "{{count, number}} pond"
+  },
+  "startWorkout": {
+    "start": "Training starten",
+    "continue": "Training voortzetten",
+    "continueNamed": "Doorgaan met {{name}}",
+    "finishFirst": "Rond eerst je lopende training af",
+    "finishFirstNamed": "Rond eerst {{name}} af",
+    "failed": {
+      "title": "Training starten mislukt",
+      "network": "Controleer je verbinding en probeer het opnieuw.",
+      "rateLimited": "Te veel verzoeken: probeer het over {{seconds, number}} s opnieuw."
+    }
+  },
   "subscription": {
     "title": "Abonnement",
     "heading": "Je abonnement",
@@ -697,190 +1014,6 @@
     "nothingToRestore": "Geen aankopen om te herstellen",
     "restoreFailed": "Aankopen konden niet worden hersteld. Controleer je verbinding en probeer het opnieuw."
   },
-  "languages": {
-    "en": "English",
-    "uk": "Українська",
-    "es": "Español",
-    "ca": "Català",
-    "fr": "Français",
-    "de": "Deutsch",
-    "it": "Italiano",
-    "pt-BR": "Português (Brasil)",
-    "pt-PT": "Português (Portugal)",
-    "pl": "Polski",
-    "zh-Hans": "简体中文",
-    "zh-Hant": "繁體中文",
-    "ja": "日本語",
-    "ko": "한국어",
-    "nl": "Nederlands"
-  },
-  "editProfile": {
-    "title": "Profiel bewerken",
-    "loadError": "Je profiel kon niet worden geladen. Controleer je verbinding en probeer het opnieuw.",
-    "save": "Opslaan"
-  },
-  "profilePhoto": {
-    "title": "Profielfoto",
-    "change": "Foto wijzigen",
-    "buttonLabel": "Profielfoto wijzigen",
-    "chooseFromLibrary": "Kies uit bibliotheek",
-    "takePhoto": "Maak foto",
-    "removePhoto": "Verwijder foto",
-    "uploadFailed": {
-      "title": "Kan foto niet wijzigen",
-      "message": "Je foto is niet gewijzigd. Controleer je verbinding en probeer het opnieuw."
-    },
-    "removeFailed": {
-      "title": "Kan foto niet verwijderen",
-      "message": "Je foto is niet verwijderd. Controleer je verbinding en probeer het opnieuw."
-    },
-    "cameraDenied": {
-      "title": "Toegang tot camera nodig",
-      "message": "Fitme heeft toegang tot je camera nodig om je profielfoto te maken. Je kunt dit inschakelen in Instellingen.",
-      "openSettings": "Instellingen openen"
-    }
-  },
-  "settings": {
-    "title": "Instellingen",
-    "measurementSystem": "Eenhedenstelsel",
-    "deleteAccount": "Account verwijderen",
-    "deleteConfirm": {
-      "title": "Account verwijderen",
-      "message": "Hiermee verwijder je je account en alle bijbehorende gegevens definitief. Dit kan niet ongedaan worden gemaakt.",
-      "confirm": "Verwijderen"
-    },
-    "deleteFailed": "Je account kon niet worden verwijderd"
-  },
-  "accountSecurity": {
-    "title": "Account en beveiliging",
-    "sections": {
-      "signIn": "Inloggen",
-      "methods": "Inlogmethoden"
-    },
-    "email": "E-mail",
-    "passwordRow": "Wachtwoord wijzigen",
-    "connected": "Gekoppeld",
-    "connectedAs": "Gekoppeld als {{email}}",
-    "notConnected": "Niet gekoppeld",
-    "connect": "Koppelen",
-    "connecting": "Koppelen…",
-    "disconnect": "Ontkoppelen",
-    "disconnecting": "Ontkoppelen…",
-    "addAnotherMethod": "Voeg eerst een andere inlogmethode toe",
-    "disconnectConfirm": {
-      "title": "{{provider}} ontkoppelen?",
-      "message": "Je kunt dan niet meer inloggen met {{provider}}."
-    },
-    "errors": {
-      "connectFailed": "{{provider}} kon niet worden gekoppeld. Probeer het opnieuw.",
-      "disconnectFailed": "{{provider}} kon niet worden ontkoppeld. Probeer het opnieuw.",
-      "appleUnavailable": "Inloggen met Apple is nog niet beschikbaar. Gebruik voorlopig Google of je e-mail.",
-      "alreadyLinked": "Dit {{provider}}-account is al gekoppeld aan een ander Fitme-account."
-    },
-    "deleteAccount": "Account verwijderen"
-  },
-  "changeEmail": {
-    "title": "E-mail wijzigen",
-    "current": "Huidig e-mailadres",
-    "new": "Nieuw e-mailadres",
-    "description": "We sturen een code naar je nieuwe e-mailadres om het te bevestigen.",
-    "submit": "Code versturen",
-    "errors": {
-      "emailInUse": "E-mailadres al in gebruik",
-      "invalidEmail": "Voer een geldig e-mailadres in.",
-      "sameEmail": "Dat is al je e-mailadres.",
-      "failed": "Je e-mailadres kon niet worden gewijzigd. Probeer het opnieuw."
-    },
-    "success": "E-mailadres gewijzigd"
-  },
-  "changePassword": {
-    "title": "Wachtwoord wijzigen",
-    "description": "Je wordt uitgelogd op je andere apparaten.",
-    "current": "Huidig wachtwoord",
-    "new": "Nieuw wachtwoord",
-    "confirm": "Bevestig nieuw wachtwoord",
-    "submit": "Wachtwoord wijzigen",
-    "errors": {
-      "tooShort": "Je wachtwoord moet minstens {{min}} tekens hebben.",
-      "mismatch": "Wachtwoorden komen niet overeen",
-      "wrongCurrent": "Het huidige wachtwoord is onjuist.",
-      "failed": "Je wachtwoord kon niet worden gewijzigd. Probeer het opnieuw."
-    },
-    "success": "Wachtwoord gewijzigd"
-  },
-  "confirmIdentity": {
-    "title": "Bevestig dat jij het bent",
-    "password": {
-      "description": "Voer je wachtwoord in om door te gaan.",
-      "placeholder": "Wachtwoord",
-      "forgot": "Wachtwoord vergeten?"
-    },
-    "code": {
-      "description": "Voer de code in die we naar {{email}} hebben gestuurd om door te gaan.",
-      "placeholder": "Code",
-      "resend": "Nieuwe code versturen"
-    },
-    "continue": "Doorgaan",
-    "errors": {
-      "passwordIncorrect": "Wachtwoord onjuist. Probeer het opnieuw.",
-      "wrongCode": "Die code klopt niet. Probeer het opnieuw.",
-      "codeNotSent": "De code kon niet worden verstuurd. Probeer het opnieuw.",
-      "failed": "We konden niet bevestigen dat jij het bent. Probeer het opnieuw."
-    }
-  },
-  "deleteAccount": {
-    "title": "Je account verwijderen?",
-    "message": "Je trainingen, plannen, profiel en chats met Arnold worden definitief verwijderd. Dit kan niet ongedaan worden gemaakt.",
-    "proWarning": {
-      "appStore": "Je App Store-abonnement wordt niet automatisch opgezegd. Beheer het in de App Store om de betalingen te stoppen.",
-      "googlePlay": "Je Google Play-abonnement wordt niet automatisch opgezegd. Beheer het in Google Play om de betalingen te stoppen."
-    },
-    "manageSubscription": "Abonnement beheren",
-    "confirm": "Account verwijderen",
-    "failed": "Je account kon niet worden verwijderd. Probeer het opnieuw."
-  },
-  "measurementSystem": {
-    "title": "Eenhedenstelsel",
-    "unitsTitle": "Eenheden",
-    "loadError": "Je eenhedenstelsel kon niet worden geladen. Controleer je verbinding en probeer het opnieuw.",
-    "confirm": {
-      "title": "Weet je het zeker?",
-      "message": "Als je je eenhedenstelsel wijzigt, worden al je metingen aangepast. Je profielgegevens en trainingsgeschiedenis worden omgerekend naar het nieuwe stelsel."
-    },
-    "checkFailed": {
-      "title": "Eenheden controleren mislukt",
-      "message": "Controleer je verbinding en probeer opnieuw te bekijken welk stelsel is opgeslagen."
-    },
-    "changeFailed": {
-      "title": "Eenheden wijzigen mislukt",
-      "message": "Je metingen zijn niet gewijzigd. Probeer het opnieuw.",
-      "rateLimited": "Je metingen zijn niet gewijzigd. Te veel verzoeken: probeer het over {{seconds, number}} s opnieuw."
-    },
-    "switchConfirm": {
-      "title": {
-        "metric": "Overstappen op metrische eenheden?",
-        "us": "Overstappen op Amerikaanse eenheden?",
-        "uk": "Overstappen op Britse eenheden?"
-      },
-      "message": {
-        "metric": "Je profiel en trainingsgeschiedenis worden omgerekend naar metrische eenheden.",
-        "us": "Je profiel en trainingsgeschiedenis worden omgerekend naar Amerikaanse eenheden.",
-        "uk": "Je profiel en trainingsgeschiedenis worden omgerekend naar Britse eenheden."
-      },
-      "confirm": "Overstappen"
-    }
-  },
-  "legal": {
-    "privacyTitle": "Juridisch en privacy",
-    "privacyPolicy": "Privacybeleid",
-    "terms": "Gebruiksvoorwaarden",
-    "deleteAccount": "Account verwijderen",
-    "deleteConfirm": {
-      "title": "Weet je zeker dat je je account wilt verwijderen?",
-      "message": "Dit kan niet ongedaan worden gemaakt. Je account wordt definitief verwijderd en je gegevens worden van onze servers verwijderd.",
-      "confirm": "Ja, verwijder mijn account"
-    }
-  },
   "support": {
     "title": "Hulp",
     "contactSection": "Contact",
@@ -892,6 +1025,29 @@
       "threads": "Threads"
     },
     "addressCopied": "Adres gekopieerd"
+  },
+  "tabs": {
+    "workout": "Training",
+    "history": "Geschiedenis",
+    "arnold": "Arnold AI",
+    "library": "Bibliotheek"
+  },
+  "unitNames": {
+    "cm": "cm",
+    "in": "inch",
+    "kg": "kg",
+    "lbs": "lb"
+  },
+  "units": {
+    "cm": "{{value, number}} cm",
+    "in": "{{value, number}} inch",
+    "kg": "{{value, number}} kg",
+    "lbs": "{{value, number}} lb"
+  },
+  "updateRequired": {
+    "title": "Update vereist",
+    "description": "Deze versie van Fitme wordt niet meer ondersteund. Werk de app bij om te blijven trainen.",
+    "update": "Bijwerken"
   },
   "verifyCode": {
     "screenTitle": "Code controleren",
@@ -922,41 +1078,12 @@
     "startOver": "Opnieuw beginnen",
     "changeEmailTitle": "Bevestig je nieuwe e-mailadres"
   },
-  "forgotPassword": {
-    "screenTitle": "Wachtwoord vergeten",
-    "title": "Wachtwoord vergeten?",
-    "description": "Vul het e-mailadres in waarmee je je hebt aangemeld. We sturen je een 6-cijferige code.",
-    "emailPlaceholder": "E-mail",
-    "invalidEmail": "Ongeldig e-mailadres",
-    "submit": "Code versturen",
-    "remember": "Weet je het weer?",
-    "login": "Inloggen",
-    "loading": "Code versturen"
-  },
-  "resetPassword": {
-    "screenTitle": "Wachtwoord opnieuw instellen",
-    "title": "Stel een nieuw wachtwoord in",
-    "description": "Kies een wachtwoord dat je niet voor andere accounts gebruikt.",
-    "newPasswordPlaceholder": "Nieuw wachtwoord",
-    "confirmPasswordPlaceholder": "Nieuw wachtwoord bevestigen",
-    "passwordTooShort_one": "Je wachtwoord moet minstens {{count}} teken bevatten.",
-    "passwordTooShort_other": "Je wachtwoord moet minstens {{count}} tekens bevatten.",
-    "passwordsDontMatch": "De wachtwoorden komen niet overeen.",
-    "submit": "Wachtwoord bijwerken",
-    "passwordChanged": "Je wachtwoord is gewijzigd. Log in met je nieuwe wachtwoord.",
-    "loading": "Wachtwoord bijwerken",
-    "changedMind": "Toch niet?",
-    "backToLogin": "Terug naar inloggen"
-  },
-  "updateRequired": {
-    "title": "Update vereist",
-    "description": "Deze versie van Fitme wordt niet meer ondersteund. Werk de app bij om te blijven trainen.",
-    "update": "Bijwerken"
-  },
-  "notFound": {
-    "title": "Oeps!",
-    "description": "Dit scherm bestaat niet.",
-    "goHome": "Naar het beginscherm"
+  "workoutCard": {
+    "exercises_one": "{{count, number}} oefening",
+    "exercises_other": "{{count, number}} oefeningen",
+    "toWorkout": "Naar training",
+    "openHint": "Opent de training",
+    "openInProgressHint": "Opent de lopende training"
   },
   "workoutSession": {
     "finish": "Afronden",
@@ -997,59 +1124,6 @@
     "howTo": "Hoe werkt het?",
     "guideHint": "Opent de uitleg van de oefening"
   },
-  "history": {
-    "empty": {
-      "title": "Nog geen trainingen",
-      "body": "Rond je eerste sessie af. Je ziet die hier met de tijd, sets, het volume en je persoonlijke records.",
-      "start": "{{name}} starten",
-      "nextUp": "Volgende in {{plan}} · {{exercises}}",
-      "resume": "Training hervatten",
-      "resumeNamed": "{{name}} hervatten",
-      "inProgress": "Je hebt een lopende training.",
-      "createPlan": "Schema maken"
-    },
-    "loadError": "Je trainingen konden niet worden geladen. Controleer je verbinding en probeer het opnieuw.",
-    "untitledWorkout": "Training",
-    "duration": "Duur {{duration}}",
-    "thisMonth": "Deze maand",
-    "stats": {
-      "workouts": "Trainingen",
-      "time": "Tijd",
-      "volume": "Volume"
-    },
-    "statLabel": "{{title}}: {{value}}",
-    "entry": "{{name}}, {{date}}, {{duration}}, {{sets}}, {{volume}}",
-    "streak": {
-      "badge_one": "{{count, number}} week op rij!",
-      "badge_other": "{{count, number}} weken op rij!",
-      "spoken_one": "Wekelijkse reeks: {{count, number}} week",
-      "spoken_other": "Wekelijkse reeks: {{count, number}} weken"
-    },
-    "weeklyGoal": {
-      "title": "Weekdoel · {{workouts}}",
-      "weeksHit_one": "{{hit, number}} van {{count, number}} week gehaald",
-      "weeksHit_other": "{{hit, number}} van {{count, number}} weken gehaald",
-      "now": "Nu",
-      "extra": "+{{count, number}}",
-      "thisWeek": "Deze week",
-      "weekOf": "Week van {{date}}",
-      "progress_one": "{{done, number}} van {{count, number}} training",
-      "progress_other": "{{done, number}} van {{count, number}} trainingen",
-      "overGoal": "{{count, number}} boven het doel",
-      "goalMet": "doel gehaald",
-      "goalMissed": "doel niet gehaald",
-      "inProgress": "bezig",
-      "firstWeek": "eerste geregistreerde week",
-      "noGoal": "geen doel vastgelegd",
-      "weekLabel": "{{week}}: {{details}}"
-    },
-    "personalRecord": "PR",
-    "entryWithRecords": "{{entry}}. {{records}}",
-    "personalRecords_one": "Persoonlijk record: {{records}}",
-    "personalRecords_other": "Persoonlijke records: {{records}}",
-    "recordResult": "{{exercise}}, {{weight}} × {{reps}}",
-    "bodyweightRecordResult": "{{exercise}}, lichaamsgewicht × {{reps}}"
-  },
   "workoutSummary": {
     "title": "Training voltooid!",
     "stats": {
@@ -1058,79 +1132,5 @@
     "statLabel": "{{title}}: {{value}}",
     "continue": "Doorgaan",
     "exercise": "{{name}}, {{sets}}"
-  },
-  "auth": {
-    "welcome": "Welkom bij Fitme!",
-    "fields": {
-      "email": "E-mail",
-      "passwordPlaceholder": "Wachtwoord",
-      "name": "Naam",
-      "code": "Code"
-    },
-    "validation": {
-      "invalidEmail": "Ongeldig e-mailadres",
-      "passwordRequired": "Vul je wachtwoord in.",
-      "nameTooShort_one": "Je naam moet minstens {{count}} teken bevatten.",
-      "nameTooShort_other": "Je naam moet minstens {{count}} tekens bevatten.",
-      "passwordTooShort_one": "Je wachtwoord moet minstens {{count}} teken bevatten.",
-      "passwordTooShort_other": "Je wachtwoord moet minstens {{count}} tekens bevatten."
-    },
-    "login": {
-      "title": "Inloggen",
-      "subtitle": "Log in op je account om je trainingen te bekijken",
-      "continue": "Inloggen",
-      "forgotPasswordLink": "Wachtwoord vergeten?",
-      "noAccount": "Nieuw bij Fitme?",
-      "registerLink": "Account aanmaken",
-      "cantSignInHere": "Je kunt met dit account hier nog niet inloggen.",
-      "heading": "Welkom terug",
-      "loading": "Inloggen"
-    },
-    "deviceCode": {
-      "title": "Controleer je e-mail",
-      "subtitle": "Vul de code in die we je hebben gestuurd om te bevestigen dat jij dit apparaat gebruikt",
-      "verify": "Controleren",
-      "resend": "Nieuwe code versturen",
-      "differentAccount": "Een ander account gebruiken"
-    },
-    "register": {
-      "title": "Registreren",
-      "subtitle": "Maak een account aan om te beginnen",
-      "submit": "Account aanmaken",
-      "haveAccount": "Heb je al een account?",
-      "loginLink": "Inloggen",
-      "heading": "Maak je account aan",
-      "loading": "Account aanmaken"
-    },
-    "intro": {
-      "heading": "Train slimmer,\nniet langer.",
-      "description": "Fitme is je persoonlijke AI-trainer. De app maakt je schema en registreert elke set.",
-      "plans": "Een schema op maat",
-      "logging": "Elke set en herhaling geregistreerd",
-      "guides": "Oefenuitleg met video",
-      "email": "Doorgaan met e-mail"
-    },
-    "social": {
-      "apple": "Doorgaan met Apple",
-      "google": "Doorgaan met Google",
-      "connectingGoogle": "Verbinding maken met Google",
-      "incomplete": "Inloggen is niet gelukt. Probeer het opnieuw of ga verder met e-mail."
-    },
-    "password": {
-      "show": "Wachtwoord tonen",
-      "hide": "Wachtwoord verbergen",
-      "minimum": "Minstens {{count}} tekens"
-    },
-    "legal": {
-      "prefix": "Door verder te gaan, ga je akkoord met Fitme's",
-      "terms": "Gebruiksvoorwaarden",
-      "and": "en",
-      "privacy": "Privacybeleid"
-    },
-    "or": "of",
-    "errors": {
-      "credentials": "Je e-mailadres of wachtwoord is onjuist. Probeer het opnieuw.",
-      "connection": "Controleer je verbinding en probeer het opnieuw."
-    }
   }
 }

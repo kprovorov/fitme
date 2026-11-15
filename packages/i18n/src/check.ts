@@ -89,6 +89,25 @@ const valueProblems = (language: AppLanguage, entries: Entry[]): string[] =>
     return value.trim() === "" ? [`${language}: "${key}" is empty`] : [];
   });
 
+/**
+ * Top-level sections in sorted order (JavaScript's default sort, by UTF-16
+ * code unit), so a new section lands at its place in the file rather than
+ * at the shared tail, where parallel pull requests would conflict.
+ */
+const sectionOrderProblems = (
+  language: AppLanguage,
+  catalog: Catalog
+): string[] =>
+  Object.keys(catalog).flatMap((name, index, names) => {
+    const previous = names[index - 1];
+
+    return previous !== undefined && name < previous
+      ? [
+          `${language}: section "${name}" is out of order: top-level sections are sorted, so it goes before "${previous}"`,
+        ]
+      : [];
+  });
+
 interface Key {
   /** The plural forms the catalog has (none for a string). */
   forms: Set<string>;
@@ -233,10 +252,11 @@ const sameKeyProblems = (
 /**
  * The translation check (CI, through this package's tests): every catalog
  * has the same keys with the same `{{placeholders}}`, every plural key has
- * exactly the forms its language needs, and every value is a non-empty
- * string. English is required as the source; smaller sets can be checked in
- * isolation. Catalog completeness is checked separately against appLanguages.
- * Answers one line per problem, none when the catalogs are fine.
+ * exactly the forms its language needs, every value is a non-empty string,
+ * and every catalog's top-level sections are sorted. English is required as
+ * the source; smaller sets can be checked in isolation. Catalog completeness
+ * is checked separately against appLanguages. Answers one line per problem,
+ * none when the catalogs are fine.
  */
 export const checkCatalogs = (
   catalogs: Readonly<Partial<Record<AppLanguage, Catalog>> & { en: Catalog }>
@@ -250,6 +270,7 @@ export const checkCatalogs = (
     }
 
     const language = name;
+    problems.push(...sectionOrderProblems(language, catalog));
     const entries = flatten(catalog);
     problems.push(...valueProblems(language, entries));
     const languageKeys = keysOf(language, entries, problems);

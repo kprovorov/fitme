@@ -1,44 +1,31 @@
 {
-  "tabs": {
-    "workout": "운동",
-    "history": "기록",
-    "arnold": "Arnold AI",
-    "library": "라이브러리"
-  },
-  "library": {
-    "search": "운동 종목 검색",
-    "muscles": "근육",
-    "equipment": "장비",
-    "removeMuscleGroup": "{{muscleGroup}} 제거",
-    "removeEquipment": "{{equipment}} 제거",
-    "reset": "초기화",
-    "confirm": "완료",
-    "loadErrorTitle": "종목을 불러오지 못했어요",
-    "loadError": "종목을 불러오지 못했어요. 연결 상태를 확인하고 다시 시도해 주세요.",
-    "loadMoreError": "종목을 더 불러오지 못했어요. 연결 상태를 확인하고 다시 시도해 주세요.",
-    "emptyTitle": "검색된 종목이 없어요",
-    "empty": "일치하는 종목이 없어요. 다른 이름이나 근육 부위로 검색해 보세요.",
-    "showAll": "모든 종목 보기"
-  },
-  "exercise": {
-    "gone": "이 종목은 더 이상 라이브러리에 없어요.",
-    "loadError": "이 종목을 불러오지 못했어요. 연결 상태를 확인하고 다시 시도해 주세요."
-  },
-  "exerciseHistory": {
-    "title": "진행 상황",
-    "loadError": "이 종목의 기록을 불러오지 못했어요. 연결 상태를 확인하고 다시 시도해 주세요.",
-    "set": "{{order, number}}세트: {{logged}}",
-    "target": "목표 {{target}}"
-  },
-  "counts": {
-    "entries_other": "기록 {{count, number}}개",
-    "hours_other": "{{count, number}}시간",
-    "exercises_other": "{{count, number}}개 종목",
-    "minutes_other": "{{count, number}}분",
-    "reps_other": "{{count, number}}회",
-    "sets_other": "{{count, number}}세트",
-    "workoutSessions_other": "운동 {{count, number}}회",
-    "workouts_other": "운동 {{count, number}}개"
+  "accountSecurity": {
+    "title": "계정 및 보안",
+    "sections": {
+      "signIn": "로그인",
+      "methods": "로그인 방법"
+    },
+    "email": "이메일",
+    "passwordRow": "비밀번호 변경",
+    "connected": "연결됨",
+    "connectedAs": "{{email}}(으)로 연결됨",
+    "notConnected": "연결 안 됨",
+    "connect": "연결",
+    "connecting": "연결 중…",
+    "disconnect": "연결 해제",
+    "disconnecting": "연결 해제 중…",
+    "addAnotherMethod": "먼저 다른 로그인 방법을 추가해 주세요",
+    "disconnectConfirm": {
+      "title": "{{provider}} 연결을 해제할까요?",
+      "message": "더 이상 {{provider}}(으)로 로그인할 수 없어요."
+    },
+    "errors": {
+      "connectFailed": "{{provider}}을(를) 연결하지 못했어요. 다시 시도해 주세요.",
+      "disconnectFailed": "{{provider}} 연결을 해제하지 못했어요. 다시 시도해 주세요.",
+      "appleUnavailable": "Apple 로그인은 아직 사용할 수 없어요. 지금은 Google이나 이메일을 사용해 주세요.",
+      "alreadyLinked": "이 {{provider}} 계정은 이미 다른 Fitme 계정에 연결되어 있어요."
+    },
+    "deleteAccount": "계정 삭제"
   },
   "arnold": {
     "title": "Arnold",
@@ -99,6 +86,572 @@
         "generic": "계획을 저장하지 못했어요. 다시 시도해 주세요."
       }
     }
+  },
+  "auth": {
+    "welcome": "Fitme에 오신 것을 환영해요!",
+    "fields": {
+      "email": "이메일",
+      "passwordPlaceholder": "비밀번호",
+      "name": "이름",
+      "code": "코드"
+    },
+    "validation": {
+      "invalidEmail": "올바른 이메일을 입력해 주세요",
+      "passwordRequired": "비밀번호를 입력해 주세요.",
+      "nameTooShort_other": "이름은 {{count}}자 이상이어야 해요.",
+      "passwordTooShort_other": "비밀번호는 {{count}}자 이상이어야 해요."
+    },
+    "login": {
+      "title": "로그인",
+      "subtitle": "계정에 로그인하고 내 운동을 확인해 보세요",
+      "continue": "로그인",
+      "forgotPasswordLink": "비밀번호를 잊으셨나요?",
+      "noAccount": "Fitme가 처음이신가요?",
+      "registerLink": "계정 만들기",
+      "cantSignInHere": "아직 이 계정으로는 여기에서 로그인할 수 없어요.",
+      "heading": "다시 만나서 반가워요",
+      "loading": "로그인 중"
+    },
+    "deviceCode": {
+      "title": "이메일을 확인해 주세요",
+      "subtitle": "이 기기에서 본인임을 확인하려면 보내드린 코드를 입력해 주세요",
+      "verify": "확인",
+      "resend": "새 코드 보내기",
+      "differentAccount": "다른 계정 사용"
+    },
+    "register": {
+      "title": "회원가입",
+      "subtitle": "계정을 만들고 시작해 보세요",
+      "submit": "계정 만들기",
+      "haveAccount": "이미 계정이 있으신가요?",
+      "loginLink": "로그인",
+      "heading": "계정을 만들어 주세요",
+      "loading": "계정 만드는 중"
+    },
+    "intro": {
+      "heading": "더 오래 말고,\n더 똑똑하게 운동하세요.",
+      "description": "Fitme는 나만의 AI 트레이너예요. 운동 계획을 만들고 모든 세트를 기록해요.",
+      "plans": "나에게 맞춘 운동 계획",
+      "logging": "모든 세트와 반복 횟수 기록",
+      "guides": "동영상 운동 가이드",
+      "email": "이메일로 계속하기"
+    },
+    "social": {
+      "apple": "Apple로 계속하기",
+      "google": "Google로 계속하기",
+      "connectingGoogle": "Google에 연결 중",
+      "incomplete": "로그인을 완료하지 못했어요. 다시 시도하거나 이메일로 계속해 주세요."
+    },
+    "password": {
+      "show": "비밀번호 표시",
+      "hide": "비밀번호 숨기기",
+      "minimum": "{{count}}자 이상"
+    },
+    "legal": {
+      "prefix": "계속하면 Fitme의 다음 항목에 동의하게 돼요:",
+      "terms": "이용약관",
+      "and": "및",
+      "privacy": "개인정보 처리방침"
+    },
+    "or": "또는",
+    "errors": {
+      "credentials": "이메일 또는 비밀번호가 올바르지 않아요. 다시 시도해 주세요.",
+      "connection": "연결 상태를 확인하고 다시 시도해 주세요."
+    }
+  },
+  "changeEmail": {
+    "title": "이메일 변경",
+    "current": "현재 이메일",
+    "new": "새 이메일",
+    "description": "확인을 위해 새 이메일로 코드를 보내 드릴게요.",
+    "submit": "코드 보내기",
+    "errors": {
+      "emailInUse": "이미 사용 중인 이메일이에요",
+      "invalidEmail": "올바른 이메일 주소를 입력해 주세요.",
+      "sameEmail": "이미 사용 중인 내 이메일이에요.",
+      "failed": "이메일을 변경하지 못했어요. 다시 시도해 주세요."
+    },
+    "success": "이메일을 변경했어요"
+  },
+  "changePassword": {
+    "title": "비밀번호 변경",
+    "description": "다른 기기에서는 로그아웃돼요.",
+    "current": "현재 비밀번호",
+    "new": "새 비밀번호",
+    "confirm": "새 비밀번호 확인",
+    "submit": "비밀번호 변경",
+    "errors": {
+      "tooShort": "비밀번호는 {{min}}자 이상이어야 해요.",
+      "mismatch": "비밀번호가 일치하지 않아요",
+      "wrongCurrent": "현재 비밀번호가 올바르지 않아요.",
+      "failed": "비밀번호를 변경하지 못했어요. 다시 시도해 주세요."
+    },
+    "success": "비밀번호를 변경했어요"
+  },
+  "choices": {
+    "equipment": {
+      "barbell": "바벨",
+      "dumbbell": "덤벨",
+      "cable": "케이블",
+      "machine": "머신",
+      "smith_machine": "스미스 머신",
+      "bench": "벤치",
+      "pull_up_bar": "풀업 바",
+      "landmine": "랜드마인",
+      "bodyweight": "맨몸"
+    },
+    "experienceLevel": {
+      "beginner": "초급",
+      "intermediate": "중급",
+      "advanced": "고급"
+    },
+    "experienceLevelDescription": {
+      "beginner": "운동 경력 0~6개월",
+      "intermediate": "운동 경력 6개월~3년",
+      "advanced": "운동 경력 3년 이상"
+    },
+    "gender": {
+      "male": "남성",
+      "female": "여성"
+    },
+    "goal": {
+      "muscle-gain": "근육 증가",
+      "fat-loss": "체중 감량",
+      "recomposition": "체성분 개선",
+      "strength-performance": "근력 및 운동 능력 향상",
+      "general-health-fitness": "전반적인 건강 및 체력 향상"
+    },
+    "measurementSystem": {
+      "metric": "미터법",
+      "us": "미국식",
+      "uk": "영국식"
+    },
+    "measurementSystemDescription": {
+      "metric": "센티미터 및 킬로그램",
+      "us": "피트, 인치 및 파운드",
+      "uk": "피트, 인치 및 파운드"
+    },
+    "muscleGroup": {
+      "chest": "가슴",
+      "back": "등",
+      "shoulders": "어깨",
+      "biceps": "이두근",
+      "triceps": "삼두근",
+      "forearms": "전완근",
+      "abs": "복근",
+      "obliques": "복사근",
+      "quadriceps": "대퇴사두근",
+      "hamstrings": "햄스트링",
+      "glutes": "둔근",
+      "calves": "종아리",
+      "traps": "승모근",
+      "lats": "광배근",
+      "lower-back": "허리",
+      "cardio": "유산소",
+      "full-body": "전신"
+    },
+    "place": {
+      "gym": "헬스장",
+      "home": "집"
+    }
+  },
+  "common": {
+    "cancel": "취소",
+    "confirm": "확인",
+    "tryAgain": "다시 시도",
+    "genericError": "문제가 발생했어요. 나중에 다시 시도해 주세요.",
+    "rateLimited": "요청이 너무 많아요. {{seconds, number}}초 후에 다시 시도해 주세요."
+  },
+  "compactUnits": {
+    "t": "{{value, number}} t",
+    "thousandLbs": "{{value, number}}천 lb"
+  },
+  "confirmIdentity": {
+    "title": "본인 확인",
+    "password": {
+      "description": "계속하려면 비밀번호를 입력해 주세요.",
+      "placeholder": "비밀번호",
+      "forgot": "비밀번호를 잊으셨나요?"
+    },
+    "code": {
+      "description": "계속하려면 {{email}}(으)로 보낸 코드를 입력해 주세요.",
+      "placeholder": "코드",
+      "resend": "새 코드 보내기"
+    },
+    "continue": "계속",
+    "errors": {
+      "passwordIncorrect": "비밀번호가 올바르지 않아요. 다시 시도해 주세요.",
+      "wrongCode": "코드가 올바르지 않아요. 다시 시도해 주세요.",
+      "codeNotSent": "코드를 보내지 못했어요. 다시 시도해 주세요.",
+      "failed": "본인 확인을 하지 못했어요. 다시 시도해 주세요."
+    }
+  },
+  "counts": {
+    "entries_other": "기록 {{count, number}}개",
+    "hours_other": "{{count, number}}시간",
+    "exercises_other": "{{count, number}}개 종목",
+    "minutes_other": "{{count, number}}분",
+    "reps_other": "{{count, number}}회",
+    "sets_other": "{{count, number}}세트",
+    "workoutSessions_other": "운동 {{count, number}}회",
+    "workouts_other": "운동 {{count, number}}개"
+  },
+  "deleteAccount": {
+    "title": "계정을 삭제할까요?",
+    "message": "운동 기록, 플랜, 프로필, Arnold와의 채팅이 영구적으로 삭제돼요. 이 작업은 되돌릴 수 없어요.",
+    "proWarning": {
+      "appStore": "App Store 구독은 자동으로 취소되지 않아요. 결제를 중단하려면 App Store에서 관리해 주세요.",
+      "googlePlay": "Google Play 구독은 자동으로 취소되지 않아요. 결제를 중단하려면 Google Play에서 관리해 주세요."
+    },
+    "manageSubscription": "구독 관리",
+    "confirm": "계정 삭제",
+    "failed": "계정을 삭제하지 못했어요. 다시 시도해 주세요."
+  },
+  "duration": {
+    "hoursMinutes": "{{hours, number}}시간 {{minutes, number}}분",
+    "hours": "{{hours, number}}시간",
+    "minutes": "{{minutes, number}}분"
+  },
+  "editProfile": {
+    "title": "프로필 편집",
+    "loadError": "프로필을 불러오지 못했어요. 연결 상태를 확인하고 다시 시도해 주세요.",
+    "save": "저장"
+  },
+  "exercise": {
+    "gone": "이 종목은 더 이상 라이브러리에 없어요.",
+    "loadError": "이 종목을 불러오지 못했어요. 연결 상태를 확인하고 다시 시도해 주세요."
+  },
+  "exerciseHistory": {
+    "title": "진행 상황",
+    "loadError": "이 종목의 기록을 불러오지 못했어요. 연결 상태를 확인하고 다시 시도해 주세요.",
+    "set": "{{order, number}}세트: {{logged}}",
+    "target": "목표 {{target}}"
+  },
+  "finishWorkout": {
+    "confirm": {
+      "title": "운동을 마칠까요?",
+      "unloggedSets_other": "계획한 {{count, number}}세트가 기록되지 않았어요.",
+      "cancel": "취소",
+      "finish": "마치기"
+    },
+    "failed": {
+      "title": "운동을 마치지 못했어요",
+      "network": "연결 상태를 확인하고 다시 시도해 주세요.",
+      "rateLimited": "요청이 너무 많아요. {{seconds, number}}초 후에 다시 시도해 주세요."
+    },
+    "suggestion": {
+      "title": "운동 완료!",
+      "description": "계획한 모든 세트를 기록했어요.",
+      "close": "닫기",
+      "keepTrainingHint": "이 제안을 닫고 운동을 계속합니다",
+      "finish": "운동 마치기",
+      "finishHint": "이번 운동을 마칩니다",
+      "keepTraining": "계속 운동하기"
+    }
+  },
+  "forgotPassword": {
+    "screenTitle": "비밀번호 찾기",
+    "title": "비밀번호를 잊으셨나요?",
+    "description": "가입할 때 사용한 이메일을 입력하면 6자리 코드를 보내드려요.",
+    "emailPlaceholder": "이메일",
+    "invalidEmail": "올바른 이메일을 입력해 주세요",
+    "submit": "코드 보내기",
+    "remember": "비밀번호가 기억나셨나요?",
+    "login": "로그인",
+    "loading": "코드 보내는 중"
+  },
+  "forms": {
+    "numberMin": "숫자는 {{min, number(useGrouping: false)}} 이상이어야 해요",
+    "numberMax": "숫자는 {{max, number(useGrouping: false)}} 이하여야 해요"
+  },
+  "history": {
+    "empty": {
+      "title": "아직 운동 기록이 없어요",
+      "body": "첫 운동을 마치면 시간, 세트, 볼륨, 개인 기록이 여기에 표시돼요.",
+      "start": "{{name}} 시작",
+      "nextUp": "{{plan}} 계획의 다음 운동 · {{exercises}}",
+      "resume": "운동 이어 하기",
+      "resumeNamed": "{{name}} 이어 하기",
+      "inProgress": "진행 중인 운동이 있어요.",
+      "createPlan": "계획 만들기"
+    },
+    "loadError": "운동 기록을 불러오지 못했어요. 연결 상태를 확인하고 다시 시도해 주세요.",
+    "untitledWorkout": "운동",
+    "duration": "운동 시간 {{duration}}",
+    "thisMonth": "이번 달",
+    "stats": {
+      "workouts": "운동",
+      "time": "시간",
+      "volume": "볼륨"
+    },
+    "statLabel": "{{title}}: {{value}}",
+    "entry": "{{name}}, {{date}}, {{duration}}, {{sets}}, {{volume}}",
+    "streak": {
+      "badge_other": "{{count, number}}주 연속 달성!",
+      "spoken_other": "주간 연속 기록: {{count, number}}주"
+    },
+    "weeklyGoal": {
+      "title": "주간 목표 · {{workouts}}",
+      "weeksHit_other": "{{count, number}}주 중 {{hit, number}}주 달성",
+      "now": "현재",
+      "extra": "+{{count, number}}",
+      "thisWeek": "이번 주",
+      "weekOf": "{{date}} 시작 주",
+      "progress_other": "운동 {{count, number}}회 중 {{done, number}}회",
+      "overGoal": "목표보다 {{count, number}}회 초과",
+      "goalMet": "목표 달성",
+      "goalMissed": "목표 미달성",
+      "inProgress": "진행 중",
+      "firstWeek": "첫 기록 주",
+      "noGoal": "기록된 목표 없음",
+      "weekLabel": "{{week}}: {{details}}"
+    },
+    "personalRecord": "개인 기록",
+    "entryWithRecords": "{{entry}}. {{records}}",
+    "personalRecords_other": "개인 기록: {{records}}",
+    "recordResult": "{{exercise}}, {{weight}} × {{reps}}",
+    "bodyweightRecordResult": "{{exercise}}, 맨몸 × {{reps}}"
+  },
+  "home": {
+    "managePlans": "계획 관리",
+    "createPlan": "계획 만들기",
+    "workouts": "운동",
+    "planMenu": "계획 옵션",
+    "logo": "Fitme",
+    "card": {
+      "preview": "미리 보기",
+      "previewNamed": "{{name}} 미리 보기",
+      "start": "시작",
+      "startNamed": "{{name}} 시작",
+      "continue": "계속하기",
+      "continueNamed": "{{name}} 계속하기",
+      "moreMuscleGroups": "+{{count, number}}",
+      "moreMuscleGroupsSpoken_other": "외 근육 부위 {{count, number}}개"
+    },
+    "allSet": "잘했어요! 모두 마쳤어요!",
+    "empty": {
+      "title": "활성 계획이 없어요",
+      "message": "활성화된 운동 계획이 없어요. 계획을 만들어 시작해 보세요.",
+      "inactiveMessage": "기존 계획을 활성화하거나 새 계획을 만들어 주세요.",
+      "action": "운동 계획 만들기"
+    },
+    "loadError": {
+      "title": "계획을 불러오지 못했어요",
+      "message": "연결 상태를 확인하고 다시 시도해 주세요."
+    }
+  },
+  "languages": {
+    "en": "English",
+    "uk": "Українська",
+    "es": "Español",
+    "ca": "Català",
+    "fr": "Français",
+    "de": "Deutsch",
+    "it": "Italiano",
+    "pt-BR": "Português (Brasil)",
+    "pt-PT": "Português (Portugal)",
+    "pl": "Polski",
+    "zh-Hans": "简体中文",
+    "zh-Hant": "繁體中文",
+    "ja": "日本語",
+    "ko": "한국어",
+    "nl": "Nederlands"
+  },
+  "legal": {
+    "privacyTitle": "법적 정보 및 개인정보 보호",
+    "privacyPolicy": "개인정보 처리방침",
+    "terms": "이용약관",
+    "deleteAccount": "계정 삭제",
+    "deleteConfirm": {
+      "title": "계정을 삭제할까요?",
+      "message": "이 작업은 되돌릴 수 없어요. 계정이 영구적으로 삭제되고 서버에서 회원님의 데이터가 제거돼요.",
+      "confirm": "예, 계정 삭제"
+    }
+  },
+  "library": {
+    "search": "운동 종목 검색",
+    "muscles": "근육",
+    "equipment": "장비",
+    "removeMuscleGroup": "{{muscleGroup}} 제거",
+    "removeEquipment": "{{equipment}} 제거",
+    "reset": "초기화",
+    "confirm": "완료",
+    "loadErrorTitle": "종목을 불러오지 못했어요",
+    "loadError": "종목을 불러오지 못했어요. 연결 상태를 확인하고 다시 시도해 주세요.",
+    "loadMoreError": "종목을 더 불러오지 못했어요. 연결 상태를 확인하고 다시 시도해 주세요.",
+    "emptyTitle": "검색된 종목이 없어요",
+    "empty": "일치하는 종목이 없어요. 다른 이름이나 근육 부위로 검색해 보세요.",
+    "showAll": "모든 종목 보기"
+  },
+  "measurementSystem": {
+    "title": "측정 단위",
+    "unitsTitle": "단위",
+    "loadError": "측정 단위를 불러오지 못했어요. 연결 상태를 확인하고 다시 시도해 주세요.",
+    "confirm": {
+      "title": "계속할까요?",
+      "message": "측정 단위를 변경하면 모든 측정값에 적용돼요. 프로필 정보와 운동 기록이 새 단위로 변환돼요."
+    },
+    "checkFailed": {
+      "title": "단위를 확인하지 못했어요",
+      "message": "연결 상태를 확인한 후 다시 시도해 저장된 단위를 확인해 주세요."
+    },
+    "changeFailed": {
+      "title": "단위를 변경하지 못했어요",
+      "message": "측정값은 변경되지 않았어요. 다시 시도해 주세요.",
+      "rateLimited": "측정값은 변경되지 않았어요. 요청이 너무 많으니 {{seconds, number}}초 후에 다시 시도해 주세요."
+    },
+    "switchConfirm": {
+      "title": {
+        "metric": "미터법으로 전환할까요?",
+        "us": "미국식 단위로 전환할까요?",
+        "uk": "영국식 단위로 전환할까요?"
+      },
+      "message": {
+        "metric": "프로필과 운동 기록이 미터법으로 변환돼요.",
+        "us": "프로필과 운동 기록이 미국식 단위로 변환돼요.",
+        "uk": "프로필과 운동 기록이 영국식 단위로 변환돼요."
+      },
+      "confirm": "전환"
+    }
+  },
+  "notFound": {
+    "title": "이런!",
+    "description": "존재하지 않는 화면이에요.",
+    "goHome": "홈 화면으로 이동"
+  },
+  "onboarding": {
+    "welcome": {
+      "title": "Fitme에 오신 것을 환영해요!",
+      "description": "나만의 AI 트레이너가 기다리고 있어요. 시작해 볼까요?",
+      "getStarted": "시작하기",
+      "skip": "건너뛰기"
+    },
+    "profile": {
+      "title": "회원님에 대해 알려 주세요",
+      "description": "이 정보로 회원님에게 맞는 운동 경험을 제공해요.",
+      "next": "다음",
+      "loadError": "프로필을 불러오지 못했어요. 연결 상태를 확인하고 다시 시도해 주세요."
+    }
+  },
+  "planBuilder": {
+    "title": "계획 만들기",
+    "question": "이 계획을 어떻게 만들까요?",
+    "byHand": "직접 만들기",
+    "byHandHint": "운동, 종목, 세트를 직접 고릅니다.",
+    "askArnold": "Arnold에게 요청",
+    "askArnoldHint": "Fitme의 AI가 목표에 맞춰 계획을 만듭니다.",
+    "pro": "Pro",
+    "detailsTitle": "새 계획",
+    "detailsHint": "이름과 주당 횟수만 정하세요. 나머지는 나중에 바꿀 수 있습니다.",
+    "continue": "계속",
+    "back": "뒤로"
+  },
+  "planEditor": {
+    "title": "계획 편집",
+    "createTitle": "새 계획",
+    "save": "저장",
+    "details": "세부 정보",
+    "name": "이름",
+    "namePlaceholder": "계획 이름",
+    "description": "설명",
+    "descriptionPlaceholder": "이 계획의 목적",
+    "frequency": "주당 운동 횟수",
+    "duration": "운동 시간",
+    "durationUnit": "분",
+    "goal": "목표",
+    "experience": "경험 수준",
+    "place": "장소",
+    "unset": "설정 안 함",
+    "workouts": "운동",
+    "workoutsHint": "순환 순서대로 표시돼요. 맨 위의 운동이 다음 차례예요.",
+    "noWorkouts": "계획에는 운동이 하나 이상 필요해요.",
+    "workoutActions": "{{name}} 작업",
+    "moveUp": "{{name}} 위로 이동",
+    "moveDown": "{{name}} 아래로 이동",
+    "remove": "{{name}} 삭제",
+    "addWorkout": "운동 추가",
+    "newWorkoutName": "운동 {{letter}}",
+    "openWorkout": "{{name}} 편집",
+    "workoutNeedsExercise": "종목이 하나 이상 필요해요",
+    "workoutNeedsFixing": "이 운동의 이름과 세트를 확인해 주세요",
+    "workout": {
+      "title": "운동 편집",
+      "name": "이름",
+      "namePlaceholder": "운동 이름",
+      "exercises": "종목",
+      "exercisesHint": "수행할 순서대로 표시돼요.",
+      "noExercises": "이 운동에 종목을 추가해 주세요.",
+      "addExercise": "종목 추가",
+      "exerciseActions": "{{name}} 작업",
+      "moveUp": "{{name}} 위로 이동",
+      "moveDown": "{{name}} 아래로 이동",
+      "replace": "{{name}} 교체",
+      "remove": "{{name}} 삭제",
+      "removeSet": "{{order, number}}세트 삭제",
+      "errors": {
+        "nameRequired": "운동 이름을 입력해 주세요",
+        "repsRange": "반복 횟수는 {{min, number(useGrouping: false)}}~{{max, number(useGrouping: false)}} 사이의 정수여야 해요",
+        "weightRange": "중량은 {{min, number(useGrouping: false)}}~{{max, number(useGrouping: false)}} 사이의 숫자여야 해요",
+        "restRange": "휴식 시간은 {{min, number(useGrouping: false)}}~{{max, number(useGrouping: false)}}초 사이의 정수여야 해요"
+      }
+    },
+    "picker": {
+      "addTitle": "종목 추가",
+      "replaceTitle": "종목 교체",
+      "addExercise": "{{name}} 추가",
+      "replaceWith": "{{name}} 종목으로 교체"
+    },
+    "discard": {
+      "title": "변경 사항을 버릴까요?",
+      "message": "이 계획의 변경 사항이 사라져요.",
+      "confirm": "버리기"
+    },
+    "errors": {
+      "nameRequired": "계획 이름을 입력해 주세요",
+      "nameTooLong": "이름은 {{max, number(useGrouping: false)}}자 이하여야 해요",
+      "descriptionTooLong": "설명은 {{max, number(useGrouping: false)}}자 이하여야 해요",
+      "frequencyRange": "주당 운동 횟수는 {{min, number(useGrouping: false)}}~{{max, number(useGrouping: false)}} 사이의 정수여야 해요",
+      "durationRange": "운동 시간은 분 단위의 정수로, 최대 {{max, number(useGrouping: false)}}분까지 입력할 수 있어요",
+      "saveFailed": "계획을 저장하지 못했어요. 연결 상태를 확인하고 다시 시도해 주세요.",
+      "saveRateLimited": "계획을 저장하지 못했어요. 요청이 너무 많으니 {{seconds, number}}초 후에 다시 시도해 주세요.",
+      "unknownExercises": "알 수 없는 종목이 포함되어 있어 이 계획을 저장할 수 없어요. 해당 종목을 교체하고 다시 시도해 주세요.",
+      "libraryUnavailable": "이 계획의 종목을 확인하지 못했어요. 다시 시도해 주세요.",
+      "unitsChanged": "다른 기기에서 중량 단위가 변경되어 이 목표에는 이전 단위가 적용되어 있어요. 편집 화면을 닫았다가 다시 열어 주세요."
+    }
+  },
+  "planUpdate": {
+    "title": "계획을 업데이트할까요?",
+    "description": "오늘 {{workout}} 운동의 변경 사항을 {{plan}} 계획에 저장해요.",
+    "failed": "계획을 업데이트하지 못했어요. 연결 상태를 확인하고 다시 시도해 주세요.",
+    "rateLimited": "요청이 너무 많아요. {{seconds, number}}초 후에 다시 시도해 주세요.",
+    "update": "계획 업데이트",
+    "updateHint": "변경 사항을 계획에 저장하고 운동 요약을 표시합니다",
+    "retry": "다시 시도",
+    "keep": "기존 계획 유지",
+    "keepHint": "계획을 변경하지 않고 운동 요약을 표시합니다",
+    "changes": {
+      "replace": "{{replaced}} 종목을 {{exercise}} 종목으로 교체",
+      "add": "{{exercise}} 추가",
+      "remove": "{{exercise}} 삭제",
+      "addSets_other": "{{exercise}} 종목에 {{count, number}}세트 추가",
+      "line": "{{change}} · {{sets}}",
+      "spokenLine": "{{change}}: {{sets}}",
+      "spokenSet": "{{weight}} 중량으로 {{reps}}"
+    }
+  },
+  "plannedWorkout": {
+    "stats": {
+      "duration": "시간",
+      "exercises": "종목",
+      "sets": "세트"
+    },
+    "durationMinutes": "{{minutes, number}}분",
+    "noExercises": "이 운동에는 아직 종목이 없어요.",
+    "gone": "이 운동은 더 이상 존재하지 않아요",
+    "goBack": "뒤로",
+    "edit": "운동 편집",
+    "loadError": "이 운동을 불러오지 못했어요. 연결 상태를 확인하고 다시 시도해 주세요.",
+    "exerciseDetailsHint": "종목의 세부 정보를 엽니다"
   },
   "planner": {
     "title": "운동 계획 만들기",
@@ -177,392 +730,6 @@
       "rateLimited": "요청이 너무 많아요. {{seconds, number}}초 후에 다시 시도해 주세요."
     }
   },
-  "planEditor": {
-    "title": "계획 편집",
-    "createTitle": "새 계획",
-    "save": "저장",
-    "details": "세부 정보",
-    "name": "이름",
-    "namePlaceholder": "계획 이름",
-    "description": "설명",
-    "descriptionPlaceholder": "이 계획의 목적",
-    "frequency": "주당 운동 횟수",
-    "duration": "운동 시간",
-    "durationUnit": "분",
-    "goal": "목표",
-    "experience": "경험 수준",
-    "place": "장소",
-    "unset": "설정 안 함",
-    "workouts": "운동",
-    "workoutsHint": "순환 순서대로 표시돼요. 맨 위의 운동이 다음 차례예요.",
-    "noWorkouts": "계획에는 운동이 하나 이상 필요해요.",
-    "workoutActions": "{{name}} 작업",
-    "moveUp": "{{name}} 위로 이동",
-    "moveDown": "{{name}} 아래로 이동",
-    "remove": "{{name}} 삭제",
-    "addWorkout": "운동 추가",
-    "newWorkoutName": "운동 {{letter}}",
-    "openWorkout": "{{name}} 편집",
-    "workoutNeedsExercise": "종목이 하나 이상 필요해요",
-    "workoutNeedsFixing": "이 운동의 이름과 세트를 확인해 주세요",
-    "workout": {
-      "title": "운동 편집",
-      "name": "이름",
-      "namePlaceholder": "운동 이름",
-      "exercises": "종목",
-      "exercisesHint": "수행할 순서대로 표시돼요.",
-      "noExercises": "이 운동에 종목을 추가해 주세요.",
-      "addExercise": "종목 추가",
-      "exerciseActions": "{{name}} 작업",
-      "moveUp": "{{name}} 위로 이동",
-      "moveDown": "{{name}} 아래로 이동",
-      "replace": "{{name}} 교체",
-      "remove": "{{name}} 삭제",
-      "removeSet": "{{order, number}}세트 삭제",
-      "errors": {
-        "nameRequired": "운동 이름을 입력해 주세요",
-        "repsRange": "반복 횟수는 {{min, number(useGrouping: false)}}~{{max, number(useGrouping: false)}} 사이의 정수여야 해요",
-        "weightRange": "중량은 {{min, number(useGrouping: false)}}~{{max, number(useGrouping: false)}} 사이의 숫자여야 해요",
-        "restRange": "휴식 시간은 {{min, number(useGrouping: false)}}~{{max, number(useGrouping: false)}}초 사이의 정수여야 해요"
-      }
-    },
-    "picker": {
-      "addTitle": "종목 추가",
-      "replaceTitle": "종목 교체",
-      "addExercise": "{{name}} 추가",
-      "replaceWith": "{{name}} 종목으로 교체"
-    },
-    "discard": {
-      "title": "변경 사항을 버릴까요?",
-      "message": "이 계획의 변경 사항이 사라져요.",
-      "confirm": "버리기"
-    },
-    "errors": {
-      "nameRequired": "계획 이름을 입력해 주세요",
-      "nameTooLong": "이름은 {{max, number(useGrouping: false)}}자 이하여야 해요",
-      "descriptionTooLong": "설명은 {{max, number(useGrouping: false)}}자 이하여야 해요",
-      "frequencyRange": "주당 운동 횟수는 {{min, number(useGrouping: false)}}~{{max, number(useGrouping: false)}} 사이의 정수여야 해요",
-      "durationRange": "운동 시간은 분 단위의 정수로, 최대 {{max, number(useGrouping: false)}}분까지 입력할 수 있어요",
-      "saveFailed": "계획을 저장하지 못했어요. 연결 상태를 확인하고 다시 시도해 주세요.",
-      "saveRateLimited": "계획을 저장하지 못했어요. 요청이 너무 많으니 {{seconds, number}}초 후에 다시 시도해 주세요.",
-      "unknownExercises": "알 수 없는 종목이 포함되어 있어 이 계획을 저장할 수 없어요. 해당 종목을 교체하고 다시 시도해 주세요.",
-      "libraryUnavailable": "이 계획의 종목을 확인하지 못했어요. 다시 시도해 주세요.",
-      "unitsChanged": "다른 기기에서 중량 단위가 변경되어 이 목표에는 이전 단위가 적용되어 있어요. 편집 화면을 닫았다가 다시 열어 주세요."
-    }
-  },
-  "planBuilder": {
-    "title": "계획 만들기",
-    "question": "이 계획을 어떻게 만들까요?",
-    "byHand": "직접 만들기",
-    "byHandHint": "운동, 종목, 세트를 직접 고릅니다.",
-    "askArnold": "Arnold에게 요청",
-    "askArnoldHint": "Fitme의 AI가 목표에 맞춰 계획을 만듭니다.",
-    "pro": "Pro",
-    "detailsTitle": "새 계획",
-    "detailsHint": "이름과 주당 횟수만 정하세요. 나머지는 나중에 바꿀 수 있습니다.",
-    "continue": "계속",
-    "back": "뒤로"
-  },
-  "plannedWorkout": {
-    "stats": {
-      "duration": "시간",
-      "exercises": "종목",
-      "sets": "세트"
-    },
-    "durationMinutes": "{{minutes, number}}분",
-    "noExercises": "이 운동에는 아직 종목이 없어요.",
-    "gone": "이 운동은 더 이상 존재하지 않아요",
-    "goBack": "뒤로",
-    "edit": "운동 편집",
-    "loadError": "이 운동을 불러오지 못했어요. 연결 상태를 확인하고 다시 시도해 주세요.",
-    "exerciseDetailsHint": "종목의 세부 정보를 엽니다"
-  },
-  "home": {
-    "managePlans": "계획 관리",
-    "createPlan": "계획 만들기",
-    "workouts": "운동",
-    "planMenu": "계획 옵션",
-    "logo": "Fitme",
-    "card": {
-      "preview": "미리 보기",
-      "previewNamed": "{{name}} 미리 보기",
-      "start": "시작",
-      "startNamed": "{{name}} 시작",
-      "continue": "계속하기",
-      "continueNamed": "{{name}} 계속하기",
-      "moreMuscleGroups": "+{{count, number}}",
-      "moreMuscleGroupsSpoken_other": "외 근육 부위 {{count, number}}개"
-    },
-    "allSet": "잘했어요! 모두 마쳤어요!",
-    "empty": {
-      "title": "활성 계획이 없어요",
-      "message": "활성화된 운동 계획이 없어요. 계획을 만들어 시작해 보세요.",
-      "inactiveMessage": "기존 계획을 활성화하거나 새 계획을 만들어 주세요.",
-      "action": "운동 계획 만들기"
-    },
-    "loadError": {
-      "title": "계획을 불러오지 못했어요",
-      "message": "연결 상태를 확인하고 다시 시도해 주세요."
-    }
-  },
-  "startWorkout": {
-    "start": "운동 시작",
-    "continue": "운동 계속하기",
-    "continueNamed": "{{name}} 계속하기",
-    "finishFirst": "먼저 진행 중인 운동을 마쳐 주세요",
-    "finishFirstNamed": "{{name}} 먼저 마치기",
-    "failed": {
-      "title": "운동을 시작하지 못했어요",
-      "network": "연결 상태를 확인하고 다시 시도해 주세요.",
-      "rateLimited": "요청이 너무 많아요. {{seconds, number}}초 후에 다시 시도해 주세요."
-    }
-  },
-  "workoutCard": {
-    "exercises_other": "{{count, number}}개 종목",
-    "toWorkout": "운동으로 이동",
-    "openHint": "운동을 엽니다",
-    "openInProgressHint": "진행 중인 운동을 엽니다"
-  },
-  "choices": {
-    "equipment": {
-      "barbell": "바벨",
-      "dumbbell": "덤벨",
-      "cable": "케이블",
-      "machine": "머신",
-      "smith_machine": "스미스 머신",
-      "bench": "벤치",
-      "pull_up_bar": "풀업 바",
-      "landmine": "랜드마인",
-      "bodyweight": "맨몸"
-    },
-    "experienceLevel": {
-      "beginner": "초급",
-      "intermediate": "중급",
-      "advanced": "고급"
-    },
-    "experienceLevelDescription": {
-      "beginner": "운동 경력 0~6개월",
-      "intermediate": "운동 경력 6개월~3년",
-      "advanced": "운동 경력 3년 이상"
-    },
-    "gender": {
-      "male": "남성",
-      "female": "여성"
-    },
-    "goal": {
-      "muscle-gain": "근육 증가",
-      "fat-loss": "체중 감량",
-      "recomposition": "체성분 개선",
-      "strength-performance": "근력 및 운동 능력 향상",
-      "general-health-fitness": "전반적인 건강 및 체력 향상"
-    },
-    "measurementSystem": {
-      "metric": "미터법",
-      "us": "미국식",
-      "uk": "영국식"
-    },
-    "measurementSystemDescription": {
-      "metric": "센티미터 및 킬로그램",
-      "us": "피트, 인치 및 파운드",
-      "uk": "피트, 인치 및 파운드"
-    },
-    "muscleGroup": {
-      "chest": "가슴",
-      "back": "등",
-      "shoulders": "어깨",
-      "biceps": "이두근",
-      "triceps": "삼두근",
-      "forearms": "전완근",
-      "abs": "복근",
-      "obliques": "복사근",
-      "quadriceps": "대퇴사두근",
-      "hamstrings": "햄스트링",
-      "glutes": "둔근",
-      "calves": "종아리",
-      "traps": "승모근",
-      "lats": "광배근",
-      "lower-back": "허리",
-      "cardio": "유산소",
-      "full-body": "전신"
-    },
-    "place": {
-      "gym": "헬스장",
-      "home": "집"
-    }
-  },
-  "unitNames": {
-    "cm": "cm",
-    "in": "인치",
-    "kg": "kg",
-    "lbs": "lb"
-  },
-  "units": {
-    "cm": "{{value, number}} cm",
-    "in": "{{value, number}}인치",
-    "kg": "{{value, number}} kg",
-    "lbs": "{{value, number}} lb"
-  },
-  "spokenUnits": {
-    "cm_other": "{{count, number}}센티미터",
-    "in_other": "{{count, number}}인치",
-    "kg_other": "{{count, number}}킬로그램",
-    "lbs_other": "{{count, number}}파운드"
-  },
-  "compactUnits": {
-    "t": "{{value, number}} t",
-    "thousandLbs": "{{value, number}}천 lb"
-  },
-  "spokenCompactUnits": {
-    "t_other": "{{count, number}}톤",
-    "thousandLbs_other": "{{count, number}}천 파운드"
-  },
-  "duration": {
-    "hoursMinutes": "{{hours, number}}시간 {{minutes, number}}분",
-    "hours": "{{hours, number}}시간",
-    "minutes": "{{minutes, number}}분"
-  },
-  "finishWorkout": {
-    "confirm": {
-      "title": "운동을 마칠까요?",
-      "unloggedSets_other": "계획한 {{count, number}}세트가 기록되지 않았어요.",
-      "cancel": "취소",
-      "finish": "마치기"
-    },
-    "failed": {
-      "title": "운동을 마치지 못했어요",
-      "network": "연결 상태를 확인하고 다시 시도해 주세요.",
-      "rateLimited": "요청이 너무 많아요. {{seconds, number}}초 후에 다시 시도해 주세요."
-    },
-    "suggestion": {
-      "title": "운동 완료!",
-      "description": "계획한 모든 세트를 기록했어요.",
-      "close": "닫기",
-      "keepTrainingHint": "이 제안을 닫고 운동을 계속합니다",
-      "finish": "운동 마치기",
-      "finishHint": "이번 운동을 마칩니다",
-      "keepTraining": "계속 운동하기"
-    }
-  },
-  "planUpdate": {
-    "title": "계획을 업데이트할까요?",
-    "description": "오늘 {{workout}} 운동의 변경 사항을 {{plan}} 계획에 저장해요.",
-    "failed": "계획을 업데이트하지 못했어요. 연결 상태를 확인하고 다시 시도해 주세요.",
-    "rateLimited": "요청이 너무 많아요. {{seconds, number}}초 후에 다시 시도해 주세요.",
-    "update": "계획 업데이트",
-    "updateHint": "변경 사항을 계획에 저장하고 운동 요약을 표시합니다",
-    "retry": "다시 시도",
-    "keep": "기존 계획 유지",
-    "keepHint": "계획을 변경하지 않고 운동 요약을 표시합니다",
-    "changes": {
-      "replace": "{{replaced}} 종목을 {{exercise}} 종목으로 교체",
-      "add": "{{exercise}} 추가",
-      "remove": "{{exercise}} 삭제",
-      "addSets_other": "{{exercise}} 종목에 {{count, number}}세트 추가",
-      "line": "{{change}} · {{sets}}",
-      "spokenLine": "{{change}}: {{sets}}",
-      "spokenSet": "{{weight}} 중량으로 {{reps}}"
-    }
-  },
-  "sets": {
-    "columns": {
-      "target": "목표",
-      "reps": "횟수",
-      "rest": "휴식"
-    },
-    "addSet": "세트 추가",
-    "noTarget": "목표 없음",
-    "repsAtWeight": "{{weight}} 중량으로 {{reps}}",
-    "plannedSet": "{{order, number}}세트: {{target}}, {{rest}}",
-    "restSeconds_other": "휴식 {{count, number}}초",
-    "noRest": "휴식 없음",
-    "row": {
-      "repsInput": "{{order, number}}세트 반복 횟수",
-      "weightInput": "{{order, number}}세트 중량",
-      "restInput": "{{order, number}}세트 휴식 시간",
-      "log": "{{order, number}}세트 기록",
-      "edit": "{{order, number}}세트 편집",
-      "editHint": "세트 편집 화면을 엽니다",
-      "logged": "{{order, number}}세트, 기록됨"
-    },
-    "errors": {
-      "save": "이 세트를 저장하지 못했어요. 다시 시도해 주세요.",
-      "rateLimited": "요청이 너무 많아요. {{seconds, number}}초 후에 다시 시도해 주세요."
-    },
-    "form": {
-      "weightNotNumber": "중량은 숫자여야 해요",
-      "weightNegative": "중량은 음수일 수 없어요",
-      "weightTooHigh": "중량은 {{max}} 이하여야 해요",
-      "weightDecimals_other": "중량은 소수점 이하 {{count, number}}자리까지 입력할 수 있어요",
-      "repsNotNumber": "반복 횟수는 숫자여야 해요",
-      "repsNegative": "반복 횟수는 음수일 수 없어요",
-      "repsTooHigh": "반복 횟수는 {{max}} 이하여야 해요",
-      "repsNotWhole": "반복 횟수는 정수여야 해요"
-    },
-    "rest": {
-      "title": "휴식",
-      "thenSet": "휴식 후 {{order, number}}세트",
-      "left": "휴식, {{clock}} 남음",
-      "less_other": "{{count, number}}초 줄이기",
-      "more_other": "{{count, number}}초 늘리기",
-      "skip": "건너뛰기",
-      "skipRest": "휴식 건너뛰기",
-      "over": "휴식 종료"
-    }
-  },
-  "forms": {
-    "numberMin": "숫자는 {{min, number(useGrouping: false)}} 이상이어야 해요",
-    "numberMax": "숫자는 {{max, number(useGrouping: false)}} 이하여야 해요"
-  },
-  "onboarding": {
-    "welcome": {
-      "title": "Fitme에 오신 것을 환영해요!",
-      "description": "나만의 AI 트레이너가 기다리고 있어요. 시작해 볼까요?",
-      "getStarted": "시작하기",
-      "skip": "건너뛰기"
-    },
-    "profile": {
-      "title": "회원님에 대해 알려 주세요",
-      "description": "이 정보로 회원님에게 맞는 운동 경험을 제공해요.",
-      "next": "다음",
-      "loadError": "프로필을 불러오지 못했어요. 연결 상태를 확인하고 다시 시도해 주세요."
-    }
-  },
-  "profileForm": {
-    "name": "이름",
-    "firstName": "이름",
-    "lastName": "성",
-    "gender": "성별",
-    "parameters": "신체 정보",
-    "age": "나이",
-    "weight": "체중",
-    "height": "키",
-    "notSet": "설정 안 됨",
-    "done": "완료",
-    "ageValue_other": "{{count, number}}세",
-    "feet_other": "{{count, number}}피트",
-    "inches_other": "{{count, number}}인치",
-    "errors": {
-      "ageRequired": "나이를 입력해 주세요",
-      "genderRequired": "성별을 선택해 주세요",
-      "heightRequired": "키를 입력해 주세요",
-      "weightRequired": "체중을 입력해 주세요",
-      "nameTooLong": "이름은 {{max, number(useGrouping: false)}}자 이하여야 해요",
-      "firstNameRequired": "이름을 입력해 주세요",
-      "firstNameTooLong": "이름은 {{max, number(useGrouping: false)}}자 이하여야 해요",
-      "lastNameRequired": "성을 입력해 주세요",
-      "lastNameTooLong": "성은 {{max, number(useGrouping: false)}}자 이하여야 해요",
-      "tooManyDecimals": "숫자는 소수점 이하 {{max, number(useGrouping: false)}}자리까지 입력할 수 있어요",
-      "saveFailed": "프로필을 저장하지 못했어요. 연결 상태를 확인하고 다시 시도해 주세요.",
-      "saveRateLimited": "프로필을 저장하지 못했어요. 요청이 너무 많으니 {{seconds, number}}초 후에 다시 시도해 주세요."
-    }
-  },
-  "common": {
-    "cancel": "취소",
-    "confirm": "확인",
-    "tryAgain": "다시 시도",
-    "genericError": "문제가 발생했어요. 나중에 다시 시도해 주세요.",
-    "rateLimited": "요청이 너무 많아요. {{seconds, number}}초 후에 다시 시도해 주세요."
-  },
   "profile": {
     "title": "프로필",
     "pro": {
@@ -616,6 +783,149 @@
     "logOutFailed": "로그아웃하지 못했어요. 연결을 확인하고 다시 시도해 주세요.",
     "version": "Fitme {{version}} ({{build}})"
   },
+  "profileForm": {
+    "name": "이름",
+    "firstName": "이름",
+    "lastName": "성",
+    "gender": "성별",
+    "parameters": "신체 정보",
+    "age": "나이",
+    "weight": "체중",
+    "height": "키",
+    "notSet": "설정 안 됨",
+    "done": "완료",
+    "ageValue_other": "{{count, number}}세",
+    "feet_other": "{{count, number}}피트",
+    "inches_other": "{{count, number}}인치",
+    "errors": {
+      "ageRequired": "나이를 입력해 주세요",
+      "genderRequired": "성별을 선택해 주세요",
+      "heightRequired": "키를 입력해 주세요",
+      "weightRequired": "체중을 입력해 주세요",
+      "nameTooLong": "이름은 {{max, number(useGrouping: false)}}자 이하여야 해요",
+      "firstNameRequired": "이름을 입력해 주세요",
+      "firstNameTooLong": "이름은 {{max, number(useGrouping: false)}}자 이하여야 해요",
+      "lastNameRequired": "성을 입력해 주세요",
+      "lastNameTooLong": "성은 {{max, number(useGrouping: false)}}자 이하여야 해요",
+      "tooManyDecimals": "숫자는 소수점 이하 {{max, number(useGrouping: false)}}자리까지 입력할 수 있어요",
+      "saveFailed": "프로필을 저장하지 못했어요. 연결 상태를 확인하고 다시 시도해 주세요.",
+      "saveRateLimited": "프로필을 저장하지 못했어요. 요청이 너무 많으니 {{seconds, number}}초 후에 다시 시도해 주세요."
+    }
+  },
+  "profilePhoto": {
+    "title": "프로필 사진",
+    "change": "사진 변경",
+    "buttonLabel": "프로필 사진 변경",
+    "chooseFromLibrary": "사진 보관함에서 선택",
+    "takePhoto": "사진 찍기",
+    "removePhoto": "사진 삭제",
+    "uploadFailed": {
+      "title": "사진을 변경하지 못했어요",
+      "message": "사진이 변경되지 않았어요. 연결 상태를 확인하고 다시 시도해 주세요."
+    },
+    "removeFailed": {
+      "title": "사진을 삭제하지 못했어요",
+      "message": "사진이 삭제되지 않았어요. 연결 상태를 확인하고 다시 시도해 주세요."
+    },
+    "cameraDenied": {
+      "title": "카메라 접근 권한이 필요해요",
+      "message": "프로필 사진을 찍으려면 Fitme에 카메라 접근 권한이 필요해요. 설정에서 허용할 수 있어요.",
+      "openSettings": "설정 열기"
+    }
+  },
+  "resetPassword": {
+    "screenTitle": "비밀번호 재설정",
+    "title": "새 비밀번호 설정",
+    "description": "다른 계정에서 사용하지 않는 비밀번호를 선택해 주세요.",
+    "newPasswordPlaceholder": "새 비밀번호",
+    "confirmPasswordPlaceholder": "새 비밀번호 확인",
+    "passwordTooShort_other": "비밀번호는 {{count}}자 이상이어야 해요.",
+    "passwordsDontMatch": "비밀번호가 일치하지 않아요.",
+    "submit": "비밀번호 변경",
+    "passwordChanged": "비밀번호가 변경됐어요. 새 비밀번호로 로그인해 주세요.",
+    "loading": "비밀번호 변경 중",
+    "changedMind": "마음이 바뀌셨나요?",
+    "backToLogin": "로그인으로 돌아가기"
+  },
+  "sets": {
+    "columns": {
+      "target": "목표",
+      "reps": "횟수",
+      "rest": "휴식"
+    },
+    "addSet": "세트 추가",
+    "noTarget": "목표 없음",
+    "repsAtWeight": "{{weight}} 중량으로 {{reps}}",
+    "plannedSet": "{{order, number}}세트: {{target}}, {{rest}}",
+    "restSeconds_other": "휴식 {{count, number}}초",
+    "noRest": "휴식 없음",
+    "row": {
+      "repsInput": "{{order, number}}세트 반복 횟수",
+      "weightInput": "{{order, number}}세트 중량",
+      "restInput": "{{order, number}}세트 휴식 시간",
+      "log": "{{order, number}}세트 기록",
+      "edit": "{{order, number}}세트 편집",
+      "editHint": "세트 편집 화면을 엽니다",
+      "logged": "{{order, number}}세트, 기록됨"
+    },
+    "errors": {
+      "save": "이 세트를 저장하지 못했어요. 다시 시도해 주세요.",
+      "rateLimited": "요청이 너무 많아요. {{seconds, number}}초 후에 다시 시도해 주세요."
+    },
+    "form": {
+      "weightNotNumber": "중량은 숫자여야 해요",
+      "weightNegative": "중량은 음수일 수 없어요",
+      "weightTooHigh": "중량은 {{max}} 이하여야 해요",
+      "weightDecimals_other": "중량은 소수점 이하 {{count, number}}자리까지 입력할 수 있어요",
+      "repsNotNumber": "반복 횟수는 숫자여야 해요",
+      "repsNegative": "반복 횟수는 음수일 수 없어요",
+      "repsTooHigh": "반복 횟수는 {{max}} 이하여야 해요",
+      "repsNotWhole": "반복 횟수는 정수여야 해요"
+    },
+    "rest": {
+      "title": "휴식",
+      "thenSet": "휴식 후 {{order, number}}세트",
+      "left": "휴식, {{clock}} 남음",
+      "less_other": "{{count, number}}초 줄이기",
+      "more_other": "{{count, number}}초 늘리기",
+      "skip": "건너뛰기",
+      "skipRest": "휴식 건너뛰기",
+      "over": "휴식 종료"
+    }
+  },
+  "settings": {
+    "title": "설정",
+    "measurementSystem": "측정 단위",
+    "deleteAccount": "계정 삭제",
+    "deleteConfirm": {
+      "title": "계정 삭제",
+      "message": "계정과 관련된 모든 데이터가 영구적으로 삭제돼요. 이 작업은 되돌릴 수 없어요.",
+      "confirm": "삭제"
+    },
+    "deleteFailed": "계정을 삭제하지 못했어요"
+  },
+  "spokenCompactUnits": {
+    "t_other": "{{count, number}}톤",
+    "thousandLbs_other": "{{count, number}}천 파운드"
+  },
+  "spokenUnits": {
+    "cm_other": "{{count, number}}센티미터",
+    "in_other": "{{count, number}}인치",
+    "kg_other": "{{count, number}}킬로그램",
+    "lbs_other": "{{count, number}}파운드"
+  },
+  "startWorkout": {
+    "start": "운동 시작",
+    "continue": "운동 계속하기",
+    "continueNamed": "{{name}} 계속하기",
+    "finishFirst": "먼저 진행 중인 운동을 마쳐 주세요",
+    "finishFirstNamed": "{{name}} 먼저 마치기",
+    "failed": {
+      "title": "운동을 시작하지 못했어요",
+      "network": "연결 상태를 확인하고 다시 시도해 주세요.",
+      "rateLimited": "요청이 너무 많아요. {{seconds, number}}초 후에 다시 시도해 주세요."
+    }
+  },
   "subscription": {
     "title": "구독",
     "heading": "내 구독",
@@ -665,190 +975,6 @@
     "nothingToRestore": "복원할 구매가 없어요",
     "restoreFailed": "구매를 복원하지 못했어요. 연결을 확인하고 다시 시도해 주세요."
   },
-  "languages": {
-    "en": "English",
-    "uk": "Українська",
-    "es": "Español",
-    "ca": "Català",
-    "fr": "Français",
-    "de": "Deutsch",
-    "it": "Italiano",
-    "pt-BR": "Português (Brasil)",
-    "pt-PT": "Português (Portugal)",
-    "pl": "Polski",
-    "zh-Hans": "简体中文",
-    "zh-Hant": "繁體中文",
-    "ja": "日本語",
-    "ko": "한국어",
-    "nl": "Nederlands"
-  },
-  "editProfile": {
-    "title": "프로필 편집",
-    "loadError": "프로필을 불러오지 못했어요. 연결 상태를 확인하고 다시 시도해 주세요.",
-    "save": "저장"
-  },
-  "profilePhoto": {
-    "title": "프로필 사진",
-    "change": "사진 변경",
-    "buttonLabel": "프로필 사진 변경",
-    "chooseFromLibrary": "사진 보관함에서 선택",
-    "takePhoto": "사진 찍기",
-    "removePhoto": "사진 삭제",
-    "uploadFailed": {
-      "title": "사진을 변경하지 못했어요",
-      "message": "사진이 변경되지 않았어요. 연결 상태를 확인하고 다시 시도해 주세요."
-    },
-    "removeFailed": {
-      "title": "사진을 삭제하지 못했어요",
-      "message": "사진이 삭제되지 않았어요. 연결 상태를 확인하고 다시 시도해 주세요."
-    },
-    "cameraDenied": {
-      "title": "카메라 접근 권한이 필요해요",
-      "message": "프로필 사진을 찍으려면 Fitme에 카메라 접근 권한이 필요해요. 설정에서 허용할 수 있어요.",
-      "openSettings": "설정 열기"
-    }
-  },
-  "settings": {
-    "title": "설정",
-    "measurementSystem": "측정 단위",
-    "deleteAccount": "계정 삭제",
-    "deleteConfirm": {
-      "title": "계정 삭제",
-      "message": "계정과 관련된 모든 데이터가 영구적으로 삭제돼요. 이 작업은 되돌릴 수 없어요.",
-      "confirm": "삭제"
-    },
-    "deleteFailed": "계정을 삭제하지 못했어요"
-  },
-  "accountSecurity": {
-    "title": "계정 및 보안",
-    "sections": {
-      "signIn": "로그인",
-      "methods": "로그인 방법"
-    },
-    "email": "이메일",
-    "passwordRow": "비밀번호 변경",
-    "connected": "연결됨",
-    "connectedAs": "{{email}}(으)로 연결됨",
-    "notConnected": "연결 안 됨",
-    "connect": "연결",
-    "connecting": "연결 중…",
-    "disconnect": "연결 해제",
-    "disconnecting": "연결 해제 중…",
-    "addAnotherMethod": "먼저 다른 로그인 방법을 추가해 주세요",
-    "disconnectConfirm": {
-      "title": "{{provider}} 연결을 해제할까요?",
-      "message": "더 이상 {{provider}}(으)로 로그인할 수 없어요."
-    },
-    "errors": {
-      "connectFailed": "{{provider}}을(를) 연결하지 못했어요. 다시 시도해 주세요.",
-      "disconnectFailed": "{{provider}} 연결을 해제하지 못했어요. 다시 시도해 주세요.",
-      "appleUnavailable": "Apple 로그인은 아직 사용할 수 없어요. 지금은 Google이나 이메일을 사용해 주세요.",
-      "alreadyLinked": "이 {{provider}} 계정은 이미 다른 Fitme 계정에 연결되어 있어요."
-    },
-    "deleteAccount": "계정 삭제"
-  },
-  "changeEmail": {
-    "title": "이메일 변경",
-    "current": "현재 이메일",
-    "new": "새 이메일",
-    "description": "확인을 위해 새 이메일로 코드를 보내 드릴게요.",
-    "submit": "코드 보내기",
-    "errors": {
-      "emailInUse": "이미 사용 중인 이메일이에요",
-      "invalidEmail": "올바른 이메일 주소를 입력해 주세요.",
-      "sameEmail": "이미 사용 중인 내 이메일이에요.",
-      "failed": "이메일을 변경하지 못했어요. 다시 시도해 주세요."
-    },
-    "success": "이메일을 변경했어요"
-  },
-  "changePassword": {
-    "title": "비밀번호 변경",
-    "description": "다른 기기에서는 로그아웃돼요.",
-    "current": "현재 비밀번호",
-    "new": "새 비밀번호",
-    "confirm": "새 비밀번호 확인",
-    "submit": "비밀번호 변경",
-    "errors": {
-      "tooShort": "비밀번호는 {{min}}자 이상이어야 해요.",
-      "mismatch": "비밀번호가 일치하지 않아요",
-      "wrongCurrent": "현재 비밀번호가 올바르지 않아요.",
-      "failed": "비밀번호를 변경하지 못했어요. 다시 시도해 주세요."
-    },
-    "success": "비밀번호를 변경했어요"
-  },
-  "confirmIdentity": {
-    "title": "본인 확인",
-    "password": {
-      "description": "계속하려면 비밀번호를 입력해 주세요.",
-      "placeholder": "비밀번호",
-      "forgot": "비밀번호를 잊으셨나요?"
-    },
-    "code": {
-      "description": "계속하려면 {{email}}(으)로 보낸 코드를 입력해 주세요.",
-      "placeholder": "코드",
-      "resend": "새 코드 보내기"
-    },
-    "continue": "계속",
-    "errors": {
-      "passwordIncorrect": "비밀번호가 올바르지 않아요. 다시 시도해 주세요.",
-      "wrongCode": "코드가 올바르지 않아요. 다시 시도해 주세요.",
-      "codeNotSent": "코드를 보내지 못했어요. 다시 시도해 주세요.",
-      "failed": "본인 확인을 하지 못했어요. 다시 시도해 주세요."
-    }
-  },
-  "deleteAccount": {
-    "title": "계정을 삭제할까요?",
-    "message": "운동 기록, 플랜, 프로필, Arnold와의 채팅이 영구적으로 삭제돼요. 이 작업은 되돌릴 수 없어요.",
-    "proWarning": {
-      "appStore": "App Store 구독은 자동으로 취소되지 않아요. 결제를 중단하려면 App Store에서 관리해 주세요.",
-      "googlePlay": "Google Play 구독은 자동으로 취소되지 않아요. 결제를 중단하려면 Google Play에서 관리해 주세요."
-    },
-    "manageSubscription": "구독 관리",
-    "confirm": "계정 삭제",
-    "failed": "계정을 삭제하지 못했어요. 다시 시도해 주세요."
-  },
-  "measurementSystem": {
-    "title": "측정 단위",
-    "unitsTitle": "단위",
-    "loadError": "측정 단위를 불러오지 못했어요. 연결 상태를 확인하고 다시 시도해 주세요.",
-    "confirm": {
-      "title": "계속할까요?",
-      "message": "측정 단위를 변경하면 모든 측정값에 적용돼요. 프로필 정보와 운동 기록이 새 단위로 변환돼요."
-    },
-    "checkFailed": {
-      "title": "단위를 확인하지 못했어요",
-      "message": "연결 상태를 확인한 후 다시 시도해 저장된 단위를 확인해 주세요."
-    },
-    "changeFailed": {
-      "title": "단위를 변경하지 못했어요",
-      "message": "측정값은 변경되지 않았어요. 다시 시도해 주세요.",
-      "rateLimited": "측정값은 변경되지 않았어요. 요청이 너무 많으니 {{seconds, number}}초 후에 다시 시도해 주세요."
-    },
-    "switchConfirm": {
-      "title": {
-        "metric": "미터법으로 전환할까요?",
-        "us": "미국식 단위로 전환할까요?",
-        "uk": "영국식 단위로 전환할까요?"
-      },
-      "message": {
-        "metric": "프로필과 운동 기록이 미터법으로 변환돼요.",
-        "us": "프로필과 운동 기록이 미국식 단위로 변환돼요.",
-        "uk": "프로필과 운동 기록이 영국식 단위로 변환돼요."
-      },
-      "confirm": "전환"
-    }
-  },
-  "legal": {
-    "privacyTitle": "법적 정보 및 개인정보 보호",
-    "privacyPolicy": "개인정보 처리방침",
-    "terms": "이용약관",
-    "deleteAccount": "계정 삭제",
-    "deleteConfirm": {
-      "title": "계정을 삭제할까요?",
-      "message": "이 작업은 되돌릴 수 없어요. 계정이 영구적으로 삭제되고 서버에서 회원님의 데이터가 제거돼요.",
-      "confirm": "예, 계정 삭제"
-    }
-  },
   "support": {
     "title": "지원",
     "contactSection": "문의",
@@ -860,6 +986,29 @@
       "threads": "Threads"
     },
     "addressCopied": "주소를 복사했어요"
+  },
+  "tabs": {
+    "workout": "운동",
+    "history": "기록",
+    "arnold": "Arnold AI",
+    "library": "라이브러리"
+  },
+  "unitNames": {
+    "cm": "cm",
+    "in": "인치",
+    "kg": "kg",
+    "lbs": "lb"
+  },
+  "units": {
+    "cm": "{{value, number}} cm",
+    "in": "{{value, number}}인치",
+    "kg": "{{value, number}} kg",
+    "lbs": "{{value, number}} lb"
+  },
+  "updateRequired": {
+    "title": "업데이트가 필요해요",
+    "description": "이 버전의 Fitme는 더 이상 지원되지 않아요. 계속 운동하려면 앱을 업데이트해 주세요.",
+    "update": "업데이트"
   },
   "verifyCode": {
     "screenTitle": "코드 확인",
@@ -890,40 +1039,11 @@
     "startOver": "다시 시작",
     "changeEmailTitle": "새 이메일 확인"
   },
-  "forgotPassword": {
-    "screenTitle": "비밀번호 찾기",
-    "title": "비밀번호를 잊으셨나요?",
-    "description": "가입할 때 사용한 이메일을 입력하면 6자리 코드를 보내드려요.",
-    "emailPlaceholder": "이메일",
-    "invalidEmail": "올바른 이메일을 입력해 주세요",
-    "submit": "코드 보내기",
-    "remember": "비밀번호가 기억나셨나요?",
-    "login": "로그인",
-    "loading": "코드 보내는 중"
-  },
-  "resetPassword": {
-    "screenTitle": "비밀번호 재설정",
-    "title": "새 비밀번호 설정",
-    "description": "다른 계정에서 사용하지 않는 비밀번호를 선택해 주세요.",
-    "newPasswordPlaceholder": "새 비밀번호",
-    "confirmPasswordPlaceholder": "새 비밀번호 확인",
-    "passwordTooShort_other": "비밀번호는 {{count}}자 이상이어야 해요.",
-    "passwordsDontMatch": "비밀번호가 일치하지 않아요.",
-    "submit": "비밀번호 변경",
-    "passwordChanged": "비밀번호가 변경됐어요. 새 비밀번호로 로그인해 주세요.",
-    "loading": "비밀번호 변경 중",
-    "changedMind": "마음이 바뀌셨나요?",
-    "backToLogin": "로그인으로 돌아가기"
-  },
-  "updateRequired": {
-    "title": "업데이트가 필요해요",
-    "description": "이 버전의 Fitme는 더 이상 지원되지 않아요. 계속 운동하려면 앱을 업데이트해 주세요.",
-    "update": "업데이트"
-  },
-  "notFound": {
-    "title": "이런!",
-    "description": "존재하지 않는 화면이에요.",
-    "goHome": "홈 화면으로 이동"
+  "workoutCard": {
+    "exercises_other": "{{count, number}}개 종목",
+    "toWorkout": "운동으로 이동",
+    "openHint": "운동을 엽니다",
+    "openInProgressHint": "진행 중인 운동을 엽니다"
   },
   "workoutSession": {
     "finish": "마치기",
@@ -963,54 +1083,6 @@
     "howTo": "운동 방법",
     "guideHint": "종목 가이드를 엽니다"
   },
-  "history": {
-    "empty": {
-      "title": "아직 운동 기록이 없어요",
-      "body": "첫 운동을 마치면 시간, 세트, 볼륨, 개인 기록이 여기에 표시돼요.",
-      "start": "{{name}} 시작",
-      "nextUp": "{{plan}} 계획의 다음 운동 · {{exercises}}",
-      "resume": "운동 이어 하기",
-      "resumeNamed": "{{name}} 이어 하기",
-      "inProgress": "진행 중인 운동이 있어요.",
-      "createPlan": "계획 만들기"
-    },
-    "loadError": "운동 기록을 불러오지 못했어요. 연결 상태를 확인하고 다시 시도해 주세요.",
-    "untitledWorkout": "운동",
-    "duration": "운동 시간 {{duration}}",
-    "thisMonth": "이번 달",
-    "stats": {
-      "workouts": "운동",
-      "time": "시간",
-      "volume": "볼륨"
-    },
-    "statLabel": "{{title}}: {{value}}",
-    "entry": "{{name}}, {{date}}, {{duration}}, {{sets}}, {{volume}}",
-    "streak": {
-      "badge_other": "{{count, number}}주 연속 달성!",
-      "spoken_other": "주간 연속 기록: {{count, number}}주"
-    },
-    "weeklyGoal": {
-      "title": "주간 목표 · {{workouts}}",
-      "weeksHit_other": "{{count, number}}주 중 {{hit, number}}주 달성",
-      "now": "현재",
-      "extra": "+{{count, number}}",
-      "thisWeek": "이번 주",
-      "weekOf": "{{date}} 시작 주",
-      "progress_other": "운동 {{count, number}}회 중 {{done, number}}회",
-      "overGoal": "목표보다 {{count, number}}회 초과",
-      "goalMet": "목표 달성",
-      "goalMissed": "목표 미달성",
-      "inProgress": "진행 중",
-      "firstWeek": "첫 기록 주",
-      "noGoal": "기록된 목표 없음",
-      "weekLabel": "{{week}}: {{details}}"
-    },
-    "personalRecord": "개인 기록",
-    "entryWithRecords": "{{entry}}. {{records}}",
-    "personalRecords_other": "개인 기록: {{records}}",
-    "recordResult": "{{exercise}}, {{weight}} × {{reps}}",
-    "bodyweightRecordResult": "{{exercise}}, 맨몸 × {{reps}}"
-  },
   "workoutSummary": {
     "title": "운동 완료!",
     "stats": {
@@ -1019,77 +1091,5 @@
     "statLabel": "{{title}}: {{value}}",
     "continue": "계속하기",
     "exercise": "{{name}}, {{sets}}"
-  },
-  "auth": {
-    "welcome": "Fitme에 오신 것을 환영해요!",
-    "fields": {
-      "email": "이메일",
-      "passwordPlaceholder": "비밀번호",
-      "name": "이름",
-      "code": "코드"
-    },
-    "validation": {
-      "invalidEmail": "올바른 이메일을 입력해 주세요",
-      "passwordRequired": "비밀번호를 입력해 주세요.",
-      "nameTooShort_other": "이름은 {{count}}자 이상이어야 해요.",
-      "passwordTooShort_other": "비밀번호는 {{count}}자 이상이어야 해요."
-    },
-    "login": {
-      "title": "로그인",
-      "subtitle": "계정에 로그인하고 내 운동을 확인해 보세요",
-      "continue": "로그인",
-      "forgotPasswordLink": "비밀번호를 잊으셨나요?",
-      "noAccount": "Fitme가 처음이신가요?",
-      "registerLink": "계정 만들기",
-      "cantSignInHere": "아직 이 계정으로는 여기에서 로그인할 수 없어요.",
-      "heading": "다시 만나서 반가워요",
-      "loading": "로그인 중"
-    },
-    "deviceCode": {
-      "title": "이메일을 확인해 주세요",
-      "subtitle": "이 기기에서 본인임을 확인하려면 보내드린 코드를 입력해 주세요",
-      "verify": "확인",
-      "resend": "새 코드 보내기",
-      "differentAccount": "다른 계정 사용"
-    },
-    "register": {
-      "title": "회원가입",
-      "subtitle": "계정을 만들고 시작해 보세요",
-      "submit": "계정 만들기",
-      "haveAccount": "이미 계정이 있으신가요?",
-      "loginLink": "로그인",
-      "heading": "계정을 만들어 주세요",
-      "loading": "계정 만드는 중"
-    },
-    "intro": {
-      "heading": "더 오래 말고,\n더 똑똑하게 운동하세요.",
-      "description": "Fitme는 나만의 AI 트레이너예요. 운동 계획을 만들고 모든 세트를 기록해요.",
-      "plans": "나에게 맞춘 운동 계획",
-      "logging": "모든 세트와 반복 횟수 기록",
-      "guides": "동영상 운동 가이드",
-      "email": "이메일로 계속하기"
-    },
-    "social": {
-      "apple": "Apple로 계속하기",
-      "google": "Google로 계속하기",
-      "connectingGoogle": "Google에 연결 중",
-      "incomplete": "로그인을 완료하지 못했어요. 다시 시도하거나 이메일로 계속해 주세요."
-    },
-    "password": {
-      "show": "비밀번호 표시",
-      "hide": "비밀번호 숨기기",
-      "minimum": "{{count}}자 이상"
-    },
-    "legal": {
-      "prefix": "계속하면 Fitme의 다음 항목에 동의하게 돼요:",
-      "terms": "이용약관",
-      "and": "및",
-      "privacy": "개인정보 처리방침"
-    },
-    "or": "또는",
-    "errors": {
-      "credentials": "이메일 또는 비밀번호가 올바르지 않아요. 다시 시도해 주세요.",
-      "connection": "연결 상태를 확인하고 다시 시도해 주세요."
-    }
   }
 }
