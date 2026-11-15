@@ -47,6 +47,9 @@ const proWarningKey = () =>
  * the Arnold device copies, the sign-out) and lands on the signed-out screen.
  * A failure keeps the account and everything on the device, and says so; a
  * cancelled "Confirm it's you" leaves the sheet as it was.
+ *
+ * Delete Account waits for the Subscription: a failed read says so with
+ * Try Again, and deleting stays off until it's known.
  */
 const DeleteAccountSheet = () => {
   const insets = useSafeAreaInsets();
@@ -55,8 +58,16 @@ const DeleteAccountSheet = () => {
   const { t } = useTranslation(undefined, { i18n });
   const { user } = useUser();
 
-  const { data: subscription, isPending: isReadingSubscription } =
-    useSubscriptionQuery();
+  const {
+    data: subscription,
+    isError: subscriptionFailed,
+    isFetching: isReadingSubscription,
+    refetch: readSubscriptionAgain,
+  } = useSubscriptionQuery();
+
+  // Unknown until read: deleting then could leave a Subscription billing
+  // that the warning never mentioned.
+  const subscriptionUnknown = subscription === undefined;
 
   const { isPending, mutate: deleteAccount } = useDeleteUserMutation();
 
@@ -132,6 +143,26 @@ const DeleteAccountSheet = () => {
                 {t(proWarningKey())}
               </Text>
             ) : null}
+            {subscriptionUnknown && subscriptionFailed ? (
+              <View
+                className="gap-xs mt-3 items-center"
+                testID="delete-account-subscription-error"
+              >
+                <Text className="text-subhead text-destructive text-center">
+                  {t("subscription.loadError")}
+                </Text>
+                <Button
+                  isLoading={isReadingSubscription}
+                  label={t("common.tryAgain")}
+                  onPress={() => {
+                    void readSubscriptionAgain();
+                  }}
+                  size="sm"
+                  testID="delete-account-subscription-retry"
+                  variant="secondary"
+                />
+              </View>
+            ) : null}
           </View>
           <View className="gap-xs">
             {managementURL ? (
@@ -154,7 +185,7 @@ const DeleteAccountSheet = () => {
               }
               // Held until the Subscription is known, so a User it will
               // keep billing never deletes before reading the warning.
-              disabled={isReadingSubscription}
+              disabled={subscriptionUnknown}
               isLoading={isPending}
               label={t("deleteAccount.confirm")}
               onPress={confirmDelete}

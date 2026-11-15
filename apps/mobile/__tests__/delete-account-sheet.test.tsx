@@ -221,6 +221,29 @@ describe.each([
     ).toMatchObject({ disabled: false });
   });
 
+  it("holds Delete Account behind Try Again when the Subscription can't be read", async () => {
+    fakeRevenueCat.failReads();
+    await openSheet();
+
+    expect(
+      screen.getByTestId("delete-account-subscription-error")
+    ).toBeTruthy();
+    expect(
+      screen.getByTestId("delete-account-confirm").props.accessibilityState
+    ).toMatchObject({ disabled: true });
+
+    fakeRevenueCat.setPro("renewing");
+    await press("delete-account-subscription-retry");
+
+    expect(
+      screen.queryByTestId("delete-account-subscription-error")
+    ).toBeNull();
+    expect(screen.getByText(copy.warningAppStore)).toBeTruthy();
+    expect(
+      screen.getByTestId("delete-account-confirm").props.accessibilityState
+    ).toMatchObject({ disabled: false });
+  });
+
   it("names Google Play on Android", async () => {
     Platform.OS = "android";
     fakeRevenueCat.setPro("renewing", { store: "PLAY_STORE" });
