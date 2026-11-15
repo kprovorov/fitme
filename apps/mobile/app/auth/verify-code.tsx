@@ -9,7 +9,8 @@ const VerifyCodeScreen = () => {
   const params = useLocalSearchParams<{ purpose: string; source?: string }>();
   const intent = parseVerificationIntent(params);
 
-  if (!intent) {
+  // Changing an email is a signed-in User's, on its own route.
+  if (!intent || intent.purpose === "change-email") {
     return <Redirect href="/auth" />;
   }
 

@@ -12,24 +12,32 @@ const welcomeMark = require("~/assets/auth/mark-welcome.svg") as number;
 // oxlint-disable-next-line unicorn/prefer-module, node/global-require -- Metro requires a static asset require.
 const mark = require("~/assets/auth/mark.svg") as number;
 
+/**
+ * An auth Screen's heading: the Fitme mark (left out with `mark={false}`,
+ * on a signed-in User's account Screens), the title and its description.
+ */
 export const AuthHeader = ({
   title,
   description,
+  mark: showMark = true,
   welcome = false,
 }: {
   title: string;
   description?: string;
+  mark?: boolean;
   welcome?: boolean;
 }) => (
   <View className={welcome ? "gap-sm items-start" : "gap-xs items-start"}>
-    <View className={welcome ? "pb-sm" : "pb-md"}>
-      <Image
-        accessible={false}
-        className={welcome ? "h-18 w-[60.8541px]" : "h-10 w-[33.8645px]"}
-        contentFit="contain"
-        source={welcome ? welcomeMark : mark}
-      />
-    </View>
+    {showMark ? (
+      <View className={welcome ? "pb-sm" : "pb-md"}>
+        <Image
+          accessible={false}
+          className={welcome ? "h-18 w-[60.8541px]" : "h-10 w-[33.8645px]"}
+          contentFit="contain"
+          source={welcome ? welcomeMark : mark}
+        />
+      </View>
+    ) : null}
     {welcome ? (
       <H1 className="text-foreground">{title}</H1>
     ) : (

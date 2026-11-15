@@ -1,4 +1,11 @@
-export const codePurposes = ["sign-up", "reset-password", "sign-in"] as const;
+import { z } from "zod";
+
+export const codePurposes = [
+  "sign-up",
+  "reset-password",
+  "sign-in",
+  "change-email",
+] as const;
 
 export type CodePurpose = (typeof codePurposes)[number];
 
@@ -6,17 +13,32 @@ export type VerificationSource = "login" | "reset-password" | "social";
 
 export type VerificationIntent =
   | { purpose: "sign-up" | "reset-password" }
-  | { purpose: "sign-in"; source: VerificationSource };
+  | { purpose: "sign-in"; source: VerificationSource }
+  | { emailAddressId: string; purpose: "change-email" };
+
+const emailAddressIdSchema = z.string().min(1);
 
 export const isCodePurpose = (value: unknown): value is CodePurpose =>
   codePurposes.some((purpose) => purpose === value);
 
 export const parseVerificationIntent = (params: {
+  emailAddressId?: unknown;
   purpose?: unknown;
   source?: unknown;
 }): VerificationIntent | undefined => {
   if (!isCodePurpose(params.purpose)) {
     return;
+  }
+
+  if (params.purpose === "change-email") {
+    // The address being added, which the code was sent to.
+    const emailAddressId = emailAddressIdSchema.safeParse(
+      params.emailAddressId
+    );
+
+    return emailAddressId.success
+      ? { emailAddressId: emailAddressId.data, purpose: "change-email" }
+      : undefined;
   }
 
   if (params.purpose !== "sign-in") {

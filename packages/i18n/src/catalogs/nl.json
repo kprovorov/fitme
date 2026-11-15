@@ -168,17 +168,18 @@
   },
   "changeEmail": {
     "title": "E-mail wijzigen",
-    "current": "Huidig e-mailadres",
+    "heading": "Wijzig je e-mailadres",
     "new": "Nieuw e-mailadres",
-    "description": "We sturen een code naar je nieuwe e-mailadres om het te bevestigen.",
+    "description": "We sturen een 6-cijferige code naar je nieuwe adres. Je bent ingelogd als {{email}}.",
     "submit": "Code versturen",
+    "sending": "Code versturen",
     "errors": {
       "emailInUse": "E-mailadres al in gebruik",
       "invalidEmail": "Voer een geldig e-mailadres in.",
       "sameEmail": "Dat is al je e-mailadres.",
       "failed": "Je e-mailadres kon niet worden gewijzigd. Probeer het opnieuw."
     },
-    "success": "E-mailadres gewijzigd"
+    "success": "E-mailadres gewijzigd in {{email}}"
   },
   "changePassword": {
     "title": "Wachtwoord wijzigen",

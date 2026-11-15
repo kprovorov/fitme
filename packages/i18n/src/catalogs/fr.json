@@ -173,17 +173,18 @@
   },
   "changeEmail": {
     "title": "Changer d'e-mail",
-    "current": "E-mail actuel",
+    "heading": "Change ton e-mail",
     "new": "Nouvel e-mail",
-    "description": "Nous enverrons un code à ton nouvel e-mail pour le confirmer.",
+    "description": "Nous enverrons un code à 6 chiffres à ta nouvelle adresse. Ton adresse actuelle est {{email}}.",
     "submit": "Envoyer le code",
+    "sending": "Envoi du code",
     "errors": {
       "emailInUse": "E-mail déjà utilisé",
       "invalidEmail": "Saisis une adresse e-mail valide.",
       "sameEmail": "C'est déjà ton e-mail.",
       "failed": "Impossible de changer ton e-mail. Réessaie."
     },
-    "success": "E-mail modifié"
+    "success": "E-mail remplacé par {{email}}"
   },
   "changePassword": {
     "title": "Changer le mot de passe",

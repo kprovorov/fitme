@@ -168,17 +168,18 @@
   },
   "changeEmail": {
     "title": "Change Email",
-    "current": "Current email",
+    "heading": "Change your email",
     "new": "New email",
-    "description": "We'll send a code to your new email to confirm it.",
+    "description": "We'll send a 6-digit code to your new address. You're signed in as {{email}}.",
     "submit": "Send Code",
+    "sending": "Sending code",
     "errors": {
       "emailInUse": "Email in use",
       "invalidEmail": "Enter a valid email address.",
       "sameEmail": "That's already your email.",
       "failed": "Couldn't change your email. Try again."
     },
-    "success": "Email changed"
+    "success": "Email changed to {{email}}"
   },
   "changePassword": {
     "title": "Change Password",

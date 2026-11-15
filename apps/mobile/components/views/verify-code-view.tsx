@@ -1,6 +1,7 @@
-import { useSignIn, useSignUp } from "@clerk/expo";
+import { useSignIn, useSignUp, useUser } from "@clerk/expo";
+import { captureException } from "@sentry/react-native";
 import { router } from "expo-router";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { ActivityIndicator, AppState, Pressable, View } from "react-native";
 
@@ -17,8 +18,12 @@ import type {
 import { Button } from "~/components/ui/button";
 import { ErrorMessage } from "~/components/ui/error-message";
 import { Text } from "~/components/ui/text";
+import { isWrongCodeError } from "~/hooks/confirm-identity";
+import { useReverifiedCall } from "~/hooks/reverification";
+import { getClerk, isClerkNetworkFailure } from "~/lib/clerk";
 import { IS_E2E } from "~/lib/constants";
 import { segmentClient } from "~/lib/segment";
+import { showToast } from "~/lib/toast";
 
 const RESEND_DELAY = 60_000;
 
@@ -175,6 +180,149 @@ const useSignInVerification = (
   };
 };
 
+/** Where a changed email takes the User back to. */
+const ACCOUNT_SECURITY_ROUTE = "/account-security";
+
+/**
+ * Takes an email address the User added but never made primary back off
+ * their account: one they left before verifying, or one whose swap never
+ * happened. The primary address is never touched. A failure is reported,
+ * not shown: the User has already left.
+ */
+const dropUnusedEmailAddress = async (emailAddressId: string) => {
+  const { user } = getClerk();
+  const address = user?.emailAddresses.find(({ id }) => id === emailAddressId);
+
+  if (!(user && address) || user.primaryEmailAddressId === emailAddressId) {
+    return;
+  }
+
+  try {
+    await address.destroy();
+  } catch (error) {
+    if (!isClerkNetworkFailure(error)) {
+      captureException(error);
+    }
+  }
+};
+
+/**
+ * Change Email's code step (`purpose=change-email`): the code went to the
+ * address the User is adding (`emailAddressId`). Once Clerk verifies it, it
+ * becomes the primary address and the old one is destroyed, both through
+ * "Confirm it's you" when Clerk asks, so reset codes never go to an address
+ * the User has left. Then the User is back on Account & Security with a
+ * toast. Leaving before that ("Change it", back, a swipe) takes the new
+ * address off the account, leaving the old one primary.
+ */
+const useChangeEmailVerification = (
+  emailAddressId: string
+): CodeVerification => {
+  const { user } = useUser();
+  const { t } = useTranslation();
+  const settled = useRef(false);
+  const address = user?.emailAddresses.find(({ id }) => id === emailAddressId);
+
+  const makePrimary = useReverifiedCall(
+    async (id: string) => await user?.update({ primaryEmailAddressId: id })
+  );
+
+  const destroyAddress = useReverifiedCall(
+    async (target: { destroy: () => Promise<unknown> }) =>
+      await target.destroy()
+  );
+
+  // The address leaves the account with the Screen, unless it was made
+  // primary or the User already took it off ("Change it"). Deferred a tick,
+  // so a remount (React's strict mode) keeps it.
+  const alive = useRef(true);
+  useEffect(() => {
+    alive.current = true;
+
+    return () => {
+      alive.current = false;
+      setTimeout(() => {
+        if (!(alive.current || settled.current)) {
+          void dropUnusedEmailAddress(emailAddressId);
+        }
+      }, 0);
+    };
+  }, [emailAddressId]);
+
+  return {
+    available:
+      !!user && !!address && user.primaryEmailAddressId !== emailAddressId,
+    email: address?.emailAddress ?? null,
+    id: address?.id ?? null,
+    resend: async () => {
+      try {
+        await address?.prepareVerification({ strategy: "email_code" });
+      } catch (error) {
+        return getAuthErrorMessage(error);
+      }
+    },
+    reset: async () => {
+      settled.current = true;
+
+      try {
+        await address?.destroy();
+
+        return { error: null };
+      } catch (error) {
+        return { error };
+      }
+    },
+    verify: async (code, current) => {
+      if (!(user && address)) {
+        return t("verifyCode.errors.changeEmailIncomplete");
+      }
+
+      // A code already taken (a swap that failed after it) isn't asked again.
+      if (address.verification.status !== "verified") {
+        try {
+          await address.attemptVerification({ code });
+        } catch (error) {
+          return isWrongCodeError(error)
+            ? t("confirmIdentity.errors.wrongCode")
+            : getAuthErrorMessage(error);
+        }
+      }
+
+      if (!current()) {
+        return;
+      }
+
+      const previousId = user.primaryEmailAddressId;
+      const swapped = await makePrimary(emailAddressId);
+
+      // Cancelled "Confirm it's you": the new address stays verified, and
+      // Verify swaps it without another code.
+      if (swapped.status === "cancelled" || !current()) {
+        return;
+      }
+
+      settled.current = true;
+
+      const previous = swapped.value?.emailAddresses.find(
+        ({ id }) => id === previousId
+      );
+
+      if (previous && previousId !== emailAddressId) {
+        try {
+          await destroyAddress(previous);
+        } catch (error) {
+          // The new address is primary already: the old one lingering is
+          // ours to look into, not the User's to retry.
+          captureException(error);
+        }
+      }
+
+      showToast(t("changeEmail.success", { email: address.emailAddress }));
+      router.dismissTo(ACCOUNT_SECURITY_ROUTE);
+    },
+  };
+};
+
 const CodeVerificationContent = ({
   flow,
   purpose,
@@ -205,14 +353,22 @@ const CodeVerificationContent = ({
     };
   }, [flow.available, coolingDown]);
 
-  let restartHref: "/auth/forgot-password" | "/auth/login" | "/auth/register" =
-    "/auth/forgot-password";
+  let restartHref:
+    | "/auth/forgot-password"
+    | "/auth/login"
+    | "/auth/register"
+    | "/change-email" = "/auth/forgot-password";
 
   if (purpose === "sign-up") {
     restartHref = "/auth/register";
   } else if (purpose === "sign-in") {
     restartHref = "/auth/login";
+  } else if (purpose === "change-email") {
+    restartHref = "/change-email";
   }
+
+  // Change Email's own form is the Screen under this one.
+  const changingEmail = purpose === "change-email";
 
   const restart = useCallback(
     () =>
@@ -227,9 +383,13 @@ const CodeVerificationContent = ({
           return getAuthErrorMessage(error);
         }
 
-        router.replace(restartHref);
+        if (changingEmail) {
+          router.back();
+        } else {
+          router.replace(restartHref);
+        }
       }),
-    [flow, operation, restartHref]
+    [changingEmail, flow, operation, restartHref]
   );
 
   const handleVerify = useCallback(
@@ -291,6 +451,7 @@ const CodeVerificationContent = ({
       >
         <AuthHeader
           description={t("verifyCode.expired")}
+          mark={!changingEmail}
           title={t("verifyCode.title")}
         />
         {operation.error ? (
@@ -351,6 +512,7 @@ const CodeVerificationContent = ({
     >
       <AuthHeader
         description={t("verifyCode.destination", { email: flow.email })}
+        mark={!changingEmail}
         title={t("verifyCode.title")}
       />
       <View className="gap-sm">
@@ -398,15 +560,18 @@ const CodeVerificationContent = ({
   );
 };
 
-const VerifyCodeView = ({
+const AuthCodeView = ({
   purpose,
   source = "reset-password",
 }: {
-  purpose: CodePurpose;
+  purpose: Exclude<CodePurpose, "change-email">;
   source?: VerificationSource;
 }) => {
   // Named calls keep React Compiler from memoizing a selected hook as a plain function.
-  const verifications: Record<CodePurpose, CodeVerification> = {
+  const verifications: Record<
+    Exclude<CodePurpose, "change-email">,
+    CodeVerification
+  > = {
     "reset-password": useResetPasswordVerification(),
     "sign-in": useSignInVerification(source),
     "sign-up": useSignUpVerification(),
@@ -422,5 +587,29 @@ const VerifyCodeView = ({
     />
   );
 };
+
+const ChangeEmailCodeView = ({
+  emailAddressId,
+}: {
+  emailAddressId: string;
+}) => {
+  const flow = useChangeEmailVerification(emailAddressId);
+
+  return <CodeVerificationContent flow={flow} purpose="change-email" />;
+};
+
+const VerifyCodeView = (
+  props:
+    | { emailAddressId: string; purpose: "change-email" }
+    | {
+        purpose: Exclude<CodePurpose, "change-email">;
+        source?: VerificationSource;
+      }
+) =>
+  props.purpose === "change-email" ? (
+    <ChangeEmailCodeView emailAddressId={props.emailAddressId} />
+  ) : (
+    <AuthCodeView purpose={props.purpose} source={props.source} />
+  );
 
 export default VerifyCodeView;

@@ -168,17 +168,18 @@
   },
   "changeEmail": {
     "title": "E-Mail ändern",
-    "current": "Aktuelle E-Mail",
+    "heading": "Ändere deine E-Mail",
     "new": "Neue E-Mail",
-    "description": "Wir senden einen Code an deine neue E-Mail, um sie zu bestätigen.",
+    "description": "Wir senden einen 6-stelligen Code an deine neue Adresse. Du bist als {{email}} angemeldet.",
     "submit": "Code senden",
+    "sending": "Code wird gesendet",
     "errors": {
       "emailInUse": "E-Mail wird bereits verwendet",
       "invalidEmail": "Gib eine gültige E-Mail-Adresse ein.",
       "sameEmail": "Das ist bereits deine E-Mail.",
       "failed": "Deine E-Mail konnte nicht geändert werden. Versuche es erneut."
     },
-    "success": "E-Mail geändert"
+    "success": "E-Mail geändert zu {{email}}"
   },
   "changePassword": {
     "title": "Passwort ändern",

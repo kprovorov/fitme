@@ -178,17 +178,18 @@
   },
   "changeEmail": {
     "title": "Zmień e-mail",
-    "current": "Obecny e-mail",
+    "heading": "Zmień adres e-mail",
     "new": "Nowy e-mail",
-    "description": "Wyślemy kod na nowy adres e-mail, aby go potwierdzić.",
+    "description": "Wyślemy 6-cyfrowy kod na nowy adres. Twój obecny adres to {{email}}.",
     "submit": "Wyślij kod",
+    "sending": "Wysyłanie kodu",
     "errors": {
       "emailInUse": "E-mail jest już używany",
       "invalidEmail": "Wpisz prawidłowy adres e-mail.",
       "sameEmail": "To już jest Twój e-mail.",
       "failed": "Nie udało się zmienić e-maila. Spróbuj ponownie."
     },
-    "success": "E-mail zmieniony"
+    "success": "E-mail zmieniony na {{email}}"
   },
   "changePassword": {
     "title": "Zmień hasło",
