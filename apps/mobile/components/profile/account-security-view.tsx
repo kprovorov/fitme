@@ -1,8 +1,8 @@
-import { useUser } from "@clerk/expo";
+import { isClerkAPIResponseError, useUser } from "@clerk/expo";
 import { captureException } from "@sentry/react-native";
 import { useCallback, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Alert, View } from "react-native";
+import { Alert, Pressable, View } from "react-native";
 
 import {
   ProfileListRow,
@@ -15,6 +15,12 @@ import { useReverifiedCall } from "~/hooks/reverification";
 import { isClerkNetworkFailure } from "~/lib/clerk";
 import { signInProviders } from "~/lib/sign-in-providers";
 import type { SocialProvider } from "~/lib/sign-in-providers";
+
+/**
+ * How far Disconnect's tap area reaches past the small pill (28 pt), so the
+ * target is at least 44 pt.
+ */
+const DISCONNECT_HIT_SLOP = 8;
 
 // Brand names, the same in every App language.
 const PROVIDER_NAMES: Record<SocialProvider, string> = {
@@ -32,6 +38,14 @@ interface DisconnectState {
   readonly disabled: boolean;
   readonly handlePress: () => void;
 }
+
+/** Clerk's answer for an external account that's no longer there. */
+const isAlreadyGone = (error: unknown) =>
+  isClerkAPIResponseError(error) &&
+  error.errors.some(({ code }) => code === "resource_not_found");
+
+/** The providers a User can sign in with, in this build or another. */
+const SIGN_IN_PROVIDERS: ReadonlySet<string> = new Set(["apple", "google"]);
 
 /**
  * One sign-in method (Figma's `ListRow`, subtitle type): the provider's name,
@@ -93,33 +107,38 @@ const SignInMethodRow = ({
           </Text>
         </View>
         {disconnect ? (
-          <Button
-            accessibilityLabel={
-              disconnect.busy ? t("accountSecurity.disconnecting") : undefined
-            }
-            accessibilityHint={
-              disconnect.blocked
-                ? t("accountSecurity.addAnotherMethod")
-                : undefined
-            }
-            // A native style keeps its label's color when disabled: grey it,
-            // as Figma's blocked Disconnect is.
-            contentColorClassName={
-              disconnect.disabled && !disconnect.busy
-                ? "text-muted-foreground"
-                : undefined
-            }
-            disabled={disconnect.disabled}
-            fill={false}
-            isLoading={disconnect.busy}
-            // The spinner takes the label's place at the label's width, so
-            // the pill doesn't grow; VoiceOver hears what's happening.
-            label={t("accountSecurity.disconnect")}
-            onPress={disconnect.handlePress}
-            size="sm"
-            testID={`disconnect-${provider}`}
-            variant="secondary"
-          />
+          // An invisible Pressable behind the pill takes the taps that miss
+          // it (as `SetCheckCell` does); a blocked one is dimmed whole, as
+          // Figma's is.
+          <View className={disconnect.blocked ? "opacity-50" : undefined}>
+            <Pressable
+              accessible={false}
+              className="absolute inset-0"
+              disabled={disconnect.disabled}
+              hitSlop={DISCONNECT_HIT_SLOP}
+              onPress={disconnect.handlePress}
+            />
+            <Button
+              accessibilityLabel={
+                disconnect.busy ? t("accountSecurity.disconnecting") : undefined
+              }
+              accessibilityHint={
+                disconnect.blocked
+                  ? t("accountSecurity.addAnotherMethod")
+                  : undefined
+              }
+              disabled={disconnect.disabled}
+              fill={false}
+              isLoading={disconnect.busy}
+              // The spinner takes the label's place at the label's width, so
+              // the pill doesn't grow; VoiceOver hears what's happening.
+              label={t("accountSecurity.disconnect")}
+              onPress={disconnect.handlePress}
+              size="sm"
+              testID={`disconnect-${provider}`}
+              variant="secondary"
+            />
+          </View>
         ) : null}
       </View>
     </View>
@@ -163,6 +182,15 @@ const AccountSecurityView = () => {
       try {
         await destroyAccount(externalAccountId);
       } catch (error) {
+        if (isAlreadyGone(error)) {
+          // Disconnected elsewhere: what the User asked for. Read the User
+          // again so the row says so; a failed read only leaves it stale.
+          await user?.reload().catch(() => undefined);
+          setDisconnecting(null);
+
+          return;
+        }
+
         if (!isClerkNetworkFailure(error)) {
           captureException(error);
         }
@@ -177,7 +205,7 @@ const AccountSecurityView = () => {
       // Done, failed or cancelled: the buttons are live again.
       setDisconnecting(null);
     },
-    [destroyAccount, t]
+    [destroyAccount, t, user]
   );
 
   const confirmDisconnect = useCallback(
@@ -217,8 +245,12 @@ const AccountSecurityView = () => {
         account.verification?.status === "verified"
     );
 
+  // Only Apple and Google sign a User in: a link to another provider (one
+  // the instance no longer offers) is no way back in.
   const verifiedAccounts = user.externalAccounts.filter(
-    (account) => account.verification?.status === "verified"
+    (account) =>
+      account.verification?.status === "verified" &&
+      SIGN_IN_PROVIDERS.has(account.provider)
   );
 
   // A password or another linked provider keeps the User able to sign in.

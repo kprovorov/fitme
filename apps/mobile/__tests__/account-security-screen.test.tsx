@@ -500,6 +500,27 @@ describe.each([
       ).toMatchObject({ disabled: false });
     });
 
+    it("takes an account already disconnected elsewhere as done", async () => {
+      fakeClerk.setUser({
+        externalAccounts: [{ email: "kirill@gmail.com", provider: "google" }],
+        passwordEnabled: true,
+      });
+      fakeClerk.failNext("destroyExternalAccount", {
+        code: "resource_not_found",
+      });
+      await mount();
+
+      await fireEvent.press(
+        disconnectButton("sign-in-method-google", copy.disconnect)
+      );
+      await pressInAlert(copy.disconnect);
+      await flush();
+
+      expect(alertCalls()).toHaveLength(1);
+      expect(captureException).not.toHaveBeenCalled();
+      expect(fakeClerk.calls.map(({ method }) => method)).toContain("reload");
+    });
+
     it("doesn't report a disconnect that failed offline", async () => {
       fakeClerk.setUser({
         externalAccounts: [{ email: "kirill@gmail.com", provider: "google" }],
