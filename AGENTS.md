@@ -647,6 +647,8 @@ Before pushing, check only what changed and leave the full matrix to CI, which s
 
 After rebasing onto a main with new files in `packages/supabase/supabase/migrations/`, run `pnpm --filter @fitme/supabase exec supabase migration up --local` before any integration suite: the worktree's stack has only the migrations it was started with (the suites' setup fails with that hint otherwise).
 
+After rebasing onto a main whose `pnpm-lock.yaml` or `pnpm-workspace.yaml` changed, or that adds a workspace under `apps/` or `packages/`, run `pnpm install --frozen-lockfile` before the turbo filter: the worktree's `node_modules` is still the old install, so a new workspace package has no link and a new or bumped tool is missing, and the checks fail in a way that looks like a code bug (an unresolved `@fitme/*` import, `oxfmt` not found). `git diff --name-only ORIG_HEAD HEAD -- pnpm-lock.yaml pnpm-workspace.yaml` right after the rebase says whether it did.
+
 Resolving a rebase or merge conflict: edit each hunk by hand, never with a regex or script that concatenates both sides (one dropped a `/**` from `apps/api/src/services.ts` and failed every `@fitme/api` test file). Before `git rebase --continue`, run `git diff --check` and the changed workspaces' `pnpm turbo run test typecheck --filter='...[origin/main]'`. In `AGENTS.md`, the long lists keep one item per line in a stated order, so a new item goes in at its place and parallel additions merge on their own; keep both sides when they still conflict.
 
 Put a `FIT-<n>` key in a pull request's title, branch or commits only when that pull request finishes the issue: Linear links the PR on sight, moves the issue to In Progress and closes it on merge.
