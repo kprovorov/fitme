@@ -35,6 +35,15 @@ pnpm install
 log "husky"
 pnpm exec husky
 
+# The expo-env.d.ts Metro writes on `expo start` (gitignored), as CI's `checks`
+# job writes it: without it the type-aware lint in a full `pnpm check` fails on
+# apps/mobile, since expo/types supplies ProcessEnv and widens ViewStyle. An
+# existing file (Metro's own) is left alone. A printf, not a heredoc (bash 3.2).
+if [[ ! -e apps/mobile/expo-env.d.ts ]]; then
+  log "apps/mobile/expo-env.d.ts"
+  printf '/// <reference types="expo/types" />\n' >apps/mobile/expo-env.d.ts
+fi
+
 # The browser the web and site screenshot loop drives through the root
 # `playwright` devDependency. Cached outside the worktree, so after the first
 # worktree this is a no-op. Not fatal: only the screenshot loop needs it.
