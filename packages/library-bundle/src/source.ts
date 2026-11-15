@@ -1,6 +1,5 @@
 import { readFile } from "node:fs/promises";
 import path from "node:path";
-import { fileURLToPath } from "node:url";
 
 import { get } from "@vercel/blob";
 import type { GetCommandOptions } from "@vercel/blob";
@@ -16,12 +15,13 @@ export const LIBRARY_BLOB = "library.json";
 /**
  * Where a relative LIBRARY_BUNDLE is resolved from: the Library API's app
  * directory, as its own build resolves it, so `pnpm dev:library` and the
- * writers read the same file. It's the source checkout's, so outside one
- * (a deployed bundle) only an absolute LIBRARY_BUNDLE is found.
+ * writers read the same file. Every writer runs from its own app directory
+ * (`apps/api`, `apps/mcp`, `apps/arnold`), so that's `../library` from the
+ * working directory. It's never derived from the module's own URL: a static
+ * path there makes Vercel trace (and typecheck) all of `apps/library` into
+ * the function.
  */
-const LIBRARY_APP_ROOT = fileURLToPath(
-  new URL("../../../apps/library/", import.meta.url)
-);
+const libraryAppRoot = () => path.resolve(process.cwd(), "../library");
 
 /** The variables the bundle source reads (`process.env`). */
 export interface BundleSourceEnv {
@@ -100,7 +100,7 @@ export const libraryBundleSource = ({
   }
 
   if (env.LIBRARY_BUNDLE) {
-    const name = path.resolve(LIBRARY_APP_ROOT, env.LIBRARY_BUNDLE);
+    const name = path.resolve(libraryAppRoot(), env.LIBRARY_BUNDLE);
 
     return {
       load: async () => parseJson(name, await readText(name)),

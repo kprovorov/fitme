@@ -1,5 +1,4 @@
 import path from "node:path";
-import { fileURLToPath } from "node:url";
 
 import { describe, expect, it } from "vitest";
 
@@ -7,9 +6,8 @@ import { readLibraryIndex } from "../library-index";
 import { libraryBundleSource } from "../source";
 import type { BlobGet } from "../source";
 
-const LIBRARY_APP = fileURLToPath(
-  new URL("../../../../apps/library/", import.meta.url)
-);
+/** A relative LIBRARY_BUNDLE is resolved against the sibling `library` app of the working directory. */
+const LIBRARY_APP = path.resolve(process.cwd(), "../library");
 
 const BUNDLE = {
   exercises: [{ muscle_groups: ["chest"], slug: "bench" }],
