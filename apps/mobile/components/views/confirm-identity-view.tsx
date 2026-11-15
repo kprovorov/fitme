@@ -1,6 +1,6 @@
 import { useCallback } from "react";
 import { useTranslation } from "react-i18next";
-import { ActivityIndicator, Pressable, View } from "react-native";
+import { ActivityIndicator, Pressable, ScrollView, View } from "react-native";
 
 import { CodeInput } from "~/components/auth/code-input";
 import { Button } from "~/components/ui/button";
@@ -151,9 +151,13 @@ export const ConfirmIdentityView = ({
   const error = errorKey ? t(`confirmIdentity.errors.${errorKey}`) : null;
 
   return (
-    <View
+    // Scrolls once the content outgrows the sheet (the largest text sizes,
+    // with the keyboard up), so Continue and Cancel stay reachable.
+    <ScrollView
       accessibilityViewIsModal
-      className="gap-sm px-sm pb-md pt-lg"
+      automaticallyAdjustKeyboardInsets
+      contentContainerClassName="gap-sm px-sm pb-md pt-lg"
+      keyboardShouldPersistTaps="handled"
       onAccessibilityEscape={verifying ? undefined : cancel}
     >
       <Header description={description} />
@@ -184,6 +188,7 @@ export const ConfirmIdentityView = ({
 
       {method === "code" ? (
         <CodeInput
+          autoFocus
           disabled={busy}
           error={!!error}
           label={t("confirmIdentity.code.placeholder")}
@@ -226,6 +231,6 @@ export const ConfirmIdentityView = ({
           variant="secondary"
         />
       </View>
-    </View>
+    </ScrollView>
   );
 };
