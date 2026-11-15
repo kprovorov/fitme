@@ -753,3 +753,57 @@ void describe("gitleaks scanning a whole worktree or printing secrets", () => {
     assert.match(violation.reason, GITLEAKS_REASON);
   });
 });
+
+void describe("git hooks skipped with --no-verify", () => {
+  for (const command of [
+    "git commit --no-verify -m x",
+    "git commit -nm x",
+    "git commit -n -m x",
+    "git commit -anm x",
+    "git commit -q --no-verify -am scratch",
+    "git -C apps/mobile commit --no-verify",
+    "git -C /tmp/repo -c user.name=me commit --no-verify -m x",
+    "git --git-dir=.git --no-pager commit -n",
+    "git commit --no-veri -m x",
+    "git commit --verify --no-verify -m x",
+    "git merge --no-verify origin/main",
+    "git am --no-verify 0001.patch",
+    "git rebase --no-verify origin/main",
+    "pnpm install && git commit --no-verify -m x",
+    "env GIT_AUTHOR_NAME=me git commit --no-verify -m x",
+    "x=$(git commit --no-verify -m x)",
+  ]) {
+    void test(`refuses ${JSON.stringify(command)}`, () => {
+      assert.deepEqual(rulesBroken(command), ["no-verify"]);
+    });
+  }
+
+  for (const command of [
+    'git commit -m "mentions --no-verify"',
+    "git commit -m --no-verify",
+    "git commit -m -n",
+    "git commit -mn",
+    "git commit -F -n",
+    "git commit --message --no-verify",
+    "git commit -- --no-verify",
+    "git log -n 5",
+    "git commit --verify -m x",
+    "git commit --no-verify --verify -m x",
+    "git push --no-verify",
+    "git merge -n origin/main",
+    "git rebase -n origin/main",
+    "git -c core.hooksPath=-n commit -m x",
+    "echo git commit --no-verify",
+    "gh pr create --body 'never git commit --no-verify'",
+  ]) {
+    void test(`allows ${JSON.stringify(command)}`, () => {
+      assert.deepEqual(rulesBroken(command), []);
+    });
+  }
+
+  void test("points at the AGENTS.md rule", () => {
+    const [violation] = findShellRuleViolations("git commit -nm x");
+    assert.match(violation.reason, /^AGENTS\.md Git: /u);
+    assert.match(violation.reason, /secret scan/u);
+  });
+});
