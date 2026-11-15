@@ -43,7 +43,7 @@ const warnGoogleMissing = (ids: GoogleClientIds) => {
 
 /**
  * The sign-in providers this build offers (ADR 0021), the one rule for Welcome,
- * login and registration (and Account & Security once it exists): Apple on iOS always and never on Android;
+ * login, registration and Account & Security: Apple on iOS always and never on Android;
  * Google whenever the build carries its client ids, hidden with a warning
  * otherwise. Clerk's instance settings are never consulted.
  */
