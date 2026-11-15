@@ -199,7 +199,7 @@ describe("profile and Settings on a Ukrainian device", () => {
     await mount(<LegalScreen />);
 
     for (const text of [
-      "Правова інформація і конфіденційність",
+      "Правова інформація",
       "Політика конфіденційності",
       "Умови використання",
       "Видалити акаунт",

@@ -104,7 +104,7 @@ const LANGUAGES = [
     device: "uk-UA",
     emailSupport: "Написати в підтримку",
     follow: "Стежте за Fitme",
-    legalTitle: "Правова інформація і конфіденційність",
+    legalTitle: "Правова інформація",
     name: "Ukrainian",
     privacy: "Політика конфіденційності",
     supportTitle: "Підтримка",
