@@ -308,6 +308,7 @@
     },
     "manageSubscription": "管理訂閱",
     "confirm": "刪除帳號",
+    "deleting": "正在刪除帳號",
     "failed": "無法刪除你的帳號，請再試一次。"
   },
   "duration": {

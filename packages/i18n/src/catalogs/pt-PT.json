@@ -334,6 +334,7 @@
     },
     "manageSubscription": "Gerir subscrição",
     "confirm": "Eliminar conta",
+    "deleting": "A eliminar a conta",
     "failed": "Não foi possível eliminar a tua conta. Tenta novamente."
   },
   "duration": {

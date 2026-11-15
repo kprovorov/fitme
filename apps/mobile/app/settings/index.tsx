@@ -65,7 +65,7 @@ const SettingsScreen = () => {
                   { label: t("common.cancel"), role: "cancel" },
                   {
                     label: t("settings.deleteConfirm.confirm"),
-                    onPress: () => deleteUser(),
+                    onPress: () => deleteUser({}),
                     role: "destructive",
                   },
                 ]}

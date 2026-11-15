@@ -321,6 +321,7 @@
     },
     "manageSubscription": "Abo verwalten",
     "confirm": "Konto löschen",
+    "deleting": "Konto wird gelöscht",
     "failed": "Dein Konto konnte nicht gelöscht werden. Versuche es erneut."
   },
   "duration": {

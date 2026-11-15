@@ -2,8 +2,8 @@
  * The Account & Security screen, opened from the redesigned Profile's Account
  * list: the real screen over the fake Clerk User, on iOS and Android, in
  * English and Ukrainian, with the in-app browser stood in: Connect and
- * Disconnect. Its other actions (change email and password, delete) come
- * with their own tickets.
+ * Disconnect. Delete Account's sheet has its own test
+ * (`delete-account-sheet.test.tsx`); change email comes with its own ticket.
  */
 import {
   afterEach,

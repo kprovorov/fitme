@@ -64,7 +64,7 @@ const LegalScreen = () => {
               { label: t("common.cancel"), role: "cancel" },
               {
                 label: t("legal.deleteConfirm.confirm"),
-                onPress: () => deleteUser(),
+                onPress: () => deleteUser({}),
                 role: "destructive",
               },
             ]}
