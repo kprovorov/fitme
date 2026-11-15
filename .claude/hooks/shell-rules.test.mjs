@@ -207,7 +207,7 @@ void describe("the PreToolUse hook", () => {
       tool_name: "Bash",
     });
 
-    assert.equal(result.status, 2);
+    assert.equal(result.status, 3);
     assert.match(result.stderr, TIMEOUT_REASON);
   });
 
