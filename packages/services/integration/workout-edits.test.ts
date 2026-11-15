@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { setTimeout } from "node:timers/promises";
 
+import { MAX_SETS_PER_EXERCISE } from "@fitme/core/limits";
 import {
   asUser,
   plans,
@@ -17,7 +18,6 @@ import { deletePlan, getPlan } from "../src/plans";
 import {
   addExerciseToWorkout,
   addSetToExercise,
-  MAX_SETS_PER_EXERCISE,
   removeExerciseFromWorkout,
   removeSetFromExercise,
   replaceExerciseInWorkout,

@@ -1,18 +1,20 @@
 import { experienceLevels, goals, places } from "@fitme/core";
-import { MAX_REPS, MAX_WEIGHT } from "@fitme/core/limits";
+import {
+  MAX_EXERCISES_PER_WORKOUT,
+  MAX_FREQUENCY,
+  MAX_PLAN_NAME_LENGTH,
+  MAX_PLAN_TEXT_LENGTH,
+  MAX_REPS,
+  MAX_REST_SECONDS,
+  MAX_SETS_PER_EXERCISE,
+  MAX_WEIGHT,
+  MAX_WORKOUT_DURATION_MINUTES,
+  MAX_WORKOUTS_PER_PLAN,
+  MIN_FREQUENCY,
+} from "@fitme/core/limits";
 import { z } from "zod";
 
 import { exerciseSlugSchema } from "./library.js";
-
-const MAX_NAME_LENGTH = 200;
-const MAX_TEXT_LENGTH = 2000;
-const MAX_WORKOUTS = 14;
-const MAX_EXERCISES_PER_WORKOUT = 30;
-const MAX_SETS_PER_EXERCISE = 20;
-const MAX_REST_SECONDS = 3600;
-const MIN_FREQUENCY = 1;
-const MAX_FREQUENCY = 7;
-const MAX_WORKOUT_DURATION_MINUTES = 600;
 
 const setSchema = z.object({
   reps_recommended: z
@@ -48,7 +50,7 @@ const exerciseSchema = z.object({
 const workoutSchema = z.object({
   description: z
     .string()
-    .max(MAX_TEXT_LENGTH)
+    .max(MAX_PLAN_TEXT_LENGTH)
     .describe("Short description of the workout's focus."),
   exercises: z
     .array(exerciseSchema)
@@ -59,21 +61,24 @@ const workoutSchema = z.object({
     .string()
     .trim()
     .min(1)
-    .max(MAX_NAME_LENGTH)
+    .max(MAX_PLAN_NAME_LENGTH)
     .describe("Workout name, e.g. 'Push Day'."),
 });
 
 export const workoutsSchema = z
   .array(workoutSchema)
   .min(1)
-  .max(MAX_WORKOUTS)
+  .max(MAX_WORKOUTS_PER_PLAN)
   .describe(
     "Workouts in rotation order. Order is derived from array position — do not send `order` fields."
   );
 
 /** Plan metadata columns (everything except the workouts). */
 export const planMetadataShape = {
-  description: z.string().max(MAX_TEXT_LENGTH).describe("Plan description."),
+  description: z
+    .string()
+    .max(MAX_PLAN_TEXT_LENGTH)
+    .describe("Plan description."),
   experience_level: z.enum(experienceLevels),
   frequency: z
     .number()
@@ -82,7 +87,12 @@ export const planMetadataShape = {
     .max(MAX_FREQUENCY)
     .describe("Training days per week."),
   goal: z.enum(goals),
-  name: z.string().trim().min(1).max(MAX_NAME_LENGTH).describe("Plan name."),
+  name: z
+    .string()
+    .trim()
+    .min(1)
+    .max(MAX_PLAN_NAME_LENGTH)
+    .describe("Plan name."),
   place: z.enum(places),
   workout_duration: z
     .number()
@@ -94,5 +104,5 @@ export const planMetadataShape = {
 
 export const planNoteSchema = z
   .string()
-  .max(MAX_TEXT_LENGTH)
+  .max(MAX_PLAN_TEXT_LENGTH)
   .describe("Free-form note shown with the plan.");

@@ -1,8 +1,6 @@
+import { MAX_SETS_PER_EXERCISE } from "@fitme/core/limits";
 import { asUser } from "@fitme/db";
-import {
-  addExerciseToWorkout,
-  MAX_SETS_PER_EXERCISE,
-} from "@fitme/services/workout-edits";
+import { addExerciseToWorkout } from "@fitme/services/workout-edits";
 import { defineTool } from "eve/tools";
 import { z } from "zod";
 

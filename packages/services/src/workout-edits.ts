@@ -1,3 +1,4 @@
+import { MAX_SETS_PER_EXERCISE } from "@fitme/core/limits";
 import {
   plans,
   workoutExerciseSets,
@@ -34,9 +35,6 @@ import type { PlanSet, PlanSetInput } from "./plans";
  * `requestKey`, stored on the row they add, and a repeated call with the same
  * key returns that row instead of adding another.
  */
-
-/** The most sets a Workout Exercise may have, as MCP's plan tools allow. */
-export const MAX_SETS_PER_EXERCISE = 20;
 
 /** Thrown, before writing anything, by an append past `MAX_SETS_PER_EXERCISE`. */
 export class TooManySetsError extends Error {
