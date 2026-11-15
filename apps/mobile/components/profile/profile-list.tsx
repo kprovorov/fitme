@@ -62,9 +62,12 @@ export const ProfileListRow = ({
   >
     {first ? null : <Separator />}
     <View className="gap-xs pr-sm min-h-11 flex-row items-center py-3">
-      <Text className="text-body text-foreground flex-1">{label}</Text>
+      <Text className="text-body text-foreground grow">{label}</Text>
       {value ? (
-        <Text className="text-body text-muted-foreground shrink-0">
+        <Text
+          className="text-body text-muted-foreground shrink"
+          numberOfLines={1}
+        >
           {value}
         </Text>
       ) : null}

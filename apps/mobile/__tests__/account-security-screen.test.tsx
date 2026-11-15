@@ -20,6 +20,7 @@ import { Platform } from "react-native";
 
 import AccountSecurityScreen from "~/app/account-security";
 import ProfileScreen from "~/app/profile";
+import { getClerk } from "~/lib/clerk";
 import { setProfileRedesignEnabled } from "~/lib/feature-flags";
 import type { GoogleClientIds } from "~/lib/google-client-ids";
 import { setDeviceLanguages } from "~/test-utils/device-locales";
@@ -214,6 +215,19 @@ describe.each([
     expect(screen.getByLabelText(copy.apple).props.accessibilityValue).toEqual({
       text: copy.notConnected,
     });
+  });
+
+  it("keeps a provider Not connected while its link is still unverified", async () => {
+    fakeClerk.setUser({ passwordEnabled: true });
+    await getClerk().user?.createExternalAccount({
+      redirectUrl: "fitme://account-security",
+      strategy: "oauth_google",
+    });
+    await mount();
+
+    expect(screen.getByLabelText(copy.google).props.accessibilityValue).toEqual(
+      { text: copy.notConnected }
+    );
   });
 
   it("lists Apple and Google on iOS", async () => {

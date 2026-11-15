@@ -83,8 +83,14 @@ const AccountSecurityView = () => {
 
   const providers = signInProviders();
 
+  // Only a verified link signs the User in: one still waiting on the
+  // provider (a Connect the User backed out of) isn't connected yet.
   const linkedAccount = (provider: SocialProvider) =>
-    user.externalAccounts.find((account) => account.provider === provider);
+    user.externalAccounts.find(
+      (account) =>
+        account.provider === provider &&
+        account.verification?.status === "verified"
+    );
 
   return (
     <View className="gap-md w-full pt-2.5 pb-14">
