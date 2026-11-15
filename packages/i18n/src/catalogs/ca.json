@@ -173,17 +173,18 @@
   },
   "changeEmail": {
     "title": "Canvia el correu",
-    "current": "Correu actual",
+    "heading": "Canvia el correu",
     "new": "Correu nou",
-    "description": "T'enviarem un codi al correu nou per confirmar-lo.",
+    "description": "T'enviarem un codi de 6 dígits a l'adreça nova. Has iniciat sessió com a {{email}}.",
     "submit": "Envia el codi",
+    "sending": "S'està enviant el codi",
     "errors": {
       "emailInUse": "Correu en ús",
       "invalidEmail": "Introdueix un correu electrònic vàlid.",
       "sameEmail": "Aquest ja és el teu correu.",
       "failed": "No s'ha pogut canviar el correu. Torna-ho a provar."
     },
-    "success": "Correu canviat"
+    "success": "Correu canviat a {{email}}"
   },
   "changePassword": {
     "title": "Canvia la contrasenya",

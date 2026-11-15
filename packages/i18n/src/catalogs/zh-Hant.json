@@ -163,17 +163,18 @@
   },
   "changeEmail": {
     "title": "變更電子信箱",
-    "current": "目前的電子信箱",
+    "heading": "變更你的電子信箱",
     "new": "新的電子信箱",
-    "description": "我們會寄驗證碼到你的新電子信箱以進行確認。",
+    "description": "我們會寄 6 位數驗證碼到新的地址。你目前登入的是 {{email}}。",
     "submit": "傳送驗證碼",
+    "sending": "正在傳送驗證碼",
     "errors": {
       "emailInUse": "這個電子信箱已被使用",
       "invalidEmail": "請輸入有效的電子信箱地址。",
       "sameEmail": "這已經是你的電子信箱。",
       "failed": "無法變更你的電子信箱，請再試一次。"
     },
-    "success": "電子信箱已變更"
+    "success": "電子信箱已變更為 {{email}}"
   },
   "changePassword": {
     "title": "變更密碼",

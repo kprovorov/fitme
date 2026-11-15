@@ -53,6 +53,8 @@ const isAlreadyGone = (error: unknown) =>
 /** The providers a User can sign in with, in this build or another. */
 const SIGN_IN_PROVIDERS: ReadonlySet<string> = new Set(["apple", "google"]);
 
+const openChangeEmail = () => router.push("/change-email");
+
 /**
  * One sign-in method (Figma's `ListRow`, subtitle type): the provider's name,
  * then the email of the account linked to it, or Not connected. VoiceOver
@@ -185,8 +187,9 @@ const SignInMethodRow = ({
 
 /**
  * Account & Security (Figma 1479:5771), opened from the redesigned Profile:
- * the User's email, Change Password while they have a password (opening
- * the Change Password Screen), the sign-in methods this build offers (ADR 0021) with whether each is linked, and
+ * the User's email, whose row opens Change Email, Change Password while
+ * they have a password (opening the Change Password Screen), the sign-in
+ * methods this build offers (ADR 0021) with whether each is linked, and
  * Delete Account at the bottom. A linked provider can be disconnected while
  * the User keeps another way to sign in (ADR 0021): a password, or another
  * linked provider, counted whether or not this build shows its row (Apple on
@@ -307,6 +310,7 @@ const AccountSecurityView = () => {
         <ProfileListRow
           first
           label={t("accountSecurity.email")}
+          onPress={openChangeEmail}
           testID="account-email"
           value={user.primaryEmailAddress?.emailAddress}
         />

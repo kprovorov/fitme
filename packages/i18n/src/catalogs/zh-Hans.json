@@ -163,17 +163,18 @@
   },
   "changeEmail": {
     "title": "更改邮箱",
-    "current": "当前邮箱",
+    "heading": "更改你的邮箱",
     "new": "新邮箱",
-    "description": "我们会向你的新邮箱发送验证码以确认。",
+    "description": "我们会向新地址发送 6 位验证码。你当前登录的是 {{email}}。",
     "submit": "发送验证码",
+    "sending": "正在发送验证码",
     "errors": {
       "emailInUse": "该邮箱已被使用",
       "invalidEmail": "请输入有效的邮箱地址。",
       "sameEmail": "这已经是你的邮箱。",
       "failed": "无法更改你的邮箱，请重试。"
     },
-    "success": "邮箱已更改"
+    "success": "邮箱已更改为 {{email}}"
   },
   "changePassword": {
     "title": "修改密码",

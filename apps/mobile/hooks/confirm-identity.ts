@@ -19,6 +19,11 @@ const WRONG_CODE_CODES = new Set([
   "verification_failed",
 ]);
 
+/** Whether Clerk refused an emailed code as wrong or expired. */
+export const isWrongCodeError = (error: unknown): boolean =>
+  isClerkAPIResponseError(error) &&
+  WRONG_CODE_CODES.has(error.errors[0]?.code ?? "");
+
 /** How the User confirms: their password, or a code emailed to them. */
 export type ConfirmMethod = "code" | "password";
 
