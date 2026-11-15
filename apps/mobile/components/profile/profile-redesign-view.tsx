@@ -34,6 +34,8 @@ const openAppStoreReview = () => {
 
 const openEditProfile = () => router.push("/settings/edit-profile");
 
+const openAccountSecurity = () => router.push("/account-security");
+
 const openUnits = () => router.push("/settings/measurement-system");
 
 const openSupport = () => router.push("/support");
@@ -160,7 +162,11 @@ const ProfileRedesignView = () => {
           onPress={openEditProfile}
           testID="edit-profile-link"
         />
-        <ProfileListRow label={t("profile.rows.accountSecurity")} />
+        <ProfileListRow
+          label={t("profile.rows.accountSecurity")}
+          onPress={openAccountSecurity}
+          testID="account-security-link"
+        />
         <ProfileListRow label={t("profile.rows.subscription")} />
       </ProfileListSection>
 
