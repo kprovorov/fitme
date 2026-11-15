@@ -13,6 +13,7 @@ import { WEEKLY_GOALS_QUERY_KEY } from "~/hooks/queries/weekly-goals";
 import {
   FINISH_WORKOUT_SESSION_MUTATION_KEY,
   fetchPlanUpdate,
+  LIFETIME_TOTALS_QUERY_KEY,
   OPEN_WORKOUT_SESSION_QUERY_KEY,
   seedWorkoutSession,
   useFinishWorkoutSessionMutation,
@@ -244,6 +245,8 @@ export const useFinishWorkoutSession = (
         // also start goal tracking)
         { queryKey: ["workout-sessions-history"] },
         { queryKey: WEEKLY_GOALS_QUERY_KEY },
+        // Profile's Lifetime totals count it too.
+        { queryKey: LIFETIME_TOTALS_QUERY_KEY },
         // Start is no longer blocked on it.
         { queryKey: OPEN_WORKOUT_SESSION_QUERY_KEY },
       ]);
