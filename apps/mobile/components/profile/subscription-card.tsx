@@ -1,7 +1,7 @@
 import { formatDate } from "@fitme/i18n";
 import { useCallback } from "react";
 import { useTranslation } from "react-i18next";
-import { View } from "react-native";
+import { useWindowDimensions, View } from "react-native";
 import RevenueCatUI from "react-native-purchases-ui";
 
 import { Badge } from "~/components/ui/badge";
@@ -18,6 +18,21 @@ import type { ProSubscription } from "~/lib/subscription";
  */
 const CARD_CLASS =
   "gap-sm rounded-card border-border bg-card p-sm w-full border";
+
+/**
+ * The text scale from which a row's button goes under its text: at the
+ * accessibility Dynamic Type sizes a date beside it would break mid-word.
+ */
+const STACKED_FONT_SCALE = 1.5;
+
+/** A text-and-button row, stacked at the accessibility text sizes. */
+const useRowClass = () => {
+  const { fontScale } = useWindowDimensions();
+
+  return fontScale >= STACKED_FONT_SCALE
+    ? `${CARD_CLASS} items-start`
+    : `${CARD_CLASS} flex-row items-center`;
+};
 
 const presentPaywall = () => {
   void RevenueCatUI.presentPaywall();
@@ -58,10 +73,11 @@ const SubscriptionError = ({
   onRetry: () => void;
 }) => {
   const { t } = useTranslation();
+  const rowClass = useRowClass();
 
   return (
-    <View className={`${CARD_CLASS} flex-row items-center`}>
-      <Text className="text-headline-emphasized text-foreground flex-1">
+    <View className={rowClass}>
+      <Text className="text-headline-emphasized text-foreground shrink grow">
         {t("subscription.loadError")}
       </Text>
       <Button
@@ -134,11 +150,12 @@ const useStatusLine = (subscription: ProSubscription): string => {
 const ProCard = ({ subscription }: { subscription: ProSubscription }) => {
   const { t } = useTranslation();
   const statusLine = useStatusLine(subscription);
+  const rowClass = useRowClass();
   const { managementURL } = subscription;
 
   return (
-    <View className={`${CARD_CLASS} flex-row items-center`}>
-      <View className="gap-xs flex-1 items-start">
+    <View className={rowClass}>
+      <View className="gap-xs shrink grow items-start">
         <Badge>
           <Text>{t("subscription.pro")}</Text>
         </Badge>
