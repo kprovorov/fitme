@@ -2,7 +2,7 @@ import type { Library } from "@fitme/library-sdk";
 import type { reportError as observabilityReportError } from "@fitme/observability/node";
 
 import { createLibraryFromEnv } from "./library.js";
-import type { LibraryFactory } from "./library.js";
+import type { LibraryFactory, LibraryIndex } from "./library.js";
 import { createServicesFromEnv } from "./services.js";
 import type { ServicesFactory, UserServices } from "./services.js";
 import { ToolError } from "./tools/helpers.js";
@@ -22,6 +22,11 @@ export interface ToolContext {
    * `ToolError` when the database isn't configured.
    */
   getServices: () => UserServices;
+  /**
+   * The instance's Library index (ADR 0018), shared by every request: the
+   * Plan writes check Exercise slugs and pick Covers against it.
+   */
+  libraryIndex: LibraryIndex;
   /** Reports a tool's unexpected failure; expected ones never reach it. */
   reportError: ReportError;
 }
@@ -34,6 +39,8 @@ export interface ClerkUser {
 export interface ToolContextOptions {
   createLibrary?: LibraryFactory;
   createServices?: ServicesFactory;
+  /** The instance's Library index, built once per app, never per request. */
+  libraryIndex: LibraryIndex;
   reportError: ReportError;
   /** Must come from a verified Clerk token, never from request data. */
   user: ClerkUser;
@@ -47,12 +54,13 @@ const LIBRARY_NOT_CONFIGURED_MESSAGE =
 
 /**
  * Tool context for a verified Clerk User: their tools run on services bound to
- * that User id through `asUser`, so RLS sees them as the caller, and on the
- * Library API.
+ * that User id through `asUser`, so RLS sees them as the caller, on the
+ * Library API (searches, names) and on the Library index (Plan writes).
  */
 export const createToolContext = ({
   createLibrary = createLibraryFromEnv,
   createServices = createServicesFromEnv,
+  libraryIndex,
   reportError,
   user,
 }: ToolContextOptions): ToolContext => {
@@ -78,6 +86,7 @@ export const createToolContext = ({
 
       return services;
     },
+    libraryIndex,
     reportError,
   };
 };

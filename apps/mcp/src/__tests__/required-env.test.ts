@@ -16,6 +16,7 @@ describe("required environment variables", () => {
       "CLERK_SECRET_KEY",
       "CLERK_PUBLISHABLE_KEY",
       "FITME_DATABASE_URL",
+      "BLOB_STORE_ID",
       "LIBRARY_URL",
       "LIBRARY_MCP_SECRET",
     ]);

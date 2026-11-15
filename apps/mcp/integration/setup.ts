@@ -10,6 +10,7 @@ import {
   connect,
   contextFor,
   ignoreReports,
+  testIndex,
 } from "../src/__tests__/harness.js";
 import { createServicesFromEnv } from "../src/services.js";
 
@@ -20,7 +21,9 @@ import { createServicesFromEnv } from "../src/services.js";
  * Supavisor pooler (`FITME_DATABASE_URL`, set by the vitest config), the way
  * the server does once Clerk has verified a token (ADR 0003). Every query goes
  * through the same RLS policies as in production. The Library is the
- * in-memory fake over INTEGRATION_EXERCISES, never the network.
+ * in-memory fake over INTEGRATION_EXERCISES, and the Plan writes check
+ * against a Library index over the same Exercises and Covers, never the
+ * network or Blob.
  */
 
 const exercise = (
@@ -76,6 +79,13 @@ export const integrationLibrary = () =>
     covers: Object.values(INTEGRATION_COVERS),
   });
 
+/** A Library index over INTEGRATION_EXERCISES and INTEGRATION_COVERS. */
+export const integrationIndex = () =>
+  testIndex({
+    covers: Object.values(INTEGRATION_COVERS),
+    exercises: INTEGRATION_EXERCISES,
+  });
+
 /** A made-up id in Clerk's `user_…` format, unique per run. */
 const clerkStyleUserId = (label: string) =>
   `user_${label}${randomBytes(16).toString("hex")}`;
@@ -97,7 +107,14 @@ export const connectAs = (user: TestUser) => {
     throw new Error("FITME_DATABASE_URL must point at the stack's pooler.");
   }
 
-  return connect(contextFor(services, ignoreReports, integrationLibrary()));
+  return connect(
+    contextFor(
+      services,
+      ignoreReports,
+      integrationLibrary(),
+      integrationIndex()
+    )
+  );
 };
 
 /** Calls a tool and returns its JSON payload, failing on `isError`. */

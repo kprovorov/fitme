@@ -434,6 +434,9 @@ importers:
       '@fitme/db':
         specifier: workspace:*
         version: link:../../packages/db
+      '@fitme/library-bundle':
+        specifier: workspace:*
+        version: link:../../packages/library-bundle
       '@fitme/library-sdk':
         specifier: workspace:*
         version: link:../../packages/library-sdk
@@ -452,6 +455,9 @@ importers:
       '@sentry/node':
         specifier: ^11.12.0
         version: 11.12.0(rollup@4.68.3)
+      '@vercel/blob':
+        specifier: ^2.8.2
+        version: 2.8.2
       '@vercel/functions':
         specifier: ^3.10.1
         version: 3.10.1(ws@8.21.3)

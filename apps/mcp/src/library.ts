@@ -1,9 +1,14 @@
+import { createLibraryIndex } from "@fitme/library-bundle/library-index";
+import type { LibraryIndex } from "@fitme/library-bundle/library-index";
+import { libraryBundleSource } from "@fitme/library-bundle/source";
 import { createLibrary } from "@fitme/library-sdk";
 import type { Library } from "@fitme/library-sdk";
 
+export type { LibraryIndex } from "@fitme/library-bundle/library-index";
+
 /**
- * Builds the Library client the tools search, check and name
- * Exercises through, or returns `null` when the server isn't configured for it.
+ * Builds the Library client the tools search and name Exercises through
+ * (the Plan writes check slugs against the Library index instead), or returns `null` when the server isn't configured for it.
  */
 export type LibraryFactory = () => Library | null;
 
@@ -21,3 +26,24 @@ export const createLibraryFromEnv: LibraryFactory = () => {
 
   return createLibrary({ token: () => Promise.resolve(secret), url });
 };
+
+/**
+ * The instance's Library index (ADR 0018), which the Plan writes check
+ * Exercise slugs and pick Covers against: over production's Blob store,
+ * `LIBRARY_BUNDLE` or the committed fixture anywhere else. Loaded on the
+ * first write that asks and kept for the life of the instance; every failed
+ * load is reported through `reportError`.
+ */
+export const libraryIndexFromEnv = (
+  reportError: (error: Error) => Promise<void>
+): LibraryIndex =>
+  createLibraryIndex({
+    load: libraryBundleSource({
+      env: {
+        BLOB_STORE_ID: process.env.BLOB_STORE_ID,
+        LIBRARY_BUNDLE: process.env.LIBRARY_BUNDLE,
+        VERCEL_ENV: process.env.VERCEL_ENV,
+      },
+    }).load,
+    reportError,
+  });

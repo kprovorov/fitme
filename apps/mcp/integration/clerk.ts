@@ -12,7 +12,7 @@ import type {
 } from "@modelcontextprotocol/sdk/shared/auth.js";
 
 import { createApp } from "../src/create-app.js";
-import { integrationLibrary } from "./setup.js";
+import { integrationIndex, integrationLibrary } from "./setup.js";
 
 /**
  * Helpers for the Clerk OAuth suite, which runs the real authorization flow
@@ -409,6 +409,7 @@ export const startMcpServer = async () => {
   const server = serve({
     fetch: createApp({
       createLibrary: integrationLibrary,
+      libraryIndex: integrationIndex(),
       logRequests: false,
       reportError: (error) => {
         console.error(error);
