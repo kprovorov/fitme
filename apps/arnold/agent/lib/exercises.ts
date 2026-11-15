@@ -1,3 +1,4 @@
+import { MAX_EXERCISE_SLUG_LENGTH } from "@fitme/core/limits";
 import type { AppLanguage, MuscleGroup } from "@fitme/core/models";
 import { LibraryError } from "@fitme/library-sdk";
 import { reportError } from "@fitme/observability/node";
@@ -8,11 +9,12 @@ import { getLibrary } from "./library";
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/iu;
 const SLUG_SEPARATORS = /[-_]+/gu;
 
-/** Longer than any Exercise slug; only keeps a runaway input off the API. */
-const MAX_SLUG_LENGTH = 200;
-
-/** An Exercise slug as the tools take it; checked against the library before any write. */
-export const exerciseSlugSchema = z.string().trim().min(1).max(MAX_SLUG_LENGTH);
+/** An Exercise slug as the tools take it, with the Plan writes' bound; checked against the library before any write. */
+export const exerciseSlugSchema = z
+  .string()
+  .trim()
+  .min(1)
+  .max(MAX_EXERCISE_SLUG_LENGTH);
 
 /** An Exercise the way the read tools show it. */
 export interface ExerciseDetails {

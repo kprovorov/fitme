@@ -1,4 +1,5 @@
 import { pickCovers } from "@fitme/core/covers";
+import { MAX_EXERCISE_SLUG_LENGTH } from "@fitme/core/limits";
 import type { MuscleGroup } from "@fitme/core/models";
 import type { IndexCover } from "@fitme/library-bundle/library-index";
 import { exerciseNameFromSlug } from "@fitme/library-sdk";
@@ -10,14 +11,12 @@ import { z } from "zod";
 import type { ToolContext } from "../context.js";
 import { ToolError } from "./helpers.js";
 
-const MAX_SLUG_LENGTH = 100;
-
 /** An Exercise by its Exercise slug; whether it exists is checked against the Library index. */
 export const exerciseSlugSchema = z
   .string()
   .trim()
   .min(1)
-  .max(MAX_SLUG_LENGTH)
+  .max(MAX_EXERCISE_SLUG_LENGTH)
   .describe(
     "Exercise slug from list_exercises (its `slug`), e.g. `barbell-back-squat`."
   );

@@ -1,3 +1,4 @@
+import { MAX_EXERCISE_SLUG_LENGTH } from "@fitme/core/limits";
 import type * as Db from "@fitme/db";
 import { LibraryUnavailableError } from "@fitme/library-sdk";
 import type * as Observability from "@fitme/observability/node";
@@ -31,7 +32,6 @@ const db = vi.hoisted(() => ({
 }));
 
 const editErrors = vi.hoisted(() => ({
-  MAX_SETS_PER_EXERCISE: 20,
   TooManySetsError: class FakeTooManySetsError extends Error {
     constructor(maxSets: number) {
       super(`An exercise can have at most ${maxSets} sets`);
@@ -312,6 +312,21 @@ describe.each(slugChecks)(
       expect(answer.error).toContain("search_exercises");
       expect(answer.error).toContain("name");
       expect(db.asUser).not.toHaveBeenCalled();
+    });
+
+    it("takes a slug up to core's MAX_EXERCISE_SLUG_LENGTH and refuses a longer one", () => {
+      expect(
+        accepts(tool, {
+          ...input,
+          [field]: "a".repeat(MAX_EXERCISE_SLUG_LENGTH),
+        })
+      ).toBeTruthy();
+      expect(
+        accepts(tool, {
+          ...input,
+          [field]: "a".repeat(MAX_EXERCISE_SLUG_LENGTH + 1),
+        })
+      ).toBeFalsy();
     });
 
     it("asks to retry when the library fails, writing nothing", async () => {

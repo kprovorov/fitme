@@ -1,9 +1,6 @@
-import { MAX_REPS, MAX_WEIGHT } from "@fitme/core/limits";
+import { MAX_REPS, MAX_REST_SECONDS, MAX_WEIGHT } from "@fitme/core/limits";
 import { TooManySetsError } from "@fitme/services/workout-edits";
 import { z } from "zod";
-
-/** The rest bound MCP's plan tools use (apps/mcp/src/tools/plan-schemas.ts). */
-export const MAX_REST_SECONDS = 3600;
 
 /** A set's targets, as the Plan-editing tools take them. */
 export const setSchema = z.object({
