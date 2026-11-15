@@ -3,13 +3,15 @@ name: Shell Scripts
 # The worktree scripts (scripts/*.sh: T3's setup and settle among them) and the
 # Node helpers they call. Only on pull requests touching them, since the parse
 # check needs a macOS runner. The project skills too: scripts/skills-links.test.mjs
-# checks every .agents/skills/<name> has its .claude/skills/<name> symlink.
+# checks every .agents/skills/<name> has its .claude/skills/<name> symlink. And
+# the shell-rule hook (.claude/hooks), whose tests nothing else runs.
 on:
   pull_request:
     paths:
       - scripts/**
       - .agents/skills/**
       - .claude/skills/**
+      - .claude/hooks/**
       - .github/workflows/shell-scripts.yml
 
 permissions:
@@ -40,6 +42,31 @@ jobs:
       # Node built-ins only, so no install.
       - name: Node helpers (node:test)
         run: node --test scripts/*.test.mjs
+
+  # Not Node built-ins only: the tests run check-shell-command.mjs, which
+  # imports zod, so this job installs.
+  hooks:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v6
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version-file: package.json
+          cache: "pnpm"
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Shell-rule hook (node:test)
+        timeout-minutes: 5
+        run: pnpm test:hooks
 
   # The scripts run under the bash 3.2 macOS ships as /bin/bash, which rejects
   # some things bash 5 accepts (see AGENTS.md, Shell), so Linux can't check this.
