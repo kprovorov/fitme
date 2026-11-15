@@ -30,7 +30,7 @@ Users sign in with [Clerk](https://clerk.com). Data lives in Supabase Postgres, 
 
 ## Running it locally
 
-Needs Node 24, pnpm and Docker (for the local Supabase stack).
+Needs Node 24, pnpm 12 and Docker (for the local Supabase stack).
 
 ```bash
 pnpm install
