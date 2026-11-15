@@ -57,7 +57,11 @@ const SignInMethodRow = ({
       <View className="gap-xs pr-sm min-h-11 flex-row items-center py-3">
         <View className="flex-1 gap-0.5">
           <Text className="text-body text-foreground">{name}</Text>
-          <Text className="text-footnote text-muted-foreground">
+          <Text
+            className="text-footnote text-muted-foreground"
+            ellipsizeMode="middle"
+            numberOfLines={1}
+          >
             {linked && email ? email : status}
           </Text>
         </View>

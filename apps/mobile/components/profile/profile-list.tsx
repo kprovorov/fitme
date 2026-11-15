@@ -66,6 +66,7 @@ export const ProfileListRow = ({
       {value ? (
         <Text
           className="text-body text-muted-foreground shrink"
+          ellipsizeMode="middle"
           numberOfLines={1}
         >
           {value}
