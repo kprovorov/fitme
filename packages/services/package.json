@@ -31,6 +31,6 @@
     "@fitme/typescript-config": "workspace:*",
     "@types/node": "26.6.6",
     "typescript": "~5.9.2",
-    "vitest": "^5.0.5"
+    "vitest": "^5.1.0"
   }
 }
