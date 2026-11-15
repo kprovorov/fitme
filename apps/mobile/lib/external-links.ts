@@ -48,6 +48,10 @@ export const openUrl = async (
  * Like `openUrl`, a system that refuses is reported rather than left as an
  * unhandled rejection.
  */
+/** The App Store's write-a-review page for Fitme. */
+export const APP_STORE_REVIEW_URL =
+  "itms-apps://itunes.apple.com/app/viewContentsUserReviews/id6741153628?action=write-review";
+
 export const openAppSettings = async (): Promise<void> => {
   try {
     await Linking.openSettings();

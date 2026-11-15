@@ -1,4 +1,8 @@
-import { getClerkInstance, isClerkAPIResponseError } from "@clerk/expo";
+import {
+  getClerkInstance,
+  isClerkAPIResponseError,
+  isClerkRuntimeError,
+} from "@clerk/expo";
 import { tokenCache } from "@clerk/expo/token-cache";
 import { z } from "zod";
 
@@ -50,3 +54,15 @@ const clerkMessageSchema = clerkErrorSchema.transform(formatClerkErrorMessage);
 
 export const getClerkErrorMessage = (error: unknown) =>
   clerkMessageSchema.parse(error);
+
+/**
+ * Whether a Clerk call failed because the device couldn't reach Clerk:
+ * Clerk's own `network_error`, or the `fetch` underneath it failing (React
+ * Native's `Network request failed`, expo/fetch's `fetch failed: …`). Such a
+ * failure is the User's connection, never reported; a bug's `TypeError` is.
+ */
+export const isClerkNetworkFailure = (error: unknown): boolean =>
+  (isClerkRuntimeError(error) && error.code === "network_error") ||
+  (error instanceof TypeError &&
+    (error.message === "Network request failed" ||
+      error.message.startsWith("fetch failed:")));

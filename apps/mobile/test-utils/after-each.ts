@@ -8,6 +8,7 @@ import { clearAddedSets } from "~/hooks/added-sets";
 import { resetEquipmentChoices } from "~/hooks/equipment-choice";
 import { resetMuscleChoices } from "~/hooks/muscle-choice";
 import { resetPlanDrafts } from "~/hooks/plan-draft";
+import { resetFeatureFlags } from "~/lib/feature-flags";
 import { resetDeviceLanguages } from "~/test-utils/device-locales";
 import { fakeArnold } from "~/test-utils/fake-arnold";
 import { fakeClerk } from "~/test-utils/fake-clerk";
@@ -99,4 +100,10 @@ afterEach(() => {
 // until now, where the real one hides it after a few seconds.
 afterEach(() => {
   resetToasts();
+});
+
+// Every test starts with every feature flag as the build sets it (off), however
+// the last one switched it.
+afterEach(() => {
+  resetFeatureFlags();
 });
