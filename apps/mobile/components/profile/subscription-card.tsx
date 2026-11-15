@@ -10,9 +10,12 @@ import { Text } from "~/components/ui/text";
 import { useSubscriptionQuery } from "~/hooks/revenueCat";
 import { openUrl } from "~/lib/external-links";
 import { useI18n } from "~/lib/i18n";
-import type { Subscription } from "~/lib/subscription";
+import type { ProSubscription } from "~/lib/subscription";
 
-/** The card's surface (Figma's `PlanCard`): `card` fill, border, `sm` padding. */
+/**
+ * The card's surface (the Figma component still named `PlanCard`): `card`
+ * fill, border, `sm` padding.
+ */
 const CARD_CLASS =
   "gap-sm rounded-card border-border bg-card p-sm w-full border";
 
@@ -21,7 +24,7 @@ const presentPaywall = () => {
 };
 
 /**
- * While the Subscription loads (Figma's Plan loading, 1476:3701): grey bars
+ * While the Subscription loads (Figma frame 1476:3701): grey bars
  * where the Free card's text and button go, never the Free card itself, read
  * by VoiceOver as one element saying it's loading.
  */
@@ -46,7 +49,7 @@ const SubscriptionSkeleton = () => {
   );
 };
 
-/** A failed read (Figma's Plan error, 1476:3767), with Try Again. */
+/** A failed read (Figma frame 1476:3767), with Try Again. */
 const SubscriptionError = ({
   isRetrying,
   onRetry,
@@ -97,20 +100,17 @@ const FreeCard = () => {
 };
 
 /** What happens next to a Pro Subscription: its date, or Lifetime. */
-const useStatusLine = (
-  subscription: Extract<Subscription, { kind: "pro" }>
-): string => {
+const useStatusLine = (subscription: ProSubscription): string => {
   const { t } = useTranslation();
   const i18n = useI18n();
-  const { expiresAt, status } = subscription;
 
-  if (expiresAt === null) {
+  if (subscription.status === "lifetime") {
     return t("subscription.lifetime");
   }
 
-  const date = formatDate(i18n, expiresAt, "dayMonthYear");
+  const date = formatDate(i18n, subscription.expiresAt, "dayMonthYear");
 
-  switch (status) {
+  switch (subscription.status) {
     case "renewing": {
       return t("subscription.renewsOn", { date });
     }
@@ -120,7 +120,6 @@ const useStatusLine = (
     }
 
     case "cancelled":
-    case "lifetime":
     case "promotional": {
       return t("subscription.endsOn", { date });
     }
@@ -129,23 +128,13 @@ const useStatusLine = (
 
 /**
  * Fitme Pro (Figma's Profile – Pro, 1476:3624): the badge, its state line and
- * Manage, which opens the store's page and is hidden when there's none (a
- * lifetime purchase, a promotional grant).
+ * Manage, which opens the customer's `managementURL` and is hidden when
+ * RevenueCat has none.
  */
-const ProCard = ({
-  subscription,
-}: {
-  subscription: Extract<Subscription, { kind: "pro" }>;
-}) => {
+const ProCard = ({ subscription }: { subscription: ProSubscription }) => {
   const { t } = useTranslation();
   const statusLine = useStatusLine(subscription);
   const { managementURL } = subscription;
-
-  const manage = useCallback(() => {
-    if (managementURL) {
-      void openUrl(managementURL);
-    }
-  }, [managementURL]);
 
   return (
     <View className={`${CARD_CLASS} flex-row items-center`}>
@@ -159,7 +148,9 @@ const ProCard = ({
         <Button
           fill={false}
           label={t("subscription.manage")}
-          onPress={manage}
+          onPress={() => {
+            void openUrl(managementURL);
+          }}
           size="sm"
           variant="secondary"
         />

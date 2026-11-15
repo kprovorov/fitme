@@ -165,6 +165,17 @@ describe.each([
     }
   );
 
+  it("hides Manage when RevenueCat has no management page", async () => {
+    fakeRevenueCat.setPro("renewing", {
+      expiresAt: EXPIRES_AT,
+      managementURL: null,
+    });
+    await mount();
+
+    expect(screen.getByText(copy.renewsOn)).toBeTruthy();
+    expect(screen.queryByText(copy.manage)).toBeNull();
+  });
+
   it("shows a lifetime Pro User Lifetime with no date and no Manage", async () => {
     fakeRevenueCat.setPro("lifetime");
     await mount();

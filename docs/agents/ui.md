@@ -224,7 +224,7 @@ Look in `components/ui/` before building anything. The ones that trip agents up:
 
 Design all four, not just the happy path:
 
-- **Loading**: the native `ActivityIndicator` with `colorClassName="accent-foreground"` in the space the content will fill, or a `Button` with `isLoading` for an action. Never a blank Screen.
+- **Loading**: the native `ActivityIndicator` with `colorClassName="accent-foreground"` in the space the content will fill, or a `Button` with `isLoading` for an action. Never a blank Screen. A card that loads on its own inside an otherwise loaded Screen may show the skeleton its Figma frame draws instead (`bg-muted` bars where its text and button go), as Profile's Subscription card does, so the card never jumps or shows a wrong state.
 - **Empty**: a centered `VStack` with a title, one line saying what's missing and one lime action that fixes it (the no-active-plan state in `app/(tabs)/home/index.tsx`).
 - **Error**: say what failed in plain words and offer a retry. A form field's `error` prop for its own message, `ErrorMessage` for the form's. Never show a raw error string or a stack.
 - **Content**: what you were asked to build. Lists also get pull to refresh (`RefreshControl`).
