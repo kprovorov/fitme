@@ -210,6 +210,9 @@ const ProfilePhotoSheet = () => {
           <Button
             contentColorClassName="text-primary"
             disabled={isBusy}
+            // Centred under the pills, as the frame has it: a ghost button
+            // otherwise hugs its label at the start.
+            fill
             label={t("common.cancel")}
             onPress={close}
             size="lg"
