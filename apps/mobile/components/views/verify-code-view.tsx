@@ -209,8 +209,8 @@ const dropUnusedEmailAddress = async (emailAddressId: string) => {
 /**
  * Change Email's code step (`purpose=change-email`): the code went to the
  * address the User is adding (`emailAddressId`). Once Clerk verifies it, it
- * becomes the primary address and the old one is destroyed, both through
- * "Confirm it's you" when Clerk asks, so reset codes never go to an address
+ * becomes the primary address (through "Confirm it's you" when Clerk asks)
+ * and the old one is destroyed, so reset codes never go to an address
  * the User has left. Then the User is back on Account & Security with a
  * toast. Leaving before that ("Change it", back, a swipe) takes the new
  * address off the account, leaving the old one primary.
@@ -225,11 +225,6 @@ const useChangeEmailVerification = (
 
   const makePrimary = useReverifiedCall(
     async (id: string) => await user?.update({ primaryEmailAddressId: id })
-  );
-
-  const destroyAddress = useReverifiedCall(
-    async (target: { destroy: () => Promise<unknown> }) =>
-      await target.destroy()
   );
 
   // The address leaves the account with the Screen, unless it was made
@@ -250,8 +245,8 @@ const useChangeEmailVerification = (
   }, [emailAddressId]);
 
   return {
-    available:
-      !!user && !!address && user.primaryEmailAddressId !== emailAddressId,
+    // Still shown once the address is primary, while the old one goes.
+    available: !!user && !!address,
     email: address?.emailAddress ?? null,
     id: address?.id ?? null,
     resend: async () => {
@@ -262,10 +257,10 @@ const useChangeEmailVerification = (
       }
     },
     reset: async () => {
-      settled.current = true;
-
       try {
         await address?.destroy();
+        // Taken off: leaving the Screen has nothing left to drop.
+        settled.current = true;
 
         return { error: null };
       } catch (error) {
@@ -297,7 +292,7 @@ const useChangeEmailVerification = (
 
       // Cancelled "Confirm it's you": the new address stays verified, and
       // Verify swaps it without another code.
-      if (swapped.status === "cancelled" || !current()) {
+      if (swapped.status === "cancelled") {
         return;
       }
 
@@ -307,14 +302,20 @@ const useChangeEmailVerification = (
         ({ id }) => id === previousId
       );
 
-      if (previous && previousId !== emailAddressId) {
-        try {
-          await destroyAddress(previous);
-        } catch (error) {
-          // The new address is primary already: the old one lingering is
-          // ours to look into, not the User's to retry.
+      // The old address goes even if the User has left meanwhile: the
+      // session was just confirmed, so Clerk doesn't ask again. A failure
+      // is ours to look into, not the User's to retry: the new address is
+      // primary already.
+      try {
+        await previous?.destroy();
+      } catch (error) {
+        if (!isClerkNetworkFailure(error)) {
           captureException(error);
         }
+      }
+
+      if (!current()) {
+        return;
       }
 
       showToast(t("changeEmail.success", { email: address.emailAddress }));
@@ -353,18 +354,13 @@ const CodeVerificationContent = ({
     };
   }, [flow.available, coolingDown]);
 
-  let restartHref:
-    | "/auth/forgot-password"
-    | "/auth/login"
-    | "/auth/register"
-    | "/change-email" = "/auth/forgot-password";
+  let restartHref: "/auth/forgot-password" | "/auth/login" | "/auth/register" =
+    "/auth/forgot-password";
 
   if (purpose === "sign-up") {
     restartHref = "/auth/register";
   } else if (purpose === "sign-in") {
     restartHref = "/auth/login";
-  } else if (purpose === "change-email") {
-    restartHref = "/change-email";
   }
 
   // Change Email's own form is the Screen under this one.
