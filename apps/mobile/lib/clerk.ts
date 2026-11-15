@@ -55,13 +55,14 @@ const clerkMessageSchema = clerkErrorSchema.transform(formatClerkErrorMessage);
 export const getClerkErrorMessage = (error: unknown) =>
   clerkMessageSchema.parse(error);
 
-const NETWORK_FAILURE = /network|fetch|connection|offline/iu;
-
 /**
  * Whether a Clerk call failed because the device couldn't reach Clerk:
- * Clerk's own `network_error`, or the `fetch` underneath it throwing.
- * Such a failure is the User's connection, never reported.
+ * Clerk's own `network_error`, or the `fetch` underneath it failing (React
+ * Native's `Network request failed`, expo/fetch's `fetch failed: …`). Such a
+ * failure is the User's connection, never reported; a bug's `TypeError` is.
  */
 export const isClerkNetworkFailure = (error: unknown): boolean =>
   (isClerkRuntimeError(error) && error.code === "network_error") ||
-  (error instanceof TypeError && NETWORK_FAILURE.test(error.message));
+  (error instanceof TypeError &&
+    (error.message === "Network request failed" ||
+      error.message.startsWith("fetch failed:")));

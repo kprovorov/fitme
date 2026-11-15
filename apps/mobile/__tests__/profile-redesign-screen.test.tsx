@@ -186,6 +186,13 @@ describe.each([
     expect(screen.getByText(copy.metric)).toBeTruthy();
   });
 
+  it("leaves Units empty for a User without a Profile", async () => {
+    await mount();
+
+    expect(screen.getByLabelText(copy.rows[3])).toBeTruthy();
+    expect(screen.queryByText(copy.metric)).toBeNull();
+  });
+
   it("names the App language in its own name and opens Fitme's Settings page", async () => {
     const openSettings = jest
       .spyOn(Linking, "openSettings")

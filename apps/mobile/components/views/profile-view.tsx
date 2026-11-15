@@ -10,7 +10,7 @@ import { Button } from "~/components/ui/button";
 import { Text } from "~/components/ui/text";
 import { useLogoutMutation } from "~/hooks/mutations/auth";
 import { useCustomerInfoQuery, useIsProQuery } from "~/hooks/revenueCat";
-import { openUrl } from "~/lib/external-links";
+import { APP_STORE_REVIEW_URL, openUrl } from "~/lib/external-links";
 import { i18n } from "~/lib/i18n";
 import { getProfileHeader } from "~/lib/user-name";
 
@@ -21,9 +21,6 @@ import { MenuList, MenuListItem } from "../ui/menu-list";
 import { Separator } from "../ui/separator";
 import { Muted } from "../ui/typography";
 import { VStack } from "../ui/vstack";
-
-const APP_STORE_REVIEW_URL =
-  "itms-apps://itunes.apple.com/app/viewContentsUserReviews/id6741153628?action=write-review";
 
 const presentPaywall = () => RevenueCatUI.presentPaywall();
 

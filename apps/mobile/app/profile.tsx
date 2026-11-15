@@ -18,6 +18,7 @@ const ProfileScreen = () => {
   const [refreshing, setRefreshing] = useState(false);
   const queryClient = useQueryClient();
   const { user } = useUser();
+  const isRedesign = isProfileRedesignEnabled();
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
@@ -56,13 +57,13 @@ const ProfileScreen = () => {
         }}
       />
       <ScrollView
-        className={isProfileRedesignEnabled() ? "px-sm" : "p-6"}
+        className={isRedesign ? "px-sm" : "p-6"}
         contentInsetAdjustmentBehavior="automatic"
         refreshControl={
           <RefreshControl onRefresh={onRefresh} refreshing={refreshing} />
         }
       >
-        {isProfileRedesignEnabled() ? <ProfileRedesignView /> : <ProfileView />}
+        {isRedesign ? <ProfileRedesignView /> : <ProfileView />}
       </ScrollView>
     </>
   );

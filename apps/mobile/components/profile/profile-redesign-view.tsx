@@ -18,14 +18,15 @@ import { useLogoutMutation } from "~/hooks/mutations/auth";
 import { useProfileQuery } from "~/hooks/queries/profiles";
 import { useChoiceLabels } from "~/lib/choices";
 import { isClerkNetworkFailure } from "~/lib/clerk";
-import { openAppSettings, openUrl } from "~/lib/external-links";
+import {
+  APP_STORE_REVIEW_URL,
+  openAppSettings,
+  openUrl,
+} from "~/lib/external-links";
 import { useAppLanguage, useI18n } from "~/lib/i18n";
 import { measurementSystemOf } from "~/lib/profile";
 import { showToast } from "~/lib/toast";
 import { getProfileHeader } from "~/lib/user-name";
-
-export const APP_STORE_REVIEW_URL =
-  "itms-apps://itunes.apple.com/app/viewContentsUserReviews/id6741153628?action=write-review";
 
 const openAppStoreReview = () => {
   void openUrl(APP_STORE_REVIEW_URL);
@@ -170,7 +171,7 @@ const ProfileRedesignView = () => {
           onPress={openUnits}
           testID="units-link"
           value={
-            profile === undefined
+            profile === undefined || profile === null
               ? undefined
               : labels.measurementSystem(measurementSystemOf(profile))
           }
