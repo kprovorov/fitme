@@ -7,52 +7,39 @@ import type {
   LibraryIndex,
 } from "@fitme/library-bundle/library-index";
 import { libraryBundleSource } from "@fitme/library-bundle/source";
-import { createLibrary } from "@fitme/library-sdk";
-import type { Library } from "@fitme/library-sdk";
 
 export type { LibraryIndex } from "@fitme/library-bundle/library-index";
 
-/**
- * Builds the Library client the Cover backfill reads Covers with, or returns
- * `null` when the API isn't configured for it. No write route uses it: they
- * check against the Library index.
- */
-export type LibraryFactory = () => Library | null;
-
-/**
- * The Library API at `LIBRARY_URL`, called with the Public API's
- * own server secret (`LIBRARY_PUBLIC_API_SECRET`), never a User's token.
- */
-export const createLibraryFromEnv: LibraryFactory = () => {
-  const url = process.env.LIBRARY_URL;
-  const secret = process.env.LIBRARY_PUBLIC_API_SECRET;
-
-  if (!(url && secret)) {
-    return null;
+/** The Library index couldn't be loaded (its load reported why). */
+export class LibraryIndexUnavailableError extends Error {
+  constructor() {
+    super("The Library index couldn't be loaded; try again");
+    this.name = "LibraryIndexUnavailableError";
   }
-
-  return createLibrary({ token: () => Promise.resolve(secret), url });
-};
+}
 
 /**
- * The instance's Library index (ADR 0018) over the bundle the environment
- * names: production's Blob store, LIBRARY_BUNDLE or the committed fixture
- * anywhere else. Loaded on the first write that asks; every failed load is
- * reported through `reportError`.
+ * The bundle the environment names: production's Blob store, LIBRARY_BUNDLE
+ * or the committed fixture anywhere else.
+ */
+export const libraryBundleSourceFromEnv = () =>
+  libraryBundleSource({
+    env: {
+      BLOB_STORE_ID: process.env.BLOB_STORE_ID,
+      LIBRARY_BUNDLE: process.env.LIBRARY_BUNDLE,
+      VERCEL_ENV: process.env.VERCEL_ENV,
+    },
+  });
+
+/**
+ * The instance's Library index (ADR 0018) over `libraryBundleSourceFromEnv`'s
+ * bundle. Loaded on the first write that asks; every failed load is reported
+ * through `reportError`.
  */
 export const libraryIndexFromEnv = (
   reportError: (error: Error) => Promise<void>
 ): LibraryIndex =>
-  createLibraryIndex({
-    load: libraryBundleSource({
-      env: {
-        BLOB_STORE_ID: process.env.BLOB_STORE_ID,
-        LIBRARY_BUNDLE: process.env.LIBRARY_BUNDLE,
-        VERCEL_ENV: process.env.VERCEL_ENV,
-      },
-    }).load,
-    reportError,
-  });
+  createLibraryIndex({ load: libraryBundleSourceFromEnv().load, reportError });
 
 /** What the Library index says about a write's Exercise slugs. */
 export type SlugCheck =

@@ -1,7 +1,10 @@
 import type { MuscleGroup } from "@fitme/core/models";
 import { createLibraryIndex } from "@fitme/library-bundle/library-index";
-import type { LibraryIndex } from "@fitme/library-bundle/library-index";
-import type { Cover, ExerciseSummary } from "@fitme/library-sdk";
+import type {
+  IndexCover,
+  IndexExercise,
+  LibraryIndex,
+} from "@fitme/library-bundle/library-index";
 import { memoryRateLimiter } from "@fitme/rate-limit";
 
 import { createApp } from "../create-app.js";
@@ -36,28 +39,17 @@ export const fakeServices = (faked: Partial<UserServices>): UserServices =>
       }),
   });
 
-/** An Exercise the fake Library knows, by slug (quadriceps unless told otherwise). */
+/** An Exercise the test Library knows, by slug (quadriceps unless told otherwise). */
 export const libraryExercise = (
   slug: string,
   muscleGroups: MuscleGroup[] = ["quadriceps"]
-): ExerciseSummary => ({
-  equipment: [],
-  muscle_groups: muscleGroups,
-  name: slug,
-  slug,
-  thumbnail_url: `https://media.example/${slug}.png`,
-  video_url: `https://media.example/${slug}.mp4`,
-});
+): IndexExercise => ({ muscle_groups: muscleGroups, slug });
 
-/** A Cover the fake Library has, by id, tagged with `muscleGroups`. */
+/** A Cover the test Library has, by id, tagged with `muscleGroups`. */
 export const libraryCover = (
   id: string,
   muscleGroups: MuscleGroup[]
-): Cover => ({
-  id,
-  image_url: `https://media.example/covers/${id}.jpg`,
-  muscle_groups: muscleGroups,
-});
+): IndexCover => ({ id, muscle_groups: muscleGroups });
 
 /** The Exercises the test app's Library knows by default. */
 export const KNOWN_SLUGS = ["barbell-back-squat", "barbell-deadlift"];
@@ -85,8 +77,8 @@ export const testLibraryIndex = ({
   loading = "ok",
   reportError,
 }: {
-  covers?: readonly Cover[];
-  exercises?: readonly ExerciseSummary[];
+  covers?: readonly IndexCover[];
+  exercises?: readonly IndexExercise[];
   loading?: IndexLoads;
   reportError: (error: Error) => Promise<void>;
 }) => {
@@ -127,12 +119,12 @@ export const testLibraryIndex = ({
  * back (`reset`), for suites sharing one app across tests.
  */
 export const switchableLibraryIndex = (
-  exercises: readonly ExerciseSummary[],
+  exercises: readonly IndexExercise[],
   {
     covers,
     reportError,
   }: {
-    covers?: readonly Cover[];
+    covers?: readonly IndexCover[];
     reportError: (error: Error) => Promise<void>;
   }
 ) => {
@@ -173,9 +165,9 @@ export const testApp = (
     /** Explicitly `undefined` for an API without CLERK_JWT_KEY. */
     clerkJwtKey?: string;
     /** The Library's Covers; none by default. */
-    covers?: Cover[];
+    covers?: IndexCover[];
     /** The Library's Exercises; `KNOWN_SLUGS` by default. */
-    exercises?: ExerciseSummary[];
+    exercises?: IndexExercise[];
     /** How the index's loads go; every one succeeds by default. */
     indexLoads?: IndexLoads;
     /** Counts requests; by default one no test reaches (in memory, unlimited in practice). */

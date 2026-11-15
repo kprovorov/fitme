@@ -16,8 +16,6 @@ describe("required environment variables", () => {
       "CLERK_JWT_KEY",
       "FITME_DATABASE_URL",
       "BLOB_STORE_ID",
-      "LIBRARY_URL",
-      "LIBRARY_PUBLIC_API_SECRET",
     ]);
     expect(report).toHaveBeenCalledTimes(missing.length);
   });
