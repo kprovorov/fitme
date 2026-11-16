@@ -10,6 +10,8 @@
     "maestro",
     // The @fitme/supabase devDependency, run through pnpm exec from the root.
     "supabase",
+    // Installed with brew and run by .husky/pre-commit, not an npm package.
+    "gitleaks",
   ],
   "workspaces": {
     ".": {
@@ -34,6 +36,10 @@
         // external: AGENTS.md requires them in the app's dependencies.
         "@upstash/ratelimit",
         "@vercel/functions",
+        // Runtime dep of @fitme/library-bundle/source, which tsdown keeps
+        // external: AGENTS.md (packages/library-bundle) requires it in each
+        // tsdown app's dependencies.
+        "@vercel/blob",
       ],
     },
     "apps/arnold": {
@@ -43,6 +49,9 @@
         // Runtime dep of @fitme/observability/node: AGENTS.md
         // (packages/observability) requires it in each consuming app.
         "@sentry/node",
+        // Runtime dep of @fitme/library-bundle/source: AGENTS.md
+        // (packages/library-bundle) requires it in the app's dependencies.
+        "@vercel/blob",
       ],
     },
     "apps/library": {
@@ -66,6 +75,10 @@
         // Runtime dep of @fitme/db, which tsdown keeps external: AGENTS.md
         // requires it in the app's dependencies.
         "@vercel/functions",
+        // Runtime dep of @fitme/library-bundle/source, which tsdown keeps
+        // external: AGENTS.md (packages/library-bundle) requires it in each
+        // tsdown app's dependencies.
+        "@vercel/blob",
       ],
     },
     "apps/mobile": {
