@@ -189,6 +189,17 @@ const RootLayout = () => {
             }}
           />
           <Stack.Screen
+            name="delete-account"
+            // Sized to its contents, with no header: the sheet titles itself,
+            // as Figma's dialog does.
+            options={{
+              presentation: "formSheet",
+              sheetAllowedDetents: "fitToContents",
+              sheetCornerRadius: Platform.OS === "android" ? 28 : undefined,
+              sheetGrabberVisible: true,
+            }}
+          />
+          <Stack.Screen
             name="equipment"
             options={{
               headerShown: true,

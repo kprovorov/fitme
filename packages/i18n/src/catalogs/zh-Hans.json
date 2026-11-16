@@ -308,6 +308,7 @@
     },
     "manageSubscription": "管理订阅",
     "confirm": "删除账户",
+    "deleting": "正在删除账户",
     "failed": "无法删除你的账户，请重试。"
   },
   "duration": {

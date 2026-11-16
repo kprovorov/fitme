@@ -308,6 +308,7 @@
     },
     "manageSubscription": "구독 관리",
     "confirm": "계정 삭제",
+    "deleting": "계정 삭제 중",
     "failed": "계정을 삭제하지 못했어요. 다시 시도해 주세요."
   },
   "duration": {

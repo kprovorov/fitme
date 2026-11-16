@@ -347,6 +347,7 @@
     },
     "manageSubscription": "Zarządzaj subskrypcją",
     "confirm": "Usuń konto",
+    "deleting": "Usuwanie konta",
     "failed": "Nie udało się usunąć konta. Spróbuj ponownie."
   },
   "duration": {

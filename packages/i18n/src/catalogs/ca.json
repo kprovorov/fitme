@@ -334,6 +334,7 @@
     },
     "manageSubscription": "Gestiona la subscripció",
     "confirm": "Elimina el compte",
+    "deleting": "S'està suprimint el compte",
     "failed": "No s'ha pogut eliminar el compte. Torna-ho a provar."
   },
   "duration": {

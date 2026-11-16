@@ -334,6 +334,7 @@
     },
     "manageSubscription": "Gestisci abbonamento",
     "confirm": "Elimina account",
+    "deleting": "Eliminazione dell'account",
     "failed": "Impossibile eliminare il tuo account. Riprova."
   },
   "duration": {

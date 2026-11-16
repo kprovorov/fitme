@@ -321,6 +321,7 @@
     },
     "manageSubscription": "Abonnement beheren",
     "confirm": "Account verwijderen",
+    "deleting": "Account verwijderen",
     "failed": "Je account kon niet worden verwijderd. Probeer het opnieuw."
   },
   "duration": {

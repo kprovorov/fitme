@@ -119,7 +119,7 @@ const deleteAccount = async () => {
   });
 
   await act(() => {
-    result.current.mutate();
+    result.current.mutate({});
   });
 
   await settle(client);

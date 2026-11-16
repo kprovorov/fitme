@@ -334,6 +334,7 @@
     },
     "manageSubscription": "Gerenciar assinatura",
     "confirm": "Excluir conta",
+    "deleting": "Excluindo conta",
     "failed": "Não foi possível excluir sua conta. Tente novamente."
   },
   "duration": {

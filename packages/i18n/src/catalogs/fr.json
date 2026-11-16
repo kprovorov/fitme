@@ -334,6 +334,7 @@
     },
     "manageSubscription": "Gérer l'abonnement",
     "confirm": "Supprimer le compte",
+    "deleting": "Suppression du compte",
     "failed": "Impossible de supprimer ton compte. Réessaie."
   },
   "duration": {

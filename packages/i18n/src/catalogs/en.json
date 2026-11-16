@@ -321,6 +321,7 @@
     },
     "manageSubscription": "Manage Subscription",
     "confirm": "Delete Account",
+    "deleting": "Deleting account",
     "failed": "Couldn't delete your account. Try again."
   },
   "duration": {

@@ -24,6 +24,9 @@ import type { SocialProvider } from "~/lib/sign-in-providers";
  */
 const PILL_HIT_SLOP = 8;
 
+/** The Delete sheet (`app/delete-account.tsx`). */
+const DELETE_ACCOUNT_ROUTE = "/delete-account";
+
 /**
  * What a provider not connected's Connect can do: run (`busy` while it does),
  * or nothing while another Connect or a Disconnect runs (`disabled`).
@@ -190,7 +193,8 @@ const SignInMethodRow = ({
  * the User's email, whose row opens Change Email, Change Password while
  * they have a password (opening the Change Password Screen), the sign-in
  * methods this build offers (ADR 0021) with whether each is linked, and
- * Delete Account at the bottom. A linked provider can be disconnected while
+ * Delete Account at the bottom, which opens the Delete sheet. A linked
+ * provider can be disconnected while
  * the User keeps another way to sign in (ADR 0021): a password, or another
  * linked provider, counted whether or not this build shows its row (Apple on
  * Android still signs the User in on an iPhone). Disconnect confirms first,
@@ -370,17 +374,17 @@ const AccountSecurityView = () => {
       ) : null}
 
       <View className="rounded-card border-border bg-card w-full overflow-hidden border">
-        <View
+        <Pressable
           accessibilityLabel={t("accountSecurity.deleteAccount")}
-          accessibilityRole="text"
-          accessible
-          className="px-sm min-h-11 justify-center py-3"
+          accessibilityRole="button"
+          className="px-sm active:bg-accent min-h-11 justify-center py-3"
+          onPress={() => router.push(DELETE_ACCOUNT_ROUTE)}
           testID="delete-account"
         >
           <Text className="text-body text-destructive">
             {t("accountSecurity.deleteAccount")}
           </Text>
-        </View>
+        </Pressable>
       </View>
     </View>
   );
