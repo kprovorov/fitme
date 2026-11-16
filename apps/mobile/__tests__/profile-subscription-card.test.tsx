@@ -1,5 +1,5 @@
 /**
- * The Subscription card on the redesigned Profile, on the mounted-screen
+ * The Subscription card on Profile, on the mounted-screen
  * seam: the real Profile screen with RevenueCat for the fake customer, Clerk
  * for the fake Clerk User and the SwiftUI-backed Button for its stand-in, in
  * English and Ukrainian.
@@ -11,7 +11,6 @@ import { Linking } from "react-native";
 import RevenueCatUI from "react-native-purchases-ui";
 
 import ProfileScreen from "~/app/profile";
-import { setProfileRedesignEnabled } from "~/lib/feature-flags";
 import { setDeviceLanguages } from "~/test-utils/device-locales";
 import { fakeClerk } from "~/test-utils/fake-clerk";
 import { backend } from "~/test-utils/fake-public-api";
@@ -117,7 +116,6 @@ describe.each([
   const copy = COPY[language];
 
   beforeEach(() => {
-    setProfileRedesignEnabled(true);
     setDeviceLanguages([...deviceLanguages]);
     jest.clearAllMocks();
     backend.reset();

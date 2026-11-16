@@ -524,13 +524,7 @@
   "legal": {
     "privacyTitle": "Prawo i prywatność",
     "privacyPolicy": "Polityka prywatności",
-    "terms": "Regulamin",
-    "deleteAccount": "Usuń konto",
-    "deleteConfirm": {
-      "title": "Czy na pewno chcesz usunąć konto?",
-      "message": "Tej czynności nie można cofnąć. Konto zostanie trwale usunięte, a twoje dane znikną z naszych serwerów.",
-      "confirm": "Tak, usuń moje konto"
-    }
+    "terms": "Regulamin"
   },
   "library": {
     "search": "Szukaj ćwiczeń",
@@ -811,25 +805,6 @@
   },
   "profile": {
     "title": "Profil",
-    "pro": {
-      "title": "Masz Pro!",
-      "description": "Masz dostęp do wszystkich funkcji. Subskrypcję możesz anulować w dowolnym momencie.",
-      "manage": "Zarządzaj subskrypcją"
-    },
-    "free": {
-      "title": "Korzystasz z darmowego planu",
-      "description": "Subskrybuj Fitme Pro, aby uzyskać nieograniczony dostęp do wszystkich funkcji",
-      "upgrade": "Przejdź na Pro"
-    },
-    "editProfile": "Edytuj profil",
-    "settings": "Ustawienia",
-    "support": "Pomoc",
-    "legal": "Informacje prawne",
-    "logout": "Wyloguj się",
-    "rate": {
-      "title": "Podoba ci się aplikacja?",
-      "action": "Oceń ją w App Store!"
-    },
     "memberSince": "Data dołączenia: {{date}}",
     "totals": {
       "workouts": "Treningi",
@@ -995,17 +970,6 @@
       "skipRest": "Pomiń odpoczynek",
       "over": "Koniec odpoczynku"
     }
-  },
-  "settings": {
-    "title": "Ustawienia",
-    "measurementSystem": "System jednostek",
-    "deleteAccount": "Usuń konto",
-    "deleteConfirm": {
-      "title": "Usuń konto",
-      "message": "Spowoduje to trwałe usunięcie konta i wszystkich powiązanych danych. Tej czynności nie można cofnąć.",
-      "confirm": "Usuń"
-    },
-    "deleteFailed": "Nie udało się usunąć konta"
   },
   "spokenCompactUnits": {
     "t_one": "{{count, number}} tona",

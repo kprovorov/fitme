@@ -130,10 +130,13 @@ jest.mock(
     ).clerkModule
 );
 
-jest.mock("react-native-purchases", () => ({
-  __esModule: true,
-  default: { invalidateCustomerInfoCache: () => Promise.resolve() },
-}));
+jest.mock(
+  "react-native-purchases",
+  () =>
+    jest.requireActual<typeof import("~/test-utils/fake-revenuecat")>(
+      "~/test-utils/fake-revenuecat"
+    ).purchasesModule
+);
 
 jest.mock("react-native-purchases-ui", () => ({
   __esModule: true,
@@ -142,11 +145,6 @@ jest.mock("react-native-purchases-ui", () => ({
 
 jest.mock("~/lib/segment", () => ({
   segmentClient: { reset: jest.fn(), track: jest.fn() },
-}));
-
-jest.mock("~/hooks/revenueCat", () => ({
-  useCustomerInfoQuery: () => ({ data: undefined }),
-  useIsProQuery: () => ({ data: false }),
 }));
 
 jest.mock("~/components/exercises/exercise-image", () => () => null);
@@ -345,7 +343,7 @@ describe("profile from the first tab's header", () => {
     expect(screen.getByText("Profile")).toBeTruthy();
     expect(screen.getByText("header shown")).toBeTruthy();
     expect(screen.getByText("back button")).toBeTruthy();
-    // Its contents are the Profile view's, unchanged.
+    // Its contents are the Profile view's.
     expect(screen.getByText("Tony Stark")).toBeTruthy();
     expect(screen.getByTestId("edit-profile-link")).toBeTruthy();
   });

@@ -12,8 +12,8 @@ import { act, fireEvent, render, screen } from "@testing-library/react-native";
 import { Alert, Linking } from "react-native";
 import type { AlertButton } from "react-native";
 
+import EditProfileScreen from "~/app/edit-profile";
 import ProfilePhotoSheet from "~/app/profile-photo";
-import EditProfileScreen from "~/app/settings/edit-profile";
 import type { CameraPhoto, PickedImage } from "~/lib/arnold-attachment-picker";
 import { setDeviceLanguages } from "~/test-utils/device-locales";
 import { DEFAULT_IMAGE_URL, fakeClerk } from "~/test-utils/fake-clerk";

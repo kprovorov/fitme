@@ -1,5 +1,5 @@
 /**
- * The Account & Security screen, opened from the redesigned Profile's Account
+ * The Account & Security screen, opened from Profile's Account
  * list: the real screen over the fake Clerk User, on iOS and Android, in
  * English and Ukrainian, with the in-app browser stood in: Connect and
  * Disconnect. Delete Account's sheet has its own test
@@ -31,7 +31,6 @@ import AccountSecurityScreen from "~/app/account-security";
 import ProfileScreen from "~/app/profile";
 import { markConfirmSheetClosed } from "~/hooks/reverification";
 import { getClerk } from "~/lib/clerk";
-import { setProfileRedesignEnabled } from "~/lib/feature-flags";
 import type { GoogleClientIds } from "~/lib/google-client-ids";
 import { setDeviceLanguages } from "~/test-utils/device-locales";
 import { fakeClerk } from "~/test-utils/fake-clerk";
@@ -268,11 +267,10 @@ describe.each([
     jest.spyOn(Alert, "alert").mockReturnValue(undefined);
     mockGoogleClientIds = GOOGLE_IDS;
     Platform.OS = "ios";
-    setProfileRedesignEnabled(true);
     setDeviceLanguages([...deviceLanguages]);
   });
 
-  it("opens from the redesigned Profile's Account & Security row", async () => {
+  it("opens from Profile's Account & Security row", async () => {
     fakeClerk.setUser({ emailAddresses: ["kirill@example.com"] });
     await mount(<ProfileScreen />);
 

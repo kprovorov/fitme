@@ -2,7 +2,7 @@
  * The Subscription screen on the mounted-screen seam: the real screen with
  * RevenueCat for the fake customer, the paywall stood in, the app's Toaster
  * beside it and the SwiftUI-backed Button for its stand-in, in English and
- * Ukrainian; and the redesigned Profile's Subscription row opening it.
+ * Ukrainian; and Profile's Subscription row opening it.
  */
 import { beforeEach, describe, expect, it, jest } from "@jest/globals";
 import * as Sentry from "@sentry/react-native";
@@ -16,7 +16,6 @@ import RevenueCatUI from "react-native-purchases-ui";
 import ProfileScreen from "~/app/profile";
 import SubscriptionScreen from "~/app/subscription";
 import { Toaster } from "~/components/ui/toast";
-import { setProfileRedesignEnabled } from "~/lib/feature-flags";
 import { setDeviceLanguages } from "~/test-utils/device-locales";
 import { fakeClerk } from "~/test-utils/fake-clerk";
 import { backend } from "~/test-utils/fake-public-api";
@@ -171,7 +170,6 @@ describe.each([
   const copy = COPY[language];
 
   beforeEach(() => {
-    setProfileRedesignEnabled(true);
     setDeviceLanguages([...deviceLanguages]);
     jest.clearAllMocks();
     backend.reset();
@@ -182,7 +180,7 @@ describe.each([
     });
   });
 
-  it("opens from the redesigned Profile's Subscription row", async () => {
+  it("opens from Profile's Subscription row", async () => {
     await mount(<ProfileScreen />);
 
     await fireEvent.press(screen.getByLabelText(copy.profileRow));

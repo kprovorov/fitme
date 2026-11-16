@@ -464,13 +464,7 @@
   "legal": {
     "privacyTitle": "法律與隱私權",
     "privacyPolicy": "隱私權政策",
-    "terms": "服務條款",
-    "deleteAccount": "刪除帳號",
-    "deleteConfirm": {
-      "title": "確定要刪除你的帳號嗎？",
-      "message": "此操作無法撤銷。你的帳號將被永久刪除，你的資料也將從我們的伺服器中移除。",
-      "confirm": "是的，刪除我的帳號"
-    }
+    "terms": "服務條款"
   },
   "library": {
     "search": "搜尋訓練動作",
@@ -736,25 +730,6 @@
   },
   "profile": {
     "title": "個人資料",
-    "pro": {
-      "title": "你已是 Pro 用戶！",
-      "description": "你可以使用全部功能，也可以隨時取消訂閱。",
-      "manage": "管理訂閱"
-    },
-    "free": {
-      "title": "你正在使用免費版",
-      "description": "訂閱 Fitme Pro，即可無限使用全部功能",
-      "upgrade": "升級為 Pro"
-    },
-    "editProfile": "編輯個人資料",
-    "settings": "設定",
-    "support": "支援",
-    "legal": "法律資訊",
-    "logout": "登出",
-    "rate": {
-      "title": "喜歡這款App嗎？",
-      "action": "到 App Store 給個評分吧！"
-    },
     "memberSince": "{{date}}加入",
     "totals": {
       "workouts": "訓練次數",
@@ -896,17 +871,6 @@
       "skipRest": "跳過休息",
       "over": "休息結束"
     }
-  },
-  "settings": {
-    "title": "設定",
-    "measurementSystem": "度量衡單位",
-    "deleteAccount": "刪除帳號",
-    "deleteConfirm": {
-      "title": "刪除帳號",
-      "message": "此操作將永久刪除你的帳號及所有相關資料，且無法撤銷。",
-      "confirm": "刪除"
-    },
-    "deleteFailed": "無法刪除你的帳號"
   },
   "spokenCompactUnits": {
     "t_other": "{{count, number}}噸",

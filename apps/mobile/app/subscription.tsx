@@ -4,7 +4,7 @@ import { ScrollView } from "react-native";
 
 import SubscriptionView from "~/components/profile/subscription-view";
 
-// Pushed from the redesigned Profile's Account list.
+// Pushed from Profile's Account list.
 const SubscriptionScreen = () => {
   const { t } = useTranslation();
 

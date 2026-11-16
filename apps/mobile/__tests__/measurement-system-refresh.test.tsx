@@ -14,8 +14,8 @@ import type { ReactNode } from "react";
 import { Alert, Pressable } from "react-native";
 
 import HistoryScreen from "~/app/(tabs)/history/index";
+import MeasurementSystemScreen from "~/app/measurement-system";
 import WorkoutScreen from "~/app/plans/[planId]/workouts/[workoutId]/index";
-import MeasurementSystemScreen from "~/app/settings/measurement-system";
 import {
   backend,
   FAKE_USER_ID,

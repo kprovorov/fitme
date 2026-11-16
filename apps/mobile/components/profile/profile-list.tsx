@@ -33,9 +33,6 @@ export const ProfileListSection = ({
  * A navigation row (Figma's `ListRow`, type navigation): the label, an
  * optional value and a chevron, at least 44 pt tall. Every row but a group's
  * first draws the separator above it, inset by the row's leading padding.
- * Without `onPress` (a screen still to come behind the flag) it is no
- * control at all: no button role, no pressed highlight, and VoiceOver reads
- * it as text.
  */
 export const ProfileListRow = ({
   first = false,
@@ -46,17 +43,16 @@ export const ProfileListRow = ({
 }: {
   first?: boolean;
   label: string;
-  onPress?: () => void;
+  onPress: () => void;
   testID?: string;
   value?: string;
 }) => (
   <Pressable
     accessibilityLabel={label}
-    accessibilityRole={onPress ? "button" : "text"}
+    accessibilityRole="button"
     accessibilityValue={value ? { text: value } : undefined}
     accessible
-    className={onPress ? "pl-sm active:bg-accent" : "pl-sm"}
-    disabled={!onPress}
+    className="pl-sm active:bg-accent"
     onPress={onPress}
     testID={testID}
   >

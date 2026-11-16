@@ -1,5 +1,5 @@
 /**
- * The Lifetime totals and the New user state on the redesigned Profile, on
+ * The Lifetime totals and the New user state on Profile, on
  * the mounted-screen seam: the real screen and its reads (the totals, the
  * open Workout Session and the active Plan, through the fake Public API over
  * its in-memory rows), Start through it, in English and Ukrainian.
@@ -11,7 +11,6 @@ import type { ReactNode } from "react";
 import { Alert } from "react-native";
 
 import ProfileScreen from "~/app/profile";
-import { setProfileRedesignEnabled } from "~/lib/feature-flags";
 import { setDeviceLanguages } from "~/test-utils/device-locales";
 import { fakeClerk } from "~/test-utils/fake-clerk";
 import {
@@ -226,7 +225,6 @@ describe.each([
   const copy = COPY[language];
 
   beforeEach(() => {
-    setProfileRedesignEnabled(true);
     setDeviceLanguages([...deviceLanguages]);
     jest.clearAllMocks();
     jest.spyOn(Alert, "alert").mockReturnValue(undefined);

@@ -1,25 +1,20 @@
 /**
- * The Profile screen, Settings, Legal and Support on a Ukrainian device: the real
- * screens under the root layout's language sync, with the Public API's `fetch`
- * swapped for its fake, Clerk for a signed-in User, RevenueCat for a free plan
- * and the SwiftUI-backed primitives for stand-ins.
+ * The Profile screen, Legal & Privacy and Support on a Ukrainian device: the
+ * real screens under the root layout's language sync, with the Public API's
+ * `fetch` swapped for its fake, Clerk for the fake Clerk User, RevenueCat for
+ * the fake customer (Free) and the SwiftUI-backed Button for its stand-in.
  */
 import { beforeEach, describe, expect, it, jest } from "@jest/globals";
 import { QueryClientProvider } from "@tanstack/react-query";
-import { fireEvent, render, screen } from "@testing-library/react-native";
+import { render, screen } from "@testing-library/react-native";
 import type { ReactNode } from "react";
-import { Alert, Pressable, Text, View } from "react-native";
 
 import LegalScreen from "~/app/legal";
-import SettingsScreen from "~/app/settings";
+import ProfileScreen from "~/app/profile";
 import SupportScreen from "~/app/support";
-import ProfileView from "~/components/views/profile-view";
 import { setDeviceLanguages } from "~/test-utils/device-locales";
-import {
-  backend,
-  FAKE_USER_ID,
-  fakePublicApi,
-} from "~/test-utils/fake-public-api";
+import { fakeClerk } from "~/test-utils/fake-clerk";
+import { backend, FAKE_USER_ID } from "~/test-utils/fake-public-api";
 import { InAppLanguage } from "~/test-utils/in-app-language";
 import { createTestQueryClient, settle } from "~/test-utils/query-client";
 
@@ -30,91 +25,48 @@ jest.mock("expo-router", () => {
 
   return {
     Link: ({ children }: { children: ReactNode }) => children,
-    router: { replace: jest.fn() },
+    router: { push: jest.fn(), replace: jest.fn() },
     Stack: {
       Screen: ({ options }: { options?: { title?: string } }) =>
         options?.title ? <MockText>{options.title}</MockText> : null,
     },
+    useRouter: () => ({ push: jest.fn(), replace: jest.fn() }),
   };
 });
 
-// The signed-in Clerk User; deleting the account fails without a Clerk error.
-const mockUser = {
-  delete: jest.fn(() => Promise.reject(new Error("offline"))),
-  fullName: "Тарас Шевченко",
-  id: "user_test",
-  primaryEmailAddress: { emailAddress: "taras@example.com" },
-};
+jest.mock(
+  "@clerk/expo",
+  () =>
+    jest.requireActual<typeof import("~/test-utils/fake-clerk")>(
+      "~/test-utils/fake-clerk"
+    ).clerkModule
+);
 
-jest.mock("@clerk/expo", () => ({
-  isClerkAPIResponseError: () => false,
-  useUser: () => ({ isLoaded: true, user: mockUser }),
-}));
-
-jest.mock("~/lib/clerk", () => ({
-  ...jest.requireActual<typeof import("~/lib/clerk")>("~/lib/clerk"),
-  getClerk: () => ({ signOut: jest.fn(), user: mockUser }),
-  getCurrentUserId: () =>
-    jest.requireActual<typeof import("~/test-utils/fake-public-api")>(
-      "~/test-utils/fake-public-api"
-    ).FAKE_USER_ID,
-}));
-
-jest.mock("~/lib/segment", () => ({
-  segmentClient: { reset: jest.fn(), track: jest.fn() },
-}));
+jest.mock(
+  "react-native-purchases",
+  () =>
+    jest.requireActual<typeof import("~/test-utils/fake-revenuecat")>(
+      "~/test-utils/fake-revenuecat"
+    ).purchasesModule
+);
 
 jest.mock("react-native-purchases-ui", () => ({
   __esModule: true,
   default: { presentPaywall: jest.fn() },
 }));
 
-jest.mock("~/hooks/revenueCat", () => ({
-  useCustomerInfoQuery: () => ({ data: undefined }),
-  useIsProQuery: () => ({ data: false }),
+jest.mock("expo-application", () => ({
+  nativeApplicationVersion: "1.4.0",
+  nativeBuildVersion: "212",
+}));
+
+jest.mock("~/lib/segment", () => ({
+  segmentClient: { reset: jest.fn(), track: jest.fn() },
 }));
 
 jest.mock("~/components/ui/button", () =>
   jest.requireActual("~/test-utils/button-stub")
 );
-
-// The native alert stand-in: its trigger, then its title, message and
-// buttons, as the alert shows them once opened. Top-level (and
-// `mock`-prefixed, so the factory may use it) because the React Compiler
-// rewrites components declared inside a `jest.mock` factory into code the
-// factory can't reach.
-const MockAlertDialog = ({
-  actions,
-  children,
-  message,
-  title,
-}: {
-  actions: { label: string; onPress?: () => void }[];
-  children?: ReactNode;
-  message?: string;
-  title: string;
-}) => (
-  <View testID="alert-dialog">
-    {children}
-    <Text>{title}</Text>
-    {message ? <Text>{message}</Text> : null}
-    {actions.map((action) => (
-      <Pressable
-        accessibilityRole="button"
-        key={action.label}
-        onPress={action.onPress}
-      >
-        <Text>{action.label}</Text>
-      </Pressable>
-    ))}
-  </View>
-);
-
-jest.mock("~/components/ui/alert-dialog", () => ({
-  AlertDialog: (props: Parameters<typeof MockAlertDialog>[0]) => (
-    <MockAlertDialog {...props} />
-  ),
-}));
 
 const mount = async (element: ReactNode) => {
   const client = createTestQueryClient();
@@ -128,88 +80,68 @@ const mount = async (element: ReactNode) => {
   return client;
 };
 
-describe("profile and Settings on a Ukrainian device", () => {
+describe("Profile, Legal and Support on a Ukrainian device", () => {
   beforeEach(() => {
     setDeviceLanguages(["uk-UA"]);
     jest.clearAllMocks();
     backend.reset();
+    fakeClerk.setUser({
+      createdAt: new Date("2025-03-14T12:00:00.000Z"),
+      emailAddresses: ["taras@example.com"],
+      firstName: "Тарас",
+      lastName: "Шевченко",
+    });
   });
 
-  it("shows the Profile screen in Ukrainian", async () => {
-    await mount(<ProfileView />);
+  it("shows the Profile screen in Ukrainian, with no Settings row", async () => {
+    backend.seedProfile(FAKE_USER_ID, { measurement_system: "us" });
+    await mount(<ProfileScreen />);
 
-    expect(screen.getByText("Тарас Шевченко")).toBeTruthy();
-    expect(screen.getByText("У вас безкоштовний план")).toBeTruthy();
-    expect(screen.getByText("Перейти на Pro")).toBeTruthy();
-
-    for (const item of [
-      "Редагувати профіль",
-      "Налаштування",
-      "Підтримка",
-      "Правова інформація",
+    for (const text of [
+      "Профіль",
+      "Тарас Шевченко",
+      "taras@example.com",
+      "Дата реєстрації: березень 2025 р.",
+      "Обліковий запис",
+      "Допомога",
+      // The saved system, read through the Public API.
+      "США",
+      "Українська",
       "Вийти",
-      "Подобається застосунок?",
-      "Оцініть його в App Store!",
     ]) {
-      expect(screen.getByText(item)).toBeTruthy();
+      expect(screen.getByText(text)).toBeTruthy();
     }
 
-    expect(screen.queryByText("Settings")).toBeNull();
+    for (const row of [
+      "Редагувати профіль",
+      "Обліковий запис і безпека",
+      "Підписка",
+      "Одиниці",
+      "Мова",
+      "Підтримка",
+      "Оцінити Fitme",
+      "Правова інформація і конфіденційність",
+    ]) {
+      expect(screen.getByLabelText(row)).toBeTruthy();
+    }
+
+    // Settings is gone, and Delete Account lives in Account & Security only.
+    expect(screen.queryByTestId("settings-link")).toBeNull();
+    expect(screen.queryByText("Видалити акаунт")).toBeNull();
   });
 
-  it("shows Settings and the account-deletion confirmation in Ukrainian", async () => {
-    backend.seedProfile(FAKE_USER_ID, { measurement_system: "us" });
-    await mount(<SettingsScreen />);
-
-    expect(screen.getByText("Налаштування")).toBeTruthy();
-    expect(screen.getByText("Система вимірювання")).toBeTruthy();
-    // The saved system, read through the Public API.
-    expect(screen.getByText("США")).toBeTruthy();
-    expect(fakePublicApi.count("GET /v1/profile")).toBe(1);
-    // The menu item, then the confirmation's title.
-    expect(screen.getAllByText("Видалити акаунт")).toHaveLength(2);
-    expect(
-      screen.getByText(
-        "Ваш акаунт і всі пов’язані з ним дані буде видалено назавжди. Цю дію не можна скасувати."
-      )
-    ).toBeTruthy();
-    expect(screen.getByText("Скасувати")).toBeTruthy();
-    expect(screen.getByText("Видалити")).toBeTruthy();
-  });
-
-  it("says in Ukrainian that the account couldn't be deleted", async () => {
-    const alert = jest.spyOn(Alert, "alert").mockImplementation(() => {
-      // The native alert isn't shown under Jest.
-    });
-
-    const client = await mount(<SettingsScreen />);
-
-    await fireEvent.press(screen.getByText("Видалити"));
-    await settle(client);
-
-    expect(mockUser.delete).toHaveBeenCalledTimes(1);
-    expect(alert).toHaveBeenCalledWith(
-      "Не вдалося видалити акаунт",
-      "Щось пішло не так. Спробуйте пізніше."
-    );
-    alert.mockRestore();
-  });
-
-  it("shows Legal and its account-deletion confirmation in Ukrainian", async () => {
+  it("shows Legal in Ukrainian, with no Delete Account", async () => {
     await mount(<LegalScreen />);
 
     for (const text of [
       "Правова інформація",
       "Політика конфіденційності",
       "Умови використання",
-      "Видалити акаунт",
-      "Ви впевнені, що хочете видалити акаунт?",
-      "Цю дію не можна скасувати. Ваш акаунт буде видалено назавжди, а ваші дані — з наших серверів.",
-      "Скасувати",
-      "Так, видалити мій акаунт",
     ]) {
       expect(screen.getByText(text)).toBeTruthy();
     }
+
+    expect(screen.queryByText("Видалити акаунт")).toBeNull();
   });
 
   it("shows Support in Ukrainian", async () => {

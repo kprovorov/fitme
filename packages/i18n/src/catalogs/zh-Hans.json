@@ -464,13 +464,7 @@
   "legal": {
     "privacyTitle": "法律与隐私",
     "privacyPolicy": "隐私政策",
-    "terms": "服务条款",
-    "deleteAccount": "删除账户",
-    "deleteConfirm": {
-      "title": "确定要删除你的账户吗？",
-      "message": "此操作无法撤销。你的账户将被永久删除，你的数据也将从我们的服务器中移除。",
-      "confirm": "是的，删除我的账户"
-    }
+    "terms": "服务条款"
   },
   "library": {
     "search": "搜索训练动作",
@@ -736,25 +730,6 @@
   },
   "profile": {
     "title": "个人资料",
-    "pro": {
-      "title": "你已是 Pro 用户！",
-      "description": "你可以使用全部功能，也可以随时取消订阅。",
-      "manage": "管理订阅"
-    },
-    "free": {
-      "title": "你正在使用免费版",
-      "description": "订阅 Fitme Pro，即可无限使用全部功能",
-      "upgrade": "升级到 Pro"
-    },
-    "editProfile": "编辑个人资料",
-    "settings": "设置",
-    "support": "支持",
-    "legal": "法律信息",
-    "logout": "退出登录",
-    "rate": {
-      "title": "喜欢这款应用吗？",
-      "action": "去 App Store 给个评分吧！"
-    },
     "memberSince": "{{date}}加入",
     "totals": {
       "workouts": "训练次数",
@@ -896,17 +871,6 @@
       "skipRest": "跳过休息",
       "over": "休息结束"
     }
-  },
-  "settings": {
-    "title": "设置",
-    "measurementSystem": "计量单位制",
-    "deleteAccount": "删除账户",
-    "deleteConfirm": {
-      "title": "删除账户",
-      "message": "此操作将永久删除你的账户及所有相关数据，且无法撤销。",
-      "confirm": "删除"
-    },
-    "deleteFailed": "无法删除你的账户"
   },
   "spokenCompactUnits": {
     "t_other": "{{count, number}}吨",

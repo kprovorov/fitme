@@ -17,7 +17,7 @@ import { fireEvent, render, screen } from "@testing-library/react-native";
 import { useCallback } from "react";
 import { Alert, Pressable, Text } from "react-native";
 
-import MeasurementSystemScreen from "~/app/settings/measurement-system";
+import MeasurementSystemScreen from "~/app/measurement-system";
 import { useProfileQuery } from "~/hooks/queries/profiles";
 import { i18n } from "~/lib/i18n";
 import { setDeviceLanguages } from "~/test-utils/device-locales";

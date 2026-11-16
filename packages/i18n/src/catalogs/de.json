@@ -484,13 +484,7 @@
   "legal": {
     "privacyTitle": "Rechtliches & Datenschutz",
     "privacyPolicy": "Datenschutzerklärung",
-    "terms": "Nutzungsbedingungen",
-    "deleteAccount": "Konto löschen",
-    "deleteConfirm": {
-      "title": "Möchtest du dein Konto wirklich löschen?",
-      "message": "Das kann nicht rückgängig gemacht werden. Dein Konto wird dauerhaft gelöscht und deine Daten werden von unseren Servern entfernt.",
-      "confirm": "Ja, mein Konto löschen"
-    }
+    "terms": "Nutzungsbedingungen"
   },
   "library": {
     "search": "Übungen suchen",
@@ -761,25 +755,6 @@
   },
   "profile": {
     "title": "Profil",
-    "pro": {
-      "title": "Du hast Pro!",
-      "description": "Du hast Zugriff auf alle Funktionen. Du kannst dein Abo jederzeit kündigen.",
-      "manage": "Abo verwalten"
-    },
-    "free": {
-      "title": "Du nutzt die kostenlose Version",
-      "description": "Abonniere Fitme Pro für unbegrenzten Zugriff auf alle Funktionen",
-      "upgrade": "Auf Pro upgraden"
-    },
-    "editProfile": "Profil bearbeiten",
-    "settings": "Einstellungen",
-    "support": "Hilfe",
-    "legal": "Rechtliches",
-    "logout": "Abmelden",
-    "rate": {
-      "title": "Gefällt dir die App?",
-      "action": "Bewerte sie im App Store!"
-    },
     "memberSince": "Mitglied seit {{date}}",
     "totals": {
       "workouts": "Trainings",
@@ -929,17 +904,6 @@
       "skipRest": "Pause überspringen",
       "over": "Pause vorbei"
     }
-  },
-  "settings": {
-    "title": "Einstellungen",
-    "measurementSystem": "Maßsystem",
-    "deleteAccount": "Konto löschen",
-    "deleteConfirm": {
-      "title": "Konto löschen",
-      "message": "Dein Konto und alle zugehörigen Daten werden dauerhaft gelöscht. Das kann nicht rückgängig gemacht werden.",
-      "confirm": "Löschen"
-    },
-    "deleteFailed": "Dein Konto konnte nicht gelöscht werden"
   },
   "spokenCompactUnits": {
     "t_one": "{{count, number}} Tonne",

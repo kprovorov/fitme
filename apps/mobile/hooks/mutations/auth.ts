@@ -1,13 +1,11 @@
 import * as Sentry from "@sentry/react-native";
 import { router } from "expo-router";
-import { Alert } from "react-native";
 import { createMutation } from "react-query-kit";
 
 import type { ReverifiedResult } from "~/hooks/reverification";
 import { clearSavedArnoldConversation } from "~/lib/arnold-chat";
-import { getClerk, getClerkErrorMessage } from "~/lib/clerk";
+import { getClerk } from "~/lib/clerk";
 import { IS_E2E } from "~/lib/constants";
-import { i18n } from "~/lib/i18n";
 import { segmentClient } from "~/lib/segment";
 
 export const useLogoutMutation = createMutation({
@@ -28,21 +26,12 @@ export const useLogoutMutation = createMutation({
 export type DeleteAccountOutcome = "cancelled" | "deleted";
 
 /**
- * Deletes the User in Clerk: `user.delete()` as given (reverified, from the
- * Delete sheet), or called straight away (Settings and Legal).
+ * Deletes the User in Clerk: `user.delete()` as the Delete sheet hands it,
+ * behind "Confirm it's you" (`useReverifiedCall`).
  */
 export interface DeleteAccountVariables {
-  readonly remove?: () => Promise<ReverifiedResult<unknown>>;
+  readonly remove: () => Promise<ReverifiedResult<unknown>>;
 }
-
-/** Deletes the User in Clerk with no "Confirm it's you" in front of it. */
-const deleteNow = async (user: {
-  readonly delete: () => Promise<void>;
-}): Promise<ReverifiedResult<undefined>> => {
-  await user.delete();
-
-  return { status: "done", value: undefined };
-};
 
 // Deletes the User in Clerk (the instance must allow Users to delete their
 // accounts), signs out and shows the login screen. Their rows are removed
@@ -61,7 +50,7 @@ export const useDeleteUserMutation = createMutation<
 
     const userId = user.id;
 
-    const result = await (remove ?? (() => deleteNow(user)))();
+    const result = await remove();
 
     // Cancelled at "Confirm it's you": nothing was deleted, so nothing is
     // cleaned up.
@@ -84,14 +73,6 @@ export const useDeleteUserMutation = createMutation<
     }
 
     return "deleted";
-  },
-  onError: (error, variables) => {
-    // The Delete sheet says so itself.
-    if (variables.remove) {
-      return;
-    }
-
-    Alert.alert(i18n.t("settings.deleteFailed"), getClerkErrorMessage(error));
   },
   onSuccess: (outcome) => {
     if (outcome === "deleted") {
