@@ -233,7 +233,55 @@ describe("turn-limit hook", () => {
     ).resolves.toStrictEqual({ cancelled: true });
   });
 
-  it("doesn't count a context change's model call against a turn", async () => {
+  it("counts a context change's call inside a turn, and its cost", async () => {
+    const { call, emit, request } = session();
+
+    await call("turn_1", usageOf(0.5));
+    await expect(
+      emit({
+        data: { owner: { changeId: "change_1" }, runId: "run_summary" },
+        scope: { changeId: "change_1", runId: "run_summary", turnId: "turn_1" },
+        type: "model.requested",
+      })
+    ).resolves.toStrictEqual({ cancelled: false });
+    await emit({
+      data: {
+        kind: "model",
+        owner: { changeId: "change_1" },
+        usage: usageOf(0.5),
+      },
+      scope: { changeId: "change_1", turnId: "turn_1" },
+      type: "usage.recorded",
+    });
+
+    await expect(request("turn_1")).resolves.toStrictEqual({
+      cancelled: true,
+    });
+  });
+
+  it("fails closed on usage recorded without a cost, even when another attempt had one", async () => {
+    const { emit, request } = session();
+
+    await emit(modelRequested("turn_1", "run_1"));
+    await emit(
+      modelRetried("turn_1", "run_1"),
+      usageRecorded("turn_1", "run_1", usageOf(0.01))
+    );
+    await emit(
+      modelSettled("turn_1", "run_1"),
+      usageRecorded("turn_1", "run_1", usageOf())
+    );
+
+    expect(observability.reportError).toHaveBeenCalledExactlyOnceWith(
+      expect.objectContaining({ name: "Arnold model call cost missing" }),
+      { runId: "run_1", sessionId: "wrun_1", turnId: "turn_1" }
+    );
+    await expect(request("turn_1")).resolves.toStrictEqual({
+      cancelled: true,
+    });
+  });
+
+  it("doesn't count a context change's model call between turns", async () => {
     const { call, emit, request } = session();
 
     for (let count = 0; count < 19; count += 1) {

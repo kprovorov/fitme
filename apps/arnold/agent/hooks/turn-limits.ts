@@ -4,7 +4,7 @@ import { runs } from "eve/events";
 import { defineHook } from "eve/hooks";
 
 import {
-  addCallCost,
+  recordUsage,
   requestModelCall,
   unpricedCall,
 } from "../lib/turn-limits";
@@ -43,15 +43,17 @@ export default defineHook({
     },
     "model.requested"(event, ctx) {
       const { owner, runId } = event.data;
+      // A turn's own call names it; a context change's (compaction's summary)
+      // is scoped to the turn it runs in, and between turns to none.
+      const turnId = "turnId" in owner ? owner.turnId : event.scope?.turnId;
 
-      // A context change's call (compaction's summary) belongs to no turn.
-      if (!("turnId" in owner)) {
+      if (turnId === undefined) {
         return;
       }
 
       const { reached, spend } = requestModelCall(turnSpend.get(), {
         runId,
-        turnId: owner.turnId,
+        turnId,
       });
 
       turnSpend.update(() => spend);
@@ -59,19 +61,34 @@ export default defineHook({
       if (reached) {
         console.warn(`Arnold turn hit its ${reached} limit`, {
           sessionId: ctx.session.id,
-          turnId: owner.turnId,
+          turnId,
         });
         ctx.cancel();
       }
     },
-    "usage.recorded"(event) {
+    // Each record is counted: summing a call's usage on `model.settled`
+    // could hide one attempt's missing cost behind another's.
+    async "usage.recorded"(event, ctx) {
       const { owner, usage } = event.data;
 
-      if (owner === undefined || !("runId" in owner)) {
-        return;
-      }
+      const runId =
+        owner !== undefined && "runId" in owner ? owner.runId : undefined;
 
-      turnSpend.update((spend) => addCallCost(spend, owner.runId, usage));
+      const recorded = recordUsage(
+        turnSpend.get(),
+        { runId, turnId: event.scope?.turnId },
+        usage
+      );
+
+      turnSpend.update(() => recorded.spend);
+
+      if (recorded.error) {
+        await reportError(recorded.error, {
+          runId: runId ?? "none",
+          sessionId: ctx.session.id,
+          turnId: recorded.spend.turnId,
+        });
+      }
     },
   },
 });

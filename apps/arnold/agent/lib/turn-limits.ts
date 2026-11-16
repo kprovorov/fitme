@@ -9,13 +9,16 @@ import { z } from "zod";
  * A model call is one `model.requested`: eve records it before it picks the
  * model and makes the call, so a cancel there stops the call from happening.
  * A failed provider attempt that eve retries is `model.retried` within the
- * same call, so it never counts twice.
+ * same run, so it never counts twice; a run eve replaces is requested again
+ * and counts as the new call it is. A context change's summary call made
+ * inside a turn counts against that turn too.
  *
  * Every call goes through AI Gateway, which reports each call's cost in USD
  * on `usage.recorded`. Cost is only known after a call, so the budget stops
  * the turn from starting another call once it is spent: the last call can
- * overshoot it by its own cost. A call that finished without a cost fails
- * closed: the turn stops before its next call, so spend never runs uncapped.
+ * overshoot it by its own cost. A call that finished without a cost, or any
+ * usage recorded without one, fails closed: the turn stops before its next
+ * call, so spend never runs uncapped.
  */
 export const MAX_MODEL_CALLS_PER_TURN = 20;
 export const MAX_TURN_COST_USD = 1;
@@ -116,23 +119,65 @@ export const requestModelCall = (
 const isTurnCall = (spend: TurnSpend | null, runId: string): boolean =>
   spend?.runIds.includes(runId) ?? false;
 
-/** `spend` plus the cost one of its model calls reported. */
-export const addCallCost = (
+const missingCostError = (what: string): Error => {
+  const error = new Error(
+    `${what} reported no cost; the turn stops before its next model call`
+  );
+
+  error.name = "Arnold model call cost missing";
+
+  return error;
+};
+
+/** Where a `usage.recorded` belongs: its model call, and its turn. */
+export interface UsageOwner {
+  readonly runId?: string;
+  readonly turnId?: string;
+}
+
+/**
+ * `spend` plus one `usage.recorded` of the turn: of one of its model calls,
+ * or scoped to it (a context change's summary call inside the turn). Usage
+ * that names no cost fails closed, reported once (`error`). Anything that
+ * isn't the turn's leaves `spend` as it was.
+ */
+export const recordUsage = (
   spend: TurnSpend | null,
-  runId: string,
+  owner: UsageOwner,
   usage: CallUsage
-): TurnSpend | null => {
-  if (spend === null || !isTurnCall(spend, runId)) {
-    return spend;
+):
+  | UnpricedCall
+  | { readonly error: null; readonly spend: TurnSpend | null } => {
+  const isTurns =
+    spend !== null &&
+    (owner.turnId === spend.turnId ||
+      (owner.runId !== undefined && isTurnCall(spend, owner.runId)));
+
+  if (!isTurns) {
+    return { error: null, spend };
   }
 
-  return { ...spend, costUsd: spend.costUsd + (reportedCostUsd(usage) ?? 0) };
+  const cost = reportedCostUsd(usage);
+
+  if (cost !== null) {
+    return { error: null, spend: { ...spend, costUsd: spend.costUsd + cost } };
+  }
+
+  if (spend.unpriced) {
+    return { error: null, spend };
+  }
+
+  return {
+    error: missingCostError(`model call ${owner.runId ?? "usage"}`),
+    spend: { ...spend, unpriced: true },
+  };
 };
 
 /**
  * The error to report for a model call of the turn that finished without a
- * cost, and the spend that stops the turn's next call; `null` when the call
- * reported one, or isn't the turn's.
+ * cost (`usage`: what eve recorded for it, summed, or none), and the spend
+ * that stops the turn's next call; `null` when the call reported one, isn't
+ * the turn's, or the turn already stops.
  */
 export const unpricedCall = (
   spend: TurnSpend | null,
@@ -141,17 +186,15 @@ export const unpricedCall = (
 ): UnpricedCall | null => {
   if (
     spend === null ||
+    spend.unpriced ||
     !isTurnCall(spend, runId) ||
     reportedCostUsd(usage) !== null
   ) {
     return null;
   }
 
-  const error = new Error(
-    `model call ${runId} reported no cost; the turn stops before its next model call`
-  );
-
-  error.name = "Arnold model call cost missing";
-
-  return { error, spend: { ...spend, unpriced: true } };
+  return {
+    error: missingCostError(`model call ${runId}`),
+    spend: { ...spend, unpriced: true },
+  };
 };
