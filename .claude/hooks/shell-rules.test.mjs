@@ -780,6 +780,10 @@ void describe("git hooks skipped with --no-verify", () => {
     "git am -n 0001.patch",
     "git am -qn 0001.patch",
     "git --attr-source HEAD commit --no-verify -m x",
+    "git -c alias.save=commit save --no-verify -m x",
+    "git save --no-verify -m x",
+    "git pull --no-verify",
+    "git save --verify --no-verify",
   ]) {
     void test(`refuses ${JSON.stringify(command)}`, () => {
       assert.deepEqual(rulesBroken(command), ["no-verify"]);
@@ -798,6 +802,11 @@ void describe("git hooks skipped with --no-verify", () => {
     "git commit --verify -m x",
     "git commit --no-verify --verify -m x",
     "git push --no-verify",
+    "git push origin main --no-verify",
+    "git -C apps/mobile push --no-verify",
+    "git save -- --no-verify",
+    "git save --no-verify --verify",
+    "git save -n",
     "git merge -n origin/main",
     "git merge --no-veri origin/main",
     "git rebase -n origin/main",

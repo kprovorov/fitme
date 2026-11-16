@@ -1848,6 +1848,23 @@ const takesLongValue = (word, command) =>
     !word.includes("=") &&
     [...command.long].some((option) => option.startsWith(word)));
 
+// Any other subcommand but `push` may be an alias for one of them
+// (`git -c alias.save=commit save --no-verify`), which this can't resolve, so
+// it reads options the way no subcommand's are known: `--no-verify` spelled
+// out before `--`, the last of it and `--verify` winning. That refuses the odd
+// value that happens to be `--no-verify` (`git log --grep --no-verify`).
+/** @type {GitHookCommand} */
+const UNKNOWN_GIT_COMMAND = hookCommand({
+  long: [],
+  noVerifyPrefix: NO_VERIFY,
+  optional: "",
+  values: "",
+  verifyPrefix: VERIFY,
+});
+
+// `git push --no-verify` skips only the pre-push hook, which this repo hasn't.
+const GIT_COMMANDS_WITHOUT_HOOKS = new Set(["push"]);
+
 // Whether a `git` command skips the repo's hooks: `--no-verify` (or
 // `git commit -n`) as an option, not as an option's value or a pathspec, and
 // not undone by a later `--verify`.
@@ -1855,12 +1872,11 @@ const takesLongValue = (word, command) =>
 const skipsGitHooks = (args) => {
   const { rest, subcommand } = gitSubcommand(args);
 
-  const command =
-    subcommand === undefined ? undefined : GIT_HOOK_COMMANDS.get(subcommand);
-
-  if (command === undefined) {
+  if (subcommand === undefined || GIT_COMMANDS_WITHOUT_HOOKS.has(subcommand)) {
     return false;
   }
+
+  const command = GIT_HOOK_COMMANDS.get(subcommand) ?? UNKNOWN_GIT_COMMAND;
 
   let skips = false;
 
