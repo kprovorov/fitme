@@ -46,7 +46,7 @@ Read a failure as a sequence such as: both callers see no open Workout Session; 
 
 ## Scope and correspondence to the code
 
-Last manually synchronized with commit **`49f5c66aff5548e52cb1710f47675b1716964585`** (equal to remote `main`, fetched and audited on 2026-11-15). Before trusting a check after a change, compare these files to that commit and re-read the covered functions. Move the sync commit forward only after confirming the model still describes them. The 2026-11-15 maintenance audit found the model, bounds and promise unchanged; it added the whole-Plan save to the coverage record and fixed the SQL runner's locale (see [VALIDATION.md](VALIDATION.md)).
+Last manually synchronized with commit **`ded46050ddf0de76963c032f50caa0c192c3f7e5`** (equal to remote `main`, fetched and audited on 2026-11-16). Before trusting a check after a change, compare these files to that commit and re-read the covered functions. Move the sync commit forward only after confirming the model still describes them. The 2026-11-16 maintenance audit found the model, bounds, promise and coverage record unchanged (see [VALIDATION.md](VALIDATION.md)).
 
 | Real source | Modeled behavior |
 | --- | --- |

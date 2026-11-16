@@ -1,4 +1,49 @@
-# Validation, 2026-11-15
+# Validation, 2026-11-16
+
+## Maintenance against current main
+
+**Outcome: in sync. Model, property, bounds, runner and coverage record unchanged; no current-code exclusivity violation found within the stated bounds.**
+
+Audited source: `ded46050ddf0de76963c032f50caa0c192c3f7e5`, equal to `origin/main` after `git fetch` on 2026-11-16. Previous sync: `49f5c66aff5548e52cb1710f47675b1716964585` (43 commits). No product code, migration, property, model, bound or script was changed.
+
+Tools: Node 26.13.1, TLC 1.7.4 (cached jar, pinned SHA-256 unchanged), PostgreSQL 17 (Homebrew).
+
+### Baseline
+
+The unchanged runner: both TLC configurations PASS (2,360 / 2,770 distinct states, queues exhausted), SQL replay PASS. Since nothing in the model needed changing, this pass and the final one are the same run.
+
+### Correspondence audit
+
+`git diff` of every covered file and directory since the previous sync (`packages/services`, `packages/db`, `packages/supabase/supabase/migrations`, both facades, ADR 0013, `GLOSSARY.md`) touched only:
+
+| Commit | Change and correspondence decision |
+| --- | --- |
+| `b850d8d4` — bounds from `@fitme/core`, PR #623 | `workout-edits.ts` imports `MAX_SETS_PER_EXERCISE` from `@fitme/core/limits` instead of defining it (same value, 20); its integration test imports it from there. Plan edits never write a Workout Session. No effect. |
+| `01844f8c` — Node 26 for local dev and CI, PR #605 | `@types/node` bump in `packages/db` and `packages/services` `package.json`. No effect. |
+
+No new migration (newest is still `20261109130000_plan_details_optional.sql`), so the guard's reviewed list and pinned SHA-256 values stand. `apps/api/src/services.ts` and `apps/mcp/src/services.ts` are unchanged; the API route diffs (`plans.ts`, `workout-sessions.ts`, `workout-session-exercises.ts`) only swap the Library API client for the Library index in the slug checks that run before the transaction. The only `insert(workoutSessions)` is still in `packages/services/src/workout-sessions.ts`. Re-located every function the correspondence table names (`findOpenSession`, `insertOrResume`, `startWorkoutSession`, `finishWorkoutSession`, `deleteWorkoutSession`, `awardPersonalRecords`, `lockPersonalRecordHistory`, `initializePersonalRecords`, `inRoleTransaction`, `asUser`, `withService`, `deleteLeftOut`, `workout_sessions_workout_id_fkey`): all present, none renamed or moved.
+
+### Results
+
+| Check | Outcome and result |
+| --- | --- |
+| One User, three insertion transactions, optional initial orphan | In sync: PASS, 2,360 distinct / 9,401 generated, queue exhausted |
+| Two Users, three insertion transactions, optional initial orphan | In sync: PASS, 2,770 distinct / 12,045 generated, queue exhausted |
+| Extracted actual index, isolated PostgreSQL replay | In sync: PASS |
+| Scratch migration with `UNIQUE` removed | Expected failure, caught by TLC and Postgres |
+| Scratch migration indexed by `workout_id` | Expected failure, caught by TLC and Postgres |
+| Unmodified source after both mutations | PASS in both TLC configs and SQL |
+| Migration-guard regressions | PASS 4/4 |
+| Replay isolation regressions | PASS 3/3 |
+| Installed `/statechart` on both configs | `OneOpenPerUser` and `NoDeadlock` hold; 2,360 / 2,770 states, over the 500-state chart budget, so no chart (`TLA2TOOLS` pointed at the cached jar, no `mise`). |
+
+The two index mutations remain the "can still fail" evidence.
+
+### Remaining limits
+
+Unchanged from the previous validation.
+
+## Previous validation, 2026-11-15
 
 ## Maintenance against current main
 
