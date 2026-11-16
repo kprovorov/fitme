@@ -87,6 +87,23 @@ describe("date locales", () => {
     expect(formatLocale(viewOf(instance))).toBe("uk-UA");
   });
 
+  it("reads the instance's device through react-i18next 18's proxy of it", () => {
+    const instance = on("uk", "UA");
+
+    // react-i18next 18 forwards to the instance through a Proxy that answers
+    // `__original` from its `get` trap only, so `"__original" in` is false.
+    const proxy = new Proxy(instance, {
+      get: (target, prop: keyof typeof instance | "__original") =>
+        prop === "__original" ? target : target[prop],
+    });
+
+    expect(formatLocale(proxy)).toBe("uk-UA");
+    expect(formatLocale(viewOf(proxy))).toBe("uk-UA");
+
+    setDeviceConventions(proxy, { region: "PL", uses24hourClock: null });
+    expect(formatLocale(instance)).toBe("uk-PL");
+  });
+
   it("follows the App language when it changes", async () => {
     const instance = on("en", "UA");
     await instance.changeLanguage("uk");
