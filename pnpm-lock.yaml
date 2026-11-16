@@ -703,8 +703,8 @@ importers:
         specifier: 58.0.8
         version: 58.0.8(expo@58.0.25)(react-native@0.88.1(@babel/core@7.29.7(supports-color@10.2.2))(@react-native/metro-config@0.88.1(@babel/core@7.29.7(supports-color@10.2.2))(supports-color@10.2.2))(@types/react@19.3.0)(react@19.3.0)(supports-color@10.2.2))
       i18next:
-        specifier: 26.5.11
-        version: 26.5.11(typescript@5.9.3)
+        specifier: 27.1.2
+        version: 27.1.2(typescript@5.9.3)
       mdast-util-from-markdown:
         specifier: 2.1.0
         version: 2.1.0(supports-color@10.2.2)
@@ -724,8 +724,8 @@ importers:
         specifier: 7.90.0
         version: 7.90.0(@types/react@19.3.0)(react@19.3.0)
       react-i18next:
-        specifier: 17.1.9
-        version: 17.1.9(i18next@26.5.11(typescript@5.9.3))(react-dom@19.3.0(react@19.3.0))(react-native@0.88.1(@babel/core@7.29.7(supports-color@10.2.2))(@react-native/metro-config@0.88.1(@babel/core@7.29.7(supports-color@10.2.2))(supports-color@10.2.2))(@types/react@19.3.0)(react@19.3.0)(supports-color@10.2.2))(react@19.3.0)(typescript@5.9.3)
+        specifier: 18.0.1
+        version: 18.0.1(@types/react@19.3.0)(i18next@27.1.2(typescript@5.9.3))(react@19.3.0)(typescript@5.9.3)
       react-native:
         specifier: 0.88.1
         version: 0.88.1(@babel/core@7.29.7(supports-color@10.2.2))(@react-native/metro-config@0.88.1(@babel/core@7.29.7(supports-color@10.2.2))(supports-color@10.2.2))(@types/react@19.3.0)(react@19.3.0)(supports-color@10.2.2)
@@ -1138,8 +1138,8 @@ importers:
         specifier: workspace:*
         version: link:../core
       i18next:
-        specifier: ^26.5.11
-        version: 26.5.11(typescript@5.9.3)
+        specifier: ^27.1.2
+        version: 27.1.2(typescript@5.9.3)
     devDependencies:
       '@fitme/typescript-config':
         specifier: workspace:*
@@ -9039,8 +9039,9 @@ packages:
   hyphenate-style-name@1.1.0:
     resolution: {integrity: sha512-WDC/ui2VVRrz3jOVi+XtjqkDjiVjTtFaAGiW37k6b+ohyQ5wYDOGkvCZa8+H0nx3gyvv0+BST9xuOgIyGQ00gw==}
 
-  i18next@26.5.11:
-    resolution: {integrity: sha512-Wc0klBPKxqZ2tL2qdAnF8xvvnWgr1IMGSY2ikTiAvaFVbz7xiFARtkoU4RidBDw1SyziGROp0qxu6qnJ7l2Wug==}
+  i18next@27.1.2:
+    resolution: {integrity: sha512-851D6dY9vuhn9hF0p5KpY7FPeYnm3P73tqyX2nxfsjeEYVg7Du0Fflw0rJtv7nFnZcDQS0+Hqn0UP6+SPx8mew==}
+    engines: {node: '>=22'}
     peerDependencies:
       typescript: ^5 || ^6 || ^7
     peerDependenciesMeta:
@@ -11169,18 +11170,16 @@ packages:
       '@types/react':
         optional: true
 
-  react-i18next@17.1.9:
-    resolution: {integrity: sha512-OgYqIH13XHPlWTaaI795Dz+k2AdKnXcOxNQVnf750T8Ij0TYWp1nYvXRpoJBulPqlyk2OAbn1PM4tFKiIj/byA==}
+  react-i18next@18.0.1:
+    resolution: {integrity: sha512-kPWXI0E/lrPj3+/umcKNzYZVnWmEedLiamMzDIHfbs+5ANf6yzvlZsjKou8f7kaGkfMMDLIZBejV+4aSN1CyBw==}
+    engines: {node: '>=22'}
     peerDependencies:
-      i18next: '>= 26.2.0'
+      '@types/react': '*'
+      i18next: '>= 27.0.1'
       react: 19.3.0
-      react-dom: '*'
-      react-native: '*'
       typescript: ^5 || ^6 || ^7
     peerDependenciesMeta:
-      react-dom:
-        optional: true
-      react-native:
+      '@types/react':
         optional: true
       typescript:
         optional: true
@@ -20475,7 +20474,7 @@ snapshots:
 
   hyphenate-style-name@1.1.0: {}
 
-  i18next@26.5.11(typescript@5.9.3):
+  i18next@27.1.2(typescript@5.9.3):
     optionalDependencies:
       typescript: 5.9.3
 
@@ -23189,16 +23188,13 @@ snapshots:
     optionalDependencies:
       '@types/react': 19.3.0
 
-  react-i18next@17.1.9(i18next@26.5.11(typescript@5.9.3))(react-dom@19.3.0(react@19.3.0))(react-native@0.88.1(@babel/core@7.29.7(supports-color@10.2.2))(@react-native/metro-config@0.88.1(@babel/core@7.29.7(supports-color@10.2.2))(supports-color@10.2.2))(@types/react@19.3.0)(react@19.3.0)(supports-color@10.2.2))(react@19.3.0)(typescript@5.9.3):
+  react-i18next@18.0.1(@types/react@19.3.0)(i18next@27.1.2(typescript@5.9.3))(react@19.3.0)(typescript@5.9.3):
     dependencies:
-      '@babel/runtime': 7.29.14
       html-parse-stringify: 4.0.1
-      i18next: 26.5.11(typescript@5.9.3)
+      i18next: 27.1.2(typescript@5.9.3)
       react: 19.3.0
-      use-sync-external-store: 1.7.0(react@19.3.0)
     optionalDependencies:
-      react-dom: 19.3.0(react@19.3.0)
-      react-native: 0.88.1(@babel/core@7.29.7(supports-color@10.2.2))(@react-native/metro-config@0.88.1(@babel/core@7.29.7(supports-color@10.2.2))(supports-color@10.2.2))(@types/react@19.3.0)(react@19.3.0)(supports-color@10.2.2)
+      '@types/react': 19.3.0
       typescript: 5.9.3
 
   react-is@18.3.1: {}

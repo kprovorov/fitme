@@ -45,6 +45,21 @@ const isObject = (value: unknown): value is object =>
   (typeof value === "object" && value !== null) || typeof value === "function";
 
 /**
+ * What a wrapper of an instance points back at as `__original`. Read as a
+ * property, never with `in`: react-i18next 18's wrapper is a Proxy whose `get`
+ * answers it with no `has` trap, so `"__original" in wrapper` is false.
+ */
+const originalOf = (wrapper: unknown): unknown => {
+  if (!isObject(wrapper)) {
+    return undefined;
+  }
+
+  const { __original: original }: { readonly __original?: unknown } = wrapper;
+
+  return original;
+};
+
+/**
  * Sets the device's region and clock for an instance's dates and numbers,
  * the catalogs' `{{…, number}}` placeholders included. Without them, the App
  * language's own conventions apply.
@@ -53,8 +68,7 @@ export const setDeviceConventions = (
   translator: Translator,
   conventions: DeviceConventions
 ): void => {
-  const original =
-    "__original" in translator ? translator.__original : undefined;
+  const original = originalOf(translator);
 
   conventionsByInstance.set(
     isObject(original) ? original : translator,
@@ -64,8 +78,8 @@ export const setDeviceConventions = (
 
 /**
  * The instance behind a translator. react-i18next's `useTranslation().i18n`
- * is a copy of it pointing back at it as `__original`, and the app's
- * `useI18n()` a view inheriting from either.
+ * is a Proxy of it pointing back at it as `__original` (a copy before
+ * react-i18next 18), and the app's `useI18n()` a view inheriting from either.
  */
 const instanceOf = (translator: Translator): object => {
   let current: unknown = translator;
@@ -75,7 +89,7 @@ const instanceOf = (translator: Translator): object => {
       return current;
     }
 
-    const original = "__original" in current ? current.__original : undefined;
+    const original = originalOf(current);
 
     current =
       isObject(original) && original !== current
