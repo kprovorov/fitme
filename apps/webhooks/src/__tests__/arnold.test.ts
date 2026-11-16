@@ -151,6 +151,107 @@ describe("arnold session reset requests", () => {
     ).resolves.toBeUndefined();
   });
 
+  it("accepts eve 1.0's ended session", async () => {
+    const { fetch } = fakeFetch(() =>
+      Response.json(
+        {
+          deliveryId: "wdel_a",
+          inbox: "winbox_a",
+          ok: true,
+          sessionId: "wrun_a",
+        },
+        { status: 202 }
+      )
+    );
+
+    await expect(
+      arnoldSessionResetter({ arnoldUrl: ARNOLD_URL, fetch, secret: SECRET })(
+        "wrun_a"
+      )
+    ).resolves.toBeUndefined();
+  });
+
+  it("accepts eve 1.0's session already ended, expired or unknown", async () => {
+    const { fetch } = fakeFetch(() =>
+      Response.json(
+        {
+          code: "session_not_active",
+          error: "The session is no longer active.",
+          ok: false,
+        },
+        { status: 409 }
+      )
+    );
+
+    await expect(
+      arnoldSessionResetter({ arnoldUrl: ARNOLD_URL, fetch, secret: SECRET })(
+        "wrun_a"
+      )
+    ).resolves.toBeUndefined();
+  });
+
+  it.each([
+    ["session_not_ready", { code: "session_not_ready", ok: false }],
+    ["no code", { error: "Conflict", ok: false }],
+    ["no body", null],
+  ])("fails on a 409 with %s", async (_case, body) => {
+    const { fetch } = fakeFetch(() =>
+      body === null
+        ? new Response("Conflict", { status: 409 })
+        : Response.json(body, { status: 409 })
+    );
+
+    await expect(
+      arnoldSessionResetter({ arnoldUrl: ARNOLD_URL, fetch, secret: SECRET })(
+        "wrun_a"
+      )
+    ).rejects.toThrow("409");
+  });
+
+  it.each([
+    ["with ok: false", { ok: false, sessionId: "wrun_a" }],
+    ["that isn't JSON", null],
+  ])("fails on a 202 answer %s", async (_case, body) => {
+    const { fetch } = fakeFetch(() =>
+      body === null
+        ? new Response("<html>Accepted</html>", { status: 202 })
+        : Response.json(body, { status: 202 })
+    );
+
+    await expect(
+      arnoldSessionResetter({ arnoldUrl: ARNOLD_URL, fetch, secret: SECRET })(
+        "wrun_a"
+      )
+    ).rejects.toThrow("202");
+  });
+
+  it.each([401, 403, 404, 503])(
+    "fails on an HTTP %i answer",
+    async (status) => {
+      const { fetch } = fakeFetch(() =>
+        Response.json({ code: "session_not_active", ok: false }, { status })
+      );
+
+      await expect(
+        arnoldSessionResetter({
+          arnoldUrl: ARNOLD_URL,
+          fetch,
+          secret: SECRET,
+        })("wrun_a")
+      ).rejects.toThrow(String(status));
+    }
+  );
+
+  it("fails when Arnold can't be reached", async () => {
+    const fetch = () => Promise.reject(new TypeError("fetch failed"));
+
+    await expect(
+      arnoldSessionResetter({ arnoldUrl: ARNOLD_URL, fetch, secret: SECRET })(
+        "wrun_a"
+      )
+    ).rejects.toThrow("fetch failed");
+  });
+
   it("fails on an error response", async () => {
     const { fetch } = fakeFetch(() =>
       Response.json(
