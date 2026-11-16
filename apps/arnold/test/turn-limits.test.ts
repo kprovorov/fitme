@@ -1,85 +1,192 @@
-import { describe, expect, it } from "vitest";
+import type * as Observability from "@fitme/observability/node";
+import type * as EveContext from "eve/context";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import {
-  addStepCost,
-  MAX_STEPS_PER_TURN,
-  MAX_TURN_COST_USD,
-  missingCostError,
-  reportedCostUsd,
-  turnLimitReached,
-} from "../agent/lib/turn-limits";
+import { reportedCostUsd } from "../agent/lib/turn-limits";
+import { hookSession, resetState } from "./hooks";
+import type { EveEvent } from "./hooks";
 
-/** A step's usage with token counts but no cost. */
-const tokensOnly = { inputTokens: 10, outputTokens: 5 };
+const observability = vi.hoisted(() => ({
+  reportError: vi.fn<typeof Observability.reportError>(),
+}));
 
-describe("turn limits", () => {
-  it("lets the first 20 model calls of a turn run", () => {
-    for (let stepIndex = 0; stepIndex < MAX_STEPS_PER_TURN; stepIndex += 1) {
-      expect(turnLimitReached({ stepIndex, turnId: "t1" }, null)).toBeNull();
+vi.mock<typeof Observability>(
+  import("@fitme/observability/node"),
+  () => observability
+);
+
+vi.mock<Pick<typeof EveContext, "defineState">>(
+  import("eve/context"),
+  async () => {
+    const { testState } = await import("./hooks");
+
+    return testState;
+  }
+);
+
+const { default: turnLimits } = await import("../agent/hooks/turn-limits");
+
+let sequence = 0;
+
+const stepStarted = (turnId: string, stepIndex: number): EveEvent => {
+  sequence += 1;
+
+  return {
+    data: { modelId: "openai/gpt-6.1-terra", sequence, stepIndex, turnId },
+    type: "step.started",
+  };
+};
+
+const stepCompleted = (
+  turnId: string,
+  stepIndex: number,
+  usage?: { costUsd?: number; inputTokens?: number; outputTokens?: number }
+): EveEvent => {
+  sequence += 1;
+
+  return {
+    data: { finishReason: "tool-calls", sequence, stepIndex, turnId, usage },
+    type: "step.completed",
+  };
+};
+
+const stepFailed = (turnId: string, stepIndex: number): EveEvent => {
+  sequence += 1;
+
+  return {
+    data: {
+      code: "model_call_failed",
+      message: "The model call failed",
+      sequence,
+      stepIndex,
+      turnId,
+    },
+    type: "step.failed",
+  };
+};
+
+/** A session running the turn-limit hook. */
+const session = () => {
+  const { emit } = hookSession(turnLimits);
+
+  return {
+    /** One model call of `turnId` that ran to completion with `usage`. */
+    async call(
+      turnId: string,
+      stepIndex: number,
+      usage: Parameters<typeof stepCompleted>[2]
+    ) {
+      const started = await emit(stepStarted(turnId, stepIndex));
+      await emit(stepCompleted(turnId, stepIndex, usage));
+
+      return started;
+    },
+    emit,
+  };
+};
+
+describe("turn-limit hook", () => {
+  beforeEach(() => {
+    resetState();
+    vi.spyOn(console, "warn").mockReturnValue(undefined);
+  });
+
+  it("lets 20 model calls of a turn run and cancels the 21st", async () => {
+    const { call, emit } = session();
+
+    for (let stepIndex = 0; stepIndex < 20; stepIndex += 1) {
+      // oxlint-disable-next-line eslint/no-await-in-loop -- eve runs a turn's model calls one after another.
+      await expect(
+        call("turn_1", stepIndex, { costUsd: 0.01 })
+      ).resolves.toStrictEqual({ cancelled: false });
     }
 
-    expect(MAX_STEPS_PER_TURN).toBe(20);
-  });
-
-  it("stops the 21st model call", () => {
-    expect(
-      turnLimitReached({ stepIndex: MAX_STEPS_PER_TURN, turnId: "t1" }, null)
-    ).toBe("steps");
-  });
-
-  it("adds up a turn's cost and starts over on the next turn", () => {
-    const once = addStepCost(null, "t1", { costUsd: 0.25 });
-    const twice = addStepCost(once, "t1", { costUsd: 0.5 });
-
-    expect(twice).toStrictEqual({
-      costUsd: 0.75,
-      turnId: "t1",
-      unpriced: false,
-    });
-    expect(addStepCost(twice, "t2", { costUsd: 0.1 })).toStrictEqual({
-      costUsd: 0.1,
-      turnId: "t2",
-      unpriced: false,
+    await expect(emit(stepStarted("turn_1", 20))).resolves.toStrictEqual({
+      cancelled: true,
     });
   });
 
-  it("stops the next call once the turn spent $1.00", () => {
-    expect(MAX_TURN_COST_USD).toBe(1);
-    const under = addStepCost(null, "t1", { costUsd: 0.99 });
-    const spent = addStepCost(under, "t1", { costUsd: 0.01 });
-    const over = addStepCost(under, "t1", { costUsd: 0.6 });
+  it("cancels the call after the turn's model cost reached $1.00", async () => {
+    const { call, emit } = session();
 
-    expect(turnLimitReached({ stepIndex: 1, turnId: "t1" }, under)).toBeNull();
-    expect(turnLimitReached({ stepIndex: 2, turnId: "t1" }, spent)).toBe(
-      "budget"
-    );
-    expect(turnLimitReached({ stepIndex: 2, turnId: "t1" }, over)).toBe(
-      "budget"
-    );
+    await call("turn_1", 0, { costUsd: 0.6 });
+    await expect(call("turn_1", 1, { costUsd: 0.4 })).resolves.toStrictEqual({
+      cancelled: false,
+    });
+    await expect(emit(stepStarted("turn_1", 2))).resolves.toStrictEqual({
+      cancelled: true,
+    });
   });
 
-  it("lets a new turn run after the previous one spent its budget", () => {
-    const spent = addStepCost(null, "t1", { costUsd: 1.5 });
+  it("lets the calls under $1.00 run", async () => {
+    const { call, emit } = session();
 
-    expect(turnLimitReached({ stepIndex: 0, turnId: "t2" }, spent)).toBeNull();
+    await call("turn_1", 0, { costUsd: 0.5 });
+    await call("turn_1", 1, { costUsd: 0.49 });
+    await expect(emit(stepStarted("turn_1", 2))).resolves.toStrictEqual({
+      cancelled: false,
+    });
   });
 
-  it("stops the call after a step that reported no cost", () => {
-    const priced = addStepCost(null, "t1", { costUsd: 0.01 });
-    const noUsage = addStepCost(priced, "t1", undefined);
-    const noCost = addStepCost(priced, "t1", tokensOnly);
-    const thenPriced = addStepCost(noCost, "t1", { costUsd: 0.01 });
+  it("gives the next turn its own budget", async () => {
+    const { call, emit } = session();
 
-    expect(turnLimitReached({ stepIndex: 2, turnId: "t1" }, noUsage)).toBe(
-      "unpriced"
+    await call("turn_1", 0, { costUsd: 1.5 });
+    await expect(emit(stepStarted("turn_1", 1))).resolves.toStrictEqual({
+      cancelled: true,
+    });
+    await expect(emit(stepStarted("turn_2", 0))).resolves.toStrictEqual({
+      cancelled: false,
+    });
+  });
+
+  it("reports a finished call with no cost and cancels the next one", async () => {
+    const { call, emit } = session();
+
+    await call("turn_1", 0, { costUsd: 0.01 });
+    expect(observability.reportError).not.toHaveBeenCalled();
+
+    await call("turn_1", 1, { inputTokens: 10, outputTokens: 5 });
+    expect(observability.reportError).toHaveBeenCalledExactlyOnceWith(
+      expect.objectContaining({
+        message: expect.stringContaining("step 1 reported no cost"),
+        name: "Arnold step cost missing",
+      }),
+      { sessionId: "wrun_1", stepIndex: "1", turnId: "turn_1" }
     );
-    expect(turnLimitReached({ stepIndex: 2, turnId: "t1" }, noCost)).toBe(
-      "unpriced"
-    );
-    expect(turnLimitReached({ stepIndex: 3, turnId: "t1" }, thenPriced)).toBe(
-      "unpriced"
-    );
-    expect(turnLimitReached({ stepIndex: 0, turnId: "t2" }, noCost)).toBeNull();
+    await expect(emit(stepStarted("turn_1", 2))).resolves.toStrictEqual({
+      cancelled: true,
+    });
+  });
+
+  it("reports a finished call with no usage at all", async () => {
+    const { call, emit } = session();
+
+    await call("turn_1", 0, undefined);
+    expect(observability.reportError).toHaveBeenCalledOnce();
+    await expect(emit(stepStarted("turn_1", 1))).resolves.toStrictEqual({
+      cancelled: true,
+    });
+  });
+
+  it("doesn't count a retried call of the same step twice", async () => {
+    const { call, emit } = session();
+
+    for (let stepIndex = 0; stepIndex < 19; stepIndex += 1) {
+      // oxlint-disable-next-line eslint/no-await-in-loop -- eve runs a turn's model calls one after another.
+      await call("turn_1", stepIndex, { costUsd: 0.01 });
+    }
+
+    await expect(emit(stepStarted("turn_1", 19))).resolves.toStrictEqual({
+      cancelled: false,
+    });
+    await emit(stepFailed("turn_1", 19));
+    await expect(call("turn_1", 19, { costUsd: 0.01 })).resolves.toStrictEqual({
+      cancelled: false,
+    });
+    await expect(emit(stepStarted("turn_1", 20))).resolves.toStrictEqual({
+      cancelled: true,
+    });
   });
 });
 
@@ -91,24 +198,8 @@ describe("reported step cost", () => {
 
   it("is null, to be reported, when the step reported no usable cost", () => {
     expect(reportedCostUsd(undefined)).toBeNull();
-    expect(reportedCostUsd(tokensOnly)).toBeNull();
+    expect(reportedCostUsd({ inputTokens: 10, outputTokens: 5 })).toBeNull();
     expect(reportedCostUsd({ costUsd: Number.NaN })).toBeNull();
     expect(reportedCostUsd({ costUsd: -1 })).toBeNull();
-  });
-});
-
-describe("missing cost errors", () => {
-  it("reports a step that reported no cost", () => {
-    const error = missingCostError({ stepIndex: 3, usage: tokensOnly });
-
-    expect(error?.name).toBe("Arnold step cost missing");
-    expect(error?.message).toContain("step 3 reported no cost");
-    expect(missingCostError({ stepIndex: 0 })).not.toBeNull();
-  });
-
-  it("reports nothing for a step that reported its cost", () => {
-    expect(
-      missingCostError({ stepIndex: 3, usage: { costUsd: 0 } })
-    ).toBeNull();
   });
 });
