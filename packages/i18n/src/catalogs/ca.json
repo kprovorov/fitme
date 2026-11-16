@@ -504,13 +504,7 @@
   "legal": {
     "privacyTitle": "Legal i privadesa",
     "privacyPolicy": "Política de privacitat",
-    "terms": "Condicions del servei",
-    "deleteAccount": "Elimina el compte",
-    "deleteConfirm": {
-      "title": "Vols eliminar el compte?",
-      "message": "Aquesta acció no es pot desfer. S'eliminarà permanentment el compte i les teves dades s'esborraran dels nostres servidors.",
-      "confirm": "Sí, elimina el meu compte"
-    }
+    "terms": "Condicions del servei"
   },
   "library": {
     "search": "Cerca exercicis",
@@ -786,25 +780,6 @@
   },
   "profile": {
     "title": "Perfil",
-    "pro": {
-      "title": "Tens Pro!",
-      "description": "Tens accés a totes les funcions. Pots cancel·lar la subscripció en qualsevol moment.",
-      "manage": "Gestiona la subscripció"
-    },
-    "free": {
-      "title": "Tens un pla gratuït",
-      "description": "Subscriu-te a Fitme Pro per accedir sense límits a totes les funcions",
-      "upgrade": "Passa a Pro"
-    },
-    "editProfile": "Edita el perfil",
-    "settings": "Configuració",
-    "support": "Ajuda",
-    "legal": "Informació legal",
-    "logout": "Tanca la sessió",
-    "rate": {
-      "title": "T'agrada l'app?",
-      "action": "Valora-la a l'App Store!"
-    },
     "memberSince": "Membre des de {{date}}",
     "totals": {
       "workouts": "Entrenaments",
@@ -962,17 +937,6 @@
       "skipRest": "Omet el descans",
       "over": "Descans acabat"
     }
-  },
-  "settings": {
-    "title": "Configuració",
-    "measurementSystem": "Sistema d'unitats",
-    "deleteAccount": "Elimina el compte",
-    "deleteConfirm": {
-      "title": "Elimina el compte",
-      "message": "Això eliminarà permanentment el compte i totes les dades associades. Aquesta acció no es pot desfer.",
-      "confirm": "Elimina"
-    },
-    "deleteFailed": "No s'ha pogut eliminar el compte"
   },
   "spokenCompactUnits": {
     "t_one": "{{count, number}} tona",

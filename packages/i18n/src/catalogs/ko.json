@@ -464,13 +464,7 @@
   "legal": {
     "privacyTitle": "법적 정보 및 개인정보 보호",
     "privacyPolicy": "개인정보 처리방침",
-    "terms": "이용약관",
-    "deleteAccount": "계정 삭제",
-    "deleteConfirm": {
-      "title": "계정을 삭제할까요?",
-      "message": "이 작업은 되돌릴 수 없어요. 계정이 영구적으로 삭제되고 서버에서 회원님의 데이터가 제거돼요.",
-      "confirm": "예, 계정 삭제"
-    }
+    "terms": "이용약관"
   },
   "library": {
     "search": "운동 종목 검색",
@@ -736,25 +730,6 @@
   },
   "profile": {
     "title": "프로필",
-    "pro": {
-      "title": "Pro 회원이에요!",
-      "description": "모든 기능을 이용할 수 있어요. 구독은 언제든지 취소할 수 있어요.",
-      "manage": "구독 관리"
-    },
-    "free": {
-      "title": "무료 요금제를 이용 중이에요",
-      "description": "Fitme Pro를 구독하고 모든 기능을 제한 없이 이용해 보세요",
-      "upgrade": "Pro로 업그레이드"
-    },
-    "editProfile": "프로필 편집",
-    "settings": "설정",
-    "support": "지원",
-    "legal": "법적 정보",
-    "logout": "로그아웃",
-    "rate": {
-      "title": "앱이 마음에 드시나요?",
-      "action": "App Store에서 평가해 주세요!"
-    },
     "memberSince": "가입: {{date}}",
     "totals": {
       "workouts": "운동",
@@ -896,17 +871,6 @@
       "skipRest": "휴식 건너뛰기",
       "over": "휴식 종료"
     }
-  },
-  "settings": {
-    "title": "설정",
-    "measurementSystem": "측정 단위",
-    "deleteAccount": "계정 삭제",
-    "deleteConfirm": {
-      "title": "계정 삭제",
-      "message": "계정과 관련된 모든 데이터가 영구적으로 삭제돼요. 이 작업은 되돌릴 수 없어요.",
-      "confirm": "삭제"
-    },
-    "deleteFailed": "계정을 삭제하지 못했어요"
   },
   "spokenCompactUnits": {
     "t_other": "{{count, number}}톤",

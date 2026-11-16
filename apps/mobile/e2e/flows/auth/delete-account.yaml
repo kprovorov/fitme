@@ -43,18 +43,22 @@ env:
 - waitForAnimationToEnd
 
 - tapOn:
-    id: "settings-link"
+    id: "account-security-link"
 
 - waitForAnimationToEnd
 
+- scrollUntilVisible:
+    element:
+      id: "delete-account"
+
 - tapOn:
-    id: "delete-account-button"
+    id: "delete-account"
 
 - waitForAnimationToEnd
 
-# Confirm in the alert
+# Confirm in the Delete sheet; a fresh session needs no "Confirm it's you"
 - tapOn:
-    text: "Delete"
+    id: "delete-account-confirm"
 
 # Signed out and back on the welcome screen
 - extendedWaitUntil:

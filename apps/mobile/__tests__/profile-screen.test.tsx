@@ -1,5 +1,5 @@
 /**
- * The Profile screen behind the Profile redesign flag, on the mounted-screen
+ * The Profile screen, on the mounted-screen
  * seam: the real screen and view, with Clerk for the fake Clerk User, the
  * Public API's `fetch` for its fake, RevenueCat for the fake customer and the
  * SwiftUI-backed Button for its stand-in, in English and Ukrainian.
@@ -14,7 +14,6 @@ import { Linking } from "react-native";
 
 import ProfileScreen from "~/app/profile";
 import { Toaster } from "~/components/ui/toast";
-import { setProfileRedesignEnabled } from "~/lib/feature-flags";
 import { setDeviceLanguages } from "~/test-utils/device-locales";
 import { fakeClerk } from "~/test-utils/fake-clerk";
 import { backend, FAKE_USER_ID } from "~/test-utils/fake-public-api";
@@ -130,25 +129,13 @@ const COPY = {
   },
 } as const;
 
-describe("Profile with the redesign flag off", () => {
-  it("is today's Profile screen", async () => {
-    await mount();
-
-    expect(screen.getByText("Settings")).toBeTruthy();
-    expect(screen.getByText("Logout")).toBeTruthy();
-    expect(screen.queryByText("Member since March 2025")).toBeNull();
-    expect(screen.queryByTestId("profile-version")).toBeNull();
-  });
-});
-
 describe.each([
   ["en", ["en-US"]],
   ["uk", ["uk-UA"]],
-] as const)("the redesigned Profile in %s", (language, deviceLanguages) => {
+] as const)("the Profile in %s", (language, deviceLanguages) => {
   const copy = COPY[language];
 
   beforeEach(() => {
-    setProfileRedesignEnabled(true);
     setDeviceLanguages([...deviceLanguages]);
     jest.clearAllMocks();
     backend.reset();

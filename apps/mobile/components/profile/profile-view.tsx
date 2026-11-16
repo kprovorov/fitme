@@ -34,13 +34,13 @@ const openAppStoreReview = () => {
   void openUrl(APP_STORE_REVIEW_URL);
 };
 
-const openEditProfile = () => router.push("/settings/edit-profile");
+const openEditProfile = () => router.push("/edit-profile");
 
 const openAccountSecurity = () => router.push("/account-security");
 
 const openSubscription = () => router.push("/subscription");
 
-const openUnits = () => router.push("/settings/measurement-system");
+const openUnits = () => router.push("/measurement-system");
 
 const openSupport = () => router.push("/support");
 
@@ -127,11 +127,10 @@ const VersionLine = () => {
 };
 
 /**
- * The redesigned Profile (Figma's Profile – Free, 1476:3301), shown while the
- * Profile redesign flag is on: the header, the Lifetime totals (or the New
- * user state), the Subscription card, then the lists.
+ * The Profile (Figma's Profile – Free, 1476:3301): the header, the Lifetime
+ * totals (or the New user state), the Subscription card, then the lists.
  */
-const ProfileRedesignView = () => {
+const ProfileView = () => {
   const { t } = useTranslation();
   const language = useAppLanguage();
   const labels = useChoiceLabels();
@@ -232,4 +231,4 @@ const ProfileRedesignView = () => {
   );
 };
 
-export default ProfileRedesignView;
+export default ProfileView;

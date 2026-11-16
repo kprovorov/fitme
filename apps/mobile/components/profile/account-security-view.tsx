@@ -189,7 +189,7 @@ const SignInMethodRow = ({
 };
 
 /**
- * Account & Security (Figma 1479:5771), opened from the redesigned Profile:
+ * Account & Security (Figma 1479:5771), opened from Profile:
  * the User's email, whose row opens Change Email, Change Password while
  * they have a password (opening the Change Password Screen), the sign-in
  * methods this build offers (ADR 0021) with whether each is linked, and

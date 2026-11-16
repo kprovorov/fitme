@@ -4,7 +4,7 @@ import { ScrollView } from "react-native";
 
 import AccountSecurityView from "~/components/profile/account-security-view";
 
-// Pushed from the redesigned Profile's Account list.
+// Pushed from Profile's Account list.
 const AccountSecurityScreen = () => {
   const { t } = useTranslation();
 

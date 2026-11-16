@@ -19,7 +19,7 @@ import { router } from "expo-router";
 import { useCallback } from "react";
 import { Pressable, Text } from "react-native";
 
-import EditProfileScreen from "~/app/settings/edit-profile";
+import EditProfileScreen from "~/app/edit-profile";
 import { rememberProfileWrite, seedProfile } from "~/hooks/mutations/profiles";
 import { useProfileQuery } from "~/hooks/queries/profiles";
 import { useUpdateMeasurementSystemMutation } from "~/hooks/queries/settings";

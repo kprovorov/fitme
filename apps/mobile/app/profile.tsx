@@ -6,14 +6,12 @@ import { useTranslation } from "react-i18next";
 import { RefreshControl, ScrollView } from "react-native";
 import Purchases from "react-native-purchases";
 
-import ProfileRedesignView from "~/components/profile/profile-redesign-view";
-import ProfileView from "~/components/views/profile-view";
+import ProfileView from "~/components/profile/profile-view";
 import { useActivePlanQuery } from "~/hooks/queries/plans";
 import {
   LIFETIME_TOTALS_QUERY_KEY,
   OPEN_WORKOUT_SESSION_QUERY_KEY,
 } from "~/hooks/queries/workout-sessions";
-import { isProfileRedesignEnabled } from "~/lib/feature-flags";
 
 const IS_E2E = process.env.EXPO_PUBLIC_E2E_ENABLED === "true";
 
@@ -23,7 +21,6 @@ const ProfileScreen = () => {
   const [refreshing, setRefreshing] = useState(false);
   const queryClient = useQueryClient();
   const { user } = useUser();
-  const isRedesign = isProfileRedesignEnabled();
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
@@ -69,14 +66,14 @@ const ProfileScreen = () => {
         }}
       />
       <ScrollView
-        className={isRedesign ? "px-sm" : "p-6"}
+        className="px-sm"
         contentInsetAdjustmentBehavior="automatic"
         refreshControl={
           <RefreshControl onRefresh={onRefresh} refreshing={refreshing} />
         }
         testID="profile-scroll"
       >
-        {isRedesign ? <ProfileRedesignView /> : <ProfileView />}
+        <ProfileView />
       </ScrollView>
     </>
   );

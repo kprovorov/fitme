@@ -8,14 +8,14 @@
  *
  * Driven at the mutations' own seam, with Clerk stood in and the file system
  * in memory: the Screens that call them are covered by
- * `__tests__/profile-and-settings-in-ukrainian.test.tsx`, and how a send
+ * `__tests__/delete-account-sheet.test.tsx` and
+ * `__tests__/profile-screen.test.tsx`, and how a send
  * writes the copies by `__tests__/arnold-screen.test.tsx`.
  */
 import { beforeEach, describe, expect, it, jest } from "@jest/globals";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { act, renderHook } from "@testing-library/react-native";
 import type { ReactNode } from "react";
-import { Alert } from "react-native";
 
 import {
   loadSavedArnoldConversation,
@@ -55,7 +55,7 @@ jest.mock("@clerk/expo", () => ({
   isClerkAPIResponseError: () => false,
 }));
 
-// The signed-in Clerk User, whose own `delete` the mutation calls.
+// The signed-in Clerk User the mutation deletes and signs out.
 jest.mock("~/lib/clerk", () => ({
   ...jest.requireActual<typeof import("~/lib/clerk")>("~/lib/clerk"),
   getClerk: () => ({
@@ -110,7 +110,10 @@ const wrapper =
     <QueryClientProvider client={client}>{children}</QueryClientProvider>
   );
 
-/** Presses Delete Account, as Settings and Legal do. */
+/**
+ * Confirms Delete Account, as the Delete sheet does: the deletion handed over
+ * as `remove`, here with Clerk not asking "Confirm it's you".
+ */
 const deleteAccount = async () => {
   const client = createTestQueryClient();
 
@@ -119,7 +122,13 @@ const deleteAccount = async () => {
   });
 
   await act(() => {
-    result.current.mutate({});
+    result.current.mutate({
+      remove: async () => {
+        await mockDelete();
+
+        return { status: "done", value: undefined };
+      },
+    });
   });
 
   await settle(client);
@@ -181,10 +190,6 @@ describe("deleting the account", () => {
   });
 
   it("removes nothing when Clerk refuses the deletion", async () => {
-    const alert = jest.spyOn(Alert, "alert").mockImplementation(() => {
-      // The native alert isn't shown under Jest.
-    });
-
     mockDelete.mockRejectedValue(new Error("offline"));
 
     await deleteAccount();
@@ -193,12 +198,6 @@ describe("deleting the account", () => {
     expect(photosOf(THEIRS)).toEqual(["gym-bytes", "machine-bytes"]);
     expect(loadSavedArnoldConversation(THEIRS).session).toBeTruthy();
     expect(mockSignOut).not.toHaveBeenCalled();
-
-    expect(alert).toHaveBeenCalledWith(
-      "Couldn't delete your account",
-      "Something went wrong. Please try again later."
-    );
-    alert.mockRestore();
   });
 });
 

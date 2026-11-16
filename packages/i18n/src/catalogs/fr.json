@@ -504,13 +504,7 @@
   "legal": {
     "privacyTitle": "Mentions légales",
     "privacyPolicy": "Politique de confidentialité",
-    "terms": "Conditions d'utilisation",
-    "deleteAccount": "Supprimer le compte",
-    "deleteConfirm": {
-      "title": "Veux-tu vraiment supprimer ton compte ?",
-      "message": "Cette action est irréversible. Ton compte sera définitivement supprimé et tes données seront effacées de nos serveurs.",
-      "confirm": "Oui, supprimer mon compte"
-    }
+    "terms": "Conditions d'utilisation"
   },
   "library": {
     "search": "Rechercher des exercices",
@@ -786,25 +780,6 @@
   },
   "profile": {
     "title": "Profil",
-    "pro": {
-      "title": "Tu es Pro !",
-      "description": "Tu as accès à toutes nos fonctionnalités. Tu peux résilier ton abonnement à tout moment.",
-      "manage": "Gérer l'abonnement"
-    },
-    "free": {
-      "title": "Tu utilises l'offre gratuite",
-      "description": "Abonne-toi à Fitme Pro pour profiter de toutes nos fonctionnalités sans limite",
-      "upgrade": "Passer à Pro"
-    },
-    "editProfile": "Modifier le profil",
-    "settings": "Réglages",
-    "support": "Assistance",
-    "legal": "Informations légales",
-    "logout": "Se déconnecter",
-    "rate": {
-      "title": "L'app te plaît ?",
-      "action": "Note-la sur l'App Store !"
-    },
     "memberSince": "Membre depuis {{date}}",
     "totals": {
       "workouts": "Séances",
@@ -962,17 +937,6 @@
       "skipRest": "Passer le repos",
       "over": "Repos terminé"
     }
-  },
-  "settings": {
-    "title": "Réglages",
-    "measurementSystem": "Système de mesure",
-    "deleteAccount": "Supprimer le compte",
-    "deleteConfirm": {
-      "title": "Supprimer le compte",
-      "message": "Ton compte et toutes les données associées seront définitivement supprimés. Cette action est irréversible.",
-      "confirm": "Supprimer"
-    },
-    "deleteFailed": "Impossible de supprimer ton compte"
   },
   "spokenCompactUnits": {
     "t_one": "{{count, number}} tonne",

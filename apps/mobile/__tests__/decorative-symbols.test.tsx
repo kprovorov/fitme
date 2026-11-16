@@ -1,6 +1,6 @@
 /**
  * Decorative SF Symbols stay out of what VoiceOver reads (FIT-631): a row's
- * chevron, the rate-us heart and the free plan's figure. The real screens
+ * chevron. The real screens
  * render the real `SymbolImage`, and `spokenLabel` composes each row's label
  * the way React Native does on iOS, where a symbol image left in the
  * accessibility tree reads its symbol's name ("Edit Profile, Forward").
@@ -11,7 +11,7 @@ import { render, screen } from "@testing-library/react-native";
 import type { ReactNode } from "react";
 
 import LibraryScreen from "~/app/(tabs)/library/index";
-import ProfileView from "~/components/views/profile-view";
+import ProfileView from "~/components/profile/profile-view";
 import { storage } from "~/lib/mmkv";
 import { libraryExercise, serveLibrary } from "~/test-utils/fake-library";
 import { backend } from "~/test-utils/fake-public-api";
@@ -40,25 +40,21 @@ jest.mock("~/components/ui/button", () =>
 // A thumbnail shows as nothing.
 jest.mock("~/components/exercises/exercise-image", () => () => null);
 
-const mockUser = {
-  fullName: "Ada Lovelace",
-  id: "user_test",
-  primaryEmailAddress: { emailAddress: "ada@example.com" },
-};
+jest.mock(
+  "@clerk/expo",
+  () =>
+    jest.requireActual<typeof import("~/test-utils/fake-clerk")>(
+      "~/test-utils/fake-clerk"
+    ).clerkModule
+);
 
-jest.mock("@clerk/expo", () => ({
-  isClerkAPIResponseError: () => false,
-  useUser: () => ({ isLoaded: true, user: mockUser }),
-}));
-
-jest.mock("~/lib/clerk", () => ({
-  ...jest.requireActual<typeof import("~/lib/clerk")>("~/lib/clerk"),
-  getClerk: () => ({ signOut: jest.fn(), user: mockUser }),
-  getCurrentUserId: () =>
-    jest.requireActual<typeof import("~/test-utils/fake-public-api")>(
-      "~/test-utils/fake-public-api"
-    ).FAKE_USER_ID,
-}));
+jest.mock(
+  "react-native-purchases",
+  () =>
+    jest.requireActual<typeof import("~/test-utils/fake-revenuecat")>(
+      "~/test-utils/fake-revenuecat"
+    ).purchasesModule
+);
 
 jest.mock("~/lib/segment", () => ({
   segmentClient: { reset: jest.fn(), track: jest.fn() },
@@ -67,11 +63,6 @@ jest.mock("~/lib/segment", () => ({
 jest.mock("react-native-purchases-ui", () => ({
   __esModule: true,
   default: { presentPaywall: jest.fn() },
-}));
-
-jest.mock("~/hooks/revenueCat", () => ({
-  useCustomerInfoQuery: () => ({ data: undefined }),
-  useIsProQuery: () => ({ data: false }),
 }));
 
 const mount = async (element: ReactNode) => {
@@ -114,17 +105,14 @@ describe("decorative symbols", () => {
     );
   });
 
-  it("read the Profile's links and rate-us button without their symbols", async () => {
+  it("read the Profile's rows without their chevrons", async () => {
     const container = await mount(<ProfileView />);
 
     expect(spokenLabel(screen.getByTestId("edit-profile-link"))).toBe(
       "Edit Profile"
     );
-    expect(spokenLabel(screen.getByTestId("settings-link"))).toBe("Settings");
-    expect(spokenLabel(buttonWith("Like the app?"))).toBe(
-      "Like the app?, Rate it in the App Store!"
-    );
-    // The free plan's figure is decoration too.
+    expect(spokenLabel(screen.getByTestId("units-link"))).toBe("Units");
+    expect(spokenLabel(buttonWith("Rate Fitme"))).toBe("Rate Fitme");
     expect(spokenLabel(container)).not.toMatch(SYMBOL_NAME);
   });
 });

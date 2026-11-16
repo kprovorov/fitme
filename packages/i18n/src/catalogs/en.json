@@ -484,13 +484,7 @@
   "legal": {
     "privacyTitle": "Legal & Privacy",
     "privacyPolicy": "Privacy Policy",
-    "terms": "Terms of Service",
-    "deleteAccount": "Delete Account",
-    "deleteConfirm": {
-      "title": "Are you sure you want to delete your account?",
-      "message": "This action cannot be undone. This will permanently delete your account and remove your data from our servers.",
-      "confirm": "Yes, Delete My Account"
-    }
+    "terms": "Terms of Service"
   },
   "library": {
     "search": "Search exercises",
@@ -761,25 +755,6 @@
   },
   "profile": {
     "title": "Profile",
-    "pro": {
-      "title": "You're Pro!",
-      "description": "You have access to all of our features. You can cancel your subscription at any time.",
-      "manage": "Manage Subscription"
-    },
-    "free": {
-      "title": "You're on a free plan",
-      "description": "Subscribe to Fitme Pro to get unlimited access to all of our features",
-      "upgrade": "Upgrade to Pro"
-    },
-    "editProfile": "Edit Profile",
-    "settings": "Settings",
-    "support": "Support",
-    "legal": "Legal",
-    "logout": "Logout",
-    "rate": {
-      "title": "Like the app?",
-      "action": "Rate it in the App Store!"
-    },
     "memberSince": "Member since {{date}}",
     "totals": {
       "workouts": "Workouts",
@@ -929,17 +904,6 @@
       "skipRest": "Skip rest",
       "over": "Rest over"
     }
-  },
-  "settings": {
-    "title": "Settings",
-    "measurementSystem": "Measurement System",
-    "deleteAccount": "Delete Account",
-    "deleteConfirm": {
-      "title": "Delete Account",
-      "message": "This will permanently delete your account and all associated data. This action cannot be undone.",
-      "confirm": "Delete"
-    },
-    "deleteFailed": "Couldn't delete your account"
   },
   "spokenCompactUnits": {
     "t_one": "{{count, number}} tonne",

@@ -484,13 +484,7 @@
   "legal": {
     "privacyTitle": "Juridisch en privacy",
     "privacyPolicy": "Privacybeleid",
-    "terms": "Gebruiksvoorwaarden",
-    "deleteAccount": "Account verwijderen",
-    "deleteConfirm": {
-      "title": "Weet je zeker dat je je account wilt verwijderen?",
-      "message": "Dit kan niet ongedaan worden gemaakt. Je account wordt definitief verwijderd en je gegevens worden van onze servers verwijderd.",
-      "confirm": "Ja, verwijder mijn account"
-    }
+    "terms": "Gebruiksvoorwaarden"
   },
   "library": {
     "search": "Oefeningen zoeken",
@@ -761,25 +755,6 @@
   },
   "profile": {
     "title": "Profiel",
-    "pro": {
-      "title": "Je hebt Pro!",
-      "description": "Je hebt toegang tot al onze functies. Je kunt je abonnement op elk moment opzeggen.",
-      "manage": "Abonnement beheren"
-    },
-    "free": {
-      "title": "Je gebruikt de gratis versie",
-      "description": "Neem Fitme Pro voor onbeperkte toegang tot al onze functies",
-      "upgrade": "Overstappen op Pro"
-    },
-    "editProfile": "Profiel bewerken",
-    "settings": "Instellingen",
-    "support": "Hulp",
-    "legal": "Juridisch",
-    "logout": "Uitloggen",
-    "rate": {
-      "title": "Bevalt de app?",
-      "action": "Beoordeel de app in de App Store!"
-    },
     "memberSince": "Lid sinds {{date}}",
     "totals": {
       "workouts": "Trainingen",
@@ -929,17 +904,6 @@
       "skipRest": "Rust overslaan",
       "over": "Rust voorbij"
     }
-  },
-  "settings": {
-    "title": "Instellingen",
-    "measurementSystem": "Eenhedenstelsel",
-    "deleteAccount": "Account verwijderen",
-    "deleteConfirm": {
-      "title": "Account verwijderen",
-      "message": "Hiermee verwijder je je account en alle bijbehorende gegevens definitief. Dit kan niet ongedaan worden gemaakt.",
-      "confirm": "Verwijderen"
-    },
-    "deleteFailed": "Je account kon niet worden verwijderd"
   },
   "spokenCompactUnits": {
     "t_one": "{{count, number}} ton",

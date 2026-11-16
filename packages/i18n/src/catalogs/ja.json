@@ -464,13 +464,7 @@
   "legal": {
     "privacyTitle": "法的情報とプライバシー",
     "privacyPolicy": "プライバシーポリシー",
-    "terms": "利用規約",
-    "deleteAccount": "アカウントを削除",
-    "deleteConfirm": {
-      "title": "アカウントを削除しますか？",
-      "message": "この操作は取り消せません。アカウントが完全に削除され、サーバーからデータが消去されます。",
-      "confirm": "はい、アカウントを削除します"
-    }
+    "terms": "利用規約"
   },
   "library": {
     "search": "種目を検索",
@@ -736,25 +730,6 @@
   },
   "profile": {
     "title": "プロフィール",
-    "pro": {
-      "title": "Proをご利用中です！",
-      "description": "すべての機能をご利用いただけます。サブスクリプションはいつでも解約できます。",
-      "manage": "サブスクリプションを管理"
-    },
-    "free": {
-      "title": "無料プランをご利用中です",
-      "description": "Fitme Proに登録して、すべての機能を無制限で利用しましょう",
-      "upgrade": "Proにアップグレード"
-    },
-    "editProfile": "プロフィールを編集",
-    "settings": "設定",
-    "support": "サポート",
-    "legal": "法的情報",
-    "logout": "ログアウト",
-    "rate": {
-      "title": "アプリは気に入りましたか？",
-      "action": "App Storeで評価する"
-    },
     "memberSince": "{{date}}から利用",
     "totals": {
       "workouts": "ワークアウト",
@@ -896,17 +871,6 @@
       "skipRest": "休憩をスキップ",
       "over": "休憩終了"
     }
-  },
-  "settings": {
-    "title": "設定",
-    "measurementSystem": "単位系",
-    "deleteAccount": "アカウントを削除",
-    "deleteConfirm": {
-      "title": "アカウントを削除",
-      "message": "アカウントと関連するすべてのデータが完全に削除されます。この操作は取り消せません。",
-      "confirm": "削除"
-    },
-    "deleteFailed": "アカウントを削除できませんでした"
   },
   "spokenCompactUnits": {
     "t_other": "{{count, number}}トン",
