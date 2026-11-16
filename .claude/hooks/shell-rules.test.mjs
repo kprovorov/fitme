@@ -753,3 +753,75 @@ void describe("gitleaks scanning a whole worktree or printing secrets", () => {
     assert.match(violation.reason, GITLEAKS_REASON);
   });
 });
+
+void describe("git hooks skipped with --no-verify", () => {
+  for (const command of [
+    "git commit --no-verify -m x",
+    "git commit -nm x",
+    "git commit -n -m x",
+    "git commit -anm x",
+    "git commit -q --no-verify -am scratch",
+    "git -C apps/mobile commit --no-verify",
+    "git -C /tmp/repo -c user.name=me commit --no-verify -m x",
+    "git --git-dir=.git --no-pager commit -n",
+    "git commit --no-veri -m x",
+    "git commit --verify --no-verify -m x",
+    "git merge --no-verify origin/main",
+    "git am --no-verify 0001.patch",
+    "git rebase --no-verify origin/main",
+    "pnpm install && git commit --no-verify -m x",
+    "env GIT_AUTHOR_NAME=me git commit --no-verify -m x",
+    "x=$(git commit --no-verify -m x)",
+    "git commit -nm --verify",
+    "git commit -mm --no-verify",
+    "git commit -mfix-m --no-verify",
+    "git commit --no-verify --mess --verify",
+    "git am --no-v 0001.patch",
+    "git am -n 0001.patch",
+    "git am -qn 0001.patch",
+    "git --attr-source HEAD commit --no-verify -m x",
+    "git -c alias.save=commit save --no-verify -m x",
+    "git save --no-verify -m x",
+    "git pull --no-verify",
+    "git save --verify --no-verify",
+  ]) {
+    void test(`refuses ${JSON.stringify(command)}`, () => {
+      assert.deepEqual(rulesBroken(command), ["no-verify"]);
+    });
+  }
+
+  for (const command of [
+    'git commit -m "mentions --no-verify"',
+    "git commit -m --no-verify",
+    "git commit -m -n",
+    "git commit -mn",
+    "git commit -F -n",
+    "git commit --message --no-verify",
+    "git commit -- --no-verify",
+    "git log -n 5",
+    "git commit --verify -m x",
+    "git commit --no-verify --verify -m x",
+    "git push --no-verify",
+    "git push origin main --no-verify",
+    "git -C apps/mobile push --no-verify",
+    "git save -- --no-verify",
+    "git save --no-verify --verify",
+    "git save -n",
+    "git merge -n origin/main",
+    "git merge --no-veri origin/main",
+    "git rebase -n origin/main",
+    "git -c core.hooksPath=-n commit -m x",
+    "echo git commit --no-verify",
+    "gh pr create --body 'never git commit --no-verify'",
+  ]) {
+    void test(`allows ${JSON.stringify(command)}`, () => {
+      assert.deepEqual(rulesBroken(command), []);
+    });
+  }
+
+  void test("points at the AGENTS.md rule", () => {
+    const [violation] = findShellRuleViolations("git commit -nm x");
+    assert.match(violation.reason, /^AGENTS\.md Git: /u);
+    assert.match(violation.reason, /secret scan/u);
+  });
+});

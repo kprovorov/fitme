@@ -1666,6 +1666,244 @@ const pipelines = (commands) => {
   return groups;
 };
 
+// git's options before its subcommand that take the next word as their value
+// (`git -C apps/mobile commit`), unless it's attached with `=`.
+const GIT_VALUE_OPTIONS = new Set([
+  "--attr-source",
+  "-C",
+  "-c",
+  "--config-env",
+  "--git-dir",
+  "--namespace",
+  "--super-prefix",
+  "--work-tree",
+]);
+
+/**
+ * How a subcommand that runs hooks reads its options: `noVerify`, the short
+ * letter that means `--no-verify` (`git commit -n`, `git am -n`); `values`,
+ * the short letters that take a value (attached, or the next word: `-m x`,
+ * `-mx`); `optional`, the ones taking only an attached one (`-S<key>`); and
+ * `long`, the long options taking the next word as their value; and
+ * `noVerifyPrefix` / `verifyPrefix`, the shortest prefixes git expands to
+ * `--no-verify` / `--verify` for that subcommand, since each has its own
+ * options (`git am --no-v` is unambiguous, `git commit --no-ve` could be
+ * `--no-verbose`).
+ *
+ * @typedef {{ noVerify?: string, values: string, optional: string, long: string[], noVerifyPrefix: string, verifyPrefix: string }} GitHookOptions
+ * @typedef {{ noVerify?: string, values: Set<string>, optional: Set<string>, long: Set<string>, noVerifyPrefix: string, verifyPrefix: string }} GitHookCommand
+ */
+
+/** @type {(options: GitHookOptions) => GitHookCommand} */
+const hookCommand = ({
+  long,
+  noVerify,
+  noVerifyPrefix,
+  optional,
+  values,
+  verifyPrefix,
+}) => ({
+  long: new Set(long),
+  noVerify,
+  noVerifyPrefix,
+  optional: new Set(optional),
+  verifyPrefix,
+  values: new Set(values),
+});
+
+/** @type {Map<string, GitHookCommand>} */
+const GIT_HOOK_COMMANDS = new Map(
+  /** @type {[string, GitHookOptions][]} */ ([
+    [
+      "commit",
+      {
+        long: [
+          "--author",
+          "--cleanup",
+          "--date",
+          "--file",
+          "--fixup",
+          "--message",
+          "--pathspec-from-file",
+          "--reedit-message",
+          "--reuse-message",
+          "--squash",
+          "--template",
+          "--trailer",
+        ],
+        noVerify: "n",
+        noVerifyPrefix: "--no-veri",
+        optional: "Su",
+        values: "CFcmt",
+        verifyPrefix: "--veri",
+      },
+    ],
+    [
+      "merge",
+      {
+        long: [
+          "--cleanup",
+          "--file",
+          "--into-name",
+          "--message",
+          "--strategy",
+          "--strategy-option",
+        ],
+        // `--verify-signatures` shares every shorter prefix.
+        noVerifyPrefix: "--no-verify",
+        optional: "S",
+        values: "FXms",
+        verifyPrefix: "--verify",
+      },
+    ],
+    [
+      "am",
+      {
+        long: [
+          "--directory",
+          "--exclude",
+          "--include",
+          "--patch-format",
+          "--resolvemsg",
+          "--whitespace",
+        ],
+        optional: "CSp",
+        noVerify: "n",
+        noVerifyPrefix: "--no-v",
+        values: "",
+        verifyPrefix: "--v",
+      },
+    ],
+    [
+      "rebase",
+      {
+        long: [
+          "--empty",
+          "--exec",
+          "--onto",
+          "--strategy",
+          "--strategy-option",
+          "--whitespace",
+        ],
+        noVerifyPrefix: "--no-veri",
+        optional: "S",
+        values: "Xsx",
+        verifyPrefix: "--veri",
+      },
+    ],
+  ]).map(([name, options]) => [name, hookCommand(options)])
+);
+
+const NO_VERIFY = "--no-verify";
+const VERIFY = "--verify";
+
+// git takes a long option's unambiguous prefix (`git commit --no-veri`).
+
+/** @type {(word: string, full: string, shortest: string) => boolean} */
+const abbreviates = (word, full, shortest) =>
+  word.startsWith(shortest) && full.startsWith(word);
+
+// The subcommand a `git` command runs and its arguments, past git's own
+// options (`-C <path>`, `-c <key=value>`, `--no-pager`).
+/** @type {(args: string[]) => { subcommand: string | undefined, rest: string[] }} */
+const gitSubcommand = (args) => {
+  let index = 0;
+
+  while (index < args.length && args[index].startsWith("-")) {
+    index += GIT_VALUE_OPTIONS.has(args[index]) ? 2 : 1;
+  }
+
+  return { rest: args.slice(index + 1), subcommand: args[index] };
+};
+
+// Whether a short option cluster (`-anm`) turns verification off, and whether
+// the next word is a value: a letter taking a value ends the cluster, since
+// the rest is that value (`-mn` is the message "n"), and takes the next word
+// only when nothing is attached (`-nm x`, but not `-mm x`).
+/** @type {(word: string, command: GitHookCommand) => { skips: boolean, takesNext: boolean }} */
+const readShortCluster = (word, command) => {
+  let skips = false;
+
+  for (let position = 1; position < word.length; position += 1) {
+    const letter = word[position];
+
+    if (letter === command.noVerify) {
+      skips = true;
+    } else if (command.values.has(letter)) {
+      return { skips, takesNext: position === word.length - 1 };
+    } else if (command.optional.has(letter)) {
+      return { skips, takesNext: false };
+    }
+  }
+
+  return { skips, takesNext: false };
+};
+
+// Whether a long option takes the next word as its value, written in full or
+// as a prefix git expands (`--mess x` is `--message x`).
+/** @type {(word: string, command: GitHookCommand) => boolean} */
+const takesLongValue = (word, command) =>
+  command.long.has(word) ||
+  (word.length > 2 &&
+    !word.includes("=") &&
+    [...command.long].some((option) => option.startsWith(word)));
+
+// Any other subcommand but `push` may be an alias for one of them
+// (`git -c alias.save=commit save --no-verify`), which this can't resolve, so
+// it reads options the way no subcommand's are known: `--no-verify` spelled
+// out before `--`, the last of it and `--verify` winning. That refuses the odd
+// value that happens to be `--no-verify` (`git log --grep --no-verify`).
+/** @type {GitHookCommand} */
+const UNKNOWN_GIT_COMMAND = hookCommand({
+  long: [],
+  noVerifyPrefix: NO_VERIFY,
+  optional: "",
+  values: "",
+  verifyPrefix: VERIFY,
+});
+
+// `git push --no-verify` skips only the pre-push hook, which this repo hasn't.
+const GIT_COMMANDS_WITHOUT_HOOKS = new Set(["push"]);
+
+// Whether a `git` command skips the repo's hooks: `--no-verify` (or
+// `git commit -n`) as an option, not as an option's value or a pathspec, and
+// not undone by a later `--verify`.
+/** @type {(args: string[]) => boolean} */
+const skipsGitHooks = (args) => {
+  const { rest, subcommand } = gitSubcommand(args);
+
+  if (subcommand === undefined || GIT_COMMANDS_WITHOUT_HOOKS.has(subcommand)) {
+    return false;
+  }
+
+  const command = GIT_HOOK_COMMANDS.get(subcommand) ?? UNKNOWN_GIT_COMMAND;
+
+  let skips = false;
+
+  for (let index = 0; index < rest.length; index += 1) {
+    const word = rest[index];
+
+    if (word === "--") {
+      break;
+    }
+
+    if (abbreviates(word, NO_VERIFY, command.noVerifyPrefix)) {
+      skips = true;
+    } else if (abbreviates(word, VERIFY, command.verifyPrefix)) {
+      skips = false;
+    } else if (takesLongValue(word, command)) {
+      index += 1;
+    } else if (word.startsWith("-") && !word.startsWith("--")) {
+      const cluster = readShortCluster(word, command);
+
+      skips ||= cluster.skips;
+      index += cluster.takesNext ? 1 : 0;
+    }
+  }
+
+  return skips;
+};
+
 const WORD_SPLIT_REASON = `AGENTS.md Shell: zsh doesn't word-split an unquoted \`$var\`, so \`for x in $var\` runs once with the whole list as one word: use an array (\`files=(a b); for f in "\${files[@]}"\`), \`\${=var}\`, or pipe NUL-separated names into \`xargs -0\` (\`git ls-files -z\`, \`grep -rlZ\`).`;
 
 // Each rule: its name, the reason the agent is shown, and whether it's broken
@@ -1768,6 +2006,13 @@ const CHECKS = [
       "AGENTS.md Shell: never print a `.env*` file's values (docs/agents/secrets.md, Handling values): list the names only (`cut -d= -f1 <file>`, or `sed -E 's/=.*/=…/' <file>`), or check one exists with `grep -q '^NAME=' <file>`. BSD sed (macOS) has no `\\|`: use `sed -E` with `|`.",
     rule: "env-file",
     scope: "pipeline",
+  },
+  {
+    breaks: ({ name, words }) =>
+      skipsGitHooks(toolArguments(name, words, "git") ?? []),
+    reason:
+      "AGENTS.md Git: never skip the repo's hooks with `--no-verify` (or `git commit -n`): the pre-commit hook runs the gitleaks secret scan and refuses conflict markers. Fix what the hook reports, or install gitleaks (`brew install gitleaks`) if it's missing; for a throwaway commit, still let the hook run.",
+    rule: "no-verify",
   },
 ];
 
