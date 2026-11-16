@@ -1,5 +1,5 @@
 import type * as Observability from "@fitme/observability/node";
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { hookSession } from "./hooks";
 import type { EveEvent } from "./hooks";
@@ -15,23 +15,43 @@ vi.mock<typeof Observability>(
 
 const { default: failures } = await import("../agent/hooks/failures");
 
-const failure = { code: "model_call_failed", message: "Upstream timed out" };
+const error = { code: "model_call_failed", message: "Upstream timed out" };
 
 describe("failure hook", () => {
-  it("reports a failed step with its session, turn and step", async () => {
+  beforeEach(() => {
+    observability.reportError.mockClear();
+  });
+
+  it("reports a failed model call with its session, turn and run", async () => {
     const { emit } = hookSession(failures);
 
     await emit({
-      data: { ...failure, sequence: 4, stepIndex: 2, turnId: "turn_1" },
-      type: "step.failed",
+      data: { error, outcome: "failed", runId: "run_2" },
+      scope: { runId: "run_2", turnId: "turn_1" },
+      type: "model.settled",
     });
 
     expect(observability.reportError).toHaveBeenCalledExactlyOnceWith(
       expect.objectContaining({
-        message: "step.failed model_call_failed: Upstream timed out",
-        name: "Arnold step.failed",
+        message: "model.settled failed model_call_failed: Upstream timed out",
+        name: "Arnold model.settled failed",
       }),
-      { sessionId: "wrun_1", stepIndex: "2", turnId: "turn_1" }
+      { runId: "run_2", sessionId: "wrun_1", turnId: "turn_1" }
+    );
+  });
+
+  it("reports a failed context change's model call without a turn", async () => {
+    const { emit } = hookSession(failures);
+
+    await emit({
+      data: { error, outcome: "failed", runId: "run_3" },
+      scope: { changeId: "change_1", runId: "run_3" },
+      type: "model.settled",
+    });
+
+    expect(observability.reportError).toHaveBeenCalledExactlyOnceWith(
+      expect.any(Error),
+      { runId: "run_3", sessionId: "wrun_1" }
     );
   });
 
@@ -39,14 +59,15 @@ describe("failure hook", () => {
     const { emit } = hookSession(failures);
 
     await emit({
-      data: { ...failure, sequence: 5, terminal: false, turnId: "turn_1" },
-      type: "turn.failed",
+      data: { error, outcome: "failed", turnId: "turn_1" },
+      scope: { turnId: "turn_1" },
+      type: "turn.settled",
     });
 
     expect(observability.reportError).toHaveBeenCalledExactlyOnceWith(
       expect.objectContaining({
-        message: "turn.failed model_call_failed: Upstream timed out",
-        name: "Arnold turn.failed",
+        message: "turn.settled failed model_call_failed: Upstream timed out",
+        name: "Arnold turn.settled failed",
       }),
       { sessionId: "wrun_1", turnId: "turn_1" }
     );
@@ -56,16 +77,33 @@ describe("failure hook", () => {
     const { emit } = hookSession(failures);
 
     await emit({
-      data: { ...failure, sessionId: "wrun_1" },
-      type: "session.failed",
+      data: { cause: { turnId: "turn_1" }, error, outcome: "failed" },
+      type: "session.ended",
     });
 
     expect(observability.reportError).toHaveBeenCalledExactlyOnceWith(
       expect.objectContaining({
-        message: "session.failed model_call_failed: Upstream timed out",
-        name: "Arnold session.failed",
+        message: "session.ended failed model_call_failed: Upstream timed out",
+        name: "Arnold session.ended failed",
       }),
       { sessionId: "wrun_1" }
+    );
+  });
+
+  it("reports a failure that names no error", async () => {
+    const { emit } = hookSession(failures);
+
+    await emit({
+      data: { outcome: "failed", turnId: "turn_1" },
+      scope: { turnId: "turn_1" },
+      type: "turn.settled",
+    });
+
+    expect(observability.reportError).toHaveBeenCalledExactlyOnceWith(
+      expect.objectContaining({
+        message: "turn.settled failed unknown: no error recorded",
+      }),
+      { sessionId: "wrun_1", turnId: "turn_1" }
     );
   });
 
@@ -74,26 +112,35 @@ describe("failure hook", () => {
 
     const fine: EveEvent[] = [
       {
-        data: {
-          modelId: "openai/gpt-6.1-terra",
-          sequence: 1,
-          stepIndex: 0,
-          turnId: "turn_1",
-        },
-        type: "step.started",
+        data: { owner: { turnId: "turn_1" }, runId: "run_1" },
+        scope: { runId: "run_1", turnId: "turn_1" },
+        type: "model.requested",
+      },
+      {
+        data: { finishReason: "stop", outcome: "completed", runId: "run_1" },
+        scope: { runId: "run_1", turnId: "turn_1" },
+        type: "model.settled",
+      },
+      {
+        data: { outcome: "interrupted", runId: "run_2" },
+        scope: { runId: "run_2", turnId: "turn_2" },
+        type: "model.settled",
+      },
+      {
+        data: { outcome: "completed", turnId: "turn_1" },
+        scope: { turnId: "turn_1" },
+        type: "turn.settled",
       },
       {
         data: {
-          finishReason: "stop",
-          sequence: 2,
-          stepIndex: 0,
-          turnId: "turn_1",
-          usage: { costUsd: 0.01 },
+          cause: { hook: "turn-limits" },
+          outcome: "cancelled",
+          turnId: "turn_2",
         },
-        type: "step.completed",
+        scope: { turnId: "turn_2" },
+        type: "turn.settled",
       },
-      { data: { sequence: 3, turnId: "turn_1" }, type: "turn.completed" },
-      { data: { sequence: 4, turnId: "turn_2" }, type: "turn.cancelled" },
+      { data: { outcome: "completed" }, type: "session.ended" },
     ];
 
     for (const event of fine) {

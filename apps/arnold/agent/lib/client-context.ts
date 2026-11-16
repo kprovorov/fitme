@@ -2,22 +2,23 @@
 
 import { defaultAppLanguage, isAppLanguage } from "@fitme/core/models";
 import type { AppLanguage } from "@fitme/core/models";
-import type { ModelMessage } from "ai";
+import type { HistoryMessage } from "eve/context";
 import { z } from "zod";
 
 // eve hands a turn's `clientContext` object to the model as a user-role
 // framework message of this kind: the prefix, then the object as JSON. A
 // User's own messages have kind "user", so typing this text selects nothing.
-// The model resolver reads it from the step's messages, and a tool from
-// `ctx.messages`, the same model input (the AI SDK keeps the `kind`).
-// eve is pinned exactly; check this format on every bump.
+// The model resolver reads it from `await ctx.messages()`, and a tool from
+// `ctx.messages`: the conversation eve assembles for the model call, whose
+// messages keep their `kind` at runtime although eve's `HistoryMessage` type
+// doesn't declare it. eve is pinned exactly; check this format on every bump.
 const CLIENT_CONTEXT_KIND = "context.instruction";
 const CLIENT_CONTEXT_PREFIX = "Client context:\n";
 const clientContextSchema = z.record(z.string(), z.json());
 
 type ClientContext = z.infer<typeof clientContextSchema>;
 
-const clientContextTexts = (message: ModelMessage): string[] => {
+const clientContextTexts = (message: HistoryMessage): string[] => {
   if (
     message.role !== "user" ||
     !("kind" in message) ||
@@ -53,7 +54,7 @@ const parseClientContext = (text: string): ClientContext | null => {
 
 /** The latest client context object in a step's messages, or `null` without one. */
 export const latestClientContext = (
-  messages: readonly ModelMessage[]
+  messages: readonly HistoryMessage[]
 ): ClientContext | null => {
   for (const message of messages.toReversed()) {
     for (const text of clientContextTexts(message).toReversed()) {
@@ -72,7 +73,9 @@ export const latestClientContext = (
  * The App language the client sends as `clientContext: { language }`;
  * English without one, or for anything that isn't an App language.
  */
-export const appLanguage = (messages: readonly ModelMessage[]): AppLanguage => {
+export const appLanguage = (
+  messages: readonly HistoryMessage[]
+): AppLanguage => {
   const language = latestClientContext(messages)?.language;
 
   return isAppLanguage(language) ? language : defaultAppLanguage;
@@ -83,7 +86,7 @@ export const appLanguage = (messages: readonly ModelMessage[]): AppLanguage => {
  * English, the Library API's default, so an English turn asks as before.
  */
 export const libraryLanguage = (
-  messages: readonly ModelMessage[]
+  messages: readonly HistoryMessage[]
 ): AppLanguage | undefined => {
   const language = appLanguage(messages);
 

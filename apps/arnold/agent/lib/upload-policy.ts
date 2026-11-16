@@ -1,4 +1,4 @@
-import type { EveChannelInput } from "eve/channels/eve";
+import type { EveChannelConfig } from "eve/channels/eve";
 
 // eve's own ceiling for showing the model a file's bytes (eve's docs, Inbound
 // attachments): a PNG, JPEG, GIF or WebP up to 3 MiB and 8000 px a side. A
@@ -18,4 +18,4 @@ const MAX_ATTACHMENT_BYTES = 3 * 1024 * 1024;
 export const attachmentUploadPolicy = {
   allowedMediaTypes: ["image/jpeg", "image/png", "image/webp"],
   maxBytes: MAX_ATTACHMENT_BYTES,
-} as const satisfies NonNullable<EveChannelInput["uploadPolicy"]>;
+} as const satisfies NonNullable<EveChannelConfig["uploadPolicy"]>;

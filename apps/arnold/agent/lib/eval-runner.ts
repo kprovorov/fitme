@@ -1,5 +1,5 @@
-import type { AuthFn } from "eve/channels/auth";
-import type { SessionContext } from "eve/tools";
+import type { EveAuthFn } from "eve/channels/eve";
+import type { SessionContext } from "eve/context";
 
 type Env = Record<string, string | undefined>;
 
@@ -21,10 +21,12 @@ const EVAL_RUNNER = {
 
 /**
  * Route auth for a local `eve eval` run only: the runner sends no token, so
- * it gets eve's local-dev principal with permission to stub tools. Anywhere
- * else it admits nobody, and the channel stays Clerk-only.
+ * it gets eve's local-dev principal with permission to stub tools (an eve
+ * channel permission since eve 1.0, hence `EveAuthFn`). The local-dev
+ * principal is an operator, so it reads agent info without `allowAgentInfo`.
+ * Anywhere else it admits nobody, and the channel stays Clerk-only.
  */
-export const evalRunner = (env: () => Env = () => process.env): AuthFn =>
+export const evalRunner = (env: () => Env = () => process.env): EveAuthFn =>
   function authenticateEvalRunner() {
     return isLocalEvalRun(env())
       ? { ...EVAL_RUNNER, allowToolStubs: true }
