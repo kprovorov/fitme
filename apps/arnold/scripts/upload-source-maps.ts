@@ -1,9 +1,10 @@
 // Runs after `eve build` (the `build` script): uploads the server bundle's
-// source maps (emitted through nitro.config.ts) to the Sentry project
+// source maps, when the build has any, to the Sentry project
 // (SENTRY_ORG / SENTRY_PROJECT) for the release, the commit, as
 // @fitme/observability reports it. Without SENTRY_AUTH_TOKEN (local, CI) it
 // does nothing and the maps stay. A failed upload (Sentry down, a wrong
-// project) is logged and never fails the build.
+// project) is logged and never fails the build. eve 1.0 has no supported
+// option to emit maps, so a build today has none and this skips (FIT-730).
 //
 // sentry-cli only sees a staged copy of the scripts that have a map: pointed
 // at the build output, it follows Vercel's route functions (symlinks to the

@@ -4,12 +4,5 @@
     "lib": ["ES2022"],
     "types": ["node"]
   },
-  "include": [
-    "agent",
-    "evals",
-    "scripts",
-    "test",
-    "nitro.config.ts",
-    "vitest.config.ts"
-  ]
+  "include": ["agent", "evals", "scripts", "test", "vitest.config.ts"]
 }
