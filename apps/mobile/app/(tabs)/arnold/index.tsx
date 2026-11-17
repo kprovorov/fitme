@@ -157,7 +157,8 @@ const useArnoldChat = (userId: string, composer: Composer) => {
   // already on screen, and `saveArnoldSession` moves that message's copies
   // under it in the same call, before this render (ADR 0018).
   const events = useEveEvents();
-  const sessionId = useEveSession()?.sessionId;
+  const session = useEveSession();
+  const sessionId = session?.sessionId;
   const isLoading = useAuiState((s) => s.thread.isLoading);
   const eveError = useEveError();
   const resetSession = useEveReset();
@@ -225,6 +226,22 @@ const useArnoldChat = (userId: string, composer: Composer) => {
 
   const isBusy = isRunning || isLoading;
 
+  // What a resume read is saved once it has caught up, as a finished turn's
+  // is: eve's `onFinish` only fires for a turn settling live, so without
+  // this a Conversation re-read from position 0 (one an older build saved,
+  // whose log was dropped) would reopen next time from its cursor with
+  // nothing before it.
+  const wasLoadingRef = useRef(isLoading);
+
+  useEffect(() => {
+    const caughtUp = wasLoadingRef.current && !isLoading;
+    wasLoadingRef.current = isLoading;
+
+    if (caughtUp && !isRunning && !eveError && session) {
+      saveArnoldConversation(userId, { events, session });
+    }
+  }, [eveError, events, isLoading, isRunning, session, userId]);
+
   // Not while a turn runs: a local reset leaves the durable turn running on
   // Arnold, where it could still change a Plan nobody sees anymore.
   const newConversation = useCallback(() => {
@@ -282,10 +299,26 @@ const useArnoldChat = (userId: string, composer: Composer) => {
 
     if (action === "paywall") {
       void RevenueCatUI.presentPaywall();
-    } else if (action === "new-conversation") {
-      resetFailedConversation();
     }
   }, [composer, eveError]);
+
+  // An ended session starts a new Conversation, once nothing is busy: a
+  // resume of one eve can never continue (a stranded session) fails while
+  // the runtime still reports it loading, and a reset then is refused.
+  // Once per error: a reset whose error eve clears a render later must not
+  // run again on the next send's busy flip, wiping the new Conversation.
+  const resetForErrorRef = useRef<unknown>(undefined);
+
+  useEffect(() => {
+    if (
+      errorAction === "new-conversation" &&
+      !isBusy &&
+      resetForErrorRef.current !== eveError
+    ) {
+      resetForErrorRef.current = eveError;
+      resetFailedConversation();
+    }
+  }, [errorAction, eveError, isBusy]);
 
   // Sync streaming text to the store
   useEffect(() => {

@@ -247,6 +247,22 @@ describe("fake Arnold", () => {
     expect((refused as ClientError).code).toBe("session_not_active");
   });
 
+  it("answers a stranded session as eve does, which the client won't retry", async () => {
+    fakeArnold.strandSession("ses_from_0_81");
+    const session = client().sessions.attach("ses_from_0_81");
+
+    const events = session.stream()[Symbol.asyncIterator]();
+    const followed = await events.next().catch((error: unknown) => error);
+
+    expect((followed as ClientError).status).toBe(409);
+    expect((followed as ClientError).code).toBe("session_stranded");
+
+    const refused = await session.send("Hi").catch((error: unknown) => error);
+
+    expect((refused as ClientError).code).toBe("session_stranded");
+    expect(fakeArnold.sent).toEqual([]);
+  });
+
   it("stops serving a stream whose reader dropped it", async () => {
     const { session } = await client().sessions.create({});
 

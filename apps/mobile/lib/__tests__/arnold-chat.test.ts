@@ -398,15 +398,22 @@ describe("saved Arnold Conversation", () => {
     expect(loadSavedArnoldConversation("user_e")).toEqual({});
   });
 
-  it("saves under the arnold.conversation keys", () => {
+  it("saves under the arnold.conversation.v2 keys", () => {
     saveArnoldConversation("user_g", { events, session });
 
     expect(
-      JSON.parse(storage.getString("arnold.conversation.user_g.session") ?? "")
+      JSON.parse(
+        storage.getString("arnold.conversation.v2.user_g.session") ?? ""
+      )
     ).toEqual(session);
     expect(
-      JSON.parse(storage.getString("arnold.conversation.user_g.events") ?? "")
+      JSON.parse(
+        storage.getString("arnold.conversation.v2.user_g.events") ?? ""
+      )
     ).toEqual(events);
+    expect(
+      storage.getString("arnold.conversation.user_g.session")
+    ).toBeUndefined();
   });
 
   it("forgets the Conversation when its session is cleared", () => {
@@ -414,6 +421,95 @@ describe("saved Arnold Conversation", () => {
     saveArnoldSession("user_f", undefined);
 
     expect(loadSavedArnoldConversation("user_f")).toEqual({});
+  });
+});
+
+describe("a Conversation saved by the eve 0.83 build", () => {
+  const newer = { sessionId: "ses_new", streamIndex: 3 };
+
+  // oxlint-disable-next-line anti-slop/no-chained-type-assertions -- This serialization-only fixture deliberately omits Eve transport fields.
+  const events = [
+    { meta: { position: { index: 0, line: 0 } }, type: "session.started" },
+  ] as unknown as SessionStreamEvent[];
+
+  /** Writes the keys the 0.83 build saved, its v26 log and cursor. */
+  const saveAsOldBuild = (userId: string) => {
+    storage.set(
+      `arnold.conversation.${userId}.session`,
+      JSON.stringify({ sessionId: "ses_old", streamIndex: 17 })
+    );
+    storage.set(
+      `arnold.conversation.${userId}.events`,
+      JSON.stringify([{ data: { parts: [] }, type: "message.received" }])
+    );
+  };
+
+  it("keeps its session, to be re-read from position 0, and drops its log", () => {
+    saveAsOldBuild("user_old");
+
+    expect(loadSavedArnoldConversation("user_old")).toEqual({
+      session: { sessionId: "ses_old", streamIndex: 0 },
+    });
+  });
+
+  it("cleans up the old keys once read, keeping the session on the new one", () => {
+    saveAsOldBuild("user_old_cleanup");
+    loadSavedArnoldConversation("user_old_cleanup");
+
+    expect(
+      storage.getString("arnold.conversation.user_old_cleanup.session")
+    ).toBeUndefined();
+    expect(
+      storage.getString("arnold.conversation.user_old_cleanup.events")
+    ).toBeUndefined();
+    expect(loadSavedArnoldConversation("user_old_cleanup")).toEqual({
+      session: { sessionId: "ses_old", streamIndex: 0 },
+    });
+  });
+
+  it("answers its session, once read, as the one a send keeps its Attachments under", () => {
+    saveAsOldBuild("user_old_send");
+    loadSavedArnoldConversation("user_old_send");
+
+    expect(savedArnoldSessionId("user_old_send")).toBe("ses_old");
+  });
+
+  it("never reads another User's", () => {
+    saveAsOldBuild("user_old_a");
+
+    expect(loadSavedArnoldConversation("user_old_b")).toEqual({});
+    expect(
+      storage.getString("arnold.conversation.user_old_a.session")
+    ).toBeTruthy();
+  });
+
+  it("prefers a Conversation the new build saved", () => {
+    saveAsOldBuild("user_both");
+    saveArnoldConversation("user_both", { events, session: newer });
+
+    expect(loadSavedArnoldConversation("user_both")).toEqual({
+      events,
+      session: newer,
+    });
+    expect(
+      storage.getString("arnold.conversation.user_both.session")
+    ).toBeUndefined();
+  });
+
+  it("is forgotten on clear", () => {
+    saveAsOldBuild("user_old_clear");
+    clearSavedArnoldConversation("user_old_clear");
+
+    expect(loadSavedArnoldConversation("user_old_clear")).toEqual({});
+  });
+
+  it("drops one it can't read", () => {
+    storage.set("arnold.conversation.user_old_bad.session", "{");
+
+    expect(loadSavedArnoldConversation("user_old_bad")).toEqual({});
+    expect(
+      storage.getString("arnold.conversation.user_old_bad.session")
+    ).toBeUndefined();
   });
 });
 

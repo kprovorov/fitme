@@ -65,7 +65,7 @@ interface AcceptedResponse {
 
 type ArnoldResponse =
   | AcceptedResponse
-  | { code: string; error: string; ok: false }
+  | { code: string; error: string; eveVersion?: string; ok: false }
   | { deliveryId: string; ok: true; sessionId: string };
 
 /** One stored line of a session's stream. */
@@ -234,6 +234,18 @@ const streamResponse = (
 const errorResponse = (status: number, code: string, message: string) =>
   json({ code, error: message, ok: false }, status);
 
+/** eve's answer for a session another eve version built. */
+const strandedResponse = () =>
+  json(
+    {
+      code: "session_stranded",
+      error: "This session was built by another eve version.",
+      eveVersion: "0.81.0",
+      ok: false,
+    },
+    409
+  );
+
 const newSession = (sessionId: string): FakeSession => {
   const readers = new Set<() => void>();
 
@@ -300,6 +312,8 @@ class FakeArnold {
   unhandled: string[] = [];
 
   private readonly sessions = new Map<string, FakeSession>();
+  /** Sessions another eve version built, which this one can't continue. */
+  private readonly stranded = new Set<string>();
   /** Bumped by `reset()`, so a request in flight then answers nothing. */
   private epoch = 0;
   private failures: ArnoldFailure[] = [];
@@ -338,6 +352,7 @@ class FakeArnold {
     }
 
     this.sessions.clear();
+    this.stranded.clear();
     this.sent = [];
     this.unhandled = [];
     this.failures = [];
@@ -382,6 +397,16 @@ class FakeArnold {
     );
 
     return () => release();
+  }
+
+  /**
+   * Makes `sessionId` a session eve ≤ 0.81.0 built, as every Conversation
+   * from before 2026-11-14 is: eve 1.0 can never continue it, so following
+   * its stream, sending to it or controlling it answers `409
+   * session_stranded`, which eve's client reports without retrying.
+   */
+  strandSession(sessionId: string) {
+    this.stranded.add(sessionId);
   }
 
   /** The sessions the app created, oldest first. */
@@ -494,6 +519,11 @@ class FakeArnold {
 
   private async send(sessionId: string, init: RequestInit) {
     await this.takeHold();
+
+    if (this.stranded.has(sessionId)) {
+      return strandedResponse();
+    }
+
     const session = this.sessions.get(sessionId);
 
     if (!session) {
@@ -551,6 +581,10 @@ class FakeArnold {
    * session, which then refuses every request and closes its streams.
    */
   private control(sessionId: string, kind: "cancel" | "end") {
+    if (this.stranded.has(sessionId)) {
+      return strandedResponse();
+    }
+
     const session = this.sessions.get(sessionId);
 
     if (!session) {
@@ -795,6 +829,13 @@ class FakeArnold {
    * reader drops it. `startIndex` and the tail index count lines.
    */
   private stream(sessionId: string, url: URL) {
+    if (
+      url.searchParams.get("follow") !== "false" &&
+      this.stranded.has(sessionId)
+    ) {
+      return strandedResponse();
+    }
+
     const session = this.sessions.get(sessionId);
 
     if (!session) {
