@@ -2536,7 +2536,6 @@ export interface components {
       };
     };
     ArnoldModel: {
-      description: string;
       /** @example openai/gpt-6.1-terra */
       id: string;
       label: string;

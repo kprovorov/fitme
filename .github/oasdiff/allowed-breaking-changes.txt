@@ -1,3 +1,6 @@
 # Deliberate breaking API changes CI allows, one per line, copied from the
 # oasdiff error or warning (see "apps/library" in AGENTS.md). Empty unless a
 # removal is under review.
+# FIT-651: Arnold model descriptions. Safe since MIN_APP_VERSION 2.7.2 (FIT-650)
+# cut off every build that requires the field.
+GET /v1/arnold/models removed the required property `data/models/items/description` from the response with the `200` status

@@ -9,7 +9,6 @@ import {
 
 const ArnoldModel = z
   .object({
-    description: z.string(),
     id: z.string().openapi({ example: defaultArnoldModelId }),
     label: z.string(),
   })
@@ -53,8 +52,7 @@ export const arnoldModelsRoute = new OpenAPIHono({
     {
       data: {
         defaultId: defaultArnoldModelId,
-        models: arnoldModels.map(({ description, id, label }) => ({
-          description,
+        models: arnoldModels.map(({ id, label }) => ({
           id,
           label,
         })),

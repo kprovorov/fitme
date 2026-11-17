@@ -1,7 +1,7 @@
 /**
  * The Arnold model picker's text in the App language: the real sheet and
  * hook over the fake Public API and MMKV. The models' labels are the served
- * list's, shown as served whatever the language; their descriptions aren't shown.
+ * list's, shown as served whatever the language.
  */
 import { arnoldModels, defaultArnoldModelId } from "@fitme/core";
 import {
@@ -113,9 +113,8 @@ describe("model picker in Ukrainian", () => {
 
     expect(screen.getByText("Діє з наступного повідомлення")).toBeTruthy();
 
-    for (const { description, label } of arnoldModels) {
+    for (const { label } of arnoldModels) {
       expect(screen.getByText(label)).toBeTruthy();
-      expect(screen.queryByText(description)).toBeNull();
     }
 
     expectDefaultSelected();
