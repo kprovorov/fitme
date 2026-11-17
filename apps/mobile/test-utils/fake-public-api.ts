@@ -2224,8 +2224,7 @@ const listArnoldModels = () =>
   json(200, {
     data: {
       defaultId: defaultArnoldModelId,
-      models: arnoldModels.map(({ description, id, label }) => ({
-        description,
+      models: arnoldModels.map(({ id, label }) => ({
         id,
         label,
       })),

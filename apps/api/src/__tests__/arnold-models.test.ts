@@ -27,8 +27,7 @@ describe("gET /v1/arnold/models", () => {
     expect(body).toStrictEqual({
       data: {
         defaultId: defaultArnoldModelId,
-        models: arnoldModels.map(({ description, id, label }) => ({
-          description,
+        models: arnoldModels.map(({ id, label }) => ({
           id,
           label,
         })),
@@ -36,14 +35,14 @@ describe("gET /v1/arnold/models", () => {
     });
   });
 
-  it("sends only id, label and description per model", async () => {
+  it("sends only id and label per model", async () => {
     const { body } = await getModels(path);
 
     expect(
       body.data.models.map((model: (typeof arnoldModels)[number]) =>
         Object.keys(model).toSorted()
       )
-    ).toStrictEqual(body.data.models.map(() => ["description", "id", "label"]));
+    ).toStrictEqual(body.data.models.map(() => ["id", "label"]));
   });
 
   it("is publicly cacheable for a few minutes", async () => {

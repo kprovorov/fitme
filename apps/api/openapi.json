@@ -44,9 +44,6 @@
       "ArnoldModel": {
         "type": "object",
         "properties": {
-          "description": {
-            "type": "string"
-          },
           "id": {
             "type": "string",
             "example": "openai/gpt-6.1-terra"
@@ -55,7 +52,7 @@
             "type": "string"
           }
         },
-        "required": ["description", "id", "label"]
+        "required": ["id", "label"]
       },
       "ClientConfig": {
         "type": "object",

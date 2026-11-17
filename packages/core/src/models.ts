@@ -308,27 +308,22 @@ export type WorkoutExerciseSetInput = Omit<WorkoutExerciseSetData, "order">;
  */
 export const arnoldModels = [
   {
-    description: "Quick and balanced, the best fit for everyday coaching",
     id: "openai/gpt-6.1-terra",
     label: "GPT-6.1 Terra",
   },
   {
-    description: "Clear, natural writing for detailed plans and explanations",
     id: "anthropic/claude-sonnet-5.5",
     label: "Claude Sonnet 5.5",
   },
   {
-    description: "Strong at reading photos, screenshots and documents",
     id: "google/gemini-4-hydrogen",
     label: "Gemini 4 Hydrogen",
   },
   {
-    description: "Direct, thorough answers that double-check the details",
     id: "spacexai/grok-4.7",
     label: "Grok 4.7",
   },
 ] as const satisfies readonly {
-  description: string;
   id: `${string}/${string}`;
   label: string;
 }[];
