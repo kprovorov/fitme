@@ -122,35 +122,6 @@ describe("the MMKV cache", () => {
     });
   });
 
-  it("sweeps the English-only library.exercise* keys once", async () => {
-    storage.set("library.exercise-summary.bench-press", "{}");
-    storage.set("library.exercise.bench-press", "{}");
-    storage.set("library.exercise-summary.gone-move", "{}");
-    storage.set("arnold.models", "kept");
-    serveLibrary([libraryExercise("bench-press")]);
-
-    const rows = await renderHook(() => useExercises(["bench-press"]), {
-      wrapper: newWrapper(),
-    });
-
-    await waitFor(() =>
-      expect(rows.result.current["bench-press"].isResolved).toBe(true)
-    );
-
-    expect(storage.getAllKeys().toSorted()).toEqual([
-      "arnold.models",
-      "library.en.exercise-summary.bench-press",
-      "library.untranslated-exercises-swept",
-    ]);
-
-    // Swept once per install: an old key written later stays.
-    storage.set("library.exercise-summary.squat", "{}");
-    await renderHook(() => useExerciseDetailQuery("bench-press"), {
-      wrapper: newWrapper(),
-    });
-    expect(storage.getString("library.exercise-summary.squat")).toBe("{}");
-  });
-
   it("shows an Exercise cached in each App language offline in that language", async () => {
     const fake = serveLibrary([
       libraryExercise("bench-press", {

@@ -21,26 +21,6 @@ const exerciseStorageKey = (language: AppLanguage, slug: string) =>
 
 const COVERS_STORAGE_KEY = "library.covers";
 
-// Builds before the App language kept English copies under
-// `library.exercise-summary.*` / `library.exercise.*`. Those are deleted once
-// per install, on first use, and refetched under the language's keys.
-const LEGACY_PREFIXES = ["library.exercise-summary.", "library.exercise."];
-const LEGACY_SWEPT_KEY = "library.untranslated-exercises-swept";
-
-const sweepLegacyKeys = () => {
-  if (storage.getBoolean(LEGACY_SWEPT_KEY)) {
-    return;
-  }
-
-  for (const key of storage.getAllKeys()) {
-    if (LEGACY_PREFIXES.some((prefix) => key.startsWith(prefix))) {
-      storage.remove(key);
-    }
-  }
-
-  storage.set(LEGACY_SWEPT_KEY, true);
-};
-
 export interface CachedEntry<T> {
   savedAt: number;
   value: T;
@@ -82,7 +62,6 @@ const read = <T>(
   key: string,
   isValue: (value: unknown) => value is T
 ): CachedEntry<T> | undefined => {
-  sweepLegacyKeys();
   const raw = storage.getString(key);
 
   if (!raw) {
@@ -114,7 +93,6 @@ const read = <T>(
 };
 
 const write = <T>(key: string, value: T, savedAt: number) => {
-  sweepLegacyKeys();
   storage.set(key, JSON.stringify({ savedAt, value }));
 };
 
