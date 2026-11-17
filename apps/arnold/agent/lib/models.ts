@@ -1,7 +1,7 @@
 import { arnoldModels, defaultArnoldModelId } from "@fitme/core";
 import type { ArnoldModelId } from "@fitme/core";
-import type { ModelMessage } from "ai";
 import type { AgentModelOptionsDefinition } from "eve";
+import type { HistoryMessage } from "eve/context";
 
 import { latestClientContext } from "./client-context";
 
@@ -62,7 +62,7 @@ const retiredModels = new Map<unknown, ArnoldModelId>([
 ]);
 
 /** The supported `model` of the latest client context, or the default. */
-const requestedModel = (messages: readonly ModelMessage[]): ArnoldModelId => {
+const requestedModel = (messages: readonly HistoryMessage[]): ArnoldModelId => {
   const requested =
     latestClientContext(messages)?.model ?? defaultArnoldModelId;
 
@@ -90,7 +90,7 @@ const requestedModel = (messages: readonly ModelMessage[]): ArnoldModelId => {
  * The id is the Gateway's own, so eve routes the call through AI Gateway, with
  * the model's host order for failover.
  */
-export const arnoldModelSelection = (messages: readonly ModelMessage[]) => {
+export const arnoldModelSelection = (messages: readonly HistoryMessage[]) => {
   const model = requestedModel(messages);
 
   return {

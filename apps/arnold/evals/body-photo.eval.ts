@@ -81,7 +81,7 @@ export default defineEval({
 
     progress.notCalledTool("display_workout_plan");
     progress.messageIncludes(ABOUT_TRAINING);
-    const progressJudged = t.judge(bodyPhotoRules(progress.message ?? ""));
+    const progressJudged = t.judge(bodyPhotoRules(progress.reply ?? ""));
 
     for (const [rule, handle] of Object.entries(progressJudged)) {
       handle.label(`progress photo: ${rule}`).gate(RULE_GATE);
@@ -98,7 +98,7 @@ export default defineEval({
 
     rating.notCalledTool("display_workout_plan");
     rating.messageIncludes(ABOUT_TRAINING);
-    const ratingJudged = t.judge(bodyPhotoRules(rating.message ?? ""));
+    const ratingJudged = t.judge(bodyPhotoRules(rating.reply ?? ""));
 
     for (const [rule, handle] of Object.entries(ratingJudged)) {
       handle.label(`rating request: ${rule}`).gate(RULE_GATE);

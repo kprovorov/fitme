@@ -22,6 +22,7 @@ export const contextFor = (
 ): ToolContext => ({
   abortSignal: new AbortController().signal,
   callId: "call_1",
+  channel: { kind: "channel:eve", metadata: {} },
   getSandbox: unavailableInTest,
   getToken: unavailableInTest,
   messages: [{ content: "Hi Arnold", role: "user" }],
@@ -34,6 +35,7 @@ export const contextFor = (
     id: "wrun_test",
     turn: { id: "turn_1", sequence: 1 },
   },
+  to: unavailableInTest,
   toolName: "test_tool",
 });
 

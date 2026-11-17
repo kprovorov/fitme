@@ -1,4 +1,6 @@
 import type * as EveContext from "eve/context";
+import { emptySessionView, foldEvents } from "eve/events";
+import type { SessionView } from "eve/events";
 import type {
   HookContext,
   HookDefinition,
@@ -43,20 +45,12 @@ export const resetState = (): void => {
   }
 };
 
-/** An eve event as a hook receives it. */
-type StampedEvent = HookEventMap[keyof HookEventMap];
+/** An eve event as a hook receives it, and as a test writes it. */
+export type EveEvent = HookEventMap[keyof HookEventMap];
 
-/**
- * An eve event as a test writes it: its `type` and `data`, as the stream
- * carries them. `emit` stamps the `meta` eve adds before a hook sees it.
- */
-export type EveEvent = Unstamped<StampedEvent>;
-
-type Unstamped<Event> = Event extends unknown ? Omit<Event, "meta"> : never;
-
-/** What one event did to the session's turn. */
+/** What one commit did to the session's turn. */
 export interface Emitted {
-  /** The hook cancelled the running turn. */
+  /** A hook handler cancelled the running turn. */
   readonly cancelled: boolean;
 }
 
@@ -64,49 +58,77 @@ const unavailableInTest = (): never => {
   throw new Error("This hook context has no runtime services");
 };
 
+const AT = new Date(0);
+
 /**
- * One session a hook runs in: `emit` hands an event to the hook as eve does,
- * the handler subscribed to its type first, then `*`. An event the hook
- * doesn't subscribe to does nothing, so a hook listening for a renamed event
- * never fires and the test expecting it fails.
+ * One session a hook runs in: `emit` hands a commit (the events one state
+ * change records, in order) to the hook as eve does. The session's view is
+ * folded with the whole commit first, so each handler reads the commit's
+ * later events in it, as in eve; then each event goes to the handler
+ * subscribed to its type, then `*`. An event the hook doesn't subscribe to
+ * does nothing, so a hook listening for a renamed event never fires and the
+ * test expecting it fails.
  */
 export const hookSession = (hook: HookDefinition, sessionId = "wrun_1") => {
   let cancels = 0;
-  let eventCount = 0;
+  let line = 0;
+  let view: SessionView = emptySessionView();
 
-  const ctx: HookContext = {
+  // SAFETY: eve hands each event only to the handler keyed by that event's
+  // type (or `*`), which `emit` below does too, so a handler is only ever
+  // called with the event it was written for.
+  const handlers = hook.events as Readonly<
+    Record<string, StreamEventHook<HookEvent> | undefined>
+  >;
+
+  const contextAt = (index: number): HookContext => ({
     agent: { name: "arnold" },
     cancel: () => {
       cancels += 1;
     },
-    channel: { kind: "eve" },
+    channel: { kind: "channel:eve", metadata: {} },
     getSandbox: unavailableInTest,
+    memo: unavailableInTest,
+    now: AT,
+    occurrence: {
+      abortSignal: new AbortController().signal,
+      idempotencyKey: `${sessionId}:${line}:${index}`,
+    },
+    position: { index, line },
     session: {
       auth: { current: null, initiator: null },
       id: sessionId,
       turn: { id: "turn_1", sequence: 1 },
     },
-  };
-
-  // SAFETY: eve hands each event only to the handler keyed by that event's
-  // type (or `*`), which `emit` below does too, so a handler is only ever
-  // called with the event it was written for.
-  const handlers = (hook.events ?? {}) as Readonly<
-    Record<string, StreamEventHook<HookEvent> | undefined>
-  >;
+    turn: null,
+    view,
+  });
 
   return {
-    async emit(event: EveEvent): Promise<Emitted> {
+    async emit(...commit: readonly EveEvent[]): Promise<Emitted> {
       const before = cancels;
-      eventCount += 1;
 
-      const stamped: StampedEvent = {
-        ...event,
-        meta: { at: new Date(0).toISOString(), id: `evt_${eventCount}` },
-      };
+      view = foldEvents(
+        view,
+        commit.map((event, index) => ({
+          ...event,
+          meta: {
+            at: AT.toISOString(),
+            endOfLine: index === commit.length - 1,
+            position: { index, line },
+          },
+        }))
+      );
 
-      await handlers[stamped.type]?.(stamped, ctx);
-      await handlers["*"]?.(stamped, ctx);
+      for (const [index, event] of commit.entries()) {
+        const ctx = contextAt(index);
+        // oxlint-disable-next-line eslint/no-await-in-loop -- eve hands a commit's events to hooks in order.
+        await handlers[event.type]?.(event, ctx);
+        // oxlint-disable-next-line eslint/no-await-in-loop -- eve hands a commit's events to hooks in order.
+        await handlers["*"]?.(event, ctx);
+      }
+
+      line += 1;
 
       return { cancelled: cancels > before };
     },

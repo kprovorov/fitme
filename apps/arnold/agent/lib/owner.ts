@@ -1,4 +1,4 @@
-import type { SessionContext } from "eve/tools";
+import type { SessionContext } from "eve/context";
 
 type SessionAuth = SessionContext["session"]["auth"];
 

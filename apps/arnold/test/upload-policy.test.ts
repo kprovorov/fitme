@@ -1,5 +1,8 @@
-import type { FilePart, UserContent } from "ai";
-import type { RouteHandlerArgs } from "eve/channels";
+import type {
+  MessageContent,
+  MessageFilePart,
+  RouteHandlerArgs,
+} from "eve/channels";
 import { none } from "eve/channels/auth";
 import { eveChannel } from "eve/channels/eve";
 import { beforeEach, describe, expect, it } from "vitest";
@@ -30,20 +33,20 @@ const sessionMessageRoute = channel.routes.find(
 /** Base64 of `bytes` zero bytes; a multiple of 3 encodes to exactly that many. */
 const base64Image = (bytes: number) => Buffer.alloc(bytes).toString("base64");
 
-const imagePart = (mediaType: string, bytes = 1024): FilePart => ({
+const imagePart = (mediaType: string, bytes = 1024): MessageFilePart => ({
   data: `data:${mediaType};base64,${base64Image(bytes)}`,
   filename: "attachment",
   mediaType,
   type: "file",
 });
 
-let sent: (string | UserContent)[] = [];
+let sent: MessageContent[] = [];
 
 const unexpectedOperation = (): never => {
   throw new Error("the upload-policy test does not support this operation");
 };
 
-const sendMessage = async (message: string | UserContent) => {
+const sendMessage = async (message: MessageContent) => {
   if (sessionMessageRoute?.transport !== "http") {
     throw new Error("the eve channel has no session-message route");
   }
@@ -58,25 +61,26 @@ const sendMessage = async (message: string | UserContent) => {
   );
 
   const args: RouteHandlerArgs = {
+    // eve 1.0's session handle: the route only sends; anything else fails.
     attachSession: () => ({
       cancel: unexpectedOperation,
       clear: unexpectedOperation,
       compact: unexpectedOperation,
-      getEventStream: unexpectedOperation,
-      getStreamTailIndex: unexpectedOperation,
+      end: unexpectedOperation,
       id: SESSION_ID,
       prewarm: unexpectedOperation,
-      reset: unexpectedOperation,
       respond: unexpectedOperation,
       send: async (payload) => {
         sent.push(payload);
 
         return await Promise.resolve({
           deliveryId: "del_1",
+          result: unexpectedOperation,
           sessionId: SESSION_ID,
-          status: "accepted" as const,
+          stream: unexpectedOperation,
         });
       },
+      stream: unexpectedOperation,
     }),
     describe: unexpectedOperation,
     from: unexpectedOperation,

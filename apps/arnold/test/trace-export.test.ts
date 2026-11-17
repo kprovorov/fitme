@@ -81,11 +81,51 @@ describe("sentry span export policy", () => {
   });
 });
 
+describe("sentry export of eve 1.0's spans", () => {
+  // Attributes eve 1.0 added to its spans. None is on the allowlist: the
+  // approver ids name a person, the decision results are model output, and
+  // the rest are untried metadata, so all stay out until listed.
+  const eveOneSpan: SpanExportContext = {
+    ...span,
+    attributes: {
+      "agent.approval.responder.id": "user_alice",
+      "agent.approval.responder.type": "user",
+      "agent.decision.purpose": "route",
+      "agent.tool.approver.id": "user_alice",
+      "agent.tool.approver.type": "user",
+      "agent.turn.id": "turn_1",
+      "eve.error.lineage": "model_call_failed",
+      "eve.model.parent": "run_1",
+      "gen_ai.decision.results": "I hurt my knee, what should I train?",
+      "gen_ai.request.model": "openai/gpt-6.1-terra",
+    },
+  };
+
+  it("drops every attribute eve 1.0 added and keeps the listed ones", () => {
+    const exported = Object.entries(eveOneSpan.attributes).filter(
+      ([key, value]) => {
+        const decision = sentryExportPolicy.attribute?.({
+          key,
+          span: eveOneSpan,
+          value,
+        });
+
+        return decision !== undefined && "emit" in decision && decision.emit;
+      }
+    );
+
+    expect(Object.fromEntries(exported)).toStrictEqual({
+      "agent.turn.id": "turn_1",
+      "gen_ai.request.model": "openai/gpt-6.1-terra",
+    });
+  });
+});
+
 describe("arnold trace capture policy", () => {
   const trace: Omit<TraceCaptureContext, "environment"> = {
     agentName: "arnold",
     audience: "public",
-    channel: { kind: "http", name: "eve" },
+    channel: { kind: "channel:eve", name: "eve" },
     principalType: "user",
   };
 

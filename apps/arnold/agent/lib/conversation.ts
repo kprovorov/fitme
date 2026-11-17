@@ -1,4 +1,4 @@
-import type { SessionContext } from "eve/tools";
+import type { SessionContext } from "eve/context";
 
 import type { ClaimSession } from "./clerk-auth";
 import { isEvalRunnerTurn } from "./eval-runner";

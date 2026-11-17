@@ -22,11 +22,9 @@ export default defineAgent({
   },
   // The client picks the model per turn (clientContext `{ model }`), from
   // arnoldModels only, and every call goes through AI Gateway (OIDC deployed,
-  // AI_GATEWAY_API_KEY locally). Resolved on every model call, where the
-  // client context is in the messages.
-  model: defineDynamic({
-    events: {
-      "step.started": (_event, ctx) => arnoldModelSelection(ctx.messages),
-    },
-  }),
+  // AI_GATEWAY_API_KEY locally). eve resolves it before every model call, and
+  // the client context is in the conversation it assembles for that call.
+  model: defineDynamic(async (ctx) =>
+    arnoldModelSelection(await ctx.messages())
+  ),
 });

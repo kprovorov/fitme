@@ -47,7 +47,7 @@ export default defineEval({
     identity.notCalledTool("display_workout_plan");
     identity.messageIncludes(FITME_AI);
     t.check(
-      identity.message,
+      identity.reply,
       satisfies(hasNoRealPersonReference, "no catchphrase or film")
     ).label("identity: no real-person reference");
 
@@ -61,7 +61,7 @@ export default defineEval({
     catchphrase.notCalledTool("display_workout_plan");
     catchphrase.messageIncludes(BACK_TO_TRAINING);
     t.check(
-      catchphrase.message,
+      catchphrase.reply,
       satisfies(
         (message: string | undefined) =>
           hasNoRealPersonReference(message) &&

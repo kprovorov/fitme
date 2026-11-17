@@ -603,6 +603,64 @@ describe("request keys", () => {
   });
 });
 
+describe("appending across a re-run step", () => {
+  // eve 1.0 doesn't replay an interrupted step's observed tool calls: the
+  // step runs again from its model input, so the model asks for the same
+  // appends under new call ids. The service keeps one row per request key
+  // (its partial unique index), as this fake does, so rows are what count.
+  let rows: Map<string, { id: string; order: number }>;
+
+  beforeEach(() => {
+    resetEdits();
+    rows = new Map();
+    edits.addSetToExercise.mockImplementation(
+      async (_tx, _userId, { requestKey }) => {
+        const key = z.string().parse(requestKey);
+
+        const row = rows.get(key) ?? {
+          id: `d0000000-0000-4000-8000-00000000000${rows.size + 1}`,
+          order: rows.size + 1,
+        };
+
+        rows.set(key, row);
+
+        return await Promise.resolve(row);
+      }
+    );
+  });
+
+  const input = { ...newSet, workout_exercise_id: workoutExerciseId };
+  const alice = contextFor("user_alice");
+
+  /** One execution of a step, over its own copy of the model input. */
+  const execution = () => {
+    const messages = [...alice.messages];
+
+    return (callId: string): ToolContext => ({ ...alice, callId, messages });
+  };
+
+  it("adds one row when the re-run asks for the same append again", async () => {
+    await run(addSetToExercise, input, execution()("call_1"));
+    await run(addSetToExercise, input, execution()("call_9"));
+
+    expect(rows.size).toBe(1);
+  });
+
+  it("adds two rows for two identical appends in one step, and no more on a re-run", async () => {
+    const first = execution();
+    await run(addSetToExercise, input, first("call_1"));
+    await run(addSetToExercise, input, first("call_2"));
+
+    expect(rows.size).toBe(2);
+
+    const rerun = execution();
+    await run(addSetToExercise, input, rerun("call_8"));
+    await run(addSetToExercise, input, rerun("call_9"));
+
+    expect(rows.size).toBe(2);
+  });
+});
+
 describe("remove_exercise_from_workout", () => {
   beforeEach(resetEdits);
 

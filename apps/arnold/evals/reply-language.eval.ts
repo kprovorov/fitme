@@ -36,7 +36,7 @@ export default defineEval({
 
     ukrainian.notCalledTool("display_workout_plan");
     t.check(
-      ukrainian.message,
+      ukrainian.reply,
       satisfies(isUkrainian, "answered in Ukrainian")
     ).label("Ukrainian message, English app: Ukrainian answer");
 
@@ -49,7 +49,7 @@ export default defineEval({
     );
 
     english.notCalledTool("display_workout_plan");
-    t.check(english.message, satisfies(isEnglish, "answered in English")).label(
+    t.check(english.reply, satisfies(isEnglish, "answered in English")).label(
       "English message, Ukrainian app: English answer"
     );
 
@@ -111,7 +111,7 @@ export default defineEval({
         if (!variantOf) {
           t.judge(
             `The assistant's response is written in ${language}. ${NAMES_MAY_STAY_ENGLISH}`,
-            { on: turn.message }
+            { on: turn.reply }
           )
             .label(label)
             .gate(0.9);
@@ -135,7 +135,7 @@ export default defineEval({
             instructions: `Which language is the assistant's response written in? ${NAMES_MAY_STAY_ENGLISH}`,
             type: "choice",
           },
-          { on: turn.message }
+          { on: turn.reply }
         )
           .label(label)
           .gate();
