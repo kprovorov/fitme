@@ -13,17 +13,20 @@
  * that doesn't install it is untouched.
  *
  * It creates sessions, records every sent message's parts (`sent`, with each
- * file part's data), and streams a turn back as eve does: a `message.received`
- * echo whose file parts are metadata only (`mediaType`, `filename`, `size`,
- * never the bytes), then the canned assistant answer (`reply`).
+ * file part's data), and streams a turn back as eve 1.0 does, in stream
+ * version 27: NDJSON lines, each either a commit (`{ at, facts }`, every fact
+ * one state change recorded) or a progress record (`{ progress }`), a line's
+ * place in the stream being its position. A turn is the message's
+ * `delivery.admitted` (with `session.started` on the first), `turn.started`
+ * with its `delivery.consumed` echo, whose file parts are metadata only
+ * (`kind`, `mediaType`, `filename`, `size`, never the bytes), the model run
+ * (`model.requested` / `model.started`, a `content.delta`, then
+ * `content.completed` with the canned answer, `reply`, and `model.settled`),
+ * and `turn.settled` with the delivery's `delivery.settled`.
  * `failNextSend` refuses or fails the next send.
  */
 
-import type {
-  MessageReceivedPart,
-  MessageStreamEvent,
-  MessageStreamEventMeta,
-} from "eve/client";
+import type { CommitLine, Fact, ProgressLine, UserPart } from "eve/events";
 import { z } from "zod";
 
 const clientContextSchema = z.record(z.string(), z.json());
@@ -63,8 +66,10 @@ interface AcceptedResponse {
 type ArnoldResponse =
   | AcceptedResponse
   | { code: string; error: string; ok: false }
-  | { ok: true; previousSessionId: string; status: "reset" }
-  | { ok: true; status: "no_active_session" | "no_active_turn" };
+  | { deliveryId: string; ok: true; sessionId: string };
+
+/** One stored line of a session's stream. */
+type StoredLine = CommitLine<Fact> | ProgressLine;
 
 /** The host the fake answers on; the app's `EXPO_PUBLIC_ARNOLD_URL` in tests. */
 export const FAKE_ARNOLD_URL = "http://arnold.test";
@@ -119,7 +124,19 @@ const failureResponses = {
 
 interface FakeSession {
   closed: boolean;
-  events: MessageStreamEvent[];
+  /** The session's stream, a line per position. */
+  lines: StoredLine[];
+  /** The turn the next one follows, `null` before the first. */
+  lastTurnId: string | null;
+  /**
+   * The rest of each accepted turn, still to be written. eve runs a turn
+   * after it has accepted the message, so a reader following the stream reads
+   * it live, past the tail it opened at: only then does the client count it as
+   * a turn that finished (`onFinish`) rather than history it caught up on.
+   */
+  pending: (() => void)[];
+  /** Whether `pending` is already due to run. */
+  pendingDue: boolean;
   /** Tells every open stream of the session to serve what it hasn't yet. */
   notify: () => void;
   /** Each open stream's own `flush`, called by `notify`. */
@@ -134,37 +151,14 @@ const encoder = new TextEncoder();
 const SESSION_ROUTE =
   /^\/eve\/v1\/session\/(?<sessionId>[^/]+)(?<action>\/[a-z]+)?$/u;
 
-let eventCount = 0;
+let lineCount = 0;
 
-const meta = (deliveryId?: string): MessageStreamEventMeta => {
-  eventCount += 1;
+/** A commit's time: a second apart, so a test reads them in order. */
+const at = () => {
+  lineCount += 1;
 
-  const eventMeta: MessageStreamEventMeta = {
-    at: new Date(Date.UTC(2026, 0, 1, 0, 0, eventCount)).toISOString(),
-    id: `evt_${String(eventCount).padStart(26, "0")}`,
-  };
-
-  if (deliveryId) {
-    return { ...eventMeta, deliveryIds: [deliveryId] };
-  }
-
-  return eventMeta;
+  return new Date(Date.UTC(2026, 0, 1, 0, 0, lineCount)).toISOString();
 };
-
-/**
- * How eve summarizes a sent message in its echo's `message` field: the text
- * parts, and a placeholder for every file part, never its bytes. The app
- * reads the echo's `parts`, so this is the fallback eve sends along; it is
- * written out here so a test sees the placeholder a bubble must not show.
- */
-const summarizeSentParts = (parts: readonly SentPart[]): string =>
-  parts
-    .map((part) =>
-      part.type === "text"
-        ? part.text
-        : `[file: ${part.filename ?? part.mediaType} (${part.mediaType})]`
-    )
-    .join("\n");
 
 /** The bytes a `data:…;base64,…` URL carries, 0 for anything else. */
 const dataUrlByteLength = (data: string): number => {
@@ -185,23 +179,27 @@ const dataUrlByteLength = (data: string): number => {
   return Math.max(0, Math.floor((base64.length * 3) / 4) - padding);
 };
 
-/** eve answers a file part's echo with its metadata only, never its bytes. */
-const receivedPart = (part: SentPart): MessageReceivedPart => {
+/**
+ * eve echoes a sent part on `delivery.consumed`: a file part as its metadata
+ * only, never its bytes or a URL, under `kind` (the wire's `type` names the
+ * event).
+ */
+const consumedPart = (part: SentPart): UserPart => {
   if (part.type === "text") {
-    return { text: part.text, type: "text" };
+    return { kind: "text", text: part.text };
   }
 
-  const received: MessageReceivedPart = {
+  const consumed: Extract<UserPart, { kind: "file" }> = {
+    kind: "file",
     mediaType: part.mediaType,
     size: dataUrlByteLength(part.data),
-    type: "file",
   };
 
   if (part.filename) {
-    return { ...received, filename: part.filename };
+    return { ...consumed, filename: part.filename };
   }
 
-  return received;
+  return consumed;
 };
 
 const json = (body: ArnoldResponse, status: number, headers?: HeadersInit) =>
@@ -241,7 +239,10 @@ const newSession = (sessionId: string): FakeSession => {
 
   return {
     closed: false,
-    events: [],
+    lastTurnId: null,
+    lines: [],
+    pending: [],
+    pendingDue: false,
     notify: () => {
       for (const flush of readers) {
         flush();
@@ -251,6 +252,27 @@ const newSession = (sessionId: string): FakeSession => {
     sessionId,
     turns: 0,
   };
+};
+
+/** Writes one commit line, every fact of one state change. */
+const commit = (session: FakeSession, facts: Fact[]) => {
+  session.lines.push({ at: at(), facts });
+  session.notify();
+};
+
+/** Writes one progress record on a line of its own. */
+const progress = (session: FakeSession, record: ProgressLine["progress"]) => {
+  session.lines.push({ progress: record });
+  session.notify();
+};
+
+/** Writes the session's accepted turns that are still to be written. */
+const runPending = (session: FakeSession) => {
+  for (const write of session.pending.splice(0)) {
+    if (!session.closed) {
+      write();
+    }
+  }
 };
 
 const readBody = (init: RequestInit): ArnoldRequestBody | undefined => {
@@ -324,6 +346,7 @@ class FakeArnold {
     this.reply = FAKE_ARNOLD_REPLY;
     this.sessionCount = 0;
     this.deliveryCount = 0;
+    lineCount = 0;
   }
 
   /** Makes the next send fail, as Arnold refuses or fails one. */
@@ -332,7 +355,8 @@ class FakeArnold {
   }
 
   /**
-   * Accepts and echoes the next send, then fails its turn (`turn.failed`),
+   * Accepts and echoes the next send, then fails its turn (`turn.settled`
+   * with the outcome `failed`),
    * as a turn that breaks after the model has the message does: the message
    * stays in the Conversation and its saved events while the client reports
    * an error. Tell it from `failNextSend`, where nothing was ever accepted.
@@ -418,12 +442,12 @@ class FakeArnold {
         return this.stream(id, url);
       }
 
-      if (method === "POST" && action === "/reset") {
-        return this.resetSession(id);
+      if (method === "POST" && action === "/end") {
+        return this.control(id, "end");
       }
 
       if (method === "POST" && action === "/cancel") {
-        return json({ ok: true, status: "no_active_turn" }, 200);
+        return this.control(id, "cancel");
       }
     }
 
@@ -521,21 +545,58 @@ class FakeArnold {
     );
   }
 
-  private resetSession(sessionId: string) {
+  /**
+   * A control, recorded as its own delivery: a cancel is ignored, since a
+   * fake turn never waits on anything a cancel could stop; an end retires the
+   * session, which then refuses every request and closes its streams.
+   */
+  private control(sessionId: string, kind: "cancel" | "end") {
     const session = this.sessions.get(sessionId);
 
     if (!session) {
-      return json({ ok: true, status: "no_active_session" }, 200);
+      return errorResponse(
+        409,
+        "session_not_active",
+        "The session is no longer active."
+      );
     }
 
-    session.closed = true;
-    session.notify();
-    this.sessions.delete(sessionId);
+    const deliveryId = this.nextDeliveryId();
 
-    return json(
-      { ok: true, previousSessionId: sessionId, status: "reset" },
-      200
-    );
+    const admitted: Fact = {
+      data: { deliveryId, source: { control: kind } },
+      type: "delivery.admitted",
+    };
+
+    if (kind === "cancel") {
+      commit(session, [admitted]);
+      commit(session, [
+        {
+          data: { deliveryId, outcome: "ignored" },
+          type: "delivery.settled",
+        },
+      ]);
+    } else {
+      commit(session, [
+        admitted,
+        {
+          data: { deliveryId, outcome: "applied" },
+          type: "delivery.settled",
+        },
+        { data: { outcome: "completed" }, type: "session.ended" },
+      ]);
+      session.closed = true;
+      session.notify();
+      this.sessions.delete(sessionId);
+    }
+
+    return json({ deliveryId, ok: true, sessionId }, 202);
+  }
+
+  private nextDeliveryId() {
+    this.deliveryCount += 1;
+
+    return `dlv_fake_${this.deliveryCount}`;
   }
 
   /** Records the message and appends the turn eve would stream back. */
@@ -558,98 +619,180 @@ class FakeArnold {
     }
 
     this.sent.push(sent);
-    this.deliveryCount += 1;
-    const deliveryId = `dlv_fake_${this.deliveryCount}`;
+    const deliveryId = this.nextDeliveryId();
     const turnId = `turn_${session.turns}`;
+    const runId = `run_fake_${session.turns}`;
+    const partId = `part_fake_${session.turns}`;
+    const follows = session.lastTurnId;
     const first = session.turns === 0;
     session.turns += 1;
+    session.lastTurnId = turnId;
 
-    const append = (event: MessageStreamEvent) => {
-      session.events.push(event);
-      session.notify();
+    const admitted: Fact = {
+      data: {
+        deliveryId,
+        principal: { id: "user_fake", type: "user" },
+        source: { channel: "eve" },
+      },
+      type: "delivery.admitted",
     };
 
-    if (first) {
-      append({ data: {}, meta: meta(), type: "session.started" });
-    }
-
-    append({
-      data: { sequence: 0, turnId },
-      meta: meta(deliveryId),
-      type: "turn.started",
-    });
-    append({
-      data: {
-        message: summarizeSentParts(parts),
-        parts: parts.map(receivedPart),
-        sequence: 1,
+    // A new session is set up in the same line as its first message, which
+    // eve admits before it answers the send.
+    commit(
+      session,
+      first ? [{ data: {}, type: "session.started" }, admitted] : [admitted]
+    );
+    session.pending.push(() =>
+      this.writeTurn(session, {
+        deliveryId,
+        follows,
+        parts,
+        partId,
+        runId,
         turnId,
+      })
+    );
+    this.runPendingWhenRead(session);
+
+    return deliveryId;
+  }
+
+  /** Writes an accepted turn, from its start to its settling. */
+  private writeTurn(
+    session: FakeSession,
+    {
+      deliveryId,
+      follows,
+      parts,
+      partId,
+      runId,
+      turnId,
+    }: {
+      deliveryId: string;
+      follows: string | null;
+      parts: SentPart[];
+      partId: string;
+      runId: string;
+      turnId: string;
+    }
+  ) {
+    commit(session, [
+      {
+        data: { cause: { deliveryId }, follows, turnId },
+        scope: { turnId },
+        type: "turn.started",
       },
-      meta: meta(deliveryId),
-      type: "message.received",
-    });
+      {
+        data: { deliveryId, parts: parts.map(consumedPart), turnId },
+        scope: { turnId },
+        type: "delivery.consumed",
+      },
+    ]);
 
     if (this.failTurns > 0) {
       this.failTurns -= 1;
       // Accepted and echoed, then the turn itself fails: the message stays
       // in the Conversation while the client reports an error.
-      append({
-        data: {
-          code: "internal_error",
-          message: "The turn failed (the fake's own message)",
-          sequence: 2,
-          terminal: true,
-          turnId,
+      commit(session, [
+        {
+          data: {
+            error: {
+              code: "TURN_FAILED",
+              message: "The turn failed (the fake's own message)",
+            },
+            outcome: "failed",
+            turnId,
+          },
+          scope: { turnId },
+          type: "turn.settled",
         },
-        meta: meta(deliveryId),
-        type: "turn.failed",
-      });
-      append({
-        data: {
-          code: "internal_error",
-          message: "The session failed (the fake's own message)",
-          sessionId: session.sessionId,
+        {
+          data: { deliveryId, outcome: "handled", turnId },
+          type: "delivery.settled",
         },
-        meta: meta(deliveryId),
-        type: "session.failed",
-      });
+      ]);
 
-      return deliveryId;
+      return;
     }
 
-    append({
-      data: { messageDelta: this.reply, sequence: 2, stepIndex: 0, turnId },
-      meta: meta(deliveryId),
-      type: "message.appended",
-    });
-    append({
-      data: {
-        finishReason: "stop",
-        message: this.reply,
-        sequence: 3,
-        stepIndex: 0,
-        turnId,
-      },
-      meta: meta(deliveryId),
-      type: "message.completed",
-    });
-    append({
-      data: { sequence: 4, turnId },
-      meta: meta(deliveryId),
-      type: "turn.completed",
-    });
-    append({
-      data: { continuationToken: session.sessionId, wait: "next-user-message" },
-      meta: meta(deliveryId),
-      type: "session.waiting",
-    });
+    const scope = { runId, turnId };
 
-    return deliveryId;
+    commit(session, [
+      { data: { owner: { turnId }, runId }, scope, type: "model.requested" },
+      {
+        data: { attempt: 0, modelId: "fake/arnold", runId },
+        scope,
+        type: "model.started",
+      },
+    ]);
+    progress(session, {
+      data: { delta: this.reply, kind: "text", partId },
+      scope,
+      type: "content.delta",
+    });
+    commit(session, [
+      {
+        data: {
+          kind: "text",
+          partId,
+          phase: "reply",
+          runId,
+          value: this.reply,
+        },
+        scope,
+        type: "content.completed",
+      },
+      {
+        data: { finishReason: "stop", outcome: "completed", runId },
+        scope,
+        type: "model.settled",
+      },
+    ]);
+    commit(session, [
+      {
+        data: { outcome: "completed", reply: [partId], turnId },
+        scope: { turnId },
+        type: "turn.settled",
+      },
+      {
+        data: { deliveryId, outcome: "handled", turnId },
+        type: "delivery.settled",
+      },
+    ]);
   }
 
   /**
-   * The session's events as NDJSON, following it as eve does: the stream stays
-   * open for the events of later turns and ends when the reader drops it.
+   * Runs the session's pending turns on a later macrotask once a reader
+   * follows the stream, so it reads them live; `runPending` writes them at
+   * once for a reader that only reads up to the tail.
+   */
+  private runPendingWhenRead(session: FakeSession) {
+    if (
+      session.pendingDue ||
+      session.pending.length === 0 ||
+      session.readers.size === 0
+    ) {
+      return;
+    }
+
+    session.pendingDue = true;
+    const { epoch } = this;
+
+    setTimeout(() => {
+      session.pendingDue = false;
+
+      if (epoch === this.epoch) {
+        runPending(session);
+      }
+    }, 0);
+  }
+
+  /**
+   * The session's stream as NDJSON, a line per position, following it as eve
+   * does: the stream stays open for the lines of later turns, ends with eve's
+   * `stream.ended` record once the session has ended, and stops when the
+   * reader drops it. `startIndex` and the tail index count lines.
    */
   private stream(sessionId: string, url: URL) {
     const session = this.sessions.get(sessionId);
@@ -662,13 +805,20 @@ class FakeArnold {
       );
     }
 
+    // A read that stops at the tail finds every accepted turn written, as
+    // one sent after the server has finished them would.
+    if (url.searchParams.get("follow") === "false") {
+      runPending(session);
+    }
+
+    const { lines } = session;
     const asked = Number(url.searchParams.get("startIndex") ?? "0");
     const follow = url.searchParams.get("follow") !== "false";
-    const tailIndex = session.events.length - 1;
-    let index = asked < 0 ? Math.max(0, session.events.length + asked) : asked;
+    const tailIndex = lines.length - 1;
+    let index = asked < 0 ? Math.max(0, lines.length + asked) : asked;
     const last = follow ? Number.POSITIVE_INFINITY : tailIndex;
     // Pushed from the appending side rather than pulled, so the stream holds
-    // no `pull` waiting for the next event when eve's reader drops it at a
+    // no `pull` waiting for the next line when eve's reader drops it at a
     // turn boundary; serving a dropped stream is guarded on top of that.
     let ended = false;
     let flush: (() => void) | undefined;
@@ -688,11 +838,17 @@ class FakeArnold {
           }
 
           try {
-            while (index <= last && index < session.events.length) {
+            while (index <= last && index < lines.length) {
               controller.enqueue(
-                encoder.encode(`${JSON.stringify(session.events[index])}\n`)
+                encoder.encode(`${JSON.stringify(lines[index])}\n`)
               );
               index += 1;
+            }
+
+            if (session.closed && index >= lines.length) {
+              controller.enqueue(
+                encoder.encode(`${JSON.stringify({ $eve: "stream.ended" })}\n`)
+              );
             }
 
             if (index > last || session.closed) {
@@ -700,7 +856,7 @@ class FakeArnold {
               controller.close();
             }
           } catch {
-            // The reader dropped the stream between two events.
+            // The reader dropped the stream between two lines.
             ended = true;
           }
 
@@ -714,9 +870,13 @@ class FakeArnold {
       },
     });
 
+    if (follow) {
+      this.runPendingWhenRead(session);
+    }
+
     const headers = new Headers({
-      "content-type": "application/x-ndjson",
-      "x-eve-stream-version": "26",
+      "content-type": "application/x-ndjson; charset=utf-8",
+      "x-eve-stream-version": "27",
     });
 
     if (url.searchParams.get("includeTailIndex") === "1") {

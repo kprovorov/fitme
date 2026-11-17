@@ -17,7 +17,7 @@
     "web": "expo start --web"
   },
   "dependencies": {
-    "@assistant-ui/eve": "0.0.24",
+    "@assistant-ui/eve": "0.0.26",
     "@assistant-ui/react-native": "0.1.48",
     "@clerk/expo": "4.16.1",
     "@clerk/expo-google-signin": "1.1.0",
@@ -54,7 +54,7 @@
     "core-js": "3.50.0",
     "css-to-react-native": "3.2.0",
     "date-fns": "4.4.0",
-    "eve": "0.83.3",
+    "eve": "1.0.0",
     "expo": "58.0.25",
     "expo-apple-authentication": "58.0.3",
     "expo-application": "58.1.2",

@@ -4,7 +4,7 @@ import {
   defaultAppLanguage,
   isAppLanguage,
 } from "@fitme/core";
-import type { ClientSessionState, MessageStreamEvent } from "eve/client";
+import type { ClientSessionState, SessionStreamEvent } from "eve/client";
 import { z } from "zod";
 
 import { getSelectedArnoldModelId } from "~/lib/arnold-model";
@@ -185,7 +185,7 @@ export interface ShownUserMessage {
  * - once echoed, the text is the User's alone and the file parts carry
  *   metadata only (eve never sends an Attachment's bytes back), which
  *   `@assistant-ui/eve` drops for want of a URL — so they are read off the
- *   turn's `message.received` event instead, which the saved Conversation
+ *   turn's `delivery.consumed` event instead, which the saved Conversation
  *   keeps, so a reopened screen shows the same photos.
  *
  * Either way an Attachment is its copy's name, which `uriOf` resolves to the
@@ -197,7 +197,7 @@ export interface ShownUserMessage {
 export const shownUserMessage = (
   message: ThreadMessage,
   text: string,
-  events: readonly MessageStreamEvent[],
+  events: readonly SessionStreamEvent[],
   uriOf: (name: string) => string | undefined
 ): ShownUserMessage => {
   const shown = (names: readonly string[]): readonly ShownAttachment[] =>
@@ -235,16 +235,16 @@ export const shownUserMessage = (
   const { turnId } = message.metadata.custom;
 
   const echo = events.find(
-    (event) => event.type === "message.received" && event.data.turnId === turnId
+    (event) =>
+      event.type === "delivery.consumed" && event.data.turnId === turnId
   );
 
-  const parts =
-    echo?.type === "message.received" ? (echo.data.parts ?? []) : [];
+  const parts = echo?.type === "delivery.consumed" ? echo.data.parts : [];
 
   return {
     attachments: shown(
       parts.flatMap((part) =>
-        part.type === "file" ? [part.filename ?? ""] : []
+        part.kind === "file" ? [part.filename ?? ""] : []
       )
     ),
     text,
@@ -262,17 +262,17 @@ export const shownUserMessage = (
  * copies it wrote may only be dropped when no message names them.
  */
 export const echoedAttachmentNames = (
-  events: readonly MessageStreamEvent[]
+  events: readonly SessionStreamEvent[]
 ): ReadonlySet<string> => {
   const names = new Set<string>();
 
   for (const event of events) {
-    if (event.type !== "message.received") {
+    if (event.type !== "delivery.consumed") {
       continue;
     }
 
-    for (const part of event.data.parts ?? []) {
-      if (part.type === "file" && part.filename) {
+    for (const part of event.data.parts) {
+      if (part.kind === "file" && part.filename) {
         names.add(part.filename);
       }
     }
@@ -284,7 +284,7 @@ export const echoedAttachmentNames = (
 /** The User's current Conversation, enough for eve to resume it. */
 export interface SavedArnoldConversation {
   /** An ordered prefix of the session's stream, to render before resuming. */
-  events?: readonly MessageStreamEvent[];
+  events?: readonly SessionStreamEvent[];
   session?: ClientSessionState;
 }
 
@@ -323,7 +323,7 @@ export const loadSavedArnoldConversation = (
     return {};
   }
 
-  const events = readJson<MessageStreamEvent[]>(eventsKey(userId));
+  const events = readJson<SessionStreamEvent[]>(eventsKey(userId));
 
   return events ? { events, session } : { session };
 };

@@ -1,11 +1,15 @@
 import { beforeEach, describe, expect, it } from "@jest/globals";
 /**
- * The fake Arnold through eve's own client, as `@assistant-ui/eve` reaches it
- * on the Arnold screen: it creates a session, records every part a send
- * carried (a file part's data included) and streams the turn back, echoing a
- * sent file as metadata only, the way eve's `message.received` does.
+ * The fake Arnold through eve 1.0's own client, as `@assistant-ui/eve`
+ * reaches it on the Arnold screen: it creates a session, records every part a
+ * send carried (a file part's data included) and streams the turn back in
+ * stream version 27, echoing a sent file as metadata only, the way eve's
+ * `delivery.consumed` does. eve's own stream checker reads every line, so the
+ * fake can't drift from the protocol the real server speaks.
  */
 import { Client, ClientError } from "eve/client";
+import type { StoredLine } from "eve/events";
+import { createStreamChecker } from "eve/events";
 
 import { FAKE_ARNOLD_REPLY, fakeArnold } from "~/test-utils/fake-arnold";
 
@@ -17,7 +21,38 @@ const IMAGE_BYTES = 10;
 
 const NOT_ARNOLD = /not Arnold/u;
 
-const client = () => new Client({ host: fakeArnold.baseUrl });
+const client = () => new Client({ baseUrl: fakeArnold.baseUrl });
+
+/** The session's stored lines, read off its stream route as eve serves them. */
+const storedLines = async (sessionId: string): Promise<StoredLine[]> => {
+  const answer = await fakeArnold.fetch(
+    `${fakeArnold.baseUrl}/eve/v1/session/${sessionId}/stream?follow=false`
+  );
+
+  const body = await new Response(answer.body).text();
+
+  return body
+    .split("\n")
+    .filter((line) => line !== "")
+    .map((line): unknown => JSON.parse(line))
+    .filter(
+      (line): line is StoredLine =>
+        typeof line === "object" &&
+        line !== null &&
+        ("facts" in line || "progress" in line)
+    );
+};
+
+/** What eve's own checker finds wrong with the session's stream. */
+const violations = async (sessionId: string) => {
+  const checker = createStreamChecker();
+
+  const lines = await storedLines(sessionId);
+
+  return lines.flatMap((line, position) =>
+    checker.check(line, position).map((violation) => violation.message)
+  );
+};
 
 beforeEach(() => {
   fakeArnold.install();
@@ -53,38 +88,75 @@ describe("fake Arnold", () => {
     ]);
 
     const { events } = await session.snapshot();
+
     expect(events.map((event) => event.type)).toEqual([
       "session.started",
+      "delivery.admitted",
       "turn.started",
-      "message.received",
-      "message.appended",
-      "message.completed",
-      "turn.completed",
-      "session.waiting",
+      "delivery.consumed",
+      "model.requested",
+      "model.started",
+      "content.delta",
+      "content.completed",
+      "model.settled",
+      "turn.settled",
+      "delivery.settled",
     ]);
-    const received = events.find((event) => event.type === "message.received");
-    // The echo carries a file's metadata only: never its bytes or a URL, and
-    // its `message` summary names the file the way eve's own does.
-    expect(received?.data).toEqual({
-      message: "What is this?\n[file: gym.jpg (image/jpeg)]",
+    // Positions count lines: a commit's facts share one, and a progress
+    // record has its own.
+    expect(events.map((event) => event.meta.position)).toEqual([
+      { index: 0, line: 0 },
+      { index: 1, line: 0 },
+      { index: 0, line: 1 },
+      { index: 1, line: 1 },
+      { index: 0, line: 2 },
+      { index: 1, line: 2 },
+      { index: 0, line: 3 },
+      { index: 0, line: 4 },
+      { index: 1, line: 4 },
+      { index: 0, line: 5 },
+      { index: 1, line: 5 },
+    ]);
+
+    const consumed = events.find((event) => event.type === "delivery.consumed");
+
+    // The echo carries a file's metadata only, under `kind`: never its bytes
+    // or a URL.
+    expect(consumed?.data).toEqual({
+      deliveryId: expect.any(String),
       parts: [
-        { text: "What is this?", type: "text" },
+        { kind: "text", text: "What is this?" },
         {
           filename: "gym.jpg",
+          kind: "file",
           mediaType: "image/jpeg",
           size: IMAGE_BYTES,
-          type: "file",
         },
       ],
-      sequence: 1,
       turnId: "turn_0",
     });
 
     const completed = events.find(
-      (event) => event.type === "message.completed"
+      (event) => event.type === "content.completed"
     );
 
-    expect(completed?.data.message).toBe(FAKE_ARNOLD_REPLY);
+    expect(completed?.data).toEqual(
+      expect.objectContaining({
+        kind: "text",
+        phase: "reply",
+        value: FAKE_ARNOLD_REPLY,
+      })
+    );
+    await expect(violations(session.state.sessionId)).resolves.toEqual([]);
+  });
+
+  it("answers a send's delivery once its turn has settled", async () => {
+    const { session } = await client().sessions.create({});
+    const delivery = await session.send("Hi");
+
+    await expect(delivery.result()).resolves.toEqual(
+      expect.objectContaining({ status: "completed" })
+    );
   });
 
   it("keeps later turns in the same session", async () => {
@@ -96,10 +168,49 @@ describe("fake Arnold", () => {
       "Second",
     ]);
     expect(fakeArnold.sessionIds).toEqual([session.state.sessionId]);
+
     const { events } = await session.snapshot();
+
+    // Each turn follows the one before it, as eve chains a Conversation.
     expect(
-      events.filter((event) => event.type === "turn.started")
-    ).toHaveLength(2);
+      events.flatMap((event) =>
+        event.type === "turn.started"
+          ? [{ follows: event.data.follows, turnId: event.data.turnId }]
+          : []
+      )
+    ).toEqual([
+      { follows: null, turnId: "turn_0" },
+      { follows: "turn_0", turnId: "turn_1" },
+    ]);
+    await expect(violations(session.state.sessionId)).resolves.toEqual([]);
+  });
+
+  it("fails a turn after echoing its message", async () => {
+    fakeArnold.failNextTurn();
+    const { session } = await client().sessions.create({ message: "Hi" });
+    const { events } = await session.snapshot();
+    const settled = events.find((event) => event.type === "turn.settled");
+
+    expect(events.map((event) => event.type)).toContain("delivery.consumed");
+    expect(settled?.data).toEqual(
+      expect.objectContaining({ outcome: "failed" })
+    );
+    await expect(violations(session.state.sessionId)).resolves.toEqual([]);
+  });
+
+  it("records a cancel with no running turn as ignored", async () => {
+    const { session } = await client().sessions.create({ message: "Hi" });
+    const delivery = await session.cancel();
+    const { events } = await session.snapshot();
+
+    expect(
+      events.find(
+        (event) =>
+          event.type === "delivery.settled" &&
+          event.data.deliveryId === delivery.deliveryId
+      )?.data
+    ).toEqual(expect.objectContaining({ outcome: "ignored" }));
+    await expect(violations(session.state.sessionId)).resolves.toEqual([]);
   });
 
   it("refuses a send on demand and never creates the session", async () => {
@@ -123,13 +234,11 @@ describe("fake Arnold", () => {
     await expect(session.send("Hi")).rejects.toThrow("Network request failed");
   });
 
-  it("answers a reset, then refuses the retired session", async () => {
+  it("ends a session, then refuses it", async () => {
     const { session } = await client().sessions.create({ message: "Hi" });
+    const ended = await session.end();
 
-    await expect(session.reset()).resolves.toEqual({
-      previousSessionId: session.state.sessionId,
-      status: "reset",
-    });
+    expect(ended.sessionId).toBe(session.state.sessionId);
 
     const refused = await session
       .send("Again")
@@ -146,7 +255,7 @@ describe("fake Arnold", () => {
     );
 
     // eve's own reader drops the stream at a turn boundary, leaving the
-    // session's later events with nobody to serve them.
+    // session's later lines with nobody to serve them.
     await (answer.body as ReadableStream<Uint8Array>).cancel();
 
     // Serving a dropped stream throws into the turn eve is running, so this

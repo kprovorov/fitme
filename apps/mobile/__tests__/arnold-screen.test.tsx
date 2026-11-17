@@ -507,21 +507,24 @@ describe("arnold screen", () => {
       expect(screen.getByText("Запитайте Arnold")).toBeTruthy();
     });
 
-    it("starts a new Conversation when the session has ended, with no error text", async () => {
-      await renderArnold();
-      await send("Перше");
-      await waitFor(() => expect(fakeArnold.sent).toHaveLength(1));
-      fakeArnold.failNextSend({ code: "session_not_active", status: 409 });
-      await send("Друге");
+    it.each(["session_not_active", "session_expired", "session_stranded"])(
+      "starts a new Conversation when the session has ended (%s), with no error text",
+      async (code) => {
+        await renderArnold();
+        await send("Перше");
+        await waitFor(() => expect(fakeArnold.sent).toHaveLength(1));
+        fakeArnold.failNextSend({ code, status: 409 });
+        await send("Друге");
 
-      await waitFor(() =>
-        expect(screen.getByText("Запитайте Arnold")).toBeTruthy()
-      );
-      expect(screen.queryByText(SERVER_MESSAGE)).toBeNull();
-      expect(
-        screen.queryByText("Щось пішло не так. Спробуйте ще раз.")
-      ).toBeNull();
-    });
+        await waitFor(() =>
+          expect(screen.getByText("Запитайте Arnold")).toBeTruthy()
+        );
+        expect(screen.queryByText(SERVER_MESSAGE)).toBeNull();
+        expect(
+          screen.queryByText("Щось пішло не так. Спробуйте ще раз.")
+        ).toBeNull();
+      }
+    );
 
     it("switches the error text when the device's language changes", async () => {
       fakeArnold.failNextSend({ status: 500 });
@@ -569,9 +572,9 @@ describe("arnold screen", () => {
 
       return events
         .flatMap((event) =>
-          event.type === "message.received" ? (event.data.parts ?? []) : []
+          event.type === "delivery.consumed" ? event.data.parts : []
         )
-        .flatMap((part) => (part.type === "file" ? [part.filename ?? ""] : []))
+        .flatMap((part) => (part.kind === "file" ? [part.filename ?? ""] : []))
         .map((filename) => {
           const uri = sentAttachmentUri(userId, sessionId, filename);
 
