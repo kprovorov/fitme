@@ -496,6 +496,38 @@ describe("a Conversation saved by the eve 0.83 build", () => {
     ).toBeUndefined();
   });
 
+  it("re-reads from the start again after a read cut short", () => {
+    saveAsOldBuild("user_old_cut");
+    loadSavedArnoldConversation("user_old_cut");
+    // The re-read got this far before the network or the app went.
+    saveArnoldSession("user_old_cut", {
+      sessionId: "ses_old",
+      streamIndex: 12,
+    });
+
+    expect(loadSavedArnoldConversation("user_old_cut")).toEqual({
+      session: { sessionId: "ses_old", streamIndex: 0 },
+    });
+  });
+
+  it("moves on once the re-read's log is saved with it", () => {
+    saveAsOldBuild("user_old_done");
+    loadSavedArnoldConversation("user_old_done");
+    saveArnoldConversation("user_old_done", {
+      events,
+      session: { sessionId: "ses_old", streamIndex: 12 },
+    });
+    saveArnoldSession("user_old_done", {
+      sessionId: "ses_old",
+      streamIndex: 14,
+    });
+
+    expect(loadSavedArnoldConversation("user_old_done")).toEqual({
+      events,
+      session: { sessionId: "ses_old", streamIndex: 14 },
+    });
+  });
+
   it("is forgotten on clear", () => {
     saveAsOldBuild("user_old_clear");
     clearSavedArnoldConversation("user_old_clear");

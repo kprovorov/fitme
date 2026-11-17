@@ -443,5 +443,17 @@ export const saveArnoldSession = (
     followSentAttachments(userId, session.sessionId);
   }
 
-  storage.set(sessionKey(userId), JSON.stringify(session));
+  // A cursor at 0 with no log saved is a read from the start (an older
+  // build's Conversation, re-read): it stays there until the log is saved
+  // with it, so a read cut short by the network or the app closing reopens
+  // from the start again rather than past history it never kept.
+  const rereading =
+    saved?.sessionId === session.sessionId &&
+    saved.streamIndex === 0 &&
+    storage.getString(eventsKey(userId)) === undefined;
+
+  storage.set(
+    sessionKey(userId),
+    JSON.stringify(rereading ? { ...session, streamIndex: 0 } : session)
+  );
 };
