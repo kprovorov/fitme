@@ -43,8 +43,6 @@
       ],
     },
     "apps/arnold": {
-      // Read by the nitro build `eve build` runs.
-      "entry": ["nitro.config.ts"],
       "ignoreDependencies": [
         // Runtime dep of @fitme/observability/node: AGENTS.md
         // (packages/observability) requires it in each consuming app.
