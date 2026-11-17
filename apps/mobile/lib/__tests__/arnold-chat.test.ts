@@ -6,7 +6,7 @@ import {
   it,
   jest,
 } from "@jest/globals";
-import type { MessageStreamEvent } from "eve/client";
+import type { SessionStreamEvent } from "eve/client";
 
 import { storage } from "~/lib/mmkv";
 import type * as InMemoryFileSystem from "~/test-utils/in-memory-file-system";
@@ -305,23 +305,23 @@ describe("echoedAttachmentNames", () => {
   const echo = (
     turnId: string,
     filenames: readonly string[]
-  ): MessageStreamEvent => ({
+  ): SessionStreamEvent => ({
     data: {
-      message: "What is this machine?",
+      deliveryId: `dlv_${turnId}`,
       parts: [
-        { text: "What is this machine?", type: "text" },
+        { kind: "text", text: "What is this machine?" },
         ...filenames.map((filename) => ({
           filename,
+          kind: "file" as const,
           mediaType: "image/jpeg",
           size: 10,
-          type: "file" as const,
         })),
       ],
-      sequence: 1,
       turnId,
     },
-    meta: { at: "2026-01-01T00:00:00.000Z", id: `evt_${turnId}` },
-    type: "message.received",
+    meta: { at: "2026-01-01T00:00:00.000Z", position: { index: 1, line: 1 } },
+    scope: { turnId },
+    type: "delivery.consumed",
   });
 
   it("names every Attachment the Conversation's messages carry", () => {
@@ -358,8 +358,8 @@ describe("saved Arnold Conversation", () => {
 
   // oxlint-disable-next-line anti-slop/no-chained-type-assertions -- This serialization-only fixture deliberately omits Eve transport fields.
   const events = [
-    { meta: { id: "evt_1" }, type: "session.started" },
-  ] as unknown as MessageStreamEvent[];
+    { meta: { position: { index: 0, line: 0 } }, type: "session.started" },
+  ] as unknown as SessionStreamEvent[];
 
   it("starts empty", () => {
     expect(loadSavedArnoldConversation("user_empty")).toEqual({});
@@ -471,32 +471,30 @@ describe("shownUserMessage", () => {
   const echoed = (text: string, turnId = "turn_0") =>
     message({ status: "complete", turnId }, text);
 
-  /** A `message.received` echo of named files, with its text. */
+  /** A `delivery.consumed` echo of named files, with its text. */
   const received = (
     filenames: readonly string[],
     text: string,
     turnId = "turn_0"
-  ): MessageStreamEvent =>
-    // oxlint-disable-next-line anti-slop/no-chained-type-assertions -- This echo fixture deliberately omits Eve transport fields.
-    ({
-      data: {
-        message: text,
-        // eve's echo carries a file's metadata only, never its bytes.
-        parts: [
-          ...(text ? [{ text, type: "text" }] : []),
-          ...filenames.map((filename) => ({
-            filename,
-            mediaType: "image/jpeg",
-            size: 1024,
-            type: "file",
-          })),
-        ],
-        sequence: 1,
-        turnId,
-      },
-      meta: { at: "2026-11-04T00:00:00.000Z", id: "evt_received" },
-      type: "message.received",
-    }) as unknown as MessageStreamEvent;
+  ): SessionStreamEvent => ({
+    data: {
+      deliveryId: `dlv_${turnId}`,
+      // eve's echo carries a file's metadata only, never its bytes.
+      parts: [
+        ...(text ? [{ kind: "text" as const, text }] : []),
+        ...filenames.map((filename) => ({
+          filename,
+          kind: "file" as const,
+          mediaType: "image/jpeg",
+          size: 1024,
+        })),
+      ],
+      turnId,
+    },
+    meta: { at: "2026-11-04T00:00:00.000Z", position: { index: 1, line: 1 } },
+    scope: { turnId },
+    type: "delivery.consumed",
+  });
 
   /** A device holding a copy of every name but `gone.jpg`. */
   const onDevice = (name: string) =>

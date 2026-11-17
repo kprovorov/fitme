@@ -2,7 +2,7 @@
  * The device copy of the Attachments a User sent Arnold (ADR 0018).
  *
  * eve keeps an Attachment's bytes in its session and never echoes them back:
- * the stream's `message.received` carries a file part's metadata only. So the
+ * the stream's `delivery.consumed` carries a file part's metadata only. So the
  * app keeps the re-encoded JPEG it sent on the phone, and the User's bubble is
  * drawn from that copy rather than from anything Arnold sends.
  *

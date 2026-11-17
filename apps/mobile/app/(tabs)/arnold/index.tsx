@@ -105,7 +105,7 @@ const ArnoldRuntime = ({
   const runtime = useEveAgentRuntime({
     // Resolved per request, reconnects included: Clerk tokens live ~60 s.
     auth: { bearer: getArnoldToken },
-    host: getArnoldUrl(),
+    baseUrl: getArnoldUrl(),
     initialEvents: saved.events,
     initialSession: saved.session,
     onFinish: (snapshot) => {
