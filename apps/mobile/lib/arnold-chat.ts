@@ -289,9 +289,21 @@ export interface SavedArnoldConversation {
 }
 
 // Two keys, so the cursor (saved on every streamed event) never rewrites the
-// event log (saved once per finished turn).
-const sessionKey = (userId: string) => `arnold.conversation.${userId}.session`;
-const eventsKey = (userId: string) => `arnold.conversation.${userId}.events`;
+// event log (saved once per finished turn). `v2` is eve 1.0's (stream v27);
+// the unversioned keys before it hold eve 0.83's (v26), which the 1.0 client
+// can't read.
+const sessionKey = (userId: string) =>
+  `arnold.conversation.v2.${userId}.session`;
+
+const eventsKey = (userId: string) => `arnold.conversation.v2.${userId}.events`;
+
+const oldSessionKey = (userId: string) =>
+  `arnold.conversation.${userId}.session`;
+
+const oldEventsKey = (userId: string) => `arnold.conversation.${userId}.events`;
+
+/** The one field of an old build's cursor this build keeps. */
+const oldSessionSchema = z.object({ sessionId: z.string().min(1) });
 
 const readJson = <T>(key: string): T | undefined => {
   const raw = storage.getString(key);
@@ -314,10 +326,51 @@ const readJson = <T>(key: string): T | undefined => {
   return value;
 };
 
+/**
+ * Moves a Conversation the eve 0.83 build saved onto the new keys, once: its
+ * v26 log is never handed to the 1.0 client, so it is dropped, and its session
+ * kept with the cursor back at position 0, so the same Conversation reopens
+ * and the server re-reads (and converts) it from the start. A session eve can
+ * never continue (one started on eve ≤ 0.81.0) is answered as ended there,
+ * which starts a new Conversation through the usual path. The old keys are
+ * removed either way; a Conversation the new build saved wins over them.
+ */
+const moveOldConversation = (userId: string) => {
+  if (storage.getString(oldSessionKey(userId)) === undefined) {
+    return;
+  }
+
+  const old = oldSessionSchema.safeParse(
+    readJson<unknown>(oldSessionKey(userId))
+  );
+
+  storage.remove(oldSessionKey(userId));
+  storage.remove(oldEventsKey(userId));
+
+  if (!old.success || storage.getString(sessionKey(userId)) !== undefined) {
+    return;
+  }
+
+  const session: ClientSessionState = {
+    sessionId: old.data.sessionId,
+    streamIndex: 0,
+  };
+
+  storage.set(sessionKey(userId), JSON.stringify(session));
+};
+
+const readSession = (userId: string) =>
+  readJson<ClientSessionState>(sessionKey(userId));
+
+/**
+ * The saved Conversation, read as the screen opens: an old build's is moved
+ * onto the new keys first, so every later read and write sees only those.
+ */
 export const loadSavedArnoldConversation = (
   userId: string
 ): SavedArnoldConversation => {
-  const session = readJson<ClientSessionState>(sessionKey(userId));
+  moveOldConversation(userId);
+  const session = readSession(userId);
 
   if (!session) {
     return {};
@@ -334,11 +387,13 @@ export const loadSavedArnoldConversation = (
  * first message of a Conversation) or with no Conversation saved.
  */
 export const savedArnoldSessionId = (userId: string): string | undefined =>
-  readJson<ClientSessionState>(sessionKey(userId))?.sessionId;
+  readSession(userId)?.sessionId;
 
 export const clearSavedArnoldConversation = (userId: string) => {
   storage.remove(sessionKey(userId));
   storage.remove(eventsKey(userId));
+  storage.remove(oldSessionKey(userId));
+  storage.remove(oldEventsKey(userId));
   // The Conversation is forgotten, so its Attachments go with it (ADR 0018).
   forgetSentAttachments(userId);
 };
@@ -381,12 +436,24 @@ export const saveArnoldSession = (
     return;
   }
 
-  const saved = readJson<ClientSessionState>(sessionKey(userId));
+  const saved = readSession(userId);
 
   if (saved?.sessionId !== session.sessionId) {
     storage.remove(eventsKey(userId));
     followSentAttachments(userId, session.sessionId);
   }
 
-  storage.set(sessionKey(userId), JSON.stringify(session));
+  // A cursor at 0 with no log saved is a read from the start (an older
+  // build's Conversation, re-read): it stays there until the log is saved
+  // with it, so a read cut short by the network or the app closing reopens
+  // from the start again rather than past history it never kept.
+  const rereading =
+    saved?.sessionId === session.sessionId &&
+    saved.streamIndex === 0 &&
+    storage.getString(eventsKey(userId)) === undefined;
+
+  storage.set(
+    sessionKey(userId),
+    JSON.stringify(rereading ? { ...session, streamIndex: 0 } : session)
+  );
 };

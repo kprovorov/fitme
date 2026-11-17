@@ -358,6 +358,35 @@ async function send(text: string) {
   await user.press(screen.getByLabelText(SEND));
 }
 
+/**
+ * Turns the Conversation the screen saved into one the eve 0.83 build saved:
+ * the same session under the old, unversioned keys, with that build's cursor
+ * and a v26 event log the 1.0 client can't read.
+ */
+function asSavedByOldBuild(userId: string, oldLogText: string) {
+  const sessionId = savedArnoldSessionId(userId);
+
+  if (!sessionId) {
+    throw new Error("no Conversation saved to turn into an old one");
+  }
+
+  storage.remove(`arnold.conversation.v2.${userId}.session`);
+  storage.remove(`arnold.conversation.v2.${userId}.events`);
+  storage.set(
+    `arnold.conversation.${userId}.session`,
+    JSON.stringify({ sessionId, streamIndex: 23 })
+  );
+  storage.set(
+    `arnold.conversation.${userId}.events`,
+    JSON.stringify([
+      {
+        data: { parts: [{ text: oldLogText, type: "text" }], turnId: "t_0" },
+        type: "message.received",
+      },
+    ])
+  );
+}
+
 beforeEach(() => {
   mockUserId = "user_arnold_screen";
   mockPickLibraryPhotos.mockReset();
@@ -541,6 +570,137 @@ describe("arnold screen", () => {
       });
       expect(screen.getByText("Something went wrong. Try again.")).toBeTruthy();
       expect(screen.getByText("Ask Arnold")).toBeTruthy();
+    });
+  });
+
+  describe("a Conversation saved by the eve 0.83 build", () => {
+    /** Sends a message, waits for the saved turn, and closes the screen. */
+    const sendAndClose = async (text: string) => {
+      const { unmount } = await renderArnold();
+      await send(text);
+      await waitFor(() =>
+        expect(screen.getByText(FAKE_ARNOLD_REPLY)).toBeTruthy()
+      );
+      await waitFor(() =>
+        expect(
+          loadSavedArnoldConversation("user_arnold_screen").events
+        ).toBeTruthy()
+      );
+      await unmount();
+    };
+
+    it("drops its log and re-reads the Conversation from the start", async () => {
+      await sendAndClose("Build me a plan");
+      const [sessionId] = fakeArnold.sessionIds;
+      asSavedByOldBuild("user_arnold_screen", "A line only the old log has");
+
+      await renderArnold();
+
+      await waitFor(() =>
+        expect(screen.getByText(FAKE_ARNOLD_REPLY)).toBeTruthy()
+      );
+      expect(screen.getByText("Build me a plan")).toBeTruthy();
+      expect(screen.queryByText("A line only the old log has")).toBeNull();
+      // The same Conversation reopened, and the old keys are gone.
+      expect(savedArnoldSessionId("user_arnold_screen")).toBe(sessionId);
+      expect(
+        storage.getString("arnold.conversation.user_arnold_screen.session")
+      ).toBeUndefined();
+      expect(
+        storage.getString("arnold.conversation.user_arnold_screen.events")
+      ).toBeUndefined();
+    });
+
+    it("keeps the re-read Conversation for the next reopen", async () => {
+      await sendAndClose("Build me a plan");
+      asSavedByOldBuild("user_arnold_screen", "A line only the old log has");
+      const { unmount } = await renderArnold();
+      await waitFor(() =>
+        expect(screen.getByText(FAKE_ARNOLD_REPLY)).toBeTruthy()
+      );
+      await waitFor(() =>
+        expect(
+          loadSavedArnoldConversation("user_arnold_screen").events
+        ).toBeTruthy()
+      );
+      await unmount();
+
+      await renderArnold();
+
+      await waitFor(() =>
+        expect(screen.getByText(FAKE_ARNOLD_REPLY)).toBeTruthy()
+      );
+      expect(screen.getByText("Build me a plan")).toBeTruthy();
+    });
+
+    it("carries on the re-read Conversation", async () => {
+      await sendAndClose("Build me a plan");
+      asSavedByOldBuild("user_arnold_screen", "A line only the old log has");
+      await renderArnold();
+      await waitFor(() =>
+        expect(screen.getByText("Build me a plan")).toBeTruthy()
+      );
+
+      await send("Make it shorter");
+
+      await waitFor(() => expect(fakeArnold.sent).toHaveLength(2));
+      expect(fakeArnold.sessionIds).toHaveLength(1);
+      await waitFor(() =>
+        expect(screen.getAllByText(FAKE_ARNOLD_REPLY)).toHaveLength(2)
+      );
+    });
+
+    it("re-reads it on a Ukrainian device too", async () => {
+      setDeviceLanguages(["uk-UA"]);
+      await sendAndClose("Склади мені план");
+      asSavedByOldBuild("user_arnold_screen", "Рядок лише зі старого журналу");
+
+      await renderArnold();
+
+      await waitFor(() =>
+        expect(screen.getByText("Склади мені план")).toBeTruthy()
+      );
+      expect(screen.getByText(FAKE_ARNOLD_REPLY)).toBeTruthy();
+      expect(screen.queryByText("Рядок лише зі старого журналу")).toBeNull();
+    });
+
+    it("starts a new Conversation on a session eve can't continue", async () => {
+      // A session from eve ≤ 0.81.0, which eve 1.0 can never continue.
+      fakeArnold.strandSession("ses_stranded");
+      storage.set(
+        "arnold.conversation.user_arnold_screen.session",
+        JSON.stringify({ sessionId: "ses_stranded", streamIndex: 41 })
+      );
+      storage.set(
+        "arnold.conversation.user_arnold_screen.events",
+        JSON.stringify([{ data: {}, type: "message.received" }])
+      );
+
+      await renderArnold();
+
+      await waitFor(() => expect(screen.getByText("Ask Arnold")).toBeTruthy());
+      expect(screen.queryByText("Something went wrong. Try again.")).toBeNull();
+
+      await send("Hello again");
+
+      await waitFor(() =>
+        expect(screen.getByText(FAKE_ARNOLD_REPLY)).toBeTruthy()
+      );
+      expect(fakeArnold.sessionIds).toHaveLength(1);
+      expect(savedArnoldSessionId("user_arnold_screen")).toBe(
+        fakeArnold.sessionIds[0]
+      );
+    });
+
+    it("never reads another User's", async () => {
+      await sendAndClose("Build me a plan");
+      asSavedByOldBuild("user_arnold_screen", "A line only the old log has");
+      mockUserId = "user_someone_else";
+
+      await renderArnold();
+
+      expect(screen.getByText("Ask Arnold")).toBeTruthy();
+      expect(screen.queryByText("Build me a plan")).toBeNull();
     });
   });
 
@@ -1934,6 +2094,30 @@ describe("arnold screen", () => {
         // saved events, and the copy is still on the device.
         expect(shownPhotos()).toEqual(["gym-bytes"]);
         expect(screen.queryByText(FILE_PLACEHOLDER)).toBeNull();
+      });
+
+      it("shows the photos of a Conversation the old build saved", async () => {
+        await sendTwoPhotos();
+        await screen.unmount();
+        asSavedByOldBuild("user_arnold_screen", "A line only the old log has");
+
+        await renderArnold();
+
+        await waitFor(() =>
+          expect(screen.getByText(FAKE_ARNOLD_REPLY)).toBeTruthy()
+        );
+        // Re-read from position 0, the echo names the same copies, which
+        // kept their place under the User and the Conversation.
+        await waitFor(() =>
+          expect(shownPhotos()).toEqual(["gym-bytes", "plan-bytes"])
+        );
+        // And the re-read is saved, its echo naming the same copies.
+        await waitFor(() =>
+          expect(keptPhotos("user_arnold_screen")).toEqual([
+            "gym-bytes",
+            "plan-bytes",
+          ])
+        );
       });
 
       it("shows a Photo tile where the copy is gone, and keeps the rest", async () => {
