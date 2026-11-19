@@ -61,3 +61,14 @@ describe.each(appLanguages)("the %s catalog", (language) => {
     }
   );
 });
+
+// The Exercise detail's Difficulty badge has its own label where a bare
+// `choices.difficulty` name would read oddly on its own ("Середній рівень",
+// not "Середній"), so it names every one of core's difficulties too.
+describe.each(appLanguages)("the %s Difficulty badge", (language) => {
+  it("labels every difficulty id from core", () => {
+    expect(
+      Object.keys(catalogs[language].exercise.difficulty).toSorted()
+    ).toStrictEqual([...difficulties].toSorted());
+  });
+});

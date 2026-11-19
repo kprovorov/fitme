@@ -378,7 +378,36 @@
   },
   "exercise": {
     "gone": "Deze oefening staat niet meer in de bibliotheek.",
-    "loadError": "Deze oefening kon niet worden geladen. Controleer je verbinding en probeer het opnieuw."
+    "loadError": "Deze oefening kon niet worden geladen. Controleer je verbinding en probeer het opnieuw.",
+    "notFoundTitle": "Oefening niet gevonden",
+    "backToLibrary": "Terug naar bibliotheek",
+    "loadErrorTitle": "Oefening laden mislukt",
+    "checkConnection": "Controleer je verbinding en probeer het opnieuw.",
+    "howToDoIt": "Zo doe je het",
+    "muscleGroups": "Spiergroepen",
+    "primaryMuscleGroups": "Primair",
+    "secondaryMuscleGroups": "Secundair",
+    "benefits": "Voordelen",
+    "steps": "Stappen",
+    "commonMistakes": "Veelgemaakte fouten",
+    "guideEmptyTitle": "Nog geen uitleg",
+    "guideEmpty": "Deze oefening heeft nog geen stappen.",
+    "difficulty": {
+      "beginner": "Beginner",
+      "intermediate": "Gemiddeld niveau",
+      "advanced": "Gevorderd"
+    },
+    "spoken": {
+      "loading": "Oefening laden",
+      "clip": "Video: {{name}}",
+      "equipment": "Materiaal: {{equipment}}",
+      "difficulty": "Moeilijkheid: {{difficulty}}",
+      "movementPattern": "Bewegingspatroon: {{movementPattern}}",
+      "primaryMuscleGroups": "Primaire spiergroepen: {{muscleGroups}}",
+      "secondaryMuscleGroups": "Secundaire spiergroepen: {{muscleGroups}}",
+      "step": "Stap {{number, number}}: {{step}}",
+      "guideHint": "Opent de stappen en veelgemaakte fouten"
+    }
   },
   "exerciseHistory": {
     "title": "Voortgang",

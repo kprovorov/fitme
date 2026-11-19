@@ -404,7 +404,36 @@
   },
   "exercise": {
     "gone": "Tego ćwiczenia nie ma już w bibliotece.",
-    "loadError": "Nie udało się wczytać tego ćwiczenia. Sprawdź połączenie i spróbuj ponownie."
+    "loadError": "Nie udało się wczytać tego ćwiczenia. Sprawdź połączenie i spróbuj ponownie.",
+    "notFoundTitle": "Nie znaleziono ćwiczenia",
+    "backToLibrary": "Wróć do biblioteki",
+    "loadErrorTitle": "Nie udało się wczytać ćwiczenia",
+    "checkConnection": "Sprawdź połączenie i spróbuj ponownie.",
+    "howToDoIt": "Jak to zrobić",
+    "muscleGroups": "Grupy mięśniowe",
+    "primaryMuscleGroups": "Główne",
+    "secondaryMuscleGroups": "Pomocnicze",
+    "benefits": "Korzyści",
+    "steps": "Kroki",
+    "commonMistakes": "Częste błędy",
+    "guideEmptyTitle": "Brak instrukcji",
+    "guideEmpty": "To ćwiczenie nie ma jeszcze kroków.",
+    "difficulty": {
+      "beginner": "Początkujący",
+      "intermediate": "Średni poziom",
+      "advanced": "Zaawansowany"
+    },
+    "spoken": {
+      "loading": "Wczytywanie ćwiczenia",
+      "clip": "Wideo: {{name}}",
+      "equipment": "Sprzęt: {{equipment}}",
+      "difficulty": "Trudność: {{difficulty}}",
+      "movementPattern": "Wzorzec ruchu: {{movementPattern}}",
+      "primaryMuscleGroups": "Główne grupy mięśniowe: {{muscleGroups}}",
+      "secondaryMuscleGroups": "Pomocnicze grupy mięśniowe: {{muscleGroups}}",
+      "step": "Krok {{number, number}}: {{step}}",
+      "guideHint": "Otwiera kroki i częste błędy"
+    }
   },
   "exerciseHistory": {
     "title": "Postępy",

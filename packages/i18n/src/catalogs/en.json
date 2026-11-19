@@ -378,7 +378,36 @@
   },
   "exercise": {
     "gone": "This exercise isn't in the library any more.",
-    "loadError": "Couldn't load this exercise. Check your connection and try again."
+    "loadError": "Couldn't load this exercise. Check your connection and try again.",
+    "notFoundTitle": "Exercise not found",
+    "backToLibrary": "Back to Library",
+    "loadErrorTitle": "Couldn't load exercise",
+    "checkConnection": "Check your connection and try again.",
+    "howToDoIt": "How to Do It",
+    "muscleGroups": "Muscle Groups",
+    "primaryMuscleGroups": "Primary",
+    "secondaryMuscleGroups": "Secondary",
+    "benefits": "Benefits",
+    "steps": "Steps",
+    "commonMistakes": "Common Mistakes",
+    "guideEmptyTitle": "No guide yet",
+    "guideEmpty": "This exercise doesn't have steps yet.",
+    "difficulty": {
+      "beginner": "Beginner",
+      "intermediate": "Intermediate",
+      "advanced": "Advanced"
+    },
+    "spoken": {
+      "loading": "Loading exercise",
+      "clip": "{{name}} clip",
+      "equipment": "Equipment: {{equipment}}",
+      "difficulty": "Difficulty: {{difficulty}}",
+      "movementPattern": "Movement pattern: {{movementPattern}}",
+      "primaryMuscleGroups": "Primary muscle groups: {{muscleGroups}}",
+      "secondaryMuscleGroups": "Secondary muscle groups: {{muscleGroups}}",
+      "step": "Step {{number, number}}: {{step}}",
+      "guideHint": "Opens the steps and common mistakes"
+    }
   },
   "exerciseHistory": {
     "title": "Progress",

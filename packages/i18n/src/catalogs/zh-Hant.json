@@ -365,7 +365,36 @@
   },
   "exercise": {
     "gone": "此動作已不在動作庫中。",
-    "loadError": "無法載入此動作。請檢查網路連線後再試一次。"
+    "loadError": "無法載入此動作。請檢查網路連線後再試一次。",
+    "notFoundTitle": "未找到動作",
+    "backToLibrary": "返回動作庫",
+    "loadErrorTitle": "無法載入動作",
+    "checkConnection": "請檢查網路連線後再試一次。",
+    "howToDoIt": "動作要領",
+    "muscleGroups": "肌群",
+    "primaryMuscleGroups": "主要",
+    "secondaryMuscleGroups": "次要",
+    "benefits": "益處",
+    "steps": "步驟",
+    "commonMistakes": "常見錯誤",
+    "guideEmptyTitle": "尚無指南",
+    "guideEmpty": "此動作尚無步驟。",
+    "difficulty": {
+      "beginner": "初級",
+      "intermediate": "中級",
+      "advanced": "高級"
+    },
+    "spoken": {
+      "loading": "正在載入動作",
+      "clip": "{{name}}影片",
+      "equipment": "器材：{{equipment}}",
+      "difficulty": "難度：{{difficulty}}",
+      "movementPattern": "動作模式：{{movementPattern}}",
+      "primaryMuscleGroups": "主要肌群：{{muscleGroups}}",
+      "secondaryMuscleGroups": "次要肌群：{{muscleGroups}}",
+      "step": "第 {{number, number}} 步：{{step}}",
+      "guideHint": "開啟步驟和常見錯誤"
+    }
   },
   "exerciseHistory": {
     "title": "進步紀錄",

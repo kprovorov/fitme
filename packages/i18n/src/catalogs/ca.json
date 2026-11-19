@@ -391,7 +391,36 @@
   },
   "exercise": {
     "gone": "Aquest exercici ja no és a la biblioteca.",
-    "loadError": "No s'ha pogut carregar aquest exercici. Comprova la connexió i torna-ho a provar."
+    "loadError": "No s'ha pogut carregar aquest exercici. Comprova la connexió i torna-ho a provar.",
+    "notFoundTitle": "No s'ha trobat l'exercici",
+    "backToLibrary": "Torna a la biblioteca",
+    "loadErrorTitle": "No s'ha pogut carregar l'exercici",
+    "checkConnection": "Comprova la connexió i torna-ho a provar.",
+    "howToDoIt": "Com es fa",
+    "muscleGroups": "Grups musculars",
+    "primaryMuscleGroups": "Principals",
+    "secondaryMuscleGroups": "Secundaris",
+    "benefits": "Beneficis",
+    "steps": "Passos",
+    "commonMistakes": "Errors habituals",
+    "guideEmptyTitle": "Encara no hi ha guia",
+    "guideEmpty": "Aquest exercici encara no té passos.",
+    "difficulty": {
+      "beginner": "Principiant",
+      "intermediate": "Intermedi",
+      "advanced": "Avançat"
+    },
+    "spoken": {
+      "loading": "S'està carregant l'exercici",
+      "clip": "Vídeo de {{name}}",
+      "equipment": "Equipament: {{equipment}}",
+      "difficulty": "Dificultat: {{difficulty}}",
+      "movementPattern": "Patró de moviment: {{movementPattern}}",
+      "primaryMuscleGroups": "Grups musculars principals: {{muscleGroups}}",
+      "secondaryMuscleGroups": "Grups musculars secundaris: {{muscleGroups}}",
+      "step": "Pas {{number, number}}: {{step}}",
+      "guideHint": "Obre els passos i els errors habituals"
+    }
   },
   "exerciseHistory": {
     "title": "Progrés",

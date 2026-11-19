@@ -365,7 +365,36 @@
   },
   "exercise": {
     "gone": "この種目はライブラリにありません。",
-    "loadError": "この種目を読み込めませんでした。接続を確認して、もう一度お試しください。"
+    "loadError": "この種目を読み込めませんでした。接続を確認して、もう一度お試しください。",
+    "notFoundTitle": "種目が見つかりません",
+    "backToLibrary": "ライブラリに戻る",
+    "loadErrorTitle": "種目を読み込めませんでした",
+    "checkConnection": "接続を確認して、もう一度お試しください。",
+    "howToDoIt": "やり方",
+    "muscleGroups": "筋群",
+    "primaryMuscleGroups": "メイン",
+    "secondaryMuscleGroups": "サブ",
+    "benefits": "効果",
+    "steps": "手順",
+    "commonMistakes": "よくある間違い",
+    "guideEmptyTitle": "ガイドはまだありません",
+    "guideEmpty": "この種目にはまだ手順がありません。",
+    "difficulty": {
+      "beginner": "初級",
+      "intermediate": "中級",
+      "advanced": "上級"
+    },
+    "spoken": {
+      "loading": "種目を読み込み中",
+      "clip": "{{name}}の動画",
+      "equipment": "器具：{{equipment}}",
+      "difficulty": "難易度：{{difficulty}}",
+      "movementPattern": "動作パターン：{{movementPattern}}",
+      "primaryMuscleGroups": "メインの筋群：{{muscleGroups}}",
+      "secondaryMuscleGroups": "サブの筋群：{{muscleGroups}}",
+      "step": "手順{{number, number}}：{{step}}",
+      "guideHint": "手順とよくある間違いを開きます"
+    }
   },
   "exerciseHistory": {
     "title": "進捗",
