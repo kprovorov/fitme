@@ -1,6 +1,6 @@
 /**
- * The steps on the Exercise detail screen (FIT-630, FIT-755): the Library
- * answers them as a list, which the screen shows as numbered steps, in the
+ * The steps in the Exercise guide (FIT-630, FIT-755, FIT-758): the Library
+ * answers them as a list, which the guide shows as numbered steps, in the
  * App language.
  *
  * The real screen on the fake Public API's Exercise routes.
@@ -9,7 +9,7 @@ import { beforeEach, describe, expect, it, jest } from "@jest/globals";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { render, screen, within } from "@testing-library/react-native";
 
-import ExerciseScreen from "~/app/exercises/[exerciseSlug]/index";
+import ExerciseGuideScreen from "~/app/exercises/[exerciseSlug]/guide";
 import { InstructionSteps } from "~/components/exercises/instruction-steps";
 import { storage } from "~/lib/mmkv";
 import { setDeviceLanguages } from "~/test-utils/device-locales";
@@ -71,7 +71,7 @@ const renderScreen = async () => {
   await render(
     <QueryClientProvider client={client}>
       <InAppLanguage>
-        <ExerciseScreen />
+        <ExerciseGuideScreen />
       </InAppLanguage>
     </QueryClientProvider>
   );
@@ -80,14 +80,12 @@ const renderScreen = async () => {
 
 /** Each step row's number and text, in the order they're drawn. */
 const shownSteps = () =>
-  within(screen.getByTestId("instruction-steps"))
-    .getAllByTestId("instruction-step")
-    .map((row) =>
-      within(row)
-        .getAllByText(/\S/u)
-        .map((text) => String(text.props.children))
-        .join(" ")
-    );
+  screen.getAllByTestId("instruction-step").map((row) =>
+    within(row)
+      .getAllByText(/\S/u)
+      .map((text) => String(text.props.children))
+      .join(" ")
+  );
 
 beforeEach(() => {
   storage.clearAll();
@@ -113,9 +111,9 @@ describe("an Exercise's instructions", () => {
         .getAllByTestId("instruction-step")
         .map((row) => row.props.accessibilityLabel)
     ).toEqual([
-      "1. Lie on the bench.",
-      "2. Press the dumbbells up.",
-      "3. Lower them slowly.",
+      "Step 1: Lie on the bench.",
+      "Step 2: Press the dumbbells up.",
+      "Step 3: Lower them slowly.",
     ]);
   });
 
@@ -135,9 +133,10 @@ describe("InstructionSteps", () => {
     expect(shownSteps()).toEqual(["1 Press.", "2 Repeat.", "3 Repeat."]);
   });
 
-  it("renders nothing for no steps", async () => {
+  it("renders nothing for no steps, its heading included", async () => {
     await render(<InstructionSteps steps={[]} />);
 
     expect(screen.queryByTestId("instruction-steps")).toBeNull();
+    expect(screen.queryByText("Steps")).toBeNull();
   });
 });

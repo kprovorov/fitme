@@ -224,10 +224,9 @@ describe.each([
     failExercises(EXERCISES_UNAVAILABLE);
     await renderInUkrainian(Screen);
 
+    expect(screen.getByText("Не вдалося завантажити вправу")).toBeTruthy();
     expect(
-      screen.getByText(
-        "Не вдалося завантажити вправу. Перевірте з’єднання і спробуйте ще раз."
-      )
+      screen.getByText("Перевірте з’єднання і спробуйте ще раз.")
     ).toBeTruthy();
     expect(screen.getByText("Спробувати ще раз")).toBeTruthy();
   });
