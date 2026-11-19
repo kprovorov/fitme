@@ -11,6 +11,8 @@ import { logger } from "hono/logger";
 
 import { BEARER_AUTH, requireCaller } from "./auth.js";
 import type { ApiEnv } from "./auth.js";
+import { exerciseLibraryFromEnv } from "./exercise-library.js";
+import type { LibraryV2 } from "./exercise-library.js";
 import { libraryIndexFromEnv } from "./library.js";
 import type { LibraryIndex } from "./library.js";
 import { rateLimitCallers, rateLimiterFromEnv } from "./rate-limit.js";
@@ -23,6 +25,11 @@ import type { ServicesFactory } from "./services.js";
 export interface AppDeps {
   /** The Clerk instance's PEM public key session tokens are verified against. */
   clerkJwtKey: string | undefined;
+  /**
+   * The new Library the Exercise routes read (ADR 0022;
+   * `exerciseLibraryFromEnv` over `reportError` unless given).
+   */
+  exerciseLibrary: LibraryV2;
   /** Builds a verified User's services; `null` when the database isn't configured. */
   createServices: ServicesFactory;
   /** Sets the request's User (their Clerk id only) on what error reporting sends. */
@@ -41,9 +48,13 @@ export interface AppDeps {
 /**
  * The real dependencies: the environment and @fitme/observability. The rate
  * limiter is built only when none is given (it throws in production without
- * Upstash), and the Library index over the reporter in use.
+ * Upstash), and the Library index and the new Library over the reporter in
+ * use.
  */
-const defaultDeps = (): Omit<AppDeps, "libraryIndex" | "rateLimiter"> => ({
+const defaultDeps = (): Omit<
+  AppDeps,
+  "exerciseLibrary" | "libraryIndex" | "rateLimiter"
+> => ({
   clerkJwtKey: process.env.CLERK_JWT_KEY,
   createServices: createServicesFromEnv,
   identifyUser,
@@ -76,6 +87,10 @@ export const createApp = (deps: Partial<AppDeps> = {}) => {
   // One per instance, loaded on the first write that asks (ADR 0018).
   const libraryIndex = deps.libraryIndex ?? libraryIndexFromEnv(report);
 
+  // One per instance, loaded on the first Exercise read and kept (ADR 0022).
+  const exerciseLibrary =
+    deps.exerciseLibrary ?? exerciseLibraryFromEnv(report);
+
   // Invalid input on any route answers 400 invalid_request unless the route
   // says otherwise.
   const app = new OpenAPIHono<ApiEnv>({ defaultHook: invalidRequest });
@@ -96,9 +111,11 @@ export const createApp = (deps: Partial<AppDeps> = {}) => {
   // Every route from here on (unknown ones too) needs a verified caller.
   app.use(requireCaller({ clerkJwtKey, createServices }));
   // Error reporting knows the User by their Clerk id only. Routes get the
-  // Library index and the reporter for the answers they give themselves.
+  // Library index, the new Library and the reporter for the answers they give
+  // themselves.
   app.use(async (c, next) => {
     identify(c.var.caller.userId);
+    c.set("exerciseLibrary", exerciseLibrary);
     c.set("libraryIndex", libraryIndex);
     c.set("reportError", report);
 

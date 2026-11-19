@@ -4,6 +4,7 @@ import type { reportError } from "@fitme/observability/node";
 import { z } from "@hono/zod-openapi";
 import { createMiddleware } from "hono/factory";
 
+import type { LibraryV2 } from "./exercise-library.js";
 import type { LibraryIndex } from "./library.js";
 import type { ErrorResponse } from "./schemas.js";
 import type { ServicesFactory, UserServices } from "./services.js";
@@ -24,6 +25,8 @@ export type Permission = "read" | "write";
 export interface ApiEnv {
   Variables: {
     caller: Caller;
+    /** The instance's new Library (ADR 0022), which the Exercise routes read. */
+    exerciseLibrary: LibraryV2;
     /** The instance's Library index, which writes check their Exercise slugs against. */
     libraryIndex: LibraryIndex;
     /** The caller's services, built on first use (a 500 when unconfigured). */
