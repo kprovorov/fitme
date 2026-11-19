@@ -92,20 +92,22 @@ export const bundleExercise = (
 });
 
 /**
- * `TEST_EXERCISE_BUNDLE` with `exercises` added (one already in it is left
- * as it is), and its replaced slug: the bundle a write test's slugs are
- * checked against.
+ * `TEST_EXERCISE_BUNDLE` with `exercises` added (one with a slug already in
+ * it replaces the fixture's), and its replaced slug: the bundle a write
+ * test's slugs are checked against.
  */
 export const bundleWith = (
   exercises: readonly LibraryBundleV2["exercises"][number][]
 ): LibraryBundleV2 => {
-  const slugs = new Set(TEST_EXERCISE_BUNDLE.exercises.map((e) => e.slug));
+  const given = new Set(exercises.map((exercise) => exercise.slug));
 
   return {
     ...TEST_EXERCISE_BUNDLE,
     exercises: [
-      ...TEST_EXERCISE_BUNDLE.exercises,
-      ...exercises.filter((exercise) => !slugs.has(exercise.slug)),
+      ...TEST_EXERCISE_BUNDLE.exercises.filter(
+        (exercise) => !given.has(exercise.slug)
+      ),
+      ...exercises,
     ],
   };
 };
