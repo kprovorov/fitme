@@ -22,6 +22,11 @@ import { fakeServices, ignoreReports, recordingReporter } from "./harness.js";
 
 const SSE_DATA_LINE = /^data: (?<data>.*)$/mu;
 const PLAIN_TEXT = /^text\/plain/u;
+const FIXTURE_SLUG = /^example-/u;
+
+const LIBRARY_THUMBNAIL =
+  /^https:\/\/project\.supabase\.co\/storage\/v1\/render\/image\/public\/library\//u;
+
 const CLERK_FRONTEND_API = "fitme-test.clerk.accounts.dev";
 const PUBLISHABLE_KEY = `pk_test_${btoa(`${CLERK_FRONTEND_API}$`)}`;
 const METADATA_URL = "http://localhost/.well-known/oauth-protected-resource";
@@ -624,13 +629,11 @@ describe("mcp app", () => {
       expect(result.text).toContain("not configured");
     });
 
-    it("reports a missing LIBRARY_URL or LIBRARY_MCP_SECRET as a tool error", async () => {
+    it("serves list_exercises from the committed v2 fixture, with no Library API configured", async () => {
       signInAs("user_alice");
-      // the old names configure nothing
-      vi.stubEnv("EXERCISES_URL", "https://library.test");
-      vi.stubEnv("EXERCISES_MCP_SECRET", "x".repeat(32));
-      vi.stubEnv("LIBRARY_URL", "https://library.test");
-      vi.stubEnv("LIBRARY_MCP_SECRET", "");
+      vi.stubEnv("LIBRARY_V2_BUNDLE", "");
+      vi.stubEnv("SUPABASE_URL", "https://project.supabase.co");
+      vi.stubEnv("VERCEL_ENV", "");
 
       const app = createApp({
         logRequests: false,
@@ -645,10 +648,17 @@ describe("mcp app", () => {
 
       expect(response.status).toBe(200);
       const result = await readToolResult(response);
-      expect(result.isError).toBeTruthy();
-      expect(result.text).toBe(
-        "This MCP server is not configured for the Library (LIBRARY_URL or LIBRARY_MCP_SECRET is missing)."
-      );
+      expect(result.isError).toBeFalsy();
+
+      // SAFETY: a successful list_exercises answers its page as JSON.
+      const page = JSON.parse(result.text) as {
+        exercises: { slug: string; thumbnail_url: string }[];
+        total: number;
+      };
+
+      expect(page.total).toBeGreaterThan(0);
+      expect(page.exercises[0]?.slug).toMatch(FIXTURE_SLUG);
+      expect(page.exercises[0]?.thumbnail_url).toMatch(LIBRARY_THUMBNAIL);
     });
 
     // Stateless: there is no server-initiated SSE stream to open and no session

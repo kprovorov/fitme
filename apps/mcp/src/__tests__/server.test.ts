@@ -90,7 +90,52 @@ describe("catalog tools", () => {
       muscleGroup: "lower-back",
     });
 
-    expect(group.json).toStrictEqual({ id: "lower-back", name: "Lower Back" });
+    expect(group.json).toStrictEqual({ id: "lower-back", name: "Lower back" });
+  });
+
+  it("describes a new muscle group and refuses a legacy one", async () => {
+    const client = await connect();
+
+    const adductors = await call(client, "describe_muscle_group", {
+      muscleGroup: "adductors",
+    });
+
+    expect(adductors.json).toStrictEqual({
+      id: "adductors",
+      name: "Adductors",
+    });
+
+    const abs = await call(client, "describe_muscle_group", {
+      muscleGroup: "abs",
+    });
+
+    expect(abs.isError).toBeTruthy();
+  });
+
+  it("lists every muscle group in core's order with its English name", async () => {
+    const client = await connect();
+
+    const result = await call(client, "list_muscle_groups");
+
+    expect(result.isError).toBeFalsy();
+    expect(result.json).toStrictEqual([
+      { id: "chest", name: "Chest" },
+      { id: "back", name: "Back" },
+      { id: "shoulders", name: "Shoulders" },
+      { id: "biceps", name: "Biceps" },
+      { id: "triceps", name: "Triceps" },
+      { id: "forearms", name: "Forearms" },
+      { id: "core", name: "Core" },
+      { id: "traps", name: "Traps" },
+      { id: "lower-back", name: "Lower back" },
+      { id: "glutes", name: "Glutes" },
+      { id: "quadriceps", name: "Quadriceps" },
+      { id: "hamstrings", name: "Hamstrings" },
+      { id: "adductors", name: "Adductors" },
+      { id: "calves", name: "Calves" },
+      { id: "tibialis", name: "Tibialis" },
+      { id: "neck", name: "Neck" },
+    ]);
   });
 
   it("lists every Equipment in core's order with its English name", async () => {
@@ -100,15 +145,30 @@ describe("catalog tools", () => {
 
     expect(result.isError).toBeFalsy();
     expect(result.json).toStrictEqual([
-      { id: "barbell", name: "Barbell" },
+      { id: "bodyweight", name: "Bodyweight" },
       { id: "dumbbell", name: "Dumbbell" },
-      { id: "cable", name: "Cable" },
+      { id: "barbell", name: "Barbell" },
       { id: "machine", name: "Machine" },
-      { id: "smith_machine", name: "Smith machine" },
+      { id: "cable", name: "Cable" },
+      { id: "kettlebell", name: "Kettlebell" },
+      { id: "band", name: "Band" },
       { id: "bench", name: "Bench" },
       { id: "pull_up_bar", name: "Pull-up bar" },
-      { id: "landmine", name: "Landmine" },
-      { id: "bodyweight", name: "Bodyweight" },
+      { id: "parallel_bars", name: "Parallel bars" },
+      { id: "bicycle", name: "Bicycle" },
+      { id: "weight_plate", name: "Weight plate" },
+      { id: "box", name: "Box" },
+      { id: "stability_ball", name: "Stability ball" },
+      { id: "backpack", name: "Backpack" },
+      { id: "medicine_ball", name: "Medicine ball" },
+      { id: "sled", name: "Sled" },
+      { id: "towel", name: "Towel" },
+      { id: "trx", name: "TRX" },
+      { id: "battle_ropes", name: "Battle ropes" },
+      { id: "dowel", name: "Dowel" },
+      { id: "slider", name: "Slider" },
+      { id: "foam_roller", name: "Foam roller" },
+      { id: "wrist_roller", name: "Wrist roller" },
     ]);
   });
 });

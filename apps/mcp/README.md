@@ -40,8 +40,10 @@ See `.env.example`. The variables are read from the process environment (Vercel 
 | `CLERK_PUBLISHABLE_KEY` | Its publishable key; names the instance in the OAuth metadata. |
 | `FITME_DATABASE_URL` | The `fitme` login's Supavisor transaction-pooler URL with `?application_name=mcp`; the user tools run through it (`asUser`). Service-role strength. |
 | `MCP_PUBLIC_URL` | Public URL advertised as the OAuth resource; set it in production. |
-| `LIBRARY_URL` | The Library API (`apps/library`; `http://localhost:3006` locally, `https://library.fitmeproject.com` deployed). |
-| `LIBRARY_MCP_SECRET` | The MCP server's bearer for the Library API; the same value as the Library API's MCP secret (`LIBRARY_MCP_SECRET` in `apps/library`). Production's never leaves Vercel. |
+| `BLOB_STORE_ID` | Production: the private Blob store holding both bundles (`library-v2.json` for the Library, `library.json` for the Plan writes' Library index), read over Vercel OIDC. |
+| `LIBRARY_V2_BUNDLE` | Outside production: the v2 bundle the Library is loaded from; unset, the committed made-up fixture. |
+| `LIBRARY_BUNDLE` | Outside production: the v1 bundle the Plan writes' Library index is built from; unset, the committed fixture. |
+| `SUPABASE_URL` | The Supabase project the Library's media (thumbnails, videos) is on; unset outside production, a placeholder project. |
 
 The MCP endpoint fails closed: without `CLERK_SECRET_KEY`, `CLERK_PUBLISHABLE_KEY` or `FITME_DATABASE_URL` it answers **HTTP 500** to every request instead of serving without auth. Production uses the production Clerk instance; every other environment uses the development instance.
 
@@ -60,7 +62,7 @@ Inside a request that passed the check:
 - Database errors are returned as `isError: true` results carrying the Postgres message (never the SQL); any other failure is returned as "The database request failed." Both are reported to Sentry (`fitme-mcp`); expected outcomes (not found, invalid input, 401) aren't.
 - Every write runs in one transaction with its read-back, so it either returns its result or fails without changing anything.
 - Paginated tools (`list_exercises`, `list_workout_sessions`) return an empty page with the `total` when the offset is past the end.
-- Exercises are referred to by their Exercise slug (`exercise_slug`), never a uuid, and come from the Library API (`@fitme/library-sdk`, with `LIBRARY_MCP_SECRET`). A write carrying slugs (`create_plan`, `update_plan` with `workouts`) checks them with one lookup before its transaction: unknown slugs are an error naming them, and nothing is written. Plan and Workout Session reads add each Exercise's `name` and `muscle_groups` after their transaction; a slug the library doesn't know, or the library failing, gets a name derived from the slug, and the read still answers. The library failing fails searches and writes with "Library unavailable, try again." (reported to Sentry).
+- Exercises are referred to by their Exercise slug (`exercise_slug`), never a uuid, and come from the Library ([ADR 0022](../../docs/adr/)), loaded from its v2 bundle into the server's own memory once per instance: no Library API call. A write carrying slugs (`create_plan`, `update_plan` with `workouts`) checks them against the Library index before its transaction: unknown slugs are an error naming them, and nothing is written. Plan and Workout Session reads add each Exercise's `name` and primary `muscle_groups` after their transaction (an old slug named after the Exercise replacing it); a slug the Library doesn't know, or a bundle that can't load, gets a name derived from the slug, and the read still answers. A bundle that can't load fails searches and `get_exercise` (and an index that can't load fails writes) with "Library unavailable, try again." (reported to Sentry).
 
 ## Tools
 
@@ -69,13 +71,13 @@ Weights are stored and returned in the user's unit (kg for the `metric` measurem
 | Tool | Description |
 | --- | --- |
 | `ping` | Server name and version. |
-| `list_muscle_groups` | Muscle group ids and names. |
-| `list_equipment` | Equipment ids and names (`bodyweight` means an Exercise needs no gear). |
+| `list_muscle_groups` | The Library's muscle group ids and names. |
+| `list_equipment` | The Library's Equipment ids and names (`bodyweight` means the body is the load). |
 | `list_plan_options` | Valid goals, places and experience levels. |
 | `describe_muscle_group` | Display name for a muscle group id. |
 | `get_profile` | Gender, age, height, weight, measurement system and units. |
-| `list_exercises` | Search the Library by name / muscle group (paginated); each row's `slug` is the `exercise_slug` plans take. |
-| `get_exercise` | Full Exercise details by slug (description, instructions, media, `equipment` ids). |
+| `list_exercises` | Search the Library by name or other name, primary muscle group and Equipment (paginated); each row's `slug` is the `exercise_slug` plans take, with its muscle groups, Equipment, `movement_patterns` and `difficulty`. |
+| `get_exercise` | Full Exercise details by slug (`short_description`, `long_description`, `steps`, `common_mistakes`, `benefits`, media, `equipment` ids); an old slug answers its replacement. |
 | `get_exercise_history` | The user's logged sets for an Exercise slug, one entry per session-exercise row. |
 | `list_plans` | The user's plans with a workout summary. |
 | `get_plan` | Full plan: workouts → exercises → sets, in order. |

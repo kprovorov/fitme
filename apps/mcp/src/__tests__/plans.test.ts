@@ -1,4 +1,3 @@
-import { LibraryUnavailableError } from "@fitme/library-sdk";
 import type { Cover } from "@fitme/library-sdk";
 import type { NewPlan } from "@fitme/services/plans";
 import { describe, expect, it, vi } from "vitest";
@@ -8,13 +7,14 @@ import {
   BENCH,
   call,
   connectWithServices,
-  fakeLibrary,
   ignoreReports,
   INDEX_OUTAGE,
+  LIBRARY_OUTAGE,
   PLAN_ID,
   recordingReporter,
   SQUAT,
   testIndex,
+  testLibrary,
 } from "./harness.js";
 
 /** An Exercise uuid, as tools took Exercises before slugs. */
@@ -22,13 +22,9 @@ const BENCH_ID = "55555555-5555-4555-8555-555555555555";
 
 const UNAVAILABLE = "Library unavailable, try again.";
 
-/** A fake library that fails every call, as when the API is down. */
-const downLibrary = () => {
-  const library = fakeLibrary();
-  library.failWith(new LibraryUnavailableError({ status: 503 }));
-
-  return library;
-};
+/** A Library whose bundle can't load, reporting it through `reportError`. */
+const downLibrary = (reportError = ignoreReports) =>
+  testLibrary({ loads: "fail", reportError });
 
 const metadata = {
   description: "Upper/lower split",
@@ -147,7 +143,7 @@ const UNSET_DETAILS = {
 const toolPlan = toolPlanWith({
   exercise_slug: BENCH.slug,
   muscle_groups: BENCH.muscle_groups,
-  name: BENCH.name,
+  name: BENCH.locales.en.name,
 });
 
 const unknownToolPlan = toolPlanWith({
@@ -244,13 +240,32 @@ describe("get_plan", () => {
     expect(result.json).toStrictEqual(unknownToolPlan);
   });
 
+  it("names an old slug after the Exercise replacing it, keeping the stored slug", async () => {
+    const client = await connectWithServices(
+      { getPlan: () => Promise.resolve(servicePlanWith("flat-bench-press")) },
+      ignoreReports,
+      testLibrary({ replacedSlugs: { "flat-bench-press": BENCH.slug } })
+    );
+
+    const result = await call(client, "get_plan", { planId: PLAN_ID });
+
+    expect(result.isError).toBeFalsy();
+    expect(result.json).toStrictEqual(
+      toolPlanWith({
+        exercise_slug: "flat-bench-press",
+        muscle_groups: BENCH.muscle_groups,
+        name: BENCH.locales.en.name,
+      })
+    );
+  });
+
   it("still answers, with slug-derived names, when the library fails, and reports it", async () => {
     const { reportError, reported } = recordingReporter();
 
     const client = await connectWithServices(
       { getPlan: () => Promise.resolve(servicePlan) },
       reportError,
-      downLibrary()
+      downLibrary(reportError)
     );
 
     const result = await call(client, "get_plan", { planId: PLAN_ID });
@@ -263,7 +278,7 @@ describe("get_plan", () => {
         name: "Bench press",
       })
     );
-    expect(reported).toStrictEqual([expect.any(LibraryUnavailableError)]);
+    expect(reported).toStrictEqual([LIBRARY_OUTAGE]);
   });
 
   it("passes a Plan's unset details through as null", async () => {
@@ -363,7 +378,7 @@ describe("create_plan", () => {
     expect(reported).toStrictEqual([]);
   });
 
-  it("creates the plan while the Library API is down, naming Exercises from their slugs", async () => {
+  it("creates the plan while the Library is down, naming Exercises from their slugs", async () => {
     const createPlan = vi.fn<UserServices["createPlan"]>(() =>
       Promise.resolve(servicePlan)
     );
@@ -373,7 +388,7 @@ describe("create_plan", () => {
     const client = await connectWithServices(
       { createPlan },
       reportError,
-      downLibrary()
+      downLibrary(reportError)
     );
 
     const result = await call(client, "create_plan", plan);
@@ -386,7 +401,7 @@ describe("create_plan", () => {
     expect(result.json).toMatchObject({
       workouts: [{ exercises: [{ muscle_groups: [], name: "Bench press" }] }],
     });
-    expect(reported).toStrictEqual([expect.any(LibraryUnavailableError)]);
+    expect(reported).toStrictEqual([LIBRARY_OUTAGE]);
   });
 
   it("fails when the Library index can't load, reports it and writes nothing", async () => {
@@ -399,7 +414,7 @@ describe("create_plan", () => {
     const client = await connectWithServices(
       { createPlan },
       reportError,
-      fakeLibrary(),
+      testLibrary(),
       testIndex({ loads: "fail", reportError })
     );
 
@@ -545,7 +560,7 @@ describe("update_plan", () => {
     });
   });
 
-  it("replaces workouts while the Library API is down", async () => {
+  it("replaces workouts while the Library is down", async () => {
     const updatePlan = vi.fn<UserServices["updatePlan"]>(() =>
       Promise.resolve(servicePlan)
     );
@@ -577,7 +592,7 @@ describe("update_plan", () => {
     const client = await connectWithServices(
       { updatePlan },
       reportError,
-      fakeLibrary(),
+      testLibrary(),
       testIndex({ loads: "fail", reportError })
     );
 
@@ -616,7 +631,7 @@ describe("update_plan", () => {
     const client = await connectWithServices(
       { updatePlan },
       ignoreReports,
-      fakeLibrary(),
+      testLibrary(),
       testIndex({ exercises: [BENCH] })
     );
 
@@ -907,7 +922,7 @@ describe("cover assignment", () => {
     const client = await connectWithServices(
       { createPlan },
       ignoreReports,
-      fakeLibrary(),
+      testLibrary(),
       indexWith([LEGS, CHEST_A])
     );
 
@@ -938,7 +953,7 @@ describe("cover assignment", () => {
     const client = await connectWithServices(
       { createPlan },
       ignoreReports,
-      fakeLibrary(),
+      testLibrary(),
       indexWith([CHEST_A, CHEST_B, LEGS])
     );
 
@@ -960,7 +975,7 @@ describe("cover assignment", () => {
     const client = await connectWithServices(
       { updatePlan },
       ignoreReports,
-      fakeLibrary(),
+      testLibrary(),
       indexWith([CHEST_A, LEGS])
     );
 
@@ -989,7 +1004,7 @@ describe("cover assignment", () => {
     const client = await connectWithServices(
       { updatePlan },
       ignoreReports,
-      fakeLibrary(),
+      testLibrary(),
       index
     );
 
@@ -1007,7 +1022,7 @@ describe("cover assignment", () => {
     const client = await connectWithServices(
       { createPlan },
       ignoreReports,
-      fakeLibrary(),
+      testLibrary(),
       indexWith([])
     );
 
@@ -1023,29 +1038,5 @@ describe("cover assignment", () => {
         { ...legDay, cover: null },
       ],
     });
-  });
-
-  it("never asks the Library API for Covers", async () => {
-    const createPlan = vi.fn<UserServices["createPlan"]>(() =>
-      Promise.resolve(servicePlan)
-    );
-
-    const library = fakeLibrary();
-    const covers = vi.spyOn(library, "covers");
-
-    const client = await connectWithServices(
-      { createPlan },
-      ignoreReports,
-      library,
-      indexWith([CHEST_A])
-    );
-
-    await call(client, "create_plan", { ...metadata, workouts: [chestDay] });
-
-    expect(createPlan).toHaveBeenCalledWith({
-      ...metadata,
-      workouts: [{ ...chestDay, cover: CHEST_A.id }],
-    });
-    expect(covers).not.toHaveBeenCalled();
   });
 });

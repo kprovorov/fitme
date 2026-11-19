@@ -17,8 +17,7 @@ describe("required environment variables", () => {
       "CLERK_PUBLISHABLE_KEY",
       "FITME_DATABASE_URL",
       "BLOB_STORE_ID",
-      "LIBRARY_URL",
-      "LIBRARY_MCP_SECRET",
+      "SUPABASE_URL",
     ]);
     expect(report).toHaveBeenCalledTimes(missing.length);
   });

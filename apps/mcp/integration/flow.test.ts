@@ -1,9 +1,8 @@
 /// <reference lib="es2023.array" />
 
-import { legacyMuscleGroups } from "@fitme/core";
-import type { LegacyMuscleGroup } from "@fitme/core";
+import { muscleGroups } from "@fitme/core";
+import type { MuscleGroup } from "@fitme/core";
 import { asUser, profiles } from "@fitme/db";
-import type { ListExercisesParams } from "@fitme/library-sdk";
 import type { ExerciseHistoryPage } from "@fitme/services/exercises";
 import type { ProfileWithUnits } from "@fitme/services/profile";
 import type { Client } from "@modelcontextprotocol/sdk/client/index.js";
@@ -29,8 +28,8 @@ import type {
   TestUser,
 } from "./setup.js";
 
-const isMuscleGroup = (value: string): value is LegacyMuscleGroup =>
-  legacyMuscleGroups.some((group) => group === value);
+const isMuscleGroup = (value: string): value is MuscleGroup =>
+  muscleGroups.some((group) => group === value);
 
 const workoutNamed = (detail: PlanDetail, name: string) => {
   const workout = detail.workouts.find((item) => item.name === name);
@@ -85,7 +84,7 @@ describe("plan and workout flow against the local stack", () => {
     const [first] = exercises;
     const muscleGroup = first.muscle_groups.find(isMuscleGroup);
 
-    const search: Pick<ListExercisesParams, "muscleGroup" | "search"> = {
+    const search: { muscleGroup?: MuscleGroup; search: string } = {
       search: first.name,
     };
 
@@ -119,14 +118,14 @@ describe("plan and workout flow against the local stack", () => {
   it("reads the exercise details", async () => {
     const [first] = exercises;
 
-    const detail = await callOk<{ instructions: string; slug: string }>(
+    const detail = await callOk<{ slug: string; steps: string[] }>(
       client,
       "get_exercise",
       { exerciseSlug: first.slug }
     );
 
     expect(detail.slug).toBe(first.slug);
-    expect(detail.instructions).toBeTruthy();
+    expect(detail.steps.length).toBeGreaterThan(0);
   });
 
   it("creates a plan with ordered workouts, exercises and sets", async () => {

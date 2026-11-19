@@ -1,9 +1,12 @@
 import { pickCovers } from "@fitme/core/covers";
 import { MAX_EXERCISE_SLUG_LENGTH } from "@fitme/core/limits";
 import type { LegacyMuscleGroup } from "@fitme/core/models";
+import type {
+  InMemoryLibrary,
+  LibraryExerciseSummary,
+} from "@fitme/library-bundle/in-memory-library";
 import type { IndexCover } from "@fitme/library-bundle/library-index";
 import { exerciseNameFromSlug } from "@fitme/library-sdk";
-import type { ExerciseSummary, Library } from "@fitme/library-sdk";
 import type { PlanDetail } from "@fitme/services/plans";
 import type { WorkoutSessionDetail } from "@fitme/services/workout-sessions";
 import { z } from "zod";
@@ -23,29 +26,28 @@ export const exerciseSlugSchema = z
 
 export const LIBRARY_UNAVAILABLE_MESSAGE = "Library unavailable, try again.";
 
-/** Known Exercises by slug, from one Library API lookup (reads). */
-export type KnownExercises = ReadonlyMap<string, ExerciseSummary>;
+/**
+ * Known Exercises by the slug a read asked for (an old slug keyed to its
+ * replacement), from one lookup in the Library.
+ */
+export type KnownExercises = ReadonlyMap<string, LibraryExerciseSummary>;
 
 /**
- * Runs a call a tool can't answer without (a search, `get_exercise`):
- * the library failing is reported, then shown as a `ToolError`.
+ * The instance's Library, for a tool that can't answer without it (a
+ * search, `get_exercise`): a bundle that can't load (reported by the
+ * Library itself) is the Library tool error.
  */
-export const fromLibrary = async <T>(
-  ctx: ToolContext,
-  call: (library: Library) => Promise<T>
-): Promise<T> => {
-  const library = ctx.getLibrary();
+export const requireLibrary = async (
+  ctx: ToolContext
+): Promise<InMemoryLibrary> => {
+  const answer = await ctx.library.get();
 
-  try {
-    return await call(library);
-  } catch (error) {
-    await ctx.reportError(error);
-    throw new ToolError(LIBRARY_UNAVAILABLE_MESSAGE, { cause: error });
+  if (answer.status === "unavailable") {
+    throw new ToolError(LIBRARY_UNAVAILABLE_MESSAGE);
   }
-};
 
-const bySlug = (exercises: ExerciseSummary[]): KnownExercises =>
-  new Map(exercises.map((exercise) => [exercise.slug, exercise]));
+  return answer.library;
+};
 
 /**
  * What the Library index (ADR 0018) says about a write's slugs, once every
@@ -60,7 +62,7 @@ export interface CheckedSlugs {
 /**
  * Checks every slug a write carries against the Library index, before the
  * services open their transaction (ADR 0010, ADR 0018), so no write waits
- * on the Library API: an unknown one is a `ToolError` naming it, unreported,
+ * on the Library API or the Library: an unknown one is a `ToolError` naming it, unreported,
  * and an index that can't be loaded (reported by the index itself) is the
  * Library tool error. Nothing is written either way.
  */
@@ -120,25 +122,26 @@ export const withCovers = <W extends { exercises: WithSlug[] }>(
 };
 
 /**
- * The Exercises a read shows, looked up after its transaction. Never fails
- * the read: with the library failing (reported) or not configured, every
+ * The Exercises a read shows, looked up in the Library after its
+ * transaction, an old slug answering its replacement. Never fails the read:
+ * with a bundle that can't load (reported by the Library itself), every
  * Exercise gets a name derived from its slug.
  */
 export const lookupForRead = async (
   ctx: ToolContext,
   slugs: string[]
 ): Promise<KnownExercises> => {
-  try {
-    const result = await ctx.getLibrary().lookup(slugs);
+  const answer = await ctx.library.get();
 
-    return bySlug(result.data);
-  } catch (error) {
-    if (!(error instanceof ToolError)) {
-      await ctx.reportError(error);
-    }
-
+  if (answer.status === "unavailable") {
     return new Map();
   }
+
+  return new Map(
+    answer.library
+      .lookup(slugs)
+      .data.map((exercise) => [exercise.requested_slug, exercise])
+  );
 };
 
 /** An Exercise as the tools show it: its slug, name and muscle groups. */
