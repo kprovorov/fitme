@@ -5,6 +5,8 @@ date: 2026-10-17
 
 # The Library API lives in the monorepo; only the content stays private
 
+Partly superseded by ADR 0022: the new Library is served by the Public API (`apps/api`), from the private `fitme-library` repo. The Library API and `fitme-exercises` serve the Legacy Library until they're deleted.
+
 The Library API moves out of the private `fitme-exercises` repository into this monorepo as `apps/library`, and only the content stays private. ADR 0007 is still the record of the Library leaving Postgres and being keyed by Exercise slug; this supersedes its bullets on where the API lives and how the data reaches it.
 
 ## Context

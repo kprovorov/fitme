@@ -5,6 +5,8 @@ date: 2026-10-17
 
 # The Library is a separate private service keyed by Exercise slug
 
+Partly superseded by ADR 0022: a new Library in `fitme-library`, served by the Public API, replaces this one, which lives on as the Legacy Library (Covers and older builds) until it's deleted. Replacing the Library rewrites stored slugs, so a slug is permanent only between replacements.
+
 Partly superseded by ADR 0008: the Library API lives in the monorepo as `apps/library`, and only the content stays in `fitme-exercises`. ADR 0008 replaces where the API's code lives and how the data reaches it: the "then deploys" step of "Every merge to `main` is a release", the "build turns the validated content into a module" part of "The Library API serves the data baked into its deployment", and "owns it end to end" in the introduction. The API's domain, its own Vercel project, its routes and everything else here stand.
 
 The Library leaves Postgres. Until now it was the `exercises` table, synced from CSV and markdown files in this monorepo (`packages/supabase/data/`), with media on DigitalOcean Spaces, readable by anyone who can call Supabase. A private repository, `fitme-exercises`, now owns it end to end, and the Library API serves it. Exercises are identified by their Exercise slug instead of a uuid.
