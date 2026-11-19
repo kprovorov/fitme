@@ -2,7 +2,7 @@
   "name": "@fitme/library-bundle",
   "version": "0.0.0",
   "private": true,
-  "description": "The Library bundles: the library.json fitme-exercises publishes (its version 1 schema, shared by the Library API build), the version 2 schema fitme-library publishes and the in-memory Library over it (ADR 0022), and the Library index the writers check Exercise slugs and pick Covers against (ADR 0018).",
+  "description": "The Library bundles: the library.json fitme-exercises publishes (its version 1 schema, shared by the Library API build), the version 2 schema fitme-library publishes the in-memory Library over it, its source and the per-instance Library loaded from it (ADR 0022), and the Library index the writers check Exercise slugs and pick Covers against (ADR 0018).",
   "type": "module",
   "main": "./src/schema.ts",
   "types": "./src/schema.ts",
@@ -11,6 +11,8 @@
     "./in-memory-library": "./src/in-memory-library.ts",
     "./library-index": "./src/library-index.ts",
     "./v2": "./src/schema-v2.ts",
+    "./v2/library": "./src/library-v2.ts",
+    "./v2/source": "./src/source-v2.ts",
     "./source": "./src/source.ts"
   },
   "scripts": {
