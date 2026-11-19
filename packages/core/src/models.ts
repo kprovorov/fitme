@@ -28,7 +28,11 @@ export const measurementSystems = ["metric", "us", "uk"] as const;
 
 export type MeasurementSystem = (typeof measurementSystems)[number];
 
-export const muscleGroups = [
+/**
+ * The Legacy Library's muscle groups (ADR 0022): the Library API, the v1
+ * bundle schema and the Legacy Library's index use them until it's deleted.
+ */
+export const legacyMuscleGroups = [
   "chest",
   "back",
   "shoulders",
@@ -48,15 +52,15 @@ export const muscleGroups = [
   "full-body",
 ] as const;
 
-export type MuscleGroup = (typeof muscleGroups)[number];
+export type LegacyMuscleGroup = (typeof legacyMuscleGroups)[number];
 
 /**
- * The gear an Exercise needs (GLOSSARY.md: Equipment). The only list of
- * Equipment in the codebase: the Library, the SDK, MCP, Arnold, i18n and the
- * app all read it from here, so a new value goes in here first and into the
- * content after. `bodyweight` means an Exercise needs no gear.
+ * The Legacy Library's Equipment (GLOSSARY.md: Equipment; ADR 0022): the gear
+ * an Exercise needs, as the Library API, the v1 bundle schema, the SDK, MCP,
+ * Arnold, i18n and the app read it today. A new value goes in here first and
+ * into the content after. `bodyweight` means an Exercise needs no gear.
  */
-export const equipment = [
+export const legacyEquipment = [
   "barbell",
   "dumbbell",
   "cable",
@@ -68,10 +72,10 @@ export const equipment = [
   "bodyweight",
 ] as const;
 
-export type Equipment = (typeof equipment)[number];
+export type LegacyEquipment = (typeof legacyEquipment)[number];
 
-export const isEquipment = (value: unknown): value is Equipment =>
-  equipment.some((item) => item === value);
+export const isLegacyEquipment = (value: unknown): value is LegacyEquipment =>
+  legacyEquipment.some((item) => item === value);
 
 /** The languages Fitme speaks to a User in (GLOSSARY.md: App language). */
 export const appLanguages = [

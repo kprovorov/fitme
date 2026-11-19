@@ -1,4 +1,8 @@
-import type { AppLanguage, Equipment, MuscleGroup } from "@fitme/core/models";
+import type {
+  AppLanguage,
+  LegacyEquipment,
+  LegacyMuscleGroup,
+} from "@fitme/core/models";
 
 // The Library API's response shapes, mirroring `apps/library`'s
 // zod schemas (src/schemas.ts): change both together.
@@ -10,8 +14,8 @@ export interface ExerciseSummary {
    * order; `bodyweight` means it needs none. Always answered, and never
    * translated: Equipment has no text.
    */
-  equipment: Equipment[];
-  muscle_groups: MuscleGroup[];
+  equipment: LegacyEquipment[];
+  muscle_groups: LegacyMuscleGroup[];
   name: string;
   slug: string;
   /** Supabase's image transformation endpoint: append `width` / `height`. */
@@ -52,7 +56,7 @@ export interface Cover {
   id: string;
   /** Supabase's image transformation endpoint: append `width` / `height`. */
   image_url: string;
-  muscle_groups: MuscleGroup[];
+  muscle_groups: LegacyMuscleGroup[];
 }
 
 /**
@@ -69,17 +73,17 @@ export interface ListExercisesParams extends LanguageOption {
    * Only Exercises with any of these pieces of Equipment (a repeated one
    * counts once), sent as `equipment`; an empty list filters nothing.
    */
-  equipment?: readonly Equipment[];
+  equipment?: readonly LegacyEquipment[];
   /** Page size, 1–50; the API's default is 20. */
   limit?: number;
   /** Only Exercises with this muscle group. Not combined with `muscleGroups`. */
-  muscleGroup?: MuscleGroup;
+  muscleGroup?: LegacyMuscleGroup;
   /**
    * Only Exercises with any of these muscle groups (a repeated one counts
    * once), sent as `muscle_groups`; an empty list filters nothing. Not
    * combined with `muscleGroup`.
    */
-  muscleGroups?: readonly MuscleGroup[];
+  muscleGroups?: readonly LegacyMuscleGroup[];
   /** How many matches to skip; the API's default is 0. */
   offset?: number;
   /**

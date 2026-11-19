@@ -1,5 +1,5 @@
-import { muscleGroups } from "@fitme/core";
-import type { MuscleGroup } from "@fitme/core";
+import { legacyMuscleGroups } from "@fitme/core";
+import type { LegacyMuscleGroup } from "@fitme/core";
 import type { ExerciseSummary } from "@fitme/library-sdk";
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 import { useCallback, useMemo, useRef } from "react";
@@ -15,8 +15,8 @@ import {
 import { updatePlanDraft } from "~/hooks/plan-draft";
 import { addDraftExercise, replaceDraftExercise } from "~/lib/plan-draft";
 
-const isMuscleGroup = (value: string | undefined): value is MuscleGroup =>
-  muscleGroups.some((group) => group === value);
+const isMuscleGroup = (value: string | undefined): value is LegacyMuscleGroup =>
+  legacyMuscleGroups.some((group) => group === value);
 
 /**
  * The Plan builder's Library picker, pushed over the Workout editor: it

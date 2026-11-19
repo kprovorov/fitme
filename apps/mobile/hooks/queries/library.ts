@@ -1,5 +1,9 @@
 import { defaultAppLanguage } from "@fitme/core";
-import type { AppLanguage, Equipment, MuscleGroup } from "@fitme/core";
+import type {
+  AppLanguage,
+  LegacyEquipment,
+  LegacyMuscleGroup,
+} from "@fitme/core";
 import {
   exerciseNameFromSlug,
   LibraryInvalidRequestError,
@@ -49,7 +53,7 @@ export const EXERCISE_STALE_TIME_MS = 60 * 60 * 1000;
 export interface ShownExercise {
   /** Whether the Library knows it, so its detail screen can open. */
   isResolved: boolean;
-  muscle_groups: MuscleGroup[];
+  muscle_groups: LegacyMuscleGroup[];
   name: string;
   slug: string;
   thumbnail_url: string | null;
@@ -301,14 +305,14 @@ export const EXERCISE_SEARCH_DEBOUNCE_MS = 300;
 
 interface ExerciseSearchParams {
   /** Exercises needing any of it; none filters nothing. */
-  equipment?: readonly Equipment[];
+  equipment?: readonly LegacyEquipment[];
   /** Exercises working any of them; none is every Exercise. */
-  muscleGroups: readonly MuscleGroup[];
+  muscleGroups: readonly LegacyMuscleGroup[];
   search: string;
 }
 
 /** A stable default, so a screen without an Equipment pill never re-sends. */
-const NO_EQUIPMENT: readonly Equipment[] = [];
+const NO_EQUIPMENT: readonly LegacyEquipment[] = [];
 
 /** One spelling per choice, in core's order, so it reuses its cache entry. */
 const choiceKey = (chosen: readonly string[]) => chosen.join(",");

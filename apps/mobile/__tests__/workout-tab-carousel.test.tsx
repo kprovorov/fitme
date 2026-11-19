@@ -1,4 +1,4 @@
-import type { MuscleGroup } from "@fitme/core";
+import type { LegacyMuscleGroup } from "@fitme/core";
 /**
  * The Workout tab's carousel on the mounted-screen seam: the real tab screen
  * with the Public API swapped for its fake and the Library for its fake
@@ -103,7 +103,7 @@ const mount = async () => {
   await settle(queryClient);
 };
 
-const exercise = (slug: string, muscleGroups: MuscleGroup[]) =>
+const exercise = (slug: string, muscleGroups: LegacyMuscleGroup[]) =>
   libraryExercise(slug, { muscle_groups: muscleGroups });
 
 /** The cards' Workout names, in the carousel's order. */

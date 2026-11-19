@@ -1,4 +1,7 @@
-import { equipment as equipmentList, muscleGroups } from "@fitme/core/models";
+import {
+  legacyEquipment as equipmentList,
+  legacyMuscleGroups,
+} from "@fitme/core/models";
 import { defineTool } from "eve/tools";
 import { z } from "zod";
 
@@ -51,9 +54,9 @@ export default defineTool({
         `Only exercises using any of this equipment: ${equipmentList.join(", ")}. When the user says what they have, add bodyweight to the list so exercises needing no equipment are included too.`
       ),
     muscle_group: z
-      .enum(muscleGroups)
+      .enum(legacyMuscleGroups)
       .optional()
-      .describe(`Filter by muscle group: ${muscleGroups.join(", ")}`),
+      .describe(`Filter by muscle group: ${legacyMuscleGroups.join(", ")}`),
     query: z
       .string()
       .max(MAX_SEARCH_LENGTH)

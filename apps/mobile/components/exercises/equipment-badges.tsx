@@ -1,4 +1,4 @@
-import type { Equipment } from "@fitme/core";
+import type { LegacyEquipment } from "@fitme/core";
 import { View } from "react-native";
 
 import { Badge } from "~/components/ui/badge";
@@ -17,7 +17,7 @@ import { useChoiceLabels } from "~/lib/choices";
 export const EquipmentBadges = ({
   equipment,
 }: {
-  equipment: readonly Equipment[];
+  equipment: readonly LegacyEquipment[];
 }) => {
   const labels = useChoiceLabels();
 

@@ -1,11 +1,15 @@
 import {
   appLanguages,
   defaultAppLanguage,
-  isEquipment,
-  equipment as knownEquipment,
-  muscleGroups as knownMuscleGroups,
+  isLegacyEquipment,
+  legacyEquipment as knownEquipment,
+  legacyMuscleGroups as knownMuscleGroups,
 } from "@fitme/core/models";
-import type { AppLanguage, Equipment, MuscleGroup } from "@fitme/core/models";
+import type {
+  AppLanguage,
+  LegacyEquipment,
+  LegacyMuscleGroup,
+} from "@fitme/core/models";
 
 import { LibraryInvalidRequestError } from "./errors";
 import type { LibraryError } from "./errors";
@@ -48,7 +52,7 @@ export type FakeExercise = (
   | Omit<Exercise, "equipment">
   | Omit<ExerciseSummary, "equipment">
 ) & {
-  equipment?: readonly Equipment[];
+  equipment?: readonly LegacyEquipment[];
   translations?: Partial<Record<AppLanguage, FakeTranslation>>;
 };
 
@@ -88,13 +92,13 @@ const toSummary = ({
  * (`servedEquipment` in `apps/library`): a repeat counted once, empty for an
  * Exercise given without any.
  */
-const servedEquipment = (needed: readonly Equipment[] = []) => {
+const servedEquipment = (needed: readonly LegacyEquipment[] = []) => {
   const neededSet = new Set(needed);
 
   return knownEquipment.filter((item) => neededSet.has(item));
 };
 
-const isMuscleGroup = (group: string): group is MuscleGroup =>
+const isMuscleGroup = (group: string): group is LegacyMuscleGroup =>
   knownMuscleGroups.some((knownGroup) => knownGroup === group);
 
 /**
@@ -106,7 +110,7 @@ const isMuscleGroup = (group: string): group is MuscleGroup =>
 const parseMuscleGroups = ({
   muscleGroup,
   muscleGroups,
-}: ListExercisesParams): MuscleGroup[] | undefined => {
+}: ListExercisesParams): LegacyMuscleGroup[] | undefined => {
   if (muscleGroups === undefined || muscleGroups.length === 0) {
     return undefined;
   }
@@ -133,14 +137,14 @@ const parseMuscleGroups = ({
  */
 const parseEquipment = ({
   equipment,
-}: ListExercisesParams): Equipment[] | undefined => {
+}: ListExercisesParams): LegacyEquipment[] | undefined => {
   if (equipment === undefined || equipment.length === 0) {
     return undefined;
   }
 
   const needed = equipment.join(",").split(",");
 
-  if (!needed.every(isEquipment)) {
+  if (!needed.every(isLegacyEquipment)) {
     throw new LibraryInvalidRequestError("equipment: invalid equipment");
   }
 

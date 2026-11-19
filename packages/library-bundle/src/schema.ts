@@ -1,8 +1,8 @@
 import {
   appLanguages,
   defaultAppLanguage,
-  equipment,
-  muscleGroups,
+  legacyEquipment,
+  legacyMuscleGroups,
 } from "@fitme/core/models";
 import type { AppLanguage } from "@fitme/core/models";
 import { z } from "zod";
@@ -27,14 +27,14 @@ const OID = /^[0-9a-f]{64}$/u;
 const COVER_ID =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/u;
 
-const KnownMuscleGroup = z.enum(muscleGroups, {
+const KnownMuscleGroup = z.enum(legacyMuscleGroups, {
   error: (issue) =>
-    `unknown muscle group ${JSON.stringify(issue.input)} (known: ${muscleGroups.join(", ")})`,
+    `unknown muscle group ${JSON.stringify(issue.input)} (known: ${legacyMuscleGroups.join(", ")})`,
 });
 
-const KnownEquipment = z.enum(equipment, {
+const KnownEquipment = z.enum(legacyEquipment, {
   error: (issue) =>
-    `unknown Equipment ${JSON.stringify(issue.input)} (known: ${equipment.join(", ")})`,
+    `unknown Equipment ${JSON.stringify(issue.input)} (known: ${legacyEquipment.join(", ")})`,
 });
 
 const media = <const Extension extends string>(

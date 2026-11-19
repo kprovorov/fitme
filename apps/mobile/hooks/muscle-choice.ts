@@ -1,5 +1,5 @@
-import { muscleGroups } from "@fitme/core";
-import type { MuscleGroup } from "@fitme/core";
+import { legacyMuscleGroups } from "@fitme/core";
+import type { LegacyMuscleGroup } from "@fitme/core";
 
 import { createChoiceStore } from "~/hooks/choice-store";
 
@@ -7,8 +7,10 @@ import { createChoiceStore } from "~/hooks/choice-store";
  * The Muscle groups a User can choose, in core's order: full-body and cardio
  * stay out until the Library has such Exercises.
  */
-export const choosableMuscleGroups: readonly MuscleGroup[] =
-  muscleGroups.filter((group) => group !== "full-body" && group !== "cardio");
+export const choosableMuscleGroups: readonly LegacyMuscleGroup[] =
+  legacyMuscleGroups.filter(
+    (group) => group !== "full-body" && group !== "cardio"
+  );
 
 /**
  * The confirmed Muscle group choice of each screen listing the Library, by

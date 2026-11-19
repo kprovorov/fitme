@@ -1,11 +1,15 @@
-import { appLanguages, equipment, muscleGroups } from "@fitme/core/models";
+import {
+  appLanguages,
+  legacyEquipment,
+  legacyMuscleGroups,
+} from "@fitme/core/models";
 import { z } from "@hono/zod-openapi";
 
 /** The Equipment enum, one named schema wherever it appears. */
-export const Equipment = z.enum(equipment).openapi("Equipment");
+export const Equipment = z.enum(legacyEquipment).openapi("Equipment");
 
 /** The muscle group enum, one named schema wherever it appears. */
-export const MuscleGroup = z.enum(muscleGroups).openapi("MuscleGroup");
+export const MuscleGroup = z.enum(legacyMuscleGroups).openapi("MuscleGroup");
 
 /** The App languages (`@fitme/core`) an Exercise can be asked for in. */
 export const Language = z.enum(appLanguages).openapi("Language");

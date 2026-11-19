@@ -1,7 +1,7 @@
 import {
   isAppLanguage,
-  equipment as knownEquipment,
-  muscleGroups,
+  legacyEquipment as knownEquipment,
+  legacyMuscleGroups,
 } from "@fitme/core/models";
 import type { AppLanguage } from "@fitme/core/models";
 
@@ -73,7 +73,9 @@ const muscleGroupsRefusal = ({
     return invalidRequest("muscle_groups: can't be combined with muscle_group");
   }
 
-  return groups.every((group) => muscleGroups.some((known) => known === group))
+  return groups.every((group) =>
+    legacyMuscleGroups.some((known) => known === group)
+  )
     ? null
     : invalidRequest("muscle_groups: invalid muscle group");
 };

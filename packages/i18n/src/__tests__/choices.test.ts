@@ -1,11 +1,11 @@
 import {
   appLanguages,
-  equipment,
+  legacyEquipment,
   experienceLevels,
   genders,
   goals,
   measurementSystems,
-  muscleGroups,
+  legacyMuscleGroups,
   places,
 } from "@fitme/core";
 import { describe, expect, it } from "vitest";
@@ -15,14 +15,14 @@ import { catalogs } from "..";
 // Every fixed choice the app shows, by its `choices` section: each section
 // holds exactly core's ids, so a new enum value can't ship untranslated.
 const choiceSections = {
-  equipment,
+  equipment: legacyEquipment,
   experienceLevel: experienceLevels,
   experienceLevelDescription: experienceLevels,
   gender: genders,
   goal: goals,
   measurementSystem: measurementSystems,
   measurementSystemDescription: measurementSystems,
-  muscleGroup: muscleGroups,
+  muscleGroup: legacyMuscleGroups,
   place: places,
 } satisfies Record<string, readonly string[]>;
 

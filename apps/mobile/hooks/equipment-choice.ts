@@ -1,4 +1,4 @@
-import { equipment } from "@fitme/core";
+import { legacyEquipment } from "@fitme/core";
 
 import { createChoiceStore } from "~/hooks/choice-store";
 
@@ -7,7 +7,7 @@ import { createChoiceStore } from "~/hooks/choice-store";
  * screen's key (`hooks/choice-store.ts`): every Equipment in core's order is
  * choosable, `bodyweight` (needs no gear) among them.
  */
-const store = createChoiceStore(equipment);
+const store = createChoiceStore(legacyEquipment);
 
 /** The Equipment among `chosen`, in core's order, each once. */
 export const equipmentInCoreOrder = store.inOrder;

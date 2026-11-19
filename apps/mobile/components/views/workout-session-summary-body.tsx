@@ -1,10 +1,10 @@
-import type { MuscleGroup } from "@fitme/core";
+import type { LegacyMuscleGroup } from "@fitme/core";
 import Svg, { G, Path } from "react-native-svg";
 import type { SvgProps } from "react-native-svg";
 import { useCSSVariable } from "uniwind";
 
 interface MuscleRegion {
-  group: MuscleGroup;
+  group: LegacyMuscleGroup;
   paths: string[];
 }
 
@@ -201,15 +201,19 @@ const BACK_REGIONS: MuscleRegion[] = [
 
 // "back" has no path of its own in the source artwork — generic back exercises
 // (rows, pulldowns) are represented by lighting up the lats region.
-const GROUP_SYNONYMS: Partial<Record<MuscleGroup, MuscleGroup[]>> = {
-  lats: ["back"],
-};
+const GROUP_SYNONYMS: Partial<Record<LegacyMuscleGroup, LegacyMuscleGroup[]>> =
+  {
+    lats: ["back"],
+  };
 
 interface BodyDiagramProps extends Omit<SvgProps, "viewBox"> {
-  groups: ReadonlySet<MuscleGroup>;
+  groups: ReadonlySet<LegacyMuscleGroup>;
 }
 
-const isActive = (groups: ReadonlySet<MuscleGroup>, group: MuscleGroup) => {
+const isActive = (
+  groups: ReadonlySet<LegacyMuscleGroup>,
+  group: LegacyMuscleGroup
+) => {
   if (groups.has("full-body") || groups.has(group)) {
     return true;
   }
@@ -238,7 +242,7 @@ const useFills = (): Fills => ({
 
 const renderRegions = (
   regions: MuscleRegion[],
-  groups: ReadonlySet<MuscleGroup>,
+  groups: ReadonlySet<LegacyMuscleGroup>,
   fills: Fills
 ) =>
   regions.flatMap((region) =>
