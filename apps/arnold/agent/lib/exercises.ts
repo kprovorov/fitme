@@ -3,7 +3,6 @@ import type { AppLanguage, MuscleGroup } from "@fitme/core/models";
 import { z } from "zod";
 
 import { getLibrary } from "./library";
-import { getLibraryIndex } from "./library-index";
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/iu;
 const SLUG_SEPARATORS = /[-_]+/gu;
@@ -35,11 +34,12 @@ export const libraryUnavailable = (done: string) => ({
 });
 
 /**
- * Checks Exercise slugs before a tool writes them, against the Library index
- * (ADR 0018; outside any transaction, and no Library API call): `null` when
- * the index has every one, else an `{ error }` for the model, so nothing gets
+ * Checks Exercise slugs before a tool writes them, against the instance's
+ * Library (ADR 0022; in process, outside any transaction): `null` when it
+ * knows every one, an old slug in its `replaced_slugs` included (stored as
+ * sent until the rewrite), else an `{ error }` for the model, so nothing gets
  * written. A uuid (an exercise id from an older Conversation) gets an error
- * that sends the model searching by name; an index that can't load (its load
+ * that sends the model searching by name; a Library that can't load (its load
  * reported why) asks to retry.
  */
 export const checkExerciseSlugs = async (
@@ -53,15 +53,17 @@ export const checkExerciseSlugs = async (
     };
   }
 
-  const found = await getLibraryIndex().lookup(slugs);
+  const answer = await getLibrary().get();
 
-  if (found.status === "unavailable") {
+  if (answer.status === "unavailable") {
     return libraryUnavailable("nothing was saved");
   }
 
-  return found.missing.length > 0
+  const { unknown } = answer.library.checkSlugs(slugs);
+
+  return unknown.length > 0
     ? {
-        error: `Unknown exercise_slug(s): ${found.missing.join(", ")}. Use search_exercises to find a valid exercise_slug; nothing was saved.`,
+        error: `Unknown exercise_slug(s): ${unknown.join(", ")}. Use search_exercises to find a valid exercise_slug; nothing was saved.`,
       }
     : null;
 };
