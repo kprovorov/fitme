@@ -197,6 +197,11 @@
     "success": "Wachtwoord gewijzigd"
   },
   "choices": {
+    "difficulty": {
+      "beginner": "Beginner",
+      "intermediate": "Gemiddeld",
+      "advanced": "Gevorderd"
+    },
     "equipment": {
       "barbell": "Halterstang",
       "dumbbell": "Halter",
@@ -206,7 +211,24 @@
       "bench": "Trainingsbank",
       "pull_up_bar": "Optrekstang",
       "landmine": "Landmine",
-      "bodyweight": "Lichaamsgewicht"
+      "bodyweight": "Lichaamsgewicht",
+      "kettlebell": "Kettlebell",
+      "band": "Weerstandsband",
+      "parallel_bars": "Brug",
+      "bicycle": "Fiets",
+      "weight_plate": "Halterschijf",
+      "box": "Box",
+      "stability_ball": "Fitnessbal",
+      "backpack": "Rugzak",
+      "medicine_ball": "Medicijnbal",
+      "sled": "Slee",
+      "towel": "Handdoek",
+      "trx": "TRX",
+      "battle_ropes": "Battle ropes",
+      "dowel": "Stok",
+      "slider": "Glijschijf",
+      "foam_roller": "Foamroller",
+      "wrist_roller": "Polsroller"
     },
     "experienceLevel": {
       "beginner": "Beginner",
@@ -239,6 +261,22 @@
       "us": "Voet, inch en pond",
       "uk": "Voet, inch en pond"
     },
+    "movementPattern": {
+      "isolation": "Isolatie",
+      "push": "Duwen",
+      "pull": "Trekken",
+      "hinge": "Heupscharnier",
+      "squat": "Squat",
+      "mobility": "Mobiliteit",
+      "cardio": "Cardio",
+      "core": "Core",
+      "lunge": "Lunge",
+      "plyometric": "Plyometrie",
+      "rotation": "Rotatie",
+      "stretch": "Stretch",
+      "hip_abduction": "Heupabductie",
+      "carry": "Dragen"
+    },
     "muscleGroup": {
       "chest": "Borst",
       "back": "Rug",
@@ -256,7 +294,11 @@
       "lats": "Brede rugspieren",
       "lower-back": "Onderrug",
       "cardio": "Cardio",
-      "full-body": "Hele lichaam"
+      "full-body": "Hele lichaam",
+      "core": "Core",
+      "adductors": "Adductoren",
+      "tibialis": "Scheenbeenspier",
+      "neck": "Nek"
     },
     "place": {
       "gym": "Sportschool",

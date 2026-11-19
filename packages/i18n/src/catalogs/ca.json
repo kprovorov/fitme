@@ -202,6 +202,11 @@
     "success": "Contrasenya canviada"
   },
   "choices": {
+    "difficulty": {
+      "beginner": "Principiant",
+      "intermediate": "Intermedi",
+      "advanced": "Avançat"
+    },
     "equipment": {
       "barbell": "Barra",
       "dumbbell": "Manuella",
@@ -211,7 +216,24 @@
       "bench": "Banc",
       "pull_up_bar": "Barra de dominades",
       "landmine": "Landmine",
-      "bodyweight": "Pes corporal"
+      "bodyweight": "Pes corporal",
+      "kettlebell": "Pesa russa",
+      "band": "Banda elàstica",
+      "parallel_bars": "Paral·leles",
+      "bicycle": "Bicicleta",
+      "weight_plate": "Disc",
+      "box": "Calaix",
+      "stability_ball": "Fitball",
+      "backpack": "Motxilla",
+      "medicine_ball": "Pilota medicinal",
+      "sled": "Trineu",
+      "towel": "Tovallola",
+      "trx": "TRX",
+      "battle_ropes": "Cordes de batalla",
+      "dowel": "Pica",
+      "slider": "Disc lliscant",
+      "foam_roller": "Corró d’escuma",
+      "wrist_roller": "Corró de canell"
     },
     "experienceLevel": {
       "beginner": "Principiant",
@@ -244,6 +266,22 @@
       "us": "Peus, polzades i lliures",
       "uk": "Peus, polzades i lliures"
     },
+    "movementPattern": {
+      "isolation": "Aïllament",
+      "push": "Empenta",
+      "pull": "Tracció",
+      "hinge": "Frontissa de maluc",
+      "squat": "Esquat",
+      "mobility": "Mobilitat",
+      "cardio": "Càrdio",
+      "core": "Core",
+      "lunge": "Gambada",
+      "plyometric": "Pliometria",
+      "rotation": "Rotació",
+      "stretch": "Estirament",
+      "hip_abduction": "Abducció de maluc",
+      "carry": "Transport de càrrega"
+    },
     "muscleGroup": {
       "chest": "Pit",
       "back": "Esquena",
@@ -261,7 +299,11 @@
       "lats": "Dorsals",
       "lower-back": "Zona lumbar",
       "cardio": "Càrdio",
-      "full-body": "Cos sencer"
+      "full-body": "Cos sencer",
+      "core": "Core",
+      "adductors": "Adductors",
+      "tibialis": "Tibial anterior",
+      "neck": "Coll"
     },
     "place": {
       "gym": "Gimnàs",

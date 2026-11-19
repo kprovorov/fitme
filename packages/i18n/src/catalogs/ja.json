@@ -192,6 +192,11 @@
     "success": "パスワードを変更しました"
   },
   "choices": {
+    "difficulty": {
+      "beginner": "初級",
+      "intermediate": "中級",
+      "advanced": "上級"
+    },
     "equipment": {
       "barbell": "バーベル",
       "dumbbell": "ダンベル",
@@ -201,7 +206,24 @@
       "bench": "ベンチ",
       "pull_up_bar": "懸垂バー",
       "landmine": "ランドマイン",
-      "bodyweight": "自重"
+      "bodyweight": "自重",
+      "kettlebell": "ケトルベル",
+      "band": "トレーニングチューブ",
+      "parallel_bars": "平行棒",
+      "bicycle": "自転車",
+      "weight_plate": "プレート",
+      "box": "ボックス",
+      "stability_ball": "バランスボール",
+      "backpack": "リュック",
+      "medicine_ball": "メディシンボール",
+      "sled": "スレッド",
+      "towel": "タオル",
+      "trx": "TRX",
+      "battle_ropes": "バトルロープ",
+      "dowel": "ストレッチ棒",
+      "slider": "スライダー",
+      "foam_roller": "フォームローラー",
+      "wrist_roller": "リストローラー"
     },
     "experienceLevel": {
       "beginner": "初心者",
@@ -234,6 +256,22 @@
       "us": "フィート・インチ・ポンド",
       "uk": "フィート・インチ・ポンド"
     },
+    "movementPattern": {
+      "isolation": "アイソレーション",
+      "push": "プッシュ",
+      "pull": "プル",
+      "hinge": "ヒップヒンジ",
+      "squat": "スクワット",
+      "mobility": "モビリティ",
+      "cardio": "有酸素運動",
+      "core": "体幹",
+      "lunge": "ランジ",
+      "plyometric": "プライオメトリクス",
+      "rotation": "回旋",
+      "stretch": "ストレッチ",
+      "hip_abduction": "股関節外転",
+      "carry": "キャリー"
+    },
     "muscleGroup": {
       "chest": "胸",
       "back": "背中",
@@ -251,7 +289,11 @@
       "lats": "広背筋",
       "lower-back": "腰",
       "cardio": "有酸素運動",
-      "full-body": "全身"
+      "full-body": "全身",
+      "core": "体幹",
+      "adductors": "内転筋",
+      "tibialis": "前脛骨筋",
+      "neck": "首"
     },
     "place": {
       "gym": "ジム",

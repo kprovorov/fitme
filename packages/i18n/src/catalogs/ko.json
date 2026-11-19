@@ -192,6 +192,11 @@
     "success": "비밀번호를 변경했어요"
   },
   "choices": {
+    "difficulty": {
+      "beginner": "초급",
+      "intermediate": "중급",
+      "advanced": "고급"
+    },
     "equipment": {
       "barbell": "바벨",
       "dumbbell": "덤벨",
@@ -201,7 +206,24 @@
       "bench": "벤치",
       "pull_up_bar": "풀업 바",
       "landmine": "랜드마인",
-      "bodyweight": "맨몸"
+      "bodyweight": "맨몸",
+      "kettlebell": "케틀벨",
+      "band": "저항 밴드",
+      "parallel_bars": "평행봉",
+      "bicycle": "자전거",
+      "weight_plate": "원판",
+      "box": "박스",
+      "stability_ball": "짐볼",
+      "backpack": "배낭",
+      "medicine_ball": "메디신 볼",
+      "sled": "썰매",
+      "towel": "수건",
+      "trx": "TRX",
+      "battle_ropes": "배틀 로프",
+      "dowel": "스트레칭 봉",
+      "slider": "슬라이더",
+      "foam_roller": "폼롤러",
+      "wrist_roller": "리스트 롤러"
     },
     "experienceLevel": {
       "beginner": "초급",
@@ -234,6 +256,22 @@
       "us": "피트, 인치 및 파운드",
       "uk": "피트, 인치 및 파운드"
     },
+    "movementPattern": {
+      "isolation": "고립",
+      "push": "밀기",
+      "pull": "당기기",
+      "hinge": "힙 힌지",
+      "squat": "스쿼트",
+      "mobility": "가동성",
+      "cardio": "유산소",
+      "core": "코어",
+      "lunge": "런지",
+      "plyometric": "플라이오메트릭",
+      "rotation": "회전",
+      "stretch": "스트레칭",
+      "hip_abduction": "고관절 외전",
+      "carry": "캐리"
+    },
     "muscleGroup": {
       "chest": "가슴",
       "back": "등",
@@ -251,7 +289,11 @@
       "lats": "광배근",
       "lower-back": "허리",
       "cardio": "유산소",
-      "full-body": "전신"
+      "full-body": "전신",
+      "core": "코어",
+      "adductors": "내전근",
+      "tibialis": "전경골근",
+      "neck": "목"
     },
     "place": {
       "gym": "헬스장",

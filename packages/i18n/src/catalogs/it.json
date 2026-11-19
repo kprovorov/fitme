@@ -202,6 +202,11 @@
     "success": "Password cambiata"
   },
   "choices": {
+    "difficulty": {
+      "beginner": "Principiante",
+      "intermediate": "Intermedio",
+      "advanced": "Avanzato"
+    },
     "equipment": {
       "barbell": "Bilanciere",
       "dumbbell": "Manubrio",
@@ -211,7 +216,24 @@
       "bench": "Panca",
       "pull_up_bar": "Sbarra per trazioni",
       "landmine": "Landmine",
-      "bodyweight": "Corpo libero"
+      "bodyweight": "Corpo libero",
+      "kettlebell": "Kettlebell",
+      "band": "Elastico",
+      "parallel_bars": "Parallele",
+      "bicycle": "Bicicletta",
+      "weight_plate": "Disco",
+      "box": "Box",
+      "stability_ball": "Fitball",
+      "backpack": "Zaino",
+      "medicine_ball": "Palla medica",
+      "sled": "Slitta",
+      "towel": "Asciugamano",
+      "trx": "TRX",
+      "battle_ropes": "Battle rope",
+      "dowel": "Bastone",
+      "slider": "Disco scorrevole",
+      "foam_roller": "Foam roller",
+      "wrist_roller": "Rullo per polsi"
     },
     "experienceLevel": {
       "beginner": "Principiante",
@@ -244,6 +266,22 @@
       "us": "Piedi, pollici e libbre",
       "uk": "Piedi, pollici e libbre"
     },
+    "movementPattern": {
+      "isolation": "Isolamento",
+      "push": "Spinta",
+      "pull": "Trazione",
+      "hinge": "Cerniera dell’anca",
+      "squat": "Squat",
+      "mobility": "Mobilità",
+      "cardio": "Cardio",
+      "core": "Core",
+      "lunge": "Affondo",
+      "plyometric": "Pliometria",
+      "rotation": "Rotazione",
+      "stretch": "Allungamento",
+      "hip_abduction": "Abduzione dell’anca",
+      "carry": "Trasporto"
+    },
     "muscleGroup": {
       "chest": "Pettorali",
       "back": "Schiena",
@@ -261,7 +299,11 @@
       "lats": "Dorsali",
       "lower-back": "Lombari",
       "cardio": "Cardio",
-      "full-body": "Tutto il corpo"
+      "full-body": "Tutto il corpo",
+      "core": "Core",
+      "adductors": "Adduttori",
+      "tibialis": "Tibiale anteriore",
+      "neck": "Collo"
     },
     "place": {
       "gym": "Palestra",

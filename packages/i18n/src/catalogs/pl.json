@@ -207,6 +207,11 @@
     "success": "Hasło zmienione"
   },
   "choices": {
+    "difficulty": {
+      "beginner": "Początkujący",
+      "intermediate": "Średni",
+      "advanced": "Zaawansowany"
+    },
     "equipment": {
       "barbell": "Sztanga",
       "dumbbell": "Hantel",
@@ -216,7 +221,24 @@
       "bench": "Ławka",
       "pull_up_bar": "Drążek do podciągania",
       "landmine": "Uchwyt do sztangi",
-      "bodyweight": "Masa ciała"
+      "bodyweight": "Masa ciała",
+      "kettlebell": "Kettlebell",
+      "band": "Guma oporowa",
+      "parallel_bars": "Poręcze",
+      "bicycle": "Rower",
+      "weight_plate": "Talerz",
+      "box": "Skrzynia",
+      "stability_ball": "Piłka gimnastyczna",
+      "backpack": "Plecak",
+      "medicine_ball": "Piłka lekarska",
+      "sled": "Sanki",
+      "towel": "Ręcznik",
+      "trx": "TRX",
+      "battle_ropes": "Liny treningowe",
+      "dowel": "Kij gimnastyczny",
+      "slider": "Dysk ślizgowy",
+      "foam_roller": "Wałek do masażu",
+      "wrist_roller": "Zwijak do nadgarstków"
     },
     "experienceLevel": {
       "beginner": "Początkujący",
@@ -249,6 +271,22 @@
       "us": "Stopy, cale i funty",
       "uk": "Stopy, cale i funty"
     },
+    "movementPattern": {
+      "isolation": "Izolacja",
+      "push": "Pchanie",
+      "pull": "Przyciąganie",
+      "hinge": "Zawias biodrowy",
+      "squat": "Przysiad",
+      "mobility": "Mobilność",
+      "cardio": "Kardio",
+      "core": "Core",
+      "lunge": "Wykrok",
+      "plyometric": "Plyometria",
+      "rotation": "Rotacja",
+      "stretch": "Rozciąganie",
+      "hip_abduction": "Odwodzenie biodra",
+      "carry": "Przenoszenie"
+    },
     "muscleGroup": {
       "chest": "Klatka piersiowa",
       "back": "Plecy",
@@ -266,7 +304,11 @@
       "lats": "Mięśnie najszersze grzbietu",
       "lower-back": "Dolna część pleców",
       "cardio": "Kardio",
-      "full-body": "Całe ciało"
+      "full-body": "Całe ciało",
+      "core": "Mięśnie głębokie",
+      "adductors": "Przywodziciele",
+      "tibialis": "Mięśnie piszczelowe",
+      "neck": "Szyja"
     },
     "place": {
       "gym": "Siłownia",

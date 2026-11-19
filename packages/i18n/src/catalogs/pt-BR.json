@@ -202,6 +202,11 @@
     "success": "Senha alterada"
   },
   "choices": {
+    "difficulty": {
+      "beginner": "Iniciante",
+      "intermediate": "Intermediário",
+      "advanced": "Avançado"
+    },
     "equipment": {
       "barbell": "Barra",
       "dumbbell": "Halter",
@@ -211,7 +216,24 @@
       "bench": "Banco",
       "pull_up_bar": "Barra fixa",
       "landmine": "Landmine",
-      "bodyweight": "Peso corporal"
+      "bodyweight": "Peso corporal",
+      "kettlebell": "Kettlebell",
+      "band": "Elástico",
+      "parallel_bars": "Barras paralelas",
+      "bicycle": "Bicicleta",
+      "weight_plate": "Anilha",
+      "box": "Caixa",
+      "stability_ball": "Bola suíça",
+      "backpack": "Mochila",
+      "medicine_ball": "Medicine ball",
+      "sled": "Trenó",
+      "towel": "Toalha",
+      "trx": "TRX",
+      "battle_ropes": "Cordas navais",
+      "dowel": "Bastão",
+      "slider": "Disco deslizante",
+      "foam_roller": "Rolo de espuma",
+      "wrist_roller": "Rolo de punho"
     },
     "experienceLevel": {
       "beginner": "Iniciante",
@@ -244,6 +266,22 @@
       "us": "Pés, polegadas e libras",
       "uk": "Pés, polegadas e libras"
     },
+    "movementPattern": {
+      "isolation": "Isolamento",
+      "push": "Empurrar",
+      "pull": "Puxar",
+      "hinge": "Dobradiça de quadril",
+      "squat": "Agachamento",
+      "mobility": "Mobilidade",
+      "cardio": "Cardio",
+      "core": "Core",
+      "lunge": "Afundo",
+      "plyometric": "Pliometria",
+      "rotation": "Rotação",
+      "stretch": "Alongamento",
+      "hip_abduction": "Abdução de quadril",
+      "carry": "Carregamento"
+    },
     "muscleGroup": {
       "chest": "Peitoral",
       "back": "Costas",
@@ -261,7 +299,11 @@
       "lats": "Dorsais",
       "lower-back": "Lombar",
       "cardio": "Cardio",
-      "full-body": "Corpo inteiro"
+      "full-body": "Corpo inteiro",
+      "core": "Core",
+      "adductors": "Adutores",
+      "tibialis": "Tibial anterior",
+      "neck": "Pescoço"
     },
     "place": {
       "gym": "Academia",
