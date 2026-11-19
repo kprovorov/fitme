@@ -1,4 +1,4 @@
-import type { LegacyMuscleGroup } from "@fitme/core";
+import type { LegacyMuscleGroup, MuscleGroup } from "@fitme/core";
 import Svg, { G, Path } from "react-native-svg";
 import type { SvgProps } from "react-native-svg";
 import { useCSSVariable } from "uniwind";
@@ -199,19 +199,24 @@ const BACK_REGIONS: MuscleRegion[] = [
   },
 ];
 
+/** A muscle group of either Library, as an Exercise's row names it. */
+type ShownMuscleGroup = LegacyMuscleGroup | MuscleGroup;
+
 // "back" has no path of its own in the source artwork — generic back exercises
-// (rows, pulldowns) are represented by lighting up the lats region.
-const GROUP_SYNONYMS: Partial<Record<LegacyMuscleGroup, LegacyMuscleGroup[]>> =
-  {
-    lats: ["back"],
-  };
+// (rows, pulldowns) are represented by lighting up the lats region. The new
+// Library's "core" (ADR 0022) lights the abs and obliques it holds.
+const GROUP_SYNONYMS: Partial<Record<LegacyMuscleGroup, ShownMuscleGroup[]>> = {
+  abs: ["core"],
+  lats: ["back"],
+  obliques: ["core"],
+};
 
 interface BodyDiagramProps extends Omit<SvgProps, "viewBox"> {
-  groups: ReadonlySet<LegacyMuscleGroup>;
+  groups: ReadonlySet<ShownMuscleGroup>;
 }
 
 const isActive = (
-  groups: ReadonlySet<LegacyMuscleGroup>,
+  groups: ReadonlySet<ShownMuscleGroup>,
   group: LegacyMuscleGroup
 ) => {
   if (groups.has("full-body") || groups.has(group)) {
@@ -242,7 +247,7 @@ const useFills = (): Fills => ({
 
 const renderRegions = (
   regions: MuscleRegion[],
-  groups: ReadonlySet<LegacyMuscleGroup>,
+  groups: ReadonlySet<ShownMuscleGroup>,
   fills: Fills
 ) =>
   regions.flatMap((region) =>

@@ -4,25 +4,29 @@
  * badges under the clip, in the order the Library answers (core's), named in
  * the App language. Content the Library hasn't tagged shows no row.
  *
- * The real screen on the fake Library, and on the MMKV copy alone for a
- * device that can't reach the Library, which is also the only way an
+ * The real screen on the fake Public API's Exercise routes, and on the MMKV
+ * copy alone for a device that can't reach them, which is also the only way an
  * Equipment id this build doesn't know arrives (the fake, like the API,
  * answers core's list only).
  */
-import type { LegacyEquipment } from "@fitme/core";
-import { LibraryUnavailableError } from "@fitme/library-sdk";
-import type { Exercise } from "@fitme/library-sdk";
-import type { FakeLibrary } from "@fitme/library-sdk/fake";
+import type { Equipment } from "@fitme/core";
 import { beforeEach, describe, expect, it, jest } from "@jest/globals";
 import { QueryClientProvider } from "@tanstack/react-query";
 import type { QueryClient } from "@tanstack/react-query";
 import { render, screen, within } from "@testing-library/react-native";
 
 import ExerciseScreen from "~/app/exercises/[exerciseSlug]/index";
+import type { Exercise } from "~/lib/exercises";
 import { writeCachedExercise } from "~/lib/library-cache";
 import { storage } from "~/lib/mmkv";
 import { setDeviceLanguages } from "~/test-utils/device-locales";
-import { libraryExercise, serveLibrary } from "~/test-utils/fake-library";
+import {
+  EXERCISES_UNAVAILABLE,
+  failExercises,
+  fakeExercise,
+  serveExercises,
+} from "~/test-utils/fake-exercises";
+import { fakePublicApi } from "~/test-utils/fake-public-api";
 import { InAppLanguage } from "~/test-utils/in-app-language";
 import { createTestQueryClient, settle } from "~/test-utils/query-client";
 
@@ -50,26 +54,46 @@ jest.mock("~/components/exercises/exercise-video", () => () => null);
 jest.mock("~/components/symbol-image", () => ({ SymbolImage: () => null }));
 
 /** Tagged with two pieces of Equipment, given out of core's order. */
-const BENCH_PRESS = libraryExercise("bench-press", {
+const BENCH_PRESS = fakeExercise("bench-press", {
   equipment: ["bench", "barbell"],
   name: "Bench Press",
   translations: {
     uk: {
-      description: "Про жим лежачи.",
-      instructions: "- Лягайте.",
       name: "Жим лежачи",
+      short_description: "Про жим лежачи.",
+      steps: ["Лягайте."],
     },
   },
 });
 
 /** Content the Library hasn't tagged yet. */
-const UNTAGGED = libraryExercise("good-morning", { equipment: [] });
+const UNTAGGED = fakeExercise("good-morning", {
+  equipment: [],
+  name: "Good Morning",
+});
+
+/** Bench Press in full, as `GET /v1/exercises/bench-press` answers it in English. */
+const BENCH_PRESS_IN_FULL: Exercise = {
+  benefits: [],
+  common_mistakes: [],
+  difficulty: "beginner",
+  equipment: ["barbell", "bench"],
+  long_description: "How to do Bench Press",
+  movement_patterns: ["push"],
+  muscle_groups: ["chest"],
+  name: "Bench Press",
+  secondary_muscle_groups: [],
+  short_description: "About Bench Press",
+  slug: "bench-press",
+  steps: ["Do Bench Press"],
+  thumbnail_url: "https://media.test/render/bench-press.webp",
+  video_url: "https://media.test/bench-press.mp4",
+};
 
 /** Older than the hour a kept Exercise stays fresh for. */
 const STALE_MS = 2 * 60 * 60 * 1000;
 
 let client: QueryClient;
-let fake: FakeLibrary;
 
 const renderScreen = async (exerciseSlug: string) => {
   params.current = { exerciseSlug };
@@ -92,7 +116,7 @@ const shownEquipment = () =>
 
 beforeEach(() => {
   storage.clearAll();
-  fake = serveLibrary([BENCH_PRESS, UNTAGGED]);
+  serveExercises([BENCH_PRESS, UNTAGGED]);
 });
 
 describe("an Exercise's Equipment", () => {
@@ -106,7 +130,7 @@ describe("an Exercise's Equipment", () => {
     await renderScreen("good-morning");
 
     // The screen itself is there: it's only the row that isn't.
-    expect(screen.getByText("About good-morning.")).toBeTruthy();
+    expect(screen.getByText("About Good Morning")).toBeTruthy();
     expect(screen.queryByTestId("equipment-badges")).toBeNull();
   });
 
@@ -129,13 +153,13 @@ const keptOnDevice = (exercise: Exercise) => {
   // Saved long enough ago to be stale, so the screen does ask the Library
   // again: what it shows is the copy surviving that failure, not a copy the
   // query never looked past.
-  writeCachedExercise("en", exercise, Date.now() - STALE_MS);
-  fake.failWith(new LibraryUnavailableError());
+  writeCachedExercise("en", exercise, { savedAt: Date.now() - STALE_MS });
+  failExercises(EXERCISES_UNAVAILABLE);
 };
 
 describe("an Exercise read offline, from the copy kept on the device", () => {
   it("shows its Equipment, the Library unreachable", async () => {
-    keptOnDevice({ ...BENCH_PRESS, equipment: ["barbell", "bench"] });
+    keptOnDevice(BENCH_PRESS_IN_FULL);
 
     await renderScreen("bench-press");
 
@@ -147,25 +171,43 @@ describe("an Exercise read offline, from the copy kept on the device", () => {
     // an id it doesn't know through, and so does the copy kept of it. The
     // fake, like the API, answers core's own list only.
     keptOnDevice({
-      ...BENCH_PRESS,
-      equipment: ["barbell", "sandbag" as LegacyEquipment],
+      ...BENCH_PRESS_IN_FULL,
+      equipment: ["barbell", "sandbag" as Equipment],
     });
 
     await renderScreen("bench-press");
 
     expect(shownEquipment()).toEqual(["Barbell", "sandbag"]);
   });
+});
 
-  it("shows no row for a copy kept before the Library had Equipment", async () => {
-    const { equipment: _none, ...beforeEquipment } = BENCH_PRESS;
-    // SAFETY: the shape a build from before Equipment wrote, which the schema
-    // behind `readCachedExercise` still accepts.
-    keptOnDevice(beforeEquipment as Exercise);
+describe("a copy kept by a build reading the Legacy Library", () => {
+  it("is swept, and the screen reads the Exercise from the new route", async () => {
+    // The Legacy Library's shape, under its key: no Equipment, no steps.
+    storage.set(
+      "library.en.exercise.bench-press",
+      JSON.stringify({
+        savedAt: Date.now(),
+        value: {
+          description: "About bench-press.",
+          instructions: "- Do bench-press.",
+          muscle_groups: ["chest"],
+          name: "Bench Press",
+          slug: "bench-press",
+          thumbnail_url: "https://media.test/render/bench-press.jpg",
+          video_url: "https://media.test/bench-press.mp4",
+        },
+      })
+    );
 
     await renderScreen("bench-press");
 
-    expect(screen.getByText("About bench-press.")).toBeTruthy();
-    expect(screen.queryByTestId("equipment-badges")).toBeNull();
+    expect(
+      storage.getString("library.en.exercise.bench-press")
+    ).toBeUndefined();
+    expect(fakePublicApi.count("GET /v1/exercises/{slug}")).toBe(1);
+    expect(screen.getByText("About Bench Press")).toBeTruthy();
+    expect(shownEquipment()).toEqual(["Barbell", "Bench"]);
   });
 });
 
@@ -175,7 +217,7 @@ describe("a copy of an Exercise the device can't read", () => {
     // behind `readCachedExercise` rejects the whole copy, so the screen asks
     // the Library instead of mapping over it.
     writeCachedExercise("en", {
-      ...BENCH_PRESS,
+      ...BENCH_PRESS_IN_FULL,
       // SAFETY: the one shape the typed API can't write, which is the point:
       // only a corrupted copy holds an `equipment` that isn't a list of ids.
       equipment: "barbell" as never,

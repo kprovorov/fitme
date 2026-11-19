@@ -67,8 +67,13 @@ import type {
 } from "@fitme/core";
 import { z } from "zod";
 
-import { getExercise, listExercises, resetExercises } from "./fake-exercises";
-import { library, libraryExercise } from "./fake-library";
+import {
+  checkServedSlugs,
+  fakeExercise,
+  getExercise,
+  listExercises,
+  resetExercises,
+} from "./fake-exercises";
 
 /*
  * The in-memory rows every route answers over (`backend`), and their seeding
@@ -130,7 +135,7 @@ export interface SetRow {
 /**
  * Sets of an exercise, as `reps_completed` values (`null` = untracked). The
  * Exercise is stored by slug: `slug`, or one made from `name` ("Bench Press"
- * → `bench-press`), which `libraryExerciseNamed` serves under that name.
+ * → `bench-press`), which `fakeExerciseNamed` serves under that name.
  */
 export interface SeedExercise {
   name: string;
@@ -218,9 +223,9 @@ export interface SeedSession {
 /** The Exercise slug a seeded Exercise named `name` is stored by. */
 export const slugOf = (name: string) => name.toLowerCase().replaceAll(" ", "-");
 
-/** The Library's Exercise for a seeded name, for the fake library. */
-export const libraryExerciseNamed = (name: string) =>
-  libraryExercise(slugOf(name), { name });
+/** The Library's Exercise for a seeded name, for `serveExercises`. */
+export const fakeExerciseNamed = (name: string) =>
+  fakeExercise(slugOf(name), { name });
 
 const nestedPlan = ({
   deleted_at = null,
@@ -1021,11 +1026,11 @@ const getPlan = (_body: RequestBody, planId: string): Response => {
 };
 
 /**
- * Checks every slug against the fake Library (`serveLibrary`, its
- * `failWith` for an outage), then saves the Plan into the fake backend's
+ * Checks every slug against the served Exercises (`serveExercises`, and
+ * `failExercises` for an outage), then saves the Plan into the fake backend's
  * rows, active unless `activate: false`.
  */
-const createPlan = async (body: RequestBody): Promise<Response> => {
+const createPlan = (body: RequestBody): Response => {
   if (!isNewPlan(body)) {
     return error(400, "invalid_request", "Invalid plan");
   }
@@ -1037,7 +1042,7 @@ const createPlan = async (body: RequestBody): Promise<Response> => {
   let missing: string[];
 
   try {
-    ({ missing } = await library.current.lookup(slugs));
+    ({ missing } = checkServedSlugs(slugs));
   } catch {
     return error(
       503,
@@ -1133,16 +1138,13 @@ const invalidPlanIds = (plan: SeedPlan, workouts: SavedPlanWorkout[]) => {
 };
 
 /**
- * Checks every slug against the fake Library like `createPlan`, then saves
+ * Checks every slug against the served Exercises like `createPlan`, then saves
  * the whole Plan over its rows as the services do (ADR 0016): a row sent with
  * its id keeps it (a Workout its Cover), one sent without gets a new one, and
  * one left out is gone. New Workouts get no Cover, as the fake's creates
  * don't; whether it's active doesn't change.
  */
-const savePlan = async (
-  body: RequestBody,
-  planId: string
-): Promise<Response> => {
+const savePlan = (body: RequestBody, planId: string): Response => {
   if (!isSavedPlan(body)) {
     return error(400, "invalid_request", "Invalid plan");
   }
@@ -1154,7 +1156,7 @@ const savePlan = async (
   let missing: string[];
 
   try {
-    ({ missing } = await library.current.lookup(slugs));
+    ({ missing } = checkServedSlugs(slugs));
   } catch {
     return error(
       503,
@@ -1655,12 +1657,12 @@ const logSet = (body: RequestBody, setId: string): Response => {
   return json(200, { data: { ...setBody(set), weight_unit: weightUnit() } });
 };
 
-/** Checks one slug against the fake Library, as `checkExerciseSlugs` does. */
-const refuseUnknownSlug = async (slug: string) => {
+/** Checks one slug against the served Exercises, as `checkExerciseSlugs` does. */
+const refuseUnknownSlug = (slug: string) => {
   let missing: string[];
 
   try {
-    ({ missing } = await library.current.lookup([slug]));
+    ({ missing } = checkServedSlugs([slug]));
   } catch {
     return error(
       503,
@@ -1688,10 +1690,7 @@ const refuseFinished = (session: SessionRow) =>
  * `addExerciseToWorkoutSession`: appends the Exercise, with no sets, after the
  * open Workout Session's last one (the highest `order` + 1).
  */
-const addSessionExercise = async (
-  body: RequestBody,
-  sessionId: string
-): Promise<Response> => {
+const addSessionExercise = (body: RequestBody, sessionId: string): Response => {
   const parsed = sessionExerciseSchema.safeParse(body);
 
   if (!parsed.success) {
@@ -1700,7 +1699,7 @@ const addSessionExercise = async (
 
   const { exercise_slug: exerciseSlug } = parsed.data;
 
-  const refusal = await refuseUnknownSlug(exerciseSlug);
+  const refusal = refuseUnknownSlug(exerciseSlug);
 
   if (refusal) {
     return refusal;
@@ -2120,10 +2119,10 @@ const removeSessionExercise = (_body: RequestBody, exerciseId: string) => {
  * `replaceExerciseInWorkoutSession`: swaps the slug in place and zeroes every
  * set's targets, keeping what was logged.
  */
-const replaceSessionExercise = async (
+const replaceSessionExercise = (
   body: RequestBody,
   exerciseId: string
-): Promise<Response> => {
+): Response => {
   const parsed = sessionExerciseSchema.safeParse(body);
 
   if (!parsed.success) {
@@ -2132,7 +2131,7 @@ const replaceSessionExercise = async (
 
   const { exercise_slug: exerciseSlug } = parsed.data;
 
-  const refusal = await refuseUnknownSlug(exerciseSlug);
+  const refusal = refuseUnknownSlug(exerciseSlug);
 
   if (refusal) {
     return refusal;

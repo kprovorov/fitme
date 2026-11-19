@@ -13,7 +13,7 @@ import type { ReactNode } from "react";
 import LibraryScreen from "~/app/(tabs)/library/index";
 import ProfileView from "~/components/profile/profile-view";
 import { storage } from "~/lib/mmkv";
-import { libraryExercise, serveLibrary } from "~/test-utils/fake-library";
+import { fakeExercise, serveExercises } from "~/test-utils/fake-exercises";
 import { backend } from "~/test-utils/fake-public-api";
 import { createTestQueryClient, settle } from "~/test-utils/query-client";
 import { spokenLabel } from "~/test-utils/spoken-label";
@@ -93,9 +93,10 @@ beforeEach(() => {
 
 describe("decorative symbols", () => {
   it("read a Library row as the Exercise and its Muscle groups only", async () => {
-    serveLibrary([
-      libraryExercise("barbell-curl", {
+    serveExercises([
+      fakeExercise("barbell-curl", {
         muscle_groups: ["biceps", "forearms"],
+        name: "Barbell Curl",
       }),
     ]);
     await mount(<LibraryScreen />);

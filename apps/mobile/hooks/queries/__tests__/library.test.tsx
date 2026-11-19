@@ -1,4 +1,8 @@
-import { createLibrary, LibraryUnavailableError } from "@fitme/library-sdk";
+/**
+ * The Library hooks over the fake Public API's Exercise routes (FIT-755):
+ * the per-language MMKV copies and their sweep, the lookup's batching, old
+ * slugs resolving to their replacement, and the offline fallbacks.
+ */
 import {
   afterEach,
   beforeEach,
@@ -12,23 +16,23 @@ import { act, renderHook, waitFor } from "@testing-library/react-native";
 import type { ReactNode } from "react";
 
 import { i18n } from "~/lib/i18n";
+import {
+  readCachedCovers,
+  readCachedExercise,
+  readCachedSummary,
+} from "~/lib/library-cache";
 import { storage } from "~/lib/mmkv";
 import {
-  library,
-  libraryExercise,
-  serveLibrary,
-} from "~/test-utils/fake-library";
+  EXERCISES_UNAVAILABLE,
+  FAKE_SUPABASE_URL,
+  failExercises,
+  fakeExercise,
+  serveExercises,
+} from "~/test-utils/fake-exercises";
+import { fakePublicApi } from "~/test-utils/fake-public-api";
 import { createTestQueryClient } from "~/test-utils/query-client";
 
 import { useExerciseDetailQuery, useExercises } from "../library";
-
-jest.mock(
-  "~/lib/library",
-  () =>
-    jest.requireActual<typeof import("~/test-utils/fake-library")>(
-      "~/test-utils/fake-library"
-    ).libraryModule
-);
 
 /** A fresh query cache, as after a restart of the app. */
 const newWrapper = () => {
@@ -39,7 +43,27 @@ const newWrapper = () => {
   );
 };
 
-const SLUGS_PATTERN = /[?&]slugs=([^&]*)/u;
+/** The queries of the lookups sent (`GET /v1/exercises?slugs=`). */
+const lookups = () =>
+  fakePublicApi.requests
+    .filter(
+      (request) =>
+        request.route === "GET /v1/exercises" &&
+        request.query.slugs !== undefined
+    )
+    .map((request) => request.query);
+
+/** The Exercise reads sent (`GET /v1/exercises/{slug}`), by path. */
+const detailReads = () =>
+  fakePublicApi.requests
+    .filter((request) => request.route === "GET /v1/exercises/{slug}")
+    .map((request) => request.path);
+
+/** Every Exercise request sent, lookups and reads alike. */
+const exerciseRequests = () =>
+  fakePublicApi.requests.filter((request) =>
+    request.route.startsWith("GET /v1/exercises")
+  );
 
 beforeEach(() => {
   storage.clearAll();
@@ -50,11 +74,12 @@ afterEach(async () => {
   await i18n.changeLanguage("en");
 });
 
-const BENCH_PRESS_UK = {
-  description: "Про жим лежачи.",
-  instructions: "- Жміть.",
-  name: "Жим лежачи",
-};
+const BENCH_PRESS = fakeExercise("bench-press", {
+  name: "Bench Press",
+  translations: {
+    uk: { name: "Жим лежачи", short_description: "Про жим лежачи." },
+  },
+});
 
 /** Resolves Bench Press's row and detail in `language`, each on a fresh cache. */
 const resolveBenchPressIn = async (language: string) => {
@@ -96,74 +121,133 @@ const showBenchPressIn = async (language: string) => {
 };
 
 describe("the MMKV cache", () => {
-  it("caches resolved Exercises per App language under library.<language>.*", async () => {
-    serveLibrary([
-      libraryExercise("bench-press", {
-        name: "Bench Press",
-        translations: { uk: BENCH_PRESS_UK },
-      }),
-    ]);
+  it("caches resolved Exercises per App language under exercises.<language>.*", async () => {
+    serveExercises([BENCH_PRESS]);
 
     await resolveBenchPressIn("en");
     await resolveBenchPressIn("uk");
 
     const cached = (key: string) => JSON.parse(storage.getString(key) ?? "");
-    expect(cached("library.en.exercise-summary.bench-press")).toMatchObject({
+    expect(cached("exercises.en.summary.bench-press")).toMatchObject({
       value: { name: "Bench Press", slug: "bench-press" },
     });
-    expect(cached("library.en.exercise.bench-press")).toMatchObject({
-      value: { description: "About bench-press.", name: "Bench Press" },
+    expect(cached("exercises.en.detail.bench-press")).toMatchObject({
+      value: { name: "Bench Press", short_description: "About Bench Press" },
     });
-    expect(cached("library.uk.exercise-summary.bench-press")).toMatchObject({
+    expect(cached("exercises.uk.summary.bench-press")).toMatchObject({
       value: { name: "Жим лежачи", slug: "bench-press" },
     });
-    expect(cached("library.uk.exercise.bench-press")).toMatchObject({
-      value: { description: "Про жим лежачи.", name: "Жим лежачи" },
+    expect(cached("exercises.uk.detail.bench-press")).toMatchObject({
+      value: { name: "Жим лежачи", short_description: "Про жим лежачи." },
     });
   });
 
   it("shows an Exercise cached in each App language offline in that language", async () => {
-    const fake = serveLibrary([
-      libraryExercise("bench-press", {
-        name: "Bench Press",
-        translations: { uk: BENCH_PRESS_UK },
-      }),
-    ]);
+    serveExercises([BENCH_PRESS]);
 
     await resolveBenchPressIn("en");
     await resolveBenchPressIn("uk");
 
-    fake.failWith(new LibraryUnavailableError());
-    const lookup = jest.spyOn(fake, "lookup");
-    const get = jest.spyOn(fake, "get");
+    failExercises(EXERCISES_UNAVAILABLE);
+    const sent = exerciseRequests().length;
     const uk = await showBenchPressIn("uk");
     expect(uk.row).toMatchObject({ isResolved: true, name: "Жим лежачи" });
     expect(uk.detail).toMatchObject({
-      description: "Про жим лежачи.",
       name: "Жим лежачи",
+      short_description: "Про жим лежачи.",
     });
     const en = await showBenchPressIn("en");
     expect(en.row).toMatchObject({ isResolved: true, name: "Bench Press" });
     expect(en.detail).toMatchObject({
-      description: "About bench-press.",
       name: "Bench Press",
+      short_description: "About Bench Press",
     });
-    expect(lookup).not.toHaveBeenCalled();
-    expect(get).not.toHaveBeenCalled();
+    expect(exerciseRequests()).toHaveLength(sent);
+  });
+
+  it("counts a malformed copy as no copy, and asks the Public API", async () => {
+    serveExercises([BENCH_PRESS]);
+    // A copy without the new Library's fields.
+    storage.set(
+      "exercises.en.summary.bench-press",
+      JSON.stringify({
+        savedAt: Date.now(),
+        value: { name: "Stale", slug: "bench-press" },
+      })
+    );
+
+    expect(readCachedSummary("en", "bench-press")).toBeUndefined();
+
+    const { result } = await renderHook(() => useExercises(["bench-press"]), {
+      wrapper: newWrapper(),
+    });
+
+    expect(result.current["bench-press"].isResolved).toBe(false);
+    await waitFor(() =>
+      expect(result.current["bench-press"].name).toBe("Bench Press")
+    );
+    expect(lookups()).toEqual([{ slugs: "bench-press" }]);
+  });
+});
+
+describe("the Legacy Library's copies", () => {
+  const LEGACY_KEYS = [
+    "library.en.exercise-summary.bench-press",
+    "library.uk.exercise.bench-press",
+  ];
+
+  const COVERS = JSON.stringify({
+    savedAt: Date.now(),
+    value: [
+      {
+        id: "cover-1",
+        image_url: "https://media.test/cover.jpg",
+        muscle_groups: ["chest"],
+      },
+    ],
+  });
+
+  const seedLegacyCopies = () => {
+    for (const key of LEGACY_KEYS) {
+      storage.set(
+        key,
+        JSON.stringify({
+          savedAt: Date.now(),
+          value: { name: "Bench Press", slug: "bench-press" },
+        })
+      );
+    }
+  };
+
+  it("are swept on the first read, the Covers kept", () => {
+    seedLegacyCopies();
+    storage.set("library.covers", COVERS);
+
+    readCachedSummary("en", "bench-press");
+
+    for (const key of LEGACY_KEYS) {
+      expect(storage.getString(key)).toBeUndefined();
+    }
+
+    expect(readCachedCovers()?.value).toHaveLength(1);
+    expect(storage.getBoolean("exercises.legacy-copies-swept")).toBe(true);
+  });
+
+  it("are swept once per install", () => {
+    readCachedSummary("en", "bench-press");
+    seedLegacyCopies();
+
+    readCachedSummary("en", "bench-press");
+
+    for (const key of LEGACY_KEYS) {
+      expect(storage.getString(key)).toBeDefined();
+    }
   });
 });
 
 describe("the App language", () => {
-  it("asks the Library in it, and refetches when it changes", async () => {
-    const fake = serveLibrary([
-      libraryExercise("bench-press", {
-        name: "Bench Press",
-        translations: { uk: BENCH_PRESS_UK },
-      }),
-      libraryExercise("squat"),
-    ]);
-
-    const lookup = jest.spyOn(fake, "lookup");
+  it("asks the Public API in it, and refetches when it changes", async () => {
+    serveExercises([BENCH_PRESS, fakeExercise("squat", { name: "Squat" })]);
 
     const { result } = await renderHook(
       () => useExercises(["bench-press", "squat"]),
@@ -181,43 +265,22 @@ describe("the App language", () => {
     );
     // Untranslated, so wholly English.
     expect(result.current.squat.name).toBe("Squat");
-    expect(lookup.mock.calls).toEqual([
-      [["bench-press", "squat"], { language: "en" }],
-      [["bench-press", "squat"], { language: "uk" }],
+    // English is the API's default, so it isn't sent.
+    expect(lookups()).toEqual([
+      { slugs: "bench-press,squat" },
+      { language: "uk", slugs: "bench-press,squat" },
     ]);
   });
 });
 
 describe("useExercises", () => {
-  it("resolves a large slug set through the client in chunks of 40", async () => {
+  it("resolves a large slug set in lookups of 40", async () => {
     const slugs = Array.from(
       { length: 100 },
       (_, index) => `exercise-${index}`
     );
 
-    const asked: string[][] = [];
-
-    const fetch = jest.fn((url: string | URL | Request) => {
-      const match = SLUGS_PATTERN.exec(
-        url instanceof Request ? url.url : String(url)
-      );
-
-      const batch = decodeURIComponent(match?.[1] ?? "").split(",");
-      asked.push(batch);
-
-      return Promise.resolve(
-        Response.json({
-          data: batch.map((slug) => libraryExercise(slug)),
-          missing: [],
-        })
-      );
-    });
-
-    library.current = createLibrary({
-      fetch,
-      token: () => Promise.resolve("session-token"),
-      url: "https://exercises.test",
-    });
+    serveExercises(slugs.map((slug) => fakeExercise(slug)));
 
     const { result } = await renderHook(() => useExercises(slugs), {
       wrapper: newWrapper(),
@@ -226,52 +289,68 @@ describe("useExercises", () => {
     await waitFor(() =>
       expect(slugs.every((slug) => result.current[slug].isResolved)).toBe(true)
     );
+
+    const asked = lookups().map(({ slugs: sent }) => sent?.split(",") ?? []);
     expect(asked.map((batch) => batch.length)).toEqual([40, 40, 20]);
     expect(asked.flat().toSorted()).toEqual([...slugs].toSorted());
     expect(result.current["exercise-7"].name).toBe("Exercise 7");
   });
 
-  it("never sends a slug queued for one Library client through another", async () => {
-    // Held timers keep the first lookup queued while the client changes, as a
-    // test's unanswered lookup is when the next test swaps in its own client.
+  it("shares one lookup between the slugs asked for in the same tick", async () => {
+    // Held timers keep the batch open while both rows ask.
     jest.useFakeTimers();
 
     try {
-      const earlier = serveLibrary([libraryExercise("stray-move")]);
-      const earlierLookup = jest.spyOn(earlier, "lookup");
+      serveExercises([BENCH_PRESS, fakeExercise("squat")]);
+      const wrapper = newWrapper();
 
-      const earlierRows = await renderHook(() => useExercises(["stray-move"]), {
-        wrapper: newWrapper(),
+      const bench = await renderHook(() => useExercises(["bench-press"]), {
+        wrapper,
       });
 
-      const later = serveLibrary([libraryExercise("bench-press")]);
-      const laterLookup = jest.spyOn(later, "lookup");
-
-      const laterRows = await renderHook(() => useExercises(["bench-press"]), {
-        wrapper: newWrapper(),
+      const squat = await renderHook(() => useExercises(["squat"]), {
+        wrapper,
       });
 
-      await act(() => jest.runOnlyPendingTimersAsync());
-      await waitFor(() =>
-        expect(laterRows.result.current["bench-press"].isResolved).toBe(true)
-      );
-      await waitFor(() =>
-        expect(earlierRows.result.current["stray-move"].isResolved).toBe(true)
-      );
-      expect(earlierLookup.mock.calls).toEqual([
-        [["stray-move"], { language: "en" }],
-      ]);
-      expect(laterLookup.mock.calls).toEqual([
-        [["bench-press"], { language: "en" }],
-      ]);
+      await act(() => jest.advanceTimersByTimeAsync(10));
+
+      expect(squat.result.current.squat.isResolved).toBe(true);
+      expect(bench.result.current["bench-press"].isResolved).toBe(true);
+      expect(lookups()).toEqual([{ slugs: "bench-press,squat" }]);
     } finally {
       jest.useRealTimers();
     }
   });
 
+  it("shows a replaced slug as the Exercise replacing it, linking to its own slug", async () => {
+    serveExercises(
+      [fakeExercise("barbell-bench-press", { name: "Barbell Bench Press" })],
+      { replacedSlugs: { "bench-press": "barbell-bench-press" } }
+    );
+
+    const { result } = await renderHook(() => useExercises(["bench-press"]), {
+      wrapper: newWrapper(),
+    });
+
+    await waitFor(() =>
+      expect(result.current["bench-press"].isResolved).toBe(true)
+    );
+    expect(result.current["bench-press"]).toMatchObject({
+      name: "Barbell Bench Press",
+      slug: "barbell-bench-press",
+    });
+    // Kept under the slug asked for, so it shows offline too.
+    expect(readCachedSummary("en", "bench-press")?.value).toMatchObject({
+      slug: "barbell-bench-press",
+    });
+  });
+
   it("serves resolved Exercises from MMKV after a restart with the network failing", async () => {
-    const fake = serveLibrary([
-      libraryExercise("barbell-back-squat", { name: "Back Squat" }),
+    serveExercises([
+      fakeExercise("barbell-back-squat", {
+        muscle_groups: ["quadriceps", "glutes"],
+        name: "Back Squat",
+      }),
     ]);
 
     const first = await renderHook(() => useExercises(["barbell-back-squat"]), {
@@ -283,8 +362,8 @@ describe("useExercises", () => {
     );
     await first.unmount();
 
-    fake.failWith(new LibraryUnavailableError());
-    const lookup = jest.spyOn(fake, "lookup");
+    failExercises(EXERCISES_UNAVAILABLE);
+    const sent = exerciseRequests().length;
 
     const { result } = await renderHook(
       () => useExercises(["barbell-back-squat"]),
@@ -293,18 +372,18 @@ describe("useExercises", () => {
 
     expect(result.current["barbell-back-squat"]).toEqual({
       isResolved: true,
-      muscle_groups: ["chest"],
+      muscle_groups: ["quadriceps", "glutes"],
       name: "Back Squat",
       slug: "barbell-back-squat",
-      thumbnail_url: "https://media.test/render/barbell-back-squat.jpg",
-      video_url: "https://media.test/barbell-back-squat.mp4",
+      thumbnail_url: expect.stringContaining(FAKE_SUPABASE_URL),
+      video_url: expect.stringContaining(FAKE_SUPABASE_URL),
     });
     // Saved just now, so still fresh: nothing to refetch.
-    expect(lookup).not.toHaveBeenCalled();
+    expect(exerciseRequests()).toHaveLength(sent);
   });
 
   it("names an unknown slug after itself, with nothing to link to", async () => {
-    serveLibrary([libraryExercise("bench-press")]);
+    serveExercises([BENCH_PRESS]);
 
     const { result } = await renderHook(
       () => useExercises(["bench-press", "barbell-back-squat"]),
@@ -327,16 +406,31 @@ describe("useExercises", () => {
     });
   });
 
+  it("answers a slug the API can't take as missing, without failing the others", async () => {
+    serveExercises([BENCH_PRESS]);
+    const tooLong = "x".repeat(101);
+
+    const { result } = await renderHook(
+      () => useExercises(["bench-press", tooLong]),
+      { wrapper: newWrapper() }
+    );
+
+    await waitFor(() =>
+      expect(result.current["bench-press"].isResolved).toBe(true)
+    );
+    expect(result.current[tooLong].isResolved).toBe(false);
+    expect(lookups()).toEqual([{ slugs: "bench-press" }]);
+  });
+
   it("falls back to the slug's name while the Library fails", async () => {
-    const fake = serveLibrary([libraryExercise("bench-press")]);
-    fake.failWith(new LibraryUnavailableError());
-    const lookup = jest.spyOn(fake, "lookup");
+    serveExercises([BENCH_PRESS]);
+    failExercises(EXERCISES_UNAVAILABLE);
 
     const { result } = await renderHook(() => useExercises(["bench-press"]), {
       wrapper: newWrapper(),
     });
 
-    await waitFor(() => expect(lookup).toHaveBeenCalled());
+    await waitFor(() => expect(lookups().length).toBeGreaterThan(0));
     expect(result.current["bench-press"]).toMatchObject({
       isResolved: false,
       name: "Bench press",
@@ -346,7 +440,7 @@ describe("useExercises", () => {
 
 describe("useExerciseDetailQuery", () => {
   it("shows an Exercise seen before from MMKV while offline", async () => {
-    const fake = serveLibrary([libraryExercise("bench-press")]);
+    serveExercises([BENCH_PRESS]);
 
     const first = await renderHook(
       () => useExerciseDetailQuery("bench-press"),
@@ -358,7 +452,7 @@ describe("useExerciseDetailQuery", () => {
     await waitFor(() => expect(first.result.current.data).toBeTruthy());
     await first.unmount();
 
-    fake.failWith(new LibraryUnavailableError());
+    failExercises(EXERCISES_UNAVAILABLE);
 
     const { result } = await renderHook(
       () => useExerciseDetailQuery("bench-press"),
@@ -366,13 +460,83 @@ describe("useExerciseDetailQuery", () => {
     );
 
     expect(result.current.data).toMatchObject({
-      description: "About bench-press.",
       name: "Bench Press",
+      short_description: "About Bench Press",
+      steps: ["Do Bench Press"],
     });
   });
 
+  it("answers a replaced slug with the Exercise replacing it", async () => {
+    serveExercises(
+      [fakeExercise("barbell-bench-press", { name: "Barbell Bench Press" })],
+      { replacedSlugs: { "bench-press": "barbell-bench-press" } }
+    );
+
+    const { result } = await renderHook(
+      () => useExerciseDetailQuery("bench-press"),
+      { wrapper: newWrapper() }
+    );
+
+    await waitFor(() =>
+      expect(result.current.data).toMatchObject({
+        name: "Barbell Bench Press",
+        slug: "barbell-bench-press",
+      })
+    );
+    expect(detailReads()).toEqual(["/v1/exercises/bench-press"]);
+  });
+
+  it("keeps a replaced slug's answer under its replacement too, for its guide offline", async () => {
+    serveExercises(
+      [fakeExercise("barbell-bench-press", { name: "Barbell Bench Press" })],
+      { replacedSlugs: { "bench-press": "barbell-bench-press" } }
+    );
+
+    const first = await renderHook(
+      () => useExerciseDetailQuery("bench-press"),
+      { wrapper: newWrapper() }
+    );
+
+    await waitFor(() => expect(first.result.current.data).toBeTruthy());
+
+    expect(readCachedExercise("en", "bench-press")?.value.slug).toBe(
+      "barbell-bench-press"
+    );
+    expect(readCachedExercise("en", "barbell-bench-press")?.value.name).toBe(
+      "Barbell Bench Press"
+    );
+
+    // The guide opens under the replacement's own slug, after a restart,
+    // with the network gone.
+    failExercises("network");
+    const reads = detailReads().length;
+
+    const guide = await renderHook(
+      () => useExerciseDetailQuery("barbell-bench-press"),
+      { wrapper: newWrapper() }
+    );
+
+    expect(guide.result.current.data).toMatchObject({
+      name: "Barbell Bench Press",
+      slug: "barbell-bench-press",
+    });
+    expect(detailReads()).toHaveLength(reads);
+  });
+
+  it("answers null for a slug the API can't take, asking nothing", async () => {
+    serveExercises([BENCH_PRESS]);
+
+    const { result } = await renderHook(
+      () => useExerciseDetailQuery("x".repeat(101)),
+      { wrapper: newWrapper() }
+    );
+
+    await waitFor(() => expect(result.current.data).toBeNull());
+    expect(detailReads()).toEqual([]);
+  });
+
   it("answers null for a slug the Library doesn't have", async () => {
-    serveLibrary([]);
+    serveExercises([]);
 
     const { result } = await renderHook(
       () => useExerciseDetailQuery("bench-press"),

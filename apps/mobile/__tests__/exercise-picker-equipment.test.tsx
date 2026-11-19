@@ -6,12 +6,11 @@
  *
  * Mounts the real picker Screen with the route params the Workout Session
  * Screen pushes (`workout-session-exercises.test.tsx` covers that push) on
- * the fake Library, with both choice sheets mounted over it once pushed
+ * the fake Public API's Exercise routes, with both choice sheets mounted over it once pushed
  * (`test-utils/router-stub.tsx`); the SwiftUI-backed primitives are swapped
  * for plain stand-ins. Closing the picker is unmounting it, as popping its
  * route does.
  */
-import type { FakeLibrary } from "@fitme/library-sdk/fake";
 import { beforeEach, describe, expect, it, jest } from "@jest/globals";
 import { QueryClientProvider } from "@tanstack/react-query";
 import type { QueryClient } from "@tanstack/react-query";
@@ -26,7 +25,8 @@ import {
 } from "~/hooks/equipment-choice";
 import { getMuscleChoice } from "~/hooks/muscle-choice";
 import { storage } from "~/lib/mmkv";
-import { libraryExercise, serveLibrary } from "~/test-utils/fake-library";
+import { fakeExercise, serveExercises } from "~/test-utils/fake-exercises";
+import { fakePublicApi } from "~/test-utils/fake-public-api";
 import { InAppLanguage } from "~/test-utils/in-app-language";
 import { createTestQueryClient, settle } from "~/test-utils/query-client";
 import {
@@ -68,9 +68,18 @@ jest.mock("~/components/exercises/exercise-image", () => () => null);
 
 jest.mock("~/components/symbol-image", () => ({ SymbolImage: () => null }));
 
-let fake: FakeLibrary;
-let list: jest.SpiedFunction<FakeLibrary["list"]>;
 let client: QueryClient;
+
+const LIST_ROUTE = "GET /v1/exercises";
+
+/** The query of every page of the Library asked for, in order (lookups aside). */
+const listQueries = () =>
+  fakePublicApi.requests
+    .filter(
+      (request) =>
+        request.route === LIST_ROUTE && request.query.slugs === undefined
+    )
+    .map((request) => request.query);
 
 const SESSION_ID = "s1";
 
@@ -121,7 +130,7 @@ const confirm = async () => {
 const isChecked = (name: string) =>
   screen.getByRole("checkbox", { name }).props.accessibilityState?.checked;
 
-/** The Exercises on screen, in the order the fake Library answers them. */
+/** The Exercises on screen, in the order the fake Public API answers them. */
 const shownExercises = () =>
   ["Barbell Squat", "Dumbbell Lunge", "Push Up"].filter(
     (name) => screen.queryByText(name) !== null
@@ -137,21 +146,23 @@ const chips = () =>
 beforeEach(() => {
   storage.clearAll();
   resetStubRouter();
-  fake = serveLibrary([
-    libraryExercise("barbell-squat", {
+  serveExercises([
+    fakeExercise("barbell-squat", {
+      name: "Barbell Squat",
       equipment: ["barbell"],
       muscle_groups: ["quadriceps"],
     }),
-    libraryExercise("dumbbell-lunge", {
+    fakeExercise("dumbbell-lunge", {
+      name: "Dumbbell Lunge",
       equipment: ["dumbbell"],
       muscle_groups: ["quadriceps"],
     }),
-    libraryExercise("push-up", {
+    fakeExercise("push-up", {
+      name: "Push Up",
       equipment: ["bodyweight"],
       muscle_groups: ["chest"],
     }),
   ]);
-  list = jest.spyOn(fake, "list");
 });
 
 describe("the Equipment filter in the Exercise picker", () => {
@@ -176,10 +187,10 @@ describe("the Equipment filter in the Exercise picker", () => {
     await confirm();
 
     expect(sheetOpen("/equipment")).toBe(false);
-    expect(list).toHaveBeenLastCalledWith({
-      equipment: ["dumbbell", "bodyweight"],
-      limit: 20,
-      offset: 0,
+    expect(listQueries().at(-1)).toEqual({
+      equipment: "dumbbell,bodyweight",
+      limit: "20",
+      offset: "0",
     });
     // Each is still picked by its whole row, which adds it.
     expect(shownExercises()).toEqual(["Dumbbell Lunge", "Push Up"]);
@@ -202,10 +213,10 @@ describe("the Equipment filter in the Exercise picker", () => {
     ).toBeTruthy();
     // The Muscle group is pre-chosen; no Equipment is.
     expect(chips()).toEqual(["Remove Quadriceps"]);
-    expect(list).toHaveBeenLastCalledWith({
-      limit: 20,
-      muscleGroups: ["quadriceps"],
-      offset: 0,
+    expect(listQueries().at(-1)).toEqual({
+      limit: "20",
+      muscle_groups: "quadriceps",
+      offset: "0",
     });
     expect(shownExercises()).toEqual(["Barbell Squat", "Dumbbell Lunge"]);
 
@@ -228,11 +239,11 @@ describe("the Equipment filter in the Exercise picker", () => {
     await tick("Dumbbell");
     await confirm();
 
-    expect(list).toHaveBeenLastCalledWith({
-      equipment: ["dumbbell"],
-      limit: 20,
-      muscleGroups: ["quadriceps"],
-      offset: 0,
+    expect(listQueries().at(-1)).toEqual({
+      equipment: "dumbbell",
+      limit: "20",
+      muscle_groups: "quadriceps",
+      offset: "0",
     });
     // Both filters apply: the only dumbbell Exercise working the quadriceps.
     expect(shownExercises()).toEqual(["Dumbbell Lunge"]);
@@ -256,7 +267,7 @@ describe("the Equipment filter in the Exercise picker", () => {
     await openPicker();
 
     expect(chips()).toEqual([]);
-    expect(list).toHaveBeenLastCalledWith({ limit: 20, offset: 0 });
+    expect(listQueries().at(-1)).toEqual({ limit: "20", offset: "0" });
     expect(shownExercises()).toEqual([
       "Barbell Squat",
       "Dumbbell Lunge",
@@ -274,7 +285,7 @@ describe("the Equipment filter in the Exercise picker", () => {
 
     // The picker starts on none of it.
     expect(chips()).toEqual([]);
-    expect(list).toHaveBeenLastCalledWith({ limit: 20, offset: 0 });
+    expect(listQueries().at(-1)).toEqual({ limit: "20", offset: "0" });
 
     await openSheet("Equipment");
     expect(isChecked("Dumbbell")).toBe(false);

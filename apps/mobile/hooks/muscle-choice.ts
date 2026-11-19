@@ -1,5 +1,5 @@
 import { legacyMuscleGroups } from "@fitme/core";
-import type { LegacyMuscleGroup } from "@fitme/core";
+import type { LegacyMuscleGroup, MuscleGroup } from "@fitme/core";
 
 import { createChoiceStore } from "~/hooks/choice-store";
 
@@ -31,3 +31,15 @@ export const resetMuscleChoices = store.resetAll;
 export const newMuscleChoiceKey = store.newKey;
 export const useMuscleChoiceOpening = store.useOpening;
 export const useMuscleChoice = store.use;
+
+/**
+ * The choosable legacy group a new Library group (ADR 0022) opens the
+ * Muscles choice on, until the sheets offer the new list (FIT-757): `core`
+ * as `abs`, a group both lists share as itself, and none for the rest.
+ */
+export const legacyChoiceFor = (
+  group: MuscleGroup
+): LegacyMuscleGroup | undefined =>
+  group === "core"
+    ? "abs"
+    : choosableMuscleGroups.find((choosable) => choosable === group);

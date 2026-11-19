@@ -27,7 +27,7 @@ import {
   setDevice24HourClock,
   setDeviceLanguages,
 } from "~/test-utils/device-locales";
-import { libraryExercise, serveLibrary } from "~/test-utils/fake-library";
+import { fakeExercise, serveExercises } from "~/test-utils/fake-exercises";
 import { InAppLanguage } from "~/test-utils/in-app-language";
 import { createTestQueryClient, settle } from "~/test-utils/query-client";
 
@@ -172,8 +172,9 @@ const mount = async (children: ReactNode) => {
 beforeEach(() => {
   mockSessions.current = [longSession];
   mockHistory.current = undefined;
-  serveLibrary([
-    libraryExercise("bench-press", {
+  serveExercises([
+    fakeExercise("bench-press", {
+      name: "Bench Press",
       translations: { uk: { name: "Жим лежачи" } },
     }),
   ]);

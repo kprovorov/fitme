@@ -24,11 +24,11 @@ import PlanEditorScreen from "~/app/plans/[planId]/edit/index";
 import PlanScreen from "~/app/plans/[planId]/index";
 import { segmentClient } from "~/lib/segment";
 import { setDeviceLanguages } from "~/test-utils/device-locales";
-import { serveLibrary } from "~/test-utils/fake-library";
+import { serveExercises } from "~/test-utils/fake-exercises";
 import {
   backend,
   fakePublicApi,
-  libraryExerciseNamed,
+  fakeExerciseNamed,
 } from "~/test-utils/fake-public-api";
 import type { SeedPlan } from "~/test-utils/fake-public-api";
 import { InAppLanguage } from "~/test-utils/in-app-language";
@@ -227,10 +227,10 @@ beforeEach(() => {
   jest.spyOn(Alert, "alert").mockReturnValue(undefined);
   backend.reset();
   backend.seedPlan(structuredClone(PLAN));
-  serveLibrary([
-    libraryExerciseNamed("Barbell back squat"),
-    libraryExerciseNamed("Bench press"),
-    libraryExerciseNamed("Deadlift"),
+  serveExercises([
+    fakeExerciseNamed("Barbell back squat"),
+    fakeExerciseNamed("Bench press"),
+    fakeExerciseNamed("Deadlift"),
   ]);
   resetStubRouter();
   mockParams.current = { planId: "plan-1" };

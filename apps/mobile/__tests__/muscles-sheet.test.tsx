@@ -3,12 +3,11 @@
  * Muscles sheet, its ticks are a draft that ✓ hands back to the Library tab
  * (Exercises working any chosen Muscle group), Reset clears without applying
  * and swiping the sheet away discards. The real Library screen and sheet on
- * the fake Library, the sheet mounted over the tab once pushed
+ * the fake Public API's Exercise routes, the sheet mounted over the tab once pushed
  * (`test-utils/router-stub.tsx`, whose header renders the title, the left and
  * right items and the search bar); the SwiftUI-backed primitives are swapped
  * for plain stand-ins.
  */
-import type { FakeLibrary } from "@fitme/library-sdk/fake";
 import { beforeEach, describe, expect, it, jest } from "@jest/globals";
 import { QueryClientProvider } from "@tanstack/react-query";
 import type { QueryClient } from "@tanstack/react-query";
@@ -25,7 +24,8 @@ import MusclesSheet from "~/app/muscles";
 import { getMuscleChoice } from "~/hooks/muscle-choice";
 import { storage } from "~/lib/mmkv";
 import { setDeviceLanguages } from "~/test-utils/device-locales";
-import { libraryExercise, serveLibrary } from "~/test-utils/fake-library";
+import { fakeExercise, serveExercises } from "~/test-utils/fake-exercises";
+import { fakePublicApi } from "~/test-utils/fake-public-api";
 import { InAppLanguage } from "~/test-utils/in-app-language";
 import {
   createTestQueryClient,
@@ -61,9 +61,18 @@ jest.mock("~/components/exercises/exercise-image", () => () => null);
 
 jest.mock("~/components/symbol-image", () => ({ SymbolImage: () => null }));
 
-let fake: FakeLibrary;
-let list: jest.SpiedFunction<FakeLibrary["list"]>;
 let client: QueryClient;
+
+const LIST_ROUTE = "GET /v1/exercises";
+
+/** The query of every page of the Library asked for, in order (lookups aside). */
+const listQueries = () =>
+  fakePublicApi.requests
+    .filter(
+      (request) =>
+        request.route === LIST_ROUTE && request.query.slugs === undefined
+    )
+    .map((request) => request.query);
 
 const renderLibrary = async () => {
   client = createTestQueryClient();
@@ -101,12 +110,14 @@ const isChecked = (name: string) =>
 beforeEach(() => {
   storage.clearAll();
   resetStubRouter();
-  fake = serveLibrary([
-    libraryExercise("bench-press", { muscle_groups: ["chest", "triceps"] }),
-    libraryExercise("pull-up", { muscle_groups: ["back"] }),
-    libraryExercise("squat", { muscle_groups: ["quadriceps"] }),
+  serveExercises([
+    fakeExercise("bench-press", {
+      name: "Bench Press",
+      muscle_groups: ["chest", "triceps"],
+    }),
+    fakeExercise("pull-up", { name: "Pull Up", muscle_groups: ["back"] }),
+    fakeExercise("squat", { name: "Squat", muscle_groups: ["quadriceps"] }),
   ]);
-  list = jest.spyOn(fake, "list");
 });
 
 describe("the Muscles sheet over the Library tab", () => {
@@ -156,14 +167,14 @@ describe("the Muscles sheet over the Library tab", () => {
     await tick("Chest");
     expect(isChecked("Chest")).toBe(true);
     // Nothing is applied while the User is still choosing.
-    expect(list).toHaveBeenCalledTimes(1);
+    expect(listQueries()).toHaveLength(1);
     await confirm();
 
     expect(sheetOpen()).toBe(false);
-    expect(list).toHaveBeenLastCalledWith({
-      limit: 20,
-      muscleGroups: ["chest", "quadriceps"],
-      offset: 0,
+    expect(listQueries().at(-1)).toEqual({
+      limit: "20",
+      muscle_groups: "chest,quadriceps",
+      offset: "0",
     });
     expect(screen.getByText("Bench Press")).toBeTruthy();
     expect(screen.getByText("Squat")).toBeTruthy();

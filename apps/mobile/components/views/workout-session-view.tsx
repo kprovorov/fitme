@@ -4,6 +4,7 @@ import { useCallback } from "react";
 import { useTranslation } from "react-i18next";
 import { Alert, View } from "react-native";
 
+import { legacyChoiceFor } from "~/hooks/muscle-choice";
 import { useExercises } from "~/hooks/queries/library";
 import { useDeleteWorkoutSessionExerciseMutation } from "~/hooks/queries/workout-session-exercises";
 import { WORKOUT_SESSION_QUERY_KEY } from "~/hooks/queries/workout-sessions";
@@ -82,9 +83,11 @@ const WorkoutSessionView = ({
   const handleReplaceExercise = (exerciseId: string) => {
     const exercise = workoutSession.exercises.find((e) => e.id === exerciseId);
 
-    const muscleGroup = exercise
+    const replacedGroup = exercise
       ? shownBySlug[exercise.exercise_slug]?.muscle_groups[0]
       : undefined;
+
+    const muscleGroup = replacedGroup && legacyChoiceFor(replacedGroup);
 
     const params: ExercisePickerParams = {
       replaceExerciseId: exerciseId,

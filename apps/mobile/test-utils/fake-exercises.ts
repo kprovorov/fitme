@@ -5,8 +5,11 @@
  * Library the Public API serves (`@fitme/library-bundle/in-memory-library`),
  * so order, collation, search (aliases included), filters, paging and old
  * slugs are exactly the API's; this file only checks the query as the routes
- * do. `fakePublicApi.reset()` empties it after each test. Covers stay the
- * Library fake's (`serveLibrary` with `{ covers }`).
+ * do. `failExercises` fails both routes until it's given `null`, and the fake
+ * Public API's slug-checking writes check against the served Exercises
+ * (`checkServedSlugs`), as the Public API does (FIT-747).
+ * `fakePublicApi.reset()` empties it after each test. Covers stay the Library
+ * fake's (`serveLibrary` with `{ covers }`).
  */
 
 import type { components } from "@fitme/api-client";
@@ -114,9 +117,82 @@ export const serveExercises = (
   served = createInMemoryLibrary(bundle, { supabaseUrl: FAKE_SUPABASE_URL });
 };
 
-/** Back to no Exercises; run by `fakePublicApi.reset()`. */
+/** How the Exercise routes fail: an error answer, or no answer at all. */
+export type ExercisesFailure =
+  | "network"
+  | { code: string; retryAfterSeconds?: number; status: number };
+
+let failure: ExercisesFailure | null = null;
+
+/**
+ * Fails every request to the Exercise routes with `next` until it's given
+ * `null`: `{ status: 503, code: "library_unavailable" }` for an outage (which
+ * the slug-checking writes then answer too), `{ status: 429, code:
+ * "rate_limited", retryAfterSeconds }` for the rate limit, `"network"` for a
+ * request that never reaches the API.
+ */
+export const failExercises = (next: ExercisesFailure | null) => {
+  failure = next;
+};
+
+/** An outage, as `failExercises` takes it. */
+export const EXERCISES_UNAVAILABLE: ExercisesFailure = {
+  code: "library_unavailable",
+  status: 503,
+};
+
+/** The rate limit, as `failExercises` takes it. */
+export const exercisesRateLimited = (
+  retryAfterSeconds = 30
+): ExercisesFailure => ({
+  code: "rate_limited",
+  retryAfterSeconds,
+  status: 429,
+});
+
+/** Back to no Exercises and no failure; run by `fakePublicApi.reset()`. */
 export const resetExercises = () => {
   served = emptyLibrary();
+  failure = null;
+};
+
+/**
+ * The slugs the served Exercises don't have (an old slug in the map counts as
+ * known), as the Public API's writes check them; throws during an outage
+ * (`failExercises` with `library_unavailable`), which a write answers 503.
+ */
+export const checkServedSlugs = (slugs: readonly string[]) => {
+  if (
+    failure !== null &&
+    failure !== "network" &&
+    failure.code === EXERCISES_UNAVAILABLE.code
+  ) {
+    throw new Error("The Library is unavailable");
+  }
+
+  return { missing: served.checkSlugs(slugs).unknown };
+};
+
+/** The answer `failExercises` set, or `null` to answer as usual. */
+const failed = (): Response | null => {
+  if (failure === null) {
+    return null;
+  }
+
+  if (failure === "network") {
+    throw new TypeError("Network request failed");
+  }
+
+  const headers: Record<string, string> =
+    failure.status === 429
+      ? { "Retry-After": String(failure.retryAfterSeconds ?? 30) }
+      : {};
+
+  return json(
+    failure.status,
+    { error: { code: failure.code, message: failure.code } },
+    headers
+  );
 };
 
 // The route's query schemas (`apps/api/src/routes/exercises.ts`).
@@ -232,6 +308,12 @@ export const listExercises = (
   query: URLSearchParams,
   requestHeaders: Headers
 ): Response => {
+  const failedAnswer = failed();
+
+  if (failedAnswer) {
+    return failedAnswer;
+  }
+
   const parsed = listQuery.safeParse(Object.fromEntries(query));
 
   if (!parsed.success) {
@@ -278,6 +360,12 @@ export const getExercise = (
   query: URLSearchParams,
   requestHeaders: Headers
 ): Response => {
+  const failedAnswer = failed();
+
+  if (failedAnswer) {
+    return failedAnswer;
+  }
+
   const parsedSlug = slugParam.safeParse(slug);
   const parsedQuery = getQuery.safeParse(Object.fromEntries(query));
 

@@ -25,11 +25,11 @@ import PlanSessionExerciseScreen from "~/app/plans/[planId]/workouts/[workoutId]
 import { i18n, useAppLanguageSync } from "~/lib/i18n";
 import { storage } from "~/lib/mmkv";
 import { setDeviceLanguages } from "~/test-utils/device-locales";
-import { serveLibrary } from "~/test-utils/fake-library";
+import { serveExercises } from "~/test-utils/fake-exercises";
 import {
   backend,
+  fakeExerciseNamed,
   fakePublicApi,
-  libraryExerciseNamed,
 } from "~/test-utils/fake-public-api";
 import {
   createTestQueryClient,
@@ -184,7 +184,7 @@ beforeEach(() => {
   jest.clearAllMocks();
   backend.reset();
   storage.clearAll();
-  serveLibrary([libraryExerciseNamed("Squat")]);
+  serveExercises([fakeExerciseNamed("Squat")]);
   jest.spyOn(Alert, "alert").mockReturnValue(undefined);
   jest
     .spyOn(AccessibilityInfo, "announceForAccessibility")

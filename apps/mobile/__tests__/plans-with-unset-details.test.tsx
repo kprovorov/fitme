@@ -26,7 +26,7 @@ import PlanScreen from "~/app/plans/[planId]/index";
 import WorkoutScreen from "~/app/plans/[planId]/workouts/[workoutId]/index";
 import PlansScreen from "~/app/plans/index";
 import { setDeviceLanguages } from "~/test-utils/device-locales";
-import { libraryExercise, serveLibrary } from "~/test-utils/fake-library";
+import { fakeExercise, serveExercises } from "~/test-utils/fake-exercises";
 import { backend, FAKE_USER_ID } from "~/test-utils/fake-public-api";
 import { InAppLanguage } from "~/test-utils/in-app-language";
 import { createTestQueryClient, settle } from "~/test-utils/query-client";
@@ -134,7 +134,10 @@ beforeEach(() => {
   });
   backend.reset();
   backend.seedProfile(FAKE_USER_ID);
-  serveLibrary([libraryExercise("squat"), libraryExercise("bench-press")]);
+  serveExercises([
+    fakeExercise("squat", { name: "Squat" }),
+    fakeExercise("bench-press", { name: "Bench Press" }),
+  ]);
   mockParams.planId = "plan-bare";
   mockParams.workoutId = "workout-bare";
   // Every detail unset: the Plan a hand-built one will be (ADR 0017). It's

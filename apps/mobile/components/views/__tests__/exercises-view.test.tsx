@@ -1,23 +1,18 @@
 import type { LegacyMuscleGroup } from "@fitme/core";
 /**
- * The Library tab and the Exercise picker search the Library API
- * (FIT-242): search waits 300 ms after the last keystroke, the muscle group
- * filter and paging go through `list`, a 429 keeps the last results with no
+ * The Library tab and the Exercise picker search the Library through the
+ * Public API's `GET /v1/exercises` (FIT-242, FIT-755): search waits 300 ms
+ * after the last keystroke, the muscle group filter and paging go through it,
+ * a 429 keeps the last results with no
  * error, and every result is seeded into its row query and MMKV. In the App
  * language (FIT-408) it searches and lists in that language. The list is
  * virtualised and loads the next page as the User nears its end (FIT-431).
  *
- * Mounts the real view on the fake Library; the SwiftUI-backed
+ * Mounts the real view on the fake Public API's Exercise routes; the SwiftUI-backed
  * primitives are swapped for plain stand-ins. The Muscle group choice is set
  * as the Muscles sheet confirms it (`setMuscleChoice`); the sheet itself is
  * `__tests__/muscles-sheet.test.tsx`'s.
  */
-import {
-  LibraryRateLimitedError,
-  LibraryUnavailableError,
-} from "@fitme/library-sdk";
-import type { ExerciseSummary } from "@fitme/library-sdk";
-import type { FakeLibrary } from "@fitme/library-sdk/fake";
 import {
   afterEach,
   beforeEach,
@@ -39,21 +34,21 @@ import type { ReactNode } from "react";
 import { Text } from "react-native";
 
 import { getMuscleChoice, setMuscleChoice } from "~/hooks/muscle-choice";
+import type { ExerciseSummary } from "~/lib/exercises";
 import { i18n, useAppLanguageSync } from "~/lib/i18n";
 import { readCachedSummary } from "~/lib/library-cache";
 import { storage } from "~/lib/mmkv";
 import { setDeviceLanguages } from "~/test-utils/device-locales";
-import { libraryExercise, serveLibrary } from "~/test-utils/fake-library";
+import {
+  EXERCISES_UNAVAILABLE,
+  exercisesRateLimited,
+  failExercises,
+  fakeExercise,
+  serveExercises,
+} from "~/test-utils/fake-exercises";
+import { fakePublicApi } from "~/test-utils/fake-public-api";
 import { createTestQueryClient } from "~/test-utils/query-client";
 import { SearchedExercisesView } from "~/test-utils/searched-exercises-view";
-
-jest.mock(
-  "~/lib/library",
-  () =>
-    jest.requireActual<typeof import("~/test-utils/fake-library")>(
-      "~/test-utils/fake-library"
-    ).libraryModule
-);
 
 jest.mock("~/components/ui/button", () =>
   jest.requireActual("~/test-utils/button-stub")
@@ -73,9 +68,11 @@ jest.mock("~/components/symbol-image", () => ({ SymbolImage: () => null }));
 /** 25 bench presses (two pages of 20) and a squat. */
 const EXERCISES = [
   ...Array.from({ length: 25 }, (_, index) =>
-    libraryExercise(`bench-press-${String(index + 1).padStart(2, "0")}`)
+    fakeExercise(`bench-press-${String(index + 1).padStart(2, "0")}`, {
+      name: `Bench Press ${String(index + 1).padStart(2, "0")}`,
+    })
   ),
-  libraryExercise("squat", { muscle_groups: ["quadriceps"] }),
+  fakeExercise("squat", { muscle_groups: ["quadriceps"], name: "Squat" }),
 ];
 
 const COULD_NOT_LOAD = /Couldn't load/u;
@@ -87,9 +84,22 @@ const LOAD_MORE_ERROR =
 /** Any row's subtitle: Muscle groups, one or joined with ", ". */
 const MUSCLE_GROUP_SUBTITLE = /, |^(Triceps|Chest)$/u;
 
-let fake: FakeLibrary;
-let list: jest.SpiedFunction<FakeLibrary["list"]>;
 let queryClient: QueryClient;
+
+/** The request the next `listCalls` counts from. */
+let firstCounted = 0;
+
+/** Counts only the requests sent from now on. */
+const markRequests = () => {
+  firstCounted = fakePublicApi.requests.length;
+};
+
+/** The query of every `GET /v1/exercises` sent since `markRequests`. */
+const listCalls = () =>
+  fakePublicApi.requests
+    .slice(firstCounted)
+    .filter((request) => request.route === "GET /v1/exercises")
+    .map((request) => request.query);
 
 /**
  * Whether the list holds the Exercise, rendered or not yet (it's
@@ -175,8 +185,8 @@ const type = async (text: string) => {
 beforeEach(() => {
   jest.useFakeTimers();
   storage.clearAll();
-  fake = serveLibrary(EXERCISES);
-  list = jest.spyOn(fake, "list");
+  firstCounted = 0;
+  serveExercises(EXERCISES);
 });
 
 afterEach(() => {
@@ -188,27 +198,27 @@ describe("searching the Library", () => {
   it("lists the first page of every Exercise at once", async () => {
     await renderView();
 
-    expect(list).toHaveBeenCalledTimes(1);
-    expect(list).toHaveBeenLastCalledWith({ limit: 20, offset: 0 });
+    expect(listCalls()).toHaveLength(1);
+    expect(listCalls().at(-1)).toEqual({ limit: "20", offset: "0" });
     expect(screen.getByText("Bench Press 01")).toBeTruthy();
     expect(screen.queryByText("Bench Press 21")).toBeNull();
   });
 
   it("sends one search 300 ms after the last keystroke, not one per character", async () => {
     await renderView();
-    list.mockClear();
+    markRequests();
 
     // The last keystroke was ~55 ms ago.
     await type("squat");
     await advance(200);
-    expect(list).not.toHaveBeenCalled();
+    expect(listCalls()).toHaveLength(0);
 
     // oxlint-disable-next-line eslint/no-await-in-loop -- Each keystroke waits before the next character.
     await advance(50);
-    expect(list).toHaveBeenCalledTimes(1);
-    expect(list).toHaveBeenLastCalledWith({
-      limit: 20,
-      offset: 0,
+    expect(listCalls()).toHaveLength(1);
+    expect(listCalls().at(-1)).toEqual({
+      limit: "20",
+      offset: "0",
       search: "squat",
     });
     expect(screen.getByText("Squat")).toBeTruthy();
@@ -221,7 +231,7 @@ describe("searching the Library", () => {
     await advance(300);
     expect(screen.getByText("Bench Press 01")).toBeTruthy();
 
-    fake.failWith(new LibraryRateLimitedError(30));
+    failExercises(exercisesRateLimited(30));
     await type("bench press 1");
     await advance(300);
 
@@ -231,27 +241,27 @@ describe("searching the Library", () => {
 
   it("holds the next search back until Retry-After has passed", async () => {
     await renderView();
-    fake.failWith(new LibraryRateLimitedError(30));
+    failExercises(exercisesRateLimited(30));
     await type("bench");
     await advance(300);
-    const rateLimitedCalls = list.mock.calls.length;
+    const rateLimitedCalls = listCalls().length;
 
-    fake.failWith(null);
+    failExercises(null);
     await type("squat");
     await advance(10_000);
-    expect(list).toHaveBeenCalledTimes(rateLimitedCalls);
+    expect(listCalls()).toHaveLength(rateLimitedCalls);
 
     await advance(30_000);
-    expect(list).toHaveBeenLastCalledWith({
-      limit: 20,
-      offset: 0,
+    expect(listCalls().at(-1)).toEqual({
+      limit: "20",
+      offset: "0",
       search: "squat",
     });
     expect(screen.getByText("Squat")).toBeTruthy();
   });
 
   it("shows the error state for any other failure, and retries", async () => {
-    fake.failWith(new LibraryUnavailableError());
+    failExercises(EXERCISES_UNAVAILABLE);
     await renderView();
     // It retries once, a second later, before it gives up.
     await advance(1000);
@@ -262,7 +272,7 @@ describe("searching the Library", () => {
       )
     ).toBeTruthy();
 
-    fake.failWith(null);
+    failExercises(null);
     await fireEvent.press(screen.getByText("Try Again"));
     await advance(0);
     expect(screen.getByText("Bench Press 01")).toBeTruthy();
@@ -292,7 +302,7 @@ describe("searching the Library", () => {
     await advance(0);
 
     expect(getMuscleChoice(CHOICE)).toEqual([]);
-    expect(list).toHaveBeenLastCalledWith({ limit: 20, offset: 0 });
+    expect(listCalls().at(-1)).toEqual({ limit: "20", offset: "0" });
     expect(screen.getByLabelText("Search exercises").props.value).toBe("");
     expect(screen.getByText("Bench Press 01")).toBeTruthy();
   });
@@ -308,7 +318,7 @@ describe("filtering and paging", () => {
   it("removes a Muscle group from its chip at once, and the last chip leaves no row", async () => {
     await chooseMuscleGroups("quadriceps", "chest");
     await renderView();
-    list.mockClear();
+    markRequests();
 
     const chips = screen.getByTestId("choice-chips");
     expect(chips.props.className).toContain("flex-wrap");
@@ -321,11 +331,11 @@ describe("filtering and paging", () => {
     await fireEvent.press(screen.getByRole("button", { name: "Remove Chest" }));
     await advance(0);
 
-    expect(list).toHaveBeenCalledTimes(1);
-    expect(list).toHaveBeenLastCalledWith({
-      limit: 20,
-      muscleGroups: ["quadriceps"],
-      offset: 0,
+    expect(listCalls()).toHaveLength(1);
+    expect(listCalls().at(-1)).toEqual({
+      limit: "20",
+      muscle_groups: "quadriceps",
+      offset: "0",
     });
     expect(screen.getByText("Squat")).toBeTruthy();
     expect(screen.queryByText("Bench Press 01")).toBeNull();
@@ -335,23 +345,23 @@ describe("filtering and paging", () => {
     );
     await advance(0);
 
-    expect(list).toHaveBeenLastCalledWith({ limit: 20, offset: 0 });
+    expect(listCalls().at(-1)).toEqual({ limit: "20", offset: "0" });
     expect(screen.queryByTestId("choice-chips")).toBeNull();
     expect(screen.getByText("Bench Press 01")).toBeTruthy();
   });
 
   it("filters by the chosen Muscle groups at once", async () => {
     await renderView();
-    list.mockClear();
+    markRequests();
 
     await chooseMuscleGroups("quadriceps");
     await advance(0);
 
-    expect(list).toHaveBeenCalledTimes(1);
-    expect(list).toHaveBeenLastCalledWith({
-      limit: 20,
-      muscleGroups: ["quadriceps"],
-      offset: 0,
+    expect(listCalls()).toHaveLength(1);
+    expect(listCalls().at(-1)).toEqual({
+      limit: "20",
+      muscle_groups: "quadriceps",
+      offset: "0",
     });
     expect(screen.getByText("Squat")).toBeTruthy();
     expect(screen.queryByText("Bench Press 01")).toBeNull();
@@ -363,10 +373,10 @@ describe("filtering and paging", () => {
     await chooseMuscleGroups("quadriceps", "chest");
     await advance(0);
 
-    expect(list).toHaveBeenLastCalledWith({
-      limit: 20,
-      muscleGroups: ["chest", "quadriceps"],
-      offset: 0,
+    expect(listCalls().at(-1)).toEqual({
+      limit: "20",
+      muscle_groups: "chest,quadriceps",
+      offset: "0",
     });
     expect(screen.getByText("Bench Press 01")).toBeTruthy();
     // The squat comes after the 25 bench presses, on the next page.
@@ -381,12 +391,12 @@ describe("filtering and paging", () => {
     await advance(0);
     await chooseMuscleGroups();
     await advance(0);
-    list.mockClear();
+    markRequests();
 
     await chooseMuscleGroups("chest", "quadriceps");
     await advance(0);
 
-    expect(list).not.toHaveBeenCalled();
+    expect(listCalls()).toHaveLength(0);
     expect(screen.getByText("Bench Press 01")).toBeTruthy();
   });
 
@@ -416,31 +426,31 @@ describe("filtering and paging", () => {
   it("pages a Muscle group with its filter", async () => {
     await chooseMuscleGroups("chest");
     await renderView();
-    list.mockClear();
+    markRequests();
 
     await reachEnd();
     await advance(0);
 
-    expect(list).toHaveBeenLastCalledWith({
-      limit: 20,
-      muscleGroups: ["chest"],
-      offset: 20,
+    expect(listCalls().at(-1)).toEqual({
+      limit: "20",
+      muscle_groups: "chest",
+      offset: "20",
     });
   });
 
   it("sends a new muscle group at once, with the search being typed", async () => {
     await renderView();
-    list.mockClear();
+    markRequests();
 
     await fireEvent.changeText(screen.getByLabelText("Search exercises"), "sq");
     await chooseMuscleGroups("quadriceps");
     await advance(0);
 
-    expect(list).toHaveBeenCalledTimes(1);
-    expect(list).toHaveBeenLastCalledWith({
-      limit: 20,
-      muscleGroups: ["quadriceps"],
-      offset: 0,
+    expect(listCalls()).toHaveLength(1);
+    expect(listCalls().at(-1)).toEqual({
+      limit: "20",
+      muscle_groups: "quadriceps",
+      offset: "0",
       search: "sq",
     });
   });
@@ -449,10 +459,10 @@ describe("filtering and paging", () => {
     await chooseMuscleGroups("quadriceps");
     await renderView();
 
-    expect(list).toHaveBeenLastCalledWith({
-      limit: 20,
-      muscleGroups: ["quadriceps"],
-      offset: 0,
+    expect(listCalls().at(-1)).toEqual({
+      limit: "20",
+      muscle_groups: "quadriceps",
+      offset: "0",
     });
   });
 
@@ -460,22 +470,22 @@ describe("filtering and paging", () => {
     await renderView({});
     await type("bench");
     await advance(300);
-    list.mockClear();
+    markRequests();
 
     await reachEnd();
     await advance(0);
 
-    expect(list).toHaveBeenCalledTimes(1);
-    expect(list).toHaveBeenLastCalledWith({
-      limit: 20,
-      offset: 20,
+    expect(listCalls()).toHaveLength(1);
+    expect(listCalls().at(-1)).toEqual({
+      limit: "20",
+      offset: "20",
       search: "bench",
     });
     expect(isListed("bench-press-25")).toBe(true);
 
     await reachEnd();
     await advance(0);
-    expect(list).toHaveBeenCalledTimes(1);
+    expect(listCalls()).toHaveLength(1);
   });
 
   it("has no Load More button", async () => {
@@ -487,10 +497,10 @@ describe("filtering and paging", () => {
 
   it("shows a loading indicator at the bottom while the next page loads", async () => {
     await renderView();
-    fake.failWith(new LibraryRateLimitedError(30));
+    failExercises(exercisesRateLimited(30));
     await reachEnd();
     await advance(0);
-    fake.failWith(null);
+    failExercises(null);
 
     // Held back by the 429, the next page is on its way.
     await reachEnd();
@@ -506,39 +516,39 @@ describe("filtering and paging", () => {
 
   it("never asks again for a page already on its way", async () => {
     await renderView();
-    fake.failWith(new LibraryRateLimitedError(30));
+    failExercises(exercisesRateLimited(30));
     await reachEnd();
     await advance(0);
-    fake.failWith(null);
-    list.mockClear();
+    failExercises(null);
+    markRequests();
 
     await reachEnd();
     await reachEnd();
     await reachEnd();
     await advance(30_000);
 
-    expect(list).toHaveBeenCalledTimes(1);
-    expect(list).toHaveBeenLastCalledWith({ limit: 20, offset: 20 });
+    expect(listCalls()).toHaveLength(1);
+    expect(listCalls().at(-1)).toEqual({ limit: "20", offset: "20" });
   });
 });
 
 describe("after a 429", () => {
   it("holds loading the next page back until Retry-After has passed", async () => {
     await renderView();
-    fake.failWith(new LibraryRateLimitedError(30));
+    failExercises(exercisesRateLimited(30));
     await reachEnd();
     await advance(0);
     expect(screen.getByText("Bench Press 01")).toBeTruthy();
     expect(screen.queryByText(COULD_NOT_LOAD)).toBeNull();
-    fake.failWith(null);
-    list.mockClear();
+    failExercises(null);
+    markRequests();
 
     await reachEnd();
     await advance(10_000);
-    expect(list).not.toHaveBeenCalled();
+    expect(listCalls()).toHaveLength(0);
 
     await advance(20_000);
-    expect(list).toHaveBeenLastCalledWith({ limit: 20, offset: 20 });
+    expect(listCalls().at(-1)).toEqual({ limit: "20", offset: "20" });
     expect(isListed("squat")).toBe(true);
   });
 });
@@ -546,7 +556,7 @@ describe("after a 429", () => {
 describe("a failed refresh", () => {
   it("shows the error state over the results it had", async () => {
     await renderView({ refreshable: true });
-    fake.failWith(new LibraryUnavailableError());
+    failExercises(EXERCISES_UNAVAILABLE);
 
     await pullToRefresh();
     await advance(1000);
@@ -557,16 +567,16 @@ describe("a failed refresh", () => {
 
   it("never pages past the error state when the shortened list reaches its end", async () => {
     await renderView({ refreshable: true });
-    fake.failWith(new LibraryUnavailableError());
+    failExercises(EXERCISES_UNAVAILABLE);
     await pullToRefresh();
     await advance(1000);
-    fake.failWith(null);
-    list.mockClear();
+    failExercises(null);
+    markRequests();
 
     await reachEnd();
     await advance(0);
 
-    expect(list).not.toHaveBeenCalled();
+    expect(listCalls()).toHaveLength(0);
     expect(screen.getByText("Couldn't Load Exercises")).toBeTruthy();
     expect(screen.getByText("Try Again")).toBeTruthy();
   });
@@ -575,11 +585,11 @@ describe("a failed refresh", () => {
 describe("the Retry-After hold", () => {
   it("holds the Exercise picker back too, after the Library tab was rate limited", async () => {
     await renderView();
-    fake.failWith(new LibraryRateLimitedError(30));
+    failExercises(exercisesRateLimited(30));
     await type("bench");
     await advance(300);
-    fake.failWith(null);
-    list.mockClear();
+    failExercises(null);
+    markRequests();
 
     // The picker opens in the same app (same query client) for a squat.
     await chooseMuscleGroups("quadriceps");
@@ -589,13 +599,13 @@ describe("the Retry-After hold", () => {
       </QueryClientProvider>
     );
     await advance(10_000);
-    expect(list).not.toHaveBeenCalled();
+    expect(listCalls()).toHaveLength(0);
 
     await advance(20_000);
-    expect(list).toHaveBeenLastCalledWith({
-      limit: 20,
-      muscleGroups: ["quadriceps"],
-      offset: 0,
+    expect(listCalls().at(-1)).toEqual({
+      limit: "20",
+      muscle_groups: "quadriceps",
+      offset: "0",
     });
     expect(screen.getByText("Squat")).toBeTruthy();
   });
@@ -604,7 +614,7 @@ describe("the Retry-After hold", () => {
 describe("a failed next page", () => {
   it("keeps the results and says it couldn't load more", async () => {
     await renderView();
-    fake.failWith(new LibraryUnavailableError());
+    failExercises(EXERCISES_UNAVAILABLE);
 
     await reachEnd();
     await advance(1000);
@@ -615,11 +625,11 @@ describe("a failed next page", () => {
 
   it("asks again only once the User scrolls to the end again", async () => {
     await renderView();
-    fake.failWith(new LibraryUnavailableError());
+    failExercises(EXERCISES_UNAVAILABLE);
     await reachEnd();
     await advance(1000);
-    fake.failWith(null);
-    list.mockClear();
+    failExercises(null);
+    markRequests();
 
     // The message lengthening the list reaches its end with no scroll.
     await fireEvent(screen.getByTestId("exercises-list"), "endReached");
@@ -631,7 +641,7 @@ describe("a failed next page", () => {
       dragEnd(1200)
     );
     await advance(0);
-    expect(list).not.toHaveBeenCalled();
+    expect(listCalls()).toHaveLength(0);
     expect(screen.getByText(LOAD_MORE_ERROR)).toBeTruthy();
 
     // Dragged at the end again: the list reports no new end, the drag retries.
@@ -641,18 +651,18 @@ describe("a failed next page", () => {
       dragEnd(0)
     );
     await advance(0);
-    expect(list).toHaveBeenLastCalledWith({ limit: 20, offset: 20 });
+    expect(listCalls().at(-1)).toEqual({ limit: "20", offset: "20" });
     expect(screen.queryByText(LOAD_MORE_ERROR)).toBeNull();
     expect(isListed("squat")).toBe(true);
   });
 
   it("keeps pull to refresh on the Library tab", async () => {
     await renderView({ refreshable: true });
-    list.mockClear();
+    markRequests();
 
     await pullToRefresh();
 
-    expect(list).toHaveBeenLastCalledWith({ limit: 20, offset: 0 });
+    expect(listCalls().at(-1)).toEqual({ limit: "20", offset: "0" });
     expect(screen.getByText("Bench Press 01")).toBeTruthy();
   });
 });
@@ -692,9 +702,9 @@ describe("what it lists", () => {
 
 describe("each row", () => {
   beforeEach(() => {
-    fake = serveLibrary([
-      libraryExercise("dip", { muscle_groups: ["triceps", "chest"] }),
-      libraryExercise("mystery", { muscle_groups: [] }),
+    serveExercises([
+      fakeExercise("dip", { muscle_groups: ["triceps", "chest"], name: "Dip" }),
+      fakeExercise("mystery", { muscle_groups: [], name: "Mystery" }),
     ]);
   });
 
@@ -736,13 +746,18 @@ describe("each row", () => {
 
 /** Translated into Ukrainian, where they sort in another order than in English. */
 const TRANSLATED = [
-  libraryExercise("bench-press", {
+  fakeExercise("bench-press", {
+    name: "Bench Press",
     translations: { uk: { name: "Жим лежачи" } },
   }),
-  libraryExercise("deadlift", {
+  fakeExercise("deadlift", {
+    name: "Deadlift",
     translations: { uk: { name: "Станова тяга" } },
   }),
-  libraryExercise("squat", { translations: { uk: { name: "Присідання" } } }),
+  fakeExercise("squat", {
+    name: "Squat",
+    translations: { uk: { name: "Присідання" } },
+  }),
 ];
 
 function InAppLanguage({ children }: { children: ReactNode }) {
@@ -772,8 +787,7 @@ const listedNames = (names: readonly string[]) =>
 
 describe("in Ukrainian", () => {
   beforeEach(async () => {
-    fake = serveLibrary(TRANSLATED);
-    list = jest.spyOn(fake, "list");
+    serveExercises(TRANSLATED);
     setDeviceLanguages(["uk-UA"]);
     await i18n.changeLanguage("uk");
   });
@@ -786,10 +800,10 @@ describe("in Ukrainian", () => {
   it("lists Ukrainian names in Ukrainian order", async () => {
     await renderInAppLanguage();
 
-    expect(list).toHaveBeenLastCalledWith({
+    expect(listCalls().at(-1)).toEqual({
       language: "uk",
-      limit: 20,
-      offset: 0,
+      limit: "20",
+      offset: "0",
     });
     expect(listedNames(["Жим лежачи", "Присідання", "Станова тяга"])).toEqual([
       "Жим лежачи",
@@ -805,10 +819,10 @@ describe("in Ukrainian", () => {
     await type("прис");
     await advance(300);
 
-    expect(list).toHaveBeenLastCalledWith({
+    expect(listCalls().at(-1)).toEqual({
       language: "uk",
-      limit: 20,
-      offset: 0,
+      limit: "20",
+      offset: "0",
       search: "прис",
     });
     expect(screen.getByText("Присідання")).toBeTruthy();
@@ -850,17 +864,17 @@ describe("in Ukrainian", () => {
     await type("squat");
     await advance(300);
     expect(screen.getByText("Присідання")).toBeTruthy();
-    list.mockClear();
+    markRequests();
 
     await act(() => {
       setDeviceLanguages(["en-US"]);
     });
     await advance(0);
 
-    expect(list).toHaveBeenCalledTimes(1);
-    expect(list).toHaveBeenLastCalledWith({
-      limit: 20,
-      offset: 0,
+    expect(listCalls()).toHaveLength(1);
+    expect(listCalls().at(-1)).toEqual({
+      limit: "20",
+      offset: "0",
       search: "squat",
     });
     expect(screen.getByText("Squat")).toBeTruthy();
@@ -870,7 +884,7 @@ describe("in Ukrainian", () => {
   it("never keeps another language's results when rate limited", async () => {
     await renderInAppLanguage();
     expect(screen.getByText("Присідання")).toBeTruthy();
-    fake.failWith(new LibraryRateLimitedError(30));
+    failExercises(exercisesRateLimited(30));
 
     await act(() => {
       setDeviceLanguages(["en-US"]);

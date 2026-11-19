@@ -2,7 +2,7 @@
  * The Workout editor and the builder's Library picker, on the mounted-screen
  * seam: the real Plan editor, Workout editor, picker, Muscles sheet, draft,
  * hooks and Public API client, with the client's `fetch` swapped for the fake
- * Public API and the Library swapped for the in-memory fake, so what the Plan
+ * Public API (its Exercise routes serving the Library), so what the Plan
  * editor's one Save writes is read back off the fake's rows. Each pushed
  * route is mounted over the one below it (`test-utils/router-stub.tsx`), so
  * every assertion is scoped with `within`.
@@ -12,8 +12,6 @@ import {
   MAX_SETS_PER_EXERCISE,
   MAX_WORKOUTS_PER_PLAN,
 } from "@fitme/core";
-import { LibraryUnavailableError } from "@fitme/library-sdk";
-import type { FakeLibrary } from "@fitme/library-sdk/fake";
 import { beforeEach, describe, expect, it, jest } from "@jest/globals";
 import { QueryClientProvider } from "@tanstack/react-query";
 import type { QueryClient } from "@tanstack/react-query";
@@ -35,12 +33,17 @@ import WorkoutScreen from "~/app/plans/[planId]/workouts/[workoutId]/index";
 import { EXERCISE_SEARCH_PAGE_SIZE } from "~/hooks/queries/library";
 import { NEW_EXERCISE_SET_COUNT } from "~/lib/plan-draft";
 import { setDeviceLanguages } from "~/test-utils/device-locales";
-import { libraryExercise, serveLibrary } from "~/test-utils/fake-library";
+import {
+  EXERCISES_UNAVAILABLE,
+  failExercises,
+  fakeExercise,
+  serveExercises,
+} from "~/test-utils/fake-exercises";
 import {
   backend,
   FAKE_USER_ID,
   fakePublicApi,
-  libraryExerciseNamed,
+  fakeExerciseNamed,
   slugOf,
 } from "~/test-utils/fake-public-api";
 import type { SeedPlan } from "~/test-utils/fake-public-api";
@@ -173,18 +176,17 @@ const PLAN: SeedPlan = {
 };
 
 const LIBRARY = [
-  libraryExerciseNamed("Barbell back squat"),
-  libraryExerciseNamed("Bench press"),
-  libraryExerciseNamed("Deadlift"),
-  libraryExerciseNamed("Pull up"),
-  libraryExercise("overhead-press", {
+  fakeExerciseNamed("Barbell back squat"),
+  fakeExerciseNamed("Bench press"),
+  fakeExerciseNamed("Deadlift"),
+  fakeExerciseNamed("Pull up"),
+  fakeExercise("overhead-press", {
     muscle_groups: ["shoulders"],
     name: "Overhead press",
   }),
 ];
 
 let client: QueryClient;
-let library: FakeLibrary;
 
 /** The Plan editor, with every route it pushes mounted over it. */
 const openEditor = async (language = "en-US") => {
@@ -307,7 +309,7 @@ beforeEach(() => {
   jest.spyOn(Alert, "alert").mockReturnValue(undefined);
   backend.reset();
   backend.seedPlan(structuredClone(PLAN));
-  library = serveLibrary(LIBRARY);
+  serveExercises(LIBRARY);
   resetStubRouter();
   setDeviceLanguages(["en-US"]);
   mockParams.current = { planId: "plan-1" };
@@ -864,7 +866,7 @@ describe("a failed save", () => {
     await openEditor();
     await openWorkout("Day A");
     await type("workout-name", "Push");
-    library.failWith(new LibraryUnavailableError());
+    failExercises(EXERCISES_UNAVAILABLE);
 
     await save();
 
@@ -913,19 +915,27 @@ describe("the picker", () => {
   });
 
   it("asks the Library for the next page as the User nears the end", async () => {
-    library = serveLibrary(
+    serveExercises(
       Array.from({ length: 25 }, (_exercise, index) =>
-        libraryExercise(`press-${String(index + 10)}`, {
+        fakeExercise(`press-${String(index + 10)}`, {
           name: `Press ${String(index + 10)}`,
         })
       )
     );
-    const list = jest.spyOn(library, "list");
     await openEditor();
     await openWorkout("Day A");
     await pressButton("Add Exercise");
 
-    const offsets = () => list.mock.calls.map(([page]) => page?.offset);
+    // The pages the picker listed (a lookup carries `slugs`, a page doesn't).
+    const offsets = () =>
+      fakePublicApi.requests
+        .filter(
+          (request) =>
+            request.route === "GET /v1/exercises" &&
+            request.query.slugs === undefined
+        )
+        .map((request) => Number(request.query.offset));
+
     expect(offsets()).toEqual([0]);
 
     await act(() => {

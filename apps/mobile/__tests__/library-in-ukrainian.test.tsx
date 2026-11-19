@@ -1,12 +1,10 @@
 /**
  * The Library tab, an Exercise's screen and its guide on a Ukrainian device:
  * the real screens under the root layout's language sync, on the fake
- * Library. The header is rendered as its title and search bar
+ * Public API's Exercise routes. The header is rendered as its title and search bar
  * (`stack-screen-stub`), and the SwiftUI-backed primitives are swapped for
  * plain stand-ins.
  */
-import { LibraryUnavailableError } from "@fitme/library-sdk";
-import type { FakeLibrary } from "@fitme/library-sdk/fake";
 import { beforeEach, describe, expect, it, jest } from "@jest/globals";
 import { QueryClientProvider } from "@tanstack/react-query";
 import type { QueryClient } from "@tanstack/react-query";
@@ -26,7 +24,12 @@ import ExerciseScreen from "~/app/exercises/[exerciseSlug]/index";
 import { setMuscleChoice } from "~/hooks/muscle-choice";
 import { storage } from "~/lib/mmkv";
 import { setDeviceLanguages } from "~/test-utils/device-locales";
-import { libraryExercise, serveLibrary } from "~/test-utils/fake-library";
+import {
+  EXERCISES_UNAVAILABLE,
+  failExercises,
+  fakeExercise,
+  serveExercises,
+} from "~/test-utils/fake-exercises";
 import { InAppLanguage } from "~/test-utils/in-app-language";
 import {
   createTestQueryClient,
@@ -59,7 +62,6 @@ jest.mock("~/components/exercises/exercise-video", () => () => null);
 
 jest.mock("~/components/symbol-image", () => ({ SymbolImage: () => null }));
 
-let fake: FakeLibrary;
 let client: QueryClient;
 
 const renderInUkrainian = async (Screen: ComponentType) => {
@@ -77,13 +79,15 @@ const renderInUkrainian = async (Screen: ComponentType) => {
 beforeEach(() => {
   storage.clearAll();
   mockSlug.current = "bench-press";
-  fake = serveLibrary([
-    libraryExercise("bench-press", {
+  serveExercises([
+    fakeExercise("bench-press", {
       muscle_groups: ["chest", "triceps"],
+      name: "Bench Press",
       translations: { uk: { name: "Жим лежачи" } },
     }),
-    libraryExercise("deadlift", {
+    fakeExercise("deadlift", {
       muscle_groups: ["back"],
+      name: "Deadlift",
       translations: { uk: { name: "Станова тяга" } },
     }),
   ]);
@@ -186,7 +190,7 @@ describe("the Library tab in Ukrainian", () => {
   });
 
   it("says the Library couldn't load, in Ukrainian", async () => {
-    fake.failWith(new LibraryUnavailableError());
+    failExercises(EXERCISES_UNAVAILABLE);
     await renderInUkrainian(LibraryScreen);
 
     expect(screen.getByText("Не вдалося завантажити вправи")).toBeTruthy();
@@ -196,7 +200,7 @@ describe("the Library tab in Ukrainian", () => {
       )
     ).toBeTruthy();
 
-    fake.failWith(null);
+    failExercises(null);
     await fireEvent.press(screen.getByText("Спробувати ще раз"));
     await settle(client);
     expect(screen.getByText("Жим лежачи")).toBeTruthy();
@@ -217,7 +221,7 @@ describe.each([
   });
 
   it("says the Exercise couldn't load, with a retry", async () => {
-    fake.failWith(new LibraryUnavailableError());
+    failExercises(EXERCISES_UNAVAILABLE);
     await renderInUkrainian(Screen);
 
     expect(

@@ -7,7 +7,7 @@ import type { ReactNode } from "react";
 import type { WorkoutSessionHistoryEntry } from "~/hooks/queries/workout-sessions";
 import { i18n } from "~/lib/i18n";
 import { setDeviceLanguages } from "~/test-utils/device-locales";
-import { libraryExercise, serveLibrary } from "~/test-utils/fake-library";
+import { fakeExercise, serveExercises } from "~/test-utils/fake-exercises";
 import { InAppLanguage } from "~/test-utils/in-app-language";
 import { createTestQueryClient } from "~/test-utils/query-client";
 
@@ -88,7 +88,9 @@ describe("WorkoutSessionHistoryRow", () => {
   });
 
   it("badges a Workout Session that earned Personal records, reading each Exercise and result", async () => {
-    serveLibrary([libraryExercise("barbell-back-squat")]);
+    serveExercises([
+      fakeExercise("barbell-back-squat", { name: "Barbell Back Squat" }),
+    ]);
     await renderRow(
       {
         ...entry,

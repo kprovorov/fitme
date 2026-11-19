@@ -4,11 +4,10 @@
  * User always sees what the list is narrowed to. A chip's × removes that
  * Equipment at once, and "Show All Exercises" clears the search, every Muscle
  * group and every Equipment. The real Library screen and both sheets on the
- * fake Library, each sheet mounted over the tab once pushed
+ * fake Public API's Exercise routes, each sheet mounted over the tab once pushed
  * (`test-utils/router-stub.tsx`); the SwiftUI-backed primitives are swapped
  * for plain stand-ins.
  */
-import type { FakeLibrary } from "@fitme/library-sdk/fake";
 import { beforeEach, describe, expect, it, jest } from "@jest/globals";
 import { QueryClientProvider } from "@tanstack/react-query";
 import type { QueryClient } from "@tanstack/react-query";
@@ -26,7 +25,8 @@ import { getEquipmentChoice } from "~/hooks/equipment-choice";
 import { getMuscleChoice } from "~/hooks/muscle-choice";
 import { storage } from "~/lib/mmkv";
 import { setDeviceLanguages } from "~/test-utils/device-locales";
-import { libraryExercise, serveLibrary } from "~/test-utils/fake-library";
+import { fakeExercise, serveExercises } from "~/test-utils/fake-exercises";
+import { fakePublicApi } from "~/test-utils/fake-public-api";
 import { InAppLanguage } from "~/test-utils/in-app-language";
 import {
   createTestQueryClient,
@@ -57,9 +57,18 @@ jest.mock("~/components/exercises/exercise-image", () => () => null);
 
 jest.mock("~/components/symbol-image", () => ({ SymbolImage: () => null }));
 
-let fake: FakeLibrary;
-let list: jest.SpiedFunction<FakeLibrary["list"]>;
 let client: QueryClient;
+
+const LIST_ROUTE = "GET /v1/exercises";
+
+/** The query of every page of the Library asked for, in order (lookups aside). */
+const listQueries = () =>
+  fakePublicApi.requests
+    .filter(
+      (request) =>
+        request.route === LIST_ROUTE && request.query.slugs === undefined
+    )
+    .map((request) => request.query);
 
 const renderLibrary = async () => {
   client = createTestQueryClient();
@@ -109,25 +118,28 @@ const chipLabels = () =>
 beforeEach(() => {
   storage.clearAll();
   resetStubRouter();
-  fake = serveLibrary([
-    libraryExercise("bench-press", {
+  serveExercises([
+    fakeExercise("bench-press", {
+      name: "Bench Press",
       equipment: ["barbell", "bench"],
       muscle_groups: ["chest", "triceps"],
     }),
-    libraryExercise("dumbbell-curl", {
+    fakeExercise("dumbbell-curl", {
+      name: "Dumbbell Curl",
       equipment: ["dumbbell"],
       muscle_groups: ["biceps"],
     }),
-    libraryExercise("goblet-squat", {
+    fakeExercise("goblet-squat", {
+      name: "Goblet Squat",
       equipment: ["dumbbell"],
       muscle_groups: ["quadriceps"],
     }),
-    libraryExercise("pull-up", {
+    fakeExercise("pull-up", {
+      name: "Pull Up",
       equipment: ["pull_up_bar", "bodyweight"],
       muscle_groups: ["back"],
     }),
   ]);
-  list = jest.spyOn(fake, "list");
 });
 
 describe("the Equipment chips on the Library tab", () => {
@@ -188,11 +200,11 @@ describe("the Equipment chips on the Library tab", () => {
     await removeChip("Remove Dumbbell");
 
     expect(getEquipmentChoice("library")).toEqual(["barbell"]);
-    expect(list).toHaveBeenLastCalledWith({
-      equipment: ["barbell"],
-      limit: 20,
-      muscleGroups: ["chest"],
-      offset: 0,
+    expect(listQueries().at(-1)).toEqual({
+      equipment: "barbell",
+      limit: "20",
+      muscle_groups: "chest",
+      offset: "0",
     });
     expect(shownExercises()).toEqual(["Bench Press"]);
     expect(chipLabels()).toEqual(["Remove Chest", "Remove Barbell"]);

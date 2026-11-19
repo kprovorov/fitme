@@ -1,4 +1,3 @@
-import type { ExerciseSummary } from "@fitme/library-sdk";
 import { router, Stack } from "expo-router";
 import { useCallback } from "react";
 import { useTranslation } from "react-i18next";
@@ -6,6 +5,7 @@ import { useTranslation } from "react-i18next";
 import { ExerciseRowChevron } from "~/components/exercises/exercise-row";
 import ExercisesView from "~/components/views/exercises-view";
 import { useHeaderSearch } from "~/hooks/header-search";
+import type { ExerciseSummary } from "~/lib/exercises";
 
 /**
  * The Library tab's Muscle group and Equipment choices: each kept while the

@@ -1,19 +1,19 @@
 /**
- * The instructions on the Exercise detail screen (FIT-630): the Library
- * writes them as a markdown list, which the screen shows as numbered steps,
- * never with the `- ` or `1. ` markers, in the App language.
+ * The steps on the Exercise detail screen (FIT-630, FIT-755): the Library
+ * answers them as a list, which the screen shows as numbered steps, in the
+ * App language.
  *
- * The real screen on the fake Library.
+ * The real screen on the fake Public API's Exercise routes.
  */
 import { beforeEach, describe, expect, it, jest } from "@jest/globals";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { render, screen, within } from "@testing-library/react-native";
 
 import ExerciseScreen from "~/app/exercises/[exerciseSlug]/index";
-import { instructionSteps } from "~/lib/instruction-steps";
+import { InstructionSteps } from "~/components/exercises/instruction-steps";
 import { storage } from "~/lib/mmkv";
 import { setDeviceLanguages } from "~/test-utils/device-locales";
-import { libraryExercise, serveLibrary } from "~/test-utils/fake-library";
+import { fakeExercise, serveExercises } from "~/test-utils/fake-exercises";
 import { InAppLanguage } from "~/test-utils/in-app-language";
 import { createTestQueryClient, settle } from "~/test-utils/query-client";
 
@@ -39,17 +39,31 @@ jest.mock("~/components/exercises/exercise-video", () => () => null);
 
 jest.mock("~/components/symbol-image", () => ({ SymbolImage: () => null }));
 
-const BENCH_PRESS = libraryExercise("dumbbell-bench-press", {
-  instructions:
-    "- Lie on the bench.\n- Press the dumbbells up.\n\n- Lower them slowly.",
+const TRANSLATED = fakeExercise("dumbbell-bench-press", {
   translations: {
     uk: {
-      description: "Про жим гантелей лежачи.",
-      instructions: "1. Лягайте на лаву.\n2. Вичавіть гантелі.",
       name: "Жим гантелей лежачи",
+      short_description: "Про жим гантелей лежачи.",
+      steps: ["Лягайте на лаву.", "Вичавіть гантелі."],
     },
   },
 });
+
+/** With its English steps, which `fakeExercise` makes from the name alone. */
+const BENCH_PRESS = {
+  ...TRANSLATED,
+  locales: {
+    ...TRANSLATED.locales,
+    en: {
+      ...TRANSLATED.locales.en,
+      steps: [
+        "Lie on the bench.",
+        "Press the dumbbells up.",
+        "Lower them slowly.",
+      ],
+    },
+  },
+};
 
 const renderScreen = async () => {
   params.current = { exerciseSlug: "dumbbell-bench-press" };
@@ -77,11 +91,11 @@ const shownSteps = () =>
 
 beforeEach(() => {
   storage.clearAll();
-  serveLibrary([BENCH_PRESS]);
+  serveExercises([BENCH_PRESS]);
 });
 
 describe("an Exercise's instructions", () => {
-  it("shows the markdown list as numbered steps, with no markers", async () => {
+  it("shows them as numbered steps, in order", async () => {
     await renderScreen();
 
     expect(shownSteps()).toEqual([
@@ -89,7 +103,6 @@ describe("an Exercise's instructions", () => {
       "2 Press the dumbbells up.",
       "3 Lower them slowly.",
     ]);
-    expect(screen.queryByText(/^\s*(?:-|\d+\.)\s/u)).toBeNull();
   });
 
   it("reads each step to VoiceOver once, with its number", async () => {
@@ -112,23 +125,19 @@ describe("an Exercise's instructions", () => {
     await renderScreen();
 
     expect(shownSteps()).toEqual(["1 Лягайте на лаву.", "2 Вичавіть гантелі."]);
-    expect(screen.queryByText(/^\s*(?:-|\d+\.)\s/u)).toBeNull();
   });
 });
 
-describe("instructionSteps", () => {
-  it("drops every list marker and blank line", () => {
-    expect(instructionSteps("- a\n* b\n• c\n1. d\n2) e\n\n   \nf")).toEqual([
-      "a",
-      "b",
-      "c",
-      "d",
-      "e",
-      "f",
-    ]);
+describe("InstructionSteps", () => {
+  it("shows a step repeated as often as it comes", async () => {
+    await render(<InstructionSteps steps={["Press.", "Repeat.", "Repeat."]} />);
+
+    expect(shownSteps()).toEqual(["1 Press.", "2 Repeat.", "3 Repeat."]);
   });
 
-  it("answers no steps for no instructions", () => {
-    expect(instructionSteps("")).toEqual([]);
+  it("renders nothing for no steps", async () => {
+    await render(<InstructionSteps steps={[]} />);
+
+    expect(screen.queryByTestId("instruction-steps")).toBeNull();
   });
 });

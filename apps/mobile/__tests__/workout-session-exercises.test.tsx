@@ -7,7 +7,7 @@
  * through the Exercise picker, its own route over the Workout Session
  * (FIT-432).
  *
- * Mounts the real screen on the fake Public API and the fake Library, with
+ * Mounts the real screen on the fake Public API and its Exercise routes, with
  * the picker route mounted over it once pushed (`test-utils/router-stub.tsx`); the
  * SwiftUI-backed primitives are swapped for plain stand-ins.
  */
@@ -33,7 +33,11 @@ import { i18n } from "~/lib/i18n";
 import { storage } from "~/lib/mmkv";
 import { segmentClient } from "~/lib/segment";
 import { setDeviceLanguages } from "~/test-utils/device-locales";
-import { libraryExercise, serveLibrary } from "~/test-utils/fake-library";
+import {
+  FAKE_SUPABASE_URL,
+  fakeExercise,
+  serveExercises,
+} from "~/test-utils/fake-exercises";
 import { backend, fakePublicApi } from "~/test-utils/fake-public-api";
 import type { Failure } from "~/test-utils/fake-public-api";
 import { InAppLanguage } from "~/test-utils/in-app-language";
@@ -189,7 +193,9 @@ const renderSession = async () => {
   await settle();
   // Replacing starts on the Exercise's muscle group, which the Library gives:
   // wait until it has answered for the seeded Squat.
-  await screen.findByTestId("thumbnail:https://media.test/render/squat.jpg");
+  await screen.findByTestId(
+    `thumbnail:${FAKE_SUPABASE_URL}/storage/v1/render/image/public/library/squat/${"a".repeat(64)}.webp`
+  );
 };
 
 /** Waits until every request, query and mutation is done. */
@@ -298,10 +304,13 @@ beforeEach(() => {
   storage.clearAll();
   resetStubRouter();
   // Replacing Squat starts on quadriceps, which Push-up doesn't train.
-  serveLibrary([
-    libraryExercise("squat", { muscle_groups: ["quadriceps"] }),
-    libraryExercise("lunge", { muscle_groups: ["quadriceps", "glutes"] }),
-    libraryExercise("push-up", { muscle_groups: ["chest"] }),
+  serveExercises([
+    fakeExercise("squat", { name: "Squat", muscle_groups: ["quadriceps"] }),
+    fakeExercise("lunge", {
+      name: "Lunge",
+      muscle_groups: ["quadriceps", "glutes"],
+    }),
+    fakeExercise("push-up", { name: "Push Up", muscle_groups: ["chest"] }),
   ]);
   jest.spyOn(Alert, "alert").mockReturnValue(undefined);
   backend.seed({
@@ -436,12 +445,14 @@ describe("the Exercise picker", () => {
   });
 
   it("reads its titles, rows and Close in Ukrainian", async () => {
-    serveLibrary([
-      libraryExercise("squat", {
+    serveExercises([
+      fakeExercise("squat", {
+        name: "Squat",
         muscle_groups: ["quadriceps"],
         translations: { uk: { name: "Присідання" } },
       }),
-      libraryExercise("lunge", {
+      fakeExercise("lunge", {
+        name: "Lunge",
         muscle_groups: ["quadriceps", "glutes"],
         translations: { uk: { name: "Випади" } },
       }),

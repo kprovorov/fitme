@@ -17,7 +17,7 @@ import type { ReactNode } from "react";
 
 import WorkoutSessionExerciseScreen from "~/app/plans/[planId]/workouts/[workoutId]/sessions/[sessionId]/exercises/[exerciseId]/index";
 import { storage } from "~/lib/mmkv";
-import { libraryExercise, serveLibrary } from "~/test-utils/fake-library";
+import { fakeExercise, serveExercises } from "~/test-utils/fake-exercises";
 import {
   backend,
   FAKE_USER_ID,
@@ -174,7 +174,9 @@ beforeEach(() => {
   storage.clearAll();
   resetStubRouter();
   backend.seedProfile(FAKE_USER_ID);
-  serveLibrary([libraryExercise("squat", { muscle_groups: ["quadriceps"] })]);
+  serveExercises([
+    fakeExercise("squat", { muscle_groups: ["quadriceps"], name: "Squat" }),
+  ]);
   // The session being logged, left out of its own history.
   backend.seed({
     exercises: [{ name: "Squat", sets: [null] }],

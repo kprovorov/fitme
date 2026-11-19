@@ -1,6 +1,5 @@
 import { legacyMuscleGroups } from "@fitme/core";
 import type { LegacyMuscleGroup } from "@fitme/core";
-import type { ExerciseSummary } from "@fitme/library-sdk";
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 import { useCallback, useMemo, useRef } from "react";
 import { useTranslation } from "react-i18next";
@@ -13,6 +12,7 @@ import {
   useMuscleChoiceOpening,
 } from "~/hooks/muscle-choice";
 import { updatePlanDraft } from "~/hooks/plan-draft";
+import type { ExerciseSummary } from "~/lib/exercises";
 import { addDraftExercise, replaceDraftExercise } from "~/lib/plan-draft";
 
 const isMuscleGroup = (value: string | undefined): value is LegacyMuscleGroup =>

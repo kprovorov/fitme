@@ -5,7 +5,7 @@
  * where each links, the answers of Start and Finish shown with no second
  * read, and a failed read with and without one already shown.
  *
- * Mounts the real screens on the fake Public API, with the fake Library
+ * Mounts the real screens on the fake Public API, with its Exercise routes
  * naming the Exercises; the SwiftUI-backed primitives are swapped for plain stand-ins.
  */
 import {
@@ -42,7 +42,7 @@ import {
 } from "~/hooks/queries/workout-sessions";
 import { storage } from "~/lib/mmkv";
 import { publicApi } from "~/lib/public-api";
-import { libraryExercise, serveLibrary } from "~/test-utils/fake-library";
+import { fakeExercise, serveExercises } from "~/test-utils/fake-exercises";
 import {
   backend,
   FAKE_USER_ID,
@@ -225,9 +225,9 @@ beforeEach(() => {
   storage.clearAll();
   resetStubRouter();
   backend.seedProfile(FAKE_USER_ID);
-  serveLibrary([
-    libraryExercise("squat", { muscle_groups: ["quadriceps"] }),
-    libraryExercise("bench-press", {
+  serveExercises([
+    fakeExercise("squat", { name: "Squat", muscle_groups: ["quadriceps"] }),
+    fakeExercise("bench-press", {
       muscle_groups: ["chest"],
       name: "Bench Press",
     }),

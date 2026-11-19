@@ -86,11 +86,12 @@ const WorkoutSessionExerciseScreen = () => {
   // doesn't know (or that hasn't resolved yet).
   const hasGuide = !!workoutSessionExercise && exercise.isResolved;
 
+  // Under the Exercise's own slug: the one replacing a replaced slug.
   const openGuide = useCallback(() => {
     if (workoutSessionExercise) {
-      router.push(`/exercises/${workoutSessionExercise.exercise_slug}/guide`);
+      router.push(`/exercises/${exercise.slug}/guide`);
     }
-  }, [router, workoutSessionExercise]);
+  }, [exercise.slug, router, workoutSessionExercise]);
 
   const handleSetLogged = useCallback(
     (set: SavedWorkoutSessionExerciseSet, nextSetOrder: number | null) => {
@@ -171,7 +172,7 @@ const WorkoutSessionExerciseScreen = () => {
       return (
         <>
           <SessionExerciseHeader
-            description={exerciseDetail?.description}
+            description={exerciseDetail?.short_description}
             exercise={exercise}
             onOpenGuide={hasGuide ? openGuide : undefined}
           />

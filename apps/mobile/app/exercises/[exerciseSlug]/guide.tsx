@@ -36,8 +36,10 @@ const ExerciseGuideScreen = () => {
               <ExerciseVideo url={exercise.video_url} />
             </View>
           ) : null}
-          {exercise.description ? <Muted>{exercise.description}</Muted> : null}
-          <InstructionSteps instructions={exercise.instructions} />
+          {exercise.short_description ? (
+            <Muted>{exercise.short_description}</Muted>
+          ) : null}
+          <InstructionSteps steps={exercise.steps} />
         </>
       );
     }

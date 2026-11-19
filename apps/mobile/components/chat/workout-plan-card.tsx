@@ -94,9 +94,12 @@ const ExerciseRow = ({
   const isResolved = !!shown?.isResolved;
   const name = shown?.isResolved ? shown.name : exercise.name;
 
+  // Under the Exercise's own slug: the one replacing a replaced slug.
+  const linkedSlug = shown?.slug ?? exercise.exercise_slug;
+
   const handlePress = useCallback(
-    () => router.push(`/exercises/${exercise.exercise_slug}`),
-    [exercise.exercise_slug]
+    () => router.push(`/exercises/${linkedSlug}`),
+    [linkedSlug]
   );
 
   return (

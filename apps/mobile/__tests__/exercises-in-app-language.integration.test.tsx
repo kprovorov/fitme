@@ -1,16 +1,14 @@
-import { LibraryUnavailableError } from "@fitme/library-sdk";
 /**
  * Exercises in the App language (FIT-406): in Ukrainian, Plans, Workout
  * Sessions, the Exercise detail screen and its guide show each Exercise's
- * Ukrainian name, description and instructions; one without a translation is
+ * Ukrainian name, short description and steps; one without a translation is
  * wholly English, and a new App language refetches them. A Library search
  * (FIT-408) finds one by its Ukrainian name and seeds that name.
  *
- * Mounts the real screens on the fake Public API and the fake Library holding translated Exercises, under the root layout's
+ * Mounts the real screens on the fake Public API, its Exercise routes serving translated Exercises, under the root layout's
  * language sync; the device language comes from the mocked
  * `expo-localization` (`test-utils/device-locales.ts`).
  */
-import type { FakeLibrary } from "@fitme/library-sdk/fake";
 import {
   afterEach,
   beforeEach,
@@ -33,7 +31,12 @@ import ExercisePickerScreen from "~/app/workout-sessions/[workoutSessionId]/exer
 import { i18n, useAppLanguageSync } from "~/lib/i18n";
 import { storage } from "~/lib/mmkv";
 import { setDeviceLanguages } from "~/test-utils/device-locales";
-import { libraryExercise, serveLibrary } from "~/test-utils/fake-library";
+import {
+  EXERCISES_UNAVAILABLE,
+  failExercises,
+  fakeExercise,
+  serveExercises,
+} from "~/test-utils/fake-exercises";
 import { backend, fakePublicApi } from "~/test-utils/fake-public-api";
 import {
   createTestQueryClient,
@@ -94,14 +97,6 @@ jest.mock("expo-router", () => {
     }),
   };
 });
-
-jest.mock(
-  "~/lib/library",
-  () =>
-    jest.requireActual<typeof import("~/test-utils/fake-library")>(
-      "~/test-utils/fake-library"
-    ).libraryModule
-);
 
 jest.mock("~/hooks/queries/profiles", () => ({
   useProfileQuery: () => ({ data: { measurement_system: "metric" } }),
@@ -170,28 +165,22 @@ jest.mock("~/components/ui/dropdown-menu", () => {
 jest.mock("~/components/exercises/exercise-video", () => () => null);
 
 /** Translated into Ukrainian. */
-const SQUAT = libraryExercise("squat", {
-  description: "About the squat.",
-  instructions: "- Stand.\n- Squat down.",
+const SQUAT = fakeExercise("squat", {
+  muscle_groups: ["quadriceps"],
   name: "Squat",
   translations: {
     uk: {
-      description: "Про присідання.",
-      instructions: "- Станьте.\n- Присядьте.",
       name: "Присідання",
+      short_description: "Про присідання.",
+      steps: ["Станьте.", "Присядьте."],
     },
   },
 });
 
-/** English only. */
-const LUNGE = libraryExercise("lunge", {
-  description: "About the lunge.",
-  instructions: "- Step forward.",
-  name: "Lunge",
-});
+/** English only: "About Lunge", one step "Do Lunge". */
+const LUNGE = fakeExercise("lunge", { name: "Lunge" });
 
 let queryClient: QueryClient;
-let fake: FakeLibrary;
 
 function InAppLanguage({ children }: { children: ReactNode }) {
   useAppLanguageSync();
@@ -233,7 +222,7 @@ beforeEach(() => {
   jest.clearAllMocks();
   backend.reset();
   storage.clearAll();
-  fake = serveLibrary([SQUAT, LUNGE]);
+  serveExercises([SQUAT, LUNGE]);
   setDeviceLanguages(["uk-UA"]);
 });
 
@@ -316,9 +305,9 @@ describe("an Exercise's detail screen", () => {
   it("shows an untranslated Exercise wholly in English", async () => {
     await renderScreen(ExerciseScreen, { exerciseSlug: "lunge" });
 
-    await expect(screen.findByText("About the lunge.")).resolves.toBeTruthy();
+    await expect(screen.findByText("About Lunge")).resolves.toBeTruthy();
     expect(screen.getByTestId("title")).toHaveTextContent("Lunge");
-    expect(screen.getByText("Step forward.")).toBeTruthy();
+    expect(screen.getByText("Do Lunge")).toBeTruthy();
   });
 
   it("follows the App language when it changes", async () => {
@@ -327,7 +316,7 @@ describe("an Exercise's detail screen", () => {
 
     await switchDeviceTo("en-US");
 
-    await expect(screen.findByText("About the squat.")).resolves.toBeTruthy();
+    await expect(screen.findByText("About Squat")).resolves.toBeTruthy();
     expect(screen.getByTestId("title")).toHaveTextContent("Squat");
   });
 });
@@ -347,8 +336,8 @@ describe("an Exercise's guide", () => {
   it("shows an untranslated Exercise wholly in English", async () => {
     await renderScreen(ExerciseGuideScreen, { exerciseSlug: "lunge" });
 
-    await expect(screen.findByText("About the lunge.")).resolves.toBeTruthy();
-    expect(screen.getByText("Step forward.")).toBeTruthy();
+    await expect(screen.findByText("About Lunge")).resolves.toBeTruthy();
+    expect(screen.getByText("Do Lunge")).toBeTruthy();
   });
 });
 
@@ -357,11 +346,13 @@ describe("an Exercise's guide", () => {
  * answered it, past the debounce.
  */
 const search = async (term: string) => {
-  const list = jest.spyOn(fake, "list");
   // Labelled in the App language.
   await fireEvent.changeText(screen.getByLabelText("Пошук вправ"), term);
   await until(() =>
-    list.mock.calls.some(([params]) => params?.search === term)
+    fakePublicApi.requests.some(
+      (request) =>
+        request.route === "GET /v1/exercises" && request.query.search === term
+    )
   );
   await settle();
 };
@@ -399,7 +390,7 @@ describe("searching the Library", () => {
     expect(screen.getByText("Присідання")).toBeTruthy();
 
     // The Library goes away: the name comes from what the search listed.
-    fake.failWith(new LibraryUnavailableError());
+    failExercises(EXERCISES_UNAVAILABLE);
     mockParams.current = { exerciseSlug: "squat" };
     await screen.rerender(
       <QueryClientProvider client={queryClient}>

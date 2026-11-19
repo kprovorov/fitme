@@ -1,4 +1,3 @@
-import { LibraryUnavailableError } from "@fitme/library-sdk";
 /**
  * Arnold's plan card on the mounted-screen seam: the real card, hooks and
  * Public API client, with the client's `fetch` swapped for the fake Public
@@ -15,7 +14,12 @@ import { useAppLanguageSync } from "~/lib/i18n";
 import { storage } from "~/lib/mmkv";
 import { segmentClient } from "~/lib/segment";
 import { setDeviceLanguages } from "~/test-utils/device-locales";
-import { libraryExercise, serveLibrary } from "~/test-utils/fake-library";
+import {
+  EXERCISES_UNAVAILABLE,
+  failExercises,
+  fakeExercise,
+  serveExercises,
+} from "~/test-utils/fake-exercises";
 import { backend, fakePublicApi } from "~/test-utils/fake-public-api";
 import { createTestQueryClient, settle } from "~/test-utils/query-client";
 
@@ -142,9 +146,9 @@ beforeEach(() => {
   jest.clearAllMocks();
   storage.clearAll();
   backend.reset();
-  serveLibrary([
-    libraryExercise("bench-press", { name: "Bench Press" }),
-    libraryExercise("mystery-move"),
+  serveExercises([
+    fakeExercise("bench-press", { name: "Bench Press" }),
+    fakeExercise("mystery-move", { name: "Mystery Move" }),
   ]);
 });
 
@@ -156,8 +160,23 @@ describe("WorkoutPlanCard", () => {
     expect(mockPush).toHaveBeenCalledWith("/exercises/bench-press");
   });
 
+  it("names and links an old slug as the Exercise replacing it", async () => {
+    serveExercises(
+      [
+        fakeExercise("barbell-bench-press", { name: "Barbell Bench Press" }),
+        fakeExercise("mystery-move", { name: "Mystery Move" }),
+      ],
+      { replacedSlugs: { "bench-press": "barbell-bench-press" } }
+    );
+    await renderCard();
+
+    expect(screen.queryByText("Arnold's bench")).toBeNull();
+    await fireEvent.press(screen.getByText("Barbell Bench Press"));
+    expect(mockPush).toHaveBeenCalledWith("/exercises/barbell-bench-press");
+  });
+
   it("doesn't link an Exercise the library doesn't know", async () => {
-    serveLibrary([libraryExercise("bench-press", { name: "Bench Press" })]);
+    serveExercises([fakeExercise("bench-press", { name: "Bench Press" })]);
     await renderCard();
 
     await fireEvent.press(screen.getByText("Mystery Move"));
@@ -334,7 +353,7 @@ describe("WorkoutPlanCard", () => {
   });
 
   it("says the plan has Exercises we don't know, saving nothing until they're known", async () => {
-    serveLibrary([libraryExercise("bench-press", { name: "Bench Press" })]);
+    serveExercises([fakeExercise("bench-press", { name: "Bench Press" })]);
     const client = await renderCard();
 
     await save(client);
@@ -343,9 +362,9 @@ describe("WorkoutPlanCard", () => {
     expect(backend.plans).toEqual([]);
     expect(tracked()).toEqual([]);
 
-    serveLibrary([
-      libraryExercise("bench-press", { name: "Bench Press" }),
-      libraryExercise("mystery-move"),
+    serveExercises([
+      fakeExercise("bench-press", { name: "Bench Press" }),
+      fakeExercise("mystery-move", { name: "Mystery Move" }),
     ]);
     await save(client);
 
@@ -355,13 +374,13 @@ describe("WorkoutPlanCard", () => {
   });
 
   it("asks to try again on library_unavailable, saving nothing", async () => {
-    const library = serveLibrary([
-      libraryExercise("bench-press", { name: "Bench Press" }),
-      libraryExercise("mystery-move"),
+    serveExercises([
+      fakeExercise("bench-press", { name: "Bench Press" }),
+      fakeExercise("mystery-move", { name: "Mystery Move" }),
     ]);
 
     const client = await renderCard();
-    library.failWith(new LibraryUnavailableError());
+    failExercises(EXERCISES_UNAVAILABLE);
 
     await save(client);
 
@@ -371,7 +390,7 @@ describe("WorkoutPlanCard", () => {
     expect(backend.plans).toEqual([]);
     expect(tracked()).toEqual([]);
 
-    library.failWith(null);
+    failExercises(null);
     await save(client);
 
     expect(backend.plans).toHaveLength(1);
@@ -476,7 +495,7 @@ describe("workoutPlanCard in Ukrainian", () => {
   });
 
   it("says the plan has Exercises we don't know", async () => {
-    serveLibrary([libraryExercise("bench-press", { name: "Bench Press" })]);
+    serveExercises([fakeExercise("bench-press", { name: "Bench Press" })]);
     const client = await renderCard();
 
     await saveInUkrainian(client);
@@ -490,13 +509,13 @@ describe("workoutPlanCard in Ukrainian", () => {
   });
 
   it("asks to try again on library_unavailable", async () => {
-    const library = serveLibrary([
-      libraryExercise("bench-press", { name: "Bench Press" }),
-      libraryExercise("mystery-move"),
+    serveExercises([
+      fakeExercise("bench-press", { name: "Bench Press" }),
+      fakeExercise("mystery-move", { name: "Mystery Move" }),
     ]);
 
     const client = await renderCard();
-    library.failWith(new LibraryUnavailableError());
+    failExercises(EXERCISES_UNAVAILABLE);
 
     await saveInUkrainian(client);
 
