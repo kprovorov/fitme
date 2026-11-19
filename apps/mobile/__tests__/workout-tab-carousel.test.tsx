@@ -1,8 +1,8 @@
-import type { LegacyMuscleGroup } from "@fitme/core";
+import type { MuscleGroup } from "@fitme/core";
 /**
  * The Workout tab's carousel on the mounted-screen seam: the real tab screen
- * with the Public API swapped for its fake and the Library for its fake
- * (both from `test-utils/`).
+ * with the Public API swapped for its fake, Exercises served by its
+ * Exercise routes (both from `test-utils/`).
  */
 import { beforeEach, describe, expect, it, jest } from "@jest/globals";
 import { QueryClientProvider } from "@tanstack/react-query";
@@ -16,7 +16,7 @@ import {
 import { Alert, ScrollView } from "react-native";
 
 import HomeScreen from "~/app/(tabs)/(home)/index";
-import { libraryExercise, serveLibrary } from "~/test-utils/fake-library";
+import { fakeExercise, serveExercises } from "~/test-utils/fake-exercises";
 import {
   backend,
   FAKE_USER_ID,
@@ -103,8 +103,8 @@ const mount = async () => {
   await settle(queryClient);
 };
 
-const exercise = (slug: string, muscleGroups: LegacyMuscleGroup[]) =>
-  libraryExercise(slug, { muscle_groups: muscleGroups });
+const exercise = (slug: string, muscleGroups: MuscleGroup[]) =>
+  fakeExercise(slug, { muscle_groups: muscleGroups });
 
 /** The cards' Workout names, in the carousel's order. */
 const cardNames = () =>
@@ -131,13 +131,13 @@ beforeEach(() => {
   jest.spyOn(Alert, "alert").mockReturnValue(undefined);
   backend.reset();
   backend.seedProfile(FAKE_USER_ID);
-  serveLibrary([
+  serveExercises([
     exercise("bench-press", ["chest", "triceps"]),
     exercise("push-up", ["chest", "triceps", "shoulders"]),
     exercise("dips", ["triceps", "chest"]),
     exercise("fly", ["chest"]),
     exercise("squat", ["quadriceps", "glutes", "hamstrings", "lower-back"]),
-    exercise("lunge", ["quadriceps", "glutes", "calves", "abs"]),
+    exercise("lunge", ["quadriceps", "glutes", "calves", "core"]),
   ]);
   backend.seedPlan({
     id: "plan-1",

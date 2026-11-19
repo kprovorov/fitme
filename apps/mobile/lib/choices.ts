@@ -1,10 +1,12 @@
 import type {
-  LegacyEquipment,
+  Equipment,
   ExperienceLevel,
   Gender,
   Goal,
-  MeasurementSystem,
+  LegacyEquipment,
   LegacyMuscleGroup,
+  MeasurementSystem,
+  MuscleGroup,
   Place,
 } from "@fitme/core";
 import type { TFunction } from "i18next";
@@ -19,14 +21,14 @@ import { i18n } from "~/lib/i18n";
  * data for the servers; the app never shows them.
  */
 export interface ChoiceLabels {
-  equipment: (id: LegacyEquipment) => string;
+  equipment: (id: Equipment | LegacyEquipment) => string;
   experienceLevel: (id: ExperienceLevel) => string;
   experienceLevelDescription: (id: ExperienceLevel) => string;
   gender: (id: Gender) => string;
   goal: (id: Goal) => string;
   measurementSystem: (id: MeasurementSystem) => string;
   measurementSystemDescription: (id: MeasurementSystem) => string;
-  muscleGroup: (id: LegacyMuscleGroup) => string;
+  muscleGroup: (id: LegacyMuscleGroup | MuscleGroup) => string;
   place: (id: Place) => string;
 }
 

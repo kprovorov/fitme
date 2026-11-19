@@ -1,21 +1,13 @@
 import { View } from "react-native";
 
 import { Text } from "~/components/ui/text";
-import { instructionSteps } from "~/lib/instruction-steps";
 
 /**
- * An Exercise's instructions as numbered steps, the Library's markdown list
- * markers gone (`lib/instruction-steps.ts`). Shared by the Exercise detail
- * screen and its guide. No instructions render nothing, so the Screen keeps
- * its own spacing.
+ * An Exercise's steps, numbered, in order. Shared by the Exercise detail
+ * screen and its guide. No steps render nothing, so the Screen keeps its own
+ * spacing.
  */
-export const InstructionSteps = ({
-  instructions,
-}: {
-  instructions: string | null | undefined;
-}) => {
-  const steps = instructions ? instructionSteps(instructions) : [];
-
+export const InstructionSteps = ({ steps }: { steps: readonly string[] }) => {
   if (steps.length === 0) {
     return null;
   }

@@ -1,12 +1,10 @@
 /**
  * The Library tab searches from the native header search bar (FIT-433): the
- * real screen on the fake Library, with the header rendered as its title and
+ * real screen on the fake Public API's Exercise routes, with the header rendered as its title and
  * search bar (`stack-screen-stub`, typing calls the options' `onChangeText`).
  * The list has no search field of its own; the Exercise picker searches from
  * its own header the same way (`__tests__/workout-session-exercises.test.tsx`).
  */
-import { LibraryRateLimitedError } from "@fitme/library-sdk";
-import type { FakeLibrary } from "@fitme/library-sdk/fake";
 import { beforeEach, describe, expect, it, jest } from "@jest/globals";
 import { QueryClientProvider } from "@tanstack/react-query";
 import type { QueryClient } from "@tanstack/react-query";
@@ -15,7 +13,13 @@ import { router } from "expo-router";
 
 import LibraryScreen from "~/app/(tabs)/library/index";
 import { storage } from "~/lib/mmkv";
-import { libraryExercise, serveLibrary } from "~/test-utils/fake-library";
+import {
+  exercisesRateLimited,
+  failExercises,
+  fakeExercise,
+  serveExercises,
+} from "~/test-utils/fake-exercises";
+import { fakePublicApi } from "~/test-utils/fake-public-api";
 import {
   createTestQueryClient,
   settle,
@@ -42,9 +46,16 @@ jest.mock("~/components/exercises/exercise-image", () => () => null);
 
 jest.mock("~/components/symbol-image", () => ({ SymbolImage: () => null }));
 
-let fake: FakeLibrary;
-let list: jest.SpiedFunction<FakeLibrary["list"]>;
 let client: QueryClient;
+
+const LIST_ROUTE = "GET /v1/exercises";
+
+/** The queries of every page asked for since `from` (a request index). */
+const listQueries = (from = 0) =>
+  fakePublicApi.requests
+    .slice(from)
+    .filter((request) => request.route === LIST_ROUTE)
+    .map((request) => request.query);
 
 const searchBar = () => screen.getByLabelText("Search exercises");
 
@@ -85,11 +96,10 @@ const advance = async (ms: number) => {
 
 beforeEach(() => {
   storage.clearAll();
-  fake = serveLibrary([
-    libraryExercise("bench-press"),
-    libraryExercise("squat", { muscle_groups: ["quadriceps"] }),
+  serveExercises([
+    fakeExercise("bench-press", { name: "Bench Press" }),
+    fakeExercise("squat", { muscle_groups: ["quadriceps"], name: "Squat" }),
   ]);
-  list = jest.spyOn(fake, "list");
 });
 
 describe("the Library tab's header search", () => {
@@ -104,17 +114,17 @@ describe("the Library tab's header search", () => {
 
   it("filters the list once the User stops typing", async () => {
     await renderLibrary();
-    list.mockClear();
+    const from = fakePublicApi.requests.length;
 
     await fireEvent.changeText(searchBar(), "squ");
     // Nothing goes out until the 300 ms debounce has passed.
-    expect(list).not.toHaveBeenCalled();
+    expect(listQueries(from)).toEqual([]);
     await until(() => screen.queryByText("Bench Press") === null);
     await settle(client);
 
-    expect(list).toHaveBeenLastCalledWith({
-      limit: 20,
-      offset: 0,
+    expect(listQueries(from).at(-1)).toEqual({
+      limit: "20",
+      offset: "0",
       search: "squ",
     });
     expect(screen.getByText("Squat")).toBeTruthy();
@@ -170,13 +180,17 @@ describe("the Library tab's header search", () => {
   it("refreshes the searched list when pulled down", async () => {
     await renderLibrary();
     await search("squ", "Squat", "Bench Press");
-    list.mockClear();
+    const from = fakePublicApi.requests.length;
 
     const { refreshControl } = screen.getByTestId("exercises-list").props;
     await act(() => refreshControl.props.onRefresh());
     await settle(client);
 
-    expect(list).toHaveBeenCalledWith({ limit: 20, offset: 0, search: "squ" });
+    expect(listQueries(from)).toContainEqual({
+      limit: "20",
+      offset: "0",
+      search: "squ",
+    });
     expect(screen.getByText("Squat")).toBeTruthy();
   });
 
@@ -192,14 +206,14 @@ describe("the Library tab's header search", () => {
         </QueryClientProvider>
       );
       await advance(0);
-      fake.failWith(new LibraryRateLimitedError(30));
+      failExercises(exercisesRateLimited(30));
 
       await fireEvent.changeText(searchBar(), "squ");
       await advance(300);
 
-      expect(list).toHaveBeenLastCalledWith({
-        limit: 20,
-        offset: 0,
+      expect(listQueries().at(-1)).toEqual({
+        limit: "20",
+        offset: "0",
         search: "squ",
       });
       expect(screen.getByText("Bench Press")).toBeTruthy();

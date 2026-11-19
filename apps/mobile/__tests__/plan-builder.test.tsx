@@ -1,9 +1,9 @@
 /**
  * Building a Plan by hand, on the mounted-screen seam: the real Create Plan
  * choice, create sheet, Plan editor, Workout editor and Library picker, with
- * the Public API client's `fetch` swapped for the fake Public API and the
- * Library for the in-memory fake, so what Save creates is read back off the
- * fake's rows. Pro comes from the real `useIsProQuery` over a stood-in
+ * the Public API client's `fetch` swapped for the fake Public API (its
+ * Exercise routes serving the Library), so what Save creates is read back off
+ * the fake's rows. Pro comes from the real `useIsProQuery` over a stood-in
  * RevenueCat, so a free User's Pro badge and paywall are the app's own.
  *
  * Each pushed route is mounted over the one below it
@@ -32,12 +32,12 @@ import PlanScreen from "~/app/plans/[planId]/index";
 import CreatePlanScreen from "~/app/plans/create";
 import { segmentClient } from "~/lib/segment";
 import { setDeviceLanguages } from "~/test-utils/device-locales";
-import { serveLibrary } from "~/test-utils/fake-library";
+import { serveExercises } from "~/test-utils/fake-exercises";
 import {
   backend,
   FAKE_USER_ID,
   fakePublicApi,
-  libraryExerciseNamed,
+  fakeExerciseNamed,
 } from "~/test-utils/fake-public-api";
 import { InAppLanguage } from "~/test-utils/in-app-language";
 import {
@@ -279,9 +279,9 @@ beforeEach(() => {
   jest.clearAllMocks();
   backend.reset();
   backend.seedProfile(FAKE_USER_ID);
-  serveLibrary([
-    libraryExerciseNamed("Barbell back squat"),
-    libraryExerciseNamed("Bench press"),
+  serveExercises([
+    fakeExerciseNamed("Barbell back squat"),
+    fakeExerciseNamed("Bench press"),
   ]);
   resetStubRouter();
   mockScreenOptions.length = 0;

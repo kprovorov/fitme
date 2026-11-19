@@ -1,4 +1,4 @@
-import type { LegacyMuscleGroup } from "@fitme/core";
+import type { MuscleGroup } from "@fitme/core";
 import { loggedExercises } from "@fitme/core";
 import {
   formatCount,
@@ -72,7 +72,7 @@ const WorkoutSessionSummaryView = ({
       : null;
   };
 
-  const muscleGroups = new Set<LegacyMuscleGroup>(
+  const muscleGroups = new Set<MuscleGroup>(
     exercises.flatMap(
       ({ exercise_slug }) => shownBySlug[exercise_slug]?.muscle_groups ?? []
     )

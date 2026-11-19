@@ -12,7 +12,7 @@ import { Pressable, Text } from "react-native";
 
 import HomeScreen from "~/app/(tabs)/(home)/index";
 import { setDeviceLanguages } from "~/test-utils/device-locales";
-import { libraryExercise, serveLibrary } from "~/test-utils/fake-library";
+import { fakeExercise, serveExercises } from "~/test-utils/fake-exercises";
 import {
   backend,
   FAKE_USER_ID,
@@ -202,9 +202,9 @@ describe("home in Ukrainian", () => {
   });
 
   it("names the muscle groups in Ukrainian, with the rest counted in their plural form", async () => {
-    serveLibrary([
-      libraryExercise("pull-1", {
-        muscle_groups: ["back", "lats", "biceps", "forearms", "traps"],
+    serveExercises([
+      fakeExercise("pull-1", {
+        muscle_groups: ["back", "shoulders", "biceps", "forearms", "traps"],
       }),
     ]);
     seedActivePlan();

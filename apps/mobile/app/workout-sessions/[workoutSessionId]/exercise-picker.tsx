@@ -1,6 +1,5 @@
 import { legacyMuscleGroups } from "@fitme/core";
 import type { LegacyMuscleGroup } from "@fitme/core";
-import type { ExerciseSummary } from "@fitme/library-sdk";
 import { useQueryClient } from "@tanstack/react-query";
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -24,6 +23,7 @@ import {
 } from "~/hooks/queries/workout-session-exercises";
 import { WORKOUT_SESSION_QUERY_KEY } from "~/hooks/queries/workout-sessions";
 import { IS_E2E } from "~/lib/constants";
+import type { ExerciseSummary } from "~/lib/exercises";
 import { segmentClient } from "~/lib/segment";
 import { sessionEditFailureMessage } from "~/lib/session-edit-failure";
 

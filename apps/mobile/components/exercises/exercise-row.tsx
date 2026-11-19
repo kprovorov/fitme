@@ -1,4 +1,3 @@
-import type { ExerciseSummary } from "@fitme/library-sdk";
 import type React from "react";
 import { useCallback } from "react";
 import { View } from "react-native";
@@ -10,6 +9,7 @@ import { MenuListItem } from "~/components/ui/menu-list";
 import { Separator } from "~/components/ui/separator";
 import { Text } from "~/components/ui/text";
 import { useChoiceLabels } from "~/lib/choices";
+import type { ExerciseSummary } from "~/lib/exercises";
 import { cn } from "~/lib/utils";
 
 /**

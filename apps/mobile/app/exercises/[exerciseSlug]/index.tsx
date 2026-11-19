@@ -39,8 +39,8 @@ const ExerciseScreen = () => {
             </View>
           ) : null}
           <EquipmentBadges equipment={exercise.equipment} />
-          <P>{exercise.description}</P>
-          <InstructionSteps instructions={exercise.instructions} />
+          <P>{exercise.short_description}</P>
+          <InstructionSteps steps={exercise.steps} />
         </VStack>
       );
     }

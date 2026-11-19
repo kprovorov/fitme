@@ -25,7 +25,7 @@ import ExercisePickerScreen from "~/app/workout-sessions/[workoutSessionId]/exer
 import { i18n } from "~/lib/i18n";
 import { storage } from "~/lib/mmkv";
 import { setDeviceLanguages } from "~/test-utils/device-locales";
-import { libraryExercise, serveLibrary } from "~/test-utils/fake-library";
+import { fakeExercise, serveExercises } from "~/test-utils/fake-exercises";
 import { backend, fakePublicApi } from "~/test-utils/fake-public-api";
 import type { Failure } from "~/test-utils/fake-public-api";
 import { InAppLanguage } from "~/test-utils/in-app-language";
@@ -191,11 +191,15 @@ beforeEach(() => {
   resetStubRouter();
   backend.reset();
   storage.clearAll();
-  serveLibrary([
-    libraryExercise("squat", {
+  serveExercises([
+    fakeExercise("squat", {
+      name: "Squat",
       translations: { uk: { name: "Присідання" } },
     }),
-    libraryExercise("lunge", { translations: { uk: { name: "Випади" } } }),
+    fakeExercise("lunge", {
+      name: "Lunge",
+      translations: { uk: { name: "Випади" } },
+    }),
   ]);
   jest.spyOn(Alert, "alert").mockReturnValue(undefined);
   // Squat: one set of 10 logged at 62.5 kg, one to go; Lunge: not started.

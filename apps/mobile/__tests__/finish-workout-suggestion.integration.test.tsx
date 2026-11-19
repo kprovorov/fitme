@@ -52,12 +52,12 @@ import { useActivePlanQuery } from "~/hooks/queries/plans";
 import { useOpenWorkoutSessionQuery } from "~/hooks/queries/workout-sessions";
 import { storage } from "~/lib/mmkv";
 import { segmentClient } from "~/lib/segment";
-import { libraryExercise, serveLibrary } from "~/test-utils/fake-library";
+import { fakeExercise, serveExercises } from "~/test-utils/fake-exercises";
 import {
   backend,
   FAKE_USER_ID,
   fakePublicApi,
-  libraryExerciseNamed,
+  fakeExerciseNamed,
 } from "~/test-utils/fake-public-api";
 import type { SeedSession } from "~/test-utils/fake-public-api";
 import {
@@ -482,7 +482,7 @@ const isSuggestionShown = () =>
 
 /** Every Exercise the tests seed, as the Library has them. */
 const LIBRARY = ["Squat", "Bench Press", "Deadlift", "Lunge", "Plank"].map(
-  libraryExerciseNamed
+  fakeExerciseNamed
 );
 
 // Each test mounts whole screens and steps through many requests, so a test
@@ -494,7 +494,7 @@ beforeEach(() => {
   jest.clearAllMocks();
   backend.reset();
   storage.clearAll();
-  serveLibrary(LIBRARY);
+  serveExercises(LIBRARY);
   mockNavigator.routes = [];
   mockPresentations.count = 0;
   jest.spyOn(Alert, "alert").mockReturnValue(undefined);
@@ -1667,9 +1667,9 @@ describe("the Plan Update after finishing a Workout Session opened from Home", (
 
   const startApp = async ({ changed = true } = {}) => {
     nextSet = 0;
-    serveLibrary([
+    serveExercises([
       ...LIBRARY.filter(({ slug }) => slug !== "lunge"),
-      libraryExercise("lunge", { name: "Walking Lunge" }),
+      fakeExercise("lunge", { name: "Walking Lunge" }),
     ]);
     backend.seedPlan(structuredClone(PLAN));
     seedPlayedSession({ changed });

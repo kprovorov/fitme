@@ -23,7 +23,7 @@ import { PlanUpdateSheetHost } from "~/components/workout-sessions/plan-update-s
 import { closePlanUpdatePrompt } from "~/hooks/plan-update-prompt";
 import { i18n } from "~/lib/i18n";
 import { setDeviceLanguages } from "~/test-utils/device-locales";
-import { libraryExercise, serveLibrary } from "~/test-utils/fake-library";
+import { fakeExercise, serveExercises } from "~/test-utils/fake-exercises";
 import { createTestQueryClient } from "~/test-utils/query-client";
 
 import { useFinishWorkoutSession } from "../finish-workout-session";
@@ -207,10 +207,10 @@ const CHANGES = {
 
 /** The Library's names for the changes' slugs; dips it doesn't know. */
 const LIBRARY = [
-  libraryExercise("dumbbell-press", { name: "Dumbbell Press" }),
-  libraryExercise("bench-press", { name: "Bench Press" }),
-  libraryExercise("squat", { name: "Back Squat" }),
-  libraryExercise("cable-fly", { name: "Cable Fly" }),
+  fakeExercise("dumbbell-press", { name: "Dumbbell Press" }),
+  fakeExercise("bench-press", { name: "Bench Press" }),
+  fakeExercise("squat", { name: "Back Squat" }),
+  fakeExercise("cable-fly", { name: "Cable Fly" }),
 ];
 
 const SUMMARY = "/workout-sessions/session-1/summary";
@@ -222,7 +222,7 @@ describe("useFinishWorkoutSession", () => {
   beforeEach(() => {
     jest.clearAllMocks();
     Object.assign(mockNavigationState, { index: 0, routes: [{}] });
-    serveLibrary(LIBRARY);
+    serveExercises(LIBRARY);
     mockPlanUpdate.mockResolvedValue(NO_CHANGES);
     jest.spyOn(Alert, "alert").mockReturnValue(undefined);
   });
@@ -754,26 +754,26 @@ describe("useFinishWorkoutSession", () => {
   describe("in Ukrainian", () => {
     /** The Library's names in Ukrainian; Cable Fly has no translation. */
     const UK_LIBRARY = [
-      libraryExercise("dumbbell-press", {
+      fakeExercise("dumbbell-press", {
         name: "Dumbbell Press",
         translations: { uk: { name: "Жим гантелей" } },
       }),
-      libraryExercise("bench-press", {
+      fakeExercise("bench-press", {
         name: "Bench Press",
         translations: { uk: { name: "Жим лежачи" } },
       }),
-      libraryExercise("squat", {
+      fakeExercise("squat", {
         name: "Back Squat",
         translations: { uk: { name: "Присідання зі штангою" } },
       }),
-      libraryExercise("cable-fly", { name: "Cable Fly" }),
+      fakeExercise("cable-fly", { name: "Cable Fly" }),
     ];
 
     const UK_UPDATE = { name: "Оновити план" } as const;
     const UK_RETRY = { name: "Повторити" } as const;
 
     beforeEach(async () => {
-      serveLibrary(UK_LIBRARY);
+      serveExercises(UK_LIBRARY);
       setDeviceLanguages(["uk-UA"]);
       // The root layout's sync isn't mounted here.
       await act(() => i18n.changeLanguage("uk"));

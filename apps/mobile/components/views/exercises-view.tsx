@@ -1,4 +1,3 @@
-import type { ExerciseSummary } from "@fitme/library-sdk";
 import type React from "react";
 import { useCallback, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -25,6 +24,7 @@ import {
 } from "~/hooks/equipment-choice";
 import { setMuscleChoice, useMuscleChoice } from "~/hooks/muscle-choice";
 import { useExerciseSearch } from "~/hooks/queries/library";
+import type { ExerciseSummary } from "~/lib/exercises";
 import { i18n } from "~/lib/i18n";
 
 /** How close to the end, in visible lengths, the next page starts loading. */

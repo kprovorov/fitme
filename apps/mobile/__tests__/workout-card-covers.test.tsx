@@ -13,11 +13,8 @@ import { Dimensions, PixelRatio } from "react-native";
 import HomeScreen from "~/app/(tabs)/(home)/index";
 import { writeCachedCovers } from "~/lib/library-cache";
 import { storage } from "~/lib/mmkv";
-import {
-  library,
-  libraryExercise,
-  serveLibrary,
-} from "~/test-utils/fake-library";
+import { fakeExercise, serveExercises } from "~/test-utils/fake-exercises";
+import { library, serveLibrary } from "~/test-utils/fake-library";
 import { backend, FAKE_USER_ID } from "~/test-utils/fake-public-api";
 import {
   createTestQueryClient,
@@ -118,13 +115,14 @@ beforeEach(() => {
   storage.clearAll();
   backend.reset();
   backend.seedProfile(FAKE_USER_ID);
-  serveLibrary(
-    [
-      libraryExercise("squat", { muscle_groups: ["quadriceps"] }),
-      libraryExercise("bench-press", { muscle_groups: ["chest"] }),
-    ],
-    { covers: [LEGS_COVER, CHEST_COVER] }
-  );
+  serveExercises([
+    fakeExercise("squat", { muscle_groups: ["quadriceps"], name: "Squat" }),
+    fakeExercise("bench-press", {
+      muscle_groups: ["chest"],
+      name: "Bench Press",
+    }),
+  ]);
+  serveLibrary([], { covers: [LEGS_COVER, CHEST_COVER] });
   backend.seedPlan({
     id: "plan-1",
     is_active: true,
@@ -230,9 +228,7 @@ describe("the Workout cards' Covers", () => {
   it("shows the cards before the Covers arrive", async () => {
     let answer: (covers: Cover[]) => void = () => {};
 
-    const fake = serveLibrary([
-      libraryExercise("squat", { muscle_groups: ["quadriceps"] }),
-    ]);
+    const fake = serveLibrary([]);
 
     library.current = {
       ...fake,

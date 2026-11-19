@@ -1,11 +1,14 @@
 /**
  * Plans, Workout Sessions and their summary refer to Exercises by Exercise
  * slug (FIT-241): rows come from the Public API with `exercise_slug` only, and
- * names, muscle groups and thumbnails from the Library. A slug the
- * library doesn't know shows a name made from it, no thumbnail and no link.
+ * names, muscle groups and thumbnails from the Library, through the Public
+ * API's Exercise routes. A slug the library doesn't know shows a name made
+ * from it, no thumbnail and no link; a slug it replaced (ADR 0022) shows the
+ * Exercise replacing it and links to that one.
  *
- * Mounts the real screens on the fake Public API and the fake Library; expo-router and the SwiftUI-backed primitives are
- * swapped for plain stand-ins.
+ * Mounts the real screens on the fake Public API, its Exercise routes
+ * included; expo-router and the SwiftUI-backed primitives are swapped for
+ * plain stand-ins.
  */
 import { beforeEach, describe, expect, it, jest } from "@jest/globals";
 import { QueryClientProvider } from "@tanstack/react-query";
@@ -20,12 +23,18 @@ import HistorySessionScreen from "~/app/workout-sessions/[workoutSessionId]";
 import ExercisePickerScreen from "~/app/workout-sessions/[workoutSessionId]/exercise-picker";
 import SummaryScreen from "~/app/workout-sessions/[workoutSessionId]/summary";
 import { storage } from "~/lib/mmkv";
-import { serveLibrary } from "~/test-utils/fake-library";
+import { setDeviceLanguages } from "~/test-utils/device-locales";
+import {
+  FAKE_SUPABASE_URL,
+  fakeExercise,
+  serveExercises,
+} from "~/test-utils/fake-exercises";
 import {
   backend,
+  fakeExerciseNamed,
   fakePublicApi,
-  libraryExerciseNamed,
 } from "~/test-utils/fake-public-api";
+import { InAppLanguage } from "~/test-utils/in-app-language";
 import {
   createTestQueryClient,
   settle as settleQueries,
@@ -148,6 +157,12 @@ const MYSTERY_MOVE = /^Mystery move/u;
 /** Not in the Library: shown as "Mystery move". */
 const UNKNOWN_SLUG = "mystery-move";
 
+/** A Legacy Library slug the Library replaced with `squat`. */
+const OLD_SQUAT_SLUG = "barbell-back-squat";
+
+/** Squat's thumbnail, as the Exercise routes answer it. */
+const SQUAT_THUMBNAIL = `${FAKE_SUPABASE_URL}/storage/v1/render/image/public/library/squat/${"a".repeat(64)}.webp`;
+
 let queryClient: QueryClient;
 
 const renderScreen = async (
@@ -159,13 +174,15 @@ const renderScreen = async (
   queryClient = createTestQueryClient();
   await render(
     <QueryClientProvider client={queryClient}>
-      <Screen />
-      <PushedRoutes
-        screens={{
-          "/workout-sessions/[workoutSessionId]/exercise-picker":
-            ExercisePickerScreen,
-        }}
-      />
+      <InAppLanguage>
+        <Screen />
+        <PushedRoutes
+          screens={{
+            "/workout-sessions/[workoutSessionId]/exercise-picker":
+              ExercisePickerScreen,
+          }}
+        />
+      </InAppLanguage>
     </QueryClientProvider>
   );
   await settle();
@@ -194,7 +211,16 @@ beforeEach(() => {
   jest.clearAllMocks();
   backend.reset();
   storage.clearAll();
-  serveLibrary(["Squat", "Lunge"].map((name) => libraryExerciseNamed(name)));
+  serveExercises(
+    [
+      fakeExercise("squat", {
+        name: "Squat",
+        translations: { uk: { name: "Присідання" } },
+      }),
+      fakeExerciseNamed("Lunge"),
+    ],
+    { replacedSlugs: { [OLD_SQUAT_SLUG]: "squat" } }
+  );
 });
 
 describe("a Plan", () => {
@@ -219,9 +245,7 @@ describe("a Plan", () => {
     await renderScreen(PlanScreen, { planId: "plan-1" });
 
     await expect(screen.findByText("Leg Day")).resolves.toBeTruthy();
-    expect(
-      screen.getByTestId("thumbnail:https://media.test/render/squat.jpg")
-    ).toBeTruthy();
+    expect(screen.getByTestId(`thumbnail:${SQUAT_THUMBNAIL}`)).toBeTruthy();
     expect(screen.getByTestId("thumbnail:none")).toBeTruthy();
 
     await fireEvent.press(
@@ -249,9 +273,7 @@ describe("a Workout Session", () => {
     await expect(screen.findByText("Squat")).resolves.toBeTruthy();
     await expect(screen.findByText("Chest")).resolves.toBeTruthy();
     expect(screen.getByText("Mystery move")).toBeTruthy();
-    expect(
-      screen.getByTestId("thumbnail:https://media.test/render/squat.jpg")
-    ).toBeTruthy();
+    expect(screen.getByTestId(`thumbnail:${SQUAT_THUMBNAIL}`)).toBeTruthy();
     expect(screen.getByTestId("thumbnail:none")).toBeTruthy();
   });
 
@@ -334,9 +356,74 @@ describe("a Workout Session's summary", () => {
 
     await expect(screen.findByText("Squat")).resolves.toBeTruthy();
     expect(screen.getByText("Mystery move")).toBeTruthy();
-    expect(
-      screen.getByTestId("thumbnail:https://media.test/render/squat.jpg")
-    ).toBeTruthy();
+    expect(screen.getByTestId(`thumbnail:${SQUAT_THUMBNAIL}`)).toBeTruthy();
     expect(screen.getByTestId("thumbnail:none")).toBeTruthy();
+  });
+});
+
+describe("a slug the Library replaced", () => {
+  const seedOldSlugPlan = () =>
+    backend.seedPlan({
+      id: "plan-1",
+      name: "Strength",
+      workouts: [
+        {
+          exercises: [{ sets: 3, slug: OLD_SQUAT_SLUG }],
+          id: "w1",
+          name: "Leg Day",
+        },
+      ],
+    });
+
+  const seedOldSlugSession = () =>
+    backend.seed({
+      exercises: [{ name: "Back Squat", sets: [10], slug: OLD_SQUAT_SLUG }],
+      id: "s1",
+    });
+
+  it("shows a Workout's Exercise as the one replacing it, and opens that one", async () => {
+    seedOldSlugPlan();
+    await renderScreen(WorkoutScreen, { planId: "plan-1", workoutId: "w1" });
+
+    await fireEvent.press(await screen.findByRole("button", { name: SQUAT }));
+
+    expect(mockPush).toHaveBeenCalledWith("/exercises/squat");
+    expect(screen.queryByText("Barbell back squat")).toBeNull();
+  });
+
+  it("shows a Workout Session's Exercise as the one replacing it", async () => {
+    seedOldSlugSession();
+    await renderScreen(HistorySessionScreen, { workoutSessionId: "s1" });
+
+    await expect(screen.findByText("Squat")).resolves.toBeTruthy();
+    expect(screen.getByTestId(`thumbnail:${SQUAT_THUMBNAIL}`)).toBeTruthy();
+    expect(screen.queryByText("Barbell back squat")).toBeNull();
+  });
+
+  describe("in Ukrainian", () => {
+    const UK_SQUAT = /^Присідання/u;
+
+    beforeEach(() => {
+      setDeviceLanguages(["uk-UA"]);
+    });
+
+    it("shows a Workout's Exercise as the one replacing it, and opens that one", async () => {
+      seedOldSlugPlan();
+      await renderScreen(WorkoutScreen, { planId: "plan-1", workoutId: "w1" });
+
+      await fireEvent.press(
+        await screen.findByRole("button", { name: UK_SQUAT })
+      );
+
+      expect(mockPush).toHaveBeenCalledWith("/exercises/squat");
+    });
+
+    it("shows a Workout Session's Exercise as the one replacing it", async () => {
+      seedOldSlugSession();
+      await renderScreen(HistorySessionScreen, { workoutSessionId: "s1" });
+
+      await expect(screen.findByText("Присідання")).resolves.toBeTruthy();
+      expect(screen.queryByText("Barbell back squat")).toBeNull();
+    });
   });
 });

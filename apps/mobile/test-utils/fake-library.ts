@@ -1,29 +1,6 @@
-import type { Cover, Exercise, Library } from "@fitme/library-sdk";
+import type { Cover, Library } from "@fitme/library-sdk";
 import { createFakeLibrary } from "@fitme/library-sdk/fake";
 import type { FakeExercise, FakeLibrary } from "@fitme/library-sdk/fake";
-
-/**
- * A made-up Exercise of the Library, named in title case, in English unless
- * `overrides` gives it `translations` (`{ uk: { name, description?,
- * instructions? } }`).
- */
-export const libraryExercise = (
-  slug: string,
-  overrides: Partial<FakeExercise & Exercise> = {}
-): Exercise & FakeExercise => ({
-  description: `About ${slug}.`,
-  equipment: [],
-  instructions: `- Do ${slug}.`,
-  muscle_groups: ["chest"],
-  name: slug
-    .split("-")
-    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-    .join(" "),
-  slug,
-  thumbnail_url: `https://media.test/render/${slug}.jpg`,
-  video_url: `https://media.test/${slug}.mp4`,
-  ...overrides,
-});
 
 interface LibraryHolder {
   current: Library;
@@ -47,7 +24,11 @@ export const libraryModule = {
   getLibrary: (): Library => library.current,
 };
 
-/** Makes a fake over these Exercises (and Covers, none by default) the one the app reads. */
+/**
+ * Makes a fake over these Exercises (and Covers, none by default) the one the
+ * app reads. Only the Covers come from it now: Exercises are the fake Public
+ * API's (`serveExercises`).
+ */
 export const serveLibrary = (
   exercises: readonly FakeExercise[],
   options: { covers?: readonly Cover[] } = {}

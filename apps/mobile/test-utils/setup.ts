@@ -1,10 +1,12 @@
 /**
  * Runs before every test file (`jest.setupFiles` in package.json).
  *
- * Every test reads the Library through the in-memory fake, never the
- * network: a component that calls `useExercises` in a test that forgot to mock
- * `~/lib/library` would otherwise send real requests and keep Jest
- * from exiting. A test points the fake at its Exercises with `serveLibrary`.
+ * Every test reads the Library API (now only its Covers) through the
+ * in-memory fake, never the network: a component that calls `useCovers` in a
+ * test that forgot to mock `~/lib/library` would otherwise send real requests
+ * and keep Jest from exiting. A test points the fake at its Covers with
+ * `serveLibrary([], { covers })`; Exercises come from the fake Public API
+ * (`serveExercises` in `fake-exercises.ts`).
  *
  * The Public API clients (`~/lib/public-api`: `publicApi`, and `globalApi`,
  * sending no bearer) are the real one (`@fitme/api-client`, without the

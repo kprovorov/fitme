@@ -19,7 +19,8 @@ import HomeScreen from "~/app/(tabs)/(home)/index";
 import { PLANS_QUERY_KEY } from "~/hooks/queries/plans";
 import { invalidateWeighedQueries } from "~/hooks/queries/settings";
 import { storage } from "~/lib/mmkv";
-import { libraryExercise, serveLibrary } from "~/test-utils/fake-library";
+import { fakeExercise, serveExercises } from "~/test-utils/fake-exercises";
+import { serveLibrary } from "~/test-utils/fake-library";
 import {
   backend,
   FAKE_USER_ID,
@@ -180,18 +181,17 @@ beforeEach(() => {
   storage.clearAll();
   backend.reset();
   backend.seedProfile(FAKE_USER_ID);
-  serveLibrary(
-    [
-      libraryExercise("bench-press", { muscle_groups: ["chest", "triceps"] }),
-      libraryExercise("push-up", {
-        muscle_groups: ["chest", "triceps", "shoulders"],
-      }),
-      libraryExercise("fly", { muscle_groups: ["chest"] }),
-      libraryExercise("squat", { muscle_groups: ["quadriceps", "glutes"] }),
-      libraryExercise("lunge", { muscle_groups: ["quadriceps", "calves"] }),
-    ],
-    { covers: [LEGS_COVER] }
-  );
+  serveExercises([
+    fakeExercise("bench-press", { muscle_groups: ["chest", "triceps"] }),
+    fakeExercise("push-up", {
+      muscle_groups: ["chest", "triceps", "shoulders"],
+    }),
+    fakeExercise("fly", { muscle_groups: ["chest"] }),
+    fakeExercise("squat", { muscle_groups: ["quadriceps", "glutes"] }),
+    fakeExercise("lunge", { muscle_groups: ["quadriceps", "calves"] }),
+  ]);
+  // Covers still come from the Library API.
+  serveLibrary([], { covers: [LEGS_COVER] });
 });
 
 describe("the Workout tab's Plans", () => {

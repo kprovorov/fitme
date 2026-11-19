@@ -1,4 +1,4 @@
-import { rankMuscleGroups } from "@fitme/core/covers";
+import type { MuscleGroup } from "@fitme/core";
 import { formatCount } from "@fitme/i18n";
 import { Image } from "expo-image";
 import { useRouter } from "expo-router";
@@ -30,6 +30,28 @@ const STACKED_FONT_SCALE = 1.4;
 
 /** How many muscle-group badges a card shows before "+N". */
 export const SHOWN_MUSCLE_GROUPS = 3;
+
+/**
+ * The Workout's muscle groups, most-trained first, as the Cover picker ranks
+ * them (`@fitme/core/covers`): each counts once per Exercise training it, and
+ * a tie goes to the group met first.
+ */
+const rankMuscleGroups = (
+  exercises: readonly (readonly MuscleGroup[])[]
+): MuscleGroup[] => {
+  const counts = new Map<MuscleGroup, number>();
+
+  for (const groups of exercises) {
+    for (const group of new Set(groups)) {
+      counts.set(group, (counts.get(group) ?? 0) + 1);
+    }
+  }
+
+  // Map keeps insertion order and the sort is stable, so ties stay first-met.
+  return [...counts.entries()]
+    .toSorted(([, a], [, b]) => b - a)
+    .map(([group]) => group);
+};
 
 /** The card's height (`min-h-100`), which its Cover is sized for. */
 const CARD_HEIGHT = 400;
@@ -134,15 +156,15 @@ const WorkoutCarouselCard = ({
     exercises.map(({ exercise_slug }) => exercise_slug)
   );
 
-  // Ranked like the Cover picker ranks them; only Exercises the Library has
-  // answered for count, so no badges show before it has.
-  const muscleGroups = rankMuscleGroups({
-    exercises: exercises.flatMap(({ exercise_slug }) => {
+  // Only Exercises the Library has answered for count, so no badges show
+  // before it has.
+  const muscleGroups = rankMuscleGroups(
+    exercises.flatMap(({ exercise_slug }) => {
       const shown = shownBySlug[exercise_slug];
 
-      return shown?.isResolved ? [{ muscleGroups: shown.muscle_groups }] : [];
-    }),
-  });
+      return shown?.isResolved ? [shown.muscle_groups] : [];
+    })
+  );
 
   const hiddenGroups = muscleGroups.length - SHOWN_MUSCLE_GROUPS;
 

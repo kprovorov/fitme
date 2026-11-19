@@ -8,7 +8,7 @@ import { ApiError } from "@fitme/api-client";
 import { beforeEach, describe, expect, it } from "@jest/globals";
 
 import { publicApi } from "~/lib/public-api";
-import { libraryExercise, serveLibrary } from "~/test-utils/fake-library";
+import { fakeExercise, serveExercises } from "~/test-utils/fake-exercises";
 import { backend, fakePublicApi } from "~/test-utils/fake-public-api";
 
 const COVER = "5b1e7c2a-8d4f-4a6b-9c3e-1f2a3b4c5d6e";
@@ -29,7 +29,7 @@ const details = {
 } as const;
 
 beforeEach(() => {
-  serveLibrary([libraryExercise("squat"), libraryExercise("bench-press")]);
+  serveExercises([fakeExercise("squat"), fakeExercise("bench-press")]);
   backend.seedPlan({
     id: "plan-1",
     is_active: true,
