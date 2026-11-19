@@ -38,19 +38,25 @@ A personal workout planner: a person signs up, fills in a fitness profile, build
 
 **Exercise**: A named movement from the Library, independent of any User, identified by its Exercise slug. Plans and Workout Sessions refer to Exercises; they never own them.
 
-**Exercise slug**: The permanent, readable identifier of an Exercise (`bench-press`): lowercase letters and digits joined by single hyphens. It never changes, even when the Exercise's name does. _Avoid_: Exercise id, exercise uuid
+**Exercise slug**: The readable identifier of an Exercise (`bench-press`): lowercase letters and digits joined by single hyphens. It doesn't change when the Exercise's name does. Only replacing the Library changes slugs. The new Library answers an old slug with its replacement until every stored slug has been rewritten to the replacement's; after that, the old slug stops existing. _Avoid_: Exercise id, exercise uuid
 
-**Muscle group**: A body area an Exercise works, one of a fixed list. An Exercise works one or more Muscle groups. _Avoid_: Muscle, body part, target
+**Muscle group**: A body area an Exercise works, one of a fixed list: chest, back, shoulders, biceps, triceps, forearms, core, traps, lower back, glutes, quadriceps, hamstrings, adductors, calves, tibialis, neck. An Exercise has one or more primary Muscle groups (what it mainly trains, which the Library's filter and Cover matching go by) and may have secondary ones. _Avoid_: Muscle, body part, target
 
-**Equipment**: The gear an Exercise needs, from a fixed list (barbell, dumbbell, cable, machine, Smith machine, bench, pull-up bar, landmine, bodyweight). An Exercise lists all the Equipment it needs, at least one; an Exercise needing no gear is bodyweight. _Avoid_: Gear, implement, apparatus, tools
+**Equipment**: The gear an Exercise needs, from a fixed list (bodyweight, dumbbell, barbell, machine, cable, kettlebell, band, bench, pull-up bar, parallel bars, bicycle, weight plate, box, stability ball, backpack, medicine ball, sled, towel, TRX, battle ropes, dowel, slider, foam roller, wrist roller). An Exercise lists all the Equipment it needs, at least one. Bodyweight means the User's body is the load, not that nothing else is needed: a pull-up is bodyweight and pull-up bar. _Avoid_: Gear, implement, apparatus, tools
 
-**Cover**: A photo from the Library that a Workout's card shows behind its content, tagged with the muscle groups it suits. Each Workout gets one when it's created, matched to the muscle group its Exercises train most, and no two Workouts of a Plan share one. Identified by a permanent id that never changes. _Avoid_: Thumbnail, background, workout image
+**Movement pattern**: The kind of movement an Exercise is (a push, a pull, a hinge, a squat, …), from a fixed list. Each Exercise has one or two. _Avoid_: Movement type, category
+
+**Difficulty**: How hard an Exercise is to learn and perform: beginner, intermediate or advanced. Each Exercise has exactly one. _Avoid_: Level, experience level (that's the User's)
+
+**Cover**: A photo from the Legacy Library (for now) that a Workout's card shows behind its content, tagged with the muscle groups it suits. Each Workout gets one when it's created, matched to the muscle group its Exercises train most, and no two Workouts of a Plan share one. Identified by a permanent id that never changes. _Avoid_: Thumbnail, background, workout image
 
 ### Library
 
-**Library**: Everything Fitme offers to every User, independent of any one User: today every Exercise (names, muscle groups, Equipment, descriptions, instructions, thumbnails and videos) and every Cover, written in English and translated into other App languages. Owned by the private `fitme-exercises` repository and not stored in Postgres. Content is added, never removed. _Avoid_: Exercise Library, exercise catalog, exercise database, exercises table
+**Library**: Everything Fitme offers to every User, independent of any one User: every Exercise (names, muscle groups, Equipment, movement patterns, Difficulty, descriptions, steps, common mistakes, benefits, thumbnails and videos), written in English and translated into other App languages. Owned by the private `fitme-library` repository, served by the Public API, and not stored in Postgres. Content is added, never removed, except when the whole Library is replaced (see Exercise slug). _Avoid_: Exercise Library, exercise catalog, exercise database, exercises table
 
-**Library API**: The service (`apps/library`) that serves the Library to the apps and the Public API. _Avoid_: Exercise API, Exercise Library API, exercises service
+**Legacy Library**: The Library the current one replaced: the private `fitme-exercises` repository's Exercises and the Covers, served by the Library API. Older builds read it until the minimum version gate cuts them off, and Covers stay in it until they move; then it's deleted. _Avoid_: Old library, v1 library
+
+**Library API**: The deprecated service (`apps/library`) that serves the Legacy Library to older builds, and Covers to every build. _Avoid_: Exercise API, Exercise Library API, exercises service
 
 ### Arnold
 

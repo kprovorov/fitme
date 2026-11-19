@@ -5,6 +5,8 @@ date: 2026-11-14
 
 # Exercise slugs are checked against an in-memory Library index, not the Library API
 
+Partly superseded by ADR 0022: until the stored slugs are rewritten, writes accept a slug either the new Library or the Legacy Library knows; after it, only the new Library's. The Legacy Library's index stays for Covers alone.
+
 This partly supersedes ADR 0010. Slugs are still checked in the tool layer, before the `asUser` transaction, and `@fitme/services` still writes whatever slug it's given. What changes is where the check looks. The Public API, Arnold and MCP no longer call the Library API's `lookup` and `covers()` on every write. Each instance builds a small index from the `library.json` bundle in the private Vercel Blob store: every Exercise slug with its muscle groups, and every Cover with its id and muscle groups. The index is built on the instance's first write and kept in memory. Writes check slugs and pick Covers (ADR 0014) against it.
 
 The Library only grows ("added, never removed"), so a stale index can only be missing slugs. It never accepts a removed one. Because of that, nothing invalidates the index. When a slug isn't in it, the instance reloads the bundle from Blob, at most once every 60 s per instance, and a miss that arrives while a reload is running waits for that reload. A slug that is still missing is refused as unknown (`unknown_exercises`, or Arnold's and MCP's tool errors). If a reload fails, the instance keeps answering from the index it has, and the failure is reported. If an instance has no index yet and can't build one, it answers a reported 503 `library_unavailable`. There is no fallback to the Library API.

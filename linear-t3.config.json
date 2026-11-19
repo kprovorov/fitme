@@ -1,16 +1,10 @@
 {
   "team": "FIT",
   "status": "Todo",
+  "excludeLabel": ["exercises", "fitme-library"],
   "filter": {
     "hasBlockedByRelations": {
       "eq": false
-    },
-    "labels": {
-      "every": {
-        "name": {
-          "neqIgnoreCase": "exercises"
-        }
-      }
     }
   }
 }
