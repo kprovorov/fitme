@@ -144,6 +144,268 @@
         },
         "required": ["error"]
       },
+      "ExercisePage": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ExerciseSummary"
+            },
+            "description": "The page, alphabetical by name in `language`"
+          },
+          "hasMore": {
+            "type": "boolean",
+            "description": "Whether more Exercises follow"
+          },
+          "total": {
+            "type": "integer",
+            "description": "How many Exercises match, across every page"
+          }
+        },
+        "required": ["data", "hasMore", "total"]
+      },
+      "ExerciseSummary": {
+        "type": "object",
+        "properties": {
+          "difficulty": {
+            "$ref": "#/components/schemas/Difficulty"
+          },
+          "equipment": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Equipment"
+            },
+            "minItems": 1,
+            "description": "The Equipment it needs, in a fixed order; `bodyweight` when the body is the load"
+          },
+          "movement_patterns": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MovementPattern"
+            },
+            "minItems": 1
+          },
+          "muscle_groups": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/LibraryMuscleGroup"
+            },
+            "minItems": 1,
+            "description": "The primary muscle groups"
+          },
+          "name": {
+            "type": "string",
+            "example": "Barbell bench press"
+          },
+          "secondary_muscle_groups": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/LibraryMuscleGroup"
+            }
+          },
+          "slug": {
+            "type": "string",
+            "description": "The Exercise slug",
+            "example": "barbell-bench-press"
+          },
+          "thumbnail_url": {
+            "type": "string",
+            "description": "On the image render endpoint: append `width` and `height` for the size shown"
+          },
+          "video_url": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "difficulty",
+          "equipment",
+          "movement_patterns",
+          "muscle_groups",
+          "name",
+          "secondary_muscle_groups",
+          "slug",
+          "thumbnail_url",
+          "video_url"
+        ]
+      },
+      "Difficulty": {
+        "type": "string",
+        "enum": ["beginner", "intermediate", "advanced"]
+      },
+      "Equipment": {
+        "type": "string",
+        "enum": [
+          "bodyweight",
+          "dumbbell",
+          "barbell",
+          "machine",
+          "cable",
+          "kettlebell",
+          "band",
+          "bench",
+          "pull_up_bar",
+          "parallel_bars",
+          "bicycle",
+          "weight_plate",
+          "box",
+          "stability_ball",
+          "backpack",
+          "medicine_ball",
+          "sled",
+          "towel",
+          "trx",
+          "battle_ropes",
+          "dowel",
+          "slider",
+          "foam_roller",
+          "wrist_roller"
+        ]
+      },
+      "MovementPattern": {
+        "type": "string",
+        "enum": [
+          "isolation",
+          "push",
+          "pull",
+          "hinge",
+          "squat",
+          "mobility",
+          "cardio",
+          "core",
+          "lunge",
+          "plyometric",
+          "rotation",
+          "stretch",
+          "hip_abduction",
+          "carry"
+        ]
+      },
+      "LibraryMuscleGroup": {
+        "type": "string",
+        "enum": [
+          "chest",
+          "back",
+          "shoulders",
+          "biceps",
+          "triceps",
+          "forearms",
+          "core",
+          "traps",
+          "lower-back",
+          "glutes",
+          "quadriceps",
+          "hamstrings",
+          "adductors",
+          "calves",
+          "tibialis",
+          "neck"
+        ]
+      },
+      "ExerciseLookup": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ExerciseLookupEntry"
+            },
+            "description": "The Exercises found, in asked order"
+          },
+          "missing": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "The slugs no Exercise has, in asked order"
+          }
+        },
+        "required": ["data", "missing"]
+      },
+      "ExerciseLookupEntry": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/ExerciseSummary"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "requested_slug": {
+                "type": "string",
+                "description": "The slug it was asked for: `slug` itself, or a replaced one that resolves to this Exercise",
+                "example": "bench-press"
+              }
+            },
+            "required": ["requested_slug"]
+          }
+        ]
+      },
+      "AppLanguage": {
+        "type": "string",
+        "enum": [
+          "en",
+          "uk",
+          "es",
+          "ca",
+          "fr",
+          "de",
+          "it",
+          "pt-BR",
+          "pt-PT",
+          "pl",
+          "zh-Hans",
+          "zh-Hant",
+          "ja",
+          "ko",
+          "nl"
+        ],
+        "description": "An App language"
+      },
+      "Exercise": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/ExerciseSummary"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "benefits": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "common_mistakes": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "long_description": {
+                "type": "string"
+              },
+              "short_description": {
+                "type": "string"
+              },
+              "steps": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                },
+                "minItems": 1,
+                "description": "In order"
+              }
+            },
+            "required": [
+              "benefits",
+              "common_mistakes",
+              "long_description",
+              "short_description",
+              "steps"
+            ]
+          }
+        ]
+      },
       "PlanSummary": {
         "type": "object",
         "properties": {
@@ -1799,6 +2061,356 @@
           },
           "404": {
             "description": "No such muscle group",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/exercises": {
+      "get": {
+        "description": "Lists and searches the Library's Exercises, alphabetical by name in `language`, or, with `slugs`, looks a batch of them up. A slug the Library replaced answers the Exercise replacing it. Every answer may be cached for an hour and revalidated with its `ETag`.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "List Exercises, or look up a batch by Exercise slug",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "description": "Comma-separated Equipment: only Exercises that need any of it (a repeated one counts once)",
+              "example": "dumbbell,bench"
+            },
+            "required": false,
+            "description": "Comma-separated Equipment: only Exercises that need any of it (a repeated one counts once)",
+            "name": "equipment",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "$ref": "#/components/schemas/AppLanguage"
+            },
+            "required": false,
+            "description": "The App language to answer in (default `en`). An Exercise without a translation in it is answered wholly in English.",
+            "name": "language",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 50,
+              "default": 20,
+              "description": "Page size",
+              "example": 20
+            },
+            "required": false,
+            "description": "Page size",
+            "name": "limit",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "description": "Comma-separated muscle groups: only Exercises with any of them as a primary muscle group (a repeated one counts once)",
+              "example": "chest,triceps"
+            },
+            "required": false,
+            "description": "Comma-separated muscle groups: only Exercises with any of them as a primary muscle group (a repeated one counts once)",
+            "name": "muscle_groups",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "integer",
+              "default": 0,
+              "description": "How many matches to skip",
+              "example": 0,
+              "minimum": 0
+            },
+            "required": false,
+            "description": "How many matches to skip",
+            "name": "offset",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "maxLength": 100,
+              "description": "Case-insensitive substring of the name in `language`, of the English name or of one of its other names, surrounding whitespace ignored",
+              "example": "bench"
+            },
+            "required": false,
+            "description": "Case-insensitive substring of the name in `language`, of the English name or of one of its other names, surrounding whitespace ignored",
+            "name": "search",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "description": "Comma-separated Exercise slugs to look up instead of listing: at most 40 (a repeated one is answered once), not combined with `search`, `muscle_groups`, `equipment`, `limit` or `offset`",
+              "example": "barbell-bench-press,barbell-back-squat"
+            },
+            "required": false,
+            "description": "Comma-separated Exercise slugs to look up instead of listing: at most 40 (a repeated one is answered once), not combined with `search`, `muscle_groups`, `equipment`, `limit` or `offset`",
+            "name": "slugs",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "One page of matching Exercises (`ExercisePage`; an offset past the end is an empty page), or with `slugs`, the Exercises found (`ExerciseLookup`)",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string",
+                  "example": "private, max-age=3600"
+                },
+                "required": true
+              },
+              "ETag": {
+                "schema": {
+                  "type": "string",
+                  "description": "The Library's content hash: send it back as `If-None-Match` to get a 304 while nothing changed"
+                },
+                "required": true,
+                "description": "The Library's content hash: send it back as `If-None-Match` to get a 304 while nothing changed"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "anyOf": [
+                    {
+                      "$ref": "#/components/schemas/ExercisePage"
+                    },
+                    {
+                      "$ref": "#/components/schemas/ExerciseLookup"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "304": {
+            "description": "`If-None-Match` matches the Library's `ETag`: the answer is unchanged",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string",
+                  "example": "private, max-age=3600"
+                },
+                "required": true
+              },
+              "ETag": {
+                "schema": {
+                  "type": "string",
+                  "description": "The Library's content hash: send it back as `If-None-Match` to get a 304 while nothing changed"
+                },
+                "required": true,
+                "description": "The Library's content hash: send it back as `If-None-Match` to get a 304 while nothing changed"
+              }
+            }
+          },
+          "400": {
+            "description": "`invalid_request`: the input fails its schema",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No valid Clerk session token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too many requests from this User; retry after `Retry-After`",
+            "headers": {
+              "Retry-After": {
+                "schema": {
+                  "type": "string",
+                  "description": "Seconds until the limit resets",
+                  "example": "30"
+                },
+                "required": true,
+                "description": "Seconds until the limit resets"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "`library_unavailable`: the Library couldn't be loaded; try again",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/exercises/{slug}": {
+      "get": {
+        "description": "One Exercise in full. A slug the Library replaced answers the Exercise replacing it (its own `slug`). May be cached for an hour and revalidated with its `ETag`.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Get one Exercise by Exercise slug",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 100,
+              "example": "barbell-bench-press"
+            },
+            "required": true,
+            "name": "slug",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "$ref": "#/components/schemas/AppLanguage"
+            },
+            "required": false,
+            "description": "The App language to answer in (default `en`). An Exercise without a translation in it is answered wholly in English.",
+            "name": "language",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The Exercise",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string",
+                  "example": "private, max-age=3600"
+                },
+                "required": true
+              },
+              "ETag": {
+                "schema": {
+                  "type": "string",
+                  "description": "The Library's content hash: send it back as `If-None-Match` to get a 304 while nothing changed"
+                },
+                "required": true,
+                "description": "The Library's content hash: send it back as `If-None-Match` to get a 304 while nothing changed"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/Exercise"
+                    }
+                  },
+                  "required": ["data"]
+                }
+              }
+            }
+          },
+          "304": {
+            "description": "`If-None-Match` matches the Library's `ETag`: the answer is unchanged",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string",
+                  "example": "private, max-age=3600"
+                },
+                "required": true
+              },
+              "ETag": {
+                "schema": {
+                  "type": "string",
+                  "description": "The Library's content hash: send it back as `If-None-Match` to get a 304 while nothing changed"
+                },
+                "required": true,
+                "description": "The Library's content hash: send it back as `If-None-Match` to get a 304 while nothing changed"
+              }
+            }
+          },
+          "400": {
+            "description": "`invalid_request`: the input fails its schema",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No valid Clerk session token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "`not_found`: no Exercise has this Exercise slug",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too many requests from this User; retry after `Retry-After`",
+            "headers": {
+              "Retry-After": {
+                "schema": {
+                  "type": "string",
+                  "description": "Seconds until the limit resets",
+                  "example": "30"
+                },
+                "required": true,
+                "description": "Seconds until the limit resets"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "`library_unavailable`: the Library couldn't be loaded; try again",
             "content": {
               "application/json": {
                 "schema": {

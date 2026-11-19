@@ -20,6 +20,9 @@ The dev command loads `apps/api/.env` when it exists. Restart it after changing 
 - `GET /v1/arnold/models` — public list of Arnold models and the default id, cached for 5 minutes
 - `GET /v1/muscle-groups` — list muscle groups
 - `GET /v1/muscle-groups/:muscleGroup` — single muscle group
+- `GET /v1/exercises?search&muscle_groups&equipment&language&limit&offset` — the new Library's Exercises (ADR 0022), alphabetical by name in `language` (an App language, default `en`; an untranslated Exercise answers wholly in English), as `{ data, total, hasMore }`: `search` matches the name in `language`, the English name or an alias; `muscle_groups` (primary only) and `equipment` are comma-separated, any of them; `limit` 1–50, default 20
+- `GET /v1/exercises?slugs=a,b,…&language` — the batch lookup (at most 40, not combined with the list parameters): `{ data, missing }` in asked order, each entry with the `requested_slug` beside its own `slug`, so a replaced slug resolves to its replacement
+- `GET /v1/exercises/:slug?language` — one Exercise in full (steps, common mistakes, benefits, both descriptions); a replaced slug answers its replacement, otherwise 404 `not_found`. Every Exercise answer carries `Cache-Control: private, max-age=3600` and the Library's content hash as `ETag` (304 on a matching `If-None-Match`); a bundle that can't load answers a reported 503 `library_unavailable`
 - `GET /v1/profile` — the signed-in User's Profile with its units, or `{ data: null }` before onboarding
 - `PATCH /v1/profile` — changes any of `age`, `gender`, `height`, `weight`, `measurement_system` (only those given; height and weight in the resulting system's units). A new measurement system first converts every stored height and weight of the User (Profile, Plan set targets, Workout Session weights). Answers the updated Profile, or 404 `profile_not_found` without one
 - `GET /v1/plans` — the User's live Plans, newest first, each with its Workouts in rotation order (name, order, Exercise count); not paged
@@ -44,10 +47,11 @@ Responses are JSON. Successful responses wrap the payload in `data`; failures re
 
 - `src/index.ts` — Node entrypoint, `PORT` env (default 3003)
 - `src/app.ts` — Vercel entry: starts `@fitme/observability`, then default-exports `createApp()`
-- `src/create-app.ts` — `createApp({ clerkJwtKey, createLibrary, createServices, identifyUser, reportError })` (each defaults to the real one): request spans, global middleware, the public routes, then auth, the User-data routes and the error/not-found handlers (unhandled errors are reported before the 500; 4xx aren't)
+- `src/create-app.ts` — `createApp({ clerkJwtKey, createServices, exerciseLibrary, identifyUser, libraryIndex, rateLimiter, reportError })` (each defaults to the real one): request spans, global middleware, the public routes, then auth, the User-data routes and the error/not-found handlers (unhandled errors are reported before the 500; 4xx aren't)
 - `src/auth.ts` — `requireCaller` (the verified caller, `{ userId, kind: "session" }`, and their services) and `requires(permission)`, each User-data route's declared `read` / `write`
 - `src/services.ts` — `UserServices`, the per-User facade: each method runs one `@fitme/services` function inside `asUser` for the verified User id (a read carrying weights first share-locks the Profile and reads its weight unit in the same transaction, so a conversion can't commit in between); routes never pass a User id
 - `src/routes/v1.ts` — versioned routers mounting resource routers from `src/routes/`: `publicV1` (no caller) and `userV1` (after auth)
+- `src/exercise-library.ts` — the new Library (ADR 0022: `exerciseLibraryFromEnv`, the v2 bundle from production's Blob store, `LIBRARY_V2_BUNDLE` or the committed fixture, loaded on the first Exercise read and kept, media on `SUPABASE_URL`), which `src/routes/exercises.ts` serves
 - `src/library.ts` — the Library index (ADR 0018: `libraryIndexFromEnv`, over production's Blob store, `LIBRARY_BUNDLE` or the committed fixture) and `checkExerciseSlugs` / `checkSlugsAndPickCovers`, the one lookup a write runs before its transaction; the Public API has no Library API client
 - `src/schemas.ts` — shared schemas (`ErrorResponse`, `Id`, `MuscleGroup`, `WeightUnit`, the documented 400 and 401 responses) and `invalidRequest`, every router's validation hook
 - `src/openapi.ts` — writes `openapi.json` (`pnpm api openapi`)

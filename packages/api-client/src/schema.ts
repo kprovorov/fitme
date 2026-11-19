@@ -203,6 +203,219 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/v1/exercises": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * List Exercises, or look up a batch by Exercise slug
+     * @description Lists and searches the Library's Exercises, alphabetical by name in `language`, or, with `slugs`, looks a batch of them up. A slug the Library replaced answers the Exercise replacing it. Every answer may be cached for an hour and revalidated with its `ETag`.
+     */
+    get: {
+      parameters: {
+        query?: {
+          /** @description Comma-separated Equipment: only Exercises that need any of it (a repeated one counts once) */
+          equipment?: string;
+          /** @description The App language to answer in (default `en`). An Exercise without a translation in it is answered wholly in English. */
+          language?: components["schemas"]["AppLanguage"];
+          /** @description Page size */
+          limit?: number;
+          /** @description Comma-separated muscle groups: only Exercises with any of them as a primary muscle group (a repeated one counts once) */
+          muscle_groups?: string;
+          /** @description How many matches to skip */
+          offset?: number;
+          /** @description Case-insensitive substring of the name in `language`, of the English name or of one of its other names, surrounding whitespace ignored */
+          search?: string;
+          /** @description Comma-separated Exercise slugs to look up instead of listing: at most 40 (a repeated one is answered once), not combined with `search`, `muscle_groups`, `equipment`, `limit` or `offset` */
+          slugs?: string;
+        };
+        header?: never;
+        path?: never;
+        cookie?: never;
+      };
+      requestBody?: never;
+      responses: {
+        /** @description One page of matching Exercises (`ExercisePage`; an offset past the end is an empty page), or with `slugs`, the Exercises found (`ExerciseLookup`) */
+        200: {
+          headers: {
+            "Cache-Control": string;
+            /** @description The Library's content hash: send it back as `If-None-Match` to get a 304 while nothing changed */
+            ETag: string;
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json":
+              | components["schemas"]["ExercisePage"]
+              | components["schemas"]["ExerciseLookup"];
+          };
+        };
+        /** @description `If-None-Match` matches the Library's `ETag`: the answer is unchanged */
+        304: {
+          headers: {
+            "Cache-Control": string;
+            /** @description The Library's content hash: send it back as `If-None-Match` to get a 304 while nothing changed */
+            ETag: string;
+            [name: string]: unknown;
+          };
+          content?: never;
+        };
+        /** @description `invalid_request`: the input fails its schema */
+        400: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["Error"];
+          };
+        };
+        /** @description No valid Clerk session token */
+        401: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["Error"];
+          };
+        };
+        /** @description Too many requests from this User; retry after `Retry-After` */
+        429: {
+          headers: {
+            /** @description Seconds until the limit resets */
+            "Retry-After": string;
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["Error"];
+          };
+        };
+        /** @description `library_unavailable`: the Library couldn't be loaded; try again */
+        503: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["Error"];
+          };
+        };
+      };
+    };
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/v1/exercises/{slug}": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Get one Exercise by Exercise slug
+     * @description One Exercise in full. A slug the Library replaced answers the Exercise replacing it (its own `slug`). May be cached for an hour and revalidated with its `ETag`.
+     */
+    get: {
+      parameters: {
+        query?: {
+          /** @description The App language to answer in (default `en`). An Exercise without a translation in it is answered wholly in English. */
+          language?: components["schemas"]["AppLanguage"];
+        };
+        header?: never;
+        path: {
+          slug: string;
+        };
+        cookie?: never;
+      };
+      requestBody?: never;
+      responses: {
+        /** @description The Exercise */
+        200: {
+          headers: {
+            "Cache-Control": string;
+            /** @description The Library's content hash: send it back as `If-None-Match` to get a 304 while nothing changed */
+            ETag: string;
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": {
+              data: components["schemas"]["Exercise"];
+            };
+          };
+        };
+        /** @description `If-None-Match` matches the Library's `ETag`: the answer is unchanged */
+        304: {
+          headers: {
+            "Cache-Control": string;
+            /** @description The Library's content hash: send it back as `If-None-Match` to get a 304 while nothing changed */
+            ETag: string;
+            [name: string]: unknown;
+          };
+          content?: never;
+        };
+        /** @description `invalid_request`: the input fails its schema */
+        400: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["Error"];
+          };
+        };
+        /** @description No valid Clerk session token */
+        401: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["Error"];
+          };
+        };
+        /** @description `not_found`: no Exercise has this Exercise slug */
+        404: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["Error"];
+          };
+        };
+        /** @description Too many requests from this User; retry after `Retry-After` */
+        429: {
+          headers: {
+            /** @description Seconds until the limit resets */
+            "Retry-After": string;
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["Error"];
+          };
+        };
+        /** @description `library_unavailable`: the Library couldn't be loaded; try again */
+        503: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["Error"];
+          };
+        };
+      };
+    };
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   "/v1/plans": {
     parameters: {
       query?: never;
@@ -2591,6 +2804,136 @@ export interface components {
         code: string;
         message: string;
       };
+    };
+    ExercisePage: {
+      /** @description The page, alphabetical by name in `language` */
+      data: components["schemas"]["ExerciseSummary"][];
+      /** @description Whether more Exercises follow */
+      hasMore: boolean;
+      /** @description How many Exercises match, across every page */
+      total: number;
+    };
+    ExerciseSummary: {
+      difficulty: components["schemas"]["Difficulty"];
+      /** @description The Equipment it needs, in a fixed order; `bodyweight` when the body is the load */
+      equipment: components["schemas"]["Equipment"][];
+      movement_patterns: components["schemas"]["MovementPattern"][];
+      /** @description The primary muscle groups */
+      muscle_groups: components["schemas"]["LibraryMuscleGroup"][];
+      /** @example Barbell bench press */
+      name: string;
+      secondary_muscle_groups: components["schemas"]["LibraryMuscleGroup"][];
+      /**
+       * @description The Exercise slug
+       * @example barbell-bench-press
+       */
+      slug: string;
+      /** @description On the image render endpoint: append `width` and `height` for the size shown */
+      thumbnail_url: string;
+      video_url: string;
+    };
+    /** @enum {string} */
+    Difficulty: "beginner" | "intermediate" | "advanced";
+    /** @enum {string} */
+    Equipment:
+      | "bodyweight"
+      | "dumbbell"
+      | "barbell"
+      | "machine"
+      | "cable"
+      | "kettlebell"
+      | "band"
+      | "bench"
+      | "pull_up_bar"
+      | "parallel_bars"
+      | "bicycle"
+      | "weight_plate"
+      | "box"
+      | "stability_ball"
+      | "backpack"
+      | "medicine_ball"
+      | "sled"
+      | "towel"
+      | "trx"
+      | "battle_ropes"
+      | "dowel"
+      | "slider"
+      | "foam_roller"
+      | "wrist_roller";
+    /** @enum {string} */
+    MovementPattern:
+      | "isolation"
+      | "push"
+      | "pull"
+      | "hinge"
+      | "squat"
+      | "mobility"
+      | "cardio"
+      | "core"
+      | "lunge"
+      | "plyometric"
+      | "rotation"
+      | "stretch"
+      | "hip_abduction"
+      | "carry";
+    /** @enum {string} */
+    LibraryMuscleGroup:
+      | "chest"
+      | "back"
+      | "shoulders"
+      | "biceps"
+      | "triceps"
+      | "forearms"
+      | "core"
+      | "traps"
+      | "lower-back"
+      | "glutes"
+      | "quadriceps"
+      | "hamstrings"
+      | "adductors"
+      | "calves"
+      | "tibialis"
+      | "neck";
+    ExerciseLookup: {
+      /** @description The Exercises found, in asked order */
+      data: components["schemas"]["ExerciseLookupEntry"][];
+      /** @description The slugs no Exercise has, in asked order */
+      missing: string[];
+    };
+    ExerciseLookupEntry: components["schemas"]["ExerciseSummary"] & {
+      /**
+       * @description The slug it was asked for: `slug` itself, or a replaced one that resolves to this Exercise
+       * @example bench-press
+       */
+      requested_slug: string;
+    };
+    /**
+     * @description An App language
+     * @enum {string}
+     */
+    AppLanguage:
+      | "en"
+      | "uk"
+      | "es"
+      | "ca"
+      | "fr"
+      | "de"
+      | "it"
+      | "pt-BR"
+      | "pt-PT"
+      | "pl"
+      | "zh-Hans"
+      | "zh-Hant"
+      | "ja"
+      | "ko"
+      | "nl";
+    Exercise: components["schemas"]["ExerciseSummary"] & {
+      benefits: string[];
+      common_mistakes: string[];
+      long_description: string;
+      short_description: string;
+      /** @description In order */
+      steps: string[];
     };
     PlanSummary: {
       /**

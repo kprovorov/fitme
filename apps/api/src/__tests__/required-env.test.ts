@@ -16,6 +16,7 @@ describe("required environment variables", () => {
       "CLERK_JWT_KEY",
       "FITME_DATABASE_URL",
       "BLOB_STORE_ID",
+      "SUPABASE_URL",
     ]);
     expect(report).toHaveBeenCalledTimes(missing.length);
   });

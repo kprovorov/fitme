@@ -12,6 +12,8 @@ import type { AppDeps } from "../create-app.js";
 import type { RateLimiter } from "../rate-limit.js";
 import type { UserServices } from "../services.js";
 import { clerkInstance, clerkToken } from "./clerk.js";
+import { testExerciseLibrary } from "./exercise-library.js";
+import type { ExerciseLibraryLoads } from "./exercise-library.js";
 
 /** The Clerk instance the test app trusts. */
 export const clerk = clerkInstance();
@@ -156,7 +158,9 @@ export const switchableLibraryIndex = (
 /**
  * The app over fake services and a Library index knowing `KNOWN_SLUGS` and no
  * Covers unless given (`indexLoads` for one that can't load, or can't reload),
- * trusting `clerk`, with a recording reporter and Sentry user. `servicesFor`
+ * and the new Library over `TEST_EXERCISE_BUNDLE` (`exerciseLibraryLoads`
+ * for one that can't load), trusting `clerk`, with a recording reporter and
+ * Sentry user. `servicesFor`
  * records the User id each facade was built for; `libraryIndex` is the index
  * with its clock and load count.
  */
@@ -166,6 +170,8 @@ export const testApp = (
     clerkJwtKey?: string;
     /** The Library's Covers; none by default. */
     covers?: IndexCover[];
+    /** How the new Library's loads go (ADR 0022); every one succeeds by default. */
+    exerciseLibraryLoads?: ExerciseLibraryLoads;
     /** The Library's Exercises; `KNOWN_SLUGS` by default. */
     exercises?: IndexExercise[];
     /** How the index's loads go; every one succeeds by default. */
@@ -198,6 +204,11 @@ export const testApp = (
     reportError,
   });
 
+  const exerciseLibrary = testExerciseLibrary({
+    loading: options.exerciseLibraryLoads,
+    reportError,
+  });
+
   const deps: AppDeps = {
     clerkJwtKey,
     createServices: (userId) => {
@@ -205,6 +216,7 @@ export const testApp = (
 
       return services;
     },
+    exerciseLibrary: exerciseLibrary.library,
     identifyUser: (userId) => {
       identified.push(userId);
     },
@@ -217,6 +229,7 @@ export const testApp = (
 
   return {
     app: createApp(deps),
+    exerciseLibrary,
     identified,
     libraryIndex,
     reported,

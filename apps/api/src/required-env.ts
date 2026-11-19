@@ -11,4 +11,7 @@ export const REQUIRED_ENV: readonly RequiredEnv[] = [
   // The Library index's Blob store (ADR 0018): without it every write
   // carrying an Exercise slug answers 503.
   "BLOB_STORE_ID",
+  // The new Library's media origin (ADR 0022): without it every Exercise's
+  // thumbnail and video URL points at a placeholder project.
+  "SUPABASE_URL",
 ];
