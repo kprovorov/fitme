@@ -1,19 +1,17 @@
 import { describe, expect, it } from "@jest/globals";
 
-import { legacyChoiceFor } from "~/hooks/muscle-choice";
+import { isMuscleGroup } from "~/hooks/muscle-choice";
 
-describe("legacyChoiceFor", () => {
-  it("opens a group both lists share on itself", () => {
-    expect(legacyChoiceFor("quadriceps")).toBe("quadriceps");
-    expect(legacyChoiceFor("lower-back")).toBe("lower-back");
+describe("isMuscleGroup", () => {
+  it("takes every one of the new Library's Muscle groups", () => {
+    expect(isMuscleGroup("core")).toBe(true);
+    expect(isMuscleGroup("adductors")).toBe(true);
+    expect(isMuscleGroup("neck")).toBe(true);
   });
 
-  it("opens core on abs", () => {
-    expect(legacyChoiceFor("core")).toBe("abs");
-  });
-
-  it("opens a group only the new list has on nothing", () => {
-    expect(legacyChoiceFor("adductors")).toBeUndefined();
-    expect(legacyChoiceFor("neck")).toBeUndefined();
+  it("refuses a legacy group the new list folds in, and a missing param", () => {
+    expect(isMuscleGroup("abs")).toBe(false);
+    expect(isMuscleGroup("lats")).toBe(false);
+    expect(isMuscleGroup(undefined)).toBe(false);
   });
 });

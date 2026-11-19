@@ -1,4 +1,4 @@
-import type { LegacyMuscleGroup } from "@fitme/core";
+import type { MuscleGroup } from "@fitme/core";
 /**
  * The Library tab and the Exercise picker search the Library through the
  * Public API's `GET /v1/exercises` (FIT-242, FIT-755): search waits 300 ms
@@ -137,7 +137,7 @@ const advance = async (ms: number) => {
 const CHOICE = "view";
 
 /** The Muscles sheet confirms `groups` for the view. */
-const chooseMuscleGroups = async (...groups: LegacyMuscleGroup[]) => {
+const chooseMuscleGroups = async (...groups: MuscleGroup[]) => {
   await act(() => setMuscleChoice(CHOICE, groups));
 };
 

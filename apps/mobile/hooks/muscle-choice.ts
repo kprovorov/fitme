@@ -1,26 +1,18 @@
-import { legacyMuscleGroups } from "@fitme/core";
-import type { LegacyMuscleGroup, MuscleGroup } from "@fitme/core";
+import { muscleGroups } from "@fitme/core";
+import type { MuscleGroup } from "@fitme/core";
 
 import { createChoiceStore } from "~/hooks/choice-store";
 
 /**
- * The Muscle groups a User can choose, in core's order: full-body and cardio
- * stay out until the Library has such Exercises.
- */
-export const choosableMuscleGroups: readonly LegacyMuscleGroup[] =
-  legacyMuscleGroups.filter(
-    (group) => group !== "full-body" && group !== "cardio"
-  );
-
-/**
  * The confirmed Muscle group choice of each screen listing the Library, by
- * the screen's key (`hooks/choice-store.ts`).
+ * the screen's key (`hooks/choice-store.ts`): every one of the new Library's
+ * Muscle groups (ADR 0022) is choosable, in core's order.
  */
-const store = createChoiceStore(choosableMuscleGroups);
+const store = createChoiceStore(muscleGroups);
 
 /**
- * The choosable groups among `groups`, in core's order, each once, so a
- * choice has one spelling (and never a group the sheet can't untick).
+ * The Muscle groups among `groups`, in core's order, each once, so a choice
+ * has one spelling (and never a group the sheet can't untick).
  */
 export const inCoreOrder = store.inOrder;
 
@@ -32,14 +24,7 @@ export const newMuscleChoiceKey = store.newKey;
 export const useMuscleChoiceOpening = store.useOpening;
 export const useMuscleChoice = store.use;
 
-/**
- * The choosable legacy group a new Library group (ADR 0022) opens the
- * Muscles choice on, until the sheets offer the new list (FIT-757): `core`
- * as `abs`, a group both lists share as itself, and none for the rest.
- */
-export const legacyChoiceFor = (
-  group: MuscleGroup
-): LegacyMuscleGroup | undefined =>
-  group === "core"
-    ? "abs"
-    : choosableMuscleGroups.find((choosable) => choosable === group);
+/** Whether a route param names one of core's Muscle groups. */
+export const isMuscleGroup = (
+  value: string | undefined
+): value is MuscleGroup => muscleGroups.some((group) => group === value);

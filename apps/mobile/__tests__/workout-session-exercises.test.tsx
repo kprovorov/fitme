@@ -427,6 +427,41 @@ describe("the Exercise picker", () => {
     expect(screen.getByText("Push Up")).toBeTruthy();
   });
 
+  it("opens Replace on a Muscle group only the new Library has", async () => {
+    serveExercises([
+      fakeExercise("squat", {
+        name: "Squat",
+        muscle_groups: ["adductors", "quadriceps"],
+      }),
+      fakeExercise("lunge", { name: "Lunge", muscle_groups: ["adductors"] }),
+      fakeExercise("push-up", { name: "Push Up", muscle_groups: ["chest"] }),
+    ]);
+    await renderSession();
+
+    const [replaceItem] = await screen.findAllByLabelText("Replace");
+    await fireEvent.press(replaceItem);
+    await settle();
+
+    // The replaced Exercise's first primary group, as the new Library names it.
+    expect(pushedRoutes()).toEqual([
+      expect.objectContaining({
+        params: {
+          muscleGroup: "adductors",
+          replaceExerciseId: "s1-e1",
+          workoutSessionId: "s1",
+        },
+        pathname: PICKER,
+      }),
+    ]);
+    expect(
+      screen.getByRole("button", { name: "Remove Adductors" })
+    ).toBeTruthy();
+    expect(
+      screen.getByRole("button", { name: "Replace with Lunge" })
+    ).toBeTruthy();
+    expect(screen.queryByText("Push Up")).toBeNull();
+  });
+
   it("starts unfiltered again when adding after a replace", async () => {
     await renderSession();
     const [replaceItem] = await screen.findAllByLabelText("Replace");

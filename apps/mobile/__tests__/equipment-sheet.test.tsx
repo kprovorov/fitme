@@ -1,7 +1,7 @@
 /**
  * The Equipment pill and sheet on the Library tab (FIT-604): the pill, after
  * the Muscles pill, always reads "Equipment" and opens the shared choice
- * sheet over core's Equipment. Its ticks are a draft that ✓ hands back to the
+ * sheet over the new Library's Equipment (core's `equipment`, FIT-757). Its ticks are a draft that ✓ hands back to the
  * Library tab (Exercises needing any chosen Equipment, together with the
  * Muscle group choice), Reset clears without applying and swiping the sheet
  * away discards. The real Library screen and both sheets on the fake Public API's Exercise routes,
@@ -103,9 +103,15 @@ const isChecked = (name: string) =>
   screen.getByRole("checkbox", { name }).props.accessibilityState?.checked;
 
 const shownExercises = () =>
-  ["Bench Press", "Dumbbell Curl", "Goblet Squat", "Pull Up"].filter(
-    (name) => screen.queryByText(name) !== null
-  );
+  [
+    "Bench Press",
+    "Dumbbell Curl",
+    "Goblet Squat",
+    "Hanging Bar Hold",
+    "Kettlebell Swing",
+    "Push Up",
+    "Pull Up",
+  ].filter((name) => screen.queryByText(name) !== null);
 
 beforeEach(() => {
   storage.clearAll();
@@ -126,10 +132,25 @@ beforeEach(() => {
       equipment: ["dumbbell"],
       muscle_groups: ["quadriceps"],
     }),
+    fakeExercise("hanging-bar-hold", {
+      name: "Hanging Bar Hold",
+      equipment: ["pull_up_bar"],
+      muscle_groups: ["forearms"],
+    }),
+    fakeExercise("kettlebell-swing", {
+      name: "Kettlebell Swing",
+      equipment: ["kettlebell"],
+      muscle_groups: ["glutes"],
+    }),
     fakeExercise("pull-up", {
       name: "Pull Up",
-      equipment: ["pull_up_bar", "bodyweight"],
+      equipment: ["bodyweight", "pull_up_bar"],
       muscle_groups: ["back"],
+    }),
+    fakeExercise("push-up", {
+      name: "Push Up",
+      equipment: ["bodyweight"],
+      muscle_groups: ["chest"],
     }),
   ]);
 });
@@ -154,15 +175,30 @@ describe("the Equipment sheet over the Library tab", () => {
       .map((row) => row.props.accessibilityLabel);
 
     expect(names).toEqual([
-      "Barbell",
+      "Bodyweight",
       "Dumbbell",
-      "Cable",
+      "Barbell",
       "Machine",
-      "Smith machine",
+      "Cable",
+      "Kettlebell",
+      "Resistance band",
       "Bench",
       "Pull-up bar",
-      "Landmine",
-      "Bodyweight",
+      "Parallel bars",
+      "Bicycle",
+      "Weight plate",
+      "Box",
+      "Stability ball",
+      "Backpack",
+      "Medicine ball",
+      "Sled",
+      "Towel",
+      "TRX",
+      "Battle ropes",
+      "Dowel",
+      "Slider",
+      "Foam roller",
+      "Wrist roller",
     ]);
     expect(names.every((name) => isChecked(name) === false)).toBe(true);
   });
@@ -180,7 +216,7 @@ describe("the Equipment sheet over the Library tab", () => {
 
     expect(sheetOpen("/equipment")).toBe(false);
     expect(listQueries().at(-1)).toEqual({
-      equipment: "barbell,dumbbell",
+      equipment: "dumbbell,barbell",
       limit: "20",
       offset: "0",
     });
@@ -191,8 +227,72 @@ describe("the Equipment sheet over the Library tab", () => {
     ]);
     // The pill still just reads "Equipment", whatever is chosen.
     expect(screen.getByRole("button", { name: "Equipment" })).toBeTruthy();
-    expect(getEquipmentChoice("library")).toEqual(["barbell", "dumbbell"]);
+    expect(getEquipmentChoice("library")).toEqual(["dumbbell", "barbell"]);
   });
+
+  // The Exercises have no Ukrainian names, so they list in English either way.
+  const IN_EACH_LANGUAGE = [
+    {
+      bodyweight: "Bodyweight",
+      done: "Done",
+      kettlebell: "Kettlebell",
+      // English is the API's default, so it isn't sent.
+      languageQuery: {},
+      pill: "Equipment",
+      tag: "en-US",
+    },
+    {
+      bodyweight: "Власна вага",
+      done: "Готово",
+      kettlebell: "Гиря",
+      languageQuery: { language: "uk" },
+      pill: "Обладнання",
+      tag: "uk-UA",
+    },
+  ];
+
+  it.each(IN_EACH_LANGUAGE)(
+    "narrows by Equipment only the new list has ($tag)",
+    async ({ done, kettlebell, languageQuery, pill, tag }) => {
+      setDeviceLanguages([tag]);
+      await renderLibrary();
+      await openSheet(pill);
+
+      await tick(kettlebell);
+      await confirm(done);
+
+      expect(listQueries().at(-1)).toEqual({
+        equipment: "kettlebell",
+        ...languageQuery,
+        limit: "20",
+        offset: "0",
+      });
+      expect(shownExercises()).toEqual(["Kettlebell Swing"]);
+    }
+  );
+
+  it.each(IN_EACH_LANGUAGE)(
+    "keeps an Exercise needing only a pull-up bar out of Bodyweight ($tag)",
+    async ({ bodyweight, done, languageQuery, pill, tag }) => {
+      setDeviceLanguages([tag]);
+      await renderLibrary();
+      await openSheet(pill);
+
+      await tick(bodyweight);
+      await confirm(done);
+
+      expect(listQueries().at(-1)).toEqual({
+        equipment: "bodyweight",
+        ...languageQuery,
+        limit: "20",
+        offset: "0",
+      });
+      // Equipment narrows to Exercises using any of it: the pull-up uses
+      // bodyweight as well as the bar, the hold only the bar.
+      expect(shownExercises()).toEqual(["Push Up", "Pull Up"]);
+      expect(screen.queryByText("Hanging Bar Hold")).toBeNull();
+    }
+  );
 
   it("narrows together with the Muscle group choice", async () => {
     await renderLibrary();
@@ -237,6 +337,9 @@ describe("the Equipment sheet over the Library tab", () => {
       "Bench Press",
       "Dumbbell Curl",
       "Goblet Squat",
+      "Hanging Bar Hold",
+      "Kettlebell Swing",
+      "Push Up",
       "Pull Up",
     ]);
   });
@@ -284,7 +387,34 @@ describe("the Equipment sheet over the Library tab", () => {
 
     expect(screen.getByRole("header", { name: "Обладнання" })).toBeTruthy();
     expect(screen.getByLabelText("Скинути")).toBeTruthy();
-    expect(screen.getByRole("checkbox", { name: "Штанга" })).toBeTruthy();
+    expect(
+      screen.getAllByRole("checkbox").map((row) => row.props.accessibilityLabel)
+    ).toEqual([
+      "Власна вага",
+      "Гантель",
+      "Штанга",
+      "Тренажер",
+      "Блок",
+      "Гиря",
+      "Еспандер-стрічка",
+      "Лава",
+      "Турнік",
+      "Бруси",
+      "Велосипед",
+      "Диск",
+      "Тумба",
+      "Фітбол",
+      "Рюкзак",
+      "Медбол",
+      "Сани",
+      "Рушник",
+      "TRX",
+      "Канати",
+      "Гімнастична палиця",
+      "Слайдер",
+      "Масажний ролик",
+      "Кистьовий ролик",
+    ]);
     await tick("Гантель");
     await confirm("Готово");
 

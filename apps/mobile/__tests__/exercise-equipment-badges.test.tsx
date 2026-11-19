@@ -66,6 +66,12 @@ const BENCH_PRESS = fakeExercise("bench-press", {
   },
 });
 
+/** Tagged with Equipment only the new Library's list has. */
+const BANDED_SWING = fakeExercise("banded-kettlebell-swing", {
+  equipment: ["band", "kettlebell"],
+  name: "Banded Kettlebell Swing",
+});
+
 /** Content the Library hasn't tagged yet. */
 const UNTAGGED = fakeExercise("good-morning", {
   equipment: [],
@@ -116,7 +122,7 @@ const shownEquipment = () =>
 
 beforeEach(() => {
   storage.clearAll();
-  serveExercises([BENCH_PRESS, UNTAGGED]);
+  serveExercises([BENCH_PRESS, BANDED_SWING, UNTAGGED]);
 });
 
 describe("an Exercise's Equipment", () => {
@@ -142,6 +148,20 @@ describe("an Exercise's Equipment", () => {
     expect(screen.getByText("Про жим лежачи.")).toBeTruthy();
     expect(shownEquipment()).toEqual(["Штанга", "Лава"]);
   });
+
+  it.each([
+    ["en-US", ["Kettlebell", "Resistance band"]],
+    ["uk-UA", ["Гиря", "Еспандер-стрічка"]],
+  ])(
+    "names Equipment only the new list has (%s)",
+    async (deviceLanguage, names) => {
+      setDeviceLanguages([deviceLanguage]);
+
+      await renderScreen("banded-kettlebell-swing");
+
+      expect(shownEquipment()).toEqual(names);
+    }
+  );
 });
 
 /**

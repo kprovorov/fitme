@@ -1,13 +1,7 @@
 import { ApiError, rateLimitedFor } from "@fitme/api-client";
 import type { paths } from "@fitme/api-client";
 import { defaultAppLanguage, MAX_EXERCISE_SLUG_LENGTH } from "@fitme/core";
-import type {
-  AppLanguage,
-  Equipment,
-  LegacyEquipment,
-  LegacyMuscleGroup,
-  MuscleGroup,
-} from "@fitme/core";
+import type { AppLanguage, Equipment, MuscleGroup } from "@fitme/core";
 import {
   exerciseNameFromSlug,
   LibraryInvalidRequestError,
@@ -412,56 +406,14 @@ export const EXERCISE_SEARCH_DEBOUNCE_MS = 300;
 
 interface ExerciseSearchParams {
   /** Exercises needing any of it; none filters nothing. */
-  equipment?: readonly LegacyEquipment[];
+  equipment?: readonly Equipment[];
   /** Exercises working any of them; none is every Exercise. */
-  muscleGroups: readonly LegacyMuscleGroup[];
+  muscleGroups: readonly MuscleGroup[];
   search: string;
 }
 
-/**
- * The new Library's muscle group a legacy choice asks for, until the Muscles
- * sheet offers the new list (FIT-757): the groups the new list folds in go to
- * the one that holds them.
- */
-const LEGACY_MUSCLE_GROUPS: Record<LegacyMuscleGroup, MuscleGroup | null> = {
-  abs: "core",
-  back: "back",
-  biceps: "biceps",
-  calves: "calves",
-  cardio: null,
-  chest: "chest",
-  forearms: "forearms",
-  "full-body": null,
-  glutes: "glutes",
-  hamstrings: "hamstrings",
-  lats: "back",
-  "lower-back": "lower-back",
-  obliques: "core",
-  quadriceps: "quadriceps",
-  shoulders: "shoulders",
-  traps: "traps",
-  triceps: "triceps",
-};
-
-/** The same for a legacy Equipment choice, until the Equipment sheet's (FIT-757). */
-const LEGACY_EQUIPMENT: Record<LegacyEquipment, Equipment> = {
-  barbell: "barbell",
-  bench: "bench",
-  bodyweight: "bodyweight",
-  cable: "cable",
-  dumbbell: "dumbbell",
-  landmine: "barbell",
-  machine: "machine",
-  pull_up_bar: "pull_up_bar",
-  smith_machine: "machine",
-};
-
-const unique = <Value>(values: (Value | null)[]) => [
-  ...new Set(values.filter((value): value is Value => value !== null)),
-];
-
 /** A stable default, so a screen without an Equipment pill never re-sends. */
-const NO_EQUIPMENT: readonly LegacyEquipment[] = [];
+const NO_EQUIPMENT: readonly Equipment[] = [];
 
 /** One spelling per choice, in core's order, so it reuses its cache entry. */
 const choiceKey = (chosen: readonly string[]) => chosen.join(",");
@@ -491,8 +443,8 @@ const waitUntil = async (until: number, signal: AbortSignal) => {
 };
 
 interface SentSearch {
-  equipment: readonly LegacyEquipment[];
-  groups: readonly LegacyMuscleGroup[];
+  equipment: readonly Equipment[];
+  groups: readonly MuscleGroup[];
   search: string;
 }
 
@@ -503,12 +455,6 @@ const listExercises = async (
   offset: number,
   signal: AbortSignal
 ): Promise<ExercisePage> => {
-  const groups = unique(
-    sent.groups.map((group) => LEGACY_MUSCLE_GROUPS[group])
-  );
-
-  const needed = unique(sent.equipment.map((item) => LEGACY_EQUIPMENT[item]));
-
   const query: ExercisesQuery = { limit: EXERCISE_SEARCH_PAGE_SIZE, offset };
 
   // English is the API's default.
@@ -520,12 +466,12 @@ const listExercises = async (
     query.search = sent.search;
   }
 
-  if (groups.length > 0) {
-    query.muscle_groups = groups.join(",");
+  if (sent.groups.length > 0) {
+    query.muscle_groups = sent.groups.join(",");
   }
 
-  if (needed.length > 0) {
-    query.equipment = needed.join(",");
+  if (sent.equipment.length > 0) {
+    query.equipment = sent.equipment.join(",");
   }
 
   const { data } = await publicApi().GET("/v1/exercises", {
