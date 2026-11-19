@@ -46,7 +46,7 @@ Read a failure as a sequence such as: both callers see no open Workout Session; 
 
 ## Scope and correspondence to the code
 
-Last manually synchronized with commit **`abfa30e67eec3d73e2f90d3335795de5188b4d5d`** (equal to remote `main`, fetched and audited on 2026-11-17). Before trusting a check after a change, compare these files to that commit and re-read the covered functions. Move the sync commit forward only after confirming the model still describes them. The 2026-11-17 maintenance audit found the model, bounds, promise and coverage record unchanged (see [VALIDATION.md](VALIDATION.md)).
+Last manually synchronized with commit **`b1eb1a0b61bb096e3e689f024daa0c37fbd660e2`** (equal to remote `main`, fetched and audited on 2026-11-19). Before trusting a check after a change, compare these files to that commit and re-read the covered functions. Move the sync commit forward only after confirming the model still describes them. The 2026-11-19 maintenance audit found the model, bounds, promise and coverage record unchanged (see [VALIDATION.md](VALIDATION.md)).
 
 | Real source | Modeled behavior |
 | --- | --- |

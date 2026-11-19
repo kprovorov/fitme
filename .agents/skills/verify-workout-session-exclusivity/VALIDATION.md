@@ -1,4 +1,49 @@
-# Validation, 2026-11-17
+# Validation, 2026-11-19
+
+## Maintenance against current main
+
+**Outcome: in sync. Model, property, bounds, runner and coverage record unchanged; no current-code exclusivity violation found within the stated bounds.**
+
+Audited source: `b1eb1a0b61bb096e3e689f024daa0c37fbd660e2`, equal to `origin/main` after `git fetch` on 2026-11-19. Previous sync: `abfa30e67eec3d73e2f90d3335795de5188b4d5d` (7 commits). No product code, migration, property, model, bound or script was changed.
+
+Tools: Node 26.13.1, OpenJDK 27, TLC 1.7.4 (cached jar, pinned SHA-256 unchanged), PostgreSQL 17.11 (Homebrew).
+
+### Baseline
+
+The unchanged runner: both TLC configurations PASS (2,360 / 2,770 distinct states, queues exhausted), SQL replay PASS. Since nothing in the model needed changing, this pass and the final one are the same run.
+
+### Correspondence audit
+
+`git diff` of every covered file and directory since the previous sync (`packages/services`, `packages/db`, `packages/supabase/supabase/migrations`, both facades, ADR 0013, `GLOSSARY.md`) is empty. The only `packages/` changes are outside the covered set:
+
+| Commit | Change and correspondence decision |
+| --- | --- |
+| `b1eb1a0b` — drop `description` from `GET /v1/arnold/models`, PR #662 | `packages/core/src/models.ts` drops `description` from `arnoldModels`; `packages/api-client/src/schema.ts` follows. Arnold's model list, not a Workout Session. No effect. |
+| `bed674f3` — the previous resync, PR #657 | This skill's own `SKILL.md` and `VALIDATION.md`. No effect. |
+
+The other five commits move Arnold and the mobile app's Arnold screen onto eve 1.0 (`apps/arnold` hooks, model resolver and type imports; `apps/mobile` Arnold screen, saved Conversation keys and fake Arnold), drop a mobile MMKV sweep, and update the lockfile. No changed non-Markdown line in any of the seven commits mentions `workout_sessions`, `workoutSessions`, `finished_at` or `insertOrResume`; the Arnold tools that act on Plans are untouched apart from a test-context field. No new migration (newest is still `20261109130000_plan_details_optional.sql`), so the guard's reviewed list and pinned SHA-256 values stand. The only production `insert(workoutSessions)` is still in `packages/services/src/workout-sessions.ts` (the others are integration-test fixtures). Re-located every function the correspondence table names: all present, none renamed or moved.
+
+### Results
+
+| Check | Outcome and result |
+| --- | --- |
+| One User, three insertion transactions, optional initial orphan | In sync: PASS, 2,360 distinct / 9,401 generated, queue exhausted |
+| Two Users, three insertion transactions, optional initial orphan | In sync: PASS, 2,770 distinct / 12,045 generated, queue exhausted |
+| Extracted actual index, isolated PostgreSQL replay | In sync: PASS |
+| Scratch migration with `UNIQUE` removed | Expected failure, caught by TLC and Postgres |
+| Scratch migration indexed by `workout_id` | Expected failure, caught by TLC and Postgres |
+| Unmodified source after both mutations | PASS in both TLC configs and SQL |
+| Migration-guard regressions | PASS 4/4 |
+| Replay isolation regressions | PASS 3/3 |
+| Installed `/statechart` on both configs | `OneOpenPerUser` and `NoDeadlock` hold; 2,360 / 2,770 states, over the 500-state chart budget, so no chart (`TLA2TOOLS` pointed at the cached jar, no `mise`). |
+
+The two index mutations remain the "can still fail" evidence.
+
+### Remaining limits
+
+Unchanged from the previous validation.
+
+## Previous validation, 2026-11-17
 
 ## Maintenance against current main
 
