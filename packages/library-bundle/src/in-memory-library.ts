@@ -24,7 +24,16 @@ export const LIBRARY_MEDIA_BUCKET = "library";
 
 const DEFAULT_LIMIT = 20;
 
-const TRAILING_SLASHES = /\/+$/u;
+/** `url` without its trailing slashes (a loop: a regex here backtracks on many slashes). */
+const withoutTrailingSlashes = (url: string) => {
+  let end = url.length;
+
+  while (end > 0 && url[end - 1] === "/") {
+    end -= 1;
+  }
+
+  return url.slice(0, end);
+};
 
 /** An Exercise as a list answers it. */
 export interface LibraryExerciseSummary {
@@ -153,7 +162,7 @@ export const createInMemoryLibrary = (
   bundle: LibraryBundleV2,
   { supabaseUrl }: { supabaseUrl: string }
 ): InMemoryLibrary => {
-  const storage = `${supabaseUrl.replace(TRAILING_SLASHES, "")}/storage/v1`;
+  const storage = `${withoutTrailingSlashes(supabaseUrl)}/storage/v1`;
   const replacedSlugs = new Map(Object.entries(bundle.replaced_slugs ?? {}));
 
   const serve = (
