@@ -16,7 +16,6 @@
     "@fitme/core": "workspace:*",
     "@fitme/db": "workspace:*",
     "@fitme/library-bundle": "workspace:*",
-    "@fitme/library-sdk": "workspace:*",
     "@fitme/observability": "workspace:*",
     "@fitme/services": "workspace:*",
     "@sentry/node": "^11.12.0",

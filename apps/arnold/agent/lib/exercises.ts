@@ -1,7 +1,5 @@
 import { MAX_EXERCISE_SLUG_LENGTH } from "@fitme/core/limits";
-import type { AppLanguage, LegacyMuscleGroup } from "@fitme/core/models";
-import { LibraryError } from "@fitme/library-sdk";
-import { reportError } from "@fitme/observability/node";
+import type { AppLanguage, MuscleGroup } from "@fitme/core/models";
 import { z } from "zod";
 
 import { getLibrary } from "./library";
@@ -19,7 +17,8 @@ export const exerciseSlugSchema = z
 
 /** An Exercise the way the read tools show it. */
 export interface ExerciseDetails {
-  muscle_groups: LegacyMuscleGroup[];
+  /** The primary ones. */
+  muscle_groups: MuscleGroup[];
   name: string;
 }
 
@@ -30,28 +29,10 @@ export const nameFromSlug = (slug: string): string => {
   return words.charAt(0).toUpperCase() + words.slice(1);
 };
 
-/** What a tool answers when the Library fails: nothing was done. */
+/** What a tool answers when the Library can't load: nothing was done. */
 export const libraryUnavailable = (done: string) => ({
   error: `The exercise library is unavailable right now, so ${done}. Try again in a moment.`,
 });
-
-/**
- * Reports an Library failure (`step` tags which use failed) and
- * returns `fallback`; any other error is rethrown.
- */
-export const onLibraryFailure = async <T>(
-  error: unknown,
-  step: string,
-  fallback: T
-): Promise<T> => {
-  if (!(error instanceof LibraryError)) {
-    throw error;
-  }
-
-  await reportError(error, { exercise_library: step });
-
-  return fallback;
-};
 
 /**
  * Checks Exercise slugs before a tool writes them, against the Library index
@@ -94,16 +75,17 @@ interface StoredExercise<Set> {
 }
 
 /**
- * Each group's Exercises with their name and muscle groups, through one
- * lookup (after the read's transaction). A slug the library doesn't know, or
- * every slug when the library fails (reported), gets a name made from the
- * slug and no muscle groups, so a read always answers. Names are in
- * `language` (English when left out); an Exercise without a translation in
- * it is named in English.
+ * Each group's Exercises with their name and primary muscle groups, through
+ * one lookup in the instance's Library (after the read's transaction, no
+ * network call). An old slug is named as the Exercise replacing it, keeping
+ * its stored `exercise_slug`. A slug the Library doesn't know, or every slug
+ * when it can't load (its load reported why), gets a name made from the slug
+ * and no muscle groups, so a read always answers. Names are in `language`; an
+ * Exercise without a translation in it is named in English.
  */
 export const withExerciseDetails = async <Set>(
   groups: readonly (readonly StoredExercise<Set>[])[],
-  language?: AppLanguage
+  language: AppLanguage
 ): Promise<(StoredExercise<Set> & ExerciseDetails)[][]> => {
   const slugs = groups.flatMap((group) =>
     group.map(({ exercise_slug }) => exercise_slug)
@@ -112,14 +94,14 @@ export const withExerciseDetails = async <Set>(
   const known = new Map<string, ExerciseDetails>();
 
   if (slugs.length > 0) {
-    try {
-      const { data } = await getLibrary().lookup(slugs, { language });
+    const answer = await getLibrary().get();
 
-      for (const { muscle_groups, name, slug } of data) {
-        known.set(slug, { muscle_groups, name });
+    if (answer.status === "ready") {
+      const { data } = answer.library.lookup(slugs, { language });
+
+      for (const { muscle_groups, name, requested_slug } of data) {
+        known.set(requested_slug, { muscle_groups, name });
       }
-    } catch (error) {
-      await onLibraryFailure(error, "describe", undefined);
     }
   }
 

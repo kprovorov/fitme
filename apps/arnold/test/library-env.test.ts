@@ -1,6 +1,16 @@
+import type * as Observability from "@fitme/observability/node";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-// `getLibrary` builds its client once per module instance, so each test
+const observability = vi.hoisted(() => ({
+  reportError: vi.fn<typeof Observability.reportError>(),
+}));
+
+vi.mock<typeof Observability>(
+  import("@fitme/observability/node"),
+  () => observability
+);
+
+// `getLibrary` builds its Library once per module instance, so each test
 // imports a fresh one after setting the environment.
 const freshGetLibrary = async () => {
   vi.resetModules();
@@ -11,46 +21,51 @@ const freshGetLibrary = async () => {
 
 describe("getLibrary", () => {
   beforeEach(() => {
-    vi.stubEnv("LIBRARY_URL", "");
-    vi.stubEnv("LIBRARY_ARNOLD_SECRET", "");
+    observability.reportError.mockResolvedValue(undefined);
+    vi.stubEnv("VERCEL_ENV", "");
+    vi.stubEnv("LIBRARY_V2_BUNDLE", "");
+    vi.stubEnv("BLOB_STORE_ID", "");
   });
 
   afterEach(() => {
     vi.unstubAllEnvs();
-    vi.unstubAllGlobals();
   });
 
-  it("fails every call unavailable without LIBRARY_URL", async () => {
-    vi.stubEnv("EXERCISES_URL", "https://library.test");
+  it("serves the committed made-up v2 fixture outside production", async () => {
+    const getLibrary = await freshGetLibrary();
+    const answer = await getLibrary().get();
+
+    expect(answer.status).toBe("ready");
+    expect(
+      answer.status === "ready" &&
+        answer.library.get("example-bench-press", { language: "uk" })?.name
+    ).toBe("Приклад жиму лежачи");
+  });
+
+  it("keeps one Library for the instance", async () => {
     const getLibrary = await freshGetLibrary();
 
-    // by shape: the fresh module graph has its own copy of the error classes
-    await expect(getLibrary().lookup(["bench-press"])).rejects.toMatchObject({
-      cause: new Error("LIBRARY_URL is not set"),
-      code: "unavailable",
-      name: "LibraryUnavailableError",
+    expect(getLibrary()).toBe(getLibrary());
+  });
+
+  it("answers unavailable, reported, when LIBRARY_V2_BUNDLE can't be read", async () => {
+    vi.stubEnv("LIBRARY_V2_BUNDLE", "/nonexistent/library-v2.json");
+    const getLibrary = await freshGetLibrary();
+
+    await expect(getLibrary().get()).resolves.toStrictEqual({
+      status: "unavailable",
+    });
+    expect(observability.reportError).toHaveBeenCalledWith(expect.any(Error), {
+      exercise_library: "library",
     });
   });
 
-  it("calls LIBRARY_URL with LIBRARY_ARNOLD_SECRET as the bearer", async () => {
-    vi.stubEnv("LIBRARY_URL", "https://library.test");
-    vi.stubEnv("LIBRARY_ARNOLD_SECRET", "arnold-secret");
-
-    const fetch = vi
-      .fn<typeof globalThis.fetch>()
-      .mockResolvedValue(Response.json({ data: [], missing: ["bench-press"] }));
-
-    vi.stubGlobal("fetch", fetch);
+  it("never reads LIBRARY_BUNDLE, the Legacy Library's bundle", async () => {
+    vi.stubEnv("LIBRARY_BUNDLE", "/nonexistent/library.json");
     const getLibrary = await freshGetLibrary();
 
-    await expect(getLibrary().lookup(["bench-press"])).resolves.toStrictEqual({
-      data: [],
-      missing: ["bench-press"],
+    await expect(getLibrary().get()).resolves.toMatchObject({
+      status: "ready",
     });
-    const [[url, init]] = fetch.mock.calls;
-    expect(url).toBe("https://library.test/exercises?slugs=bench-press");
-    expect(new Headers(init?.headers).get("authorization")).toBe(
-      "Bearer arnold-secret"
-    );
   });
 });

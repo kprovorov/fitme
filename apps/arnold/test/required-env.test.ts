@@ -17,8 +17,6 @@ describe("required environment variables", () => {
       "REVENUECAT_SECRET_KEY",
       "FITME_DATABASE_URL",
       "BLOB_STORE_ID",
-      "LIBRARY_URL",
-      "LIBRARY_ARNOLD_SECRET",
       "ARNOLD_RESET_SECRET",
     ]);
     expect(report).toHaveBeenCalledTimes(missing.length);

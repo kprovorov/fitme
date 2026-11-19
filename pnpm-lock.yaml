@@ -323,9 +323,6 @@ importers:
       '@fitme/library-bundle':
         specifier: workspace:*
         version: link:../../packages/library-bundle
-      '@fitme/library-sdk':
-        specifier: workspace:*
-        version: link:../../packages/library-sdk
       '@fitme/observability':
         specifier: workspace:*
         version: link:../../packages/observability
