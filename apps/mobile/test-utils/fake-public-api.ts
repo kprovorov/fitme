@@ -21,7 +21,9 @@
  * removing (`DELETE /v1/workout-session-exercises/{id}`) and replacing
  * (`PUT /v1/workout-session-exercises/{id}`) an Exercise of one, and the
  * public `GET /v1/arnold/models` (answered whatever the bearer, like the
- * API's). Routes are named as templates (`Route`), each request keeping its
+ * API's), and the new Library's Exercises (`GET /v1/exercises` and
+ * `GET /v1/exercises/{slug}`, over what `serveExercises` in
+ * `fake-exercises.ts` serves). Routes are named as templates (`Route`), each request keeping its
  * `path`. A route it doesn't implement answers 501 and fails the
  * test after it (`test-utils/after-each.ts`). `failNext` fails a route on
  * demand, `pause` holds it, and both (and `count`) can narrow to requests
@@ -65,6 +67,7 @@ import type {
 } from "@fitme/core";
 import { z } from "zod";
 
+import { getExercise, listExercises, resetExercises } from "./fake-exercises";
 import { library, libraryExercise } from "./fake-library";
 
 /*
@@ -2234,7 +2237,8 @@ const listArnoldModels = () =>
 type Handler = (
   body: RequestBody,
   id: string,
-  query: URLSearchParams
+  query: URLSearchParams,
+  headers: Headers
 ) => Promise<Response> | Response;
 
 /** Every route the fake answers, each path parameter as `(?<id>…)`. */
@@ -2250,6 +2254,16 @@ const ROUTES: {
     isPublic: true,
     path: /^\/v1\/arnold\/models$/u,
     route: "GET /v1/arnold/models",
+  },
+  {
+    handler: (_body, _id, query, headers) => listExercises(query, headers),
+    path: /^\/v1\/exercises$/u,
+    route: "GET /v1/exercises",
+  },
+  {
+    handler: (_body, slug, query, headers) => getExercise(slug, query, headers),
+    path: /^\/v1\/exercises\/(?<id>[^/]+)$/u,
+    route: "GET /v1/exercises/{slug}",
   },
   {
     handler: getProfile,
@@ -2419,6 +2433,7 @@ class FakePublicApi {
 
   reset() {
     appliedPlanUpdates.clear();
+    resetExercises();
     this.baseUrl = FAKE_PUBLIC_API_URL;
     this.requests = [];
     this.unhandled = [];
@@ -2499,11 +2514,11 @@ class FakePublicApi {
       const { failure } = queued;
 
       if (failure === "pass") {
-        return await this.answer(matched, authorization, body, searchParams);
+        return await this.answer(matched, init, body, searchParams);
       }
 
       if (failure === "lost") {
-        await this.answer(matched, authorization, body, searchParams);
+        await this.answer(matched, init, body, searchParams);
         throw new TypeError("Network request failed");
       }
 
@@ -2524,15 +2539,18 @@ class FakePublicApi {
           );
     }
 
-    return await this.answer(matched, authorization, body, searchParams);
+    return await this.answer(matched, init, body, searchParams);
   }
 
   private answer(
     { handler, id, isPublic, route }: ReturnType<typeof match>,
-    authorization: string | null,
+    init: Parameters<PublicApiFetch>[1],
     body: RequestBody,
     query: URLSearchParams
   ) {
+    const headers = new Headers(init.headers);
+    const authorization = headers.get("Authorization");
+
     if (!handler) {
       this.unhandled.push(route);
 
@@ -2543,7 +2561,7 @@ class FakePublicApi {
       return error(401, "unauthorized", "Unauthorized");
     }
 
-    return handler(body, id, query);
+    return handler(body, id, query, headers);
   }
 }
 
