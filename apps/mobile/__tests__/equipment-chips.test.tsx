@@ -270,6 +270,36 @@ describe("the Equipment chips on the Library tab", () => {
     ]);
   });
 
+  it("clears new-list choices on Show All in Ukrainian", async () => {
+    setDeviceLanguages(["uk-UA"]);
+    await renderLibrary();
+
+    await openSheet("М’язи");
+    await tick("Кор");
+    await confirm("Готово");
+
+    await openSheet("Обладнання");
+    await tick("Гиря");
+    await confirm("Готово");
+
+    // Nothing is a kettlebell Exercise for the core.
+    await until(() => screen.queryByText("Вправ не знайдено") !== null);
+
+    await fireEvent.press(screen.getByText("Показати всі вправи"));
+    await until(() => screen.queryByText("Вправ не знайдено") === null);
+    await settle(client);
+
+    expect(getMuscleChoice("library")).toEqual([]);
+    expect(getEquipmentChoice("library")).toEqual([]);
+    expect(screen.queryByTestId("choice-chips")).toBeNull();
+    expect(shownExercises()).toEqual([
+      "Bench Press",
+      "Dumbbell Curl",
+      "Goblet Squat",
+      "Pull Up",
+    ]);
+  });
+
   it("names each chip and its × in Ukrainian", async () => {
     setDeviceLanguages(["uk-UA"]);
     await renderLibrary();

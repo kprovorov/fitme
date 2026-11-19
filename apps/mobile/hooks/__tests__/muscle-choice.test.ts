@@ -9,7 +9,7 @@ describe("isMuscleGroup", () => {
     expect(isMuscleGroup("neck")).toBe(true);
   });
 
-  it("refuses a legacy group the new list folds in, and nothing at all", () => {
+  it("refuses a legacy group the new list folds in, and a missing param", () => {
     expect(isMuscleGroup("abs")).toBe(false);
     expect(isMuscleGroup("lats")).toBe(false);
     expect(isMuscleGroup(undefined)).toBe(false);

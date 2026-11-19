@@ -82,7 +82,6 @@ const WorkoutSessionView = ({
   const handleReplaceExercise = (exerciseId: string) => {
     const exercise = workoutSession.exercises.find((e) => e.id === exerciseId);
 
-    // The replaced Exercise's first primary group in the new Library.
     const muscleGroup = exercise
       ? shownBySlug[exercise.exercise_slug]?.muscle_groups[0]
       : undefined;

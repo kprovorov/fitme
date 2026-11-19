@@ -230,38 +230,69 @@ describe("the Equipment sheet over the Library tab", () => {
     expect(getEquipmentChoice("library")).toEqual(["dumbbell", "barbell"]);
   });
 
-  it("narrows by Equipment only the new list has", async () => {
-    await renderLibrary();
-    await openSheet("Equipment");
+  // The Exercises have no Ukrainian names, so they list in English either way.
+  const IN_EACH_LANGUAGE = [
+    {
+      bodyweight: "Bodyweight",
+      done: "Done",
+      kettlebell: "Kettlebell",
+      // English is the API's default, so it isn't sent.
+      languageQuery: {},
+      pill: "Equipment",
+      tag: "en-US",
+    },
+    {
+      bodyweight: "Власна вага",
+      done: "Готово",
+      kettlebell: "Гиря",
+      languageQuery: { language: "uk" },
+      pill: "Обладнання",
+      tag: "uk-UA",
+    },
+  ];
 
-    await tick("Kettlebell");
-    await confirm();
+  it.each(IN_EACH_LANGUAGE)(
+    "narrows by Equipment only the new list has ($tag)",
+    async ({ done, kettlebell, languageQuery, pill, tag }) => {
+      setDeviceLanguages([tag]);
+      await renderLibrary();
+      await openSheet(pill);
 
-    expect(listQueries().at(-1)).toEqual({
-      equipment: "kettlebell",
-      limit: "20",
-      offset: "0",
-    });
-    expect(shownExercises()).toEqual(["Kettlebell Swing"]);
-  });
+      await tick(kettlebell);
+      await confirm(done);
 
-  it("keeps an Exercise needing only a pull-up bar out of Bodyweight", async () => {
-    await renderLibrary();
-    await openSheet("Equipment");
+      expect(listQueries().at(-1)).toEqual({
+        equipment: "kettlebell",
+        ...languageQuery,
+        limit: "20",
+        offset: "0",
+      });
+      expect(shownExercises()).toEqual(["Kettlebell Swing"]);
+    }
+  );
 
-    await tick("Bodyweight");
-    await confirm();
+  it.each(IN_EACH_LANGUAGE)(
+    "keeps an Exercise needing only a pull-up bar out of Bodyweight ($tag)",
+    async ({ bodyweight, done, languageQuery, pill, tag }) => {
+      setDeviceLanguages([tag]);
+      await renderLibrary();
+      await openSheet(pill);
 
-    expect(listQueries().at(-1)).toEqual({
-      equipment: "bodyweight",
-      limit: "20",
-      offset: "0",
-    });
-    // Equipment narrows to Exercises using any of it: the pull-up uses
-    // bodyweight as well as the bar, the hold only the bar.
-    expect(shownExercises()).toEqual(["Push Up", "Pull Up"]);
-    expect(screen.queryByText("Hanging Bar Hold")).toBeNull();
-  });
+      await tick(bodyweight);
+      await confirm(done);
+
+      expect(listQueries().at(-1)).toEqual({
+        equipment: "bodyweight",
+        ...languageQuery,
+        limit: "20",
+        offset: "0",
+      });
+      // Equipment narrows to Exercises using any of it: the pull-up uses
+      // bodyweight as well as the bar, the hold only the bar.
+      expect(shownExercises()).toEqual(["Push Up", "Pull Up"]);
+      expect(screen.queryByText("Hanging Bar Hold")).toBeNull();
+    }
+  );
 
   it("narrows together with the Muscle group choice", async () => {
     await renderLibrary();
