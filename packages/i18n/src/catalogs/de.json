@@ -197,6 +197,11 @@
     "success": "Passwort geändert"
   },
   "choices": {
+    "difficulty": {
+      "beginner": "Einsteiger",
+      "intermediate": "Mittel",
+      "advanced": "Fortgeschritten"
+    },
     "equipment": {
       "barbell": "Langhantel",
       "dumbbell": "Kurzhantel",
@@ -206,7 +211,24 @@
       "bench": "Hantelbank",
       "pull_up_bar": "Klimmzugstange",
       "landmine": "Landmine",
-      "bodyweight": "Körpergewicht"
+      "bodyweight": "Körpergewicht",
+      "kettlebell": "Kettlebell",
+      "band": "Widerstandsband",
+      "parallel_bars": "Barren",
+      "bicycle": "Fahrrad",
+      "weight_plate": "Hantelscheibe",
+      "box": "Plyo-Box",
+      "stability_ball": "Gymnastikball",
+      "backpack": "Rucksack",
+      "medicine_ball": "Medizinball",
+      "sled": "Schlitten",
+      "towel": "Handtuch",
+      "trx": "TRX",
+      "battle_ropes": "Battle Ropes",
+      "dowel": "Gymnastikstab",
+      "slider": "Gleitscheibe",
+      "foam_roller": "Faszienrolle",
+      "wrist_roller": "Unterarmroller"
     },
     "experienceLevel": {
       "beginner": "Anfänger",
@@ -239,6 +261,22 @@
       "us": "Fuß, Zoll und Pfund",
       "uk": "Fuß, Zoll und Pfund"
     },
+    "movementPattern": {
+      "isolation": "Isolation",
+      "push": "Drücken",
+      "pull": "Ziehen",
+      "hinge": "Hüftbeugung",
+      "squat": "Kniebeuge",
+      "mobility": "Mobilität",
+      "cardio": "Ausdauer",
+      "core": "Rumpf",
+      "lunge": "Ausfallschritt",
+      "plyometric": "Plyometrie",
+      "rotation": "Rotation",
+      "stretch": "Dehnung",
+      "hip_abduction": "Hüftabduktion",
+      "carry": "Tragen"
+    },
     "muscleGroup": {
       "chest": "Brust",
       "back": "Rücken",
@@ -256,7 +294,11 @@
       "lats": "Breiter Rückenmuskel",
       "lower-back": "Unterer Rücken",
       "cardio": "Ausdauer",
-      "full-body": "Ganzer Körper"
+      "full-body": "Ganzer Körper",
+      "core": "Rumpf",
+      "adductors": "Adduktoren",
+      "tibialis": "Schienbeinmuskel",
+      "neck": "Nacken"
     },
     "place": {
       "gym": "Fitnessstudio",

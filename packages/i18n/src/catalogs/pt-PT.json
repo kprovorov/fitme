@@ -202,6 +202,11 @@
     "success": "Palavra-passe alterada"
   },
   "choices": {
+    "difficulty": {
+      "beginner": "Principiante",
+      "intermediate": "Intermédio",
+      "advanced": "Avançado"
+    },
     "equipment": {
       "barbell": "Barra",
       "dumbbell": "Halter",
@@ -211,7 +216,24 @@
       "bench": "Banco",
       "pull_up_bar": "Barra fixa",
       "landmine": "Landmine",
-      "bodyweight": "Peso corporal"
+      "bodyweight": "Peso corporal",
+      "kettlebell": "Kettlebell",
+      "band": "Banda elástica",
+      "parallel_bars": "Paralelas",
+      "bicycle": "Bicicleta",
+      "weight_plate": "Disco",
+      "box": "Caixa",
+      "stability_ball": "Bola de pilates",
+      "backpack": "Mochila",
+      "medicine_ball": "Bola medicinal",
+      "sled": "Trenó",
+      "towel": "Toalha",
+      "trx": "TRX",
+      "battle_ropes": "Cordas de batalha",
+      "dowel": "Bastão",
+      "slider": "Disco deslizante",
+      "foam_roller": "Rolo de espuma",
+      "wrist_roller": "Rolo de pulso"
     },
     "experienceLevel": {
       "beginner": "Principiante",
@@ -244,6 +266,22 @@
       "us": "Pés, polegadas e libras",
       "uk": "Pés, polegadas e libras"
     },
+    "movementPattern": {
+      "isolation": "Isolamento",
+      "push": "Empurrar",
+      "pull": "Puxar",
+      "hinge": "Dobradiça da anca",
+      "squat": "Agachamento",
+      "mobility": "Mobilidade",
+      "cardio": "Cardio",
+      "core": "Core",
+      "lunge": "Avanço",
+      "plyometric": "Pliometria",
+      "rotation": "Rotação",
+      "stretch": "Alongamento",
+      "hip_abduction": "Abdução da anca",
+      "carry": "Transporte de carga"
+    },
     "muscleGroup": {
       "chest": "Peitoral",
       "back": "Costas",
@@ -261,7 +299,11 @@
       "lats": "Dorsais",
       "lower-back": "Lombar",
       "cardio": "Cardio",
-      "full-body": "Corpo inteiro"
+      "full-body": "Corpo inteiro",
+      "core": "Core",
+      "adductors": "Adutores",
+      "tibialis": "Tibial anterior",
+      "neck": "Pescoço"
     },
     "place": {
       "gym": "Ginásio",

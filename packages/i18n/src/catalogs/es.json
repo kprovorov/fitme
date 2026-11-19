@@ -202,6 +202,11 @@
     "success": "Contraseña cambiada"
   },
   "choices": {
+    "difficulty": {
+      "beginner": "Principiante",
+      "intermediate": "Intermedio",
+      "advanced": "Avanzado"
+    },
     "equipment": {
       "barbell": "Barra",
       "dumbbell": "Mancuerna",
@@ -211,7 +216,24 @@
       "bench": "Banco",
       "pull_up_bar": "Barra de dominadas",
       "landmine": "Landmine",
-      "bodyweight": "Peso corporal"
+      "bodyweight": "Peso corporal",
+      "kettlebell": "Pesa rusa",
+      "band": "Banda elástica",
+      "parallel_bars": "Paralelas",
+      "bicycle": "Bicicleta",
+      "weight_plate": "Disco",
+      "box": "Cajón",
+      "stability_ball": "Fitball",
+      "backpack": "Mochila",
+      "medicine_ball": "Balón medicinal",
+      "sled": "Trineo",
+      "towel": "Toalla",
+      "trx": "TRX",
+      "battle_ropes": "Cuerdas de batalla",
+      "dowel": "Pica",
+      "slider": "Disco deslizante",
+      "foam_roller": "Rodillo de espuma",
+      "wrist_roller": "Rodillo de muñeca"
     },
     "experienceLevel": {
       "beginner": "Principiante",
@@ -244,6 +266,22 @@
       "us": "Pies, pulgadas y libras",
       "uk": "Pies, pulgadas y libras"
     },
+    "movementPattern": {
+      "isolation": "Aislamiento",
+      "push": "Empuje",
+      "pull": "Tracción",
+      "hinge": "Bisagra de cadera",
+      "squat": "Sentadilla",
+      "mobility": "Movilidad",
+      "cardio": "Cardio",
+      "core": "Core",
+      "lunge": "Zancada",
+      "plyometric": "Pliometría",
+      "rotation": "Rotación",
+      "stretch": "Estiramiento",
+      "hip_abduction": "Abducción de cadera",
+      "carry": "Acarreo"
+    },
     "muscleGroup": {
       "chest": "Pecho",
       "back": "Espalda",
@@ -261,7 +299,11 @@
       "lats": "Dorsales",
       "lower-back": "Zona lumbar",
       "cardio": "Cardio",
-      "full-body": "Cuerpo completo"
+      "full-body": "Cuerpo completo",
+      "core": "Core",
+      "adductors": "Aductores",
+      "tibialis": "Tibial anterior",
+      "neck": "Cuello"
     },
     "place": {
       "gym": "Gimnasio",

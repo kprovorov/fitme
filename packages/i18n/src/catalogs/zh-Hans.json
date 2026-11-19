@@ -192,6 +192,11 @@
     "success": "密码已修改"
   },
   "choices": {
+    "difficulty": {
+      "beginner": "初级",
+      "intermediate": "中级",
+      "advanced": "高级"
+    },
     "equipment": {
       "barbell": "杠铃",
       "dumbbell": "哑铃",
@@ -201,7 +206,24 @@
       "bench": "训练凳",
       "pull_up_bar": "引体向上杆",
       "landmine": "地雷杆",
-      "bodyweight": "自重"
+      "bodyweight": "自重",
+      "kettlebell": "壶铃",
+      "band": "弹力带",
+      "parallel_bars": "双杠",
+      "bicycle": "自行车",
+      "weight_plate": "杠铃片",
+      "box": "跳箱",
+      "stability_ball": "瑜伽球",
+      "backpack": "背包",
+      "medicine_ball": "药球",
+      "sled": "雪橇",
+      "towel": "毛巾",
+      "trx": "TRX",
+      "battle_ropes": "战绳",
+      "dowel": "体操棒",
+      "slider": "滑盘",
+      "foam_roller": "泡沫轴",
+      "wrist_roller": "腕力卷绳器"
     },
     "experienceLevel": {
       "beginner": "初级",
@@ -234,6 +256,22 @@
       "us": "英尺、英寸和磅",
       "uk": "英尺、英寸和磅"
     },
+    "movementPattern": {
+      "isolation": "孤立",
+      "push": "推",
+      "pull": "拉",
+      "hinge": "髋屈伸",
+      "squat": "深蹲",
+      "mobility": "灵活性",
+      "cardio": "有氧",
+      "core": "核心",
+      "lunge": "弓步",
+      "plyometric": "增强式",
+      "rotation": "旋转",
+      "stretch": "拉伸",
+      "hip_abduction": "髋外展",
+      "carry": "负重行走"
+    },
     "muscleGroup": {
       "chest": "胸部",
       "back": "背部",
@@ -251,7 +289,11 @@
       "lats": "背阔肌",
       "lower-back": "下背部",
       "cardio": "有氧",
-      "full-body": "全身"
+      "full-body": "全身",
+      "core": "核心",
+      "adductors": "内收肌",
+      "tibialis": "胫骨前肌",
+      "neck": "颈部"
     },
     "place": {
       "gym": "健身房",

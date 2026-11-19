@@ -197,6 +197,11 @@
     "success": "Password changed"
   },
   "choices": {
+    "difficulty": {
+      "beginner": "Beginner",
+      "intermediate": "Intermediate",
+      "advanced": "Advanced"
+    },
     "equipment": {
       "barbell": "Barbell",
       "dumbbell": "Dumbbell",
@@ -206,7 +211,24 @@
       "bench": "Bench",
       "pull_up_bar": "Pull-up bar",
       "landmine": "Landmine",
-      "bodyweight": "Bodyweight"
+      "bodyweight": "Bodyweight",
+      "kettlebell": "Kettlebell",
+      "band": "Resistance band",
+      "parallel_bars": "Parallel bars",
+      "bicycle": "Bicycle",
+      "weight_plate": "Weight plate",
+      "box": "Box",
+      "stability_ball": "Stability ball",
+      "backpack": "Backpack",
+      "medicine_ball": "Medicine ball",
+      "sled": "Sled",
+      "towel": "Towel",
+      "trx": "TRX",
+      "battle_ropes": "Battle ropes",
+      "dowel": "Dowel",
+      "slider": "Slider",
+      "foam_roller": "Foam roller",
+      "wrist_roller": "Wrist roller"
     },
     "experienceLevel": {
       "beginner": "Beginner",
@@ -239,6 +261,22 @@
       "us": "Feet, Inches and Pounds",
       "uk": "Feet, Inches and Pounds"
     },
+    "movementPattern": {
+      "isolation": "Isolation",
+      "push": "Push",
+      "pull": "Pull",
+      "hinge": "Hinge",
+      "squat": "Squat",
+      "mobility": "Mobility",
+      "cardio": "Cardio",
+      "core": "Core",
+      "lunge": "Lunge",
+      "plyometric": "Plyometric",
+      "rotation": "Rotation",
+      "stretch": "Stretch",
+      "hip_abduction": "Hip abduction",
+      "carry": "Carry"
+    },
     "muscleGroup": {
       "chest": "Chest",
       "back": "Back",
@@ -256,7 +294,11 @@
       "lats": "Lats",
       "lower-back": "Lower Back",
       "cardio": "Cardio",
-      "full-body": "Full Body"
+      "full-body": "Full Body",
+      "core": "Core",
+      "adductors": "Adductors",
+      "tibialis": "Tibialis",
+      "neck": "Neck"
     },
     "place": {
       "gym": "Gym",

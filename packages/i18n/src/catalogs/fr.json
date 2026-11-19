@@ -202,6 +202,11 @@
     "success": "Mot de passe modifié"
   },
   "choices": {
+    "difficulty": {
+      "beginner": "Débutant",
+      "intermediate": "Intermédiaire",
+      "advanced": "Avancé"
+    },
     "equipment": {
       "barbell": "Barre",
       "dumbbell": "Haltère",
@@ -211,7 +216,24 @@
       "bench": "Banc",
       "pull_up_bar": "Barre de traction",
       "landmine": "Barre en pivot",
-      "bodyweight": "Poids du corps"
+      "bodyweight": "Poids du corps",
+      "kettlebell": "Kettlebell",
+      "band": "Bande élastique",
+      "parallel_bars": "Barres parallèles",
+      "bicycle": "Vélo",
+      "weight_plate": "Disque de poids",
+      "box": "Box",
+      "stability_ball": "Ballon de stabilité",
+      "backpack": "Sac à dos",
+      "medicine_ball": "Médecine-ball",
+      "sled": "Traîneau",
+      "towel": "Serviette",
+      "trx": "TRX",
+      "battle_ropes": "Cordes ondulatoires",
+      "dowel": "Bâton",
+      "slider": "Disque de glisse",
+      "foam_roller": "Rouleau en mousse",
+      "wrist_roller": "Rouleau de poignet"
     },
     "experienceLevel": {
       "beginner": "Débutant",
@@ -244,6 +266,22 @@
       "us": "Pieds, pouces et livres",
       "uk": "Pieds, pouces et livres"
     },
+    "movementPattern": {
+      "isolation": "Isolation",
+      "push": "Poussée",
+      "pull": "Tirage",
+      "hinge": "Charnière de hanche",
+      "squat": "Squat",
+      "mobility": "Mobilité",
+      "cardio": "Cardio",
+      "core": "Gainage",
+      "lunge": "Fente",
+      "plyometric": "Pliométrie",
+      "rotation": "Rotation",
+      "stretch": "Étirement",
+      "hip_abduction": "Abduction de hanche",
+      "carry": "Portage"
+    },
     "muscleGroup": {
       "chest": "Pectoraux",
       "back": "Dos",
@@ -261,7 +299,11 @@
       "lats": "Grands dorsaux",
       "lower-back": "Lombaires",
       "cardio": "Cardio",
-      "full-body": "Corps entier"
+      "full-body": "Corps entier",
+      "core": "Sangle abdominale",
+      "adductors": "Adducteurs",
+      "tibialis": "Tibial antérieur",
+      "neck": "Cou"
     },
     "place": {
       "gym": "Salle de sport",
