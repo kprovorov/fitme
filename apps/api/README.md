@@ -56,6 +56,7 @@ Responses are JSON. Successful responses wrap the payload in `data`; failures re
 - `src/schemas.ts` — shared schemas (`ErrorResponse`, `Id`, `MuscleGroup`, `WeightUnit`, the documented 400 and 401 responses) and `invalidRequest`, every router's validation hook
 - `src/openapi.ts` — writes `openapi.json` (`pnpm api openapi`)
 - `src/backfill-covers.ts` / `scripts/backfill-covers.ts` — the one-off Cover backfill and its command (see Cover backfill)
+- `src/rewrite-exercise-slugs.ts` / `scripts/rewrite-exercise-slugs.ts` — the one-off Exercise slug rewrite and its command (see Slug rewrite)
 
 ## Tests
 
@@ -65,7 +66,7 @@ Responses are JSON. Successful responses wrap the payload in `data`; failures re
 
 `integration/` runs the same seam against a real Supabase stack (`pnpm db start`): the real services facade through `asUser` on the stack's Supavisor pooler (the vitest config reads its URL from `supabase status`; `FITME_DATABASE_URL` overrides it), as made-up Clerk-style `user_…` ids with test-signed tokens, and a Library index in memory. CI runs it in `.github/workflows/integration-tests.yml`.
 
-`integration/backfill-covers.test.ts` runs the Cover backfill there too, scoped to its own Plans (`planIds`), since other files write Plans on the same stack at once.
+`integration/backfill-covers.test.ts` runs the Cover backfill there too, scoped to its own Plans (`planIds`), since other files write Plans on the same stack at once, and `integration/rewrite-exercise-slugs.test.ts` the slug rewrite, scoped to its own Users (`userIds`).
 
 ## Cover backfill
 
@@ -88,3 +89,24 @@ pnpm api backfill:covers                    # every live Plan
 ```
 
 It prints one line per Plan (`plan <id>: <n> covered`, or `to cover` on a dry run) and a total: Plan ids and counts only, no other User data. Errors go through `sanitizeError`, so no SQL, parameter or Postgres message is printed.
+
+## Slug rewrite
+
+A one-off script rewriting every stored old Exercise slug to the Exercise replacing it (ADR 0022), run once the minimum version gate has cut off every build reading the Legacy Library; the map is then dropped from the bundle. The map is the v2 bundle's `replaced_slugs` (validated against the v2 schema; it refuses to run, exit 1, with none or an empty one), so it never lives in this repository. It lists the Users with a row under an old slug through `withService`, then per User, one transaction each, taking locks in `deleteUserData`'s order (so it queues behind an account deletion), rewrites `workout_exercises` (soft-deleted Plans included), `workout_session_exercises` (open Workout Sessions included) and `personal_records`. Within a Workout Session, two Personal records landing on one slug (two old slugs, or an old one next to the new one) keep the better one, higher weight then more reps, and the other is deleted, since a Workout Session holds one per Exercise; duplicate Workout Exercise and Workout Session Exercise rows stay. Each User's transaction also takes the Personal record lock and row-locks their Plans, Workout Sessions, Workouts and old-slug Workout Exercises first, in the order finishing a Workout Session and saving a Plan take them, so neither deadlocks with it. A slug already new is left alone, so a second run writes nothing, and a run stopped halfway is finished by running it again. Once every User is done it lists them again and gives anyone still holding an old slug (one written while their transaction ran) another pass, up to three, then fails. Writers still accepting old slugs after the run would store them again, so run `--dry-run` once more just before the map is dropped: it should list no User. The process ends about 10 s after its last line (the pool's idle clients), exiting 1 on any failure.
+
+Environment (read from the process, no file is loaded):
+
+| Variable | Value |
+| --- | --- |
+| `FITME_DATABASE_URL` | the `fitme` login's transaction-pooler URL with `?application_name=rewrite` |
+| `VERCEL_ENV`, `BLOB_STORE_ID`, `VERCEL_OIDC_TOKEN` | for production's bundle: `VERCEL_ENV=production` reads `library-v2.json` from the private Blob store over Vercel OIDC, as the deployment does |
+| `LIBRARY_V2_BUNDLE` | otherwise: the v2 bundle to read (absolute, or relative to `apps/api`) |
+
+With neither it refuses to run (exit 1): the committed fixture's made-up map would rewrite real slugs for good. It prints which bundle it read and how many old slugs its map has first.
+
+```bash
+pnpm api rewrite:exercise-slugs --dry-run   # counts per User and table; no write, no lock
+pnpm api rewrite:exercise-slugs             # every User
+```
+
+It prints one line per User (`user <id>: workout_exercises <n>, workout_session_exercises <n>, personal_records <n> (<n> dropped)`, with `to rewrite` on a dry run) and a total: User ids and counts only, no slug or other User data. Errors go through `sanitizeError`, so no SQL, parameter or Postgres message is printed.

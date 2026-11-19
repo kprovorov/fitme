@@ -9,6 +9,7 @@
     "clerk:check": "tsx scripts/check-clerk-session.ts",
     "dev": "tsx watch --env-file-if-exists=.env src/index.ts",
     "openapi": "tsx src/openapi.ts && oxfmt --write openapi.json",
+    "rewrite:exercise-slugs": "tsx scripts/rewrite-exercise-slugs.ts",
     "start": "node dist/node/index.js",
     "test": "vitest run",
     "test:integration": "vitest run --config vitest.integration.config.ts",
