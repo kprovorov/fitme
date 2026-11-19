@@ -1,90 +1,95 @@
-import type {
-  Exercise,
-  Library,
-  ListExercisesParams,
-} from "@fitme/library-sdk";
-import { LibraryUnavailableError } from "@fitme/library-sdk";
 import { DrizzleQueryError } from "drizzle-orm";
 import { describe, expect, it, vi } from "vitest";
 
+import type { LibraryV2 } from "../library.js";
 import type { UserServices } from "../services.js";
-import { ToolError } from "../tools/helpers.js";
 import {
   BENCH,
+  bundleExercise,
   call,
-  connect,
   connectWithServices,
-  contextFor,
-  fakeLibrary,
-  fakeServices,
+  LIBRARY_OUTAGE,
   recordingReporter,
   SESSION_ID,
-  SQUAT,
+  TEST_SUPABASE_URL,
+  testLibrary,
 } from "./harness.js";
+import type { ToolOutcome } from "./harness.js";
 
 const UNAVAILABLE = "Library unavailable, try again.";
 
-const summary = (exercise: Exercise) =>
-  Object.fromEntries(
-    Object.entries(exercise).filter(
-      ([key]) => key !== "description" && key !== "instructions"
-    )
-  );
+const MEDIA = `${TEST_SUPABASE_URL}/storage/v1`;
 
-/** A made-up Exercise, named from its slug, needing no gear. */
-const drill = (n: number): Exercise => ({
-  ...BENCH,
-  equipment: ["bodyweight"],
-  muscle_groups: ["cardio"],
-  name: `Drill ${String(n).padStart(3, "0")}`,
-  slug: `drill-${String(n).padStart(3, "0")}`,
+/** The media URLs an Exercise from the harness's bundle is served with. */
+const mediaOf = (slug: string) => ({
+  thumbnail_url: `${MEDIA}/render/image/public/library/${slug}/${"a".repeat(64)}.webp`,
+  video_url: `${MEDIA}/object/public/library/${slug}/${"b".repeat(64)}.mp4`,
 });
 
+/** BENCH as a list row answers it. */
+const BENCH_ROW = {
+  difficulty: "intermediate",
+  equipment: ["barbell", "bench"],
+  movement_patterns: ["push"],
+  muscle_groups: ["chest"],
+  name: "Bench Press",
+  secondary_muscle_groups: ["triceps", "shoulders"],
+  slug: "bench-press",
+  ...mediaOf("bench-press"),
+};
+
+const SQUAT_ROW = {
+  difficulty: "intermediate",
+  equipment: ["barbell"],
+  movement_patterns: ["squat"],
+  muscle_groups: ["quadriceps", "glutes"],
+  name: "Barbell Back Squat",
+  secondary_muscle_groups: ["core"],
+  slug: "barbell-back-squat",
+  ...mediaOf("barbell-back-squat"),
+};
+
+/** A made-up Exercise, named from its number, needing no gear. */
+const drill = (n: number) => {
+  const id = String(n).padStart(3, "0");
+
+  return bundleExercise(`drill-${id}`, `Drill ${id}`, {
+    muscle_groups: ["core"],
+  });
+};
+
 /** Chest Exercises, each tagged with the Equipment it needs. */
-const DUMBBELL_PRESS: Exercise = {
-  ...BENCH,
-  equipment: ["dumbbell", "bench"],
-  name: "Dumbbell Bench Press",
-  slug: "dumbbell-bench-press",
-};
+const DUMBBELL_PRESS = bundleExercise(
+  "dumbbell-bench-press",
+  "Dumbbell Bench Press",
+  { equipment: ["dumbbell", "bench"] }
+);
 
-const CABLE_FLY: Exercise = {
-  ...BENCH,
+const CABLE_FLY = bundleExercise("cable-fly", "Cable Fly", {
   equipment: ["cable"],
-  name: "Cable Fly",
-  slug: "cable-fly",
-};
+  movement_patterns: ["isolation"],
+});
 
-const PUSH_UP: Exercise = {
-  ...BENCH,
-  equipment: ["bodyweight"],
-  name: "Push Up",
-  slug: "push-up",
-};
+const PUSH_UP = bundleExercise("push-up", "Push Up");
 
-/** A library over `exercises` recording every list call. */
-const spiedLibrary = (exercises: Exercise[]) => {
-  const library = fakeLibrary(exercises);
-  const lists: ListExercisesParams[] = [];
+/** Bodyweight on a bar: a User with no bar shouldn't get it. */
+const PULL_UP = bundleExercise("pull-up", "Pull Up", {
+  equipment: ["bodyweight", "pull_up_bar"],
+  movement_patterns: ["pull"],
+  muscle_groups: ["back"],
+  secondary_muscle_groups: ["biceps"],
+});
 
-  const spied: Library = {
-    ...library,
-    list: (params = {}) => {
-      lists.push(params);
+/** An Exercise that trains the chest only as a secondary muscle group. */
+const DIP = bundleExercise("parallel-bar-dips", "Parallel Bar Dips", {
+  equipment: ["bodyweight", "parallel_bars"],
+  muscle_groups: ["triceps"],
+  secondary_muscle_groups: ["chest"],
+});
 
-      return library.list(params);
-    },
-  };
-
-  return { library: spied, lists };
-};
-
-const downLibrary = () => {
-  const library = fakeLibrary();
-  library.failWith(new LibraryUnavailableError({ status: 503 }));
-
-  return library;
-};
+const slugsOf = (json: ToolOutcome["json"]) =>
+  // SAFETY: list_exercises answers rows that each carry a string slug.
+  (json.exercises as { slug: string }[]).map((row) => row.slug);
 
 /** A failure as Drizzle throws it: the SQL in the message, Postgres as the cause. */
 const queryFailure = (message: string) =>
@@ -95,51 +100,51 @@ const queryFailure = (message: string) =>
   );
 
 describe("list_exercises", () => {
-  it("searches the library with the trimmed search, muscle group and page", async () => {
-    const press = { ...BENCH, name: "Overhead Press", slug: "overhead-press" };
+  it("answers each row with its difficulty, movement patterns and both muscle group lists", async () => {
+    const client = await connectWithServices({});
 
-    const incline = {
-      ...BENCH,
-      name: "Incline Bench Press",
-      slug: "incline-bench-press",
-    };
+    const result = await call(client, "list_exercises");
 
-    const { library, lists } = spiedLibrary([BENCH, SQUAT, press, incline]);
-    const client = await connectWithServices({}, undefined, library);
-
-    const result = await call(client, "list_exercises", {
-      limit: 1,
-      muscleGroup: "chest",
-      offset: 1,
-      search: "  PRESS  ",
-    });
-
-    expect(lists).toStrictEqual([
-      {
-        equipment: undefined,
-        limit: 1,
-        muscleGroup: "chest",
-        offset: 1,
-        search: "PRESS",
-      },
-    ]);
     expect(result.isError).toBeFalsy();
     expect(result.json).toStrictEqual({
-      exercises: [summary(incline)],
-      hasMore: true,
-      limit: 1,
-      offset: 1,
-      total: 3,
+      exercises: [SQUAT_ROW, BENCH_ROW],
+      hasMore: false,
+      limit: 20,
+      offset: 0,
+      total: 2,
     });
   });
 
-  it("filters by Equipment, matching any of the values, with the muscle group and search", async () => {
-    const { library, lists } = spiedLibrary([
-      DUMBBELL_PRESS,
-      CABLE_FLY,
-      PUSH_UP,
-      SQUAT,
-    ]);
+  it("searches the name and the other names, trimmed and case-insensitive", async () => {
+    const client = await connectWithServices({});
+
+    const byName = await call(client, "list_exercises", { search: "  BENCH " });
+    const byAlias = await call(client, "list_exercises", { search: "flat" });
+
+    expect(slugsOf(byName.json)).toStrictEqual([BENCH.slug]);
+    expect(slugsOf(byAlias.json)).toStrictEqual([BENCH.slug]);
+  });
+
+  it("filters by a new primary muscle group only", async () => {
+    const library = testLibrary({ exercises: [BENCH, DIP, PULL_UP] });
+    const client = await connectWithServices({}, undefined, library);
+
+    const chest = await call(client, "list_exercises", {
+      muscleGroup: "chest",
+    });
+
+    // the dips train the chest only as a secondary group
+    expect(slugsOf(chest.json)).toStrictEqual([BENCH.slug]);
+
+    const back = await call(client, "list_exercises", { muscleGroup: "back" });
+
+    expect(slugsOf(back.json)).toStrictEqual([PULL_UP.slug]);
+  });
+
+  it("filters by the new Equipment, matching any of the values, with the muscle group and search", async () => {
+    const library = testLibrary({
+      exercises: [DUMBBELL_PRESS, CABLE_FLY, PUSH_UP, PULL_UP],
+    });
 
     const client = await connectWithServices({}, undefined, library);
 
@@ -149,75 +154,19 @@ describe("list_exercises", () => {
       search: "press",
     });
 
-    expect(lists).toStrictEqual([
-      {
-        equipment: ["dumbbell", "cable"],
-        limit: 20,
-        muscleGroup: "chest",
-        offset: 0,
-        search: "press",
-      },
-    ]);
-
     // the cable fly uses one of the values but is no "press", the push up neither
-    expect(result.json).toStrictEqual({
-      exercises: [summary(DUMBBELL_PRESS)],
-      hasMore: false,
-      limit: 20,
-      offset: 0,
-      total: 1,
+    expect(slugsOf(result.json)).toStrictEqual([DUMBBELL_PRESS.slug]);
+
+    const withBar = await call(client, "list_exercises", {
+      equipment: ["pull_up_bar"],
     });
+
+    expect(slugsOf(withBar.json)).toStrictEqual([PULL_UP.slug]);
   });
 
-  it("answers each row's Equipment next to its muscle groups", async () => {
-    const client = await connectWithServices(
-      {},
-      undefined,
-      fakeLibrary([DUMBBELL_PRESS, PUSH_UP])
-    );
-
-    const result = await call(client, "list_exercises");
-
-    expect(result.json.exercises).toStrictEqual([
-      expect.objectContaining({
-        equipment: ["dumbbell", "bench"],
-        muscle_groups: ["chest", "triceps"],
-        slug: DUMBBELL_PRESS.slug,
-      }),
-      expect.objectContaining({
-        equipment: ["bodyweight"],
-        slug: PUSH_UP.slug,
-      }),
-    ]);
-  });
-
-  it("asks for the first page of 20 by default", async () => {
-    const { library, lists } = spiedLibrary([BENCH, SQUAT]);
-    const client = await connectWithServices({}, undefined, library);
-
-    const result = await call(client, "list_exercises");
-
-    expect(lists).toStrictEqual([
-      {
-        equipment: undefined,
-        limit: 20,
-        muscleGroup: undefined,
-        offset: 0,
-        search: undefined,
-      },
-    ]);
-    expect(result.json).toStrictEqual({
-      exercises: [summary(SQUAT), summary(BENCH)],
-      hasMore: false,
-      limit: 20,
-      offset: 0,
-      total: 2,
-    });
-  });
-
-  it("reads a page over the API's 50 in two parts", async () => {
+  it("pages over the whole Library, up to the maximum page", async () => {
     const drills = Array.from({ length: 120 }, (_, i) => drill(i));
-    const { library, lists } = spiedLibrary(drills);
+    const library = testLibrary({ exercises: drills });
     const client = await connectWithServices({}, undefined, library);
 
     const result = await call(client, "list_exercises", {
@@ -225,22 +174,6 @@ describe("list_exercises", () => {
       offset: 5,
     });
 
-    expect(lists).toStrictEqual([
-      {
-        equipment: undefined,
-        limit: 50,
-        muscleGroup: undefined,
-        offset: 5,
-        search: undefined,
-      },
-      {
-        equipment: undefined,
-        limit: 50,
-        muscleGroup: undefined,
-        offset: 55,
-        search: undefined,
-      },
-    ]);
     expect(result.json).toMatchObject({
       hasMore: true,
       limit: 100,
@@ -248,77 +181,11 @@ describe("list_exercises", () => {
       total: 120,
     });
 
-    // SAFETY: The fake library returns the drill fixtures above, each with a string slug.
-    const slugs = (result.json.exercises as { slug: string }[]).map(
-      (e) => e.slug
-    );
+    const slugs = slugsOf(result.json);
 
     expect(slugs).toHaveLength(100);
     expect(slugs[0]).toBe("drill-005");
     expect(slugs.at(-1)).toBe("drill-104");
-  });
-
-  it("sends the Equipment filter on both parts of a page over the API's 50", async () => {
-    const drills = Array.from({ length: 120 }, (_, i) => drill(i));
-    const { library, lists } = spiedLibrary([...drills, DUMBBELL_PRESS]);
-    const client = await connectWithServices({}, undefined, library);
-
-    const result = await call(client, "list_exercises", {
-      equipment: ["bodyweight"],
-      limit: 100,
-      offset: 5,
-    });
-
-    expect(lists).toStrictEqual([
-      {
-        equipment: ["bodyweight"],
-        limit: 50,
-        muscleGroup: undefined,
-        offset: 5,
-        search: undefined,
-      },
-      {
-        equipment: ["bodyweight"],
-        limit: 50,
-        muscleGroup: undefined,
-        offset: 55,
-        search: undefined,
-      },
-    ]);
-
-    // the dumbbell press is filtered out of both parts and of the total
-    expect(result.json).toMatchObject({
-      hasMore: true,
-      limit: 100,
-      offset: 5,
-      total: 120,
-    });
-    expect(result.json.exercises).toHaveLength(100);
-  });
-
-  it("answers the last page when it ends inside the first part", async () => {
-    const drills = Array.from({ length: 30 }, (_, i) => drill(i));
-
-    const client = await connectWithServices(
-      {},
-      undefined,
-      fakeLibrary(drills)
-    );
-
-    const result = await call(client, "list_exercises", { limit: 100 });
-
-    expect(result.json).toMatchObject({ hasMore: false, total: 30 });
-    expect(result.json.exercises).toHaveLength(30);
-  });
-
-  it("reports one failure when a two-part page fails", async () => {
-    const { reportError, reported } = recordingReporter();
-    const client = await connectWithServices({}, reportError, downLibrary());
-
-    const result = await call(client, "list_exercises", { limit: 100 });
-
-    expect(result.text).toBe(UNAVAILABLE);
-    expect(reported).toHaveLength(1);
   });
 
   it("returns an empty last page with the total when the offset is past the end", async () => {
@@ -336,31 +203,32 @@ describe("list_exercises", () => {
     });
   });
 
-  it("rejects a page size over the maximum and an unknown muscle group, unreported", async () => {
-    const { library, lists } = spiedLibrary([BENCH]);
+  it("rejects a page size over the maximum and a legacy or unknown muscle group, unreported", async () => {
     const { reportError, reported } = recordingReporter();
-    const client = await connectWithServices({}, reportError, library);
+    const client = await connectWithServices({}, reportError);
 
     const tooMany = await call(client, "list_exercises", { limit: 101 });
 
     expect(tooMany.isError).toBeTruthy();
 
-    const unknownMuscleGroup = await call(client, "list_exercises", {
+    // `abs` is a Legacy Library group the new Library doesn't have
+    const legacy = await call(client, "list_exercises", { muscleGroup: "abs" });
+
+    const unknown = await call(client, "list_exercises", {
       muscleGroup: "wings",
     });
 
-    expect(unknownMuscleGroup.isError).toBeTruthy();
-    expect(lists).toStrictEqual([]);
+    expect(legacy.isError).toBeTruthy();
+    expect(unknown.isError).toBeTruthy();
     expect(reported).toStrictEqual([]);
   });
 
   it("rejects Equipment that isn't a list of known values, unreported", async () => {
-    const { library, lists } = spiedLibrary([BENCH]);
     const { reportError, reported } = recordingReporter();
-    const client = await connectWithServices({}, reportError, library);
+    const client = await connectWithServices({}, reportError);
 
     const unknownEquipment = await call(client, "list_exercises", {
-      equipment: ["kettlebell"],
+      equipment: ["jetpack"],
     });
 
     expect(unknownEquipment.isError).toBeTruthy();
@@ -371,47 +239,45 @@ describe("list_exercises", () => {
 
     expect(equipmentString.isError).toBeTruthy();
 
-    // more values than there are, so no caller can build a query the API rejects
     const tooMuchEquipment = await call(client, "list_exercises", {
       equipment: Array.from({ length: 50 }, () => "dumbbell"),
     });
 
     expect(tooMuchEquipment.isError).toBeTruthy();
-    expect(lists).toStrictEqual([]);
     expect(reported).toStrictEqual([]);
   });
 
-  it("fails and reports when the library is unavailable", async () => {
+  it("fails and reports when the bundle can't load, then loads it on the next call", async () => {
     const { reportError, reported } = recordingReporter();
-    const client = await connectWithServices({}, reportError, downLibrary());
+    const down = testLibrary({ loads: "fail", reportError });
+    const up = testLibrary({ reportError });
+    let asks = 0;
 
-    const result = await call(client, "list_exercises");
+    const flaky: LibraryV2 = {
+      get: () => {
+        asks += 1;
 
-    expect(result.isError).toBeTruthy();
-    expect(result.text).toBe(UNAVAILABLE);
-    expect(reported).toStrictEqual([expect.any(LibraryUnavailableError)]);
-  });
-
-  it("says so, unreported, when the library isn't configured", async () => {
-    const { reportError, reported } = recordingReporter();
-
-    const client = await connect({
-      ...contextFor(fakeServices({}), reportError),
-      getLibrary: () => {
-        throw new ToolError("Not configured for the Library.");
+        return asks === 1 ? down.get() : up.get();
       },
-    });
+    };
 
-    const result = await call(client, "list_exercises");
+    const client = await connectWithServices({}, reportError, flaky);
 
-    expect(result.isError).toBeTruthy();
-    expect(result.text).toBe("Not configured for the Library.");
-    expect(reported).toStrictEqual([]);
+    const failed = await call(client, "list_exercises");
+
+    expect(failed.isError).toBeTruthy();
+    expect(failed.text).toBe(UNAVAILABLE);
+    expect(reported).toStrictEqual([LIBRARY_OUTAGE]);
+
+    const retried = await call(client, "list_exercises");
+
+    expect(retried.isError).toBeFalsy();
+    expect(retried.json).toMatchObject({ total: 2 });
   });
 });
 
 describe("get_exercise", () => {
-  it("returns the full Exercise from the library", async () => {
+  it("returns the Exercise in full: the summary, descriptions, steps, mistakes and benefits", async () => {
     const client = await connectWithServices({});
 
     const result = await call(client, "get_exercise", {
@@ -419,22 +285,32 @@ describe("get_exercise", () => {
     });
 
     expect(result.isError).toBeFalsy();
-    expect(result.json).toStrictEqual(BENCH);
+    expect(result.json).toStrictEqual({
+      ...BENCH_ROW,
+      benefits: ["Bench Press builds strength."],
+      common_mistakes: ["Rushing the bench press."],
+      long_description: "Bench Press, described at length.",
+      short_description: "Bench Press in a line.",
+      steps: ["Set up for the bench press.", "Lift.", "Lower."],
+    });
   });
 
-  it("carries the Exercise's Equipment as ids", async () => {
-    const client = await connectWithServices(
-      {},
-      undefined,
-      fakeLibrary([{ ...BENCH, equipment: ["barbell", "bench"] }])
-    );
+  it("answers an old slug with the Exercise replacing it", async () => {
+    const library = testLibrary({
+      replacedSlugs: { "barbell-bench-press": BENCH.slug },
+    });
+
+    const client = await connectWithServices({}, undefined, library);
 
     const result = await call(client, "get_exercise", {
-      exerciseSlug: BENCH.slug,
+      exerciseSlug: "barbell-bench-press",
     });
 
     expect(result.isError).toBeFalsy();
-    expect(result.json).toMatchObject({ equipment: ["barbell", "bench"] });
+    expect(result.json).toMatchObject({
+      name: "Bench Press",
+      slug: BENCH.slug,
+    });
   });
 
   it("errors when no Exercise has the slug", async () => {
@@ -450,9 +326,14 @@ describe("get_exercise", () => {
     );
   });
 
-  it("fails and reports when the library is unavailable", async () => {
+  it("fails and reports when the bundle can't load", async () => {
     const { reportError, reported } = recordingReporter();
-    const client = await connectWithServices({}, reportError, downLibrary());
+
+    const client = await connectWithServices(
+      {},
+      reportError,
+      testLibrary({ loads: "fail", reportError })
+    );
 
     const result = await call(client, "get_exercise", {
       exerciseSlug: BENCH.slug,
@@ -460,7 +341,7 @@ describe("get_exercise", () => {
 
     expect(result.isError).toBeTruthy();
     expect(result.text).toBe(UNAVAILABLE);
-    expect(reported).toHaveLength(1);
+    expect(reported).toStrictEqual([LIBRARY_OUTAGE]);
   });
 
   it("rejects an exerciseId instead of an exerciseSlug", async () => {

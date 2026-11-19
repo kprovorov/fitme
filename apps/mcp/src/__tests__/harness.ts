@@ -1,7 +1,12 @@
 import { createLibraryIndex } from "@fitme/library-bundle/library-index";
 import type { LibraryIndex } from "@fitme/library-bundle/library-index";
-import type { Cover, Exercise, Library } from "@fitme/library-sdk";
-import { createFakeLibrary } from "@fitme/library-sdk/fake";
+import type {
+  BundleV2Exercise,
+  LibraryBundleV2,
+} from "@fitme/library-bundle/v2";
+import { createLibraryV2 } from "@fitme/library-bundle/v2/library";
+import type { LibraryV2 } from "@fitme/library-bundle/v2/library";
+import type { Cover } from "@fitme/library-sdk";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
 import type { CallToolRequest } from "@modelcontextprotocol/sdk/types.js";
@@ -16,32 +21,94 @@ export const SESSION_ID = "22222222-2222-4222-8222-222222222222";
 export const SET_ID = "33333333-3333-4333-8333-333333333333";
 export const WORKOUT_ID = "44444444-4444-4444-8444-444444444444";
 
-/** The Exercises the default fake Library knows. */
-export const BENCH: Exercise = {
-  description: "Lie on a flat bench and press the bar.",
-  equipment: [],
-  instructions: "1. Unrack. 2. Lower to the chest. 3. Press.",
-  muscle_groups: ["chest", "triceps"],
-  name: "Bench Press",
-  slug: "bench-press",
-  thumbnail_url: "https://media.test/bench-press.jpg",
-  video_url: "https://media.test/bench-press.mp4",
-};
+/** The Supabase project the test Library's media URLs are on. */
+export const TEST_SUPABASE_URL = "https://project.supabase.co";
 
-export const SQUAT: Exercise = {
-  description: "A squat with the bar on the upper back.",
-  equipment: [],
-  instructions: "1. Unrack. 2. Squat. 3. Stand up.",
-  muscle_groups: ["quadriceps", "glutes"],
-  name: "Barbell Back Squat",
-  slug: "barbell-back-squat",
-  thumbnail_url: "https://media.test/barbell-back-squat.jpg",
-  video_url: "https://media.test/barbell-back-squat.mp4",
-};
+const textOf = (name: string) => ({
+  benefits: [`${name} builds strength.`],
+  common_mistakes: [`Rushing the ${name.toLowerCase()}.`],
+  long_description: `${name}, described at length.`,
+  name,
+  short_description: `${name} in a line.`,
+  steps: [`Set up for the ${name.toLowerCase()}.`, "Lift.", "Lower."],
+  tags: ["strength"],
+  use_cases: ["Building strength."],
+});
 
-/** A fake Library knowing BENCH and SQUAT, fresh per call. */
-export const fakeLibrary = (exercises: Exercise[] = [BENCH, SQUAT]) =>
-  createFakeLibrary(exercises);
+/** A made-up v2 bundle Exercise named `name`, overridable field by field. */
+export const bundleExercise = (
+  slug: string,
+  name: string,
+  overrides: Partial<BundleV2Exercise> = {}
+): BundleV2Exercise => ({
+  aliases: [],
+  difficulty: "beginner",
+  equipment: ["bodyweight"],
+  locales: { en: textOf(name) },
+  movement_patterns: ["push"],
+  muscle_groups: ["chest"],
+  secondary_muscle_groups: [],
+  slug,
+  thumbnail: { extension: "webp", oid: "a".repeat(64) },
+  video: { extension: "mp4", oid: "b".repeat(64) },
+  ...overrides,
+});
+
+/** The Exercises the default test Library (and index) knows. */
+export const BENCH = bundleExercise("bench-press", "Bench Press", {
+  aliases: ["Flat press"],
+  difficulty: "intermediate",
+  equipment: ["barbell", "bench"],
+  secondary_muscle_groups: ["triceps", "shoulders"],
+});
+
+export const SQUAT = bundleExercise(
+  "barbell-back-squat",
+  "Barbell Back Squat",
+  {
+    difficulty: "intermediate",
+    equipment: ["barbell"],
+    movement_patterns: ["squat"],
+    muscle_groups: ["quadriceps", "glutes"],
+    secondary_muscle_groups: ["core"],
+  }
+);
+
+/** The error a failing test Library load rejects with. */
+export const LIBRARY_OUTAGE = new Error("The v2 bundle is unavailable");
+
+/**
+ * The instance's Library (ADR 0022) over a v2 bundle of `exercises` (by
+ * default BENCH and SQUAT) and `replacedSlugs`, built by the same loader the
+ * server uses. With `loads: "fail"` every load rejects with LIBRARY_OUTAGE,
+ * which the Library reports through `reportError`.
+ */
+export const testLibrary = ({
+  exercises = [BENCH, SQUAT],
+  loads = "ok",
+  replacedSlugs,
+  reportError = ignoreReports,
+}: {
+  exercises?: BundleV2Exercise[];
+  loads?: "fail" | "ok";
+  replacedSlugs?: Record<string, string>;
+  reportError?: ToolContext["reportError"];
+} = {}): LibraryV2 => {
+  const bundle: LibraryBundleV2 = { exercises, version: 2 };
+
+  if (replacedSlugs) {
+    bundle.replaced_slugs = replacedSlugs;
+  }
+
+  return createLibraryV2({
+    load: () =>
+      loads === "fail"
+        ? Promise.reject(LIBRARY_OUTAGE)
+        : Promise.resolve(bundle),
+    reportError,
+    supabaseUrl: TEST_SUPABASE_URL,
+  });
+};
 
 export const ignoreReports: ToolContext["reportError"] = () =>
   Promise.resolve();
@@ -62,7 +129,7 @@ export const testIndex = ({
   reportError = ignoreReports,
 }: {
   covers?: readonly Pick<Cover, "id" | "muscle_groups">[];
-  exercises?: readonly Pick<Exercise, "muscle_groups" | "slug">[];
+  exercises?: readonly { muscle_groups: readonly string[]; slug: string }[];
   loads?: "fail" | "ok";
   reportError?: ToolContext["reportError"];
 } = {}): LibraryIndex =>
@@ -127,22 +194,22 @@ export const recordingReporter = () => {
 export const contextFor = (
   services: UserServices,
   reportError: ToolContext["reportError"] = ignoreReports,
-  library: Library = fakeLibrary(),
+  library: LibraryV2 = testLibrary({ reportError }),
   libraryIndex: LibraryIndex = testIndex({ reportError })
 ): ToolContext => ({
-  getLibrary: () => library,
   getServices: () => services,
+  library,
   libraryIndex,
   reportError,
 });
 
 /** For tests that never reach a user tool. */
 const NO_USER: ToolContext = {
-  getLibrary: () => {
-    throw new Error("No Library in this test.");
-  },
   getServices: () => {
     throw new Error("No User in this test.");
+  },
+  library: {
+    get: () => Promise.reject(new Error("No Library in this test.")),
   },
   libraryIndex: {
     lookup: () => Promise.reject(new Error("No Library index in this test.")),
@@ -173,7 +240,7 @@ export const connect = async (context: ToolContext = NO_USER) => {
 export const connectWithServices = (
   faked: Partial<UserServices>,
   reportError?: ToolContext["reportError"],
-  library?: Library,
+  library?: LibraryV2,
   libraryIndex?: LibraryIndex
 ) =>
   connect(contextFor(fakeServices(faked), reportError, library, libraryIndex));

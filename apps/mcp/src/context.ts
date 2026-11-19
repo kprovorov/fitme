@@ -1,8 +1,6 @@
-import type { Library } from "@fitme/library-sdk";
 import type { reportError as observabilityReportError } from "@fitme/observability/node";
 
-import { createLibraryFromEnv } from "./library.js";
-import type { LibraryFactory, LibraryIndex } from "./library.js";
+import type { LibraryIndex, LibraryV2 } from "./library.js";
 import { createServicesFromEnv } from "./services.js";
 import type { ServicesFactory, UserServices } from "./services.js";
 import { ToolError } from "./tools/helpers.js";
@@ -11,11 +9,6 @@ import { ToolError } from "./tools/helpers.js";
 export type ReportError = typeof observabilityReportError;
 
 export interface ToolContext {
-  /**
-   * The Library API client, built once per request on the first
-   * tool that needs it. Throws a `ToolError` when it isn't configured.
-   */
-  getLibrary: () => Library;
   /**
    * The caller's services, each run through `asUser` as the verified User.
    * Built once per request, on the first tool that needs them. Throws a
@@ -27,6 +20,11 @@ export interface ToolContext {
    * Plan writes check Exercise slugs and pick Covers against it.
    */
   libraryIndex: LibraryIndex;
+  /**
+   * The instance's Library (ADR 0022), shared by every request: searches,
+   * `get_exercise` and the reads' Exercise names.
+   */
+  library: LibraryV2;
   /** Reports a tool's unexpected failure; expected ones never reach it. */
   reportError: ReportError;
 }
@@ -37,10 +35,11 @@ export interface ClerkUser {
 }
 
 export interface ToolContextOptions {
-  createLibrary?: LibraryFactory;
   createServices?: ServicesFactory;
   /** The instance's Library index, built once per app, never per request. */
   libraryIndex: LibraryIndex;
+  /** The instance's Library, built once per app, never per request. */
+  library: LibraryV2;
   reportError: ReportError;
   /** Must come from a verified Clerk token, never from request data. */
   user: ClerkUser;
@@ -49,34 +48,21 @@ export interface ToolContextOptions {
 const NOT_CONFIGURED_MESSAGE =
   "This MCP server is not configured for user data (FITME_DATABASE_URL is missing).";
 
-const LIBRARY_NOT_CONFIGURED_MESSAGE =
-  "This MCP server is not configured for the Library (LIBRARY_URL or LIBRARY_MCP_SECRET is missing).";
-
 /**
  * Tool context for a verified Clerk User: their tools run on services bound to
  * that User id through `asUser`, so RLS sees them as the caller, on the
- * Library API (searches, names) and on the Library index (Plan writes).
+ * instance's Library (searches, names) and on the Library index (Plan writes).
  */
 export const createToolContext = ({
-  createLibrary = createLibraryFromEnv,
   createServices = createServicesFromEnv,
+  library,
   libraryIndex,
   reportError,
   user,
 }: ToolContextOptions): ToolContext => {
   let services: UserServices | undefined;
-  let library: Library | undefined;
 
   return {
-    getLibrary: () => {
-      library ??= createLibrary() ?? undefined;
-
-      if (!library) {
-        throw new ToolError(LIBRARY_NOT_CONFIGURED_MESSAGE);
-      }
-
-      return library;
-    },
     getServices: () => {
       services ??= createServices(user.userId) ?? undefined;
 
@@ -86,6 +72,7 @@ export const createToolContext = ({
 
       return services;
     },
+    library,
     libraryIndex,
     reportError,
   };

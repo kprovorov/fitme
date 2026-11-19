@@ -1,16 +1,17 @@
 import { randomBytes } from "node:crypto";
 
-import type { Cover, Exercise } from "@fitme/library-sdk";
-import { createFakeLibrary } from "@fitme/library-sdk/fake";
+import type { Cover } from "@fitme/library-sdk";
 import type { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import type { JSONType } from "zod";
 
 import {
+  bundleExercise,
   call,
   connect,
   contextFor,
   ignoreReports,
   testIndex,
+  testLibrary,
 } from "../src/__tests__/harness.js";
 import { createServicesFromEnv } from "../src/services.js";
 
@@ -21,36 +22,22 @@ import { createServicesFromEnv } from "../src/services.js";
  * Supavisor pooler (`FITME_DATABASE_URL`, set by the vitest config), the way
  * the server does once Clerk has verified a token (ADR 0003). Every query goes
  * through the same RLS policies as in production. The Library is the
- * in-memory fake over INTEGRATION_EXERCISES, and the Plan writes check
+ * in-memory one over a v2 bundle of INTEGRATION_EXERCISES, and the Plan writes check
  * against a Library index over the same Exercises and Covers, never the
  * network or Blob.
  */
 
-const exercise = (
-  slug: string,
-  name: string,
-  muscleGroups: Exercise["muscle_groups"]
-): Exercise => ({
-  description: `About ${name}.`,
-  equipment: [],
-  instructions: `How to do ${name}.`,
-  muscle_groups: muscleGroups,
-  name,
-  slug,
-  thumbnail_url: `https://media.test/${slug}.jpg`,
-  video_url: `https://media.test/${slug}.mp4`,
-});
-
 /**
- * The Exercises the fake Library knows. Postgres doesn't check slugs
+ * The Exercises the Library knows. Postgres doesn't check slugs
  * (ADR 0010), so nothing is seeded for them.
  */
 export const INTEGRATION_EXERCISES = [
-  exercise("barbell-back-squat", "Barbell Back Squat", [
-    "quadriceps",
-    "glutes",
-  ]),
-  exercise("barbell-deadlift", "Barbell Deadlift", ["back", "hamstrings"]),
+  bundleExercise("barbell-back-squat", "Barbell Back Squat", {
+    muscle_groups: ["quadriceps", "glutes"],
+  }),
+  bundleExercise("barbell-deadlift", "Barbell Deadlift", {
+    muscle_groups: ["back", "hamstrings"],
+  }),
 ];
 
 const cover = (id: string, muscleGroups: Cover["muscle_groups"]): Cover => ({
@@ -60,7 +47,7 @@ const cover = (id: string, muscleGroups: Cover["muscle_groups"]): Cover => ({
 });
 
 /**
- * The Covers the fake Library has: one per most-trained muscle group of
+ * The Covers the Library index has: one per most-trained muscle group of
  * planInput's Workouts (the squat's quadriceps, the deadlift's back), and
  * one neither trains, so each Workout's Cover is known in advance.
  */
@@ -73,11 +60,9 @@ export const INTEGRATION_COVERS = {
   ]),
 };
 
-/** A fresh fake Library over INTEGRATION_EXERCISES and INTEGRATION_COVERS. */
+/** A fresh Library over a v2 bundle of INTEGRATION_EXERCISES. */
 export const integrationLibrary = () =>
-  createFakeLibrary(INTEGRATION_EXERCISES, {
-    covers: Object.values(INTEGRATION_COVERS),
-  });
+  testLibrary({ exercises: INTEGRATION_EXERCISES });
 
 /** A Library index over INTEGRATION_EXERCISES and INTEGRATION_COVERS. */
 export const integrationIndex = () =>
@@ -170,7 +155,7 @@ export const pickExercises = async (client: Client) => {
   const [first, second] = page.exercises;
 
   if (!(first && second)) {
-    throw new Error("The fake Library has fewer than two Exercises.");
+    throw new Error("The Library has fewer than two Exercises.");
   }
 
   return [first, second] as const;

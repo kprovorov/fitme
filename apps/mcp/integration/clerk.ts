@@ -408,7 +408,7 @@ export class HeadlessOAuthProvider implements OAuthClientProvider {
 export const startMcpServer = async () => {
   const server = serve({
     fetch: createApp({
-      createLibrary: integrationLibrary,
+      library: integrationLibrary(),
       libraryIndex: integrationIndex(),
       logRequests: false,
       reportError: (error) => {

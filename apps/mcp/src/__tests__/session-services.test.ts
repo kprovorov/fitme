@@ -1,4 +1,3 @@
-import { LibraryUnavailableError } from "@fitme/library-sdk";
 import type {
   WorkoutSessionDetail,
   WorkoutSessionSet,
@@ -10,10 +9,11 @@ import {
   BENCH,
   call,
   connectWithServices,
-  fakeLibrary,
+  LIBRARY_OUTAGE,
   recordingReporter,
   SESSION_ID,
   SET_ID,
+  testLibrary,
   WORKOUT_ID,
 } from "./harness.js";
 
@@ -61,7 +61,7 @@ const toolSession = {
       exercise_slug: BENCH.slug,
       id: "wse-1",
       muscle_groups: BENCH.muscle_groups,
-      name: BENCH.name,
+      name: BENCH.locales.en.name,
       order: 1,
       sets: [loggedSet],
     },
@@ -94,9 +94,8 @@ describe("get_workout_session", () => {
   });
 
   it("still answers, with slug-derived names, when the library fails, and reports it", async () => {
-    const library = fakeLibrary();
-    library.failWith(new LibraryUnavailableError());
     const { reportError, reported } = recordingReporter();
+    const library = testLibrary({ loads: "fail", reportError });
 
     const client = await connectWithServices(
       { getWorkoutSession: () => Promise.resolve(sessionDetail) },
@@ -115,7 +114,7 @@ describe("get_workout_session", () => {
         { name: "Cable fly legacy" },
       ],
     });
-    expect(reported).toHaveLength(1);
+    expect(reported).toStrictEqual([LIBRARY_OUTAGE]);
   });
 
   it("errors for an unknown session", async () => {

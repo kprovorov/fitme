@@ -21,17 +21,13 @@ import {
 import type { AuthVariables } from "./auth.js";
 import { createToolContext } from "./context.js";
 import type { ReportError } from "./context.js";
-import { libraryIndexFromEnv } from "./library.js";
-import type { LibraryFactory, LibraryIndex } from "./library.js";
+import { libraryFromEnv, libraryIndexFromEnv } from "./library.js";
+import type { LibraryIndex, LibraryV2 } from "./library.js";
 import { answerUnsupportedProtocolVersion } from "./protocol-version.js";
 import { createMcpServer } from "./server.js";
 import type { ServicesFactory } from "./services.js";
 
 export interface CreateAppOptions {
-  /**
-   * Overrides the Library API on `LIBRARY_URL` (used by tests).
-   */
-  createLibrary?: LibraryFactory;
   /** Overrides the services on `FITME_DATABASE_URL` (used by tests). */
   createServices?: ServicesFactory;
   /**
@@ -39,6 +35,11 @@ export interface CreateAppOptions {
    * verified Clerk id only. Defaults to @fitme/observability's.
    */
   identifyUser?: (userId: string) => void;
+  /**
+   * Overrides the instance's Library (used by tests); by default
+   * `libraryFromEnv`, reporting through `reportError`.
+   */
+  library?: LibraryV2;
   /**
    * Overrides the instance's Library index (used by tests); by default
    * `libraryIndexFromEnv`, reporting through `reportError`.
@@ -83,15 +84,17 @@ const refuseNonPost: MiddlewareHandler = async (c, next) => {
 };
 
 export const createApp = ({
-  createLibrary,
   createServices,
   identifyUser = identifyObservedUser,
+  library,
   libraryIndex,
   logRequests = true,
   reportError,
 }: CreateAppOptions) => {
   // One per instance, so a warm instance checks writes with no network call
   const index = libraryIndex ?? libraryIndexFromEnv(reportError);
+  // One per instance too: the bundle is loaded once and searched in memory
+  const exercises = library ?? libraryFromEnv(reportError);
 
   const app = new Hono<{ Variables: AuthVariables }>();
 
@@ -148,8 +151,8 @@ export const createApp = ({
   // process can scale without sticky sessions.
   app.post("/", (c) => {
     const context = createToolContext({
-      createLibrary,
       createServices,
+      library: exercises,
       libraryIndex: index,
       reportError,
       user: c.get("clerkUser"),

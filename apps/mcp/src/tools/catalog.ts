@@ -1,13 +1,13 @@
 import {
-  legacyEquipment,
-  legacyEquipmentToName,
+  equipment,
+  equipmentToName,
   experienceLevels,
   getExperienceLevelLabel,
   getGoalLabel,
   getPlaceLabel,
   goals,
-  legacyMuscleGroups,
-  legacyMuscleGroupToName,
+  muscleGroups,
+  muscleGroupToName,
   places,
 } from "@fitme/core";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
@@ -37,17 +37,13 @@ export const registerCatalogTools = (server: McpServer, info: ServerInfo) => {
     "list_muscle_groups",
     {
       annotations: READ_ONLY,
-      description: "Lists every muscle group Fitme exercises can target.",
+      description:
+        "Lists every muscle group Fitme exercises can target; these ids are the ones an Exercise's `muscle_groups` and `secondary_muscle_groups` carry and list_exercises filters by.",
       inputSchema: {},
       title: "List muscle groups",
     },
     () =>
-      asJson(
-        legacyMuscleGroups.map((id) => ({
-          id,
-          name: legacyMuscleGroupToName(id),
-        }))
-      )
+      asJson(muscleGroups.map((id) => ({ id, name: muscleGroupToName(id) })))
   );
 
   server.registerTool(
@@ -55,14 +51,11 @@ export const registerCatalogTools = (server: McpServer, info: ServerInfo) => {
     {
       annotations: READ_ONLY,
       description:
-        "Lists every piece of Equipment a Fitme Exercise can need; `bodyweight` means it needs none. These ids are the ones an Exercise's `equipment` carries.",
+        "Lists every piece of Equipment a Fitme Exercise can need; `bodyweight` means the body is the load (a pull-up is `bodyweight` and `pull_up_bar`). These ids are the ones an Exercise's `equipment` carries and list_exercises filters by.",
       inputSchema: {},
       title: "List equipment",
     },
-    () =>
-      asJson(
-        legacyEquipment.map((id) => ({ id, name: legacyEquipmentToName(id) }))
-      )
+    () => asJson(equipment.map((id) => ({ id, name: equipmentToName(id) })))
   );
 
   server.registerTool(
@@ -90,10 +83,10 @@ export const registerCatalogTools = (server: McpServer, info: ServerInfo) => {
     {
       annotations: READ_ONLY,
       description: "Returns the display name for a muscle group id.",
-      inputSchema: { muscleGroup: z.enum(legacyMuscleGroups) },
+      inputSchema: { muscleGroup: z.enum(muscleGroups) },
       title: "Describe muscle group",
     },
     ({ muscleGroup }) =>
-      asJson({ id: muscleGroup, name: legacyMuscleGroupToName(muscleGroup) })
+      asJson({ id: muscleGroup, name: muscleGroupToName(muscleGroup) })
   );
 };

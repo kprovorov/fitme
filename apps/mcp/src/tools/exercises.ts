@@ -1,8 +1,4 @@
-import {
-  legacyEquipment as equipmentIds,
-  legacyMuscleGroups,
-} from "@fitme/core";
-import type { ExercisePage } from "@fitme/library-sdk";
+import { equipment as equipmentIds, muscleGroups } from "@fitme/core";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 
@@ -15,15 +11,12 @@ import {
   withServices,
   withToolErrors,
 } from "./helpers.js";
-import { exerciseSlugSchema, fromLibrary } from "./library.js";
+import { exerciseSlugSchema, requireLibrary } from "./library.js";
 import { DEFAULT_PAGE_SIZE, MAX_PAGE_SIZE } from "./limits.js";
 
 const DEFAULT_HISTORY_LIMIT = 10;
 const MAX_HISTORY_LIMIT = 50;
 const MAX_SEARCH_LENGTH = 100;
-
-/** The Library API's largest page; a bigger one takes two requests. */
-const LIBRARY_PAGE_SIZE = 50;
 
 export const registerExerciseTools = (server: McpServer, ctx: ToolContext) => {
   server.registerTool(
@@ -31,14 +24,14 @@ export const registerExerciseTools = (server: McpServer, ctx: ToolContext) => {
     {
       annotations: READ_ONLY,
       description:
-        "Searches the Fitme Library (alphabetical, paginated). Use an Exercise's `slug` as `exercise_slug` when building plans with create_plan / update_plan. Returns compact rows (slug, name, muscle groups, the Equipment it needs, thumbnail and video URLs) plus `total` and `hasMore`; an offset past the end returns an empty page. `equipment` narrows the list to exercises using **any** of the given Equipment (so pass every piece the user has, `bodyweight` included), and `search`, `muscleGroup` and `equipment` narrow it together. Call get_exercise for the description and instructions.",
+        "Searches the Fitme Library (alphabetical, paginated). Use an Exercise's `slug` as `exercise_slug` when building plans with create_plan / update_plan. Returns compact rows (slug, name, primary `muscle_groups` and `secondary_muscle_groups`, the Equipment it needs, its `movement_patterns` and `difficulty`, thumbnail and video URLs) plus `total` and `hasMore`; an offset past the end returns an empty page. `search` matches the name or one of the Exercise's other names (e.g. `RDL`). `muscleGroup` matches a primary muscle group only. `equipment` narrows the list to exercises using **any** of the given Equipment (so pass every piece the user has: `bodyweight` included, and `pull_up_bar` when they have one, since pull-ups need it), and `search`, `muscleGroup` and `equipment` narrow it together. Call get_exercise for the descriptions, steps, common mistakes and benefits.",
       inputSchema: {
         equipment: z
           .array(z.enum(equipmentIds))
           .max(equipmentIds.length)
           .optional()
           .describe(
-            "Only exercises that use any of this Equipment; an empty list narrows nothing. `bodyweight` means an exercise needs no gear."
+            "Only exercises that use any of this Equipment; an empty list narrows nothing. `bodyweight` means the body is the load."
           ),
         limit: z
           .number()
@@ -50,9 +43,11 @@ export const registerExerciseTools = (server: McpServer, ctx: ToolContext) => {
             `Page size (default ${DEFAULT_PAGE_SIZE}, max ${MAX_PAGE_SIZE}).`
           ),
         muscleGroup: z
-          .enum(legacyMuscleGroups)
+          .enum(muscleGroups)
           .optional()
-          .describe("Only exercises that target this muscle group."),
+          .describe(
+            "Only exercises that target this muscle group as a primary one."
+          ),
         offset: z
           .number()
           .int()
@@ -65,41 +60,26 @@ export const registerExerciseTools = (server: McpServer, ctx: ToolContext) => {
           .min(1)
           .max(MAX_SEARCH_LENGTH)
           .optional()
-          .describe("Case-insensitive substring of the exercise name."),
+          .describe(
+            "Case-insensitive substring of the exercise's name or one of its other names."
+          ),
       },
       title: "List exercises",
     },
     withToolErrors(
       ctx,
       async ({ equipment, limit, muscleGroup, offset, search }) => {
-        // the API pages by at most 50, so a bigger page is read in parts
-        const parts = Array.from(
-          { length: Math.ceil(limit / LIBRARY_PAGE_SIZE) },
-          (_, i) => ({
-            limit: Math.min(LIBRARY_PAGE_SIZE, limit - i * LIBRARY_PAGE_SIZE),
-            offset: offset + i * LIBRARY_PAGE_SIZE,
-          })
-        );
+        const library = await requireLibrary(ctx);
 
-        const pages = await fromLibrary(ctx, (library) =>
-          Promise.all(
-            parts.map((part) =>
-              library.list({ ...part, equipment, muscleGroup, search })
-            )
-          )
-        );
-
-        const exercises = pages.flatMap((page) => page.data);
-        // SAFETY: The schema enforces limit >= 1, so parts and its Promise.all result contain at least one page.
-        const [{ total }] = pages as [ExercisePage, ...ExercisePage[]];
-
-        return asJson({
-          exercises,
-          hasMore: offset + exercises.length < total,
+        const { data, hasMore, total } = library.list({
+          equipment,
           limit,
+          muscleGroups: muscleGroup ? [muscleGroup] : undefined,
           offset,
-          total,
+          search,
         });
+
+        return asJson({ exercises: data, hasMore, limit, offset, total });
       }
     )
   );
@@ -109,18 +89,20 @@ export const registerExerciseTools = (server: McpServer, ctx: ToolContext) => {
     {
       annotations: READ_ONLY,
       description:
-        "Returns one Exercise from the Library by its slug, with its full details (description and instructions in markdown, video and thumbnail URLs, muscle groups, and the Equipment it needs as ids; call list_equipment for their names).",
+        "Returns one Exercise from the Library by its slug, with its full details: the summary list_exercises gives (muscle groups, Equipment as ids, movement patterns, difficulty, thumbnail and video URLs; call list_equipment and list_muscle_groups for their names), plus `short_description`, `long_description`, the numbered `steps`, the `common_mistakes` and the `benefits`. A slug an Exercise had in the old Library answers the Exercise replacing it, under its own `slug`.",
       inputSchema: { exerciseSlug: exerciseSlugSchema },
       title: "Get exercise",
     },
-    withToolErrors(ctx, async ({ exerciseSlug }) =>
-      asJson(
+    withToolErrors(ctx, async ({ exerciseSlug }) => {
+      const library = await requireLibrary(ctx);
+
+      return asJson(
         requireFound(
-          await fromLibrary(ctx, (library) => library.get(exerciseSlug)),
+          library.get(exerciseSlug),
           `Exercise ${exerciseSlug} not found. Use list_exercises to look up valid Exercise slugs.`
         )
-      )
-    )
+      );
+    })
   );
 
   server.registerTool(
