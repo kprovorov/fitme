@@ -44,7 +44,7 @@ export const withRetryInterval = (
 
 /**
  * The instance's new Library (ADR 0022) over the v2 bundle the environment
- * names: production's Blob store (`library-v2.json`), LIBRARY_V2_BUNDLE or the
+ * names: production's Blob store (`exercises.json`), LIBRARY_V2_BUNDLE or the
  * committed fixture anywhere else. Loaded on the first request that reads an
  * Exercise and kept; every failed load is reported through `reportError`, and
  * the next one waits `LIBRARY_RETRY_INTERVAL_MS`.

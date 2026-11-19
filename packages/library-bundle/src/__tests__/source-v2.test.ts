@@ -28,7 +28,7 @@ const fakeBlob = (text: string | null) => {
 const noFiles = () => Promise.reject(new Error("read a file"));
 
 describe("the v2 bundle source", () => {
-  it("reads library-v2.json from Blob in production, uncached", async () => {
+  it("reads exercises.json from Blob in production, uncached", async () => {
     const blob = fakeBlob(JSON.stringify(BUNDLE));
 
     const source = libraryV2BundleSource({
@@ -39,7 +39,7 @@ describe("the v2 bundle source", () => {
 
     await expect(source.load()).resolves.toStrictEqual(BUNDLE);
     expect(blob.calls).toStrictEqual([
-      ["library-v2.json", { access: "private", useCache: false }],
+      ["exercises.json", { access: "private", useCache: false }],
     ]);
   });
 

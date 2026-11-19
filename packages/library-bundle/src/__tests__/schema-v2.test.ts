@@ -74,7 +74,7 @@ const withExercise = (overrides: ExerciseFields) =>
 
 describe("the v2 bundle", () => {
   it("is published under its own blob name, beside library.json", () => {
-    expect(LIBRARY_V2_BLOB).toBe("library-v2.json");
+    expect(LIBRARY_V2_BLOB).toBe("exercises.json");
     expect(LIBRARY_V2_BLOB).not.toBe(LIBRARY_BLOB);
   });
 

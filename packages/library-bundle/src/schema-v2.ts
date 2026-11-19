@@ -22,7 +22,7 @@ import { z } from "zod";
 export const BUNDLE_V2_VERSION = 2;
 
 /** The blob `fitme-library` publishes a version 2 bundle under. */
-export const LIBRARY_V2_BLOB = "library-v2.json";
+export const LIBRARY_V2_BLOB = "exercises.json";
 
 /** The permanent Exercise identifier, e.g. `bench-press`. */
 const SLUG = /^[a-z0-9]+(?:-[a-z0-9]+)*$/u;

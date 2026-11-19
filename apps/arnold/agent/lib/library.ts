@@ -16,7 +16,7 @@ let library: LibraryV2 | undefined;
 /**
  * The instance's new Library (ADR 0022), which `search_exercises` and the
  * Exercise names in reads come from, in Arnold's own process: production's
- * `library-v2.json` from the private Blob store over Vercel OIDC
+ * `exercises.json` from the private Blob store over Vercel OIDC
  * (`BLOB_STORE_ID`), `LIBRARY_V2_BUNDLE` or the committed made-up fixture
  * anywhere else. Created on first use, loaded on the first ask and kept for
  * the life of the instance; a failed load is reported and the next ask loads
