@@ -391,7 +391,36 @@
   },
   "exercise": {
     "gone": "Este ejercicio ya no está en la biblioteca.",
-    "loadError": "No se ha podido cargar este ejercicio. Comprueba tu conexión e inténtalo de nuevo."
+    "loadError": "No se ha podido cargar este ejercicio. Comprueba tu conexión e inténtalo de nuevo.",
+    "notFoundTitle": "Ejercicio no encontrado",
+    "backToLibrary": "Volver a la biblioteca",
+    "loadErrorTitle": "No se ha podido cargar el ejercicio",
+    "checkConnection": "Comprueba tu conexión e inténtalo de nuevo.",
+    "howToDoIt": "Cómo hacerlo",
+    "muscleGroups": "Grupos musculares",
+    "primaryMuscleGroups": "Principales",
+    "secondaryMuscleGroups": "Secundarios",
+    "benefits": "Beneficios",
+    "steps": "Pasos",
+    "commonMistakes": "Errores comunes",
+    "guideEmptyTitle": "Aún no hay guía",
+    "guideEmpty": "Este ejercicio aún no tiene pasos.",
+    "difficulty": {
+      "beginner": "Principiante",
+      "intermediate": "Intermedio",
+      "advanced": "Avanzado"
+    },
+    "spoken": {
+      "loading": "Cargando ejercicio",
+      "clip": "Vídeo de {{name}}",
+      "equipment": "Equipamiento: {{equipment}}",
+      "difficulty": "Dificultad: {{difficulty}}",
+      "movementPattern": "Patrón de movimiento: {{movementPattern}}",
+      "primaryMuscleGroups": "Grupos musculares principales: {{muscleGroups}}",
+      "secondaryMuscleGroups": "Grupos musculares secundarios: {{muscleGroups}}",
+      "step": "Paso {{number, number}}: {{step}}",
+      "guideHint": "Abre los pasos y los errores comunes"
+    }
   },
   "exerciseHistory": {
     "title": "Progreso",

@@ -365,7 +365,36 @@
   },
   "exercise": {
     "gone": "此动作已不在动作库中。",
-    "loadError": "无法加载此动作。请检查网络连接后重试。"
+    "loadError": "无法加载此动作。请检查网络连接后重试。",
+    "notFoundTitle": "未找到动作",
+    "backToLibrary": "返回动作库",
+    "loadErrorTitle": "无法加载动作",
+    "checkConnection": "请检查网络连接后重试。",
+    "howToDoIt": "动作要领",
+    "muscleGroups": "肌群",
+    "primaryMuscleGroups": "主要",
+    "secondaryMuscleGroups": "次要",
+    "benefits": "益处",
+    "steps": "步骤",
+    "commonMistakes": "常见错误",
+    "guideEmptyTitle": "暂无指南",
+    "guideEmpty": "此动作暂无步骤。",
+    "difficulty": {
+      "beginner": "初级",
+      "intermediate": "中级",
+      "advanced": "高级"
+    },
+    "spoken": {
+      "loading": "正在加载动作",
+      "clip": "{{name}}视频",
+      "equipment": "器械：{{equipment}}",
+      "difficulty": "难度：{{difficulty}}",
+      "movementPattern": "动作模式：{{movementPattern}}",
+      "primaryMuscleGroups": "主要肌群：{{muscleGroups}}",
+      "secondaryMuscleGroups": "次要肌群：{{muscleGroups}}",
+      "step": "第 {{number, number}} 步：{{step}}",
+      "guideHint": "打开步骤和常见错误"
+    }
   },
   "exerciseHistory": {
     "title": "进步记录",

@@ -391,7 +391,36 @@
   },
   "exercise": {
     "gone": "Questo esercizio non è più nella libreria.",
-    "loadError": "Impossibile caricare questo esercizio. Controlla la connessione e riprova."
+    "loadError": "Impossibile caricare questo esercizio. Controlla la connessione e riprova.",
+    "notFoundTitle": "Esercizio non trovato",
+    "backToLibrary": "Torna alla libreria",
+    "loadErrorTitle": "Impossibile caricare l'esercizio",
+    "checkConnection": "Controlla la connessione e riprova.",
+    "howToDoIt": "Come si fa",
+    "muscleGroups": "Gruppi muscolari",
+    "primaryMuscleGroups": "Principali",
+    "secondaryMuscleGroups": "Secondari",
+    "benefits": "Benefici",
+    "steps": "Passaggi",
+    "commonMistakes": "Errori comuni",
+    "guideEmptyTitle": "Ancora nessuna guida",
+    "guideEmpty": "Questo esercizio non ha ancora passaggi.",
+    "difficulty": {
+      "beginner": "Principiante",
+      "intermediate": "Intermedio",
+      "advanced": "Avanzato"
+    },
+    "spoken": {
+      "loading": "Caricamento dell'esercizio",
+      "clip": "Video: {{name}}",
+      "equipment": "Attrezzi: {{equipment}}",
+      "difficulty": "Difficoltà: {{difficulty}}",
+      "movementPattern": "Schema motorio: {{movementPattern}}",
+      "primaryMuscleGroups": "Gruppi muscolari principali: {{muscleGroups}}",
+      "secondaryMuscleGroups": "Gruppi muscolari secondari: {{muscleGroups}}",
+      "step": "Passaggio {{number, number}}: {{step}}",
+      "guideHint": "Apre i passaggi e gli errori comuni"
+    }
   },
   "exerciseHistory": {
     "title": "Progressi",

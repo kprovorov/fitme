@@ -378,7 +378,36 @@
   },
   "exercise": {
     "gone": "Diese Übung ist nicht mehr in der Bibliothek.",
-    "loadError": "Diese Übung konnte nicht geladen werden. Prüfe deine Verbindung und versuche es erneut."
+    "loadError": "Diese Übung konnte nicht geladen werden. Prüfe deine Verbindung und versuche es erneut.",
+    "notFoundTitle": "Übung nicht gefunden",
+    "backToLibrary": "Zurück zur Bibliothek",
+    "loadErrorTitle": "Übung konnte nicht geladen werden",
+    "checkConnection": "Prüfe deine Verbindung und versuche es erneut.",
+    "howToDoIt": "So geht's",
+    "muscleGroups": "Muskelgruppen",
+    "primaryMuscleGroups": "Primär",
+    "secondaryMuscleGroups": "Sekundär",
+    "benefits": "Vorteile",
+    "steps": "Schritte",
+    "commonMistakes": "Häufige Fehler",
+    "guideEmptyTitle": "Noch keine Anleitung",
+    "guideEmpty": "Für diese Übung gibt es noch keine Schritte.",
+    "difficulty": {
+      "beginner": "Einsteiger",
+      "intermediate": "Mittleres Niveau",
+      "advanced": "Fortgeschritten"
+    },
+    "spoken": {
+      "loading": "Übung wird geladen",
+      "clip": "Video: {{name}}",
+      "equipment": "Geräte: {{equipment}}",
+      "difficulty": "Schwierigkeit: {{difficulty}}",
+      "movementPattern": "Bewegungsmuster: {{movementPattern}}",
+      "primaryMuscleGroups": "Primäre Muskelgruppen: {{muscleGroups}}",
+      "secondaryMuscleGroups": "Sekundäre Muskelgruppen: {{muscleGroups}}",
+      "step": "Schritt {{number, number}}: {{step}}",
+      "guideHint": "Öffnet die Schritte und häufigen Fehler"
+    }
   },
   "exerciseHistory": {
     "title": "Fortschritt",

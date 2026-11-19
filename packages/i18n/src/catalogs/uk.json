@@ -404,7 +404,36 @@
   },
   "exercise": {
     "gone": "Цієї вправи більше немає в бібліотеці.",
-    "loadError": "Не вдалося завантажити вправу. Перевірте з’єднання і спробуйте ще раз."
+    "loadError": "Не вдалося завантажити вправу. Перевірте з’єднання і спробуйте ще раз.",
+    "notFoundTitle": "Вправу не знайдено",
+    "backToLibrary": "До бібліотеки",
+    "loadErrorTitle": "Не вдалося завантажити вправу",
+    "checkConnection": "Перевірте з’єднання і спробуйте ще раз.",
+    "howToDoIt": "Як виконувати",
+    "muscleGroups": "Групи м’язів",
+    "primaryMuscleGroups": "Основні",
+    "secondaryMuscleGroups": "Допоміжні",
+    "benefits": "Переваги",
+    "steps": "Кроки",
+    "commonMistakes": "Типові помилки",
+    "guideEmptyTitle": "Інструкції ще немає",
+    "guideEmpty": "Для цієї вправи ще немає кроків.",
+    "difficulty": {
+      "beginner": "Початковий рівень",
+      "intermediate": "Середній рівень",
+      "advanced": "Складний рівень"
+    },
+    "spoken": {
+      "loading": "Завантаження вправи",
+      "clip": "Відео: {{name}}",
+      "equipment": "Обладнання: {{equipment}}",
+      "difficulty": "Складність: {{difficulty}}",
+      "movementPattern": "Тип руху: {{movementPattern}}",
+      "primaryMuscleGroups": "Основні групи м’язів: {{muscleGroups}}",
+      "secondaryMuscleGroups": "Допоміжні групи м’язів: {{muscleGroups}}",
+      "step": "Крок {{number, number}}: {{step}}",
+      "guideHint": "Відкриває кроки і типові помилки"
+    }
   },
   "exerciseHistory": {
     "title": "Прогрес",
