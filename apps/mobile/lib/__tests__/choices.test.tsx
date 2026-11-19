@@ -54,8 +54,8 @@ describe("useChoiceLabels", () => {
   it("shows an id the catalogs don't have as itself", async () => {
     const { result } = await renderHook(useLabels);
 
-    expect(result.current.muscleGroup("neck" as LegacyMuscleGroup)).toBe(
-      "neck"
+    expect(result.current.muscleGroup("wrists" as LegacyMuscleGroup)).toBe(
+      "wrists"
     );
   });
 

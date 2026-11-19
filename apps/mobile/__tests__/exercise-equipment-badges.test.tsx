@@ -148,12 +148,12 @@ describe("an Exercise read offline, from the copy kept on the device", () => {
     // fake, like the API, answers core's own list only.
     keptOnDevice({
       ...BENCH_PRESS,
-      equipment: ["barbell", "kettlebell" as LegacyEquipment],
+      equipment: ["barbell", "sandbag" as LegacyEquipment],
     });
 
     await renderScreen("bench-press");
 
-    expect(shownEquipment()).toEqual(["Barbell", "kettlebell"]);
+    expect(shownEquipment()).toEqual(["Barbell", "sandbag"]);
   });
 
   it("shows no row for a copy kept before the Library had Equipment", async () => {
