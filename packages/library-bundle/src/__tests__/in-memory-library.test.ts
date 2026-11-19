@@ -407,8 +407,18 @@ describe("the in-memory Library", () => {
       ).toBe(library.hash);
     });
 
-    it("changes with a translation, the map or the media's origin", () => {
+    it("changes with a translation, an alias, the map or the media's origin", () => {
       const others = [
+        createInMemoryLibrary(
+          {
+            ...bundle,
+            exercises: [
+              ...bundle.exercises.filter(({ slug }) => slug !== "pull-up"),
+              { ...pullUp, aliases: ["Chin bar pull"] },
+            ],
+          },
+          { supabaseUrl: SUPABASE_URL }
+        ),
         createInMemoryLibrary(
           {
             ...bundle,

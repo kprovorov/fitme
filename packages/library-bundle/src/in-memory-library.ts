@@ -108,7 +108,7 @@ export interface InMemoryLibrary {
   /** One Exercise in full, an old slug answering its replacement; `null` for none. */
   get: (slug: string, options?: LanguageOption) => LibraryExercise | null;
   /**
-   * The sha256 of every answer in every language and of the slug map: an
+   * The sha256 of every answer in every language, of what each search matches and of the slug map: an
    * `ETag` that changes whenever any answer can.
    */
   hash: string;
@@ -257,7 +257,11 @@ export const createInMemoryLibrary = (
       .update(
         JSON.stringify({
           languages: appLanguages.map((language) =>
-            languages[language].sorted.map(({ full }) => full)
+            // the search names too: an alias changes what a search answers
+            languages[language].sorted.map(({ full, searchNames }) => ({
+              full,
+              searchNames,
+            }))
           ),
           replacedSlugs: [...replacedSlugs].toSorted(([a], [b]) =>
             a < b ? -1 : 1
