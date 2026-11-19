@@ -74,7 +74,9 @@ const ExerciseTextSchema = z.strictObject({
   long_description: Text,
   name: Text,
   short_description: Text,
-  steps: z.array(Text).min(1, { error: "must list at least one step" }),
+  steps: distinct(Text, "steps").min(1, {
+    error: "must list at least one step",
+  }),
   tags: distinct(Text, "tags"),
   use_cases: distinct(Text, "use cases"),
 });

@@ -237,6 +237,13 @@ describe("the v2 bundle", () => {
         withExercise({ locales: { en: { ...text("x"), tags: ["a", "a"] } } })
       )
     ).toStrictEqual(["exercises.0.locales.en.tags: tags must not repeat"]);
+    expect(
+      issues(
+        withExercise({
+          locales: { en: { ...text("x"), steps: ["Press", "Press"] } },
+        })
+      )
+    ).toStrictEqual(["exercises.0.locales.en.steps: steps must not repeat"]);
   });
 
   it("refuses a bad slug and a repeated one", () => {
