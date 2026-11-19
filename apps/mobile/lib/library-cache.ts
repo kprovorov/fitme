@@ -162,22 +162,26 @@ const summaryOf = ({
   video_url,
 });
 
+/** The slugs a copy is kept under: the one asked for, and its own. */
+const slugsKeptUnder = (requestedSlug: string, slug: string) =>
+  requestedSlug === slug ? [slug] : [requestedSlug, slug];
+
 /**
  * Keeps `exercise`'s summary under `requestedSlug` (the slug asked for,
- * `exercise.slug` unless it was replaced).
+ * `exercise.slug` unless it was replaced) and, for a replaced slug, under its
+ * own slug too, which its detail screen and guide open under.
  */
 export const writeCachedSummary = (
   language: AppLanguage,
   exercise: ExerciseSummary,
   { requestedSlug = exercise.slug, savedAt = Date.now() } = {}
-) =>
-  write(
-    summaryStorageKey(language, requestedSlug),
-    summaryOf(exercise),
-    savedAt
-  );
+) => {
+  for (const slug of slugsKeptUnder(requestedSlug, exercise.slug)) {
+    write(summaryStorageKey(language, slug), summaryOf(exercise), savedAt);
+  }
+};
 
-/** Keeps the Exercise in full, and its summary for the rows that show it. */
+/** Keeps the Exercise in full, and its summary for the rows that show it, under the same slugs. */
 export const writeCachedExercise = (
   language: AppLanguage,
   exercise: Exercise,
@@ -191,18 +195,21 @@ export const writeCachedExercise = (
     steps,
   } = exercise;
 
-  write(
-    exerciseStorageKey(language, requestedSlug),
-    {
-      ...summaryOf(exercise),
-      benefits,
-      common_mistakes,
-      long_description,
-      short_description,
-      steps,
-    },
-    savedAt
-  );
+  for (const slug of slugsKeptUnder(requestedSlug, exercise.slug)) {
+    write(
+      exerciseStorageKey(language, slug),
+      {
+        ...summaryOf(exercise),
+        benefits,
+        common_mistakes,
+        long_description,
+        short_description,
+        steps,
+      },
+      savedAt
+    );
+  }
+
   writeCachedSummary(language, exercise, { requestedSlug, savedAt });
 };
 

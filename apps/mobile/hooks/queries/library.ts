@@ -229,6 +229,12 @@ const summaryQueryKey = (language: AppLanguage, slug: string) => [
   slug,
 ];
 
+const detailQueryKey = (language: AppLanguage, slug: string) => [
+  "exercise-detail",
+  language,
+  slug,
+];
+
 const exerciseSummaryQuery = (language: AppLanguage, slug: string) =>
   queryOptions({
     // A cached Exercise shows at once (offline too) and is refreshed once stale.
@@ -346,9 +352,22 @@ export const useExerciseDetailQuery = (slug: string) => {
         exercise
       );
 
+      // A replaced slug's answer is its replacement's too: its guide opens
+      // under that slug and has it at once, offline included.
+      if (exercise && exercise.slug !== slug) {
+        queryClient.setQueryData<ExerciseSummary>(
+          summaryQueryKey(language, exercise.slug),
+          exercise
+        );
+        queryClient.setQueryData<Exercise>(
+          detailQueryKey(language, exercise.slug),
+          exercise
+        );
+      }
+
       return exercise;
     },
-    queryKey: ["exercise-detail", language, slug],
+    queryKey: detailQueryKey(language, slug),
     retry: retryOnce,
     staleTime: EXERCISE_STALE_TIME_MS,
   });

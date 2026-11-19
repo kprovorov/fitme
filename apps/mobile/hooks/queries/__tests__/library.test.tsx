@@ -16,7 +16,11 @@ import { act, renderHook, waitFor } from "@testing-library/react-native";
 import type { ReactNode } from "react";
 
 import { i18n } from "~/lib/i18n";
-import { readCachedCovers, readCachedSummary } from "~/lib/library-cache";
+import {
+  readCachedCovers,
+  readCachedExercise,
+  readCachedSummary,
+} from "~/lib/library-cache";
 import { storage } from "~/lib/mmkv";
 import {
   EXERCISES_UNAVAILABLE,
@@ -480,6 +484,43 @@ describe("useExerciseDetailQuery", () => {
       })
     );
     expect(detailReads()).toEqual(["/v1/exercises/bench-press"]);
+  });
+
+  it("keeps a replaced slug's answer under its replacement too, for its guide offline", async () => {
+    serveExercises(
+      [fakeExercise("barbell-bench-press", { name: "Barbell Bench Press" })],
+      { replacedSlugs: { "bench-press": "barbell-bench-press" } }
+    );
+
+    const first = await renderHook(
+      () => useExerciseDetailQuery("bench-press"),
+      { wrapper: newWrapper() }
+    );
+
+    await waitFor(() => expect(first.result.current.data).toBeTruthy());
+
+    expect(readCachedExercise("en", "bench-press")?.value.slug).toBe(
+      "barbell-bench-press"
+    );
+    expect(readCachedExercise("en", "barbell-bench-press")?.value.name).toBe(
+      "Barbell Bench Press"
+    );
+
+    // The guide opens under the replacement's own slug, after a restart,
+    // with the network gone.
+    failExercises("network");
+    const reads = detailReads().length;
+
+    const guide = await renderHook(
+      () => useExerciseDetailQuery("barbell-bench-press"),
+      { wrapper: newWrapper() }
+    );
+
+    expect(guide.result.current.data).toMatchObject({
+      name: "Barbell Bench Press",
+      slug: "barbell-bench-press",
+    });
+    expect(detailReads()).toHaveLength(reads);
   });
 
   it("answers null for a slug the API can't take, asking nothing", async () => {
