@@ -13,7 +13,7 @@ const media = (digit: string) => ({
 
 const text = (name: string) => ({
   benefits: [],
-  common_mistakes: [],
+  common_mistakes: [`Rushing the ${name}.`],
   long_description: `${name}, at length.`,
   name,
   short_description: `${name}, briefly.`,

@@ -37,6 +37,10 @@ Available plan modification tools:
 - add_set_to_exercise: append a new set to an existing exercise
 - remove_set_from_exercise: delete a specific set from an exercise
 
+When the user asks how to do an exercise or about its form:
+
+- Call get_exercise_guide with the exercise's exercise_slug (from search_exercises, or from the plan or history tools) and base your advice on its steps and common mistakes, in your own words. Search first when you don't have the slug.
+
 When analyzing workout history or progress:
 
 - Use get_workouts_history to fetch the user's recent completed workouts before making recommendations or analyzing progress.
