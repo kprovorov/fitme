@@ -1,7 +1,6 @@
-import { setTimeout as delay } from "node:timers/promises";
-
 import { z } from "zod";
 
+import { loadInTime } from "./load-in-time";
 import { BUNDLE_VERSION } from "./schema";
 
 /**
@@ -141,29 +140,14 @@ export const createLibraryIndex = ({
   let loading: Promise<void> | null = null;
   let lastLoadAt = Number.NEGATIVE_INFINITY;
 
-  /** `load`, rejecting once it has taken `loadTimeoutMs`. */
-  const loadInTime = async () => {
-    const controller = new AbortController();
-
-    const timeout = delay(loadTimeoutMs, undefined, {
-      signal: controller.signal,
-    }).then(() => {
-      throw new Error(`Library index load timed out after ${loadTimeoutMs} ms`);
-    });
-
-    // Aborted once the load wins: nothing waits on it then.
-    timeout.catch(() => undefined);
-
-    try {
-      return await Promise.race([load(), timeout]);
-    } finally {
-      controller.abort();
-    }
-  };
-
   const loadOnce = async () => {
     try {
-      current = readLibraryIndex(await loadInTime());
+      current = readLibraryIndex(
+        await loadInTime(load, {
+          timeoutMs: loadTimeoutMs,
+          what: "Library index",
+        })
+      );
     } catch (error) {
       await reportError(
         error instanceof Error

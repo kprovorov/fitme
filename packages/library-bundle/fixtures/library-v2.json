@@ -1,0 +1,217 @@
+{
+  "version": 2,
+  "exercises": [
+    {
+      "slug": "example-bench-press",
+      "muscle_groups": ["chest"],
+      "secondary_muscle_groups": ["triceps", "shoulders"],
+      "equipment": ["barbell", "bench"],
+      "movement_patterns": ["push"],
+      "difficulty": "intermediate",
+      "aliases": ["Example flat press"],
+      "locales": {
+        "en": {
+          "name": "Example bench press",
+          "short_description": "A made-up press for the fixture.",
+          "long_description": "A made-up Exercise the fixture bundle carries, so a local run has something to show.",
+          "steps": ["Lie on the example bench.", "Press the example bar up."],
+          "common_mistakes": ["Pressing an imaginary bar too fast."],
+          "benefits": ["Exercises the fixture's chest."],
+          "use_cases": ["Local development."],
+          "tags": ["example", "press"]
+        },
+        "uk": {
+          "name": "Приклад жиму лежачи",
+          "short_description": "Вигаданий жим для фікстури.",
+          "long_description": "Вигадана вправа з фікстури, щоб локальний запуск мав що показати.",
+          "steps": ["Ляжте на приклад лави.", "Вижміть приклад штанги."],
+          "common_mistakes": ["Надто швидкий жим уявної штанги."],
+          "benefits": ["Тренує груди фікстури."],
+          "use_cases": ["Локальна розробка."],
+          "tags": ["приклад", "жим"]
+        }
+      },
+      "thumbnail": {
+        "oid": "74c34830777898e0ba0ec3b263cade171ee038b89fd5829f5f389b443788ca27",
+        "extension": "webp"
+      },
+      "video": {
+        "oid": "1c511cb74259f62130c3d4737b65600c7cd39513e74f30caa2c42811d6ea302e",
+        "extension": "mp4"
+      }
+    },
+    {
+      "slug": "example-goblet-squat",
+      "muscle_groups": ["quadriceps", "glutes"],
+      "secondary_muscle_groups": ["core"],
+      "equipment": ["kettlebell"],
+      "movement_patterns": ["squat"],
+      "difficulty": "beginner",
+      "aliases": ["Example cup squat"],
+      "locales": {
+        "en": {
+          "name": "Example goblet squat",
+          "short_description": "A made-up squat for the fixture.",
+          "long_description": "A made-up squat holding an example kettlebell, for local runs and tests.",
+          "steps": [
+            "Hold the example kettlebell at your chest.",
+            "Sit down between your heels.",
+            "Stand back up."
+          ],
+          "common_mistakes": ["Letting the example knees cave in."],
+          "benefits": [
+            "Exercises the fixture's legs.",
+            "Needs one piece of gear."
+          ],
+          "use_cases": ["Local development.", "Tests."],
+          "tags": ["example", "squat"]
+        },
+        "uk": {
+          "name": "Приклад присідання з гирею",
+          "short_description": "Вигадане присідання для фікстури.",
+          "long_description": "Вигадане присідання з прикладом гирі, для локальних запусків і тестів.",
+          "steps": [
+            "Тримайте приклад гирі біля грудей.",
+            "Сядьте між п'ятами.",
+            "Підведіться."
+          ],
+          "common_mistakes": ["Коліна прикладу зводяться всередину."],
+          "benefits": ["Тренує ноги фікстури.", "Потрібне одне спорядження."],
+          "use_cases": ["Локальна розробка.", "Тести."],
+          "tags": ["приклад", "присідання"]
+        }
+      },
+      "thumbnail": {
+        "oid": "8c77be1985699b5b94496b5d2fad407784b3f412043ba1c1f790a7179835e518",
+        "extension": "jpg"
+      },
+      "video": {
+        "oid": "a54aa9b3c8a80548b558e774a9d82cf5440cd773a5e8eb2fa58ffd99d18e040d",
+        "extension": "mp4"
+      }
+    },
+    {
+      "slug": "example-pull-up",
+      "muscle_groups": ["back"],
+      "secondary_muscle_groups": ["biceps", "forearms"],
+      "equipment": ["bodyweight", "pull_up_bar"],
+      "movement_patterns": ["pull"],
+      "difficulty": "advanced",
+      "aliases": ["Example chin-over-bar"],
+      "locales": {
+        "en": {
+          "name": "Example pull-up",
+          "short_description": "A made-up pull-up for the fixture.",
+          "long_description": "A made-up pull-up on an example bar: the body is the load.",
+          "steps": ["Hang from the example bar.", "Pull your chin over it."],
+          "common_mistakes": ["Swinging the example body."],
+          "benefits": ["Exercises the fixture's back."],
+          "use_cases": ["Local development."],
+          "tags": ["example", "pull"]
+        },
+        "uk": {
+          "name": "Приклад підтягування",
+          "short_description": "Вигадане підтягування для фікстури.",
+          "long_description": "Вигадане підтягування на прикладі турніка: навантаження — власна вага.",
+          "steps": [
+            "Повисніть на прикладі турніка.",
+            "Підтягніть підборіддя над ним."
+          ],
+          "common_mistakes": ["Розгойдування прикладу тіла."],
+          "benefits": ["Тренує спину фікстури."],
+          "use_cases": ["Локальна розробка."],
+          "tags": ["приклад", "тяга"]
+        }
+      },
+      "thumbnail": {
+        "oid": "2a494664452d63a85c2fb308e1808e8f094c65e066b8c63d7ba5534f706f1c5a",
+        "extension": "png"
+      },
+      "video": {
+        "oid": "efa14d630d2a7a4d8bf3843ba753cb8a3aae9f1e3a0c8a7d24662628e669cf9d",
+        "extension": "mp4"
+      }
+    },
+    {
+      "slug": "example-plank-hold",
+      "muscle_groups": ["core"],
+      "secondary_muscle_groups": [],
+      "equipment": ["bodyweight"],
+      "movement_patterns": ["core", "stretch"],
+      "difficulty": "beginner",
+      "aliases": [],
+      "locales": {
+        "en": {
+          "name": "Example plank hold",
+          "short_description": "A made-up hold, in English only.",
+          "long_description": "A made-up Exercise with no translation, so a reader falls back to English for it.",
+          "steps": ["Hold the example plank."],
+          "common_mistakes": [],
+          "benefits": [],
+          "use_cases": [],
+          "tags": []
+        }
+      },
+      "thumbnail": {
+        "oid": "ad12e819b558b9a8c823ce8c2094460a87fd99f6d75bf0d7980d286962fd20e7",
+        "extension": "webp"
+      },
+      "video": {
+        "oid": "972b5c09ddb6371fbb08ab058a4b0350f7306470dd0f8332828dfd16f678b6ed",
+        "extension": "mp4"
+      }
+    },
+    {
+      "slug": "example-romanian-deadlift",
+      "muscle_groups": ["hamstrings", "glutes"],
+      "secondary_muscle_groups": ["lower-back"],
+      "equipment": ["dumbbell"],
+      "movement_patterns": ["hinge"],
+      "difficulty": "intermediate",
+      "aliases": ["Example RDL"],
+      "locales": {
+        "en": {
+          "name": "Example Romanian deadlift",
+          "short_description": "A made-up hinge for the fixture.",
+          "long_description": "A made-up hinge with example dumbbells, found by its alias too.",
+          "steps": [
+            "Hold the example dumbbells.",
+            "Hinge at the hips.",
+            "Stand tall."
+          ],
+          "common_mistakes": ["Rounding the example back."],
+          "benefits": ["Exercises the fixture's hamstrings."],
+          "use_cases": ["Tests."],
+          "tags": ["example", "hinge"]
+        },
+        "uk": {
+          "name": "Приклад румунської тяги",
+          "short_description": "Вигаданий нахил для фікстури.",
+          "long_description": "Вигаданий нахил з прикладами гантелей, який знаходиться і за псевдонімом.",
+          "steps": [
+            "Тримайте приклади гантелей.",
+            "Нахиліться в стегнах.",
+            "Випряміться."
+          ],
+          "common_mistakes": ["Округлення спини прикладу."],
+          "benefits": ["Тренує задню поверхню стегна фікстури."],
+          "use_cases": ["Тести."],
+          "tags": ["приклад", "нахил"]
+        }
+      },
+      "thumbnail": {
+        "oid": "a3cd0955768368c7b102658aaf5a930bbf1e9da57adf9f4c3a574dc90e679bc9",
+        "extension": "webp"
+      },
+      "video": {
+        "oid": "435a0139ce06cf16b2d602c6299783dcbc421b947e3c48f3eea97bb2f380455b",
+        "extension": "mp4"
+      }
+    }
+  ],
+  "replaced_slugs": {
+    "example-press": "example-bench-press",
+    "example-row": "example-pull-up",
+    "example-squat": "example-goblet-squat"
+  }
+}
