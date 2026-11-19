@@ -1,12 +1,11 @@
 import { pickCovers } from "@fitme/core/covers";
 import type { LegacyMuscleGroup } from "@fitme/core/models";
+import type { KnownSlug } from "@fitme/library-bundle/in-memory-library";
 import { createLibraryIndex } from "@fitme/library-bundle/library-index";
-import type {
-  IndexCover,
-  IndexExercise,
-  LibraryIndex,
-} from "@fitme/library-bundle/library-index";
+import type { LibraryIndex } from "@fitme/library-bundle/library-index";
 import { libraryBundleSource } from "@fitme/library-bundle/source";
+
+import type { LibraryV2 } from "./exercise-library.js";
 
 export type { LibraryIndex } from "@fitme/library-bundle/library-index";
 
@@ -41,57 +40,42 @@ export const libraryIndexFromEnv = (
 ): LibraryIndex =>
   createLibraryIndex({ load: libraryBundleSourceFromEnv().load, reportError });
 
-/** What the Library index says about a write's Exercise slugs. */
+/** What the new Library says about a write's Exercise slugs. */
 export type SlugCheck =
-  | { exercises: IndexExercise[]; status: "known" }
+  | { exercises: KnownSlug[]; status: "known" }
   | { slugs: string[]; status: "unknown" }
   | { status: "unavailable" };
 
 /** A check the write can't go ahead on. */
 type RefusedCheck = Exclude<SlugCheck, { status: "known" }>;
 
-/** One index lookup of `slugs`, refused unless every one is known. */
-const lookUpSlugs = async ({
-  index,
+/**
+ * Checks every slug a write carries against the new Library (ADR 0022),
+ * before the services open their transaction: a slug it has, or an old one
+ * its `replaced_slugs` map still resolves, is known, and the slug as sent is
+ * what gets stored. With no Library (its load failed, which it reported) the
+ * answer is `unavailable`, so the write never goes ahead with unchecked
+ * Exercises. Known slugs answer what they stand for, with the Exercise's
+ * primary muscle groups.
+ */
+export const checkExerciseSlugs = async ({
+  library,
   slugs,
 }: {
-  index: LibraryIndex;
-  slugs: string[];
-}): Promise<
-  | RefusedCheck
-  | {
-      covers: IndexCover[];
-      exercises: IndexExercise[];
-      status: "known";
-    }
-> => {
-  const found = await index.lookup(slugs);
+  library: LibraryV2;
+  slugs: readonly string[];
+}): Promise<SlugCheck> => {
+  const answer = await library.get();
 
-  if (found.status === "unavailable") {
-    return found;
+  if (answer.status === "unavailable") {
+    return answer;
   }
 
-  return found.missing.length > 0
-    ? { slugs: found.missing, status: "unknown" }
-    : { covers: found.covers, exercises: found.exercises, status: "known" };
-};
+  const { known, unknown } = answer.library.checkSlugs(slugs);
 
-/**
- * Checks every slug a write carries against the Library index, before the
- * services open their transaction (ADR 0010, ADR 0018). With no index (its
- * load failed, which it reported) the answer is `unavailable`, so the write
- * never goes ahead with unchecked Exercises. Known slugs answer the
- * Exercises the index has, with their muscle groups.
- */
-export const checkExerciseSlugs = async (options: {
-  index: LibraryIndex;
-  slugs: string[];
-}): Promise<SlugCheck> => {
-  const check = await lookUpSlugs(options);
-
-  return check.status === "known"
-    ? { exercises: check.exercises, status: "known" }
-    : check;
+  return unknown.length > 0
+    ? { slugs: unknown, status: "unknown" }
+    : { exercises: known, status: "known" };
 };
 
 /** What a Plan write's Workouts need from the Library: their slugs checked, then a Cover each. */
@@ -119,22 +103,27 @@ export type CoverPickerCheck =
   | { pickCovers: CoverPicker; status: "known" };
 
 /**
- * Checks every slug a Plan write's Workouts carry against the index, and
- * answers a picker over the index's Covers and the muscle groups it has for
- * those slugs, both from the same lookup. An index without Covers picks
- * `null` for each.
+ * Checks every slug a Plan write's Workouts carry against the new Library
+ * (`checkExerciseSlugs`), then answers a picker over the Legacy Library
+ * index's Covers (ADR 0014, ADR 0018) and the muscle groups the new Library
+ * has for those slugs. `pickCovers` matches by muscle group id, so the ids
+ * the two lists share match and the rest fall back to any Cover. An index
+ * without Covers picks `null` for each; one that can't load (reported)
+ * refuses the write as `unavailable`, as before.
  */
 export const checkSlugsForCovers = async ({
   index,
+  library,
   random,
   workouts,
 }: {
   index: LibraryIndex;
+  library: LibraryV2;
   random?: () => number;
   workouts: readonly WorkoutToCover[];
 }): Promise<CoverPickerCheck> => {
-  const found = await lookUpSlugs({
-    index,
+  const check = await checkExerciseSlugs({
+    library,
     slugs: [
       ...new Set(
         workouts.flatMap((workout) =>
@@ -144,17 +133,23 @@ export const checkSlugsForCovers = async ({
     ],
   });
 
-  if (found.status !== "known") {
+  if (check.status !== "known") {
+    return check;
+  }
+
+  // No slug to look up: the lookup only answers the index's Covers.
+  const found = await index.lookup([]);
+
+  if (found.status === "unavailable") {
     return found;
   }
 
-  // The index keeps muscle groups as the bundle writes them, so a group this
-  // build doesn't know yet is compared like any other.
+  // Keyed by the slug as sent, which is what each Workout carries.
   const muscleGroups = new Map(
-    found.exercises.map((exercise) => [
-      exercise.slug,
-      // SAFETY: pickCovers only compares groups for equality, so one this build's MuscleGroup doesn't list is matched like any other.
-      exercise.muscle_groups as LegacyMuscleGroup[],
+    check.exercises.map((exercise) => [
+      exercise.requested_slug,
+      // SAFETY: pickCovers only compares groups for equality, so a new Library group the legacy list lacks simply matches no Cover.
+      exercise.muscle_groups as readonly LegacyMuscleGroup[],
     ])
   );
 
@@ -195,7 +190,7 @@ export const checkSlugsAndPickCovers = async (
     : check;
 };
 
-/** The error a write answers when the index refused it or couldn't be loaded. */
+/** The error a write answers when the Library refused it or couldn't be loaded. */
 export const refusalOf = (check: RefusedCheck) => {
   switch (check.status) {
     case "unavailable": {

@@ -262,7 +262,7 @@ describe("pUT /v1/plans/{id}/workouts", () => {
     expect(reported).toStrictEqual([]);
   });
 
-  it("answers a reported 503 library_unavailable when the Library index can't load, writing nothing", async () => {
+  it("answers a reported 503 library_unavailable when the Legacy Library's index, which holds the Covers, can't load, writing nothing", async () => {
     const { app, libraryIndex, reported } = testApp({
       indexLoads: "fail",
       services: fakeServices({}),
@@ -279,6 +279,49 @@ describe("pUT /v1/plans/{id}/workouts", () => {
       },
     });
     expect(reported).toStrictEqual([libraryIndex.state.outage]);
+  });
+
+  it("answers a reported 503 library_unavailable when the new Library can't load, writing nothing", async () => {
+    const { app, exerciseLibrary, libraryIndex, reported } = testApp({
+      exerciseLibraryLoads: "fail",
+      exercises,
+      services: fakeServices({}),
+    });
+
+    const response = await put(app, JSON.stringify(body()));
+
+    expect(response.status).toBe(503);
+    const answer = await response.json();
+    expect(answer.error.code).toBe("library_unavailable");
+    expect(libraryIndex.state.loads).toBe(0);
+    expect(reported).toStrictEqual([exerciseLibrary.state.outage]);
+  });
+
+  it("stores an old slug the new Library's map still resolves as sent, its Cover picked from the replacement's muscle groups", async () => {
+    const { calls, services } = recordingServices();
+
+    const { app, reported } = testApp({
+      covers: [
+        libraryCover(LEGS_COVER, ["quadriceps"]),
+        libraryCover(CHEST_COVER, ["chest"]),
+      ],
+      exercises,
+      services,
+    });
+
+    const payload = body();
+    // bench-press is barbell-bench-press's old slug, a chest Exercise
+    payload.workouts[1].exercises[0].exercise_slug = "bench-press";
+
+    const response = await put(app, JSON.stringify(payload));
+
+    expect(response.status).toBe(200);
+    expect(calls[0].workouts[1].exercises[0].exercise_slug).toBe("bench-press");
+    expect(calls[0].workouts.map((workout) => workout.cover)).toStrictEqual([
+      LEGS_COVER,
+      CHEST_COVER,
+    ]);
+    expect(reported).toStrictEqual([]);
   });
 
   it("never shows fields beyond the contract", async () => {

@@ -305,7 +305,7 @@ describe("pOST /v1/plans", () => {
     expect(reported).toStrictEqual([]);
   });
 
-  it("answers a reported 503 library_unavailable when the Library index can't load, writing nothing", async () => {
+  it("answers a reported 503 library_unavailable when the Legacy Library's index, which holds the Covers, can't load, writing nothing", async () => {
     const { app, libraryIndex, reported } = testApp({
       indexLoads: "fail",
       services: fakeServices({}),
@@ -346,27 +346,91 @@ describe("pOST /v1/plans", () => {
     expect(libraryIndex.state.loads).toBe(2);
   });
 
-  it("keeps checking against the index when a reload fails, reporting the failure", async () => {
-    const { services } = recordingServices();
-
+  it("checks slugs against the new Library alone: an unknown one never loads the index", async () => {
     const { app, libraryIndex, reported } = testApp({
-      indexLoads: "reload-fails",
-      services,
+      services: fakeServices({}),
     });
 
-    await post(app, body());
-    // Past the reload throttle, so the unknown slug reloads, which fails.
-    libraryIndex.clock.now = 60_000;
     const payload = body();
     payload.workouts[0].exercises[0].exercise_slug = "made-up-press";
 
-    const refused = await post(app, payload);
-    const saved = await post(app, body());
+    const response = await post(app, payload);
 
-    expect(refused.status).toBe(400);
-    expect(saved.status).toBe(201);
-    expect(libraryIndex.state.loads).toBe(2);
-    expect(reported).toStrictEqual([libraryIndex.state.outage]);
+    expect(response.status).toBe(400);
+    expect(libraryIndex.state.loads).toBe(0);
+    expect(reported).toStrictEqual([]);
+  });
+
+  it("answers a reported 503 library_unavailable when the new Library can't load, writing nothing", async () => {
+    const { app, exerciseLibrary, libraryIndex, reported } = testApp({
+      exerciseLibraryLoads: "fail",
+      services: fakeServices({}),
+    });
+
+    const response = await post(app, body());
+
+    expect(response.status).toBe(503);
+    const answer = await response.json();
+    expect(answer.error.code).toBe("library_unavailable");
+    expect(libraryIndex.state.loads).toBe(0);
+    expect(reported).toStrictEqual([exerciseLibrary.state.outage]);
+  });
+
+  it("stores an old slug the new Library's map still resolves as sent, its Cover picked from the replacement's muscle groups", async () => {
+    const { calls, services } = recordingServices();
+
+    const { app, reported } = testApp({
+      covers: [
+        libraryCover(LEGS_COVER, ["quadriceps"]),
+        libraryCover(CHEST_COVER, ["chest"]),
+      ],
+      exercises,
+      services,
+    });
+
+    const payload = body();
+    // bench-press is barbell-bench-press's old slug, a chest Exercise
+    payload.workouts[1].exercises[0].exercise_slug = "bench-press";
+
+    const response = await post(app, payload);
+
+    expect(response.status).toBe(201);
+    expect(
+      calls[0].plan.workouts[1].exercises.map(
+        (exercise) => exercise.exercise_slug
+      )
+    ).toStrictEqual(["bench-press"]);
+    expect(
+      calls[0].plan.workouts.map((workout) => workout.cover)
+    ).toStrictEqual([LEGS_COVER, CHEST_COVER]);
+    expect(reported).toStrictEqual([]);
+  });
+
+  it("falls back to any Cover for a muscle group the legacy list doesn't share", async () => {
+    const { calls, services } = recordingServices();
+
+    // The plank trains core, which no legacy Cover is tagged with.
+    const { app } = testApp({
+      covers: [libraryCover(CHEST_COVER, ["chest"])],
+      services,
+    });
+
+    const payload = body();
+    payload.workouts = [
+      {
+        ...payload.workouts[0],
+        exercises: [
+          { ...payload.workouts[0].exercises[0], exercise_slug: "plank" },
+        ],
+      },
+    ];
+
+    const response = await post(app, payload);
+
+    expect(response.status).toBe(201);
+    expect(
+      calls[0].plan.workouts.map((workout) => workout.cover)
+    ).toStrictEqual([CHEST_COVER]);
   });
 
   it("never shows fields beyond the contract", async () => {

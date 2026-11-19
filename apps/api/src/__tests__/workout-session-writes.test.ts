@@ -666,9 +666,9 @@ describe("pOST /v1/workout-sessions/:id/exercises", () => {
     expect(reported).toStrictEqual([]);
   });
 
-  it("answers a reported 503 library_unavailable when the Library index can't load, before any service call", async () => {
-    const { app, libraryIndex, reported } = testApp({
-      indexLoads: "fail",
+  it("answers a reported 503 library_unavailable when the new Library can't load, before any service call", async () => {
+    const { app, exerciseLibrary, reported } = testApp({
+      exerciseLibraryLoads: "fail",
       services: fakeServices({}),
     });
 
@@ -679,7 +679,59 @@ describe("pOST /v1/workout-sessions/:id/exercises", () => {
     expect(response.status).toBe(503);
     const responseBody = await response.json();
     expect(responseBody.error.code).toBe("library_unavailable");
-    expect(reported).toStrictEqual([libraryIndex.state.outage]);
+    expect(reported).toStrictEqual([exerciseLibrary.state.outage]);
+  });
+
+  it("stores an old slug the new Library's map still resolves, as sent", async () => {
+    const { calls, services } = recording("addExerciseToWorkoutSession", {
+      value: {
+        exercise: {
+          ...added,
+          exercise_slug: "bench-press",
+        },
+        status: "added",
+      },
+      weightUnit: "lbs",
+    });
+
+    const { app, reported } = testApp({ services });
+
+    const response = await send(app, "POST", path, {
+      exercise_slug: "bench-press",
+    });
+
+    expect(response.status).toBe(201);
+    expect(calls).toStrictEqual([
+      { exerciseSlug: "bench-press", sessionId: SESSION_ID },
+    ]);
+    expect(reported).toStrictEqual([]);
+  });
+
+  it("never asks the Legacy Library's index, so its outage changes nothing", async () => {
+    const { calls, services } = recording("addExerciseToWorkoutSession", {
+      value: {
+        exercise: {
+          ...added,
+          exercise_slug: "bench-press",
+        },
+        status: "added",
+      },
+      weightUnit: "lbs",
+    });
+
+    const { app, libraryIndex, reported } = testApp({
+      indexLoads: "fail",
+      services,
+    });
+
+    const response = await send(app, "POST", path, {
+      exercise_slug: "bench-press",
+    });
+
+    expect(response.status).toBe(201);
+    expect(calls).toHaveLength(1);
+    expect(libraryIndex.state.loads).toBe(0);
+    expect(reported).toStrictEqual([]);
   });
 
   it.each([
@@ -901,9 +953,9 @@ describe("pUT /v1/workout-session-exercises/:id", () => {
     expect(reported).toStrictEqual([]);
   });
 
-  it("answers a reported 503 library_unavailable when the Library index can't load, before any service call", async () => {
-    const { app, libraryIndex, reported } = testApp({
-      indexLoads: "fail",
+  it("answers a reported 503 library_unavailable when the new Library can't load, before any service call", async () => {
+    const { app, exerciseLibrary, reported } = testApp({
+      exerciseLibraryLoads: "fail",
       services: fakeServices({}),
     });
 
@@ -914,7 +966,53 @@ describe("pUT /v1/workout-session-exercises/:id", () => {
     expect(response.status).toBe(503);
     const responseBody = await response.json();
     expect(responseBody.error.code).toBe("library_unavailable");
-    expect(reported).toStrictEqual([libraryIndex.state.outage]);
+    expect(reported).toStrictEqual([exerciseLibrary.state.outage]);
+  });
+
+  it("stores an old slug the new Library's map still resolves, as sent", async () => {
+    const { calls, services } = recording("replaceExerciseInWorkoutSession", {
+      value: {
+        exercise: { ...replaced, exercise_slug: "bench-press" },
+        status: "replaced",
+      },
+      weightUnit: "lbs",
+    });
+
+    const { app, reported } = testApp({ services });
+
+    const response = await send(app, "PUT", path, {
+      exercise_slug: "bench-press",
+    });
+
+    expect(response.status).toBe(200);
+    expect(calls).toStrictEqual([
+      { exerciseSlug: "bench-press", sessionExerciseId: SESSION_EXERCISE_ID },
+    ]);
+    expect(reported).toStrictEqual([]);
+  });
+
+  it("never asks the Legacy Library's index, so its outage changes nothing", async () => {
+    const { calls, services } = recording("replaceExerciseInWorkoutSession", {
+      value: {
+        exercise: { ...replaced, exercise_slug: "bench-press" },
+        status: "replaced",
+      },
+      weightUnit: "lbs",
+    });
+
+    const { app, libraryIndex, reported } = testApp({
+      indexLoads: "fail",
+      services,
+    });
+
+    const response = await send(app, "PUT", path, {
+      exercise_slug: "bench-press",
+    });
+
+    expect(response.status).toBe(200);
+    expect(calls).toHaveLength(1);
+    expect(libraryIndex.state.loads).toBe(0);
+    expect(reported).toStrictEqual([]);
   });
 
   it.each([

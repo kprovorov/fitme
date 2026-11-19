@@ -615,7 +615,7 @@ export const workoutSessions = new OpenAPIHono<ApiEnv>({
 
     const refusal = slugRefusal(
       await checkExerciseSlugs({
-        index: c.var.libraryIndex,
+        library: c.var.exerciseLibrary,
         slugs: [exercise_slug],
       })
     );
