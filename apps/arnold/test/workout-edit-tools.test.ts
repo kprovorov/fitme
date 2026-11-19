@@ -6,8 +6,8 @@ import type { ToolContext } from "eve/tools";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { z } from "zod";
 
-import type * as LibraryIndexModule from "../agent/lib/library-index";
-import { INDEX_OUTAGE, testLibraryIndex } from "./library-index";
+import type * as LibraryModule from "../agent/lib/library";
+import { LIBRARY_OUTAGE, testBundle, testLibrary } from "./library";
 import { contextFor, inputSchemaOf, userIdFields } from "./tool-context";
 import type { TestedTool } from "./tool-context";
 
@@ -72,14 +72,11 @@ vi.mock<typeof Observability>(
   () => observability
 );
 
-vi.mock<typeof LibraryIndexModule>(
-  import("../agent/lib/library-index"),
-  async () => {
-    const { testLibraryIndex: index } = await import("./library-index");
+vi.mock<typeof LibraryModule>(import("../agent/lib/library"), async () => {
+  const { testLibrary: library } = await import("./library");
 
-    return { getLibraryIndex: () => index.get() };
-  }
-);
+  return { getLibrary: () => library.get() };
+});
 
 const { default: addExerciseToWorkout } =
   await import("../agent/tools/add_exercise_to_workout");
@@ -195,7 +192,7 @@ const cases: {
 ];
 
 const resetEdits = () => {
-  testLibraryIndex.reset();
+  testLibrary.reset();
   observability.reportError.mockResolvedValue(undefined);
   db.asUser.mockImplementation(async (_userId, fn) => await fn(tx));
   edits.addExerciseToWorkout.mockResolvedValue({
@@ -292,12 +289,36 @@ describe.each(slugChecks)(
   ({ field, input, service, tool }) => {
     beforeEach(resetEdits);
 
-    it("writes a slug the Library index knows", async () => {
+    it("writes a slug the Library knows", async () => {
       await expect(run(tool, input)).resolves.toMatchObject({ success: true });
       expect(edits[service]).toHaveBeenCalledOnce();
     });
 
-    it("refuses a slug the Library index doesn't know, writing nothing", async () => {
+    it("writes an old slug the Library maps to its replacement, as sent", async () => {
+      await expect(
+        run(tool, { ...input, [field]: "barbell-bench-press" })
+      ).resolves.toMatchObject({ success: true });
+      expect(edits[service]).toHaveBeenCalledOnce();
+      expect(edits[service].mock.calls[0][2]).toMatchObject({
+        [field === "exercise_slug" ? "exerciseSlug" : "newExerciseSlug"]:
+          "barbell-bench-press",
+      });
+    });
+
+    it("refuses an old slug once the Library drops its map", async () => {
+      const { replaced_slugs: _map, ...withoutMap } = testBundle;
+      testLibrary.reset({ bundle: withoutMap });
+
+      await expect(
+        run(tool, { ...input, [field]: "barbell-bench-press" })
+      ).resolves.toStrictEqual({
+        error:
+          "Unknown exercise_slug(s): barbell-bench-press. Use search_exercises to find a valid exercise_slug; nothing was saved.",
+      });
+      expect(edits[service]).not.toHaveBeenCalled();
+    });
+
+    it("refuses a slug the Library doesn't know, writing nothing", async () => {
       await expect(
         run(tool, { ...input, [field]: "made-up-fly" })
       ).resolves.toStrictEqual({
@@ -336,8 +357,8 @@ describe.each(slugChecks)(
       ).toBeFalsy();
     });
 
-    it("asks to retry when the Library index can't load, writing nothing", async () => {
-      testLibraryIndex.reset({ loads: "fail" });
+    it("asks to retry when the Library can't load, writing nothing", async () => {
+      testLibrary.reset({ loads: "fail" });
 
       await expect(run(tool, input)).resolves.toStrictEqual({
         error:
@@ -346,7 +367,7 @@ describe.each(slugChecks)(
       expect(db.asUser).not.toHaveBeenCalled();
       expect(edits[service]).not.toHaveBeenCalled();
       expect(observability.reportError).toHaveBeenCalledWith(
-        INDEX_OUTAGE,
+        LIBRARY_OUTAGE,
         expect.anything()
       );
     });

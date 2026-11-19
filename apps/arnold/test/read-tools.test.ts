@@ -6,9 +6,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { z } from "zod";
 
 import type * as LibraryModule from "../agent/lib/library";
-import type * as LibraryIndexModule from "../agent/lib/library-index";
 import { LIBRARY_OUTAGE, testBundle, testLibrary } from "./library";
-import { INDEX_OUTAGE, testLibraryIndex } from "./library-index";
 import {
   contextFor,
   inputSchemaOf,
@@ -72,15 +70,6 @@ vi.mock<typeof LibraryModule>(import("../agent/lib/library"), async () => {
 
   return { getLibrary: () => library.get() };
 });
-
-vi.mock<typeof LibraryIndexModule>(
-  import("../agent/lib/library-index"),
-  async () => {
-    const { testLibraryIndex: index } = await import("./library-index");
-
-    return { getLibraryIndex: () => index.get() };
-  }
-);
 
 const { default: getActivePlan } =
   await import("../agent/tools/get_active_plan");
@@ -219,7 +208,6 @@ const run = async (input: ModelInput) =>
 
 const resetReadTools = () => {
   testLibrary.reset();
-  testLibraryIndex.reset();
   db.asUser.mockImplementation(async (_userId, fn) => await fn(tx));
   plans.getActivePlan.mockResolvedValue(plan);
   plans.listPlans.mockResolvedValue([plan]);
@@ -772,7 +760,22 @@ describe("display_workout_plan", () => {
     expect(db.asUser).not.toHaveBeenCalled();
   });
 
-  it("refuses a slug the Library index doesn't know with a tool error, never a result the app would render", async () => {
+  it("takes an old slug the Library maps to its replacement, as sent", async () => {
+    const card = proposed(exercise("barbell-bench-press", "Bench press"));
+
+    await expect(run(card)).resolves.toStrictEqual(card);
+  });
+
+  it("refuses an old slug once the Library drops its map, so the app shows its unknown exercises message", async () => {
+    const { replaced_slugs: _map, ...withoutMap } = testBundle;
+    testLibrary.reset({ bundle: withoutMap });
+
+    await expect(
+      run(proposed(exercise("barbell-bench-press", "Bench press")))
+    ).rejects.toThrow("Unknown exercise_slug(s): barbell-bench-press");
+  });
+
+  it("refuses a slug the Library doesn't know with a tool error, never a result the app would render", async () => {
     await expect(run(proposed(exercise("made-up-fly", "Fly")))).rejects.toThrow(
       "made-up-fly"
     );
@@ -782,13 +785,6 @@ describe("display_workout_plan", () => {
     await expect(
       run(proposed(exercise("c0000000-0000-4000-8000-000000000001", "Fly")))
     ).rejects.toThrow(/search_exercises with the exercise's name/u);
-  });
-
-  it("checks slugs against the Library index, so the card shows while the new Library can't load", async () => {
-    testLibrary.reset({ loads: "fail" });
-    const card = proposed(exercise("bench-press", "Bench press"));
-
-    await expect(run(card)).resolves.toStrictEqual(card);
   });
 
   // Arnold's Plans always carry a goal, whatever the Public API now takes
@@ -801,14 +797,14 @@ describe("display_workout_plan", () => {
     expect(() => parseInput(displayWorkoutPlan, withoutGoal)).toThrow(/goal/iu);
   });
 
-  it("asks to retry with a tool error when the Library index can't load", async () => {
-    testLibraryIndex.reset({ loads: "fail" });
+  it("asks to retry with a tool error when the Library can't load", async () => {
+    testLibrary.reset({ loads: "fail" });
 
     await expect(
       run(proposed(exercise("bench-press", "Bench")))
     ).rejects.toThrow("Try again");
     expect(observability.reportError).toHaveBeenCalledWith(
-      INDEX_OUTAGE,
+      LIBRARY_OUTAGE,
       expect.anything()
     );
   });
