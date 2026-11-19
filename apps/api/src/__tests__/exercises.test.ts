@@ -2,6 +2,7 @@ import { memoryRateLimiter } from "@fitme/rate-limit";
 import { describe, expect, it } from "vitest";
 
 import { clerkInstance, clerkToken } from "../test/clerk.js";
+import { TEST_EXERCISE_BUNDLE } from "../test/exercise-library.js";
 import { signedInAs, testApp } from "../test/harness.js";
 
 const ALICE = signedInAs("user_alice");
@@ -23,6 +24,10 @@ const benchPress = {
   video_url: `${STORAGE}/object/public/library/barbell-bench-press/${OID}.mp4`,
 };
 
+/** The app over `TEST_EXERCISE_BUNDLE` alone, the three Exercises these reads count. */
+const exercisesApp = (options: Parameters<typeof testApp>[0] = {}) =>
+  testApp({ exerciseBundle: TEST_EXERCISE_BUNDLE, ...options });
+
 const get = (
   app: ReturnType<typeof testApp>["app"],
   path: string,
@@ -37,7 +42,7 @@ const namesOf = async (response: Response) => {
 
 describe("GET /v1/exercises", () => {
   it("lists every Exercise alphabetically by name, as summaries", async () => {
-    const { app } = testApp();
+    const { app } = exercisesApp();
 
     const response = await get(app, "/v1/exercises");
 
@@ -55,7 +60,7 @@ describe("GET /v1/exercises", () => {
   });
 
   it("answers in the language asked for, an untranslated Exercise wholly in English", async () => {
-    const { app } = testApp();
+    const { app } = exercisesApp();
 
     const response = await get(app, "/v1/exercises?language=uk");
 
@@ -68,7 +73,7 @@ describe("GET /v1/exercises", () => {
   });
 
   it("searches the name in the language, the English name and the other names", async () => {
-    const { app } = testApp();
+    const { app } = exercisesApp();
 
     const ukrainian = await get(
       app,
@@ -86,7 +91,7 @@ describe("GET /v1/exercises", () => {
   });
 
   it("filters by primary muscle groups and by Equipment, together", async () => {
-    const { app } = testApp();
+    const { app } = exercisesApp();
 
     const groups = await get(app, "/v1/exercises?muscle_groups=core,chest");
     // the bench press has shoulders as a secondary group only
@@ -108,7 +113,7 @@ describe("GET /v1/exercises", () => {
   });
 
   it("pages with limit and offset", async () => {
-    const { app } = testApp();
+    const { app } = exercisesApp();
 
     const first = await get(app, "/v1/exercises?limit=2");
     const last = await get(app, "/v1/exercises?limit=2&offset=2");
@@ -127,7 +132,7 @@ describe("GET /v1/exercises", () => {
   });
 
   it("looks a batch up by slug in asked order, an old slug resolving to its replacement", async () => {
-    const { app } = testApp();
+    const { app } = exercisesApp();
 
     const response = await get(
       app,
@@ -172,7 +177,7 @@ describe("GET /v1/exercises", () => {
     ],
     ["slugs with a list parameter", "slugs=plank&limit=5"],
   ])("answers %s 400 invalid_request", async (_, query) => {
-    const { app } = testApp();
+    const { app } = exercisesApp();
 
     const response = await get(app, `/v1/exercises?${query}`);
 
@@ -185,7 +190,7 @@ describe("GET /v1/exercises", () => {
 
 describe("GET /v1/exercises/{slug}", () => {
   it("answers one Exercise in full", async () => {
-    const { app } = testApp();
+    const { app } = exercisesApp();
 
     const response = await get(app, "/v1/exercises/barbell-bench-press");
 
@@ -203,7 +208,7 @@ describe("GET /v1/exercises/{slug}", () => {
   });
 
   it("answers in the language asked for, an untranslated Exercise wholly in English", async () => {
-    const { app } = testApp();
+    const { app } = exercisesApp();
 
     const translated = await get(app, "/v1/exercises/goblet-squat?language=uk");
     const untranslated = await get(app, "/v1/exercises/plank?language=uk");
@@ -220,7 +225,7 @@ describe("GET /v1/exercises/{slug}", () => {
   });
 
   it("answers an old slug with the Exercise replacing it", async () => {
-    const { app } = testApp();
+    const { app } = exercisesApp();
 
     const response = await get(app, "/v1/exercises/bench-press");
 
@@ -231,7 +236,7 @@ describe("GET /v1/exercises/{slug}", () => {
   });
 
   it("answers a slug no Exercise has 404 not_found", async () => {
-    const { app, reported } = testApp();
+    const { app, reported } = exercisesApp();
 
     const response = await get(app, "/v1/exercises/nope");
 
@@ -243,7 +248,7 @@ describe("GET /v1/exercises/{slug}", () => {
   });
 
   it("answers an unknown language 400 invalid_request", async () => {
-    const { app } = testApp();
+    const { app } = exercisesApp();
 
     const response = await get(app, "/v1/exercises/plank?language=ru");
 
@@ -258,7 +263,7 @@ describe("the Exercise routes", () => {
   const paths = ["/v1/exercises", "/v1/exercises/plank"];
 
   it.each(paths)("%s answers 401 without a session token", async (path) => {
-    const { app, exerciseLibrary } = testApp();
+    const { app, exerciseLibrary } = exercisesApp();
 
     const response = await app.request(path);
 
@@ -272,7 +277,7 @@ describe("the Exercise routes", () => {
   it.each(paths)(
     "%s answers 401 to a token from another instance",
     async (path) => {
-      const { app } = testApp();
+      const { app } = exercisesApp();
       const foreign = clerkInstance();
 
       const response = await app.request(path, {
@@ -286,7 +291,7 @@ describe("the Exercise routes", () => {
   );
 
   it("counts every request against the User's limit and answers the next one 429", async () => {
-    const { app } = testApp({
+    const { app } = exercisesApp({
       rateLimiter: memoryRateLimiter({ limit: 2, windowMs: 60_000 }),
     });
 
@@ -302,7 +307,7 @@ describe("the Exercise routes", () => {
   it.each(paths)(
     "%s is cacheable for an hour with the Library's hash as its ETag, answering 304 on a match",
     async (path) => {
-      const { app } = testApp();
+      const { app } = exercisesApp();
 
       const first = await get(app, path);
       const etag = first.headers.get("ETag");
@@ -337,7 +342,7 @@ describe("the Exercise routes", () => {
   );
 
   it("gives every route and language the same ETag, and never caches a 404", async () => {
-    const { app } = testApp();
+    const { app } = exercisesApp();
 
     const list = await get(app, "/v1/exercises?language=uk");
     const one = await get(app, "/v1/exercises/plank");
@@ -356,7 +361,7 @@ describe("the Exercise routes", () => {
   it.each(paths)(
     "%s answers 503 library_unavailable when the bundle can't load, the load reported once",
     async (path) => {
-      const { app, exerciseLibrary, reported } = testApp({
+      const { app, exerciseLibrary, reported } = exercisesApp({
         exerciseLibraryLoads: "fail",
       });
 
@@ -375,7 +380,7 @@ describe("the Exercise routes", () => {
   );
 
   it("waits a minute after a failed load before loading again", async () => {
-    const { app, exerciseLibrary, reported } = testApp({
+    const { app, exerciseLibrary, reported } = exercisesApp({
       exerciseLibraryLoads: "fail",
     });
 
@@ -395,7 +400,7 @@ describe("the Exercise routes", () => {
   });
 
   it("loads the bundle once for the instance", async () => {
-    const { app, exerciseLibrary } = testApp();
+    const { app, exerciseLibrary } = exercisesApp();
 
     await get(app, "/v1/exercises");
     await get(app, "/v1/exercises/plank");

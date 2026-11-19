@@ -26,6 +26,7 @@ const exercises = [
 
 const LEGS_COVER = "5b1e7c2a-8d4f-4a6b-9c3e-1f2a3b4c5d6e";
 const HINGE_COVER = "9e8d7c6b-5a4f-4e3d-8c2b-1a0f9e8d7c6b";
+const CHEST_COVER = "3c4d5e6f-7a8b-4c9d-8e0f-1a2b3c4d5e6f";
 
 /** A field of the services' answer the contract never shows. */
 const LEGACY_OR_INTERNAL_FIELD =
@@ -303,7 +304,7 @@ describe("pUT /v1/plans/{id}", () => {
     expect(reported).toStrictEqual([]);
   });
 
-  it("answers a reported 503 library_unavailable when the Library index can't load, writing nothing", async () => {
+  it("answers a reported 503 library_unavailable when the Legacy Library's index, which holds the Covers, can't load, writing nothing", async () => {
     const { app, libraryIndex, reported } = testApp({
       indexLoads: "fail",
       exercises,
@@ -321,6 +322,48 @@ describe("pUT /v1/plans/{id}", () => {
       },
     });
     expect(reported).toStrictEqual([libraryIndex.state.outage]);
+  });
+
+  it("answers a reported 503 library_unavailable when the new Library can't load, writing nothing", async () => {
+    const { app, exerciseLibrary, libraryIndex, reported } = testApp({
+      exerciseLibraryLoads: "fail",
+      exercises,
+      services: fakeServices({}),
+    });
+
+    const response = await put(app, body());
+
+    expect(response.status).toBe(503);
+    const answer = await response.json();
+    expect(answer.error.code).toBe("library_unavailable");
+    expect(libraryIndex.state.loads).toBe(0);
+    expect(reported).toStrictEqual([exerciseLibrary.state.outage]);
+  });
+
+  it("saves an old slug the new Library's map still resolves as sent, a new Workout's Cover picked from the replacement's muscle groups", async () => {
+    const { calls, services } = recordingServices();
+
+    const { app, reported } = testApp({
+      covers: [
+        libraryCover(LEGS_COVER, ["quadriceps"]),
+        libraryCover(CHEST_COVER, ["chest"]),
+      ],
+      exercises,
+      services,
+    });
+
+    const payload = body();
+    // Day B is new; bench-press is barbell-bench-press's old slug, a chest Exercise
+    payload.workouts[1].exercises[0].exercise_slug = "bench-press";
+
+    const response = await put(app, payload);
+
+    expect(response.status).toBe(200);
+    expect(calls[0].plan.workouts[1].exercises[0].exercise_slug).toBe(
+      "bench-press"
+    );
+    expect(calls[0].covers).toStrictEqual([CHEST_COVER]);
+    expect(reported).toStrictEqual([]);
   });
 
   it("never shows fields beyond the contract", async () => {

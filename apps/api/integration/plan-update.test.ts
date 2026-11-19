@@ -33,6 +33,7 @@ const library = switchableLibraryIndex(
 const app = createApp({
   clerkJwtKey: clerk.jwtKey,
   createServices: createServicesFromEnv,
+  exerciseLibrary: library.exerciseLibrary,
   identifyUser: () => {},
   libraryIndex: library.index,
   reportError: report,

@@ -1,18 +1,24 @@
-import type { LegacyMuscleGroup } from "@fitme/core/models";
+import type { LegacyMuscleGroup, MuscleGroup } from "@fitme/core/models";
 import { createLibraryIndex } from "@fitme/library-bundle/library-index";
 import type {
   IndexCover,
   IndexExercise,
   LibraryIndex,
 } from "@fitme/library-bundle/library-index";
+import type { LibraryBundleV2 } from "@fitme/library-bundle/v2";
 import { memoryRateLimiter } from "@fitme/rate-limit";
 
 import { createApp } from "../create-app.js";
 import type { AppDeps } from "../create-app.js";
+import type { LibraryV2 } from "../exercise-library.js";
 import type { RateLimiter } from "../rate-limit.js";
 import type { UserServices } from "../services.js";
 import { clerkInstance, clerkToken } from "./clerk.js";
-import { testExerciseLibrary } from "./exercise-library.js";
+import {
+  bundleExercise,
+  bundleWith,
+  testExerciseLibrary,
+} from "./exercise-library.js";
 import type { ExerciseLibraryLoads } from "./exercise-library.js";
 
 /** The Clerk instance the test app trusts. */
@@ -41,11 +47,29 @@ export const fakeServices = (faked: Partial<UserServices>): UserServices =>
       }),
   });
 
-/** An Exercise the test Library knows, by slug (quadriceps unless told otherwise). */
+/**
+ * An Exercise the test Library knows, by slug (quadriceps unless told
+ * otherwise): both the new Library the writes check slugs against and the
+ * Legacy Library's index list it (`exerciseBundleOf`).
+ */
 export const libraryExercise = (
   slug: string,
-  muscleGroups: LegacyMuscleGroup[] = ["quadriceps"]
+  muscleGroups: MuscleGroup[] = ["quadriceps"]
 ): IndexExercise => ({ muscle_groups: muscleGroups, slug });
+
+/**
+ * The new Library's test bundle carrying `exercises` (with their muscle
+ * groups) beside `TEST_EXERCISE_BUNDLE`'s own, its replaced slug included.
+ */
+export const exerciseBundleOf = (
+  exercises: readonly IndexExercise[]
+): LibraryBundleV2 =>
+  bundleWith(
+    exercises.map((exercise) =>
+      // SAFETY: test Exercises are built by libraryExercise, whose groups are the new Library's.
+      bundleExercise(exercise.slug, exercise.muscle_groups as MuscleGroup[])
+    )
+  );
 
 /** A Cover the test Library has, by id, tagged with `muscleGroups`. */
 export const libraryCover = (
@@ -116,9 +140,11 @@ export const testLibraryIndex = ({
 };
 
 /**
- * A Library index over `exercises` and `covers` that a test can swap for a
- * cold one that can't load (`goCold`, answering the error it reports), and
- * back (`reset`), for suites sharing one app across tests.
+ * A Library index over `exercises` and `covers`, and the new Library over
+ * `exerciseBundleOf(exercises)` (`exerciseLibrary`), that a test can swap for
+ * cold ones that can't load (`goCold`, answering the error the new Library
+ * reports, which every write meets first), and back (`reset`), for suites
+ * sharing one app across tests.
  */
 export const switchableLibraryIndex = (
   exercises: readonly IndexExercise[],
@@ -131,26 +157,39 @@ export const switchableLibraryIndex = (
   }
 ) => {
   const warm = testLibraryIndex({ covers, exercises, reportError }).index;
+  const bundle = exerciseBundleOf(exercises);
+
+  const warmLibrary = testExerciseLibrary({ bundle, reportError }).library;
   let current = warm;
+  let currentLibrary = warmLibrary;
 
   const index: LibraryIndex = { lookup: (slugs) => current.lookup(slugs) };
+  const exerciseLibrary: LibraryV2 = { get: () => currentLibrary.get() };
 
   return {
+    exerciseLibrary,
     goCold: () => {
-      const cold = testLibraryIndex({
+      current = testLibraryIndex({
         covers,
         exercises,
         loading: "fail",
         reportError,
+      }).index;
+
+      const cold = testExerciseLibrary({
+        bundle,
+        loading: "fail",
+        reportError,
       });
 
-      current = cold.index;
+      currentLibrary = cold.library;
 
       return cold.state.outage;
     },
     index,
     reset: () => {
       current = warm;
+      currentLibrary = warmLibrary;
     },
   };
 };
@@ -158,8 +197,9 @@ export const switchableLibraryIndex = (
 /**
  * The app over fake services and a Library index knowing `KNOWN_SLUGS` and no
  * Covers unless given (`indexLoads` for one that can't load, or can't reload),
- * and the new Library over `TEST_EXERCISE_BUNDLE` (`exerciseLibraryLoads`
- * for one that can't load), trusting `clerk`, with a recording reporter and
+ * and the new Library over `exerciseBundleOf` the same Exercises unless
+ * `exerciseBundle` says otherwise (`exerciseLibraryLoads` for one that can't
+ * load), trusting `clerk`, with a recording reporter and
  * Sentry user. `servicesFor`
  * records the User id each facade was built for; `libraryIndex` is the index
  * with its clock and load count.
@@ -170,9 +210,11 @@ export const testApp = (
     clerkJwtKey?: string;
     /** The Library's Covers; none by default. */
     covers?: IndexCover[];
+    /** The new Library's bundle (ADR 0022); `exerciseBundleOf(exercises)` by default. */
+    exerciseBundle?: LibraryBundleV2;
     /** How the new Library's loads go (ADR 0022); every one succeeds by default. */
     exerciseLibraryLoads?: ExerciseLibraryLoads;
-    /** The Library's Exercises; `KNOWN_SLUGS` by default. */
+    /** The Library's Exercises, in the index and the new Library alike; `KNOWN_SLUGS` by default. */
     exercises?: IndexExercise[];
     /** How the index's loads go; every one succeeds by default. */
     indexLoads?: IndexLoads;
@@ -205,6 +247,11 @@ export const testApp = (
   });
 
   const exerciseLibrary = testExerciseLibrary({
+    bundle:
+      options.exerciseBundle ??
+      exerciseBundleOf(
+        options.exercises ?? KNOWN_SLUGS.map((slug) => libraryExercise(slug))
+      ),
     loading: options.exerciseLibraryLoads,
     reportError,
   });

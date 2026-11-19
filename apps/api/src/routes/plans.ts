@@ -638,6 +638,7 @@ export const plans = new OpenAPIHono<ApiEnv>({
 
     const check = await checkSlugsAndPickCovers({
       index: c.var.libraryIndex,
+      library: c.var.exerciseLibrary,
       workouts: plan.workouts,
     });
 
@@ -680,6 +681,7 @@ export const plans = new OpenAPIHono<ApiEnv>({
     // Every Workout is replaced, so none of the Plan's Covers stays in use.
     const check = await checkSlugsAndPickCovers({
       index: c.var.libraryIndex,
+      library: c.var.exerciseLibrary,
       workouts,
     });
 
@@ -707,6 +709,7 @@ export const plans = new OpenAPIHono<ApiEnv>({
 
     const check = await checkSlugsForCovers({
       index: c.var.libraryIndex,
+      library: c.var.exerciseLibrary,
       workouts: plan.workouts,
     });
 

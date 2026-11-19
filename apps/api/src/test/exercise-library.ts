@@ -1,3 +1,4 @@
+import type { MuscleGroup } from "@fitme/core/models";
 import type { LibraryBundleV2 } from "@fitme/library-bundle/v2";
 import { createLibraryV2 } from "@fitme/library-bundle/v2/library";
 
@@ -72,6 +73,43 @@ export const TEST_EXERCISE_BUNDLE: LibraryBundleV2 = {
   ],
   replaced_slugs: { "bench-press": "barbell-bench-press" },
   version: 2,
+};
+
+/** A made-up Exercise the test bundle can carry, by slug, training `muscleGroups` (quadriceps unless told otherwise). */
+export const bundleExercise = (
+  slug: string,
+  muscleGroups: readonly MuscleGroup[] = ["quadriceps"]
+): LibraryBundleV2["exercises"][number] => ({
+  aliases: [],
+  difficulty: "beginner",
+  equipment: ["bodyweight"],
+  locales: { en: text(slug) },
+  movement_patterns: ["squat"],
+  muscle_groups: [...muscleGroups],
+  secondary_muscle_groups: [],
+  slug,
+  ...media,
+});
+
+/**
+ * `TEST_EXERCISE_BUNDLE` with `exercises` added (one with a slug already in
+ * it replaces the fixture's), and its replaced slug: the bundle a write
+ * test's slugs are checked against.
+ */
+export const bundleWith = (
+  exercises: readonly LibraryBundleV2["exercises"][number][]
+): LibraryBundleV2 => {
+  const given = new Set(exercises.map((exercise) => exercise.slug));
+
+  return {
+    ...TEST_EXERCISE_BUNDLE,
+    exercises: [
+      ...TEST_EXERCISE_BUNDLE.exercises.filter(
+        (exercise) => !given.has(exercise.slug)
+      ),
+      ...exercises,
+    ],
+  };
 };
 
 /** How a test's new Library loads its bundle. */
