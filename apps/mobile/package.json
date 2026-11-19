@@ -112,6 +112,7 @@
     "zod": "4.6.7"
   },
   "devDependencies": {
+    "@fitme/library-bundle": "workspace:*",
     "@jest/globals": "30.5.2",
     "@testing-library/react-native": "14.1.0",
     "@types/jest": "30.0.0",
