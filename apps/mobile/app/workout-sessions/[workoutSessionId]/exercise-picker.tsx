@@ -1,5 +1,3 @@
-import { legacyMuscleGroups } from "@fitme/core";
-import type { LegacyMuscleGroup } from "@fitme/core";
 import { useQueryClient } from "@tanstack/react-query";
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -14,6 +12,7 @@ import {
 } from "~/hooks/equipment-choice";
 import { useHeaderSearch } from "~/hooks/header-search";
 import {
+  isMuscleGroup,
   newMuscleChoiceKey,
   useMuscleChoiceOpening,
 } from "~/hooks/muscle-choice";
@@ -26,9 +25,6 @@ import { IS_E2E } from "~/lib/constants";
 import type { ExerciseSummary } from "~/lib/exercises";
 import { segmentClient } from "~/lib/segment";
 import { sessionEditFailureMessage } from "~/lib/session-edit-failure";
-
-const isMuscleGroup = (value: string | undefined): value is LegacyMuscleGroup =>
-  legacyMuscleGroups.some((group) => group === value);
 
 /**
  * The Exercise picker, a page sheet over an open Workout Session: adds the

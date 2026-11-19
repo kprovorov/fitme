@@ -1,13 +1,14 @@
-import { legacyEquipment } from "@fitme/core";
+import { equipment } from "@fitme/core";
 
 import { createChoiceStore } from "~/hooks/choice-store";
 
 /**
  * The confirmed Equipment choice of each screen listing the Library, by the
- * screen's key (`hooks/choice-store.ts`): every Equipment in core's order is
- * choosable, `bodyweight` (needs no gear) among them.
+ * screen's key (`hooks/choice-store.ts`): every one of the new Library's
+ * Equipment (ADR 0022) in core's order is choosable, `bodyweight` (the body
+ * is the load) among them.
  */
-const store = createChoiceStore(legacyEquipment);
+const store = createChoiceStore(equipment);
 
 /** The Equipment among `chosen`, in core's order, each once. */
 export const equipmentInCoreOrder = store.inOrder;

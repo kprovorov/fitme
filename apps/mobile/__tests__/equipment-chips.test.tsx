@@ -157,21 +157,25 @@ describe("the Equipment chips on the Library tab", () => {
 
     await openSheet("Muscles");
     await tick("Quadriceps");
+    await tick("Core");
     await tick("Chest");
     await confirm();
 
     await openSheet("Equipment");
-    await tick("Dumbbell");
+    await tick("Kettlebell");
     await tick("Barbell");
+    await tick("Dumbbell");
     await confirm();
 
     // Muscle groups first, then Equipment, each list in core's order rather
     // than the order they were ticked in.
     expect(chipLabels()).toEqual([
       "Remove Chest",
+      "Remove Core",
       "Remove Quadriceps",
-      "Remove Barbell",
       "Remove Dumbbell",
+      "Remove Barbell",
+      "Remove Kettlebell",
     ]);
     // One row, so the two choices' chips wrap together.
     expect(screen.getByTestId("choice-chips").props.className).toContain(
@@ -192,8 +196,8 @@ describe("the Equipment chips on the Library tab", () => {
     await confirm();
     expect(chipLabels()).toEqual([
       "Remove Chest",
-      "Remove Barbell",
       "Remove Dumbbell",
+      "Remove Barbell",
     ]);
 
     // No sheet: the × narrows the list on its own.
@@ -271,19 +275,24 @@ describe("the Equipment chips on the Library tab", () => {
     await renderLibrary();
 
     await openSheet("М’язи");
+    await tick("Кор");
     await tick("Груди");
     await confirm("Готово");
 
     await openSheet("Обладнання");
-    await tick("Гантель");
+    await tick("Гиря");
     await confirm("Готово");
 
-    expect(chipLabels()).toEqual(["Видалити Груди", "Видалити Гантель"]);
-    expect(screen.getByText("Гантель")).toBeTruthy();
+    expect(chipLabels()).toEqual([
+      "Видалити Груди",
+      "Видалити Кор",
+      "Видалити Гиря",
+    ]);
+    expect(screen.getByText("Гиря")).toBeTruthy();
 
-    await removeChip("Видалити Гантель");
+    await removeChip("Видалити Гиря");
 
     expect(getEquipmentChoice("library")).toEqual([]);
-    expect(chipLabels()).toEqual(["Видалити Груди"]);
+    expect(chipLabels()).toEqual(["Видалити Груди", "Видалити Кор"]);
   });
 });

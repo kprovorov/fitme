@@ -188,7 +188,7 @@ describe("the Equipment filter in the Exercise picker", () => {
 
     expect(sheetOpen("/equipment")).toBe(false);
     expect(listQueries().at(-1)).toEqual({
-      equipment: "dumbbell,bodyweight",
+      equipment: "bodyweight,dumbbell",
       limit: "20",
       offset: "0",
     });
@@ -199,7 +199,7 @@ describe("the Equipment filter in the Exercise picker", () => {
     ).toBeTruthy();
     // The pill still just reads "Equipment", whatever is chosen.
     expect(screen.getByRole("button", { name: "Equipment" })).toBeTruthy();
-    expect(chips()).toEqual(["Remove Dumbbell", "Remove Bodyweight"]);
+    expect(chips()).toEqual(["Remove Bodyweight", "Remove Dumbbell"]);
   });
 
   it("starts Replace on the replaced Exercise's Muscle group and no Equipment", async () => {

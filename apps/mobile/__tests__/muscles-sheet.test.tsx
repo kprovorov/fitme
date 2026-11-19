@@ -116,12 +116,13 @@ beforeEach(() => {
       muscle_groups: ["chest", "triceps"],
     }),
     fakeExercise("pull-up", { name: "Pull Up", muscle_groups: ["back"] }),
+    fakeExercise("plank", { name: "Plank", muscle_groups: ["core"] }),
     fakeExercise("squat", { name: "Squat", muscle_groups: ["quadriceps"] }),
   ]);
 });
 
 describe("the Muscles sheet over the Library tab", () => {
-  it("opens from the Muscles pill, every choosable Muscle group unticked in core's order", async () => {
+  it("opens from the Muscles pill, every one of core's Muscle groups unticked in its order", async () => {
     await renderLibrary();
 
     await openSheet();
@@ -146,15 +147,16 @@ describe("the Muscles sheet over the Library tab", () => {
       "Biceps",
       "Triceps",
       "Forearms",
-      "Abs",
-      "Obliques",
+      "Core",
+      "Traps",
+      "Lower Back",
+      "Glutes",
       "Quadriceps",
       "Hamstrings",
-      "Glutes",
+      "Adductors",
       "Calves",
-      "Traps",
-      "Lats",
-      "Lower Back",
+      "Tibialis",
+      "Neck",
     ]);
     expect(names.every((name) => isChecked(name) === false)).toBe(true);
   });
@@ -187,6 +189,23 @@ describe("the Muscles sheet over the Library tab", () => {
         .getAllByRole("button")
         .map((chip) => chip.props.accessibilityLabel)
     ).toEqual(["Remove Chest", "Remove Quadriceps"]);
+  });
+
+  it("narrows by a Muscle group only the new list has", async () => {
+    await renderLibrary();
+    await openSheet();
+
+    await tick("Core");
+    await confirm();
+
+    expect(listQueries().at(-1)).toEqual({
+      limit: "20",
+      muscle_groups: "core",
+      offset: "0",
+    });
+    expect(screen.getByText("Plank")).toBeTruthy();
+    expect(screen.queryByText("Bench Press")).toBeNull();
+    expect(screen.getByRole("button", { name: "Remove Core" })).toBeTruthy();
   });
 
   it("opens the sheet on the chips' choice, and a chip's × widens the list", async () => {
@@ -280,11 +299,36 @@ describe("the Muscles sheet over the Library tab", () => {
 
     expect(screen.getByRole("header", { name: "М’язи" })).toBeTruthy();
     expect(screen.getByLabelText("Скинути")).toBeTruthy();
-    expect(screen.getByRole("checkbox", { name: "Груди" })).toBeTruthy();
-    await tick("Спина");
+    expect(
+      screen.getAllByRole("checkbox").map((row) => row.props.accessibilityLabel)
+    ).toEqual([
+      "Груди",
+      "Спина",
+      "Плечі",
+      "Біцепс",
+      "Трицепс",
+      "Передпліччя",
+      "Кор",
+      "Трапеції",
+      "Поперек",
+      "Сідниці",
+      "Квадрицепс",
+      "Задня поверхня стегна",
+      "Привідні м’язи",
+      "Литки",
+      "Великогомілкові м’язи",
+      "Шия",
+    ]);
+    await tick("Кор");
     await confirm("Готово");
 
-    expect(getMuscleChoice("library")).toEqual(["back"]);
-    expect(screen.getByRole("button", { name: "Видалити Спина" })).toBeTruthy();
+    expect(getMuscleChoice("library")).toEqual(["core"]);
+    expect(listQueries().at(-1)).toEqual({
+      language: "uk",
+      limit: "20",
+      muscle_groups: "core",
+      offset: "0",
+    });
+    expect(screen.getByRole("button", { name: "Видалити Кор" })).toBeTruthy();
   });
 });

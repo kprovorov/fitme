@@ -1,4 +1,4 @@
-import type { LegacyEquipment, LegacyMuscleGroup } from "@fitme/core";
+import type { Equipment, MuscleGroup } from "@fitme/core";
 import { useRouter } from "expo-router";
 import { useCallback } from "react";
 import { useTranslation } from "react-i18next";
@@ -36,7 +36,7 @@ export const ExerciseFilters = ({
   /** Neither pill can open its sheet (the picker, while saving). */
   disabled?: boolean;
   /** The screen's confirmed Equipment choice, in core's order. */
-  equipment: readonly LegacyEquipment[];
+  equipment: readonly Equipment[];
   /**
    * Where that choice is kept. Left out, the screen has no Equipment pill and
    * filters by none.
@@ -45,7 +45,7 @@ export const ExerciseFilters = ({
   /** Where the screen's Muscle group choice is kept. */
   muscleChoiceKey: string;
   /** That choice, in core's order. */
-  muscleGroups: readonly LegacyMuscleGroup[];
+  muscleGroups: readonly MuscleGroup[];
 }) => {
   const { t } = useTranslation(undefined, { i18n });
   const router = useRouter();
@@ -66,7 +66,7 @@ export const ExerciseFilters = ({
   }, [equipmentChoiceKey, router]);
 
   const removeMuscleGroup = useCallback(
-    (group: LegacyMuscleGroup) => {
+    (group: MuscleGroup) => {
       setMuscleChoice(
         muscleChoiceKey,
         getMuscleChoice(muscleChoiceKey).filter((chosen) => chosen !== group)
@@ -76,7 +76,7 @@ export const ExerciseFilters = ({
   );
 
   const removeEquipment = useCallback(
-    (value: LegacyEquipment) => {
+    (value: Equipment) => {
       // Only a chip removes Equipment, and a screen without the pill has
       // none chosen, so there is always a key by now.
       if (equipmentChoiceKey === undefined) {

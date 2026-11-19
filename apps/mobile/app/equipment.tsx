@@ -1,4 +1,4 @@
-import { legacyEquipment } from "@fitme/core";
+import { equipment } from "@fitme/core";
 import { useTranslation } from "react-i18next";
 
 import { ChoiceSheet } from "~/components/exercises/choice-sheet";
@@ -21,7 +21,7 @@ const EquipmentSheet = () => {
       label={labels.equipment}
       setChoice={setEquipmentChoice}
       title={t("library.equipment")}
-      values={legacyEquipment}
+      values={equipment}
     />
   );
 };
