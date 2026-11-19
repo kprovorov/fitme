@@ -80,15 +80,3 @@ export const appLanguage = (
 
   return isAppLanguage(language) ? language : defaultAppLanguage;
 };
-
-/**
- * The `language` to ask the Library in: the App language, left out for
- * English, the Library API's default, so an English turn asks as before.
- */
-export const libraryLanguage = (
-  messages: readonly HistoryMessage[]
-): AppLanguage | undefined => {
-  const language = appLanguage(messages);
-
-  return language === defaultAppLanguage ? undefined : language;
-};

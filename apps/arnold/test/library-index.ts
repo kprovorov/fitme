@@ -2,7 +2,15 @@ import { createLibraryIndex } from "@fitme/library-bundle/library-index";
 import type { LibraryIndex } from "@fitme/library-bundle/library-index";
 import { reportError } from "@fitme/observability/node";
 
-import { libraryExercises } from "./library";
+/**
+ * The Exercises the Legacy Library's bundle lists for the index, which the
+ * tools still check slugs against (ADR 0018), with its muscle groups.
+ */
+const indexedExercises = [
+  { muscle_groups: ["chest", "triceps"], slug: "bench-press" },
+  { muscle_groups: ["chest"], slug: "incline-dumbbell-press" },
+  { muscle_groups: ["quadriceps", "glutes"], slug: "back-squat" },
+];
 
 /** The error a failing test index load rejects with. */
 export const INDEX_OUTAGE = new Error("Blob is unavailable");
@@ -17,10 +25,7 @@ const build = (): LibraryIndex =>
       loads === "fail"
         ? await Promise.reject(INDEX_OUTAGE)
         : await Promise.resolve({
-            exercises: libraryExercises.map(({ muscle_groups, slug }) => ({
-              muscle_groups,
-              slug,
-            })),
+            exercises: indexedExercises,
             version: 1,
           }),
     reportError: async (error) => {
@@ -32,8 +37,8 @@ let index = build();
 
 /**
  * The Library index the tools get in tests, in place of the instance's
- * (`vi.mock("../agent/lib/library-index", …)`): over the fake Library's
- * Exercises, as the bundle would list them, with no Covers.
+ * (`vi.mock("../agent/lib/library-index", …)`): over the Legacy Library's
+ * Exercises, as its bundle would list them, with no Covers.
  */
 export const testLibraryIndex = {
   get: (): LibraryIndex => index,

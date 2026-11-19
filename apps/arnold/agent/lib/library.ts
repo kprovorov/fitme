@@ -1,38 +1,41 @@
-import { createLibrary, LibraryUnavailableError } from "@fitme/library-sdk";
-import type { Library } from "@fitme/library-sdk";
-
-const notConfigured = () =>
-  new LibraryUnavailableError({
-    cause: new Error("LIBRARY_URL is not set"),
-  });
-
-/** Answers every call unavailable: `LIBRARY_URL` isn't set. */
-const unconfigured: Library = {
-  covers: async () => await Promise.reject(notConfigured()),
-  get: async () => await Promise.reject(notConfigured()),
-  list: async () => await Promise.reject(notConfigured()),
-  lookup: async () => await Promise.reject(notConfigured()),
-};
-
-let library: Library | undefined;
+import { createLibraryV2 } from "@fitme/library-bundle/v2/library";
+import type { LibraryV2 } from "@fitme/library-bundle/v2/library";
+import { libraryV2BundleSource } from "@fitme/library-bundle/v2/source";
+import { reportError } from "@fitme/observability/node";
 
 /**
- * The Library API client the tools read through, as Arnold: `LIBRARY_URL`
- * with `LIBRARY_ARNOLD_SECRET` as the bearer. Created on first use; without a
- * URL every call fails unavailable.
+ * The Supabase origin the in-memory Library builds media URLs on. Arnold
+ * answers no thumbnail or video URL (its tools show names, muscle groups,
+ * Equipment, movement patterns and Difficulty), so nothing reads them and no
+ * real project is needed.
  */
-export const getLibrary = (): Library => {
-  if (!library) {
-    const url = process.env.LIBRARY_URL;
-    library =
-      url !== undefined && url !== ""
-        ? createLibrary({
-            token: async () =>
-              await Promise.resolve(process.env.LIBRARY_ARNOLD_SECRET),
-            url,
-          })
-        : unconfigured;
-  }
+const UNUSED_MEDIA_ORIGIN = "https://media.invalid";
+
+let library: LibraryV2 | undefined;
+
+/**
+ * The instance's new Library (ADR 0022), which `search_exercises` and the
+ * Exercise names in reads come from, in Arnold's own process: production's
+ * `library-v2.json` from the private Blob store over Vercel OIDC
+ * (`BLOB_STORE_ID`), `LIBRARY_V2_BUNDLE` or the committed made-up fixture
+ * anywhere else. Created on first use, loaded on the first ask and kept for
+ * the life of the instance; a failed load is reported and the next ask loads
+ * again.
+ */
+export const getLibrary = (): LibraryV2 => {
+  library ??= createLibraryV2({
+    load: libraryV2BundleSource({
+      env: {
+        BLOB_STORE_ID: process.env.BLOB_STORE_ID,
+        LIBRARY_V2_BUNDLE: process.env.LIBRARY_V2_BUNDLE,
+        VERCEL_ENV: process.env.VERCEL_ENV,
+      },
+    }).load,
+    reportError: async (error) => {
+      await reportError(error, { exercise_library: "library" });
+    },
+    supabaseUrl: UNUSED_MEDIA_ORIGIN,
+  });
 
   return library;
 };

@@ -2,11 +2,7 @@ import { appLanguages } from "@fitme/core/models";
 import type { ModelMessage } from "ai";
 import { describe, expect, it } from "vitest";
 
-import {
-  appLanguage,
-  latestClientContext,
-  libraryLanguage,
-} from "../agent/lib/client-context";
+import { appLanguage, latestClientContext } from "../agent/lib/client-context";
 
 type ClientContextFixture =
   | { language?: string | number; model?: string }
@@ -72,13 +68,4 @@ describe("app language", () => {
     expect(appLanguage([clientContext({ language: "uk-UA" })])).toBe("en");
     expect(appLanguage([clientContext({ language: 1 })])).toBe("en");
   });
-});
-
-describe("library language", () => {
-  it.each(appLanguages.filter((language) => language !== "en"))(
-    "passes %s to the Library",
-    (language) => {
-      expect(libraryLanguage([clientContext({ language })])).toBe(language);
-    }
-  );
 });

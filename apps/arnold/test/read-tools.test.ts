@@ -1,8 +1,4 @@
 import type * as Db from "@fitme/db";
-import {
-  LibraryRateLimitedError,
-  LibraryUnavailableError,
-} from "@fitme/library-sdk";
 import type * as Observability from "@fitme/observability/node";
 import type * as PlanServices from "@fitme/services/plans";
 import type * as SessionServices from "@fitme/services/workout-sessions";
@@ -11,7 +7,7 @@ import { z } from "zod";
 
 import type * as LibraryModule from "../agent/lib/library";
 import type * as LibraryIndexModule from "../agent/lib/library-index";
-import { fakeLibrary } from "./library";
+import { LIBRARY_OUTAGE, testBundle, testLibrary } from "./library";
 import { INDEX_OUTAGE, testLibraryIndex } from "./library-index";
 import {
   contextFor,
@@ -72,9 +68,9 @@ vi.mock<typeof Observability>(
 );
 
 vi.mock<typeof LibraryModule>(import("../agent/lib/library"), async () => {
-  const { fakeLibrary: library } = await import("./library");
+  const { testLibrary: library } = await import("./library");
 
-  return { getLibrary: () => library };
+  return { getLibrary: () => library.get() };
 });
 
 vi.mock<typeof LibraryIndexModule>(
@@ -185,10 +181,9 @@ const seenArguments = () =>
     sessions.listWorkoutHistory.mock.calls,
   ]);
 
-const libraryDown = new LibraryUnavailableError();
-
 /** Validate the read tool's result before inspecting its Exercises. */
 const shownExerciseSchema = z.object({
+  exercise_slug: z.string(),
   muscle_groups: z.array(z.string()),
   name: z.string(),
 });
@@ -223,7 +218,7 @@ const run = async (input: ModelInput) =>
   );
 
 const resetReadTools = () => {
-  fakeLibrary.failWith(null);
+  testLibrary.reset();
   testLibraryIndex.reset();
   db.asUser.mockImplementation(async (_userId, fn) => await fn(tx));
   plans.getActivePlan.mockResolvedValue(plan);
@@ -256,7 +251,7 @@ describe("get_active_plan", () => {
             {
               exercise_slug: "bench-press",
               id: "we_bench",
-              muscle_groups: ["chest", "triceps"],
+              muscle_groups: ["chest"],
               name: "Bench Press",
               order: 1,
               sets: [set],
@@ -275,8 +270,36 @@ describe("get_active_plan", () => {
     });
   });
 
-  it("still answers, with slug-derived names, when the library fails, and reports it", async () => {
-    fakeLibrary.failWith(libraryDown);
+  it("names an old slug as the Exercise replacing it, keeping the stored slug", async () => {
+    plans.getActivePlan.mockResolvedValue({
+      ...plan,
+      workouts: [
+        {
+          ...plan.workouts[0],
+          exercises: [planExercise("we_old", "barbell-bench-press")],
+        },
+      ],
+    });
+
+    const answer = await getActivePlan.execute({}, alice);
+
+    expect(answer).toMatchObject({
+      workouts: [
+        {
+          exercises: [
+            {
+              exercise_slug: "barbell-bench-press",
+              muscle_groups: ["chest"],
+              name: "Bench Press",
+            },
+          ],
+        },
+      ],
+    });
+  });
+
+  it("still answers, with slug-derived names, when the library can't load, and reports it", async () => {
+    testLibrary.reset({ loads: "fail" });
 
     const answer = shownPlanSchema.parse(
       await getActivePlan.execute({}, alice)
@@ -286,10 +309,9 @@ describe("get_active_plan", () => {
       "Bench press",
       "Jefferson curl",
     ]);
-    expect(observability.reportError).toHaveBeenCalledWith(
-      libraryDown,
-      expect.anything()
-    );
+    expect(observability.reportError).toHaveBeenCalledWith(LIBRARY_OUTAGE, {
+      exercise_library: "library",
+    });
   });
 
   it("answers a Plan whose details are unset, passing each on as null", async () => {
@@ -388,10 +410,28 @@ describe("get_workouts_history", () => {
     expect(seenArguments()).not.toContain("user_mallory");
   });
 
-  it("still answers, with slug-derived names, when the library fails", async () => {
-    const rateLimited = new LibraryRateLimitedError(30);
+  it("names an old slug as the Exercise replacing it", async () => {
+    sessions.listWorkoutHistory.mockResolvedValue([
+      {
+        ...history[0],
+        exercises: [
+          { ...history[0].exercises[0], exercise_slug: "barbell-bench-press" },
+        ],
+      },
+    ]);
 
-    fakeLibrary.failWith(rateLimited);
+    const [session] = shownHistorySchema.parse(
+      await getWorkoutsHistory.execute({ limit: 10 }, alice)
+    );
+
+    expect(session.exercises[0]).toMatchObject({
+      exercise_slug: "barbell-bench-press",
+      name: "Bench Press",
+    });
+  });
+
+  it("still answers, with slug-derived names, when the library can't load", async () => {
+    testLibrary.reset({ loads: "fail" });
 
     const [session] = shownHistorySchema.parse(
       await getWorkoutsHistory.execute({ limit: 10 }, alice)
@@ -401,8 +441,8 @@ describe("get_workouts_history", () => {
       muscle_groups: [],
       name: "Back squat",
     });
-    expect(observability.reportError).toHaveBeenCalledWith(rateLimited, {
-      exercise_library: "describe",
+    expect(observability.reportError).toHaveBeenCalledWith(LIBRARY_OUTAGE, {
+      exercise_library: "library",
     });
   });
 
@@ -427,7 +467,18 @@ describe("get_workouts_history", () => {
 describe("search_exercises", () => {
   beforeEach(resetReadTools);
 
-  it("searches the library by name and muscle group, answering slugs", async () => {
+  /** The slugs `search_exercises` answers for `input`. */
+  const searchSlugs = async (input: ModelInput) => {
+    const found = z
+      .array(z.object({ exercise_slug: z.string() }))
+      .parse(
+        await searchExercises.execute(parseInput(searchExercises, input), alice)
+      );
+
+    return found.map(({ exercise_slug }) => exercise_slug);
+  };
+
+  it("searches the library by name and muscle group, answering slugs, Equipment, movement patterns and Difficulty", async () => {
     const input = parseInput(searchExercises, {
       ...userIdFields,
       muscle_group: "chest",
@@ -436,14 +487,18 @@ describe("search_exercises", () => {
 
     await expect(searchExercises.execute(input, alice)).resolves.toStrictEqual([
       {
+        difficulty: "intermediate",
         equipment: ["barbell", "bench"],
         exercise_slug: "bench-press",
-        muscle_groups: ["chest", "triceps"],
+        movement_patterns: ["push"],
+        muscle_groups: ["chest"],
         name: "Bench Press",
       },
       {
+        difficulty: "beginner",
         equipment: ["dumbbell", "bench"],
         exercise_slug: "incline-dumbbell-press",
+        movement_patterns: ["push"],
         muscle_groups: ["chest"],
         name: "Incline Dumbbell Press",
       },
@@ -451,85 +506,114 @@ describe("search_exercises", () => {
     expect(input).toStrictEqual({ muscle_group: "chest", query: "press" });
   });
 
-  it("asks the library for the first 8 matches", async () => {
-    const list = vi.spyOn(fakeLibrary, "list");
+  it("answers the first 8 matches", async () => {
+    const plank = testBundle.exercises.find(({ slug }) => slug === "plank");
 
-    await searchExercises.execute({ query: "squat" }, alice);
+    if (!plank) {
+      throw new Error("testBundle has no plank");
+    }
 
-    expect(list).toHaveBeenCalledWith({
-      equipment: undefined,
-      limit: 8,
-      muscleGroup: undefined,
-      search: "squat",
-    });
-  });
-
-  it("only takes a known muscle group", () => {
-    expect(() =>
-      parseInput(searchExercises, { muscle_group: "wings" })
-    ).toThrow("Invalid option");
-  });
-
-  it("narrows the search to exercises using any of the given equipment", async () => {
-    const input = parseInput(searchExercises, { equipment: ["dumbbell"] });
-
-    await expect(searchExercises.execute(input, alice)).resolves.toStrictEqual([
-      expect.objectContaining({ exercise_slug: "incline-dumbbell-press" }),
-    ]);
-  });
-
-  it("matches an exercise using any one of several pieces of equipment", async () => {
-    const input = parseInput(searchExercises, {
-      equipment: ["barbell", "dumbbell"],
-      muscle_group: "chest",
+    testLibrary.reset({
+      bundle: {
+        ...testBundle,
+        exercises: Array.from({ length: 10 }, (_, index) => ({
+          ...plank,
+          slug: `plank-${index}`,
+        })),
+        replaced_slugs: {},
+      },
     });
 
-    await expect(searchExercises.execute(input, alice)).resolves.toStrictEqual([
-      expect.objectContaining({ exercise_slug: "bench-press" }),
-      expect.objectContaining({ exercise_slug: "incline-dumbbell-press" }),
-    ]);
-  });
-
-  it("combines equipment with the muscle group and the query", async () => {
-    const input = parseInput(searchExercises, {
-      equipment: ["bench"],
-      muscle_group: "chest",
-      query: "bench",
-    });
-
-    await expect(searchExercises.execute(input, alice)).resolves.toStrictEqual([
-      expect.objectContaining({ exercise_slug: "bench-press" }),
-    ]);
-  });
-
-  it("asks the library for the equipment it was given", async () => {
-    const list = vi.spyOn(fakeLibrary, "list");
-    const input = parseInput(searchExercises, { equipment: ["barbell"] });
-
-    await searchExercises.execute(input, alice);
-
-    expect(list).toHaveBeenCalledWith(
-      expect.objectContaining({ equipment: ["barbell"] })
+    await expect(searchSlugs({ query: "plank" })).resolves.toStrictEqual(
+      Array.from({ length: 8 }, (_, index) => `plank-${index}`)
     );
   });
 
-  it("only takes known equipment", () => {
+  it("takes the new muscle groups, matching primary ones only", async () => {
+    await expect(searchSlugs({ muscle_group: "core" })).resolves.toStrictEqual([
+      "plank",
+    ]);
+    // the Pull-up trains the biceps only as a secondary muscle group
+    await expect(
+      searchSlugs({ muscle_group: "biceps" })
+    ).resolves.toStrictEqual([]);
+  });
+
+  it("only takes a muscle group of the new Library", () => {
     expect(() =>
-      parseInput(searchExercises, { equipment: ["kettlebell"] })
+      parseInput(searchExercises, { muscle_group: "wings" })
+    ).toThrow("Invalid option");
+    // abs is the Legacy Library's
+    expect(() => parseInput(searchExercises, { muscle_group: "abs" })).toThrow(
+      "Invalid option"
+    );
+  });
+
+  it("finds an Exercise by one of its other English names", async () => {
+    await expect(searchSlugs({ query: "flat" })).resolves.toStrictEqual([
+      "bench-press",
+    ]);
+  });
+
+  it("narrows the search to exercises using any of the given equipment", async () => {
+    await expect(
+      searchSlugs({ equipment: ["dumbbell"] })
+    ).resolves.toStrictEqual(["incline-dumbbell-press"]);
+  });
+
+  it("matches an exercise using any one of several pieces of equipment", async () => {
+    await expect(
+      searchSlugs({ equipment: ["barbell", "dumbbell"], muscle_group: "chest" })
+    ).resolves.toStrictEqual(["bench-press", "incline-dumbbell-press"]);
+  });
+
+  it("finds bodyweight exercises, the Pull-up among them only alongside its bar", async () => {
+    await expect(
+      searchSlugs({ equipment: ["bodyweight"], muscle_group: "back" })
+    ).resolves.toStrictEqual(["pull-up"]);
+    await expect(
+      searchSlugs({ equipment: ["bodyweight", "pull_up_bar"] })
+    ).resolves.toStrictEqual(["plank", "pull-up"]);
+  });
+
+  it("combines equipment with the muscle group and the query", async () => {
+    await expect(
+      searchSlugs({
+        equipment: ["bench"],
+        muscle_group: "chest",
+        query: "bench",
+      })
+    ).resolves.toStrictEqual(["bench-press"]);
+  });
+
+  it("takes the new Library's Equipment, and nothing else", async () => {
+    await expect(
+      searchSlugs({ equipment: ["kettlebell"] })
+    ).resolves.toStrictEqual([]);
+    expect(() =>
+      parseInput(searchExercises, { equipment: ["jetpack"] })
     ).toThrow("Invalid option");
   });
 
-  it("asks to retry when the library fails, and reports it", async () => {
-    fakeLibrary.failWith(libraryDown);
+  it("tells the model to add bodyweight, and pull_up_bar only when the User has one", () => {
+    const schema = JSON.stringify(
+      z.toJSONSchema(inputSchemaOf(searchExercises))
+    );
+
+    expect(schema).toContain("add bodyweight");
+    expect(schema).toContain("pull_up_bar only when the user has one");
+  });
+
+  it("asks to retry when the library can't load, and reports it", async () => {
+    testLibrary.reset({ loads: "fail" });
 
     await expect(searchExercises.execute({}, alice)).resolves.toStrictEqual({
       error:
         "The exercise library is unavailable right now, so the search failed. Try again in a moment.",
     });
-    expect(observability.reportError).toHaveBeenCalledWith(
-      libraryDown,
-      expect.anything()
-    );
+    expect(observability.reportError).toHaveBeenCalledWith(LIBRARY_OUTAGE, {
+      exercise_library: "library",
+    });
   });
 
   it("refuses to run without a Clerk User owning the session", async () => {
@@ -661,20 +745,6 @@ describe("the App language", () => {
     ]);
   });
 
-  it("asks the library in the App language", async () => {
-    const list = vi.spyOn(fakeLibrary, "list");
-
-    await searchExercises.execute({ query: "жим" }, inUkrainian);
-
-    expect(list).toHaveBeenCalledWith({
-      equipment: undefined,
-      language: "uk",
-      limit: 8,
-      muscleGroup: undefined,
-      search: "жим",
-    });
-  });
-
   it("answers an equipment-filtered search in the App language", async () => {
     const found = z
       .array(shownExerciseSchema)
@@ -714,8 +784,8 @@ describe("display_workout_plan", () => {
     ).rejects.toThrow(/search_exercises with the exercise's name/u);
   });
 
-  it("checks slugs against the Library index, so the card shows while the Library API is down", async () => {
-    fakeLibrary.failWith(libraryDown);
+  it("checks slugs against the Library index, so the card shows while the new Library can't load", async () => {
+    testLibrary.reset({ loads: "fail" });
     const card = proposed(exercise("bench-press", "Bench press"));
 
     await expect(run(card)).resolves.toStrictEqual(card);

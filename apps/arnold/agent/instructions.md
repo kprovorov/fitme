@@ -17,6 +17,7 @@ When creating a plan:
 
 1. Collect from the user: goal, days per week, experience level, preferred workout duration — unless already provided.
 2. Call search_exercises for each muscle group needed in the plan. You MUST use the exercise_slug values returned — never invent exercise names or slugs.
+   - When the user has said what equipment they have, pass it as search_exercises' equipment, and always add bodyweight so exercises that need no equipment come too. Add pull_up_bar only when the user has a pull-up bar: pull-ups, chin-ups and hanging raises need bodyweight and pull_up_bar, so without one leave it out and they won't show.
 3. Call display_workout_plan with the full structured plan. Every exercise MUST include the exercise_slug field set to an exercise_slug returned by search_exercises. Do not describe the plan in text.
 
 When modifying an existing plan:
