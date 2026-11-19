@@ -157,6 +157,25 @@ export const chestExercises = [
   },
 ];
 
+/** `get_exercise_guide`'s answer for the Back Squat. */
+const squatGuide = {
+  common_mistakes: [
+    "Letting the knees cave in",
+    "Lifting the heels off the floor",
+    "Rounding the lower back at the bottom",
+  ],
+  exercise_slug: SQUAT,
+  name: "Back Squat",
+  short_description:
+    "A barbell squat with the bar across the upper back, training the quadriceps and glutes.",
+  steps: [
+    "Set the bar on your upper back and step back with feet shoulder-width apart.",
+    "Brace your core and sit down between your hips, knees tracking over your toes.",
+    "Descend until your thighs are at least parallel to the floor.",
+    "Drive through your whole foot to stand back up.",
+  ],
+};
+
 const libraryExercises = [
   ...chestExercises,
   {
@@ -236,6 +255,12 @@ export const readToolStubs: readonly ToolStub[] = [
     id: "exercises",
     outcome: { response: libraryExercises },
     tool: "search_exercises",
+  },
+  {
+    id: "squat-guide",
+    match: { exercise_slug: { const: SQUAT } },
+    outcome: { response: squatGuide },
+    tool: "get_exercise_guide",
   },
   {
     id: "plan-card",
