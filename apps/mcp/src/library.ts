@@ -37,7 +37,7 @@ const supabaseUrlFromEnv = () => {
 /**
  * The instance's Library (ADR 0022), which `list_exercises`, `get_exercise`
  * and the reads' Exercise names come from, in process: production's
- * `library-v2.json` from the private Blob store over Vercel OIDC
+ * `exercises.json` from the private Blob store over Vercel OIDC
  * (`BLOB_STORE_ID`), `LIBRARY_V2_BUNDLE` or the committed made-up fixture
  * anywhere else. Loaded on first use and kept for the life of the instance;
  * a failed load is reported through `reportError` and tried again on the

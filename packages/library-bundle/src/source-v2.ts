@@ -31,7 +31,7 @@ const parseJson = (name: string, text: string): unknown => {
  * Picks the v2 bundle (ADR 0022) an instance's Library loads, as
  * `libraryBundleSource` picks the v1 one:
  *
- * - production (`VERCEL_ENV=production`): `library-v2.json` from the private
+ * - production (`VERCEL_ENV=production`): `exercises.json` from the private
  *   Blob store, uncached, over Vercel OIDC (`BLOB_STORE_ID`); a missing store
  *   or blob, or a failed fetch, rejects, and production never falls back to
  *   the fixture;

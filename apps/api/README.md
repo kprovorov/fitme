@@ -99,7 +99,7 @@ Environment (read from the process, no file is loaded):
 | Variable | Value |
 | --- | --- |
 | `FITME_DATABASE_URL` | the `fitme` login's transaction-pooler URL with `?application_name=rewrite` |
-| `VERCEL_ENV`, `BLOB_STORE_ID`, `VERCEL_OIDC_TOKEN` | for production's bundle: `VERCEL_ENV=production` reads `library-v2.json` from the private Blob store over Vercel OIDC, as the deployment does |
+| `VERCEL_ENV`, `BLOB_STORE_ID`, `VERCEL_OIDC_TOKEN` | for production's bundle: `VERCEL_ENV=production` reads `exercises.json` from the private Blob store over Vercel OIDC, as the deployment does |
 | `LIBRARY_V2_BUNDLE` | otherwise: the v2 bundle to read (absolute, or relative to `apps/api`) |
 
 With neither it refuses to run (exit 1): the committed fixture's made-up map would rewrite real slugs for good. It prints which bundle it read and how many old slugs its map has first.

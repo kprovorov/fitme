@@ -40,7 +40,7 @@ See `.env.example`. The variables are read from the process environment (Vercel 
 | `CLERK_PUBLISHABLE_KEY` | Its publishable key; names the instance in the OAuth metadata. |
 | `FITME_DATABASE_URL` | The `fitme` login's Supavisor transaction-pooler URL with `?application_name=mcp`; the user tools run through it (`asUser`). Service-role strength. |
 | `MCP_PUBLIC_URL` | Public URL advertised as the OAuth resource; set it in production. |
-| `BLOB_STORE_ID` | Production: the private Blob store holding both bundles (`library-v2.json` for the Library, `library.json` for the Plan writes' Library index), read over Vercel OIDC. |
+| `BLOB_STORE_ID` | Production: the private Blob store holding both bundles (`exercises.json` for the Library, `library.json` for the Plan writes' Library index), read over Vercel OIDC. |
 | `LIBRARY_V2_BUNDLE` | Outside production: the v2 bundle the Library is loaded from; unset, the committed made-up fixture. |
 | `LIBRARY_BUNDLE` | Outside production: the v1 bundle the Plan writes' Library index is built from; unset, the committed fixture. |
 | `SUPABASE_URL` | The Supabase project the Library's media (thumbnails, videos) is on; unset outside production, a placeholder project. |
