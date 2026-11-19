@@ -55,7 +55,7 @@ export default defineTool({
       .array(z.enum(equipmentList))
       .optional()
       .describe(
-        `Only exercises using any of this equipment: ${equipmentList.join(", ")}. When the user says what they have, add bodyweight to the list so exercises needing no equipment are included too, and pull_up_bar only when the user has one (pull-ups and hanging raises need bodyweight and pull_up_bar).`
+        `Only exercises using any of this equipment: ${equipmentList.join(", ")}. When the user says what they have, add bodyweight to the list so exercises needing no equipment are included too, and pull_up_bar only when the user has one. An exercise matches when it needs any of the listed equipment, so check each result's equipment and skip one needing gear the user hasn't got (pull-ups need bodyweight and pull_up_bar).`
       ),
     muscle_group: z
       .enum(muscleGroups)
