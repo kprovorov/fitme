@@ -14,7 +14,7 @@ import { z } from "zod";
 import type { ToolContext } from "../context.js";
 import { ToolError } from "./helpers.js";
 
-/** An Exercise by its Exercise slug; whether it exists is checked against the Library index. */
+/** An Exercise by its Exercise slug; whether it exists is checked against the Library. */
 export const exerciseSlugSchema = z
   .string()
   .trim()
@@ -50,42 +50,49 @@ export const requireLibrary = async (
 };
 
 /**
- * What the Library index (ADR 0018) says about a write's slugs, once every
- * one is known: their muscle groups, and the Covers to pick from.
+ * What a write's slugs answered once every one is known: their muscle
+ * groups, from the new Library, and the Covers to pick from, from the Legacy
+ * Library's index (ADR 0022).
  */
 export interface CheckedSlugs {
   covers: IndexCover[];
-  /** Each known slug's muscle groups, as the bundle writes them. */
+  /** Each known slug's primary muscle groups, keyed by the slug the write sent. */
   muscleGroups: ReadonlyMap<string, readonly string[]>;
 }
 
 /**
- * Checks every slug a write carries against the Library index, before the
- * services open their transaction (ADR 0010, ADR 0018), so no write waits
- * on the Library API or the Library: an unknown one is a `ToolError` naming it, unreported,
- * and an index that can't be loaded (reported by the index itself) is the
- * Library tool error. Nothing is written either way.
+ * Checks every slug a write carries against the new Library (ADR 0022), its
+ * `replaced_slugs` included, before the services open their transaction
+ * (ADR 0010), then reads the Covers from the Legacy Library's index: an
+ * unknown slug is a `ToolError` naming it, unreported, and a bundle or index
+ * that can't load (reported by itself) is the Library tool error. Nothing is
+ * written either way. A slug is stored as sent: an old one is rewritten later
+ * with every other stored slug.
  */
 export const requireKnownSlugs = async (
   ctx: ToolContext,
   slugs: string[]
 ): Promise<CheckedSlugs> => {
-  const found = await ctx.libraryIndex.lookup(slugs);
+  const library = await requireLibrary(ctx);
+  const { known, unknown } = library.checkSlugs(slugs);
 
-  if (found.status === "unavailable") {
-    throw new ToolError(LIBRARY_UNAVAILABLE_MESSAGE);
-  }
-
-  if (found.missing.length > 0) {
+  if (unknown.length > 0) {
     throw new ToolError(
-      `Unknown exercise_slug(s): ${found.missing.join(", ")}. Use list_exercises to look up valid Exercise slugs.`
+      `Unknown exercise_slug(s): ${unknown.join(", ")}. Use list_exercises to look up valid Exercise slugs.`
     );
   }
 
+  // Covers only: the index has no say in which slugs are known
+  const index = await ctx.libraryIndex.lookup([]);
+
+  if (index.status === "unavailable") {
+    throw new ToolError(LIBRARY_UNAVAILABLE_MESSAGE);
+  }
+
   return {
-    covers: found.covers,
+    covers: index.covers,
     muscleGroups: new Map(
-      found.exercises.map((exercise) => [exercise.slug, exercise.muscle_groups])
+      known.map((exercise) => [exercise.requested_slug, exercise.muscle_groups])
     ),
   };
 };

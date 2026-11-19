@@ -378,7 +378,66 @@ describe("create_plan", () => {
     expect(reported).toStrictEqual([]);
   });
 
-  it("creates the plan while the Library is down, naming Exercises from their slugs", async () => {
+  it("accepts an old slug the Library maps to its replacement, storing it as sent", async () => {
+    const createPlan = vi.fn<UserServices["createPlan"]>(() =>
+      Promise.resolve(servicePlanWith("flat-bench-press"))
+    );
+
+    const client = await connectWithServices(
+      { createPlan },
+      ignoreReports,
+      testLibrary({ replacedSlugs: { "flat-bench-press": BENCH.slug } }),
+      testIndex({ exercises: [] })
+    );
+
+    const [workout] = workoutsInput;
+
+    const oldBench = {
+      ...workout.exercises[0],
+      exercise_slug: "flat-bench-press",
+    };
+
+    const result = await call(client, "create_plan", {
+      ...plan,
+      workouts: [{ ...workout, exercises: [oldBench] }],
+    });
+
+    expect(result.isError).toBeFalsy();
+    expect(createPlan).toHaveBeenCalledWith({
+      ...plan,
+      workouts: uncovered([{ ...workout, exercises: [oldBench] }]),
+    });
+    expect(result.json).toStrictEqual(
+      toolPlanWith({
+        exercise_slug: "flat-bench-press",
+        muscle_groups: BENCH.muscle_groups,
+        name: BENCH.locales.en.name,
+      })
+    );
+  });
+
+  it("accepts a slug only the new Library knows", async () => {
+    const createPlan = vi.fn<UserServices["createPlan"]>(() =>
+      Promise.resolve(servicePlan)
+    );
+
+    const client = await connectWithServices(
+      { createPlan },
+      ignoreReports,
+      testLibrary(),
+      testIndex({ exercises: [] })
+    );
+
+    const result = await call(client, "create_plan", plan);
+
+    expect(result.isError).toBeFalsy();
+    expect(createPlan).toHaveBeenCalledWith({
+      ...plan,
+      workouts: uncovered(workoutsInput),
+    });
+  });
+
+  it("fails when the Library can't load, reports it and writes nothing", async () => {
     const createPlan = vi.fn<UserServices["createPlan"]>(() =>
       Promise.resolve(servicePlan)
     );
@@ -393,14 +452,9 @@ describe("create_plan", () => {
 
     const result = await call(client, "create_plan", plan);
 
-    expect(result.isError).toBeFalsy();
-    expect(createPlan).toHaveBeenCalledWith({
-      ...plan,
-      workouts: uncovered(workoutsInput),
-    });
-    expect(result.json).toMatchObject({
-      workouts: [{ exercises: [{ muscle_groups: [], name: "Bench press" }] }],
-    });
+    expect(result.isError).toBeTruthy();
+    expect(result.text).toBe(UNAVAILABLE);
+    expect(createPlan).not.toHaveBeenCalled();
     expect(reported).toStrictEqual([LIBRARY_OUTAGE]);
   });
 
@@ -560,15 +614,17 @@ describe("update_plan", () => {
     });
   });
 
-  it("replaces workouts while the Library is down", async () => {
+  it("fails replacing workouts when the Library can't load, reporting it and writing nothing", async () => {
     const updatePlan = vi.fn<UserServices["updatePlan"]>(() =>
       Promise.resolve(servicePlan)
     );
 
+    const { reportError, reported } = recordingReporter();
+
     const client = await connectWithServices(
       { updatePlan },
-      ignoreReports,
-      downLibrary()
+      reportError,
+      downLibrary(reportError)
     );
 
     const result = await call(client, "update_plan", {
@@ -576,9 +632,42 @@ describe("update_plan", () => {
       workouts: workoutsInput,
     });
 
+    expect(result.isError).toBeTruthy();
+    expect(result.text).toBe(UNAVAILABLE);
+    expect(updatePlan).not.toHaveBeenCalled();
+    expect(reported).toStrictEqual([LIBRARY_OUTAGE]);
+  });
+
+  it("replaces workouts with an old slug the Library maps", async () => {
+    const updatePlan = vi.fn<UserServices["updatePlan"]>(() =>
+      Promise.resolve(servicePlan)
+    );
+
+    const client = await connectWithServices(
+      { updatePlan },
+      ignoreReports,
+      testLibrary({ replacedSlugs: { "flat-bench-press": BENCH.slug } })
+    );
+
+    const [workout] = workoutsInput;
+
+    const workouts = [
+      {
+        ...workout,
+        exercises: [
+          { ...workout.exercises[0], exercise_slug: "flat-bench-press" },
+        ],
+      },
+    ];
+
+    const result = await call(client, "update_plan", {
+      planId: PLAN_ID,
+      workouts,
+    });
+
     expect(result.isError).toBeFalsy();
     expect(updatePlan).toHaveBeenCalledWith(PLAN_ID, {
-      workouts: uncovered(workoutsInput),
+      workouts: uncovered(workouts),
     });
   });
 
@@ -631,8 +720,8 @@ describe("update_plan", () => {
     const client = await connectWithServices(
       { updatePlan },
       ignoreReports,
-      testLibrary(),
-      testIndex({ exercises: [BENCH] })
+      testLibrary({ exercises: [BENCH] }),
+      testIndex()
     );
 
     const result = await call(client, "update_plan", {
@@ -1012,6 +1101,38 @@ describe("cover assignment", () => {
 
     expect(updatePlan).toHaveBeenCalledWith(PLAN_ID, { name: "Renamed" });
     expect(lookup).not.toHaveBeenCalled();
+  });
+
+  it("picks Covers by the new Library's muscle groups, from the legacy index's Covers", async () => {
+    const createPlan = vi.fn<UserServices["createPlan"]>(() =>
+      Promise.resolve(servicePlan)
+    );
+
+    const client = await connectWithServices(
+      { createPlan },
+      ignoreReports,
+      testLibrary({
+        exercises: [BENCH, { ...SQUAT, muscle_groups: ["chest"] }],
+        replacedSlugs: { "old-squat": SQUAT.slug },
+      }),
+      // the legacy index knows neither slug, only the Covers
+      testIndex({ covers: [LEGS, CHEST_A], exercises: [] })
+    );
+
+    const oldSquatDay = {
+      ...legDay,
+      exercises: [{ ...squatEntry, exercise_slug: "old-squat" }],
+    };
+
+    await call(client, "create_plan", {
+      ...metadata,
+      workouts: [oldSquatDay],
+    });
+
+    expect(createPlan).toHaveBeenCalledWith({
+      ...metadata,
+      workouts: [{ ...oldSquatDay, cover: CHEST_A.id }],
+    });
   });
 
   it("an index without Covers gives every Workout no Cover", async () => {
