@@ -1,11 +1,11 @@
-import { muscleGroups, muscleGroupToName } from "@fitme/core";
+import { legacyMuscleGroups, legacyMuscleGroupToName } from "@fitme/core";
 import { describe, expect, it } from "vitest";
 
 import { createApp } from "../create-app.js";
 
 const app = createApp();
 
-const [muscleGroup] = muscleGroups;
+const [muscleGroup] = legacyMuscleGroups;
 
 describe("gET /v1/muscle-groups/:muscleGroup", () => {
   it("returns a known muscle group", async () => {
@@ -13,7 +13,7 @@ describe("gET /v1/muscle-groups/:muscleGroup", () => {
 
     expect(response.status).toBe(200);
     await expect(response.json()).resolves.toStrictEqual({
-      data: { id: muscleGroup, name: muscleGroupToName(muscleGroup) },
+      data: { id: muscleGroup, name: legacyMuscleGroupToName(muscleGroup) },
     });
   });
 

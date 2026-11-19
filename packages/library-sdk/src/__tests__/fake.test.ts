@@ -1,6 +1,6 @@
 /// <reference lib="es2023.array" />
 
-import type { AppLanguage, Equipment } from "@fitme/core/models";
+import type { AppLanguage, LegacyEquipment } from "@fitme/core/models";
 import { describe, expect, it } from "vitest";
 
 import {
@@ -15,7 +15,7 @@ import { createFakeLibrary } from "../fake";
 import { cover, exercise, stubApi } from "./stub-api";
 
 /** The Equipment the drills rotate through; the third needs none. */
-const DRILL_EQUIPMENT: Equipment[][] = [["dumbbell"], ["machine"], []];
+const DRILL_EQUIPMENT: LegacyEquipment[][] = [["dumbbell"], ["machine"], []];
 
 /** A made-up Ukrainian translation of `name`. */
 const uk = (name: string) => ({

@@ -1,13 +1,13 @@
 import {
-  equipment,
-  equipmentToName,
+  legacyEquipment,
+  legacyEquipmentToName,
   experienceLevels,
   getExperienceLevelLabel,
   getGoalLabel,
   getPlaceLabel,
   goals,
-  muscleGroups,
-  muscleGroupToName,
+  legacyMuscleGroups,
+  legacyMuscleGroupToName,
   places,
 } from "@fitme/core";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
@@ -42,7 +42,12 @@ export const registerCatalogTools = (server: McpServer, info: ServerInfo) => {
       title: "List muscle groups",
     },
     () =>
-      asJson(muscleGroups.map((id) => ({ id, name: muscleGroupToName(id) })))
+      asJson(
+        legacyMuscleGroups.map((id) => ({
+          id,
+          name: legacyMuscleGroupToName(id),
+        }))
+      )
   );
 
   server.registerTool(
@@ -54,7 +59,10 @@ export const registerCatalogTools = (server: McpServer, info: ServerInfo) => {
       inputSchema: {},
       title: "List equipment",
     },
-    () => asJson(equipment.map((id) => ({ id, name: equipmentToName(id) })))
+    () =>
+      asJson(
+        legacyEquipment.map((id) => ({ id, name: legacyEquipmentToName(id) }))
+      )
   );
 
   server.registerTool(
@@ -82,10 +90,10 @@ export const registerCatalogTools = (server: McpServer, info: ServerInfo) => {
     {
       annotations: READ_ONLY,
       description: "Returns the display name for a muscle group id.",
-      inputSchema: { muscleGroup: z.enum(muscleGroups) },
+      inputSchema: { muscleGroup: z.enum(legacyMuscleGroups) },
       title: "Describe muscle group",
     },
     ({ muscleGroup }) =>
-      asJson({ id: muscleGroup, name: muscleGroupToName(muscleGroup) })
+      asJson({ id: muscleGroup, name: legacyMuscleGroupToName(muscleGroup) })
   );
 };

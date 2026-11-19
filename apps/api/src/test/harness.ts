@@ -1,4 +1,4 @@
-import type { MuscleGroup } from "@fitme/core/models";
+import type { LegacyMuscleGroup } from "@fitme/core/models";
 import { createLibraryIndex } from "@fitme/library-bundle/library-index";
 import type {
   IndexCover,
@@ -42,13 +42,13 @@ export const fakeServices = (faked: Partial<UserServices>): UserServices =>
 /** An Exercise the test Library knows, by slug (quadriceps unless told otherwise). */
 export const libraryExercise = (
   slug: string,
-  muscleGroups: MuscleGroup[] = ["quadriceps"]
+  muscleGroups: LegacyMuscleGroup[] = ["quadriceps"]
 ): IndexExercise => ({ muscle_groups: muscleGroups, slug });
 
 /** A Cover the test Library has, by id, tagged with `muscleGroups`. */
 export const libraryCover = (
   id: string,
-  muscleGroups: MuscleGroup[]
+  muscleGroups: LegacyMuscleGroup[]
 ): IndexCover => ({ id, muscle_groups: muscleGroups });
 
 /** The Exercises the test app's Library knows by default. */

@@ -1,5 +1,5 @@
 import { MAX_EXERCISE_SLUG_LENGTH } from "@fitme/core/limits";
-import type { AppLanguage, MuscleGroup } from "@fitme/core/models";
+import type { AppLanguage, LegacyMuscleGroup } from "@fitme/core/models";
 import { LibraryError } from "@fitme/library-sdk";
 import { reportError } from "@fitme/observability/node";
 import { z } from "zod";
@@ -19,7 +19,7 @@ export const exerciseSlugSchema = z
 
 /** An Exercise the way the read tools show it. */
 export interface ExerciseDetails {
-  muscle_groups: MuscleGroup[];
+  muscle_groups: LegacyMuscleGroup[];
   name: string;
 }
 

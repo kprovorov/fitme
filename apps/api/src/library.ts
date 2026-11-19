@@ -1,5 +1,5 @@
 import { pickCovers } from "@fitme/core/covers";
-import type { MuscleGroup } from "@fitme/core/models";
+import type { LegacyMuscleGroup } from "@fitme/core/models";
 import { createLibraryIndex } from "@fitme/library-bundle/library-index";
 import type {
   IndexCover,
@@ -154,14 +154,14 @@ export const checkSlugsForCovers = async ({
     found.exercises.map((exercise) => [
       exercise.slug,
       // SAFETY: pickCovers only compares groups for equality, so one this build's MuscleGroup doesn't list is matched like any other.
-      exercise.muscle_groups as MuscleGroup[],
+      exercise.muscle_groups as LegacyMuscleGroup[],
     ])
   );
 
   const covers = found.covers.map((cover) => ({
     id: cover.id,
     // SAFETY: as above, pickCovers only compares the groups for equality.
-    muscleGroups: cover.muscle_groups as MuscleGroup[],
+    muscleGroups: cover.muscle_groups as LegacyMuscleGroup[],
   }));
 
   return {

@@ -1,6 +1,10 @@
 import { readFileSync } from "node:fs";
 
-import { appLanguages, equipment, muscleGroups } from "@fitme/core/models";
+import {
+  appLanguages,
+  legacyEquipment,
+  legacyMuscleGroups,
+} from "@fitme/core/models";
 import { LibraryBundle } from "@fitme/library-bundle";
 import type { BundleExercise as LibraryExercise } from "@fitme/library-bundle";
 import { describe, expect, it, vi } from "vitest";
@@ -615,7 +619,7 @@ describe("gET /exercises muscle group filter", () => {
       schema: { $ref: "#/components/schemas/MuscleGroup" },
     });
     expect(document.components?.schemas?.MuscleGroup).toStrictEqual({
-      enum: [...muscleGroups],
+      enum: [...legacyMuscleGroups],
       type: "string",
     });
   });
@@ -828,7 +832,7 @@ describe("gET /exercises Equipment filter", () => {
   });
 
   it("matches every Exercise when given every Equipment", async () => {
-    const { body } = await tagged(`?equipment=${equipment.join(",")}`);
+    const { body } = await tagged(`?equipment=${legacyEquipment.join(",")}`);
 
     expect(names(body)).toStrictEqual([
       "Bench Press",
@@ -1211,7 +1215,7 @@ describe("exercise Equipment", () => {
     });
 
     expect(document.components?.schemas?.Equipment).toStrictEqual({
-      enum: [...equipment],
+      enum: [...legacyEquipment],
       type: "string",
     });
     expect(document.components?.schemas?.ExerciseSummary).toMatchObject({

@@ -1,4 +1,7 @@
-import { equipment as equipmentIds, muscleGroups } from "@fitme/core";
+import {
+  legacyEquipment as equipmentIds,
+  legacyMuscleGroups,
+} from "@fitme/core";
 import type { ExercisePage } from "@fitme/library-sdk";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
@@ -47,7 +50,7 @@ export const registerExerciseTools = (server: McpServer, ctx: ToolContext) => {
             `Page size (default ${DEFAULT_PAGE_SIZE}, max ${MAX_PAGE_SIZE}).`
           ),
         muscleGroup: z
-          .enum(muscleGroups)
+          .enum(legacyMuscleGroups)
           .optional()
           .describe("Only exercises that target this muscle group."),
         offset: z

@@ -1,5 +1,5 @@
-import { muscleGroups } from "@fitme/core";
-import type { MuscleGroup } from "@fitme/core";
+import { legacyMuscleGroups } from "@fitme/core";
+import type { LegacyMuscleGroup } from "@fitme/core";
 import type { ExerciseSummary } from "@fitme/library-sdk";
 import { useQueryClient } from "@tanstack/react-query";
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
@@ -27,8 +27,8 @@ import { IS_E2E } from "~/lib/constants";
 import { segmentClient } from "~/lib/segment";
 import { sessionEditFailureMessage } from "~/lib/session-edit-failure";
 
-const isMuscleGroup = (value: string | undefined): value is MuscleGroup =>
-  muscleGroups.some((group) => group === value);
+const isMuscleGroup = (value: string | undefined): value is LegacyMuscleGroup =>
+  legacyMuscleGroups.some((group) => group === value);
 
 /**
  * The Exercise picker, a page sheet over an open Workout Session: adds the

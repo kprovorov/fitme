@@ -1,7 +1,7 @@
 /// <reference lib="es2023.array" />
 
-import { muscleGroups } from "@fitme/core";
-import type { MuscleGroup } from "@fitme/core";
+import { legacyMuscleGroups } from "@fitme/core";
+import type { LegacyMuscleGroup } from "@fitme/core";
 import { asUser, profiles } from "@fitme/db";
 import type { ListExercisesParams } from "@fitme/library-sdk";
 import type { ExerciseHistoryPage } from "@fitme/services/exercises";
@@ -29,8 +29,8 @@ import type {
   TestUser,
 } from "./setup.js";
 
-const isMuscleGroup = (value: string): value is MuscleGroup =>
-  muscleGroups.some((group) => group === value);
+const isMuscleGroup = (value: string): value is LegacyMuscleGroup =>
+  legacyMuscleGroups.some((group) => group === value);
 
 const workoutNamed = (detail: PlanDetail, name: string) => {
   const workout = detail.workouts.find((item) => item.name === name);

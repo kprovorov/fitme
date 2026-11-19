@@ -1,4 +1,4 @@
-import type { Equipment, MuscleGroup } from "./models";
+import type { LegacyEquipment, LegacyMuscleGroup } from "./models";
 
 export const range = (from: number, to: number): number[] =>
   Array.from({ length: to - from + 1 }, (_, i) => from + i);
@@ -18,7 +18,9 @@ export const inchesToFeetAndInches = (totalInches: number) => {
 export const feetAndInchesToInches = (feet: number, inches: number): number =>
   feet * INCHES_PER_FOOT + inches;
 
-export const muscleGroupToName = (muscleGroup: MuscleGroup): string => {
+export const legacyMuscleGroupToName = (
+  muscleGroup: LegacyMuscleGroup
+): string => {
   switch (muscleGroup) {
     case "chest": {
       return "Chest";
@@ -95,7 +97,7 @@ export const muscleGroupToName = (muscleGroup: MuscleGroup): string => {
 };
 
 /** The English name of a piece of Equipment, for the servers (MCP, Arnold). */
-export const equipmentToName = (item: Equipment): string => {
+export const legacyEquipmentToName = (item: LegacyEquipment): string => {
   switch (item) {
     case "barbell": {
       return "Barbell";

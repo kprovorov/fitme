@@ -2,14 +2,17 @@ import { describe, expect, it } from "vitest";
 
 import { pickCovers } from "../covers";
 import type { CoverOption, CoverWorkout } from "../covers";
-import type { MuscleGroup } from "../models";
+import type { LegacyMuscleGroup } from "../models";
 
 /** A Workout whose Exercises train these muscle groups, in Exercise order. */
-const workout = (...exercises: MuscleGroup[][]): CoverWorkout => ({
+const workout = (...exercises: LegacyMuscleGroup[][]): CoverWorkout => ({
   exercises: exercises.map((muscleGroups) => ({ muscleGroups })),
 });
 
-const cover = (id: string, ...muscleGroups: MuscleGroup[]): CoverOption => ({
+const cover = (
+  id: string,
+  ...muscleGroups: LegacyMuscleGroup[]
+): CoverOption => ({
   id,
   muscleGroups,
 });

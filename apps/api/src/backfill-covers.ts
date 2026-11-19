@@ -1,5 +1,5 @@
 import { pickCovers } from "@fitme/core";
-import type { MuscleGroup } from "@fitme/core";
+import type { LegacyMuscleGroup } from "@fitme/core";
 import { plans, withService, workoutExercises, workouts } from "@fitme/db";
 import type { Transaction } from "@fitme/db";
 import type { LibraryIndex } from "@fitme/library-bundle/library-index";
@@ -68,7 +68,7 @@ const listPending = async (tx: Transaction, planIds?: readonly string[]) => {
 };
 
 /** Each looked-up slug's muscle groups; one the Library doesn't know has none. */
-type MuscleGroupsBySlug = Map<string, readonly MuscleGroup[]>;
+type MuscleGroupsBySlug = Map<string, readonly LegacyMuscleGroup[]>;
 
 interface CoverPlanOptions {
   covers: Parameters<typeof pickCovers>[0]["covers"];
@@ -220,7 +220,7 @@ const learnSlugs = async (
 
   for (const exercise of exercises) {
     // SAFETY: pickCovers only compares groups for equality, so one this build's MuscleGroup doesn't list is matched like any other.
-    known.set(exercise.slug, exercise.muscle_groups as MuscleGroup[]);
+    known.set(exercise.slug, exercise.muscle_groups as LegacyMuscleGroup[]);
   }
 
   // A slug the Library doesn't know trains nothing: the picker falls back to
@@ -260,7 +260,7 @@ export const backfillCovers = async ({
   const covers = indexCovers.map((cover) => ({
     id: cover.id,
     // SAFETY: as above, pickCovers only compares the groups for equality.
-    muscleGroups: cover.muscle_groups as MuscleGroup[],
+    muscleGroups: cover.muscle_groups as LegacyMuscleGroup[],
   }));
 
   const pending = await withService((tx) => listPending(tx, planIds));

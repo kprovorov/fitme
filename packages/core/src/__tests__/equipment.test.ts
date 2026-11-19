@@ -1,12 +1,12 @@
 import { describe, expect, it } from "vitest";
 
-import { equipment, isEquipment } from "../models";
-import type { Equipment } from "../models";
-import { equipmentToName } from "../utils";
+import { legacyEquipment, isLegacyEquipment } from "../models";
+import type { LegacyEquipment } from "../models";
+import { legacyEquipmentToName } from "../utils";
 
 describe("equipment catalog", () => {
   it("lists every Equipment in order", () => {
-    expect(equipment).toStrictEqual([
+    expect(legacyEquipment).toStrictEqual([
       "barbell",
       "dumbbell",
       "cable",
@@ -21,8 +21,8 @@ describe("equipment catalog", () => {
 });
 
 describe("equipment validation", () => {
-  it.each(equipment)("accepts %s", (value) => {
-    expect(isEquipment(value)).toBeTruthy();
+  it.each(legacyEquipment)("accepts %s", (value) => {
+    expect(isLegacyEquipment(value)).toBeTruthy();
   });
 
   it.each([
@@ -37,12 +37,12 @@ describe("equipment validation", () => {
     0,
     ["barbell"],
   ])("refuses %o", (value) => {
-    expect(isEquipment(value)).toBeFalsy();
+    expect(isLegacyEquipment(value)).toBeFalsy();
   });
 });
 
 describe("equipment display names", () => {
-  const names: Record<Equipment, string> = {
+  const names: Record<LegacyEquipment, string> = {
     barbell: "Barbell",
     bench: "Bench",
     bodyweight: "Bodyweight",
@@ -54,7 +54,7 @@ describe("equipment display names", () => {
     smith_machine: "Smith machine",
   };
 
-  it.each(equipment)("names %s", (value) => {
-    expect(equipmentToName(value)).toBe(names[value]);
+  it.each(legacyEquipment)("names %s", (value) => {
+    expect(legacyEquipmentToName(value)).toBe(names[value]);
   });
 });

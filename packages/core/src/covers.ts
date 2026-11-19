@@ -1,16 +1,16 @@
 /// <reference lib="es2023.array" />
 
-import type { MuscleGroup } from "./models";
+import type { LegacyMuscleGroup } from "./models";
 
 /** A Library Cover the picker can choose. */
 export interface CoverOption {
   id: string;
-  muscleGroups: readonly MuscleGroup[];
+  muscleGroups: readonly LegacyMuscleGroup[];
 }
 
 /** A Workout to cover: its Exercises' muscle groups, in Exercise order. */
 export interface CoverWorkout {
-  exercises: readonly { muscleGroups: readonly MuscleGroup[] }[];
+  exercises: readonly { muscleGroups: readonly LegacyMuscleGroup[] }[];
 }
 
 export interface PickCoversInput {
@@ -27,8 +27,10 @@ export interface PickCoversInput {
  * Exercise training it, and a tie goes to the group met first. The Cover
  * picker matches on it, and the Workout tab's cards badge it.
  */
-export const rankMuscleGroups = (workout: CoverWorkout): MuscleGroup[] => {
-  const counts = new Map<MuscleGroup, number>();
+export const rankMuscleGroups = (
+  workout: CoverWorkout
+): LegacyMuscleGroup[] => {
+  const counts = new Map<LegacyMuscleGroup, number>();
 
   for (const exercise of workout.exercises) {
     for (const group of new Set(exercise.muscleGroups)) {

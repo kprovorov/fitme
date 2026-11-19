@@ -1,7 +1,7 @@
 import { createHash } from "node:crypto";
 
-import { appLanguages, equipment } from "@fitme/core/models";
-import type { AppLanguage, MuscleGroup } from "@fitme/core/models";
+import { appLanguages, legacyEquipment } from "@fitme/core/models";
+import type { AppLanguage, LegacyMuscleGroup } from "@fitme/core/models";
 import type {
   BundleExercise,
   BundleMedia,
@@ -15,7 +15,7 @@ export interface ServedCover {
   id: string;
   /** On the render endpoint, so clients append `width`/`height`. */
   image_url: string;
-  muscle_groups: MuscleGroup[];
+  muscle_groups: LegacyMuscleGroup[];
 }
 
 /** The public Supabase Storage bucket the Library's media is uploaded to. */
@@ -80,7 +80,7 @@ export const coverObjectPath = (id: string, image: BundleMedia) =>
 const servedEquipment = (needed: BundleExercise["equipment"]) => {
   const neededEquipment = new Set(needed);
 
-  return equipment.filter((item) => neededEquipment.has(item));
+  return legacyEquipment.filter((item) => neededEquipment.has(item));
 };
 
 /**

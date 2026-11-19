@@ -1,4 +1,4 @@
-import type { MuscleGroup } from "@fitme/core";
+import type { LegacyMuscleGroup } from "@fitme/core";
 import { describe, expect, it } from "@jest/globals";
 import { act, renderHook } from "@testing-library/react-native";
 
@@ -54,15 +54,17 @@ describe("useChoiceLabels", () => {
   it("shows an id the catalogs don't have as itself", async () => {
     const { result } = await renderHook(useLabels);
 
-    expect(result.current.muscleGroup("neck" as MuscleGroup)).toBe("neck");
+    expect(result.current.muscleGroup("neck" as LegacyMuscleGroup)).toBe(
+      "neck"
+    );
   });
 
   it("shows an id holding a key separator as itself", async () => {
     const { result } = await renderHook(useLabels);
 
-    expect(result.current.muscleGroup("upper.back" as MuscleGroup)).toBe(
+    expect(result.current.muscleGroup("upper.back" as LegacyMuscleGroup)).toBe(
       "upper.back"
     );
-    expect(result.current.muscleGroup("x:y" as MuscleGroup)).toBe("x:y");
+    expect(result.current.muscleGroup("x:y" as LegacyMuscleGroup)).toBe("x:y");
   });
 });

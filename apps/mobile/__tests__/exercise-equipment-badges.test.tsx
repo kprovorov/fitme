@@ -9,7 +9,7 @@
  * Equipment id this build doesn't know arrives (the fake, like the API,
  * answers core's list only).
  */
-import type { Equipment } from "@fitme/core";
+import type { LegacyEquipment } from "@fitme/core";
 import { LibraryUnavailableError } from "@fitme/library-sdk";
 import type { Exercise } from "@fitme/library-sdk";
 import type { FakeLibrary } from "@fitme/library-sdk/fake";
@@ -148,7 +148,7 @@ describe("an Exercise read offline, from the copy kept on the device", () => {
     // fake, like the API, answers core's own list only.
     keptOnDevice({
       ...BENCH_PRESS,
-      equipment: ["barbell", "kettlebell" as Equipment],
+      equipment: ["barbell", "kettlebell" as LegacyEquipment],
     });
 
     await renderScreen("bench-press");

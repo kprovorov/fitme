@@ -1,6 +1,6 @@
 import { pickCovers } from "@fitme/core/covers";
 import { MAX_EXERCISE_SLUG_LENGTH } from "@fitme/core/limits";
-import type { MuscleGroup } from "@fitme/core/models";
+import type { LegacyMuscleGroup } from "@fitme/core/models";
 import type { IndexCover } from "@fitme/library-bundle/library-index";
 import { exerciseNameFromSlug } from "@fitme/library-sdk";
 import type { ExerciseSummary, Library } from "@fitme/library-sdk";
@@ -102,13 +102,13 @@ export const withCovers = <W extends { exercises: WithSlug[] }>(
     covers: checked.covers.map((cover) => ({
       id: cover.id,
       // SAFETY: pickCovers only compares muscle groups for equality, so one this build's MuscleGroup doesn't list is matched like any other.
-      muscleGroups: cover.muscle_groups as MuscleGroup[],
+      muscleGroups: cover.muscle_groups as LegacyMuscleGroup[],
     })),
     workouts: workouts.map((workout) => ({
       exercises: workout.exercises.map((exercise) => ({
         // SAFETY: as above, pickCovers only compares the groups for equality.
         muscleGroups: (checked.muscleGroups.get(exercise.exercise_slug) ??
-          []) as MuscleGroup[],
+          []) as LegacyMuscleGroup[],
       })),
     })),
   });
