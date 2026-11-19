@@ -1,4 +1,11 @@
-import type { LegacyEquipment, LegacyMuscleGroup } from "./models";
+import type {
+  Difficulty,
+  Equipment,
+  LegacyEquipment,
+  LegacyMuscleGroup,
+  MovementPattern,
+  MuscleGroup,
+} from "./models";
 
 export const range = (from: number, to: number): number[] =>
   Array.from({ length: to - from + 1 }, (_, i) => from + i);
@@ -140,3 +147,88 @@ export const legacyEquipmentToName = (item: LegacyEquipment): string => {
     }
   }
 };
+
+const MUSCLE_GROUP_NAMES: Record<MuscleGroup, string> = {
+  adductors: "Adductors",
+  back: "Back",
+  biceps: "Biceps",
+  calves: "Calves",
+  chest: "Chest",
+  core: "Core",
+  forearms: "Forearms",
+  glutes: "Glutes",
+  hamstrings: "Hamstrings",
+  "lower-back": "Lower back",
+  neck: "Neck",
+  quadriceps: "Quadriceps",
+  shoulders: "Shoulders",
+  tibialis: "Tibialis",
+  traps: "Traps",
+  triceps: "Triceps",
+};
+
+/** The English name of a Muscle group, for the servers (MCP, Arnold). */
+export const muscleGroupToName = (muscleGroup: MuscleGroup): string =>
+  MUSCLE_GROUP_NAMES[muscleGroup];
+
+const EQUIPMENT_NAMES: Record<Equipment, string> = {
+  backpack: "Backpack",
+  band: "Band",
+  barbell: "Barbell",
+  battle_ropes: "Battle ropes",
+  bench: "Bench",
+  bicycle: "Bicycle",
+  bodyweight: "Bodyweight",
+  box: "Box",
+  cable: "Cable",
+  dowel: "Dowel",
+  dumbbell: "Dumbbell",
+  foam_roller: "Foam roller",
+  kettlebell: "Kettlebell",
+  machine: "Machine",
+  medicine_ball: "Medicine ball",
+  parallel_bars: "Parallel bars",
+  pull_up_bar: "Pull-up bar",
+  sled: "Sled",
+  slider: "Slider",
+  stability_ball: "Stability ball",
+  towel: "Towel",
+  trx: "TRX",
+  weight_plate: "Weight plate",
+  wrist_roller: "Wrist roller",
+};
+
+/** The English name of a piece of Equipment, for the servers (MCP, Arnold). */
+export const equipmentToName = (item: Equipment): string =>
+  EQUIPMENT_NAMES[item];
+
+const MOVEMENT_PATTERN_NAMES: Record<MovementPattern, string> = {
+  cardio: "Cardio",
+  carry: "Carry",
+  core: "Core",
+  hinge: "Hinge",
+  hip_abduction: "Hip abduction",
+  isolation: "Isolation",
+  lunge: "Lunge",
+  mobility: "Mobility",
+  plyometric: "Plyometric",
+  pull: "Pull",
+  push: "Push",
+  rotation: "Rotation",
+  squat: "Squat",
+  stretch: "Stretch",
+};
+
+/** The English name of a movement pattern, for the servers (MCP, Arnold). */
+export const movementPatternToName = (pattern: MovementPattern): string =>
+  MOVEMENT_PATTERN_NAMES[pattern];
+
+const DIFFICULTY_NAMES: Record<Difficulty, string> = {
+  advanced: "Advanced",
+  beginner: "Beginner",
+  intermediate: "Intermediate",
+};
+
+/** The English name of a Difficulty, for the servers (MCP, Arnold). */
+export const difficultyToName = (difficulty: Difficulty): string =>
+  DIFFICULTY_NAMES[difficulty];

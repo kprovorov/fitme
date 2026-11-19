@@ -77,6 +77,94 @@ export type LegacyEquipment = (typeof legacyEquipment)[number];
 export const isLegacyEquipment = (value: unknown): value is LegacyEquipment =>
   legacyEquipment.some((item) => item === value);
 
+/**
+ * The Library's Muscle groups (GLOSSARY.md: Muscle group; ADR 0022), MoveKit's
+ * list. Nothing reads them yet: the Legacy Library's are `legacyMuscleGroups`.
+ */
+export const muscleGroups = [
+  "chest",
+  "back",
+  "shoulders",
+  "biceps",
+  "triceps",
+  "forearms",
+  "core",
+  "traps",
+  "lower-back",
+  "glutes",
+  "quadriceps",
+  "hamstrings",
+  "adductors",
+  "calves",
+  "tibialis",
+  "neck",
+] as const;
+
+export type MuscleGroup = (typeof muscleGroups)[number];
+
+/**
+ * The Library's Equipment (GLOSSARY.md: Equipment; ADR 0022), MoveKit's list:
+ * the gear an Exercise needs. `bodyweight` means the body is the load, not that
+ * nothing else is needed. Nothing reads it yet: the Legacy Library's is
+ * `legacyEquipment`.
+ */
+export const equipment = [
+  "bodyweight",
+  "dumbbell",
+  "barbell",
+  "machine",
+  "cable",
+  "kettlebell",
+  "band",
+  "bench",
+  "pull_up_bar",
+  "parallel_bars",
+  "bicycle",
+  "weight_plate",
+  "box",
+  "stability_ball",
+  "backpack",
+  "medicine_ball",
+  "sled",
+  "towel",
+  "trx",
+  "battle_ropes",
+  "dowel",
+  "slider",
+  "foam_roller",
+  "wrist_roller",
+] as const;
+
+export type Equipment = (typeof equipment)[number];
+
+/** The Library's movement patterns (ADR 0022), MoveKit's list. */
+export const movementPatterns = [
+  "isolation",
+  "push",
+  "pull",
+  "hinge",
+  "squat",
+  "mobility",
+  "cardio",
+  "core",
+  "lunge",
+  "plyometric",
+  "rotation",
+  "stretch",
+  "hip_abduction",
+  "carry",
+] as const;
+
+export type MovementPattern = (typeof movementPatterns)[number];
+
+/**
+ * How hard an Exercise is to learn and perform (GLOSSARY.md: Difficulty; ADR
+ * 0022). Not the User's `experienceLevels`, though the ids match.
+ */
+export const difficulties = ["beginner", "intermediate", "advanced"] as const;
+
+export type Difficulty = (typeof difficulties)[number];
+
 /** The languages Fitme speaks to a User in (GLOSSARY.md: App language). */
 export const appLanguages = [
   "en",
