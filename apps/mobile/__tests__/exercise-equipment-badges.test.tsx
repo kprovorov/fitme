@@ -1,8 +1,8 @@
 /**
- * The Equipment badges on the Exercise detail screen (FIT-606): once the
- * Exercise in full has loaded, the Equipment it needs shows as a row of
- * badges under the clip, in the order the Library answers (core's), named in
- * the App language. Content the Library hasn't tagged shows no row.
+ * The Equipment badges on the Exercise detail screen (FIT-606, FIT-758): once
+ * the Exercise in full has loaded, the Equipment it needs leads the row of
+ * badges under its name, in the order the Library answers (core's), named in
+ * the App language. Content the Library hasn't tagged shows none.
  *
  * The real screen on the fake Public API's Exercise routes, and on the MMKV
  * copy alone for a device that can't reach them, which is also the only way an
@@ -114,11 +114,11 @@ const renderScreen = async (exerciseSlug: string) => {
   await settle(client);
 };
 
-/** The badge labels in the row, in the order they're drawn. */
+/** The Equipment badges' labels in the row, in the order they're drawn. */
 const shownEquipment = () =>
-  within(screen.getByTestId("equipment-badges"))
-    .getAllByText(/\S/u)
-    .map((label) => label.props.children);
+  screen
+    .queryAllByTestId("equipment-badge")
+    .map((badge) => within(badge).getByText(/\S/u).props.children);
 
 beforeEach(() => {
   storage.clearAll();
@@ -132,12 +132,14 @@ describe("an Exercise's Equipment", () => {
     expect(shownEquipment()).toEqual(["Barbell", "Bench"]);
   });
 
-  it("shows no row at all for an Exercise the content hasn't tagged", async () => {
+  it("shows no Equipment badge for an Exercise the content hasn't tagged", async () => {
     await renderScreen("good-morning");
 
-    // The screen itself is there: it's only the row that isn't.
+    // The screen itself is there, and so is the row with its Difficulty:
+    // it's only the Equipment that isn't.
     expect(screen.getByText("About Good Morning")).toBeTruthy();
-    expect(screen.queryByTestId("equipment-badges")).toBeNull();
+    expect(screen.getByTestId("difficulty-badge")).toBeTruthy();
+    expect(shownEquipment()).toEqual([]);
   });
 
   it("names each piece in the App language", async () => {

@@ -1,21 +1,26 @@
+import { rateLimitedFor } from "@fitme/api-client";
 import { Stack, useLocalSearchParams } from "expo-router";
 import { useCallback } from "react";
 import { useTranslation } from "react-i18next";
 import { ActivityIndicator, ScrollView, View } from "react-native";
 
-import ExerciseVideo from "~/components/exercises/exercise-video";
+import { ExerciseUnavailable } from "~/components/exercises/exercise-unavailable";
 import { InstructionSteps } from "~/components/exercises/instruction-steps";
-import { Button } from "~/components/ui/button";
-import { Text } from "~/components/ui/text";
-import { Muted } from "~/components/ui/typography";
+import { TextListCard } from "~/components/exercises/text-list-card";
 import { useExercise, useExerciseDetailQuery } from "~/hooks/queries/library";
 
+/**
+ * An Exercise's guide, a form sheet over its detail screen or a Workout
+ * Session Exercise: the numbered steps, then the common mistakes (Figma's
+ * Exercise Guide frames, FIT-737).
+ */
 const ExerciseGuideScreen = () => {
   const { t } = useTranslation();
   const { exerciseSlug } = useLocalSearchParams<{ exerciseSlug: string }>();
 
   const {
     data: exercise,
+    error,
     isError,
     refetch,
   } = useExerciseDetailQuery(exerciseSlug);
@@ -29,49 +34,67 @@ const ExerciseGuideScreen = () => {
 
   const renderContent = () => {
     if (exercise) {
+      if (
+        exercise.steps.length === 0 &&
+        exercise.common_mistakes.length === 0
+      ) {
+        return (
+          <ExerciseUnavailable
+            message={t("exercise.guideEmpty")}
+            symbol="list.number"
+            title={t("exercise.guideEmptyTitle")}
+          />
+        );
+      }
+
       return (
-        <>
-          {exercise.video_url ? (
-            <View className="border-continuous w-full overflow-hidden rounded-2xl">
-              <ExerciseVideo url={exercise.video_url} />
-            </View>
-          ) : null}
-          {exercise.short_description ? (
-            <Muted>{exercise.short_description}</Muted>
-          ) : null}
+        <View className="gap-md px-sm pt-xs pb-md">
           <InstructionSteps steps={exercise.steps} />
-        </>
-      );
-    }
-
-    if (exercise === null) {
-      return (
-        <Text className="mt-lg text-center" variant="muted">
-          {t("exercise.gone")}
-        </Text>
-      );
-    }
-
-    if (isError) {
-      return (
-        <View className="gap-sm pt-lg items-center">
-          <Text className="text-center" variant="muted">
-            {t("exercise.loadError")}
-          </Text>
-          <Button
-            fill={false}
-            label={t("common.tryAgain")}
-            onPress={retry}
-            size="lg"
-            variant="secondary"
+          <TextListCard
+            gap="sm"
+            items={exercise.common_mistakes}
+            testID="exercise-common-mistakes"
+            title={t("exercise.commonMistakes")}
           />
         </View>
       );
     }
 
+    // The guide has no frame of its own for a missing Exercise: the detail
+    // screen's words, with no action, since the sheet is swiped away.
+    if (exercise === null) {
+      return (
+        <ExerciseUnavailable
+          message={t("exercise.gone")}
+          symbol="magnifyingglass"
+          title={t("exercise.notFoundTitle")}
+        />
+      );
+    }
+
+    if (isError) {
+      const waitSeconds = rateLimitedFor(error);
+
+      return (
+        <ExerciseUnavailable
+          action={{ label: t("common.tryAgain"), onPress: retry }}
+          message={
+            waitSeconds === null
+              ? t("exercise.checkConnection")
+              : t("common.rateLimited", { seconds: waitSeconds })
+          }
+          symbol="exclamationmark.triangle"
+          title={t("exercise.loadErrorTitle")}
+        />
+      );
+    }
+
     return (
       <View className="pt-lg items-center">
-        <ActivityIndicator colorClassName="accent-foreground" />
+        <ActivityIndicator
+          accessibilityLabel={t("exercise.spoken.loading")}
+          colorClassName="accent-foreground"
+        />
       </View>
     );
   };
@@ -88,7 +111,7 @@ const ExerciseGuideScreen = () => {
         }}
       />
       <ScrollView
-        contentContainerClassName="gap-sm p-md"
+        contentContainerClassName="grow"
         contentInsetAdjustmentBehavior="automatic"
       >
         {renderContent()}

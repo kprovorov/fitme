@@ -6,6 +6,7 @@ import type {
   LegacyEquipment,
   LegacyMuscleGroup,
   MeasurementSystem,
+  MovementPattern,
   MuscleGroup,
   Place,
 } from "@fitme/core";
@@ -28,6 +29,7 @@ export interface ChoiceLabels {
   goal: (id: Goal) => string;
   measurementSystem: (id: MeasurementSystem) => string;
   measurementSystemDescription: (id: MeasurementSystem) => string;
+  movementPattern: (id: MovementPattern) => string;
   muscleGroup: (id: LegacyMuscleGroup | MuscleGroup) => string;
   place: (id: Place) => string;
 }
@@ -59,6 +61,7 @@ export const choiceLabels = (t: TFunction): ChoiceLabels => {
     goal: label("goal"),
     measurementSystem: label("measurementSystem"),
     measurementSystemDescription: label("measurementSystemDescription"),
+    movementPattern: label("movementPattern"),
     muscleGroup: label("muscleGroup"),
     place: label("place"),
   };

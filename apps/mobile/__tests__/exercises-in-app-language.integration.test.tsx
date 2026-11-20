@@ -291,23 +291,20 @@ describe("a Workout Session", () => {
 });
 
 describe("an Exercise's detail screen", () => {
-  it("shows its Ukrainian name, description and instructions", async () => {
+  it("shows its Ukrainian name and description, the steps left to its guide", async () => {
     await renderScreen(ExerciseScreen, { exerciseSlug: "squat" });
 
     await expect(screen.findByText("Про присідання.")).resolves.toBeTruthy();
-    expect(screen.getByTestId("title")).toHaveTextContent("Присідання");
-    // The sheet's header names it; the content doesn't again (FIT-637).
+    // The content names it; the header doesn't again (FIT-758).
     expect(screen.getAllByText("Присідання")).toHaveLength(1);
-    expect(screen.getByText("Станьте.")).toBeTruthy();
-    expect(screen.getByText("Присядьте.")).toBeTruthy();
+    expect(screen.queryByText("Станьте.")).toBeNull();
   });
 
   it("shows an untranslated Exercise wholly in English", async () => {
     await renderScreen(ExerciseScreen, { exerciseSlug: "lunge" });
 
     await expect(screen.findByText("About Lunge")).resolves.toBeTruthy();
-    expect(screen.getByTestId("title")).toHaveTextContent("Lunge");
-    expect(screen.getByText("Do Lunge")).toBeTruthy();
+    expect(screen.getByText("Lunge")).toBeTruthy();
   });
 
   it("follows the App language when it changes", async () => {
@@ -317,27 +314,26 @@ describe("an Exercise's detail screen", () => {
     await switchDeviceTo("en-US");
 
     await expect(screen.findByText("About Squat")).resolves.toBeTruthy();
-    expect(screen.getByTestId("title")).toHaveTextContent("Squat");
+    expect(screen.getByText("Squat")).toBeTruthy();
   });
 });
 
 describe("an Exercise's guide", () => {
-  it("shows its Ukrainian name, description and steps", async () => {
+  it("shows its Ukrainian name and steps", async () => {
     await renderScreen(ExerciseGuideScreen, { exerciseSlug: "squat" });
 
-    await expect(screen.findByText("Про присідання.")).resolves.toBeTruthy();
+    await expect(screen.findByText("Станьте.")).resolves.toBeTruthy();
     expect(screen.getByTestId("title")).toHaveTextContent("Присідання");
     // The sheet's header names it; the content doesn't again (FIT-637).
     expect(screen.getAllByText("Присідання")).toHaveLength(1);
-    expect(screen.getByText("Станьте.")).toBeTruthy();
     expect(screen.getByText("Присядьте.")).toBeTruthy();
   });
 
   it("shows an untranslated Exercise wholly in English", async () => {
     await renderScreen(ExerciseGuideScreen, { exerciseSlug: "lunge" });
 
-    await expect(screen.findByText("About Lunge")).resolves.toBeTruthy();
-    expect(screen.getByText("Do Lunge")).toBeTruthy();
+    await expect(screen.findByText("Do Lunge")).resolves.toBeTruthy();
+    expect(screen.getByTestId("title")).toHaveTextContent("Lunge");
   });
 });
 
