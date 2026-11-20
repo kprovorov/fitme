@@ -4,6 +4,7 @@ import { useCallback, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { View } from "react-native";
 
+import { SetNumberInput } from "~/components/forms/set-number-input";
 import {
   SET_CHECK_COLUMN_CLASS,
   SET_NUMBER_COLUMN_CLASS,
@@ -12,7 +13,6 @@ import {
 } from "~/components/forms/workout-exercise-set-form";
 import { Button } from "~/components/ui/button";
 import { ErrorMessage } from "~/components/ui/error-message";
-import { Input } from "~/components/ui/input";
 import { Text } from "~/components/ui/text";
 import { useI18n } from "~/lib/i18n";
 import {
@@ -23,12 +23,6 @@ import {
 } from "~/lib/plan-draft";
 import type { DraftChange, DraftSet, DraftSetTarget } from "~/lib/plan-draft";
 import { decimalsOf, formatSetWeight, planTargetValue } from "~/lib/set-inputs";
-
-/** A target cell: the three share the width the other columns leave. */
-const CELL_CLASS = "h-10 flex-1";
-
-/** A cell's input: sized and aligned for the set table's numbers. */
-const INPUT_CLASS = "min-h-10 text-center";
 
 const TARGETS = ["reps", "weight", "rest"] as const;
 
@@ -69,11 +63,14 @@ const TargetField = ({
   );
 
   return (
-    <Input
+    <SetNumberInput
       accessibilityLabel={accessibilityLabel}
       autoCapitalize="none"
-      className={INPUT_CLASS}
-      containerClassName={CELL_CLASS}
+      // The targets share the width the other columns leave, the weight
+      // twice the reps' or the rest's: it holds the longest number
+      // (`10000.55`), so the largest one still reads at close to the body
+      // size on the narrowest iPhone. `SetColumns` lines up with these.
+      containerClassName={target === "weight" ? "h-10 flex-2" : "h-10 flex-1"}
       error={!isValid}
       keyboardType={target === "weight" ? "decimal-pad" : "number-pad"}
       maxFontSizeMultiplier={SET_TABLE_MAX_FONT_SCALE}
@@ -181,7 +178,7 @@ const DraftSetRow = ({
 
   return (
     <View className="gap-1">
-      <View className="gap-sm flex-row items-center">
+      <View className="gap-xs flex-row items-center">
         <View className={SET_NUMBER_COLUMN_CLASS}>
           <Text
             adjustsFontSizeToFit

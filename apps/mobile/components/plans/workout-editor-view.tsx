@@ -38,14 +38,17 @@ import {
   SET_TABLE_MAX_FONT_SCALE,
 } from "../forms/workout-exercise-set-form";
 
-/** The set table's column headings, lined up with `DraftSetRow`'s cells. */
+/**
+ * The set table's column headings, lined up with `DraftSetRow`'s cells: the
+ * same gap, and the weight twice as wide as the reps or the rest.
+ */
 const SetColumns = ({ weightLabel }: { weightLabel: string }) => {
   const { t } = useTranslation();
 
   return (
     <View
       accessibilityElementsHidden
-      className="gap-sm flex-row items-center"
+      className="gap-xs flex-row items-center"
       importantForAccessibility="no-hide-descendants"
     >
       <View className={SET_NUMBER_COLUMN_CLASS} />
@@ -57,7 +60,7 @@ const SetColumns = ({ weightLabel }: { weightLabel: string }) => {
         {t("sets.columns.reps")}
       </Text>
       <Text
-        className="flex-1 text-center"
+        className="flex-2 text-center"
         maxFontSizeMultiplier={SET_TABLE_MAX_FONT_SCALE}
         variant="small"
       >

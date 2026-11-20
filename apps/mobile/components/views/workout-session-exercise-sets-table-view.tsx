@@ -119,13 +119,13 @@ const WorkoutSessionExerciseSetsTableView = ({
     <View className="gap-sm flex flex-col items-stretch justify-center">
       <View
         accessibilityElementsHidden
-        className="gap-sm flex-row items-center"
+        className="gap-xs flex-row items-center"
         importantForAccessibility="no-hide-descendants"
       >
         <ColumnLabel className="w-7">#</ColumnLabel>
         <ColumnLabel className="w-20">{t("sets.columns.target")}</ColumnLabel>
         <ColumnLabel className="flex-1">{t("sets.columns.reps")}</ColumnLabel>
-        <ColumnLabel className="flex-1">{weightLabel}</ColumnLabel>
+        <ColumnLabel className="flex-2">{weightLabel}</ColumnLabel>
         <View className={SET_CHECK_COLUMN_CLASS} />
       </View>
 

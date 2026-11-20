@@ -20,8 +20,8 @@ import { cn } from "~/lib/utils";
 
 import { Button } from "../ui/button";
 import { ErrorMessage } from "../ui/error-message";
-import { Input } from "../ui/input";
 import { Text } from "../ui/text";
+import { SetNumberInput } from "./set-number-input";
 
 interface WorkoutSessionExerciseSetFormProps {
   disabled?: boolean;
@@ -75,8 +75,12 @@ export const SET_TABLE_MAX_FONT_SCALE = 1.4;
  */
 const CELL_CLASS = "h-10 flex-1";
 
-/** A cell's input: Input's field, sized and set for numbers. */
-const INPUT_CLASS = "min-h-10 px-1 text-center text-mono-body";
+/**
+ * The KG cell: twice the REPS cell, since it holds the longest number
+ * (`10000.55`), so the largest one reads in full on the narrowest iPhone.
+ * The table's headings use the same split.
+ */
+const WEIGHT_CELL_CLASS = "h-10 flex-2";
 
 /** Width of a set table's `#` column: the set number, or a logged set's check. */
 export const SET_NUMBER_COLUMN_CLASS = "w-7";
@@ -126,14 +130,22 @@ export const SetCheckCell = ({
  * A logged value, shown dimmed in place of its input until the set is
  * edited: a ghost Input's box, with no stroke.
  */
-const LoggedValue = ({ value }: { value?: string }) => (
+const LoggedValue = ({
+  value,
+  wide = false,
+}: {
+  value?: string;
+  /** The KG cell, twice as wide. */
+  wide?: boolean;
+}) => (
   <View
     className={cn(
-      CELL_CLASS,
+      wide ? WEIGHT_CELL_CLASS : CELL_CLASS,
       "border-continuous items-center justify-center rounded-lg border border-transparent opacity-50"
     )}
   >
     <Text
+      adjustsFontSizeToFit
       className="text-mono-body"
       maxFontSizeMultiplier={SET_TABLE_MAX_FONT_SCALE}
       numberOfLines={1}
@@ -214,10 +226,9 @@ const WorkoutSessionExerciseSetForm = ({
       >;
       fieldState: ControllerFieldState;
     }) => (
-      <Input
+      <SetNumberInput
         accessibilityLabel={t("sets.row.weightInput", { order: setIndex })}
-        className={INPUT_CLASS}
-        containerClassName={CELL_CLASS}
+        containerClassName={WEIGHT_CELL_CLASS}
         editable={!isFormDisabled}
         error={!!fieldError}
         keyboardType="decimal-pad"
@@ -242,10 +253,9 @@ const WorkoutSessionExerciseSetForm = ({
       field: ControllerRenderProps<WorkoutSessionExerciseSetFormInput, "reps">;
       fieldState: ControllerFieldState;
     }) => (
-      <Input
+      <SetNumberInput
         accessibilityLabel={t("sets.row.repsInput", { order: setIndex })}
         autoCapitalize="none"
-        className={INPUT_CLASS}
         containerClassName={CELL_CLASS}
         editable={!isFormDisabled}
         error={!!fieldError}
@@ -308,7 +318,9 @@ const WorkoutSessionExerciseSetForm = ({
 
   return (
     <View className="gap-1">
-      <View className="gap-sm flex-row items-center">
+      {/* `gap-xs`, so a long weight still reads at close to the body size on
+        the narrowest iPhone; the table's headings use the same gap. */}
+      <View className="gap-xs flex-row items-center">
         {leading}
         {showsLoggedValues ? (
           <LoggedValue value={recommendedValues?.reps} />
@@ -320,7 +332,7 @@ const WorkoutSessionExerciseSetForm = ({
           />
         )}
         {showsLoggedValues ? (
-          <LoggedValue value={recommendedValues?.weight} />
+          <LoggedValue value={recommendedValues?.weight} wide />
         ) : (
           <Controller
             control={form.control}
