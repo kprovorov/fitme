@@ -15,6 +15,7 @@ import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
 import PlanEditorView from "~/components/plans/plan-editor-view";
 import { Button } from "~/components/ui/button";
 import { Text } from "~/components/ui/text";
+import { useHeaderItemColors } from "~/hooks/header-item-colors";
 import { useSavePlanMutation } from "~/hooks/mutations/plans";
 import {
   getPlanDraft,
@@ -144,6 +145,7 @@ const PlanEditorScreen = () => {
   const router = useRouter();
   const navigation = useNavigation();
   const { t } = useTranslation();
+  const itemColors = useHeaderItemColors();
 
   // One draft per opening, thrown away with the Screen.
   const draftKey = useId();
@@ -424,16 +426,17 @@ const PlanEditorScreen = () => {
 
   const headerItems = () => [
     {
+      ...itemColors.prominent,
       disabled: !isSavable || isSaving,
       label: t("planEditor.save"),
       onPress: save,
       type: "button" as const,
-      variant: "prominent" as const,
     },
   ];
 
   const cancelItems = () => [
     {
+      ...itemColors.plain,
       // A create is on its way and can't be called back: leaving now would
       // make the Plan, and make it active, with nothing on screen to say so.
       disabled: isCreatingPlan,

@@ -18,6 +18,7 @@ import { Label } from "~/components/ui/label";
 import { Text } from "~/components/ui/text";
 import { H4 } from "~/components/ui/typography";
 import { VStack } from "~/components/ui/vstack";
+import { useHeaderItemColors } from "~/hooks/header-item-colors";
 import { useIsProQuery } from "~/hooks/revenueCat";
 import { isPlanNumberIn, NEW_PLAN_ID, wholePlanNumber } from "~/lib/plan-draft";
 
@@ -148,34 +149,38 @@ const CreatePlanScreen = () => {
     });
   }, [canContinue, frequency, router, trimmedName]);
 
+  const itemColors = useHeaderItemColors();
+
   const leftItems = useMemo(
     () => () => [
       isNaming
         ? {
+            ...itemColors.plain,
             label: t("planBuilder.back"),
             onPress: backToChoice,
             type: "button" as const,
           }
         : {
+            ...itemColors.plain,
             label: t("common.cancel"),
             onPress: cancel,
             type: "button" as const,
           },
     ],
-    [backToChoice, cancel, isNaming, t]
+    [backToChoice, cancel, isNaming, itemColors, t]
   );
 
   const rightItems = useMemo(
     () => () => [
       {
+        ...itemColors.prominent,
         disabled: !canContinue,
         label: t("planBuilder.continue"),
         onPress: start,
         type: "button" as const,
-        variant: "prominent" as const,
       },
     ],
-    [canContinue, start, t]
+    [canContinue, itemColors, start, t]
   );
 
   return (

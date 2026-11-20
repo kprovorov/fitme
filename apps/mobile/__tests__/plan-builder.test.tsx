@@ -161,6 +161,13 @@ jest.mock("~/components/ui/select", () =>
 
 jest.mock("~/lib/segment", () => ({ segmentClient: { track: jest.fn() } }));
 
+// uniwind resolves no theme values under Jest, so each token answers its own
+// name: a tint of "--color-primary" is the lime accent.
+jest.mock("uniwind", () => ({
+  ...jest.requireActual<typeof import("uniwind")>("uniwind"),
+  useCSSVariable: (name: string) => name,
+}));
+
 const CREATE = "POST /v1/plans" as const;
 
 const BUILDER_ROUTES = {
@@ -329,6 +336,39 @@ describe("the create sheet", () => {
     }
 
     expect(screen.getByText("New Plan")).toBeTruthy();
+  });
+
+  it("draws Continue and Save in the lime accent and Back and Cancel in the foreground", async () => {
+    const lime = {
+      labelColor: "--color-primary-foreground",
+      tintColor: "--color-primary",
+    };
+
+    const plain = {
+      labelColor: "--color-foreground",
+      tintColor: "--color-foreground",
+    };
+
+    await openChoice();
+    expect(screen.getByLabelText("Cancel").props).toMatchObject(plain);
+
+    await press("Build it yourself");
+    // Without its own tint iOS draws a prominent item in system blue (FIT-765).
+    expect(screen.getByLabelText("Continue").props).toMatchObject({
+      ...lime,
+      variant: "prominent",
+    });
+    expect(screen.getByLabelText("Back").props).toMatchObject(plain);
+
+    await type("new-plan-name", "Full body");
+    await press("Continue");
+    expect(screen.getByLabelText("Save").props).toMatchObject({
+      ...lime,
+      variant: "prominent",
+    });
+    expect(screen.getAllByLabelText("Cancel").at(-1)?.props).toMatchObject(
+      plain
+    );
   });
 
   it("opens the editor on one empty lettered Workout per weekly session", async () => {
