@@ -30,6 +30,7 @@ import {
 } from "react";
 import type { ComponentType, ReactElement, Ref } from "react";
 import { Pressable, Text } from "react-native";
+import type { PressableProps } from "react-native";
 import type { SearchBarCommands, SearchBarProps } from "react-native-screens";
 import { z } from "zod";
 
@@ -235,10 +236,25 @@ interface HeaderItem {
   /** A disabled item is rendered disabled, so pressing it does nothing. */
   disabled?: boolean;
   label: string;
+  /** The label's color, kept on the button for a test to read. */
+  labelStyle?: { color?: string };
   /** A menu item: its own button opens the menu, as the native one does. */
   menu?: { items: HeaderItem[] };
   onPress?: () => void;
+  /** The item's tint, kept on the button for a test to read. */
+  tintColor?: string;
+  /** `prominent` for the Screen's one action, kept for a test to read. */
+  variant?: "plain" | "done" | "prominent";
 }
+
+/**
+ * `Pressable` taking the item's colors as props it hands to its host view,
+ * where a test reads them (`getByLabelText("Save").props.tintColor`).
+ */
+// SAFETY: Pressable spreads every prop it doesn't know onto its host View, so these reach the rendered tree untouched.
+const ReadablePressable = Pressable as ComponentType<
+  PressableProps & { labelColor?: string; tintColor?: string; variant?: string }
+>;
 
 const HeaderButton = ({
   item,
@@ -250,11 +266,14 @@ const HeaderButton = ({
   const { onPress: handlePress } = item;
 
   return (
-    <Pressable
+    <ReadablePressable
       accessibilityLabel={item.accessibilityLabel ?? item.label}
       accessibilityRole={role}
       disabled={item.disabled}
+      labelColor={item.labelStyle?.color}
       onPress={handlePress}
+      tintColor={item.tintColor}
+      variant={item.variant}
     />
   );
 };
