@@ -27,6 +27,7 @@ import { segmentClient } from "~/lib/segment";
 import { showToast } from "~/lib/toast";
 
 const RESEND_DELAY = 60_000;
+const CODE_LENGTH = 6;
 
 interface CodeVerification {
   available: boolean;
@@ -471,23 +472,33 @@ const CodeVerificationContent = ({
     [changingEmail, flow, operation, restartHref]
   );
 
-  const handleVerify = useCallback(
-    () =>
+  const verify = useCallback(
+    (value: string) =>
       operation.run("verify", (current) => {
         setNotice(undefined);
 
-        return flow.verify(code, current);
+        return flow.verify(value, current);
       }),
-    [code, flow, operation]
+    [flow, operation]
   );
 
+  const handleVerify = useCallback(() => verify(code), [code, verify]);
+
+  // The 6th digit (typed, pasted or AutoFilled) submits the code once. A
+  // change that leaves the code as it was (a wrong code still in the field)
+  // submits nothing: Verify retries it.
   const changeCode = useCallback(
     (value: string) => {
+      const changed = value !== code;
       setCode(value);
       setNotice(undefined);
       operation.clearError();
+
+      if (changed && value.length === CODE_LENGTH) {
+        void verify(value);
+      }
     },
-    [operation]
+    [code, operation, verify]
   );
 
   const resendCode = useCallback(
@@ -565,7 +576,7 @@ const CodeVerificationContent = ({
                 ? "verifyCode.loading"
                 : "verifyCode.verify"
             )}
-            disabled={code.length !== 6 || operation.pending !== null}
+            disabled={code.length !== CODE_LENGTH || operation.pending !== null}
             isLoading={operation.pending === "verify"}
             label={t("verifyCode.verify")}
             onPress={(...args) => {

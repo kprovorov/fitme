@@ -98,9 +98,9 @@ const renderInUkrainian = async (view: ReactNode) => {
   await render(<InAppLanguage>{view}</InAppLanguage>);
 };
 
+/** Types the code: the 6th digit submits it, with no tap on Verify. */
 const enterCode = async (code: string) => {
   await fireEvent.changeText(screen.getByPlaceholderText("Код"), code);
-  await fireEvent.press(screen.getByRole("button", { name: "Підтвердити" }));
 };
 
 beforeEach(() => {
@@ -133,6 +133,7 @@ describe("the emailed-code screen in Ukrainian", () => {
         "Не вдалося завершити створення акаунта. Спробуйте ще раз."
       )
     ).toBeTruthy();
+    expect(mockSignUp.verifications.verifyEmailCode).toHaveBeenCalledTimes(1);
   });
 
   it("asks for the reset code and says when it can't verify it", async () => {
@@ -149,6 +150,9 @@ describe("the emailed-code screen in Ukrainian", () => {
     expect(
       screen.getByText("Не вдалося перевірити код. Спробуйте ще раз.")
     ).toBeTruthy();
+    expect(mockSignIn.resetPasswordEmailCode.verifyCode).toHaveBeenCalledTimes(
+      1
+    );
   });
 
   it("asks for the new-device code and says when it can't sign in", async () => {
@@ -167,6 +171,7 @@ describe("the emailed-code screen in Ukrainian", () => {
     expect(
       screen.getByText("Не вдалося увійти. Спробуйте ще раз.")
     ).toBeTruthy();
+    expect(mockSignIn.mfa.verifyEmailCode).toHaveBeenCalledTimes(1);
   });
 
   it("sends a new code and says so", async () => {
