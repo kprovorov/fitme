@@ -175,9 +175,9 @@ describe.each(["en", "uk"] as const)("Change Email (%s)", (language) => {
     await expect(screen.findByText(text.title)).resolves.toBeOnTheScreen();
   };
 
+  /** Types the code: the 6th digit submits it, with no tap on Verify. */
   const enterCode = async (code: string) => {
     await fireEvent.changeText(screen.getByLabelText(text.code), code);
-    await fireEvent.press(screen.getByRole("button", { name: text.verify }));
   };
 
   beforeEach(() => {
@@ -366,6 +366,9 @@ describe.each(["en", "uk"] as const)("Change Email (%s)", (language) => {
 
     await expect(screen.findByText(text.wrongCode)).resolves.toBeOnTheScreen();
     expect(methods()).not.toContain("update");
+    expect(
+      methods().filter((m) => m === "attemptEmailVerification")
+    ).toHaveLength(1);
     expect(addresses()[0]).toEqual({ emailAddress: OLD_EMAIL, primary: true });
 
     // The right code still goes through.

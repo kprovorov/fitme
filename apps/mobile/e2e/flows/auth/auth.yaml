@@ -71,10 +71,8 @@ env:
 - runFlow: ../../subflows/dismiss-save-password.yaml
 - tapOn:
     id: "verify-code-input"
+# The 6th digit submits the code.
 - inputText: "000000"
-- runFlow: ../../subflows/dismiss-save-password.yaml
-- tapOn:
-    id: "verify-code-button"
 
 - extendedWaitUntil:
     visible:
@@ -100,9 +98,6 @@ env:
     id: "verify-code-input"
 - eraseText: 10
 - inputText: "424242"
-- runFlow: ../../subflows/dismiss-save-password.yaml
-- tapOn:
-    id: "verify-code-button"
 
 # Lands on onboarding (no Profile yet), iOS may offer to save the password
 # first. Skip to Home.

@@ -111,9 +111,9 @@ jest.mock("~/components/ui/button", () =>
   jest.requireActual("~/test-utils/button-stub")
 );
 
+/** Types the code: the 6th digit submits it. */
 const enterCode = async (code: string) => {
   await fireEvent.changeText(screen.getByLabelText("Code"), code);
-  await fireEvent.press(screen.getByRole("button", { name: "Verify" }));
 };
 
 const allowResend = () =>
@@ -136,37 +136,76 @@ afterEach(() => {
 });
 
 describe("email verification", () => {
-  it("names the destination and activates the User after an explicit six-digit verification", async () => {
+  it("names the destination and activates the User once the 6th digit is in", async () => {
     await render(<VerifyCodeView purpose="sign-up" />);
     expect(
       screen.getByText("Enter the 6-digit code we sent to tony@example.com")
     ).toBeTruthy();
     await fireEvent.changeText(screen.getByLabelText("Code"), "42424");
     expect(screen.getByRole("button", { name: "Verify" })).toBeDisabled();
+    expect(mockSignUp.verifications.verifyEmailCode).not.toHaveBeenCalled();
     await enterCode(EMAILED_CODE);
+    expect(mockSignUp.verifications.verifyEmailCode).toHaveBeenCalledTimes(1);
     expect(mockSignUp.finalize).toHaveBeenCalledTimes(1);
   });
 
-  it("shows a wrong-code error and clears it on edit before a successful retry", async () => {
+  it("shows a wrong code once, submits nothing more until the code changes, then retries", async () => {
     await render(<VerifyCodeView purpose="sign-up" />);
     await enterCode("000000");
     expect(screen.getByText("Incorrect code")).toBeTruthy();
-    await fireEvent.changeText(screen.getByLabelText("Code"), EMAILED_CODE);
+    expect(mockSignUp.verifications.verifyEmailCode).toHaveBeenCalledTimes(1);
+
+    // The same code again (the field re-reporting it) submits nothing.
+    await enterCode("000000");
+    expect(mockSignUp.verifications.verifyEmailCode).toHaveBeenCalledTimes(1);
+
+    // Verify retries it.
+    await fireEvent.press(screen.getByRole("button", { name: "Verify" }));
+    expect(mockSignUp.verifications.verifyEmailCode).toHaveBeenCalledTimes(2);
+
+    // Deleting a digit clears the error; the new 6th digit submits.
+    await fireEvent.changeText(screen.getByLabelText("Code"), "00000");
     expect(screen.queryByText("Incorrect code")).toBeNull();
     expect(mockSignUp.finalize).not.toHaveBeenCalled();
-    await fireEvent.press(screen.getByRole("button", { name: "Verify" }));
+    await enterCode(EMAILED_CODE);
+    expect(mockSignUp.verifications.verifyEmailCode).toHaveBeenCalledTimes(3);
     expect(mockSignUp.finalize).toHaveBeenCalledTimes(1);
   });
 
-  it("sanitizes a pasted code and never auto-submits it", async () => {
+  it("sanitizes a pasted code and submits it once", async () => {
     await render(<VerifyCodeView purpose="sign-up" />);
     await fireEvent.changeText(screen.getByLabelText("Code"), "42 42 42extra");
     expect(screen.getByLabelText("Code")).toHaveProp("value", EMAILED_CODE);
-    expect(mockSignUp.verifications.verifyEmailCode).not.toHaveBeenCalled();
-    await fireEvent.press(screen.getByRole("button", { name: "Verify" }));
+    expect(mockSignUp.verifications.verifyEmailCode).toHaveBeenCalledTimes(1);
     expect(mockSignUp.verifications.verifyEmailCode).toHaveBeenCalledWith({
       code: EMAILED_CODE,
     });
+  });
+
+  it("never submits twice while a code is being checked", async () => {
+    let answer: (value: { error: null }) => void = () => undefined;
+    mockSignUp.verifications.verifyEmailCode.mockImplementationOnce(
+      () =>
+        new Promise<{ error: null }>((resolve) => {
+          answer = resolve;
+        })
+    );
+    await render(<VerifyCodeView purpose="sign-up" />);
+
+    try {
+      await enterCode("000000");
+      expect(screen.getByLabelText("Code")).toHaveProp("editable", false);
+      expect(screen.getByRole("button", { name: "Verifying" })).toBeDisabled();
+      await fireEvent.changeText(screen.getByLabelText("Code"), "111111");
+      await fireEvent.press(screen.getByTestId("verify-code-button"));
+      expect(mockSignUp.verifications.verifyEmailCode).toHaveBeenCalledTimes(1);
+    } finally {
+      // Releases the pending check, which is shared across screens.
+      await act(async () => {
+        answer({ error: null });
+        await Promise.resolve();
+      });
+    }
   });
 
   it("waits before resend, then clears digits and starts a new cooldown", async () => {

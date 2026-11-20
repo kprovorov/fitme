@@ -42,9 +42,8 @@ appId: com.fitmeproject.ios
     commands:
       - tapOn:
           id: "verify-code-input"
+      # The 6th digit submits the code.
       - inputText: "424242"
-      - tapOn:
-          id: "verify-code-button"
 
 # iOS may offer to save the password once the form is gone; its sheet hides
 # the screen behind it
