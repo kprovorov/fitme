@@ -55,6 +55,12 @@ void describe("cd", () => {
     "pnpm install && cd apps/api && pnpm test",
     "cd -P apps/mobile && ls",
     "(cd apps/mobile && pnpm test)",
+    "cd apps/mobile",
+    "cd ../..",
+    "cd ..",
+    "cd -P apps/mobile",
+    "cd apps/mobile &",
+    "pnpm install || cd apps/api",
   ]) {
     void test(`refuses ${command}`, () => {
       assert.deepEqual(rulesBroken(command), ["cd"]);
@@ -65,7 +71,12 @@ void describe("cd", () => {
     "cd /Users/me/fitme/apps/mobile && pnpm test",
     "cd ~/fitme && pnpm test",
     "cd $HOME/fitme && pnpm test",
-    "cd apps/mobile",
+    "cd /Users/me/fitme/apps/mobile",
+    "cd ~/fitme",
+    "cd ~",
+    "cd $HOME/fitme",
+    "cd",
+    "cd -",
     "cd && ls",
     "git -C apps/mobile status",
     "pnpm --filter @fitme/mobile test",
