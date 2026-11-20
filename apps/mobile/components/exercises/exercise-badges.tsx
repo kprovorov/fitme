@@ -61,13 +61,20 @@ export const ExerciseBadges = ({
         testID: "equipment-badge",
       };
     }),
-    {
-      icon: "chart.bar.fill",
-      key: `difficulty:${difficulty}`,
-      label: difficultyLabel,
-      spoken: t("exercise.spoken.difficulty", { difficulty: difficultyLabel }),
-      testID: "difficulty-badge",
-    },
+    // A copy kept on the device can carry a blank one, which says nothing.
+    ...(difficulty.trim()
+      ? [
+          {
+            icon: "chart.bar.fill" as const,
+            key: `difficulty:${difficulty}`,
+            label: difficultyLabel,
+            spoken: t("exercise.spoken.difficulty", {
+              difficulty: difficultyLabel,
+            }),
+            testID: "difficulty-badge",
+          },
+        ]
+      : []),
     ...movementPatterns.map((pattern) => {
       const label = labels.movementPattern(pattern);
 
