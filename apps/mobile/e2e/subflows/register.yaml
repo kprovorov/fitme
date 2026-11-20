@@ -48,9 +48,7 @@ appId: com.fitmeproject.ios
 - runFlow: dismiss-save-password.yaml
 - tapOn:
     id: "verify-code-input"
+# The 6th digit submits the code.
 - inputText: "424242"
-- runFlow: dismiss-save-password.yaml
-- tapOn:
-    id: "verify-code-button"
 
 - waitForAnimationToEnd
