@@ -23,7 +23,7 @@ import {
   within,
 } from "@testing-library/react-native";
 import type { ReactNode } from "react";
-import { Alert } from "react-native";
+import { Alert, Dimensions } from "react-native";
 
 import MusclesSheet from "~/app/muscles";
 import PlanExercisePickerScreen from "~/app/plans/[planId]/edit/exercise-picker";
@@ -563,6 +563,37 @@ describe("the sets of an Exercise", () => {
 
     expect(card().getByText("Weight can have at most 2 decimals")).toBeTruthy();
     expect(screen.getByLabelText("Save")).toBeDisabled();
+  });
+
+  it("shrinks a long weight to fit its field rather than clipping it", async () => {
+    await openEditor();
+    await openWorkout("Day A");
+
+    const field = () => card().getByTestId("draft-set-weight-1");
+
+    const fontSize = () =>
+      (field().props.style as { fontSize?: number } | undefined)?.fontSize;
+
+    // The weight's field on the narrowest iPhone: twice a third of a row's
+    // targets.
+    await act(() => {
+      void fireEvent(field(), "layout", {
+        nativeEvent: { layout: { height: 40, width: 103 } },
+      });
+    });
+
+    expect(fontSize()).toBeUndefined();
+
+    await typeSet("draft-set-weight-1", "10000.555");
+
+    // Nine characters and the caret, in IBM Plex Mono (0.6 em each), at the
+    // text scale the table is drawn at (Jest's window answers 2; the table
+    // stops at 1.4).
+    const scale = Math.min(Dimensions.get("window").fontScale, 1.4);
+    const size = fontSize() ?? Number.NaN;
+    expect(size).toBeLessThan(17);
+    expect(10 * size * 0.6 * scale).toBeLessThanOrEqual(103 - 10);
+    expect(field().props.value).toBe("10000.555");
   });
 
   it("says why Save is off for a target the Plan was loaded with", async () => {
