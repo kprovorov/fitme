@@ -979,8 +979,8 @@ const unwrap = (words) => {
 };
 
 // `$VAR/…` may well be absolute: only a plain relative path is refused.
+// `cd` alone (home) and `cd -` (the previous directory) have no operand here.
 const NOT_RELATIVE = /^[/~$]/u;
-const CD_CHAINS = new Set(["&&", ";", "\n"]);
 
 // The directory `cd` changes to: its first operand, past options like `-P`.
 /** @type {(words: string[]) => string | undefined} */
@@ -1921,8 +1921,8 @@ const CHECKS = [
     scope: "parsed",
   },
   {
-    breaks: ({ name, words, operator }) => {
-      if (name !== "cd" || operator === null || !CD_CHAINS.has(operator)) {
+    breaks: ({ name, words }) => {
+      if (name !== "cd") {
         return false;
       }
 
@@ -1931,7 +1931,7 @@ const CHECKS = [
       return target !== undefined && !NOT_RELATIVE.test(target);
     },
     reason:
-      "AGENTS.md Shell: never `cd` to a relative path before `&&`, `;` or another line, the working directory carries over between calls: use an absolute path, `git -C <path>` or `pnpm --filter <package>`.",
+      "AGENTS.md Shell: never `cd` to a relative path, chained or not: the working directory carries over between calls, so the next relative `cd` or path lands somewhere else. Use an absolute path, `git -C <path>` or `pnpm --filter <package>`.",
     rule: "cd",
   },
   {
