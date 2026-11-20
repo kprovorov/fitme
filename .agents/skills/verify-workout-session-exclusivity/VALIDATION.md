@@ -1,4 +1,55 @@
-# Validation, 2026-11-19
+# Validation, 2026-11-20
+
+## Maintenance against current main
+
+**Outcome: in sync. Model, property, bounds and runner unchanged; one row added to the coverage record (the one-off Exercise slug rewrite); no current-code exclusivity violation found within the stated bounds.**
+
+Audited source: `6e515a7f8fef85040dbe24b28e8f7a2eb46a54a5`, equal to `origin/main` after `git fetch` on 2026-11-20. Previous sync: `b1eb1a0b61bb096e3e689f024daa0c37fbd660e2` (22 commits). No product code, migration, property, model, bound or script was changed.
+
+Tools: Node 26.13.1, OpenJDK 27, TLC 1.7.4 (cached jar, pinned SHA-256 unchanged), PostgreSQL 17.11 (Homebrew).
+
+### Baseline
+
+The unchanged runner: both TLC configurations PASS (2,360 / 2,770 distinct states, queues exhausted), SQL replay PASS. Since nothing in the model needed changing, this pass and the final one are the same run.
+
+### Correspondence audit
+
+`git diff` of every covered file and directory since the previous sync (`packages/services`, `packages/db`, `packages/supabase/supabase/migrations`, both facades, ADR 0013, `GLOSSARY.md`) touched only:
+
+| Commit | Change and correspondence decision |
+| --- | --- |
+| `bbf53050` and the Library commits after it (ADR 0022) | `GLOSSARY.md`: Exercise slug, Muscle group, Equipment, Cover, Library, Legacy Library and Library API reworded; Movement pattern and Difficulty added. The Workout Session entry is untouched. No effect. |
+| `b105b3b0` — the previous resync, PR #663 | This skill's own `SKILL.md` and `VALIDATION.md`. No effect. |
+
+New code outside the covered set that reaches the guarded state:
+
+| Commit | Change and correspondence decision |
+| --- | --- |
+| `d9a066bf` — one-off Exercise slug rewrite, PR #675 | `apps/api/src/rewrite-exercise-slugs.ts` (`rewriteUser`, run per User in `withService`) takes `ROW EXCLUSIVE` on the User tables and `FOR NO KEY UPDATE` on the User's `workout_sessions` rows, then updates `exercise_slug` on `workout_exercises` and `workout_session_exercises` (open sessions included) and moves or deletes `personal_records`. Its only writes are those three child tables; it never inserts, updates (`finished_at`, `user_id`) or deletes a session, so it can't open, reopen or reassign one or touch the unique index. The child updates can fire the progress-cache triggers, already covered. No effect on the model; added to the coverage table so the next audit re-reads it. Its lock ordering is excluded, like the others'. |
+
+`6e515a7f` (the mobile Exercise detail redesign, PR #684, fetched after the runs above) touches only `apps/mobile` and `AGENTS.md`'s mobile docs: nothing covered, no rerun needed. The other commits move the Public API, MCP and Arnold onto the new Library (slug checks before the transaction, `/v1/exercises` reads), add the v2 bundle, the new core lists and their translations, and move the mobile app's Exercise reads and filters. `apps/api/src/routes/workout-sessions.ts` and `workout-session-exercises.ts` change only which Library the pre-transaction slug check reads (`exerciseLibrary` instead of `libraryIndex`). Apart from the slug rewrite, no changed non-test line mentions `workout_sessions`, `workoutSessions`, `finished_at`, `insertOrResume` or `startWorkoutSession`. No new migration (newest is still `20261109130000_plan_details_optional.sql`), so the guard's reviewed list and pinned SHA-256 values stand. The only production `insert(workoutSessions)` is still in `packages/services/src/workout-sessions.ts` (the others, `apps/api/integration/rewrite-exercise-slugs.test.ts` among them, are integration-test fixtures). Re-located every function the correspondence table names: all present, none renamed or moved.
+
+### Results
+
+| Check | Outcome and result |
+| --- | --- |
+| One User, three insertion transactions, optional initial orphan | In sync: PASS, 2,360 distinct / 9,401 generated, queue exhausted |
+| Two Users, three insertion transactions, optional initial orphan | In sync: PASS, 2,770 distinct / 12,045 generated, queue exhausted |
+| Extracted actual index, isolated PostgreSQL replay | In sync: PASS |
+| Scratch migration with `UNIQUE` removed | Expected failure, caught by TLC and Postgres |
+| Scratch migration indexed by `workout_id` | Expected failure, caught by TLC and Postgres |
+| Unmodified source after both mutations | PASS in both TLC configs and SQL |
+| Migration-guard regressions | PASS 4/4 |
+| Replay isolation regressions | PASS 3/3 |
+| `/statechart` | Not run: the pstack `/statechart` skill isn't installed in this session. Both state spaces are over its 500-state chart budget anyway (2,360 / 2,770), so it would give no chart; the complete TLC passes above stand. |
+
+The two index mutations remain the "can still fail" evidence.
+
+### Remaining limits
+
+Unchanged from the previous validation. The slug rewrite's interaction with a concurrent start, finish or delete (its session row locks) is a lock-ordering and deadlock question, outside this safety model.
+
+## Previous validation, 2026-11-19
 
 ## Maintenance against current main
 
