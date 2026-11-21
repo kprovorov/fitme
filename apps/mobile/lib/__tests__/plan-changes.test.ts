@@ -38,7 +38,7 @@ describe("formatPlanChange", () => {
     ).toEqual({
       accessibilityLabel:
         "Replace Bench Press with Dumbbell Press: 8 reps at 30 kilograms, 6 reps at 32.5 kilograms",
-      text: "Replace Bench Press with Dumbbell Press · 8×30, 6×32.5 kg",
+      text: "Replace Bench Press with Dumbbell Press · 8×30, 6×32.5\u00A0kg",
     });
   });
 
@@ -56,7 +56,7 @@ describe("formatPlanChange", () => {
       )
     ).toEqual({
       accessibilityLabel: "Add Squat: 1 rep at 225 pounds",
-      text: "Add Squat · 1×225 lbs",
+      text: "Add Squat · 1×225\u00A0lbs",
     });
   });
 
@@ -68,10 +68,10 @@ describe("formatPlanChange", () => {
     });
 
     expect(formatPlanChange(addSets(1), "kg", nameOf, i18n).text).toBe(
-      "Add 1 set to Squat · 5×100 kg"
+      "Add 1 set to Squat · 5×100\u00A0kg"
     );
     expect(formatPlanChange(addSets(2), "kg", nameOf, i18n).text).toBe(
-      "Add 2 sets to Squat · 5×100, 5×100 kg"
+      "Add 2 sets to Squat · 5×100, 5×100\u00A0kg"
     );
   });
 
@@ -101,7 +101,7 @@ describe("formatPlanChange", () => {
         nameOf,
         i18n
       ).text
-    ).toBe("Add Squat · 12×0 kg");
+    ).toBe("Add Squat · 12×0\u00A0kg");
   });
 });
 
@@ -127,7 +127,7 @@ describe("formatPlanChange in Ukrainian", () => {
     ).toEqual({
       accessibilityLabel:
         "Замінити «Bench Press» на «Dumbbell Press»: 8 повторень по 30 кілограмів, 6 повторень по 32,5 кілограма",
-      text: "Замінити «Bench Press» на «Dumbbell Press» · 8×30, 6×32,5 кг",
+      text: "Замінити «Bench Press» на «Dumbbell Press» · 8×30, 6×32,5\u00A0кг",
     });
   });
 
@@ -145,7 +145,7 @@ describe("formatPlanChange in Ukrainian", () => {
       )
     ).toEqual({
       accessibilityLabel: "Додати «Squat»: 1 повторення по 225 фунтів",
-      text: "Додати «Squat» · 1×225 фунт",
+      text: "Додати «Squat» · 1×225\u00A0фунт",
     });
   });
 
@@ -180,7 +180,7 @@ describe("formatPlanChange in Ukrainian", () => {
     );
 
     expect(line.text).toBe(
-      `${change} · ${Array.from({ length: count }, () => "5×62,5").join(", ")} кг`
+      `${change} · ${Array.from({ length: count }, () => "5×62,5").join(", ")}\u00A0кг`
     );
     expect(line.accessibilityLabel).toBe(
       `${change}: ${Array.from({ length: count }, () => "5 повторень по 62,5 кілограма").join(", ")}`

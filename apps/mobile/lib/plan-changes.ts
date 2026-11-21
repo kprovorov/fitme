@@ -24,6 +24,8 @@ export interface PlanChangeLine {
   text: string;
 }
 
+// The unit stays on the last set's line: a no-break space before it, so a
+// line that wraps never leaves the unit alone on the next one.
 const setsText = (
   translator: Translator,
   sets: PlanUpdateSet[],
@@ -34,7 +36,7 @@ const setsText = (
       ({ reps, weight }) =>
         `${formatNumber(translator, reps)}×${formatNumber(translator, weight)}`
     )
-    .join(", ")} ${unitName(translator, unit)}`;
+    .join(", ")}\u00A0${unitName(translator, unit)}`;
 
 const spokenSets = (
   translator: Translator,
