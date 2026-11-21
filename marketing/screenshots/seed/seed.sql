@@ -6,8 +6,10 @@
 -- Creates (replacing anything the User had):
 --   * a Profile (male, 29, 182 cm, 81.5 kg, metric)
 --   * the active Plan "Upper / Lower — 4 days" with four Workouts
---   * 11 finished Workout Sessions over the past ~3 weeks (Mon/Tue/Thu/Fri),
+--   * 27 finished Workout Sessions over the past ~7 weeks (four a week),
 --     weights progressing a little week to week
+--   * a Weekly goal of 4 recorded the day before the first session, so the
+--     History chart shows six hit weeks and a streak
 --   * one in-progress session (Upper A, started 35 minutes ago, 7 sets logged)
 -- Timestamps are relative to now(), so rerun it on the day you shoot.
 
@@ -23,6 +25,7 @@ select set_config('seed.user_id', :'user_id', true);
 delete from workout_sessions where user_id = current_setting('seed.user_id');
 delete from plans where user_id = current_setting('seed.user_id');
 delete from profiles where user_id = current_setting('seed.user_id');
+delete from weekly_goal_changes where user_id = current_setting('seed.user_id');
 
 insert into profiles (user_id, gender, age, height, weight, measurement_system)
 values (current_setting('seed.user_id'), 'male', 29, 182, 81.5, 'metric');
@@ -46,11 +49,13 @@ declare
     'Incline press and vertical pulling, with delt and arm accessories.',
     'Deadlift-focused lower day with glutes and core.'
   ];
-  -- the 11 finished sessions: days ago and which workout (1-based)
-  days_ago int[] := array[18, 17, 15, 14, 11, 10, 8, 7, 4, 3, 1];
-  wk_of int[] := array[2, 3, 4, 1, 2, 3, 4, 1, 2, 3, 4];
-  start_hour numeric[] := array[18.5, 18.25, 7.0, 18.5, 18.75, 18.5, 7.25, 18.0, 18.5, 18.25, 7.0];
-  minutes int[] := array[58, 62, 64, 55, 61, 57, 66, 59, 63, 60, 65];
+  -- the finished sessions: four a week for six weeks, then three this week.
+  -- Each week's sessions are 4, 3, 1 and 0 days into its seven-day slot
+  -- before today, rotating through workouts 2, 3, 4, 1 (1-based).
+  n_finished constant int := 27;
+  day_offset int[] := array[4, 3, 1, 0];
+  wk_cycle int[] := array[2, 3, 4, 1];
+  start_hour numeric[] := array[18.5, 18.25, 7.0, 18.5];
   progress numeric;
   start_ts timestamptz;
   finish_ts timestamptz;
@@ -63,42 +68,42 @@ begin
   values (uid, 'Upper / Lower — 4 days',
           'Four sessions a week alternating upper and lower body. Compound lifts first in lower rep ranges, accessories after for volume.',
           'muscle-gain', 'gym', 4, true, 'intermediate', 60, null,
-          now() - interval '20 days')
+          now() - interval '50 days')
   returning id into v_plan_id;
 
   -- workout -> exercises: slug, sets, reps, weight (kg), rest (s)
   create temp table seed_plan (w int, pos int, slug text, sets int, reps int, weight numeric, rest int) on commit drop;
   insert into seed_plan values
-    (1, 1, 'bench-press-flat-barbell', 4, 6, 82.5, 150),
+    (1, 1, 'barbell-bench-press', 4, 6, 82.5, 150),
     (1, 2, 'barbell-bent-over-row', 4, 8, 70, 120),
-    (1, 3, 'shoulder-press-dumbbells', 3, 10, 24, 90),
+    (1, 3, 'dumbbell-seated-overhead-press', 3, 10, 24, 90),
     (1, 4, 'lat-pulldown', 3, 10, 65, 90),
-    (1, 5, 'cable-pushdown-with-rope-attachment', 3, 12, 25, 60),
+    (1, 5, 'cable-rope-pushdown', 3, 12, 25, 60),
     (1, 6, 'barbell-curl', 3, 10, 32.5, 60),
-    (2, 1, 'barbell-back-squat', 4, 5, 110, 180),
-    (2, 2, 'dumbbell-romanian-deadlift', 3, 10, 34, 120),
-    (2, 3, 'leg-press', 3, 12, 180, 90),
+    (2, 1, 'barbell-squat', 4, 5, 110, 180),
+    (2, 2, 'barbell-romanian-deadlift', 3, 10, 90, 120),
+    (2, 3, 'machine-leg-press', 3, 12, 180, 90),
     (2, 4, 'bulgarian-split-squat', 3, 10, 16, 90),
-    (2, 5, 'standing-calf-raise', 4, 12, 60, 60),
-    (2, 6, 'hanging-leg-raises', 3, 12, 0, 60),
-    (3, 1, 'incline-dumbbell-press', 4, 8, 30, 120),
+    (2, 5, 'standing-calf-raise-machine', 4, 12, 60, 60),
+    (2, 6, 'hanging-knee-raises', 3, 12, 0, 60),
+    (3, 1, 'dumbbell-incline-bench-press', 4, 8, 30, 120),
     (3, 2, 'pull-ups', 4, 8, 0, 120),
-    (3, 3, 'cable-seated-row-back', 3, 10, 60, 90),
+    (3, 3, 'machine-seated-cable-row', 3, 10, 60, 90),
     (3, 4, 'dumbbell-lateral-raise', 3, 15, 10, 60),
-    (3, 5, 'face-pulls', 3, 15, 20, 60),
-    (3, 6, 'hammer-curl', 3, 12, 16, 60),
+    (3, 5, 'machine-face-pulls', 3, 15, 20, 60),
+    (3, 6, 'dumbbell-hammer-curl', 3, 12, 16, 60),
     (4, 1, 'barbell-deadlift', 4, 4, 145, 180),
-    (4, 2, 'barbell-front-squat', 3, 8, 70, 150),
+    (4, 2, 'front-squat', 3, 8, 70, 150),
     (4, 3, 'barbell-hip-thrust', 3, 10, 100, 90),
-    (4, 4, 'reverse-lunge-dumbbells', 3, 12, 18, 90),
-    (4, 5, 'cable-rope-crunches', 3, 15, 35, 60);
+    (4, 4, 'dumbbell-reverse-lunge', 3, 12, 18, 90),
+    (4, 5, 'kneeling-cable-crunch', 3, 15, 35, 60);
 
   create temp table seed_workouts (wnum int, id uuid) on commit drop;
 
   -- Plan order after rotation: Upper A is up next (it's in progress today)
   for i in 1..4 loop
     insert into workouts (plan_id, "order", name, description, created_at)
-    values (v_plan_id, i, w_names[i], w_descs[i], now() - interval '20 days')
+    values (v_plan_id, i, w_names[i], w_descs[i], now() - interval '50 days')
     returning id into w_id;
     insert into seed_workouts values (i, w_id);
     for e in select sp.* from seed_plan sp where sp.w = i order by sp.pos loop
@@ -111,14 +116,20 @@ begin
     end loop;
   end loop;
 
-  -- finished sessions, plus the in-progress one as index 12
-  for i in 1..12 loop
-    if i <= 11 then
-      k := wk_of[i];
-      start_ts := date_trunc('day', now()) - make_interval(days => days_ago[i]) + make_interval(mins => (start_hour[i] * 60)::int);
-      finish_ts := start_ts + make_interval(mins => minutes[i]);
-      -- from ~92% of today's targets three weeks ago up to 100%
-      progress := 0.92 + 0.08 * (i - 1) / 10.0;
+  -- finished sessions, plus the in-progress one as the last index
+  for i in 1..n_finished + 1 loop
+    if i <= n_finished then
+      k := wk_cycle[(i - 1) % 4 + 1];
+      start_ts := date_trunc('day', now())
+        - make_interval(days => 7 * (6 - (i - 1) / 4) + day_offset[(i - 1) % 4 + 1])
+        + make_interval(mins => (start_hour[(i - 1) % 4 + 1] * 60)::int);
+      finish_ts := start_ts + make_interval(mins => 55 + (i * 7) % 12);
+      if i = 1 then
+        insert into weekly_goal_changes (user_id, recorded_at, target)
+        values (uid, start_ts - interval '1 day', 4);
+      end if;
+      -- from ~85% of today's targets seven weeks ago up to 100%
+      progress := 0.85 + 0.15 * (i - 1) / (n_finished - 1)::numeric;
     else
       k := 1;
       start_ts := now() - interval '35 minutes';
@@ -145,7 +156,7 @@ begin
         if n = e.sets and e.pos <= 2 and (i + e.pos) % 3 = 0 then
           reps := reps - 1;
         end if;
-        if i <= 11 then
+        if i <= n_finished then
           insert into workout_session_exercise_sets (workout_session_exercise_id, "order", reps_recommended, weight_recommended, rest_recommended, reps_completed, weight_completed, logged_at, created_at)
           values (se_id, n, e.reps, e.weight, e.rest, reps, wt, start_ts + make_interval(mins => e.pos * 9 + n * 2), start_ts);
         elsif e.pos <= 2 and not (e.pos = 2 and n = 4) then
