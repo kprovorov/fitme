@@ -34,6 +34,15 @@ const STICKY_ACTION_HEIGHT = 82;
  */
 const FOCUSED_FIELD_GAP = 16;
 
+/**
+ * Room kept under the focused field for the field after it: the form's `sm`
+ * gap (16) and a field's height (`min-h-12`, 48). Without it the next field
+ * sits under the sticky action, where a tap lands on the Button's bar, not
+ * the field, and only Return reaches it (FIT-769). On a form's last field it
+ * shows what follows instead (login's Forgot password link).
+ */
+const NEXT_FIELD_ROOM = 16 + 48;
+
 export interface AuthFormParts {
   action: ReactElement;
   fields: ReactNode;
@@ -84,9 +93,9 @@ export const AuthScreen = ({
   return (
     <View className="bg-background flex-1">
       <KeyboardAwareScrollView
-        // The focused field scrolls to sit above the sticky action, not
-        // under it.
-        bottomOffset={stickyHeight + FOCUSED_FIELD_GAP}
+        // The focused field scrolls to sit above the sticky action with the
+        // next field fully visible between them, not under it.
+        bottomOffset={stickyHeight + FOCUSED_FIELD_GAP + NEXT_FIELD_ROOM}
         className="flex-1"
         contentContainerClassName="items-stretch gap-md px-sm"
         contentContainerStyle={{
