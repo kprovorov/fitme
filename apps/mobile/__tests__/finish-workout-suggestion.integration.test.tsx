@@ -1594,10 +1594,10 @@ describe("the Plan Update after finishing a Workout Session opened from Home", (
   const APPLY_ERROR =
     "Couldn't update your plan. Check your connection and try again.";
 
-  const ADDED_SET_LINE = "Add 1 set to Squat · 5×100 kg";
-  const ADDED_EXERCISE_LINE = "Add Walking Lunge · 12×20 kg";
+  const ADDED_SET_LINE = "Add 1 set to Squat · 5×100\u00A0kg";
+  const ADDED_EXERCISE_LINE = "Add Walking Lunge · 12×20\u00A0kg";
   // Unknown to the Library: the slug's name.
-  const UNRESOLVED_LINE = "Add Farmer carry · 1×40 kg";
+  const UNRESOLVED_LINE = "Add Farmer carry · 1×40\u00A0kg";
 
   const eventProperties = {
     plan_id: "plan-1",
@@ -1786,7 +1786,9 @@ describe("the Plan Update after finishing a Workout Session opened from Home", (
 
     await finishFromSession();
 
-    expect(screen.getByText("Add 1 set to Squat · 5×100 lbs")).toBeTruthy();
+    expect(
+      screen.getByText("Add 1 set to Squat · 5×100\u00A0lbs")
+    ).toBeTruthy();
   });
 
   it("applies the changes and opens the Summary on Update plan", async () => {
