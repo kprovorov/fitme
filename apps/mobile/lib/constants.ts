@@ -6,6 +6,15 @@ export const IS_E2E = process.env.EXPO_PUBLIC_E2E_ENABLED === "true";
 // (dimmed band + dividing line); pin it to the progressive blur we had on 26.
 export const SCROLL_EDGE_EFFECTS = { bottom: "soft", top: "soft" } as const;
 
+// A Screen whose Exercise clip scrolls under a transparent header: the clips
+// are shot on white, which the soft blur leaves white, so the status bar and
+// the back button vanish against it. The hard style's dimmed band keeps them
+// readable whatever scrolls under (FIT-770).
+export const CLIP_SCROLL_EDGE_EFFECTS = {
+  bottom: "soft",
+  top: "hard",
+} as const;
+
 export const PASSWORD_MIN_LENGTH = 8;
 
 // The register form's shortest name.
