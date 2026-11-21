@@ -71,10 +71,13 @@ const NoModels = ({ isLoading }: { isLoading: boolean }) => {
 
 /**
  * The models Arnold can answer with. The sheet fits its contents, and a glass
- * header floats over them, so the list clears the header with its own
- * padding: the scroll view's automatic inset would push the last row below
- * the height the sheet measured. It still scrolls, for when the rows outgrow
- * the screen (the largest text size on the smallest iPhone).
+ * header floats over them, so a plain View clears the header with its own
+ * padding, as the Attachments sheet does. That padding can't sit on the
+ * scroll view: iOS insets a sheet's scroll view by the header on its own
+ * (`contentInsetAdjustmentBehavior` doesn't stop it), which the sheet leaves
+ * out of the height it measures, so the list would start a header lower and
+ * its last row would fall below the sheet. It still scrolls, for when the
+ * rows outgrow the screen (the largest text size on the smallest iPhone).
  */
 const ModelPickerSheet = () => {
   const { t } = useTranslation(undefined, { i18n });
@@ -92,36 +95,36 @@ const ModelPickerSheet = () => {
   );
 
   return (
-    <ScrollView
-      contentContainerStyle={{
-        // iOS floats the sheet above the home indicator itself.
-        paddingBottom:
-          process.env.EXPO_OS === "android" ? insets.bottom : undefined,
-        paddingTop: GLASS_ENABLED ? headerHeight : undefined,
-      }}
-      contentInsetAdjustmentBehavior="never"
-      scrollIndicatorInsets={{ top: GLASS_ENABLED ? headerHeight : 0 }}
-    >
-      <AndroidGrabber />
-      <View className="pt-2 pb-4">
-        <Text className="text-footnote text-muted-foreground px-5 pb-2">
-          {t("arnold.modelPicker.appliesToNextMessage")}
-        </Text>
-        {models ? (
-          models.map((candidate) => (
-            <ModelRow
-              id={candidate.id}
-              key={candidate.id}
-              label={candidate.label}
-              onSelect={handleSelect}
-              selected={candidate.id === model?.id}
-            />
-          ))
-        ) : (
-          <NoModels isLoading={isLoading} />
-        )}
-      </View>
-    </ScrollView>
+    <View style={{ paddingTop: GLASS_ENABLED ? headerHeight : undefined }}>
+      <ScrollView
+        contentContainerStyle={{
+          // iOS floats the sheet above the home indicator itself.
+          paddingBottom:
+            process.env.EXPO_OS === "android" ? insets.bottom : undefined,
+        }}
+        contentInsetAdjustmentBehavior="never"
+      >
+        <AndroidGrabber />
+        <View className="pt-2 pb-4">
+          <Text className="text-footnote text-muted-foreground px-5 pb-2">
+            {t("arnold.modelPicker.appliesToNextMessage")}
+          </Text>
+          {models ? (
+            models.map((candidate) => (
+              <ModelRow
+                id={candidate.id}
+                key={candidate.id}
+                label={candidate.label}
+                onSelect={handleSelect}
+                selected={candidate.id === model?.id}
+              />
+            ))
+          ) : (
+            <NoModels isLoading={isLoading} />
+          )}
+        </View>
+      </ScrollView>
+    </View>
   );
 };
 
