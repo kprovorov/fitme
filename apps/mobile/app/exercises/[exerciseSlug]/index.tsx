@@ -12,6 +12,7 @@ import { TextListCard } from "~/components/exercises/text-list-card";
 import { Button } from "~/components/ui/button";
 import { H3, Large, P } from "~/components/ui/typography";
 import { useExercise, useExerciseDetailQuery } from "~/hooks/queries/library";
+import { CLIP_SCROLL_EDGE_EFFECTS } from "~/lib/constants";
 import type { Exercise } from "~/lib/exercises";
 
 /** The Exercise in full, top to bottom as Figma's Exercise Detail · Content. */
@@ -156,6 +157,7 @@ const ExerciseScreen = () => {
             fontWeight: "bold",
           },
           headerTransparent: true,
+          scrollEdgeEffects: CLIP_SCROLL_EDGE_EFFECTS,
           // The content names a loaded Exercise itself, and a missing one has
           // no name, so the header names it only while it loads or failed to.
           title: exercise === undefined ? name : "",

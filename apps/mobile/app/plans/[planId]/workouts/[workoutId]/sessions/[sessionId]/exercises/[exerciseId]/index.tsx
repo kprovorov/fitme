@@ -25,6 +25,7 @@ import { WorkoutSessionFinishSuggestion } from "~/components/workout-sessions/wo
 import { useExercise, useExerciseDetailQuery } from "~/hooks/queries/library";
 import type { SavedWorkoutSessionExerciseSet } from "~/hooks/queries/workout-session-exercise-sets";
 import { useWorkoutSessionQuery } from "~/hooks/queries/workout-sessions";
+import { CLIP_SCROLL_EDGE_EFFECTS } from "~/lib/constants";
 
 /** Gap between the end of the content and the floating rest timer. */
 const REST_TIMER_GAP = 16;
@@ -223,6 +224,7 @@ const WorkoutSessionExerciseScreen = () => {
             fontWeight: "bold",
           },
           headerTransparent: true,
+          scrollEdgeEffects: CLIP_SCROLL_EDGE_EFFECTS,
           title: workoutSessionExercise ? exercise.name : "",
         }}
       />
