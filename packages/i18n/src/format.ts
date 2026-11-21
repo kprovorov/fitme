@@ -392,6 +392,24 @@ const compactVolume = (volume: number, unit: WeightUnit) => {
 };
 
 /**
+ * A Workout Session's volume in whole kilograms or pounds: `12,505 kg`,
+ * `661 lbs`. History's rows, the Workout Session's stats and the Workout
+ * Summary all show it this way, so one session reads the same on each.
+ */
+export const formatVolume = (
+  translator: Translator,
+  volume: number,
+  unit: WeightUnit
+): string => formatUnit(translator, Math.round(volume), unit);
+
+/** `formatVolume` spelled out for VoiceOver: `661 pounds`. */
+export const spokenVolume = (
+  translator: Translator,
+  volume: number,
+  unit: WeightUnit
+): string => spokenUnit(translator, Math.round(volume), unit);
+
+/**
  * A total volume, compact, in its unit: `850 kg`, `136.2 t`, `300.4K lbs`
  * (`136,2 т`, `300,4 тис. фунт`). Zero is `0 kg`.
  */

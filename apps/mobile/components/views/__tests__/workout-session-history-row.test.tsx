@@ -144,6 +144,35 @@ describe("WorkoutSessionHistoryRow", () => {
     expect(screen.getByText("42min · 1 set · 0 lbs")).toBeTruthy();
   });
 
+  it("shows a volume with decimals in whole pounds, as the Workout Summary does", async () => {
+    await renderRow({ ...entry, volume: 661.4 }, "lbs");
+
+    expect(screen.getByText("42min · 1 set · 661 lbs")).toBeTruthy();
+    expect(
+      screen.getByRole("button", {
+        name: "Lower A, Wed, Oct 21, 42min, 1 set, 661 pounds",
+      })
+    ).toBeTruthy();
+  });
+
+  it("shows a volume with decimals in whole kilograms, as the Workout Summary does", async () => {
+    await renderRow({ ...entry, volume: 300.5 }, "kg");
+
+    expect(screen.getByText("42min · 1 set · 301 kg")).toBeTruthy();
+    expect(
+      screen.getByRole("button", {
+        name: "Lower A, Wed, Oct 21, 42min, 1 set, 301 kilograms",
+      })
+    ).toBeTruthy();
+  });
+
+  it("writes a whole volume in Ukrainian with US units", async () => {
+    setDeviceLanguages(["uk-UA"]);
+    await renderRow({ ...entry, volume: 661.4 }, "lbs");
+
+    expect(screen.getByText("42 хв · 1 підхід · 661 фунт")).toBeTruthy();
+  });
+
   it("writes the date and numbers in the App language", async () => {
     setDeviceLanguages(["uk-UA"]);
     await renderRow();

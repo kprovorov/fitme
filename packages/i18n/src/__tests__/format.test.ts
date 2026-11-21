@@ -9,12 +9,14 @@ import {
   formatNumber,
   formatTrainingTime,
   formatUnit,
+  formatVolume,
   formatWeight,
   formatWorkoutDuration,
   setDeviceConventions,
   spokenCompactVolume,
   spokenTrainingTime,
   spokenUnit,
+  spokenVolume,
   unitName,
 } from "../format";
 import type { CountKind, Unit } from "../format";
@@ -253,6 +255,21 @@ describe("duration formatting", () => {
 
   it("reads a negative span as no time at all", () => {
     expect(formatDuration(en, -MINUTE_MS)).toBe("0min");
+  });
+});
+
+describe("volume formatting", () => {
+  it("shows a Workout Session's volume in whole kilograms or pounds", () => {
+    expect(formatVolume(en, 0, "kg")).toBe("0 kg");
+    expect(formatVolume(en, 12_505.4, "kg")).toBe("12,505 kg");
+    expect(formatVolume(en, 661.4, "lbs")).toBe("661 lbs");
+    expect(formatVolume(en, 661.5, "lbs")).toBe("662 lbs");
+    expect(formatVolume(uk, 661.4, "lbs")).toBe("661 фунт");
+  });
+
+  it("spells the same whole volume out for VoiceOver", () => {
+    expect(spokenVolume(en, 661.4, "lbs")).toBe("661 pounds");
+    expect(spokenVolume(en, 1.2, "kg")).toBe("1 kilogram");
   });
 });
 
