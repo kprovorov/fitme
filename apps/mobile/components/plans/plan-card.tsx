@@ -66,8 +66,7 @@ const PlanCard = ({ plan }: PlanCardProps) => {
     <Card className="flex-1">
       <CardHeader>
         <CardTitle
-          // The lime name is all that shows the active Plan, so VoiceOver
-          // says it in words after the name (FIT-771).
+          // An unnamed Plan (`name` is nullable) reads "Active plan" alone.
           accessibilityLabel={
             plan.is_active
               ? [plan.name, t("plans.activePlan")].filter(Boolean).join(", ")
