@@ -1,4 +1,44 @@
-# Validation, 2026-11-20
+# Validation, 2026-11-21
+
+## Maintenance against current main
+
+**Outcome: in sync. Model, property, bounds, runner and coverage record unchanged; no current-code exclusivity violation found within the stated bounds.**
+
+Audited source: `08fc1c717d64ebc7c010f54ee80b1542ecfb89c0`, equal to `origin/main` after `git fetch` on 2026-11-21. Previous sync: `6e515a7f8fef85040dbe24b28e8f7a2eb46a54a5` (6 commits). No product code, migration, property, model, bound or script was changed.
+
+Tools: Node 26.13.1, OpenJDK 27, TLC 1.7.4 (cached jar, pinned SHA-256 unchanged), PostgreSQL 17.11 (Homebrew).
+
+### Correspondence audit
+
+`git diff --name-only` since the previous sync touches no covered file or directory (`packages/`, `apps/api/src`, `apps/mcp`, ADR 0013, `GLOSSARY.md`) and adds no migration:
+
+| Commit | Change and correspondence decision |
+| --- | --- |
+| `d50261e6` — the previous resync, PR #685 | This skill's own `SKILL.md` and `VALIDATION.md`. No effect. |
+| `2e07537e`, `54b1b1e6`, `0aa50569`, `2a8b3de4` (PRs #686–#689) | `apps/mobile` UI only (Exercise thumbnail placeholder, the emailed-code screen, the Plan builder's header tints, fitted set fields), their tests and E2E flows, and `AGENTS.md`'s / `docs/agents/ui.md`'s mobile docs. The app reaches Workout Sessions only through the Public API, unchanged. No effect. |
+| `08fc1c71` — FIT-768, PR #690 | `.claude/hooks/shell-rules.mjs` and its tests, `AGENTS.md`'s Shell section. No effect. |
+
+No changed line in `AGENTS.md` mentions a Workout Session, a migration or the unique index.
+
+### Results
+
+| Check | Outcome and result |
+| --- | --- |
+| One User, three insertion transactions, optional initial orphan | In sync: PASS, 2,360 distinct / 9,401 generated, queue exhausted |
+| Two Users, three insertion transactions, optional initial orphan | In sync: PASS, 2,770 distinct / 12,045 generated, queue exhausted |
+| Extracted actual index, isolated PostgreSQL replay | In sync: PASS |
+| Scratch migration with `UNIQUE` removed | Expected failure, caught by TLC and Postgres |
+| Scratch migration indexed by `workout_id` | Expected failure, caught by TLC and Postgres |
+| Unmodified source after both mutations | PASS in both TLC configs and SQL |
+| `/statechart` | Not run: both state spaces are over its 500-state chart budget (2,360 / 2,770), so it would give no chart; the complete TLC passes stand. |
+
+Nothing in the model changed, so the baseline run and the final run are the same. The two index mutations remain the "can still fail" evidence. Migration-guard and replay-isolation regressions were not rerun: neither the guard nor the runner changed.
+
+### Remaining limits
+
+Unchanged from the previous validation.
+
+## Previous validation, 2026-11-20
 
 ## Maintenance against current main
 
