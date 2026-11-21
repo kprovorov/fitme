@@ -22,7 +22,7 @@
     "pngFiles": 450
   },
   "composition": {
-    "captionsFrom": "caption area (y < 820) of the previously approved App Store exports, unchanged byte for byte",
+    "captionsFrom": "caption area (y < 820) of the previously approved App Store exports, unchanged byte for byte, except scene 10: its caption was exported again from Figma after its subline was rewritten to name all four models",
     "phoneCompositionLocal": true,
     "appStorePhoneSize": [962, 1985],
     "appStorePhoneOrigin": [179, 820]
@@ -30,7 +30,6 @@
   "knownLimitations": [
     "Status bar override shows 9:41 or 09:41 by region, with full signal and battery.",
     "Arnold plans and replies are real model output and differ in wording and exercise choice between languages.",
-    "The App Store caption for scene 10 still names only GPT and Claude; the picker now lists four models.",
     "Long CJK exercise names can break before a trailing long-vowel mark (Japanese row name)."
   ],
   "appStoreConnectUploadPerformed": false,
@@ -215,7 +214,7 @@
             },
             "appStore": {
               "path": "marketing/screenshots/app-store/iphone-6.9/en-US/10.png",
-              "sha256": "118d1969c48cf480a4c0563cefa8dd93a2a5bc66404cde86f620e7f683e7ff8c"
+              "sha256": "d466897831e176d9159a2e3fb2d5b71391db4c5d97440d52ccb15f762f82d9b5"
             }
           }
         }
@@ -401,7 +400,7 @@
             },
             "appStore": {
               "path": "marketing/screenshots/app-store/iphone-6.9/uk/10.png",
-              "sha256": "cbfb2690a778fbd6a75a88ce7f977578dc015bceb5b072d98f10df0aab8ee2d4"
+              "sha256": "5d83dba6bd1b7f4291ae4349a6008e223eb4fe0f2f9a11e0e0eb6dc288a12884"
             }
           }
         }
@@ -587,7 +586,7 @@
             },
             "appStore": {
               "path": "marketing/screenshots/app-store/iphone-6.9/es-ES/10.png",
-              "sha256": "be4b7b32741b8b3f28ef15e5749f0135247c6e412e0e4428ba2a54eb36119f1a"
+              "sha256": "6bd211044857ead7f887afcab1f97b4c36194c17385f9f251b0789b779e101e4"
             }
           }
         }
@@ -773,7 +772,7 @@
             },
             "appStore": {
               "path": "marketing/screenshots/app-store/iphone-6.9/ca/10.png",
-              "sha256": "5fa1a5f3a022b33c9ea6f9ad8b3501e0875003e566b4a730467feb94b15c5177"
+              "sha256": "45a259802819573889e2c1d221992fb018c94ae2d7386693b534115ad56c4c96"
             }
           }
         }
@@ -959,7 +958,7 @@
             },
             "appStore": {
               "path": "marketing/screenshots/app-store/iphone-6.9/de-DE/10.png",
-              "sha256": "9bed5e2a3da48f3e1c21b79d38ad9c6a5a4c35bd80c9c81348309bb37cebcd17"
+              "sha256": "f1be230f05f2c3cfb76ebe11d1247f8768b8a4d4efb2aa8da3fde372bb0b0f5e"
             }
           }
         }
@@ -1145,7 +1144,7 @@
             },
             "appStore": {
               "path": "marketing/screenshots/app-store/iphone-6.9/fr-FR/10.png",
-              "sha256": "7f34c288d800cd44c57391cf4a6e51a4055c31ca50ac77e3a8543091616644d2"
+              "sha256": "447d78f171350fbd8f2985a61215e035bd3e83e1992f8a3524c3fff230325f78"
             }
           }
         }
@@ -1331,7 +1330,7 @@
             },
             "appStore": {
               "path": "marketing/screenshots/app-store/iphone-6.9/it/10.png",
-              "sha256": "05efc282e19997db79554d3f926fac55f26c5c1eaefec9814ac06bb37c3addd5"
+              "sha256": "44588753eeb1129e8dfea6a3bfa260591e257cad81a890ada3eecde97f60a28f"
             }
           }
         }
@@ -1517,7 +1516,7 @@
             },
             "appStore": {
               "path": "marketing/screenshots/app-store/iphone-6.9/ja/10.png",
-              "sha256": "3f6e71fee1e7dbeab8942b2964328e624b7570ac0dd477cb4ad800b4faae1c77"
+              "sha256": "289eb9253804754ef83187dc70697ee3c5eddc532b18836945d604e10c43deec"
             }
           }
         }
@@ -1703,7 +1702,7 @@
             },
             "appStore": {
               "path": "marketing/screenshots/app-store/iphone-6.9/ko/10.png",
-              "sha256": "e86624253ee0f9561a11bd9abd56eea2dd02d44622e66828b8926a0d4bbba6c7"
+              "sha256": "93d2bdf1e887f7839f30d34adfba8bbfce8d467005c9f8777b1fcc1e4da100b3"
             }
           }
         }
@@ -1889,7 +1888,7 @@
             },
             "appStore": {
               "path": "marketing/screenshots/app-store/iphone-6.9/nl-NL/10.png",
-              "sha256": "52d6e77d4e08b266e4a361b2b975a839afdfe18291f04fc2c20bb8704ac78c0d"
+              "sha256": "52dad28cde78b8545d5376f5a8d34827fdccb04c0a3956c3e83636085de874ac"
             }
           }
         }
@@ -2075,7 +2074,7 @@
             },
             "appStore": {
               "path": "marketing/screenshots/app-store/iphone-6.9/pl/10.png",
-              "sha256": "400ea962378e458c95b43de89479a8cde128a5579ba38c80e439e0cc0e636724"
+              "sha256": "1ca19213d78fd406ac80be60221839b50e7888a8fad828c35e533f0911da932f"
             }
           }
         }
@@ -2261,7 +2260,7 @@
             },
             "appStore": {
               "path": "marketing/screenshots/app-store/iphone-6.9/pt-BR/10.png",
-              "sha256": "eb80e1175f2f70edf455bc6b2f7991cd69ab23758b60ab45b4eb824f7a83531c"
+              "sha256": "930af59f3d1e018ab9f50a0e85c00b36d3b7ff6c8d319f4ab299e902c0b94106"
             }
           }
         }
@@ -2447,7 +2446,7 @@
             },
             "appStore": {
               "path": "marketing/screenshots/app-store/iphone-6.9/pt-PT/10.png",
-              "sha256": "ed6b09176deeed5d8b496d6d588f5fc205c4ce7ad1862a2e575fa5f3e7e50509"
+              "sha256": "d1dd7d6ec3b96468d0045d1bfaef99ef015a6ff83d0b53dfedabcd7b254519b4"
             }
           }
         }
@@ -2633,7 +2632,7 @@
             },
             "appStore": {
               "path": "marketing/screenshots/app-store/iphone-6.9/zh-Hans/10.png",
-              "sha256": "fe216300703d58de1a19e22437afa7eed9fd4f5fd2a561eb426f9bc5b2054436"
+              "sha256": "75ba982cc1cbd22da4c1f93ec09087c8eb6ed7580980153ec44bed014c23e5f6"
             }
           }
         }
@@ -2819,7 +2818,7 @@
             },
             "appStore": {
               "path": "marketing/screenshots/app-store/iphone-6.9/zh-Hant/10.png",
-              "sha256": "d46dbef41f3d156f8a445745d5bd99af2f06129365ff391b03c0cae7083f1203"
+              "sha256": "0fba940f285e9cb7acc7a7fe25a77398c71300b0f45d4dcaeda00c83a4cfc386"
             }
           }
         }

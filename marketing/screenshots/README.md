@@ -75,7 +75,7 @@ The site's `apps/site/public/screens/` assets are separate exports and were not 
 
 ### App Store sets
 
-All 15 Listing sets in `app-store/iphone-6.9/` were recomposed with `compose-app-store.py` from these framed captures. The captions did not change, so the caption inputs were cut from the previously approved exports: their area above y = 820 is kept byte for byte, and everything below is the flat background. All 150 images pass `node scripts/app-store-screenshots.mjs check`. Nothing was uploaded to App Store Connect.
+All 15 Listing sets in `app-store/iphone-6.9/` were recomposed with `compose-app-store.py` from these framed captures. Scenes 01–09 kept their captions, so those caption inputs were cut from the previously approved exports: their area above y = 820 is kept byte for byte, and everything below is the flat background. Scene 10's subline named only GPT and Claude, so it was rewritten in Figma in all 15 languages to name all four models ("GPT, Claude, Gemini or Grok") and that caption exported again; only its subline rows differ from the approved export. All 150 images pass `node scripts/app-store-screenshots.mjs check`. Nothing was uploaded to App Store Connect.
 
 ### Known limits
 
@@ -83,7 +83,6 @@ All 15 Listing sets in `app-store/iphone-6.9/` were recomposed with `compose-app
 - Long Japanese exercise names can break before a trailing long-vowel mark.
 - Long exercise names are cut with "…" in the PR summary rows (German, Dutch, Polish) and in the progress header (Dutch, Polish). This is the app's own truncation.
 - On the next-workout card, the "+2" muscle badge drops onto a line of its own in Ukrainian, German and Polish.
-- The App Store caption for scene 10 still says "GPT or Claude", but the picker now lists four models.
 
 ## App Store upload
 
