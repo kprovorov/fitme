@@ -45,11 +45,8 @@ const ClipPlaceholder = () => {
   );
 };
 
-/**
- * The Exercise's clip: muted, looping, playing on its own, with no controls.
- * One that fails to load shows the placeholder instead.
- */
-const ExerciseVideo = ({ url }: ExerciseVideoProps) => {
+/** One clip's player; a new URL gets a new one, its status starting over. */
+const ClipPlayer = ({ url }: ExerciseVideoProps) => {
   const player = useVideoPlayer(url, (videoPlayer) => {
     videoPlayer.loop = true;
     videoPlayer.play();
@@ -77,5 +74,13 @@ const ExerciseVideo = ({ url }: ExerciseVideoProps) => {
     />
   );
 };
+
+/**
+ * The Exercise's clip: muted, looping, playing on its own, with no controls.
+ * One that fails to load shows the placeholder instead.
+ */
+const ExerciseVideo = ({ url }: ExerciseVideoProps) => (
+  <ClipPlayer key={url} url={url} />
+);
 
 export default ExerciseVideo;
