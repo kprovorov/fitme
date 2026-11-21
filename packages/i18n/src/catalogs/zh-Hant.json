@@ -778,6 +778,7 @@
     "goBack": "返回",
     "loadError": "無法載入此計畫。請檢查網路連線後再試一次。",
     "listLoadError": "無法載入你的計畫。請檢查網路連線後再試一次。",
+    "activePlan": "使用中的計畫",
     "activate": {
       "action": "啟用計畫",
       "title": "啟用計畫",

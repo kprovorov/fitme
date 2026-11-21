@@ -803,6 +803,7 @@
     "goBack": "Zurück",
     "loadError": "Dieser Plan konnte nicht geladen werden. Prüfe deine Verbindung und versuche es erneut.",
     "listLoadError": "Deine Pläne konnten nicht geladen werden. Prüfe deine Verbindung und versuche es erneut.",
+    "activePlan": "Aktiver Plan",
     "activate": {
       "action": "Plan aktivieren",
       "title": "Plan aktivieren",

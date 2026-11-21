@@ -778,6 +778,7 @@
     "goBack": "返回",
     "loadError": "无法加载此计划。请检查网络连接后重试。",
     "listLoadError": "无法加载你的计划。请检查网络连接后重试。",
+    "activePlan": "使用中的计划",
     "activate": {
       "action": "启用计划",
       "title": "启用计划",

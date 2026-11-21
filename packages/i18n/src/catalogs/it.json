@@ -828,6 +828,7 @@
     "goBack": "Indietro",
     "loadError": "Impossibile caricare questo piano. Controlla la connessione e riprova.",
     "listLoadError": "Impossibile caricare i tuoi piani. Controlla la connessione e riprova.",
+    "activePlan": "Piano attivo",
     "activate": {
       "action": "Attiva piano",
       "title": "Attiva piano",

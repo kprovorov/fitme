@@ -853,6 +853,7 @@
     "goBack": "Wróć",
     "loadError": "Nie udało się wczytać tego planu. Sprawdź połączenie i spróbuj ponownie.",
     "listLoadError": "Nie udało się wczytać twoich planów. Sprawdź połączenie i spróbuj ponownie.",
+    "activePlan": "Aktywny plan",
     "activate": {
       "action": "Aktywuj plan",
       "title": "Aktywuj plan",
