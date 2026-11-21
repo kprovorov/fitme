@@ -19,6 +19,26 @@ The ten scenes are:
 
 These replace the earlier sets for two app updates: the new Library (ADR 0022), which changes exercise names and thumbnails in every scene and the redesigned exercise detail screen, and the new Profile button on Home.
 
+### Locales
+
+| Source folder | App language | Listing folder |
+| ------------- | ------------ | -------------- |
+| `en-US`       | `en`         | `en-US`        |
+| `uk-UA`       | `uk`         | `uk`           |
+| `es-ES`       | `es`         | `es-ES`        |
+| `ca-ES`       | `ca`         | `ca`           |
+| `de-DE`       | `de`         | `de-DE`        |
+| `fr-FR`       | `fr`         | `fr-FR`        |
+| `it-IT`       | `it`         | `it`           |
+| `ja-JP`       | `ja`         | `ja`           |
+| `ko-KR`       | `ko`         | `ko`           |
+| `nl-NL`       | `nl`         | `nl-NL`        |
+| `pl-PL`       | `pl`         | `pl`           |
+| `pt-BR`       | `pt-BR`      | `pt-BR`        |
+| `pt-PT`       | `pt-PT`      | `pt-PT`        |
+| `zh-Hans-CN`  | `zh-Hans`    | `zh-Hans`      |
+| `zh-Hant-TW`  | `zh-Hant`    | `zh-Hant`      |
+
 ### Device and build
 
 - iPhone 18 Pro simulator, iOS 27.2, with a status-bar override: 9:41 (09:41 in 24-hour regions), full signal and a full battery.
@@ -61,6 +81,8 @@ All 15 Listing sets in `app-store/iphone-6.9/` were recomposed with `compose-app
 
 - Arnold's wording and exercise choices differ between languages; the screen states match.
 - Long Japanese exercise names can break before a trailing long-vowel mark.
+- Long exercise names are cut with "…" in the PR summary rows (German, Dutch, Polish) and in the progress header (Dutch, Polish). This is the app's own truncation.
+- On the next-workout card, the "+2" muscle badge drops onto a line of its own in Ukrainian, German and Polish.
 - The App Store caption for scene 10 still says "GPT or Claude", but the picker now lists four models.
 
 ## App Store upload
