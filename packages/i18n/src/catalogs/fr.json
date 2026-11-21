@@ -828,6 +828,7 @@
     "goBack": "Retour",
     "loadError": "Impossible de charger ce programme. Vérifie ta connexion et réessaie.",
     "listLoadError": "Impossible de charger tes programmes. Vérifie ta connexion et réessaie.",
+    "activePlan": "Programme actif",
     "activate": {
       "action": "Activer le programme",
       "title": "Activer le programme",

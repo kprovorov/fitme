@@ -828,6 +828,7 @@
     "goBack": "Volver",
     "loadError": "No se ha podido cargar este plan. Comprueba tu conexión e inténtalo de nuevo.",
     "listLoadError": "No se han podido cargar tus planes. Comprueba tu conexión e inténtalo de nuevo.",
+    "activePlan": "Plan activo",
     "activate": {
       "action": "Activar plan",
       "title": "Activar plan",

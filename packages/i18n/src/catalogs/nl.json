@@ -803,6 +803,7 @@
     "goBack": "Terug",
     "loadError": "Dit schema kon niet worden geladen. Controleer je verbinding en probeer het opnieuw.",
     "listLoadError": "Je schema's konden niet worden geladen. Controleer je verbinding en probeer het opnieuw.",
+    "activePlan": "Actief schema",
     "activate": {
       "action": "Schema activeren",
       "title": "Schema activeren",

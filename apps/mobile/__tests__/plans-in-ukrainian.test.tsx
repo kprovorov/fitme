@@ -203,7 +203,7 @@ describe("the Plan list in Ukrainian", () => {
     const label = spokenLabel(card);
 
     expect(label).toBe(
-      "Гіпертрофія, Сила та результативність, Середній рівень, 3 рази на тиждень, Спортзал, About Гіпертрофія"
+      "Гіпертрофія, Активний план, Сила та результативність, Середній рівень, 3 рази на тиждень, Спортзал, About Гіпертрофія"
     );
     expect(label).not.toContain(OBJECT_REPLACEMENT_CHARACTER);
   });

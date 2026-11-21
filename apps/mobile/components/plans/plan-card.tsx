@@ -23,7 +23,8 @@ interface PlanCardProps {
 
 /**
  * A Plan on the Plans list: its name, its frequency, and whichever of its
- * goal, level and place is set (ADR 0017).
+ * goal, level and place is set (ADR 0017). The active Plan's name is lime,
+ * and VoiceOver reads it followed by "Active plan".
  */
 const PlanCard = ({ plan }: PlanCardProps) => {
   const labels = useChoiceLabels();
@@ -65,6 +66,12 @@ const PlanCard = ({ plan }: PlanCardProps) => {
     <Card className="flex-1">
       <CardHeader>
         <CardTitle
+          // An unnamed Plan (`name` is nullable) reads "Active plan" alone.
+          accessibilityLabel={
+            plan.is_active
+              ? [plan.name, t("plans.activePlan")].filter(Boolean).join(", ")
+              : undefined
+          }
           className={plan.is_active ? "text-primary" : "text-muted-foreground"}
         >
           {plan.name}

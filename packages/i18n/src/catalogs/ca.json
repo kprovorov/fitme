@@ -828,6 +828,7 @@
     "goBack": "Torna enrere",
     "loadError": "No s'ha pogut carregar aquest pla. Comprova la connexió i torna-ho a provar.",
     "listLoadError": "No s'han pogut carregar els teus plans. Comprova la connexió i torna-ho a provar.",
+    "activePlan": "Pla actiu",
     "activate": {
       "action": "Activa el pla",
       "title": "Activa el pla",

@@ -547,6 +547,7 @@ A screen test in another language renders the screen inside `test-utils/in-app-l
 - `__tests__/home-in-ukrainian.test.tsx`
 - `__tests__/not-found-screen.test.tsx`
 - `__tests__/password-reset-screens-ukrainian.test.tsx`
+- `__tests__/plan-list-active-plan.test.tsx`
 - `__tests__/plan-editor.test.tsx`
 - `__tests__/plans-in-ukrainian.test.tsx`
 - `__tests__/profile-and-settings-in-ukrainian.test.tsx`
