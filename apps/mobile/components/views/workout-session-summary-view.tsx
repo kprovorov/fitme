@@ -3,9 +3,9 @@ import { loggedExercises } from "@fitme/core";
 import {
   formatCount,
   formatNumber,
-  formatUnit,
+  formatVolume,
   formatWorkoutDuration,
-  spokenUnit,
+  spokenVolume,
 } from "@fitme/i18n";
 import { Fragment, useMemo } from "react";
 import { useTranslation } from "react-i18next";
@@ -118,9 +118,9 @@ const WorkoutSessionSummaryView = ({
           />
           <WorkoutSessionSummaryStat
             icon="scalemass.fill"
-            spokenValue={spokenUnit(i18n, Math.round(volume), weightUnit)}
+            spokenValue={spokenVolume(i18n, volume, weightUnit)}
             title={t("workoutSession.stats.volume")}
-            value={formatUnit(i18n, Math.round(volume), weightUnit)}
+            value={formatVolume(i18n, volume, weightUnit)}
           />
           <WorkoutSessionSummaryStat
             icon="dumbbell.fill"

@@ -317,9 +317,9 @@ describe("switching the measurement system", () => {
     await switchTo("us");
 
     expect(screen.getByTestId("picker-value")).toHaveTextContent("us");
-    // 50 kg is 110.23 lbs a set, so 440.92 lbs of volume, and the planned
+    // 50 kg is 110.23 lbs a set, so 440.92 lbs of volume, shown as 441 lbs, and the planned
     // 100 kg is 220.46 lbs.
-    expect(historyRow("440.92 lbs")).toBeTruthy();
+    expect(historyRow("441 lbs")).toBeTruthy();
     expect(plannedSet("220.46 lbs")).toBeTruthy();
     expect(Alert.alert).not.toHaveBeenCalled();
   });
@@ -328,7 +328,7 @@ describe("switching the measurement system", () => {
     await mount();
 
     await switchTo("us");
-    expect(historyRow("440.92 lbs")).toBeTruthy();
+    expect(historyRow("441 lbs")).toBeTruthy();
 
     await switchTo("metric");
 
@@ -458,7 +458,7 @@ describe("switching the measurement system", () => {
     // The read confirmed the switch: no further read, no alert, and every
     // weight is read again in pounds.
     expect(Alert.alert).not.toHaveBeenCalled();
-    expect(historyRow("440.92 lbs")).toBeTruthy();
+    expect(historyRow("441 lbs")).toBeTruthy();
     expect(plannedSet("220.46 lbs")).toBeTruthy();
   });
 
@@ -496,7 +496,7 @@ describe("switching the measurement system", () => {
 
       // The Profile now says pounds, so every weight is read again in them.
       expect(screen.getByTestId("picker-value")).toHaveTextContent("us");
-      expect(historyRow("440.92 lbs")).toBeTruthy();
+      expect(historyRow("441 lbs")).toBeTruthy();
       expect(plannedSet("220.46 lbs")).toBeTruthy();
     });
 
@@ -550,7 +550,7 @@ describe("switching the measurement system", () => {
     await switchTo("us");
 
     expect(Alert.alert).not.toHaveBeenCalled();
-    expect(historyRow("440.92 lbs")).toBeTruthy();
+    expect(historyRow("441 lbs")).toBeTruthy();
     expect(plannedSet("220.46 lbs")).toBeTruthy();
   });
 });

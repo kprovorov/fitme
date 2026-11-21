@@ -1,9 +1,9 @@
 import {
   formatCount,
   formatDate,
-  formatUnit,
+  formatVolume,
   formatWorkoutDuration,
-  spokenUnit,
+  spokenVolume,
 } from "@fitme/i18n";
 import { Link } from "expo-router";
 import { useTranslation } from "react-i18next";
@@ -59,7 +59,7 @@ const WorkoutSessionHistoryRow = ({
   const details = [
     duration,
     sets,
-    formatUnit(i18n, entry.volume, weightUnit),
+    formatVolume(i18n, entry.volume, weightUnit),
   ].filter(Boolean);
 
   const records = entry.personal_records;
@@ -73,7 +73,7 @@ const WorkoutSessionHistoryRow = ({
     duration: duration ?? "",
     name,
     sets,
-    volume: spokenUnit(i18n, entry.volume, weightUnit),
+    volume: spokenVolume(i18n, entry.volume, weightUnit),
   });
 
   const dateTile = (

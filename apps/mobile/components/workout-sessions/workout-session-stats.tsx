@@ -4,7 +4,7 @@ import {
   formatElapsed,
   sessionVolume,
 } from "@fitme/core";
-import { formatNumber, formatUnit } from "@fitme/i18n";
+import { formatNumber, formatVolume } from "@fitme/i18n";
 import { useIsFocused } from "expo-router";
 import { useTranslation } from "react-i18next";
 import { useWindowDimensions, View } from "react-native";
@@ -111,7 +111,7 @@ const WorkoutSessionStats = ({ workoutSession }: WorkoutSessionStatsProps) => {
           },
           {
             label: t("workoutSession.stats.volume"),
-            value: formatUnit(i18n, volume, workoutSession.weight_unit),
+            value: formatVolume(i18n, volume, workoutSession.weight_unit),
           },
           {
             label: t("workoutSession.stats.sets"),
