@@ -788,8 +788,7 @@
     },
     "place": {
       "title": "Local",
-      "question": "Escolhe onde queres treinar",
-      "soon": "Em breve"
+      "question": "Escolhe onde queres treinar"
     },
     "frequency": {
       "title": "Frequência",

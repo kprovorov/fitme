@@ -766,8 +766,7 @@
     },
     "place": {
       "title": "Place",
-      "question": "Choose where you want to do your workouts",
-      "soon": "Soon"
+      "question": "Choose where you want to do your workouts"
     },
     "frequency": {
       "title": "Frequency",

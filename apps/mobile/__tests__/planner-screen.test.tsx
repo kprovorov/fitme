@@ -73,6 +73,24 @@ describe("PlannerScreen", () => {
     ).toBe(true);
   });
 
+  it("plans home workouts", async () => {
+    await render(<PlannerScreen />);
+
+    expect(screen.queryByText("Soon")).toBeNull();
+
+    await fireEvent.press(screen.getByText("Gain muscle"));
+    await fireEvent.press(screen.getByTestId("experience-beginner"));
+    await fireEvent.press(screen.getByTestId("place-home"));
+    await fireEvent.press(screen.getByTestId("frequency-3"));
+    await fireEvent.press(screen.getByText("Get my plan!"));
+
+    const [target] = jest.mocked(router.dismissTo).mock.calls[0] as [
+      { params: { initialMessage: string }; pathname: string },
+    ];
+
+    expect(target.params.initialMessage).toContain("- Place: Home");
+  });
+
   it("walks every step in Ukrainian on a Ukrainian device", async () => {
     setDeviceLanguages(["uk-UA"]);
     await render(<Planner />);
@@ -106,7 +124,7 @@ describe("PlannerScreen", () => {
     expect(screen.getByText("Місце")).toBeTruthy();
     expect(screen.getByText("Спортзал")).toBeTruthy();
     expect(screen.getByText("Вдома")).toBeTruthy();
-    expect(screen.getByText("Скоро")).toBeTruthy();
+    expect(screen.queryByText("Скоро")).toBeNull();
 
     // Frequency
     expect(screen.getByText("Частота")).toBeTruthy();

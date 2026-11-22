@@ -744,8 +744,7 @@
     },
     "place": {
       "title": "장소",
-      "question": "운동할 장소를 선택해 주세요",
-      "soon": "출시 예정"
+      "question": "운동할 장소를 선택해 주세요"
     },
     "frequency": {
       "title": "빈도",
