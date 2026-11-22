@@ -1,5 +1,5 @@
 import { experienceLevels, goals, places } from "@fitme/core";
-import type { Goal, Place } from "@fitme/core";
+import type { Goal } from "@fitme/core";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { router, Stack } from "expo-router";
 import type { TFunction } from "i18next";
@@ -19,7 +19,6 @@ import { z } from "zod";
 
 import { goalSymbol } from "~/components/plans/plan-symbols";
 import { SymbolImage } from "~/components/symbol-image";
-import { Badge } from "~/components/ui/badge";
 import { Button } from "~/components/ui/button";
 import { ErrorMessage } from "~/components/ui/error-message";
 import { HStack } from "~/components/ui/hstack";
@@ -79,9 +78,6 @@ const goalOptions = [
   "general-health-fitness",
 ] as const satisfies readonly Goal[];
 
-// Home workouts aren't planned yet.
-const soonPlaces: ReadonlySet<Place> = new Set(["home"]);
-
 const frequencyOptions = [1, 2, 3, 4, 5, 6, 7];
 
 interface PlanFieldProps<TName extends keyof PlanFormValues> {
@@ -90,7 +86,7 @@ interface PlanFieldProps<TName extends keyof PlanFormValues> {
 }
 
 /**
- * The planner's option tiles are a bespoke layout (icons, badges, disclaimers)
+ * The planner's option tiles are a bespoke layout (icons, disclaimers)
  * that SwiftUI's `Picker` can't express, so they keep a hand-drawn indicator
  * instead of using the shared SwiftUI `RadioGroup`.
  */
@@ -118,7 +114,6 @@ const RadioGroupItemWithLabel = ({
   label,
   disclaimer,
   disabled,
-  badge,
   isSelected,
   onSelect,
   testID,
@@ -127,7 +122,6 @@ const RadioGroupItemWithLabel = ({
   label: string;
   disclaimer?: string;
   disabled: boolean;
-  badge?: string;
   isSelected: boolean;
   onSelect: (value: string) => void;
   testID?: string;
@@ -147,23 +141,15 @@ const RadioGroupItemWithLabel = ({
       testID={testID}
     >
       <RadioDot disabled={disabled} selected={isSelected} />
-      {/* The badge wraps under a label too long to share the line with it. */}
-      <View className="flex flex-1 flex-row flex-wrap items-center justify-between gap-x-2 gap-y-1 p-0">
-        <View className="flex shrink flex-col items-start justify-center gap-0 p-0">
-          <Label
-            disabled={disabled}
-            nativeID={`label-for-${value}`}
-            onPress={handlePress}
-          >
-            {label}
-          </Label>
-          {!!disclaimer && <Muted>{disclaimer}</Muted>}
-        </View>
-        {badge ? (
-          <Badge variant="secondary">
-            <Text>{badge}</Text>
-          </Badge>
-        ) : null}
+      <View className="flex flex-1 flex-col items-start justify-center gap-0 p-0">
+        <Label
+          disabled={disabled}
+          nativeID={`label-for-${value}`}
+          onPress={handlePress}
+        >
+          {label}
+        </Label>
+        {!!disclaimer && <Muted>{disclaimer}</Muted>}
       </View>
     </Pressable>
   );
@@ -174,7 +160,6 @@ const RadioGroupItemTileWithIcon = ({
   label,
   icon,
   disabled,
-  badge,
   isSelected,
   onSelect,
 }: {
@@ -182,7 +167,6 @@ const RadioGroupItemTileWithIcon = ({
   label: string;
   icon?: SFSymbol;
   disabled: boolean;
-  badge?: string;
   isSelected: boolean;
   onSelect: (value: string) => void;
 }) => {
@@ -216,11 +200,6 @@ const RadioGroupItemTileWithIcon = ({
       >
         {label}
       </Label>
-      {badge ? (
-        <Badge variant="secondary">
-          <Text>{badge}</Text>
-        </Badge>
-      ) : null}
     </Pressable>
   );
 };
@@ -320,26 +299,21 @@ const renderWorkoutDurationField = ({
 const PlaceOptions = ({
   field: { onChange, value },
 }: PlanFieldProps<"place">) => {
-  const { t } = useTranslation();
   const labels = useChoiceLabels();
 
   return (
     <View className="flex flex-row items-stretch justify-stretch gap-4">
-      {places.map((option) => {
-        const soon = soonPlaces.has(option);
-
-        return (
-          <RadioGroupItemWithLabel
-            badge={soon ? t("planner.place.soon") : undefined}
-            disabled={soon}
-            isSelected={option === value}
-            key={option}
-            label={labels.place(option)}
-            onSelect={onChange}
-            value={option}
-          />
-        );
-      })}
+      {places.map((option) => (
+        <RadioGroupItemWithLabel
+          disabled={false}
+          isSelected={option === value}
+          key={option}
+          label={labels.place(option)}
+          onSelect={onChange}
+          testID={`place-${option}`}
+          value={option}
+        />
+      ))}
     </View>
   );
 };

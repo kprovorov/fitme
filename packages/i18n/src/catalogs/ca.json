@@ -788,8 +788,7 @@
     },
     "place": {
       "title": "Lloc",
-      "question": "Tria on vols entrenar",
-      "soon": "Aviat"
+      "question": "Tria on vols entrenar"
     },
     "frequency": {
       "title": "Freqüència",

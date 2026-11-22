@@ -744,8 +744,7 @@
     },
     "place": {
       "title": "地點",
-      "question": "選擇你想訓練的地點",
-      "soon": "即將推出"
+      "question": "選擇你想訓練的地點"
     },
     "frequency": {
       "title": "頻率",

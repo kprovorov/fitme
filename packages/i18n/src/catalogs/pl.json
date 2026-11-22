@@ -810,8 +810,7 @@
     },
     "place": {
       "title": "Miejsce",
-      "question": "Wybierz, gdzie chcesz ćwiczyć",
-      "soon": "Wkrótce"
+      "question": "Wybierz, gdzie chcesz ćwiczyć"
     },
     "frequency": {
       "title": "Częstotliwość",

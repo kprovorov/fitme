@@ -152,7 +152,6 @@ Ready-made iPhone simulator screenshots (raw, framed and App Store exports) in E
 
 ## Not yet (don't claim)
 
-- **Home workouts.** "Home" shows as "Soon" in the planner; plans are gym-only today.
 - **Android.** iPhone only for now.
 - **Apple Health sync, automatic weekly plan adaptation, rest timer alerts.** Not in the app. Arnold adjusts plans when asked, not on its own schedule.
 - **Multiple saved Arnold Conversations.** One current Conversation at a time; each ends after 30 days.
