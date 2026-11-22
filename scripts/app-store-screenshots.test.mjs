@@ -663,6 +663,106 @@ void describe("check against the listing config", () => {
   });
 });
 
+// A listing config with this listing text per Listing locale.
+/** @param {Record<string, unknown>} info apple.info. */
+const listingConfigWith = (info) => {
+  const file = path.join(makeTree({}), "store.config.json");
+  fs.writeFileSync(file, JSON.stringify({ apple: { info }, configVersion: 0 }));
+
+  return file;
+};
+
+void describe("check against emoji in the listing text", () => {
+  const TEXT = {
+    description: "Track every set.\n\n• Plans — built by Arnold",
+    keywords: ["gym", "workout"],
+    promoText: "Train smarter",
+    releaseNotes: "Plan home workouts with Arnold.",
+    subtitle: "Workout planner",
+    title: "Fitme",
+  };
+
+  void test("accepts the typographic characters the copy uses", () => {
+    const config = listingConfigWith({
+      "en-US": { ...TEXT, description: "• Plans — Arnold’s “picks” … 3 × 10" },
+      ja: {
+        ...TEXT,
+        title: "フィットミー：筋トレ！（ジム）",
+        keywords: ["筋肉"],
+      },
+      ko: { ...TEXT, title: "핏미 운동 기록" },
+      "zh-Hans": { ...TEXT, subtitle: "健身计划，力量训练。" },
+    });
+
+    const result = check(makeTree(images(EN, 1)), config);
+    assert.equal(result.status, 0, result.lines.join("\n"));
+    assert.deepEqual(result.lines, []);
+  });
+
+  void test("rejects an emoji, naming the locale, the field and the character", () => {
+    const config = listingConfigWith({
+      "en-US": TEXT,
+      uk: { ...TEXT, releaseNotes: "Плануй тренування вдома 💪" },
+    });
+
+    const result = check(makeTree(images(EN, 1)), config);
+    assert.equal(result.status, 1, result.stdout);
+    assert.deepEqual(result.lines, [
+      `${config}: apple.info.uk.releaseNotes: emoji 💪 (U+1F4AA); App Store Connect rejects emoji in listing text`,
+    ]);
+  });
+
+  void test("rejects emoji in every text field and locale, each once", () => {
+    const config = listingConfigWith({
+      de: {
+        ...TEXT,
+        description: "Stark 💪 und 💪 schnell 🚀",
+        keywords: ["gym", "fit🔥"],
+        promoText: "Neu ❤️",
+        subtitle: "Schritt 1️⃣",
+        title: "Fitme 🇩🇪",
+      },
+      "en-US": { ...TEXT, releaseNotes: "Stronger 💪🏽" },
+    });
+
+    const result = check(makeTree(images(EN, 1)), config);
+    assert.equal(result.status, 1, result.stdout);
+    assert.deepEqual(result.lines, [
+      `${config}: apple.info.de.description: emoji 💪 (U+1F4AA); App Store Connect rejects emoji in listing text`,
+      `${config}: apple.info.de.description: emoji 🚀 (U+1F680); App Store Connect rejects emoji in listing text`,
+      `${config}: apple.info.de.keywords[1]: emoji 🔥 (U+1F525); App Store Connect rejects emoji in listing text`,
+      `${config}: apple.info.de.promoText: emoji ❤️ (U+2764 U+FE0F); App Store Connect rejects emoji in listing text`,
+      `${config}: apple.info.de.subtitle: emoji 1️⃣ (U+0031 U+FE0F U+20E3); App Store Connect rejects emoji in listing text`,
+      `${config}: apple.info.de.title: emoji 🇩🇪 (U+1F1E9 U+1F1EA); App Store Connect rejects emoji in listing text`,
+      `${config}: apple.info.en-US.releaseNotes: emoji 💪🏽 (U+1F4AA U+1F3FD); App Store Connect rejects emoji in listing text`,
+    ]);
+  });
+
+  void test("rejects an emoji in the release's prepare too, writing nothing", () => {
+    const config = listingConfigWith({
+      "en-US": { ...TEXT, releaseNotes: "Stronger 💪" },
+    });
+
+    const before = fs.readFileSync(config, "utf-8");
+    const staging = makeTree({});
+
+    const result = run(
+      "prepare",
+      staging,
+      makeTree(images(EN, 1)),
+      "--config",
+      config
+    );
+
+    assert.equal(result.status, 1, result.stdout);
+    assert.deepEqual(result.lines, [
+      `${config}: apple.info.en-US.releaseNotes: emoji 💪 (U+1F4AA); App Store Connect rejects emoji in listing text`,
+    ]);
+    assert.equal(fs.readFileSync(config, "utf-8"), before);
+    assert.deepEqual(fs.readdirSync(staging), []);
+  });
+});
+
 void describe("the command line", () => {
   void test("refuses an unknown command", () => {
     const result = run("push");

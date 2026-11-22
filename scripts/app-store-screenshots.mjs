@@ -4,7 +4,8 @@
 // The App Store screenshots: checks the Screenshot sets committed under
 // marketing/screenshots/app-store/, laid out as <device>/<Listing locale>/NN.png
 // (see that directory's README), and that they agree with the Store listing
-// config, and stages them for upload. No network, no secrets; nothing is ever
+// config, that the config's listing text has no emoji (which App Store Connect
+// rejects), and stages them for upload. No network, no secrets; nothing is ever
 // resized or repaired.
 //
 // Usage: node scripts/app-store-screenshots.mjs check [dir] [--config file]
@@ -534,6 +535,72 @@ const parseListing = (text) => {
   };
 };
 
+// A code point that makes its character an emoji: a pictograph (💪, ❤),
+// a flag's regional indicator, a skin tone, or the emoji variation selector
+// and the keycap that turn plain text into one (❤️, 1️⃣). App Store Connect
+// rejects emoji in listing text, and only at `eas metadata:push` (FIT-777).
+// Typographic marks the copy uses (•, —, ’, ：, ！, （）) and every script's
+// letters aren't any of these. © ® ™ are pictographs too, and so rejected.
+const EMOJI =
+  /[\p{Extended_Pictographic}\p{Regional_Indicator}\p{Emoji_Modifier}\u{FE0F}\u{20E3}]/u;
+
+const graphemes = new Intl.Segmenter("en", { granularity: "grapheme" });
+
+/** @param {string} character One grapheme. */
+const codePoints = (character) =>
+  Array.from(
+    character,
+    (point) =>
+      `U+${point.codePointAt(0).toString(16).toUpperCase().padStart(4, "0")}`
+  ).join(" ");
+
+// Every value in one Listing locale's text (a text field, or each item of a
+// list such as keywords) as text, with its dotted path. A number, a boolean
+// or null reads as text with no emoji in it. The screenshots entries are the
+// release's, and readListingConfig already rejects one.
+/**
+ * @param {unknown} value Parsed JSON value.
+ * @param {string} at Path to this JSON value.
+ * @returns {[string, string][]} Each value's path and text.
+ */
+const listingStrings = (value, at) => {
+  if (Array.isArray(value)) {
+    return value.flatMap((item, index) =>
+      listingStrings(item, `${at}[${index}]`)
+    );
+  }
+
+  if (value instanceof Object) {
+    return Object.entries(value).flatMap(([key, child]) =>
+      key === "screenshots" ? [] : listingStrings(child, `${at}.${key}`)
+    );
+  }
+
+  return [[at, String(value)]];
+};
+
+// One problem per distinct emoji in each text field of each Listing locale.
+/**
+ * @param {{label: string, localeText: Map<string, JsonObject | null>, problems: string[]}} options Inputs for this operation.
+ */
+const checkListingText = ({ label, localeText, problems }) => {
+  for (const [locale, text] of localeText) {
+    for (const [at, value] of listingStrings(text, `apple.info.${locale}`)) {
+      const found = new Set(
+        Array.from(graphemes.segment(value), ({ segment }) => segment).filter(
+          (segment) => EMOJI.test(segment)
+        )
+      );
+
+      for (const emoji of found) {
+        problems.push(
+          `${label}: ${at}: emoji ${emoji} (${codePoints(emoji)}); App Store Connect rejects emoji in listing text`
+        );
+      }
+    }
+  }
+};
+
 // The Store listing config: answers it parsed, with its Listing locales (the
 // keys of apple.info, App Store Connect's own codes), or null when it can't
 // say.
@@ -581,6 +648,8 @@ const readListingConfig = ({ file, label, problems }) => {
 
     return null;
   }
+
+  checkListingText({ label, localeText, problems });
 
   return { config, localeText, locales: new Set(Object.keys(info)) };
 };
