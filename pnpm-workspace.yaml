@@ -59,6 +59,13 @@ patchedDependencies:
   # Drizzle 0.31.11 drops expressions from later policies during pull. Keep
   # every condition and order policies by name so generated schema is stable.
   drizzle-kit@0.31.11: patches/drizzle-kit@0.31.11.patch
+  # eve 1.1.0 put a closure over a loop variable in its stream reader
+  # (dist/src/client/open-stream.js), so Babel compiles the loop body into a
+  # `yield* _loop()`, in which leaving the read early reconnects forever: in the
+  # app every send after the first hung (FIT-780). The patch moves the closure
+  # out of the loop. 1.4.0 still has it: on a bump, drop the patch and run
+  # mobile's fake-arnold and arnold-screen tests, which fail without it.
+  eve@1.3.0: patches/eve@1.3.0.patch
   uniwind@1.12.2: patches/uniwind@1.12.2.patch
 
 # Advisories accepted for `pnpm audit`, each with its reason. Drop each line
