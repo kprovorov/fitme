@@ -1,5 +1,5 @@
 import { getAuth } from "@clerk/hono";
-import { protectedResourceHandlerClerk } from "@clerk/mcp-tools/hono";
+import { generateProtectedResourceMetadata } from "@clerk/mcp-tools/hono";
 import type { Context } from "hono";
 import { env } from "hono/adapter";
 import { createMiddleware } from "hono/factory";
@@ -40,13 +40,53 @@ const resourceUrl = (c: Context) =>
 const resourceMetadataUrl = (c: Context) =>
   new URL(PROTECTED_RESOURCE_METADATA_PATH, resourceUrl(c)).href;
 
-/** Protected-resource metadata naming the Clerk instance as the issuer. */
-export const protectedResourceMetadata = (c: Context) =>
-  protectedResourceHandlerClerk({
-    bearer_methods_supported: ["header"],
-    resource: resourceUrl(c),
-    resource_name: "Fitme",
-  })(c);
+/**
+ * Protected-resource metadata naming the Clerk instance as the issuer. The
+ * properties derived from the issuer are the ones `@clerk/mcp-tools` generated
+ * before 1.0, kept so the document clients discover stays the same.
+ */
+export const protectedResourceMetadata = (c: Context) => {
+  const publishableKey = env<{ CLERK_PUBLISHABLE_KEY?: string }>(
+    c
+  ).CLERK_PUBLISHABLE_KEY;
+
+  if (!publishableKey) {
+    throw new Error("CLERK_PUBLISHABLE_KEY must be set");
+  }
+
+  const resource = { publishableKey, resourceUrl: resourceUrl(c) };
+
+  const {
+    authorization_servers: [issuer],
+  } = generateProtectedResourceMetadata(resource);
+
+  return c.json(
+    generateProtectedResourceMetadata({
+      ...resource,
+      properties: {
+        authorization_data_locations_supported: ["header", "body"],
+        authorization_data_types_supported: ["oauth_scope"],
+        jwks_uri: `${issuer}/.well-known/jwks.json`,
+        key_challenges_supported: [
+          {
+            challenge_algs: ["S256"],
+            challenge_type: "urn:ietf:params:oauth:pkce:code_challenge",
+          },
+        ],
+        resource_name: "Fitme",
+        service_documentation: "https://clerk.com/docs",
+        token_introspection_endpoint: `${issuer}/oauth/token`,
+        token_introspection_endpoint_auth_methods_supported: [
+          "client_secret_post",
+          "client_secret_basic",
+        ],
+        token_types_supported: [
+          "urn:ietf:params:oauth:token-type:access_token",
+        ],
+      },
+    })
+  );
+};
 
 /**
  * 401 with the `WWW-Authenticate` challenge MCP clients use to discover the

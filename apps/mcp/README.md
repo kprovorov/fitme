@@ -49,7 +49,7 @@ The MCP endpoint fails closed: without `CLERK_SECRET_KEY`, `CLERK_PUBLISHABLE_KE
 
 ## Authentication
 
-The server implements the [MCP authorization spec](https://modelcontextprotocol.io/specification/2025-06-18/basic/authorization) (OAuth 2.1). It is the protected resource; the authorization server is Clerk. MCP clients identify themselves with a Client ID Metadata Document (no dynamic client registration), sign the User in on Clerk's hosted sign-in and consent screen, and refresh tokens there. Auth uses `@clerk/hono` (`clerkMiddleware`, `getAuth` with `acceptsToken: "oauth_token"`) and `@clerk/mcp-tools/hono` (`protectedResourceHandlerClerk`, `streamableHttpHandler`); see `src/auth.ts`.
+The server implements the [MCP authorization spec](https://modelcontextprotocol.io/specification/2025-06-18/basic/authorization) (OAuth 2.1). It is the protected resource; the authorization server is Clerk. MCP clients identify themselves with a Client ID Metadata Document (no dynamic client registration), sign the User in on Clerk's hosted sign-in and consent screen, and refresh tokens there. Auth uses `@clerk/hono` (`clerkMiddleware`, `getAuth` with `acceptsToken: "oauth_token"`) and `@clerk/mcp-tools/hono` (`generateProtectedResourceMetadata`, `streamableHttpHandler`); see `src/auth.ts`.
 
 1. `GET /.well-known/oauth-protected-resource` returns the resource URL and `authorization_servers: ["https://<clerk frontend API>"]` (RFC 9728), derived from `CLERK_PUBLISHABLE_KEY`.
 2. Every request to the MCP endpoint (`initialize`, `tools/list`, `tools/call`, catalog tools included) without a bearer token gets **HTTP 401** with `WWW-Authenticate: Bearer resource_metadata="…"`, so the client starts OAuth.

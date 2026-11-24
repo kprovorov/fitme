@@ -514,12 +514,44 @@ describe("mcp app", () => {
       );
 
       expect(response.status).toBe(200);
-      await expect(response.json()).resolves.toMatchObject({
+      // The whole document: what MCP clients discover must not change with a
+      // dependency upgrade.
+      await expect(response.json()).resolves.toStrictEqual({
+        authorization_data_locations_supported: ["header", "body"],
+        authorization_data_types_supported: ["oauth_scope"],
         authorization_servers: [`https://${CLERK_FRONTEND_API}`],
         bearer_methods_supported: ["header"],
+        jwks_uri: `https://${CLERK_FRONTEND_API}/.well-known/jwks.json`,
+        key_challenges_supported: [
+          {
+            challenge_algs: ["S256"],
+            challenge_type: "urn:ietf:params:oauth:pkce:code_challenge",
+          },
+        ],
         resource: "http://localhost/",
         resource_name: "Fitme",
+        service_documentation: "https://clerk.com/docs",
+        token_introspection_endpoint: `https://${CLERK_FRONTEND_API}/oauth/token`,
+        token_introspection_endpoint_auth_methods_supported: [
+          "client_secret_post",
+          "client_secret_basic",
+        ],
+        token_types_supported: [
+          "urn:ietf:params:oauth:token-type:access_token",
+        ],
       });
+    });
+
+    it("answers a reported 500 instead of metadata without a publishable key", async () => {
+      vi.stubEnv("CLERK_PUBLISHABLE_KEY", "");
+      const { app, reported } = createTestApp();
+
+      const response = await app.request(
+        "/.well-known/oauth-protected-resource"
+      );
+
+      expect(response.status).toBe(500);
+      expect(reported).toHaveLength(1);
     });
 
     it("advertises MCP_PUBLIC_URL as the resource behind a proxy", async () => {
