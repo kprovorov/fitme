@@ -19,7 +19,9 @@ export const vercelSandboxOptions = {
   // for as long as it runs.
   resources: { vcpus: 1 },
   // Stop soon after a turn: a resume per wake is cheaper than billed idle
-  // memory (eve's default is 30 minutes).
+  // memory (eve's default is 30 minutes). eve renews it only while a file
+  // transfer runs, and also stops a sandbox whose session has been idle for 5
+  // minutes (`idleTimeoutMs`'s default), which this timeout rarely leaves to it.
   timeout: 5 * MINUTE_MS,
   // Nothing in it needs the network.
   networkPolicy: "deny-all",
