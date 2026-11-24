@@ -195,6 +195,77 @@ describe("personal records", () => {
     await deleteTestUsers(users);
   });
 
+  describe("the backend's writes", () => {
+    const refused = { cause: { code: "42501" } };
+    const exercises: SessionSeed["exercises"] = { [SQUAT]: [[100, 5]] };
+
+    const award = async (workoutSessionId: string, userId = owner) =>
+      await asUser(owner, async (tx) => {
+        await tx.insert(personalRecords).values({
+          exerciseSlug: SQUAT,
+          kind: "weight",
+          reps: 5,
+          userId,
+          weight: "100",
+          workoutSessionId,
+        });
+      });
+
+    const move = async (recordOf: string, workoutSessionId: string) =>
+      await asUser(owner, async (tx) => {
+        await tx
+          .update(personalRecords)
+          .set({ workoutSessionId })
+          .where(eq(personalRecords.workoutSessionId, recordOf));
+      });
+
+    const rewrite = async (workoutSessionId: string, userId: string) =>
+      await asUser(userId, (tx) =>
+        tx
+          .update(personalRecords)
+          .set({ reps: 6 })
+          .where(eq(personalRecords.workoutSessionId, workoutSessionId))
+          .returning({ reps: personalRecords.reps })
+      );
+
+    const remove = async (workoutSessionId: string, userId: string) =>
+      await asUser(userId, (tx) =>
+        tx
+          .delete(personalRecords)
+          .where(eq(personalRecords.workoutSessionId, workoutSessionId))
+          .returning({ reps: personalRecords.reps })
+      );
+
+    it("only award the caller a record of their own finished Workout Session", async () => {
+      const other = newUser("Other");
+      const finished = await seedSession({ exercises });
+      const open = await seedSession({ exercises, finished: false });
+      const foreign = await seedSession({ exercises, userId: other });
+
+      await expect(award(open)).rejects.toMatchObject(refused);
+      await expect(award(foreign)).rejects.toMatchObject(refused);
+      await expect(award(finished, other)).rejects.toMatchObject(refused);
+      await award(finished);
+      await expect(move(finished, open)).rejects.toMatchObject(refused);
+      await expect(countRecords()).resolves.toBe(1);
+    });
+
+    it("only change or remove the caller's own records", async () => {
+      const other = newUser("Other");
+      const finished = await seedSession({ exercises });
+      await award(finished);
+
+      await expect(rewrite(finished, other)).resolves.toStrictEqual([]);
+      await expect(remove(finished, other)).resolves.toStrictEqual([]);
+      await expect(rewrite(finished, owner)).resolves.toStrictEqual([
+        { reps: 6 },
+      ]);
+      await expect(remove(finished, owner)).resolves.toStrictEqual([
+        { reps: 6 },
+      ]);
+    });
+  });
+
   describe("historical Personal record initialization", () => {
     it("initializes evidence older than a 50-session resource page", async () => {
       await seedSession({

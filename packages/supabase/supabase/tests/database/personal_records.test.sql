@@ -1,7 +1,21 @@
 -- A non-backend login (like Data API authenticator) can read own awards,
 -- but only the fitme login through asUser can write retained evidence.
 begin;
-select plan(5);
+select plan(6);
+
+-- Postgres evaluates every permissive policy of a command, so one each
+-- (Supabase's multiple_permissive_policies advisor, FIT-778)
+select results_eq(
+  $$select c.command::text, count(p.policyname)
+    from unnest(array['SELECT', 'INSERT', 'UPDATE', 'DELETE']) as c(command)
+    left join pg_policies p
+      on p.schemaname = 'public' and p.tablename = 'personal_records'
+      and p.permissive = 'PERMISSIVE' and p.cmd in (c.command, 'ALL')
+    group by c.command
+    order by c.command$$,
+  $$values ('DELETE', 1::bigint), ('INSERT', 1::bigint), ('SELECT', 1::bigint), ('UPDATE', 1::bigint)$$,
+  'each command runs one permissive policy'
+);
 
 insert into public.workout_sessions (id, user_id, started_at, finished_at)
 values ('11111111-4650-4000-8000-000000000001', 'user_prPolicy', now(), now());
