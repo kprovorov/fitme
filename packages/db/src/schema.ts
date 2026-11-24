@@ -102,9 +102,23 @@ export const personalRecords = pgTable(
       table.workoutSessionId,
       table.exerciseSlug
     ),
-    pgPolicy("personal_records_backend", {
+    pgPolicy("personal_records_backend_delete", {
       as: "permissive",
-      for: "all",
+      for: "delete",
+      to: ["authenticated"],
+      using: sql`((SESSION_USER = 'fitme'::name) AND (user_id = ( SELECT current_user_id() AS current_user_id)))`,
+    }),
+    pgPolicy("personal_records_backend_insert", {
+      as: "permissive",
+      for: "insert",
+      to: ["authenticated"],
+      withCheck: sql`((SESSION_USER = 'fitme'::name) AND (user_id = ( SELECT current_user_id() AS current_user_id)) AND (EXISTS ( SELECT 1
+   FROM workout_sessions ws
+  WHERE ((ws.id = personal_records.workout_session_id) AND (ws.user_id = ( SELECT current_user_id() AS current_user_id)) AND (ws.finished_at IS NOT NULL)))))`,
+    }),
+    pgPolicy("personal_records_backend_update", {
+      as: "permissive",
+      for: "update",
       to: ["authenticated"],
       using: sql`((SESSION_USER = 'fitme'::name) AND (user_id = ( SELECT current_user_id() AS current_user_id)))`,
       withCheck: sql`((SESSION_USER = 'fitme'::name) AND (user_id = ( SELECT current_user_id() AS current_user_id)) AND (EXISTS ( SELECT 1
