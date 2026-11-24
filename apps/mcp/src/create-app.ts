@@ -5,6 +5,7 @@ import {
   observeHono,
   reportError as reportToObservability,
 } from "@fitme/observability/node";
+import { WebStandardStreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/webStandardStreamableHttp.js";
 import { Hono } from "hono";
 import type { ErrorHandler, MiddlewareHandler } from "hono";
 import { cors } from "hono/cors";
@@ -158,7 +159,10 @@ export const createApp = ({
       user: c.get("clerkUser"),
     });
 
-    return streamableHttpHandler(() => createMcpServer({ context }))(c);
+    return streamableHttpHandler(
+      () => createMcpServer({ context }),
+      WebStandardStreamableHTTPServerTransport
+    )(c);
   });
 
   const handleError: ErrorHandler = async (error, c) => {
