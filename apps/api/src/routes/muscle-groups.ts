@@ -1,6 +1,6 @@
 import {
-  legacyMuscleGroups as allMuscleGroups,
-  legacyMuscleGroupToName,
+  muscleGroups as allMuscleGroups,
+  muscleGroupToName,
 } from "@fitme/core";
 import { createRoute, OpenAPIHono, z } from "@hono/zod-openapi";
 
@@ -54,7 +54,7 @@ export const muscleGroups = new OpenAPIHono({ defaultHook: invalidRequest })
       {
         data: allMuscleGroups.map((muscleGroup) => ({
           id: muscleGroup,
-          name: legacyMuscleGroupToName(muscleGroup),
+          name: muscleGroupToName(muscleGroup),
         })),
       },
       200
@@ -67,7 +67,7 @@ export const muscleGroups = new OpenAPIHono({ defaultHook: invalidRequest })
 
       return c.json(
         {
-          data: { id: muscleGroup, name: legacyMuscleGroupToName(muscleGroup) },
+          data: { id: muscleGroup, name: muscleGroupToName(muscleGroup) },
         },
         200
       );

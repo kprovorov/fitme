@@ -2787,17 +2787,16 @@ export interface components {
       | "biceps"
       | "triceps"
       | "forearms"
-      | "abs"
-      | "obliques"
+      | "core"
+      | "traps"
+      | "lower-back"
+      | "glutes"
       | "quadriceps"
       | "hamstrings"
-      | "glutes"
+      | "adductors"
       | "calves"
-      | "traps"
-      | "lats"
-      | "lower-back"
-      | "cardio"
-      | "full-body";
+      | "tibialis"
+      | "neck";
     Error: {
       error: {
         /** @example not_found */
@@ -2819,10 +2818,10 @@ export interface components {
       equipment: components["schemas"]["Equipment"][];
       movement_patterns: components["schemas"]["MovementPattern"][];
       /** @description The primary muscle groups */
-      muscle_groups: components["schemas"]["LibraryMuscleGroup"][];
+      muscle_groups: components["schemas"]["MuscleGroup"][];
       /** @example Barbell bench press */
       name: string;
-      secondary_muscle_groups: components["schemas"]["LibraryMuscleGroup"][];
+      secondary_muscle_groups: components["schemas"]["MuscleGroup"][];
       /**
        * @description The Exercise slug
        * @example barbell-bench-press
@@ -2876,24 +2875,6 @@ export interface components {
       | "stretch"
       | "hip_abduction"
       | "carry";
-    /** @enum {string} */
-    LibraryMuscleGroup:
-      | "chest"
-      | "back"
-      | "shoulders"
-      | "biceps"
-      | "triceps"
-      | "forearms"
-      | "core"
-      | "traps"
-      | "lower-back"
-      | "glutes"
-      | "quadriceps"
-      | "hamstrings"
-      | "adductors"
-      | "calves"
-      | "tibialis"
-      | "neck";
     ExerciseLookup: {
       /** @description The Exercises found, in asked order */
       data: components["schemas"]["ExerciseLookupEntry"][];

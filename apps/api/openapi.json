@@ -112,17 +112,16 @@
           "biceps",
           "triceps",
           "forearms",
-          "abs",
-          "obliques",
+          "core",
+          "traps",
+          "lower-back",
+          "glutes",
           "quadriceps",
           "hamstrings",
-          "glutes",
+          "adductors",
           "calves",
-          "traps",
-          "lats",
-          "lower-back",
-          "cardio",
-          "full-body"
+          "tibialis",
+          "neck"
         ]
       },
       "Error": {
@@ -189,7 +188,7 @@
           "muscle_groups": {
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/LibraryMuscleGroup"
+              "$ref": "#/components/schemas/MuscleGroup"
             },
             "minItems": 1,
             "description": "The primary muscle groups"
@@ -201,7 +200,7 @@
           "secondary_muscle_groups": {
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/LibraryMuscleGroup"
+              "$ref": "#/components/schemas/MuscleGroup"
             }
           },
           "slug": {
@@ -279,27 +278,6 @@
           "stretch",
           "hip_abduction",
           "carry"
-        ]
-      },
-      "LibraryMuscleGroup": {
-        "type": "string",
-        "enum": [
-          "chest",
-          "back",
-          "shoulders",
-          "biceps",
-          "triceps",
-          "forearms",
-          "core",
-          "traps",
-          "lower-back",
-          "glutes",
-          "quadriceps",
-          "hamstrings",
-          "adductors",
-          "calves",
-          "tibialis",
-          "neck"
         ]
       },
       "ExerciseLookup": {

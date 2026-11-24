@@ -1,4 +1,4 @@
-import { legacyMuscleGroups } from "@fitme/core";
+import { muscleGroups } from "@fitme/core";
 import {
   MAX_EXERCISE_SLUG_LENGTH,
   MAX_REPS,
@@ -10,7 +10,7 @@ import type { Hook } from "@hono/zod-openapi";
 import type { Env } from "hono";
 
 /** The muscle group enum, one named schema wherever it appears. */
-export const MuscleGroup = z.enum(legacyMuscleGroups).openapi("MuscleGroup");
+export const MuscleGroup = z.enum(muscleGroups).openapi("MuscleGroup");
 
 /**
  * A row id: any 8-4-4-4-12 hex uuid, as Postgres accepts (zod's `uuid` also

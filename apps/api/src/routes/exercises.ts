@@ -5,7 +5,6 @@ import {
   difficulties,
   equipment as equipmentList,
   movementPatterns,
-  muscleGroups,
 } from "@fitme/core/models";
 import { createRoute, OpenAPIHono, z } from "@hono/zod-openapi";
 import type { Context } from "hono";
@@ -17,6 +16,7 @@ import {
   errorResponse,
   invalidRequest,
   invalidRequestResponse,
+  MuscleGroup,
   rateLimitedResponse,
   unauthorizedResponse,
 } from "../schemas.js";
@@ -38,9 +38,8 @@ const LIST_PARAMETERS = [
   "search",
 ] as const;
 
-// The new Library's lists (ADR 0022), each one named schema. `MuscleGroup` is
-// the Legacy Library's, which /v1/muscle-groups still serves.
-const LibraryMuscleGroup = z.enum(muscleGroups).openapi("LibraryMuscleGroup");
+// The new Library's lists (ADR 0022), each one named schema; `MuscleGroup` is
+// shared with /v1/muscle-groups.
 const Equipment = z.enum(equipmentList).openapi("Equipment");
 const MovementPattern = z.enum(movementPatterns).openapi("MovementPattern");
 const Difficulty = z.enum(difficulties).openapi("Difficulty");
@@ -58,11 +57,11 @@ const ExerciseSummary = z
     }),
     movement_patterns: z.array(MovementPattern).min(1),
     muscle_groups: z
-      .array(LibraryMuscleGroup)
+      .array(MuscleGroup)
       .min(1)
       .openapi({ description: "The primary muscle groups" }),
     name: z.string().openapi({ example: "Barbell bench press" }),
-    secondary_muscle_groups: z.array(LibraryMuscleGroup),
+    secondary_muscle_groups: z.array(MuscleGroup),
     slug: z.string().openapi({
       description: "The Exercise slug",
       example: "barbell-bench-press",
@@ -188,7 +187,7 @@ const listExercisesRoute = createRoute({
             description: "Page size",
             example: DEFAULT_LIMIT,
           }),
-        muscle_groups: commaSeparated(LibraryMuscleGroup).optional().openapi({
+        muscle_groups: commaSeparated(MuscleGroup).optional().openapi({
           description:
             "Comma-separated muscle groups: only Exercises with any of them as a primary muscle group (a repeated one counts once)",
           example: "chest,triceps",
