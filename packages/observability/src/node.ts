@@ -91,7 +91,7 @@ export interface CronMonitor {
  */
 const checkIn = async (
   monitor: CronMonitor,
-  values: Parameters<typeof Sentry.captureCheckIn>[0]
+  status: Parameters<typeof Sentry.captureCheckIn>[0]
 ): Promise<string | undefined> => {
   if (!Sentry.isEnabled()) {
     return;
@@ -102,7 +102,7 @@ const checkIn = async (
   try {
     // The schedule goes with every check-in, so the last one creates the
     // monitor when the first never arrived
-    id = Sentry.captureCheckIn(values, {
+    id = Sentry.captureCheckIn(status, {
       checkinMargin: monitor.checkinMarginMinutes,
       maxRuntime: monitor.maxRuntimeMinutes,
       schedule: { type: "crontab", value: monitor.schedule },
@@ -119,7 +119,7 @@ const checkIn = async (
 /**
  * Runs a scheduled job inside its Sentry cron monitor: checks in when it
  * starts and again when it ends, as ok or failed, so Sentry alerts on a missed
- * or failed run. Each check-in's delivery is waited for (2 s at most, so the
+ * or failed run. Each check-in's delivery is waited for (flushed as error reports are, so the
  * function can't freeze first and a short run's two arrive in order) and
  * carries the slug, status, duration and schedule, plus what the SDK stamps on
  * any check-in (environment, release, trace ids); never the error, which the

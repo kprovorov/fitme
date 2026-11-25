@@ -60,6 +60,8 @@ describe("a monitored run", () => {
 
   afterEach(async () => {
     vi.useRealTimers();
+    scope.setUser(null);
+    scope.setTag("secret", undefined);
     scope.setClient(previousClient);
     flush.mockReset().mockResolvedValue(true);
     await client.close();
@@ -131,8 +133,6 @@ describe("a monitored run", () => {
       vi.advanceTimersByTime(1500);
       await Promise.resolve();
     });
-    scope.setUser(null);
-    scope.setTag("secret", undefined);
 
     const common = {
       check_in_id: expect.any(String),
