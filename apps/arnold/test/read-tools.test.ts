@@ -15,7 +15,12 @@ import {
 } from "./tool-context";
 import type { TestedTool } from "./tool-context";
 
-type ReadResult = typeof plan | (typeof plan)[] | typeof history | null;
+type ReadResult =
+  | typeof plan
+  | (typeof plan)[]
+  | typeof history
+  | SessionServices.WorkoutSessionDetail
+  | null;
 
 type ReadTransaction = (transaction: typeof tx) => Promise<ReadResult>;
 
@@ -35,12 +40,26 @@ const plans = vi.hoisted(() => ({
 }));
 
 const sessions = vi.hoisted(() => ({
+  getWorkoutSession:
+    vi.fn<
+      (
+        transaction: typeof tx,
+        id: string
+      ) => Promise<SessionServices.WorkoutSessionDetail | null>
+    >(),
   listWorkoutHistory:
     vi.fn<
       (
         transaction: typeof tx,
         options: { limit: number }
       ) => Promise<typeof history>
+    >(),
+  listWorkoutSessions:
+    vi.fn<
+      (
+        transaction: typeof tx,
+        options: SessionServices.ListWorkoutSessionsOptions
+      ) => Promise<{ sessions: { id: string }[]; total: number }>
     >(),
 }));
 
@@ -73,6 +92,9 @@ vi.mock<typeof LibraryModule>(import("../agent/lib/library"), async () => {
 
 const { default: getActivePlan } =
   await import("../agent/tools/get_active_plan");
+
+const { default: getOpenWorkoutSession } =
+  await import("../agent/tools/get_open_workout_session");
 
 const { default: getPlans } = await import("../agent/tools/get_plans");
 
@@ -161,12 +183,61 @@ const history = [
   },
 ];
 
+/** Logged, then a gap where a set was removed (ADR 0023), then one to go. */
+const openSets: SessionServices.WorkoutSessionSet[] = [
+  {
+    id: "wss_1",
+    logged_at: "2026-10-14T18:05:00+00:00",
+    order: 1,
+    reps_completed: 8,
+    reps_recommended: 8,
+    rest_recommended: 90,
+    weight_completed: 62.5,
+    weight_recommended: 60,
+  },
+  {
+    id: "wss_3",
+    logged_at: null,
+    order: 3,
+    reps_completed: null,
+    reps_recommended: 8,
+    rest_recommended: 90,
+    weight_completed: null,
+    weight_recommended: 60,
+  },
+];
+
+const openSession: SessionServices.WorkoutSessionDetail = {
+  exercises: [
+    {
+      exercise_slug: "back-squat",
+      id: "wse_squat",
+      order: 1,
+      sets: openSets,
+    },
+    {
+      exercise_slug: "jefferson-curl",
+      id: "wse_retired",
+      order: 2,
+      sets: [],
+    },
+  ],
+  finished_at: null,
+  id: "session_open",
+  plan: { id: "plan_1", name: "Push pull" },
+  started_at: "2026-10-14T18:00:00+00:00",
+  status: "in_progress",
+  workout: { id: "workout_1", name: "Push" },
+};
+
 /** Every argument asUser and the services were called with. */
 const seenArguments = () =>
   JSON.stringify([
     db.asUser.mock.calls,
     plans.getActivePlan.mock.calls,
     plans.listPlans.mock.calls,
+    sessions.getWorkoutSession.mock.calls,
+    sessions.listWorkoutSessions.mock.calls,
     sessions.listWorkoutHistory.mock.calls,
   ]);
 
@@ -179,6 +250,10 @@ const shownExerciseSchema = z.object({
 
 const shownPlanSchema = z.object({
   workouts: z.array(z.object({ exercises: z.array(shownExerciseSchema) })),
+});
+
+const shownSessionSchema = z.object({
+  exercises: z.array(shownExerciseSchema),
 });
 
 const shownHistorySchema = z.array(
@@ -211,7 +286,12 @@ const resetReadTools = () => {
   db.asUser.mockImplementation(async (_userId, fn) => await fn(tx));
   plans.getActivePlan.mockResolvedValue(plan);
   plans.listPlans.mockResolvedValue([plan]);
+  sessions.getWorkoutSession.mockResolvedValue(openSession);
   sessions.listWorkoutHistory.mockResolvedValue(history);
+  sessions.listWorkoutSessions.mockResolvedValue({
+    sessions: [{ id: openSession.id }],
+    total: 1,
+  });
   observability.reportError.mockResolvedValue(undefined);
 };
 
@@ -447,6 +527,133 @@ describe("get_workouts_history", () => {
   it("refuses to run without a Clerk User owning the session", async () => {
     await expect(
       getWorkoutsHistory.execute({ limit: 10 }, contextFor(null))
+    ).rejects.toThrow("This Conversation has no signed-in owner");
+    expect(db.asUser).not.toHaveBeenCalled();
+  });
+});
+
+describe("get_open_workout_session", () => {
+  beforeEach(resetReadTools);
+
+  const none = { error: "No workout session is open" };
+
+  it("reads the open Workout Session in full as the Conversation's owner, Exercises named from the library", async () => {
+    await expect(
+      getOpenWorkoutSession.execute({}, alice)
+    ).resolves.toStrictEqual({
+      ...openSession,
+      exercises: [
+        {
+          exercise_slug: "back-squat",
+          id: "wse_squat",
+          muscle_groups: ["quadriceps", "glutes"],
+          name: "Back Squat",
+          order: 1,
+          sets: openSets,
+        },
+        {
+          exercise_slug: "jefferson-curl",
+          id: "wse_retired",
+          muscle_groups: [],
+          name: "Jefferson curl",
+          order: 2,
+          sets: [],
+        },
+      ],
+    });
+    expect(db.asUser).toHaveBeenCalledExactlyOnceWith(
+      "user_alice",
+      expect.any(Function)
+    );
+    expect(sessions.listWorkoutSessions).toHaveBeenCalledWith(tx, {
+      limit: 1,
+      offset: 0,
+      status: "in_progress",
+    });
+    expect(sessions.getWorkoutSession).toHaveBeenCalledWith(tx, "session_open");
+  });
+
+  it("takes no User id", async () => {
+    const input = parseInput(getOpenWorkoutSession, userIdFields);
+
+    await getOpenWorkoutSession.execute(input, alice);
+
+    expect(input).toStrictEqual({});
+    expect(seenArguments()).not.toContain("user_mallory");
+  });
+
+  it("names the Exercises in the App language", async () => {
+    const answer = shownSessionSchema.parse(
+      await getOpenWorkoutSession.execute(
+        {},
+        withClientContext(alice, { language: "uk" })
+      )
+    );
+
+    expect(answer.exercises[0].name).toBe("Присідання зі штангою");
+  });
+
+  it("answers a Workout Session whose Workout is gone", async () => {
+    sessions.getWorkoutSession.mockResolvedValue({
+      ...openSession,
+      plan: null,
+      workout: null,
+    });
+
+    await expect(
+      getOpenWorkoutSession.execute({}, alice)
+    ).resolves.toMatchObject({
+      id: "session_open",
+      plan: null,
+      workout: null,
+    });
+  });
+
+  it("still answers, with slug-derived names, when the library can't load", async () => {
+    testLibrary.reset({ loads: "fail" });
+
+    const answer = shownSessionSchema.parse(
+      await getOpenWorkoutSession.execute({}, alice)
+    );
+
+    expect(answer.exercises.map(({ name }) => name)).toStrictEqual([
+      "Back squat",
+      "Jefferson curl",
+    ]);
+    expect(observability.reportError).toHaveBeenCalledWith(LIBRARY_OUTAGE, {
+      exercise_library: "library",
+    });
+  });
+
+  it("tells the model when no Workout Session is open", async () => {
+    sessions.listWorkoutSessions.mockResolvedValue({ sessions: [], total: 0 });
+
+    await expect(
+      getOpenWorkoutSession.execute({}, alice)
+    ).resolves.toStrictEqual(none);
+  });
+
+  it("tells the model none is open when it is finished or discarded between the two reads", async () => {
+    sessions.getWorkoutSession.mockResolvedValue({
+      ...openSession,
+      finished_at: "2026-10-14T19:00:00+00:00",
+      status: "finished",
+    });
+
+    await expect(
+      getOpenWorkoutSession.execute({}, alice)
+    ).resolves.toStrictEqual(none);
+
+    sessions.getWorkoutSession.mockResolvedValue(null);
+
+    await expect(
+      getOpenWorkoutSession.execute({}, alice)
+    ).resolves.toStrictEqual(none);
+  });
+
+  it("refuses to run without a Clerk User owning the session", async () => {
+    await expect(
+      getOpenWorkoutSession.execute({}, contextFor(null))
     ).rejects.toThrow("This Conversation has no signed-in owner");
     expect(db.asUser).not.toHaveBeenCalled();
   });
