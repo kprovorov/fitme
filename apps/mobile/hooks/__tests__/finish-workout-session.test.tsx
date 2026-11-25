@@ -87,9 +87,17 @@ jest.mock("~/hooks/queries/workout-sessions", () => {
     typeof import("~/lib/write-answers")
   >("~/lib/write-answers");
 
-  const FINISH_WORKOUT_SESSION_MUTATION_KEY = ["finish-workout-session"];
+  const {
+    discardingFilters,
+    FINISH_WORKOUT_SESSION_MUTATION_KEY,
+    finishingFilters,
+  } = jest.requireActual<typeof import("~/hooks/queries/workout-sessions")>(
+    "~/hooks/queries/workout-sessions"
+  );
 
   return {
+    discardingFilters,
+    finishingFilters,
     FINISH_WORKOUT_SESSION_MUTATION_KEY,
     fetchPlanUpdate: (sessionId: string) =>
       mockPlanUpdate(sessionId, { apply: false }),
