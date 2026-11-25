@@ -134,8 +134,8 @@ const WorkoutCarouselCard = ({
   };
 
   // Another Workout's open session still lets Start ask the API, whose 409
-  // alerts "Finish <Workout> first" with a way into it (that session's own
-  // card reads Continue).
+  // alerts "Finish or discard <Workout> first" with a way into it (that
+  // session's own card reads Continue).
   const { isStarting, startWorkout } = useStartWorkout(
     workout.id,
     openSession,

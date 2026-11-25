@@ -177,7 +177,7 @@ describe("the Open Workout Session", () => {
     expect(
       screen.getByRole("button", { name: "Start Workout" })
     ).toBeDisabled();
-    expect(screen.getByText("Finish Legs first")).toBeTruthy();
+    expect(screen.getByText("Finish or discard Legs first")).toBeTruthy();
     // The empty History: Resume Legs.
     expect(
       within(screen.getByTestId("history-empty")).getByRole("button", {
@@ -213,7 +213,7 @@ describe("the Open Workout Session", () => {
     expect(
       within(cardOf("workout-legs")).getByRole("button", { name: "Start Legs" })
     ).toBeTruthy();
-    expect(screen.queryByText("Finish Legs first")).toBeNull();
+    expect(screen.queryByText("Finish or discard Legs first")).toBeNull();
     expect(screen.queryByRole("button", { name: "Resume Legs" })).toBeNull();
     expect(screen.getByRole("button", { name: "Start Workout" })).toBeEnabled();
     expect(
@@ -245,7 +245,7 @@ describe("the Open Workout Session's failed reads", () => {
     expect(
       screen.getByRole("button", { name: "Start Workout" })
     ).toBeDisabled();
-    expect(screen.getByText("Finish Legs first")).toBeTruthy();
+    expect(screen.getByText("Finish or discard Legs first")).toBeTruthy();
     expect(
       within(screen.getByTestId("history-empty")).getByRole("button", {
         name: "Resume Legs",

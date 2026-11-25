@@ -1364,11 +1364,11 @@ describe("starting a Workout from Home", () => {
     });
   };
 
-  /** The Workout screen's Start, disabled under "Finish Push Day first". */
+  /** The Workout screen's Start, disabled under "Finish or discard Push Day first". */
   const isStartBlocked = () =>
     focused().getByRole("button", { name: "Start Workout" }).props
       .accessibilityState.disabled === true &&
-    focused().queryByText("Finish Push Day first") !== null;
+    focused().queryByText("Finish or discard Push Day first") !== null;
 
   it("asks the API on another card's Start, alerts its 409, and continues from the open card", async () => {
     seedPushDayOpen();
@@ -1378,7 +1378,7 @@ describe("starting a Workout from Home", () => {
     expect(fakePublicApi.count(START)).toBe(1);
     expect(Alert.alert).toHaveBeenCalledWith(
       "Couldn't start workout",
-      "Finish Push Day first",
+      "Finish or discard Push Day first",
       expect.anything()
     );
     expect(sessionsOf("w1")).toEqual([]);
@@ -1394,7 +1394,7 @@ describe("starting a Workout from Home", () => {
     });
   });
 
-  it("says to finish the other Workout first on a 409 from Start", async () => {
+  it("says to finish or discard the other Workout first on a 409 from Start", async () => {
     await startApp();
     // Another Workout started elsewhere (MCP, another device) after Home was read.
     seedPushDayOpen();
@@ -1404,7 +1404,7 @@ describe("starting a Workout from Home", () => {
     expect(fakePublicApi.count(START)).toBe(1);
     expect(Alert.alert).toHaveBeenCalledWith(
       "Couldn't start workout",
-      "Finish Push Day first",
+      "Finish or discard Push Day first",
       expect.anything()
     );
     expect(sessionsOf("w1")).toEqual([]);
@@ -1452,7 +1452,9 @@ describe("starting a Workout from Home", () => {
       focused().getByRole("button", { name: "Preview Leg Day" })
     );
     await settle();
-    expect(focused().queryByText("Finish Push Day first")).toBeNull();
+    expect(
+      focused().queryByText("Finish or discard Push Day first")
+    ).toBeNull();
     await fireEvent.press(
       focused().getByRole("button", { name: "Start Workout" })
     );

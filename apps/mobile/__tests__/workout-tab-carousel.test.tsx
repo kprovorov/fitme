@@ -326,7 +326,7 @@ describe("the Workout tab's carousel", () => {
     expect(fakePublicApi.count(START)).toBe(1);
     expect(Alert.alert).toHaveBeenCalledWith(
       "Couldn't start workout",
-      "Finish Legs first",
+      "Finish or discard Legs first",
       expect.anything()
     );
     expect(backend.sessions.map(({ id }) => id)).toEqual(["s1"]);
@@ -348,10 +348,33 @@ describe("the Workout tab's carousel", () => {
     expect(fakePublicApi.count(START)).toBe(1);
     expect(Alert.alert).toHaveBeenCalledWith(
       "Couldn't start workout",
-      "Finish Legs first",
+      "Finish or discard Legs first",
       expect.anything()
     );
     expect(mockPush).not.toHaveBeenCalled();
+  });
+
+  it("alerts the same without a name when the open session's Workout is gone", async () => {
+    backend.sessions.push({
+      finished_at: null,
+      id: "orphan",
+      plan_id: null,
+      started_at: "2026-10-29T09:00:00.000Z",
+      workout_id: null,
+      workoutName: "Gone",
+    });
+    await mount();
+
+    await fireEvent.press(screen.getByRole("button", { name: "Start Push" }));
+    await settle(queryClient);
+
+    expect(Alert.alert).toHaveBeenCalledWith(
+      "Couldn't start workout",
+      "Finish or discard your workout in progress first",
+      expect.anything()
+    );
+    await pressAlertButton("Continue Workout");
+    expect(mockPush).toHaveBeenCalledWith("/workout-sessions/orphan");
   });
 
   it("alerts the wait when Start is rate limited", async () => {
