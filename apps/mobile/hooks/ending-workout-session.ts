@@ -1,4 +1,7 @@
-import type { InvalidateQueryFilters } from "@tanstack/react-query";
+import type {
+  InvalidateQueryFilters,
+  QueryClient,
+} from "@tanstack/react-query";
 
 import { PLANS_QUERY_KEY, usePlanQuery } from "~/hooks/queries/plans";
 import { WEEKLY_GOALS_QUERY_KEY } from "~/hooks/queries/weekly-goals";
@@ -19,6 +22,32 @@ export const isSessionRoute = (
     (("sessionId" in params && params.sessionId === sessionId) ||
       ("workoutSessionId" in params && params.workoutSessionId === sessionId))
   );
+};
+
+/** Each client's Workout Sessions whose ending question is on screen. */
+const openQuestions = new WeakMap<QueryClient, Set<string>>();
+
+/**
+ * Claims the one question that may be open about ending the session ("Finish
+ * workout?" or "Discard workout?"): answers the function releasing it, to call
+ * once it's answered or dismissed, or null while one is already open.
+ */
+export const claimEndingQuestion = (
+  client: QueryClient,
+  sessionId: string
+): (() => void) | null => {
+  const open = openQuestions.get(client) ?? new Set<string>();
+
+  if (open.has(sessionId)) {
+    return null;
+  }
+
+  open.add(sessionId);
+  openQuestions.set(client, open);
+
+  return () => {
+    open.delete(sessionId);
+  };
 };
 
 /** The reads a finish changes, besides the Workout Session's own. */

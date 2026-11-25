@@ -47,6 +47,7 @@ const mockPlanUpdate =
   >();
 
 const mockTrack = jest.fn();
+const mockDiscard = jest.fn();
 
 jest.mock("expo-router", () => ({
   useNavigation: () => ({ getState: () => mockNavigationState }),
@@ -377,7 +378,7 @@ describe("useFinishWorkoutSession", () => {
       mockFinishRpc.mockResolvedValue({});
       const { result, settled } = await setupWith(partlyLogged);
 
-      await act(() => result.current.session.confirmFinish());
+      await act(() => result.current.session.confirmFinish(mockDiscard));
 
       await waitFor(() =>
         expect(Alert.alert).toHaveBeenCalledWith(
@@ -403,7 +404,7 @@ describe("useFinishWorkoutSession", () => {
     it("keeps the session going when cancelled", async () => {
       const { result } = await setupWith(partlyLogged);
 
-      await act(() => result.current.session.confirmFinish());
+      await act(() => result.current.session.confirmFinish(mockDiscard));
       await waitFor(() => expect(Alert.alert).toHaveBeenCalled());
       await pressAlertButton("Cancel");
 
@@ -413,11 +414,13 @@ describe("useFinishWorkoutSession", () => {
 
     it("says set, not sets, for a single unlogged set", async () => {
       const { result } = await setupWith({
-        exercises: [{ sets: [{ reps_completed: null }] }],
+        exercises: [
+          { sets: [{ reps_completed: 8 }, { reps_completed: null }] },
+        ],
         id: "session-1",
       });
 
-      await act(() => result.current.session.confirmFinish());
+      await act(() => result.current.session.confirmFinish(mockDiscard));
 
       await waitFor(() =>
         expect(Alert.alert).toHaveBeenCalledWith(
@@ -438,7 +441,7 @@ describe("useFinishWorkoutSession", () => {
         id: "session-1",
       });
 
-      await act(() => result.current.session.confirmFinish());
+      await act(() => result.current.session.confirmFinish(mockDiscard));
 
       await waitFor(() => expect(mockReplace).toHaveBeenCalled());
       await settled();
@@ -450,8 +453,8 @@ describe("useFinishWorkoutSession", () => {
       const { result, settled } = await setupWith(partlyLogged);
 
       await act(() => {
-        result.current.session.confirmFinish();
-        result.current.exercise.confirmFinish();
+        result.current.session.confirmFinish(mockDiscard);
+        result.current.exercise.confirmFinish(mockDiscard);
       });
       await waitFor(() => expect(Alert.alert).toHaveBeenCalled());
       await act(
@@ -472,7 +475,7 @@ describe("useFinishWorkoutSession", () => {
       mockFetchSession.mockRejectedValueOnce(new Error("offline"));
       const { result } = await setup();
 
-      await act(() => result.current.session.confirmFinish());
+      await act(() => result.current.session.confirmFinish(mockDiscard));
 
       await waitFor(() =>
         expect(Alert.alert).toHaveBeenCalledWith(
@@ -506,7 +509,11 @@ describe("useFinishWorkoutSession", () => {
         ["workout-session", { sessionId: "session-1" }],
         { exercises: [{ sets: [{ reps_completed: 8 }] }], id: "session-1" }
       );
-      await act(() => setupResult.result.current.session[how]());
+      await act(() =>
+        how === "finish"
+          ? setupResult.result.current.session.finish()
+          : setupResult.result.current.session.confirmFinish(mockDiscard)
+      );
       await screen.findByText("Update your plan?");
 
       return setupResult;
@@ -723,7 +730,7 @@ describe("useFinishWorkoutSession", () => {
         { exercises: [{ sets: [{ reps_completed: null }] }], id: "session-1" }
       );
 
-      await act(() => result.current.session.confirmFinish());
+      await act(() => result.current.session.confirmFinish(mockDiscard));
       await waitFor(() => expect(Alert.alert).toHaveBeenCalled());
       expect(mockPlanUpdate).not.toHaveBeenCalled();
       expect(screen.queryByText("Update your plan?")).toBeNull();
@@ -806,16 +813,19 @@ describe("useFinishWorkoutSession", () => {
           {
             exercises: [
               {
-                sets: Array.from({ length: unlogged }, () => ({
-                  reps_completed: null,
-                })),
+                sets: [
+                  { reps_completed: 8 },
+                  ...Array.from({ length: unlogged }, () => ({
+                    reps_completed: null,
+                  })),
+                ],
               },
             ],
             id: "session-1",
           }
         );
 
-        await act(() => result.current.session.confirmFinish());
+        await act(() => result.current.session.confirmFinish(mockDiscard));
 
         await waitFor(() =>
           expect(Alert.alert).toHaveBeenCalledWith(

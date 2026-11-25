@@ -9,11 +9,12 @@ import type {
   NavigationProp,
   ParamListBase,
 } from "expo-router/react-navigation";
-import { useCallback, useMemo, useRef } from "react";
+import { useCallback, useMemo } from "react";
 import { Alert } from "react-native";
 
 import { forgetAddedSets } from "~/hooks/added-sets";
 import {
+  claimEndingQuestion,
   isSessionRoute,
   readsChangedByFinish,
 } from "~/hooks/ending-workout-session";
@@ -119,7 +120,8 @@ const alertDiscardFailed = (waitSeconds: number | null) =>
 /**
  * Discards an open Workout Session for good, as if it had never been started.
  * Every way of discarding goes through it: `confirmDiscard` asks first (the
- * session screen's menu), `discard` is for a caller that has already asked.
+ * session screen's menu), `discard` is for a caller that has already asked
+ * (the Finish alert with nothing logged).
  *
  * It waits for the server: the session is read again and, only while it's
  * still open, deleted (`useDiscardWorkoutSessionMutation`). Once it's gone its
@@ -239,16 +241,17 @@ export const useDiscardWorkoutSession = (sessionId: string) => {
     [isBusy, mutate, queryClient, sessionId]
   );
 
-  // Whether the question is open, so a repeated tap never asks it twice.
-  const asking = useRef<boolean>(false);
-
   const confirmDiscard = useCallback(
     (session: WorkoutSession, source: DiscardSource) => {
-      if (asking.current || isBusy()) {
+      if (isBusy()) {
         return;
       }
 
-      asking.current = true;
+      const release = claimEndingQuestion(queryClient, sessionId);
+
+      if (!release) {
+        return;
+      }
 
       // Who is asked: another User may be signed in once it's answered.
       const asked = rememberWriteStarter(queryClient, []);
@@ -261,15 +264,13 @@ export const useDiscardWorkoutSession = (sessionId: string) => {
           : i18n.t("discardWorkout.confirm.loggedSets", { count: loggedSets }),
         [
           {
-            onPress: () => {
-              asking.current = false;
-            },
+            onPress: release,
             style: "cancel",
             text: i18n.t("discardWorkout.confirm.keepTraining"),
           },
           {
             onPress: () => {
-              asking.current = false;
+              release();
 
               if (isStillWriteStarter(asked)) {
                 discard(source);
@@ -281,13 +282,11 @@ export const useDiscardWorkoutSession = (sessionId: string) => {
         ],
         {
           cancelable: true,
-          onDismiss: () => {
-            asking.current = false;
-          },
+          onDismiss: release,
         }
       );
     },
-    [isBusy, queryClient, discard]
+    [isBusy, queryClient, discard, sessionId]
   );
 
   return { confirmDiscard, discard, isDiscarding };
