@@ -5,7 +5,7 @@ import type {
   NavigationProp,
   ParamListBase,
 } from "expo-router/react-navigation";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AppState } from "react-native";
 
 import {
@@ -84,6 +84,15 @@ export const useEndedWorkoutSession = (sessionId: string): void => {
   const finishes = useIsMutating(finishing);
   const discards = useIsMutating(discarding);
   const isEnding = finishes + discards > 0;
+
+  // The client's own answer, for what runs before the hooks' has rendered.
+  const isEndingNow = useCallback(
+    () =>
+      queryClient.isMutating(finishing) + queryClient.isMutating(discarding) >
+      0,
+    [discarding, finishing, queryClient]
+  );
+
   const isAppActive = useIsAppActive();
   const watch = useRef<Watch | null>(null);
 
@@ -123,6 +132,7 @@ export const useEndedWorkoutSession = (sessionId: string): void => {
     if (
       !(openFor && (isFinished || isGone)) ||
       isEnding ||
+      isEndingNow() ||
       watched.endedHere ||
       watched.hasMovedOn ||
       !isStillWriteStarter(openFor)
@@ -161,6 +171,7 @@ export const useEndedWorkoutSession = (sessionId: string): void => {
     discarding,
     finishing,
     isEnding,
+    isEndingNow,
     isFinished,
     isGone,
     isOpen,
@@ -183,12 +194,13 @@ export const useEndedWorkoutSession = (sessionId: string): void => {
     if (
       returned &&
       isPolling &&
+      !isEndingNow() &&
       (rateLimitedMs === 0 || Date.now() >= readableAt) &&
       isStillWriteStarter(watch.current?.openFor ?? undefined)
     ) {
       void refetch();
     }
-  }, [isAppActive, isPolling, rateLimitedMs, readableAt, refetch]);
+  }, [isAppActive, isEndingNow, isPolling, rateLimitedMs, readableAt, refetch]);
 
   // Counted from the last read, whoever asked for it, so several screens of
   // the session share one request.
@@ -205,7 +217,10 @@ export const useEndedWorkoutSession = (sessionId: string): void => {
     const poll = () => {
       timer = setTimeout(poll, POLL_MS);
 
-      if (isStillWriteStarter(watch.current?.openFor ?? undefined)) {
+      if (
+        !isEndingNow() &&
+        isStillWriteStarter(watch.current?.openFor ?? undefined)
+      ) {
         void refetch({ cancelRefetch: false });
       }
     };
@@ -213,5 +228,5 @@ export const useEndedWorkoutSession = (sessionId: string): void => {
     timer = setTimeout(poll, Math.max(0, pollAt - Date.now()));
 
     return () => clearTimeout(timer);
-  }, [isPolling, pollAt, refetch]);
+  }, [isEndingNow, isPolling, pollAt, refetch]);
 };
