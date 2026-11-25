@@ -1,4 +1,57 @@
-# Validation, 2026-11-23
+# Validation, 2026-11-25
+
+## Maintenance against current main
+
+**Outcome: updated. The migration guard pins one newly reviewed migration and its regressions cover it; model, property and bounds unchanged; no current-code exclusivity violation found within the stated bounds.**
+
+Audited source: `b99cb39e9735e39b5ca13d5c6a4cee8a9ba3ab5a`, equal to `origin/main` after `git fetch` on 2026-11-25. Previous sync: `90e382f78e5ff1339b04c6e1999a4ad3682bf086` (7 commits). No product code, migration, property, model or bound was changed.
+
+Tools: Node 26.13.1, OpenJDK 27, TLC 1.7.4 (cached jar, pinned SHA-256 unchanged), PostgreSQL 17.11 (Homebrew).
+
+### Baseline
+
+The unchanged runner refused to run (exit 1, before TLC or Postgres): `20261124120000_personal_records_write_policies.sql touches workout_sessions after the covered migration. Review its effect and update this guard.` The `reviewed` guard regression failed for the same reason. That is the guard failing closed on an unreviewed migration: drift in the verification, not a bug in the code, and no stale pass was reported.
+
+### Correspondence audit
+
+| Commit | Change and correspondence decision |
+| --- | --- |
+| `8d74e65a` — the previous resync, PR #705 | This skill's own `SKILL.md` and `VALIDATION.md`. No effect. |
+| `16d8f540` — PR #706 | The order of two lines in `scripts/app-store-screenshots.test.mjs`. No effect. |
+| `c3f8f7b8` — FIT-779, PR #707 | `@clerk/mcp-tools` 1.0: `apps/mcp/src/auth.ts` (the OAuth metadata document) and `create-app.ts` (the transport class passed in), their test and README. The facade (`apps/mcp/src/services.ts`) and the tools are untouched, so start/finish/delete keep their transactions. No effect. |
+| `2059f67a` — FIT-778, PR #708 | Migration `20261124120000_personal_records_write_policies.sql`, the regenerated policies in `packages/db/src/schema.ts`, and two test files. It drops `personal_records`' `FOR ALL` policy and creates one per write command with the same clauses, reading `workout_sessions` only inside two `EXISTS (SELECT …)`. It writes no session, adds no trigger and doesn't touch the index; a refused award rolls back its whole finish. RLS is excluded already. The model is unaffected; the guard is updated (below). |
+| `f531c204` — FIT-780, PR #709 | eve and `@assistant-ui/eve` bump, eve's stream reader patch, a comment in `apps/arnold/agent/sandbox.ts`. Arnold starts, finishes and deletes no session. No effect. |
+| `15429e14` — FIT-762, PR #710 | `/v1/muscle-groups`' list: `apps/api/src/routes/exercises.ts`, `muscle-groups.ts`, `schemas.ts`, generated documents and a test. No database access. No effect. |
+| `b99cb39e` — FIT-763, PR #711 | `.github/oasdiff/allowed-breaking-changes.txt`. No effect. |
+
+`packages/services/src`, both facades (`apps/api/src/services.ts`, `apps/mcp/src/services.ts`), `packages/db/src/index.ts` and `client.ts`, `apps/webhooks`, ADR 0013 and `GLOSSARY.md` are untouched, and `pnpm-lock.yaml` moves no `pg` or `drizzle-orm` version. The only changed lines mentioning `workout_sessions` or `finished_at` outside this skill are the migration's and `schema.ts`'s policies.
+
+### What changed in the verification
+
+- `scripts/verify.mjs`: the migration added to `reviewedMigrations` by its complete SHA-256 (`d4387eac788bdb8268473caebfa286af3595b1960e525ae7264dc2e1c40d67aa`). Why: the code changed shape (a policy split), not the promise.
+- `scripts/verify.test.mjs`: an `edited-policies` scenario, so the new pin must reject an edit of that file; the file per scenario is now a map.
+- `SKILL.md`: the migration's row in the correspondence and SHA-256 tables, the sync commit.
+
+### Results
+
+| Check | Outcome and result |
+| --- | --- |
+| One User, three insertion transactions, optional initial orphan | Updated: PASS, 2,360 distinct / 9,401 generated, queue exhausted |
+| Two Users, three insertion transactions, optional initial orphan | Updated: PASS, 2,770 distinct / 12,045 generated, queue exhausted |
+| Extracted actual index, isolated PostgreSQL replay | Updated: PASS |
+| Migration guard regressions | 5 of 5; an index drop appended to the newly pinned file is rejected |
+| Scratch migration with `UNIQUE` removed | Expected failure, caught by TLC and Postgres |
+| Scratch migration indexed by `workout_id` | Expected failure, caught by TLC and Postgres |
+| Unmodified source after both mutations | PASS in both TLC configs and SQL |
+| `/statechart` | Not run: both state spaces are over its 500-state chart budget (2,360 / 2,770), so it would give no chart; the complete TLC passes stand. |
+
+The state counts are those of the previous validation, as an unchanged model must give. The replay-isolation regressions were not rerun: the SQL runner's process and connection setup didn't change.
+
+### Remaining limits
+
+Unchanged from the previous validation. The new `personal-records.test.ts` integration tests and the pgTAP policy count are not run by this checker.
+
+## Previous validation, 2026-11-23
 
 ## Maintenance against current main
 
