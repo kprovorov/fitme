@@ -1056,8 +1056,6 @@
     "start": "Comença l'entrenament",
     "continue": "Continua l'entrenament",
     "continueNamed": "Continua {{name}}",
-    "finishFirst": "Acaba primer l'entrenament en curs",
-    "finishFirstNamed": "Acaba primer {{name}}",
     "finishOrDiscardFirst": "Acaba o descarta primer l'entrenament en curs",
     "finishOrDiscardFirstNamed": "Acaba o descarta primer {{name}}",
     "failed": {

@@ -1016,8 +1016,6 @@
     "start": "Training starten",
     "continue": "Training voortzetten",
     "continueNamed": "Doorgaan met {{name}}",
-    "finishFirst": "Rond eerst je lopende training af",
-    "finishFirstNamed": "Rond eerst {{name}} af",
     "finishOrDiscardFirst": "Rond eerst je lopende training af of verwerp deze",
     "finishOrDiscardFirstNamed": "Rond eerst {{name}} af of verwerp deze training",
     "failed": {

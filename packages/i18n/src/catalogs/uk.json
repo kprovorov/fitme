@@ -1096,8 +1096,6 @@
     "start": "Почати тренування",
     "continue": "Продовжити тренування",
     "continueNamed": "Продовжити «{{name}}»",
-    "finishFirst": "Спершу завершіть поточне тренування",
-    "finishFirstNamed": "Спершу завершіть «{{name}}»",
     "finishOrDiscardFirst": "Спершу завершіть або відкиньте поточне тренування",
     "finishOrDiscardFirstNamed": "Спершу завершіть або відкиньте «{{name}}»",
     "failed": {
