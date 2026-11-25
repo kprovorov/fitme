@@ -189,10 +189,10 @@ const confirmFinishWorkout = async (
  * from the session screen.
  *
  * `confirmFinish` is for the header's Finish button: it
- * asks first when some planned sets aren't logged, or none is, offering the
- * given `discard` (`useDiscardWorkoutSession`'s, which never asks again) for
- * the latter (see `confirmFinishWorkout`). `finish` never asks, for the finish suggestion,
- * which only opens once every set is logged.
+ * asks first when some planned sets aren't logged, and when no set is logged
+ * at all, where it offers the given `discard` (`useDiscardWorkoutSession`'s,
+ * which never asks again) too (see `confirmFinishWorkout`). `finish` never
+ * asks, for the finish suggestion, which only opens once every set is logged.
  */
 export const useFinishWorkoutSession = (
   sessionId: string,

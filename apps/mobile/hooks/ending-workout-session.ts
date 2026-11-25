@@ -45,8 +45,14 @@ export const claimEndingQuestion = (
   open.add(sessionId);
   openQuestions.set(client, open);
 
+  let released = false;
+
   return () => {
-    open.delete(sessionId);
+    // A late second call never frees a question asked since.
+    if (!released) {
+      released = true;
+      open.delete(sessionId);
+    }
   };
 };
 
