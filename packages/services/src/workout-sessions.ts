@@ -1103,15 +1103,20 @@ export type FinishWorkoutSessionResult =
   | { status: "not_found" };
 
 /**
- * Moves the finished Workout to the end of its Plan and renumbers the
+ * Moves the User's finished Workout to the end of its Plan and renumbers the
  * Plan's Workouts from 1, keeping the others' relative order. False when the
  * Workout is gone.
  */
-const rotateWorkout = async (tx: Transaction, workoutId: string) => {
+const rotateWorkout = async (
+  tx: Transaction,
+  userId: string,
+  workoutId: string
+) => {
   const [workout] = await tx
     .select({ planId: workouts.planId })
     .from(workouts)
-    .where(eq(workouts.id, workoutId));
+    .innerJoin(plans, eq(plans.id, workouts.planId))
+    .where(and(eq(workouts.id, workoutId), eq(plans.userId, userId)));
 
   if (workout === undefined) {
     return false;
@@ -1144,19 +1149,90 @@ const rotateWorkout = async (tx: Transaction, workoutId: string) => {
   return true;
 };
 
+interface ClaimedSession {
+  workoutId: string | null;
+}
+
 /**
- * Finishes one of the User's Workout Sessions, in `tx` (from `asUser`), and
- * moves its Workout to the end of its Plan (`rotated`). A session
- * whose Workout was removed (e.g. `updatePlan` replaced the Workouts) is only
- * finished. The finish that claims the session awards the Personal records
- * it earned (`awardPersonalRecords`), retained from then on. Finishing an
- * already finished session changes nothing (`alreadyFinished`); one the User
- * can't see is `not_found`.
+ * Sets `finished_at` on the User's Workout Session, under the locks
+ * `finishSession` holds, if it may be finished; `undefined` when it isn't.
  */
-export const finishWorkoutSession = async (
+type ClaimSession = (
   tx: Transaction,
+  userId: string,
   sessionId: string
-): Promise<FinishWorkoutSessionResult> => {
+) => Promise<ClaimedSession | undefined>;
+
+const openSessionOf = (userId: string, sessionId: string) =>
+  and(
+    eq(workoutSessions.id, sessionId),
+    eq(workoutSessions.userId, userId),
+    isNull(workoutSessions.finishedAt)
+  );
+
+/** A finish as of now: only an open session is finished, and only once. */
+const claimNow: ClaimSession = async (tx, userId, sessionId) => {
+  const [claimed] = await tx
+    .update(workoutSessions)
+    .set({ finishedAt: sql`now()`, updatedAt: sql`now()` })
+    .where(openSessionOf(userId, sessionId))
+    .returning({ workoutId: workoutSessions.workoutId });
+
+  return claimed;
+};
+
+/** With no set logged for this long, an open Workout Session is forgotten (ADR 0024). */
+export const FORGOTTEN_AFTER_HOURS = 3;
+
+/** When the Workout Session's last set was logged; NULL when none is. */
+const lastLoggedAt = (sessionId: string) => sql`(
+  select max(${workoutSessionExerciseSets.loggedAt})
+  from ${workoutSessionExerciseSets}
+  join ${workoutSessionExercises}
+    on ${workoutSessionExercises.id} = ${workoutSessionExerciseSets.workoutSessionExerciseId}
+  where ${workoutSessionExercises.workoutSessionId} = ${sessionId}
+)`;
+
+/** A finish as of the last logged set: only a session that is forgotten now. */
+const claimForgotten: ClaimSession = async (tx, userId, sessionId) => {
+  // The lock logSet takes, in a statement of its own: the UPDATE below then
+  // has a snapshot from after any log it waited for. The UPDATE alone would
+  // wait on the same lock but keep its earlier snapshot of the sets.
+  await tx
+    .select({ id: workoutSessions.id })
+    .from(workoutSessions)
+    .where(openSessionOf(userId, sessionId))
+    .for("no key update");
+
+  const lastLog = lastLoggedAt(sessionId);
+
+  const [claimed] = await tx
+    .update(workoutSessions)
+    .set({ finishedAt: lastLog, updatedAt: sql`now()` })
+    .where(
+      and(
+        openSessionOf(userId, sessionId),
+        // NULL, so never true, without a logged set
+        sql`${lastLog} <= now() - make_interval(hours => ${FORGOTTEN_AFTER_HOURS}::int)`
+      )
+    )
+    .returning({ workoutId: workoutSessions.workoutId });
+
+  return claimed;
+};
+
+/**
+ * The one finish, in `tx`: takes its locks, claims the Workout Session through
+ * `claim`, and, only if that claimed it, awards its Personal records, rotates
+ * its Workout and records the Weekly goal. `null` when there is no such
+ * Workout Session. Every write is scoped to the User id of the Workout
+ * Session's own row, so it is safe without RLS too (`withService`).
+ */
+const finishSession = async (
+  tx: Transaction,
+  sessionId: string,
+  claim: ClaimSession
+): Promise<{ claimed: boolean; rotated: boolean } | null> => {
   // Take the workout_sessions write lock before any row lock: it conflicts
   // with deleteUserData's table locks, so a finish racing it waits up front
   // instead of holding a Plan row lock it needs while waiting for a table
@@ -1172,49 +1248,64 @@ export const finishWorkoutSession = async (
     .where(eq(workoutSessions.id, sessionId));
 
   if (owned === undefined) {
-    return { status: "not_found" };
+    return null;
   }
+
+  const { planId, userId } = owned;
 
   // Share-lock the Profile before the Plan (the Plan Update's order): the
   // Personal records below copy weights, so no measurement-system conversion
   // may commit between reading them and writing the records
-  await lockProfileUnits(tx, owned.userId);
-  await lockPersonalRecordHistory(tx, owned.userId);
+  await lockProfileUnits(tx, userId);
+  await lockPersonalRecordHistory(tx, userId);
 
-  if (owned.planId !== null && owned.planId !== "") {
+  if (planId !== null && planId !== "") {
     await tx
       .select({ id: plans.id })
       .from(plans)
-      .where(eq(plans.id, owned.planId))
+      .where(and(eq(plans.id, planId), eq(plans.userId, userId)))
       .for("no key update");
   }
 
-  // Claim the session: only an open one is finished, and only once
-  const [claimed] = await tx
-    .update(workoutSessions)
-    .set({ finishedAt: sql`now()`, updatedAt: sql`now()` })
-    .where(
-      and(eq(workoutSessions.id, sessionId), isNull(workoutSessions.finishedAt))
-    )
-    .returning({ workoutId: workoutSessions.workoutId });
+  const claimed = await claim(tx, userId, sessionId);
 
   // Only the finish that claimed the session awards its records, so a
   // repeated or concurrent finish never awards twice
-  if (claimed !== undefined) {
-    await awardPersonalRecords(tx, owned.userId, sessionId);
+  if (claimed === undefined) {
+    return { claimed: false, rotated: false };
   }
 
+  await awardPersonalRecords(tx, userId, sessionId);
+
   const rotated =
-    claimed?.workoutId !== undefined &&
-    claimed.workoutId !== null &&
-    claimed.workoutId !== ""
-      ? await rotateWorkout(tx, claimed.workoutId)
+    claimed.workoutId !== null && claimed.workoutId !== ""
+      ? await rotateWorkout(tx, userId, claimed.workoutId)
       : false;
 
-  if (claimed !== undefined) {
-    // Starts tracking the Weekly goal for a User whose Plan no service
-    // write has recorded yet; a no-op otherwise
-    await recordWeeklyGoal(tx, owned.userId);
+  // Starts tracking the Weekly goal for a User whose Plan no service
+  // write has recorded yet; a no-op otherwise
+  await recordWeeklyGoal(tx, userId);
+
+  return { claimed: true, rotated };
+};
+
+/**
+ * Finishes one of the User's Workout Sessions, in `tx` (from `asUser`), and
+ * moves its Workout to the end of its Plan (`rotated`). A session
+ * whose Workout was removed (e.g. `updatePlan` replaced the Workouts) is only
+ * finished. The finish that claims the session awards the Personal records
+ * it earned (`awardPersonalRecords`), retained from then on. Finishing an
+ * already finished session changes nothing (`alreadyFinished`); one the User
+ * can't see is `not_found`.
+ */
+export const finishWorkoutSession = async (
+  tx: Transaction,
+  sessionId: string
+): Promise<FinishWorkoutSessionResult> => {
+  const finish = await finishSession(tx, sessionId, claimNow);
+
+  if (finish === null) {
+    return { status: "not_found" };
   }
 
   // An already finished session isn't locked, so it may have been deleted
@@ -1226,9 +1317,33 @@ export const finishWorkoutSession = async (
   }
 
   return {
-    alreadyFinished: claimed === undefined,
-    rotated,
+    alreadyFinished: !finish.claimed,
+    rotated: finish.rotated,
     session,
     status: "finished",
   };
+};
+
+export type FinishForgottenWorkoutSessionResult =
+  | { rotated: boolean; status: "finished" }
+  | { status: "left_alone" };
+
+/**
+ * Finishes a Forgotten Workout Session with a logged set (ADR 0024), in `tx`
+ * from `withService`: the same finish as `finishWorkoutSession`, as finished
+ * when its last set was logged. One that isn't forgotten, is already finished,
+ * has no logged set or doesn't exist is `left_alone`, with nothing written.
+ *
+ * Forgotten is checked under the row lock `logSet` takes, so a set logged
+ * after the caller picked the Workout Session wins and it stays open.
+ */
+export const finishForgottenWorkoutSession = async (
+  tx: Transaction,
+  sessionId: string
+): Promise<FinishForgottenWorkoutSessionResult> => {
+  const finish = await finishSession(tx, sessionId, claimForgotten);
+
+  return finish?.claimed
+    ? { rotated: finish.rotated, status: "finished" }
+    : { status: "left_alone" };
 };
