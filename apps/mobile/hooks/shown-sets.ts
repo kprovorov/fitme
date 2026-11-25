@@ -1,6 +1,6 @@
-import { useMemo } from "react";
+import { useEffect, useMemo } from "react";
 
-import { useAddedSets } from "~/hooks/added-sets";
+import { dropReadAddedSets, useAddedSets } from "~/hooks/added-sets";
 import type { WorkoutSessionSet } from "~/hooks/queries/workout-sessions";
 
 /** A row of a Workout Session Exercise's sets table. */
@@ -30,6 +30,13 @@ export const useShownSets = (
   isReadOnly = false
 ): ShownSet[] => {
   const addedSets = useAddedSets(exerciseId);
+
+  // Once a read has a logged one, its place and its removal are the read's.
+  useEffect(() => {
+    if (addedSets.some(({ saved }) => saved)) {
+      dropReadAddedSets(exerciseId, new Set(sets.map(({ id }) => id)));
+    }
+  }, [addedSets, exerciseId, sets]);
 
   return useMemo(() => {
     const added = isReadOnly ? [] : addedSets;
