@@ -24,7 +24,9 @@ A personal workout planner: a person signs up, fills in a fitness profile, build
 
 **Workout**: A single training day inside a Plan: an ordered list of exercises with target sets. _Avoid_: Routine
 
-**Workout Session**: One occurrence of a User performing a Workout, with the sets actually completed. At most one Workout Session per User can be open at a time: another Workout can't be started until it's finished. _Avoid_: Session (ambiguous with a sign-in session), training log
+**Workout Session**: One occurrence of a User performing a Workout, with the sets actually completed. At most one Workout Session per User can be open at a time: another Workout can't be started until it's finished or discarded. _Avoid_: Session (ambiguous with a sign-in session), training log
+
+**Discard**: Ending an open Workout Session without keeping it, as if it had never been started: its logged sets are gone for good and its Workout keeps its place in the Plan. Only an open Workout Session can be discarded; removing a finished one is deleting it. _Avoid_: Cancel, abandon, delete (for an open Workout Session)
 
 **Weekly goal**: The number of Workout Sessions a User aims to complete in a Monday–Sunday week, taken from their active Plan's training frequency and retained for that week; frequency changes apply from the following Monday. Only finished Workout Sessions with at least one set containing positive reps count toward it. _Avoid_: Weekly target, workout quota
 
