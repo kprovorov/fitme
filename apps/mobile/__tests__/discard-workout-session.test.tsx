@@ -459,7 +459,10 @@ describe("a discard", () => {
     await startDiscard();
     await until(() => fakePublicApi.count(DELETE) === 1);
     await act(async () => {
-      router.push(EXERCISE, GUIDE);
+      router.push(EXERCISE);
+      await Promise.resolve();
+      // Not next to the push above, which the linter takes for an array's.
+      router.push(GUIDE);
       await Promise.resolve();
     });
     resume();
