@@ -722,6 +722,7 @@
       "add": "新增{{exercise}}",
       "remove": "移除{{exercise}}",
       "addSets_other": "為{{exercise}}新增{{count, number}}組",
+      "removeSets_other": "從{{exercise}}移除{{count, number}}組",
       "line": "{{change}} · {{sets}}",
       "spokenLine": "{{change}}：{{sets}}",
       "spokenSet": "{{weight}}，{{reps}}"
@@ -935,11 +936,20 @@
       "log": "紀錄第{{order, number}}組",
       "edit": "編輯第{{order, number}}組",
       "editHint": "開啟此組進行編輯",
+      "remove": "移除第{{order, number}}組",
       "logged": "第{{order, number}}組，已紀錄"
     },
     "errors": {
       "save": "無法儲存此組，請再試一次。",
       "rateLimited": "請求過於頻繁，請在{{seconds, number}}秒後再試一次。"
+    },
+    "remove": {
+      "button": "移除",
+      "confirm": {
+        "title": "移除第{{order, number}}組？",
+        "message": "這一組已紀錄。移除後無法復原。",
+        "remove": "移除"
+      }
     },
     "form": {
       "weightNotNumber": "重量必須是數值",
@@ -1124,12 +1134,15 @@
       "openHint": "開啟動作",
       "moreOptions": "{{name}}的更多選項",
       "replace": "替換",
-      "delete": "刪除"
+      "delete": "刪除",
+      "remove": "移除"
     },
     "editFailed": {
       "addTitle": "無法新增動作",
       "replaceTitle": "無法替換動作",
       "deleteTitle": "無法刪除動作",
+      "removeTitle": "無法移除動作",
+      "removeSetTitle": "無法移除該組",
       "libraryUnavailable": "動作庫目前無法使用，請再試一次。",
       "sessionFinished": "此訓練已經結束。",
       "rateLimited": "請求過於頻繁，請在{{seconds, number}}秒後再試一次。",

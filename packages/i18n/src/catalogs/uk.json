@@ -788,6 +788,10 @@
       "addSets_few": "Додати {{count, number}} підходи до «{{exercise}}»",
       "addSets_many": "Додати {{count, number}} підходів до «{{exercise}}»",
       "addSets_other": "Додати {{count, number}} підходу до «{{exercise}}»",
+      "removeSets_one": "Видалити {{count, number}} підхід із «{{exercise}}»",
+      "removeSets_few": "Видалити {{count, number}} підходи із «{{exercise}}»",
+      "removeSets_many": "Видалити {{count, number}} підходів із «{{exercise}}»",
+      "removeSets_other": "Видалити {{count, number}} підходу із «{{exercise}}»",
       "line": "{{change}} · {{sets}}",
       "spokenLine": "{{change}}: {{sets}}",
       "spokenSet": "{{reps}} по {{weight}}"
@@ -1028,11 +1032,20 @@
       "log": "Записати підхід {{order, number}}",
       "edit": "Редагувати підхід {{order, number}}",
       "editHint": "Відкриває підхід для редагування",
+      "remove": "Видалити підхід {{order, number}}",
       "logged": "Підхід {{order, number}} записано"
     },
     "errors": {
       "save": "Не вдалося зберегти підхід. Спробуйте ще раз.",
       "rateLimited": "Забагато запитів. Спробуйте ще раз через {{seconds, number}} с."
+    },
+    "remove": {
+      "button": "Видалити",
+      "confirm": {
+        "title": "Видалити підхід {{order, number}}?",
+        "message": "Цей підхід уже записано. Видалення не можна скасувати.",
+        "remove": "Видалити"
+      }
     },
     "form": {
       "weightNotNumber": "Вага має бути числом",
@@ -1250,12 +1263,15 @@
       "openHint": "Відкриває вправу",
       "moreOptions": "Інші дії для «{{name}}»",
       "replace": "Замінити",
-      "delete": "Видалити"
+      "delete": "Видалити",
+      "remove": "Видалити"
     },
     "editFailed": {
       "addTitle": "Не вдалося додати вправу",
       "replaceTitle": "Не вдалося замінити вправу",
       "deleteTitle": "Не вдалося видалити вправу",
+      "removeTitle": "Не вдалося видалити вправу",
+      "removeSetTitle": "Не вдалося видалити підхід",
       "libraryUnavailable": "Бібліотека вправ зараз недоступна. Спробуйте ще раз.",
       "sessionFinished": "Це тренування вже завершено.",
       "rateLimited": "Забагато запитів: спробуйте ще раз через {{seconds, number}} с.",

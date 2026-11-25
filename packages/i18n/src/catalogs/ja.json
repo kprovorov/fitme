@@ -722,6 +722,7 @@
       "add": "{{exercise}}を追加",
       "remove": "{{exercise}}を削除",
       "addSets_other": "{{exercise}}に{{count, number}}セット追加",
+      "removeSets_other": "{{exercise}}から{{count, number}}セット削除",
       "line": "{{change}} · {{sets}}",
       "spokenLine": "{{change}}：{{sets}}",
       "spokenSet": "{{weight}}で{{reps}}"
@@ -935,11 +936,20 @@
       "log": "セット{{order, number}}を記録",
       "edit": "セット{{order, number}}を編集",
       "editHint": "セットの編集画面を開きます",
+      "remove": "セット{{order, number}}を削除",
       "logged": "セット{{order, number}}、記録済み"
     },
     "errors": {
       "save": "このセットを保存できませんでした。もう一度お試しください。",
       "rateLimited": "リクエストが多すぎます。{{seconds, number}}秒後にお試しください。"
+    },
+    "remove": {
+      "button": "削除",
+      "confirm": {
+        "title": "セット{{order, number}}を削除しますか？",
+        "message": "このセットは記録済みです。削除すると元に戻せません。",
+        "remove": "削除"
+      }
     },
     "form": {
       "weightNotNumber": "重量は数値で入力してください",
@@ -1124,12 +1134,15 @@
       "openHint": "種目を開きます",
       "moreOptions": "{{name}}のその他のオプション",
       "replace": "変更",
-      "delete": "削除"
+      "delete": "削除",
+      "remove": "削除"
     },
     "editFailed": {
       "addTitle": "種目を追加できませんでした",
       "replaceTitle": "種目を変更できませんでした",
       "deleteTitle": "種目を削除できませんでした",
+      "removeTitle": "種目を削除できませんでした",
+      "removeSetTitle": "セットを削除できませんでした",
       "libraryUnavailable": "現在、種目ライブラリを利用できません。もう一度お試しください。",
       "sessionFinished": "このワークアウトはすでに終了しています。",
       "rateLimited": "リクエストが多すぎます。{{seconds, number}}秒後にお試しください。",

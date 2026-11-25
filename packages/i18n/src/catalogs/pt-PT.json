@@ -766,6 +766,9 @@
       "addSets_one": "Adicionar {{count, number}} série a {{exercise}}",
       "addSets_other": "Adicionar {{count, number}} séries a {{exercise}}",
       "addSets_many": "Adicionar {{count, number}} séries a {{exercise}}",
+      "removeSets_one": "Remover {{count, number}} série de {{exercise}}",
+      "removeSets_other": "Remover {{count, number}} séries de {{exercise}}",
+      "removeSets_many": "Remover {{count, number}} séries de {{exercise}}",
       "line": "{{change}} · {{sets}}",
       "spokenLine": "{{change}}: {{sets}}",
       "spokenSet": "{{reps}} com {{weight}}"
@@ -997,11 +1000,20 @@
       "log": "Registar série {{order, number}}",
       "edit": "Editar série {{order, number}}",
       "editHint": "Abre a série para edição",
+      "remove": "Remover série {{order, number}}",
       "logged": "Série {{order, number}}, registada"
     },
     "errors": {
       "save": "Não foi possível guardar esta série. Tenta novamente.",
       "rateLimited": "Demasiados pedidos. Tenta novamente dentro de {{seconds, number}} s."
+    },
+    "remove": {
+      "button": "Remover",
+      "confirm": {
+        "title": "Remover a série {{order, number}}?",
+        "message": "Esta série já está registada. A remoção não pode ser anulada.",
+        "remove": "Remover"
+      }
     },
     "form": {
       "weightNotNumber": "O peso deve ser um número",
@@ -1208,12 +1220,15 @@
       "openHint": "Abre o exercício",
       "moreOptions": "Mais opções para {{name}}",
       "replace": "Substituir",
-      "delete": "Eliminar"
+      "delete": "Eliminar",
+      "remove": "Remover"
     },
     "editFailed": {
       "addTitle": "Não foi possível adicionar o exercício",
       "replaceTitle": "Não foi possível substituir o exercício",
       "deleteTitle": "Não foi possível eliminar o exercício",
+      "removeTitle": "Não foi possível remover o exercício",
+      "removeSetTitle": "Não foi possível remover a série",
       "libraryUnavailable": "A biblioteca de exercícios não está disponível de momento. Tenta novamente.",
       "sessionFinished": "Este treino já terminou.",
       "rateLimited": "Demasiados pedidos: tenta novamente dentro de {{seconds, number}} s.",

@@ -766,6 +766,9 @@
       "addSets_one": "Afegeix {{count, number}} sèrie a {{exercise}}",
       "addSets_other": "Afegeix {{count, number}} sèries a {{exercise}}",
       "addSets_many": "Afegeix {{count, number}} sèries a {{exercise}}",
+      "removeSets_one": "Elimina {{count, number}} sèrie de {{exercise}}",
+      "removeSets_other": "Elimina {{count, number}} sèries de {{exercise}}",
+      "removeSets_many": "Elimina {{count, number}} sèries de {{exercise}}",
       "line": "{{change}} · {{sets}}",
       "spokenLine": "{{change}}: {{sets}}",
       "spokenSet": "{{reps}} amb {{weight}}"
@@ -997,11 +1000,20 @@
       "log": "Registra la sèrie {{order, number}}",
       "edit": "Edita la sèrie {{order, number}}",
       "editHint": "Obre la sèrie per editar-la",
+      "remove": "Elimina la sèrie {{order, number}}",
       "logged": "Sèrie {{order, number}}, registrada"
     },
     "errors": {
       "save": "No s'ha pogut desar aquesta sèrie. Torna-ho a provar.",
       "rateLimited": "Massa sol·licituds. Torna-ho a provar d'aquí a {{seconds, number}} s."
+    },
+    "remove": {
+      "button": "Elimina",
+      "confirm": {
+        "title": "Vols eliminar la sèrie {{order, number}}?",
+        "message": "Aquesta sèrie ja està registrada. Si l'elimines, no es podrà desfer.",
+        "remove": "Elimina"
+      }
     },
     "form": {
       "weightNotNumber": "El pes ha de ser un nombre",
@@ -1208,12 +1220,15 @@
       "openHint": "Obre l'exercici",
       "moreOptions": "Més opcions per a {{name}}",
       "replace": "Substitueix",
-      "delete": "Elimina"
+      "delete": "Elimina",
+      "remove": "Elimina"
     },
     "editFailed": {
       "addTitle": "No s'ha pogut afegir l'exercici",
       "replaceTitle": "No s'ha pogut substituir l'exercici",
       "deleteTitle": "No s'ha pogut eliminar l'exercici",
+      "removeTitle": "No s'ha pogut eliminar l'exercici",
+      "removeSetTitle": "No s'ha pogut eliminar la sèrie",
       "libraryUnavailable": "La biblioteca d'exercicis no està disponible ara mateix. Torna-ho a provar.",
       "sessionFinished": "Aquest entrenament ja ha acabat.",
       "rateLimited": "Massa sol·licituds: torna-ho a provar d'aquí a {{seconds, number}} s.",

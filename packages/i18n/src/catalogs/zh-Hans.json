@@ -722,6 +722,7 @@
       "add": "添加{{exercise}}",
       "remove": "移除{{exercise}}",
       "addSets_other": "为{{exercise}}添加{{count, number}}组",
+      "removeSets_other": "从{{exercise}}移除{{count, number}}组",
       "line": "{{change}} · {{sets}}",
       "spokenLine": "{{change}}：{{sets}}",
       "spokenSet": "{{weight}}，{{reps}}"
@@ -935,11 +936,20 @@
       "log": "记录第{{order, number}}组",
       "edit": "编辑第{{order, number}}组",
       "editHint": "打开此组进行编辑",
+      "remove": "移除第{{order, number}}组",
       "logged": "第{{order, number}}组，已记录"
     },
     "errors": {
       "save": "无法保存此组，请重试。",
       "rateLimited": "请求过于频繁，请在{{seconds, number}}秒后重试。"
+    },
+    "remove": {
+      "button": "移除",
+      "confirm": {
+        "title": "移除第{{order, number}}组？",
+        "message": "这一组已记录。移除后无法撤销。",
+        "remove": "移除"
+      }
     },
     "form": {
       "weightNotNumber": "重量必须是数值",
@@ -1124,12 +1134,15 @@
       "openHint": "打开动作",
       "moreOptions": "{{name}}的更多选项",
       "replace": "替换",
-      "delete": "删除"
+      "delete": "删除",
+      "remove": "移除"
     },
     "editFailed": {
       "addTitle": "无法添加动作",
       "replaceTitle": "无法替换动作",
       "deleteTitle": "无法删除动作",
+      "removeTitle": "无法移除动作",
+      "removeSetTitle": "无法移除该组",
       "libraryUnavailable": "动作库暂时不可用，请重试。",
       "sessionFinished": "此训练已经结束。",
       "rateLimited": "请求过于频繁，请在{{seconds, number}}秒后重试。",

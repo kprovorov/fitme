@@ -744,6 +744,8 @@
       "remove": "{{exercise}} verwijderen",
       "addSets_one": "{{count, number}} set toevoegen aan {{exercise}}",
       "addSets_other": "{{count, number}} sets toevoegen aan {{exercise}}",
+      "removeSets_one": "{{count, number}} set verwijderen uit {{exercise}}",
+      "removeSets_other": "{{count, number}} sets verwijderen uit {{exercise}}",
       "line": "{{change}} · {{sets}}",
       "spokenLine": "{{change}}: {{sets}}",
       "spokenSet": "{{reps}} met {{weight}}"
@@ -966,11 +968,20 @@
       "log": "Set {{order, number}} registreren",
       "edit": "Set {{order, number}} bewerken",
       "editHint": "Opent de set om deze te bewerken",
+      "remove": "Set {{order, number}} verwijderen",
       "logged": "Set {{order, number}}, geregistreerd"
     },
     "errors": {
       "save": "Deze set kon niet worden opgeslagen. Probeer het opnieuw.",
       "rateLimited": "Te veel verzoeken. Probeer het over {{seconds, number}} s opnieuw."
+    },
+    "remove": {
+      "button": "Verwijderen",
+      "confirm": {
+        "title": "Set {{order, number}} verwijderen?",
+        "message": "Deze set is al geregistreerd. Verwijderen kan niet ongedaan worden gemaakt.",
+        "remove": "Verwijderen"
+      }
     },
     "form": {
       "weightNotNumber": "Gewicht moet een getal zijn",
@@ -1166,12 +1177,15 @@
       "openHint": "Opent de oefening",
       "moreOptions": "Meer opties voor {{name}}",
       "replace": "Vervangen",
-      "delete": "Verwijderen"
+      "delete": "Verwijderen",
+      "remove": "Verwijderen"
     },
     "editFailed": {
       "addTitle": "Oefening toevoegen mislukt",
       "replaceTitle": "Oefening vervangen mislukt",
       "deleteTitle": "Oefening verwijderen mislukt",
+      "removeTitle": "Oefening verwijderen mislukt",
+      "removeSetTitle": "Set verwijderen mislukt",
       "libraryUnavailable": "De oefeningenbibliotheek is momenteel niet beschikbaar. Probeer het opnieuw.",
       "sessionFinished": "Deze training is al afgerond.",
       "rateLimited": "Te veel verzoeken: probeer het over {{seconds, number}} s opnieuw.",
