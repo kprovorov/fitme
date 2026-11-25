@@ -13,6 +13,7 @@ import SessionLoadError from "~/components/workout-sessions/session-load-error";
 import { WorkoutSessionFinishSuggestion } from "~/components/workout-sessions/workout-session-finish-suggestion";
 import WorkoutSessionStats from "~/components/workout-sessions/workout-session-stats";
 import { useDiscardWorkoutSession } from "~/hooks/discard-workout-session";
+import { useEndedWorkoutSession } from "~/hooks/ended-workout-session";
 import { useFinishWorkoutSession } from "~/hooks/finish-workout-session";
 import { useWorkoutSessionQuery } from "~/hooks/queries/workout-sessions";
 
@@ -48,6 +49,8 @@ const WorkoutSessionScreen = ({ sessionId }: WorkoutSessionScreenProps) => {
   } = useWorkoutSessionQuery({
     variables: { sessionId },
   });
+
+  useEndedWorkoutSession(sessionId);
 
   const { confirmFinish, isFinishing } = useFinishWorkoutSession(sessionId);
 
