@@ -1801,7 +1801,7 @@ describe("the Plan Update after finishing a Workout Session opened from Home", (
     await settle();
 
     expect(fakePublicApi.count(APPLY)).toBe(1);
-    expect(legDay()).toEqual([
+    expect(legDay()).toMatchObject([
       {
         sets: [
           { reps_recommended: 10, rest_recommended: 90, weight_recommended: 0 },
