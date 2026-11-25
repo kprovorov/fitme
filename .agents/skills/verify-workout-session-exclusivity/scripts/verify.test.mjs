@@ -21,12 +21,14 @@ const userKey = /Index key: user/u;
 const unreviewedMigration =
   /touches workout_sessions after the covered migration/u;
 
-for (const scenario of [
-  "reviewed",
-  "edited-records",
-  "edited-progress",
-  "new",
-]) {
+/** @type {Record<string, string>} */
+const editedMigrations = {
+  "edited-policies": "20261124120000_personal_records_write_policies.sql",
+  "edited-progress": "20261101100000_workout_session_progress.sql",
+  "edited-records": "20261031130000_personal_records.sql",
+};
+
+for (const scenario of ["reviewed", ...Object.keys(editedMigrations), "new"]) {
   void test(`migration guard: ${scenario} session reference`, () => {
     const scratch = mkdtempSync(path.join(tmpdir(), "fitme-migration-guard-"));
     let out;
@@ -35,13 +37,10 @@ for (const scenario of [
       const target = path.join(scratch, migrations);
       cpSync(path.join(root, migrations), target, { recursive: true });
 
-      if (scenario.startsWith("edited-")) {
-        const file = path.join(
-          target,
-          scenario === "edited-records"
-            ? "20261031130000_personal_records.sql"
-            : "20261101100000_workout_session_progress.sql"
-        );
+      const edited = editedMigrations[scenario];
+
+      if (edited !== undefined) {
+        const file = path.join(target, edited);
 
         writeFileSync(
           file,

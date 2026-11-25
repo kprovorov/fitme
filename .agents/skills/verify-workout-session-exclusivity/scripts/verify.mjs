@@ -35,6 +35,10 @@ const reviewedMigrations = new Map([
     "20261101100000_workout_session_progress.sql",
     "7b1a09093747e2e7ac00da82a4acaa40fefcf15dcf35ffc21cbc13ca45ae8653",
   ],
+  [
+    "20261124120000_personal_records_write_policies.sql",
+    "d4387eac788bdb8268473caebfa286af3595b1960e525ae7264dc2e1c40d67aa",
+  ],
 ]);
 
 const { values } = parseArgs({
