@@ -437,6 +437,30 @@ const PlanUpdateChange = z
       "One change to the Workout, by `kind`. Exercises are Exercise slugs only: their names come from the Library",
   });
 
+const PlanUpdateRemovedSet = z
+  .object({
+    reps: z.int().openapi({ example: 10 }),
+    weight: z.number().openapi({
+      description: "In `weight_unit`, as stored",
+      example: 40,
+    }),
+  })
+  .openapi("PlanUpdateRemovedSet", {
+    description: "A set the Plan loses, by its targets",
+  });
+
+const PlanUpdateSetRemoval = z
+  .object({
+    exercise_slug: slugField("The Exercise that loses sets"),
+    sets: z.array(PlanUpdateRemovedSet).openapi({
+      description: "The Plan sets that go, in order",
+    }),
+  })
+  .openapi("PlanUpdateSetRemoval", {
+    description:
+      "The sets an Exercise of the Workout loses. The sets that stay keep their targets",
+  });
+
 const PlanUpdate = z
   .object({
     changes: z.array(PlanUpdateChange).openapi({
@@ -448,6 +472,10 @@ const PlanUpdate = z
     plan: z.object({ id: Id, name: z.string().nullable() }).nullable().openapi({
       description:
         "The Plan it updates, `null` when the Workout is gone or its Plan deleted",
+    }),
+    set_removals: z.array(PlanUpdateSetRemoval).openapi({
+      description:
+        "The Plan sets the User removed, per Exercise in Workout order. Always empty without `include_set_removals=true`",
     }),
     weight_unit: WeightUnit,
     workout: z
@@ -462,22 +490,39 @@ const PlanUpdate = z
 
 const PlanUpdateResponse = z.object({ data: PlanUpdate });
 
+/** Both Plan Update routes' query: a caller opts in to set removals (ADR 0023). */
+const PlanUpdateQuery = z.object({
+  include_set_removals: z
+    .stringbool({ case: "sensitive", falsy: ["false"], truthy: ["true"] })
+    .default(false)
+    .openapi({
+      description:
+        "Opts in to set removals: only `true` has `set_removals` answered, and applied by an apply. Send it only if the User is shown what goes",
+      type: "boolean",
+    }),
+});
+
 /** Both Plan Update routes' answer: the Plan Update, or 404 without the Workout Session. */
 const planUpdateAnswer = (
   c: Context<ApiEnv>,
   planUpdate: PlanUpdateAnswer | null
 ) =>
   planUpdate
-    ? c.json(PlanUpdateResponse.parse({ data: planUpdate }), 200)
+    ? c.json(
+        PlanUpdateResponse.parse({
+          data: { ...planUpdate, set_removals: planUpdate.set_removals ?? [] },
+        }),
+        200
+      )
     : c.json(notFound, 404);
 
 const previewPlanUpdateRoute = createRoute({
   description:
-    "The Plan Update of a finished Workout Session: the changes it made to its Workout (Exercises replaced, added or removed, sets added), which the User can save to the Plan. Writes nothing. A Workout Session without a Plan Update answers no changes.",
+    "The Plan Update of a finished Workout Session: the changes it made to its Workout (Exercises replaced, added or removed, sets added), which the User can save to the Plan. Writes nothing. A Workout Session without a Plan Update answers no changes and no set removals. The sets the User removed are answered in `set_removals` only with `include_set_removals=true`, and an apply needs it too to remove them from the Plan; `changes`, the removal of an Exercise left without sets included, don't depend on it.",
   method: "get",
   middleware: [requires("read")] as const,
   path: "/{id}/plan-update",
-  request: { params: z.object({ id: Id }) },
+  request: { params: z.object({ id: Id }), query: PlanUpdateQuery },
   responses: {
     200: {
       content: { "application/json": { schema: PlanUpdateResponse } },
@@ -494,11 +539,11 @@ const previewPlanUpdateRoute = createRoute({
 
 const applyPlanUpdateRoute = createRoute({
   description:
-    "Applies the Plan Update of a finished Workout Session to its Workout in one transaction (replacements and added sets, then removals renumbering the rest from 1, then added Exercises appended) and answers what it applied. Once applied, the Workout Session has no Plan Update: a repeated or concurrent apply answers no changes and writes nothing.",
+    "Applies the Plan Update of a finished Workout Session to its Workout in one transaction (replacements and added sets, then set removals and Exercise removals, each renumbering the rest from 1, then added Exercises appended) and answers what it applied. The sets the User removed are removed from the Plan, and answered in `set_removals`, only with `include_set_removals=true`; `changes`, the removal of an Exercise left without sets included, don't depend on it. Once applied, with or without it, the Workout Session has no Plan Update: a repeated or concurrent apply answers no changes and writes nothing.",
   method: "post",
   middleware: [requires("write")] as const,
   path: "/{id}/plan-update",
-  request: { params: z.object({ id: Id }) },
+  request: { params: z.object({ id: Id }), query: PlanUpdateQuery },
   responses: {
     200: {
       content: { "application/json": { schema: PlanUpdateResponse } },
@@ -600,13 +645,17 @@ export const workoutSessions = new OpenAPIHono<ApiEnv>({
   .openapi(previewPlanUpdateRoute, async (c) =>
     planUpdateAnswer(
       c,
-      await c.var.getServices().previewPlanUpdate(c.req.valid("param").id)
+      await c.var.getServices().previewPlanUpdate(c.req.valid("param").id, {
+        includeSetRemovals: c.req.valid("query").include_set_removals,
+      })
     )
   )
   .openapi(applyPlanUpdateRoute, async (c) =>
     planUpdateAnswer(
       c,
-      await c.var.getServices().applyPlanUpdate(c.req.valid("param").id)
+      await c.var.getServices().applyPlanUpdate(c.req.valid("param").id, {
+        includeSetRemovals: c.req.valid("query").include_set_removals,
+      })
     )
   )
   .openapi(addExerciseRoute, async (c) => {

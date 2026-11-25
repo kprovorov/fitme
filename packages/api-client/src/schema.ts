@@ -2544,11 +2544,14 @@ export interface paths {
     };
     /**
      * Preview a Workout Session's Plan Update
-     * @description The Plan Update of a finished Workout Session: the changes it made to its Workout (Exercises replaced, added or removed, sets added), which the User can save to the Plan. Writes nothing. A Workout Session without a Plan Update answers no changes.
+     * @description The Plan Update of a finished Workout Session: the changes it made to its Workout (Exercises replaced, added or removed, sets added), which the User can save to the Plan. Writes nothing. A Workout Session without a Plan Update answers no changes and no set removals. The sets the User removed are answered in `set_removals` only with `include_set_removals=true`, and an apply needs it too to remove them from the Plan; `changes`, the removal of an Exercise left without sets included, don't depend on it.
      */
     get: {
       parameters: {
-        query?: never;
+        query?: {
+          /** @description Opts in to set removals: only `true` has `set_removals` answered, and applied by an apply. Send it only if the User is shown what goes */
+          include_set_removals?: boolean;
+        };
         header?: never;
         path: {
           id: string;
@@ -2611,11 +2614,14 @@ export interface paths {
     put?: never;
     /**
      * Apply a Workout Session's Plan Update
-     * @description Applies the Plan Update of a finished Workout Session to its Workout in one transaction (replacements and added sets, then removals renumbering the rest from 1, then added Exercises appended) and answers what it applied. Once applied, the Workout Session has no Plan Update: a repeated or concurrent apply answers no changes and writes nothing.
+     * @description Applies the Plan Update of a finished Workout Session to its Workout in one transaction (replacements and added sets, then set removals and Exercise removals, each renumbering the rest from 1, then added Exercises appended) and answers what it applied. The sets the User removed are removed from the Plan, and answered in `set_removals`, only with `include_set_removals=true`; `changes`, the removal of an Exercise left without sets included, don't depend on it. Once applied, with or without it, the Workout Session has no Plan Update: a repeated or concurrent apply answers no changes and writes nothing.
      */
     post: {
       parameters: {
-        query?: never;
+        query?: {
+          /** @description Opts in to set removals: only `true` has `set_removals` answered, and applied by an apply. Send it only if the User is shown what goes */
+          include_set_removals?: boolean;
+        };
         header?: never;
         path: {
           id: string;
@@ -3640,6 +3646,8 @@ export interface components {
         id: string;
         name: string | null;
       } | null;
+      /** @description The Plan sets the User removed, per Exercise in Workout order. Always empty without `include_set_removals=true` */
+      set_removals: components["schemas"]["PlanUpdateSetRemoval"][];
       weight_unit: components["schemas"]["WeightUnit"];
       /** @description The Workout it updates, `null` when it's gone or its Plan deleted */
       workout: {
@@ -3712,6 +3720,26 @@ export interface components {
       /**
        * @description In `weight_unit`, as logged
        * @example 80
+       */
+      weight: number;
+    };
+    /** @description The sets an Exercise of the Workout loses. The sets that stay keep their targets */
+    PlanUpdateSetRemoval: {
+      /**
+       * @description The Exercise that loses sets
+       * @example barbell-bench-press
+       */
+      exercise_slug: string;
+      /** @description The Plan sets that go, in order */
+      sets: components["schemas"]["PlanUpdateRemovedSet"][];
+    };
+    /** @description A set the Plan loses, by its targets */
+    PlanUpdateRemovedSet: {
+      /** @example 10 */
+      reps: number;
+      /**
+       * @description In `weight_unit`, as stored
+       * @example 40
        */
       weight: number;
     };

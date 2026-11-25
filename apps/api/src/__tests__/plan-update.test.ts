@@ -1,4 +1,7 @@
-import type { PlanUpdate } from "@fitme/services/plan-update";
+import type {
+  PlanUpdate,
+  PlanUpdateOptions,
+} from "@fitme/services/plan-update";
 import { describe, expect, it } from "vitest";
 
 import type { UserServices } from "../services.js";
@@ -39,6 +42,12 @@ const planUpdate: PlanUpdate = {
   },
 };
 
+/** What the routes answer for `update` without any set removals. */
+const withoutRemovals = (update: PlanUpdate) => ({
+  ...update,
+  set_removals: [],
+});
+
 const noPlanUpdate: PlanUpdate = {
   changes: [],
   plan: null,
@@ -55,11 +64,11 @@ type PlanUpdateMethod = "applyPlanUpdate" | "previewPlanUpdate";
 
 /** A facade whose `method` answers `result`; the other one fails the request. */
 const answering = (method: PlanUpdateMethod, result: PlanUpdate | null) => {
-  const calls: string[] = [];
+  const calls: { options: PlanUpdateOptions; sessionId: string }[] = [];
 
   const faked: Partial<UserServices> = {
-    [method]: (sessionId: string) => {
-      calls.push(sessionId);
+    [method]: (sessionId: string, options: PlanUpdateOptions) => {
+      calls.push({ options, sessionId });
 
       return Promise.resolve(result);
     },
@@ -82,9 +91,11 @@ describe.each([
 
       expect(response.status).toBe(200);
       await expect(response.json()).resolves.toStrictEqual({
-        data: planUpdate,
+        data: withoutRemovals(planUpdate),
       });
-      expect(calls).toStrictEqual([SESSION_ID]);
+      expect(calls).toStrictEqual([
+        { options: { includeSetRemovals: false }, sessionId: SESSION_ID },
+      ]);
       expect(servicesFor).toStrictEqual(["user_alice"]);
     });
 
@@ -96,7 +107,7 @@ describe.each([
 
       expect(response.status).toBe(200);
       await expect(response.json()).resolves.toStrictEqual({
-        data: noPlanUpdate,
+        data: withoutRemovals(noPlanUpdate),
       });
     });
 
@@ -107,8 +118,86 @@ describe.each([
 
       const response = await send(app, method);
 
-      await expect(response.json()).resolves.toStrictEqual({ data: applied });
+      await expect(response.json()).resolves.toStrictEqual({
+        data: withoutRemovals(applied),
+      });
     });
+
+    it("answers the set removals to a caller that opts in", async () => {
+      const set_removals = [
+        {
+          exercise_slug: "barbell-back-squat",
+          sets: [
+            { reps: 10, weight: 40.25 },
+            { reps: 8, weight: 0 },
+          ],
+        },
+        { exercise_slug: "dips", sets: [{ reps: 12, weight: 0 }] },
+      ];
+
+      const { calls, services } = answering(service, {
+        ...planUpdate,
+        set_removals,
+      });
+
+      const { app } = testApp({ services });
+
+      const response = await send(
+        app,
+        method,
+        `${PATH}?include_set_removals=true`
+      );
+
+      expect(response.status).toBe(200);
+      await expect(response.json()).resolves.toStrictEqual({
+        data: { ...planUpdate, set_removals },
+      });
+      expect(calls).toStrictEqual([
+        { options: { includeSetRemovals: true }, sessionId: SESSION_ID },
+      ]);
+    });
+
+    it("doesn't opt in with include_set_removals=false", async () => {
+      const { calls, services } = answering(service, planUpdate);
+      const { app } = testApp({ services });
+
+      const response = await send(
+        app,
+        method,
+        `${PATH}?include_set_removals=false`
+      );
+
+      expect(response.status).toBe(200);
+      await expect(response.json()).resolves.toStrictEqual({
+        data: withoutRemovals(planUpdate),
+      });
+      expect(calls).toStrictEqual([
+        { options: { includeSetRemovals: false }, sessionId: SESSION_ID },
+      ]);
+    });
+
+    it.each([
+      "include_set_removals=",
+      "include_set_removals=1",
+      "include_set_removals=yes",
+      "include_set_removals=TRUE",
+      "include_set_removals=true&include_set_removals=false",
+    ])(
+      "answers 400 invalid_request for ?%s, without calling the services",
+      async (query) => {
+        const { calls, services } = answering(service, planUpdate);
+        const { app, reported } = testApp({ services });
+
+        const response = await send(app, method, `${PATH}?${query}`);
+
+        expect(response.status).toBe(400);
+        const { error } = await response.json();
+        expect(error.code).toBe("invalid_request");
+        expect(error.message).toContain("include_set_removals");
+        expect(calls).toStrictEqual([]);
+        expect(reported).toStrictEqual([]);
+      }
+    );
 
     it("answers 404 not_found for a Workout Session that's missing or another User's, unreported", async () => {
       const { services } = answering(service, null);

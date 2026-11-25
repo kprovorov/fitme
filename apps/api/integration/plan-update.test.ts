@@ -172,6 +172,72 @@ const sessionWithChanges = async () => {
 const finish = (sessionId: string) =>
   request(owner, "POST", `/v1/workout-sessions/${sessionId}/finish`);
 
+/** `onePlan` with three squat sets, told apart by their targets. */
+const threeSetPlan = {
+  ...onePlan,
+  workouts: onePlan.workouts.map((workout) => ({
+    ...workout,
+    exercises: workout.exercises.map((exercise, index) =>
+      index === 0
+        ? {
+            ...exercise,
+            sets: [
+              {
+                reps_recommended: 10,
+                rest_recommended: 60,
+                weight_recommended: 40.25,
+              },
+              {
+                reps_recommended: 8,
+                rest_recommended: 120,
+                weight_recommended: 100,
+              },
+              {
+                reps_recommended: 6,
+                rest_recommended: 180,
+                weight_recommended: 110,
+              },
+            ],
+          }
+        : exercise
+    ),
+  })),
+};
+
+/**
+ * A finished Workout Session of `threeSetPlan`'s Workout, with the squat's
+ * first set removed and the deadlift emptied through the API.
+ */
+const sessionWithRemovedSets = async () => {
+  const created = await send(owner, "POST", "/v1/plans", threeSetPlan);
+  const { data: plan } = await created.json();
+
+  const started = await send(owner, "POST", "/v1/workout-sessions", {
+    workout_id: plan.workouts[0].id,
+  });
+
+  const { data: session } = await started.json();
+  const [squat, deadlift] = session.exercises;
+
+  for (const set of [squat.sets[0], deadlift.sets[0]]) {
+    // oxlint-disable-next-line no-await-in-loop -- one edit at a time, as a User makes them
+    const removed = await request(
+      owner,
+      "DELETE",
+      `/v1/workout-session-sets/${set.id}`
+    );
+
+    expect(removed.status).toBe(204);
+  }
+
+  await finish(session.id);
+
+  return {
+    planId: z.string().parse(plan.id),
+    sessionId: z.string().parse(session.id),
+  };
+};
+
 /** The Plan's one Workout, its Exercises and sets as targets. */
 const workoutOf = async (planId: string) => {
   const { body } = await request(owner, "GET", `/v1/plans/${planId}`);
@@ -232,6 +298,7 @@ describe("the Plan Update", () => {
         data: {
           changes: [],
           plan: { id: planId, name: "Plan Update" },
+          set_removals: [],
           weight_unit: "kg",
           workout: { cover: null, id: workoutId, name: "Day A" },
         },
@@ -251,6 +318,7 @@ describe("the Plan Update", () => {
         data: {
           changes: expectedChanges,
           plan: { id: planId, name: "Plan Update" },
+          set_removals: [],
           weight_unit: "kg",
           workout: { cover: null, id: workoutId, name: "Day A" },
         },
@@ -296,6 +364,71 @@ describe("the Plan Update", () => {
     await expect(workoutOf(planId)).resolves.toStrictEqual(updatedWorkout);
   });
 
+  it.each(["", "?include_set_removals=false"])(
+    "removes no Plan set without opting in (%s)",
+    async (query) => {
+      const { planId, sessionId } = await sessionWithRemovedSets();
+      const [squat] = await workoutOf(planId);
+      const path = `${planUpdatePath(sessionId)}${query}`;
+
+      const preview = await request(owner, "GET", path);
+      const applied = await request(owner, "POST", path);
+
+      for (const { body, status } of [preview, applied]) {
+        expect(status).toBe(200);
+        expect(body.data.set_removals).toStrictEqual([]);
+        // An emptied Exercise's removal isn't behind the opt-in.
+        expect(body.data.changes).toStrictEqual([
+          { exercise_slug: "barbell-deadlift", kind: "remove_exercise" },
+        ]);
+      }
+
+      await expect(workoutOf(planId)).resolves.toStrictEqual([squat]);
+    }
+  );
+
+  it("previews, then applies once, the set removals of a caller that opts in", async () => {
+    const { planId, sessionId } = await sessionWithRemovedSets();
+    const before = await workoutOf(planId);
+    const path = `${planUpdatePath(sessionId)}?include_set_removals=true`;
+
+    const preview = await request(owner, "GET", path);
+
+    expect(preview.status).toBe(200);
+    expect(preview.body.data).toMatchObject({
+      changes: [{ exercise_slug: "barbell-deadlift", kind: "remove_exercise" }],
+      set_removals: [
+        {
+          exercise_slug: "barbell-back-squat",
+          sets: [{ reps: 10, weight: 40.25 }],
+        },
+      ],
+    });
+    await expect(workoutOf(planId)).resolves.toStrictEqual(before);
+
+    await expect(request(owner, "POST", path)).resolves.toStrictEqual(preview);
+
+    const again = await request(owner, "POST", path);
+    expect({
+      changes: again.body.data.changes,
+      setRemovals: again.body.data.set_removals,
+      workout: await workoutOf(planId),
+    }).toStrictEqual({
+      changes: [],
+      setRemovals: [],
+      workout: [
+        {
+          exercise_slug: "barbell-back-squat",
+          order: 1,
+          sets: [
+            { reps: 8, rest: 120, weight: 100 },
+            { reps: 6, rest: 180, weight: 110 },
+          ],
+        },
+      ],
+    });
+  });
+
   it("answers 404 for another User's Workout Session, writing nothing", async () => {
     const { planId, sessionId } = await sessionWithChanges();
     await finish(sessionId);
@@ -333,6 +466,7 @@ describe("the Plan Update", () => {
     expect(applied.body.data).toStrictEqual({
       changes: [],
       plan: null,
+      set_removals: [],
       weight_unit: "kg",
       workout: null,
     });
