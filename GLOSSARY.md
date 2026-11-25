@@ -28,6 +28,8 @@ A personal workout planner: a person signs up, fills in a fitness profile, build
 
 **Discard**: Ending an open Workout Session without keeping it, as if it had never been started: its logged sets are gone for good and its Workout keeps its place in the Plan. Only an open Workout Session can be discarded; removing a finished one is deleting it. _Avoid_: Cancel, abandon, delete (for an open Workout Session)
 
+**Forgotten Workout Session**: An open Workout Session in which no set has been logged for 3 hours, counted from its start when none has been logged at all. Fitme finishes it automatically, as finished at the moment its last set was logged, or discards it when no set was logged. Never reopened; its Plan Update isn't offered. _Avoid_: Abandoned session, expired session, auto-stopped session
+
 **Weekly goal**: The number of Workout Sessions a User aims to complete in a Monday–Sunday week, taken from their active Plan's training frequency and retained for that week; frequency changes apply from the following Monday. Only finished Workout Sessions with at least one set containing positive reps count toward it. _Avoid_: Weekly target, workout quota
 
 **Weekly streak**: Consecutive weeks in which a User meets their Weekly goal; a first partial week may start a streak without a penalty for missing that partial week's goal. Meeting the current week's goal extends the streak immediately, an unfinished current week preserves it until the week ends, and a missed completed week or a completed week without a known goal breaks it. _Avoid_: Daily streak, training streak
