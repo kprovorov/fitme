@@ -112,6 +112,11 @@ describe("cross-user isolation against the local stack", () => {
       setId: ownerSetId(),
       weightCompleted: 999,
     });
+    await expect(
+      callError(intruder, "remove_set_from_workout_session", {
+        setId: ownerSetId(),
+      })
+    ).resolves.toContain("not found");
     await callError(intruder, "finish_workout_session", {
       sessionId: session.id,
     });
@@ -146,6 +151,15 @@ describe("cross-user isolation against the local stack", () => {
     );
 
     expect(updatedSets).toStrictEqual([]);
+
+    const deletedSets = await asIntruder((tx) =>
+      tx
+        .delete(workoutSessionExerciseSets)
+        .where(eq(workoutSessionExerciseSets.id, ownerSetId() ?? ""))
+        .returning({ id: workoutSessionExerciseSets.id })
+    );
+
+    expect(deletedSets).toStrictEqual([]);
 
     const deletedSessions = await asIntruder((tx) =>
       tx

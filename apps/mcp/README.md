@@ -86,9 +86,10 @@ Weights are stored and returned in the user's unit (kg for the `metric` measurem
 | `delete_plan` | Soft delete (`deleted_at`) and deactivate; repeating it is a no-op (`alreadyDeleted`). |
 | `activate_plan` | Make a plan the active one (in one transaction); returns the plan summary. |
 | `start_workout_session` | Start a session from a plan workout, or resume its open session (`resumed: true`). |
-| `get_workout_session` | Session with exercises and sets; set ids feed `log_set`. |
+| `get_workout_session` | Session with exercises and sets; set ids feed `log_set` and `remove_set_from_workout_session`. |
 | `list_workout_sessions` | Sessions filtered by `all` / `in_progress` / `finished`. |
 | `log_set` | Record reps and weight for a session set. |
+| `remove_set_from_workout_session` | Permanently remove a set from an open session (errors if nothing was removed or the session is finished). |
 | `finish_workout_session` | Finish a session and rotate its workout (`rotated`); no-op if already finished. |
 | `delete_workout_session` | Permanently delete a session and its sets (errors if nothing was deleted). |
 

@@ -475,6 +475,68 @@ describe("plan and workout flow against the local stack", () => {
     });
   });
 
+  it("removes a set from an open session, and from no finished one", async () => {
+    const { session: open } = await callOk<{ session: SessionDetail }>(
+      client,
+      "start_workout_session",
+      { workoutId: workoutNamed(plan, "Day A").id }
+    );
+
+    const [first, second] = open.exercises[0]?.sets ?? [];
+
+    await callOk(client, "log_set", {
+      repsCompleted: 8,
+      setId: first?.id,
+      weightCompleted: 50,
+    });
+
+    const removed = await callOk(client, "remove_set_from_workout_session", {
+      setId: first?.id,
+    });
+
+    expect(removed).toStrictEqual({ removed: true, setId: first?.id });
+
+    // A repeat, and a plan set id.
+    const refusals = await Promise.all(
+      [first?.id, workoutNamed(plan, "Day A").exercises[0]?.sets[0]?.id].map(
+        (setId) =>
+          callError(client, "remove_set_from_workout_session", { setId })
+      )
+    );
+
+    expect(refusals).toStrictEqual([
+      expect.stringContaining("not found"),
+      expect.stringContaining("not found"),
+    ]);
+
+    const current = await callOk<SessionDetail>(client, "get_workout_session", {
+      sessionId: open.id,
+    });
+
+    // The set left keeps its order, so the gap shows which one went.
+    expect(current.exercises).toStrictEqual([
+      { ...open.exercises[0], sets: [second] },
+      ...open.exercises.slice(1),
+    ]);
+
+    const { session: finished } = await callOk<{ session: SessionDetail }>(
+      client,
+      "finish_workout_session",
+      { sessionId: open.id }
+    );
+
+    const message = await callError(client, "remove_set_from_workout_session", {
+      setId: second?.id,
+    });
+
+    expect(message).toContain("finished");
+    await expect(
+      callOk(client, "get_workout_session", { sessionId: open.id })
+    ).resolves.toStrictEqual(finished);
+
+    await callOk(client, "delete_workout_session", { sessionId: open.id });
+  });
+
   it("finishes a session whose workout was replaced without rotating", async () => {
     const { session: open } = await callOk<{ session: SessionDetail }>(
       client,

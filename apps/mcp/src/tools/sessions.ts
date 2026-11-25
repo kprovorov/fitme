@@ -18,8 +18,17 @@ const sessionIdSchema = z
   .guid()
   .describe("Workout session id (workout_sessions.id).");
 
+const sessionSetIdSchema = z
+  .guid()
+  .describe(
+    "Session set id (workout_session_exercise_sets.id) from get_workout_session or start_workout_session — not a plan set id."
+  );
+
 const sessionNotFound = (sessionId: string) =>
   `Workout session ${sessionId} not found (it may have been deleted or belong to another user).`;
+
+const setNotFound = (setId: string) =>
+  `Set ${setId} not found. Use the set ids from get_workout_session (workout_session_exercise_sets.id).`;
 
 const workoutNotFound = (workoutId: string) =>
   `Workout ${workoutId} not found (its plan may have been deleted or belong to another user, or update_plan replaced it — get_plan returns the current workout ids).`;
@@ -29,7 +38,7 @@ const registerSessionReadTools = (server: McpServer, ctx: ToolContext) => {
     "get_workout_session",
     {
       annotations: READ_ONLY,
-      description: `Returns a workout session with its workout and plan (id, name), and its exercises in order, each with the Exercise's \`exercise_slug\`, \`name\` and \`muscle_groups\` from the Library and its sets in order. Each set's \`id\` is the \`setId\` that log_set needs; \`reps_completed\` / \`weight_completed\` / \`logged_at\` are null until the set is logged. ${WEIGHT_UNIT_NOTE}`,
+      description: `Returns a workout session with its workout and plan (id, name), and its exercises in order, each with the Exercise's \`exercise_slug\`, \`name\` and \`muscle_groups\` from the Library and its sets in order. Each set's \`id\` is the \`setId\` that log_set and remove_set_from_workout_session need; its \`order\` can have gaps where sets were removed, so count sets by position; \`reps_completed\` / \`weight_completed\` / \`logged_at\` are null until the set is logged. ${WEIGHT_UNIT_NOTE}`,
       inputSchema: { sessionId: sessionIdSchema },
       title: "Get workout session",
     },
@@ -119,7 +128,7 @@ const registerSessionWriteTools = (server: McpServer, ctx: ToolContext) => {
         readOnlyHint: false,
       },
       description:
-        "Starts a workout session from one of the user's plan workouts (ids from get_plan / list_plans): the workout's exercises and recommended sets are copied into the session. A user has at most one unfinished session: if it's this workout's, that session is returned instead (`resumed: true`); if it's another workout's, the start fails naming that workout, and nothing is written (finish or delete it first). Returns `{ resumed, session }`; the session's set ids are what log_set needs. Call finish_workout_session when done.",
+        "Starts a workout session from one of the user's plan workouts (ids from get_plan / list_plans): the workout's exercises and recommended sets are copied into the session. A user has at most one unfinished session: if it's this workout's, that session is returned instead (`resumed: true`); if it's another workout's, the start fails naming that workout, and nothing is written (finish or delete it first). Returns `{ resumed, session }`; the session's set ids are what log_set and remove_set_from_workout_session need. Call finish_workout_session when done.",
       inputSchema: {
         workoutId: z
           .guid()
@@ -161,11 +170,7 @@ const registerSessionWriteTools = (server: McpServer, ctx: ToolContext) => {
           .min(0)
           .max(MAX_REPS)
           .describe("Repetitions performed."),
-        setId: z
-          .guid()
-          .describe(
-            "Session set id (workout_session_exercise_sets.id) from get_workout_session or start_workout_session — not a plan set id."
-          ),
+        setId: sessionSetIdSchema,
         weightCompleted: z
           .number()
           .min(0)
@@ -178,9 +183,7 @@ const registerSessionWriteTools = (server: McpServer, ctx: ToolContext) => {
       const result = await services.logSet(input);
 
       if (result.status === "not_found") {
-        throw new ToolError(
-          `Set ${input.setId} not found. Use the set ids from get_workout_session (workout_session_exercise_sets.id).`
-        );
+        throw new ToolError(setNotFound(input.setId));
       }
 
       if (result.status === "session_finished") {
@@ -190,6 +193,37 @@ const registerSessionWriteTools = (server: McpServer, ctx: ToolContext) => {
       }
 
       return asJson(result.set);
+    })
+  );
+
+  server.registerTool(
+    "remove_set_from_workout_session",
+    {
+      annotations: {
+        destructiveHint: true,
+        idempotentHint: false,
+        openWorldHint: false,
+        readOnlyHint: false,
+      },
+      description:
+        "Permanently removes one set, logged or not, from an open (in-progress) workout session; a finished session can't be changed. This cannot be undone; removing an unknown or already removed set is an error. The plan isn't changed, but after the session is finished the app can offer to remove the set from the plan too. The other sets keep their ids and their `order`, so a removed set leaves a gap in `order`: count sets by position.",
+      inputSchema: { setId: sessionSetIdSchema },
+      title: "Remove set from workout session",
+    },
+    withServices(ctx, async ({ setId }, services) => {
+      const result = await services.removeSetFromWorkoutSession(setId);
+
+      if (result.status === "not_found") {
+        throw new ToolError(setNotFound(setId));
+      }
+
+      if (result.status === "session_finished") {
+        throw new ToolError(
+          `Workout session ${result.sessionId} was finished at ${result.finishedAt}; its sets can no longer be removed.`
+        );
+      }
+
+      return asJson({ removed: true, setId });
     })
   );
 

@@ -317,6 +317,86 @@ describe("log_set", () => {
   });
 });
 
+describe("remove_set_from_workout_session", () => {
+  it("removes the set", async () => {
+    const removeSetFromWorkoutSession = vi.fn<
+      UserServices["removeSetFromWorkoutSession"]
+    >(() => Promise.resolve({ status: "removed" }));
+
+    const client = await connectWithServices({ removeSetFromWorkoutSession });
+
+    const result = await call(client, "remove_set_from_workout_session", {
+      setId: SET_ID,
+    });
+
+    expect(result.isError).toBeFalsy();
+    expect(result.json).toStrictEqual({ removed: true, setId: SET_ID });
+    expect(removeSetFromWorkoutSession).toHaveBeenCalledWith(SET_ID);
+  });
+
+  it("errors, unreported, when no set matches", async () => {
+    const { reportError, reported } = recordingReporter();
+
+    const client = await connectWithServices(
+      {
+        removeSetFromWorkoutSession: () =>
+          Promise.resolve({ status: "not_found" }),
+      },
+      reportError
+    );
+
+    const result = await call(client, "remove_set_from_workout_session", {
+      setId: SET_ID,
+    });
+
+    expect(result.isError).toBeTruthy();
+    expect(result.text).toBe(
+      `Set ${SET_ID} not found. Use the set ids from get_workout_session (workout_session_exercise_sets.id).`
+    );
+    expect(reported).toStrictEqual([]);
+  });
+
+  it("refuses, unreported, to remove from a finished session", async () => {
+    const { reportError, reported } = recordingReporter();
+
+    const client = await connectWithServices(
+      {
+        removeSetFromWorkoutSession: () =>
+          Promise.resolve({
+            finishedAt: FINISHED_AT,
+            sessionId: SESSION_ID,
+            status: "session_finished",
+          }),
+      },
+      reportError
+    );
+
+    const result = await call(client, "remove_set_from_workout_session", {
+      setId: SET_ID,
+    });
+
+    expect(result.isError).toBeTruthy();
+    expect(result.text).toBe(
+      `Workout session ${SESSION_ID} was finished at ${FINISHED_AT}; its sets can no longer be removed.`
+    );
+    expect(reported).toStrictEqual([]);
+  });
+
+  it("rejects a set id that isn't a uuid", async () => {
+    const removeSetFromWorkoutSession =
+      vi.fn<UserServices["removeSetFromWorkoutSession"]>();
+
+    const client = await connectWithServices({ removeSetFromWorkoutSession });
+
+    const result = await call(client, "remove_set_from_workout_session", {
+      setId: "nope",
+    });
+
+    expect(result.isError).toBeTruthy();
+    expect(removeSetFromWorkoutSession).not.toHaveBeenCalled();
+  });
+});
+
 describe("delete_workout_session", () => {
   it("deletes the session", async () => {
     const deleteWorkoutSession = vi.fn<UserServices["deleteWorkoutSession"]>(
