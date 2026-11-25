@@ -1,5 +1,7 @@
 import { useCallback, useSyncExternalStore } from "react";
 
+import type { SavedWorkoutSessionExerciseSet } from "~/hooks/queries/workout-session-exercise-sets";
+
 /**
  * A set added with Add Set in an open Workout Session and not logged yet.
  * The Public API has no route creating an unlogged set, so it lives on the
@@ -8,6 +10,8 @@ import { useCallback, useSyncExternalStore } from "react";
 export interface AddedSet {
   id: string;
   order: number;
+  /** The set logging it created, until the Workout Session's read has it. */
+  saved?: SavedWorkoutSessionExerciseSet;
 }
 
 const NO_ADDED_SETS: readonly AddedSet[] = [];
@@ -53,6 +57,20 @@ export const addSet = (exerciseId: string, order: number): void => {
     ...addedSetsOf(exerciseId),
     { id: `local-${Date.now()}-${order}`, order },
   ]);
+};
+
+/** Keeps the set logging an added one created, to show it until it's read. */
+export const markAddedSetSaved = (
+  exerciseId: string,
+  id: string,
+  saved: SavedWorkoutSessionExerciseSet
+): void => {
+  setAddedSetsOf(
+    exerciseId,
+    addedSetsOf(exerciseId).map((set) =>
+      set.id === id ? { ...set, saved } : set
+    )
+  );
 };
 
 /** Drops an added set, once logging it has created it. */

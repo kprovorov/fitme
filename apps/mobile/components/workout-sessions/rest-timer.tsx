@@ -21,12 +21,14 @@ export interface Rest {
   /** Seconds the rest was started with, for the progress bar. */
   duration: number;
   endsAt: number;
-  /** The set to do next, if the exercise has one. */
-  nextSetOrder: number | null;
+  /** The set just logged, so the next one is told from the sets shown. */
+  loggedSetId: string;
 }
 
 interface RestTimerProps {
   bottomInset: number;
+  /** The shown number of the set to do next, `null` with none left. */
+  nextSetNumber: number | null;
   onAdjust: (seconds: number) => void;
   onEnd: () => void;
   /** Reports the timer's height, so the content can scroll clear of it. */
@@ -45,6 +47,7 @@ const EXIT_MS = 150;
  */
 const RestTimer = ({
   bottomInset,
+  nextSetNumber,
   onAdjust,
   onEnd,
   onLayout,
@@ -103,9 +106,9 @@ const RestTimer = ({
               className="min-w-24 flex-1"
             >
               <Text className="text-footnote" variant="muted">
-                {rest.nextSetOrder
-                  ? t("sets.rest.thenSet", { order: rest.nextSetOrder })
-                  : t("sets.rest.title")}
+                {nextSetNumber === null
+                  ? t("sets.rest.title")
+                  : t("sets.rest.thenSet", { order: nextSetNumber })}
               </Text>
               <Text className="text-mono-title-2-semibold">{clock}</Text>
             </View>
