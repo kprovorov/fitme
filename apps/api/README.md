@@ -36,6 +36,7 @@ The dev command loads `apps/api/.env` when it exists. Restart it after changing 
 - `POST /v1/workout-sessions/:id/finish` — finishes it and moves its Workout to the end of the Plan's rotation: `{ data, already_finished }` (`true` on a repeat, which changes nothing); 404 `not_found`
 - `DELETE /v1/workout-sessions/:id` — deletes it with its sets: 204, also on a repeat and for an id the User has no Workout Session with (another User's is left untouched)
 - `PATCH /v1/workout-session-sets/:id` — `{ reps_completed, weight_completed }` (in the User's unit): logs a set of an open Workout Session and answers it with `weight_unit`; 409 `session_finished` for a finished one (nothing written), 404 `not_found`
+- `DELETE /v1/workout-session-sets/:id` — removes a set of an open Workout Session (the others keep their `order`): 204, also on a repeat and for an id the User has no set with (another User's is left untouched); 409 `session_finished` for a finished one (nothing changed)
 
 `/health` and the global routes above answer without a token. Every other route, unknown ones included, needs `Authorization: Bearer <Clerk session token>`, verified networkless against `CLERK_JWT_KEY` (a token with a `sid`; `sub` is the User id); a missing or invalid one answers 401 `unauthorized`, so an unknown route answers 404 only to a signed-in caller. CORS preflights answer before auth.
 
