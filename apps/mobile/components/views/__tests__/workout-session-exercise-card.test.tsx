@@ -114,7 +114,7 @@ describe("WorkoutSessionExerciseCard", () => {
     );
 
     expect(
-      screen.getByText("More options for Bench Press: Replace, Delete")
+      screen.getByText("More options for Bench Press: Replace, Remove")
     ).toBeTruthy();
     expect(screen.getByRole("button", { name: "Add Set" })).toBeTruthy();
     // Each set is a row to log, its target beside it.
