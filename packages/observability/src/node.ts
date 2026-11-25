@@ -72,6 +72,99 @@ export const reportError = async (
   await Sentry.flush(FLUSH_TIMEOUT_MS);
 };
 
+/** A scheduled job's Sentry cron monitor, created by its first check-in. */
+export interface CronMonitor {
+  /** Minutes after its scheduled time before a run counts as missed. */
+  checkinMarginMinutes: number;
+  /** Minutes a run may take before it counts as failed. */
+  maxRuntimeMinutes: number;
+  /** A crontab expression, the one the scheduler runs the job on. */
+  schedule: string;
+  slug: string;
+  /** The timezone of `schedule`: schedules run in UTC. */
+  timezone: "UTC";
+}
+
+/**
+ * Sends one check-in and waits for its delivery, answering its id. Never
+ * throws: a check-in that can't be sent is logged, and the job goes on.
+ */
+const checkIn = async (
+  monitor: CronMonitor,
+  values: Parameters<typeof Sentry.captureCheckIn>[0]
+): Promise<string | undefined> => {
+  if (!Sentry.isEnabled()) {
+    return;
+  }
+
+  let id: string | undefined;
+
+  try {
+    // The schedule goes with every check-in, so the last one creates the
+    // monitor when the first never arrived
+    id = Sentry.captureCheckIn(values, {
+      checkinMargin: monitor.checkinMarginMinutes,
+      maxRuntime: monitor.maxRuntimeMinutes,
+      schedule: { type: "crontab", value: monitor.schedule },
+      timezone: monitor.timezone,
+    });
+    await Sentry.flush(FLUSH_TIMEOUT_MS);
+  } catch (error) {
+    console.error("Cron check-in failed", error);
+  }
+
+  return id;
+};
+
+/**
+ * Runs a scheduled job inside its Sentry cron monitor: checks in when it
+ * starts and again when it ends, as ok or failed, so Sentry alerts on a missed
+ * or failed run. Each check-in's delivery is waited for (2 s at most, so the
+ * function can't freeze first and a short run's two arrive in order) and
+ * carries the slug, status, duration and schedule, plus what the SDK stamps on
+ * any check-in (environment, release, trace ids); never the error, which the
+ * job reports itself. Answers the run's value or rejects with its error,
+ * whatever becomes of the check-ins. Before `initObservability` (or without a
+ * DSN) the job just runs.
+ */
+export const runMonitored = async <T>(
+  monitor: CronMonitor,
+  run: () => Promise<T>
+): Promise<T> => {
+  const monitorSlug = monitor.slug;
+
+  const checkInId = await checkIn(monitor, {
+    monitorSlug,
+    status: "in_progress",
+  });
+
+  const startedAt = performance.now();
+
+  const end = async (status: "ok" | "error") => {
+    const duration = (performance.now() - startedAt) / 1000;
+
+    await checkIn(
+      monitor,
+      checkInId
+        ? { checkInId, duration, monitorSlug, status }
+        : { monitorSlug, status }
+    );
+  };
+
+  let value: T;
+
+  try {
+    value = await run();
+  } catch (error) {
+    await end("error");
+    throw error;
+  }
+
+  await end("ok");
+
+  return value;
+};
+
 /**
  * Identifies the current request's User by their Clerk id, and nothing else,
  * on its events and traces. Call it only with an id from a verified token,
