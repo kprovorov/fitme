@@ -1,4 +1,4 @@
-import { rateLimitedFor } from "@fitme/api-client";
+import { ApiError, rateLimitedFor } from "@fitme/api-client";
 import { useQueryClient } from "@tanstack/react-query";
 import * as Haptics from "expo-haptics";
 import { useRef, useState } from "react";
@@ -6,13 +6,17 @@ import { useTranslation } from "react-i18next";
 import { AccessibilityInfo, View } from "react-native";
 
 import { SymbolImage } from "~/components/symbol-image";
+import { dropReadAddedSets } from "~/hooks/added-sets";
 import { reportWorkoutSetTracked } from "~/hooks/finish-workout-suggestion";
 import {
   useCreateWorkoutSessionExerciseSetMutation,
   useUpdateWorkoutSessionExerciseSetMutation,
 } from "~/hooks/queries/workout-session-exercise-sets";
 import type { SavedWorkoutSessionExerciseSet } from "~/hooks/queries/workout-session-exercise-sets";
-import { WORKOUT_SESSION_QUERY_KEY } from "~/hooks/queries/workout-sessions";
+import {
+  useWorkoutSessionQuery,
+  WORKOUT_SESSION_QUERY_KEY,
+} from "~/hooks/queries/workout-sessions";
 import type { WorkoutSessionSet } from "~/hooks/queries/workout-sessions";
 import { IS_E2E } from "~/lib/constants";
 import { useI18n } from "~/lib/i18n";
@@ -94,7 +98,23 @@ const WorkoutSessionExerciseSetRowView = ({
   const isEditable = !isDone || isEditing;
   const [saveError, setSaveError] = useState<string | null>(null);
 
-  const handleSaveError = (waitSeconds: number | null) => {
+  // The read takes a set that's gone away; until one lands, or when it fails,
+  // the row stays with its error.
+  const rereadSession = async () => {
+    const queryKey = useWorkoutSessionQuery.getKey({ sessionId });
+    await queryClient.invalidateQueries({ queryKey });
+
+    const read = queryClient.getQueryState(queryKey);
+
+    if (!isNewSet && read?.status === "success" && !read.isInvalidated) {
+      // Added here and never read: the phone's own copy would keep its row.
+      dropReadAddedSets(exerciseId, new Set([workoutSessionExerciseSet.id]));
+    }
+  };
+
+  const handleSaveError = (error: Error) => {
+    const waitSeconds = rateLimitedFor(error);
+
     // Never the backend's message: the User can't act on a Postgres error.
     // Kept neutral, since a lost connection isn't the only way a save fails.
     const message =
@@ -105,6 +125,11 @@ const WorkoutSessionExerciseSetRowView = ({
     setSaveError(message);
     // Focus stays on ✓, so a screen reader wouldn't read the new message.
     AccessibilityInfo.announceForAccessibility(message);
+
+    // Removed elsewhere (an MCP client, Arnold, another device).
+    if (error instanceof ApiError && error.code === "not_found") {
+      void rereadSession();
+    }
   };
 
   const trackSetCompleted = () => {
@@ -149,13 +174,13 @@ const WorkoutSessionExerciseSetRowView = ({
 
   const { mutate: updateWorkoutSessionExerciseSet } =
     useUpdateWorkoutSessionExerciseSetMutation({
-      onError: (error) => handleSaveError(rateLimitedFor(error)),
+      onError: handleSaveError,
       onSuccess: (set) => handleSaved(set, previousRepsCompleted.current),
     });
 
   const { mutate: createWorkoutSessionExerciseSet } =
     useCreateWorkoutSessionExerciseSetMutation({
-      onError: (error) => handleSaveError(rateLimitedFor(error)),
+      onError: handleSaveError,
       onSuccess: (set) => {
         handleSaved(set, null);
         onSetCreated?.(set);

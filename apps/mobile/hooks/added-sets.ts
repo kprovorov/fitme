@@ -73,7 +73,10 @@ export const markAddedSetSaved = (
   );
 };
 
-/** Drops the added sets logging has created, once a read has them. */
+/**
+ * Drops the added sets logging has created, once a read has them (or has
+ * shown they're gone).
+ */
 export const dropReadAddedSets = (
   exerciseId: string,
   readIds: ReadonlySet<string>
