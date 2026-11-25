@@ -3,12 +3,13 @@ import type { ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { View } from "react-native";
 
-import { addSet, dropAddedSet, useAddedSets } from "~/hooks/added-sets";
+import { addSet, markAddedSetSaved } from "~/hooks/added-sets";
 import type { SavedWorkoutSessionExerciseSet } from "~/hooks/queries/workout-session-exercise-sets";
 import type {
   WorkoutSession,
   WorkoutSessionSet,
 } from "~/hooks/queries/workout-sessions";
+import { isUnlogged, nextUnloggedSet, useShownSets } from "~/hooks/shown-sets";
 import { cn } from "~/lib/utils";
 
 import {
@@ -22,12 +23,12 @@ import WorkoutSessionExerciseSetRowView from "./workout-session-exercise-set-row
 interface WorkoutSessionExerciseSetsTableViewProps {
   exerciseId: string;
   /**
-   * A set was logged for the first time; `nextSetOrder` is the next set still
-   * to log (an added one included), or `null` when none is left.
+   * A set was logged for the first time; `hasNextSet` is whether one is still
+   * to log (an added one included).
    */
   onSetLogged?: (
     set: SavedWorkoutSessionExerciseSet,
-    nextSetOrder: number | null
+    hasNextSet: boolean
   ) => void;
   readOnly?: boolean;
   sessionId: string;
@@ -65,54 +66,21 @@ const WorkoutSessionExerciseSetsTableView = ({
   const weightLabel = unitName(i18n, weightUnit);
   // Added sets live outside this table, so the session screen and the
   // Workout Session Exercise screen show the same ones until they're logged.
-  const localSets = useAddedSets(exerciseId);
-
-  const sortedSets = workoutSessionExerciseSets.toSorted(
-    (a, b) => a.order - b.order
-  );
-
-  const lastSet = sortedSets.at(-1);
-
-  const maxOrder = lastSet?.order ?? 0;
+  const rows = useShownSets(exerciseId, workoutSessionExerciseSets, readOnly);
+  const lastSet = rows.findLast(({ set }) => set)?.set;
 
   // An added set starts from the Exercise's last one, as the Plan editor's
   // Add Set does: what was logged, or its targets while it isn't.
-  const addedSetValues = lastSet && {
-    reps: lastSet.reps_completed ?? lastSet.reps_recommended ?? 0,
-    weight: lastSet.weight_completed ?? lastSet.weight_recommended ?? 0,
-  };
+  const addedSetValues = lastSet
+    ? {
+        reps: lastSet.reps_completed ?? lastSet.reps_recommended ?? 0,
+        weight: lastSet.weight_completed ?? lastSet.weight_recommended ?? 0,
+      }
+    : undefined;
 
   const handleAddSet = () => {
-    addSet(exerciseId, maxOrder + localSets.length + 1);
-  };
-
-  const handleSetLogged = (set: SavedWorkoutSessionExerciseSet) => {
-    const pendingOrders: number[] = [];
-
-    for (const other of workoutSessionExerciseSets) {
-      if (other.id !== set.id && other.reps_completed === null) {
-        pendingOrders.push(other.order);
-      }
-    }
-
-    for (const local of localSets) {
-      if (local.order !== set.order) {
-        pendingOrders.push(local.order);
-      }
-    }
-
-    onSetLogged?.(
-      set,
-      pendingOrders.length > 0 ? Math.min(...pendingOrders) : null
-    );
-  };
-
-  const handleSetCreated = (localId?: string) => {
-    if (!localId) {
-      return;
-    }
-
-    dropAddedSet(exerciseId, localId);
+    // After the highest `order`, as the API places it once it's logged.
+    addSet(exerciseId, Math.max(0, ...rows.map(({ order }) => order)) + 1);
   };
 
   return (
@@ -129,48 +97,28 @@ const WorkoutSessionExerciseSetsTableView = ({
         <View className={SET_CHECK_COLUMN_CLASS} />
       </View>
 
-      {sortedSets.map((workoutSessionExerciseSet, index, sorted) => {
-        const locked = sorted
-          .slice(0, index)
-          .some((s) => s.reps_completed === null);
+      {rows.map(({ id, number, set }, index) => {
+        const locked = rows.slice(0, index).some(isUnlogged);
 
         return (
           <WorkoutSessionExerciseSetRowView
             exerciseId={exerciseId}
-            key={workoutSessionExerciseSet.id}
+            initialValues={set ? undefined : addedSetValues}
+            key={id}
             locked={locked}
-            onSetLogged={handleSetLogged}
+            number={number}
+            onSetCreated={(created) =>
+              markAddedSetSaved(exerciseId, id, created)
+            }
+            onSetLogged={(logged) =>
+              onSetLogged?.(logged, !!nextUnloggedSet(rows, id))
+            }
             sessionId={sessionId}
             weightLabel={weightLabel}
-            workoutSessionExerciseSet={workoutSessionExerciseSet}
+            workoutSessionExerciseSet={set}
           />
         );
       })}
-
-      {!readOnly &&
-        localSets.map((localSet, index) => {
-          const allExistingDone = workoutSessionExerciseSets.every(
-            (s) => s.reps_completed !== null
-          );
-
-          const locked = !allExistingDone || index > 0;
-
-          return (
-            <WorkoutSessionExerciseSetRowView
-              exerciseId={exerciseId}
-              initialValues={addedSetValues}
-              key={localSet.id}
-              localSetId={localSet.id}
-              locked={locked}
-              onSetCreated={handleSetCreated}
-              onSetLogged={handleSetLogged}
-              order={localSet.order}
-              sessionId={sessionId}
-              weightLabel={weightLabel}
-              workoutSessionExerciseSet={null}
-            />
-          );
-        })}
 
       {!readOnly && (
         <Button

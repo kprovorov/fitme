@@ -25,6 +25,7 @@ import { WorkoutSessionFinishSuggestion } from "~/components/workout-sessions/wo
 import { useExercise, useExerciseDetailQuery } from "~/hooks/queries/library";
 import type { SavedWorkoutSessionExerciseSet } from "~/hooks/queries/workout-session-exercise-sets";
 import { useWorkoutSessionQuery } from "~/hooks/queries/workout-sessions";
+import { nextUnloggedSet, useShownSets } from "~/hooks/shown-sets";
 import { CLIP_SCROLL_EDGE_EFFECTS } from "~/lib/constants";
 
 /** Gap between the end of the content and the floating rest timer. */
@@ -73,6 +74,13 @@ const WorkoutSessionExerciseScreen = () => {
   );
 
   const isFinished = !!workoutSession?.finished_at;
+
+  const shownSets = useShownSets(
+    exerciseId,
+    workoutSessionExercise?.sets,
+    isFinished
+  );
+
   const [rest, setRest] = useState<Rest | null>(null);
   const [restTimerHeight, setRestTimerHeight] = useState(0);
   const exercise = useExercise(workoutSessionExercise?.exercise_slug);
@@ -95,8 +103,8 @@ const WorkoutSessionExerciseScreen = () => {
   }, [exercise.slug, router, workoutSessionExercise]);
 
   const handleSetLogged = useCallback(
-    (set: SavedWorkoutSessionExerciseSet, nextSetOrder: number | null) => {
-      if (isFinished || !set.rest_recommended || nextSetOrder === null) {
+    (set: SavedWorkoutSessionExerciseSet, hasNextSet: boolean) => {
+      if (isFinished || !set.rest_recommended || !hasNextSet) {
         setRest(null);
 
         return;
@@ -105,7 +113,7 @@ const WorkoutSessionExerciseScreen = () => {
       setRest({
         duration: set.rest_recommended,
         endsAt: Date.now() + set.rest_recommended * 1000,
-        nextSetOrder,
+        loggedSetId: set.id,
       });
     },
     [isFinished]
@@ -248,6 +256,9 @@ const WorkoutSessionExerciseScreen = () => {
       {rest ? (
         <RestTimer
           bottomInset={insets.bottom}
+          nextSetNumber={
+            nextUnloggedSet(shownSets, rest.loggedSetId)?.number ?? null
+          }
           onAdjust={adjustRest}
           onEnd={endRest}
           onLayout={handleRestTimerLayout}

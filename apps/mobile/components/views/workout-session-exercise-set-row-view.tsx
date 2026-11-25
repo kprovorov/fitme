@@ -34,12 +34,13 @@ interface WorkoutSessionExerciseSetRowViewProps {
    * it), 0 for each one not given.
    */
   initialValues?: { reps: number; weight: number };
-  localSetId?: string;
   locked?: boolean;
-  onSetCreated?: (localSetId?: string) => void;
+  /** The row's number: its position in the Exercise, never the stored `order`. */
+  number: number;
+  /** Called once logging a set not saved yet has created it. */
+  onSetCreated?: (set: SavedWorkoutSessionExerciseSet) => void;
   /** Called once a set is logged for the first time (not on edits). */
   onSetLogged?: (set: SavedWorkoutSessionExerciseSet) => void;
-  order?: number;
   sessionId: string;
   /** The User's weight unit, for the target cell. */
   weightLabel: string | undefined;
@@ -60,9 +61,8 @@ const WorkoutSessionExerciseSetRowView = ({
   exerciseId,
   initialValues,
   workoutSessionExerciseSet,
-  localSetId,
-  order = 0,
   locked = false,
+  number,
   onSetCreated,
   onSetLogged,
   sessionId,
@@ -133,9 +133,11 @@ const WorkoutSessionExerciseSetRowView = ({
     setIsEditing(false);
     setJustLogged(true);
     trackSetCompleted();
+
     void queryClient.invalidateQueries({
       queryKey: WORKOUT_SESSION_QUERY_KEY,
     });
+
     void queryClient.invalidateQueries({
       queryKey: ["exercise-history"],
     });
@@ -156,11 +158,9 @@ const WorkoutSessionExerciseSetRowView = ({
       onError: (error) => handleSaveError(rateLimitedFor(error)),
       onSuccess: (set) => {
         handleSaved(set, null);
-        onSetCreated?.(localSetId);
+        onSetCreated?.(set);
       },
     });
-
-  const setOrder = isNewSet ? order : workoutSessionExerciseSet.order;
 
   const { weightRecommended, repsRecommended, weightCompleted, repsCompleted } =
     getSetValues(workoutSessionExerciseSet, initialValues);
@@ -219,7 +219,7 @@ const WorkoutSessionExerciseSetRowView = ({
           {showsLogged ? (
             <View className={cn(SET_NUMBER_COLUMN_CLASS, "items-center")}>
               <SymbolImage
-                accessibilityLabel={t("sets.row.logged", { order: setOrder })}
+                accessibilityLabel={t("sets.row.logged", { order: number })}
                 className="text-body-emphasized text-primary"
                 name="checkmark"
               />
@@ -233,7 +233,7 @@ const WorkoutSessionExerciseSetRowView = ({
               maxFontSizeMultiplier={SET_TABLE_MAX_FONT_SCALE}
               numberOfLines={1}
             >
-              #{setOrder}
+              #{number}
             </Text>
           )}
           <Text
@@ -255,7 +255,7 @@ const WorkoutSessionExerciseSetRowView = ({
         reps: (repsCompleted ?? repsRecommended).toString(),
         weight: formatSetWeight(weightCompleted ?? weightRecommended, i18n),
       }}
-      setIndex={setOrder}
+      setIndex={number}
     />
   );
 };

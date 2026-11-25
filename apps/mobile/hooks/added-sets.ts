@@ -1,13 +1,17 @@
 import { useCallback, useSyncExternalStore } from "react";
 
+import type { SavedWorkoutSessionExerciseSet } from "~/hooks/queries/workout-session-exercise-sets";
+
 /**
- * A set added with Add Set in an open Workout Session and not logged yet.
+ * A set added with Add Set in an open Workout Session and not read back yet.
  * The Public API has no route creating an unlogged set, so it lives on the
- * phone until the User logs it, which creates it.
+ * phone until the User logs it, which creates it, and a read has it.
  */
 export interface AddedSet {
   id: string;
   order: number;
+  /** The set logging it created, until the Workout Session's read has it. */
+  saved?: SavedWorkoutSessionExerciseSet;
 }
 
 const NO_ADDED_SETS: readonly AddedSet[] = [];
@@ -55,15 +59,31 @@ export const addSet = (exerciseId: string, order: number): void => {
   ]);
 };
 
-/** Drops an added set, once logging it has created it. */
-export const dropAddedSet = (exerciseId: string, id: string): void => {
+/** Keeps the set logging an added one created, to show it until it's read. */
+export const markAddedSetSaved = (
+  exerciseId: string,
+  id: string,
+  saved: SavedWorkoutSessionExerciseSet
+): void => {
+  setAddedSetsOf(
+    exerciseId,
+    addedSetsOf(exerciseId).map((set) =>
+      set.id === id ? { ...set, saved } : set
+    )
+  );
+};
+
+/** Drops the added sets logging has created, once a read has them. */
+export const dropReadAddedSets = (
+  exerciseId: string,
+  readIds: ReadonlySet<string>
+): void => {
   const sets = addedSetsOf(exerciseId);
 
-  if (sets.some((set) => set.id === id)) {
-    setAddedSetsOf(
-      exerciseId,
-      sets.filter((set) => set.id !== id)
-    );
+  const left = sets.filter(({ saved }) => !saved || !readIds.has(saved.id));
+
+  if (left.length < sets.length) {
+    setAddedSetsOf(exerciseId, left);
   }
 };
 
@@ -86,7 +106,7 @@ export const clearAddedSets = (): void => {
   emit();
 };
 
-/** The Workout Session Exercise's unlogged added sets, oldest first. */
+/** The Workout Session Exercise's added sets no read has yet, oldest first. */
 export const useAddedSets = (exerciseId: string): readonly AddedSet[] => {
   const getSnapshot = useCallback(() => addedSetsOf(exerciseId), [exerciseId]);
 
