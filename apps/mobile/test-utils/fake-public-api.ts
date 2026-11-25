@@ -263,24 +263,30 @@ const nestedPlan = ({
   workout_duration,
   workouts: workouts.map((workout, workoutIndex) => ({
     cover: workout.cover ?? null,
-    exercises: workout.exercises.map((exercise, exerciseIndex) => {
-      const exerciseId = exercise.id ?? `${workout.id}-e${exerciseIndex + 1}`;
+    exercises: workout.exercises
+      .map((exercise, exerciseIndex) => {
+        const exerciseId = exercise.id ?? `${workout.id}-e${exerciseIndex + 1}`;
 
-      return {
-        exercise_slug: exercise.slug,
-        id: exerciseId,
-        order: exercise.order ?? exerciseIndex + 1,
-        sets: (Array.isArray(exercise.sets)
-          ? exercise.sets
-          : Array.from({ length: exercise.sets }, () => DEFAULT_PLAN_SET)
-        ).map((set: SeedPlanSet, setIndex) => ({
-          ...set,
-          id: set.id ?? `${workout.id}-e${exerciseIndex + 1}-s${setIndex + 1}`,
-          order: set.order ?? setIndex + 1,
-        })),
-        workout_id: workout.id,
-      };
-    }),
+        return {
+          exercise_slug: exercise.slug,
+          id: exerciseId,
+          order: exercise.order ?? exerciseIndex + 1,
+          sets: (Array.isArray(exercise.sets)
+            ? exercise.sets
+            : Array.from({ length: exercise.sets }, () => DEFAULT_PLAN_SET)
+          )
+            .map((set: SeedPlanSet, setIndex) => ({
+              ...set,
+              id:
+                set.id ??
+                `${workout.id}-e${exerciseIndex + 1}-s${setIndex + 1}`,
+              order: set.order ?? setIndex + 1,
+            }))
+            .toSorted((a, b) => a.order - b.order),
+          workout_id: workout.id,
+        };
+      })
+      .toSorted((a, b) => a.order - b.order),
     id: workout.id,
     name: workout.name,
     order: workout.order ?? workoutIndex + 1,

@@ -656,7 +656,7 @@ describe("the fake's Plan Update", () => {
     expect(answers.map((answer) => answer.changes)).toStrictEqual(
       answers.map(() => [])
     );
-    expect(rows.map((after) => after)).toStrictEqual(rows.map(() => before));
+    expect(rows).toStrictEqual(rows.map(() => before));
   });
 
   it("offers the sets added after switching back to the original Exercise", async () => {
@@ -958,6 +958,40 @@ describe("the fake's Plan Update", () => {
       planSet(1, 8, 50.5, 90),
       planSet(2, 6, 60, 120),
     ]);
+  });
+
+  it("reads a Plan seeded out of order by its orders", async () => {
+    const { answers, rows } = await run(
+      squatSession({
+        planSets: squatSets
+          .map((set, index) => ({ ...set, order: index + 1 }))
+          .toReversed(),
+        sets: [copied(3)],
+      }),
+      optIn
+    );
+
+    expect(answers[0].set_removals).toStrictEqual([
+      {
+        exercise_slug: "test-squat",
+        sets: [
+          { reps: 10, weight: 40 },
+          { reps: 8, weight: 50.5 },
+        ],
+      },
+    ]);
+    expect(rows[1][0].sets).toStrictEqual([planSet(1, 6, 60, 120)]);
+  });
+
+  it("writes once when two applies run at once", async () => {
+    await seed(main);
+
+    const answers = await Promise.all([planUpdate(true), planUpdate(true)]);
+
+    expect(
+      answers.map((answer) => answer.changes.length).toSorted((a, b) => a - b)
+    ).toStrictEqual([0, 5]);
+    expect(rowsOf()).toStrictEqual(mainAppliedRows);
   });
 
   it("removes a set the User removed through the API", async () => {
