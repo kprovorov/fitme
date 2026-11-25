@@ -537,7 +537,7 @@ describe("get_open_workout_session", () => {
 
   const none = { error: "No workout session is open" };
 
-  it("reads the open session in full as the session's User, Exercises named from the library", async () => {
+  it("reads the open Workout Session in full as the Conversation's owner, Exercises named from the library", async () => {
     await expect(
       getOpenWorkoutSession.execute({}, alice)
     ).resolves.toStrictEqual({
@@ -593,7 +593,7 @@ describe("get_open_workout_session", () => {
     expect(answer.exercises[0].name).toBe("Присідання зі штангою");
   });
 
-  it("answers a session whose Workout is gone", async () => {
+  it("answers a Workout Session whose Workout is gone", async () => {
     sessions.getWorkoutSession.mockResolvedValue({
       ...openSession,
       plan: null,
@@ -625,7 +625,7 @@ describe("get_open_workout_session", () => {
     });
   });
 
-  it("tells the model when no session is open", async () => {
+  it("tells the model when no Workout Session is open", async () => {
     sessions.listWorkoutSessions.mockResolvedValue({ sessions: [], total: 0 });
 
     await expect(
