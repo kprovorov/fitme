@@ -68,7 +68,8 @@ const toNumber = (value: string | null) =>
 
 /**
  * Awards the Personal records Workout Session `sessionId` of `userId` earned,
- * in `tx` (from `asUser`, after finish has claimed it, or during historical
+ * in `tx` (from `asUser`, or `withService` for a Forgotten Workout Session,
+ * after finish has claimed it, or during historical
  * initialization): per Exercise, its best usable set against the best usable
  * result of that Exercise in the User's other finished Workout Sessions,
  * restricted to earlier finish order for chronological replay, whatever the

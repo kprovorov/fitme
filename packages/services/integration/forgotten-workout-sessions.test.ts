@@ -23,13 +23,17 @@ import { getLifetimeTotals } from "../src/lifetime-totals";
 import { updateProfile } from "../src/profile";
 import { listWeeklyGoalChanges } from "../src/weekly-goals";
 import {
+  deleteWorkoutSession,
   finishForgottenWorkoutSession,
   finishWorkoutSession,
   listWorkoutSessions,
   logSet,
   removeSetFromWorkoutSession,
 } from "../src/workout-sessions";
-import type { LogSetResult } from "../src/workout-sessions";
+import type {
+  FinishWorkoutSessionResult,
+  LogSetResult,
+} from "../src/workout-sessions";
 import { deleteTestUsers, withUserTablesLocked } from "./delete-test-users";
 
 /**
@@ -54,7 +58,7 @@ const STARTED_AT = "2026-11-10T10:00:00Z";
 const LAST_LOGGED_AT = "2026-11-10T10:41:12.345678+00:00";
 const LEFT_ALONE = { status: "left_alone" };
 
-/** A logged set; unlogged when `loggedAt` is `null`. */
+/** A set to seed; unlogged when `loggedAt` is `null`. */
 interface SeedSet {
   loggedAt: string | null | ReturnType<typeof sql>;
   reps?: number | null;
@@ -396,6 +400,13 @@ describe("finishing a Forgotten Workout Session", () => {
       );
       await expect(finishedAtOf(sessionId)).resolves.toBe(finishedAt);
       await expect(workoutOrders(planId)).resolves.toStrictEqual(["W1", "W2"]);
+      const deleted = await seedSession({ userId: newUser() });
+      await withService(
+        async (tx) => await deleteWorkoutSession(tx, deleted.sessionId)
+      );
+      await expect(finishForgotten(deleted.sessionId)).resolves.toStrictEqual(
+        LEFT_ALONE
+      );
       await expect(finishForgotten(randomUUID())).resolves.toStrictEqual(
         LEFT_ALONE
       );
@@ -549,6 +560,23 @@ describe("finishing a Forgotten Workout Session", () => {
       await expect(workoutOrders(planId)).resolves.toStrictEqual(["W2", "W1"]);
     });
 
+    it("leaves one a manual finish is claiming alone", async () => {
+      const { planId, workoutId } = await seedPlan();
+      const { sessionId } = await seedSession({ planId, workoutId });
+
+      const [manual, result] = await overlap(
+        async (fn: (tx: Transaction) => Promise<FinishWorkoutSessionResult>) =>
+          await asUser(owner, fn),
+        async (tx) => await finishWorkoutSession(tx, sessionId),
+        async () => await finishForgotten(sessionId)
+      );
+
+      expect(manual).toMatchObject({ alreadyFinished: false, rotated: true });
+      expect(result).toStrictEqual(LEFT_ALONE);
+      await expect(finishedAtOf(sessionId)).resolves.not.toBe(LAST_LOGGED_AT);
+      await expect(workoutOrders(planId)).resolves.toStrictEqual(["W2", "W1"]);
+    });
+
     it("queues behind an account deletion and writes nothing back", async () => {
       const { planId, workoutId } = await seedPlan();
       await seedProfile();
@@ -558,6 +586,8 @@ describe("finishing a Forgotten Workout Session", () => {
       // deleteUserData's locks first, its deletes once the finish waits
       const finishing = withUserTablesLocked(async (tx) => {
         const waiting = finishForgotten(sessionId);
+        // Awaited below; a failed deletion must not leave its rejection unhandled
+        waiting.catch(() => null);
         await Promise.race([waiting, delay(250)]);
         await deleteUserData(tx, owner);
 

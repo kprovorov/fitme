@@ -1182,7 +1182,7 @@ const claimNow: ClaimSession = async (tx, userId, sessionId) => {
 };
 
 /** With no set logged for this long, an open Workout Session is forgotten (ADR 0024). */
-export const FORGOTTEN_AFTER_HOURS = 3;
+const FORGOTTEN_AFTER_HOURS = 3;
 
 /** When the Workout Session's last set was logged; NULL when none is. */
 const lastLoggedAt = (sessionId: string) => sql`(

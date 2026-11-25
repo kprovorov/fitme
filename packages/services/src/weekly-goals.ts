@@ -47,7 +47,8 @@ const latestTarget = (userId: string) => sql`(
 )`;
 
 /**
- * Records the User's Weekly goal as it is now, in `tx` (from `asUser`), when
+ * Records the User's Weekly goal as it is now, in `tx` (from `asUser`, or
+ * `withService` for a Forgotten Workout Session's finish), when
  * it differs from the last one recorded: every write that can change the
  * active Plan or its frequency calls it last, in its own transaction, so
  * the log follows them whoever the caller is (the Public API, MCP, Arnold).
