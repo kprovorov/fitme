@@ -1,6 +1,6 @@
 /**
- * Discarding an open Workout Session from its screen's menu (FIT-783): the
- * question, the re-read and the DELETE, what closes after it, and every way
+ * Discarding an open Workout Session from its screen's menu (FIT-783) and from
+ * the Finish alert with nothing logged (FIT-784): the question, the re-read and the DELETE, what closes after it, and every way
  * it can fail. Mounts the real screens on the real expo-router over the fake
  * Public API; the SwiftUI-backed primitives are swapped for plain stand-ins
  * and the native header for its items as buttons.
@@ -681,6 +681,172 @@ describe("a failure", () => {
   });
 });
 
+const pressFinish = () =>
+  fireEvent.press(screen.getByTestId("finish-workout-button"));
+
+const logNothing = () => {
+  Object.assign(backend.sets[0], { logged_at: null, reps_completed: null });
+};
+
+const NOTHING_LOGGED = ["Finish workout?", "Nothing has been logged yet."];
+
+describe("the Finish alert", () => {
+  it("offers Discard with no set logged, without a second question", async () => {
+    logNothing();
+    await openSession();
+    await pressFinish();
+
+    expect(alerts()).toEqual([NOTHING_LOGGED]);
+    expect(lastButtons().map(({ style, text }) => ({ style, text }))).toEqual([
+      { style: "cancel", text: "Cancel" },
+      { style: "destructive", text: "Discard" },
+      { style: undefined, text: "Finish" },
+    ]);
+
+    const sent = fakePublicApi.requests.length;
+    await answer("Discard");
+    await settle(queryClient);
+
+    expect(requestsSince(sent).slice(0, 2)).toEqual([READ, DELETE]);
+    expect(backend.session("s1")).toBeUndefined();
+    expect(pathname).toBe(WORKOUT);
+    expect(alerts()).toHaveLength(1);
+    expect(mockTrack.mock.calls).toEqual([
+      ["Workout Discarded", { logged_set_count: 0, source: "finish_alert" }],
+    ]);
+  });
+
+  it("offers Discard when every Exercise has been removed", async () => {
+    Object.assign(backend, { exercises: [], sets: [] });
+    await openSession();
+    await pressFinish();
+
+    expect(alerts()).toEqual([NOTHING_LOGGED]);
+    await answer("Discard");
+    await settle(queryClient);
+    expect(backend.session("s1")).toBeUndefined();
+  });
+
+  it("finishes anyway on Finish", async () => {
+    logNothing();
+    await openSession();
+    await pressFinish();
+    await answer("Finish");
+    await settle(queryClient);
+
+    expect(fakePublicApi.count(FINISH)).toBe(1);
+    expect(fakePublicApi.count(DELETE)).toBe(0);
+    expect(backend.session("s1")?.finished_at).not.toBeNull();
+    expect(pathname).toBe(`${BARE_SESSION}/summary`);
+    expect(mockTrack).not.toHaveBeenCalled();
+  });
+
+  it("changes nothing when cancelled or dismissed, and asks again after", async () => {
+    logNothing();
+    await openSession();
+    const sent = fakePublicApi.requests.length;
+    await pressFinish();
+    await answer("Cancel");
+    await pressFinish();
+    jest.mocked(Alert.alert).mock.lastCall?.[3]?.onDismiss?.();
+    await settle(queryClient);
+
+    expect(alerts()).toEqual([NOTHING_LOGGED, NOTHING_LOGGED]);
+    expect(requestsSince(sent)).toEqual([]);
+    expect(isSessionShown()).toBe(true);
+  });
+
+  it.each([0, 8])(
+    "has no Discard once a set is logged with %i reps",
+    async (reps) => {
+      setLogged("s1-e1-s1", reps);
+      await openSession();
+      await pressFinish();
+
+      expect(alerts()).toEqual([
+        ["Finish workout?", "1 planned set isn't logged."],
+      ]);
+      expect(lastButtons().map(({ text }) => text)).toEqual([
+        "Cancel",
+        "Finish",
+      ]);
+    }
+  );
+
+  it("is asked once, and never with the menu's question", async () => {
+    logNothing();
+    await openSession();
+    await pressFinish();
+    await pressFinish();
+    await ask();
+    expect(alerts()).toEqual([NOTHING_LOGGED]);
+
+    await answer("Cancel");
+    await ask();
+    await pressFinish();
+    expect(alerts()).toEqual([
+      NOTHING_LOGGED,
+      ["Discard workout?", "Nothing has been logged yet."],
+    ]);
+  });
+
+  it("discards once, and nothing else runs meanwhile", async () => {
+    logNothing();
+    await openSession();
+    await pressFinish();
+    const buttons = lastButtons();
+    const resume = fakePublicApi.pause(DELETE);
+    await answer("Discard");
+    await until(() => fakePublicApi.count(DELETE) === 1);
+    await act(async () => {
+      for (const button of buttons) {
+        button.onPress?.();
+      }
+
+      await Promise.resolve();
+    });
+    await ask();
+    resume();
+    await settle(queryClient);
+
+    expect(alerts()).toEqual([NOTHING_LOGGED]);
+    expect(fakePublicApi.count(DELETE)).toBe(1);
+    expect(fakePublicApi.count(FINISH)).toBe(0);
+  });
+
+  it("keeps the session when the discard fails, then tries again", async () => {
+    logNothing();
+    await openSession();
+    await pressFinish();
+    fakePublicApi.failNext(DELETE, { status: 500 });
+    await answer("Discard");
+    await settle(queryClient);
+
+    expect(alerts().at(-1)).toEqual(FAILED);
+    expect(isSessionShown()).toBe(true);
+    expect(mockTrack).not.toHaveBeenCalled();
+
+    await pressFinish();
+    await answer("Discard");
+    await settle(queryClient);
+    expect(backend.session("s1")).toBeUndefined();
+    expect(mockTrack).toHaveBeenCalledTimes(1);
+  });
+
+  it("deletes nothing finished elsewhere", async () => {
+    logNothing();
+    await openSession();
+    await pressFinish();
+    finishElsewhere();
+    await answer("Discard");
+    await settle(queryClient);
+
+    expect(alerts().at(-1)).toEqual(["Workout already finished"]);
+    expect(fakePublicApi.count(DELETE)).toBe(0);
+    expect(mockTrack).not.toHaveBeenCalled();
+  });
+});
+
 describe("one at a time", () => {
   it("Finish and another discard do nothing while a discard is pending", async () => {
     await openSession();
@@ -731,6 +897,18 @@ describe.each([null, "user_other"])("after signing in as %s", (userId) => {
   it("sends nothing when the question is answered", async () => {
     await openSession();
     await ask();
+    const sent = fakePublicApi.requests.length;
+    signInAs(userId);
+    await answer("Discard");
+    await settle(queryClient);
+
+    expect(requestsSince(sent)).toEqual([]);
+  });
+
+  it("sends nothing when the Finish alert's Discard is answered", async () => {
+    logNothing();
+    await openSession();
+    await pressFinish();
     const sent = fakePublicApi.requests.length;
     signInAs(userId);
     await answer("Discard");
@@ -803,6 +981,24 @@ describe("in Ukrainian", () => {
     ]);
 
     await fireEvent.press(screen.getByLabelText("Відкинути тренування"));
+    await answer("Відкинути");
+    await settle(queryClient);
+    expect(backend.session("s1")).toBeUndefined();
+  });
+
+  it("offers Discard in the Finish alert with nothing logged", async () => {
+    logNothing();
+    await openSession();
+    await pressFinish();
+
+    expect(alerts()).toEqual([
+      ["Завершити тренування?", "Ще нічого не записано."],
+    ]);
+    expect(lastButtons().map(({ text }) => text)).toEqual([
+      "Скасувати",
+      "Відкинути",
+      "Завершити",
+    ]);
     await answer("Відкинути");
     await settle(queryClient);
     expect(backend.session("s1")).toBeUndefined();

@@ -51,7 +51,8 @@ const WorkoutSessionScreen = ({ sessionId }: WorkoutSessionScreenProps) => {
 
   const { confirmFinish, isFinishing } = useFinishWorkoutSession(sessionId);
 
-  const { confirmDiscard, isDiscarding } = useDiscardWorkoutSession(sessionId);
+  const { confirmDiscard, discard, isDiscarding } =
+    useDiscardWorkoutSession(sessionId);
 
   const retry = useCallback(() => {
     void refetch();
@@ -81,7 +82,7 @@ const WorkoutSessionScreen = ({ sessionId }: WorkoutSessionScreenProps) => {
                     fill={false}
                     isLoading={isFinishing}
                     label={t("workoutSession.finish")}
-                    onPress={confirmFinish}
+                    onPress={() => confirmFinish(discard)}
                     size="lg"
                     testID="finish-workout-button"
                   />

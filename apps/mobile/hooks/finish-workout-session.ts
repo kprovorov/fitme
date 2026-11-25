@@ -1,13 +1,15 @@
 import { rateLimitedFor } from "@fitme/api-client";
-import { countUnloggedSets } from "@fitme/core";
+import { countLoggedSets, countUnloggedSets } from "@fitme/core";
 import * as Sentry from "@sentry/react-native";
 import { useIsMutating, useQueryClient } from "@tanstack/react-query";
 import type { QueryClient } from "@tanstack/react-query";
 import { useNavigation, useRouter } from "expo-router";
 import { useCallback, useMemo } from "react";
 import { Alert } from "react-native";
+import type { AlertButton } from "react-native";
 
 import {
+  claimEndingQuestion,
   isSessionRoute,
   readsChangedByFinish,
 } from "~/hooks/ending-workout-session";
@@ -20,12 +22,15 @@ import {
   useFinishWorkoutSessionMutation,
   useWorkoutSessionQuery,
 } from "~/hooks/queries/workout-sessions";
-import type { WorkoutSession } from "~/hooks/queries/workout-sessions";
+import type {
+  DiscardSource,
+  WorkoutSession,
+} from "~/hooks/queries/workout-sessions";
 import { i18n } from "~/lib/i18n";
 import { countPlanChanges, planUpdateProperties } from "~/lib/plan-changes";
 import type { PlanUpdate } from "~/lib/plan-changes";
 import { segmentClient } from "~/lib/segment";
-import { isStillWriteStarter } from "~/lib/write-answers";
+import { isStillWriteStarter, rememberWriteStarter } from "~/lib/write-answers";
 
 interface NavigationState {
   index: number;
@@ -73,92 +78,94 @@ const planUpdateQuestion = async (
   return preview;
 };
 
-/** Sessions whose "Finish workout?" question is open, so it's never asked twice. */
-const confirmingSessions = new Set<string>();
-
 /**
- * Calls `onConfirm` when every planned set is logged, otherwise only once the
- * user confirms. Reads the session from the cache, fetching it when it isn't
+ * Calls `onFinish` when every planned set is logged, otherwise only once the
+ * user confirms. With no set logged at all (none planned included) the
+ * question offers `onDiscard` too, so an empty session isn't saved by
+ * accident. Reads the session from the cache, fetching it when it isn't
  * there; if that fetch fails it alerts and skips finishing, never treating an
  * unreadable session as fully logged.
- * Does nothing while the question is already open for the session (a
- * repeated tap).
+ * Asks nothing while a question about ending the session is already open (a
+ * repeated tap, or the menu's "Discard workout?").
  */
 const confirmFinishWorkout = async (
   queryClient: QueryClient,
   sessionId: string,
-  onConfirm: () => void
+  { onDiscard, onFinish }: { onDiscard: () => void; onFinish: () => void }
 ): Promise<void> => {
-  if (confirmingSessions.has(sessionId)) {
+  // Who is asked: another User may be signed in once it's answered.
+  const asked = rememberWriteStarter(queryClient, []);
+  let session: WorkoutSession;
+
+  try {
+    // oxlint-disable-next-line typescript/no-deprecated -- This cache-only fallback must keep ensureQueryData semantics on Query v5.
+    session = await queryClient.ensureQueryData(
+      useWorkoutSessionQuery.getFetchOptions({ sessionId })
+    );
+  } catch (error) {
+    Sentry.captureException(error);
+    alertFinishFailed();
+
     return;
   }
 
-  confirmingSessions.add(sessionId);
-  let awaitingConfirmation = false;
+  const nothingLogged = countLoggedSets(session) === 0;
+  const unloggedSets = countUnloggedSets(session);
 
-  try {
-    let session: WorkoutSession;
+  if (unloggedSets === 0 && !nothingLogged) {
+    onFinish();
 
-    try {
-      // oxlint-disable-next-line typescript/no-deprecated -- This cache-only fallback must keep ensureQueryData semantics on Query v5.
-      session = await queryClient.ensureQueryData(
-        useWorkoutSessionQuery.getFetchOptions({ sessionId })
-      );
-    } catch (error) {
-      Sentry.captureException(error);
-      alertFinishFailed();
-
-      return;
-    }
-
-    const unloggedSets = countUnloggedSets(session);
-
-    if (unloggedSets === 0) {
-      confirmingSessions.delete(sessionId);
-      onConfirm();
-
-      return;
-    }
-
-    let answered = false;
-
-    const answer = (confirmed: boolean) => {
-      if (answered) {
-        return;
-      }
-
-      answered = true;
-      confirmingSessions.delete(sessionId);
-
-      if (confirmed) {
-        onConfirm();
-      }
-    };
-
-    Alert.alert(
-      i18n.t("finishWorkout.confirm.title"),
-      i18n.t("finishWorkout.confirm.unloggedSets", { count: unloggedSets }),
-      [
-        {
-          onPress: () => answer(false),
-          style: "cancel",
-          text: i18n.t("finishWorkout.confirm.cancel"),
-        },
-        {
-          onPress: () => answer(true),
-          text: i18n.t("finishWorkout.confirm.finish"),
-        },
-      ],
-      { cancelable: true, onDismiss: () => answer(false) }
-    );
-    awaitingConfirmation = true;
-  } catch (error) {
-    Sentry.captureException(error);
-  } finally {
-    if (!awaitingConfirmation) {
-      confirmingSessions.delete(sessionId);
-    }
+    return;
   }
+
+  const release = claimEndingQuestion(queryClient, sessionId);
+
+  if (!release) {
+    return;
+  }
+
+  let answered = false;
+
+  const answer = (onAnswer?: () => void) => {
+    if (answered) {
+      return;
+    }
+
+    answered = true;
+    release();
+    onAnswer?.();
+  };
+
+  const discardButton: AlertButton = {
+    onPress: () =>
+      answer(() => {
+        if (isStillWriteStarter(asked)) {
+          onDiscard();
+        }
+      }),
+    style: "destructive",
+    text: i18n.t("discardWorkout.confirm.discard"),
+  };
+
+  Alert.alert(
+    i18n.t("finishWorkout.confirm.title"),
+    nothingLogged
+      ? i18n.t("discardWorkout.confirm.nothingLogged")
+      : i18n.t("finishWorkout.confirm.unloggedSets", { count: unloggedSets }),
+    [
+      {
+        onPress: () => answer(),
+        style: "cancel",
+        text: i18n.t("finishWorkout.confirm.cancel"),
+      },
+      ...(nothingLogged ? [discardButton] : []),
+      {
+        onPress: () => answer(onFinish),
+        text: i18n.t("finishWorkout.confirm.finish"),
+      },
+    ],
+    { cancelable: true, onDismiss: () => answer() }
+  );
 };
 
 /**
@@ -182,9 +189,10 @@ const confirmFinishWorkout = async (
  * from the session screen.
  *
  * `confirmFinish` is for the header's Finish button: it
- * asks first when some planned sets aren't logged (see
- * `confirmFinishWorkout`). `finish` never asks, for the finish suggestion,
- * which only opens once every set is logged.
+ * asks first when some planned sets aren't logged, and when no set is logged
+ * at all, where it offers the given `discard` (`useDiscardWorkoutSession`'s,
+ * which never asks again) too (see `confirmFinishWorkout`). `finish` never
+ * asks, for the finish suggestion, which only opens once every set is logged.
  */
 export const useFinishWorkoutSession = (
   sessionId: string,
@@ -292,13 +300,19 @@ export const useFinishWorkoutSession = (
     mutate({ sessionId });
   }, [filters, mutate, queryClient, sessionId]);
 
-  const confirmFinish = useCallback(() => {
-    if (queryClient.isMutating(discardingFilters(sessionId)) > 0) {
-      return;
-    }
+  const confirmFinish = useCallback(
+    (discard: (source: DiscardSource) => void) => {
+      if (queryClient.isMutating(discardingFilters(sessionId)) > 0) {
+        return;
+      }
 
-    void confirmFinishWorkout(queryClient, sessionId, finish);
-  }, [finish, queryClient, sessionId]);
+      void confirmFinishWorkout(queryClient, sessionId, {
+        onDiscard: () => discard("finish_alert"),
+        onFinish: finish,
+      });
+    },
+    [finish, queryClient, sessionId]
+  );
 
   return { confirmFinish, finish, isFinishing };
 };
