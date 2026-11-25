@@ -1,6 +1,6 @@
 # @fitme/jobs
 
-Every scheduled job (ADR 0024): one private function per job, called by [Vercel Schedules](https://vercel.com/docs/schedules). No HTTP surface, no domain, no secret. Reaches Postgres only through `withService` from `@fitme/db`; business logic is in `@fitme/services`.
+Every scheduled job (ADR 0024): one private function per job, called by [Vercel Schedules](https://vercel.com/docs/schedules). No HTTP surface, no domain, no cron secret. Reaches Postgres only through `withService` from `@fitme/db`; a job's logic goes in `@fitme/services`.
 
 ```bash
 pnpm jobs job:forgotten-workout-sessions # one run against the checkout's own stack, then exits

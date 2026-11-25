@@ -1,8 +1,12 @@
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { forgottenWorkoutSessions } from "../jobs/forgotten-workout-sessions";
 
 describe("the forgotten-workout-sessions job", () => {
+  afterEach(() => {
+    vi.unstubAllEnvs();
+  });
+
   it("reaches Postgres, then logs that it ran", async () => {
     const calls: string[] = [];
 
@@ -38,7 +42,5 @@ describe("the forgotten-workout-sessions job", () => {
     await expect(forgottenWorkoutSessions()()).rejects.toThrow(
       "FITME_DATABASE_URL is not set"
     );
-
-    vi.unstubAllEnvs();
   });
 });

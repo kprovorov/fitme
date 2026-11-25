@@ -281,14 +281,14 @@ The Public API (ADR 0011): Hono app built on `@hono/zod-openapi` (zod 4), like `
 
 ### apps/jobs — scheduled jobs
 
-The home of every scheduled job (ADR 0024): one private function per job on Vercel Schedules (beta), with no Hono, route, domain or secret. It reaches Postgres only through `withService` from `@fitme/db`; a job's logic goes in `@fitme/services`. It has no `dev` script, so `pnpm dev` starts nothing of it. So far one job, `forgotten-workout-sessions`, every 10 minutes, which does nothing yet but run `select 1` through `withService` and log `forgotten-workout-sessions ran`.
+The home of every scheduled job (ADR 0024): one private function per job on Vercel Schedules (beta), with no Hono, route, domain or cron secret. It reaches Postgres only through `withService` from `@fitme/db`; a job's logic goes in `@fitme/services`. It has no `dev` script, so `pnpm dev` starts nothing of it. So far one job, `forgotten-workout-sessions`, every 10 minutes, which does nothing yet but run `select 1` through `withService` and log `forgotten-workout-sessions ran`.
 
 - `vercel.json` — `framework` `null`, the build command, region `cle1`, the function's only trigger (`schedule/v1beta`, which makes it private: never add a route, a rewrite or another trigger) and the static schedule, whose `function` is the build output path (`api/forgotten-workout-sessions`). Never rename a schedule: that resets its state and history. The off switch is disabling it in Vercel, which survives deployments.
 - `api/forgotten-workout-sessions.js` — what Vercel builds into the function: a committed re-export of `dist/forgotten-workout-sessions.js`, since Vercel looks for functions before the build command runs and can't compile the source-only workspace packages itself. `public/` (an empty `.gitkeep`) is the output directory, so no file of the app is served (Vercel fails the build on an empty one).
 - `src/forgotten-workout-sessions.ts` — the entry: `initObservability({ service: "jobs" })`, `reportMissingEnv` with `src/required-env.ts`' list (`FITME_DATABASE_URL`), then dynamic `import()`s, so `pg` loads after observability (see `packages/observability`); exports `POST`.
 - `src/create-handler.ts` — `createHandler(job, { reportError })`: `handleSchedule` from `@vercel/schedules` (a request that isn't a schedule's call answers 400 and runs nothing); a failing job is reported, then thrown on sanitized (`sanitizeError`: Vercel logs it), so the run fails in the execution history. Runs aren't retried, can overlap and can be delivered twice, so a job must be idempotent.
 - `src/jobs/forgotten-workout-sessions.ts` — `forgottenWorkoutSessions({ log, pingDatabase })` (no argument = the real dependencies); `src/run-forgotten-workout-sessions.ts` runs it once by hand, a failure exiting 1.
-- `tsdown.config.ts` — source maps uploaded for the release `VERCEL_GIT_COMMIT_SHA` with `SENTRY_AUTH_TOKEN` and skipped without it, as in `apps/webhooks`. Tests (`src/__tests__/`, vitest) inject every dependency.
+- `tsdown.config.ts` — source maps uploaded for the release `VERCEL_GIT_COMMIT_SHA` with `SENTRY_AUTH_TOKEN` and skipped without it, as in `apps/webhooks`. Tests (`src/__tests__/`, vitest) inject the dependencies and reach no database.
 - Deployed to Vercel as `fitme-jobs` (root directory `apps/jobs`), reporting to the `fitme-jobs` Sentry project. `FITME_DATABASE_URL` carries `application_name=jobs`. Checking what a build outputs: `apps/jobs/README.md`.
 
 ### apps/webhooks — webhooks app
@@ -640,7 +640,7 @@ Every value comes from Infisical (project Fitme, one folder per app, `dev` for l
 `apps/jobs` (see `apps/jobs/.env.example`; read from the process environment; nothing of it is in Infisical, and its local `.env` holds only the database URL):
 
 - `FITME_DATABASE_URL` — see below, with `?application_name=jobs`; set directly in the `fitme-jobs` Vercel project's Production, never in Infisical (a deliberate exception, `docs/agents/secrets.md`). Unset → every run fails (reported, and at startup on production)
-- `SENTRY_DSN` — the `fitme-jobs` Sentry project: failed runs and traces; unset (local, tests, CI) sends nothing
+- `SENTRY_DSN` — the `fitme-jobs` Sentry project: failed runs and unhandled errors; unset (local, tests, CI) sends nothing
 - `SENTRY_AUTH_TOKEN`, `SENTRY_ORG`, `SENTRY_PROJECT` — build time: source map upload for the release; set on Vercel by the Sentry integration; no token → the upload is skipped
 - `VERCEL_ENV`, `VERCEL_GIT_COMMIT_SHA` — set by Vercel: each event's `environment` and `release`
 
