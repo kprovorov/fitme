@@ -19,7 +19,9 @@
  * logging a set of a Workout Session, an Exercise's history
  * (`GET /v1/workout-session-exercises`), adding,
  * removing (`DELETE /v1/workout-session-exercises/{id}`) and replacing
- * (`PUT /v1/workout-session-exercises/{id}`) an Exercise of one, and the
+ * (`PUT /v1/workout-session-exercises/{id}`) an Exercise of one, adding and
+ * removing (`DELETE /v1/workout-session-sets/{id}`) a set of one, its Plan
+ * Update (`GET` and `POST /v1/workout-sessions/{id}/plan-update`), and the
  * public `GET /v1/arnold/models` (answered whatever the bearer, like the
  * API's), and the new Library's Exercises (`GET /v1/exercises` and
  * `GET /v1/exercises/{slug}`, over what `serveExercises` in
@@ -147,6 +149,8 @@ export interface SeedExercise {
 export interface SeedPlanSet {
   /** Its id; `<workout>-e<n>-s<n>` from its position unless given. */
   id?: string;
+  /** Its place in the Exercise; its position (from 1) unless given. */
+  order?: number;
   reps_recommended: number;
   rest_recommended: number;
   weight_recommended: number;
@@ -187,6 +191,8 @@ export interface SeedPlan {
     exercises: {
       /** Its id; `<workout>-e<n>` from its position unless given. */
       id?: string;
+      /** Its place in the Workout; its position (from 1) unless given. */
+      order?: number;
       sets: number | SeedPlanSet[];
       slug: string;
     }[];
@@ -263,14 +269,14 @@ const nestedPlan = ({
       return {
         exercise_slug: exercise.slug,
         id: exerciseId,
-        order: exerciseIndex + 1,
+        order: exercise.order ?? exerciseIndex + 1,
         sets: (Array.isArray(exercise.sets)
           ? exercise.sets
           : Array.from({ length: exercise.sets }, () => DEFAULT_PLAN_SET)
         ).map((set: SeedPlanSet, setIndex) => ({
           ...set,
           id: set.id ?? `${workout.id}-e${exerciseIndex + 1}-s${setIndex + 1}`,
-          order: setIndex + 1,
+          order: set.order ?? setIndex + 1,
         })),
         workout_id: workout.id,
       };
@@ -1798,7 +1804,52 @@ type PlannedWorkout = ReturnType<typeof backend.nestedPlan>["workouts"][number];
 /** A change, with the index of the Workout Exercise it applies to. */
 type IndexedChange = PlanUpdateChange & { index: number };
 
+type PlannedSet = PlannedWorkout["exercises"][number]["sets"][number];
+
+/** The Plan sets of one Workout Exercise that go, with that Exercise's index. */
+interface IndexedSetRemoval {
+  exercise_slug: string;
+  index: number;
+  sets: PlannedSet[];
+}
+
 const hasRepeat = (orders: number[]) => new Set(orders).size !== orders.length;
+
+/** The same Exercise's sets on both sides, matched by `order` (ADR 0023). */
+const matchSets = (planned: PlannedSet[], played: SetRow[]) => {
+  const planOrders = new Set(planned.map(({ order }) => order));
+
+  const isAdded = (set: SetRow) =>
+    set.reps_recommended === null || !planOrders.has(set.order);
+
+  const keptOrders = new Set(
+    played.flatMap((set) => (isAdded(set) ? [] : [set.order]))
+  );
+
+  return {
+    added: played.filter(isAdded),
+    removed: planned.filter(({ order }) => !keptOrders.has(order)),
+  };
+};
+
+/**
+ * The Plan sets an Exercise that's the same on both sides loses: the first
+ * removed ones, less one for each added set. None for an emptied Exercise
+ * (a `remove_exercise`), or with a repeated set `order` on either side.
+ */
+const lostSets = (planned: PlannedSet[], played: SetRow[]) => {
+  if (
+    played.length === 0 ||
+    hasRepeat(planned.map(({ order }) => order)) ||
+    hasRepeat(played.map(({ order }) => order))
+  ) {
+    return [];
+  }
+
+  const { added, removed } = matchSets(planned, played);
+
+  return removed.slice(0, Math.max(removed.length - added.length, 0));
+};
 
 const logged = (sets: SetRow[]) =>
   sets.filter((set) => set.reps_completed !== null);
@@ -1811,9 +1862,10 @@ const toSet = (set: SetRow, rest: number): PlanUpdateSet => ({
 });
 
 /**
- * `previewPlanUpdate`'s changes (`packages/services/src/plan-update.ts`),
- * matching the Workout Session's Exercises to the Workout's by `order`, each
- * with the Workout Exercise's index it applies to.
+ * `previewPlanUpdate`'s changes and set removals
+ * (`packages/services/src/plan-update.ts`), matching the Workout Session's
+ * Exercises to the Workout's by `order`, each with the Workout Exercise's
+ * index it applies to; `null` when they can't be matched.
  */
 const planUpdateChanges = (session: SessionRow, workout: PlannedWorkout) => {
   const sessionExercises = backend.exercises
@@ -1828,7 +1880,7 @@ const planUpdateChanges = (session: SessionRow, workout: PlannedWorkout) => {
 
   const planExercises = workout.exercises.map((exercise) => ({
     order: exercise.order,
-    rests: exercise.sets.map((set) => set.rest_recommended),
+    sets: exercise.sets,
     slug: exercise.exercise_slug,
   }));
 
@@ -1838,16 +1890,16 @@ const planUpdateChanges = (session: SessionRow, workout: PlannedWorkout) => {
     sessionExercises.length > MAX_PLAN_UPDATE_EXERCISES ||
     planExercises.length > MAX_PLAN_UPDATE_EXERCISES ||
     sessionExercises.some(({ sets }) => sets.length > MAX_PLAN_UPDATE_SETS) ||
-    planExercises.some(({ rests }) => rests.length > MAX_PLAN_UPDATE_SETS)
+    planExercises.some(({ sets }) => sets.length > MAX_PLAN_UPDATE_SETS)
   ) {
-    return [];
+    return null;
   }
 
   const orders = [
     ...new Set([...sessionExercises, ...planExercises].map((e) => e.order)),
   ].toSorted((a, b) => a - b);
 
-  return orders.flatMap((order): IndexedChange[] => {
+  const changes = orders.flatMap((order): IndexedChange[] => {
     const played = sessionExercises.find((e) => e.order === order);
     const planned = planExercises.find((e) => e.order === order);
     const index = planExercises.findIndex((e) => e.order === order);
@@ -1882,7 +1934,9 @@ const planUpdateChanges = (session: SessionRow, workout: PlannedWorkout) => {
         .map((set, setIndex) =>
           toSet(
             set.reps_completed === null ? last : set,
-            planned.rests[setIndex] ?? planned.rests.at(-1) ?? DEFAULT_REST
+            planned.sets[setIndex]?.rest_recommended ??
+              planned.sets.at(-1)?.rest_recommended ??
+              DEFAULT_REST
           )
         );
 
@@ -1897,22 +1951,45 @@ const planUpdateChanges = (session: SessionRow, workout: PlannedWorkout) => {
       ];
     }
 
-    const sets = logged(
-      played.sets.filter(
-        (set, setIndex) =>
-          set.reps_recommended === null || setIndex + 1 > planned.rests.length
-      )
-    )
-      .slice(0, Math.max(MAX_SETS_PER_EXERCISE - planned.rests.length, 0))
-      .map((set) => toSet(set, planned.rests.at(-1) ?? DEFAULT_REST));
+    // Every set was removed
+    if (played.sets.length === 0 && planned.sets.length > 0) {
+      return [{ exercise_slug: planned.slug, index, kind: "remove_exercise" }];
+    }
+
+    const { added, removed } = matchSets(planned.sets, played.sets);
+
+    // The first added ones stand in for the removed ones
+    const sets = logged(added.slice(removed.length))
+      .slice(0, Math.max(MAX_SETS_PER_EXERCISE - planned.sets.length, 0))
+      .map((set) =>
+        toSet(set, planned.sets.at(-1)?.rest_recommended ?? DEFAULT_REST)
+      );
 
     return sets.length > 0
       ? [{ exercise_slug: played.slug, index, kind: "add_sets", sets }]
       : [];
   });
+
+  const setRemovals = planExercises.flatMap(
+    (planned, index): IndexedSetRemoval[] => {
+      const played = sessionExercises.find((e) => e.order === planned.order);
+
+      const sets =
+        played?.slug === planned.slug
+          ? lostSets(planned.sets, played.sets)
+          : [];
+
+      return sets.length > 0
+        ? [{ exercise_slug: planned.slug, index, sets }]
+        : [];
+    }
+  );
+
+  return { changes, setRemovals };
 };
 
 const planSet = ({ reps, rest, weight }: PlanUpdateSet): SeedPlanSet => ({
+  id: backend.id("workout-exercise-set"),
   reps_recommended: reps,
   rest_recommended: rest,
   weight_recommended: weight,
@@ -1920,22 +1997,19 @@ const planSet = ({ reps, rest, weight }: PlanUpdateSet): SeedPlanSet => ({
 
 /**
  * Writes the changes to the seeded Workout in the service's order:
- * replacements and added sets, then removals (the rest renumbered, as an
- * Exercise's `order` is its position), then added Exercises appended.
+ * replacements and added sets, then set removals and Exercise removals (the
+ * rest renumbered, as an `order` is the position), then added Exercises
+ * appended. A row that stays keeps its id.
  */
 const applyPlanUpdateChanges = (
   workout: SeedPlan["workouts"][number],
   planned: PlannedWorkout,
-  changes: IndexedChange[]
+  changes: IndexedChange[],
+  setRemovals: IndexedSetRemoval[]
 ) => {
   const exercises = planned.exercises.map((exercise) => ({
-    sets: exercise.sets.map(
-      ({ reps_recommended, rest_recommended, weight_recommended }) => ({
-        reps_recommended,
-        rest_recommended,
-        weight_recommended,
-      })
-    ),
+    id: exercise.id,
+    sets: exercise.sets.map((set): SeedPlanSet => set),
     slug: exercise.exercise_slug,
   }));
 
@@ -1946,8 +2020,23 @@ const applyPlanUpdateChanges = (
       exercise.slug = change.exercise_slug;
       exercise.sets = change.sets.map(planSet);
     } else if (change.kind === "add_sets" && exercise) {
-      exercise.sets.push(...change.sets.map(planSet));
+      const last = Math.max(0, ...exercise.sets.map((set) => set.order ?? 0));
+      exercise.sets.push(
+        ...change.sets.map((set, setIndex) => ({
+          ...planSet(set),
+          order: last + 1 + setIndex,
+        }))
+      );
     }
+  }
+
+  for (const removal of setRemovals) {
+    const exercise = exercises[removal.index];
+    const gone = new Set(removal.sets.map(({ id }) => id));
+
+    exercise.sets = exercise.sets
+      .filter(({ id }) => id === undefined || !gone.has(id))
+      .map((set, setIndex) => ({ ...set, order: setIndex + 1 }));
   }
 
   const removed = new Set(
@@ -1960,21 +2049,41 @@ const applyPlanUpdateChanges = (
     ...exercises.filter((_, index) => !removed.has(index)),
     ...changes.flatMap((change) =>
       change.kind === "add_exercise"
-        ? [{ sets: change.sets.map(planSet), slug: change.exercise_slug }]
+        ? [
+            {
+              id: backend.id("workout-exercise"),
+              sets: change.sets.map(planSet),
+              slug: change.exercise_slug,
+            },
+          ]
         : []
     ),
   ];
 };
 
+/** A set as the Plan Update answers it. */
+const shownPlanUpdateSet = ({ reps, weight }: PlanUpdateSet) => ({
+  reps,
+  weight,
+});
+
 /**
  * `previewPlanUpdate` / `applyPlanUpdate`: the Workout Session's changes to
- * its Workout (none while it's open, without a live Plan's Workout, or once
- * applied), applied to the seeded Plan with `apply`.
+ * its Workout, and the Plan sets it removed with `include_set_removals=true`
+ * (none while it's open, without a live Plan's Workout, or once applied),
+ * applied to the seeded Plan with `apply`. An apply counts even with nothing
+ * to write.
  */
 const planUpdate =
   (apply: boolean) =>
-  (_body: RequestBody, sessionId: string): Response => {
-    const session = backend.session(sessionId);
+  (_body: RequestBody, sessionId: string, query: URLSearchParams): Response => {
+    const include = query.get("include_set_removals") ?? "false";
+
+    if (include !== "true" && include !== "false") {
+      return error(400, "invalid_request", "include_set_removals: Invalid");
+    }
+
+    const session = ownSession(sessionId);
 
     if (!session) {
       return notFound("Workout Session");
@@ -1987,6 +2096,7 @@ const planUpdate =
         data: {
           changes: [],
           plan: null,
+          set_removals: [],
           weight_unit: weightUnit(),
           workout: null,
         },
@@ -1999,15 +2109,18 @@ const planUpdate =
       .nestedPlan(plan)
       .workouts.find(({ id }) => id === workout.id);
 
-    const changes =
+    const update =
       planned &&
       session.finished_at !== null &&
       !appliedPlanUpdates.has(session.id)
         ? planUpdateChanges(session, planned)
-        : [];
+        : null;
 
-    if (apply && planned && changes.length > 0) {
-      applyPlanUpdateChanges(workout, planned, changes);
+    const changes = update?.changes ?? [];
+    const setRemovals = include === "true" ? (update?.setRemovals ?? []) : [];
+
+    if (apply && planned && update) {
+      applyPlanUpdateChanges(workout, planned, changes, setRemovals);
       appliedPlanUpdates.add(session.id);
     }
 
@@ -2015,18 +2128,23 @@ const planUpdate =
       data: {
         changes: changes.map(({ index: _index, ...change }) =>
           "sets" in change
-            ? {
-                ...change,
-                sets: change.sets.map(({ reps, weight }) => ({
-                  reps,
-                  weight,
-                })),
-              }
+            ? { ...change, sets: change.sets.map(shownPlanUpdateSet) }
             : change
         ),
         plan: { id: plan.id, name: plan.name },
+        set_removals: setRemovals.map(({ exercise_slug, sets }) => ({
+          exercise_slug,
+          sets: sets.map((set) => ({
+            reps: set.reps_recommended,
+            weight: set.weight_recommended,
+          })),
+        })),
         weight_unit: weightUnit(),
-        workout: { cover: null, id: workout.id, name: workout.name },
+        workout: {
+          cover: workout.cover ?? null,
+          id: workout.id,
+          name: workout.name,
+        },
       },
     });
   };
@@ -2245,6 +2363,35 @@ const addSessionSet = (body: RequestBody, exerciseId: string): Response => {
   return json(201, { data: { ...setBody(added), weight_unit: weightUnit() } });
 };
 
+/**
+ * `removeSetFromWorkoutSession`: deletes the set, logged or not, leaving the
+ * others' `order` (the gap stays, ADR 0023) and an Exercise whose last set
+ * goes; 204 whether or not it matched, another User's left alone.
+ */
+const removeSessionSet = (_body: RequestBody, setId: string): Response => {
+  const set = backend.sets.find(({ id }) => id === setId);
+
+  const exercise = backend.exercises.find(
+    ({ id }) => id === set?.workout_session_exercise_id
+  );
+
+  const session = exercise && ownSession(exercise.workout_session_id);
+
+  if (!session) {
+    return new Response(null, { status: 204 });
+  }
+
+  const notOpen = refuseFinished(session);
+
+  if (notOpen) {
+    return notOpen;
+  }
+
+  backend.sets = backend.sets.filter(({ id }) => id !== setId);
+
+  return new Response(null, { status: 204 });
+};
+
 /** The seeded Weekly goal changes, oldest first. */
 const listWeeklyGoals = () =>
   json(200, { data: backend.weeklyGoalChanges, streak: backend.weeklyStreak });
@@ -2417,6 +2564,11 @@ const ROUTES: {
     handler: logSet,
     path: /^\/v1\/workout-session-sets\/(?<id>[^/]+)$/u,
     route: "PATCH /v1/workout-session-sets/{id}",
+  },
+  {
+    handler: removeSessionSet,
+    path: /^\/v1\/workout-session-sets\/(?<id>[^/]+)$/u,
+    route: "DELETE /v1/workout-session-sets/{id}",
   },
 ];
 
