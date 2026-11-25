@@ -381,6 +381,17 @@ describe("the question", () => {
     expect(isSessionShown()).toBe(true);
   });
 
+  it("is asked once while it's open, and again once dismissed", async () => {
+    await openSession();
+    await ask();
+    await ask();
+    expect(alerts()).toHaveLength(1);
+
+    jest.mocked(Alert.alert).mock.lastCall?.[3]?.onDismiss?.();
+    await ask();
+    expect(alerts()).toHaveLength(2);
+  });
+
   it("counts a set logged with 0 reps", async () => {
     setLogged("s1-e1-s2", 0);
     await openSession();

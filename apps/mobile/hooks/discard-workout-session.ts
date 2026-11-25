@@ -9,16 +9,17 @@ import type {
   NavigationProp,
   ParamListBase,
 } from "expo-router/react-navigation";
-import { useCallback, useMemo } from "react";
+import { useCallback, useMemo, useRef } from "react";
 import { Alert } from "react-native";
 
 import { forgetAddedSets } from "~/hooks/added-sets";
-import { PLANS_QUERY_KEY, usePlanQuery } from "~/hooks/queries/plans";
-import { WEEKLY_GOALS_QUERY_KEY } from "~/hooks/queries/weekly-goals";
+import {
+  isSessionRoute,
+  readsChangedByFinish,
+} from "~/hooks/ending-workout-session";
 import {
   discardingFilters,
   finishingFilters,
-  LIFETIME_TOTALS_QUERY_KEY,
   OPEN_WORKOUT_SESSION_QUERY_KEY,
   useDiscardWorkoutSessionMutation,
   useWorkoutSessionQuery,
@@ -36,15 +37,6 @@ import type { WriteStarter } from "~/lib/write-answers";
 
 /** Home's route in the root stack. */
 const HOME_ROUTE = "(tabs)";
-
-/** Whether a route is one of the session's own screens (its Exercise picker included). */
-const isSessionRoute = (
-  { params }: { params?: object },
-  sessionId: string
-): boolean =>
-  !!params &&
-  (("sessionId" in params && params.sessionId === sessionId) ||
-    ("workoutSessionId" in params && params.workoutSessionId === sessionId));
 
 /**
  * Closes the session's own screens wherever they are in the stack, since the
@@ -145,11 +137,6 @@ export const useDiscardWorkoutSession = (sessionId: string) => {
 
   const { mutate } = useDiscardWorkoutSessionMutation({
     onError: (error, { starter }) => {
-      // Never alert the next User about the previous one's discard.
-      if (!isStillWriteStarter(starter)) {
-        return;
-      }
-
       const waitSeconds = rateLimitedFor(error);
 
       // Too many requests is the User's to wait out, not a bug.
@@ -157,7 +144,10 @@ export const useDiscardWorkoutSession = (sessionId: string) => {
         Sentry.captureException(error);
       }
 
-      alertDiscardFailed(waitSeconds);
+      // Never alert the next User about the previous one's discard.
+      if (isStillWriteStarter(starter)) {
+        alertDiscardFailed(waitSeconds);
+      }
     },
     onSuccess: async (result, { source, starter }) => {
       const queryKey = useWorkoutSessionQuery.getKey({ sessionId });
@@ -181,16 +171,8 @@ export const useDiscardWorkoutSession = (sessionId: string) => {
         Alert.alert(i18n.t("discardWorkout.alreadyFinished.title"));
 
         // What that finish changed, as after one of this phone's own.
-        for (const changed of [
-          PLANS_QUERY_KEY,
-          usePlanQuery.getKey(),
-          ["exercise-history"],
-          ["workout-sessions-history"],
-          WEEKLY_GOALS_QUERY_KEY,
-          LIFETIME_TOTALS_QUERY_KEY,
-          OPEN_WORKOUT_SESSION_QUERY_KEY,
-        ]) {
-          void queryClient.invalidateQueries({ queryKey: changed });
+        for (const changed of readsChangedByFinish()) {
+          void queryClient.invalidateQueries(changed);
         }
 
         return;
@@ -233,7 +215,7 @@ export const useDiscardWorkoutSession = (sessionId: string) => {
     [filters, queryClient, sessionId]
   );
 
-  const start = useCallback(
+  const requestDiscard = useCallback(
     (source: DiscardSource, starter: WriteStarter) => {
       if (!isBusy() && isStillWriteStarter(starter)) {
         mutate({ sessionId, source, starter });
@@ -244,15 +226,20 @@ export const useDiscardWorkoutSession = (sessionId: string) => {
 
   const discard = useCallback(
     (source: DiscardSource) =>
-      start(source, rememberWriteStarter(queryClient, [])),
-    [queryClient, start]
+      requestDiscard(source, rememberWriteStarter(queryClient, [])),
+    [queryClient, requestDiscard]
   );
+
+  // Whether the question is open, so a repeated tap never asks it twice.
+  const asking = useRef<boolean>(false);
 
   const confirmDiscard = useCallback(
     (session: WorkoutSession, source: DiscardSource) => {
-      if (isBusy()) {
+      if (asking.current || isBusy()) {
         return;
       }
+
+      asking.current = true;
 
       // Who is asked: another User may be signed in once it's answered.
       const starter = rememberWriteStarter(queryClient, []);
@@ -265,19 +252,30 @@ export const useDiscardWorkoutSession = (sessionId: string) => {
           : i18n.t("discardWorkout.confirm.loggedSets", { count: loggedSets }),
         [
           {
+            onPress: () => {
+              asking.current = false;
+            },
             style: "cancel",
             text: i18n.t("discardWorkout.confirm.keepTraining"),
           },
           {
-            onPress: () => start(source, starter),
+            onPress: () => {
+              asking.current = false;
+              requestDiscard(source, starter);
+            },
             style: "destructive",
             text: i18n.t("discardWorkout.confirm.discard"),
           },
         ],
-        { cancelable: true }
+        {
+          cancelable: true,
+          onDismiss: () => {
+            asking.current = false;
+          },
+        }
       );
     },
-    [isBusy, queryClient, start]
+    [isBusy, queryClient, requestDiscard]
   );
 
   return { confirmDiscard, discard, isDiscarding };

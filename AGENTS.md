@@ -519,6 +519,7 @@ So far these come from the catalogs, by screen group in alphabetical order (a ne
 - the Arnold plan card (goal and place as fixed choices, frequency, set and Exercise counts, Save and every save message)
 - the Arnold screen's own text (header, composer, attachments sheet, the stack's sheet titles, empty state and error states)
 - the auth screens: sign-in, register and the emailed-code, forgot-password and reset-password screens (their forms' validation messages, from a zod schema built from `t`, and the errors the app writes itself; Clerk's own error text stays as Clerk sends it)
+- discarding an open Workout Session (the header menu, the question and its alerts; `discardWorkout`)
 - the Exercise detail screen and its guide (section headings, the Difficulty badge, the empty, not-found and error states and the VoiceOver labels; the catalogs' `exercise` section)
 - Exercises, from the Library in the App language (see Exercises (mobile))
 - the finish flow (the "Finish workout?" confirmation, the failed-finish alert, the finish suggestion, and the "Update your plan?" sheet with every Plan Update line written by `formatPlanChange` from the catalogs)
@@ -544,6 +545,7 @@ So far these come from the catalogs, by screen group in alphabetical order (a ne
 A screen test in another language renders the screen inside `test-utils/in-app-language.tsx`'s `InAppLanguage` (the root layout's sync) after `setDeviceLanguages`, like these, in path order (a new one goes on its own line at its place):
 
 - `__tests__/auth-screens-language.test.tsx`
+- `__tests__/discard-workout-session.test.tsx`
 - `__tests__/equipment-chips.test.tsx`
 - `__tests__/exercise-detail-screen.test.tsx`
 - `__tests__/history-screen.test.tsx` (over the fake Public API, in English and Ukrainian; it stands in for `LegendList`, since Jest never lays its items out)

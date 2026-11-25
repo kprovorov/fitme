@@ -7,15 +7,15 @@ import { useNavigation, useRouter } from "expo-router";
 import { useCallback, useMemo } from "react";
 import { Alert } from "react-native";
 
+import {
+  isSessionRoute,
+  readsChangedByFinish,
+} from "~/hooks/ending-workout-session";
 import { showPlanUpdatePrompt } from "~/hooks/plan-update-prompt";
-import { PLANS_QUERY_KEY, usePlanQuery } from "~/hooks/queries/plans";
-import { WEEKLY_GOALS_QUERY_KEY } from "~/hooks/queries/weekly-goals";
 import {
   discardingFilters,
   fetchPlanUpdate,
   finishingFilters,
-  LIFETIME_TOTALS_QUERY_KEY,
-  OPEN_WORKOUT_SESSION_QUERY_KEY,
   seedWorkoutSession,
   useFinishWorkoutSessionMutation,
   useWorkoutSessionQuery,
@@ -45,16 +45,7 @@ const isSessionScreenBelow = (
     return false;
   }
 
-  const params = state.routes[state.index - screensAbove]?.params;
-
-  if (!params) {
-    return false;
-  }
-
-  return (
-    ("sessionId" in params && params.sessionId === sessionId) ||
-    ("workoutSessionId" in params && params.workoutSessionId === sessionId)
-  );
+  return isSessionRoute(state.routes[state.index - screensAbove], sessionId);
 };
 
 const alertFinishFailed = (waitSeconds: number | null = null) =>
@@ -226,20 +217,12 @@ export const useFinishWorkoutSession = (
       // Every screen of it (the Summary included) shows the answer, with no
       // re-read (or reads it again, when a newer read landed meanwhile), and
       // the reads it changed are read again.
-      const seeded = await seedWorkoutSession(queryClient, starter, session, [
-        // Its Workout moved to the end of the rotation.
-        { queryKey: PLANS_QUERY_KEY },
-        { queryKey: usePlanQuery.getKey() },
-        { queryKey: ["exercise-history"] },
-        // History's months and Weekly goal chart count it now (a finish may
-        // also start goal tracking)
-        { queryKey: ["workout-sessions-history"] },
-        { queryKey: WEEKLY_GOALS_QUERY_KEY },
-        // Profile's Lifetime totals count it too.
-        { queryKey: LIFETIME_TOTALS_QUERY_KEY },
-        // Start is no longer blocked on it.
-        { queryKey: OPEN_WORKOUT_SESSION_QUERY_KEY },
-      ]);
+      const seeded = await seedWorkoutSession(
+        queryClient,
+        starter,
+        session,
+        readsChangedByFinish()
+      );
 
       if (seeded === "signed-out") {
         return;
