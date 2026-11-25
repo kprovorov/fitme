@@ -20,7 +20,8 @@ interface BlockedStartProps {
 
 /**
  * Start while another Workout is in progress (a User has at most one open
- * Workout Session, ADR 0013): Start disabled, which Workout to finish first,
+ * Workout Session, ADR 0013): Start disabled, which Workout to finish or
+ * discard first,
  * and a button continuing it. The Workout screen and the Next card on Home
  * both show it.
  */
@@ -43,8 +44,8 @@ export const BlockedStart = ({
       />
       <Text className="text-center" variant="muted">
         {name
-          ? t("startWorkout.finishFirstNamed", { name })
-          : t("startWorkout.finishFirst")}
+          ? t("startWorkout.finishOrDiscardFirstNamed", { name })
+          : t("startWorkout.finishOrDiscardFirst")}
       </Text>
       <Button
         icon="arrow.right"

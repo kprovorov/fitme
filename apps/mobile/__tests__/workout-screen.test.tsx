@@ -403,7 +403,7 @@ describe("starting while another Workout is in progress", () => {
     seedOpenSession("workout-1");
   };
 
-  it("disables Start, says which Workout to finish first and continues it", async () => {
+  it("disables Start, says which Workout to finish or discard first and continues it", async () => {
     seedLegDayOpen();
     mockWorkoutId.current = "workout-2";
     await mount();
@@ -411,7 +411,7 @@ describe("starting while another Workout is in progress", () => {
     expect(
       screen.getByRole("button", { name: "Start Workout" })
     ).toBeDisabled();
-    expect(screen.getByText("Finish Leg Day first")).toBeTruthy();
+    expect(screen.getByText("Finish or discard Leg Day first")).toBeTruthy();
 
     await fireEvent.press(
       screen.getByRole("button", { name: "Continue Leg Day" })
@@ -438,7 +438,7 @@ describe("starting while another Workout is in progress", () => {
       screen.getByRole("button", { name: "Start Workout" })
     ).toBeDisabled();
     expect(
-      screen.getByText("Finish your workout in progress first")
+      screen.getByText("Finish or discard your workout in progress first")
     ).toBeTruthy();
     await fireEvent.press(
       screen.getByRole("button", { name: "Continue Workout" })
@@ -465,7 +465,7 @@ describe("starting while another Workout is in progress", () => {
     expect(
       screen.getByRole("button", { name: "Start Workout" })
     ).toBeDisabled();
-    expect(screen.getByText("Finish Leg Day first")).toBeTruthy();
+    expect(screen.getByText("Finish or discard Leg Day first")).toBeTruthy();
     expect(
       backend.sessions.filter(({ workout_id }) => workout_id === "workout-2")
     ).toEqual([]);
@@ -493,7 +493,7 @@ describe("starting while another Workout is in progress", () => {
     seedLegDayOpen();
     mockWorkoutId.current = "workout-2";
     await mount();
-    expect(screen.getByText("Finish Leg Day first")).toBeTruthy();
+    expect(screen.getByText("Finish or discard Leg Day first")).toBeTruthy();
 
     // Finished elsewhere; the finish flow invalidates the open Workout
     // Session read (see the Home integration test for the whole flow).
@@ -510,7 +510,7 @@ describe("starting while another Workout is in progress", () => {
     );
     await settle(queryClient);
 
-    expect(screen.queryByText("Finish Leg Day first")).toBeNull();
+    expect(screen.queryByText("Finish or discard Leg Day first")).toBeNull();
     await fireEvent.press(
       screen.getByRole("button", { name: "Start Workout" })
     );
@@ -544,7 +544,7 @@ describe("starting while another Workout is in progress", () => {
       seedLegDayOpen();
       mockWorkoutId.current = "workout-2";
       await mount();
-      expect(screen.getByText("Finish Leg Day first")).toBeTruthy();
+      expect(screen.getByText("Finish or discard Leg Day first")).toBeTruthy();
 
       // Finished elsewhere (MCP, another device): nothing invalidates it here.
       const open = backend.session("open-session");
@@ -557,14 +557,14 @@ describe("starting while another Workout is in progress", () => {
         jest.advanceTimersByTime(OPEN_WORKOUT_SESSION_POLL_MS - 1);
       });
       await settle(queryClient);
-      expect(screen.getByText("Finish Leg Day first")).toBeTruthy();
+      expect(screen.getByText("Finish or discard Leg Day first")).toBeTruthy();
 
       await act(() => {
         jest.advanceTimersByTime(1);
       });
       await settle(queryClient);
 
-      expect(screen.queryByText("Finish Leg Day first")).toBeNull();
+      expect(screen.queryByText("Finish or discard Leg Day first")).toBeNull();
       expect(
         screen.getByRole("button", { name: "Start Workout" })
       ).toBeEnabled();
@@ -629,7 +629,7 @@ describe("the open Workout Session's read on the Workout screen", () => {
 
     resume();
     await settle(queryClient);
-    expect(screen.getByText("Finish Leg Day first")).toBeTruthy();
+    expect(screen.getByText("Finish or discard Leg Day first")).toBeTruthy();
   });
 
   it("shows the load error and no Start when it fails with nothing read yet", async () => {
@@ -646,7 +646,7 @@ describe("the open Workout Session's read on the Workout screen", () => {
     await settle(queryClient);
 
     expect(screen.getByText("Rest Day Mobility")).toBeTruthy();
-    expect(screen.getByText("Finish Leg Day first")).toBeTruthy();
+    expect(screen.getByText("Finish or discard Leg Day first")).toBeTruthy();
   });
 
   it("gives the wait when it's rate limited with nothing read yet", async () => {
@@ -679,7 +679,7 @@ describe("the open Workout Session's read on the Workout screen", () => {
     expect(
       screen.getByRole("button", { name: "Start Workout" })
     ).toBeDisabled();
-    expect(screen.getByText("Finish Leg Day first")).toBeTruthy();
+    expect(screen.getByText("Finish or discard Leg Day first")).toBeTruthy();
     expect(screen.queryByText(LOAD_ERROR)).toBeNull();
   });
 });

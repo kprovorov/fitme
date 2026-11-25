@@ -326,7 +326,7 @@ describe("the Workout tab's carousel", () => {
     expect(fakePublicApi.count(START)).toBe(1);
     expect(Alert.alert).toHaveBeenCalledWith(
       "Couldn't start workout",
-      "Finish Legs first",
+      "Finish or discard Legs first",
       expect.anything()
     );
     expect(backend.sessions.map(({ id }) => id)).toEqual(["s1"]);
@@ -348,7 +348,7 @@ describe("the Workout tab's carousel", () => {
     expect(fakePublicApi.count(START)).toBe(1);
     expect(Alert.alert).toHaveBeenCalledWith(
       "Couldn't start workout",
-      "Finish Legs first",
+      "Finish or discard Legs first",
       expect.anything()
     );
     expect(mockPush).not.toHaveBeenCalled();

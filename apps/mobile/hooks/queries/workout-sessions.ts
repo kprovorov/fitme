@@ -196,7 +196,7 @@ export const useOpenWorkoutSessionQuery =
  * failed) it's `null` too, which the Workout tab's cards and the Plan
  * screen's Workout cards may show as Start or the Workout screen: Start asks
  * the API, which resumes the Workout's own open session (200) or refuses
- * another's (409, which re-reads it and says "Finish <Workout> first"). The
+ * another's (409, which re-reads it and says "Finish or discard <Workout> first"). The
  * Workout screen and History's empty card don't guess: they wait for the
  * read, and show their load error when it fails.
  */
