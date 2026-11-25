@@ -22,8 +22,9 @@ import type { ProfileUnits } from "./profile";
  * Workout Session Exercises are matched to Workout Exercises by `order`:
  * a slot with only a Workout Exercise was removed, one with only a Workout
  * Session Exercise was added, one whose slugs differ was replaced, and one
- * with the same Exercise may have gained sets. Targets come from the logged
- * sets; nothing never logged is offered.
+ * with the same Exercise may have gained or lost sets. Its sets are matched by
+ * `order` too, which a removal leaves alone (ADR 0023). Targets come from the
+ * logged sets; nothing never logged is offered.
  */
 
 /** No Plan Update past this many Exercises on either side. */
@@ -63,15 +64,28 @@ export type PlanUpdateChange =
   | { exercise_slug: string; kind: "remove_exercise" }
   | { exercise_slug: string; kind: "add_sets"; sets: PlanUpdateSet[] };
 
+/** The Plan sets of an Exercise that go, with their targets. */
+export interface PlanUpdateSetRemoval {
+  exercise_slug: string;
+  sets: PlanUpdateSet[];
+}
+
+export interface PlanUpdateOptions {
+  /** Answer, and on apply remove, the Plan sets the User removed. */
+  includeSetRemovals?: boolean;
+}
+
 /**
  * The Plan Update of a Workout Session, in both modes: the Plan and Workout
  * it updates (`null` when the Workout is gone or its Plan soft-deleted), the
  * changes in Workout order (none for an open, unmatchable or already applied
- * Workout Session), and the unit its weights are stored in.
+ * Workout Session), the set removals in the same order (only with
+ * `includeSetRemovals`), and the unit its weights are stored in.
  */
 export interface PlanUpdate {
   changes: PlanUpdateChange[];
   plan: NamedRef | null;
+  set_removals?: PlanUpdateSetRemoval[];
   weight_unit: ProfileUnits["weight"];
   workout: WorkoutRef | null;
 }
@@ -99,15 +113,27 @@ type PlannedChange =
       workoutExerciseId: string;
     };
 
+/** The Plan sets of one Workout Exercise that go. */
+interface PlannedSetRemoval {
+  exerciseSlug: string;
+  sets: PlanSet[];
+  workoutExerciseId: string;
+}
+
+interface PlanSet extends RestedSet {
+  id: string;
+  order: number;
+}
+
 interface SessionSet {
+  order: number;
   repsCompleted: number | null;
   repsRecommended: number | null;
   weightCompleted: string | null;
 }
 
 interface Slot {
-  /** Its sets' rests, by position: one per set, since a Plan set has one. */
-  planExercise?: { id: string; rests: number[]; slug: string };
+  planExercise?: { id: string; sets: PlanSet[]; slug: string };
   sessionExercise?: { sets: SessionSet[]; slug: string };
 }
 
@@ -215,6 +241,7 @@ const loadSlots = async (
             repsCompleted: workoutSessionExerciseSets.repsCompleted,
             repsRecommended: workoutSessionExerciseSets.repsRecommended,
             setId: workoutSessionExerciseSets.id,
+            setOrder: workoutSessionExerciseSets.order,
             slug: workoutSessionExercises.exerciseSlug,
             weightCompleted: workoutSessionExerciseSets.weightCompleted,
           })
@@ -238,8 +265,9 @@ const loadSlots = async (
           const slot = slotAt(row.order);
           slot.sessionExercise ??= { sets: [], slug: row.slug };
 
-          if (row.setId !== null && row.setId !== "") {
+          if (row.setId !== null && row.setOrder !== null) {
             slot.sessionExercise.sets.push({
+              order: row.setOrder,
               repsCompleted: row.repsCompleted,
               repsRecommended: row.repsRecommended,
               weightCompleted: row.weightCompleted,
@@ -252,8 +280,13 @@ const loadSlots = async (
           .select({
             id: workoutExercises.id,
             order: workoutExercises.order,
-            rest: workoutExerciseSets.restRecommended,
-            setId: workoutExerciseSets.id,
+            set: {
+              id: workoutExerciseSets.id,
+              order: workoutExerciseSets.order,
+              reps: workoutExerciseSets.repsRecommended,
+              rest: workoutExerciseSets.restRecommended,
+              weight: workoutExerciseSets.weightRecommended,
+            },
             slug: workoutExercises.exerciseSlug,
           })
           .from(workoutExercises)
@@ -271,10 +304,13 @@ const loadSlots = async (
 
         for (const row of planRows) {
           const slot = slotAt(row.order);
-          slot.planExercise ??= { id: row.id, rests: [], slug: row.slug };
+          slot.planExercise ??= { id: row.id, sets: [], slug: row.slug };
 
-          if (row.rest !== null) {
-            slot.planExercise.rests.push(row.rest);
+          if (row.set !== null) {
+            slot.planExercise.sets.push({
+              ...row.set,
+              weight: Number(row.set.weight),
+            });
           }
         }
       },
@@ -318,7 +354,7 @@ const addedSets = (sets: SessionSet[]): RestedSet[] | null => {
  */
 const replacementSets = (
   sets: SessionSet[],
-  planRests: number[]
+  planSets: PlanSet[]
 ): RestedSet[] | null => {
   const lastLogged = sets.findLast(isLogged);
 
@@ -326,41 +362,63 @@ const replacementSets = (
     return null;
   }
 
-  const lastRest = planRests.at(-1);
+  const lastRest = planSets.at(-1)?.rest;
 
   return sets.slice(0, MAX_SETS_PER_EXERCISE).map((set, index) => {
     const logged = isLogged(set) ? set : lastLogged;
 
     return {
       reps: logged.repsCompleted,
-      rest: planRests[index] ?? lastRest ?? DEFAULT_REST,
+      rest: planSets[index]?.rest ?? lastRest ?? DEFAULT_REST,
       weight: weightOf(logged),
     };
   });
 };
 
 /**
- * The same Exercise's sets created during the Workout Session and logged,
- * with the rest of the Plan's last set, up to 20 sets in all. A created set
- * carries no `reps_recommended`, unlike a copied one, but replacing the
- * Exercise in the app zeroes every set's targets, so after switching back the
- * marker is gone; the session can't delete sets, so a set past the Plan's
- * count was created too. None, `null`.
+ * The same Exercise's sets on both sides, matched by `order` (ADR 0023): the
+ * Workout Session sets that were added, and the Plan sets that were removed. A
+ * set is an added one when it carries no `reps_recommended`, unlike a copied
+ * one, or when its `order` isn't a Plan set's: replacing the Exercise in the
+ * app zeroes every set's targets, so after switching back the first marker is
+ * gone. Any other set is a Plan set still there, logged or not.
+ */
+const matchSets = (planSets: PlanSet[], sessionSets: SessionSet[]) => {
+  const planOrders = new Set(planSets.map((set) => set.order));
+  const added: SessionSet[] = [];
+  const keptOrders = new Set<number>();
+
+  for (const set of sessionSets) {
+    if (set.repsRecommended === null || !planOrders.has(set.order)) {
+      added.push(set);
+    } else {
+      keptOrders.add(set.order);
+    }
+  }
+
+  return {
+    added,
+    removed: planSets.filter((set) => !keptOrders.has(set.order)),
+  };
+};
+
+/**
+ * The added sets an Exercise gains: only the net difference, so the last added
+ * ones, those logged, with the rest of the Plan's last set, up to 20 sets in
+ * all. None, `null`.
  */
 const extraSets = (
-  sets: SessionSet[],
-  planRests: number[]
+  sessionSets: SessionSet[],
+  planSets: PlanSet[]
 ): RestedSet[] | null => {
-  const planSetCount = planRests.length;
-  const rest = planRests.at(-1) ?? DEFAULT_REST;
+  const { added, removed } = matchSets(planSets, sessionSets);
+  const rest = planSets.at(-1)?.rest ?? DEFAULT_REST;
 
-  const extra = sets
-    .filter(
-      (set, index): set is LoggedSet =>
-        isLogged(set) &&
-        (set.repsRecommended === null || index + 1 > planSetCount)
-    )
-    .slice(0, Math.max(MAX_SETS_PER_EXERCISE - planSetCount, 0))
+  // The first added ones stand in for the removed ones
+  const extra = added
+    .slice(removed.length)
+    .filter(isLogged)
+    .slice(0, Math.max(MAX_SETS_PER_EXERCISE - planSets.length, 0))
     .map((set) => ({
       reps: set.repsCompleted,
       rest,
@@ -368,6 +426,41 @@ const extraSets = (
     }));
 
   return extra.length > 0 ? extra : null;
+};
+
+const hasRepeatedOrder = (exerciseSets: { order: number }[]) =>
+  new Set(exerciseSets.map((set) => set.order)).size < exerciseSets.length;
+
+/**
+ * The Plan sets an Exercise that's the same on both sides loses: only the net
+ * difference, so the first removed ones. None for an emptied Exercise, which
+ * goes as a whole (`remove_exercise`), or with a repeated set `order` on
+ * either side.
+ */
+const planSetRemoval = ({
+  planExercise,
+  sessionExercise,
+}: Slot): PlannedSetRemoval | null => {
+  if (
+    !(planExercise && sessionExercise) ||
+    planExercise.slug !== sessionExercise.slug ||
+    sessionExercise.sets.length === 0 ||
+    hasRepeatedOrder(planExercise.sets) ||
+    hasRepeatedOrder(sessionExercise.sets)
+  ) {
+    return null;
+  }
+
+  const { added, removed } = matchSets(planExercise.sets, sessionExercise.sets);
+  const lost = removed.slice(0, Math.max(removed.length - added.length, 0));
+
+  return lost.length > 0
+    ? {
+        exerciseSlug: planExercise.slug,
+        sets: lost,
+        workoutExerciseId: planExercise.id,
+      }
+    : null;
 };
 
 const planChange = ({
@@ -399,7 +492,7 @@ const planChange = ({
   }
 
   if (sessionExercise.slug !== planExercise.slug) {
-    const sets = replacementSets(sessionExercise.sets, planExercise.rests);
+    const sets = replacementSets(sessionExercise.sets, planExercise.sets);
 
     return (
       sets && {
@@ -412,7 +505,16 @@ const planChange = ({
     );
   }
 
-  const sets = extraSets(sessionExercise.sets, planExercise.rests);
+  // Every set was removed
+  if (sessionExercise.sets.length === 0 && planExercise.sets.length > 0) {
+    return {
+      exerciseSlug: planExercise.slug,
+      kind: "remove_exercise",
+      workoutExerciseId: planExercise.id,
+    };
+  }
+
+  const sets = extraSets(sessionExercise.sets, planExercise.sets);
 
   return (
     sets && {
@@ -440,16 +542,46 @@ const insertSets = (
     }))
   );
 
+/** Deletes an Exercise's removed sets and renumbers the rest from 1. */
+const removeSets = async (
+  tx: Transaction,
+  { sets: removed, workoutExerciseId }: PlannedSetRemoval
+) => {
+  await tx.delete(workoutExerciseSets).where(
+    inArray(
+      workoutExerciseSets.id,
+      removed.map((set) => set.id)
+    )
+  );
+  await tx.execute(sql`
+    with ranked as (
+      select
+        ${workoutExerciseSets.id} as id,
+        row_number() over (
+          order by ${workoutExerciseSets.order}, ${workoutExerciseSets.id}
+        ) as new_order
+      from ${workoutExerciseSets}
+      where ${workoutExerciseSets.workoutExerciseId} = ${workoutExerciseId}
+    )
+    update ${workoutExerciseSets}
+    set "order" = ranked.new_order
+    from ranked
+    where ${workoutExerciseSets.id} = ranked.id
+      and ${workoutExerciseSets.order} <> ranked.new_order
+  `);
+};
+
 /**
- * Writes the changes in this order: replacements and added sets on their
- * rows, then removals with the remaining Exercises renumbered from 1, then
+ * Writes the changes in this order: replacements, added and removed sets on
+ * their rows, then removals with the remaining Exercises renumbered from 1, then
  * added Exercises appended; then stamps the Workout Session.
  */
 const applyChanges = async (
   tx: Transaction,
   sessionId: string,
   workoutId: string,
-  changes: PlannedChange[]
+  changes: PlannedChange[],
+  setRemovals: PlannedSetRemoval[]
 ) => {
   await inSequence(changes, async (change) => {
     if (change.kind === "replace_exercise") {
@@ -478,6 +610,10 @@ const applyChanges = async (
         change.sets
       );
     }
+  });
+
+  await inSequence(setRemovals, async (removal) => {
+    await removeSets(tx, removal);
   });
 
   const removed = changes.flatMap((change) =>
@@ -585,7 +721,7 @@ const planUpdate = async (
   tx: Transaction,
   userId: string,
   sessionId: string,
-  { apply }: { apply: boolean }
+  { apply, includeSetRemovals = false }: PlanUpdateOptions & { apply: boolean }
 ): Promise<PlanUpdate | null> => {
   await tx.execute(sql`
     lock table ${workoutSessions}, ${workouts}, ${workoutExercises},
@@ -682,10 +818,17 @@ const planUpdate = async (
   // No Workout (deleted, or its Plan soft-deleted), or the Workout Session
   // moved off it while we waited for the lock
   if (!workout || session.workoutId !== workout.id) {
-    return { changes: [], plan: null, weight_unit: weightUnit, workout: null };
+    return {
+      changes: [],
+      plan: null,
+      ...(includeSetRemovals && { set_removals: [] }),
+      weight_unit: weightUnit,
+      workout: null,
+    };
   }
 
   let changes: PlannedChange[] = [];
+  let setRemovals: PlannedSetRemoval[] = [];
 
   if (
     session.finishedAt !== null &&
@@ -694,15 +837,24 @@ const planUpdate = async (
   ) {
     const slots = await loadSlots(tx, sessionId, workout.id);
     changes = slots.flatMap((slot) => planChange(slot) ?? []);
+    setRemovals = includeSetRemovals
+      ? slots.flatMap((slot) => planSetRemoval(slot) ?? [])
+      : [];
 
     if (apply) {
-      await applyChanges(tx, sessionId, workout.id, changes);
+      await applyChanges(tx, sessionId, workout.id, changes, setRemovals);
     }
   }
 
   return {
     changes: changes.map(toAnswer),
     plan: { id: workout.planId, name: workout.planName },
+    ...(includeSetRemovals && {
+      set_removals: setRemovals.map((removal) => ({
+        exercise_slug: removal.exerciseSlug,
+        sets: sets(removal.sets),
+      })),
+    }),
     weight_unit: weightUnit,
     workout: { cover: workout.cover, id: workout.id, name: workout.name },
   };
@@ -715,16 +867,18 @@ const planUpdate = async (
 export const previewPlanUpdate = async (
   tx: Transaction,
   userId: string,
-  sessionId: string
-) => await planUpdate(tx, userId, sessionId, { apply: false });
+  sessionId: string,
+  options: PlanUpdateOptions = {}
+) => await planUpdate(tx, userId, sessionId, { ...options, apply: false });
 
 /**
  * Applies the Plan Update of one of the User's Workout Sessions and answers
- * what it applied; `null` when the User has no such Workout Session. Once
+ * what it applied (set removals only with `includeSetRemovals`); `null` when the User has no such Workout Session. Once
  * applied, both modes answer no changes, so a repeat writes nothing.
  */
 export const applyPlanUpdate = async (
   tx: Transaction,
   userId: string,
-  sessionId: string
-) => await planUpdate(tx, userId, sessionId, { apply: true });
+  sessionId: string,
+  options: PlanUpdateOptions = {}
+) => await planUpdate(tx, userId, sessionId, { ...options, apply: true });
