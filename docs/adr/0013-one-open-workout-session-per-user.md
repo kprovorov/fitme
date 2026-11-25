@@ -15,6 +15,6 @@ A User can open a Workout's screen and start any Workout of their Plan, not only
 
 ## Consequences
 
-- An MCP client can't start a Workout while the app has another one open; it has to finish it (or the User does) first.
+- An MCP client can't start a Workout while the app has another one open; that one has to be finished or discarded first, by it or by the User.
 - The migration adding the index first cleans up Users with several open sessions the way `20261003000000_one_open_session_per_workout.sql` did per Workout: the most recently started stays open, empty ones are deleted, the rest are closed with a plain `finished_at` (no rotation, no Plan Update).
 - Builds from before the block show their generic "Couldn't start workout" alert for the 409; no minimum version bump.
