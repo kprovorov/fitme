@@ -1263,13 +1263,11 @@
       "openHint": "Otwiera ćwiczenie",
       "moreOptions": "Więcej opcji dla {{name}}",
       "replace": "Zastąp",
-      "delete": "Usuń",
       "remove": "Usuń"
     },
     "editFailed": {
       "addTitle": "Nie udało się dodać ćwiczenia",
       "replaceTitle": "Nie udało się zastąpić ćwiczenia",
-      "deleteTitle": "Nie udało się usunąć ćwiczenia",
       "removeTitle": "Nie udało się usunąć ćwiczenia",
       "removeSetTitle": "Nie udało się usunąć serii",
       "libraryUnavailable": "Biblioteka ćwiczeń jest teraz niedostępna. Spróbuj ponownie.",

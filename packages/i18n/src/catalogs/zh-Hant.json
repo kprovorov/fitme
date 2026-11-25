@@ -1134,13 +1134,11 @@
       "openHint": "開啟動作",
       "moreOptions": "{{name}}的更多選項",
       "replace": "替換",
-      "delete": "刪除",
       "remove": "移除"
     },
     "editFailed": {
       "addTitle": "無法新增動作",
       "replaceTitle": "無法替換動作",
-      "deleteTitle": "無法刪除動作",
       "removeTitle": "無法移除動作",
       "removeSetTitle": "無法移除該組",
       "libraryUnavailable": "動作庫目前無法使用，請再試一次。",

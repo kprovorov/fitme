@@ -1134,13 +1134,11 @@
       "openHint": "종목을 엽니다",
       "moreOptions": "{{name}} 추가 옵션",
       "replace": "교체",
-      "delete": "삭제",
       "remove": "삭제"
     },
     "editFailed": {
       "addTitle": "종목을 추가하지 못했어요",
       "replaceTitle": "종목을 교체하지 못했어요",
-      "deleteTitle": "종목을 삭제하지 못했어요",
       "removeTitle": "종목을 삭제하지 못했어요",
       "removeSetTitle": "세트를 삭제하지 못했어요",
       "libraryUnavailable": "지금은 종목 라이브러리를 이용할 수 없어요. 다시 시도해 주세요.",

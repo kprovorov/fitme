@@ -1177,13 +1177,11 @@
       "openHint": "Opens the exercise",
       "moreOptions": "More options for {{name}}",
       "replace": "Replace",
-      "delete": "Delete",
       "remove": "Remove"
     },
     "editFailed": {
       "addTitle": "Couldn't add exercise",
       "replaceTitle": "Couldn't replace exercise",
-      "deleteTitle": "Couldn't delete exercise",
       "removeTitle": "Couldn't remove exercise",
       "removeSetTitle": "Couldn't remove set",
       "libraryUnavailable": "The exercise library is unavailable right now. Please try again.",

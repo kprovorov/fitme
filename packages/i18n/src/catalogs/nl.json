@@ -1177,13 +1177,11 @@
       "openHint": "Opent de oefening",
       "moreOptions": "Meer opties voor {{name}}",
       "replace": "Vervangen",
-      "delete": "Verwijderen",
       "remove": "Verwijderen"
     },
     "editFailed": {
       "addTitle": "Oefening toevoegen mislukt",
       "replaceTitle": "Oefening vervangen mislukt",
-      "deleteTitle": "Oefening verwijderen mislukt",
       "removeTitle": "Oefening verwijderen mislukt",
       "removeSetTitle": "Set verwijderen mislukt",
       "libraryUnavailable": "De oefeningenbibliotheek is momenteel niet beschikbaar. Probeer het opnieuw.",
