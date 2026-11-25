@@ -12,7 +12,7 @@ import { requireConversationOwner } from "../lib/owner";
 
 export default defineTool({
   description:
-    "Get the workout session the user has open right now (started, not finished yet), with its workout, exercises and sets: each set's id, logged values and targets. Read-only. Use this for anything about the workout they are doing now.",
+    "Get the workout session the user has open right now (started, not finished yet), with its workout, exercises and sets: each set's id, logged values and targets. Changes nothing. Use this for anything about the workout they are doing now.",
   async execute(_input, ctx) {
     const userId = requireConversationOwner(ctx.session.auth);
 
