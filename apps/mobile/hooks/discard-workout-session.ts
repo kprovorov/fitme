@@ -21,6 +21,7 @@ import {
   discardingFilters,
   finishingFilters,
   OPEN_WORKOUT_SESSION_QUERY_KEY,
+  seedWorkoutSession,
   useDiscardWorkoutSessionMutation,
   useWorkoutSessionQuery,
 } from "~/hooks/queries/workout-sessions";
@@ -33,7 +34,6 @@ import { IS_E2E } from "~/lib/constants";
 import { i18n } from "~/lib/i18n";
 import { segmentClient } from "~/lib/segment";
 import { isStillWriteStarter, rememberWriteStarter } from "~/lib/write-answers";
-import type { WriteStarter } from "~/lib/write-answers";
 
 /** Home's route in the root stack. */
 const HOME_ROUTE = "(tabs)";
@@ -167,12 +167,23 @@ export const useDiscardWorkoutSession = (sessionId: string) => {
       }
 
       if (result.status === "finished") {
-        queryClient.setQueryData(queryKey, result.session);
         Alert.alert(i18n.t("discardWorkout.alreadyFinished.title"));
 
-        // What that finish changed, as after one of this phone's own.
-        for (const changed of readsChangedByFinish()) {
-          void queryClient.invalidateQueries(changed);
+        // Over what was shown when the discard started, or read again when a
+        // newer read landed meanwhile.
+        const seeded = await seedWorkoutSession(
+          queryClient,
+          starter,
+          result.session,
+          readsChangedByFinish()
+        );
+
+        // A finish is for good: reading it again may have failed, but an open
+        // session is never left on screen.
+        if (seeded === "superseded") {
+          queryClient.setQueryData<WorkoutSession>(queryKey, (shown) =>
+            shown?.finished_at ? shown : result.session
+          );
         }
 
         return;
@@ -215,19 +226,17 @@ export const useDiscardWorkoutSession = (sessionId: string) => {
     [filters, queryClient, sessionId]
   );
 
-  const requestDiscard = useCallback(
-    (source: DiscardSource, starter: WriteStarter) => {
-      if (!isBusy() && isStillWriteStarter(starter)) {
+  const discard = useCallback(
+    (source: DiscardSource) => {
+      if (!isBusy()) {
+        const starter = rememberWriteStarter(queryClient, [
+          useWorkoutSessionQuery.getKey({ sessionId }),
+        ]);
+
         mutate({ sessionId, source, starter });
       }
     },
-    [isBusy, mutate, sessionId]
-  );
-
-  const discard = useCallback(
-    (source: DiscardSource) =>
-      requestDiscard(source, rememberWriteStarter(queryClient, [])),
-    [queryClient, requestDiscard]
+    [isBusy, mutate, queryClient, sessionId]
   );
 
   // Whether the question is open, so a repeated tap never asks it twice.
@@ -242,7 +251,7 @@ export const useDiscardWorkoutSession = (sessionId: string) => {
       asking.current = true;
 
       // Who is asked: another User may be signed in once it's answered.
-      const starter = rememberWriteStarter(queryClient, []);
+      const asked = rememberWriteStarter(queryClient, []);
       const loggedSets = countLoggedSets(session);
 
       Alert.alert(
@@ -261,7 +270,10 @@ export const useDiscardWorkoutSession = (sessionId: string) => {
           {
             onPress: () => {
               asking.current = false;
-              requestDiscard(source, starter);
+
+              if (isStillWriteStarter(asked)) {
+                discard(source);
+              }
             },
             style: "destructive",
             text: i18n.t("discardWorkout.confirm.discard"),
@@ -275,7 +287,7 @@ export const useDiscardWorkoutSession = (sessionId: string) => {
         }
       );
     },
-    [isBusy, queryClient, requestDiscard]
+    [isBusy, queryClient, discard]
   );
 
   return { confirmDiscard, discard, isDiscarding };

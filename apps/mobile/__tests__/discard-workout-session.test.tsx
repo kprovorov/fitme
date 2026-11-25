@@ -112,6 +112,8 @@ const EXERCISE = `${SESSION}/exercises/s1-e1` as const;
 const GUIDE = "/exercises/squat/guide";
 const BARE_SESSION = "/workout-sessions/s1";
 
+const SESSION_KEY = ["workout-session", { sessionId: "s1" }];
+
 const OPTIONS = "Workout options";
 const DISCARD = "Discard Workout";
 
@@ -495,9 +497,7 @@ describe("a discard", () => {
     await discard();
 
     expect(fakePublicApi.count(READ)).toBe(reads + 1);
-    expect(
-      queryClient.getQueryData(["workout-session", { sessionId: "s1" }])
-    ).toBeUndefined();
+    expect(queryClient.getQueryData(SESSION_KEY)).toBeUndefined();
 
     // Its old link reads it, and finds it gone.
     await go(() => router.push(BARE_SESSION));
@@ -570,6 +570,48 @@ describe("when the session isn't open any more", () => {
     expect(screen.queryByTestId("finish-workout-button")).toBeNull();
     expect(screen.queryByLabelText(OPTIONS)).toBeNull();
     expect(mockTrack).not.toHaveBeenCalled();
+  });
+
+  it("keeps a newer read of the finished session", async () => {
+    await openSession();
+    const resume = fakePublicApi.pause(READ);
+    const reads = fakePublicApi.count(READ);
+    finishElsewhere();
+    await startDiscard();
+    await until(() => fakePublicApi.count(READ) === reads + 1);
+    // A read landing meanwhile, after another client's change.
+    const shown = queryClient.getQueryData<object>(SESSION_KEY);
+    queryClient.setQueryData(SESSION_KEY, { ...shown, weight_unit: "lbs" });
+    backend.profiles[0].measurement_system = "us";
+    resume();
+    await settle(queryClient);
+
+    // Read again rather than shown from the older answer.
+    expect(fakePublicApi.count(READ)).toBe(reads + 2);
+    expect(queryClient.getQueryData(SESSION_KEY)).toMatchObject({
+      finished_at: expect.any(String),
+      weight_unit: "lbs",
+    });
+  });
+
+  it("shows it finished even when reading it again fails", async () => {
+    await openSession();
+    const resume = fakePublicApi.pause(READ);
+    const reads = fakePublicApi.count(READ);
+    finishElsewhere();
+    await startDiscard();
+    await until(() => fakePublicApi.count(READ) === reads + 1);
+    const shown = queryClient.getQueryData<object>(SESSION_KEY);
+    queryClient.setQueryData(SESSION_KEY, { ...shown });
+    fakePublicApi.failNext(READ, "pass");
+    fakePublicApi.failNext(READ, { status: 500 });
+    resume();
+    await settle(queryClient);
+
+    expect(queryClient.getQueryData(SESSION_KEY)).toMatchObject({
+      finished_at: expect.any(String),
+    });
+    expect(alerts()).toEqual([["Workout already finished"]]);
   });
 
   it("counts one deleted elsewhere as discarded, with no DELETE", async () => {
