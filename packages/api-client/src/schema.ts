@@ -2544,12 +2544,12 @@ export interface paths {
     };
     /**
      * Preview a Workout Session's Plan Update
-     * @description The Plan Update of a finished Workout Session: the changes it made to its Workout (Exercises replaced, added or removed, sets added), which the User can save to the Plan. Writes nothing. A Workout Session without a Plan Update answers no changes. The sets the User removed are answered in `set_removals` only with `include_set_removals=true`, and an apply needs it too to remove them from the Plan; `changes`, the removal of an Exercise left without sets included, don't depend on it.
+     * @description The Plan Update of a finished Workout Session: the changes it made to its Workout (Exercises replaced, added or removed, sets added), which the User can save to the Plan. Writes nothing. A Workout Session without a Plan Update answers no changes and no set removals. The sets the User removed are answered in `set_removals` only with `include_set_removals=true`, and an apply needs it too to remove them from the Plan; `changes`, the removal of an Exercise left without sets included, don't depend on it.
      */
     get: {
       parameters: {
         query?: {
-          /** @description Opts in to set removals: only `true` answers them in `set_removals`, and applies them. Send it only if the User is shown what goes */
+          /** @description Opts in to set removals: only `true` has `set_removals` answered, and applied by an apply. Send it only if the User is shown what goes */
           include_set_removals?: boolean;
         };
         header?: never;
@@ -2619,7 +2619,7 @@ export interface paths {
     post: {
       parameters: {
         query?: {
-          /** @description Opts in to set removals: only `true` answers them in `set_removals`, and applies them. Send it only if the User is shown what goes */
+          /** @description Opts in to set removals: only `true` has `set_removals` answered, and applied by an apply. Send it only if the User is shown what goes */
           include_set_removals?: boolean;
         };
         header?: never;

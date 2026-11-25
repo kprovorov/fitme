@@ -497,7 +497,7 @@ const PlanUpdateQuery = z.object({
     .default(false)
     .openapi({
       description:
-        "Opts in to set removals: only `true` answers them in `set_removals`, and applies them. Send it only if the User is shown what goes",
+        "Opts in to set removals: only `true` has `set_removals` answered, and applied by an apply. Send it only if the User is shown what goes",
       type: "boolean",
     }),
 });
@@ -518,7 +518,7 @@ const planUpdateAnswer = (
 
 const previewPlanUpdateRoute = createRoute({
   description:
-    "The Plan Update of a finished Workout Session: the changes it made to its Workout (Exercises replaced, added or removed, sets added), which the User can save to the Plan. Writes nothing. A Workout Session without a Plan Update answers no changes. The sets the User removed are answered in `set_removals` only with `include_set_removals=true`, and an apply needs it too to remove them from the Plan; `changes`, the removal of an Exercise left without sets included, don't depend on it.",
+    "The Plan Update of a finished Workout Session: the changes it made to its Workout (Exercises replaced, added or removed, sets added), which the User can save to the Plan. Writes nothing. A Workout Session without a Plan Update answers no changes and no set removals. The sets the User removed are answered in `set_removals` only with `include_set_removals=true`, and an apply needs it too to remove them from the Plan; `changes`, the removal of an Exercise left without sets included, don't depend on it.",
   method: "get",
   middleware: [requires("read")] as const,
   path: "/{id}/plan-update",
