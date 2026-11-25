@@ -2,9 +2,7 @@ import { rateLimitedFor } from "@fitme/api-client";
 import { countLoggedSets } from "@fitme/core";
 import * as Sentry from "@sentry/react-native";
 import { useIsMutating, useQueryClient } from "@tanstack/react-query";
-import type { QueryClient, QueryKey } from "@tanstack/react-query";
 import { useNavigation } from "expo-router";
-import { CommonActions } from "expo-router/react-navigation";
 import type {
   NavigationProp,
   ParamListBase,
@@ -12,10 +10,9 @@ import type {
 import { useCallback, useMemo } from "react";
 import { Alert } from "react-native";
 
-import { forgetAddedSets } from "~/hooks/added-sets";
 import {
   claimEndingQuestion,
-  isSessionRoute,
+  closeDiscardedSession,
   readsChangedByFinish,
 } from "~/hooks/ending-workout-session";
 import {
@@ -28,86 +25,12 @@ import {
 } from "~/hooks/queries/workout-sessions";
 import type {
   DiscardSource,
-  OpenWorkoutSession,
   WorkoutSession,
 } from "~/hooks/queries/workout-sessions";
 import { IS_E2E } from "~/lib/constants";
 import { i18n } from "~/lib/i18n";
 import { segmentClient } from "~/lib/segment";
 import { isStillWriteStarter, rememberWriteStarter } from "~/lib/write-answers";
-
-/** Home's route in the root stack. */
-const HOME_ROUTE = "(tabs)";
-
-/**
- * Closes the session's own screens wherever they are in the stack, since the
- * User may have opened or left some while the server answered: what they came
- * from shows again, or Home when nothing is behind. Any other screen stays.
- */
-const leaveSession = (
-  navigation: NavigationProp<ParamListBase>,
-  sessionId: string
-): void => {
-  const state = navigation.getState();
-
-  if (!state) {
-    return;
-  }
-
-  const firstOwn = state.routes.findIndex((route) =>
-    isSessionRoute(route, sessionId)
-  );
-
-  if (firstOwn === -1) {
-    return;
-  }
-
-  const kept = state.routes.filter(
-    (route) => !isSessionRoute(route, sessionId)
-  );
-
-  const routes = firstOwn === 0 ? [{ name: HOME_ROUTE }, ...kept] : kept;
-
-  navigation.dispatch({
-    ...CommonActions.reset({ ...state, index: routes.length - 1, routes }),
-    target: state.key,
-  });
-};
-
-/**
- * Drops a read once no screen shows it. Dropped under a screen still
- * mounted, it would be read again and show the API's 404.
- */
-const dropOnceUnused = (client: QueryClient, queryKey: QueryKey): void => {
-  const cache = client.getQueryCache();
-  const query = cache.find({ exact: true, queryKey });
-
-  if (!query) {
-    return;
-  }
-
-  if (query.getObserversCount() === 0) {
-    cache.remove(query);
-
-    return;
-  }
-
-  const unsubscribe = cache.subscribe((event) => {
-    if (event.query !== query) {
-      return;
-    }
-
-    if (event.type === "removed") {
-      unsubscribe();
-    } else if (
-      event.type === "observerRemoved" &&
-      query.getObserversCount() === 0
-    ) {
-      unsubscribe();
-      cache.remove(query);
-    }
-  });
-};
 
 const alertDiscardFailed = (waitSeconds: number | null) =>
   Alert.alert(
@@ -194,23 +117,10 @@ export const useDiscardWorkoutSession = (sessionId: string) => {
       const shown = queryClient.getQueryData<WorkoutSession>(queryKey);
       const deleted = result.status === "discarded" ? result.session : shown;
 
-      leaveSession(navigation, sessionId);
-      dropOnceUnused(queryClient, queryKey);
-      forgetAddedSets(
-        [...(shown?.exercises ?? []), ...(deleted?.exercises ?? [])].map(
-          ({ id }) => id
-        )
-      );
-
-      // Start is free at once, even if reading it again fails.
-      queryClient.setQueryData<OpenWorkoutSession | null>(
-        OPEN_WORKOUT_SESSION_QUERY_KEY,
-        (open) => (open?.id === sessionId ? null : open)
-      );
-      void queryClient.invalidateQueries({
-        queryKey: OPEN_WORKOUT_SESSION_QUERY_KEY,
-      });
-      void queryClient.invalidateQueries({ queryKey: ["exercise-history"] });
+      closeDiscardedSession(queryClient, navigation, sessionId, [
+        shown,
+        deleted,
+      ]);
 
       if (!IS_E2E) {
         void segmentClient.track("Workout Discarded", {
@@ -247,11 +157,13 @@ export const useDiscardWorkoutSession = (sessionId: string) => {
         return;
       }
 
-      const release = claimEndingQuestion(queryClient, sessionId);
+      const question = claimEndingQuestion(queryClient, sessionId);
 
-      if (!release) {
+      if (!question) {
         return;
       }
+
+      const { isRevoked, release } = question;
 
       // Who is asked: another User may be signed in once it's answered.
       const asked = rememberWriteStarter(queryClient, []);
@@ -272,7 +184,7 @@ export const useDiscardWorkoutSession = (sessionId: string) => {
             onPress: () => {
               release();
 
-              if (isStillWriteStarter(asked)) {
+              if (!isRevoked() && isStillWriteStarter(asked)) {
                 discard(source);
               }
             },

@@ -118,9 +118,9 @@ const confirmFinishWorkout = async (
     return;
   }
 
-  const release = claimEndingQuestion(queryClient, sessionId);
+  const question = claimEndingQuestion(queryClient, sessionId);
 
-  if (!release) {
+  if (!question) {
     return;
   }
 
@@ -132,8 +132,12 @@ const confirmFinishWorkout = async (
     }
 
     answered = true;
-    release();
-    onAnswer?.();
+    question.release();
+
+    // Ended elsewhere while it was asked: its screens have moved on.
+    if (!question.isRevoked()) {
+      onAnswer?.();
+    }
   };
 
   const discardButton: AlertButton = {
