@@ -353,6 +353,25 @@
     "deleting": "正在刪除帳號",
     "failed": "無法刪除你的帳號，請再試一次。"
   },
+  "discardWorkout": {
+    "options": "訓練選項",
+    "action": "放棄訓練",
+    "confirm": {
+      "title": "放棄訓練？",
+      "loggedSets_other": "已紀錄的{{count, number}}組將被刪除。此動作無法復原。",
+      "nothingLogged": "尚未紀錄任何內容。",
+      "keepTraining": "繼續訓練",
+      "discard": "放棄"
+    },
+    "failed": {
+      "title": "無法放棄訓練",
+      "network": "請檢查網路連線後再試一次。",
+      "rateLimited": "請求過於頻繁，請在{{seconds, number}}秒後再試一次。"
+    },
+    "alreadyFinished": {
+      "title": "訓練已經結束"
+    }
+  },
   "duration": {
     "hoursMinutes": "{{hours, number}}小時{{minutes, number}}分",
     "hours": "{{hours, number}}小時",
@@ -959,6 +978,8 @@
     "continueNamed": "繼續{{name}}",
     "finishFirst": "請先完成正在進行的訓練",
     "finishFirstNamed": "請先完成{{name}}",
+    "finishOrDiscardFirst": "請先完成或放棄正在進行的訓練",
+    "finishOrDiscardFirstNamed": "請先完成或放棄{{name}}",
     "failed": {
       "title": "無法開始訓練",
       "network": "請檢查網路連線後再試一次。",

@@ -392,6 +392,28 @@
     "deleting": "Видалення акаунта",
     "failed": "Не вдалося видалити акаунт. Спробуй ще раз."
   },
+  "discardWorkout": {
+    "options": "Параметри тренування",
+    "action": "Відкинути тренування",
+    "confirm": {
+      "title": "Відкинути тренування?",
+      "loggedSets_one": "{{count, number}} записаний підхід буде видалено. Це не можна скасувати.",
+      "loggedSets_few": "{{count, number}} записані підходи буде видалено. Це не можна скасувати.",
+      "loggedSets_many": "{{count, number}} записаних підходів буде видалено. Це не можна скасувати.",
+      "loggedSets_other": "{{count, number}} записаного підходу буде видалено. Це не можна скасувати.",
+      "nothingLogged": "Ще нічого не записано.",
+      "keepTraining": "Продовжити тренування",
+      "discard": "Відкинути"
+    },
+    "failed": {
+      "title": "Не вдалося відкинути тренування",
+      "network": "Перевірте з’єднання і спробуйте ще раз.",
+      "rateLimited": "Забагато запитів: спробуйте ще раз через {{seconds, number}} с."
+    },
+    "alreadyFinished": {
+      "title": "Тренування вже завершено"
+    }
+  },
   "duration": {
     "hoursMinutes": "{{hours, number}} год {{minutes, number}} хв",
     "hours": "{{hours, number}} год",
@@ -1076,6 +1098,8 @@
     "continueNamed": "Продовжити «{{name}}»",
     "finishFirst": "Спершу завершіть поточне тренування",
     "finishFirstNamed": "Спершу завершіть «{{name}}»",
+    "finishOrDiscardFirst": "Спершу завершіть або відкиньте поточне тренування",
+    "finishOrDiscardFirstNamed": "Спершу завершіть або відкиньте «{{name}}»",
     "failed": {
       "title": "Не вдалося почати тренування",
       "network": "Перевірте з’єднання й спробуйте ще раз.",

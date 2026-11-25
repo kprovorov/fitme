@@ -353,6 +353,25 @@
     "deleting": "正在删除账户",
     "failed": "无法删除你的账户，请重试。"
   },
+  "discardWorkout": {
+    "options": "训练选项",
+    "action": "放弃训练",
+    "confirm": {
+      "title": "放弃训练？",
+      "loggedSets_other": "已记录的{{count, number}}组将被删除。此操作无法撤销。",
+      "nothingLogged": "尚未记录任何内容。",
+      "keepTraining": "继续训练",
+      "discard": "放弃"
+    },
+    "failed": {
+      "title": "无法放弃训练",
+      "network": "请检查网络连接后重试。",
+      "rateLimited": "请求过于频繁，请在{{seconds, number}}秒后重试。"
+    },
+    "alreadyFinished": {
+      "title": "训练已经结束"
+    }
+  },
   "duration": {
     "hoursMinutes": "{{hours, number}}小时{{minutes, number}}分",
     "hours": "{{hours, number}}小时",
@@ -959,6 +978,8 @@
     "continueNamed": "继续{{name}}",
     "finishFirst": "请先完成正在进行的训练",
     "finishFirstNamed": "请先完成{{name}}",
+    "finishOrDiscardFirst": "请先完成或放弃正在进行的训练",
+    "finishOrDiscardFirstNamed": "请先完成或放弃{{name}}",
     "failed": {
       "title": "无法开始训练",
       "network": "请检查网络连接后重试。",

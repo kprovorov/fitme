@@ -353,6 +353,25 @@
     "deleting": "계정 삭제 중",
     "failed": "계정을 삭제하지 못했어요. 다시 시도해 주세요."
   },
+  "discardWorkout": {
+    "options": "운동 옵션",
+    "action": "운동 버리기",
+    "confirm": {
+      "title": "진행 중인 운동을 버릴까요?",
+      "loggedSets_other": "기록한 {{count, number}}세트가 삭제돼요. 이 작업은 되돌릴 수 없어요.",
+      "nothingLogged": "아직 기록된 내용이 없어요.",
+      "keepTraining": "계속 운동하기",
+      "discard": "버리기"
+    },
+    "failed": {
+      "title": "운동을 버리지 못했어요",
+      "network": "연결 상태를 확인하고 다시 시도해 주세요.",
+      "rateLimited": "요청이 너무 많아요. {{seconds, number}}초 후에 다시 시도해 주세요."
+    },
+    "alreadyFinished": {
+      "title": "이미 마친 운동이에요"
+    }
+  },
   "duration": {
     "hoursMinutes": "{{hours, number}}시간 {{minutes, number}}분",
     "hours": "{{hours, number}}시간",
@@ -959,6 +978,8 @@
     "continueNamed": "{{name}} 계속하기",
     "finishFirst": "먼저 진행 중인 운동을 마쳐 주세요",
     "finishFirstNamed": "{{name}} 먼저 마치기",
+    "finishOrDiscardFirst": "먼저 진행 중인 운동을 마치거나 버려 주세요",
+    "finishOrDiscardFirstNamed": "{{name}} 먼저 마치거나 버리기",
     "failed": {
       "title": "운동을 시작하지 못했어요",
       "network": "연결 상태를 확인하고 다시 시도해 주세요.",

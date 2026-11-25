@@ -366,6 +366,26 @@
     "deleting": "Account verwijderen",
     "failed": "Je account kon niet worden verwijderd. Probeer het opnieuw."
   },
+  "discardWorkout": {
+    "options": "Trainingsopties",
+    "action": "Training verwerpen",
+    "confirm": {
+      "title": "Training verwerpen?",
+      "loggedSets_one": "{{count, number}} geregistreerde set wordt verwijderd. Dit kan niet ongedaan worden gemaakt.",
+      "loggedSets_other": "{{count, number}} geregistreerde sets worden verwijderd. Dit kan niet ongedaan worden gemaakt.",
+      "nothingLogged": "Er is nog niets geregistreerd.",
+      "keepTraining": "Verder trainen",
+      "discard": "Verwerpen"
+    },
+    "failed": {
+      "title": "Training verwerpen mislukt",
+      "network": "Controleer je verbinding en probeer het opnieuw.",
+      "rateLimited": "Te veel verzoeken: probeer het over {{seconds, number}} s opnieuw."
+    },
+    "alreadyFinished": {
+      "title": "Training al afgerond"
+    }
+  },
   "duration": {
     "hoursMinutes": "{{hours, number}} u {{minutes, number}} min",
     "hours": "{{hours, number}} u",
@@ -998,6 +1018,8 @@
     "continueNamed": "Doorgaan met {{name}}",
     "finishFirst": "Rond eerst je lopende training af",
     "finishFirstNamed": "Rond eerst {{name}} af",
+    "finishOrDiscardFirst": "Rond eerst je lopende training af of verwerp deze",
+    "finishOrDiscardFirstNamed": "Rond eerst {{name}} af of verwerp deze training",
     "failed": {
       "title": "Training starten mislukt",
       "network": "Controleer je verbinding en probeer het opnieuw.",

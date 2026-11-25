@@ -379,6 +379,27 @@
     "deleting": "Excluindo conta",
     "failed": "Não foi possível excluir sua conta. Tente novamente."
   },
+  "discardWorkout": {
+    "options": "Opções do treino",
+    "action": "Descartar treino",
+    "confirm": {
+      "title": "Descartar treino?",
+      "loggedSets_one": "{{count, number}} série registrada será excluída. Isso não pode ser desfeito.",
+      "loggedSets_other": "{{count, number}} séries registradas serão excluídas. Isso não pode ser desfeito.",
+      "loggedSets_many": "{{count, number}} séries registradas serão excluídas. Isso não pode ser desfeito.",
+      "nothingLogged": "Nada foi registrado ainda.",
+      "keepTraining": "Continuar treinando",
+      "discard": "Descartar"
+    },
+    "failed": {
+      "title": "Não foi possível descartar o treino",
+      "network": "Verifique sua conexão e tente novamente.",
+      "rateLimited": "Muitas solicitações: tente novamente em {{seconds, number}} s."
+    },
+    "alreadyFinished": {
+      "title": "O treino já terminou"
+    }
+  },
   "duration": {
     "hoursMinutes": "{{hours, number}}h {{minutes, number}}min",
     "hours": "{{hours, number}}h",
@@ -1037,6 +1058,8 @@
     "continueNamed": "Continuar {{name}}",
     "finishFirst": "Primeiro, termine o treino em andamento",
     "finishFirstNamed": "Primeiro, termine {{name}}",
+    "finishOrDiscardFirst": "Primeiro, termine ou descarte o treino em andamento",
+    "finishOrDiscardFirstNamed": "Primeiro, termine ou descarte {{name}}",
     "failed": {
       "title": "Não foi possível iniciar o treino",
       "network": "Verifique sua conexão e tente novamente.",

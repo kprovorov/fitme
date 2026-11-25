@@ -366,6 +366,26 @@
     "deleting": "Konto wird gelöscht",
     "failed": "Dein Konto konnte nicht gelöscht werden. Versuche es erneut."
   },
+  "discardWorkout": {
+    "options": "Trainingsoptionen",
+    "action": "Training verwerfen",
+    "confirm": {
+      "title": "Training verwerfen?",
+      "loggedSets_one": "{{count, number}} protokollierter Satz wird gelöscht. Das kann nicht rückgängig gemacht werden.",
+      "loggedSets_other": "{{count, number}} protokollierte Sätze werden gelöscht. Das kann nicht rückgängig gemacht werden.",
+      "nothingLogged": "Es wurde noch nichts protokolliert.",
+      "keepTraining": "Weitertrainieren",
+      "discard": "Verwerfen"
+    },
+    "failed": {
+      "title": "Training konnte nicht verworfen werden",
+      "network": "Prüfe deine Verbindung und versuche es erneut.",
+      "rateLimited": "Zu viele Anfragen. Bitte versuche es in {{seconds, number}} s erneut."
+    },
+    "alreadyFinished": {
+      "title": "Training bereits beendet"
+    }
+  },
   "duration": {
     "hoursMinutes": "{{hours, number}} h {{minutes, number}} min",
     "hours": "{{hours, number}} h",
@@ -998,6 +1018,8 @@
     "continueNamed": "{{name}} fortsetzen",
     "finishFirst": "Beende zuerst dein laufendes Training",
     "finishFirstNamed": "Beende zuerst {{name}}",
+    "finishOrDiscardFirst": "Beende oder verwirf zuerst dein laufendes Training",
+    "finishOrDiscardFirstNamed": "Beende oder verwirf zuerst {{name}}",
     "failed": {
       "title": "Training konnte nicht gestartet werden",
       "network": "Prüfe deine Verbindung und versuche es erneut.",

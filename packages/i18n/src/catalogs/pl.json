@@ -392,6 +392,28 @@
     "deleting": "Usuwanie konta",
     "failed": "Nie udało się usunąć konta. Spróbuj ponownie."
   },
+  "discardWorkout": {
+    "options": "Opcje treningu",
+    "action": "Odrzuć trening",
+    "confirm": {
+      "title": "Odrzucić trening?",
+      "loggedSets_one": "{{count, number}} zapisana seria zostanie usunięta. Tej operacji nie można cofnąć.",
+      "loggedSets_few": "{{count, number}} zapisane serie zostaną usunięte. Tej operacji nie można cofnąć.",
+      "loggedSets_many": "{{count, number}} zapisanych serii zostanie usuniętych. Tej operacji nie można cofnąć.",
+      "loggedSets_other": "{{count, number}} zapisanej serii zostanie usunięte. Tej operacji nie można cofnąć.",
+      "nothingLogged": "Nic jeszcze nie zapisano.",
+      "keepTraining": "Ćwicz dalej",
+      "discard": "Odrzuć"
+    },
+    "failed": {
+      "title": "Nie udało się odrzucić treningu",
+      "network": "Sprawdź połączenie i spróbuj ponownie.",
+      "rateLimited": "Zbyt wiele żądań. Spróbuj ponownie za {{seconds, number}} s."
+    },
+    "alreadyFinished": {
+      "title": "Trening jest już zakończony"
+    }
+  },
   "duration": {
     "hoursMinutes": "{{hours, number}} h {{minutes, number}} min",
     "hours": "{{hours, number}} h",
@@ -1076,6 +1098,8 @@
     "continueNamed": "Kontynuuj {{name}}",
     "finishFirst": "Najpierw zakończ trwający trening",
     "finishFirstNamed": "Najpierw zakończ {{name}}",
+    "finishOrDiscardFirst": "Najpierw zakończ lub odrzuć trwający trening",
+    "finishOrDiscardFirstNamed": "Najpierw zakończ lub odrzuć {{name}}",
     "failed": {
       "title": "Nie udało się rozpocząć treningu",
       "network": "Sprawdź połączenie i spróbuj ponownie.",
