@@ -73,10 +73,7 @@ export const markAddedSetSaved = (
   );
 };
 
-/**
- * Drops the added sets logging has created, once a read has them (or has
- * shown they're gone).
- */
+/** Drops the added sets logging has created, once a read has them. */
 export const dropReadAddedSets = (
   exerciseId: string,
   readIds: ReadonlySet<string>
@@ -88,6 +85,11 @@ export const dropReadAddedSets = (
   if (left.length < sets.length) {
     setAddedSetsOf(exerciseId, left);
   }
+};
+
+/** Drops the added set logging created as `savedId`: it's gone (a 404). */
+export const dropGoneAddedSet = (exerciseId: string, savedId: string): void => {
+  dropReadAddedSets(exerciseId, new Set([savedId]));
 };
 
 /** Forgets the added sets of these Workout Session Exercises (a discard). */

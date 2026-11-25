@@ -6,7 +6,7 @@ import { useTranslation } from "react-i18next";
 import { AccessibilityInfo, View } from "react-native";
 
 import { SymbolImage } from "~/components/symbol-image";
-import { dropReadAddedSets } from "~/hooks/added-sets";
+import { dropGoneAddedSet } from "~/hooks/added-sets";
 import { reportWorkoutSetTracked } from "~/hooks/finish-workout-suggestion";
 import {
   useCreateWorkoutSessionExerciseSetMutation,
@@ -104,11 +104,12 @@ const WorkoutSessionExerciseSetRowView = ({
     const queryKey = useWorkoutSessionQuery.getKey({ sessionId });
     await queryClient.invalidateQueries({ queryKey });
 
+    // A failed read, or one that never ran, leaves it invalidated.
     const read = queryClient.getQueryState(queryKey);
 
     if (!isNewSet && read?.status === "success" && !read.isInvalidated) {
       // Added here and never read: the phone's own copy would keep its row.
-      dropReadAddedSets(exerciseId, new Set([workoutSessionExerciseSet.id]));
+      dropGoneAddedSet(exerciseId, workoutSessionExerciseSet.id);
     }
   };
 
