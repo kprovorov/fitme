@@ -2,13 +2,18 @@ import { ApiError } from "@fitme/api-client";
 import type { components } from "@fitme/api-client";
 import type {
   InvalidateQueryFilters,
+  MutationFilters,
   QueryClient,
 } from "@tanstack/react-query";
 import { createMutation, createQuery } from "react-query-kit";
 
 import type { PlanUpdate } from "~/lib/plan-changes";
 import { publicApi } from "~/lib/public-api";
-import { rememberWriteStarter, seedWriteAnswer } from "~/lib/write-answers";
+import {
+  isStillWriteStarter,
+  rememberWriteStarter,
+  seedWriteAnswer,
+} from "~/lib/write-answers";
 import type { SeedResult, WriteStarter } from "~/lib/write-answers";
 
 /**
@@ -273,6 +278,93 @@ export const useFinishWorkoutSessionMutation = createMutation<
       useWorkoutSessionQuery.getKey({ sessionId }),
     ]),
 });
+
+/** Where a discard was asked for, as `Workout Discarded` says it. */
+export type DiscardSource = "finish_alert" | "menu";
+
+export interface DiscardWorkoutSessionVariables {
+  sessionId: string;
+  source: DiscardSource;
+  /** The User who asked, who may have signed out since. */
+  starter: WriteStarter;
+}
+
+/**
+ * What became of a discard: `discarded` with the Workout Session as it was
+ * read right before the DELETE, `gone` when it already had been (a retried
+ * lost answer, or deleted elsewhere), `finished` when it was finished
+ * elsewhere and nothing was deleted, or `signed-out` when the User who asked
+ * no longer is signed in and nothing more was sent.
+ */
+export type DiscardResult =
+  | { session: WorkoutSession; status: "discarded" }
+  | { session: WorkoutSession; status: "finished" }
+  | { status: "gone" }
+  | { status: "signed-out" };
+
+export const DISCARD_WORKOUT_SESSION_MUTATION_KEY = ["discard-workout-session"];
+
+/**
+ * Discards an open Workout Session: reads it again, then, only while it's
+ * open, deletes it through `DELETE /v1/workout-sessions/{id}`, which deletes
+ * a finished one too. Rejects with an `ApiError`.
+ */
+export const useDiscardWorkoutSessionMutation = createMutation<
+  DiscardResult,
+  DiscardWorkoutSessionVariables
+>({
+  mutationFn: async ({
+    sessionId,
+    starter,
+  }: DiscardWorkoutSessionVariables): Promise<DiscardResult> => {
+    let session: WorkoutSession;
+
+    try {
+      // Never the cache, which may predate a finish on another device.
+      session = await fetchWorkoutSession(sessionId);
+    } catch (error) {
+      if (error instanceof ApiError && error.code === "not_found") {
+        return { status: "gone" };
+      }
+
+      throw error;
+    }
+
+    if (!isStillWriteStarter(starter)) {
+      return { status: "signed-out" };
+    }
+
+    if (session.finished_at) {
+      return { session, status: "finished" };
+    }
+
+    await publicApi().DELETE("/v1/workout-sessions/{id}", {
+      params: { path: { id: sessionId } },
+    });
+
+    return { session, status: "discarded" };
+  },
+  mutationKey: DISCARD_WORKOUT_SESSION_MUTATION_KEY,
+});
+
+/** The pending finish of a Workout Session, or its pending discard. */
+const pendingFilters = (
+  mutationKey: string[],
+  sessionId: string
+): MutationFilters => ({
+  mutationKey,
+  // SAFETY: Both mutation keys select mutations whose variables carry the session's id.
+  predicate: (mutation) =>
+    (mutation.state.variables as { sessionId: string } | undefined)
+      ?.sessionId === sessionId,
+  status: "pending",
+});
+
+export const finishingFilters = (sessionId: string): MutationFilters =>
+  pendingFilters(FINISH_WORKOUT_SESSION_MUTATION_KEY, sessionId);
+
+export const discardingFilters = (sessionId: string): MutationFilters =>
+  pendingFilters(DISCARD_WORKOUT_SESSION_MUTATION_KEY, sessionId);
 
 const planUpdateOf = (answer: { data: PlanUpdate } | undefined): PlanUpdate => {
   if (!answer) {

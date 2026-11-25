@@ -12,6 +12,7 @@ import WorkoutSessionView from "~/components/views/workout-session-view";
 import SessionLoadError from "~/components/workout-sessions/session-load-error";
 import { WorkoutSessionFinishSuggestion } from "~/components/workout-sessions/workout-session-finish-suggestion";
 import WorkoutSessionStats from "~/components/workout-sessions/workout-session-stats";
+import { useDiscardWorkoutSession } from "~/hooks/discard-workout-session";
 import { useFinishWorkoutSession } from "~/hooks/finish-workout-session";
 import { useWorkoutSessionQuery } from "~/hooks/queries/workout-sessions";
 
@@ -27,7 +28,8 @@ interface WorkoutSessionScreenProps {
 
 /**
  * A workout session: its name with Finish while it runs, its stats, then a
- * card per exercise whose sets are logged right there. Both session routes
+ * card per exercise whose sets are logged right there, and a header menu
+ * discarding it while it's open. Both session routes
  * (from a plan, and `/workout-sessions/:id`) render it.
  */
 const WorkoutSessionScreen = ({ sessionId }: WorkoutSessionScreenProps) => {
@@ -49,11 +51,13 @@ const WorkoutSessionScreen = ({ sessionId }: WorkoutSessionScreenProps) => {
 
   const { confirmFinish, isFinishing } = useFinishWorkoutSession(sessionId);
 
+  const { confirmDiscard, isDiscarding } = useDiscardWorkoutSession(sessionId);
+
   const retry = useCallback(() => {
     void refetch();
   }, [refetch]);
 
-  const canFinish = !!workoutSession && !workoutSession.finished_at;
+  const isOpen = !!workoutSession && !workoutSession.finished_at;
 
   const renderContent = () => {
     if (workoutSession) {
@@ -71,8 +75,9 @@ const WorkoutSessionScreen = ({ sessionId }: WorkoutSessionScreenProps) => {
                 <H4 className={stacked ? undefined : "flex-1"}>
                   {workoutSession.workout?.name}
                 </H4>
-                {canFinish ? (
+                {isOpen ? (
                   <Button
+                    disabled={isDiscarding}
                     fill={false}
                     isLoading={isFinishing}
                     label={t("workoutSession.finish")}
@@ -112,13 +117,43 @@ const WorkoutSessionScreen = ({ sessionId }: WorkoutSessionScreenProps) => {
 
   return (
     <>
-      {/* The workout's name and Finish head the content: the header only goes back. */}
+      {/* The workout's name and Finish head the content: the header goes back and has
+          the menu. */}
       <Stack.Screen
         options={{
           headerBackButtonDisplayMode: "minimal",
           headerShown: true,
           headerTransparent: true,
           title: "",
+          // Only an open session can be discarded.
+          unstable_headerRightItems: () =>
+            isOpen
+              ? [
+                  {
+                    icon: {
+                      name: "ellipsis",
+                      type: "sfSymbol",
+                    },
+                    label: t("discardWorkout.options"),
+                    menu: {
+                      items: [
+                        {
+                          destructive: true,
+                          disabled: isDiscarding || isFinishing,
+                          icon: {
+                            name: "trash",
+                            type: "sfSymbol",
+                          },
+                          label: t("discardWorkout.action"),
+                          onPress: () => confirmDiscard(workoutSession, "menu"),
+                          type: "action",
+                        },
+                      ],
+                    },
+                    type: "menu",
+                  },
+                ]
+              : [],
         }}
       />
       <KeyboardAwareScrollView

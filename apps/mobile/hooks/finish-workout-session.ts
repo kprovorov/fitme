@@ -2,41 +2,30 @@ import { rateLimitedFor } from "@fitme/api-client";
 import { countUnloggedSets } from "@fitme/core";
 import * as Sentry from "@sentry/react-native";
 import { useIsMutating, useQueryClient } from "@tanstack/react-query";
-import type { MutationFilters, QueryClient } from "@tanstack/react-query";
+import type { QueryClient } from "@tanstack/react-query";
 import { useNavigation, useRouter } from "expo-router";
 import { useCallback, useMemo } from "react";
 import { Alert } from "react-native";
 
-import { showPlanUpdatePrompt } from "~/hooks/plan-update-prompt";
-import { PLANS_QUERY_KEY, usePlanQuery } from "~/hooks/queries/plans";
-import { WEEKLY_GOALS_QUERY_KEY } from "~/hooks/queries/weekly-goals";
 import {
-  FINISH_WORKOUT_SESSION_MUTATION_KEY,
+  isSessionRoute,
+  readsChangedByFinish,
+} from "~/hooks/ending-workout-session";
+import { showPlanUpdatePrompt } from "~/hooks/plan-update-prompt";
+import {
+  discardingFilters,
   fetchPlanUpdate,
-  LIFETIME_TOTALS_QUERY_KEY,
-  OPEN_WORKOUT_SESSION_QUERY_KEY,
+  finishingFilters,
   seedWorkoutSession,
   useFinishWorkoutSessionMutation,
   useWorkoutSessionQuery,
 } from "~/hooks/queries/workout-sessions";
-import type {
-  FinishWorkoutSessionVariables,
-  WorkoutSession,
-} from "~/hooks/queries/workout-sessions";
+import type { WorkoutSession } from "~/hooks/queries/workout-sessions";
 import { i18n } from "~/lib/i18n";
 import { countPlanChanges, planUpdateProperties } from "~/lib/plan-changes";
 import type { PlanUpdate } from "~/lib/plan-changes";
 import { segmentClient } from "~/lib/segment";
 import { isStillWriteStarter } from "~/lib/write-answers";
-
-const finishingFilters = (sessionId: string): MutationFilters => ({
-  mutationKey: FINISH_WORKOUT_SESSION_MUTATION_KEY,
-  // SAFETY: This mutation key selects finishes whose variables are FinishWorkoutSessionVariables.
-  predicate: (mutation) =>
-    (mutation.state.variables as FinishWorkoutSessionVariables | undefined)
-      ?.sessionId === sessionId,
-  status: "pending",
-});
 
 interface NavigationState {
   index: number;
@@ -56,16 +45,7 @@ const isSessionScreenBelow = (
     return false;
   }
 
-  const params = state.routes[state.index - screensAbove]?.params;
-
-  if (!params) {
-    return false;
-  }
-
-  return (
-    ("sessionId" in params && params.sessionId === sessionId) ||
-    ("workoutSessionId" in params && params.workoutSessionId === sessionId)
-  );
+  return isSessionRoute(state.routes[state.index - screensAbove], sessionId);
 };
 
 const alertFinishFailed = (waitSeconds: number | null = null) =>
@@ -190,9 +170,10 @@ const confirmFinishWorkout = async (
  * fails because of it. Shared by every way of
  * finishing a session (the header's Finish button and the finish
  * suggestion), so they behave the same. `isFinishing` covers finishes
- * started from any screen, and `finish` does nothing while one is pending,
- * so the session is never finished twice. A failed finish shows an alert and
- * leaves the session active, so the user can try again.
+ * started from any screen, and `finish` does nothing while one is pending
+ * (or a discard, `useDiscardWorkoutSession`), so the session is never finished
+ * twice. A failed finish shows an alert and leaves the session active, so the
+ * user can try again.
  *
  * `screensAboveSession` is how many screens the caller sits above the
  * session screen (e.g. 1 for an exercise of the session). When that screen
@@ -236,20 +217,12 @@ export const useFinishWorkoutSession = (
       // Every screen of it (the Summary included) shows the answer, with no
       // re-read (or reads it again, when a newer read landed meanwhile), and
       // the reads it changed are read again.
-      const seeded = await seedWorkoutSession(queryClient, starter, session, [
-        // Its Workout moved to the end of the rotation.
-        { queryKey: PLANS_QUERY_KEY },
-        { queryKey: usePlanQuery.getKey() },
-        { queryKey: ["exercise-history"] },
-        // History's months and Weekly goal chart count it now (a finish may
-        // also start goal tracking)
-        { queryKey: ["workout-sessions-history"] },
-        { queryKey: WEEKLY_GOALS_QUERY_KEY },
-        // Profile's Lifetime totals count it too.
-        { queryKey: LIFETIME_TOTALS_QUERY_KEY },
-        // Start is no longer blocked on it.
-        { queryKey: OPEN_WORKOUT_SESSION_QUERY_KEY },
-      ]);
+      const seeded = await seedWorkoutSession(
+        queryClient,
+        starter,
+        session,
+        readsChangedByFinish()
+      );
 
       if (seeded === "signed-out") {
         return;
@@ -309,7 +282,10 @@ export const useFinishWorkoutSession = (
   });
 
   const finish = useCallback(() => {
-    if (queryClient.isMutating(filters) > 0) {
+    if (
+      queryClient.isMutating(filters) > 0 ||
+      queryClient.isMutating(discardingFilters(sessionId)) > 0
+    ) {
       return;
     }
 
@@ -317,6 +293,10 @@ export const useFinishWorkoutSession = (
   }, [filters, mutate, queryClient, sessionId]);
 
   const confirmFinish = useCallback(() => {
+    if (queryClient.isMutating(discardingFilters(sessionId)) > 0) {
+      return;
+    }
+
     void confirmFinishWorkout(queryClient, sessionId, finish);
   }, [finish, queryClient, sessionId]);
 

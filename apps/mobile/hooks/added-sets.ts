@@ -67,6 +67,15 @@ export const dropAddedSet = (exerciseId: string, id: string): void => {
   }
 };
 
+/** Forgets the added sets of these Workout Session Exercises (a discard). */
+export const forgetAddedSets = (exerciseIds: Iterable<string>): void => {
+  for (const exerciseId of exerciseIds) {
+    if (addedSets.has(exerciseId)) {
+      setAddedSetsOf(exerciseId, NO_ADDED_SETS);
+    }
+  }
+};
+
 /** Forgets every added set (a sign-out, and after each test). */
 export const clearAddedSets = (): void => {
   if (addedSets.size === 0) {
