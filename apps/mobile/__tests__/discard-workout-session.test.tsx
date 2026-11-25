@@ -224,22 +224,28 @@ const alerts = () =>
 
 const lastButtons = () => jest.mocked(Alert.alert).mock.lastCall?.[2] ?? [];
 
-const answer = async (text: string) => {
+const buttonNamed = (text: string) =>
+  lastButtons().find((button) => button.text === text);
+
+const pressButton = async (button: ReturnType<typeof buttonNamed>) => {
   await act(async () => {
-    lastButtons()
-      .find((button) => button.text === text)
-      ?.onPress?.();
+    button?.onPress?.();
     await Promise.resolve();
   });
 };
 
+const answer = (text: string) => pressButton(buttonNamed(text));
+
 const ask = () => fireEvent.press(screen.getByLabelText(DISCARD));
 
-/** Asks, confirms, and forgets the question, leaving the discard running. */
+/** Asks, forgets the question and confirms, leaving the discard running. */
 const startDiscard = async () => {
   await ask();
-  await answer("Discard");
+
+  // Forgotten before the press, which can already bring up the next alert.
+  const button = buttonNamed("Discard");
   jest.mocked(Alert.alert).mockClear();
+  await pressButton(button);
 };
 
 const discard = async () => {
