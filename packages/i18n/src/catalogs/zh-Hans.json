@@ -976,8 +976,6 @@
     "start": "开始训练",
     "continue": "继续训练",
     "continueNamed": "继续{{name}}",
-    "finishFirst": "请先完成正在进行的训练",
-    "finishFirstNamed": "请先完成{{name}}",
     "finishOrDiscardFirst": "请先完成或放弃正在进行的训练",
     "finishOrDiscardFirstNamed": "请先完成或放弃{{name}}",
     "failed": {

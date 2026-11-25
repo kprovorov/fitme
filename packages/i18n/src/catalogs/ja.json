@@ -976,8 +976,6 @@
     "start": "ワークアウトを開始",
     "continue": "ワークアウトを再開",
     "continueNamed": "{{name}}を再開",
-    "finishFirst": "まず実施中のワークアウトを終了してください",
-    "finishFirstNamed": "まず{{name}}を終了してください",
     "finishOrDiscardFirst": "まず実施中のワークアウトを終了または破棄してください",
     "finishOrDiscardFirstNamed": "まず{{name}}を終了または破棄してください",
     "failed": {

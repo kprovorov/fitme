@@ -1016,8 +1016,6 @@
     "start": "Start Workout",
     "continue": "Continue Workout",
     "continueNamed": "Continue {{name}}",
-    "finishFirst": "Finish your workout in progress first",
-    "finishFirstNamed": "Finish {{name}} first",
     "finishOrDiscardFirst": "Finish or discard your workout in progress first",
     "finishOrDiscardFirstNamed": "Finish or discard {{name}} first",
     "failed": {

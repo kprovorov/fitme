@@ -1016,8 +1016,6 @@
     "start": "Training starten",
     "continue": "Training fortsetzen",
     "continueNamed": "{{name}} fortsetzen",
-    "finishFirst": "Beende zuerst dein laufendes Training",
-    "finishFirstNamed": "Beende zuerst {{name}}",
     "finishOrDiscardFirst": "Beende oder verwirf zuerst dein laufendes Training",
     "finishOrDiscardFirstNamed": "Beende oder verwirf zuerst {{name}}",
     "failed": {

@@ -1056,8 +1056,6 @@
     "start": "Commencer la séance",
     "continue": "Continuer la séance",
     "continueNamed": "Continuer {{name}}",
-    "finishFirst": "Termine d'abord ta séance en cours",
-    "finishFirstNamed": "Termine d'abord {{name}}",
     "finishOrDiscardFirst": "Termine ou abandonne d'abord ta séance en cours",
     "finishOrDiscardFirstNamed": "Termine ou abandonne d'abord {{name}}",
     "failed": {
