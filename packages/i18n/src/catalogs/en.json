@@ -744,6 +744,8 @@
       "remove": "Remove {{exercise}}",
       "addSets_one": "Add {{count, number}} set to {{exercise}}",
       "addSets_other": "Add {{count, number}} sets to {{exercise}}",
+      "removeSets_one": "Remove {{count, number}} set from {{exercise}}",
+      "removeSets_other": "Remove {{count, number}} sets from {{exercise}}",
       "line": "{{change}} · {{sets}}",
       "spokenLine": "{{change}}: {{sets}}",
       "spokenSet": "{{reps}} at {{weight}}"
@@ -966,11 +968,20 @@
       "log": "Log set {{order, number}}",
       "edit": "Edit set {{order, number}}",
       "editHint": "Opens the set for editing",
+      "remove": "Remove set {{order, number}}",
       "logged": "Set {{order, number}}, logged"
     },
     "errors": {
       "save": "Couldn't save this set. Try again.",
       "rateLimited": "Too many requests. Try again in {{seconds, number}} s."
+    },
+    "remove": {
+      "button": "Remove",
+      "confirm": {
+        "title": "Remove set {{order, number}}?",
+        "message": "This set is already logged. Removing it can't be undone.",
+        "remove": "Remove"
+      }
     },
     "form": {
       "weightNotNumber": "Weight must be a number",
@@ -1166,12 +1177,15 @@
       "openHint": "Opens the exercise",
       "moreOptions": "More options for {{name}}",
       "replace": "Replace",
-      "delete": "Delete"
+      "delete": "Delete",
+      "remove": "Remove"
     },
     "editFailed": {
       "addTitle": "Couldn't add exercise",
       "replaceTitle": "Couldn't replace exercise",
       "deleteTitle": "Couldn't delete exercise",
+      "removeTitle": "Couldn't remove exercise",
+      "removeSetTitle": "Couldn't remove set",
       "libraryUnavailable": "The exercise library is unavailable right now. Please try again.",
       "sessionFinished": "This workout is already finished.",
       "rateLimited": "Too many requests: please try again in {{seconds, number}} s.",

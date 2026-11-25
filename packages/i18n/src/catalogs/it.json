@@ -766,6 +766,9 @@
       "addSets_one": "Aggiungi {{count, number}} serie a {{exercise}}",
       "addSets_many": "Aggiungi {{count, number}} serie a {{exercise}}",
       "addSets_other": "Aggiungi {{count, number}} serie a {{exercise}}",
+      "removeSets_one": "Rimuovi {{count, number}} serie da {{exercise}}",
+      "removeSets_many": "Rimuovi {{count, number}} serie da {{exercise}}",
+      "removeSets_other": "Rimuovi {{count, number}} serie da {{exercise}}",
       "line": "{{change}} · {{sets}}",
       "spokenLine": "{{change}}: {{sets}}",
       "spokenSet": "{{reps}} con {{weight}}"
@@ -997,11 +1000,20 @@
       "log": "Registra serie {{order, number}}",
       "edit": "Modifica serie {{order, number}}",
       "editHint": "Apre la serie per modificarla",
+      "remove": "Rimuovi serie {{order, number}}",
       "logged": "Serie {{order, number}}, registrata"
     },
     "errors": {
       "save": "Impossibile salvare questa serie. Riprova.",
       "rateLimited": "Troppe richieste. Riprova tra {{seconds, number}} s."
+    },
+    "remove": {
+      "button": "Rimuovi",
+      "confirm": {
+        "title": "Rimuovere la serie {{order, number}}?",
+        "message": "Questa serie è già registrata. La rimozione non può essere annullata.",
+        "remove": "Rimuovi"
+      }
     },
     "form": {
       "weightNotNumber": "Il peso deve essere un numero",
@@ -1208,12 +1220,15 @@
       "openHint": "Apre l'esercizio",
       "moreOptions": "Altre opzioni per {{name}}",
       "replace": "Sostituisci",
-      "delete": "Elimina"
+      "delete": "Elimina",
+      "remove": "Rimuovi"
     },
     "editFailed": {
       "addTitle": "Impossibile aggiungere l'esercizio",
       "replaceTitle": "Impossibile sostituire l'esercizio",
       "deleteTitle": "Impossibile eliminare l'esercizio",
+      "removeTitle": "Impossibile rimuovere l'esercizio",
+      "removeSetTitle": "Impossibile rimuovere la serie",
       "libraryUnavailable": "La libreria degli esercizi non è disponibile al momento. Riprova.",
       "sessionFinished": "Questo allenamento è già terminato.",
       "rateLimited": "Troppe richieste: riprova tra {{seconds, number}} s.",

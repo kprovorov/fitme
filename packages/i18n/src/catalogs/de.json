@@ -744,6 +744,8 @@
       "remove": "{{exercise}} entfernen",
       "addSets_one": "{{count, number}} Satz zu {{exercise}} hinzufügen",
       "addSets_other": "{{count, number}} Sätze zu {{exercise}} hinzufügen",
+      "removeSets_one": "{{count, number}} Satz aus {{exercise}} entfernen",
+      "removeSets_other": "{{count, number}} Sätze aus {{exercise}} entfernen",
       "line": "{{change}} · {{sets}}",
       "spokenLine": "{{change}}: {{sets}}",
       "spokenSet": "{{reps}} mit {{weight}}"
@@ -966,11 +968,20 @@
       "log": "Satz {{order, number}} protokollieren",
       "edit": "Satz {{order, number}} bearbeiten",
       "editHint": "Öffnet den Satz zum Bearbeiten",
+      "remove": "Satz {{order, number}} entfernen",
       "logged": "Satz {{order, number}}, protokolliert"
     },
     "errors": {
       "save": "Dieser Satz konnte nicht gespeichert werden. Versuche es erneut.",
       "rateLimited": "Zu viele Anfragen. Versuche es in {{seconds, number}} s erneut."
+    },
+    "remove": {
+      "button": "Entfernen",
+      "confirm": {
+        "title": "Satz {{order, number}} entfernen?",
+        "message": "Dieser Satz ist bereits protokolliert. Das Entfernen kann nicht rückgängig gemacht werden.",
+        "remove": "Entfernen"
+      }
     },
     "form": {
       "weightNotNumber": "Das Gewicht muss eine Zahl sein",
@@ -1166,12 +1177,15 @@
       "openHint": "Öffnet die Übung",
       "moreOptions": "Weitere Optionen für {{name}}",
       "replace": "Ersetzen",
-      "delete": "Löschen"
+      "delete": "Löschen",
+      "remove": "Entfernen"
     },
     "editFailed": {
       "addTitle": "Übung konnte nicht hinzugefügt werden",
       "replaceTitle": "Übung konnte nicht ersetzt werden",
       "deleteTitle": "Übung konnte nicht gelöscht werden",
+      "removeTitle": "Übung konnte nicht entfernt werden",
+      "removeSetTitle": "Satz konnte nicht entfernt werden",
       "libraryUnavailable": "Die Übungsbibliothek ist gerade nicht verfügbar. Bitte versuche es erneut.",
       "sessionFinished": "Dieses Training ist bereits beendet.",
       "rateLimited": "Zu viele Anfragen. Bitte versuche es in {{seconds, number}} s erneut.",

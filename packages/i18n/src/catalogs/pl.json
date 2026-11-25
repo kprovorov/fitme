@@ -788,6 +788,10 @@
       "addSets_few": "Dodaj {{count, number}} serie do {{exercise}}",
       "addSets_many": "Dodaj {{count, number}} serii do {{exercise}}",
       "addSets_other": "Dodaj {{count, number}} serii do {{exercise}}",
+      "removeSets_one": "Usuń {{count, number}} serię z {{exercise}}",
+      "removeSets_few": "Usuń {{count, number}} serie z {{exercise}}",
+      "removeSets_many": "Usuń {{count, number}} serii z {{exercise}}",
+      "removeSets_other": "Usuń {{count, number}} serii z {{exercise}}",
       "line": "{{change}} · {{sets}}",
       "spokenLine": "{{change}}: {{sets}}",
       "spokenSet": "{{reps}} z ciężarem {{weight}}"
@@ -1028,11 +1032,20 @@
       "log": "Zapisz serię {{order, number}}",
       "edit": "Edytuj serię {{order, number}}",
       "editHint": "Otwiera serię do edycji",
+      "remove": "Usuń serię {{order, number}}",
       "logged": "Seria {{order, number}}, zapisana"
     },
     "errors": {
       "save": "Nie udało się zapisać tej serii. Spróbuj ponownie.",
       "rateLimited": "Zbyt wiele żądań. Spróbuj ponownie za {{seconds, number}} s."
+    },
+    "remove": {
+      "button": "Usuń",
+      "confirm": {
+        "title": "Usunąć serię {{order, number}}?",
+        "message": "Ta seria jest już zapisana. Jej usunięcia nie można cofnąć.",
+        "remove": "Usuń"
+      }
     },
     "form": {
       "weightNotNumber": "Ciężar musi być liczbą",
@@ -1250,12 +1263,15 @@
       "openHint": "Otwiera ćwiczenie",
       "moreOptions": "Więcej opcji dla {{name}}",
       "replace": "Zastąp",
-      "delete": "Usuń"
+      "delete": "Usuń",
+      "remove": "Usuń"
     },
     "editFailed": {
       "addTitle": "Nie udało się dodać ćwiczenia",
       "replaceTitle": "Nie udało się zastąpić ćwiczenia",
       "deleteTitle": "Nie udało się usunąć ćwiczenia",
+      "removeTitle": "Nie udało się usunąć ćwiczenia",
+      "removeSetTitle": "Nie udało się usunąć serii",
       "libraryUnavailable": "Biblioteka ćwiczeń jest teraz niedostępna. Spróbuj ponownie.",
       "sessionFinished": "Ten trening jest już zakończony.",
       "rateLimited": "Zbyt wiele żądań. Spróbuj ponownie za {{seconds, number}} s.",

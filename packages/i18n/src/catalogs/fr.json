@@ -766,6 +766,9 @@
       "addSets_one": "Ajouter {{count, number}} série à {{exercise}}",
       "addSets_other": "Ajouter {{count, number}} séries à {{exercise}}",
       "addSets_many": "Ajouter {{count, number}} séries à {{exercise}}",
+      "removeSets_one": "Retirer {{count, number}} série de {{exercise}}",
+      "removeSets_other": "Retirer {{count, number}} séries de {{exercise}}",
+      "removeSets_many": "Retirer {{count, number}} séries de {{exercise}}",
       "line": "{{change}} · {{sets}}",
       "spokenLine": "{{change}} : {{sets}}",
       "spokenSet": "{{reps}} à {{weight}}"
@@ -997,11 +1000,20 @@
       "log": "Enregistrer la série {{order, number}}",
       "edit": "Modifier la série {{order, number}}",
       "editHint": "Ouvre la série pour la modifier",
+      "remove": "Retirer la série {{order, number}}",
       "logged": "Série {{order, number}}, enregistrée"
     },
     "errors": {
       "save": "Impossible d'enregistrer cette série. Réessaie.",
       "rateLimited": "Trop de requêtes. Réessaie dans {{seconds, number}} s."
+    },
+    "remove": {
+      "button": "Retirer",
+      "confirm": {
+        "title": "Retirer la série {{order, number}} ?",
+        "message": "Cette série est déjà enregistrée. Son retrait est irréversible.",
+        "remove": "Retirer"
+      }
     },
     "form": {
       "weightNotNumber": "Le poids doit être un nombre",
@@ -1208,12 +1220,15 @@
       "openHint": "Ouvre l'exercice",
       "moreOptions": "Plus d'options pour {{name}}",
       "replace": "Remplacer",
-      "delete": "Supprimer"
+      "delete": "Supprimer",
+      "remove": "Retirer"
     },
     "editFailed": {
       "addTitle": "Impossible d'ajouter l'exercice",
       "replaceTitle": "Impossible de remplacer l'exercice",
       "deleteTitle": "Impossible de supprimer l'exercice",
+      "removeTitle": "Impossible de retirer l'exercice",
+      "removeSetTitle": "Impossible de retirer la série",
       "libraryUnavailable": "La bibliothèque d'exercices est indisponible pour le moment. Réessaie.",
       "sessionFinished": "Cette séance est déjà terminée.",
       "rateLimited": "Trop de requêtes : réessaie dans {{seconds, number}} s.",

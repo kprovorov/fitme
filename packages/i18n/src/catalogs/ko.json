@@ -722,6 +722,7 @@
       "add": "{{exercise}} 추가",
       "remove": "{{exercise}} 삭제",
       "addSets_other": "{{exercise}} 종목에 {{count, number}}세트 추가",
+      "removeSets_other": "{{exercise}} 종목에서 {{count, number}}세트 삭제",
       "line": "{{change}} · {{sets}}",
       "spokenLine": "{{change}}: {{sets}}",
       "spokenSet": "{{weight}} 중량으로 {{reps}}"
@@ -935,11 +936,20 @@
       "log": "{{order, number}}세트 기록",
       "edit": "{{order, number}}세트 편집",
       "editHint": "세트 편집 화면을 엽니다",
+      "remove": "{{order, number}}세트 삭제",
       "logged": "{{order, number}}세트, 기록됨"
     },
     "errors": {
       "save": "이 세트를 저장하지 못했어요. 다시 시도해 주세요.",
       "rateLimited": "요청이 너무 많아요. {{seconds, number}}초 후에 다시 시도해 주세요."
+    },
+    "remove": {
+      "button": "삭제",
+      "confirm": {
+        "title": "{{order, number}}세트를 삭제할까요?",
+        "message": "이미 기록한 세트예요. 삭제하면 되돌릴 수 없어요.",
+        "remove": "삭제"
+      }
     },
     "form": {
       "weightNotNumber": "중량은 숫자여야 해요",
@@ -1124,12 +1134,15 @@
       "openHint": "종목을 엽니다",
       "moreOptions": "{{name}} 추가 옵션",
       "replace": "교체",
-      "delete": "삭제"
+      "delete": "삭제",
+      "remove": "삭제"
     },
     "editFailed": {
       "addTitle": "종목을 추가하지 못했어요",
       "replaceTitle": "종목을 교체하지 못했어요",
       "deleteTitle": "종목을 삭제하지 못했어요",
+      "removeTitle": "종목을 삭제하지 못했어요",
+      "removeSetTitle": "세트를 삭제하지 못했어요",
       "libraryUnavailable": "지금은 종목 라이브러리를 이용할 수 없어요. 다시 시도해 주세요.",
       "sessionFinished": "이미 마친 운동이에요.",
       "rateLimited": "요청이 너무 많아요. {{seconds, number}}초 후에 다시 시도해 주세요.",
