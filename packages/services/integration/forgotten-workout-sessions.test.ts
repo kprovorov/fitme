@@ -882,21 +882,20 @@ describe("Forgotten Workout Sessions", () => {
     });
 
     it("leaves finished, discarded and deleted ones alone", async () => {
+      const finisher = newUser();
+      const deleter = newUser();
       const { sessionId: discarded } = await seedSession({ sets: PLANNED });
 
       const { sessionId: finished } = await seedSession({
         sets: PLANNED,
-        userId: newUser(),
+        userId: finisher,
       });
-
-      const finisher = users.at(-1) ?? "";
 
       const { sessionId: deleted } = await seedSession({
         sets: PLANNED,
-        userId: newUser(),
+        userId: deleter,
       });
 
-      const deleter = users.at(-1) ?? "";
       await close(discarded);
       await finishManually(finished, finisher);
       await asUser(
@@ -1041,6 +1040,34 @@ describe("Forgotten Workout Sessions", () => {
           expect.any(String)
         );
       });
+
+      it.each(["conversion first", "discard first"])(
+        "discards one through a conversion (%s)",
+        async (order) => {
+          await seedProfile();
+          const { sessionId } = await seedSession({ sets: PLANNED });
+
+          const convert = async (tx: Transaction): Promise<unknown> =>
+            await updateProfile(tx, owner, { measurement_system: "us" });
+
+          const discard = async (tx: Transaction): Promise<unknown> =>
+            await closeForgottenWorkoutSession(tx, sessionId);
+
+          const asOwner = async <T>(fn: (tx: Transaction) => Promise<T>) =>
+            await asUser(owner, fn);
+
+          const results = await (order === "conversion first"
+            ? overlap(asOwner, convert, async () => await withService(discard))
+            : overlap(
+                withService,
+                discard,
+                async () => await asOwner(convert)
+              ));
+
+          expect(results).toContainEqual(DISCARDED);
+          await expect(finishedAtOf(sessionId)).resolves.toBeUndefined();
+        }
+      );
 
       it.each([
         ["an empty one", PLANNED],

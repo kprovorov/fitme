@@ -1185,7 +1185,7 @@ const claimNow: ClaimSession = async (tx, userId, sessionId) => {
 const FORGOTTEN_AFTER_HOURS = 3;
 
 /** `now()` minus the time after which an open Workout Session is forgotten. */
-const forgottenSince = sql`now() - make_interval(hours => ${FORGOTTEN_AFTER_HOURS}::int)`;
+const forgottenCutoff = sql`now() - make_interval(hours => ${FORGOTTEN_AFTER_HOURS}::int)`;
 
 /** When the Workout Session's last set was logged; NULL when none is. */
 const lastLoggedAt = (sessionId: string | AnyPgColumn) => sql`(
@@ -1216,7 +1216,7 @@ const claimForgotten: ClaimSession = async (tx, userId, sessionId) => {
       and(
         openSessionOf(userId, sessionId),
         // NULL, so never true, without a logged set
-        sql`${lastLog} <= ${forgottenSince}`
+        sql`${lastLog} <= ${forgottenCutoff}`
       )
     )
     .returning({ workoutId: workoutSessions.workoutId });
@@ -1373,7 +1373,7 @@ export const listForgottenWorkoutSessions = async (
       and(
         isNull(workoutSessions.finishedAt),
         userIds && inArray(workoutSessions.userId, [...userIds]),
-        sql`coalesce(${lastLoggedAt(workoutSessions.id)}, ${workoutSessions.startedAt}) <= ${forgottenSince}`
+        sql`coalesce(${lastLoggedAt(workoutSessions.id)}, ${workoutSessions.startedAt}) <= ${forgottenCutoff}`
       )
     )
     .orderBy(asc(workoutSessions.startedAt), asc(workoutSessions.id));
@@ -1394,27 +1394,35 @@ const discardForgottenWorkoutSession = async (
   // cascade's own table locks come after these in deleteUserData's order
   await lockSessionTables(tx);
 
-  // In a statement of its own, as in claimForgotten: the DELETE then sees
-  // every log it waited for. FOR UPDATE, the lock a DELETE needs.
-  const [open] = await tx
+  const [owned] = await tx
     .select({ userId: workoutSessions.userId })
     .from(workoutSessions)
-    .where(
-      and(eq(workoutSessions.id, sessionId), isNull(workoutSessions.finishedAt))
-    )
-    .for("update");
+    .where(eq(workoutSessions.id, sessionId));
 
-  if (open === undefined) {
+  if (owned === undefined) {
     return false;
   }
+
+  // Before the session, as in finishSession: a measurement-system conversion
+  // updates the sets the cascade deletes, without locking their session, so
+  // the two could deadlock over them
+  await lockProfileUnits(tx, owned.userId);
+
+  // In a statement of its own, as in claimForgotten: the DELETE then sees
+  // every log it waited for. FOR UPDATE, the lock a DELETE needs.
+  await tx
+    .select({ id: workoutSessions.id })
+    .from(workoutSessions)
+    .where(openSessionOf(owned.userId, sessionId))
+    .for("update");
 
   const discarded = await tx
     .delete(workoutSessions)
     .where(
       and(
-        openSessionOf(open.userId, sessionId),
+        openSessionOf(owned.userId, sessionId),
         sql`${lastLoggedAt(sessionId)} is null`,
-        sql`${workoutSessions.startedAt} <= ${forgottenSince}`
+        sql`${workoutSessions.startedAt} <= ${forgottenCutoff}`
       )
     )
     .returning({ id: workoutSessions.id });
@@ -1433,7 +1441,7 @@ export interface CloseForgottenWorkoutSessionResult {
  * finished or doesn't exist is `left_alone`, with nothing written.
  *
  * Whether a set is logged is read without a lock, only to choose between the
- * two: each checks for itself under the row lock `logSet` takes, so one that
+ * two: each checks for itself under a row lock that blocks `logSet`, so one that
  * changed meanwhile is left alone for the next run.
  */
 export const closeForgottenWorkoutSession = async (
