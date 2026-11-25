@@ -366,6 +366,26 @@
     "deleting": "Deleting account",
     "failed": "Couldn't delete your account. Try again."
   },
+  "discardWorkout": {
+    "options": "Workout options",
+    "action": "Discard Workout",
+    "confirm": {
+      "title": "Discard workout?",
+      "loggedSets_one": "{{count, number}} logged set will be deleted. This can't be undone.",
+      "loggedSets_other": "{{count, number}} logged sets will be deleted. This can't be undone.",
+      "nothingLogged": "Nothing has been logged yet.",
+      "keepTraining": "Keep Training",
+      "discard": "Discard"
+    },
+    "failed": {
+      "title": "Couldn't discard workout",
+      "network": "Check your connection and try again.",
+      "rateLimited": "Too many requests: please try again in {{seconds, number}} s."
+    },
+    "alreadyFinished": {
+      "title": "Workout already finished"
+    }
+  },
   "duration": {
     "hoursMinutes": "{{hours, number}}h {{minutes, number}}min",
     "hours": "{{hours, number}}h",
@@ -998,6 +1018,8 @@
     "continueNamed": "Continue {{name}}",
     "finishFirst": "Finish your workout in progress first",
     "finishFirstNamed": "Finish {{name}} first",
+    "finishOrDiscardFirst": "Finish or discard your workout in progress first",
+    "finishOrDiscardFirstNamed": "Finish or discard {{name}} first",
     "failed": {
       "title": "Couldn't start workout",
       "network": "Check your connection and try again.",

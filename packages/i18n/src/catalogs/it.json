@@ -379,6 +379,27 @@
     "deleting": "Eliminazione dell'account",
     "failed": "Impossibile eliminare il tuo account. Riprova."
   },
+  "discardWorkout": {
+    "options": "Opzioni dell'allenamento",
+    "action": "Scarta allenamento",
+    "confirm": {
+      "title": "Scartare l'allenamento?",
+      "loggedSets_one": "{{count, number}} serie registrata verrà eliminata. L'operazione non può essere annullata.",
+      "loggedSets_many": "{{count, number}} serie registrate verranno eliminate. L'operazione non può essere annullata.",
+      "loggedSets_other": "{{count, number}} serie registrate verranno eliminate. L'operazione non può essere annullata.",
+      "nothingLogged": "Non è stato ancora registrato nulla.",
+      "keepTraining": "Continua ad allenarti",
+      "discard": "Scarta"
+    },
+    "failed": {
+      "title": "Impossibile scartare l'allenamento",
+      "network": "Controlla la connessione e riprova.",
+      "rateLimited": "Troppe richieste: riprova tra {{seconds, number}} s."
+    },
+    "alreadyFinished": {
+      "title": "Allenamento già terminato"
+    }
+  },
   "duration": {
     "hoursMinutes": "{{hours, number}} h {{minutes, number}} min",
     "hours": "{{hours, number}} h",
@@ -1037,6 +1058,8 @@
     "continueNamed": "Continua {{name}}",
     "finishFirst": "Termina prima l'allenamento in corso",
     "finishFirstNamed": "Termina prima {{name}}",
+    "finishOrDiscardFirst": "Termina o scarta prima l'allenamento in corso",
+    "finishOrDiscardFirstNamed": "Termina o scarta prima {{name}}",
     "failed": {
       "title": "Impossibile iniziare l'allenamento",
       "network": "Controlla la connessione e riprova.",

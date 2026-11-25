@@ -353,6 +353,25 @@
     "deleting": "アカウントを削除しています",
     "failed": "アカウントを削除できませんでした。もう一度お試しください。"
   },
+  "discardWorkout": {
+    "options": "ワークアウトのオプション",
+    "action": "ワークアウトを破棄",
+    "confirm": {
+      "title": "ワークアウトを破棄しますか？",
+      "loggedSets_other": "記録済みの{{count, number}}セットが削除されます。この操作は取り消せません。",
+      "nothingLogged": "まだ何も記録されていません。",
+      "keepTraining": "トレーニングを続ける",
+      "discard": "破棄"
+    },
+    "failed": {
+      "title": "ワークアウトを破棄できませんでした",
+      "network": "接続を確認して、もう一度お試しください。",
+      "rateLimited": "リクエストが多すぎます。{{seconds, number}}秒後にお試しください。"
+    },
+    "alreadyFinished": {
+      "title": "ワークアウトはすでに終了しています"
+    }
+  },
   "duration": {
     "hoursMinutes": "{{hours, number}}時間{{minutes, number}}分",
     "hours": "{{hours, number}}時間",
@@ -959,6 +978,8 @@
     "continueNamed": "{{name}}を再開",
     "finishFirst": "まず実施中のワークアウトを終了してください",
     "finishFirstNamed": "まず{{name}}を終了してください",
+    "finishOrDiscardFirst": "まず実施中のワークアウトを終了または破棄してください",
+    "finishOrDiscardFirstNamed": "まず{{name}}を終了または破棄してください",
     "failed": {
       "title": "ワークアウトを開始できませんでした",
       "network": "接続を確認して、もう一度お試しください。",

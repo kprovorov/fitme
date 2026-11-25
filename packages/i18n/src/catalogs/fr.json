@@ -379,6 +379,27 @@
     "deleting": "Suppression du compte",
     "failed": "Impossible de supprimer ton compte. Réessaie."
   },
+  "discardWorkout": {
+    "options": "Options de la séance",
+    "action": "Abandonner la séance",
+    "confirm": {
+      "title": "Abandonner la séance ?",
+      "loggedSets_one": "{{count, number}} série enregistrée sera supprimée. Cette action est irréversible.",
+      "loggedSets_other": "{{count, number}} séries enregistrées seront supprimées. Cette action est irréversible.",
+      "loggedSets_many": "{{count, number}} séries enregistrées seront supprimées. Cette action est irréversible.",
+      "nothingLogged": "Rien n'a encore été enregistré.",
+      "keepTraining": "Continuer à s'entraîner",
+      "discard": "Abandonner"
+    },
+    "failed": {
+      "title": "Impossible d'abandonner la séance",
+      "network": "Vérifie ta connexion et réessaie.",
+      "rateLimited": "Trop de requêtes : réessaie dans {{seconds, number}} s."
+    },
+    "alreadyFinished": {
+      "title": "Séance déjà terminée"
+    }
+  },
   "duration": {
     "hoursMinutes": "{{hours, number}} h {{minutes, number}} min",
     "hours": "{{hours, number}} h",
@@ -1037,6 +1058,8 @@
     "continueNamed": "Continuer {{name}}",
     "finishFirst": "Termine d'abord ta séance en cours",
     "finishFirstNamed": "Termine d'abord {{name}}",
+    "finishOrDiscardFirst": "Termine ou abandonne d'abord ta séance en cours",
+    "finishOrDiscardFirstNamed": "Termine ou abandonne d'abord {{name}}",
     "failed": {
       "title": "Impossible de commencer la séance",
       "network": "Vérifie ta connexion et réessaie.",

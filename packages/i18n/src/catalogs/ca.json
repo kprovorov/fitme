@@ -379,6 +379,27 @@
     "deleting": "S'està suprimint el compte",
     "failed": "No s'ha pogut eliminar el compte. Torna-ho a provar."
   },
+  "discardWorkout": {
+    "options": "Opcions de l'entrenament",
+    "action": "Descarta l'entrenament",
+    "confirm": {
+      "title": "Vols descartar l'entrenament?",
+      "loggedSets_one": "S'eliminarà {{count, number}} sèrie registrada. No es pot desfer.",
+      "loggedSets_other": "S'eliminaran {{count, number}} sèries registrades. No es pot desfer.",
+      "loggedSets_many": "S'eliminaran {{count, number}} sèries registrades. No es pot desfer.",
+      "nothingLogged": "Encara no s'ha registrat res.",
+      "keepTraining": "Continua entrenant",
+      "discard": "Descarta"
+    },
+    "failed": {
+      "title": "No s'ha pogut descartar l'entrenament",
+      "network": "Comprova la connexió i torna-ho a provar.",
+      "rateLimited": "Massa sol·licituds: torna-ho a provar d'aquí a {{seconds, number}} s."
+    },
+    "alreadyFinished": {
+      "title": "L'entrenament ja ha acabat"
+    }
+  },
   "duration": {
     "hoursMinutes": "{{hours, number}} h {{minutes, number}} min",
     "hours": "{{hours, number}} h",
@@ -1037,6 +1058,8 @@
     "continueNamed": "Continua {{name}}",
     "finishFirst": "Acaba primer l'entrenament en curs",
     "finishFirstNamed": "Acaba primer {{name}}",
+    "finishOrDiscardFirst": "Acaba o descarta primer l'entrenament en curs",
+    "finishOrDiscardFirstNamed": "Acaba o descarta primer {{name}}",
     "failed": {
       "title": "No s'ha pogut començar l'entrenament",
       "network": "Comprova la connexió i torna-ho a provar.",
