@@ -138,6 +138,41 @@ export const workoutHistory = [
   },
 ];
 
+/** Open now: one Bench Press set logged, the next removed, one to go. */
+export const openWorkoutSession = {
+  exercises: [
+    {
+      exercise_slug: BENCH,
+      id: "wse-open-bench",
+      muscle_groups: ["chest"],
+      name: "Bench Press",
+      order: 1,
+      sets: [
+        {
+          ...loggedSet("os-bench-1", 1, 8, 70),
+          logged_at: "2026-10-14T18:05:00+00:00",
+        },
+        {
+          id: "os-bench-3",
+          logged_at: null,
+          order: 3,
+          reps_completed: null,
+          reps_recommended: 8,
+          rest_recommended: 90,
+          weight_completed: null,
+          weight_recommended: 70,
+        },
+      ],
+    },
+  ],
+  finished_at: null,
+  id: "session-open",
+  plan: { id: activePlan.id, name: activePlan.name },
+  started_at: "2026-10-14T18:00:00+00:00",
+  status: "in_progress",
+  workout: { id: "workout-upper", name: "Upper Day" },
+};
+
 export const chestExercises = [
   {
     difficulty: "intermediate",
@@ -244,6 +279,11 @@ export const readToolStubs: readonly ToolStub[] = [
     id: "history",
     outcome: { response: workoutHistory },
     tool: "get_workouts_history",
+  },
+  {
+    id: "open-workout-session",
+    outcome: { response: openWorkoutSession },
+    tool: "get_open_workout_session",
   },
   {
     id: "chest-exercises",
