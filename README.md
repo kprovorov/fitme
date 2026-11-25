@@ -11,6 +11,7 @@ Users sign in with [Clerk](https://clerk.com). Data lives in Supabase Postgres, 
 | `apps/mobile` | `@fitme/mobile` | Expo / React Native app (expo-router, uniwind, RevenueCat, Sentry) |
 | `apps/arnold` | `@fitme/arnold` | Arnold, Fitme's AI: an [EVE](https://www.npmjs.com/package/eve) agent, models through Vercel AI Gateway |
 | `apps/api` | `@fitme/api` | Hono REST API (client config, Arnold model list) |
+| `apps/jobs` | `@fitme/jobs` | Scheduled jobs: private functions on Vercel Schedules |
 | `apps/library` | `@fitme/library` | Library API: Hono + zod-openapi over a baked-in `library.json` |
 | `apps/mcp` | `@fitme/mcp` | MCP server (Streamable HTTP, Clerk OAuth) for ChatGPT and other MCP clients |
 | `apps/webhooks` | `@fitme/webhooks` | Hono app receiving third-party webhooks (Clerk account deletion) |
@@ -46,9 +47,10 @@ pnpm dev:api             # :3003
 pnpm dev:webhooks        # :3004
 pnpm dev:arnold          # :3005
 pnpm dev:library         # :3006, serving the made-up fixture library
+pnpm jobs job:forgotten-workout-sessions # one run of the scheduled job, against the local stack
 ```
 
-Apps get their env from Infisical `dev` when they start through `scripts/with-dev-env.sh` (`infisical login` first; AGENTS.md Commands has each app's command). Nothing is pulled to disk: worktree setup only writes `FITME_DATABASE_URL` for the checkout's own Supabase stack into the `.env` of `apps/api`, `apps/arnold`, `apps/mcp` and `apps/webhooks`. Each app's `.env.example` lists what it reads, and AGENTS.md what each variable does; [Secrets](docs/agents/secrets.md) describes the flow.
+Apps get their env from Infisical `dev` when they start through `scripts/with-dev-env.sh` (`infisical login` first; AGENTS.md Commands has each app's command). Nothing is pulled to disk: worktree setup only writes `FITME_DATABASE_URL` for the checkout's own Supabase stack into the `.env` of `apps/api`, `apps/arnold`, `apps/jobs`, `apps/mcp` and `apps/webhooks`. Each app's `.env.example` lists what it reads, and AGENTS.md what each variable does; [Secrets](docs/agents/secrets.md) describes the flow.
 
 Native Apple and Google sign-in also need provider registrations and public build configuration. See [Enable native sign-in on mobile](docs/agents/mobile-auth.md).
 

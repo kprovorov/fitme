@@ -13,6 +13,7 @@ Include what you found, where, how to reproduce it and what an attacker could do
 - The deployed apps built from this repository:
   - the REST API (`apps/api`, api.fitmeproject.com)
   - Arnold, Fitme's AI (`apps/arnold`)
+  - the scheduled jobs (`apps/jobs`, no public URL)
   - the Library API (`apps/library`, library.fitmeproject.com)
   - the MCP server (`apps/mcp`, mcp.fitmeproject.com)
   - the webhooks app (`apps/webhooks`)

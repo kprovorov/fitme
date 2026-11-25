@@ -368,6 +368,49 @@ importers:
         specifier: ^5.1.0
         version: 5.1.0(@opentelemetry/api@1.9.1)(@types/node@26.6.6)(jsdom@26.1.0(supports-color@10.2.2))(vite@7.3.7(@types/node@26.6.6)(jiti@2.7.0)(lightningcss@1.33.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1))
 
+  apps/jobs:
+    dependencies:
+      '@fitme/db':
+        specifier: workspace:*
+        version: link:../../packages/db
+      '@fitme/observability':
+        specifier: workspace:*
+        version: link:../../packages/observability
+      '@sentry/node':
+        specifier: ^11.12.0
+        version: 11.12.0(rollup@4.68.3)
+      '@vercel/functions':
+        specifier: ^3.10.1
+        version: 3.10.1(ws@8.21.3)
+      '@vercel/schedules':
+        specifier: 0.0.3
+        version: 0.0.3
+      drizzle-orm:
+        specifier: ^0.45.4
+        version: 0.45.4(@opentelemetry/api@1.9.1)(@types/pg@8.23.1)(@upstash/redis@1.39.0)(pg@8.23.1)(sql.js@1.14.2)
+      pg:
+        specifier: ^8.23.1
+        version: 8.23.1
+    devDependencies:
+      '@fitme/typescript-config':
+        specifier: workspace:*
+        version: link:../../packages/typescript-config
+      '@types/node':
+        specifier: 26.6.6
+        version: 26.6.6
+      tsdown:
+        specifier: ^0.23.7
+        version: 0.23.7(oxc-resolver@11.24.2)(tsx@4.23.15)(typescript@5.9.3)
+      tsx:
+        specifier: ^4.23.15
+        version: 4.23.15
+      typescript:
+        specifier: ~5.9.2
+        version: 5.9.3
+      vitest:
+        specifier: ^5.1.0
+        version: 5.1.0(@opentelemetry/api@1.9.1)(@types/node@26.6.6)(jsdom@26.1.0(supports-color@10.2.2))(vite@7.3.7(@types/node@26.6.6)(jiti@2.7.0)(lightningcss@1.33.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1))
+
   apps/library:
     dependencies:
       '@clerk/backend':
@@ -6700,6 +6743,10 @@ packages:
       '@opentelemetry/sdk-logs': '>=0.200.0 <0.300.0'
       '@opentelemetry/sdk-metrics': '>=2.0.0 <3.0.0'
       '@opentelemetry/sdk-trace-base': '>=2.0.0 <3.0.0'
+
+  '@vercel/schedules@0.0.3':
+    resolution: {integrity: sha512-7wTFQjt5U000dmGBkoT47kK8erg3PSo0S+oOd9hOlV+YqnzbRUvOeybkqkr/Ced7wpelk/x7W8itRdsrSnr+LQ==}
+    engines: {node: '>=20.0.0'}
 
   '@vercel/speed-insights@2.0.0':
     resolution: {integrity: sha512-jwkNcrTeafWxjmWq4AHBaptSqZiJkYU5adLC9QBSqeim0GcqDMgN5Ievh8OG1rJ6W3A4l1oiP7qr9CWxGuzu3w==}
@@ -17863,6 +17910,10 @@ snapshots:
       '@opentelemetry/sdk-logs': 0.223.0(@opentelemetry/api@1.9.1)
       '@opentelemetry/sdk-metrics': 2.12.0(@opentelemetry/api@1.9.1)
       '@opentelemetry/sdk-trace-base': 2.12.0(@opentelemetry/api@1.9.1)
+
+  '@vercel/schedules@0.0.3':
+    dependencies:
+      '@vercel/oidc': 3.8.10
 
   '@vercel/speed-insights@2.0.0(next@16.4.6(@babel/core@7.29.7(supports-color@10.2.2))(@opentelemetry/api@1.9.1)(@types/node@26.6.6)(babel-plugin-react-compiler@1.0.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(react@19.3.0)':
     optionalDependencies:

@@ -1,0 +1,12 @@
+{
+  "extends": "@fitme/typescript-config/base.json",
+  "compilerOptions": {
+    "lib": ["ES2023"],
+    "types": ["node"],
+    "paths": {
+      "~/*": ["./src/*"],
+      "@/*": ["./src/*"]
+    }
+  },
+  "include": ["src", "tsdown.config.ts", "vitest.config.ts"]
+}

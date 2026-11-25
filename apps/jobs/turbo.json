@@ -1,0 +1,12 @@
+{
+  "$schema": "https://turborepo.dev/schema.json",
+  "extends": ["//"],
+  "tasks": {
+    "build": {
+      // The build uploads its source maps for the commit's release, so a new
+      // commit never replays another commit's dist/ (whose upload never ran
+      // for it).
+      "env": ["$TURBO_EXTENDS$", "VERCEL_GIT_COMMIT_SHA"]
+    }
+  }
+}

@@ -245,7 +245,7 @@ export default defineConfig({
     ...(vitest.overrides ?? []).map((override) => ({
       ...override,
       files: override.files.flatMap((pattern) => [
-        `apps/{api,arnold,library,mcp,web,webhooks}/${pattern}`,
+        `apps/{api,arnold,jobs,library,mcp,web,webhooks}/${pattern}`,
         `packages/${pattern}`,
       ]),
       rules: { ...override.rules, "vitest/prefer-called-with": "off" },

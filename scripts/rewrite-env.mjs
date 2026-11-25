@@ -18,7 +18,7 @@ import path from "node:path";
 
 // The app directories under apps/ whose `.env` gets the line; each one's
 // directory name is its application_name.
-export const DATABASE_APPS = ["api", "arnold", "mcp", "webhooks"];
+export const DATABASE_APPS = ["api", "arnold", "jobs", "mcp", "webhooks"];
 
 const LOCAL_POOLER_USER = "fitme.pooler-dev";
 

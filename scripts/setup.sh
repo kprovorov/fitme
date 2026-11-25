@@ -56,8 +56,8 @@ log "stale Supabase stacks"
 scripts/destroy-stale-stacks.sh || warn "couldn't destroy stale Supabase stacks"
 
 # Start this checkout's own stack, then write its database URL into the .env of
-# each app that reaches Postgres (apps/api, apps/arnold, apps/mcp,
-# apps/webhooks), creating the file or the line when missing: it's the one value
+# each app that reaches Postgres (apps/api, apps/arnold, apps/jobs,
+# apps/mcp, apps/webhooks), creating the file or the line when missing: it's the one value
 # local to a worktree, so Infisical doesn't hold it. A remote value is left
 # alone. Not fatal: without Docker the install above still stands, the DB apps
 # just have no database URL yet (rerun the writer once the stack is up, see

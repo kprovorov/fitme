@@ -52,6 +52,11 @@ high:
   - apps/webhooks/src/app.ts
   - apps/webhooks/src/routes/clerk.ts
   - apps/webhooks/src/arnold.ts
+  # Jobs: scheduled writes to User data with nobody watching, and their triggers
+  - apps/jobs/api/**
+  - apps/jobs/src/**
+  - apps/jobs/vercel.json
+  - apps/jobs/tsdown.config.ts
   # Web: where User tokens are sent
   - apps/web/lib/env.ts
   # Any env file, anywhere
