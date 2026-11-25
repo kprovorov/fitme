@@ -23,7 +23,10 @@ import {
   applyPlanUpdate,
   previewPlanUpdate,
 } from "@fitme/services/plan-update";
-import type { PlanUpdate } from "@fitme/services/plan-update";
+import type {
+  PlanUpdate,
+  PlanUpdateOptions,
+} from "@fitme/services/plan-update";
 import {
   activatePlan,
   createPlan,
@@ -156,7 +159,10 @@ export interface UserServices {
    * transaction and answers what it applied; once applied, no changes. `null`
    * when the User has no such Workout Session.
    */
-  applyPlanUpdate: (sessionId: string) => Promise<PlanUpdate | null>;
+  applyPlanUpdate: (
+    sessionId: string,
+    options: PlanUpdateOptions
+  ) => Promise<PlanUpdate | null>;
   /**
    * Creates a Plan with its Workouts, Exercises and sets in one transaction,
    * active unless `activate: false`; the Plan in full. Its Exercise slugs are
@@ -214,7 +220,10 @@ export interface UserServices {
    * The Plan Update of one of the User's Workout Sessions, writing nothing;
    * `null` when the User has no such Workout Session.
    */
-  previewPlanUpdate: (sessionId: string) => Promise<PlanUpdate | null>;
+  previewPlanUpdate: (
+    sessionId: string,
+    options: PlanUpdateOptions
+  ) => Promise<PlanUpdate | null>;
   /**
    * Removes an Exercise, with its sets, from the User's open Workout Session,
    * leaving the others' `order`; a finished one is left as it was.
@@ -347,8 +356,8 @@ export const createServicesFromEnv: ServicesFactory = (userId) => {
     addSetToWorkoutSessionExercise: (input) =>
       inUnits((tx) => addSetToWorkoutSessionExercise(tx, userId, input), write),
     // The service takes its own table locks and reads the unit itself.
-    applyPlanUpdate: (sessionId) =>
-      asUser(userId, (tx) => applyPlanUpdate(tx, userId, sessionId)),
+    applyPlanUpdate: (sessionId, options) =>
+      asUser(userId, (tx) => applyPlanUpdate(tx, userId, sessionId, options)),
     createPlan: (plan, options) =>
       inUnits((tx) => createPlan(tx, userId, plan, options), write),
     deletePlan: (planId) =>
@@ -373,8 +382,8 @@ export const createServicesFromEnv: ServicesFactory = (userId) => {
     listWorkoutSessions: (options) =>
       inUnits((tx) => listWorkoutSessions(tx, options)),
     logSet: (input) => inUnits((tx) => logSet(tx, input), write),
-    previewPlanUpdate: (sessionId) =>
-      asUser(userId, (tx) => previewPlanUpdate(tx, userId, sessionId)),
+    previewPlanUpdate: (sessionId, options) =>
+      asUser(userId, (tx) => previewPlanUpdate(tx, userId, sessionId, options)),
     removeExerciseFromWorkoutSession: (sessionExerciseId) =>
       asUser(userId, async (tx) => {
         await write.before(tx);

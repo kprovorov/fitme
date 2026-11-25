@@ -1593,6 +1593,13 @@
             "required": ["id", "name"],
             "description": "The Plan it updates, `null` when the Workout is gone or its Plan deleted"
           },
+          "set_removals": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PlanUpdateSetRemoval"
+            },
+            "description": "The Plan sets the User removed, per Exercise in Workout order. Always empty without `include_set_removals=true`"
+          },
           "weight_unit": {
             "$ref": "#/components/schemas/WeightUnit"
           },
@@ -1619,7 +1626,13 @@
             "description": "The Workout it updates, `null` when it's gone or its Plan deleted"
           }
         },
-        "required": ["changes", "plan", "weight_unit", "workout"]
+        "required": [
+          "changes",
+          "plan",
+          "set_removals",
+          "weight_unit",
+          "workout"
+        ]
       },
       "PlanUpdateChange": {
         "oneOf": [
@@ -1732,6 +1745,41 @@
         },
         "required": ["reps", "weight"],
         "description": "A set the Plan gets, its targets taken from what the User logged"
+      },
+      "PlanUpdateSetRemoval": {
+        "type": "object",
+        "properties": {
+          "exercise_slug": {
+            "type": "string",
+            "description": "The Exercise that loses sets",
+            "example": "barbell-bench-press"
+          },
+          "sets": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PlanUpdateRemovedSet"
+            },
+            "description": "The Plan sets that go, in order"
+          }
+        },
+        "required": ["exercise_slug", "sets"],
+        "description": "The sets an Exercise of the Workout loses. The sets that stay keep their targets"
+      },
+      "PlanUpdateRemovedSet": {
+        "type": "object",
+        "properties": {
+          "reps": {
+            "type": "integer",
+            "example": 10
+          },
+          "weight": {
+            "type": "number",
+            "description": "In `weight_unit`, as stored",
+            "example": 40
+          }
+        },
+        "required": ["reps", "weight"],
+        "description": "A set the Plan loses, by its targets"
       },
       "AddWorkoutSessionExercise": {
         "type": "object",
@@ -5092,7 +5140,7 @@
     },
     "/v1/workout-sessions/{id}/plan-update": {
       "get": {
-        "description": "The Plan Update of a finished Workout Session: the changes it made to its Workout (Exercises replaced, added or removed, sets added), which the User can save to the Plan. Writes nothing. A Workout Session without a Plan Update answers no changes.",
+        "description": "The Plan Update of a finished Workout Session: the changes it made to its Workout (Exercises replaced, added or removed, sets added), which the User can save to the Plan. Writes nothing. A Workout Session without a Plan Update answers no changes. The sets the User removed are answered in `set_removals` only with `include_set_removals=true`, and an apply needs it too to remove them from the Plan; `changes`, the removal of an Exercise left without sets included, don't depend on it.",
         "security": [
           {
             "bearerAuth": []
@@ -5109,6 +5157,16 @@
             "required": true,
             "name": "id",
             "in": "path"
+          },
+          {
+            "schema": {
+              "type": "boolean",
+              "description": "Opts in to set removals: only `true` answers them in `set_removals`, and applies them. Send it only if the User is shown what goes"
+            },
+            "required": false,
+            "description": "Opts in to set removals: only `true` answers them in `set_removals`, and applies them. Send it only if the User is shown what goes",
+            "name": "include_set_removals",
+            "in": "query"
           }
         ],
         "responses": {
@@ -5182,7 +5240,7 @@
         }
       },
       "post": {
-        "description": "Applies the Plan Update of a finished Workout Session to its Workout in one transaction (replacements and added sets, then removals renumbering the rest from 1, then added Exercises appended) and answers what it applied. Once applied, the Workout Session has no Plan Update: a repeated or concurrent apply answers no changes and writes nothing.",
+        "description": "Applies the Plan Update of a finished Workout Session to its Workout in one transaction (replacements and added sets, then set removals and Exercise removals, each renumbering the rest from 1, then added Exercises appended) and answers what it applied. The sets the User removed are removed from the Plan, and answered in `set_removals`, only with `include_set_removals=true`; `changes`, the removal of an Exercise left without sets included, don't depend on it. Once applied, with or without it, the Workout Session has no Plan Update: a repeated or concurrent apply answers no changes and writes nothing.",
         "security": [
           {
             "bearerAuth": []
@@ -5199,6 +5257,16 @@
             "required": true,
             "name": "id",
             "in": "path"
+          },
+          {
+            "schema": {
+              "type": "boolean",
+              "description": "Opts in to set removals: only `true` answers them in `set_removals`, and applies them. Send it only if the User is shown what goes"
+            },
+            "required": false,
+            "description": "Opts in to set removals: only `true` answers them in `set_removals`, and applies them. Send it only if the User is shown what goes",
+            "name": "include_set_removals",
+            "in": "query"
           }
         ],
         "responses": {
