@@ -126,7 +126,7 @@ React Native / Expo app using **file-based routing** via `expo-router`:
   - `queries/` — Read queries using `react-query-kit`'s `createQuery`; `library.ts` holds the Library hooks (see Key Patterns)
   - `mutations/` — Write mutations using `react-query-kit`'s `createMutation`
   - `revenueCat.ts` — RevenueCat subscription queries
-  - `added-sets.ts` — the sets added with Add Set in an open Workout Session and not logged yet, per Workout Session Exercise id, in memory only (never MMKV): the Public API has no route creating an unlogged set, so the session screen and the Workout Session Exercise screen read the same rows from here until logging one creates it (FIT-638, `__tests__/workout-session-added-sets.test.tsx`); cleared on sign-out, and a discarded session's forgotten (`forgetAddedSets`); a logged one keeps the set it created until the Workout Session has been read again, so no row moves meanwhile
+  - `added-sets.ts` — the sets added with Add Set in an open Workout Session and not logged yet, per Workout Session Exercise id, in memory only (never MMKV): the Public API has no route creating an unlogged set, so the session screen and the Workout Session Exercise screen read the same rows from here until logging one creates it (FIT-638, `__tests__/workout-session-added-sets.test.tsx`); cleared on sign-out, and a discarded session's forgotten (`forgetAddedSets`); a logged one keeps the set it created until the Workout Session's read has it (a failed read included), so no row moves meanwhile
   - `arnold-model.ts` — `useSelectedArnoldModel`: the served model list, the picked model and its setter, for the Arnold header and model picker
   - `choice-store.ts` — `createChoiceStore(values)`, the per-screen-key store behind both Library filter choices: in memory only (never MMKV), with `get` / `set` / `forget` / `resetAll`, `newKey` and `useOpening` for a screen whose choice starts over, and `use` for the screen's confirmed one
   - `muscle-choice.ts` — each Library screen's Muscle group choice, in memory per screen key (never MMKV), shared with the Muscles sheet (see Exercises (mobile))
@@ -557,6 +557,7 @@ A screen test in another language renders the screen inside `test-utils/in-app-l
 - `__tests__/plan-editor.test.tsx`
 - `__tests__/plans-in-ukrainian.test.tsx`
 - `__tests__/profile-and-settings-in-ukrainian.test.tsx`
+- `__tests__/workout-session-set-numbers.test.tsx`
 - `__tests__/workout-summary-in-ukrainian.test.tsx`
 - `components/__tests__/minimum-version-gate.test.tsx`
 

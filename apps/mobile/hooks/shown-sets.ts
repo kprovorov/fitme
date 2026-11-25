@@ -58,6 +58,10 @@ export const useShownSets = (
   }, [addedSets, isReadOnly, sets]);
 };
 
+/** Whether the row's set is still to log. */
+export const isUnlogged = ({ set }: ShownSet): boolean =>
+  (set?.reps_completed ?? null) === null;
+
 /**
  * The first row still to log, or `undefined` with none left. `loggedId` was
  * logged just now, which the rows may not show yet.
@@ -66,6 +70,4 @@ export const nextUnloggedSet = (
   rows: readonly ShownSet[],
   loggedId: string
 ): ShownSet | undefined =>
-  rows.find(
-    ({ id, set }) => id !== loggedId && (set?.reps_completed ?? null) === null
-  );
+  rows.find((row) => row.id !== loggedId && isUnlogged(row));

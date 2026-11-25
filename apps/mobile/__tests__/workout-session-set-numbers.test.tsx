@@ -258,6 +258,29 @@ describe.each([
     expect(numbers()).toEqual(["#5", "#6"]);
   });
 
+  it("keep a logged added set whose read failed, until one has it", async () => {
+    seedGap([8, 8, 8]);
+    await mountScreen();
+    await press("Add Set");
+    await press("Add Set");
+    fakePublicApi.failNext(SESSION_ROUTE, "network");
+    await log("Log set 4");
+
+    expect(screen.getByLabelText("Set 4, logged")).toBeTruthy();
+    expect(numbers()).toEqual(["#5"]);
+
+    await act(() => queryClient.invalidateQueries());
+    await settle(queryClient);
+    expect(screen.getAllByLabelText("Set 4, logged")).toHaveLength(1);
+
+    // Removed elsewhere afterwards: the phone's own copy doesn't bring it back.
+    backend.sets = backend.sets.filter(({ order }) => order !== 5);
+    await act(() => queryClient.invalidateQueries());
+    await settle(queryClient);
+    expect(screen.queryByLabelText("Set 4, logged")).toBeNull();
+    expect(numbers()).toEqual(["#4"]);
+  });
+
   it("are numbered the same in a finished Workout Session", async () => {
     seedGap([8, null, 8], { finished: true });
     await mountScreen();

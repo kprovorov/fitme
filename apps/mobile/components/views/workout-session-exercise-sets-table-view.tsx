@@ -1,15 +1,20 @@
 import { unitName } from "@fitme/i18n";
+import { useEffect } from "react";
 import type { ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { View } from "react-native";
 
-import { addSet, dropAddedSet, markAddedSetSaved } from "~/hooks/added-sets";
+import {
+  addSet,
+  dropReadAddedSets,
+  markAddedSetSaved,
+} from "~/hooks/added-sets";
 import type { SavedWorkoutSessionExerciseSet } from "~/hooks/queries/workout-session-exercise-sets";
 import type {
   WorkoutSession,
   WorkoutSessionSet,
 } from "~/hooks/queries/workout-sessions";
-import { nextUnloggedSet, useShownSets } from "~/hooks/shown-sets";
+import { isUnlogged, nextUnloggedSet, useShownSets } from "~/hooks/shown-sets";
 import { cn } from "~/lib/utils";
 
 import {
@@ -83,15 +88,13 @@ const WorkoutSessionExerciseSetsTableView = ({
     addSet(exerciseId, Math.max(0, ...rows.map(({ order }) => order)) + 1);
   };
 
-  const handleSetCreated = async (
-    addedSetId: string,
-    set: SavedWorkoutSessionExerciseSet,
-    reread: Promise<void>
-  ) => {
-    markAddedSetSaved(exerciseId, addedSetId, set);
-    await reread;
-    dropAddedSet(exerciseId, addedSetId);
-  };
+  // Its place is the read's from here on, and so is its removal.
+  useEffect(() => {
+    dropReadAddedSets(
+      exerciseId,
+      new Set(workoutSessionExerciseSets.map(({ id }) => id))
+    );
+  }, [exerciseId, workoutSessionExerciseSets]);
 
   return (
     <View className="gap-sm flex flex-col items-stretch justify-center">
@@ -108,9 +111,7 @@ const WorkoutSessionExerciseSetsTableView = ({
       </View>
 
       {rows.map(({ id, number, set }, index) => {
-        const locked = rows
-          .slice(0, index)
-          .some((earlier) => (earlier.set?.reps_completed ?? null) === null);
+        const locked = rows.slice(0, index).some(isUnlogged);
 
         return (
           <WorkoutSessionExerciseSetRowView
@@ -119,9 +120,9 @@ const WorkoutSessionExerciseSetsTableView = ({
             key={id}
             locked={locked}
             number={number}
-            onSetCreated={(created, reread) => {
-              void handleSetCreated(id, created, reread);
-            }}
+            onSetCreated={(created) =>
+              markAddedSetSaved(exerciseId, id, created)
+            }
             onSetLogged={(logged) =>
               onSetLogged?.(logged, !!nextUnloggedSet(rows, id))
             }

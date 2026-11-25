@@ -37,14 +37,8 @@ interface WorkoutSessionExerciseSetRowViewProps {
   locked?: boolean;
   /** The row's number: its position in the Exercise, never the stored `order`. */
   number: number;
-  /**
-   * Called once logging a set not saved yet has created it; `reread` settles
-   * once the Workout Session has been read again.
-   */
-  onSetCreated?: (
-    set: SavedWorkoutSessionExerciseSet,
-    reread: Promise<void>
-  ) => void;
+  /** Called once logging a set not saved yet has created it. */
+  onSetCreated?: (set: SavedWorkoutSessionExerciseSet) => void;
   /** Called once a set is logged for the first time (not on edits). */
   onSetLogged?: (set: SavedWorkoutSessionExerciseSet) => void;
   sessionId: string;
@@ -140,7 +134,7 @@ const WorkoutSessionExerciseSetRowView = ({
     setJustLogged(true);
     trackSetCompleted();
 
-    const reread = queryClient.invalidateQueries({
+    void queryClient.invalidateQueries({
       queryKey: WORKOUT_SESSION_QUERY_KEY,
     });
 
@@ -151,23 +145,20 @@ const WorkoutSessionExerciseSetRowView = ({
     if (previousReps === null) {
       onSetLogged?.(set);
     }
-
-    return reread;
   };
 
   const { mutate: updateWorkoutSessionExerciseSet } =
     useUpdateWorkoutSessionExerciseSetMutation({
       onError: (error) => handleSaveError(rateLimitedFor(error)),
-      onSuccess: (set) => {
-        void handleSaved(set, previousRepsCompleted.current);
-      },
+      onSuccess: (set) => handleSaved(set, previousRepsCompleted.current),
     });
 
   const { mutate: createWorkoutSessionExerciseSet } =
     useCreateWorkoutSessionExerciseSetMutation({
       onError: (error) => handleSaveError(rateLimitedFor(error)),
       onSuccess: (set) => {
-        onSetCreated?.(set, handleSaved(set, null));
+        handleSaved(set, null);
+        onSetCreated?.(set);
       },
     });
 
