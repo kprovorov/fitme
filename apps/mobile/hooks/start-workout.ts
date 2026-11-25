@@ -80,7 +80,7 @@ const alertStartFailed = (waitSeconds: number | null) => {
 };
 
 /** "Finish or discard <Workout> first", with a way into that Workout Session. */
-const alertFinishFirst = (
+const alertFinishOrDiscardFirst = (
   open: OpenWorkoutSession,
   onContinue: (open: OpenWorkoutSession) => void
 ) => {
@@ -119,8 +119,9 @@ const alertFinishFirst = (
  *
  * `onContinueBlocking` is for a Start that stays pressable while blocked
  * (the Workout tab's cards, whose open session's own card reads Continue):
- * it still asks the API, and the 409 alerts "Finish or discard <Workout> first", its
- * Continue button handing the blocking session to `onContinueBlocking`.
+ * it still asks the API, and the 409 alerts "Finish or discard <Workout>
+ * first", its Continue button handing the blocking session to
+ * `onContinueBlocking`.
  */
 export const useStartWorkout = (
   workoutId: string,
@@ -157,7 +158,7 @@ export const useStartWorkout = (
         // re-read failed) the press still gets an answer.
         if (open && open.workout?.id !== workoutId) {
           if (onContinueBlocking) {
-            alertFinishFirst(open, onContinueBlocking);
+            alertFinishOrDiscardFirst(open, onContinueBlocking);
           }
 
           return;

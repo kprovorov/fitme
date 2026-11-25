@@ -371,7 +371,9 @@ describe("a Plan's Workout screen in Ukrainian", () => {
     expect(
       screen.getByRole("button", { name: "Почати тренування" })
     ).toBeDisabled();
-    expect(screen.getByText("Спершу завершіть «Груди»")).toBeTruthy();
+    expect(
+      screen.getByText("Спершу завершіть або відкиньте «Груди»")
+    ).toBeTruthy();
     expect(
       screen.getByRole("button", { name: "Продовжити «Груди»" })
     ).toBeTruthy();

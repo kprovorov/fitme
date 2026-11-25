@@ -354,6 +354,29 @@ describe("the Workout tab's carousel", () => {
     expect(mockPush).not.toHaveBeenCalled();
   });
 
+  it("alerts the same without a name when the open session's Workout is gone", async () => {
+    backend.sessions.push({
+      finished_at: null,
+      id: "orphan",
+      plan_id: null,
+      started_at: "2026-10-29T09:00:00.000Z",
+      workout_id: null,
+      workoutName: "Gone",
+    });
+    await mount();
+
+    await fireEvent.press(screen.getByRole("button", { name: "Start Push" }));
+    await settle(queryClient);
+
+    expect(Alert.alert).toHaveBeenCalledWith(
+      "Couldn't start workout",
+      "Finish or discard your workout in progress first",
+      expect.anything()
+    );
+    await pressAlertButton("Continue Workout");
+    expect(mockPush).toHaveBeenCalledWith("/workout-sessions/orphan");
+  });
+
   it("alerts the wait when Start is rate limited", async () => {
     await mount();
     fakePublicApi.failNext(START, { retryAfterSeconds: 12, status: 429 });
