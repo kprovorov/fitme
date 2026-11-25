@@ -5,14 +5,18 @@ import type { Translator } from "@fitme/i18n";
 /**
  * The Public API's Plan Update (`GET /v1/workout-sessions/{id}/plan-update`):
  * the Plan and Workout a finished Workout Session would update (null when
- * they're gone), its changes in Workout order, Exercises as slugs, and the
- * unit of their weights.
+ * they're gone), its changes and the Plan sets the User removed (each in
+ * Workout order, Exercises as slugs), and the unit of their weights.
  */
 export type PlanUpdate = components["schemas"]["PlanUpdate"];
 
 export type PlanUpdateChange = components["schemas"]["PlanUpdateChange"];
 
 export type PlanUpdateChangeKind = PlanUpdateChange["kind"];
+
+/** The Plan sets of one Exercise that would go, by their targets. */
+export type PlanUpdateSetRemoval =
+  components["schemas"]["PlanUpdateSetRemoval"];
 
 type PlanUpdateSet = components["schemas"]["PlanUpdateSet"];
 
@@ -52,13 +56,41 @@ const spokenSets = (
     )
     .join(", ");
 
-/** Every Exercise slug the changes name, for the Library. */
-export const planUpdateSlugs = (changes: PlanUpdateChange[]): string[] =>
-  changes.flatMap((change) =>
+/** The Plan Update's set removals: none in an answer without the field. */
+export const setRemovalsOf = (
+  planUpdate: Pick<Partial<PlanUpdate>, "set_removals">
+): PlanUpdateSetRemoval[] => planUpdate.set_removals ?? [];
+
+/** Whether the Plan Update has something to ask the User about. */
+export const hasPlanUpdate = (planUpdate: PlanUpdate): boolean =>
+  planUpdate.changes.length > 0 || setRemovalsOf(planUpdate).length > 0;
+
+/** Every Exercise slug the Plan Update names, for the Library. */
+export const planUpdateSlugs = (planUpdate: PlanUpdate): string[] => [
+  ...planUpdate.changes.flatMap((change) =>
     change.kind === "replace_exercise"
       ? [change.replaced_exercise_slug, change.exercise_slug]
       : [change.exercise_slug]
-  );
+  ),
+  ...setRemovalsOf(planUpdate).map(({ exercise_slug }) => exercise_slug),
+];
+
+/** A line naming the sets after its title: "Add Cable Fly · 12×15 kg". */
+const lineWithSets = (
+  title: string,
+  sets: PlanUpdateSet[],
+  weightUnit: WeightUnit,
+  translator: Translator
+): PlanChangeLine => ({
+  accessibilityLabel: translator.t("planUpdate.changes.spokenLine", {
+    change: title,
+    sets: spokenSets(translator, sets, weightUnit),
+  }),
+  text: translator.t("planUpdate.changes.line", {
+    change: title,
+    sets: setsText(translator, sets, weightUnit),
+  }),
+});
 
 /**
  * The sheet's line for one change, weights in `weightUnit` and each Exercise
@@ -110,30 +142,45 @@ export const formatPlanChange = (
     }
   }
 
-  return {
-    accessibilityLabel: translator.t("planUpdate.changes.spokenLine", {
-      change: title,
-      sets: spokenSets(translator, change.sets, weightUnit),
-    }),
-    text: translator.t("planUpdate.changes.line", {
-      change: title,
-      sets: setsText(translator, change.sets, weightUnit),
-    }),
-  };
+  return lineWithSets(title, change.sets, weightUnit, translator);
 };
 
-/** How many changes of each kind, for analytics. */
+/**
+ * The sheet's line for one Exercise's set removal, naming the Plan sets that
+ * go by their targets: "Remove 1 set from Squat · 10×40 kg".
+ */
+export const formatSetRemoval = (
+  { exercise_slug, sets }: PlanUpdateSetRemoval,
+  weightUnit: WeightUnit,
+  nameOf: (slug: string) => string,
+  translator: Translator
+): PlanChangeLine =>
+  lineWithSets(
+    translator.t("planUpdate.changes.removeSets", {
+      count: sets.length,
+      exercise: nameOf(exercise_slug),
+    }),
+    sets,
+    weightUnit,
+    translator
+  );
+
+/**
+ * How many changes of each kind, and how many Exercises lose sets
+ * (`remove_sets`, as `add_sets` counts those gaining some), for analytics.
+ */
 export const countPlanChanges = (
-  changes: PlanUpdateChange[]
-): Record<PlanUpdateChangeKind, number> => {
-  const counts: Record<PlanUpdateChangeKind, number> = {
+  planUpdate: PlanUpdate
+): Record<PlanUpdateChangeKind | "remove_sets", number> => {
+  const counts = {
     add_exercise: 0,
     add_sets: 0,
     remove_exercise: 0,
+    remove_sets: setRemovalsOf(planUpdate).length,
     replace_exercise: 0,
   };
 
-  for (const change of changes) {
+  for (const change of planUpdate.changes) {
     counts[change.kind] += 1;
   }
 

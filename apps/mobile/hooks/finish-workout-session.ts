@@ -27,7 +27,11 @@ import type {
   WorkoutSession,
 } from "~/hooks/queries/workout-sessions";
 import { i18n } from "~/lib/i18n";
-import { countPlanChanges, planUpdateProperties } from "~/lib/plan-changes";
+import {
+  countPlanChanges,
+  hasPlanUpdate,
+  planUpdateProperties,
+} from "~/lib/plan-changes";
 import type { PlanUpdate } from "~/lib/plan-changes";
 import { segmentClient } from "~/lib/segment";
 import { isStillWriteStarter, rememberWriteStarter } from "~/lib/write-answers";
@@ -63,15 +67,15 @@ const alertFinishFailed = (waitSeconds: number | null = null) =>
 
 /**
  * What to ask after `sessionId` has finished: its Plan Update, weights in
- * its `weight_unit`, or null when there's nothing to ask (no changes, or the
- * Plan or Workout is gone). Throws when it can't be read.
+ * its `weight_unit`, or null when there's nothing to ask (no changes and no set
+ * removals, or the Plan or Workout is gone). Throws when it can't be read.
  */
 const planUpdateQuestion = async (
   sessionId: string
 ): Promise<PlanUpdate | null> => {
   const preview = await fetchPlanUpdate(sessionId);
 
-  if (preview.changes.length === 0 || !(preview.plan && preview.workout)) {
+  if (!hasPlanUpdate(preview) || !(preview.plan && preview.workout)) {
     return null;
   }
 
@@ -174,7 +178,8 @@ const confirmFinishWorkout = async (
 
 /**
  * Finishes a workout session and opens its Summary. When the finished session
- * changed its Workout (replaced, added or removed Exercises, extra sets), the
+ * changed its Workout (replaced, added or removed Exercises, added or removed
+ * sets), the
  * "Update your plan?" sheet comes first (`PlanUpdateSheetHost`), and the
  * Summary opens once the User has answered it. If those changes can't be
  * read, it's reported and the Summary opens without asking: finishing never
@@ -282,7 +287,7 @@ export const useFinishWorkoutSession = (
       }
 
       void segmentClient.track("Plan Update Suggested", {
-        ...countPlanChanges(preview.changes),
+        ...countPlanChanges(preview),
         ...planUpdateProperties(sessionId, preview),
       });
       showPlanUpdatePrompt({
