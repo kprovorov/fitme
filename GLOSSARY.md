@@ -36,7 +36,7 @@ A personal workout planner: a person signs up, fills in a fitness profile, build
 
 **Personal record (PR)**: A logged set with positive reps that exceeds the User's highest weight for the same Exercise in earlier finished Workout Sessions, or exceeds the highest reps recorded at that highest weight; explicit zero weight allows bodyweight rep records while missing weight does not. First-ever results establish a baseline, ties earn no record, and an earned record is retained when the User changes measurement system. _Avoid_: Workout record, best workout
 
-**Plan Update**: The structural changes a finished Workout Session suggests to its Workout (Exercises replaced, added or removed, sets added), which the User accepts or declines once. Accepted, they become the Workout's new targets. _Avoid_: Plan changes, plan diff
+**Plan Update**: The structural changes a finished Workout Session suggests to its Workout (Exercises replaced, added or removed, sets added or removed), which the User accepts or declines once. Accepted, they become the Workout's new targets. _Avoid_: Plan changes, plan diff
 
 **Exercise**: A named movement from the Library, independent of any User, identified by its Exercise slug. Plans and Workout Sessions refer to Exercises; they never own them.
 
