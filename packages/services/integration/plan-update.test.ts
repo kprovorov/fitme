@@ -16,7 +16,7 @@ import { asc, eq, inArray } from "drizzle-orm";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { applyPlanUpdate, previewPlanUpdate } from "../src/plan-update";
-import type { PlanUpdate } from "../src/plan-update";
+import type { PlanUpdate, PlanUpdateOptions } from "../src/plan-update";
 import { deleteTestUsers } from "./delete-test-users";
 
 /**
@@ -38,12 +38,16 @@ const unprofiled = `user_svcPlanUpdateNoProfile${runId}`;
 const intruder = `user_svcPlanUpdateIntruder${runId}`;
 
 interface PlanSet {
+  /** Defaults to the position from 1. */
+  order?: number;
   reps: number;
   rest: number;
   weight: number;
 }
 
 interface SessionSet {
+  /** Defaults to the position from 1. */
+  order?: number;
   /** `reps_recommended`: a number when copied from the Plan (0 once replaced), absent when added. */
   recommended?: number;
   reps?: number;
@@ -129,7 +133,7 @@ const seed = async (fixture: Fixture): Promise<Seeded> =>
         if (exercise.sets.length > 0) {
           await tx.insert(workoutExerciseSets).values(
             exercise.sets.map((set, setIndex) => ({
-              order: setIndex + 1,
+              order: set.order ?? setIndex + 1,
               repsRecommended: set.reps,
               restRecommended: set.rest,
               weightRecommended: String(set.weight),
@@ -168,7 +172,7 @@ const seed = async (fixture: Fixture): Promise<Seeded> =>
         if (exercise.sets.length > 0) {
           await tx.insert(workoutSessionExerciseSets).values(
             exercise.sets.map((set, setIndex) => ({
-              order: setIndex + 1,
+              order: set.order ?? setIndex + 1,
               repsCompleted: set.reps ?? null,
               repsRecommended: set.recommended ?? null,
               weightCompleted:
@@ -183,11 +187,21 @@ const seed = async (fixture: Fixture): Promise<Seeded> =>
     return { planId: plan.id, sessionId: session.id, workoutId: workout.id };
   });
 
-const viaService = async (sessionId: string, apply: boolean, userId = owner) =>
+const viaService = async (
+  sessionId: string,
+  apply: boolean,
+  userId = owner,
+  options?: PlanUpdateOptions
+) =>
   await asUser(
     userId,
     async (tx) =>
-      await (apply ? applyPlanUpdate : previewPlanUpdate)(tx, userId, sessionId)
+      await (apply ? applyPlanUpdate : previewPlanUpdate)(
+        tx,
+        userId,
+        sessionId,
+        options
+      )
   );
 
 /** A seeded Workout's Workout Exercise ids, by `order`. */
@@ -262,7 +276,7 @@ const rowsOf = async (seeded: Seeded) =>
  * answer, the rows before the first and the rows after each, and the
  * Workout Exercise ids before.
  */
-const run = async (fixture: Fixture) => {
+const run = async (fixture: Fixture, options?: PlanUpdateOptions) => {
   const seeded = await seed(fixture);
   const before = await rowsOf(seeded);
   const idsBefore = await exerciseIdsOf(seeded);
@@ -270,7 +284,12 @@ const run = async (fixture: Fixture) => {
   const rows: Awaited<ReturnType<typeof rowsOf>>[] = [];
 
   await inSequence([false, true, false, true], async (apply) => {
-    const answer = await viaService(seeded.sessionId, apply, fixture.userId);
+    const answer = await viaService(
+      seeded.sessionId,
+      apply,
+      fixture.userId,
+      options
+    );
 
     if (answer === null) {
       throw new Error("Expected a Plan Update for the seeded Workout Session");
@@ -436,6 +455,189 @@ const mainAppliedRows = {
     },
   ],
 };
+
+/** A Squat whose three sets differ, so a test sees which one went. */
+const squatSets: PlanSet[] = [
+  { reps: 10, rest: 60, weight: 40 },
+  { reps: 8, rest: 90, weight: 50.5 },
+  { reps: 6, rest: 120, weight: 60 },
+];
+
+/** A logged Workout Session set copied from the Plan set at `order`. */
+const copied = (order: number, recommended = 5): SessionSet => ({
+  order,
+  recommended,
+  reps: 5,
+  weight: 45,
+});
+
+/** A logged Workout Session set added at `order`. */
+const added = (order: number, reps: number): SessionSet => ({
+  order,
+  reps,
+  weight: 70,
+});
+
+const allSquatRows = [
+  planSet(1, 10, 40, 60),
+  planSet(2, 8, 50.5, 90),
+  planSet(3, 6, 60, 120),
+];
+
+const addSets = (...reps: number[]): PlanUpdate["changes"] => [
+  {
+    exercise_slug: "test-squat",
+    kind: "add_sets",
+    sets: reps.map((count) => ({ reps: count, weight: 70 })),
+  },
+];
+
+interface SetCase {
+  changes?: PlanUpdate["changes"];
+  name: string;
+  /** The Squat's sets once applied with the option. */
+  planAfter?: ReturnType<typeof planSet>[];
+  planSets?: PlanSet[];
+  removed?: { reps: number; weight: number }[];
+  sets: SessionSet[];
+  slug?: string;
+}
+
+const squatSession = ({
+  planSets = squatSets,
+  sets,
+  slug = "test-squat",
+}: Pick<SetCase, "planSets" | "sets" | "slug">): Fixture => ({
+  planExercises: [{ sets: planSets, slug: "test-squat" }],
+  sessionExercises: [{ sets, slug }],
+});
+
+const removalsOf = ({ removed }: SetCase): PlanUpdate["set_removals"] =>
+  removed ? [{ exercise_slug: "test-squat", sets: removed }] : [];
+
+const twenty = times(20, () => ({ reps: 5, rest: 180, weight: 100 }));
+const nineteen = twenty.slice(1);
+
+const setCases: SetCase[] = [
+  {
+    name: "the first set",
+    planAfter: [planSet(1, 8, 50.5, 90), planSet(2, 6, 60, 120)],
+    removed: [{ reps: 10, weight: 40 }],
+    sets: [copied(2), copied(3)],
+  },
+  {
+    name: "a middle set",
+    planAfter: [planSet(1, 10, 40, 60), planSet(2, 6, 60, 120)],
+    removed: [{ reps: 8, weight: 50.5 }],
+    sets: [copied(1), copied(3)],
+  },
+  {
+    name: "the last set",
+    planAfter: [planSet(1, 10, 40, 60), planSet(2, 8, 50.5, 90)],
+    removed: [{ reps: 6, weight: 60 }],
+    sets: [copied(1), copied(2)],
+  },
+  {
+    name: "none for a skipped, unlogged set",
+    planAfter: allSquatRows,
+    sets: [{ order: 1, recommended: 5 }, copied(2), copied(3)],
+  },
+  {
+    name: "none when one is removed and one added",
+    planAfter: allSquatRows,
+    sets: [copied(2), copied(3), added(4, 4)],
+  },
+  {
+    name: "none when the last is removed and one added in its order",
+    planAfter: allSquatRows,
+    sets: [copied(1), copied(2), added(3, 4)],
+  },
+  {
+    name: "the first removed ones when more are removed than added",
+    planAfter: [planSet(1, 8, 50.5, 90), planSet(2, 6, 60, 120)],
+    removed: [{ reps: 10, weight: 40 }],
+    sets: [copied(2), added(4, 4)],
+  },
+  {
+    changes: addSets(3),
+    name: "the last added one when more are added than removed",
+    planAfter: [...allSquatRows, planSet(4, 3, 70, 120)],
+    sets: [copied(2), copied(3), added(4, 4), added(5, 3)],
+  },
+  {
+    changes: [{ exercise_slug: "test-squat", kind: "remove_exercise" }],
+    name: "the Exercise when every set is gone",
+    sets: [],
+  },
+  {
+    name: "none for an Exercise replaced and emptied",
+    planAfter: allSquatRows,
+    sets: [],
+    slug: "test-leg-press",
+  },
+  {
+    name: "a set removed after replacing and switching back",
+    planAfter: [planSet(1, 8, 50.5, 90), planSet(2, 6, 60, 120)],
+    removed: [{ reps: 10, weight: 40 }],
+    sets: [copied(2, 0), copied(3, 0)],
+  },
+  {
+    name: "none when one is removed and one added after switching back",
+    planAfter: allSquatRows,
+    sets: [copied(1, 0), copied(3, 0), copied(4, 0)],
+  },
+  {
+    name: "none with a repeated set order in the Plan",
+    planAfter: [
+      planSet(1, 10, 40, 60),
+      planSet(1, 10, 40, 60),
+      planSet(3, 6, 60, 120),
+    ],
+    planSets: [squatSets[0], { ...squatSets[0], order: 1 }, squatSets[2]],
+    sets: [copied(1), copied(1)],
+  },
+  {
+    name: "none with a repeated set order in the Workout Session",
+    planAfter: allSquatRows,
+    sets: [copied(1), copied(1)],
+  },
+  {
+    changes: addSets(4, 4),
+    name: "none, and the added sets, with a repeated order among the added",
+    planAfter: [
+      ...allSquatRows,
+      planSet(4, 4, 70, 120),
+      planSet(5, 4, 70, 120),
+    ],
+    sets: [copied(1), copied(2), copied(3), added(4, 4), added(4, 4)],
+  },
+  {
+    name: "an added, never logged set still counts as added",
+    planAfter: allSquatRows,
+    sets: [copied(1), copied(2), { order: 4 }],
+  },
+  {
+    changes: addSets(4),
+    name: "the 20 set cap, after the removed ones are evened out",
+    planAfter: [
+      ...nineteen.map((_, i) => planSet(i + 1, 5, 100, 180)),
+      planSet(20, 4, 70, 180),
+    ],
+    planSets: nineteen,
+    sets: [
+      ...times(18, (n) => copied(n + 1)),
+      added(20, 6),
+      added(21, 4),
+      added(22, 3),
+    ],
+  },
+  {
+    name: "none past the 20 set cap",
+    planAfter: twenty.map((_, i) => planSet(i + 1, 5, 100, 180)),
+    planSets: twenty,
+    sets: [...times(20, (n) => copied(n)), added(21, 4)],
+  },
+];
 
 describe("plan Update", () => {
   beforeAll(async () => {
@@ -752,6 +954,116 @@ describe("plan Update", () => {
       sets: times(20, () => ({ reps: 12, weight: 15 })),
     });
     expect(rows[1].exercises).toHaveLength(50);
+  });
+
+  it.each(setCases)("set removals: $name", async (setCase) => {
+    const { answers, before, rows } = await run(squatSession(setCase), {
+      includeSetRemovals: true,
+    });
+
+    const [preview, ...others] = answers;
+    expect(preview).toMatchObject({
+      changes: setCase.changes ?? [],
+      set_removals: removalsOf(setCase),
+    });
+
+    const nothing = { ...preview, changes: [], set_removals: [] };
+    expect(others).toStrictEqual([preview, nothing, nothing]);
+
+    const after = {
+      applied: true,
+      exercises: setCase.planAfter
+        ? [{ order: 1, sets: setCase.planAfter, slug: "test-squat" }]
+        : [],
+    };
+
+    expect(rows).toStrictEqual([before, after, after, after]);
+  });
+
+  it.each(setCases)("without the option: $name", async (setCase) => {
+    const { answers, before, rows } = await run(squatSession(setCase));
+
+    expect(answers[0].changes).toStrictEqual(setCase.changes ?? []);
+    expect(answers.some((answer) => "set_removals" in answer)).toBeFalsy();
+    expect(rows[1].exercises.map(({ sets }) => sets)).toStrictEqual(
+      setCase.removed
+        ? before.exercises.map(({ sets }) => sets)
+        : [setCase.planAfter].flatMap((sets) => (sets ? [sets] : []))
+    );
+  });
+
+  it("removes sets from several Exercises, in Workout order, keeping their rests and the other changes", async () => {
+    const { answers, rows } = await run(
+      {
+        planExercises: [
+          { sets: squatSets, slug: "test-squat" },
+          { sets: [{ reps: 12, rest: 90, weight: 0 }], slug: "test-dips" },
+          { sets: squatSets, slug: "test-leg-press" },
+        ],
+        sessionExercises: [
+          { order: 1, sets: [copied(1), copied(3)], slug: "test-squat" },
+          { order: 3, sets: [copied(3)], slug: "test-leg-press" },
+          { order: 4, sets: [logged(12, 15)], slug: "test-cable-fly" },
+        ],
+      },
+      { includeSetRemovals: true }
+    );
+
+    expect(answers[0].changes.map(({ kind }) => kind)).toStrictEqual([
+      "remove_exercise",
+      "add_exercise",
+    ]);
+    expect(answers[0].set_removals).toStrictEqual([
+      { exercise_slug: "test-squat", sets: [{ reps: 8, weight: 50.5 }] },
+      {
+        exercise_slug: "test-leg-press",
+        sets: [
+          { reps: 10, weight: 40 },
+          { reps: 8, weight: 50.5 },
+        ],
+      },
+    ]);
+    expect(rows[1].exercises).toStrictEqual([
+      {
+        order: 1,
+        sets: [planSet(1, 10, 40, 60), planSet(2, 6, 60, 120)],
+        slug: "test-squat",
+      },
+      { order: 2, sets: [planSet(1, 6, 60, 120)], slug: "test-leg-press" },
+      { order: 3, sets: [planSet(1, 12, 15, 90)], slug: "test-cable-fly" },
+    ]);
+  });
+
+  it("answers no set removals, with the option, for a Workout that's gone", async () => {
+    const { answers } = await run(
+      { ...main, workoutGone: true },
+      { includeSetRemovals: true }
+    );
+
+    expect(answers.map((answer) => answer.set_removals)).toStrictEqual(
+      answers.map(() => [])
+    );
+  });
+
+  it("removes sets once when two applies run at once", async () => {
+    const copy = await seed(squatSession({ sets: [copied(2), copied(3)] }));
+    const options = { includeSetRemovals: true };
+
+    const answers = await Promise.all([
+      viaService(copy.sessionId, true, owner, options),
+      viaService(copy.sessionId, true, owner, options),
+    ]);
+
+    const counts = answers.map((answer) => answer?.set_removals?.length);
+    expect(counts.toSorted((a, b) => (a ?? 0) - (b ?? 0))).toStrictEqual([
+      0, 1,
+    ]);
+
+    const { exercises } = await rowsOf(copy);
+    expect(exercises[0].sets).toStrictEqual([
+      planSet(1, 8, 50.5, 90),
+      planSet(2, 6, 60, 120),
+    ]);
   });
 
   it("answers kg for a User without a Profile", async () => {
