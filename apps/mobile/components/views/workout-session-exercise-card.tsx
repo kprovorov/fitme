@@ -73,7 +73,7 @@ const WorkoutSessionExerciseCard = ({
       ? [
           {
             destructive: true,
-            label: t("workoutSession.exercise.delete"),
+            label: t("workoutSession.exercise.remove"),
             onPress: onDelete,
             systemImage: "trash" as const,
           },

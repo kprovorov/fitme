@@ -978,7 +978,7 @@ describe.each(ENTRY_ROUTES)(
       expect(isSuggestionShown()).toBe(false);
     });
 
-    it("never suggests when deleting the last untracked exercise completes the session", async () => {
+    it("never suggests when removing the last untracked exercise completes the session", async () => {
       await startApp({
         exercises: [
           { name: "Squat", sets: [10] },
@@ -987,11 +987,11 @@ describe.each(ENTRY_ROUTES)(
         id: "s1",
       });
 
-      const deleteButtons = focused().getAllByLabelText("Delete");
-      // Deleting awaits the save and then updates the screen; keep that whole
+      const removeButtons = focused().getAllByLabelText("Remove");
+      // Removing awaits the save and then updates the screen; keep that whole
       // update inside `act`.
       await act(async () => {
-        await fireEvent.press(deleteButtons[1]);
+        await fireEvent.press(removeButtons[1]);
       });
       await settle();
 

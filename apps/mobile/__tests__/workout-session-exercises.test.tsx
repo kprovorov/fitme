@@ -223,11 +223,11 @@ const addLunge = async () => {
   await settle();
 };
 
-/** Deletes the first Exercise through its card's menu. */
-const deleteFirst = async () => {
-  const [deleteItem] = await screen.findAllByLabelText("Delete");
+/** Removes the first Exercise through its card's menu. */
+const removeFirst = async () => {
+  const [removeItem] = await screen.findAllByLabelText("Remove");
   await act(async () => {
-    await fireEvent.press(deleteItem);
+    await fireEvent.press(removeItem);
   });
   await settle();
 };
@@ -711,7 +711,7 @@ describe("removing an Exercise from a Workout Session", () => {
   it("removes it through the Public API, leaving the others' order", async () => {
     await renderSession();
 
-    await deleteFirst();
+    await removeFirst();
 
     expect(lastRequestTo(REMOVE_EXERCISE)).toMatchObject({
       path: "/v1/workout-session-exercises/s1-e1",
@@ -736,10 +736,10 @@ describe("removing an Exercise from a Workout Session", () => {
       await renderSession();
       fakePublicApi.failNext(REMOVE_EXERCISE, failure);
 
-      await deleteFirst();
+      await removeFirst();
 
       expect(Alert.alert).toHaveBeenCalledWith(
-        "Couldn't delete exercise",
+        "Couldn't remove exercise",
         message
       );
       expect(backend.exercises).toHaveLength(2);
@@ -755,10 +755,10 @@ describe("removing an Exercise from a Workout Session", () => {
     await renderSession();
     fakePublicApi.failNext(REMOVE_EXERCISE, "lost");
 
-    await deleteFirst();
+    await removeFirst();
 
     expect(Alert.alert).toHaveBeenCalledWith(
-      "Couldn't delete exercise",
+      "Couldn't remove exercise",
       "Please check your connection and try again."
     );
     expect(screen.queryByText("Squat")).toBeNull();
