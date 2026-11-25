@@ -69,6 +69,7 @@ import {
   listWorkoutSessions,
   logSet,
   removeExerciseFromWorkoutSession,
+  removeSetFromWorkoutSession,
   replaceExerciseInWorkoutSession,
   startWorkoutSession,
 } from "@fitme/services/workout-sessions";
@@ -82,6 +83,7 @@ import type {
   LogSetInput,
   LogSetResult,
   RemoveExerciseFromWorkoutSessionResult,
+  RemoveSetFromWorkoutSessionResult,
   ReplaceExerciseInWorkoutSessionInput,
   ReplaceExerciseInWorkoutSessionResult,
   StartWorkoutSessionResult,
@@ -220,6 +222,13 @@ export interface UserServices {
   removeExerciseFromWorkoutSession: (
     sessionExerciseId: string
   ) => Promise<RemoveExerciseFromWorkoutSessionResult>;
+  /**
+   * Removes a set from the User's open Workout Session, leaving the others'
+   * `order` (ADR 0023); a finished one is left as it was.
+   */
+  removeSetFromWorkoutSession: (
+    setId: string
+  ) => Promise<RemoveSetFromWorkoutSessionResult>;
   /**
    * Replaces the Exercise of a Workout Session Exercise of the User's open
    * Workout Session and zeroes its sets' targets; a finished one is left as it
@@ -375,6 +384,12 @@ export const createServicesFromEnv: ServicesFactory = (userId) => {
           userId,
           sessionExerciseId
         );
+      }),
+    removeSetFromWorkoutSession: (setId) =>
+      asUser(userId, async (tx) => {
+        await write.before(tx);
+
+        return await removeSetFromWorkoutSession(tx, userId, setId);
       }),
     replaceExerciseInWorkoutSession: (input) =>
       inUnits(

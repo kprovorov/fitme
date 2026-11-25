@@ -4476,6 +4476,83 @@
             }
           }
         }
+      },
+      "delete": {
+        "description": "Removes a set, logged or not, from an open Workout Session. The remaining sets keep their `order`: the Plan Update reads the gap as a removal. An Exercise whose last set is removed stays, with no sets. Idempotent: an id the User has no Workout Session set with (already removed, never existed, or another User's, which is left untouched) answers 204 too. A finished Workout Session can't change.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Remove a set from a Workout Session",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "example": "6f1c0c9e-2b7a-4c1e-9a55-3c2d1e0f4a11"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "The User has no Workout Session set with this id now"
+          },
+          "400": {
+            "description": "`invalid_request`: the input fails its schema",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No valid Clerk session token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "`session_finished`: the Workout Session is finished; nothing was written",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too many requests from this User; retry after `Retry-After`",
+            "headers": {
+              "Retry-After": {
+                "schema": {
+                  "type": "string",
+                  "description": "Seconds until the limit resets",
+                  "example": "30"
+                },
+                "required": true,
+                "description": "Seconds until the limit resets"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
       }
     },
     "/v1/workout-sessions/totals": {

@@ -567,6 +567,80 @@ describe("pATCH /v1/workout-session-sets/:id", () => {
   });
 });
 
+describe("dELETE /v1/workout-session-sets/:id", () => {
+  const path = `/v1/workout-session-sets/${SET_ID}`;
+
+  it("answers 204 with no body when it removes the set", async () => {
+    const { calls, services } = recording("removeSetFromWorkoutSession", {
+      status: "removed",
+    });
+
+    const { app, servicesFor } = testApp({ services });
+
+    const response = await send(app, "DELETE", path);
+
+    expect(response.status).toBe(204);
+    await expect(response.text()).resolves.toBe("");
+    expect(calls).toStrictEqual([SET_ID]);
+    expect(servicesFor).toStrictEqual(["user_alice"]);
+  });
+
+  it("answers 204 too when nothing of the User's matched (a repeat, or another User's id), unreported", async () => {
+    const { services } = recording("removeSetFromWorkoutSession", {
+      status: "not_found",
+    });
+
+    const { app, reported } = testApp({ services });
+
+    const response = await send(app, "DELETE", path);
+
+    expect(response.status).toBe(204);
+    await expect(response.text()).resolves.toBe("");
+    expect(reported).toStrictEqual([]);
+  });
+
+  it("answers 409 session_finished for a set of a finished Workout Session, unreported", async () => {
+    const { services } = recording("removeSetFromWorkoutSession", {
+      finishedAt: "2026-10-01T11:00:00+00:00",
+      sessionId: SESSION_ID,
+      status: "session_finished",
+    });
+
+    const { app, reported } = testApp({ services });
+
+    const response = await send(app, "DELETE", path);
+
+    expect(response.status).toBe(409);
+    await expect(response.json()).resolves.toStrictEqual({
+      error: {
+        code: "session_finished",
+        message: `Workout Session ${SESSION_ID} was finished at 2026-10-01T11:00:00+00:00; it can no longer be changed`,
+      },
+    });
+    expect(reported).toStrictEqual([]);
+  });
+
+  it("answers 400 invalid_request for an id that isn't a uuid, unreported", async () => {
+    const { app, reported } = testApp({ services: fakeServices({}) });
+
+    const response = await send(app, "DELETE", "/v1/workout-session-sets/nope");
+
+    expect(response.status).toBe(400);
+    const responseBody = await response.json();
+    expect(responseBody.error.code).toBe("invalid_request");
+    expect(reported).toStrictEqual([]);
+  });
+
+  it("answers 401 without a token, before any service call", async () => {
+    const { app, servicesFor } = testApp({ services: fakeServices({}) });
+
+    const response = await app.request(path, { method: "DELETE" });
+
+    expect(response.status).toBe(401);
+    expect(servicesFor).toStrictEqual([]);
+  });
+});
+
 describe("pOST /v1/workout-sessions/:id/exercises", () => {
   const path = `/v1/workout-sessions/${SESSION_ID}/exercises`;
 

@@ -1,6 +1,6 @@
 /// <reference lib="es2023.array" />
 
-import { randomBytes } from "node:crypto";
+import { randomBytes, randomUUID } from "node:crypto";
 
 import { deleteTestUsers } from "@fitme/services/delete-test-users";
 import { afterAll, assert, beforeEach, describe, expect, it } from "vitest";
@@ -16,7 +16,7 @@ import {
 } from "../src/test/harness.js";
 
 /**
- * Editing an open Workout Session's Exercises through the Public API with the
+ * Editing an open Workout Session's Exercises and sets through the Public API with the
  * real services facade, through `asUser` on the local stack's pooler.
  */
 /** Nothing these tests check is reported. */
@@ -499,6 +499,76 @@ describe("workout Session edits", () => {
       expect(unknownField.status).toBe(400);
       const [unchangedSquat] = await exercisesOf(sessionId);
       expect(unchangedSquat?.sets).toHaveLength(1);
+    });
+  });
+
+  describe("dELETE /v1/workout-session-sets/:id", () => {
+    /** The squat with three sets: its planned one and two added, logged ones. */
+    const startWithThreeSets = async () => {
+      const sessionId = await startSession(owner);
+      const [squat] = await exercisesOf(sessionId);
+      assert.isDefined(squat);
+      await addSet(owner, squat.id);
+      await addSet(owner, squat.id);
+      const [{ sets }] = await exercisesOf(sessionId);
+
+      return { sessionId, sets, squatId: squat.id };
+    };
+
+    const removeSet = (userId: string, setId?: string) =>
+      request(userId, "DELETE", `/v1/workout-session-sets/${setId}`);
+
+    it("removes the set, leaving a gap that a later add keeps", async () => {
+      const { sessionId, sets, squatId } = await startWithThreeSets();
+
+      const removed = await removeSet(owner, sets[1]?.id);
+
+      expect(removed).toStrictEqual({ body: null, status: 204 });
+      const [squat] = await exercisesOf(sessionId);
+      expect(squat?.sets).toStrictEqual([sets[0], sets[2]]);
+      await addSet(owner, squatId);
+      const [added] = await exercisesOf(sessionId);
+      expect(added?.sets.map(({ order }) => order)).toStrictEqual([1, 3, 4]);
+    });
+
+    it("keeps an Exercise whose last set is removed", async () => {
+      const sessionId = await startSession(owner);
+      const [squat] = await exercisesOf(sessionId);
+
+      const removed = await removeSet(owner, squat?.sets[0]?.id);
+
+      expect(removed.status).toBe(204);
+      const [emptied] = await exercisesOf(sessionId);
+      expect(emptied).toStrictEqual({ ...squat, sets: [] });
+    });
+
+    it("answers 204 for a repeat, an unknown id and another User's, which stays untouched", async () => {
+      const { sessionId, sets } = await startWithThreeSets();
+      await removeSet(owner, sets[0]?.id);
+
+      const repeat = await removeSet(owner, sets[0]?.id);
+      const unknown = await removeSet(owner, randomUUID());
+      const intruding = await removeSet(intruder, sets[1]?.id);
+
+      expect([repeat, unknown, intruding]).toStrictEqual([
+        { body: null, status: 204 },
+        { body: null, status: 204 },
+        { body: null, status: 204 },
+      ]);
+      const [squat] = await exercisesOf(sessionId);
+      expect(squat?.sets).toStrictEqual([sets[1], sets[2]]);
+    });
+
+    it("refuses a set of a finished Workout Session with 409, removing nothing", async () => {
+      const { sessionId, sets } = await startWithThreeSets();
+      await request(owner, "POST", `/v1/workout-sessions/${sessionId}/finish`);
+
+      const refused = await removeSet(owner, sets[0]?.id);
+
+      expect(refused.status).toBe(409);
+      expect(refused.body.error.code).toBe("session_finished");
+      const [squat] = await exercisesOf(sessionId);
+      expect(squat?.sets).toStrictEqual(sets);
     });
   });
 });
