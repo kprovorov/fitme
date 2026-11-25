@@ -64,7 +64,7 @@ const WorkoutSessionView = ({
       });
     } catch (error) {
       Alert.alert(
-        t("workoutSession.editFailed.deleteTitle"),
+        t("workoutSession.editFailed.removeTitle"),
         sessionEditFailureMessage(t, error)
       );
 
