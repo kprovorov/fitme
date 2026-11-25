@@ -1,0 +1,19 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "buildCommand": "pnpm build",
+  "framework": null,
+  "functions": {
+    "api/forgotten-workout-sessions.js": {
+      "experimentalTriggers": [{ "type": "schedule/v1beta" }]
+    }
+  },
+  "ignoreCommand": "npx turbo-ignore@2.11.11 --fallback=HEAD^1",
+  "outputDirectory": "public",
+  "regions": ["cle1"],
+  "schedules": {
+    "forgotten-workout-sessions": {
+      "function": "api/forgotten-workout-sessions",
+      "schedule": "*/10 * * * *"
+    }
+  }
+}

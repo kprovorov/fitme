@@ -1,0 +1,51 @@
+import { sentryRollupPlugin } from "@sentry/node/rollup";
+import { defineConfig } from "tsdown";
+import type { UserConfig } from "tsdown";
+
+const shared: UserConfig = {
+  deps: {
+    // Workspace packages are source-only, so inline them into the bundle.
+    alwaysBundle: [/^@fitme\//u],
+    // No package from node_modules may be inlined (workspace packages resolve
+    // to source, so they don't count): a dependency of one must be declared in
+    // package.json too, so it stays external and Vercel traces it instead.
+    onlyBundle: [],
+  },
+  fixedExtension: false,
+  format: "esm",
+  platform: "node",
+};
+
+const uploadSourceMaps = Boolean(process.env.SENTRY_AUTH_TOKEN);
+
+// Source maps for the deployed bundle, uploaded to the Sentry project
+// (SENTRY_ORG / SENTRY_PROJECT) for the release: the commit, as
+// @fitme/observability reports it. Without SENTRY_AUTH_TOKEN (local, CI) the
+// build skips the upload, keeps the maps and still passes. A failed upload
+// (Sentry down, a wrong project) is logged, never blocks a deployment.
+const sentry = sentryRollupPlugin({
+  authToken: process.env.SENTRY_AUTH_TOKEN,
+  errorHandler: (error) => {
+    console.warn("Sentry source map upload failed", error);
+  },
+  org: process.env.SENTRY_ORG,
+  project: process.env.SENTRY_PROJECT,
+  release: { name: process.env.VERCEL_GIT_COMMIT_SHA },
+  sourcemaps: uploadSourceMaps
+    ? { filesToDeleteAfterUpload: ["dist/**/*.map"] }
+    : { disable: "disable-upload" },
+  telemetry: false,
+});
+
+// One entry per job. Its chunks split off what it imports
+// dynamically, so observability starts before anything that loads pg. The
+// committed api/<job>.js re-exports dist/<job>.js, which Vercel traces into
+// the private function.
+export default defineConfig({
+  ...shared,
+  clean: true,
+  entry: ["src/forgotten-workout-sessions.ts"],
+  outDir: "dist",
+  plugins: [sentry],
+  sourcemap: true,
+});

@@ -164,7 +164,7 @@ void describe("the CLI", () => {
       fs.writeFileSync(path.join(root, rel), text);
     };
 
-    for (const app of ["api", "arnold", "mcp", "webhooks", "mobile"]) {
+    for (const app of ["api", "arnold", "jobs", "mcp", "webhooks", "mobile"]) {
       write(`apps/${app}/package.json`, "{}");
     }
 
@@ -189,7 +189,7 @@ void describe("the CLI", () => {
    */
   const read = (root, rel) => fs.readFileSync(path.join(root, rel), "utf-8");
 
-  void test("points the four database apps' .env at the stack and prints the MCP URL", () => {
+  void test("points the database apps' .env at the stack and prints the MCP URL", () => {
     const root = checkout();
 
     const run = spawnSync(process.execPath, [SCRIPT, root, stackOutput()], {
@@ -209,6 +209,7 @@ void describe("the CLI", () => {
       ),
       "600"
     );
+    assert.equal(read(root, "apps/jobs/.env"), `${localLine("jobs")}\n`);
     assert.equal(
       read(root, "apps/mcp/.env"),
       `LIBRARY_URL=http://localhost:3006\n${localLine("mcp")}\n`

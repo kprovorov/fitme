@@ -21,6 +21,7 @@
     "dev:webhooks": "turbo run dev --filter=@fitme/webhooks",
     "fix": "ultracite fix",
     "ios": "pnpm --filter @fitme/mobile ios",
+    "jobs": "pnpm --filter @fitme/jobs",
     "knip": "knip --no-progress",
     "library": "pnpm --filter @fitme/library",
     "lint": "turbo run lint",

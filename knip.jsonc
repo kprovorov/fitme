@@ -61,6 +61,17 @@
         "@vercel/functions",
       ],
     },
+    "apps/jobs": {
+      "entry": [
+        // The functions Vercel builds, one per job.
+        "api/*.js",
+      ],
+      "ignoreDependencies": [
+        // Runtime dep of @fitme/db, which tsdown keeps external: AGENTS.md
+        // requires it in the app's dependencies.
+        "@vercel/functions",
+      ],
+    },
     "apps/mcp": {
       // See apps/api: vitest configs are parsed, never run.
       "entry": [
