@@ -1184,8 +1184,11 @@ const claimNow: ClaimSession = async (tx, userId, sessionId) => {
 /** With no set logged for this long, an open Workout Session is forgotten (ADR 0024). */
 const FORGOTTEN_AFTER_HOURS = 3;
 
+/** `now()` minus the time after which an open Workout Session is forgotten. */
+const forgottenSince = sql`now() - make_interval(hours => ${FORGOTTEN_AFTER_HOURS}::int)`;
+
 /** When the Workout Session's last set was logged; NULL when none is. */
-const lastLoggedAt = (sessionId: string) => sql`(
+const lastLoggedAt = (sessionId: string | AnyPgColumn) => sql`(
   select max(${workoutSessionExerciseSets.loggedAt})
   from ${workoutSessionExerciseSets}
   join ${workoutSessionExercises}
@@ -1213,7 +1216,7 @@ const claimForgotten: ClaimSession = async (tx, userId, sessionId) => {
       and(
         openSessionOf(userId, sessionId),
         // NULL, so never true, without a logged set
-        sql`${lastLog} <= now() - make_interval(hours => ${FORGOTTEN_AFTER_HOURS}::int)`
+        sql`${lastLog} <= ${forgottenSince}`
       )
     )
     .returning({ workoutId: workoutSessions.workoutId });
@@ -1346,4 +1349,124 @@ export const finishForgottenWorkoutSession = async (
   return finish?.claimed
     ? { rotated: finish.rotated, status: "finished" }
     : { status: "left_alone" };
+};
+
+export interface ListForgottenWorkoutSessionsInput {
+  /** Only these Users' Workout Sessions; everyone's when left out. */
+  userIds?: readonly string[];
+}
+
+/**
+ * The ids of every Forgotten Workout Session (ADR 0024), the earliest started
+ * first, with or without a logged set, in `tx` from `withService`. Only open
+ * Workout Sessions are read, through `workout_sessions_one_open_per_user_idx`.
+ * Nothing is locked: `closeForgottenWorkoutSession` checks again.
+ */
+export const listForgottenWorkoutSessions = async (
+  tx: Transaction,
+  { userIds }: ListForgottenWorkoutSessionsInput = {}
+): Promise<string[]> => {
+  const rows = await tx
+    .select({ id: workoutSessions.id })
+    .from(workoutSessions)
+    .where(
+      and(
+        isNull(workoutSessions.finishedAt),
+        userIds && inArray(workoutSessions.userId, [...userIds]),
+        sql`coalesce(${lastLoggedAt(workoutSessions.id)}, ${workoutSessions.startedAt}) <= ${forgottenSince}`
+      )
+    )
+    .orderBy(asc(workoutSessions.startedAt), asc(workoutSessions.id));
+
+  return rows.map(({ id }) => id);
+};
+
+/**
+ * Deletes a Forgotten Workout Session with no logged set, with its Exercises
+ * and sets, and nothing else. False, with nothing written, when it isn't one
+ * (any more).
+ */
+const discardForgottenWorkoutSession = async (
+  tx: Transaction,
+  sessionId: string
+): Promise<boolean> => {
+  // Before any row lock, so it queues behind an account deletion; the
+  // cascade's own table locks come after these in deleteUserData's order
+  await lockSessionTables(tx);
+
+  // In a statement of its own, as in claimForgotten: the DELETE then sees
+  // every log it waited for. FOR UPDATE, the lock a DELETE needs.
+  const [open] = await tx
+    .select({ userId: workoutSessions.userId })
+    .from(workoutSessions)
+    .where(
+      and(eq(workoutSessions.id, sessionId), isNull(workoutSessions.finishedAt))
+    )
+    .for("update");
+
+  if (open === undefined) {
+    return false;
+  }
+
+  const discarded = await tx
+    .delete(workoutSessions)
+    .where(
+      and(
+        openSessionOf(open.userId, sessionId),
+        sql`${lastLoggedAt(sessionId)} is null`,
+        sql`${workoutSessions.startedAt} <= ${forgottenSince}`
+      )
+    )
+    .returning({ id: workoutSessions.id });
+
+  return discarded.length > 0;
+};
+
+export interface CloseForgottenWorkoutSessionResult {
+  status: "discarded" | "finished" | "left_alone";
+}
+
+/**
+ * Closes a Forgotten Workout Session (ADR 0024), in `tx` from `withService`:
+ * finished at its last logged set (`finishForgottenWorkoutSession`), or
+ * discarded when no set is logged. One that isn't forgotten, is already
+ * finished or doesn't exist is `left_alone`, with nothing written.
+ *
+ * Whether a set is logged is read without a lock, only to choose between the
+ * two: each checks for itself under the row lock `logSet` takes, so one that
+ * changed meanwhile is left alone for the next run.
+ */
+export const closeForgottenWorkoutSession = async (
+  tx: Transaction,
+  sessionId: string
+): Promise<CloseForgottenWorkoutSessionResult> => {
+  const [logged] = await tx
+    .select({ id: workoutSessionExerciseSets.id })
+    .from(workoutSessionExerciseSets)
+    .innerJoin(
+      workoutSessionExercises,
+      eq(
+        workoutSessionExercises.id,
+        workoutSessionExerciseSets.workoutSessionExerciseId
+      )
+    )
+    .where(
+      and(
+        eq(workoutSessionExercises.workoutSessionId, sessionId),
+        isNotNull(workoutSessionExerciseSets.loggedAt)
+      )
+    )
+    .limit(1);
+
+  if (logged !== undefined) {
+    const { status } = await finishForgottenWorkoutSession(tx, sessionId);
+
+    return { status };
+  }
+
+  return {
+    status: (await discardForgottenWorkoutSession(tx, sessionId))
+      ? "discarded"
+      : "left_alone",
+  };
 };

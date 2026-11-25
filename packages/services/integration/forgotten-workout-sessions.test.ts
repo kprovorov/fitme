@@ -15,7 +15,7 @@ import {
   workouts,
 } from "@fitme/db";
 import type { Transaction } from "@fitme/db";
-import { asc, eq, sql } from "drizzle-orm";
+import { asc, eq, inArray, sql } from "drizzle-orm";
 import { afterAll, beforeEach, describe, expect, it } from "vitest";
 
 import { deleteUserData } from "../src/delete-user-data";
@@ -23,12 +23,18 @@ import { getLifetimeTotals } from "../src/lifetime-totals";
 import { updateProfile } from "../src/profile";
 import { listWeeklyGoalChanges } from "../src/weekly-goals";
 import {
+  addExerciseToWorkoutSession,
+  closeForgottenWorkoutSession,
   deleteWorkoutSession,
   finishForgottenWorkoutSession,
   finishWorkoutSession,
+  listForgottenWorkoutSessions,
   listWorkoutSessions,
   logSet,
+  removeExerciseFromWorkoutSession,
   removeSetFromWorkoutSession,
+  replaceExerciseInWorkoutSession,
+  startWorkoutSession,
 } from "../src/workout-sessions";
 import type {
   FinishWorkoutSessionResult,
@@ -37,7 +43,7 @@ import type {
 import { deleteTestUsers, withUserTablesLocked } from "./delete-test-users";
 
 /**
- * Finishing Forgotten Workout Sessions (ADR 0024) through withService, against
+ * Finishing, listing and closing Forgotten Workout Sessions (ADR 0024) through withService, against
  * a local Supabase stack via the Supavisor pooler as the fitme login, with
  * service_role's real grants. Made-up Clerk-style User ids, unique per run.
  */
@@ -106,7 +112,7 @@ interface SessionSeed {
   finishedAt?: string | null;
   planId?: string | null;
   sets?: SeedSet[];
-  startedAt?: string;
+  startedAt?: string | ReturnType<typeof sql>;
   userId?: string;
   workoutId?: string | null;
 }
@@ -134,7 +140,7 @@ const seedSessionIn = async (
     .returning({ id: workoutSessionExercises.id });
 
   if (sets.length === 0) {
-    return { sessionId: session.id, setIds: [] };
+    return { exerciseId: exercise.id, sessionId: session.id, setIds: [] };
   }
 
   const rows = await tx
@@ -150,7 +156,11 @@ const seedSessionIn = async (
     )
     .returning({ id: workoutSessionExerciseSets.id });
 
-  return { sessionId: session.id, setIds: rows.map(({ id }) => id) };
+  return {
+    exerciseId: exercise.id,
+    sessionId: session.id,
+    setIds: rows.map(({ id }) => id),
+  };
 };
 
 const seedSession = async (seed?: SessionSeed) =>
@@ -180,6 +190,16 @@ const seedProfile = async () =>
 const finishForgotten = async (sessionId: string) =>
   await withService(
     async (tx) => await finishForgottenWorkoutSession(tx, sessionId)
+  );
+
+const close = async (sessionId: string) =>
+  await withService(
+    async (tx) => await closeForgottenWorkoutSession(tx, sessionId)
+  );
+
+const listOf = async (userIds: string[]) =>
+  await withService(
+    async (tx) => await listForgottenWorkoutSessions(tx, { userIds })
   );
 
 const finishManually = async (sessionId: string, userId = owner) =>
@@ -263,7 +283,27 @@ const overlap = async <T, U>(
   return await Promise.all([running, following]);
 };
 
-describe("finishing a Forgotten Workout Session", () => {
+const PLANNED: SeedSet[] = [{ loggedAt: null }, { loggedAt: null }];
+const DISCARDED = { status: "discarded" };
+
+/** What of the User a close could have changed besides the Workout Session. */
+const traceOf = async (planId: string, userId = owner) => ({
+  goals: await asUser(
+    userId,
+    async (tx) => await listWeeklyGoalChanges(tx, userId)
+  ),
+  orders: await workoutOrders(planId),
+  records: await withService(
+    async (tx) =>
+      await tx.$count(personalRecords, eq(personalRecords.userId, userId))
+  ),
+  totals: await asUser(
+    userId,
+    async (tx) => await getLifetimeTotals(tx, userId)
+  ),
+});
+
+describe("Forgotten Workout Sessions", () => {
   beforeEach(() => {
     owner = newUser();
   });
@@ -432,7 +472,13 @@ describe("finishing a Forgotten Workout Session", () => {
       ) => {
         const { planId, workoutId } = await seedPlan(userId);
         await seedEarlierSession(userId);
-        const { sessionId } = await seedSession({ planId, userId, workoutId });
+
+        const { sessionId } = await seedSession({
+          planId,
+          userId,
+          workoutId,
+        });
+
         await finish(sessionId);
 
         const goals = await asUser(
@@ -634,5 +680,389 @@ describe("finishing a Forgotten Workout Session", () => {
         ]);
       }
     );
+  });
+
+  describe("listing Forgotten Workout Sessions", () => {
+    it("has the open ones in scope at or past 3 hours, oldest first", async () => {
+      const result = await withService(async (tx) => {
+        const seed = async (session: SessionSeed) => {
+          const userId = newUser();
+          const { sessionId } = await seedSessionIn(tx, { ...session, userId });
+
+          return { sessionId, userId };
+        };
+
+        // One transaction, so one now()
+        const emptyAtLimit = await seed({
+          sets: PLANNED,
+          startedAt: ago("3 hours"),
+        });
+
+        const loggedAtLimit = await seed({
+          sets: [{ loggedAt: ago("4 hours") }, { loggedAt: ago("3 hours") }],
+          startedAt: ago("5 hours"),
+        });
+
+        const oldest = await seed({ sets: [] });
+        const under = ago("2 hours 59 minutes 59.999999 seconds");
+
+        const others = [
+          await seed({ sets: PLANNED, startedAt: under }),
+          await seed({ sets: [...LOGGED, { loggedAt: under }] }),
+          await seed({ finishedAt: "2026-11-10T11:00:00Z" }),
+          await seed({ finishedAt: "2026-11-10T11:00:00Z", sets: PLANNED }),
+        ];
+
+        const outside = await seed({});
+
+        return {
+          expected: [oldest, loggedAtLimit, emptyAtLimit].map(
+            ({ sessionId }) => sessionId
+          ),
+          listed: await listForgottenWorkoutSessions(tx, {
+            userIds: [emptyAtLimit, loggedAtLimit, oldest, ...others].map(
+              ({ userId }) => userId
+            ),
+          }),
+          nobody: await listForgottenWorkoutSessions(tx, { userIds: [] }),
+          outside: await listForgottenWorkoutSessions(tx, {
+            userIds: [outside.userId],
+          }),
+          outsideId: outside.sessionId,
+        };
+      });
+
+      expect(result.listed).toStrictEqual(result.expected);
+      expect(result.outside).toStrictEqual([result.outsideId]);
+      expect(result.nobody).toStrictEqual([]);
+    });
+  });
+
+  describe("closing a Forgotten Workout Session", () => {
+    it("finishes one with a logged set at its last set", async () => {
+      const { planId, workoutId } = await seedPlan();
+      const { sessionId } = await seedSession({ planId, workoutId });
+
+      await expect(close(sessionId)).resolves.toStrictEqual({
+        status: "finished",
+      });
+      await expect(finishedAtOf(sessionId)).resolves.toBe(LAST_LOGGED_AT);
+      await expect(workoutOrders(planId)).resolves.toStrictEqual(["W2", "W1"]);
+      await expect(listOf([owner])).resolves.toStrictEqual([]);
+    });
+
+    it("deletes an empty one with its Exercises and sets, and nothing else", async () => {
+      const { planId, workoutId } = await seedPlan();
+      await seedEarlierSession();
+
+      const { exerciseId, sessionId, setIds } = await seedSession({
+        planId,
+        sets: PLANNED,
+        workoutId,
+      });
+
+      const before = await traceOf(planId);
+
+      await expect(close(sessionId)).resolves.toStrictEqual(DISCARDED);
+
+      await expect(finishedAtOf(sessionId)).resolves.toBeUndefined();
+
+      const left = await withService(async (tx) => [
+        await tx.$count(
+          workoutSessionExercises,
+          eq(workoutSessionExercises.id, exerciseId)
+        ),
+        await tx.$count(
+          workoutSessionExerciseSets,
+          inArray(workoutSessionExerciseSets.id, setIds)
+        ),
+      ]);
+
+      expect(left).toStrictEqual([0, 0]);
+      await expect(traceOf(planId)).resolves.toStrictEqual(before);
+    });
+
+    it.each([
+      [
+        "added",
+        async (tx: Transaction, sessionId: string) =>
+          await addExerciseToWorkoutSession(tx, owner, {
+            exerciseSlug: "deadlift",
+            sessionId,
+          }),
+      ],
+      [
+        "replaced",
+        async (
+          tx: Transaction,
+          _sessionId: string,
+          sessionExerciseId: string
+        ) =>
+          await replaceExerciseInWorkoutSession(tx, owner, {
+            exerciseSlug: "deadlift",
+            sessionExerciseId,
+          }),
+      ],
+      [
+        "removed",
+        async (
+          tx: Transaction,
+          _sessionId: string,
+          sessionExerciseId: string
+        ) =>
+          await removeExerciseFromWorkoutSession(tx, owner, sessionExerciseId),
+      ],
+    ])("deletes an empty one with an Exercise %s", async (status, edit) => {
+      const { planId, workoutId } = await seedPlan();
+
+      const { exerciseId, sessionId } = await seedSession({
+        planId,
+        sets: PLANNED,
+        workoutId,
+      });
+
+      const edited = await asUser(
+        owner,
+        async (tx) => await edit(tx, sessionId, exerciseId)
+      );
+
+      expect(edited.status).toBe(status);
+      const before = await traceOf(planId);
+
+      await expect(close(sessionId)).resolves.toStrictEqual(DISCARDED);
+      await expect(finishedAtOf(sessionId)).resolves.toBeUndefined();
+      await expect(traceOf(planId)).resolves.toStrictEqual(before);
+    });
+
+    it("counts an empty one's 3 hours from its start", async () => {
+      const results = await withService(async (tx) => {
+        const just = await seedSessionIn(tx, {
+          sets: PLANNED,
+          startedAt: ago("3 hours"),
+        });
+
+        const under = await seedSessionIn(tx, {
+          sets: PLANNED,
+          startedAt: ago("2 hours 59 minutes 59.999999 seconds"),
+          userId: newUser(),
+        });
+
+        return [
+          await closeForgottenWorkoutSession(tx, just.sessionId),
+          await closeForgottenWorkoutSession(tx, under.sessionId),
+        ];
+      });
+
+      expect(results).toStrictEqual([DISCARDED, LEFT_ALONE]);
+    });
+
+    it("counts one whose only logged set was removed as empty", async () => {
+      const { sessionId, setIds } = await seedSession({
+        sets: [{ loggedAt: ago("1 hour") }, { loggedAt: null }],
+      });
+
+      await expect(listOf([owner])).resolves.toStrictEqual([]);
+
+      await asUser(
+        owner,
+        async (tx) => await removeSetFromWorkoutSession(tx, owner, setIds[0])
+      );
+
+      await expect(listOf([owner])).resolves.toStrictEqual([sessionId]);
+      await expect(close(sessionId)).resolves.toStrictEqual(DISCARDED);
+    });
+
+    it("keeps another User's Workout Session", async () => {
+      const other = await seedSession({ sets: PLANNED, userId: newUser() });
+      const { sessionId } = await seedSession({ sets: PLANNED });
+
+      await close(sessionId);
+
+      await expect(finishedAtOf(other.sessionId)).resolves.toBeNull();
+    });
+
+    it("leaves finished, discarded and deleted ones alone", async () => {
+      const { sessionId: discarded } = await seedSession({ sets: PLANNED });
+
+      const { sessionId: finished } = await seedSession({
+        sets: PLANNED,
+        userId: newUser(),
+      });
+
+      const finisher = users.at(-1) ?? "";
+
+      const { sessionId: deleted } = await seedSession({
+        sets: PLANNED,
+        userId: newUser(),
+      });
+
+      const deleter = users.at(-1) ?? "";
+      await close(discarded);
+      await finishManually(finished, finisher);
+      await asUser(
+        deleter,
+        async (tx) => await deleteWorkoutSession(tx, deleted)
+      );
+      const finishedAt = await finishedAtOf(finished);
+
+      for (const id of [discarded, finished, deleted]) {
+        // oxlint-disable-next-line no-await-in-loop -- one after another, as the job does
+        await expect(close(id)).resolves.toStrictEqual(LEFT_ALONE);
+      }
+
+      await expect(finishedAtOf(finished)).resolves.toBe(finishedAt);
+    });
+
+    it.each([
+      ["an empty one", PLANNED],
+      ["one with a logged set", LOGGED],
+    ])("lets the User start another Workout after %s", async (_name, sets) => {
+      const { planId, workoutId } = await seedPlan();
+
+      const [, second] = await withService((tx) =>
+        tx
+          .select({ id: workouts.id })
+          .from(workouts)
+          .where(eq(workouts.planId, planId))
+          .orderBy(asc(workouts.order))
+      );
+
+      const { sessionId } = await seedSession({ planId, sets, workoutId });
+
+      const start = async () =>
+        await asUser(
+          owner,
+          async (tx) => await startWorkoutSession(tx, second.id)
+        );
+
+      await expect(start()).resolves.toMatchObject({
+        status: "session_in_progress",
+      });
+      await close(sessionId);
+      await expect(start()).resolves.toMatchObject({
+        resumed: false,
+        status: "started",
+      });
+    });
+
+    describe("races", () => {
+      it("lets a set logged between listing and closing win", async () => {
+        const { sessionId, setIds } = await seedSession({ sets: PLANNED });
+
+        const log = {
+          repsCompleted: 5,
+          setId: setIds[0],
+          weightCompleted: 100,
+        };
+
+        await expect(listOf([owner])).resolves.toStrictEqual([sessionId]);
+
+        await asUser(owner, async (tx) => await logSet(tx, log));
+
+        await expect(close(sessionId)).resolves.toStrictEqual(LEFT_ALONE);
+        await expect(finishedAtOf(sessionId)).resolves.toBeNull();
+      });
+
+      it("lets a set being logged win", async () => {
+        const { sessionId, setIds } = await seedSession({ sets: PLANNED });
+
+        const [logged, result] = await overlap(
+          async (fn: (tx: Transaction) => Promise<LogSetResult>) =>
+            await asUser(owner, fn),
+          async (tx) =>
+            await logSet(tx, {
+              repsCompleted: 5,
+              setId: setIds[0],
+              weightCompleted: 100,
+            }),
+          async () => await close(sessionId)
+        );
+
+        expect(logged.status).toBe("logged");
+        expect(result).toStrictEqual(LEFT_ALONE);
+        await expect(finishedAtOf(sessionId)).resolves.toBeNull();
+      });
+
+      it("refuses a set logged while it's being discarded", async () => {
+        const { sessionId, setIds } = await seedSession({ sets: PLANNED });
+
+        const [closed, logged] = await overlap(
+          withService,
+          async (tx) => await closeForgottenWorkoutSession(tx, sessionId),
+          async () =>
+            await asUser(
+              owner,
+              async (tx) =>
+                await logSet(tx, {
+                  repsCompleted: 5,
+                  setId: setIds[0],
+                  weightCompleted: 100,
+                })
+            )
+        );
+
+        expect(closed).toStrictEqual(DISCARDED);
+        expect(logged).toStrictEqual({ status: "not_found" });
+      });
+
+      it.each([
+        ["an empty one", PLANNED, "discarded", ["W1", "W2"]],
+        ["one with a logged set", LOGGED, "finished", ["W2", "W1"]],
+      ])(
+        "closes %s once when overlapping",
+        async (_name, sets, status, orders) => {
+          const { planId, workoutId } = await seedPlan();
+          const { sessionId } = await seedSession({ planId, sets, workoutId });
+
+          const results = await overlap(
+            withService,
+            async (tx) => await closeForgottenWorkoutSession(tx, sessionId),
+            async () => await close(sessionId)
+          );
+
+          expect(results).toStrictEqual([{ status }, LEFT_ALONE]);
+          await expect(workoutOrders(planId)).resolves.toStrictEqual(orders);
+        }
+      );
+
+      it("leaves an empty one a manual finish is claiming alone", async () => {
+        const { sessionId } = await seedSession({ sets: PLANNED });
+
+        const [, result] = await overlap(
+          async (
+            fn: (tx: Transaction) => Promise<FinishWorkoutSessionResult>
+          ) => await asUser(owner, fn),
+          async (tx) => await finishWorkoutSession(tx, sessionId),
+          async () => await close(sessionId)
+        );
+
+        expect(result).toStrictEqual(LEFT_ALONE);
+        await expect(finishedAtOf(sessionId)).resolves.toStrictEqual(
+          expect.any(String)
+        );
+      });
+
+      it.each([
+        ["an empty one", PLANNED],
+        ["one with a logged set", LOGGED],
+      ])("queues behind an account deletion (%s)", async (_name, sets) => {
+        const { planId, workoutId } = await seedPlan();
+        const { sessionId } = await seedSession({ planId, sets, workoutId });
+
+        const { waiting } = await withUserTablesLocked(async (tx) => {
+          const closing = close(sessionId);
+          // Awaited below; a failed deletion must not leave its rejection unhandled
+          closing.catch(() => null);
+          await Promise.race([closing, delay(250)]);
+          await deleteUserData(tx, owner);
+
+          // Wrapped, so returning it doesn't wait for this transaction's locks
+          return { waiting: closing };
+        });
+
+        await expect(waiting).resolves.toStrictEqual(LEFT_ALONE);
+        await expect(finishedAtOf(sessionId)).resolves.toBeUndefined();
+      });
+    });
   });
 });
