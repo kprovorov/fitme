@@ -1,22 +1,27 @@
 import { randomUUID } from "node:crypto";
+import { setTimeout as delay } from "node:timers/promises";
 
 import {
   asUser,
   withService,
   workoutSessionExerciseSets,
   workoutSessionExercises,
+  workoutSessionProgress,
   workoutSessions,
 } from "@fitme/db";
 import { asc, eq } from "drizzle-orm";
 import { afterAll, beforeEach, describe, expect, it } from "vitest";
 
+import { deleteUserData } from "../src/delete-user-data";
 import {
   addExerciseToWorkoutSession,
   addSetToWorkoutSessionExercise,
+  finishWorkoutSession,
   removeExerciseFromWorkoutSession,
+  removeSetFromWorkoutSession,
   replaceExerciseInWorkoutSession,
 } from "../src/workout-sessions";
-import { deleteTestUsers } from "./delete-test-users";
+import { deleteTestUsers, withUserTablesLocked } from "./delete-test-users";
 
 /**
  * Editing an open Workout Session's Exercises through asUser, against a local
@@ -609,6 +614,275 @@ describe("workout session exercises", () => {
       expect(orders.toSorted((a, b) => (a ?? 0) - (b ?? 0))).toStrictEqual([
         3, 4, 5, 6, 7,
       ]);
+    });
+  });
+
+  describe("removing a set from a workout session", () => {
+    const HOLDS_LOCKS_MS = 500;
+
+    const removeSet = async (setId: string) =>
+      await asUser(
+        owner,
+        async (tx) => await removeSetFromWorkoutSession(tx, owner, setId)
+      );
+
+    /** A logged planned set, an unlogged planned set and an added one, in order. */
+    const insertPlannedAndAddedSets = async (sessionExerciseId: string) => {
+      await insertSets(sessionExerciseId);
+
+      return await withService(async (tx) => {
+        await tx.insert(workoutSessionExerciseSets).values({
+          loggedAt: "2026-10-01T10:15:00Z",
+          order: 3,
+          repsCompleted: 6,
+          weightCompleted: "60",
+          workoutSessionExerciseId: sessionExerciseId,
+        });
+
+        const sets = await tx
+          .select({ id: workoutSessionExerciseSets.id })
+          .from(workoutSessionExerciseSets)
+          .where(
+            eq(
+              workoutSessionExerciseSets.workoutSessionExerciseId,
+              sessionExerciseId
+            )
+          )
+          .orderBy(asc(workoutSessionExerciseSets.order));
+
+        return sets.map(({ id }) => id);
+      });
+    };
+
+    const ordersOf = async (sessionExerciseId: string) => {
+      const sets = await setsOf(sessionExerciseId);
+
+      return sets.map(({ order }) => order);
+    };
+
+    const completedSetsOf = async (sessionId: string) => {
+      const [progress] = await withService((tx) =>
+        tx
+          .select({ completed: workoutSessionProgress.completedSetCount })
+          .from(workoutSessionProgress)
+          .where(eq(workoutSessionProgress.workoutSessionId, sessionId))
+      );
+
+      return progress.completed;
+    };
+
+    it.each([
+      { left: [2, 3], position: 1, set: "a logged" },
+      { left: [1, 3], position: 2, set: "a planned" },
+      { left: [1, 2], position: 3, set: "an added" },
+    ])(
+      "removes $set set and leaves the others as they were",
+      async ({ left, position }) => {
+        const sessionId = await insertSession(owner);
+        const [benchId, squatId] = await insertExercises(sessionId);
+        const setIds = await insertPlannedAndAddedSets(benchId);
+        await insertSets(squatId);
+        const before = await setsOf(benchId);
+
+        await expect(removeSet(setIds[position - 1])).resolves.toStrictEqual({
+          status: "removed",
+        });
+
+        await expect(setsOf(benchId)).resolves.toStrictEqual(
+          before.filter(({ order }) => left.includes(order))
+        );
+        await expect(ordersOf(squatId)).resolves.toStrictEqual([1, 2]);
+      }
+    );
+
+    it("keeps an Exercise whose every set was removed", async () => {
+      const sessionId = await insertSession(owner);
+      const [benchId] = await insertExercises(sessionId);
+      const [first, second, third] = await insertPlannedAndAddedSets(benchId);
+
+      await removeSet(first);
+      await removeSet(second);
+      await expect(removeSet(third)).resolves.toStrictEqual({
+        status: "removed",
+      });
+
+      await expect(setsOf(benchId)).resolves.toStrictEqual([]);
+      await expect(exercisesOf(sessionId)).resolves.toStrictEqual([
+        { exerciseSlug: benchSlug, order: 1 },
+        { exerciseSlug: squatSlug, order: 3 },
+      ]);
+    });
+
+    it.each([
+      { orders: [1, 3, 4], position: 2 },
+      // The highest order was removed, so the added set takes it again
+      { orders: [1, 2, 3], position: 3 },
+    ])(
+      "adds a set after the highest order left once set $position is gone",
+      async ({ orders, position }) => {
+        const sessionId = await insertSession(owner);
+        const [benchId] = await insertExercises(sessionId);
+        const setIds = await insertPlannedAndAddedSets(benchId);
+        await removeSet(setIds[position - 1]);
+
+        await asUser(
+          owner,
+          async (tx) =>
+            await addSetToWorkoutSessionExercise(tx, owner, {
+              repsCompleted: 7,
+              sessionExerciseId: benchId,
+              weightCompleted: 72.5,
+            })
+        );
+
+        await expect(ordersOf(benchId)).resolves.toStrictEqual(orders);
+      }
+    );
+
+    it("takes a removed logged set out of progress", async () => {
+      const sessionId = await insertSession(owner);
+      const [benchId] = await insertExercises(sessionId);
+      const [logged, unlogged] = await insertPlannedAndAddedSets(benchId);
+      await expect(completedSetsOf(sessionId)).resolves.toBe(2);
+
+      await removeSet(logged);
+      await expect(completedSetsOf(sessionId)).resolves.toBe(1);
+
+      await removeSet(unlogged);
+      await expect(completedSetsOf(sessionId)).resolves.toBe(1);
+    });
+
+    it("finds nothing on a repeat and removes nothing more", async () => {
+      const sessionId = await insertSession(owner);
+      const [benchId] = await insertExercises(sessionId);
+      const [first] = await insertPlannedAndAddedSets(benchId);
+      await removeSet(first);
+
+      await expect(removeSet(first)).resolves.toStrictEqual({
+        status: "not_found",
+      });
+      await expect(ordersOf(benchId)).resolves.toStrictEqual([2, 3]);
+    });
+
+    it("removes nothing from a finished Workout Session", async () => {
+      const sessionId = await insertSession(owner, { finished: true });
+      const [benchId] = await insertExercises(sessionId);
+      const [first] = await insertPlannedAndAddedSets(benchId);
+
+      await expect(removeSet(first)).resolves.toStrictEqual({
+        finishedAt: postgrestTimestamp,
+        sessionId,
+        status: "session_finished",
+      });
+      await expect(ordersOf(benchId)).resolves.toStrictEqual([1, 2, 3]);
+    });
+
+    it("finds no set of another User's, or an unknown id, and removes nothing", async () => {
+      const sessionId = await insertSession(intruder);
+      const [benchId] = await insertExercises(sessionId);
+      const [first] = await insertPlannedAndAddedSets(benchId);
+
+      const results = await Promise.all([first, randomUUID()].map(removeSet));
+
+      expect(results).toStrictEqual([
+        { status: "not_found" },
+        { status: "not_found" },
+      ]);
+      await expect(ordersOf(benchId)).resolves.toStrictEqual([1, 2, 3]);
+    });
+
+    it("filters on the User id where RLS doesn't", async () => {
+      const sessionId = await insertSession(intruder);
+      const [benchId] = await insertExercises(sessionId);
+      const [first] = await insertPlannedAndAddedSets(benchId);
+
+      const result = await withService(
+        async (tx) => await removeSetFromWorkoutSession(tx, owner, first)
+      );
+
+      expect(result).toStrictEqual({ status: "not_found" });
+      await expect(ordersOf(benchId)).resolves.toStrictEqual([1, 2, 3]);
+    });
+
+    it("removes a set once when two calls race", async () => {
+      const sessionId = await insertSession(owner);
+      const [benchId] = await insertExercises(sessionId);
+      const [first] = await insertPlannedAndAddedSets(benchId);
+
+      const results = await Promise.all([first, first].map(removeSet));
+
+      expect(results.map(({ status }) => status).toSorted()).toStrictEqual([
+        "not_found",
+        "removed",
+      ]);
+      await expect(ordersOf(benchId)).resolves.toStrictEqual([2, 3]);
+    });
+
+    it("makes a concurrent finish wait for the removal", async () => {
+      const sessionId = await insertSession(owner);
+      const [benchId] = await insertExercises(sessionId);
+      // Unlogged: removing a logged set would also make the finish wait on its
+      // progress row, whatever the session lock does
+      const [, unlogged] = await insertPlannedAndAddedSets(benchId);
+      let finishing: ReturnType<typeof finishWorkoutSession> | undefined;
+
+      const result = await asUser(owner, async (tx) => {
+        const removal = await removeSetFromWorkoutSession(tx, owner, unlogged);
+        finishing = asUser(
+          owner,
+          async (finishTx) => await finishWorkoutSession(finishTx, sessionId)
+        );
+        // A finish that doesn't wait would read the set before it's gone
+        await Promise.race([finishing, delay(HOLDS_LOCKS_MS)]);
+
+        return removal;
+      });
+
+      expect(result).toStrictEqual({ status: "removed" });
+      const finished = await finishing;
+      expect(finished).toMatchObject({ status: "finished" });
+
+      const [bench] =
+        finished?.status === "finished" ? finished.session.exercises : [];
+
+      expect(bench.sets.map(({ order }) => order)).toStrictEqual([1, 3]);
+    });
+
+    it("is refused by a finish that was first", async () => {
+      const sessionId = await insertSession(owner);
+      const [benchId] = await insertExercises(sessionId);
+      const [first] = await insertPlannedAndAddedSets(benchId);
+      let removing: ReturnType<typeof removeSet> | undefined;
+
+      await asUser(owner, async (tx) => {
+        await finishWorkoutSession(tx, sessionId);
+        removing = removeSet(first);
+        // A removal that doesn't wait would still see the session open
+        await Promise.race([removing, delay(HOLDS_LOCKS_MS)]);
+      });
+
+      await expect(removing).resolves.toMatchObject({
+        sessionId,
+        status: "session_finished",
+      });
+      await expect(ordersOf(benchId)).resolves.toStrictEqual([1, 2, 3]);
+    });
+
+    it("queues behind an account deletion instead of deadlocking with it", async () => {
+      const sessionId = await insertSession(owner);
+      const [benchId] = await insertExercises(sessionId);
+      const [first] = await insertPlannedAndAddedSets(benchId);
+      let removing: ReturnType<typeof removeSet> | undefined;
+
+      await withUserTablesLocked(async (tx) => {
+        removing = removeSet(first);
+        // Let it get as far as it can before the cascade needs its rows
+        await delay(HOLDS_LOCKS_MS);
+        await deleteUserData(tx, owner);
+      });
+
+      // The set is gone with the account by then
+      await expect(removing).resolves.toStrictEqual({ status: "not_found" });
     });
   });
 });

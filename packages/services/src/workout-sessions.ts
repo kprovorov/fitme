@@ -826,6 +826,63 @@ export const addSetToWorkoutSessionExercise = async (
   return { set: toSet(added), status: "added" };
 };
 
+export type RemoveSetFromWorkoutSessionResult =
+  | { status: "removed" }
+  | { finishedAt: string; sessionId: string; status: "session_finished" }
+  | { status: "not_found" };
+
+/**
+ * Deletes one set, planned, logged or added, from the User's open Workout
+ * Session, in `tx` (from `asUser`). The remaining sets keep their `order`, so
+ * the gap records which set was removed (ADR 0023), and an Exercise whose last
+ * set goes stays with none. A finished Workout Session is left as it was
+ * (`session_finished`); a set the User can't see, or already removed, is
+ * `not_found`.
+ */
+export const removeSetFromWorkoutSession = async (
+  tx: Transaction,
+  userId: string,
+  setId: string
+): Promise<RemoveSetFromWorkoutSessionResult> => {
+  // A plain read, so the locks still come first; `lockSessionOfExercise`
+  // filters on the User
+  const [found] = await tx
+    .select({
+      sessionExerciseId: workoutSessionExerciseSets.workoutSessionExerciseId,
+    })
+    .from(workoutSessionExerciseSets)
+    .where(eq(workoutSessionExerciseSets.id, setId));
+
+  if (found === undefined) {
+    return { status: "not_found" };
+  }
+
+  const session = await lockSessionOfExercise(
+    tx,
+    userId,
+    found.sessionExerciseId
+  );
+
+  if (session.status !== "open") {
+    return session;
+  }
+
+  const removed = await tx
+    .delete(workoutSessionExerciseSets)
+    .where(
+      and(
+        eq(workoutSessionExerciseSets.id, setId),
+        eq(
+          workoutSessionExerciseSets.workoutSessionExerciseId,
+          found.sessionExerciseId
+        )
+      )
+    )
+    .returning({ id: workoutSessionExerciseSets.id });
+
+  return removed.length > 0 ? { status: "removed" } : { status: "not_found" };
+};
+
 /**
  * Deletes one of the User's Workout Sessions and, by cascade, its exercises
  * and sets, in `tx` (from `asUser`). False when there was none to delete.
