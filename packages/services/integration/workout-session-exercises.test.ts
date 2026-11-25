@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import { setTimeout } from "node:timers/promises";
+import { setTimeout as delay } from "node:timers/promises";
 
 import {
   asUser,
@@ -821,17 +821,19 @@ describe("workout session exercises", () => {
     it("makes a concurrent finish wait for the removal", async () => {
       const sessionId = await insertSession(owner);
       const [benchId] = await insertExercises(sessionId);
-      const [first] = await insertPlannedAndAddedSets(benchId);
+      // Unlogged: removing a logged set would also make the finish wait on its
+      // progress row, whatever the session lock does
+      const [, unlogged] = await insertPlannedAndAddedSets(benchId);
       let finishing: ReturnType<typeof finishWorkoutSession> | undefined;
 
       const result = await asUser(owner, async (tx) => {
-        const removal = await removeSetFromWorkoutSession(tx, owner, first);
+        const removal = await removeSetFromWorkoutSession(tx, owner, unlogged);
         finishing = asUser(
           owner,
           async (finishTx) => await finishWorkoutSession(finishTx, sessionId)
         );
         // A finish that doesn't wait would read the set before it's gone
-        await Promise.race([finishing, setTimeout(HOLDS_LOCKS_MS)]);
+        await Promise.race([finishing, delay(HOLDS_LOCKS_MS)]);
 
         return removal;
       });
@@ -843,7 +845,7 @@ describe("workout session exercises", () => {
       const [bench] =
         finished?.status === "finished" ? finished.session.exercises : [];
 
-      expect(bench.sets.map(({ order }) => order)).toStrictEqual([2, 3]);
+      expect(bench.sets.map(({ order }) => order)).toStrictEqual([1, 3]);
     });
 
     it("is refused by a finish that was first", async () => {
@@ -856,7 +858,7 @@ describe("workout session exercises", () => {
         await finishWorkoutSession(tx, sessionId);
         removing = removeSet(first);
         // A removal that doesn't wait would still see the session open
-        await Promise.race([removing, setTimeout(HOLDS_LOCKS_MS)]);
+        await Promise.race([removing, delay(HOLDS_LOCKS_MS)]);
       });
 
       await expect(removing).resolves.toMatchObject({
@@ -875,7 +877,7 @@ describe("workout session exercises", () => {
       await withUserTablesLocked(async (tx) => {
         removing = removeSet(first);
         // Let it get as far as it can before the cascade needs its rows
-        await setTimeout(HOLDS_LOCKS_MS);
+        await delay(HOLDS_LOCKS_MS);
         await deleteUserData(tx, owner);
       });
 

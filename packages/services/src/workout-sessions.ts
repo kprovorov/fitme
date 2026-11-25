@@ -844,44 +844,27 @@ export const removeSetFromWorkoutSession = async (
   userId: string,
   setId: string
 ): Promise<RemoveSetFromWorkoutSessionResult> => {
-  await lockSessionTables(tx);
-
+  // A plain read, so the locks still come first; `lockSessionOfExercise`
+  // filters on the User
   const [found] = await tx
     .select({
-      sessionExerciseId: workoutSessionExercises.id,
-      sessionId: workoutSessions.id,
+      sessionExerciseId: workoutSessionExerciseSets.workoutSessionExerciseId,
     })
     .from(workoutSessionExerciseSets)
-    .innerJoin(
-      workoutSessionExercises,
-      eq(
-        workoutSessionExercises.id,
-        workoutSessionExerciseSets.workoutSessionExerciseId
-      )
-    )
-    .innerJoin(
-      workoutSessions,
-      eq(workoutSessions.id, workoutSessionExercises.workoutSessionId)
-    )
-    .where(
-      and(
-        eq(workoutSessionExerciseSets.id, setId),
-        eq(workoutSessions.userId, userId)
-      )
-    );
+    .where(eq(workoutSessionExerciseSets.id, setId));
 
   if (found === undefined) {
     return { status: "not_found" };
   }
 
-  const session = await lockSessionForEdit(tx, userId, found.sessionId);
+  const session = await lockSessionOfExercise(
+    tx,
+    userId,
+    found.sessionExerciseId
+  );
 
-  if (session.status === "not_found") {
+  if (session.status !== "open") {
     return session;
-  }
-
-  if (session.status === "session_finished") {
-    return { ...session, sessionId: found.sessionId };
   }
 
   const removed = await tx
