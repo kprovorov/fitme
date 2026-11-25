@@ -531,6 +531,7 @@ describe("a failed refresh", () => {
     fakePublicApi.failNext(READ, { retryAfterSeconds: 50, status: 429 });
     await poll();
     await poll();
+    await returnToForeground();
 
     expect(fakePublicApi.count(READ)).toBe(reads + 1);
   });
@@ -557,6 +558,16 @@ describe("the polling", () => {
     await setAppState("active");
     await settle(queryClient);
     expect(fakePublicApi.count(READ)).toBe(reads + 1);
+  });
+
+  it("reads nothing more after Control Center was opened", async () => {
+    await openSession();
+    const reads = fakePublicApi.count(READ);
+    await setAppState("inactive");
+    await setAppState("active");
+    await settle(queryClient);
+
+    expect(fakePublicApi.count(READ)).toBe(reads);
   });
 
   it("stops once the screen has closed", async () => {

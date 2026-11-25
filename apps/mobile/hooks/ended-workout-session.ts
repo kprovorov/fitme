@@ -28,6 +28,8 @@ const POLL_MS = 30_000;
 
 /** What a mounted screen knows about the Workout Session it shows. */
 interface Watch {
+  /** The app's own Finish or Discard has ended it, and shows what comes next. */
+  endedHere: boolean;
   hasMovedOn: boolean;
   /** Who was signed in when it was first shown open, `null` while it wasn't. */
   openFor: WriteStarter | null;
@@ -35,22 +37,21 @@ interface Watch {
 }
 
 const startWatch = (sessionId: string): Watch => ({
+  endedHere: false,
   hasMovedOn: false,
   openFor: null,
   sessionId,
 });
 
-/** Whether the app is in the foreground. */
+/** Whether the app is in the foreground (under Control Center too). */
 const useIsAppActive = (): boolean => {
   const [isActive, setIsActive] = useState(
-    () =>
-      AppState.currentState !== "background" &&
-      AppState.currentState !== "inactive"
+    () => AppState.currentState !== "background"
   );
 
   useEffect(() => {
     const subscription = AppState.addEventListener("change", (state) =>
-      setIsActive(state === "active")
+      setIsActive(state !== "background")
     );
 
     return () => subscription.remove();
@@ -109,17 +110,20 @@ export const useEndedWorkoutSession = (sessionId: string): void => {
     const { openFor } = watched;
     const mutations = queryClient.getMutationCache();
 
-    // The app's own Finish or Discard ended it, and shows what comes next. A
-    // mounted screen keeps its last one in the cache.
-    const endedHere = [finishing, discarding].some(
-      (filters) =>
-        mutations.findAll({ ...filters, status: "success" }).length > 0
-    );
+    // Remembered: the cache drops a mutation some time after its screen closes.
+    if (
+      [finishing, discarding].some(
+        (filters) =>
+          mutations.findAll({ ...filters, status: "success" }).length > 0
+      )
+    ) {
+      watched.endedHere = true;
+    }
 
     if (
       !(openFor && (isFinished || isGone)) ||
       isEnding ||
-      endedHere ||
+      watched.endedHere ||
       watched.hasMovedOn ||
       !isStillWriteStarter(openFor)
     ) {
@@ -167,8 +171,11 @@ export const useEndedWorkoutSession = (sessionId: string): void => {
 
   const isPolling = isOpen && !isGone && !isEnding && isAppActive;
   const wasAppActive = useRef(isAppActive);
+  const rateLimitedMs = (rateLimitedFor(error) ?? 0) * 1000;
+  const readableAt = errorUpdatedAt + rateLimitedMs;
 
-  // Back in the foreground: a read asked before the app left may be old.
+  // Back in the foreground: a read asked before the app left may be old. One
+  // still rate limited is the poll's to wait out.
   useEffect(() => {
     const returned = isAppActive && !wasAppActive.current;
     wasAppActive.current = isAppActive;
@@ -176,16 +183,17 @@ export const useEndedWorkoutSession = (sessionId: string): void => {
     if (
       returned &&
       isPolling &&
+      (rateLimitedMs === 0 || Date.now() >= readableAt) &&
       isStillWriteStarter(watch.current?.openFor ?? undefined)
     ) {
       void refetch();
     }
-  }, [isAppActive, isPolling, refetch]);
+  }, [isAppActive, isPolling, rateLimitedMs, readableAt, refetch]);
 
   // Counted from the last read, whoever asked for it, so several screens of
   // the session share one request.
-  const waitMs = Math.max(POLL_MS, (rateLimitedFor(error) ?? 0) * 1000);
-  const pollAt = Math.max(dataUpdatedAt, errorUpdatedAt) + waitMs;
+  const pollAt =
+    Math.max(dataUpdatedAt, errorUpdatedAt) + Math.max(POLL_MS, rateLimitedMs);
 
   useEffect(() => {
     if (!isPolling) {
