@@ -14,8 +14,8 @@
  * Plan, the seeded Weekly goal changes (`GET /v1/weekly-goals`), listing
  * (`GET /v1/workout-sessions`, the open Workout Session's
  * `status=in_progress&limit=1` included), reading
- * (`GET /v1/workout-sessions/{id}`, 404 for another User's), starting,
- * finishing and
+ * (`GET /v1/workout-sessions/{id}`, 404 for another User's), deleting
+ * (`DELETE /v1/workout-sessions/{id}`), starting, finishing and
  * logging a set of a Workout Session, an Exercise's history
  * (`GET /v1/workout-session-exercises`), adding,
  * removing (`DELETE /v1/workout-session-exercises/{id}`) and replacing
@@ -1540,6 +1540,34 @@ const startSession = (body: RequestBody): Response => {
   return json(201, { data: sessionBody(session) });
 };
 
+/**
+ * `deleteWorkoutSession`: a hard delete of the User's Workout Session, open or
+ * finished, with its Exercises, sets and Personal records; 204 whether or not
+ * it matched, so another User's is left alone without saying it exists.
+ */
+const deleteSession = (_body: RequestBody, sessionId: string): Response => {
+  if (ownSession(sessionId)) {
+    const exerciseIds = new Set(
+      backend.exercises
+        .filter((exercise) => exercise.workout_session_id === sessionId)
+        .map(({ id }) => id)
+    );
+
+    backend.sets = backend.sets.filter(
+      (set) => !exerciseIds.has(set.workout_session_exercise_id)
+    );
+    backend.exercises = backend.exercises.filter(
+      ({ id }) => !exerciseIds.has(id)
+    );
+    backend.personalRecords = backend.personalRecords.filter(
+      (record) => record.workout_session_id !== sessionId
+    );
+    backend.sessions = backend.sessions.filter(({ id }) => id !== sessionId);
+  }
+
+  return new Response(null, { status: 204 });
+};
+
 /** The logged sets of a Workout Session's Exercises, by Exercise slug. */
 const setsBySlug = (sessionId: string) => {
   const bySlug = new Map<string, SetRow[]>();
@@ -2334,6 +2362,11 @@ const ROUTES: {
     handler: getTotals,
     path: /^\/v1\/workout-sessions\/totals$/u,
     route: "GET /v1/workout-sessions/totals",
+  },
+  {
+    handler: deleteSession,
+    path: /^\/v1\/workout-sessions\/(?<id>[^/]+)$/u,
+    route: "DELETE /v1/workout-sessions/{id}",
   },
   {
     handler: getSession,
