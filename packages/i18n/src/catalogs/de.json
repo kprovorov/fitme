@@ -1177,13 +1177,11 @@
       "openHint": "Öffnet die Übung",
       "moreOptions": "Weitere Optionen für {{name}}",
       "replace": "Ersetzen",
-      "delete": "Löschen",
       "remove": "Entfernen"
     },
     "editFailed": {
       "addTitle": "Übung konnte nicht hinzugefügt werden",
       "replaceTitle": "Übung konnte nicht ersetzt werden",
-      "deleteTitle": "Übung konnte nicht gelöscht werden",
       "removeTitle": "Übung konnte nicht entfernt werden",
       "removeSetTitle": "Satz konnte nicht entfernt werden",
       "libraryUnavailable": "Die Übungsbibliothek ist gerade nicht verfügbar. Bitte versuche es erneut.",

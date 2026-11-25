@@ -1220,13 +1220,11 @@
       "openHint": "Ouvre l'exercice",
       "moreOptions": "Plus d'options pour {{name}}",
       "replace": "Remplacer",
-      "delete": "Supprimer",
       "remove": "Retirer"
     },
     "editFailed": {
       "addTitle": "Impossible d'ajouter l'exercice",
       "replaceTitle": "Impossible de remplacer l'exercice",
-      "deleteTitle": "Impossible de supprimer l'exercice",
       "removeTitle": "Impossible de retirer l'exercice",
       "removeSetTitle": "Impossible de retirer la série",
       "libraryUnavailable": "La bibliothèque d'exercices est indisponible pour le moment. Réessaie.",

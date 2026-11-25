@@ -1134,13 +1134,11 @@
       "openHint": "打开动作",
       "moreOptions": "{{name}}的更多选项",
       "replace": "替换",
-      "delete": "删除",
       "remove": "移除"
     },
     "editFailed": {
       "addTitle": "无法添加动作",
       "replaceTitle": "无法替换动作",
-      "deleteTitle": "无法删除动作",
       "removeTitle": "无法移除动作",
       "removeSetTitle": "无法移除该组",
       "libraryUnavailable": "动作库暂时不可用，请重试。",
