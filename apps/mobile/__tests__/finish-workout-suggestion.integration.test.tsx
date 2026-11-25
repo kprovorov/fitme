@@ -50,7 +50,6 @@ import { PlanUpdateSheetHost } from "~/components/workout-sessions/plan-update-s
 import { closePlanUpdatePrompt } from "~/hooks/plan-update-prompt";
 import { useActivePlanQuery } from "~/hooks/queries/plans";
 import { useOpenWorkoutSessionQuery } from "~/hooks/queries/workout-sessions";
-import { i18n } from "~/lib/i18n";
 import { storage } from "~/lib/mmkv";
 import { segmentClient } from "~/lib/segment";
 import { setDeviceLanguages } from "~/test-utils/device-locales";
@@ -62,6 +61,7 @@ import {
   fakeExerciseNamed,
 } from "~/test-utils/fake-public-api";
 import type { SeedSession } from "~/test-utils/fake-public-api";
+import { InAppLanguage } from "~/test-utils/in-app-language";
 import {
   createTestQueryClient,
   settle as settleQueries,
@@ -432,9 +432,11 @@ const renderApp = async () => {
   queryClient = createTestQueryClient();
   await render(
     <QueryClientProvider client={queryClient}>
-      <Navigator />
-      {/* In the root layout, next to every screen. */}
-      <PlanUpdateSheetHost />
+      <InAppLanguage>
+        <Navigator />
+        {/* In the root layout, next to every screen. */}
+        <PlanUpdateSheetHost />
+      </InAppLanguage>
     </QueryClientProvider>
   );
 };
@@ -2015,8 +2017,8 @@ describe("the Plan Update after finishing a Workout Session opened from Home", (
         ],
       });
       seedPlayedSession({ changed: false });
-      const last = backend.sets.at(-1);
-      Object.assign(last ?? {}, { order: 3 });
+      // The second logged set is the Plan's third: the one between is gone.
+      backend.sets[1].order = 3;
 
       if (lunge) {
         backend.exercises.push({
@@ -2153,15 +2155,8 @@ describe("the Plan Update after finishing a Workout Session opened from Home", (
     });
 
     describe("in Ukrainian", () => {
-      beforeEach(async () => {
+      beforeEach(() => {
         setDeviceLanguages(["uk-UA"]);
-        // The root layout's sync isn't mounted here.
-        await act(() => i18n.changeLanguage("uk"));
-      });
-
-      // The i18n instance outlives a test; the device goes back to English on its own.
-      afterEach(async () => {
-        await act(() => i18n.changeLanguage("en"));
       });
 
       it("asks with the removal and removes the set", async () => {

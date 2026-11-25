@@ -383,8 +383,8 @@ const PLAN_UPDATE_QUERY = { include_set_removals: true };
 /**
  * The Plan Update of a finished Workout Session (`GET
  * /v1/workout-sessions/{id}/plan-update`): the changes it made to its
- * Workout and the Plan sets it removed, Exercises as slugs and weights in `weight_unit`, without writing
- * anything. Rejects with an `ApiError`.
+ * Workout and the Plan sets it removed, Exercises as slugs and weights in
+ * `weight_unit`, without writing anything. Rejects with an `ApiError`.
  */
 export const fetchPlanUpdate = async (
   sessionId: string

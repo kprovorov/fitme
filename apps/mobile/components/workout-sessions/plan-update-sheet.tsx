@@ -47,12 +47,13 @@ const PLAN_QUERY_KEYS = [["plans"], ["plan"]];
  * sheet can't be swiped away, so a long list or the largest text must never
  * push its buttons out of reach.
  */
-const MAX_HEIGHT_RATIO = 0.8;
+const MAX_HEIGHT_RATIO = 0.85;
 
-const CHANGE_SYMBOL: Record<PlanUpdateChangeKind, SFSymbol> = {
+const CHANGE_SYMBOL: Record<PlanUpdateChangeKind | "remove_sets", SFSymbol> = {
   add_exercise: "plus.circle",
   add_sets: "plus.circle",
   remove_exercise: "minus.circle",
+  remove_sets: "minus.circle",
   replace_exercise: "arrow.left.arrow.right.circle",
 };
 
@@ -159,7 +160,9 @@ export const PlanUpdateSheet = ({
       {preview ? (
         <ScrollView
           alwaysBounceVertical={false}
-          contentContainerClassName="gap-4"
+          // Out to the sheet's edges, so it scrolls under no blank band.
+          className="-m-6"
+          contentContainerClassName="gap-4 p-6"
           style={{ maxHeight: height * MAX_HEIGHT_RATIO }}
         >
           <View className="flex flex-col items-stretch justify-center gap-2">
@@ -196,7 +199,7 @@ export const PlanUpdateSheet = ({
                   nameOf,
                   i18n
                 )}
-                symbol="minus.circle"
+                symbol={CHANGE_SYMBOL.remove_sets}
               />
             ))}
           </View>

@@ -179,9 +179,8 @@ const confirmFinishWorkout = async (
 /**
  * Finishes a workout session and opens its Summary. When the finished session
  * changed its Workout (replaced, added or removed Exercises, added or removed
- * sets), the
- * "Update your plan?" sheet comes first (`PlanUpdateSheetHost`), and the
- * Summary opens once the User has answered it. If those changes can't be
+ * sets), the "Update your plan?" sheet comes first (`PlanUpdateSheetHost`), and
+ * the Summary opens once the User has answered it. If those changes can't be
  * read, it's reported and the Summary opens without asking: finishing never
  * fails because of it. Shared by every way of
  * finishing a session (the header's Finish button and the finish

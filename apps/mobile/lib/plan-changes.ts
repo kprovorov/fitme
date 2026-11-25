@@ -56,7 +56,10 @@ const spokenSets = (
     )
     .join(", ");
 
-/** The Plan Update's set removals: none in an answer without the field. */
+/**
+ * The Plan Update's set removals: none in an answer without the field, which
+ * an API deployed before it (or rolled back) doesn't send.
+ */
 export const setRemovalsOf = (
   planUpdate: Pick<Partial<PlanUpdate>, "set_removals">
 ): PlanUpdateSetRemoval[] => planUpdate.set_removals ?? [];
