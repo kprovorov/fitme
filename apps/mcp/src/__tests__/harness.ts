@@ -168,6 +168,7 @@ export const fakeServices = (faked: Partial<UserServices>): UserServices => ({
   listPlans: notFaked("listPlans"),
   listWorkoutSessions: notFaked("listWorkoutSessions"),
   logSet: notFaked("logSet"),
+  removeSetFromWorkoutSession: notFaked("removeSetFromWorkoutSession"),
   startWorkoutSession: notFaked("startWorkoutSession"),
   updatePlan: notFaked("updatePlan"),
   ...faked,

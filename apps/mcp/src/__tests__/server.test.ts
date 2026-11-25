@@ -28,6 +28,7 @@ describe("tool registry", () => {
       "list_workout_sessions",
       "log_set",
       "ping",
+      "remove_set_from_workout_session",
       "start_workout_session",
       "update_plan",
     ]);
@@ -70,10 +71,17 @@ describe("tool registry", () => {
       destructiveHint: true,
       idempotentHint: true,
     });
-    expect(hints.get("delete_workout_session")).toMatchObject({
-      destructiveHint: true,
-      idempotentHint: false,
-    });
+
+    for (const name of [
+      "delete_workout_session",
+      "remove_set_from_workout_session",
+    ]) {
+      expect(hints.get(name)).toMatchObject({
+        destructiveHint: true,
+        idempotentHint: false,
+      });
+    }
+
     expect(hints.get("start_workout_session")?.idempotentHint).toBeFalsy();
   });
 });

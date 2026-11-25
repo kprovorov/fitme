@@ -27,6 +27,7 @@ import {
   getWorkoutSession,
   listWorkoutSessions,
   logSet,
+  removeSetFromWorkoutSession,
   startWorkoutSession,
 } from "@fitme/services/workout-sessions";
 import type {
@@ -34,6 +35,7 @@ import type {
   ListWorkoutSessionsOptions,
   LogSetInput,
   LogSetResult,
+  RemoveSetFromWorkoutSessionResult,
   StartWorkoutSessionResult,
   WorkoutSessionDetail,
   WorkoutSessionPage,
@@ -65,6 +67,9 @@ export interface UserServices {
     options: ListWorkoutSessionsOptions
   ) => Promise<WorkoutSessionPage>;
   logSet: (input: LogSetInput) => Promise<LogSetResult>;
+  removeSetFromWorkoutSession: (
+    setId: string
+  ) => Promise<RemoveSetFromWorkoutSessionResult>;
   startWorkoutSession: (
     workoutId: string
   ) => Promise<StartWorkoutSessionResult>;
@@ -106,6 +111,8 @@ export const createServicesFromEnv: ServicesFactory = (userId) => {
     listWorkoutSessions: (options) =>
       asUser(userId, (tx) => listWorkoutSessions(tx, options)),
     logSet: (input) => asUser(userId, (tx) => logSet(tx, input)),
+    removeSetFromWorkoutSession: (setId) =>
+      asUser(userId, (tx) => removeSetFromWorkoutSession(tx, userId, setId)),
     startWorkoutSession: (workoutId) =>
       asUser(userId, (tx) => startWorkoutSession(tx, workoutId)),
     updatePlan: (planId, changes) =>
