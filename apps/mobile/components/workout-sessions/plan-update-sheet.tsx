@@ -3,7 +3,7 @@ import * as Sentry from "@sentry/react-native";
 import { useQueryClient } from "@tanstack/react-query";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { View } from "react-native";
+import { ScrollView, useWindowDimensions, View } from "react-native";
 import type { SFSymbol } from "sf-symbols-typescript";
 
 import { SymbolImage } from "~/components/symbol-image";
@@ -41,6 +41,13 @@ import { segmentClient } from "~/lib/segment";
  * Plan lists, and each Plan in full, which the Workout screen reads too.
  */
 const PLAN_QUERY_KEYS = [["plans"], ["plan"]];
+
+/**
+ * The most of the window's height the content takes before it scrolls. The
+ * sheet can't be swiped away, so a long list or the largest text must never
+ * push its buttons out of reach.
+ */
+const MAX_HEIGHT_RATIO = 0.8;
 
 const CHANGE_SYMBOL: Record<PlanUpdateChangeKind, SFSymbol> = {
   add_exercise: "plus.circle",
@@ -122,6 +129,7 @@ export const PlanUpdateSheet = ({
 }: PlanUpdateSheetProps) => {
   const i18n = useI18n();
   const { t } = useTranslation();
+  const { height } = useWindowDimensions();
   const exercises = useExercises(preview ? planUpdateSlugs(preview) : []);
 
   const updateLabel = hasFailed
@@ -149,7 +157,11 @@ export const PlanUpdateSheet = ({
       onIsPresentedChange={handleIsPresentedChange}
     >
       {preview ? (
-        <>
+        <ScrollView
+          alwaysBounceVertical={false}
+          contentContainerClassName="gap-4"
+          style={{ maxHeight: height * MAX_HEIGHT_RATIO }}
+        >
           <View className="flex flex-col items-stretch justify-center gap-2">
             <H3>{t("planUpdate.title")}</H3>
             <Muted>
@@ -216,7 +228,7 @@ export const PlanUpdateSheet = ({
               variant="secondary"
             />
           </View>
-        </>
+        </ScrollView>
       ) : null}
     </Dialog>
   );
