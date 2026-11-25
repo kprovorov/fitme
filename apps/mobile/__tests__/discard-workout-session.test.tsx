@@ -11,6 +11,7 @@ import { QueryClientProvider } from "@tanstack/react-query";
 import type { QueryClient } from "@tanstack/react-query";
 import { act, fireEvent, screen } from "@testing-library/react-native";
 import { router, Slot, usePathname } from "expo-router";
+import type { Href } from "expo-router";
 import { useEffect } from "react";
 import { Alert, Text } from "react-native";
 
@@ -37,7 +38,7 @@ import {
   settle,
   until,
 } from "~/test-utils/query-client";
-import { pushPath, renderRouter } from "~/test-utils/render-router";
+import { renderRouter } from "~/test-utils/render-router";
 import { signInAs } from "~/test-utils/signed-in-user";
 
 const mockTrack = jest.fn();
@@ -106,8 +107,9 @@ const LIST = "GET /v1/workout-sessions";
 const IN_PROGRESS = { status: "in_progress" };
 
 const WORKOUT = "/plans/plan-1/workouts/workout-1";
-const SESSION = `${WORKOUT}/sessions/s1`;
-const EXERCISE = `${SESSION}/exercises/s1-e1`;
+const SESSION = `${WORKOUT}/sessions/s1` as const;
+const EXERCISE = `${SESSION}/exercises/s1-e1` as const;
+const GUIDE = "/exercises/squat/guide";
 const BARE_SESSION = "/workout-sessions/s1";
 
 const OPTIONS = "Workout options";
@@ -177,14 +179,14 @@ const Layout = () => {
 };
 
 /** Opens the app on `path`, then pushes the others over it. */
-const open = async (path: string, ...pushed: string[]) => {
+const open = async (path: string, ...pushed: Href[]) => {
   queryClient = createTestQueryClient();
   await renderRouter(
     {
       "(tabs)/_layout": TabsStub,
       "(tabs)/index": HomeStub,
       _layout: Layout,
-      guide: GuideStub,
+      "exercises/[exerciseSlug]/guide": GuideStub,
       "plans/[planId]/workouts/[workoutId]/index": WorkoutScreen,
       "plans/[planId]/workouts/[workoutId]/sessions/[sessionId]/exercises/[exerciseId]/index":
         WorkoutSessionExerciseScreen,
@@ -199,7 +201,7 @@ const open = async (path: string, ...pushed: string[]) => {
 
   for (const next of pushed) {
     // oxlint-disable-next-line no-await-in-loop -- Each is pushed over the last.
-    await go(() => pushPath(next));
+    await go(() => router.push(next));
   }
 };
 
@@ -326,7 +328,7 @@ describe("the menu", () => {
     const resume = fakePublicApi.pause(READ);
     await open("/");
     await act(async () => {
-      pushPath(BARE_SESSION);
+      router.push(BARE_SESSION);
       await Promise.resolve();
     });
     await until(() => fakePublicApi.count(READ) === 1);
@@ -457,14 +459,13 @@ describe("a discard", () => {
     await startDiscard();
     await until(() => fakePublicApi.count(DELETE) === 1);
     await act(async () => {
-      pushPath(EXERCISE);
-      pushPath("/guide");
+      router.push(EXERCISE, GUIDE);
       await Promise.resolve();
     });
     resume();
     await settle(queryClient);
 
-    expect(pathname).toBe("/guide");
+    expect(pathname).toBe(GUIDE);
     await go(() => router.back());
     expect(pathname).toBe(WORKOUT);
   });
@@ -496,7 +497,7 @@ describe("a discard", () => {
     ).toBeUndefined();
 
     // Its old link reads it, and finds it gone.
-    await go(() => pushPath(BARE_SESSION));
+    await go(() => router.push(BARE_SESSION));
     expect(screen.getByText(SESSION_LOAD_ERROR)).toBeTruthy();
   });
 
@@ -515,7 +516,7 @@ describe("a discard", () => {
     await go(() => router.back());
     expect(screen.getByText("Added sets: 1")).toBeTruthy();
 
-    await go(() => pushPath(SESSION));
+    await go(() => router.push(SESSION));
     await discard();
 
     expect(screen.getByText("Added sets: 0")).toBeTruthy();
