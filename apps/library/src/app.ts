@@ -11,7 +11,6 @@ initObservability({ service: "library" });
 
 // Loaded only now, so the rest is imported after observability has started
 // and gets instrumented (a static import would load it first).
-const { serverSecretsFromEnv } = await import("./auth");
 const { createApp } = await import("./create-app");
 const { library } = await import("./generated/library");
 const { rateLimiterFromEnv } = await import("./rate-limit");
@@ -23,7 +22,6 @@ export default createApp({
       development: process.env.CLERK_JWT_KEY_DEVELOPMENT,
       production: process.env.CLERK_JWT_KEY_PRODUCTION,
     },
-    serverSecrets: serverSecretsFromEnv(process.env),
   },
   identifyUser,
   library,

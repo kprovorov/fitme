@@ -1,5 +1,3 @@
-import { createHash, timingSafeEqual } from "node:crypto";
-
 import { verifyToken } from "@clerk/backend";
 import { TokenVerificationError } from "@clerk/backend/errors";
 import { createMiddleware } from "hono/factory";
@@ -7,54 +5,29 @@ import { z } from "zod";
 
 import type { ErrorResponse } from "./schemas";
 
-/**
- * The callers that aren't Users: Arnold and the MCP server. The Public API
- * checks slugs against the Library index instead (ADR 0018), so its old
- * `LIBRARY_PUBLIC_API_SECRET` opens nothing.
- */
-const SERVER_CALLERS = ["arnold", "mcp"] as const;
-
-/** A caller that isn't a User, identified by its own secret. */
-export type ServerCallerName = (typeof SERVER_CALLERS)[number];
-
-/** Who a request comes from: a User (by Clerk User id) or a server caller. */
-export type Caller =
-  | { type: "user"; userId: string }
-  | { name: ServerCallerName; type: "server" };
+/** Who a request comes from: a User, by their Clerk User id. */
+export interface Caller {
+  userId: string;
+}
 
 export interface AuthConfig {
   /** Each Clerk instance's PEM public key: a token verified by either is a User's. */
   clerkJwtKeys: { development?: string; production?: string };
-  /** Each server caller's secret; unset or under 32 characters, it accepts nothing. */
-  serverSecrets: Partial<Record<ServerCallerName, string>>;
 }
 
 export interface AuthEnv {
   Variables: { caller: Caller };
 }
 
-/** Each server caller's secret from `env`, under its `LIBRARY_*` name only. */
-export const serverSecretsFromEnv = (
-  env: Record<string, string | undefined>
-): AuthConfig["serverSecrets"] => ({
-  arnold: env.LIBRARY_ARNOLD_SECRET,
-  mcp: env.LIBRARY_MCP_SECRET,
-});
-
 /** The OpenAPI security scheme every content route declares. */
 export const BEARER_AUTH = "bearerAuth";
 
 const BEARER = /^Bearer (?<token>\S+)$/iu;
 
-// Anything shorter isn't a generated secret (`openssl rand -hex 32` is 64).
-const MIN_SECRET_LENGTH = 32;
-
-const sha256 = (value: string) => createHash("sha256").update(value).digest();
-
 const unauthorized = {
   error: {
     code: "unauthorized",
-    message: "A Clerk session token or a server secret is required",
+    message: "A Clerk session token is required",
   },
 } satisfies z.infer<typeof ErrorResponse>;
 
@@ -81,43 +54,20 @@ const verifyClerkToken = async (token: string, jwtKey: string) => {
 };
 
 /**
- * Requires `Authorization: Bearer <token>`: first a server secret (compared in
- * constant time), otherwise a Clerk session token from either Clerk instance.
- * Sets the resolved `caller` for later middleware; anything missing, malformed
- * or unverifiable answers 401.
+ * Requires `Authorization: Bearer <token>` holding a Clerk session token from
+ * either Clerk instance: every caller is a User. Sets the resolved `caller`
+ * for later middleware; anything missing, malformed or unverifiable answers
+ * 401.
  */
-export const requireCaller = ({ clerkJwtKeys, serverSecrets }: AuthConfig) => {
+export const requireCaller = ({ clerkJwtKeys }: AuthConfig) => {
   const jwtKeys = [clerkJwtKeys.production, clerkJwtKeys.development].filter(
     (key): key is string => Boolean(key)
   );
-
-  const secrets = SERVER_CALLERS.flatMap((name) => {
-    const secret = serverSecrets[name];
-
-    return secret && secret.length >= MIN_SECRET_LENGTH
-      ? [{ hash: sha256(secret), name }]
-      : [];
-  });
 
   return createMiddleware<AuthEnv>(async (c, next) => {
     const token = c.req.header("authorization")?.match(BEARER)?.groups?.token;
 
     if (token) {
-      // Compared as digests: equal length, constant time.
-      const tokenHash = sha256(token);
-
-      const server = secrets.find(({ hash }) =>
-        timingSafeEqual(tokenHash, hash)
-      );
-
-      if (server) {
-        c.set("caller", { name: server.name, type: "server" });
-
-        await next();
-
-        return;
-      }
-
       const results = await Promise.all(
         jwtKeys.map((jwtKey) => verifyClerkToken(token, jwtKey))
       );
@@ -125,7 +75,7 @@ export const requireCaller = ({ clerkJwtKeys, serverSecrets }: AuthConfig) => {
       const verified = results.find((result) => result.success);
 
       if (verified) {
-        c.set("caller", { type: "user", userId: verified.userId });
+        c.set("caller", { userId: verified.userId });
 
         await next();
 

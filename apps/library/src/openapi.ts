@@ -15,7 +15,7 @@ const out = path.resolve(import.meta.dirname, "../openapi.json");
 const library = serveLibrary({ exercises: [] }, PLACEHOLDER_SUPABASE_URL);
 
 const spec = createApp({
-  auth: { clerkJwtKeys: {}, serverSecrets: {} },
+  auth: { clerkJwtKeys: {} },
   identifyUser: () => {
     // Spec generation has no request user to identify.
   },

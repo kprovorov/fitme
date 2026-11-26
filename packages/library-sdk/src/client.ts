@@ -30,10 +30,7 @@ export interface LibraryOptions {
   fetch?: typeof globalThis.fetch;
   /** Defaults to `DEFAULT_TIMEOUT_MS`. */
   timeoutMs?: number;
-  /**
-   * The bearer for each request: a server secret for Arnold and MCP, the
-   * User's Clerk session token for mobile.
-   */
+  /** The bearer for each request: the User's Clerk session token. */
   token: () => Promise<string | null | undefined>;
   /** The Library API's origin, e.g. `https://library.fitmeproject.com`. */
   url: string;

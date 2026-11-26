@@ -9,7 +9,6 @@ import { LibraryBundle } from "@fitme/library-bundle";
 import type { BundleExercise as LibraryExercise } from "@fitme/library-bundle";
 import { describe, expect, it, vi } from "vitest";
 
-import { serverSecretsFromEnv } from "./auth";
 import { createApp } from "./create-app";
 import type { AppDeps } from "./create-app";
 import {
@@ -43,17 +42,11 @@ const EQUIPMENT_PROBLEM = /^equipment[.:]/u;
 /** The library hash, a sha256, quoted. */
 const LIBRARY_ETAG = /^"[0-9a-f]{64}"$/u;
 
-const ARNOLD_SECRET = "c".repeat(32);
-const MCP_SECRET = "m".repeat(64);
-
-/** The Public API's old secret: no caller sends it any more (ADR 0018). */
-const OLD_PUBLIC_API_SECRET = "a".repeat(48);
-
-/** Each server caller with its secret. */
-const SERVER_SECRETS = [
-  ["arnold", ARNOLD_SECRET],
-  ["mcp", MCP_SECRET],
-] as const;
+/**
+ * A secret the size `openssl rand -hex 32` makes, as Arnold and the MCP server
+ * once sent: the Library API accepts Users only now.
+ */
+const FORMER_SERVER_SECRET = "m".repeat(64);
 
 const production = clerkInstance();
 const development = clerkInstance();
@@ -63,7 +56,6 @@ const auth: AppDeps["auth"] = {
     development: development.jwtKey,
     production: production.jwtKey,
   },
-  serverSecrets: { arnold: ARNOLD_SECRET, mcp: MCP_SECRET },
 };
 
 /** A limiter that never refuses, for tests that aren't about limits. */
@@ -113,7 +105,7 @@ const bearer = (token: string) => ({
 const unauthorized = {
   error: {
     code: "unauthorized",
-    message: "A Clerk session token or a server secret is required",
+    message: "A Clerk session token is required",
   },
 };
 
@@ -163,11 +155,6 @@ const list = async (query = "") => {
 const names = (body: ExercisePage) =>
   body.data.map((exercise) => exercise.name);
 
-const envApp = (env: Record<string, string | undefined>) =>
-  callerApp({
-    auth: { ...auth, serverSecrets: serverSecretsFromEnv(env) },
-  });
-
 describe("auth", () => {
   it("answers a content route without a token with 401", async () => {
     const response = await app.request("/exercises/bench-press");
@@ -192,7 +179,6 @@ describe("auth", () => {
 
     expect(response.status).toBe(200);
     await expect(response.json()).resolves.toStrictEqual({
-      type: "user",
       userId: "user_alice",
     });
   });
@@ -205,14 +191,13 @@ describe("auth", () => {
 
     expect(response.status).toBe(200);
     await expect(response.json()).resolves.toStrictEqual({
-      type: "user",
       userId: "user_bob",
     });
   });
 
   it.each([
     ["a garbage token", { authorization: "Bearer not-a-jwt" }],
-    ["a non-bearer scheme", { authorization: `Basic ${ARNOLD_SECRET}` }],
+    ["a non-bearer scheme", { authorization: `Basic ${FORMER_SERVER_SECRET}` }],
     [
       "an expired token",
       {
@@ -239,162 +224,16 @@ describe("auth", () => {
         })}`,
       },
     ],
-    ["a wrong secret", { authorization: `Bearer ${"x".repeat(32)}` }],
+    [
+      "a 64-character bearer that isn't a Clerk token (a former server secret)",
+      { authorization: `Bearer ${FORMER_SERVER_SECRET}` },
+    ],
   ])("answers %s with 401", async (_case, headers) => {
     const response = await app.request("/exercises/bench-press", { headers });
 
     expect(response.status).toBe(401);
     await expect(response.json()).resolves.toStrictEqual(unauthorized);
   });
-
-  it.each(SERVER_SECRETS)(
-    "resolves the %s server caller from its secret",
-    async (name, secret) => {
-      const response = await callerApp().request("/caller", bearer(secret));
-
-      expect(response.status).toBe(200);
-      await expect(response.json()).resolves.toStrictEqual({
-        name,
-        type: "server",
-      });
-    }
-  );
-
-  it("accepts nothing with a secret under 32 characters", async () => {
-    const short = "s".repeat(31);
-
-    const response = await callerApp({
-      auth: {
-        ...auth,
-        serverSecrets: { arnold: short, mcp: short },
-      },
-    }).request("/caller", bearer(short));
-
-    expect(response.status).toBe(401);
-  });
-
-  it("accepts nothing with an unset secret", async () => {
-    const response = await callerApp({
-      auth: { ...auth, serverSecrets: {} },
-    }).request("/caller", bearer(ARNOLD_SECRET));
-
-    expect(response.status).toBe(401);
-  });
-
-  describe("server secrets from the environment", () => {
-    it("reads each caller's secret", async () => {
-      const configured = envApp({
-        LIBRARY_ARNOLD_SECRET: ARNOLD_SECRET,
-        LIBRARY_MCP_SECRET: MCP_SECRET,
-      });
-
-      const callers = await Promise.all(
-        SERVER_SECRETS.map(async ([, secret]) => {
-          const response = await configured.request("/caller", bearer(secret));
-
-          return await response.json();
-        })
-      );
-
-      expect(callers).toStrictEqual(
-        SERVER_SECRETS.map(([name]) => ({ name, type: "server" }))
-      );
-    });
-
-    it("reads none of the old EXERCISES_* names", async () => {
-      const configured = envApp({
-        EXERCISES_API_SECRET: OLD_PUBLIC_API_SECRET,
-        EXERCISES_ARNOLD_SECRET: ARNOLD_SECRET,
-        EXERCISES_COACH_SECRET: ARNOLD_SECRET,
-        EXERCISES_MCP_SECRET: MCP_SECRET,
-      });
-
-      const responses = await Promise.all(
-        SERVER_SECRETS.map(
-          async ([, secret]) =>
-            await configured.request("/caller", bearer(secret))
-        )
-      );
-
-      expect(responses.map((response) => response.status)).toStrictEqual([
-        401, 401,
-      ]);
-    });
-
-    it("refuses the Public API's old secret", async () => {
-      const configured = envApp({
-        LIBRARY_ARNOLD_SECRET: ARNOLD_SECRET,
-        LIBRARY_MCP_SECRET: MCP_SECRET,
-        LIBRARY_PUBLIC_API_SECRET: OLD_PUBLIC_API_SECRET,
-      });
-
-      const response = await configured.request(
-        "/caller",
-        bearer(OLD_PUBLIC_API_SECRET)
-      );
-
-      expect(response.status).toBe(401);
-      await expect(response.json()).resolves.toStrictEqual(unauthorized);
-    });
-
-    it.each(["LIBRARY_ARNOLD_SECRET", "LIBRARY_MCP_SECRET"])(
-      "accepts nothing with a short %s",
-      async (name) => {
-        const response = await envApp({ [name]: "s".repeat(31) }).request(
-          "/caller",
-          bearer("s".repeat(31))
-        );
-
-        expect(response.status).toBe(401);
-      }
-    );
-  });
-
-  it.each(
-    SERVER_SECRETS.flatMap(
-      ([name, secret]) =>
-        [
-          ["unset", name, secret, undefined],
-          ["under 32 characters", name, secret, secret.slice(0, 31)],
-        ] as const
-    )
-  )(
-    "refuses a secret %s for the %s caller only",
-    async (_case, name, secret, configured) => {
-      const configuredApp = callerApp({
-        auth: {
-          ...auth,
-          serverSecrets: { ...auth.serverSecrets, [name]: configured },
-        },
-      });
-
-      const statusFor = async (request: ReturnType<typeof bearer>) => {
-        const response = await configuredApp.request("/caller", request);
-
-        return response.status;
-      };
-
-      const otherSecrets = SERVER_SECRETS.filter(([other]) => other !== name);
-
-      await expect(statusFor(bearer(secret))).resolves.toBe(401);
-
-      const configuredStatuses = await Promise.all(
-        (configured ? [configured] : []).map((token) =>
-          statusFor(bearer(token))
-        )
-      );
-
-      expect(configuredStatuses).toStrictEqual(configured ? [401] : []);
-
-      const stillAccepted = await Promise.all(
-        [...otherSecrets.map(([, other]) => bearer(other)), asUser].map(
-          statusFor
-        )
-      );
-
-      expect(stillAccepted.every((status) => status === 200)).toBeTruthy();
-    }
-  );
 
   it("accepts no Clerk token with no Clerk keys", async () => {
     const response = await callerApp({
@@ -427,18 +266,6 @@ describe("error reporting identity", () => {
     expect(response.status).toBe(200);
     expect(identified).toStrictEqual(["user_alice"]);
   });
-
-  it.each(SERVER_SECRETS)(
-    "identifies no User for the %s server caller",
-    async (_name, secret) => {
-      const { identified, identifying } = identifyingApp();
-
-      const response = await identifying.request("/caller", bearer(secret));
-
-      expect(response.status).toBe(200);
-      expect(identified).toStrictEqual([]);
-    }
-  );
 
   it("identifies no one for a refused request", async () => {
     const { identified, identifying } = identifyingApp();
@@ -1960,24 +1787,6 @@ describe("rate limiting", () => {
     ]);
   });
 
-  it.each([
-    ["Arnold", ARNOLD_SECRET],
-    ["the MCP server", MCP_SECRET],
-  ])("never limits %s", async (_, secret) => {
-    const limiter = vi.fn<RateLimiter["limit"]>(() =>
-      Promise.resolve({ allowed: false, retryAfterSeconds: 60 })
-    );
-
-    const { limited } = limitedApp({ limit: limiter });
-
-    // More than any limit a test sets, all served.
-    const times = TEST_LIMIT + 2;
-    await expect(
-      requestTimes(limited, times, bearer(secret))
-    ).resolves.toStrictEqual(Array.from({ length: times }, () => 200));
-    expect(limiter).not.toHaveBeenCalled();
-  });
-
   it("checks the token before counting", async () => {
     const limiter = vi.fn<RateLimiter["limit"]>(() =>
       Promise.resolve({ allowed: true })
@@ -2162,12 +1971,6 @@ describe("gET /covers", () => {
 
     expect(response.status).toBe(401);
     await expect(response.json()).resolves.toStrictEqual(unauthorized);
-  });
-
-  it.each(SERVER_SECRETS)("serves the %s server caller", async (_, secret) => {
-    const response = await coversApp().request("/covers", bearer(secret));
-
-    expect(response.status).toBe(200);
   });
 
   it("counts a User's requests, answering 429 past the limit", async () => {

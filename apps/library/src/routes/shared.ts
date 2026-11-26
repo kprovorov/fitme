@@ -8,7 +8,7 @@ import { ErrorResponse } from "../schemas";
 /** Every content route answers 401 without a caller (`requireCaller`). */
 export const unauthorized = {
   content: { "application/json": { schema: ErrorResponse } },
-  description: "No valid Clerk session token or server secret",
+  description: "No valid Clerk session token",
 };
 
 /** A User over their limit (`rateLimitUsers`). */
@@ -23,7 +23,7 @@ export const rateLimited = {
   }),
 };
 
-/** A Clerk session token or a server secret, as `Authorization: Bearer`. */
+/** A Clerk session token, as `Authorization: Bearer`. */
 export const security = [{ [BEARER_AUTH]: [] }];
 
 /** Answers a request that fails validation with 400 in the error shape. */
