@@ -107,3 +107,20 @@ export const useCreateWorkoutSessionExerciseSetMutation = createMutation<
     return added.data;
   },
 });
+
+export interface DeleteWorkoutSessionSetVariables {
+  setId: string;
+}
+
+/**
+ * Removes a set from an open Workout Session through
+ * `DELETE /v1/workout-session-sets/{id}`, which answers 204 for a set that's
+ * already gone too. Rejects with an `ApiError`.
+ */
+export const useDeleteWorkoutSessionSetMutation = createMutation({
+  mutationFn: async ({ setId }: DeleteWorkoutSessionSetVariables) => {
+    await publicApi().DELETE("/v1/workout-session-sets/{id}", {
+      params: { path: { id: setId } },
+    });
+  },
+});

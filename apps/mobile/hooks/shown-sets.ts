@@ -1,6 +1,11 @@
 import { useEffect, useMemo } from "react";
 
-import { dropReadAddedSets, useAddedSets } from "~/hooks/added-sets";
+import {
+  dropReadAddedSets,
+  forgetUnreadRemovedSets,
+  useAddedSets,
+  useHiddenSets,
+} from "~/hooks/added-sets";
 import type { WorkoutSessionSet } from "~/hooks/queries/workout-sessions";
 
 /** A row of a Workout Session Exercise's sets table. */
@@ -30,6 +35,7 @@ export const useShownSets = (
   isReadOnly = false
 ): ShownSet[] => {
   const addedSets = useAddedSets(exerciseId);
+  const hiddenSets = useHiddenSets();
 
   // Once a read has a logged one, its place and its removal are the read's.
   useEffect(() => {
@@ -38,17 +44,29 @@ export const useShownSets = (
     }
   }, [addedSets, exerciseId, sets]);
 
+  // Once a read no longer has a removed set, the read is what hides it.
+  useEffect(() => {
+    // No sets given is no read yet, not a read without them.
+    if (hiddenSets.size > 0 && sets !== NO_SETS) {
+      forgetUnreadRemovedSets(exerciseId, new Set(sets.map(({ id }) => id)));
+    }
+  }, [exerciseId, hiddenSets, sets]);
+
   return useMemo(() => {
     const added = isReadOnly ? [] : addedSets;
     const readIds = new Set(sets.map(({ id }) => id));
 
-    const saved = [...sets];
+    // A set being removed, or removed and still in the read, is gone.
+    const saved = sets.filter(({ id }) => !hiddenSets.has(id));
     const unlogged: Omit<ShownSet, "number">[] = [];
 
     for (const addedSet of added) {
       if (!addedSet.saved) {
         unlogged.push({ id: addedSet.id, order: addedSet.order, set: null });
-      } else if (!readIds.has(addedSet.saved.id)) {
+      } else if (
+        !readIds.has(addedSet.saved.id) &&
+        !hiddenSets.has(addedSet.saved.id)
+      ) {
         // Just logged: it stays in its place until a read has it.
         saved.push(addedSet.saved);
       }
@@ -62,7 +80,7 @@ export const useShownSets = (
     ];
 
     return rows.map((row, index) => ({ ...row, number: index + 1 }));
-  }, [addedSets, isReadOnly, sets]);
+  }, [addedSets, hiddenSets, isReadOnly, sets]);
 };
 
 /** Whether the row's set is still to log. */

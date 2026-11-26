@@ -9,6 +9,7 @@ import type {
   WorkoutSession,
   WorkoutSessionSet,
 } from "~/hooks/queries/workout-sessions";
+import { useRemoveWorkoutSessionSet } from "~/hooks/remove-workout-session-set";
 import { isUnlogged, nextUnloggedSet, useShownSets } from "~/hooks/shown-sets";
 import { cn } from "~/lib/utils";
 
@@ -67,6 +68,7 @@ const WorkoutSessionExerciseSetsTableView = ({
   // Added sets live outside this table, so the session screen and the
   // Workout Session Exercise screen show the same ones until they're logged.
   const rows = useShownSets(exerciseId, workoutSessionExerciseSets, readOnly);
+  const removeSet = useRemoveWorkoutSessionSet(sessionId);
   const lastSet = rows.findLast(({ set }) => set)?.set;
 
   // An added set starts from the Exercise's last one, as the Plan editor's
@@ -80,7 +82,7 @@ const WorkoutSessionExerciseSetsTableView = ({
 
   const handleAddSet = () => {
     // After the highest `order`, as the API places it once it's logged.
-    addSet(exerciseId, Math.max(0, ...rows.map(({ order }) => order)) + 1);
+    addSet(exerciseId, Math.max(0, ...rows.map(({ order }) => order)));
   };
 
   return (
@@ -97,7 +99,8 @@ const WorkoutSessionExerciseSetsTableView = ({
         <View className={SET_CHECK_COLUMN_CLASS} />
       </View>
 
-      {rows.map(({ id, number, set }, index) => {
+      {rows.map((row, index) => {
+        const { id, number, set } = row;
         const locked = rows.slice(0, index).some(isUnlogged);
 
         return (
@@ -107,6 +110,13 @@ const WorkoutSessionExerciseSetsTableView = ({
             key={id}
             locked={locked}
             number={number}
+            onRemove={
+              readOnly
+                ? undefined
+                : () => {
+                    void removeSet(exerciseId, row);
+                  }
+            }
             onSetCreated={(created) =>
               markAddedSetSaved(exerciseId, id, created)
             }

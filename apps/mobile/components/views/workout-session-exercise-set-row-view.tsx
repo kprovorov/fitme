@@ -30,6 +30,7 @@ import WorkoutSessionExerciseSetForm, {
 } from "../forms/workout-exercise-set-form";
 import type { WorkoutSessionExerciseSetFormValues } from "../forms/workout-exercise-set-form";
 import { Text } from "../ui/text";
+import SetSwipeRow from "../workout-sessions/set-swipe-row";
 
 interface WorkoutSessionExerciseSetRowViewProps {
   exerciseId: string;
@@ -43,6 +44,11 @@ interface WorkoutSessionExerciseSetRowViewProps {
   number: number;
   /** Called once logging a set not saved yet has created it. */
   onSetCreated?: (set: SavedWorkoutSessionExerciseSet) => void;
+  /**
+   * Removes the row's set; swiping it left, or VoiceOver's action, calls it.
+   * None in a finished Workout Session.
+   */
+  onRemove?: () => void;
   /** Called once a set is logged for the first time (not on edits). */
   onSetLogged?: (set: SavedWorkoutSessionExerciseSet) => void;
   sessionId: string;
@@ -67,6 +73,7 @@ const WorkoutSessionExerciseSetRowView = ({
   workoutSessionExerciseSet,
   locked = false,
   number,
+  onRemove,
   onSetCreated,
   onSetLogged,
   sessionId,
@@ -173,13 +180,13 @@ const WorkoutSessionExerciseSetRowView = ({
     }
   };
 
-  const { mutate: updateWorkoutSessionExerciseSet } =
+  const { isPending: isUpdating, mutate: updateWorkoutSessionExerciseSet } =
     useUpdateWorkoutSessionExerciseSetMutation({
       onError: handleSaveError,
       onSuccess: (set) => handleSaved(set, previousRepsCompleted.current),
     });
 
-  const { mutate: createWorkoutSessionExerciseSet } =
+  const { isPending: isCreating, mutate: createWorkoutSessionExerciseSet } =
     useCreateWorkoutSessionExerciseSetMutation({
       onError: handleSaveError,
       onSuccess: (set) => {
@@ -232,7 +239,17 @@ const WorkoutSessionExerciseSetRowView = ({
     }
   };
 
-  return (
+  // A logged set doesn't swipe yet, and a set whose save is running never
+  // does: saving and removing it would race.
+  const canRemove = !!onRemove && !isDone && !isCreating && !isUpdating;
+
+  const remove = () => {
+    if (canRemove) {
+      onRemove();
+    }
+  };
+
+  const form = (
     <WorkoutSessionExerciseSetForm
       // A logged set stays editable when an earlier one is still open: its
       // pencil would otherwise open a row nothing can save.
@@ -281,8 +298,26 @@ const WorkoutSessionExerciseSetRowView = ({
         reps: (repsCompleted ?? repsRecommended).toString(),
         weight: formatSetWeight(weightCompleted ?? weightRecommended, i18n),
       }}
+      removeAction={
+        canRemove
+          ? {
+              label: t("sets.row.remove", { order: number }),
+              onRemove: remove,
+            }
+          : undefined
+      }
       setIndex={number}
     />
+  );
+
+  if (!onRemove) {
+    return form;
+  }
+
+  return (
+    <SetSwipeRow enabled={canRemove} number={number} onRemove={remove}>
+      {form}
+    </SetSwipeRow>
   );
 };
 
