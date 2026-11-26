@@ -3,6 +3,7 @@ import {
   Button as SwiftUIButton,
   ContextMenu as SwiftUIContextMenu,
 } from "@expo/ui/swift-ui";
+import { disabled as disabledModifier } from "@expo/ui/swift-ui/modifiers";
 import type * as React from "react";
 import type { SFSymbol } from "sf-symbols-typescript";
 
@@ -10,6 +11,8 @@ import { SwiftUIHost } from "~/components/ui/swift-ui";
 
 interface ContextMenuItem {
   destructive?: boolean;
+  /** Shown dimmed, and can't be chosen. */
+  disabled?: boolean;
   label: string;
   onPress?: () => void;
   systemImage?: SFSymbol;
@@ -38,10 +41,17 @@ const ContextMenu = ({
     <SwiftUIContextMenu testID={testID}>
       <SwiftUIContextMenu.Items>
         {items.map(
-          ({ destructive, label, onPress: handlePress, systemImage }) => (
+          ({
+            destructive,
+            disabled,
+            label,
+            onPress: handlePress,
+            systemImage,
+          }) => (
             <SwiftUIButton
               key={label}
               label={label}
+              modifiers={disabled ? [disabledModifier(true)] : undefined}
               onPress={handlePress}
               role={destructive ? "destructive" : "default"}
               systemImage={systemImage}

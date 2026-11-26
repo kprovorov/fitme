@@ -9,12 +9,14 @@ import { resetEquipmentChoices } from "~/hooks/equipment-choice";
 import { resetMuscleChoices } from "~/hooks/muscle-choice";
 import { resetPlanDrafts } from "~/hooks/plan-draft";
 import { overrideAnalyticsDecision } from "~/lib/analytics-decision";
+import { resetFeatureFlags } from "~/lib/feature-flags";
 import { resetDeviceLanguages } from "~/test-utils/device-locales";
 import { resetSentAnalytics } from "~/test-utils/fake-analytics";
 import { fakeArnold } from "~/test-utils/fake-arnold";
 import { fakeClerk } from "~/test-utils/fake-clerk";
 import { fakePublicApi } from "~/test-utils/fake-public-api";
 import { fakeRevenueCat } from "~/test-utils/fake-revenuecat";
+import { resetHaptics } from "~/test-utils/haptics-stub";
 import { clearTestQueryClients } from "~/test-utils/query-client";
 import { resetSignedInUser } from "~/test-utils/signed-in-user";
 import { resetToasts } from "~/test-utils/toast-stub";
@@ -108,4 +110,15 @@ afterEach(() => {
 afterEach(() => {
   resetSentAnalytics();
   overrideAnalyticsDecision(true);
+});
+
+// Every test starts with every feature flag as the build sets it (off), however
+// the last one switched it.
+afterEach(() => {
+  resetFeatureFlags();
+});
+
+// Every test starts with no haptic recorded.
+afterEach(() => {
+  resetHaptics();
 });
