@@ -13,6 +13,7 @@
   "dependencies": {
     "@fitme/db": "workspace:*",
     "@fitme/observability": "workspace:*",
+    "@fitme/services": "workspace:*",
     "@sentry/node": "^11.12.0",
     "@vercel/functions": "^3.10.1",
     "@vercel/schedules": "0.0.3",

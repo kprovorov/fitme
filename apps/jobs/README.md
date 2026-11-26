@@ -3,7 +3,7 @@
 Every scheduled job (ADR 0024): one private function per job, called by [Vercel Schedules](https://vercel.com/docs/schedules). No HTTP surface, no domain, no cron secret. Reaches Postgres only through `withService` from `@fitme/db`; a job's logic goes in `@fitme/services`.
 
 ```bash
-pnpm jobs job:forgotten-workout-sessions # one run against the checkout's own stack, then exits
+pnpm jobs job:forgotten-workout-sessions # one real run against the checkout's own stack (refuses any other database), then exits
 pnpm jobs build                          # tsdown bundle → dist/
 pnpm jobs test                           # vitest
 ```
@@ -12,14 +12,14 @@ There is no `dev` script: the app takes no part in `pnpm dev`. Env: see `.env.ex
 
 ## Jobs
 
-- `forgotten-workout-sessions` — every 10 minutes. Only proves it can reach Postgres and logs `forgotten-workout-sessions ran` so far.
+- `forgotten-workout-sessions` — every 10 minutes, inside the `forgotten-workout-sessions` Sentry cron monitor. Closes every Forgotten Workout Session (ADR 0024), one after another, each in its own transaction: one that fails is reported and the rest still close, and the next run tries it again. It stops starting closes 240 s in (the function's `maxDuration` is 300 s). Logs one line of counts, never anything about a Workout Session but its id in a report.
 
 ## Layout
 
 - `api/<job>.js` — the function Vercel builds: re-exports `dist/<job>.js`. Committed, since Vercel looks for functions before the build command runs
 - `src/<job>.ts` — the entry: starts `@fitme/observability`, reports missing env, then imports the rest dynamically so `pg` loads after it and gets traced
 - `src/jobs/<job>.ts` — the job, its dependencies injected
-- `src/create-handler.ts` — the schedule handler: reports a failure and fails the run
+- `src/create-handler.ts` — the schedule handler: runs the job inside its cron monitor (`src/monitors.ts`), reports a failure and fails the run
 - `src/run-<job>.ts` — one run by hand
 - `public/` — the output directory, holding only an empty `.gitkeep`: without one Vercel would serve the app's files, and an empty one fails the build
 - `vercel.json` — the function's trigger (`schedule/v1beta`, and no other) and its schedule. Never rename a schedule: that resets its state and history
