@@ -21,6 +21,7 @@ import {
   WORKOUT_SESSION_QUERY_KEY,
 } from "~/hooks/queries/workout-sessions";
 import type { WorkoutSessionSet } from "~/hooks/queries/workout-sessions";
+import { hasRefusingSessionEnded } from "~/hooks/refused-session-write";
 import { IS_E2E } from "~/lib/constants";
 import { useI18n } from "~/lib/i18n";
 import { segmentClient } from "~/lib/segment";
@@ -226,7 +227,7 @@ const WorkoutSessionExerciseSetRowView = ({
     }
   };
 
-  const handleSaveError = (error: Error) => {
+  const showSaveError = (error: Error) => {
     const waitSeconds = rateLimitedFor(error);
 
     // Never the backend's message: the User can't act on a Postgres error.
@@ -239,8 +240,25 @@ const WorkoutSessionExerciseSetRowView = ({
     setSaveError(message);
     // Focus stays on ✓, so a screen reader wouldn't read the new message.
     AccessibilityInfo.announceForAccessibility(message);
+  };
 
-    // Removed elsewhere (an MCP client, Arnold, another device).
+  const handleSaveError = (error: Error) => {
+    // Finished elsewhere: read at once, so its screens move on to the
+    // Summary without waiting for the next poll, and say nothing then.
+    if (error instanceof ApiError && error.code === "session_finished") {
+      void (async () => {
+        if (!(await hasRefusingSessionEnded(queryClient, sessionId, error))) {
+          showSaveError(error);
+        }
+      })();
+
+      return;
+    }
+
+    showSaveError(error);
+
+    // Removed elsewhere (an MCP client, Arnold, another device), or the
+    // session gone, whose screens then close.
     if (error instanceof ApiError && error.code === "not_found") {
       void rereadSession();
     }

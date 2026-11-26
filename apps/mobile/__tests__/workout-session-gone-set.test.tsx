@@ -268,10 +268,6 @@ describe.each([
       } as const,
       message: "Too many requests. Try again in 30 s.",
     },
-    {
-      failure: { code: "session_finished", status: 409 } as const,
-      message: SAVE_ERROR,
-    },
     { failure: "network" as const, message: SAVE_ERROR },
   ])(
     "reads nothing again on any other failure ($message)",
@@ -286,6 +282,19 @@ describe.each([
       expect(fakePublicApi.count(SESSION_ROUTE)).toBe(reads);
     }
   );
+
+  it("reads the Workout Session again once it answers finished (FIT-818)", async () => {
+    await mountScreen();
+    const reads = fakePublicApi.count(SESSION_ROUTE);
+    fakePublicApi.failNext(LOG_SET_ROUTE, {
+      code: "session_finished",
+      status: 409,
+    });
+    await log("Log set 2");
+
+    expect(screen.getByText(SAVE_ERROR)).toBeTruthy();
+    expect(fakePublicApi.count(SESSION_ROUTE)).toBe(reads + 1);
+  });
 
   it("goes away in Ukrainian too", async () => {
     setDeviceLanguages(["uk-UA"]);

@@ -23,6 +23,10 @@ import {
   useReplaceWorkoutSessionExerciseMutation,
 } from "~/hooks/queries/workout-session-exercises";
 import { WORKOUT_SESSION_QUERY_KEY } from "~/hooks/queries/workout-sessions";
+import {
+  hasRefusingSessionEnded,
+  mayMeanSessionEnded,
+} from "~/hooks/refused-session-write";
 import { IS_E2E } from "~/lib/constants";
 import type { ExerciseSummary } from "~/lib/exercises";
 import { segmentClient } from "~/lib/segment";
@@ -84,11 +88,17 @@ const ExercisePickerScreen = () => {
 
   // A failed edit may still have been saved (a lost answer): read again
   // either way.
-  const rereadSession = useCallback(() => {
-    void queryClient.invalidateQueries({
-      queryKey: WORKOUT_SESSION_QUERY_KEY,
-    });
-  }, [queryClient]);
+  const rereadSession = useCallback(
+    (_: unknown, error: Error | null) => {
+      // One that may have ended is read again at once by the save itself.
+      if (!mayMeanSessionEnded(error)) {
+        void queryClient.invalidateQueries({
+          queryKey: WORKOUT_SESSION_QUERY_KEY,
+        });
+      }
+    },
+    [queryClient]
+  );
 
   const { mutateAsync: addExercise } = useCreateWorkoutSessionExerciseMutation({
     onSettled: rereadSession,
@@ -129,6 +139,12 @@ const ExercisePickerScreen = () => {
             exerciseId: replacingId,
           });
         } catch (error) {
+          // Finished or deleted meanwhile: its screens move on, this one
+          // included.
+          if (await hasRefusingSessionEnded(queryClient, sessionId, error)) {
+            return;
+          }
+
           // The picker stays open, so the User can try again.
           Alert.alert(
             t("workoutSession.editFailed.replaceTitle"),
@@ -151,6 +167,12 @@ const ExercisePickerScreen = () => {
             sessionId,
           });
         } catch (error) {
+          // Finished or deleted meanwhile: its screens move on, this one
+          // included.
+          if (await hasRefusingSessionEnded(queryClient, sessionId, error)) {
+            return;
+          }
+
           // The picker stays open, so the User can try again.
           Alert.alert(
             t("workoutSession.editFailed.addTitle"),
@@ -170,7 +192,15 @@ const ExercisePickerScreen = () => {
 
       close();
     },
-    [addExercise, close, replaceExercise, replacingId, sessionId, t]
+    [
+      addExercise,
+      close,
+      queryClient,
+      replaceExercise,
+      replacingId,
+      sessionId,
+      t,
+    ]
   );
 
   // One save at a time, so a double tap adds the Exercise once, and none
