@@ -107,6 +107,30 @@ wait_http() {
   node "$helper" wait-http "$1" "$2" "$3"
 }
 
+# Whether the process listening on the port descends from the given pid
+# (walking its parents: `tsx watch` starts the API in a process group of its
+# own, so the group can't tell): another worktree can bind a port between
+# `free-port` and our own start, and its answers must never count as ours.
+owns_port() {
+  local listener current hops
+  [[ -n "$dry_run" ]] && return 0
+  for listener in $(lsof -nP -iTCP:"$2" -sTCP:LISTEN -t 2>/dev/null); do
+    current="$listener"
+    hops=0
+    while [[ -n "$current" && "$current" -gt 1 && "$hops" -lt 20 ]]; do
+      [[ "$current" == "$1" ]] && return 0
+      current="$(ps -o ppid= -p "$current" 2>/dev/null | tr -d ' ')"
+      hops=$((hops + 1))
+    done
+  done
+  return 1
+}
+
+# Up: answering on its port, from its own process group.
+ready() {
+  wait_http "$1" "$2" "$3" && owns_port "$3" "$4"
+}
+
 # --- Supabase ---------------------------------------------------------------
 
 ensure_database() {
@@ -131,7 +155,7 @@ ensure_api() {
   local pid port attempt
   pid="$(get api_pid)"
   port="$(get api_port)"
-  if alive "$pid" && wait_http "http://127.0.0.1:$port/health" 5 "$pid"; then
+  if alive "$pid" && ready "http://127.0.0.1:$port/health" 5 "$pid" "$port"; then
     say "Public API already up on :$port (pid $pid)"
     api_port="$port"
     return 0
@@ -144,13 +168,15 @@ ensure_api() {
     # PORT after the `--`: Infisical's values win over the caller's environment.
     pid="$(start_detached api "$worktree/scripts/with-dev-env.sh" Api -- \
       env PORT="$port" pnpm --filter @fitme/api dev)"
-    if wait_http "http://127.0.0.1:$port/health" "$API_START_SECONDS" "$pid"; then
-      set_state api_pid="$pid" api_port="$port"
+    # Recorded before the wait, so an interrupted `up` leaves it to `down`.
+    set_state api_pid="$pid" api_port="$port"
+    if ready "http://127.0.0.1:$port/health" "$API_START_SECONDS" "$pid" "$port"; then
       api_port="$port"
       return 0
     fi
     # Lost the port to another worktree, or the API failed: never keep it.
     stop_ours "$pid"
+    set_state api_pid= api_port=
   done
   die "the Public API didn't come up: see $cache/api.log"
 }
@@ -270,7 +296,7 @@ ensure_metro() {
   # The app's env is baked in when Metro starts: a Metro serving another API
   # port is restarted.
   if alive "$pid" && [[ "$(get metro_api_url)" == "$api_url" ]] &&
-    wait_http "http://127.0.0.1:$port/status" 5 "$pid"; then
+    ready "http://127.0.0.1:$port/status" 5 "$pid" "$port"; then
     say "Metro already up on :$port (pid $pid)"
     metro_port="$port"
     return 0
@@ -284,13 +310,15 @@ ensure_metro() {
     pid="$(start_detached metro "$worktree/scripts/with-dev-env.sh" Mobile -- \
       env EXPO_PUBLIC_API_URL="$api_url" \
       pnpm --filter @fitme/mobile exec expo start --dev-client --port "$port")"
-    if wait_http "http://127.0.0.1:$port/status" "$METRO_START_SECONDS" "$pid"; then
-      set_state metro_pid="$pid" metro_port="$port" metro_api_url="$api_url"
+    # Recorded before the wait, so an interrupted `up` leaves it to `down`.
+    set_state metro_pid="$pid" metro_port="$port" metro_api_url="$api_url"
+    if ready "http://127.0.0.1:$port/status" "$METRO_START_SECONDS" "$pid" "$port"; then
       metro_port="$port"
       return 0
     fi
-    # Lost the port, or too slow: never leave it running unrecorded.
+    # Lost the port, or too slow: never leave it running.
     stop_ours "$pid"
+    set_state metro_pid= metro_port= metro_api_url=
   done
   die "Metro didn't come up: see $cache/metro.log"
 }
