@@ -315,7 +315,8 @@
     "confirm": "Confirmar",
     "tryAgain": "Tentar novamente",
     "genericError": "Ocorreu um erro. Tenta novamente mais tarde.",
-    "rateLimited": "Demasiados pedidos: tenta novamente dentro de {{seconds, number}} s."
+    "rateLimited": "Demasiados pedidos: tenta novamente dentro de {{seconds, number}} s.",
+    "ok": "OK"
   },
   "compactUnits": {
     "t": "{{value, number}} t",
@@ -871,6 +872,48 @@
       "notFound": "Este plano já não existe.",
       "network": "Verifica a tua ligação e tenta novamente.",
       "rateLimited": "Demasiados pedidos: tenta novamente dentro de {{seconds, number}} s."
+    },
+    "active": "Ativo",
+    "otherPlans": "Outros planos",
+    "moreOptions": "Mais opções",
+    "activating": "A ativar o plano",
+    "more": "+{{count, number}}",
+    "moreWorkoutsSpoken_one": "e mais {{count, number}} treino",
+    "moreWorkoutsSpoken_many": "e mais {{count, number}} treinos",
+    "moreWorkoutsSpoken_other": "e mais {{count, number}} treinos",
+    "moreExercisesSpoken_one": "e mais {{count, number}} exercício",
+    "moreExercisesSpoken_many": "e mais {{count, number}} exercícios",
+    "moreExercisesSpoken_other": "e mais {{count, number}} exercícios",
+    "noActivePlan": {
+      "title": "Nenhum plano ativo",
+      "message": "Escolhe um plano e ativa-o para começares a treinar."
+    },
+    "empty": {
+      "title": "Ainda não tens planos",
+      "message": "Cria o teu primeiro plano de treino para começar."
+    },
+    "listError": {
+      "title": "Não foi possível carregar os teus planos"
+    },
+    "planError": {
+      "title": "Não foi possível carregar o plano"
+    },
+    "notFound": {
+      "title": "Plano não encontrado",
+      "back": "Voltar aos planos"
+    },
+    "noWorkouts": {
+      "title": "Ainda não há treinos",
+      "message": "Adiciona treinos a este plano para começares a treinar."
+    },
+    "delete": {
+      "action": "Eliminar plano",
+      "title": "Eliminar o plano?",
+      "message": "Não é possível anular. Os teus treinos anteriores ficam no Histórico.",
+      "confirm": "Eliminar",
+      "failed": "Não foi possível eliminar o plano",
+      "activeTitle": "Não é possível eliminar o plano ativo",
+      "activeMessage": "Primeiro cria ou ativa outro plano e depois elimina este."
     }
   },
   "profile": {

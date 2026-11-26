@@ -320,7 +320,8 @@
     "confirm": "Potwierdź",
     "tryAgain": "Spróbuj ponownie",
     "genericError": "Coś poszło nie tak. Spróbuj ponownie później.",
-    "rateLimited": "Zbyt wiele żądań. Spróbuj ponownie za {{seconds, number}} s."
+    "rateLimited": "Zbyt wiele żądań. Spróbuj ponownie za {{seconds, number}} s.",
+    "ok": "OK"
   },
   "compactUnits": {
     "t": "{{value, number}} t",
@@ -898,6 +899,50 @@
       "notFound": "Ten plan już nie istnieje.",
       "network": "Sprawdź połączenie i spróbuj ponownie.",
       "rateLimited": "Zbyt wiele żądań. Spróbuj ponownie za {{seconds, number}} s."
+    },
+    "active": "Aktywny",
+    "otherPlans": "Inne plany",
+    "moreOptions": "Więcej opcji",
+    "activating": "Aktywowanie planu",
+    "more": "+{{count, number}}",
+    "moreWorkoutsSpoken_one": "i jeszcze {{count, number}} trening",
+    "moreWorkoutsSpoken_few": "i jeszcze {{count, number}} treningi",
+    "moreWorkoutsSpoken_many": "i jeszcze {{count, number}} treningów",
+    "moreWorkoutsSpoken_other": "i jeszcze {{count, number}} treningu",
+    "moreExercisesSpoken_one": "i jeszcze {{count, number}} ćwiczenie",
+    "moreExercisesSpoken_few": "i jeszcze {{count, number}} ćwiczenia",
+    "moreExercisesSpoken_many": "i jeszcze {{count, number}} ćwiczeń",
+    "moreExercisesSpoken_other": "i jeszcze {{count, number}} ćwiczenia",
+    "noActivePlan": {
+      "title": "Brak aktywnego planu",
+      "message": "Wybierz plan i aktywuj go, aby zacząć trenować."
+    },
+    "empty": {
+      "title": "Nie masz jeszcze planów",
+      "message": "Utwórz swój pierwszy plan treningowy, aby zacząć."
+    },
+    "listError": {
+      "title": "Nie udało się wczytać planów"
+    },
+    "planError": {
+      "title": "Nie udało się wczytać planu"
+    },
+    "notFound": {
+      "title": "Nie znaleziono planu",
+      "back": "Wróć do planów"
+    },
+    "noWorkouts": {
+      "title": "Nie ma jeszcze treningów",
+      "message": "Dodaj treningi do tego planu, aby zacząć trenować."
+    },
+    "delete": {
+      "action": "Usuń plan",
+      "title": "Usunąć plan?",
+      "message": "Tej operacji nie można cofnąć. Twoje wcześniejsze treningi zostaną w Historii.",
+      "confirm": "Usuń",
+      "failed": "Nie udało się usunąć planu",
+      "activeTitle": "Nie można usunąć aktywnego planu",
+      "activeMessage": "Najpierw utwórz lub aktywuj inny plan, a potem usuń ten."
     }
   },
   "profile": {

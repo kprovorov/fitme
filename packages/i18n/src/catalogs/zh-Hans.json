@@ -305,7 +305,8 @@
     "confirm": "确认",
     "tryAgain": "重试",
     "genericError": "出了点问题，请稍后重试。",
-    "rateLimited": "请求过于频繁，请在{{seconds, number}}秒后重试。"
+    "rateLimited": "请求过于频繁，请在{{seconds, number}}秒后重试。",
+    "ok": "好"
   },
   "compactUnits": {
     "t": "{{value, number}}吨",
@@ -817,6 +818,44 @@
       "notFound": "此计划已不存在。",
       "network": "请检查网络连接后重试。",
       "rateLimited": "请求过于频繁，请在{{seconds, number}}秒后重试。"
+    },
+    "active": "使用中",
+    "otherPlans": "其他计划",
+    "moreOptions": "更多选项",
+    "activating": "正在启用计划",
+    "more": "+{{count, number}}",
+    "moreWorkoutsSpoken_other": "以及另外{{count, number}}项训练",
+    "moreExercisesSpoken_other": "以及另外{{count, number}}个动作",
+    "noActivePlan": {
+      "title": "没有使用中的计划",
+      "message": "选择一个计划并启用它，即可开始训练。"
+    },
+    "empty": {
+      "title": "还没有计划",
+      "message": "创建你的第一个训练计划，开始吧。"
+    },
+    "listError": {
+      "title": "无法加载你的计划"
+    },
+    "planError": {
+      "title": "无法加载计划"
+    },
+    "notFound": {
+      "title": "找不到计划",
+      "back": "返回计划"
+    },
+    "noWorkouts": {
+      "title": "还没有训练",
+      "message": "为此计划添加训练，即可开始训练。"
+    },
+    "delete": {
+      "action": "删除计划",
+      "title": "删除计划？",
+      "message": "此操作无法撤销。你以往的训练会保留在历史记录中。",
+      "confirm": "删除",
+      "failed": "无法删除计划",
+      "activeTitle": "无法删除使用中的计划",
+      "activeMessage": "请先创建或启用另一个计划，然后再删除此计划。"
     }
   },
   "profile": {

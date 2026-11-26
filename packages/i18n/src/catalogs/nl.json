@@ -310,7 +310,8 @@
     "confirm": "Bevestigen",
     "tryAgain": "Opnieuw proberen",
     "genericError": "Er is iets misgegaan. Probeer het later opnieuw.",
-    "rateLimited": "Te veel verzoeken: probeer het over {{seconds, number}} s opnieuw."
+    "rateLimited": "Te veel verzoeken: probeer het over {{seconds, number}} s opnieuw.",
+    "ok": "OK"
   },
   "compactUnits": {
     "t": "{{value, number}} t",
@@ -844,6 +845,46 @@
       "notFound": "Dit schema bestaat niet meer.",
       "network": "Controleer je verbinding en probeer het opnieuw.",
       "rateLimited": "Te veel verzoeken: probeer het over {{seconds, number}} s opnieuw."
+    },
+    "active": "Actief",
+    "otherPlans": "Andere schema's",
+    "moreOptions": "Meer opties",
+    "activating": "Schema wordt geactiveerd",
+    "more": "+{{count, number}}",
+    "moreWorkoutsSpoken_one": "en nog {{count, number}} training",
+    "moreWorkoutsSpoken_other": "en nog {{count, number}} trainingen",
+    "moreExercisesSpoken_one": "en nog {{count, number}} oefening",
+    "moreExercisesSpoken_other": "en nog {{count, number}} oefeningen",
+    "noActivePlan": {
+      "title": "Geen actief schema",
+      "message": "Kies een schema en activeer het om te beginnen met trainen."
+    },
+    "empty": {
+      "title": "Nog geen schema's",
+      "message": "Maak je eerste trainingsschema om te beginnen."
+    },
+    "listError": {
+      "title": "Je schema's konden niet worden geladen"
+    },
+    "planError": {
+      "title": "Schema kon niet worden geladen"
+    },
+    "notFound": {
+      "title": "Schema niet gevonden",
+      "back": "Terug naar schema's"
+    },
+    "noWorkouts": {
+      "title": "Nog geen trainingen",
+      "message": "Voeg trainingen aan dit schema toe om te beginnen met trainen."
+    },
+    "delete": {
+      "action": "Schema verwijderen",
+      "title": "Schema verwijderen?",
+      "message": "Dit kan niet ongedaan worden gemaakt. Je eerdere trainingen blijven in Geschiedenis.",
+      "confirm": "Verwijderen",
+      "failed": "Schema kon niet worden verwijderd",
+      "activeTitle": "Actief schema kan niet worden verwijderd",
+      "activeMessage": "Maak of activeer eerst een ander schema en verwijder dan dit schema."
     }
   },
   "profile": {

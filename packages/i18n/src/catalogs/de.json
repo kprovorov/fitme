@@ -310,7 +310,8 @@
     "confirm": "Bestätigen",
     "tryAgain": "Erneut versuchen",
     "genericError": "Etwas ist schiefgelaufen. Bitte versuche es später erneut.",
-    "rateLimited": "Zu viele Anfragen. Bitte versuche es in {{seconds, number}} s erneut."
+    "rateLimited": "Zu viele Anfragen. Bitte versuche es in {{seconds, number}} s erneut.",
+    "ok": "OK"
   },
   "compactUnits": {
     "t": "{{value, number}} t",
@@ -844,6 +845,46 @@
       "notFound": "Dieser Plan existiert nicht mehr.",
       "network": "Bitte prüfe deine Verbindung und versuche es erneut.",
       "rateLimited": "Zu viele Anfragen. Bitte versuche es in {{seconds, number}} s erneut."
+    },
+    "active": "Aktiv",
+    "otherPlans": "Weitere Pläne",
+    "moreOptions": "Weitere Optionen",
+    "activating": "Plan wird aktiviert",
+    "more": "+{{count, number}}",
+    "moreWorkoutsSpoken_one": "und {{count, number}} weiteres Training",
+    "moreWorkoutsSpoken_other": "und {{count, number}} weitere Trainings",
+    "moreExercisesSpoken_one": "und {{count, number}} weitere Übung",
+    "moreExercisesSpoken_other": "und {{count, number}} weitere Übungen",
+    "noActivePlan": {
+      "title": "Kein aktiver Plan",
+      "message": "Wähle einen Plan und aktiviere ihn, um mit dem Training zu beginnen."
+    },
+    "empty": {
+      "title": "Noch keine Pläne",
+      "message": "Erstelle deinen ersten Trainingsplan, um loszulegen."
+    },
+    "listError": {
+      "title": "Deine Pläne konnten nicht geladen werden"
+    },
+    "planError": {
+      "title": "Plan konnte nicht geladen werden"
+    },
+    "notFound": {
+      "title": "Plan nicht gefunden",
+      "back": "Zurück zu den Plänen"
+    },
+    "noWorkouts": {
+      "title": "Noch keine Trainings",
+      "message": "Füge diesem Plan Trainings hinzu, um mit dem Training zu beginnen."
+    },
+    "delete": {
+      "action": "Plan löschen",
+      "title": "Plan löschen?",
+      "message": "Das kann nicht rückgängig gemacht werden. Deine bisherigen Trainings bleiben im Verlauf.",
+      "confirm": "Löschen",
+      "failed": "Plan konnte nicht gelöscht werden",
+      "activeTitle": "Aktiver Plan kann nicht gelöscht werden",
+      "activeMessage": "Erstelle oder aktiviere zuerst einen anderen Plan und lösche dann diesen."
     }
   },
   "profile": {

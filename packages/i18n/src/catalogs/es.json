@@ -315,7 +315,8 @@
     "confirm": "Confirmar",
     "tryAgain": "Intentar de nuevo",
     "genericError": "Algo ha ido mal. Inténtalo de nuevo más tarde.",
-    "rateLimited": "Demasiadas solicitudes: inténtalo de nuevo en {{seconds, number}} s."
+    "rateLimited": "Demasiadas solicitudes: inténtalo de nuevo en {{seconds, number}} s.",
+    "ok": "OK"
   },
   "compactUnits": {
     "t": "{{value, number}} t",
@@ -871,6 +872,48 @@
       "notFound": "Este plan ya no existe.",
       "network": "Comprueba tu conexión e inténtalo de nuevo.",
       "rateLimited": "Demasiadas solicitudes: inténtalo de nuevo en {{seconds, number}} s."
+    },
+    "active": "Activo",
+    "otherPlans": "Otros planes",
+    "moreOptions": "Más opciones",
+    "activating": "Activando el plan",
+    "more": "+{{count, number}}",
+    "moreWorkoutsSpoken_one": "y {{count, number}} entrenamiento más",
+    "moreWorkoutsSpoken_many": "y {{count, number}} entrenamientos más",
+    "moreWorkoutsSpoken_other": "y {{count, number}} entrenamientos más",
+    "moreExercisesSpoken_one": "y {{count, number}} ejercicio más",
+    "moreExercisesSpoken_many": "y {{count, number}} ejercicios más",
+    "moreExercisesSpoken_other": "y {{count, number}} ejercicios más",
+    "noActivePlan": {
+      "title": "Ningún plan activo",
+      "message": "Elige un plan y actívalo para empezar a entrenar."
+    },
+    "empty": {
+      "title": "Aún no hay planes",
+      "message": "Crea tu primer plan de entrenamiento para empezar."
+    },
+    "listError": {
+      "title": "No se han podido cargar tus planes"
+    },
+    "planError": {
+      "title": "No se ha podido cargar el plan"
+    },
+    "notFound": {
+      "title": "Plan no encontrado",
+      "back": "Volver a los planes"
+    },
+    "noWorkouts": {
+      "title": "Aún no hay entrenamientos",
+      "message": "Añade entrenamientos a este plan para empezar a entrenar."
+    },
+    "delete": {
+      "action": "Eliminar plan",
+      "title": "¿Eliminar el plan?",
+      "message": "No se puede deshacer. Tus entrenamientos anteriores seguirán en el Historial.",
+      "confirm": "Eliminar",
+      "failed": "No se ha podido eliminar el plan",
+      "activeTitle": "No se puede eliminar el plan activo",
+      "activeMessage": "Primero crea o activa otro plan y después elimina este."
     }
   },
   "profile": {

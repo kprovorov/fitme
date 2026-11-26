@@ -320,7 +320,8 @@
     "confirm": "Підтвердити",
     "tryAgain": "Спробувати ще раз",
     "genericError": "Щось пішло не так. Спробуйте пізніше.",
-    "rateLimited": "Забагато запитів: спробуйте ще раз через {{seconds, number}} с."
+    "rateLimited": "Забагато запитів: спробуйте ще раз через {{seconds, number}} с.",
+    "ok": "OK"
   },
   "compactUnits": {
     "t": "{{value, number}} т",
@@ -898,6 +899,50 @@
       "notFound": "Цього плану більше немає.",
       "network": "Перевірте з’єднання й спробуйте ще раз.",
       "rateLimited": "Забагато запитів: спробуйте ще раз через {{seconds, number}} с."
+    },
+    "active": "Активний",
+    "otherPlans": "Інші плани",
+    "moreOptions": "Інші дії",
+    "activating": "План активується",
+    "more": "+{{count, number}}",
+    "moreWorkoutsSpoken_one": "і ще {{count, number}} тренування",
+    "moreWorkoutsSpoken_few": "і ще {{count, number}} тренування",
+    "moreWorkoutsSpoken_many": "і ще {{count, number}} тренувань",
+    "moreWorkoutsSpoken_other": "і ще {{count, number}} тренування",
+    "moreExercisesSpoken_one": "і ще {{count, number}} вправа",
+    "moreExercisesSpoken_few": "і ще {{count, number}} вправи",
+    "moreExercisesSpoken_many": "і ще {{count, number}} вправ",
+    "moreExercisesSpoken_other": "і ще {{count, number}} вправи",
+    "noActivePlan": {
+      "title": "Немає активного плану",
+      "message": "Виберіть план і активуйте його, щоб почати тренування."
+    },
+    "empty": {
+      "title": "Планів ще немає",
+      "message": "Створіть свій перший план тренувань, щоб почати."
+    },
+    "listError": {
+      "title": "Не вдалося завантажити ваші плани"
+    },
+    "planError": {
+      "title": "Не вдалося завантажити план"
+    },
+    "notFound": {
+      "title": "План не знайдено",
+      "back": "До планів"
+    },
+    "noWorkouts": {
+      "title": "Тренувань ще немає",
+      "message": "Додайте тренування до цього плану, щоб почати тренуватися."
+    },
+    "delete": {
+      "action": "Видалити план",
+      "title": "Видалити план?",
+      "message": "Цю дію не можна скасувати. Ваші минулі тренування залишаться в Історії.",
+      "confirm": "Видалити",
+      "failed": "Не вдалося видалити план",
+      "activeTitle": "Активний план не можна видалити",
+      "activeMessage": "Спершу створіть або активуйте інший план, а потім видаліть цей."
     }
   },
   "profile": {
