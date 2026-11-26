@@ -10,13 +10,6 @@ import { Text } from "~/components/ui/text";
 import { useIsProQuery } from "~/hooks/revenueCat";
 
 /**
- * The `step` route param that opens Create Plan (`/plans/create`) straight at
- * its naming step, the create sheet, skipping the choice: for an entry that
- * has already offered "Build it yourself" itself.
- */
-export const CREATE_PLAN_NAMING_STEP = "naming";
-
-/**
  * One way of getting a Plan: its name, what it does, and the Pro badge for a
  * way that needs a subscription.
  */
@@ -63,13 +56,13 @@ const ChoiceTile = ({
 );
 
 /**
- * Create Plan's two choices, wherever they're offered (Create Plan itself and
- * the empty My Plans): Build it yourself, free for every User, and Ask
- * Arnold, which carries the Pro badge and shows the paywall unless the User
- * has Pro, and opens the planner (`onOpenPlanner`) when they do.
+ * Create Plan's two choices, the same on every screen that offers them:
+ * Build it yourself, free for every User, and Ask Arnold, which carries the
+ * Pro badge and shows the paywall unless the User has Pro, and opens the
+ * planner (`onOpenPlanner`) when they do.
  *
  * Each caller says how it gets to the planner and to the naming step, since
- * Create Plan replaces itself and another screen pushes.
+ * Create Plan replaces itself where another screen would push.
  */
 export const CreatePlanChoices = ({
   onBuildByHand,

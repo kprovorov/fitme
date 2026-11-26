@@ -11,7 +11,14 @@
  * with `within`.
  */
 import { MAX_FREQUENCY, MIN_FREQUENCY } from "@fitme/core";
-import { beforeEach, describe, expect, it, jest } from "@jest/globals";
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  jest,
+} from "@jest/globals";
 import { QueryClientProvider } from "@tanstack/react-query";
 import type { QueryClient } from "@tanstack/react-query";
 import {
@@ -30,7 +37,7 @@ import PlanEditorScreen from "~/app/plans/[planId]/edit/index";
 import WorkoutEditorScreen from "~/app/plans/[planId]/edit/workouts/[workoutKey]";
 import PlanScreen from "~/app/plans/[planId]/index";
 import CreatePlanScreen from "~/app/plans/create";
-import { CREATE_PLAN_NAMING_STEP } from "~/components/plans/create-plan-choices";
+import { CREATE_PLAN_NAMING_STEP } from "~/lib/plan-draft";
 import { segmentClient } from "~/lib/segment";
 import { setDeviceLanguages } from "~/test-utils/device-locales";
 import { serveExercises } from "~/test-utils/fake-exercises";
@@ -641,6 +648,10 @@ describe("opened at the naming step", () => {
     mockParams.current = { step: CREATE_PLAN_NAMING_STEP };
   });
 
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
   it("starts on the create sheet, with no choice to go back to", async () => {
     // `useRouter` copies the stub's methods as the Screen renders.
     const back = jest.spyOn(stubRouter, "back");
@@ -655,7 +666,6 @@ describe("opened at the naming step", () => {
     await press("Cancel");
 
     expect(back).toHaveBeenCalledTimes(1);
-    back.mockRestore();
   });
 
   it("continues to the Plan builder, which saves the Plan", async () => {

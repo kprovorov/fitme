@@ -9,17 +9,19 @@ import { useTranslation } from "react-i18next";
 import { View } from "react-native";
 import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
 
-import {
-  CREATE_PLAN_NAMING_STEP,
-  CreatePlanChoices,
-} from "~/components/plans/create-plan-choices";
+import { CreatePlanChoices } from "~/components/plans/create-plan-choices";
 import { Input } from "~/components/ui/input";
 import { Label } from "~/components/ui/label";
 import { Text } from "~/components/ui/text";
 import { H4 } from "~/components/ui/typography";
 import { VStack } from "~/components/ui/vstack";
 import { useHeaderItemColors } from "~/hooks/header-item-colors";
-import { isPlanNumberIn, NEW_PLAN_ID, wholePlanNumber } from "~/lib/plan-draft";
+import {
+  CREATE_PLAN_NAMING_STEP,
+  isPlanNumberIn,
+  NEW_PLAN_ID,
+  wholePlanNumber,
+} from "~/lib/plan-draft";
 
 /** How often a new Plan trains a week until the User says otherwise. */
 const DEFAULT_FREQUENCY = 3;
@@ -44,13 +46,14 @@ const CreatePlanScreen = () => {
   const { step } = useLocalSearchParams<{ step?: string }>();
   const opensAtNaming = step === CREATE_PLAN_NAMING_STEP;
 
-  const [isNaming, setIsNaming] = useState(opensAtNaming);
+  const [hasChosen, setHasChosen] = useState(false);
+  const isNaming = opensAtNaming || hasChosen;
   const [name, setName] = useState("");
 
   const [frequencyText, setFrequencyText] = useState(String(DEFAULT_FREQUENCY));
 
-  const buildByHand = useCallback(() => setIsNaming(true), []);
-  const backToChoice = useCallback(() => setIsNaming(false), []);
+  const buildByHand = useCallback(() => setHasChosen(true), []);
+  const backToChoice = useCallback(() => setHasChosen(false), []);
   const cancel = useCallback(() => router.back(), [router]);
 
   const openPlanner = useCallback(() => router.replace("/planner"), [router]);
