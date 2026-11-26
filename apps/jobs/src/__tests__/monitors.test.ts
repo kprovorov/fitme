@@ -2,7 +2,10 @@ import { readFileSync } from "node:fs";
 
 import { describe, expect, it } from "vitest";
 
-import { RUN_BUDGET_MS } from "../jobs/forgotten-workout-sessions";
+import {
+  RUN_BUDGET_MS,
+  TRANSACTION_TIMEOUT_MS,
+} from "../jobs/forgotten-workout-sessions";
 import { FORGOTTEN_WORKOUT_SESSIONS_MONITOR } from "../monitors";
 
 interface VercelConfig {
@@ -37,7 +40,9 @@ describe("the forgotten-workout-sessions monitor", () => {
     const maxDuration =
       vercel.functions["api/forgotten-workout-sessions.js"]?.maxDuration ?? 0;
 
-    expect(RUN_BUDGET_MS).toBeLessThan(maxDuration * 1000);
+    expect(RUN_BUDGET_MS + TRANSACTION_TIMEOUT_MS).toBeLessThan(
+      maxDuration * 1000
+    );
     expect(
       FORGOTTEN_WORKOUT_SESSIONS_MONITOR.maxRuntimeMinutes * 60
     ).toBeGreaterThan(maxDuration);

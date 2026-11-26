@@ -19,11 +19,15 @@ import { AlreadyReportedError } from "../reported.js";
 export const RUN_BUDGET_MS = 240_000;
 
 /**
- * Longest any statement of the job may take, lock waits included, so a close
- * started just inside the budget still ends before the time limit (240 + 30 s
- * < 300 s), however long an account deletion holds its table locks.
+ * Longest any one transaction of the job may take, all its statements and
+ * lock waits together, so a close started just inside the budget still ends
+ * before the time limit (240 + 50 s < 300 s), however long an account deletion
+ * holds its table locks. Postgres 17's `transaction_timeout`, which ends the
+ * connection too, so a statement alone is bounded sooner, by
+ * `STATEMENT_TIMEOUT_MS`, with an ordinary error.
  */
-const STATEMENT_TIMEOUT = "30s";
+export const TRANSACTION_TIMEOUT_MS = 50_000;
+const STATEMENT_TIMEOUT_MS = 20_000;
 
 /**
  * After this many closes failing in a row the run stops: Postgres is likely
@@ -45,13 +49,14 @@ export interface ForgottenWorkoutSessionsDeps {
   reportError: (error: unknown, tags?: Record<string, string>) => Promise<void>;
 }
 
-/** `run` in a `withService` transaction of its own, under the statement timeout. */
+/** `run` in a `withService` transaction of its own, under the timeouts. */
 const inTransaction = async <T>(
   run: (tx: Transaction) => Promise<T>
 ): Promise<T> =>
   await withService(async (tx) => {
+    // Set inside the transaction, so its timer starts here, just after BEGIN
     await tx.execute(
-      sql`select set_config('statement_timeout', ${STATEMENT_TIMEOUT}, true)`
+      sql`select set_config('transaction_timeout', ${`${TRANSACTION_TIMEOUT_MS}ms`}, true), set_config('statement_timeout', ${`${STATEMENT_TIMEOUT_MS}ms`}, true)`
     );
 
     return await run(tx);
