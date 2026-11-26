@@ -950,12 +950,16 @@
   },
   "sets": {
     "columns": {
+      "previous": "vorige",
       "target": "doel",
       "reps": "herh.",
       "rest": "rust"
     },
     "addSet": "Set toevoegen",
     "noTarget": "geen doel",
+    "previousSet": "Vorige: {{set}}",
+    "targetSet": "Doel: {{set}}",
+    "noPreviousSet": "Geen vorige set",
     "repsAtWeight": "{{reps}} met {{weight}}",
     "plannedSet": "Set {{order, number}}: {{target}}, {{rest}}",
     "restSeconds_one": "{{count, number}} seconde rust",

@@ -981,12 +981,16 @@
   },
   "sets": {
     "columns": {
+      "previous": "anterior",
       "target": "objectiu",
       "reps": "reps",
       "rest": "descans"
     },
     "addSet": "Afegeix una sèrie",
     "noTarget": "sense objectiu",
+    "previousSet": "Anterior: {{set}}",
+    "targetSet": "Objectiu: {{set}}",
+    "noPreviousSet": "Cap sèrie anterior",
     "repsAtWeight": "{{reps}} amb {{weight}}",
     "plannedSet": "Sèrie {{order, number}}: {{target}}, {{rest}}",
     "restSeconds_one": "descans de {{count, number}} segon",

@@ -981,12 +981,16 @@
   },
   "sets": {
     "columns": {
+      "previous": "précéd.",
       "target": "objectif",
       "reps": "rép.",
       "rest": "repos"
     },
     "addSet": "Ajouter une série",
     "noTarget": "sans objectif",
+    "previousSet": "Précédent : {{set}}",
+    "targetSet": "Objectif : {{set}}",
+    "noPreviousSet": "Aucune série précédente",
     "repsAtWeight": "{{reps}} à {{weight}}",
     "plannedSet": "Série {{order, number}} : {{target}}, {{rest}}",
     "restSeconds_one": "repos de {{count, number}} seconde",
