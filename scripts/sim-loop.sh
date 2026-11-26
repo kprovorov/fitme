@@ -87,7 +87,20 @@ start_detached() {
   node "$helper" spawn "$cache/$log.log" "$@"
 }
 
-alive() { [[ -n "$1" ]] && node "$helper" alive "$1"; }
+# A pid from state.json is ours only while it's running and still the
+# with-dev-env.sh this script started: after a reboot the pid may belong to
+# something else, whose process group must never be signalled.
+alive() {
+  [[ -n "$1" && "$1" != 0 ]] && node "$helper" alive "$1" &&
+    ps -o command= -p "$1" 2>/dev/null | grep -q 'with-dev-env\.sh'
+}
+
+stop_ours() {
+  if alive "$1"; then
+    say "stopping pid $1"
+    run node "$helper" stop "$1"
+  fi
+}
 
 wait_http() {
   [[ -n "$dry_run" ]] && return 0
@@ -135,7 +148,7 @@ ensure_api() {
       return 0
     fi
     # Lost the port to another worktree, or the API failed: never keep it.
-    [[ -n "$dry_run" ]] || node "$helper" stop "$pid"
+    stop_ours "$pid"
   done
   die "the Public API didn't come up: see $cache/api.log"
 }
@@ -248,7 +261,7 @@ ensure_dev_client() {
 # --- Metro --------------------------------------------------------------------------
 
 ensure_metro() {
-  local pid port api_url
+  local pid port api_url attempt
   api_url="http://localhost:$api_port"
   pid="$(get metro_pid)"
   port="$(get metro_port)"
@@ -260,20 +273,24 @@ ensure_metro() {
     metro_port="$port"
     return 0
   fi
-  if alive "$pid"; then
-    node "$helper" stop "$pid"
-  fi
-  port="$(node "$helper" free-port)"
-  say "Metro on :$port, the app talking to $api_url"
-  # EXPO_PUBLIC_API_URL after the `--`, so it wins over Infisical's /Mobile
-  # value (3003, another worktree's API). Never CI=1: it turns off watching.
-  pid="$(start_detached metro "$worktree/scripts/with-dev-env.sh" Mobile -- \
-    env EXPO_PUBLIC_API_URL="$api_url" \
-    pnpm --filter @fitme/mobile exec expo start --dev-client --port "$port")"
-  wait_http "http://127.0.0.1:$port/status" "$METRO_START_SECONDS" "$pid" ||
-    die "Metro didn't come up: see $cache/metro.log"
-  set_state metro_pid="$pid" metro_port="$port" metro_api_url="$api_url"
-  metro_port="$port"
+  stop_ours "$pid"
+  for attempt in 1 2 3; do
+    port="$(node "$helper" free-port)"
+    say "Metro on :$port, the app talking to $api_url (attempt $attempt)"
+    # EXPO_PUBLIC_API_URL after the `--`, so it wins over Infisical's /Mobile
+    # value (3003, another worktree's API). Never CI=1: it turns off watching.
+    pid="$(start_detached metro "$worktree/scripts/with-dev-env.sh" Mobile -- \
+      env EXPO_PUBLIC_API_URL="$api_url" \
+      pnpm --filter @fitme/mobile exec expo start --dev-client --port "$port")"
+    if wait_http "http://127.0.0.1:$port/status" "$METRO_START_SECONDS" "$pid"; then
+      set_state metro_pid="$pid" metro_port="$port" metro_api_url="$api_url"
+      metro_port="$port"
+      return 0
+    fi
+    # Lost the port, or too slow: never leave it running unrecorded.
+    stop_ours "$pid"
+  done
+  die "Metro didn't come up: see $cache/metro.log"
 }
 
 # --- Test User and data --------------------------------------------------------------
@@ -291,6 +308,10 @@ report() {
   udid="${sim_udid:-$(get sim_udid)}"
   api="${api_port:-$(get api_port)}"
   metro="${metro_port:-$(get metro_port)}"
+  if [[ -z "$api" || -z "$metro" ]]; then
+    say "the Public API and Metro aren't running: scripts/sim-loop.sh up"
+    return 0
+  fi
   email="$(get email)"
   user_pw="$(get password)"
   cat <<EOF
@@ -335,12 +356,9 @@ up() {
 down() {
   local pid udid
   for pid in "$(get metro_pid)" "$(get api_pid)"; do
-    if alive "$pid"; then
-      say "stopping pid $pid"
-      run node "$helper" stop "$pid"
-    fi
+    stop_ours "$pid"
   done
-  set_state metro_pid= api_pid= metro_api_url=
+  set_state metro_pid= api_pid= metro_api_url= metro_port= api_port=
   udid="$(get sim_udid)"
   if [[ -n "$udid" ]]; then
     say "shutting down $udid"

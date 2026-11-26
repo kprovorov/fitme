@@ -195,18 +195,25 @@ void test("freePort answers a port that can be listened on", async () => {
 });
 
 void test("testEmail is a +clerk_test address per worktree", () => {
-  assert.equal(
-    testEmail("fit-844-one-script-to-s-4f5b20bfcc4ece94"),
-    "sim-loop-fit-844-one-script-to-s-4f5b20bfcc4ece94+clerk_test@fitmeproject.com"
+  const email = testEmail("fit-844-one-script-to-s-4f5b20bfcc4ece94");
+
+  assert.match(
+    email,
+    /^sim-loop-fit-844-one-script-to-s-4f5b20-[0-9a-f]{8}\+clerk_test@fitmeproject\.com$/u
   );
-  assert.equal(
+  assert.equal(testEmail("fit-844-one-script-to-s-4f5b20bfcc4ece94"), email);
+  assert.match(
     testEmail("Main Checkout!"),
-    "sim-loop-main-checkout+clerk_test@fitmeproject.com"
+    /^sim-loop-main-checkout-[0-9a-f]{8}\+/u
   );
-  assert.equal(
-    testEmail("---"),
-    "sim-loop-worktree+clerk_test@fitmeproject.com"
+  assert.match(testEmail("---"), /^sim-loop-worktree-[0-9a-f]{8}\+/u);
+  // Names sharing their first 30 characters still get their own User.
+  assert.notEqual(
+    testEmail("feature-workout-session-remove-set-swipe-a"),
+    testEmail("feature-workout-session-remove-set-swipe-b")
   );
+  // A Clerk address's local part stays under 64 characters.
+  assert.ok(testEmail("x".repeat(200)).split("@")[0].length < 64);
 });
 
 void describe("seedPlanBody", () => {
@@ -233,7 +240,7 @@ void describe("seedPlanBody", () => {
 /**
  * A fake Public API over one User's rows, answering like `/v1`.
  *
- * @param {{ profile?: boolean, plan?: boolean, sessions?: number }} [start] What the User already has.
+ * @param {{ profile?: boolean, plan?: boolean, sessions?: number, open?: boolean }} [start] What the User already has.
  */
 const fakeApi = (start = {}) => {
   /** @type {string[]} */
@@ -242,6 +249,7 @@ const fakeApi = (start = {}) => {
   let hasProfile = start.profile ?? false;
   let hasPlan = start.plan ?? false;
   let sessions = start.sessions ?? 0;
+  let openSession = start.open ?? false;
   /** @type {unknown} */
   let createdPlan;
 
@@ -280,7 +288,28 @@ const fakeApi = (start = {}) => {
         return { data: plan };
       }
 
-      case "GET /v1/workout-sessions?limit=1": {
+      case "GET /v1/workout-sessions?status=in_progress&limit=1": {
+        return { data: openSession ? [{ id: "open" }] : [] };
+      }
+
+      case "GET /v1/workout-sessions/open": {
+        openSession = false;
+
+        return {
+          data: {
+            exercises: [
+              {
+                sets: [
+                  { id: "s1", reps_recommended: 8, weight_recommended: 40 },
+                ],
+              },
+            ],
+            id: "session",
+          },
+        };
+      }
+
+      case "GET /v1/workout-sessions?status=finished&limit=1": {
         return { total: sessions };
       }
 
@@ -354,6 +383,14 @@ void describe("seedData", () => {
       api.calls.slice(writes).every((call) => call.startsWith("GET ")),
       api.calls.slice(writes).join(", ")
     );
+  });
+
+  void test("finishes a Workout Session left open rather than starting another", async () => {
+    const api = fakeApi({ open: true, plan: true, profile: true });
+
+    assert.deepEqual(await seedData(api.call), ["Workout Session"]);
+    assert.ok(!api.calls.includes("POST /v1/workout-sessions"));
+    assert.equal(api.calls.at(-1), "POST /v1/workout-sessions/session/finish");
   });
 
   void test("leaves what the User already has alone", async () => {
@@ -437,7 +474,7 @@ const fakeFetch = (options = {}) => {
       return json(200, { data: { workouts: [] } });
     }
 
-    if (url.endsWith("/v1/workout-sessions?limit=1")) {
+    if (url.endsWith("/v1/workout-sessions?status=finished&limit=1")) {
       return json(200, { total: 1 });
     }
 

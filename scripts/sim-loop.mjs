@@ -28,7 +28,7 @@
 // Nothing here prints the key.
 
 import { spawn } from "node:child_process";
-import { randomBytes } from "node:crypto";
+import { createHash, randomBytes } from "node:crypto";
 import fs from "node:fs";
 import net from "node:net";
 import path from "node:path";
@@ -339,10 +339,14 @@ export const testEmail = (worktreeName) => {
       .toLowerCase()
       .replaceAll(/[^a-z0-9]+/gu, "-")
       .replaceAll(/^-+|-+$/gu, "")
-      .slice(0, 40)
+      .slice(0, 30)
       .replace(/-+$/u, "") || "worktree";
 
-  return `sim-loop-${slug}+clerk_test@fitmeproject.com`;
+  // The slug is cut short; the hash keeps two long names that share their
+  // first 30 characters apart.
+  const hash = createHash("sha256").update(worktreeName).digest("hex");
+
+  return `sim-loop-${slug}-${hash.slice(0, 8)}+clerk_test@fitmeproject.com`;
 };
 
 const SEED_SET = {
@@ -538,8 +542,14 @@ const ensureUser = async (clerk, state, email) => {
   const kept =
     keptId === "" ? undefined : await clerk.request("GET", `/users/${keptId}`);
 
+  // The kept User only while it still has this address (the address scheme
+  // can change).
+  const keptEmails = list(field(kept?.data, "email_addresses")).map((entry) =>
+    text(field(entry, "email_address"))
+  );
+
   const found =
-    kept?.status === 200
+    kept?.status === 200 && keptEmails.includes(email)
       ? keptId
       : text(
           field(
@@ -643,6 +653,37 @@ const logAndFinish = async (call, session) => {
 };
 
 /**
+ * The Workout Session to finish for History: the one already open (a seed
+ * that failed partway, or one started in the app; a User has at most one,
+ * so starting another would answer 409), else a new one of the Plan's first
+ * Workout.
+ *
+ * @param {(method: string, route: string, body?: unknown) => Promise<unknown>} call
+ *   The Public API client's call.
+ * @param {unknown} plan The active Plan.
+ * @returns {Promise<unknown>} The Workout Session in full.
+ */
+const openOrStartSession = async (call, plan) => {
+  const open = await call(
+    "GET",
+    "/v1/workout-sessions?status=in_progress&limit=1"
+  );
+
+  const openId = text(field(list(field(open, "data")).at(0), "id"));
+
+  if (openId !== "") {
+    return field(await call("GET", `/v1/workout-sessions/${openId}`), "data");
+  }
+
+  const workoutId = text(field(list(field(plan, "workouts")).at(0), "id"));
+
+  return field(
+    await call("POST", "/v1/workout-sessions", { workout_id: workoutId }),
+    "data"
+  );
+};
+
+/**
  * Seeds the User's data, each part only when the User has none: a Profile (or
  * the app opens on onboarding), an active Plan, and one finished Workout
  * Session (so History has a row). All through the Public API, so the rows have
@@ -673,16 +714,13 @@ export const seedData = async (call) => {
     seeded.push("Plan");
   }
 
-  const sessions = await call("GET", "/v1/workout-sessions?limit=1");
+  const finished = await call(
+    "GET",
+    "/v1/workout-sessions?status=finished&limit=1"
+  );
 
-  if (Number(field(sessions, "total")) === 0) {
-    const workoutId = text(field(list(field(plan, "workouts")).at(0), "id"));
-
-    const started = await call("POST", "/v1/workout-sessions", {
-      workout_id: workoutId,
-    });
-
-    await logAndFinish(call, field(started, "data"));
+  if (Number(field(finished, "total")) === 0) {
+    await logAndFinish(call, await openOrStartSession(call, plan));
     seeded.push("Workout Session");
   }
 
