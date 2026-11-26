@@ -132,6 +132,36 @@ export const arnoldErrorKind = z
 export const isRefusedSend = (message: ThreadMessage): boolean =>
   message.role === "user" && message.metadata.custom.status === "failed";
 
+/** The Arnold tool that removes a set from the open Workout Session. */
+export const REMOVE_SET_TOOL = "remove_set_from_workout_session";
+
+/** What `remove_set_from_workout_session` answers when it removed the set. */
+const removedSetResultSchema = z.object({ success: z.literal(true) });
+
+/**
+ * The calls of the Conversation in which Arnold removed a set from the open
+ * Workout Session, by their `toolCallId`, oldest first: a settled, successful
+ * `remove_set_from_workout_session`, never one still running (a preliminary
+ * result), one that failed, or its `{ error }` result (a finished Workout
+ * Session, a set already gone), which changed nothing.
+ */
+export const removedSetCallIds = (
+  messages: readonly ThreadMessage[]
+): string[] =>
+  messages.flatMap((message) =>
+    message.role === "assistant"
+      ? message.content.flatMap((part) =>
+          part.type === "tool-call" &&
+          part.toolName === REMOVE_SET_TOOL &&
+          !part.isError &&
+          !part.isPreliminary &&
+          removedSetResultSchema.safeParse(part.result).success
+            ? [part.toolCallId]
+            : []
+        )
+      : []
+  );
+
 /**
  * eve's own placeholder for a part it can't write out as text, one per line
  * of the summary it shows while a send is on its way: `[file: <name>]` for a

@@ -55,6 +55,7 @@ import {
 } from "~/hooks/arnold-attachments";
 import type { ArnoldAttachment } from "~/hooks/arnold-attachments";
 import { useSelectedArnoldModel } from "~/hooks/arnold-model";
+import { useArnoldWorkoutSessionEdits } from "~/hooks/arnold-workout-session-edits";
 import { useIsProQuery } from "~/hooks/revenueCat";
 import { readAttachmentDataUrl } from "~/lib/arnold-attachment-picker";
 import {
@@ -160,6 +161,8 @@ const useArnoldChat = (userId: string, composer: Composer) => {
   const session = useEveSession();
   const sessionId = session?.sessionId;
   const isLoading = useAuiState((s) => s.thread.isLoading);
+  // A set Arnold removed from the open Workout Session shows as gone there.
+  useArnoldWorkoutSessionEdits(messages);
   const eveError = useEveError();
   const resetSession = useEveReset();
   const streamingStore = useMemo(() => createStreamingStore(), []);

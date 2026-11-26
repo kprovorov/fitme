@@ -185,6 +185,30 @@ describe("fake Arnold", () => {
     await expect(violations(session.state.sessionId)).resolves.toEqual([]);
   });
 
+  it("calls tools before it answers, when a test asks it to", async () => {
+    fakeArnold.callToolsNextTurn([
+      { input: { a: 1 }, name: "first_tool", output: { success: true } },
+      { error: "It broke", name: "second_tool" },
+    ]);
+    const { session } = await client().sessions.create({ message: "Hi" });
+    const { events } = await session.snapshot();
+
+    expect(
+      events.flatMap((event) =>
+        event.type === "call.settled"
+          ? [{ outcome: event.data.outcome, output: event.data.output }]
+          : []
+      )
+    ).toEqual([
+      { outcome: "completed", output: { success: true } },
+      { outcome: "failed", output: undefined },
+    ]);
+    expect(
+      events.find((event) => event.type === "content.completed")?.data
+    ).toEqual(expect.objectContaining({ value: FAKE_ARNOLD_REPLY }));
+    await expect(violations(session.state.sessionId)).resolves.toEqual([]);
+  });
+
   it("fails a turn after echoing its message", async () => {
     fakeArnold.failNextTurn();
     const { session } = await client().sessions.create({ message: "Hi" });
