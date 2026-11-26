@@ -58,10 +58,10 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      # Type-aware lint needs the same generated inputs as typecheck.
-      # expo/types supplies ProcessEnv and widens ViewStyle with web props.
-      - name: Write the expo-env.d.ts Metro generates
-        run: printf '/// <reference types="expo/types" />\n' > apps/mobile/expo-env.d.ts
+      # Type-aware lint needs the same generated inputs as typecheck: the
+      # gitignored expo-env.d.ts and uniwind-types.d.ts Metro writes.
+      - name: Write the declaration files Metro generates
+        run: node scripts/mobile-types.mjs
 
       - name: Generate the Library bundle
         run: pnpm library generate

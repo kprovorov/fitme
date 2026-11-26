@@ -30,6 +30,11 @@
       "icon": "build"
     },
     {
+      "name": "Simulator loop",
+      "command": "./scripts/sim-loop.sh",
+      "icon": "play"
+    },
+    {
       "name": "Release iOS (local)",
       "command": "./scripts/release-ios-local.sh",
       "icon": "build"

@@ -19,6 +19,13 @@ if command -v claude >/dev/null; then
   (cd "$worktree" && claude mcp remove --scope local supabase-local >/dev/null 2>&1) || true
 fi
 
+# Stop what scripts/sim-loop.sh started here and delete its simulator and test
+# User. Never fatal: without Infisical the User stays (a +clerk_test User on the
+# development instance) and the rest still goes.
+if [[ -f "$worktree/node_modules/.cache/sim-loop/state.json" ]]; then
+  "$worktree/scripts/sim-loop.sh" down --delete || echo "sim-loop teardown failed; run scripts/sim-loop.sh down --delete by hand"
+fi
+
 # Every stack this worktree ever had (one per branch it was on), plus any left
 # by worktrees deleted without settling.
 "$worktree/scripts/destroy-stale-stacks.sh" "$worktree"
