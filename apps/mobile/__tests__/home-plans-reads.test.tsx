@@ -191,7 +191,7 @@ beforeEach(() => {
     fakeExercise("lunge", { muscle_groups: ["quadriceps", "calves"] }),
   ]);
   // Covers still come from the Library API.
-  serveLibrary([], { covers: [LEGS_COVER] });
+  serveLibrary([LEGS_COVER]);
 });
 
 describe("the Workout tab's Plans", () => {

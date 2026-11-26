@@ -5,7 +5,7 @@
  * in-memory fake, never the network: a component that calls `useCovers` in a
  * test that forgot to mock `~/lib/library` would otherwise send real requests
  * and keep Jest from exiting. A test points the fake at its Covers with
- * `serveLibrary([], { covers })`; Exercises come from the fake Public API
+ * `serveLibrary(covers)`; Exercises come from the fake Public API
  * (`serveExercises` in `fake-exercises.ts`).
  *
  * The Public API clients (`~/lib/public-api`: `publicApi`, and `globalApi`,
