@@ -12,6 +12,7 @@
  */
 import { beforeEach, describe, expect, it, jest } from "@jest/globals";
 import { captureException } from "@sentry/react-native";
+import { QueryClientProvider } from "@tanstack/react-query";
 import {
   act,
   fireEvent,
@@ -55,6 +56,7 @@ import { segmentClient } from "~/lib/segment";
 import { setDeviceLanguages } from "~/test-utils/device-locales";
 import { FAKE_ARNOLD_REPLY, fakeArnold } from "~/test-utils/fake-arnold";
 import type * as InMemoryFileSystem from "~/test-utils/in-memory-file-system";
+import { createTestQueryClient } from "~/test-utils/query-client";
 import { PushedRoutes, resetStubRouter } from "~/test-utils/router-stub";
 
 const mockPresentPaywall = jest.fn();
@@ -333,15 +335,18 @@ const ARNOLD_ROUTES = {
   "/arnold/photo-viewer": PhotoViewerScreen,
 };
 
+/** The query client the screen reads and invalidates through, per test. */
+let queryClient = createTestQueryClient();
+
 /** The screen under the root layout's language sync, with its stack. */
 function App() {
   useAppLanguageSync();
 
   return (
-    <>
+    <QueryClientProvider client={queryClient}>
       <ArnoldScreen />
       <PushedRoutes screens={ARNOLD_ROUTES} />
-    </>
+    </QueryClientProvider>
   );
 }
 
@@ -388,6 +393,7 @@ function asSavedByOldBuild(userId: string, oldLogText: string) {
 }
 
 beforeEach(() => {
+  queryClient = createTestQueryClient();
   mockUserId = "user_arnold_screen";
   mockPickLibraryPhotos.mockReset();
   mockReadAttachmentDataUrl.mockReset();

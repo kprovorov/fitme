@@ -1,3 +1,8 @@
+import type {
+  ThreadAssistantMessage,
+  ThreadMessage,
+  ToolCallMessagePart,
+} from "@assistant-ui/react-native";
 import {
   afterEach,
   beforeEach,
@@ -20,6 +25,7 @@ import {
   getArnoldUrl,
   isRefusedSend,
   loadSavedArnoldConversation,
+  removedSetCallIds,
   saveArnoldConversation,
   saveArnoldSession,
   savedArnoldSessionId,
@@ -572,6 +578,69 @@ describe("isRefusedSend", () => {
         role: "assistant",
       } as Parameters<typeof isRefusedSend>[0])
     ).toBe(false);
+  });
+});
+
+describe("removedSetCallIds", () => {
+  const toolCall = (
+    toolCallId: string,
+    part: Partial<ToolCallMessagePart> = {}
+  ): ToolCallMessagePart => ({
+    args: {},
+    argsText: "{}",
+    toolCallId,
+    toolName: "remove_set_from_workout_session",
+    type: "tool-call",
+    ...part,
+  });
+
+  const answer = (
+    ...content: ThreadAssistantMessage["content"][number][]
+  ): ThreadMessage => ({
+    content,
+    createdAt: new Date("2026-11-26T00:00:00Z"),
+    id: `answer-${content.length}`,
+    metadata: {
+      custom: {},
+      steps: [],
+      unstable_annotations: [],
+      unstable_data: [],
+      unstable_state: null,
+    },
+    role: "assistant",
+    status: { reason: "stop", type: "complete" },
+  });
+
+  it("names each set Arnold removed, oldest first", () => {
+    expect(
+      removedSetCallIds([
+        answer(toolCall("a", { result: { set_id: "s", success: true } })),
+        answer(
+          { text: "Done", type: "text" },
+          toolCall("b", { result: { set_id: "t", success: true } })
+        ),
+      ])
+    ).toEqual(["a", "b"]);
+  });
+
+  it("leaves out what changed nothing, and a call still running", () => {
+    expect(
+      removedSetCallIds([
+        answer(
+          toolCall("error", { result: { error: "Set not found" } }),
+          toolCall("failed", { isError: true, result: { error: "Broke" } }),
+          toolCall("running", {
+            isPreliminary: true,
+            result: { success: true },
+          }),
+          toolCall("pending"),
+          toolCall("plan", {
+            result: { success: true },
+            toolName: "remove_set_from_exercise",
+          })
+        ),
+      ])
+    ).toEqual([]);
   });
 });
 

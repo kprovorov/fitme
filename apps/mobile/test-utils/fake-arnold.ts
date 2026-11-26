@@ -23,7 +23,10 @@
  * (`model.requested` / `model.started`, a `content.delta`, then
  * `content.completed` with the canned answer, `reply`, and `model.settled`),
  * and `turn.settled` with the delivery's `delivery.settled`.
- * `failNextSend` refuses or fails the next send.
+ * `failNextSend` refuses or fails the next send, and `callToolsNextTurn`
+ * has the next turn's model call tools first (`call.requested`,
+ * `call.started`, `call.settled` with each one's output or error), the
+ * answer coming from a second model run, as a turn calling a tool does.
  */
 
 import type { CommitLine, Fact, ProgressLine, UserPart } from "eve/events";
@@ -32,6 +35,9 @@ import { z } from "zod";
 const clientContextSchema = z.record(z.string(), z.json());
 
 type ClientContext = z.infer<typeof clientContextSchema>;
+
+/** A JSON value: a tool call's input entries and its output. */
+type Json = z.infer<ReturnType<typeof z.json>>;
 
 const sentPartSchema = z.discriminatedUnion("type", [
   z.object({ text: z.string(), type: z.literal("text") }),
@@ -113,6 +119,14 @@ export type ArnoldFailure =
   | "pro-check-unavailable"
   | "pro-required"
   | { code?: string; status: number };
+
+/**
+ * A tool call the next turn makes before it answers: completed with its
+ * `output`, or failed with an `error` message (a thrown tool error).
+ */
+export type FakeToolCall =
+  | { input?: ClientContext; name: string; output: Json }
+  | { error: string; input?: ClientContext; name: string };
 
 const failureResponses = {
   "pro-check-unavailable": {
@@ -319,6 +333,9 @@ class FakeArnold {
   private failures: ArnoldFailure[] = [];
   /** How many of the next turns fail after their message was echoed. */
   private failTurns = 0;
+  /** The tool calls each of the next turns makes, in turn order. */
+  private toolCalls: FakeToolCall[][] = [];
+  private callCount = 0;
   private holds: Promise<void>[] = [];
   private sessionCount = 0;
   private deliveryCount = 0;
@@ -357,6 +374,8 @@ class FakeArnold {
     this.unhandled = [];
     this.failures = [];
     this.failTurns = 0;
+    this.toolCalls = [];
+    this.callCount = 0;
     this.holds = [];
     this.reply = FAKE_ARNOLD_REPLY;
     this.sessionCount = 0;
@@ -378,6 +397,17 @@ class FakeArnold {
    */
   failNextTurn() {
     this.failTurns += 1;
+  }
+
+  /**
+   * Has the next turn's model call these tools, in order, before a second
+   * model run answers with `reply`: each a `call.requested` owned by the
+   * first run, which settles with the finish reason `tool-calls`, then its
+   * `call.started` and `call.settled` (`completed` with its output, or
+   * `failed` with its error).
+   */
+  callToolsNextTurn(calls: FakeToolCall[]) {
+    this.toolCalls.push(calls);
   }
 
   /**
@@ -750,6 +780,12 @@ class FakeArnold {
       return;
     }
 
+    const calls = this.toolCalls.shift() ?? [];
+
+    if (calls.length > 0) {
+      this.writeToolCalls(session, { calls, runId: `${runId}_tools`, turnId });
+    }
+
     const scope = { runId, turnId };
 
     commit(session, [
@@ -794,6 +830,82 @@ class FakeArnold {
         type: "delivery.settled",
       },
     ]);
+  }
+
+  /**
+   * A model run that calls tools, then each call run and settled, as eve
+   * writes a turn's tool step before the model answers.
+   */
+  private writeToolCalls(
+    session: FakeSession,
+    {
+      calls,
+      runId,
+      turnId,
+    }: { calls: FakeToolCall[]; runId: string; turnId: string }
+  ) {
+    const scope = { runId, turnId };
+
+    const callIds = calls.map(() => {
+      this.callCount += 1;
+
+      return `call_fake_${this.callCount}`;
+    });
+
+    commit(session, [
+      { data: { owner: { turnId }, runId }, scope, type: "model.requested" },
+      {
+        data: { attempt: 0, modelId: "fake/arnold", runId },
+        scope,
+        type: "model.started",
+      },
+    ]);
+    commit(session, [
+      ...calls.map((call, index): Fact => ({
+        data: {
+          callId: callIds[index] ?? "",
+          capability: { kind: "tool", name: call.name },
+          input: call.input ?? {},
+          owner: { runId },
+        },
+        scope: { turnId },
+        type: "call.requested",
+      })),
+      {
+        data: { finishReason: "tool-calls", outcome: "completed", runId },
+        scope,
+        type: "model.settled",
+      },
+    ]);
+
+    for (const [index, call] of calls.entries()) {
+      const callId = callIds[index] ?? "";
+
+      commit(session, [
+        { data: { callId }, scope: { turnId }, type: "call.started" },
+      ]);
+      commit(session, [
+        "error" in call
+          ? {
+              data: {
+                callId,
+                error: { code: "TOOL_FAILED", message: call.error },
+                outcome: "failed",
+              },
+              scope: { turnId },
+              type: "call.settled",
+            }
+          : {
+              data: {
+                callId,
+                outcome: "completed",
+                output: call.output,
+              },
+              scope: { turnId },
+              type: "call.settled",
+            },
+      ]);
+    }
   }
 
   /**
