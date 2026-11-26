@@ -40,6 +40,8 @@ A personal workout planner: a person signs up, fills in a fitness profile, build
 
 **Plan Update**: The structural changes a finished Workout Session suggests to its Workout (Exercises replaced, added or removed, sets added or removed), which the User accepts or declines once. Accepted, they become the Workout's new targets. _Avoid_: Plan changes, plan diff
 
+**Note**: A short plain text a User keeps on one thing they train with: an Exercise (shown wherever they do that Exercise, in any Plan) or a logged set of a Workout Session (shown with that set from then on). Each has at most one, and it can be changed or cleared at any time. Notes are private: no other User ever sees them. A Plan also carries a note of its own, older and longer. _Avoid_: Comment (kept for what Users will say to each other), memo
+
 **Exercise**: A named movement from the Library, independent of any User, identified by its Exercise slug. Plans and Workout Sessions refer to Exercises; they never own them.
 
 **Exercise slug**: The readable identifier of an Exercise (`bench-press`): lowercase letters and digits joined by single hyphens. It doesn't change when the Exercise's name does. Only replacing the Library changes slugs. The new Library answers an old slug with its replacement until every stored slug has been rewritten to the replacement's; after that, the old slug stops existing. _Avoid_: Exercise id, exercise uuid
