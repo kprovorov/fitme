@@ -1,4 +1,64 @@
-# Validation, 2026-11-25
+# Validation, 2026-11-26
+
+## Maintenance against current main
+
+**Outcome: updated. The coverage record now names the Forgotten Workout Session finish and discard (ADR 0024) and the set removal; model, property, bounds, runner and migration guard unchanged; no current-code exclusivity violation found within the stated bounds.**
+
+Audited source: `714819a101def141d111d83d848a8d3690c8e29e`, equal to `origin/main` after `git fetch` on 2026-11-26. Previous sync: `b99cb39e9735e39b5ca13d5c6a4cee8a9ba3ab5a` (29 commits). The checks ran on `e04603ac`; `714819a1` (PR #740, FIT-807) changes only `apps/mobile` and touches no covered file, so the results hold for it. No product code, migration, property, model, bound or script was changed.
+
+Tools: Node 26.13.1, OpenJDK 27, TLC 1.7.4 (cached jar, pinned SHA-256 unchanged), PostgreSQL 17.11 (Homebrew).
+
+### Baseline
+
+The unchanged runner passed before any edit: same-user 2,360 distinct / 9,401 generated, two-users 2,770 / 12,045, SQL replay PASS. No migration was added or edited (newest is still `20261124120000_personal_records_write_policies.sql`), so the guard had nothing to refuse. That pass only said the old description still held; the audit below is what says it still describes the code.
+
+### Correspondence audit
+
+`git diff -G'workout_sessions|workoutSessions|finished_at|finishedAt'` over the range lists, outside this skill, `packages/services/src/workout-sessions.ts`, ADR 0024, `AGENTS.md`, the API set route, the MCP session tools, Arnold's eval fixtures and test, mobile code and tests, and two service integration tests. Every Drizzle write to `workout_sessions` outside tests is one of: the insert in `insertOrResume`, `claimNow`, `claimForgotten`, `deleteWorkoutSession`, `discardForgottenWorkoutSession`, `deleteUserData` and the Plan Update's `plan_changes_applied_at` stamp; no `tx.execute` writes one. `findOpenSession`, `insertOrResume` and `startWorkoutSession` have no hunk, and `packages/db` and `packages/supabase` are untouched.
+
+| Commit | Change and correspondence decision |
+| --- | --- |
+| `eb70ab1e` — the previous resync, PR #712 | This skill only. No effect. |
+| `5205dfc6`, `681ab133`, `be6cd97b`, `98bdc893`, `aa768bae`, `18d4e911`, `093c69d3` — Discard (PRs #713–#719) | `GLOSSARY.md` defines Discard and ADR 0013 now says "finished or discarded": the promise (at most one open session) is unchanged, and Discard is `DELETE /v1/workout-sessions/{id}`, the existing `deleteWorkoutSession` (`Delete`). The rest is i18n catalogs, the mobile fake Public API and screens. No effect. |
+| `d26bd904` — PR #704 | Expo patch bumps. No effect. |
+| `4f8408aa` — ADR 0023, PR #720 | Docs. No effect. |
+| `cc808edb` — FIT-795, PR #724 | Arnold's `get_open_workout_session`: `listWorkoutSessions` then `getWorkoutSession`, read-only. No effect. |
+| `60eef307` — ADR 0024, PR #726 | Defines Forgotten Workout Sessions and the job. Docs; the code it describes is below. |
+| `aabdb0ea` — FIT-811, PR #727 | `runMonitored` in `@fitme/observability`. No database access. No effect. |
+| `0ea6b098` — FIT-812, PR #728 | `apps/jobs`, whose job runs only `select 1` through `withService`. No effect yet; flagged for re-audit. |
+| `25321f62`, `6cde5f82`, `edc028f6`, `94313b32`, `e04603ac`, `714819a1` — mobile (PRs #729, #722, #730, #732, #739, #740) | App code, the fake Public API and tests. No effect. |
+| `0325ee85` — FIT-793, PR #723 | `removeSetFromWorkoutSession`: deletes one `workout_session_exercise_sets` row after `lockSessionOfExercise`; the session row is locked, never written. No effect. |
+| `248ad0c4`, `d34bf348` — FIT-794, FIT-803 (PRs #725, #736) | Plan Update set removals: deletes Plan sets (`workout_exercise_sets`); the session write is still only the stamp. Facade signature change only. No effect. |
+| `4716eaf2`, `a2cc7626` — PRs #721, #735 | i18n catalogs. No effect. |
+| `82ea69e0` — FIT-798, PR #731 | `DELETE /v1/workout-session-sets/{id}` and its facade method, one `asUser` transaction. No effect. |
+| `2e536be0` — FIT-810, PR #734 | Finishing split into `finishSession` with a `claim`: `claimNow` is the old UPDATE, now also filtered on the session row's own `user_id`; `claimForgotten` row-locks the open row `FOR NO KEY UPDATE`, then sets `finished_at` to the last set's `logged_at` only where `openSessionOf` holds and that time is at least 3 hours old. Both are `Finish` (an open row gets a non-NULL `finished_at`, releasing the key at commit); a NULL subquery makes the WHERE NULL, so nothing is written (stutter), never a reopen. `rotateWorkout` filters on the User. Personal records and Weekly goal comments only. |
+| `cb708509` — FIT-814, PR #737 | `listForgottenWorkoutSessions` (an unlocked read of open rows) and `closeForgottenWorkoutSession`, which runs at most one of `finishForgottenWorkoutSession` (`Finish`) or `discardForgottenWorkoutSession` (`Delete` of an open, unlogged row under `FOR UPDATE`) in the caller's one `withService` transaction. No insert, reopen or reassignment. |
+| `d2f77ea4` — FIT-799, PR #733 | MCP's `remove_set_from_workout_session` over the same service. No effect. |
+
+### What changed in the verification
+
+- `SKILL.md`: the Finish/Delete row names `finishSession`, `claimNow`, `claimForgotten`, `finishForgottenWorkoutSession`, `closeForgottenWorkoutSession` and `discardForgottenWorkoutSession`, and why neither claim reopens a session; a no-effect row for the listing, the set removal (service, both facades, Plan Update) and Arnold's read; an `apps/jobs` row to re-audit once the job calls the services; the ADR 0013 / glossary row cites the "finished or discarded" wording; the Forgotten cutoff, backdating and ADR 0024's Personal-record-order reliance added to the exclusions; the sync commit. Why: the code changed shape (new finish and delete paths), not the promise.
+
+### Results
+
+| Check | Outcome and result |
+| --- | --- |
+| One User, three insertion transactions, optional initial orphan | Updated: PASS, 2,360 distinct / 9,401 generated, queue exhausted |
+| Two Users, three insertion transactions, optional initial orphan | Updated: PASS, 2,770 distinct / 12,045 generated, queue exhausted |
+| Extracted actual index, isolated PostgreSQL replay | Updated: PASS |
+| Migration guard regressions | 5 of 5 |
+| Scratch migration with `UNIQUE` removed | Expected failure, caught by TLC and Postgres |
+| Scratch migration indexed by `workout_id` | Expected failure, caught by TLC and Postgres |
+| Unmodified source after both mutations | PASS in both TLC configs and SQL |
+| `/statechart` | Not run: both state spaces are over its 500-state chart budget, so it would give no chart; the complete TLC passes stand. |
+
+The state counts equal the previous validation's, as an unchanged model must give. The mutations show the checker can still fail on the index; the runner never reads the TypeScript, so the new service paths are covered by the manual correspondence above only, not mechanically. The replay-isolation regressions were not rerun: the SQL runner didn't change.
+
+### Remaining limits
+
+As before, plus: the job doesn't call the Forgotten Workout Session services yet, so its transaction boundaries are unaudited; `forgotten-workout-sessions.test.ts` (which seeds sessions by direct insert) and the other integration tests are not run by this checker.
+
+## Previous validation, 2026-11-25
 
 ## Maintenance against current main
 
