@@ -8,6 +8,8 @@ node_modules/
 dist/
 web-build/
 expo-env.d.ts
+# Written by uniwind's Metro plugin, or by scripts/mobile-types.mjs before it runs
+apps/mobile/uniwind-types.d.ts
 # EAS metadata:pull downloads store media; only public listing text is versioned.
 apps/mobile/store/
 ios/

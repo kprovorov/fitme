@@ -13,7 +13,7 @@
     "test": "jest --ci --passWithNoTests",
     "test:e2e": "maestro test e2e/flows/**/*.yaml",
     "test:watch": "jest --watchAll",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "node ../../scripts/mobile-types.mjs && tsc --noEmit",
     "web": "expo start --web"
   },
   "dependencies": {
