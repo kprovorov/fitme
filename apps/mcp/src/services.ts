@@ -1,4 +1,13 @@
 import { asUser } from "@fitme/db";
+import {
+  listExerciseNotes,
+  setExerciseNote,
+} from "@fitme/services/exercise-notes";
+import type {
+  ExerciseNote,
+  SetExerciseNoteInput,
+  SetExerciseNoteResult,
+} from "@fitme/services/exercise-notes";
 import { getExerciseHistory } from "@fitme/services/exercises";
 import type {
   ExerciseHistoryPage,
@@ -62,6 +71,7 @@ export interface UserServices {
   getWorkoutSession: (
     sessionId: string
   ) => Promise<WorkoutSessionDetail | null>;
+  listExerciseNotes: () => Promise<ExerciseNote[]>;
   listPlans: () => Promise<PlanSummary[]>;
   listWorkoutSessions: (
     options: ListWorkoutSessionsOptions
@@ -70,6 +80,9 @@ export interface UserServices {
   removeSetFromWorkoutSession: (
     setId: string
   ) => Promise<RemoveSetFromWorkoutSessionResult>;
+  setExerciseNote: (
+    input: SetExerciseNoteInput
+  ) => Promise<SetExerciseNoteResult>;
   startWorkoutSession: (
     workoutId: string
   ) => Promise<StartWorkoutSessionResult>;
@@ -107,12 +120,16 @@ export const createServicesFromEnv: ServicesFactory = (userId) => {
     getProfile: () => asUser(userId, (tx) => getProfile(tx, userId)),
     getWorkoutSession: (sessionId) =>
       asUser(userId, (tx) => getWorkoutSession(tx, sessionId)),
+    listExerciseNotes: () =>
+      asUser(userId, (tx) => listExerciseNotes(tx, userId)),
     listPlans: () => asUser(userId, (tx) => listPlans(tx, userId)),
     listWorkoutSessions: (options) =>
       asUser(userId, (tx) => listWorkoutSessions(tx, options)),
     logSet: (input) => asUser(userId, (tx) => logSet(tx, input)),
     removeSetFromWorkoutSession: (setId) =>
       asUser(userId, (tx) => removeSetFromWorkoutSession(tx, userId, setId)),
+    setExerciseNote: (input) =>
+      asUser(userId, (tx) => setExerciseNote(tx, userId, input)),
     startWorkoutSession: (workoutId) =>
       asUser(userId, (tx) => startWorkoutSession(tx, workoutId)),
     updatePlan: (planId, changes) =>

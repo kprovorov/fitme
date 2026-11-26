@@ -167,7 +167,7 @@ interface WithSlug {
 }
 
 /** Adds the name and muscle groups next to the slug. */
-const named = <T extends WithSlug>(
+export const named = <T extends WithSlug>(
   { exercise_slug, ...rest }: T,
   known: KnownExercises
 ) => ({ ...rest, ...exerciseRef(exercise_slug, known) });

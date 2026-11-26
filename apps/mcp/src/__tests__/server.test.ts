@@ -21,6 +21,7 @@ describe("tool registry", () => {
       "get_profile",
       "get_workout_session",
       "list_equipment",
+      "list_exercise_notes",
       "list_exercises",
       "list_muscle_groups",
       "list_plan_options",
@@ -29,6 +30,7 @@ describe("tool registry", () => {
       "log_set",
       "ping",
       "remove_set_from_workout_session",
+      "set_exercise_note",
       "start_workout_session",
       "update_plan",
     ]);
