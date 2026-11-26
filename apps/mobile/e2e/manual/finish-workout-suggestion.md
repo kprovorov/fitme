@@ -28,7 +28,7 @@ On both routes, sets are tracked on the exercise screen (`.../sessions/:sessionI
 | Session already finished | never suggests for a session that is already finished |
 | Another session can prompt on its own | suggests separately for another workout session |
 
-The app has no way to delete a single set, only a whole exercise (from the session screen's menu). So deletion is covered through exercise deletion only.
+Removing never suggests: neither an exercise (from the session screen's menu) nor a single unlogged set (swiped away) is reported to the suggestion, so removing the last unlogged set leaves the session fully logged with no sheet (`__tests__/workout-session-remove-set.test.tsx`).
 
 Lower layers have their own tests: `packages/core/src/__tests__/finish-suggestion.test.ts` (trigger rules, races, suppression that persists across controllers), `packages/core/src/__tests__/workout-sessions.test.ts` (eligibility), `components/workout-sessions/__tests__/` (dialog and per-screen wiring) and `hooks/__tests__/finish-workout-session.test.tsx` (finish and Summary navigation).
 
@@ -67,7 +67,8 @@ Run each section on **both routes**. Start with a fresh session of a workout wit
 ### No suggestion
 
 - [ ] Edit an already tracked set (pencil, then checkmark) in a fully tracked session, including a set tracked with 0 reps: no sheet.
-- [ ] With one exercise fully tracked and another untracked, delete the untracked exercise from the session screen: no sheet. (Single sets can't be deleted.)
+- [ ] With one exercise fully tracked and another untracked, remove the untracked exercise from the session screen: no sheet.
+- [ ] With every set logged but one, swipe that set away: no sheet. Remove an exercise's only set and log every other set: no sheet, and the header's Finish still finishes.
 - [ ] On a slow connection, track the last set and go back right away: the sheet appears on the session screen, and Finish opens Summary.
 - [ ] Open a fully tracked session that was never suggested: no sheet on load.
 - [ ] Leave the session while the sheet is open (e.g. kill the app), then reopen it: no sheet. Track a newly added set: still no sheet.

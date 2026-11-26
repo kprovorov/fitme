@@ -8,6 +8,7 @@ import { useCallback, useMemo } from "react";
 import { Alert } from "react-native";
 import type { AlertButton } from "react-native";
 
+import { withoutRemovedSets } from "~/hooks/added-sets";
 import {
   claimEndingQuestion,
   isSessionRoute,
@@ -102,9 +103,12 @@ const confirmFinishWorkout = async (
   let session: WorkoutSession;
 
   try {
-    // oxlint-disable-next-line typescript/no-deprecated -- This cache-only fallback must keep ensureQueryData semantics on Query v5.
-    session = await queryClient.ensureQueryData(
-      useWorkoutSessionQuery.getFetchOptions({ sessionId })
+    // A set being removed isn't asked about, whatever the read still says.
+    session = withoutRemovedSets(
+      // oxlint-disable-next-line typescript/no-deprecated -- This cache-only fallback must keep ensureQueryData semantics on Query v5.
+      await queryClient.ensureQueryData(
+        useWorkoutSessionQuery.getFetchOptions({ sessionId })
+      )
     );
   } catch (error) {
     Sentry.captureException(error);

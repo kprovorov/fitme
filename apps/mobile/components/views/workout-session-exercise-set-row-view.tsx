@@ -4,12 +4,14 @@ import * as Haptics from "expo-haptics";
 import { useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { AccessibilityInfo, View } from "react-native";
+import type { AccessibilityActionEvent } from "react-native";
 
 import { SymbolImage } from "~/components/symbol-image";
 import { dropGoneAddedSet } from "~/hooks/added-sets";
 import { reportWorkoutSetTracked } from "~/hooks/finish-workout-suggestion";
 import {
   useCreateWorkoutSessionExerciseSetMutation,
+  useIsSavingSet,
   useUpdateWorkoutSessionExerciseSetMutation,
 } from "~/hooks/queries/workout-session-exercise-sets";
 import type { SavedWorkoutSessionExerciseSet } from "~/hooks/queries/workout-session-exercise-sets";
@@ -30,6 +32,7 @@ import WorkoutSessionExerciseSetForm, {
 } from "../forms/workout-exercise-set-form";
 import type { WorkoutSessionExerciseSetFormValues } from "../forms/workout-exercise-set-form";
 import { Text } from "../ui/text";
+import SetSwipeRow from "../workout-sessions/set-swipe-row";
 
 interface WorkoutSessionExerciseSetRowViewProps {
   exerciseId: string;
@@ -43,6 +46,11 @@ interface WorkoutSessionExerciseSetRowViewProps {
   number: number;
   /** Called once logging a set not saved yet has created it. */
   onSetCreated?: (set: SavedWorkoutSessionExerciseSet) => void;
+  /**
+   * Removes the row's set; swiping it left, or VoiceOver's action, calls it.
+   * None in a finished Workout Session.
+   */
+  onRemove?: () => void;
   /** Called once a set is logged for the first time (not on edits). */
   onSetLogged?: (set: SavedWorkoutSessionExerciseSet) => void;
   sessionId: string;
@@ -67,6 +75,7 @@ const WorkoutSessionExerciseSetRowView = ({
   workoutSessionExerciseSet,
   locked = false,
   number,
+  onRemove,
   onSetCreated,
   onSetLogged,
   sessionId,
@@ -232,7 +241,31 @@ const WorkoutSessionExerciseSetRowView = ({
     }
   };
 
-  return (
+  // A save of this set, from this row or the other screen's for the same set.
+  const isSaving = useIsSavingSet(
+    workoutSessionExerciseSet?.id ?? null,
+    exerciseId
+  );
+
+  // A logged set doesn't swipe yet, and a set whose save is running never
+  // does: saving and removing it would race.
+  const canRemove = !!onRemove && !isDone && !isSaving;
+
+  const remove = () => {
+    if (canRemove) {
+      onRemove();
+    }
+  };
+
+  const handleAccessibilityAction = ({
+    nativeEvent,
+  }: AccessibilityActionEvent) => {
+    if (nativeEvent.actionName === "remove") {
+      remove();
+    }
+  };
+
+  const form = (
     <WorkoutSessionExerciseSetForm
       // A logged set stays editable when an earlier one is still open: its
       // pencil would otherwise open a row nothing can save.
@@ -251,16 +284,35 @@ const WorkoutSessionExerciseSetRowView = ({
               />
             </View>
           ) : (
-            <Text
-              // At body size `#2` fills the column: shrink it at the largest
-              // text sizes rather than wrap it onto a second line.
-              adjustsFontSizeToFit
-              className="text-mono-body w-7 text-center"
-              maxFontSizeMultiplier={SET_TABLE_MAX_FONT_SCALE}
-              numberOfLines={1}
+            // VoiceOver and TalkBack reach the swipe's Remove as an action on
+            // the set's number: a plain View, since iOS reads a text field's
+            // or a Text's actions from another element than the one focused.
+            <View
+              accessibilityActions={
+                canRemove
+                  ? [
+                      {
+                        label: t("sets.row.remove", { order: number }),
+                        name: "remove",
+                      },
+                    ]
+                  : undefined
+              }
+              accessible={canRemove}
+              onAccessibilityAction={handleAccessibilityAction}
+              testID={`set-number-${number}`}
             >
-              #{number}
-            </Text>
+              <Text
+                // At body size `#2` fills the column: shrink it at the largest
+                // text sizes rather than wrap it onto a second line.
+                adjustsFontSizeToFit
+                className="text-mono-body w-7 text-center"
+                maxFontSizeMultiplier={SET_TABLE_MAX_FONT_SCALE}
+                numberOfLines={1}
+              >
+                #{number}
+              </Text>
+            </View>
           )}
           <Text
             adjustsFontSizeToFit
@@ -283,6 +335,16 @@ const WorkoutSessionExerciseSetRowView = ({
       }}
       setIndex={number}
     />
+  );
+
+  if (!onRemove) {
+    return form;
+  }
+
+  return (
+    <SetSwipeRow enabled={canRemove} number={number} onRemove={remove}>
+      {form}
+    </SetSwipeRow>
   );
 };
 

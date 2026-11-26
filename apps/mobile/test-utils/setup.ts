@@ -24,6 +24,10 @@
  * its `Toaster` renders them all, so a test that renders the app's `Toaster`
  * (`~/components/ui/toast`) beside its Screen reads a toast's text.
  *
+ * `~/components/ui/swipeable-row` is `swipeable-row-stub.tsx`: Jest can't
+ * drive the real row's pan gesture, so a test presses the stand-in's hidden
+ * open and full-swipe controls instead.
+ *
  * `expo-localization` reports an English device (`en-US`), so every screen
  * renders in English; a test sets another device language with
  * `setDeviceLanguages` (`device-locales.ts`).
@@ -41,6 +45,7 @@ import { setI18n } from "react-i18next";
 import type * as DeviceLocales from "~/test-utils/device-locales";
 import type * as FakeLibrary from "~/test-utils/fake-library";
 import type * as FakePublicApi from "~/test-utils/fake-public-api";
+import type * as SwipeableRowStub from "~/test-utils/swipeable-row-stub";
 import type * as ToastStub from "~/test-utils/toast-stub";
 
 setI18n(createI18n("en"));
@@ -85,6 +90,10 @@ jest.mock("@sentry/react-native", () => ({
   captureException: jest.fn(),
   setUser: jest.fn(),
 }));
+
+jest.mock("~/components/ui/swipeable-row", () =>
+  jest.requireActual<typeof SwipeableRowStub>("~/test-utils/swipeable-row-stub")
+);
 
 jest.mock(
   "sonner-native",
