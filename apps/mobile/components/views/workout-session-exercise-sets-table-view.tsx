@@ -81,7 +81,8 @@ const WorkoutSessionExerciseSetsTableView = ({
     : undefined;
 
   const handleAddSet = () => {
-    // After the highest `order`, as the API places it once it's logged.
+    // After the highest `order` its rows hold, as the API places it once it's
+    // logged.
     addSet(exerciseId, Math.max(0, ...rows.map(({ order }) => order)));
   };
 

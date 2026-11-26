@@ -618,6 +618,25 @@ describe("finishing after a removal", () => {
     expect(isSuggestionShown()).toBe(false);
   });
 
+  it("finishes without asking about a set removed while its removal runs", async () => {
+    backend.sets = backend.sets.filter(({ id }) => id !== "s1-e1-s3");
+    await mountSession();
+    const resume = fakePublicApi.pause(REMOVE_ROUTE);
+    await swipeFully(2);
+
+    // The stats count the set gone already.
+    expect(screen.getByText("1/1")).toBeTruthy();
+
+    // Finished straight away, with the removal still on its way.
+    await press("Finish");
+    await until(() => fakePublicApi.count(FINISH_ROUTE) === 1);
+
+    expect(Alert.alert).not.toHaveBeenCalled();
+
+    resume();
+    await settle(queryClient);
+  });
+
   it("doesn't suggest finishing while an emptied Exercise is in the Workout Session", async () => {
     backend.reset();
     backend.seedProfile(FAKE_USER_ID);

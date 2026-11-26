@@ -70,11 +70,14 @@ const setAddedSetsOf = (exerciseId: string, sets: readonly AddedSet[]) => {
 };
 
 /**
- * Adds an unlogged set to the Workout Session Exercise, after `order` (the
- * highest one its rows hold) and after every one added to it before.
+ * Adds an unlogged set to the Workout Session Exercise, after
+ * `highestOrder` (the highest one its rows hold) and after every one added
+ * to it before.
  */
-export const addSet = (exerciseId: string, order: number): void => {
-  const nextOrder = Math.max(order, highestOrders.get(exerciseId) ?? 0) + 1;
+export const addSet = (exerciseId: string, highestOrder: number): void => {
+  const nextOrder =
+    Math.max(highestOrder, highestOrders.get(exerciseId) ?? 0) + 1;
+
   highestOrders = new Map(highestOrders).set(exerciseId, nextOrder);
 
   const id = `local-${nextAddedSetNumber}`;
@@ -139,7 +142,10 @@ export const dropGoneAddedSet = (exerciseId: string, savedId: string): void => {
   dropReadAddedSets(exerciseId, new Set([savedId]));
 };
 
-/** Forgets the added sets of these Workout Session Exercises (a discard). */
+/**
+ * Forgets the added and removed sets of these Workout Session Exercises (a
+ * discard).
+ */
 export const forgetAddedSets = (exerciseIds: Iterable<string>): void => {
   for (const exerciseId of exerciseIds) {
     if (addedSets.has(exerciseId)) {
@@ -149,6 +155,20 @@ export const forgetAddedSets = (exerciseIds: Iterable<string>): void => {
     if (highestOrders.has(exerciseId)) {
       highestOrders = new Map(highestOrders);
       highestOrders.delete(exerciseId);
+    }
+
+    const hidden = [...hiddenSets].filter(
+      ([, set]) => set.exerciseId === exerciseId
+    );
+
+    if (hidden.length > 0) {
+      hiddenSets = new Map(hiddenSets);
+
+      for (const [id] of hidden) {
+        hiddenSets.delete(id);
+      }
+
+      emit();
     }
   }
 };

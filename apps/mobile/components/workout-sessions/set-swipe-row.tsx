@@ -12,13 +12,9 @@ import { cn } from "~/lib/utils";
 /** How wide a short swipe opens the Remove button. */
 const REMOVE_ACTION_WIDTH = 88;
 
-interface OpenRow {
-  close: () => void;
-}
-
 // The one set row open on its Remove button, on whichever screen or card:
 // opening another closes it.
-let openRow: OpenRow | null = null;
+let openRow: SwipeableRowHandle | null = null;
 
 interface SetSwipeRowProps {
   children: ReactNode;
@@ -32,8 +28,9 @@ interface SetSwipeRowProps {
 /**
  * A Workout Session set's row that swipes left: a short swipe uncovers a red
  * Remove button, a full one removes. VoiceOver and TalkBack reach the
- * removal through the row's own accessibility action instead (the set form's
- * `removeAction`), so the button is hidden from them.
+ * removal through the accessibility action on the set's `#n` cell instead
+ * (`workout-session-exercise-set-row-view.tsx`), so the button is hidden from
+ * them.
  */
 const SetSwipeRow = ({
   children,
@@ -43,7 +40,11 @@ const SetSwipeRow = ({
 }: SetSwipeRowProps) => {
   const { t } = useTranslation();
   const row = useRef<SwipeableRowHandle | null>(null);
-  const self = useRef<OpenRow>({ close: () => row.current?.close() });
+
+  // This row, as the one open: closing it closes the gesture's row.
+  const self = useRef<SwipeableRowHandle>({
+    close: () => row.current?.close(),
+  });
 
   useEffect(
     () => () => {
