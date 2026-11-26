@@ -11,7 +11,7 @@ import { HStack } from "../ui/hstack";
 import { Text } from "../ui/text";
 import { P } from "../ui/typography";
 import {
-  COUNT_SYMBOL,
+  FREQUENCY_SYMBOL,
   goalSymbol,
   LEVEL_SYMBOL,
   placeSymbol,
@@ -53,7 +53,7 @@ const PlanCard = ({ plan }: PlanCardProps) => {
         ]
       : []),
     {
-      icon: COUNT_SYMBOL,
+      icon: FREQUENCY_SYMBOL,
       key: "frequency",
       label: t("plans.frequency", { count: plan.frequency }),
     },

@@ -8,7 +8,7 @@ import { useChoiceLabels } from "~/lib/choices";
 import { Badge } from "../ui/badge";
 import { Text } from "../ui/text";
 import { H2 } from "../ui/typography";
-import { COUNT_SYMBOL, goalSymbol, placeSymbol } from "./plan-symbols";
+import { FREQUENCY_SYMBOL, goalSymbol, placeSymbol } from "./plan-symbols";
 
 interface PlanHeaderProps {
   plan: Pick<FullPlan, "description" | "frequency" | "goal" | "name" | "place">;
@@ -34,7 +34,7 @@ const PlanHeader = ({ plan }: PlanHeaderProps) => {
       {/* Title 1 Emphasized in white, as Figma has it, not H2's lime. */}
       <H2 className="text-foreground">{plan.name}</H2>
       <View className="gap-x-sm gap-y-xs flex-row flex-wrap">
-        <Badge icon={COUNT_SYMBOL}>
+        <Badge icon={FREQUENCY_SYMBOL}>
           <Text>{t("plans.frequency", { count: plan.frequency })}</Text>
         </Badge>
         {goal ? (
