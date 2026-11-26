@@ -25,7 +25,7 @@ export class LibraryError extends Error {
   }
 }
 
-/** 401: no valid Clerk session token or server secret (or no token at all). */
+/** 401: no valid Clerk session token (or no token at all). */
 export class LibraryUnauthorizedError extends LibraryError {
   constructor(options: { status?: number } = {}) {
     super("unauthorized", "Not authorized to read the Library", options);

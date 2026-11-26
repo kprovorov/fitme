@@ -48,9 +48,9 @@ const tooManyRequests = {
 } satisfies z.infer<typeof ErrorResponse>;
 
 /**
- * Counts every User request (after `requireCaller`) before anything is
- * served, in the User's bucket (their Clerk id); over the limit answers 429
- * with `Retry-After`. Server callers aren't counted. A limiter that fails or
+ * Counts every request (after `requireCaller`, so every caller is a User)
+ * before anything is served, in the User's bucket (their Clerk id); over the
+ * limit answers 429 with `Retry-After`. A limiter that fails or
  * times out serves the request uncounted (fail open) and reports the failure.
  */
 export const rateLimitUsers = ({
@@ -63,16 +63,8 @@ export const rateLimitUsers = ({
   timeoutMs?: number;
 }) =>
   createMiddleware<AuthEnv>(async (c, next) => {
-    const caller = c.get("caller");
-
-    if (caller.type !== "user") {
-      await next();
-
-      return;
-    }
-
     const result = await checkRateLimit({
-      key: caller.userId,
+      key: c.get("caller").userId,
       limiter,
       reportError: (cause) =>
         reportError(

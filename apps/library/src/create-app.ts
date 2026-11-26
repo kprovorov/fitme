@@ -16,13 +16,13 @@ import { exerciseRoutes } from "./routes/exercises";
 import type { ServedLibrary } from "./served-library";
 
 export interface AppDeps {
-  /** The Clerk keys and server secrets a caller can prove who they are with. */
+  /** The Clerk keys a User's session token is verified against. */
   auth: AuthConfig;
   /** Sets the request's User (their Clerk id) on what error reporting sends. */
   identifyUser: (userId: string) => void;
   /** The whole Library, baked into the build: nothing is read at runtime. */
   library: ServedLibrary;
-  /** Counts each User's requests; server callers are never counted. */
+  /** Counts each User's requests. */
   rateLimiter: RateLimiter;
   /** Sends an error to Sentry (and the logs), resolving once it's delivered. */
   reportError: typeof reportError;
@@ -66,19 +66,14 @@ export const createApp = ({
 
   // Every route from here on (unknown ones too) needs a caller.
   app.use(requireCaller(auth));
-  // A User is known by their Clerk id only; a server caller is no User.
+  // A User is known by their Clerk id only.
   app.use(async (c, next) => {
-    const caller = c.get("caller");
-
-    if (caller.type === "user") {
-      identifyUser(caller.userId);
-    }
+    identifyUser(c.get("caller").userId);
 
     await next();
   });
   app.openAPIRegistry.registerComponent("securitySchemes", BEARER_AUTH, {
-    description:
-      "A Clerk session token, or the Public API's, Arnold's or the MCP server's secret",
+    description: "A Clerk session token",
     scheme: "bearer",
     type: "http",
   });
