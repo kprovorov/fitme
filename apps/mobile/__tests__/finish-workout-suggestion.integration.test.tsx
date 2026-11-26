@@ -52,6 +52,7 @@ import { useActivePlanQuery } from "~/hooks/queries/plans";
 import { useOpenWorkoutSessionQuery } from "~/hooks/queries/workout-sessions";
 import { storage } from "~/lib/mmkv";
 import { segmentClient } from "~/lib/segment";
+import { setDeviceLanguages } from "~/test-utils/device-locales";
 import { fakeExercise, serveExercises } from "~/test-utils/fake-exercises";
 import {
   backend,
@@ -60,6 +61,7 @@ import {
   fakeExerciseNamed,
 } from "~/test-utils/fake-public-api";
 import type { SeedSession } from "~/test-utils/fake-public-api";
+import { InAppLanguage } from "~/test-utils/in-app-language";
 import {
   createTestQueryClient,
   settle as settleQueries,
@@ -430,9 +432,11 @@ const renderApp = async () => {
   queryClient = createTestQueryClient();
   await render(
     <QueryClientProvider client={queryClient}>
-      <Navigator />
-      {/* In the root layout, next to every screen. */}
-      <PlanUpdateSheetHost />
+      <InAppLanguage>
+        <Navigator />
+        {/* In the root layout, next to every screen. */}
+        <PlanUpdateSheetHost />
+      </InAppLanguage>
     </QueryClientProvider>
   );
 };
@@ -1749,6 +1753,7 @@ describe("the Plan Update after finishing a Workout Session opened from Home", (
         add_exercise: 2,
         add_sets: 1,
         remove_exercise: 0,
+        remove_sets: 0,
         replace_exercise: 0,
         ...eventProperties,
       },
@@ -1957,5 +1962,232 @@ describe("the Plan Update after finishing a Workout Session opened from Home", (
       "summary",
     ]);
     expect(track()).not.toHaveBeenCalled();
+  });
+
+  describe("with a removed set", () => {
+    const REMOVED_SET_LINE = "Remove 1 set from Back Squat · 10×40\u00A0kg";
+
+    const REMOVED_SET_SPOKEN =
+      "Remove 1 set from Back Squat: 10 reps at 40 kilograms";
+
+    /** Leg Day's Squat with three planned sets, the second one removed. */
+    const startWithRemovedSet = async ({ lunge = false } = {}) => {
+      nextSet = 0;
+      serveExercises([
+        fakeExercise("squat", {
+          name: "Back Squat",
+          translations: { uk: { name: "Присідання зі штангою" } },
+        }),
+        fakeExercise("lunge", {
+          name: "Walking Lunge",
+          translations: { uk: { name: "Випади" } },
+        }),
+      ]);
+      backend.seedPlan({
+        id: "plan-1",
+        is_active: true,
+        name: "Strength",
+        workouts: [
+          {
+            exercises: [
+              {
+                sets: [
+                  {
+                    reps_recommended: 8,
+                    rest_recommended: 90,
+                    weight_recommended: 60,
+                  },
+                  {
+                    reps_recommended: 10,
+                    rest_recommended: 90,
+                    weight_recommended: 40,
+                  },
+                  {
+                    reps_recommended: 12,
+                    rest_recommended: 90,
+                    weight_recommended: 62.5,
+                  },
+                ],
+                slug: "squat",
+              },
+            ],
+            id: "w1",
+            name: "Leg Day",
+          },
+        ],
+      });
+      seedPlayedSession({ changed: false });
+      // The second logged set is the Plan's third: the one between is gone.
+      backend.sets[1].order = 3;
+
+      if (lunge) {
+        backend.exercises.push({
+          exercise_slug: "lunge",
+          id: "played-lunge",
+          order: 2,
+          workout_session_id: SESSION,
+        });
+        loggedSet("played-lunge", 1, 12, 20, false);
+      }
+
+      await renderApp();
+      await act(() => mockNavigator.set([toRoute("/")]));
+      await settle();
+    };
+
+    const squatTargets = () =>
+      backend
+        .nestedPlan(backend.plans[0])
+        .workouts[0].exercises[0].sets.map((set) => [
+          set.reps_recommended,
+          set.weight_recommended,
+        ]);
+
+    const ALL_TARGETS = [
+      [8, 60],
+      [10, 40],
+      [12, 62.5],
+    ];
+
+    const KEPT_TARGETS = [
+      [8, 60],
+      [12, 62.5],
+    ];
+
+    it("asks with the removal alone, naming the Plan set that goes by its targets", async () => {
+      await startWithRemovedSet();
+
+      await finishFromSession();
+
+      expect(screen.getByText(REMOVED_SET_LINE)).toBeTruthy();
+      expect(screen.getByLabelText(REMOVED_SET_SPOKEN)).toBeTruthy();
+      expect(track().mock.calls).toContainEqual([
+        "Plan Update Suggested",
+        {
+          add_exercise: 0,
+          add_sets: 0,
+          remove_exercise: 0,
+          remove_sets: 1,
+          replace_exercise: 0,
+          ...eventProperties,
+        },
+      ]);
+    });
+
+    it("lists the removal with the other changes", async () => {
+      await startWithRemovedSet({ lunge: true });
+
+      await finishFromSession();
+
+      expect(
+        screen.getByText("Add Walking Lunge · 12×20\u00A0kg")
+      ).toBeTruthy();
+      expect(screen.getByText(REMOVED_SET_LINE)).toBeTruthy();
+    });
+
+    it("names the set in the answer's unit", async () => {
+      backend.seedProfile(FAKE_USER_ID, { measurement_system: "us" });
+      await startWithRemovedSet();
+
+      await finishFromSession();
+
+      expect(
+        screen.getByText("Remove 1 set from Back Squat · 10×40\u00A0lbs")
+      ).toBeTruthy();
+    });
+
+    it("removes the set from the Plan on Update plan", async () => {
+      await startWithRemovedSet();
+      await finishFromSession();
+
+      await fireEvent.press(screen.getByRole("button", UPDATE));
+      await settle();
+
+      expect(squatTargets()).toEqual(KEPT_TARGETS);
+      expect(isSheetShown()).toBe(false);
+      expect(mockNavigator.routes.at(-1)?.name).toBe("summary");
+    });
+
+    it("leaves the set in the Plan on Keep plan as is", async () => {
+      await startWithRemovedSet();
+      await finishFromSession();
+
+      await fireEvent.press(screen.getByRole("button", KEEP));
+      await settle();
+
+      expect(fakePublicApi.count(APPLY)).toBe(0);
+      expect(squatTargets()).toEqual(ALL_TARGETS);
+      expect(mockNavigator.routes.at(-1)?.name).toBe("summary");
+    });
+
+    it("keeps the set after a failed apply, and removes it on Retry", async () => {
+      await startWithRemovedSet();
+      await finishFromSession();
+
+      fakePublicApi.failNext(APPLY, { status: 500 });
+      await fireEvent.press(screen.getByRole("button", UPDATE));
+      await settle();
+
+      expect(screen.getByText(APPLY_ERROR)).toBeTruthy();
+      expect(screen.getByText(REMOVED_SET_LINE)).toBeTruthy();
+      expect(squatTargets()).toEqual(ALL_TARGETS);
+
+      await fireEvent.press(screen.getByRole("button", RETRY));
+      await settle();
+
+      expect(squatTargets()).toEqual(KEPT_TARGETS);
+      expect(mockNavigator.routes.at(-1)?.name).toBe("summary");
+    });
+
+    it("keeps the set and gives the wait when the apply is rate limited", async () => {
+      await startWithRemovedSet();
+      await finishFromSession();
+
+      fakePublicApi.failNext(APPLY, { retryAfterSeconds: 8, status: 429 });
+      await fireEvent.press(screen.getByRole("button", UPDATE));
+      await settle();
+
+      expect(
+        screen.getByText("Too many requests. Try again in 8 s.")
+      ).toBeTruthy();
+      expect(captureException).not.toHaveBeenCalled();
+      expect(squatTargets()).toEqual(ALL_TARGETS);
+    });
+
+    describe("in Ukrainian", () => {
+      beforeEach(() => {
+        setDeviceLanguages(["uk-UA"]);
+      });
+
+      it("asks with the removal and removes the set", async () => {
+        await startWithRemovedSet();
+        await act(() =>
+          mockNavigator.push(`/plans/plan-1/workouts/w1/sessions/${SESSION}`)
+        );
+        await settle();
+        await fireEvent.press(
+          await focused().findByRole("button", { name: "Завершити" })
+        );
+        await settle();
+
+        expect(
+          screen.getByText(
+            "Видалити 1 підхід із «Присідання зі штангою» · 10×40\u00A0кг"
+          )
+        ).toBeTruthy();
+        expect(
+          screen.getByLabelText(
+            "Видалити 1 підхід із «Присідання зі штангою»: 10 повторень по 40 кілограмів"
+          )
+        ).toBeTruthy();
+
+        await fireEvent.press(
+          screen.getByRole("button", { name: "Оновити план" })
+        );
+        await settle();
+
+        expect(squatTargets()).toEqual(KEPT_TARGETS);
+      });
+    });
   });
 });

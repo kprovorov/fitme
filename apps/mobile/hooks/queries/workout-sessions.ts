@@ -375,17 +375,23 @@ const planUpdateOf = (answer: { data: PlanUpdate } | undefined): PlanUpdate => {
 };
 
 /**
+ * Opts in to set removals, which "Update your plan?" names: on the preview, so
+ * they're answered, and on the apply, so they're removed from the Plan.
+ */
+const PLAN_UPDATE_QUERY = { include_set_removals: true };
+
+/**
  * The Plan Update of a finished Workout Session (`GET
  * /v1/workout-sessions/{id}/plan-update`): the changes it made to its
- * Workout, Exercises as slugs and weights in `weight_unit`, without writing
- * anything. Rejects with an `ApiError`.
+ * Workout and the Plan sets it removed, Exercises as slugs and weights in
+ * `weight_unit`, without writing anything. Rejects with an `ApiError`.
  */
 export const fetchPlanUpdate = async (
   sessionId: string
 ): Promise<PlanUpdate> => {
   const { data } = await publicApi().GET(
     "/v1/workout-sessions/{id}/plan-update",
-    { params: { path: { id: sessionId } } }
+    { params: { path: { id: sessionId }, query: PLAN_UPDATE_QUERY } }
   );
 
   return planUpdateOf(data);
@@ -408,7 +414,7 @@ export const useApplyPlanUpdateMutation = createMutation<
   mutationFn: async ({ sessionId }: ApplyPlanUpdateVariables) => {
     const { data } = await publicApi().POST(
       "/v1/workout-sessions/{id}/plan-update",
-      { params: { path: { id: sessionId } } }
+      { params: { path: { id: sessionId }, query: PLAN_UPDATE_QUERY } }
     );
 
     return planUpdateOf(data);

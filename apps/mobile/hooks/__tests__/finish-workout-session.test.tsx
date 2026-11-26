@@ -227,6 +227,7 @@ const UPDATE = { name: "Update plan" } as const;
 const RETRY = { name: "Retry" } as const;
 const KEEP = { name: "Keep plan as is" } as const;
 
+// These answers have no `set_removals`, as an API without it answers: none.
 describe("useFinishWorkoutSession", () => {
   beforeEach(() => {
     jest.clearAllMocks();
@@ -589,6 +590,7 @@ describe("useFinishWorkoutSession", () => {
         add_sets: 1,
         plan_id: "plan-1",
         remove_exercise: 1,
+        remove_sets: 0,
         replace_exercise: 1,
         workout_id: "workout-1",
         workout_session_id: "session-1",

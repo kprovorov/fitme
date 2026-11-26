@@ -3,7 +3,7 @@ import * as Sentry from "@sentry/react-native";
 import { useQueryClient } from "@tanstack/react-query";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { View } from "react-native";
+import { ScrollView, useWindowDimensions, View } from "react-native";
 import type { SFSymbol } from "sf-symbols-typescript";
 
 import { SymbolImage } from "~/components/symbol-image";
@@ -22,13 +22,17 @@ import { useApplyPlanUpdateMutation } from "~/hooks/queries/workout-sessions";
 import { useI18n } from "~/lib/i18n";
 import {
   formatPlanChange,
+  formatSetRemoval,
   planUpdateProperties,
   planUpdateSlugs,
+  setRemovalsOf,
 } from "~/lib/plan-changes";
 import type {
+  PlanChangeLine,
   PlanUpdate,
   PlanUpdateChange,
   PlanUpdateChangeKind,
+  PlanUpdateSetRemoval,
 } from "~/lib/plan-changes";
 import { segmentClient } from "~/lib/segment";
 
@@ -38,18 +42,31 @@ import { segmentClient } from "~/lib/segment";
  */
 const PLAN_QUERY_KEYS = [["plans"], ["plan"]];
 
-const CHANGE_SYMBOL: Record<PlanUpdateChangeKind, SFSymbol> = {
+/**
+ * The most of the window's height the content takes before it scrolls. The
+ * sheet can't be swiped away, so a long list or the largest text must never
+ * push its buttons out of reach.
+ */
+const MAX_HEIGHT_RATIO = 0.85;
+
+const CHANGE_SYMBOL: Record<PlanUpdateChangeKind | "remove_sets", SFSymbol> = {
   add_exercise: "plus.circle",
   add_sets: "plus.circle",
   remove_exercise: "minus.circle",
+  remove_sets: "minus.circle",
   replace_exercise: "arrow.left.arrow.right.circle",
 };
 
-// Changes have no API id; object identity distinguishes identical entries.
-const changeKeys = new WeakMap<PlanUpdateChange, number>();
+// Neither list's entries have an API id; object identity distinguishes
+// identical ones.
+const changeKeys = new WeakMap<
+  PlanUpdateChange | PlanUpdateSetRemoval,
+  number
+>();
+
 let nextChangeKey = 0;
 
-const getChangeKey = (change: PlanUpdateChange) => {
+const getChangeKey = (change: PlanUpdateChange | PlanUpdateSetRemoval) => {
   const existing = changeKeys.get(change);
 
   if (existing !== undefined) {
@@ -62,6 +79,24 @@ const getChangeKey = (change: PlanUpdateChange) => {
 
   return key;
 };
+
+/** One thing the Plan Update would save, read as one by VoiceOver. */
+const ChangeRow = ({
+  line,
+  symbol,
+}: {
+  line: PlanChangeLine;
+  symbol: SFSymbol;
+}) => (
+  <View
+    accessibilityLabel={line.accessibilityLabel}
+    accessible
+    className="flex-row items-start gap-2"
+  >
+    <SymbolImage className="text-body text-primary" name={symbol} />
+    <Text className="flex-1">{line.text}</Text>
+  </View>
+);
 
 interface PlanUpdateSheetProps {
   /** The apply failed: shows the error and turns Update plan into Retry. */
@@ -77,7 +112,8 @@ interface PlanUpdateSheetProps {
 
 /**
  * "Update your plan?": lists exactly what a finished Workout Session would
- * save to its Workout, one line per change, each Exercise by its Exercise
+ * save to its Workout, one line per change, then one per Exercise whose Plan
+ * sets would go (naming them by their targets), each Exercise by its Exercise
  * Library name (a slug the library can't resolve shows the slug's name) and
  * weights in the preview's `weight_unit`. The host applies the changes and
  * moves on. It can't be swiped away: the User picks
@@ -94,7 +130,8 @@ export const PlanUpdateSheet = ({
 }: PlanUpdateSheetProps) => {
   const i18n = useI18n();
   const { t } = useTranslation();
-  const exercises = useExercises(planUpdateSlugs(preview?.changes ?? []));
+  const { height } = useWindowDimensions();
+  const exercises = useExercises(preview ? planUpdateSlugs(preview) : []);
 
   const updateLabel = hasFailed
     ? t("planUpdate.retry")
@@ -121,7 +158,13 @@ export const PlanUpdateSheet = ({
       onIsPresentedChange={handleIsPresentedChange}
     >
       {preview ? (
-        <>
+        <ScrollView
+          alwaysBounceVertical={false}
+          // Out to the sheet's edges, so it scrolls under no blank band.
+          className="-m-6"
+          contentContainerClassName="gap-4 p-6"
+          style={{ maxHeight: height * MAX_HEIGHT_RATIO }}
+        >
           <View className="flex flex-col items-stretch justify-center gap-2">
             <H3>{t("planUpdate.title")}</H3>
             <Muted>
@@ -135,29 +178,30 @@ export const PlanUpdateSheet = ({
             className="flex flex-col items-stretch justify-center gap-3"
             testID="plan-update-changes"
           >
-            {preview.changes.map((change) => {
-              const line = formatPlanChange(
-                change,
-                preview.weight_unit,
-                nameOf,
-                i18n
-              );
-
-              return (
-                <View
-                  accessibilityLabel={line.accessibilityLabel}
-                  accessible
-                  className="flex-row items-start gap-2"
-                  key={getChangeKey(change)}
-                >
-                  <SymbolImage
-                    className="text-body text-primary"
-                    name={CHANGE_SYMBOL[change.kind]}
-                  />
-                  <Text className="flex-1">{line.text}</Text>
-                </View>
-              );
-            })}
+            {preview.changes.map((change) => (
+              <ChangeRow
+                key={getChangeKey(change)}
+                line={formatPlanChange(
+                  change,
+                  preview.weight_unit,
+                  nameOf,
+                  i18n
+                )}
+                symbol={CHANGE_SYMBOL[change.kind]}
+              />
+            ))}
+            {setRemovalsOf(preview).map((removal) => (
+              <ChangeRow
+                key={getChangeKey(removal)}
+                line={formatSetRemoval(
+                  removal,
+                  preview.weight_unit,
+                  nameOf,
+                  i18n
+                )}
+                symbol={CHANGE_SYMBOL.remove_sets}
+              />
+            ))}
           </View>
           {hasFailed ? (
             <ErrorMessage>
@@ -187,7 +231,7 @@ export const PlanUpdateSheet = ({
               variant="secondary"
             />
           </View>
-        </>
+        </ScrollView>
       ) : null}
     </Dialog>
   );
