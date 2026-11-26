@@ -22,13 +22,15 @@ interface SetSwipeRowProps {
   enabled: boolean;
   /** The row's shown number, for its test id. */
   number: number;
-  onRemove: () => void;
+  /** `close` closes the row again, should the User keep the set. */
+  onRemove: (close: () => void) => void;
 }
 
 /**
  * A Workout Session set's row that swipes left: a short swipe uncovers a red
- * Remove button, a full one removes. VoiceOver and TalkBack reach the
- * removal through the accessibility action on the set's `#n` cell instead
+ * Remove button, a full one removes (a logged set once the User confirms).
+ * VoiceOver and TalkBack reach the removal through the accessibility action
+ * on the set's first cell instead, its `#n` or a logged set's ✓
  * (`workout-session-exercise-set-row-view.tsx`), so the button is hidden from
  * them.
  */
@@ -63,6 +65,8 @@ const SetSwipeRow = ({
     openRow = self.current;
   };
 
+  const handleRemove = () => onRemove(() => row.current?.close());
+
   const handleClose = () => {
     if (openRow === self.current) {
       openRow = null;
@@ -74,7 +78,7 @@ const SetSwipeRow = ({
       actionWidth={REMOVE_ACTION_WIDTH}
       enabled={enabled}
       onClose={handleClose}
-      onFullSwipe={onRemove}
+      onFullSwipe={handleRemove}
       onOpen={handleOpen}
       ref={row}
       renderActions={(armed) => (
@@ -85,7 +89,7 @@ const SetSwipeRow = ({
             armed ? "px-sm items-start" : "px-xs items-center"
           )}
           importantForAccessibility="no-hide-descendants"
-          onPress={onRemove}
+          onPress={handleRemove}
           testID={`remove-set-button-${number}`}
         >
           <Text

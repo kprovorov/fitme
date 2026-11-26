@@ -114,8 +114,8 @@ const WorkoutSessionExerciseSetsTableView = ({
             onRemove={
               readOnly
                 ? undefined
-                : () => {
-                    void removeSet(exerciseId, row);
+                : (logged, saved) => {
+                    void removeSet(exerciseId, row, logged, saved);
                   }
             }
             onSetCreated={(created) =>

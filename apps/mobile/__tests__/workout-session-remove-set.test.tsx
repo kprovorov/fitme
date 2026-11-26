@@ -1,9 +1,9 @@
 /**
- * Swiping an unlogged set's row left removes it from an open Workout Session
- * (FIT-808), on the Workout Session screen and the Workout Session Exercise
+ * Swiping a set's row left removes it from an open Workout Session (FIT-808,
+ * FIT-809), on the Workout Session screen and the Workout Session Exercise
  * screen: a saved set through `DELETE /v1/workout-session-sets/{id}`, shown
  * gone at once and back with an alert when that fails, and an added set not
- * logged yet on the phone only.
+ * logged yet on the phone only. A logged set asks first.
  *
  * Mounts the real screens on the fake Public API and reads its rows
  * afterwards. The swipe itself is `test-utils/swipeable-row-stub.tsx`
@@ -334,14 +334,6 @@ describe.each([
     expect(setIds()).toEqual(["s1-e1-s1", "s1-e1-s3"]);
     expect(fakePublicApi.count(LOG_SET_ROUTE)).toBe(0);
     expect(screen.getByLabelText("Set 2 reps").props.value).toBe("");
-  });
-
-  it("doesn't swipe a logged set", async () => {
-    await mountScreen();
-
-    expect(screen.getByLabelText("Set 1, logged")).toBeTruthy();
-    expect(swipes(1)).toBe(false);
-    expect(swipes(2)).toBe(true);
   });
 
   it("doesn't swipe a set while its own save runs", async () => {
@@ -740,5 +732,378 @@ describe("finishing after a removal", () => {
     await settle(queryClient);
 
     expect(fakePublicApi.count(FINISH_ROUTE)).toBe(1);
+  });
+});
+
+/** The last alert's button labelled `text`, pressed, then settled unless not. */
+const answerAlert = async (text: string, { wait = true } = {}) => {
+  const buttons = jest.mocked(Alert.alert).mock.lastCall?.[2] ?? [];
+  const button = buttons.find((candidate) => candidate.text === text);
+
+  if (!button) {
+    throw new Error(`No "${text}" in the last alert`);
+  }
+
+  await act(() => {
+    button.onPress?.();
+  });
+
+  if (wait) {
+    await settle(queryClient);
+  }
+};
+
+/** The last alert dismissed (Android's back button, a tap outside). */
+const dismissAlert = async () => {
+  await act(() => {
+    jest.mocked(Alert.alert).mock.lastCall?.[3]?.onDismiss?.();
+  });
+  await settle(queryClient);
+};
+
+const CONFIRM_MESSAGE =
+  "This set is already logged. Removing it can't be undone.";
+
+const expectAsked = (title: string) => {
+  expect(Alert.alert).toHaveBeenLastCalledWith(
+    title,
+    CONFIRM_MESSAGE,
+    [
+      expect.objectContaining({ style: "cancel", text: "Cancel" }),
+      expect.objectContaining({ style: "destructive", text: "Remove" }),
+    ],
+    expect.objectContaining({ cancelable: true })
+  );
+};
+
+describe.each([
+  { mountScreen: mountSession, name: "the Workout Session screen" },
+  { mountScreen: mountExercise, name: "the Workout Session Exercise screen" },
+])("removing a logged set, on $name", ({ mountScreen }) => {
+  it("swipes, and asks before a full swipe removes it", async () => {
+    await mountScreen();
+
+    expect(swipes(1)).toBe(true);
+
+    await swipeFully(1);
+
+    expectAsked("Remove set 1?");
+    expect(fakePublicApi.count(REMOVE_ROUTE)).toBe(0);
+    expect(screen.getByLabelText("Set 1, logged")).toBeTruthy();
+  });
+
+  it("asks the same from the Remove button and VoiceOver's action", async () => {
+    await mountScreen();
+    await openRow(1);
+    await pressRemove(1);
+
+    expectAsked("Remove set 1?");
+
+    await answerAlert("Cancel");
+    const number = screen.getByTestId("set-number-1");
+
+    expect(number.props.accessibilityActions).toEqual([
+      { label: "Remove set 1", name: "remove" },
+    ]);
+
+    await fireEvent(number, "accessibilityAction", {
+      nativeEvent: { actionName: "remove" },
+    });
+
+    expectAsked("Remove set 1?");
+    expect(jest.mocked(Alert.alert)).toHaveBeenCalledTimes(2);
+    expect(fakePublicApi.count(REMOVE_ROUTE)).toBe(0);
+  });
+
+  it.each([
+    { how: "Cancel", leave: () => answerAlert("Cancel") },
+    { how: "dismissing the alert", leave: dismissAlert },
+  ])("closes the row and changes nothing on $how", async ({ leave }) => {
+    await mountScreen();
+    await openRow(1);
+    await pressRemove(1);
+    await leave();
+
+    expect(removeButton(1)).toBeNull();
+    expect(fakePublicApi.count(REMOVE_ROUTE)).toBe(0);
+    expect(setIds()).toHaveLength(3);
+    expect(screen.getByLabelText("Set 1, logged")).toBeTruthy();
+    expect(track).not.toHaveBeenCalledWith("Set Removed", expect.anything());
+  });
+
+  it("removes it at once on Remove, saying it was logged", async () => {
+    await mountScreen();
+    const resume = fakePublicApi.pause(REMOVE_ROUTE);
+    await swipeFully(1);
+    await answerAlert("Remove", { wait: false });
+
+    // Gone before the API has answered: the first unlogged set is #1 now.
+    expect(screen.queryByLabelText("Set 1, logged")).toBeNull();
+    expect(screen.getByRole("button", { name: "Log set 1" })).toBeTruthy();
+
+    resume();
+    await settle(queryClient);
+
+    expect(setIds()).toEqual(["s1-e1-s2", "s1-e1-s3"]);
+    expect(track).toHaveBeenCalledWith("Set Removed", {
+      exercise_id: "s1-e1",
+      logged: true,
+      session_id: "s1",
+    });
+  });
+
+  it("brings it back logged at its place when removing fails", async () => {
+    await mountScreen();
+    fakePublicApi.failNext(REMOVE_ROUTE, "network");
+    await swipeFully(1);
+    await answerAlert("Remove");
+
+    expect(Alert.alert).toHaveBeenLastCalledWith(
+      REMOVE_FAILED,
+      "Please check your connection and try again."
+    );
+    expect(setIds()).toHaveLength(3);
+    expect(screen.getByLabelText("Set 1, logged")).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Log set 2" })).toBeTruthy();
+    expect(track).not.toHaveBeenCalledWith("Set Removed", expect.anything());
+  });
+
+  it("asks for a logged set being edited, keeping its saved values on Cancel", async () => {
+    await mountScreen();
+    await press("Edit set 1");
+    await fireEvent.changeText(screen.getByLabelText("Set 1 reps"), "12");
+    await swipeFully(1);
+
+    expectAsked("Remove set 1?");
+
+    await answerAlert("Cancel");
+
+    expect(fakePublicApi.count(LOG_SET_ROUTE)).toBe(0);
+    expect(fakePublicApi.count(REMOVE_ROUTE)).toBe(0);
+    expect(
+      backend.sets.find(({ id }) => id === "s1-e1-s1")?.reps_completed
+    ).toBe(8);
+  });
+
+  it("asks for a set logged elsewhere while its row is open", async () => {
+    await mountScreen();
+    await openRow(2);
+    backend.sets = backend.sets.map((set) =>
+      set.id === "s1-e1-s2"
+        ? { ...set, logged_at: new Date().toISOString(), reps_completed: 9 }
+        : set
+    );
+    await act(async () => {
+      await queryClient.refetchQueries();
+    });
+    await settle(queryClient);
+
+    // Still open, on a row that now reads as logged.
+    expect(screen.getByLabelText("Set 2, logged")).toBeTruthy();
+
+    await pressRemove(2);
+
+    expectAsked("Remove set 2?");
+    expect(fakePublicApi.count(REMOVE_ROUTE)).toBe(0);
+  });
+
+  it("counts a logged set removed elsewhere as removed", async () => {
+    await mountScreen();
+    await openRow(1);
+    backend.sets = backend.sets.filter(({ id }) => id !== "s1-e1-s1");
+    await pressRemove(1);
+    await answerAlert("Remove");
+
+    expect(Alert.alert).not.toHaveBeenCalledWith(
+      REMOVE_FAILED,
+      expect.anything()
+    );
+    expect(screen.queryByLabelText("Set 1, logged")).toBeNull();
+    expect(setIds()).toEqual(["s1-e1-s2", "s1-e1-s3"]);
+  });
+
+  it("does nothing on Remove once the Workout Session has finished elsewhere", async () => {
+    await mountScreen();
+    await swipeFully(1);
+    backend.sessions = backend.sessions.map((session) => ({
+      ...session,
+      finished_at: new Date().toISOString(),
+    }));
+    await act(async () => {
+      await queryClient.refetchQueries();
+    });
+    await settle(queryClient);
+    await answerAlert("Remove");
+
+    expect(fakePublicApi.count(REMOVE_ROUTE)).toBe(0);
+    expect(Alert.alert).not.toHaveBeenCalledWith(
+      REMOVE_FAILED,
+      expect.anything()
+    );
+    expect(setIds()).toHaveLength(3);
+  });
+
+  it("brings a set it just logged back logged when removing it fails", async () => {
+    await mountScreen();
+    // The read after logging it waits, so only the save knows it's logged.
+    const resumeRead = fakePublicApi.pause(SESSION_ROUTE);
+    await press("Log set 2");
+    await until(() => fakePublicApi.count(LOG_SET_ROUTE) === 1);
+    await until(() => screen.queryByLabelText("Set 2, logged") !== null);
+    fakePublicApi.failNext(REMOVE_ROUTE, "network");
+    await swipeFully(2);
+
+    expectAsked("Remove set 2?");
+
+    await answerAlert("Remove", { wait: false });
+    await until(() =>
+      jest
+        .mocked(Alert.alert)
+        .mock.calls.some(([title]) => title === REMOVE_FAILED)
+    );
+
+    // Back in its place, still logged, with the read after logging it held.
+    await until(() => screen.queryByLabelText("Set 2, logged") !== null);
+
+    expect(screen.getByLabelText("Set 2, logged")).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "Log set 2" })).toBeNull();
+
+    resumeRead();
+    await settle(queryClient);
+  });
+
+  it("removes an added set it just logged for good", async () => {
+    backend.sets = backend.sets.filter(({ id }) => id === "s1-e1-s1");
+    await mountScreen();
+    await press("Add Set");
+    // The read after logging it waits, so only the phone has the new set.
+    const resumeRead = fakePublicApi.pause(SESSION_ROUTE);
+    await press("Log set 2");
+    await until(() => screen.queryByLabelText("Set 2, logged") !== null);
+    await swipeFully(2);
+    await answerAlert("Remove", { wait: false });
+    await until(() => fakePublicApi.count(REMOVE_ROUTE) === 1);
+    resumeRead();
+    await settle(queryClient);
+
+    expect(setIds()).toEqual(["s1-e1-s1"]);
+    expect(screen.queryByLabelText("Set 2, logged")).toBeNull();
+    expect(screen.getByLabelText("Set 1, logged")).toBeTruthy();
+  });
+
+  it("brings back the values read while its alert was open when removing fails", async () => {
+    await mountScreen();
+    await swipeFully(1);
+    // Edited elsewhere while the alert is open.
+    backend.sets = backend.sets.map((set) =>
+      set.id === "s1-e1-s1" ? { ...set, reps_completed: 12 } : set
+    );
+    await act(async () => {
+      await queryClient.refetchQueries();
+    });
+    await settle(queryClient);
+    // The read after the failure waits, so only the rollback shows the set.
+    const resumeRead = fakePublicApi.pause(SESSION_ROUTE);
+    fakePublicApi.failNext(REMOVE_ROUTE, "network");
+    await answerAlert("Remove", { wait: false });
+    await until(() => screen.queryByLabelText("Set 1, logged") !== null);
+    await until(() => screen.queryByText("12") !== null);
+
+    expect(screen.getByText("12")).toBeTruthy();
+
+    resumeRead();
+    await settle(queryClient);
+  });
+
+  it("brings back an edit it just saved when removing fails", async () => {
+    await mountScreen();
+    // The read after the edit waits, so only the save knows the new reps.
+    const resumeRead = fakePublicApi.pause(SESSION_ROUTE);
+    await press("Edit set 1");
+    await fireEvent.changeText(screen.getByLabelText("Set 1 reps"), "12");
+    await press("Log set 1");
+    await until(() => fakePublicApi.count(LOG_SET_ROUTE) === 1);
+    await until(() => screen.queryByLabelText("Set 1, logged") !== null);
+    fakePublicApi.failNext(REMOVE_ROUTE, "network");
+    await swipeFully(1);
+    await answerAlert("Remove", { wait: false });
+    await until(() =>
+      jest
+        .mocked(Alert.alert)
+        .mock.calls.some(([title]) => title === REMOVE_FAILED)
+    );
+    await until(() => screen.queryByText("12") !== null);
+
+    expect(screen.getByLabelText("Set 1, logged")).toBeTruthy();
+    expect(screen.getByText("12")).toBeTruthy();
+
+    resumeRead();
+    await settle(queryClient);
+  });
+
+  it("asks and removes in Ukrainian too", async () => {
+    setDeviceLanguages(["uk-UA"]);
+    await mountScreen();
+    await swipeFully(1);
+
+    expect(Alert.alert).toHaveBeenLastCalledWith(
+      "Видалити підхід 1?",
+      "Цей підхід уже записано. Видалення не можна скасувати.",
+      [
+        expect.objectContaining({ text: "Скасувати" }),
+        expect.objectContaining({ text: "Видалити" }),
+      ],
+      expect.anything()
+    );
+
+    await answerAlert("Видалити");
+
+    expect(setIds()).toEqual(["s1-e1-s2", "s1-e1-s3"]);
+  });
+});
+
+describe("what follows a logged set's removal", () => {
+  it("updates the Workout Session's stats", async () => {
+    await mountSession();
+
+    expect(screen.getByText("1/3")).toBeTruthy();
+
+    await swipeFully(1);
+    await answerAlert("Remove");
+
+    expect(screen.getByText("0/2")).toBeTruthy();
+  });
+
+  it("reads the Exercise history again", async () => {
+    await mountExercise();
+    const reads = fakePublicApi.count("GET /v1/workout-session-exercises");
+    await swipeFully(1);
+    await answerAlert("Remove");
+
+    expect(fakePublicApi.count("GET /v1/workout-session-exercises")).toBe(
+      reads + 1
+    );
+  });
+
+  it("leaves nothing logged once the last logged set goes: Finish offers Discard", async () => {
+    backend.sets = backend.sets.filter(({ id }) => id === "s1-e1-s1");
+    await mountSession();
+    await swipeFully(1);
+    await answerAlert("Remove");
+
+    expect(backend.sets).toEqual([]);
+    expect(
+      screen.queryByTestId("finish-workout-suggestion-keep-training")
+    ).toBeNull();
+
+    await press("Finish");
+    await settle(queryClient);
+
+    expect(Alert.alert).toHaveBeenLastCalledWith(
+      "Finish workout?",
+      "Nothing has been logged yet.",
+      expect.arrayContaining([expect.objectContaining({ text: "Discard" })]),
+      expect.anything()
+    );
   });
 });

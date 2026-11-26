@@ -5,12 +5,14 @@ import { Alert, Keyboard } from "react-native";
 
 import {
   dropAddedSet,
+  dropGoneAddedSet,
   hideRemovedSet,
   holdOrder,
   markSetRemoved,
   showSetAgain,
 } from "~/hooks/added-sets";
 import { useDeleteWorkoutSessionSetMutation } from "~/hooks/queries/workout-session-exercise-sets";
+import type { SavedWorkoutSessionExerciseSet } from "~/hooks/queries/workout-session-exercise-sets";
 import { useWorkoutSessionQuery } from "~/hooks/queries/workout-sessions";
 import type {
   WorkoutSession,
@@ -21,6 +23,15 @@ import { IS_E2E } from "~/lib/constants";
 import { segmentClient } from "~/lib/segment";
 import { sessionEditFailureMessage } from "~/lib/session-edit-failure";
 import { isStillWriteStarter, rememberWriteStarter } from "~/lib/write-answers";
+
+/** Whether a save answered after the read's copy of the set was logged. */
+const isNewerSave = (
+  saved: SavedWorkoutSessionExerciseSet,
+  set: WorkoutSessionSet
+): boolean =>
+  set.logged_at === null ||
+  (saved.logged_at !== null &&
+    Date.parse(saved.logged_at) > Date.parse(set.logged_at));
 
 /** The Workout Session's read without the set. */
 const withoutSet = (
@@ -57,14 +68,22 @@ const withSet = (
 /**
  * Removes a row of a Workout Session Exercise's sets table. An added set not
  * logged yet only lives on the phone, so it's dropped there: no request, no
- * event. A saved one is hidden at once and goes through
- * `DELETE /v1/workout-session-sets/{id}` (a set already gone answers 204
- * too): it leaves the Workout Session's read, so the stats and Finish count
- * without it, and stays hidden from the rows (`hideRemovedSet`) should a read
- * landing meanwhile still have it. A failure puts it back in its place
- * behind the "Couldn't remove set" alert. The Workout Session is read again either way, since a lost
- * answer may have removed it. Once the User who removed it has signed out,
- * nothing is shown, alerted, sent or read.
+ * event. A saved one (a logged one once the User has confirmed, which the row
+ * asks) is hidden at once and goes through `DELETE /v1/workout-session-sets/{id}`
+ * (a set already gone answers 204 too): it leaves the Workout Session's read,
+ * so the stats and Finish count without it, and stays hidden from the rows
+ * (`hideRemovedSet`) should a read landing meanwhile still have it. A failure
+ * puts it back in its place behind the "Couldn't remove set" alert. The
+ * Workout Session is read again either way, since a lost answer may have
+ * removed it, and so is Exercise history after a logged set.
+ *
+ * `logged` is whether the set was logged when the User acted, and `saved` what
+ * logging it answered: a set just logged may not be in the read yet, and comes
+ * back logged should its removal fail. Nothing happens once the read says the
+ * Workout Session has finished, or there's no read (an alert answered after
+ * it ended elsewhere),
+ * and once the User who removed it has signed out, nothing is shown, alerted,
+ * sent or read.
  */
 export const useRemoveWorkoutSessionSet = (sessionId: string) => {
   const { t } = useTranslation();
@@ -72,9 +91,32 @@ export const useRemoveWorkoutSessionSet = (sessionId: string) => {
   const { mutateAsync: deleteSet } = useDeleteWorkoutSessionSetMutation();
 
   return useCallback(
-    async (exerciseId: string, { id, set }: ShownSet) => {
+    async (
+      exerciseId: string,
+      { id, set: shown }: ShownSet,
+      logged: boolean,
+      saved?: SavedWorkoutSessionExerciseSet
+    ) => {
+      const queryKey = useWorkoutSessionQuery.getKey({ sessionId });
+
+      const read = queryClient.getQueryData<WorkoutSession>(queryKey);
+
+      // Ended elsewhere: finished, or discarded and its read dropped.
+      if (!read || read.finished_at) {
+        return;
+      }
+
       // A row being edited goes with its unsaved numbers.
       Keyboard.dismiss();
+
+      // The set as the read has it now: one read while an alert was open
+      // is newer than the row the User swiped.
+      const set =
+        shown &&
+        (read.exercises
+          .flatMap(({ sets }) => sets)
+          .find((candidate) => candidate.id === shown.id) ??
+          shown);
 
       if (!set) {
         dropAddedSet(exerciseId, id);
@@ -83,7 +125,14 @@ export const useRemoveWorkoutSessionSet = (sessionId: string) => {
       }
 
       const starter = rememberWriteStarter(queryClient, []);
-      const queryKey = useWorkoutSessionQuery.getKey({ sessionId });
+
+      // What comes back on a failure: the row's last save when the read
+      // hasn't caught up with it yet (a log or an edit), else the read.
+      const restored =
+        saved?.id === set.id && isNewerSave(saved, set)
+          ? { ...set, ...saved }
+          : set;
+
       // Should it come back, no set added meanwhile takes its place.
       holdOrder(exerciseId, set.order);
       hideRemovedSet(exerciseId, set.id);
@@ -107,17 +156,19 @@ export const useRemoveWorkoutSessionSet = (sessionId: string) => {
 
       if (removed) {
         markSetRemoved(set.id);
+        // Added and logged here, it may live on the phone too until a read.
+        dropGoneAddedSet(exerciseId, set.id);
 
         if (!IS_E2E) {
           void segmentClient.track("Set Removed", {
             exercise_id: exerciseId,
-            logged: set.reps_completed !== null,
+            logged,
             session_id: sessionId,
           });
         }
       } else {
         queryClient.setQueryData<WorkoutSession>(queryKey, (session) =>
-          withSet(session, exerciseId, set)
+          withSet(session, exerciseId, restored)
         );
         showSetAgain(set.id);
         Alert.alert(
@@ -127,6 +178,10 @@ export const useRemoveWorkoutSessionSet = (sessionId: string) => {
       }
 
       void queryClient.invalidateQueries({ queryKey });
+
+      if (logged) {
+        void queryClient.invalidateQueries({ queryKey: ["exercise-history"] });
+      }
     },
     [deleteSet, queryClient, sessionId, t]
   );
