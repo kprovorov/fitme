@@ -1012,12 +1012,16 @@
   },
   "sets": {
     "columns": {
+      "previous": "попередній",
       "target": "ціль",
       "reps": "повтори",
       "rest": "відпочинок"
     },
     "addSet": "Додати підхід",
     "noTarget": "без цілі",
+    "previousSet": "Попередній: {{set}}",
+    "targetSet": "Ціль: {{set}}",
+    "noPreviousSet": "Немає попереднього підходу",
     "repsAtWeight": "{{reps}} по {{weight}}",
     "plannedSet": "Підхід {{order, number}}: {{target}}, {{rest}}",
     "restSeconds_one": "відпочинок {{count, number}} секунда",

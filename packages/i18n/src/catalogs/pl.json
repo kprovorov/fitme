@@ -1012,12 +1012,16 @@
   },
   "sets": {
     "columns": {
+      "previous": "poprz.",
       "target": "cel",
       "reps": "powt.",
       "rest": "odpoczynek"
     },
     "addSet": "Dodaj serię",
     "noTarget": "brak celu",
+    "previousSet": "Poprzednia: {{set}}",
+    "targetSet": "Cel: {{set}}",
+    "noPreviousSet": "Brak poprzedniej serii",
     "repsAtWeight": "{{reps}} z ciężarem {{weight}}",
     "plannedSet": "Seria {{order, number}}: {{target}}, {{rest}}",
     "restSeconds_one": "odpoczynek {{count, number}} sekunda",

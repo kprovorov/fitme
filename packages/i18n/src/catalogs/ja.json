@@ -919,12 +919,16 @@
   },
   "sets": {
     "columns": {
+      "previous": "前回",
       "target": "目標",
       "reps": "回数",
       "rest": "休憩"
     },
     "addSet": "セットを追加",
     "noTarget": "目標なし",
+    "previousSet": "前回：{{set}}",
+    "targetSet": "目標：{{set}}",
+    "noPreviousSet": "前回のセットなし",
     "repsAtWeight": "{{weight}}で{{reps}}",
     "plannedSet": "セット{{order, number}}：{{target}}、{{rest}}",
     "restSeconds_other": "休憩{{count, number}}秒",

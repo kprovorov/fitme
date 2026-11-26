@@ -919,12 +919,16 @@
   },
   "sets": {
     "columns": {
+      "previous": "이전",
       "target": "목표",
       "reps": "횟수",
       "rest": "휴식"
     },
     "addSet": "세트 추가",
     "noTarget": "목표 없음",
+    "previousSet": "이전: {{set}}",
+    "targetSet": "목표: {{set}}",
+    "noPreviousSet": "이전 세트 없음",
     "repsAtWeight": "{{weight}} 중량으로 {{reps}}",
     "plannedSet": "{{order, number}}세트: {{target}}, {{rest}}",
     "restSeconds_other": "휴식 {{count, number}}초",

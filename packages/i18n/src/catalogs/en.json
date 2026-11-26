@@ -950,12 +950,16 @@
   },
   "sets": {
     "columns": {
+      "previous": "previous",
       "target": "target",
       "reps": "reps",
       "rest": "rest"
     },
     "addSet": "Add Set",
     "noTarget": "no target",
+    "previousSet": "Previous: {{set}}",
+    "targetSet": "Target: {{set}}",
+    "noPreviousSet": "No previous set",
     "repsAtWeight": "{{reps}} at {{weight}}",
     "plannedSet": "Set {{order, number}}: {{target}}, {{rest}}",
     "restSeconds_one": "rest {{count, number}} second",

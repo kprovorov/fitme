@@ -981,12 +981,16 @@
   },
   "sets": {
     "columns": {
+      "previous": "preced.",
       "target": "obiett.",
       "reps": "rip.",
       "rest": "recupero"
     },
     "addSet": "Aggiungi serie",
     "noTarget": "nessun obiettivo",
+    "previousSet": "Precedente: {{set}}",
+    "targetSet": "Obiettivo: {{set}}",
+    "noPreviousSet": "Nessuna serie precedente",
     "repsAtWeight": "{{reps}} con {{weight}}",
     "plannedSet": "Serie {{order, number}}: {{target}}, {{rest}}",
     "restSeconds_one": "recupero di {{count, number}} secondo",

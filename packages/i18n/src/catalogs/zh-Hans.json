@@ -919,12 +919,16 @@
   },
   "sets": {
     "columns": {
+      "previous": "上次",
       "target": "目标",
       "reps": "次数",
       "rest": "休息"
     },
     "addSet": "添加一组",
     "noTarget": "无目标",
+    "previousSet": "上次：{{set}}",
+    "targetSet": "目标：{{set}}",
+    "noPreviousSet": "无上次记录",
     "repsAtWeight": "{{weight}}，{{reps}}",
     "plannedSet": "第{{order, number}}组：{{target}}，{{rest}}",
     "restSeconds_other": "休息{{count, number}}秒",

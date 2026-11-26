@@ -981,12 +981,16 @@
   },
   "sets": {
     "columns": {
+      "previous": "anterior",
       "target": "meta",
       "reps": "reps",
       "rest": "descanso"
     },
     "addSet": "Adicionar série",
     "noTarget": "sem meta",
+    "previousSet": "Anterior: {{set}}",
+    "targetSet": "Meta: {{set}}",
+    "noPreviousSet": "Nenhuma série anterior",
     "repsAtWeight": "{{reps}} com {{weight}}",
     "plannedSet": "Série {{order, number}}: {{target}}, {{rest}}",
     "restSeconds_one": "descanso de {{count, number}} segundo",

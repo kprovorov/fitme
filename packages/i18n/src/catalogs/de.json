@@ -950,12 +950,16 @@
   },
   "sets": {
     "columns": {
+      "previous": "zuletzt",
       "target": "Ziel",
       "reps": "Wdh.",
       "rest": "Pause"
     },
     "addSet": "Satz hinzufügen",
     "noTarget": "kein Ziel",
+    "previousSet": "Zuletzt: {{set}}",
+    "targetSet": "Ziel: {{set}}",
+    "noPreviousSet": "Kein vorheriger Satz",
     "repsAtWeight": "{{reps}} mit {{weight}}",
     "plannedSet": "Satz {{order, number}}: {{target}}, {{rest}}",
     "restSeconds_one": "{{count, number}} Sekunde Pause",
