@@ -165,6 +165,13 @@ export type NewPlanBody = Omit<components["schemas"]["NewPlan"], "activate">;
  */
 export const NEW_PLAN_ID = "new";
 
+/**
+ * The `step` route param that opens Create Plan (`/plans/create`) straight at
+ * its naming step, the create sheet, skipping the choice: for an entry that
+ * has already offered "Build it yourself" itself.
+ */
+export const CREATE_PLAN_NAMING_STEP = "naming";
+
 /** What a new Exercise's sets start at: 3 × 10 reps, bodyweight, 90 s rest. */
 export const NEW_EXERCISE_SET_COUNT = 3;
 const NEW_SET = { reps: 10, rest: 90, weight: 0 } as const;

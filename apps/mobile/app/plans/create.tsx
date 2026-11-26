@@ -3,73 +3,28 @@ import {
   MAX_PLAN_NAME_LENGTH,
   MIN_FREQUENCY,
 } from "@fitme/core";
-import { Stack, useRouter } from "expo-router";
+import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 import { useCallback, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Pressable, View } from "react-native";
+import { View } from "react-native";
 import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
-import RevenueCatUI from "react-native-purchases-ui";
-import type { SFSymbol } from "sf-symbols-typescript";
 
-import { SymbolImage } from "~/components/symbol-image";
-import { Badge } from "~/components/ui/badge";
+import { CreatePlanChoices } from "~/components/plans/create-plan-choices";
 import { Input } from "~/components/ui/input";
 import { Label } from "~/components/ui/label";
 import { Text } from "~/components/ui/text";
 import { H4 } from "~/components/ui/typography";
 import { VStack } from "~/components/ui/vstack";
 import { useHeaderItemColors } from "~/hooks/header-item-colors";
-import { useIsProQuery } from "~/hooks/revenueCat";
-import { isPlanNumberIn, NEW_PLAN_ID, wholePlanNumber } from "~/lib/plan-draft";
+import {
+  CREATE_PLAN_NAMING_STEP,
+  isPlanNumberIn,
+  NEW_PLAN_ID,
+  wholePlanNumber,
+} from "~/lib/plan-draft";
 
 /** How often a new Plan trains a week until the User says otherwise. */
 const DEFAULT_FREQUENCY = 3;
-
-/**
- * One way of getting a Plan: its name, what it does, and the Pro badge for a
- * way that needs a subscription.
- */
-const ChoiceTile = ({
-  badge,
-  hint,
-  icon,
-  label,
-  onPress,
-}: {
-  badge?: string;
-  hint: string;
-  icon: SFSymbol;
-  label: string;
-  onPress: () => void;
-}) => (
-  <Pressable
-    accessibilityLabel={label}
-    accessibilityRole="button"
-    className="border-continuous bg-card rounded-card flex-row items-center gap-3 p-4 active:opacity-80"
-    onPress={onPress}
-  >
-    {/* One width for every icon, so each tile's text starts at the same x
-        whichever symbol it has (FIT-637). */}
-    <View className="w-8 shrink-0 items-center">
-      <SymbolImage className="text-primary text-title-2" name={icon} />
-    </View>
-    <View className="flex-1 flex-col items-start justify-center gap-1">
-      <View className="flex-row flex-wrap items-center gap-2">
-        <Text variant="large">{label}</Text>
-        {badge ? (
-          <Badge variant="secondary">
-            <Text>{badge}</Text>
-          </Badge>
-        ) : null}
-      </View>
-      <Text variant="muted">{hint}</Text>
-    </View>
-    <SymbolImage
-      className="text-body text-muted-foreground shrink-0"
-      name="chevron.right"
-    />
-  </Pressable>
-);
 
 /**
  * Where every "Create Plan" leads: build the Plan by hand, free for every
@@ -79,33 +34,29 @@ const ChoiceTile = ({
  * this Screen with the Plan editor on a new draft of that many empty,
  * lettered Workouts; everything else is theirs to fill in later or leave
  * unset (ADR 0017).
+ *
+ * Opened with `step` `CREATE_PLAN_NAMING_STEP`, it starts at the create sheet,
+ * for an entry that offered the choice itself; there is then no choice to go
+ * back to, so the sheet's left item is Cancel rather than Back.
  */
 const CreatePlanScreen = () => {
   const router = useRouter();
   const { t } = useTranslation();
 
-  const [isNaming, setIsNaming] = useState(false);
+  const { step } = useLocalSearchParams<{ step?: string }>();
+  const opensAtNaming = step === CREATE_PLAN_NAMING_STEP;
+
+  const [hasChosen, setHasChosen] = useState(false);
+  const isNaming = opensAtNaming || hasChosen;
   const [name, setName] = useState("");
 
   const [frequencyText, setFrequencyText] = useState(String(DEFAULT_FREQUENCY));
 
-  // A read still in flight counts as not Pro, so Ask Arnold never sends a
-  // free User to the planner it would refuse them.
-  const { data: isPro } = useIsProQuery();
-
-  const buildByHand = useCallback(() => setIsNaming(true), []);
-  const backToChoice = useCallback(() => setIsNaming(false), []);
+  const buildByHand = useCallback(() => setHasChosen(true), []);
+  const backToChoice = useCallback(() => setHasChosen(false), []);
   const cancel = useCallback(() => router.back(), [router]);
 
-  const askArnold = useCallback(() => {
-    if (isPro) {
-      router.replace("/planner");
-
-      return;
-    }
-
-    void RevenueCatUI.presentPaywall();
-  }, [isPro, router]);
+  const openPlanner = useCallback(() => router.replace("/planner"), [router]);
 
   const trimmedName = name.trim();
   const frequency = wholePlanNumber(frequencyText);
@@ -153,7 +104,7 @@ const CreatePlanScreen = () => {
 
   const leftItems = useMemo(
     () => () => [
-      isNaming
+      isNaming && !opensAtNaming
         ? {
             ...itemColors.plain,
             label: t("planBuilder.back"),
@@ -167,7 +118,7 @@ const CreatePlanScreen = () => {
             type: "button" as const,
           },
     ],
-    [backToChoice, cancel, isNaming, itemColors, t]
+    [backToChoice, cancel, isNaming, itemColors, opensAtNaming, t]
   );
 
   const rightItems = useMemo(
@@ -237,18 +188,9 @@ const CreatePlanScreen = () => {
         ) : (
           <VStack className="items-stretch">
             <H4>{t("planBuilder.question")}</H4>
-            <ChoiceTile
-              hint={t("planBuilder.byHandHint")}
-              icon="hammer"
-              label={t("planBuilder.byHand")}
-              onPress={buildByHand}
-            />
-            <ChoiceTile
-              badge={isPro ? undefined : t("planBuilder.pro")}
-              hint={t("planBuilder.askArnoldHint")}
-              icon="sparkles"
-              label={t("planBuilder.askArnold")}
-              onPress={askArnold}
+            <CreatePlanChoices
+              onBuildByHand={buildByHand}
+              onOpenPlanner={openPlanner}
             />
           </VStack>
         )}
