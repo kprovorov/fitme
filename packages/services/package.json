@@ -8,6 +8,7 @@
     "./arnold-sessions": "./src/arnold-sessions.ts",
     "./delete-test-users": "./integration/delete-test-users.ts",
     "./delete-user-data": "./src/delete-user-data.ts",
+    "./exercise-notes": "./src/exercise-notes.ts",
     "./exercises": "./src/exercises.ts",
     "./lifetime-totals": "./src/lifetime-totals.ts",
     "./personal-records": "./src/personal-records.ts",
