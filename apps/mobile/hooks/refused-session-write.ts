@@ -20,7 +20,8 @@ export const mayMeanSessionEnded = (error: unknown): boolean =>
  * (`useEndedWorkoutSession`): the Summary, or closed as after a discard, so
  * the caller says nothing about the write. Any other refusal (a 429
  * included) reads nothing, and a read that fails or finds it still open
- * answers false: the caller shows the write's usual error.
+ * answers false: the caller shows the write's usual error. So does a session
+ * already shown finished, whose screens never move.
  */
 export const hasRefusingSessionEnded = async (
   client: QueryClient,
@@ -32,6 +33,12 @@ export const hasRefusingSessionEnded = async (
   }
 
   const queryKey = useWorkoutSessionQuery.getKey({ sessionId });
+
+  // Shown finished from the start, its screens stay read only: nothing moves.
+  if (client.getQueryData<WorkoutSession>(queryKey)?.finished_at) {
+    return false;
+  }
+
   const askedAt = Date.now();
 
   // A read in flight was asked before the refusal: it's asked again.

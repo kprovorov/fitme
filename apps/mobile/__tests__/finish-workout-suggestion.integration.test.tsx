@@ -777,29 +777,9 @@ describe.each(ENTRY_ROUTES)(
       expect(focused().queryByText(SET_SAVE_ERROR)).toBeNull();
     });
 
-    it("shows the row's error when the Workout Session was finished meanwhile, adding nothing", async () => {
-      await startApp({
-        exercises: [{ name: "Squat", sets: [10] }],
-        id: "s1",
-      });
-      await openExercise("Squat");
-      await fireEvent.press(focused().getByText("Add Set"));
-      const session = backend.session("s1");
-
-      if (session) {
-        session.finished_at = "2026-10-08T11:00:00.000Z";
-      }
-
-      await trackSet(2, "6");
-
-      expect(focused().getByText(SET_SAVE_ERROR)).toBeTruthy();
-      expect(focused().getByTestId("log-set-button-2")).toBeTruthy();
-      expect(
-        backend.sets.filter(
-          (set) => set.workout_session_exercise_id === "s1-e1"
-        )
-      ).toHaveLength(1);
-    });
+    // A set added after the Workout Session finished elsewhere moves on to
+    // its Summary: `refused-workout-session-write.test.tsx` (FIT-818), on
+    // the real router this file's stand-in can't follow.
 
     it("says how long to wait when adding a set is rate limited", async () => {
       await startApp({
