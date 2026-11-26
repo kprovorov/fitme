@@ -38,6 +38,8 @@ A personal workout planner: a person signs up, fills in a fitness profile, build
 
 **Personal record (PR)**: A logged set with positive reps that exceeds the User's highest weight for the same Exercise in earlier finished Workout Sessions, or exceeds the highest reps recorded at that highest weight; explicit zero weight allows bodyweight rep records while missing weight does not. First-ever results establish a baseline, ties earn no record, and an earned record is retained when the User changes measurement system. _Avoid_: Workout record, best workout
 
+**Previous set**: What a User did last time in a set: the set with the same number in the most recent earlier-started Workout Session in which they logged the same Exercise with positive reps, in any Plan or Workout. Sets with zero reps don't count, and the Workout Session being looked at never counts itself; when the earlier Workout Session had the Exercise more than once, the first one counts. _Avoid_: Last set (the final set of an Exercise), history, previous result
+
 **Plan Update**: The structural changes a finished Workout Session suggests to its Workout (Exercises replaced, added or removed, sets added or removed), which the User accepts or declines once. Accepted, they become the Workout's new targets. _Avoid_: Plan changes, plan diff
 
 **Note**: A short plain text a User keeps on one thing they train with: an Exercise (shown wherever they do that Exercise, in any Plan) or a logged set of a Workout Session (shown with that set from then on). Each has at most one, and it can be changed or cleared at any time. Notes are private: no other User ever sees them. A Plan also carries a note of its own, older and longer. _Avoid_: Comment (kept for what Users will say to each other), memo
