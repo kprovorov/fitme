@@ -57,13 +57,16 @@ const withSet = (
 /**
  * Removes a row of a Workout Session Exercise's sets table. An added set not
  * logged yet only lives on the phone, so it's dropped there: no request, no
- * event. A saved one is hidden at once and goes through
+ * event. A saved one (a logged one once the User has confirmed, which the
+ * row asks) is hidden at once and goes through
  * `DELETE /v1/workout-session-sets/{id}` (a set already gone answers 204
  * too): it leaves the Workout Session's read, so the stats and Finish count
  * without it, and stays hidden from the rows (`hideRemovedSet`) should a read
  * landing meanwhile still have it. A failure puts it back in its place
- * behind the "Couldn't remove set" alert. The Workout Session is read again either way, since a lost
- * answer may have removed it. Once the User who removed it has signed out,
+ * behind the "Couldn't remove set" alert. The Workout Session is read again
+ * either way, since a lost answer may have removed it, and so is Exercise
+ * history after a logged set. `logged` is whether the set was logged when the
+ * User acted: a set just logged may not be in the read yet. Once the User who removed it has signed out,
  * nothing is shown, alerted, sent or read.
  */
 export const useRemoveWorkoutSessionSet = (sessionId: string) => {
@@ -72,7 +75,7 @@ export const useRemoveWorkoutSessionSet = (sessionId: string) => {
   const { mutateAsync: deleteSet } = useDeleteWorkoutSessionSetMutation();
 
   return useCallback(
-    async (exerciseId: string, { id, set }: ShownSet) => {
+    async (exerciseId: string, { id, set }: ShownSet, logged: boolean) => {
       // A row being edited goes with its unsaved numbers.
       Keyboard.dismiss();
 
@@ -111,7 +114,7 @@ export const useRemoveWorkoutSessionSet = (sessionId: string) => {
         if (!IS_E2E) {
           void segmentClient.track("Set Removed", {
             exercise_id: exerciseId,
-            logged: set.reps_completed !== null,
+            logged,
             session_id: sessionId,
           });
         }
@@ -127,6 +130,10 @@ export const useRemoveWorkoutSessionSet = (sessionId: string) => {
       }
 
       void queryClient.invalidateQueries({ queryKey });
+
+      if (logged) {
+        void queryClient.invalidateQueries({ queryKey: ["exercise-history"] });
+      }
     },
     [deleteSet, queryClient, sessionId, t]
   );

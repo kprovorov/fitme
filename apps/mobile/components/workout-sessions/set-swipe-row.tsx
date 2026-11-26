@@ -22,7 +22,8 @@ interface SetSwipeRowProps {
   enabled: boolean;
   /** The row's shown number, for its test id. */
   number: number;
-  onRemove: () => void;
+  /** `close` closes the row again, should the User keep the set. */
+  onRemove: (close: () => void) => void;
 }
 
 /**
@@ -63,6 +64,8 @@ const SetSwipeRow = ({
     openRow = self.current;
   };
 
+  const handleRemove = () => onRemove(() => row.current?.close());
+
   const handleClose = () => {
     if (openRow === self.current) {
       openRow = null;
@@ -74,7 +77,7 @@ const SetSwipeRow = ({
       actionWidth={REMOVE_ACTION_WIDTH}
       enabled={enabled}
       onClose={handleClose}
-      onFullSwipe={onRemove}
+      onFullSwipe={handleRemove}
       onOpen={handleOpen}
       ref={row}
       renderActions={(armed) => (
@@ -85,7 +88,7 @@ const SetSwipeRow = ({
             armed ? "px-sm items-start" : "px-xs items-center"
           )}
           importantForAccessibility="no-hide-descendants"
-          onPress={onRemove}
+          onPress={handleRemove}
           testID={`remove-set-button-${number}`}
         >
           <Text

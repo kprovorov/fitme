@@ -1,9 +1,10 @@
 import { ApiError, rateLimitedFor } from "@fitme/api-client";
 import { useQueryClient } from "@tanstack/react-query";
 import * as Haptics from "expo-haptics";
+import type { TFunction } from "i18next";
 import { useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { AccessibilityInfo, View } from "react-native";
+import { AccessibilityInfo, Alert, Keyboard, View } from "react-native";
 import type { AccessibilityActionEvent } from "react-native";
 
 import { SymbolImage } from "~/components/symbol-image";
@@ -47,10 +48,11 @@ interface WorkoutSessionExerciseSetRowViewProps {
   /** Called once logging a set not saved yet has created it. */
   onSetCreated?: (set: SavedWorkoutSessionExerciseSet) => void;
   /**
-   * Removes the row's set; swiping it left, or VoiceOver's action, calls it.
-   * None in a finished Workout Session.
+   * Removes the row's set; swiping it left, or VoiceOver's action, calls it,
+   * once the User has confirmed for a logged set. `logged` is whether it was
+   * when the User acted. None in a finished Workout Session.
    */
-  onRemove?: () => void;
+  onRemove?: (logged: boolean) => void;
   /** Called once a set is logged for the first time (not on edits). */
   onSetLogged?: (set: SavedWorkoutSessionExerciseSet) => void;
   sessionId: string;
@@ -68,6 +70,102 @@ const getSetValues = (
   weightCompleted: set?.weight_completed ?? null,
   weightRecommended: set?.weight_recommended ?? initialValues?.weight ?? 0,
 });
+
+/**
+ * Asks before a logged set goes, a set being edited included, whose saved
+ * values stay whatever is typed. Cancel and a dismissal run `keep`.
+ */
+const confirmLoggedSetRemoval = (
+  t: TFunction,
+  number: number,
+  remove: () => void,
+  keep?: () => void
+) => {
+  Keyboard.dismiss();
+  Alert.alert(
+    t("sets.remove.confirm.title", { order: number }),
+    t("sets.remove.confirm.message"),
+    [
+      { onPress: () => keep?.(), style: "cancel", text: t("common.cancel") },
+      {
+        onPress: remove,
+        style: "destructive",
+        text: t("sets.remove.confirm.remove"),
+      },
+    ],
+    { cancelable: true, onDismiss: () => keep?.() }
+  );
+};
+
+/**
+ * The row's first cell: its number, or ✓ once logged. VoiceOver and TalkBack
+ * reach the swipe's Remove as an action on it: a plain View, since iOS reads
+ * a text field's or a Text's actions from another element than the one
+ * focused.
+ */
+const SetNumberCell = ({
+  canRemove,
+  number,
+  onRemove,
+  showsLogged,
+}: {
+  canRemove: boolean;
+  number: number;
+  onRemove: () => void;
+  showsLogged: boolean;
+}) => {
+  const { t } = useTranslation();
+
+  const accessibilityActions = canRemove
+    ? [{ label: t("sets.row.remove", { order: number }), name: "remove" }]
+    : undefined;
+
+  const handleAccessibilityAction = ({
+    nativeEvent,
+  }: AccessibilityActionEvent) => {
+    if (nativeEvent.actionName === "remove") {
+      onRemove();
+    }
+  };
+
+  if (showsLogged) {
+    return (
+      <View
+        accessibilityActions={accessibilityActions}
+        accessibilityLabel={t("sets.row.logged", { order: number })}
+        accessible
+        className={cn(SET_NUMBER_COLUMN_CLASS, "items-center")}
+        onAccessibilityAction={handleAccessibilityAction}
+        testID={`set-number-${number}`}
+      >
+        <SymbolImage
+          className="text-body-emphasized text-primary"
+          name="checkmark"
+        />
+      </View>
+    );
+  }
+
+  return (
+    <View
+      accessibilityActions={accessibilityActions}
+      accessible={canRemove}
+      onAccessibilityAction={handleAccessibilityAction}
+      testID={`set-number-${number}`}
+    >
+      <Text
+        // At body size `#2` fills the column: shrink it at the largest text
+        // sizes rather than wrap it onto a second line.
+        adjustsFontSizeToFit
+        className="text-mono-body w-7 text-center"
+        maxFontSizeMultiplier={SET_TABLE_MAX_FONT_SCALE}
+        numberOfLines={1}
+      >
+        #{number}
+      </Text>
+    </View>
+  );
+};
 
 const WorkoutSessionExerciseSetRowView = ({
   exerciseId,
@@ -247,21 +345,21 @@ const WorkoutSessionExerciseSetRowView = ({
     exerciseId
   );
 
-  // A logged set doesn't swipe yet, and a set whose save is running never
-  // does: saving and removing it would race.
-  const canRemove = !!onRemove && !isDone && !isSaving;
+  // A set whose save is running never swipes: saving and removing it would
+  // race.
+  const canRemove = !!onRemove && !isSaving;
 
-  const remove = () => {
-    if (canRemove) {
-      onRemove();
+  // `close` closes the row a swipe opened, should the User keep the set.
+  const remove = (close?: () => void) => {
+    if (!canRemove) {
+      return;
     }
-  };
 
-  const handleAccessibilityAction = ({
-    nativeEvent,
-  }: AccessibilityActionEvent) => {
-    if (nativeEvent.actionName === "remove") {
-      remove();
+    // Whatever the set is now: logged or not elsewhere since the row opened.
+    if (isDone) {
+      confirmLoggedSetRemoval(t, number, () => onRemove(true), close);
+    } else {
+      onRemove(false);
     }
   };
 
@@ -275,45 +373,12 @@ const WorkoutSessionExerciseSetRowView = ({
       isEditing={isEditable}
       leading={
         <>
-          {showsLogged ? (
-            <View className={cn(SET_NUMBER_COLUMN_CLASS, "items-center")}>
-              <SymbolImage
-                accessibilityLabel={t("sets.row.logged", { order: number })}
-                className="text-body-emphasized text-primary"
-                name="checkmark"
-              />
-            </View>
-          ) : (
-            // VoiceOver and TalkBack reach the swipe's Remove as an action on
-            // the set's number: a plain View, since iOS reads a text field's
-            // or a Text's actions from another element than the one focused.
-            <View
-              accessibilityActions={
-                canRemove
-                  ? [
-                      {
-                        label: t("sets.row.remove", { order: number }),
-                        name: "remove",
-                      },
-                    ]
-                  : undefined
-              }
-              accessible={canRemove}
-              onAccessibilityAction={handleAccessibilityAction}
-              testID={`set-number-${number}`}
-            >
-              <Text
-                // At body size `#2` fills the column: shrink it at the largest
-                // text sizes rather than wrap it onto a second line.
-                adjustsFontSizeToFit
-                className="text-mono-body w-7 text-center"
-                maxFontSizeMultiplier={SET_TABLE_MAX_FONT_SCALE}
-                numberOfLines={1}
-              >
-                #{number}
-              </Text>
-            </View>
-          )}
+          <SetNumberCell
+            canRemove={canRemove}
+            number={number}
+            onRemove={remove}
+            showsLogged={showsLogged}
+          />
           <Text
             adjustsFontSizeToFit
             className="text-mono-body w-20 text-center"
