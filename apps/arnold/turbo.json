@@ -4,9 +4,8 @@
   "tasks": {
     "build": {
       "outputs": [".output/**", ".vercel/output/**"],
-      // The build uploads its source maps for the commit's release, so a new
-      // commit never replays another commit's output (whose upload never ran
-      // for it).
+      // A Vercel build is its commit's own: never replay another commit's
+      // output.
       "env": ["VERCEL", "VERCEL_GIT_COMMIT_SHA"]
     }
   }
