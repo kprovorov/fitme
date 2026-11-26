@@ -28,6 +28,28 @@ export type Database = {
         };
         Relationships: [];
       };
+      exercise_notes: {
+        Row: {
+          exercise_slug: string;
+          note: string;
+          updated_at: string;
+          user_id: string;
+        };
+        ComputedFields: never;
+        Insert: {
+          exercise_slug: string;
+          note: string;
+          updated_at?: string;
+          user_id: string;
+        };
+        Update: {
+          exercise_slug?: string;
+          note?: string;
+          updated_at?: string;
+          user_id?: string;
+        };
+        Relationships: [];
+      };
       personal_record_initializations: {
         Row: {
           completed_at: string;
@@ -286,6 +308,7 @@ export type Database = {
           created_at: string | null;
           id: string;
           logged_at: string | null;
+          note: string | null;
           order: number;
           reps_completed: number | null;
           reps_recommended: number | null;
@@ -300,6 +323,7 @@ export type Database = {
           created_at?: string | null;
           id?: string;
           logged_at?: string | null;
+          note?: string | null;
           order: number;
           reps_completed?: number | null;
           reps_recommended?: number | null;
@@ -313,6 +337,7 @@ export type Database = {
           created_at?: string | null;
           id?: string;
           logged_at?: string | null;
+          note?: string | null;
           order?: number;
           reps_completed?: number | null;
           reps_recommended?: number | null;

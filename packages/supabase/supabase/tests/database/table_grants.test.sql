@@ -10,7 +10,7 @@
 -- Run with `pnpm db test:db` (supabase test db).
 begin;
 
-select plan(10);
+select plan(12);
 
 -- A new table grants what it needs in its own migration, then gets a line
 -- here (and in the checks below if it doesn't take the app tables' grants).
@@ -24,6 +24,7 @@ select is(
   ),
   array[
     'arnold_sessions',
+    'exercise_notes',
     'personal_record_initializations',
     'personal_records',
     'plans',
@@ -75,7 +76,7 @@ select is_empty(
     ]) as p(privilege)
     where c.relnamespace = 'public'::regnamespace
       and c.relkind in ('r', 'p')
-      and c.relname not in ('arnold_sessions', 'personal_record_initializations', 'personal_records', 'weekly_goal_changes', 'workout_session_progress')
+      and c.relname not in ('arnold_sessions', 'exercise_notes', 'personal_record_initializations', 'personal_records', 'weekly_goal_changes', 'workout_session_progress')
       and not has_table_privilege(r.role, c.oid, p.privilege)
   $$,
   'authenticated and service_role hold every privilege on the app tables'
@@ -150,6 +151,28 @@ select is(
       and acl.grantee = 'authenticated'::regrole order by 1),
   array['INSERT', 'SELECT'],
   'authenticated can only read and insert initialization completion'
+);
+
+-- exercise_notes (20261126120000_notes.sql): a User reads, writes and clears
+-- their own notes; service_role keeps every privilege (account deletion)
+select is(
+  array(select acl.privilege_type::text from pg_catalog.pg_class c
+    cross join lateral aclexplode(c.relacl) acl
+    where c.oid = 'public.exercise_notes'::regclass
+      and acl.grantee = 'authenticated'::regrole order by 1),
+  array['DELETE', 'INSERT', 'SELECT', 'UPDATE'],
+  'authenticated has only row-level CRUD grants on exercise_notes'
+);
+
+select is_empty(
+  $$
+    select p.privilege
+    from unnest(array[
+      'select', 'insert', 'update', 'delete', 'truncate', 'references', 'trigger'
+    ]) as p(privilege)
+    where not has_table_privilege('service_role', 'public.exercise_notes', p.privilege)
+  $$,
+  'service_role holds every privilege on exercise_notes'
 );
 
 select * from finish();
