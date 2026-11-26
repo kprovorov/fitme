@@ -20,7 +20,7 @@ A personal workout planner: a person signs up, fills in a fitness profile, build
 
 ### Training
 
-**Plan**: A multi-workout training programme owned by one User, built by the User or by Arnold; a Plan doesn't record which. It always has a name and a training frequency; its goal, place, experience level and workout duration may be left unset. At most one Plan is active per User at a time.
+**Plan**: A multi-workout training programme owned by one User, built by the User or by Arnold; a Plan doesn't record which. It always has a name and a training frequency; its goal, place, experience level and workout duration may be left unset. At most one Plan is active per User at a time. A deleted Plan is gone from the User's Plans for good; the Workout Sessions done from it stay. _Avoid_: Archive (for deleting a Plan)
 
 **Workout**: A single training day inside a Plan: an ordered list of exercises with target sets. _Avoid_: Routine
 
