@@ -3,6 +3,7 @@ import { describe, expect, it, vi } from "vitest";
 
 import {
   forgottenWorkoutSessions,
+  MAX_FAILURES_IN_A_ROW,
   RUN_BUDGET_MS,
 } from "../jobs/forgotten-workout-sessions";
 import type { ForgottenWorkoutSessionsDeps } from "../jobs/forgotten-workout-sessions";
@@ -204,6 +205,38 @@ describe("the forgotten-workout-sessions job", () => {
     expect([...first.logs, ...second.logs].toSorted()).toStrictEqual([
       "forgotten-workout-sessions: 1 listed, 0 finished, 0 discarded, 1 left alone, 0 failed, 0 postponed",
       "forgotten-workout-sessions: 1 listed, 1 finished, 0 discarded, 0 left alone, 0 failed, 0 postponed",
+    ]);
+  });
+
+  it("stops after too many closes fail in a row, leaving the rest to the next run", async () => {
+    const sessions: Record<string, Status | Error> = { a: "finished" };
+
+    for (let i = 0; i < MAX_FAILURES_IN_A_ROW + 3; i += 1) {
+      sessions[`f${i}`] = new Error("connection refused");
+    }
+
+    const { closed, logs, reports, run } = harness(sessions);
+
+    await expect(run()).rejects.toThrow(AlreadyReportedError);
+    expect(closed).toHaveLength(1 + MAX_FAILURES_IN_A_ROW);
+    expect(reports).toHaveLength(MAX_FAILURES_IN_A_ROW);
+    expect(logs).toStrictEqual([
+      `forgotten-workout-sessions: ${MAX_FAILURES_IN_A_ROW + 4} listed, 1 finished, 0 discarded, 0 left alone, ${MAX_FAILURES_IN_A_ROW} failed, 3 postponed`,
+    ]);
+  });
+
+  it("carries on when a failure can't be reported", async () => {
+    vi.spyOn(console, "error").mockReturnValue(undefined);
+
+    const { closed, logs, run } = harness(
+      { a: new Error("deadlock"), b: "finished" },
+      { reportError: () => Promise.reject(new Error("Sentry down")) }
+    );
+
+    await expect(run()).rejects.toThrow(AlreadyReportedError);
+    expect(closed).toStrictEqual(["a", "b"]);
+    expect(logs).toStrictEqual([
+      "forgotten-workout-sessions: 2 listed, 1 finished, 0 discarded, 0 left alone, 1 failed, 0 postponed",
     ]);
   });
 });

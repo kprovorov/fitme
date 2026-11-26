@@ -1,10 +1,12 @@
 import { withService } from "@fitme/db";
+import type { Transaction } from "@fitme/db";
 import { reportError } from "@fitme/observability/node";
 import {
   closeForgottenWorkoutSession,
   listForgottenWorkoutSessions,
 } from "@fitme/services/workout-sessions";
 import type { CloseForgottenWorkoutSessionResult } from "@fitme/services/workout-sessions";
+import { sql } from "drizzle-orm";
 
 import type { Job } from "../job.js";
 import { AlreadyReportedError } from "../reported.js";
@@ -15,6 +17,20 @@ import { AlreadyReportedError } from "../reported.js";
  * never dies mid-close. What's left is the next run's.
  */
 export const RUN_BUDGET_MS = 240_000;
+
+/**
+ * Longest any statement of the job may take, lock waits included, so a close
+ * started just inside the budget still ends before the time limit (240 + 30 s
+ * < 300 s), however long an account deletion holds its table locks.
+ */
+const STATEMENT_TIMEOUT = "30s";
+
+/**
+ * After this many closes failing in a row the run stops: Postgres is likely
+ * down, and every report would cost a flush and a Sentry event. The rest are
+ * postponed to the next run.
+ */
+export const MAX_FAILURES_IN_A_ROW = 5;
 
 type CloseStatus = CloseForgottenWorkoutSessionResult["status"];
 
@@ -29,17 +45,29 @@ export interface ForgottenWorkoutSessionsDeps {
   reportError: (error: unknown, tags?: Record<string, string>) => Promise<void>;
 }
 
+/** `run` in a `withService` transaction of its own, under the statement timeout. */
+const inTransaction = async <T>(
+  run: (tx: Transaction) => Promise<T>
+): Promise<T> =>
+  await withService(async (tx) => {
+    await tx.execute(
+      sql`select set_config('statement_timeout', ${STATEMENT_TIMEOUT}, true)`
+    );
+
+    return await run(tx);
+  });
+
 /** The real dependencies: the services through withService, Sentry, the console. */
 const defaultDeps = (): ForgottenWorkoutSessionsDeps => ({
   closeSession: async (sessionId) => {
-    const { status } = await withService(
+    const { status } = await inTransaction(
       async (tx) => await closeForgottenWorkoutSession(tx, sessionId)
     );
 
     return status;
   },
   listSessions: async () =>
-    await withService(async (tx) => await listForgottenWorkoutSessions(tx)),
+    await inTransaction(async (tx) => await listForgottenWorkoutSessions(tx)),
   log: (message) => {
     console.info(message);
   },
@@ -56,7 +84,7 @@ export interface ForgottenWorkoutSessionsSummary {
   finished: number;
   leftAlone: number;
   listed: number;
-  /** Listed, but not tried before the run's budget ran out. */
+  /** Listed, but not tried: the run's budget ran out, or too many failed in a row. */
   postponed: number;
 }
 
@@ -89,7 +117,12 @@ export const forgottenWorkoutSessions = (
 
       return status === "left_alone" ? "leftAlone" : status;
     } catch (error) {
-      await report(error, { workout_session_id: sessionId });
+      try {
+        await report(error, { workout_session_id: sessionId });
+      } catch {
+        // A report that fails never stops the run; the run still fails
+        console.error("Reporting a failed close failed");
+      }
 
       return "failed";
     }
@@ -108,8 +141,13 @@ export const forgottenWorkoutSessions = (
       postponed: 0,
     };
 
+    let failuresInARow = 0;
+
     for (const [index, sessionId] of sessionIds.entries()) {
-      if (now() - startedAt >= RUN_BUDGET_MS) {
+      if (
+        now() - startedAt >= RUN_BUDGET_MS ||
+        failuresInARow >= MAX_FAILURES_IN_A_ROW
+      ) {
         summary.postponed = sessionIds.length - index;
         break;
       }
@@ -119,6 +157,7 @@ export const forgottenWorkoutSessions = (
       // oxlint-disable-next-line eslint/no-await-in-loop, react-doctor/async-await-in-loop -- sequential on purpose
       const outcome = await closeOne(sessionId);
       summary[outcome] += 1;
+      failuresInARow = outcome === "failed" ? failuresInARow + 1 : 0;
     }
 
     log(
