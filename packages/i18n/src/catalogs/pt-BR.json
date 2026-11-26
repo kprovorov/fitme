@@ -315,7 +315,8 @@
     "confirm": "Confirmar",
     "tryAgain": "Tentar novamente",
     "genericError": "Algo deu errado. Tente novamente mais tarde.",
-    "rateLimited": "Muitas solicitações: tente novamente em {{seconds, number}} s."
+    "rateLimited": "Muitas solicitações: tente novamente em {{seconds, number}} s.",
+    "ok": "OK"
   },
   "compactUnits": {
     "t": "{{value, number}} t",
@@ -871,6 +872,48 @@
       "notFound": "Este plano não existe mais.",
       "network": "Verifique sua conexão e tente novamente.",
       "rateLimited": "Muitas solicitações: tente novamente em {{seconds, number}} s."
+    },
+    "active": "Ativo",
+    "otherPlans": "Outros planos",
+    "moreOptions": "Mais opções",
+    "activating": "Ativando o plano",
+    "more": "+{{count, number}}",
+    "moreWorkoutsSpoken_one": "e mais {{count, number}} treino",
+    "moreWorkoutsSpoken_many": "e mais {{count, number}} treinos",
+    "moreWorkoutsSpoken_other": "e mais {{count, number}} treinos",
+    "moreExercisesSpoken_one": "e mais {{count, number}} exercício",
+    "moreExercisesSpoken_many": "e mais {{count, number}} exercícios",
+    "moreExercisesSpoken_other": "e mais {{count, number}} exercícios",
+    "noActivePlan": {
+      "title": "Nenhum plano ativo",
+      "message": "Escolha um plano e ative-o para começar a treinar."
+    },
+    "empty": {
+      "title": "Nenhum plano ainda",
+      "message": "Crie seu primeiro plano de treino para começar."
+    },
+    "listError": {
+      "title": "Não foi possível carregar seus planos"
+    },
+    "planError": {
+      "title": "Não foi possível carregar o plano"
+    },
+    "notFound": {
+      "title": "Plano não encontrado",
+      "back": "Voltar aos planos"
+    },
+    "noWorkouts": {
+      "title": "Nenhum treino ainda",
+      "message": "Adicione treinos a este plano para começar a treinar."
+    },
+    "delete": {
+      "action": "Excluir plano",
+      "title": "Excluir plano?",
+      "message": "Não é possível desfazer. Seus treinos anteriores continuam no Histórico.",
+      "confirm": "Excluir",
+      "failed": "Não foi possível excluir o plano",
+      "activeTitle": "Não é possível excluir o plano ativo",
+      "activeMessage": "Primeiro crie ou ative outro plano e depois exclua este."
     }
   },
   "profile": {

@@ -315,7 +315,8 @@
     "confirm": "Conferma",
     "tryAgain": "Riprova",
     "genericError": "Qualcosa è andato storto. Riprova più tardi.",
-    "rateLimited": "Troppe richieste: riprova tra {{seconds, number}} s."
+    "rateLimited": "Troppe richieste: riprova tra {{seconds, number}} s.",
+    "ok": "OK"
   },
   "compactUnits": {
     "t": "{{value, number}} t",
@@ -871,6 +872,48 @@
       "notFound": "Questo piano non esiste più.",
       "network": "Controlla la connessione e riprova.",
       "rateLimited": "Troppe richieste: riprova tra {{seconds, number}} s."
+    },
+    "active": "Attivo",
+    "otherPlans": "Altri piani",
+    "moreOptions": "Altre opzioni",
+    "activating": "Attivazione del piano",
+    "more": "+{{count, number}}",
+    "moreWorkoutsSpoken_one": "e {{count, number}} altro allenamento",
+    "moreWorkoutsSpoken_many": "e {{count, number}} altri allenamenti",
+    "moreWorkoutsSpoken_other": "e {{count, number}} altri allenamenti",
+    "moreExercisesSpoken_one": "e {{count, number}} altro esercizio",
+    "moreExercisesSpoken_many": "e {{count, number}} altri esercizi",
+    "moreExercisesSpoken_other": "e {{count, number}} altri esercizi",
+    "noActivePlan": {
+      "title": "Nessun piano attivo",
+      "message": "Scegli un piano e attivalo per iniziare ad allenarti."
+    },
+    "empty": {
+      "title": "Ancora nessun piano",
+      "message": "Crea il tuo primo piano di allenamento per iniziare."
+    },
+    "listError": {
+      "title": "Impossibile caricare i tuoi piani"
+    },
+    "planError": {
+      "title": "Impossibile caricare il piano"
+    },
+    "notFound": {
+      "title": "Piano non trovato",
+      "back": "Torna ai piani"
+    },
+    "noWorkouts": {
+      "title": "Ancora nessun allenamento",
+      "message": "Aggiungi allenamenti a questo piano per iniziare ad allenarti."
+    },
+    "delete": {
+      "action": "Elimina piano",
+      "title": "Eliminare il piano?",
+      "message": "L'operazione non può essere annullata. I tuoi allenamenti passati restano nella Cronologia.",
+      "confirm": "Elimina",
+      "failed": "Impossibile eliminare il piano",
+      "activeTitle": "Impossibile eliminare il piano attivo",
+      "activeMessage": "Prima crea o attiva un altro piano, poi elimina questo."
     }
   },
   "profile": {

@@ -315,7 +315,8 @@
     "confirm": "Confirmer",
     "tryAgain": "Réessayer",
     "genericError": "Une erreur est survenue. Réessaie plus tard.",
-    "rateLimited": "Trop de requêtes : réessaie dans {{seconds, number}} s."
+    "rateLimited": "Trop de requêtes : réessaie dans {{seconds, number}} s.",
+    "ok": "OK"
   },
   "compactUnits": {
     "t": "{{value, number}} t",
@@ -871,6 +872,48 @@
       "notFound": "Ce programme n'existe plus.",
       "network": "Vérifie ta connexion et réessaie.",
       "rateLimited": "Trop de requêtes : réessaie dans {{seconds, number}} s."
+    },
+    "active": "Actif",
+    "otherPlans": "Autres programmes",
+    "moreOptions": "Plus d'options",
+    "activating": "Activation du programme",
+    "more": "+{{count, number}}",
+    "moreWorkoutsSpoken_one": "et {{count, number}} autre séance",
+    "moreWorkoutsSpoken_many": "et {{count, number}} autres séances",
+    "moreWorkoutsSpoken_other": "et {{count, number}} autres séances",
+    "moreExercisesSpoken_one": "et {{count, number}} autre exercice",
+    "moreExercisesSpoken_many": "et {{count, number}} autres exercices",
+    "moreExercisesSpoken_other": "et {{count, number}} autres exercices",
+    "noActivePlan": {
+      "title": "Aucun programme actif",
+      "message": "Choisis un programme et active-le pour commencer à t'entraîner."
+    },
+    "empty": {
+      "title": "Aucun programme pour l'instant",
+      "message": "Crée ton premier programme d'entraînement pour commencer."
+    },
+    "listError": {
+      "title": "Impossible de charger tes programmes"
+    },
+    "planError": {
+      "title": "Impossible de charger le programme"
+    },
+    "notFound": {
+      "title": "Programme introuvable",
+      "back": "Retour aux programmes"
+    },
+    "noWorkouts": {
+      "title": "Aucune séance pour l'instant",
+      "message": "Ajoute des séances à ce programme pour commencer à t'entraîner."
+    },
+    "delete": {
+      "action": "Supprimer le programme",
+      "title": "Supprimer le programme ?",
+      "message": "Cette action est irréversible. Tes séances passées restent dans l'Historique.",
+      "confirm": "Supprimer",
+      "failed": "Impossible de supprimer le programme",
+      "activeTitle": "Impossible de supprimer le programme actif",
+      "activeMessage": "Crée ou active d'abord un autre programme, puis supprime celui-ci."
     }
   },
   "profile": {

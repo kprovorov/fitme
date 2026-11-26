@@ -310,7 +310,8 @@
     "confirm": "Confirm",
     "tryAgain": "Try Again",
     "genericError": "Something went wrong. Please try again later.",
-    "rateLimited": "Too many requests: please try again in {{seconds, number}} s."
+    "rateLimited": "Too many requests: please try again in {{seconds, number}} s.",
+    "ok": "OK"
   },
   "compactUnits": {
     "t": "{{value, number}} t",
@@ -844,6 +845,46 @@
       "notFound": "This plan no longer exists.",
       "network": "Please check your connection and try again.",
       "rateLimited": "Too many requests: please try again in {{seconds, number}} s."
+    },
+    "active": "Active",
+    "otherPlans": "Other Plans",
+    "moreOptions": "More options",
+    "activating": "Activating plan",
+    "more": "+{{count, number}}",
+    "moreWorkoutsSpoken_one": "and {{count, number}} more workout",
+    "moreWorkoutsSpoken_other": "and {{count, number}} more workouts",
+    "moreExercisesSpoken_one": "and {{count, number}} more exercise",
+    "moreExercisesSpoken_other": "and {{count, number}} more exercises",
+    "noActivePlan": {
+      "title": "No Active Plan",
+      "message": "Pick a plan and activate it to start training."
+    },
+    "empty": {
+      "title": "No Plans Yet",
+      "message": "Create your first workout plan to get started."
+    },
+    "listError": {
+      "title": "Couldn't Load Your Plans"
+    },
+    "planError": {
+      "title": "Couldn't Load Plan"
+    },
+    "notFound": {
+      "title": "Plan Not Found",
+      "back": "Back to Plans"
+    },
+    "noWorkouts": {
+      "title": "No Workouts Yet",
+      "message": "Add workouts to this plan to start training."
+    },
+    "delete": {
+      "action": "Delete Plan",
+      "title": "Delete Plan?",
+      "message": "This can't be undone. Your past workouts stay in History.",
+      "confirm": "Delete",
+      "failed": "Couldn't Delete Plan",
+      "activeTitle": "Can't Delete Active Plan",
+      "activeMessage": "Create or activate another plan first, then delete this one."
     }
   },
   "profile": {

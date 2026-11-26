@@ -305,7 +305,8 @@
     "confirm": "確認",
     "tryAgain": "再試行",
     "genericError": "問題が発生しました。しばらくしてからお試しください。",
-    "rateLimited": "リクエストが多すぎます。{{seconds, number}}秒後にお試しください。"
+    "rateLimited": "リクエストが多すぎます。{{seconds, number}}秒後にお試しください。",
+    "ok": "OK"
   },
   "compactUnits": {
     "t": "{{value, number}} t",
@@ -817,6 +818,44 @@
       "notFound": "このプランは存在しません。",
       "network": "接続を確認して、もう一度お試しください。",
       "rateLimited": "リクエストが多すぎます。{{seconds, number}}秒後にお試しください。"
+    },
+    "active": "使用中",
+    "otherPlans": "その他のプラン",
+    "moreOptions": "その他のオプション",
+    "activating": "プランを有効にしています",
+    "more": "+{{count, number}}",
+    "moreWorkoutsSpoken_other": "ほか{{count, number}}ワークアウト",
+    "moreExercisesSpoken_other": "ほか{{count, number}}種目",
+    "noActivePlan": {
+      "title": "使用中のプランがありません",
+      "message": "プランを選んで有効にすると、トレーニングを始められます。"
+    },
+    "empty": {
+      "title": "プランはまだありません",
+      "message": "最初のトレーニングプランを作成して始めましょう。"
+    },
+    "listError": {
+      "title": "プランを読み込めませんでした"
+    },
+    "planError": {
+      "title": "プランを読み込めませんでした"
+    },
+    "notFound": {
+      "title": "プランが見つかりません",
+      "back": "プラン一覧に戻る"
+    },
+    "noWorkouts": {
+      "title": "ワークアウトはまだありません",
+      "message": "このプランにワークアウトを追加すると、トレーニングを始められます。"
+    },
+    "delete": {
+      "action": "プランを削除",
+      "title": "プランを削除しますか？",
+      "message": "この操作は取り消せません。これまでのワークアウトは履歴に残ります。",
+      "confirm": "削除",
+      "failed": "プランを削除できませんでした",
+      "activeTitle": "使用中のプランは削除できません",
+      "activeMessage": "先に別のプランを作成するか有効にしてから、このプランを削除してください。"
     }
   },
   "profile": {

@@ -315,7 +315,8 @@
     "confirm": "Confirma",
     "tryAgain": "Torna-ho a provar",
     "genericError": "S'ha produït un error. Torna-ho a provar més tard.",
-    "rateLimited": "Massa sol·licituds: torna-ho a provar d'aquí a {{seconds, number}} s."
+    "rateLimited": "Massa sol·licituds: torna-ho a provar d'aquí a {{seconds, number}} s.",
+    "ok": "D'acord"
   },
   "compactUnits": {
     "t": "{{value, number}} t",
@@ -871,6 +872,48 @@
       "notFound": "Aquest pla ja no existeix.",
       "network": "Comprova la connexió i torna-ho a provar.",
       "rateLimited": "Massa sol·licituds: torna-ho a provar d'aquí a {{seconds, number}} s."
+    },
+    "active": "Actiu",
+    "otherPlans": "Altres plans",
+    "moreOptions": "Més opcions",
+    "activating": "S'està activant el pla",
+    "more": "+{{count, number}}",
+    "moreWorkoutsSpoken_one": "i {{count, number}} entrenament més",
+    "moreWorkoutsSpoken_many": "i {{count, number}} entrenaments més",
+    "moreWorkoutsSpoken_other": "i {{count, number}} entrenaments més",
+    "moreExercisesSpoken_one": "i {{count, number}} exercici més",
+    "moreExercisesSpoken_many": "i {{count, number}} exercicis més",
+    "moreExercisesSpoken_other": "i {{count, number}} exercicis més",
+    "noActivePlan": {
+      "title": "Cap pla actiu",
+      "message": "Tria un pla i activa'l per començar a entrenar."
+    },
+    "empty": {
+      "title": "Encara no hi ha plans",
+      "message": "Crea el teu primer pla d'entrenament per començar."
+    },
+    "listError": {
+      "title": "No s'han pogut carregar els teus plans"
+    },
+    "planError": {
+      "title": "No s'ha pogut carregar el pla"
+    },
+    "notFound": {
+      "title": "No s'ha trobat el pla",
+      "back": "Torna als plans"
+    },
+    "noWorkouts": {
+      "title": "Encara no hi ha entrenaments",
+      "message": "Afegeix entrenaments a aquest pla per començar a entrenar."
+    },
+    "delete": {
+      "action": "Elimina el pla",
+      "title": "Vols eliminar el pla?",
+      "message": "No es pot desfer. Els teus entrenaments anteriors es queden a l'Historial.",
+      "confirm": "Elimina",
+      "failed": "No s'ha pogut eliminar el pla",
+      "activeTitle": "No es pot eliminar el pla actiu",
+      "activeMessage": "Primer crea o activa un altre pla i després elimina aquest."
     }
   },
   "profile": {

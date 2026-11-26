@@ -305,7 +305,8 @@
     "confirm": "確認",
     "tryAgain": "再試一次",
     "genericError": "出了點問題，請稍後再試一次。",
-    "rateLimited": "請求過於頻繁，請在{{seconds, number}}秒後再試一次。"
+    "rateLimited": "請求過於頻繁，請在{{seconds, number}}秒後再試一次。",
+    "ok": "好"
   },
   "compactUnits": {
     "t": "{{value, number}}噸",
@@ -817,6 +818,44 @@
       "notFound": "此計畫已不存在。",
       "network": "請檢查網路連線後再試一次。",
       "rateLimited": "請求過於頻繁，請在{{seconds, number}}秒後再試一次。"
+    },
+    "active": "使用中",
+    "otherPlans": "其他計畫",
+    "moreOptions": "更多選項",
+    "activating": "正在啟用計畫",
+    "more": "+{{count, number}}",
+    "moreWorkoutsSpoken_other": "以及另外{{count, number}}項訓練",
+    "moreExercisesSpoken_other": "以及另外{{count, number}}個動作",
+    "noActivePlan": {
+      "title": "沒有使用中的計畫",
+      "message": "選擇一個計畫並啟用它，即可開始訓練。"
+    },
+    "empty": {
+      "title": "還沒有計畫",
+      "message": "建立你的第一個訓練計畫，開始吧。"
+    },
+    "listError": {
+      "title": "無法載入你的計畫"
+    },
+    "planError": {
+      "title": "無法載入計畫"
+    },
+    "notFound": {
+      "title": "找不到計畫",
+      "back": "返回計畫"
+    },
+    "noWorkouts": {
+      "title": "還沒有訓練",
+      "message": "為此計畫新增訓練，即可開始訓練。"
+    },
+    "delete": {
+      "action": "刪除計畫",
+      "title": "刪除計畫？",
+      "message": "此動作無法復原。你以往的訓練會保留在歷史記錄中。",
+      "confirm": "刪除",
+      "failed": "無法刪除計畫",
+      "activeTitle": "無法刪除使用中的計畫",
+      "activeMessage": "請先建立或啟用另一個計畫，然後再刪除此計畫。"
     }
   },
   "profile": {
