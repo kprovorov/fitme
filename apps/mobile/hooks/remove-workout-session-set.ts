@@ -24,6 +24,15 @@ import { segmentClient } from "~/lib/segment";
 import { sessionEditFailureMessage } from "~/lib/session-edit-failure";
 import { isStillWriteStarter, rememberWriteStarter } from "~/lib/write-answers";
 
+/** Whether a save answered after the read's copy of the set was logged. */
+const isNewerSave = (
+  saved: SavedWorkoutSessionExerciseSet,
+  set: WorkoutSessionSet
+): boolean =>
+  set.logged_at === null ||
+  (saved.logged_at !== null &&
+    Date.parse(saved.logged_at) > Date.parse(set.logged_at));
+
 /** The Workout Session's read without the set. */
 const withoutSet = (
   session: WorkoutSession | undefined,
@@ -117,9 +126,10 @@ export const useRemoveWorkoutSessionSet = (sessionId: string) => {
 
       const starter = rememberWriteStarter(queryClient, []);
 
-      // What comes back on a failure: logged, should the read not have it yet.
+      // What comes back on a failure: the row's last save when the read
+      // hasn't caught up with it yet (a log or an edit), else the read.
       const restored =
-        saved?.id === set.id && set.reps_completed === null
+        saved?.id === set.id && isNewerSave(saved, set)
           ? { ...set, ...saved }
           : set;
 

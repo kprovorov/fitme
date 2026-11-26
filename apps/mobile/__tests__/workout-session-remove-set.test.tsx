@@ -1015,6 +1015,32 @@ describe.each([
     await settle(queryClient);
   });
 
+  it("brings back an edit it just saved when removing fails", async () => {
+    await mountScreen();
+    // The read after the edit waits, so only the save knows the new reps.
+    const resumeRead = fakePublicApi.pause(SESSION_ROUTE);
+    await press("Edit set 1");
+    await fireEvent.changeText(screen.getByLabelText("Set 1 reps"), "12");
+    await press("Log set 1");
+    await until(() => fakePublicApi.count(LOG_SET_ROUTE) === 1);
+    await until(() => screen.queryByLabelText("Set 1, logged") !== null);
+    fakePublicApi.failNext(REMOVE_ROUTE, "network");
+    await swipeFully(1);
+    await answerAlert("Remove", { wait: false });
+    await until(() =>
+      jest
+        .mocked(Alert.alert)
+        .mock.calls.some(([title]) => title === REMOVE_FAILED)
+    );
+    await until(() => screen.queryByText("12") !== null);
+
+    expect(screen.getByLabelText("Set 1, logged")).toBeTruthy();
+    expect(screen.getByText("12")).toBeTruthy();
+
+    resumeRead();
+    await settle(queryClient);
+  });
+
   it("asks and removes in Ukrainian too", async () => {
     setDeviceLanguages(["uk-UA"]);
     await mountScreen();
