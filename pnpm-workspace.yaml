@@ -89,12 +89,6 @@ auditConfig:
     # Recheck on every Expo SDK, Jest or @sentry/react-native bump.
     - GHSA-3g3m-2fjr-6pw4
     - GHSA-g3hv-75wg-m249
-    # deepmerge 4.3.1 under apps__mobile > @segment/analytics-react-native: no
-    # patched release (FIT-364). Segment only deep-merges the device context it
-    # builds itself and the traits auth-sync.tsx passes to identify ({ email,
-    # name }: our keys, string values), never an object whose keys a User
-    # chooses. Recheck on every Segment bump, and whenever identify gets traits.
-    - GHSA-gcqx-w48m-w2h4
     # postcss-selector-parser 6.0.10 under apps__site > @tailwindcss/typography
     # (FIT-415): typography 0.5.20, the latest, pins it exactly, so there is no
     # fixed path. A devDependency run only at build time over our own CSS, never
