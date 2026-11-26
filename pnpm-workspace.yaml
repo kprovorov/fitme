@@ -7,6 +7,14 @@ nodeLinker: hoisted
 autoInstallPeers: true
 strictPeerDependencies: false
 
+# openapi-typescript 7 (packages/api-client's generator) declares a `^5.x`
+# typescript peer, but its output on 6.0.3 is byte-identical to 5.9.3's
+# (docs/research/typescript-7.md). Drop the line once a release accepts 6, or
+# once openapi-typescript is replaced (step 5 of that migration).
+peerDependencyRules:
+  allowedVersions:
+    openapi-typescript>typescript: "6"
+
 # One react for the whole workspace: the version React Native in Expo SDK 58
 # expects. Without this, auto-installed peers (Clerk, Next in the backend apps)
 # resolve the newest react and leave a second copy for expo-doctor to flag.
