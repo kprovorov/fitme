@@ -9,14 +9,6 @@ import type { LibraryV2 } from "./exercise-library.js";
 
 export type { LibraryIndex } from "@fitme/library-bundle/library-index";
 
-/** The Library index couldn't be loaded (its load reported why). */
-export class LibraryIndexUnavailableError extends Error {
-  constructor() {
-    super("The Library index couldn't be loaded; try again");
-    this.name = "LibraryIndexUnavailableError";
-  }
-}
-
 /**
  * The bundle the environment names: production's Blob store, LIBRARY_BUNDLE
  * or the committed fixture anywhere else.
