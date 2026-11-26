@@ -25,31 +25,6 @@ const exerciseStorageKey = (language: AppLanguage, slug: string) =>
 
 const COVERS_STORAGE_KEY = "library.covers";
 
-/** Set once the Legacy Library's copies have been swept off this install. */
-const LEGACY_SWEPT_KEY = "exercises.legacy-copies-swept";
-
-/** `library.<language>.exercise-summary.<slug>` and `library.<language>.exercise.<slug>`. */
-const LEGACY_EXERCISE_KEY = /^library\.[^.]+\.exercise(?:-summary)?\./u;
-
-/**
- * Removes every copy a build reading the Legacy Library kept (its shape is
- * not the new Library's), once per install: the flag stays set afterwards,
- * so later reads cost one boolean.
- */
-export const sweepLegacyExerciseCopies = () => {
-  if (storage.getBoolean(LEGACY_SWEPT_KEY)) {
-    return;
-  }
-
-  for (const key of storage.getAllKeys()) {
-    if (LEGACY_EXERCISE_KEY.test(key)) {
-      storage.remove(key);
-    }
-  }
-
-  storage.set(LEGACY_SWEPT_KEY, true);
-};
-
 export interface CachedEntry<T> {
   savedAt: number;
   value: T;
@@ -103,7 +78,6 @@ const read = <T>(
   key: string,
   isValue: (value: unknown) => value is T
 ): CachedEntry<T> | undefined => {
-  sweepLegacyExerciseCopies();
   const raw = storage.getString(key);
 
   if (!raw) {
@@ -128,7 +102,6 @@ const read = <T>(
 };
 
 const write = <T>(key: string, value: T, savedAt: number) => {
-  sweepLegacyExerciseCopies();
   storage.set(key, JSON.stringify({ savedAt, value }));
 };
 
