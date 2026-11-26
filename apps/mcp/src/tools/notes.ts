@@ -38,42 +38,27 @@ const nameNote = (note: ExerciseNote, known: KnownExercises) =>
   named(note, known);
 
 /**
- * The slug a note is stored under: the Exercise's own slug in the Library,
- * so a slug the Library replaced lands on the note its replacement shows.
- * A write needs the Exercise known (an unknown one is a `ToolError` naming
- * it, a Library that can't load the Library tool error); clearing needs
- * nothing, so a note on an Exercise that left the Library can always go,
- * and stays under the slug sent when the Library doesn't know it.
+ * The slug a new note's text is stored under: the Exercise's own slug in the
+ * Library, so a slug the Library replaced lands on the note its replacement
+ * shows. An unknown one is a `ToolError` naming it, a Library that can't load
+ * the Library tool error.
  */
-const noteSlug = async (
-  ctx: ToolContext,
-  slug: string,
-  clearing: boolean
-): Promise<string> => {
+const writtenSlug = async (ctx: ToolContext, slug: string): Promise<string> => {
   const answer = await ctx.library.get();
 
   if (answer.status === "unavailable") {
-    if (clearing) {
-      return slug;
-    }
-
     throw new ToolError(LIBRARY_UNAVAILABLE_MESSAGE);
   }
 
-  const { known } = answer.library.checkSlugs([slug]);
-  const [exercise] = known;
+  const [exercise] = answer.library.checkSlugs([slug]).known;
 
-  if (exercise) {
-    return exercise.exercise_slug;
+  if (!exercise) {
+    throw new ToolError(
+      `Unknown exercise_slug: ${slug}. Use list_exercises to look up valid Exercise slugs.`
+    );
   }
 
-  if (clearing) {
-    return slug;
-  }
-
-  throw new ToolError(
-    `Unknown exercise_slug: ${slug}. Use list_exercises to look up valid Exercise slugs.`
-  );
+  return exercise.exercise_slug;
 };
 
 export const registerNoteTools = (server: McpServer, ctx: ToolContext) => {
@@ -123,7 +108,13 @@ export const registerNoteTools = (server: McpServer, ctx: ToolContext) => {
       async ({ exerciseSlug, expectedNote, note }, services) => {
         const cleaned = cleanNote(note);
         const clearing = cleaned.ok && cleaned.note === null;
-        const slug = await noteSlug(ctx, exerciseSlug, clearing);
+
+        // Clearing never asks the Library: it removes the note under the slug
+        // it's stored as, so one on an Exercise that left the Library (or was
+        // replaced in it) can always go
+        const slug = clearing
+          ? exerciseSlug
+          : await writtenSlug(ctx, exerciseSlug);
 
         const result = await services.setExerciseNote({
           exerciseSlug: slug,

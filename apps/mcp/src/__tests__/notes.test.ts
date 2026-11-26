@@ -158,6 +158,28 @@ describe("set_exercise_note", () => {
     );
   });
 
+  it("clears a note under the slug sent, a replaced one included", async () => {
+    const setExerciseNote = vi.fn<UserServices["setExerciseNote"]>(
+      savedOn("flat-bench")
+    );
+
+    const client = await connectWithServices(
+      { setExerciseNote },
+      undefined,
+      testLibrary({ replacedSlugs: { "flat-bench": "bench-press" } })
+    );
+
+    await call(client, "set_exercise_note", {
+      exerciseSlug: "flat-bench",
+      expectedNote: "Seat on hole 4",
+      note: "",
+    });
+
+    expect(setExerciseNote).toHaveBeenCalledWith(
+      expect.objectContaining({ exerciseSlug: "flat-bench" })
+    );
+  });
+
   it("refuses, unreported, a note that changed since it was read, showing it", async () => {
     const { reportError, reported } = recordingReporter();
 
