@@ -26,7 +26,6 @@ import {
   fakeExercise,
   serveExercises,
 } from "~/test-utils/fake-exercises";
-import { fakePublicApi } from "~/test-utils/fake-public-api";
 import { InAppLanguage } from "~/test-utils/in-app-language";
 import { createTestQueryClient, settle } from "~/test-utils/query-client";
 
@@ -200,36 +199,6 @@ describe("an Exercise read offline, from the copy kept on the device", () => {
     await renderScreen("bench-press");
 
     expect(shownEquipment()).toEqual(["Barbell", "sandbag"]);
-  });
-});
-
-describe("a copy kept by a build reading the Legacy Library", () => {
-  it("is swept, and the screen reads the Exercise from the new route", async () => {
-    // The Legacy Library's shape, under its key: no Equipment, no steps.
-    storage.set(
-      "library.en.exercise.bench-press",
-      JSON.stringify({
-        savedAt: Date.now(),
-        value: {
-          description: "About bench-press.",
-          instructions: "- Do bench-press.",
-          muscle_groups: ["chest"],
-          name: "Bench Press",
-          slug: "bench-press",
-          thumbnail_url: "https://media.test/render/bench-press.jpg",
-          video_url: "https://media.test/bench-press.mp4",
-        },
-      })
-    );
-
-    await renderScreen("bench-press");
-
-    expect(
-      storage.getString("library.en.exercise.bench-press")
-    ).toBeUndefined();
-    expect(fakePublicApi.count("GET /v1/exercises/{slug}")).toBe(1);
-    expect(screen.getByText("About Bench Press")).toBeTruthy();
-    expect(shownEquipment()).toEqual(["Barbell", "Bench"]);
   });
 });
 

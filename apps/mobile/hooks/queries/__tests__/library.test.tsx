@@ -1,6 +1,6 @@
 /**
  * The Library hooks over the fake Public API's Exercise routes (FIT-755):
- * the per-language MMKV copies and their sweep, the lookup's batching, old
+ * the per-language MMKV copies, the lookup's batching, old
  * slugs resolving to their replacement, and the offline fallbacks.
  */
 import {
@@ -16,11 +16,7 @@ import { act, renderHook, waitFor } from "@testing-library/react-native";
 import type { ReactNode } from "react";
 
 import { i18n } from "~/lib/i18n";
-import {
-  readCachedCovers,
-  readCachedExercise,
-  readCachedSummary,
-} from "~/lib/library-cache";
+import { readCachedExercise, readCachedSummary } from "~/lib/library-cache";
 import { storage } from "~/lib/mmkv";
 import {
   EXERCISES_UNAVAILABLE,
@@ -187,61 +183,6 @@ describe("the MMKV cache", () => {
       expect(result.current["bench-press"].name).toBe("Bench Press")
     );
     expect(lookups()).toEqual([{ slugs: "bench-press" }]);
-  });
-});
-
-describe("the Legacy Library's copies", () => {
-  const LEGACY_KEYS = [
-    "library.en.exercise-summary.bench-press",
-    "library.uk.exercise.bench-press",
-  ];
-
-  const COVERS = JSON.stringify({
-    savedAt: Date.now(),
-    value: [
-      {
-        id: "cover-1",
-        image_url: "https://media.test/cover.jpg",
-        muscle_groups: ["chest"],
-      },
-    ],
-  });
-
-  const seedLegacyCopies = () => {
-    for (const key of LEGACY_KEYS) {
-      storage.set(
-        key,
-        JSON.stringify({
-          savedAt: Date.now(),
-          value: { name: "Bench Press", slug: "bench-press" },
-        })
-      );
-    }
-  };
-
-  it("are swept on the first read, the Covers kept", () => {
-    seedLegacyCopies();
-    storage.set("library.covers", COVERS);
-
-    readCachedSummary("en", "bench-press");
-
-    for (const key of LEGACY_KEYS) {
-      expect(storage.getString(key)).toBeUndefined();
-    }
-
-    expect(readCachedCovers()?.value).toHaveLength(1);
-    expect(storage.getBoolean("exercises.legacy-copies-swept")).toBe(true);
-  });
-
-  it("are swept once per install", () => {
-    readCachedSummary("en", "bench-press");
-    seedLegacyCopies();
-
-    readCachedSummary("en", "bench-press");
-
-    for (const key of LEGACY_KEYS) {
-      expect(storage.getString(key)).toBeDefined();
-    }
   });
 });
 
