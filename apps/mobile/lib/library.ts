@@ -11,9 +11,6 @@ const notConfigured = () =>
 /** Answers every call unavailable, with no request: no URL to send it to. */
 const unconfigured: Library = {
   covers: () => Promise.reject(notConfigured()),
-  get: () => Promise.reject(notConfigured()),
-  list: () => Promise.reject(notConfigured()),
-  lookup: () => Promise.reject(notConfigured()),
 };
 
 let library: Library | undefined;
@@ -21,8 +18,9 @@ let library: Library | undefined;
 /**
  * The Library API, called as the signed-in User with their Clerk session
  * token, resolved per request so Clerk's refreshes apply. Created on first
- * use. Unset `EXPO_PUBLIC_LIBRARY_URL` fails every call unavailable, so
- * Exercises show the names made from their slugs.
+ * use, and read for the Covers only (Exercises come from the Public API).
+ * Unset `EXPO_PUBLIC_LIBRARY_URL` fails every call unavailable, so no Cover
+ * shows.
  */
 export const getLibrary = (): Library => {
   if (!library) {

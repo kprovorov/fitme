@@ -1,4 +1,4 @@
-export { createLibrary, type LibraryOptions, MAX_LOOKUP_SLUGS } from "./client";
+export { createLibrary, type LibraryOptions } from "./client";
 
 export {
   LibraryError,
@@ -11,13 +11,4 @@ export {
 
 export { exerciseNameFromSlug } from "./name";
 
-export type {
-  Cover,
-  Exercise,
-  ExerciseBatch,
-  ExercisePage,
-  ExerciseSummary,
-  LanguageOption,
-  Library,
-  ListExercisesParams,
-} from "./types";
+export type { Cover, Library } from "./types";

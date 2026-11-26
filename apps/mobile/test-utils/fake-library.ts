@@ -1,6 +1,6 @@
 import type { Cover, Library } from "@fitme/library-sdk";
 import { createFakeLibrary } from "@fitme/library-sdk/fake";
-import type { FakeExercise, FakeLibrary } from "@fitme/library-sdk/fake";
+import type { FakeLibrary } from "@fitme/library-sdk/fake";
 
 interface LibraryHolder {
   current: Library;
@@ -17,7 +17,7 @@ interface LibraryHolder {
  *   );
  */
 export const library: LibraryHolder = {
-  current: createFakeLibrary([]),
+  current: createFakeLibrary(),
 };
 
 export const libraryModule = {
@@ -25,15 +25,12 @@ export const libraryModule = {
 };
 
 /**
- * Makes a fake over these Exercises (and Covers, none by default) the one the
- * app reads. Only the Covers come from it now: Exercises are the fake Public
- * API's (`serveExercises`).
+ * Makes a fake over these Covers (none by default) the one the app reads.
+ * Only the Covers come from it: Exercises are the fake Public API's
+ * (`serveExercises`).
  */
-export const serveLibrary = (
-  exercises: readonly FakeExercise[],
-  options: { covers?: readonly Cover[] } = {}
-): FakeLibrary => {
-  const fake = createFakeLibrary(exercises, options);
+export const serveLibrary = (covers: readonly Cover[] = []): FakeLibrary => {
+  const fake = createFakeLibrary(covers);
   library.current = fake;
 
   return fake;

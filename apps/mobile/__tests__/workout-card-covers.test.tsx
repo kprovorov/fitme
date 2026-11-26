@@ -122,7 +122,7 @@ beforeEach(() => {
       name: "Bench Press",
     }),
   ]);
-  serveLibrary([], { covers: [LEGS_COVER, CHEST_COVER] });
+  serveLibrary([LEGS_COVER, CHEST_COVER]);
   backend.seedPlan({
     id: "plan-1",
     is_active: true,
@@ -196,7 +196,7 @@ describe("the Workout cards' Covers", () => {
 
   it("shows the cached Covers while the Library fails", async () => {
     writeCachedCovers([LEGS_COVER], Date.now() - 2 * 60 * 60 * 1000);
-    serveLibrary([]).failWith(new LibraryUnavailableError());
+    serveLibrary().failWith(new LibraryUnavailableError());
 
     await mount();
 
@@ -205,7 +205,7 @@ describe("the Workout cards' Covers", () => {
   });
 
   it("shows every card black when the Library fails with nothing cached", async () => {
-    serveLibrary([]).failWith(new LibraryUnavailableError());
+    serveLibrary().failWith(new LibraryUnavailableError());
 
     await mount();
 
@@ -219,7 +219,7 @@ describe("the Workout cards' Covers", () => {
     await mount();
 
     // A new launch, offline: the Covers come from MMKV.
-    serveLibrary([]).failWith(new LibraryUnavailableError());
+    serveLibrary().failWith(new LibraryUnavailableError());
     await mount();
 
     expect(coverUri("workout-legs")).toContain(LEGS_COVER.image_url);
@@ -228,7 +228,7 @@ describe("the Workout cards' Covers", () => {
   it("shows the cards before the Covers arrive", async () => {
     let answer: (covers: Cover[]) => void = () => {};
 
-    const fake = serveLibrary([]);
+    const fake = serveLibrary();
 
     library.current = {
       ...fake,

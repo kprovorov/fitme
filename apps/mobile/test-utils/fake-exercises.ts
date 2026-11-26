@@ -9,7 +9,7 @@
  * Public API's slug-checking writes check against the served Exercises
  * (`checkServedSlugs`), as the Public API does (FIT-747).
  * `fakePublicApi.reset()` empties it after each test. Covers stay the Library
- * fake's (`serveLibrary` with `{ covers }`).
+ * fake's (`serveLibrary(covers)`).
  */
 
 import type { components } from "@fitme/api-client";
