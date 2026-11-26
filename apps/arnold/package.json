@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "build": "eve build && node scripts/upload-source-maps.ts",
+    "build": "eve build",
     "dev": "eve dev --no-ui --port 3005",
     "eval": "eve eval",
     "test": "vitest run",
@@ -28,7 +28,6 @@
   },
   "devDependencies": {
     "@fitme/typescript-config": "workspace:*",
-    "@sentry/cli": "3.8.0",
     "@types/node": "26.6.6",
     "typescript": "~5.9.3",
     "vitest": "^5.1.0"

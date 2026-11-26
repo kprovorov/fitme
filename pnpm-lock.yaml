@@ -355,9 +355,6 @@ importers:
       '@fitme/typescript-config':
         specifier: workspace:*
         version: link:../../packages/typescript-config
-      '@sentry/cli':
-        specifier: 3.8.0
-        version: 3.8.0
       '@types/node':
         specifier: 26.6.6
         version: 26.6.6
