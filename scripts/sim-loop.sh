@@ -136,6 +136,8 @@ ensure_api() {
     api_port="$port"
     return 0
   fi
+  # Alive but not answering: never leave it running beside the new one.
+  stop_ours "$pid"
   for attempt in 1 2 3; do
     port="$(node "$helper" free-port)"
     say "Public API on :$port (attempt $attempt)"
