@@ -30,6 +30,7 @@ import PlanEditorScreen from "~/app/plans/[planId]/edit/index";
 import WorkoutEditorScreen from "~/app/plans/[planId]/edit/workouts/[workoutKey]";
 import PlanScreen from "~/app/plans/[planId]/index";
 import CreatePlanScreen from "~/app/plans/create";
+import { CREATE_PLAN_NAMING_STEP } from "~/components/plans/create-plan-choices";
 import { segmentClient } from "~/lib/segment";
 import { setDeviceLanguages } from "~/test-utils/device-locales";
 import { serveExercises } from "~/test-utils/fake-exercises";
@@ -632,6 +633,58 @@ describe("saving a Plan built by hand", () => {
       )
     ).toBeTruthy();
     expect(backend.plans).toEqual([]);
+  });
+});
+
+describe("opened at the naming step", () => {
+  beforeEach(() => {
+    mockParams.current = { step: CREATE_PLAN_NAMING_STEP };
+  });
+
+  it("starts on the create sheet, with no choice to go back to", async () => {
+    // `useRouter` copies the stub's methods as the Screen renders.
+    const back = jest.spyOn(stubRouter, "back");
+    await openChoice();
+
+    expect(screen.getByText("New Plan")).toBeTruthy();
+    expect(screen.getByTestId("new-plan-name")).toBeTruthy();
+    expect(screen.queryByLabelText("Build it yourself")).toBeNull();
+    expect(screen.queryByLabelText("Ask Arnold")).toBeNull();
+    expect(screen.queryByLabelText("Back")).toBeNull();
+
+    await press("Cancel");
+
+    expect(back).toHaveBeenCalledTimes(1);
+    back.mockRestore();
+  });
+
+  it("continues to the Plan builder, which saves the Plan", async () => {
+    await openChoice();
+    await type("new-plan-name", "Full body");
+    await type("new-plan-frequency", "1");
+    await press("Continue");
+
+    expect(editor().getByTestId("plan-name").props.value).toBe("Full body");
+    expect(editor().getByText("Workout A")).toBeTruthy();
+
+    await addExerciseTo("Workout A", "Barbell back squat");
+    await press("Save");
+
+    expect(savedPlan().name).toBe("Full body");
+    expect(savedPlan().is_active).toBe(true);
+  });
+
+  it("starts on the create sheet in Ukrainian too", async () => {
+    await openChoice("uk-UA");
+
+    expect(screen.queryByText("Створити самостійно")).toBeNull();
+
+    await type("new-plan-name", "Все тіло");
+    await type("new-plan-frequency", "2");
+    await press("Продовжити");
+
+    expect(editor().getByText("Тренування A")).toBeTruthy();
+    expect(editor().getByText("Тренування B")).toBeTruthy();
   });
 });
 
