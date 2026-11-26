@@ -21,5 +21,8 @@ export const placeSymbol = (place: Place): SFSymbol =>
 /** The Plan's experience level. */
 export const LEVEL_SYMBOL: SFSymbol = "chart.bar.fill";
 
-/** Workouts per week, and a Workout's Exercise count. */
+/** Workouts per week: a Plan's frequency, wherever it's shown. */
+export const FREQUENCY_SYMBOL: SFSymbol = "calendar";
+
+/** A Workout's Exercise count. */
 export const COUNT_SYMBOL: SFSymbol = "bolt.fill";

@@ -8,6 +8,7 @@ import { Pressable, Text, View } from "react-native";
 import Animated, { FadeIn } from "react-native-reanimated";
 import type { SFSymbol } from "sf-symbols-typescript";
 
+import { FREQUENCY_SYMBOL } from "@/components/plans/plan-symbols";
 import { SymbolImage } from "@/components/symbol-image";
 import { Button } from "@/components/ui/button";
 import { ErrorMessage } from "@/components/ui/error-message";
@@ -224,7 +225,7 @@ export const WorkoutPlanCard = ({ plan }: { plan: WorkoutPlan }) => {
             label={labels.goal(planCardGoal(plan.goal))}
           />
           <PlanTag
-            icon="bolt.fill"
+            icon={FREQUENCY_SYMBOL}
             label={t("arnold.planCard.frequency", {
               count: plan.frequencyPerWeek,
             })}
