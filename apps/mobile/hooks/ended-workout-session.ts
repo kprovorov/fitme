@@ -44,6 +44,12 @@ interface Watch {
  */
 const movedOn = new WeakMap<QueryClient, Set<string>>();
 
+/** Whether a screen of the session has moved on from it on this client. */
+export const hasMovedOnFrom = (
+  client: QueryClient,
+  sessionId: string
+): boolean => movedOn.get(client)?.has(sessionId) ?? false;
+
 /** Claims moving on from the session, or answers false once a screen has. */
 const claimMoveOn = (client: QueryClient, sessionId: string): boolean => {
   const sessions = movedOn.get(client) ?? new Set<string>();

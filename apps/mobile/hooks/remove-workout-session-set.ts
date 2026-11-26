@@ -1,4 +1,6 @@
 import { useQueryClient } from "@tanstack/react-query";
+import type { QueryClient } from "@tanstack/react-query";
+import type { TFunction } from "i18next";
 import { useCallback } from "react";
 import { useTranslation } from "react-i18next";
 import { Alert, Keyboard } from "react-native";
@@ -18,11 +20,16 @@ import type {
   WorkoutSession,
   WorkoutSessionSet,
 } from "~/hooks/queries/workout-sessions";
+import {
+  hasRefusingSessionEnded,
+  mayMeanSessionEnded,
+} from "~/hooks/refused-session-write";
 import type { ShownSet } from "~/hooks/shown-sets";
 import { IS_E2E } from "~/lib/constants";
 import { segmentClient } from "~/lib/segment";
 import { sessionEditFailureMessage } from "~/lib/session-edit-failure";
 import { isStillWriteStarter, rememberWriteStarter } from "~/lib/write-answers";
+import type { WriteStarter } from "~/lib/write-answers";
 
 /** Whether a save answered after the read's copy of the set was logged. */
 const isNewerSave = (
@@ -66,6 +73,42 @@ const withSet = (
   };
 
 /**
+ * Puts back a set whose removal failed, behind the "Couldn't remove set"
+ * alert. A refusal that may mean the session has ended reads it first: read
+ * finished or gone, its screens move on instead and the set isn't put back
+ * in the read (the read has it again anyway).
+ * Nothing at all once the User has signed out meanwhile.
+ */
+const putBackUnlessEnded = async (
+  client: QueryClient,
+  sessionId: string,
+  {
+    failure,
+    putBack,
+    starter,
+    t,
+  }: {
+    failure: Error | null;
+    putBack: () => void;
+    starter: WriteStarter;
+    t: TFunction;
+  }
+): Promise<void> => {
+  if (
+    (await hasRefusingSessionEnded(client, sessionId, failure)) ||
+    !isStillWriteStarter(starter)
+  ) {
+    return;
+  }
+
+  putBack();
+  Alert.alert(
+    t("workoutSession.editFailed.removeSetTitle"),
+    sessionEditFailureMessage(t, failure)
+  );
+};
+
+/**
  * Removes a row of a Workout Session Exercise's sets table. An added set not
  * logged yet only lives on the phone, so it's dropped there: no request, no
  * event. A saved one (a logged one once the User has confirmed, which the row
@@ -73,8 +116,10 @@ const withSet = (
  * (a set already gone answers 204 too): it leaves the Workout Session's read,
  * so the stats and Finish count without it, and stays hidden from the rows
  * (`hideRemovedSet`) should a read landing meanwhile still have it. A failure
- * puts it back in its place behind the "Couldn't remove set" alert. The
- * Workout Session is read again either way, since a lost answer may have
+ * puts it back in its place behind the "Couldn't remove set" alert, but a
+ * refusal because the session has finished first reads it again at once, and
+ * read finished or gone, its screens move on instead (`putBackUnlessEnded`).
+ * The Workout Session is read again either way, since a lost answer may have
  * removed it, and so is Exercise history after a logged set.
  *
  * `logged` is whether the set was logged when the User acted, and `saved` what
@@ -167,17 +212,29 @@ export const useRemoveWorkoutSessionSet = (sessionId: string) => {
           });
         }
       } else {
-        queryClient.setQueryData<WorkoutSession>(queryKey, (session) =>
-          withSet(session, exerciseId, restored)
-        );
+        await putBackUnlessEnded(queryClient, sessionId, {
+          failure,
+          putBack: () => {
+            queryClient.setQueryData<WorkoutSession>(queryKey, (session) =>
+              withSet(session, exerciseId, restored)
+            );
+          },
+          starter,
+          t,
+        });
+        // Its row shows again wherever the set is read: a finished session's
+        // read only Summary too, once its screens have moved on.
         showSetAgain(set.id);
-        Alert.alert(
-          t("workoutSession.editFailed.removeSetTitle"),
-          sessionEditFailureMessage(t, failure)
-        );
       }
 
-      void queryClient.invalidateQueries({ queryKey });
+      if (!isStillWriteStarter(starter)) {
+        return;
+      }
+
+      // A refusal that may mean the session ended has read it again already.
+      if (removed || !mayMeanSessionEnded(failure)) {
+        void queryClient.invalidateQueries({ queryKey });
+      }
 
       if (logged) {
         void queryClient.invalidateQueries({ queryKey: ["exercise-history"] });

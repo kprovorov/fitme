@@ -8,6 +8,10 @@ import { useExercises } from "~/hooks/queries/library";
 import { useDeleteWorkoutSessionExerciseMutation } from "~/hooks/queries/workout-session-exercises";
 import { WORKOUT_SESSION_QUERY_KEY } from "~/hooks/queries/workout-sessions";
 import type { WorkoutSession } from "~/hooks/queries/workout-sessions";
+import {
+  hasRefusingSessionEnded,
+  mayMeanSessionEnded,
+} from "~/hooks/refused-session-write";
 import { IS_E2E } from "~/lib/constants";
 import { segmentClient } from "~/lib/segment";
 import { sessionEditFailureMessage } from "~/lib/session-edit-failure";
@@ -41,11 +45,17 @@ const WorkoutSessionView = ({
 
   // A failed edit may still have been saved (a lost answer): read again
   // either way.
-  const rereadSession = useCallback(() => {
-    void queryClient.invalidateQueries({
-      queryKey: WORKOUT_SESSION_QUERY_KEY,
-    });
-  }, [queryClient]);
+  const rereadSession = useCallback(
+    (_: unknown, error: Error | null) => {
+      // One that may have ended is read again at once by the save itself.
+      if (!mayMeanSessionEnded(error)) {
+        void queryClient.invalidateQueries({
+          queryKey: WORKOUT_SESSION_QUERY_KEY,
+        });
+      }
+    },
+    [queryClient]
+  );
 
   const { mutateAsync: deleteExercise } =
     useDeleteWorkoutSessionExerciseMutation({ onSettled: rereadSession });
@@ -63,6 +73,11 @@ const WorkoutSessionView = ({
         exerciseId,
       });
     } catch (error) {
+      // Finished or deleted meanwhile: its screens move on instead.
+      if (await hasRefusingSessionEnded(queryClient, sessionId, error)) {
+        return;
+      }
+
       Alert.alert(
         t("workoutSession.editFailed.removeTitle"),
         sessionEditFailureMessage(t, error)
