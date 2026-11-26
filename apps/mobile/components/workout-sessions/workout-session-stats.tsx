@@ -10,6 +10,7 @@ import { useTranslation } from "react-i18next";
 import { useWindowDimensions, View } from "react-native";
 
 import { Text } from "~/components/ui/text";
+import { useWithoutRemovedSets } from "~/hooks/added-sets";
 import type { WorkoutSession } from "~/hooks/queries/workout-sessions";
 import { useNow } from "~/hooks/use-now";
 import { useI18n } from "~/lib/i18n";
@@ -71,7 +72,11 @@ export const StatRow = ({
  * Duration (ticking while the session runs), volume and logged sets, then one
  * progress segment per exercise.
  */
-const WorkoutSessionStats = ({ workoutSession }: WorkoutSessionStatsProps) => {
+const WorkoutSessionStats = ({
+  workoutSession: readSession,
+}: WorkoutSessionStatsProps) => {
+  // A set being removed is no longer counted, whatever a read says meanwhile.
+  const workoutSession = useWithoutRemovedSets(readSession);
   const { t } = useTranslation();
   const i18n = useI18n();
   const isFinished = !!workoutSession.finished_at;

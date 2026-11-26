@@ -556,6 +556,77 @@ describe.each([
   });
 });
 
+describe("a set saved from the other screen", () => {
+  it("doesn't swipe on either screen while that save runs", async () => {
+    mockParams.current = {
+      exerciseId: "s1-e1",
+      planId: "plan-1",
+      sessionId: "s1",
+      workoutId: "workout-1",
+    };
+    await mount(
+      <>
+        <WorkoutSessionScreen sessionId="s1" />
+        <WorkoutSessionExerciseScreen />
+      </>
+    );
+
+    expect(screen.queryAllByTestId("set-row-2-open")).toHaveLength(2);
+
+    const resume = fakePublicApi.pause(LOG_SET_ROUTE);
+    await fireEvent.press(
+      screen.getAllByRole("button", { name: "Log set 2" })[0]
+    );
+    await until(
+      () =>
+        fakePublicApi.count(LOG_SET_ROUTE) === 1 &&
+        screen.queryAllByTestId("set-row-2-open").length === 0
+    );
+
+    expect(screen.queryAllByTestId("set-row-2-open")).toHaveLength(0);
+    expect(screen.queryAllByTestId("set-row-3-open")).toHaveLength(2);
+
+    resume();
+    await settle(queryClient);
+  });
+
+  it("doesn't swipe an added set on either screen while it's being created", async () => {
+    mockParams.current = {
+      exerciseId: "s1-e1",
+      planId: "plan-1",
+      sessionId: "s1",
+      workoutId: "workout-1",
+    };
+    backend.sets = backend.sets.filter(({ id }) => id === "s1-e1-s1");
+    await mount(
+      <>
+        <WorkoutSessionScreen sessionId="s1" />
+        <WorkoutSessionExerciseScreen />
+      </>
+    );
+    await fireEvent.press(
+      screen.getAllByRole("button", { name: "Add Set" })[0]
+    );
+
+    expect(screen.queryAllByTestId("set-row-2-open")).toHaveLength(2);
+
+    const resume = fakePublicApi.pause(ADD_SET_ROUTE);
+    await fireEvent.press(
+      screen.getAllByRole("button", { name: "Log set 2" })[1]
+    );
+    await until(
+      () =>
+        fakePublicApi.count(ADD_SET_ROUTE) === 1 &&
+        screen.queryAllByTestId("set-row-2-open").length === 0
+    );
+
+    expect(screen.queryAllByTestId("set-row-2-open")).toHaveLength(0);
+
+    resume();
+    await settle(queryClient);
+  });
+});
+
 describe("removing a set in a finished Workout Session", () => {
   it.each([
     { mountScreen: mountSession, name: "the Workout Session screen" },
@@ -624,7 +695,14 @@ describe("finishing after a removal", () => {
     const resume = fakePublicApi.pause(REMOVE_ROUTE);
     await swipeFully(2);
 
-    // The stats count the set gone already.
+    // The stats count the set gone already, even once a read that still has
+    // it lands.
+    expect(screen.getByText("1/1")).toBeTruthy();
+
+    await act(async () => {
+      await queryClient.refetchQueries();
+    });
+
     expect(screen.getByText("1/1")).toBeTruthy();
 
     // Finished straight away, with the removal still on its way.

@@ -1,5 +1,6 @@
 import { ApiError } from "@fitme/api-client";
 import type { WorkoutSessionExerciseSet } from "@fitme/core";
+import { useMutationState } from "@tanstack/react-query";
 import { createMutation } from "react-query-kit";
 
 import { publicApi } from "~/lib/public-api";
@@ -35,10 +36,17 @@ export type SavedWorkoutSessionExerciseSet = Pick<
  * Logs a set's reps and weight through `PATCH /v1/workout-session-sets/{id}`;
  * the API sets `logged_at`. Rejects with an `ApiError`.
  */
+/** Logging a set, whichever screen's row runs it. */
+const LOG_SET_MUTATION_KEY = ["workout-session-set", "log"];
+
+/** Logging an added set, which creates it, whichever screen's row runs it. */
+const ADD_SET_MUTATION_KEY = ["workout-session-set", "add"];
+
 export const useUpdateWorkoutSessionExerciseSetMutation = createMutation<
   SavedWorkoutSessionExerciseSet,
   UpdateWorkoutSessionExerciseSetVariables
 >({
+  mutationKey: LOG_SET_MUTATION_KEY,
   mutationFn: async ({
     data,
     params: { setId },
@@ -85,6 +93,7 @@ export const useCreateWorkoutSessionExerciseSetMutation = createMutation<
   SavedWorkoutSessionExerciseSet,
   CreateWorkoutSessionExerciseSetVariables
 >({
+  mutationKey: ADD_SET_MUTATION_KEY,
   mutationFn: async ({
     data,
     params: { exerciseId },
@@ -124,3 +133,35 @@ export const useDeleteWorkoutSessionSetMutation = createMutation({
     });
   },
 });
+
+/**
+ * Whether a save of this set runs, from any screen: the Workout Session
+ * screen and the Workout Session Exercise screen each have their own row for
+ * it. `setId` is `null` for an added set not saved yet, whose save is any
+ * set added to its Workout Session Exercise.
+ */
+export const useIsSavingSet = (
+  setId: string | null,
+  exerciseId: string
+): boolean => {
+  // Each pending save's set (a log) or Workout Session Exercise (an add).
+  const logged = useMutationState({
+    filters: { mutationKey: LOG_SET_MUTATION_KEY, status: "pending" },
+    select: ({ state }) =>
+      // SAFETY: only `useUpdateWorkoutSessionExerciseSetMutation` runs under
+      // this key, and it takes these variables.
+      (state.variables as UpdateWorkoutSessionExerciseSetVariables | undefined)
+        ?.params.setId,
+  });
+
+  const added = useMutationState({
+    filters: { mutationKey: ADD_SET_MUTATION_KEY, status: "pending" },
+    select: ({ state }) =>
+      // SAFETY: only `useCreateWorkoutSessionExerciseSetMutation` runs under
+      // this key, and it takes these variables.
+      (state.variables as CreateWorkoutSessionExerciseSetVariables | undefined)
+        ?.params.exerciseId,
+  });
+
+  return setId === null ? added.includes(exerciseId) : logged.includes(setId);
+};

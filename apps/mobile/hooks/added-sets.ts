@@ -233,6 +233,34 @@ const getHiddenSets = () => hiddenSets;
 export const useHiddenSets = (): ReadonlyMap<string, HiddenSet> =>
   useSyncExternalStore(subscribe, getHiddenSets, getHiddenSets);
 
+interface SessionWithSets {
+  exercises: readonly { sets: readonly { id: string }[] }[];
+}
+
+/**
+ * The Workout Session without the saved sets being removed, or removed and
+ * still in its read: what its stats and Finish count. A read landing while a
+ * removal runs still has the set.
+ */
+export const withoutRemovedSets = <Session extends SessionWithSets>(
+  session: Session,
+  hidden: ReadonlyMap<string, HiddenSet> = hiddenSets
+): Session =>
+  hidden.size === 0
+    ? session
+    : {
+        ...session,
+        exercises: session.exercises.map((exercise) => ({
+          ...exercise,
+          sets: exercise.sets.filter(({ id }) => !hidden.has(id)),
+        })),
+      };
+
+/** `withoutRemovedSets`, following the sets being removed. */
+export const useWithoutRemovedSets = <Session extends SessionWithSets>(
+  session: Session
+): Session => withoutRemovedSets(session, useHiddenSets());
+
 /** Forgets every added set (a sign-out, and after each test). */
 export const clearAddedSets = (): void => {
   highestOrders = new Map();

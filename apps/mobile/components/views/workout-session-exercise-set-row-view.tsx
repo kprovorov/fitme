@@ -11,6 +11,7 @@ import { dropGoneAddedSet } from "~/hooks/added-sets";
 import { reportWorkoutSetTracked } from "~/hooks/finish-workout-suggestion";
 import {
   useCreateWorkoutSessionExerciseSetMutation,
+  useIsSavingSet,
   useUpdateWorkoutSessionExerciseSetMutation,
 } from "~/hooks/queries/workout-session-exercise-sets";
 import type { SavedWorkoutSessionExerciseSet } from "~/hooks/queries/workout-session-exercise-sets";
@@ -181,13 +182,13 @@ const WorkoutSessionExerciseSetRowView = ({
     }
   };
 
-  const { isPending: isUpdating, mutate: updateWorkoutSessionExerciseSet } =
+  const { mutate: updateWorkoutSessionExerciseSet } =
     useUpdateWorkoutSessionExerciseSetMutation({
       onError: handleSaveError,
       onSuccess: (set) => handleSaved(set, previousRepsCompleted.current),
     });
 
-  const { isPending: isCreating, mutate: createWorkoutSessionExerciseSet } =
+  const { mutate: createWorkoutSessionExerciseSet } =
     useCreateWorkoutSessionExerciseSetMutation({
       onError: handleSaveError,
       onSuccess: (set) => {
@@ -240,9 +241,15 @@ const WorkoutSessionExerciseSetRowView = ({
     }
   };
 
+  // A save of this set, from this row or the other screen's for the same set.
+  const isSaving = useIsSavingSet(
+    workoutSessionExerciseSet?.id ?? null,
+    exerciseId
+  );
+
   // A logged set doesn't swipe yet, and a set whose save is running never
   // does: saving and removing it would race.
-  const canRemove = !!onRemove && !isDone && !isCreating && !isUpdating;
+  const canRemove = !!onRemove && !isDone && !isSaving;
 
   const remove = () => {
     if (canRemove) {
