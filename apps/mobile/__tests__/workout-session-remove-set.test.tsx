@@ -991,6 +991,30 @@ describe.each([
     expect(screen.getByLabelText("Set 1, logged")).toBeTruthy();
   });
 
+  it("brings back the values read while its alert was open when removing fails", async () => {
+    await mountScreen();
+    await swipeFully(1);
+    // Edited elsewhere while the alert is open.
+    backend.sets = backend.sets.map((set) =>
+      set.id === "s1-e1-s1" ? { ...set, reps_completed: 12 } : set
+    );
+    await act(async () => {
+      await queryClient.refetchQueries();
+    });
+    await settle(queryClient);
+    // The read after the failure waits, so only the rollback shows the set.
+    const resumeRead = fakePublicApi.pause(SESSION_ROUTE);
+    fakePublicApi.failNext(REMOVE_ROUTE, "network");
+    await answerAlert("Remove", { wait: false });
+    await until(() => screen.queryByLabelText("Set 1, logged") !== null);
+    await until(() => screen.queryByText("12") !== null);
+
+    expect(screen.getByText("12")).toBeTruthy();
+
+    resumeRead();
+    await settle(queryClient);
+  });
+
   it("asks and removes in Ukrainian too", async () => {
     setDeviceLanguages(["uk-UA"]);
     await mountScreen();

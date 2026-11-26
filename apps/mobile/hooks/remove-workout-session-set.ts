@@ -84,7 +84,7 @@ export const useRemoveWorkoutSessionSet = (sessionId: string) => {
   return useCallback(
     async (
       exerciseId: string,
-      { id, set }: ShownSet,
+      { id, set: shown }: ShownSet,
       logged: boolean,
       saved?: SavedWorkoutSessionExerciseSet
     ) => {
@@ -99,6 +99,15 @@ export const useRemoveWorkoutSessionSet = (sessionId: string) => {
 
       // A row being edited goes with its unsaved numbers.
       Keyboard.dismiss();
+
+      // The set as the read has it now: one read while an alert was open
+      // is newer than the row the User swiped.
+      const set =
+        shown &&
+        (read.exercises
+          .flatMap(({ sets }) => sets)
+          .find((candidate) => candidate.id === shown.id) ??
+          shown);
 
       if (!set) {
         dropAddedSet(exerciseId, id);
