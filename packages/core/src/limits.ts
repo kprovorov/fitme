@@ -37,3 +37,10 @@ export const MAX_AGE = 120;
 export const MAX_BODY_HEIGHT = 300;
 export const MAX_BODY_WEIGHT = 1000;
 export const MAX_BODY_DECIMALS = 2;
+
+/**
+ * The longest a Note (an Exercise's or a logged set's) may be, in characters
+ * as Postgres counts them: Unicode code points, after trimming. `cleanNote`
+ * in `notes.ts` applies it; the database checks the same.
+ */
+export const MAX_NOTE_LENGTH = 500;

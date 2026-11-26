@@ -12,6 +12,8 @@ export * from "./models";
 
 export * from "./names";
 
+export * from "./notes";
+
 export * from "./personal-records";
 
 export * from "./training-progress";
