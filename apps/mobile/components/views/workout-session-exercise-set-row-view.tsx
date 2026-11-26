@@ -50,9 +50,10 @@ interface WorkoutSessionExerciseSetRowViewProps {
   /**
    * Removes the row's set; swiping it left, or VoiceOver's action, calls it,
    * once the User has confirmed for a logged set. `logged` is whether it was
-   * when the User acted. None in a finished Workout Session.
+   * when the User acted, and `saved` what logging it on this row answered,
+   * which the read may not have yet. None in a finished Workout Session.
    */
-  onRemove?: (logged: boolean) => void;
+  onRemove?: (logged: boolean, saved?: SavedWorkoutSessionExerciseSet) => void;
   /** Called once a set is logged for the first time (not on edits). */
   onSetLogged?: (set: SavedWorkoutSessionExerciseSet) => void;
   sessionId: string;
@@ -188,6 +189,11 @@ const WorkoutSessionExerciseSetRowView = ({
   // have refetched by the time the save succeeds.
   const previousRepsCompleted = useRef<number | null>(null);
 
+  // What the last save on this row answered.
+  const lastSaved = useRef<SavedWorkoutSessionExerciseSet | undefined>(
+    undefined
+  );
+
   // Whether the set is logged comes from the data, so a change made elsewhere
   // (a refetch, Arnold) shows up here. `justLogged` bridges the moment
   // between a successful save and the refetch that carries it.
@@ -256,6 +262,7 @@ const WorkoutSessionExerciseSetRowView = ({
     set: SavedWorkoutSessionExerciseSet,
     previousReps: number | null
   ) => {
+    lastSaved.current = set;
     reportWorkoutSetTracked({
       previousRepsCompleted: previousReps,
       sessionId,
@@ -357,7 +364,12 @@ const WorkoutSessionExerciseSetRowView = ({
 
     // Whatever the set is now: logged or not elsewhere since the row opened.
     if (isDone) {
-      confirmLoggedSetRemoval(t, number, () => onRemove(true), close);
+      confirmLoggedSetRemoval(
+        t,
+        number,
+        () => onRemove(true, lastSaved.current),
+        close
+      );
     } else {
       onRemove(false);
     }

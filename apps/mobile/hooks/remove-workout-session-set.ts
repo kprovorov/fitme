@@ -11,6 +11,7 @@ import {
   showSetAgain,
 } from "~/hooks/added-sets";
 import { useDeleteWorkoutSessionSetMutation } from "~/hooks/queries/workout-session-exercise-sets";
+import type { SavedWorkoutSessionExerciseSet } from "~/hooks/queries/workout-session-exercise-sets";
 import { useWorkoutSessionQuery } from "~/hooks/queries/workout-sessions";
 import type {
   WorkoutSession,
@@ -57,17 +58,21 @@ const withSet = (
 /**
  * Removes a row of a Workout Session Exercise's sets table. An added set not
  * logged yet only lives on the phone, so it's dropped there: no request, no
- * event. A saved one (a logged one once the User has confirmed, which the
- * row asks) is hidden at once and goes through
- * `DELETE /v1/workout-session-sets/{id}` (a set already gone answers 204
- * too): it leaves the Workout Session's read, so the stats and Finish count
- * without it, and stays hidden from the rows (`hideRemovedSet`) should a read
- * landing meanwhile still have it. A failure puts it back in its place
- * behind the "Couldn't remove set" alert. The Workout Session is read again
- * either way, since a lost answer may have removed it, and so is Exercise
- * history after a logged set. `logged` is whether the set was logged when the
- * User acted: a set just logged may not be in the read yet. Once the User who removed it has signed out,
- * nothing is shown, alerted, sent or read.
+ * event. A saved one (a logged one once the User has confirmed, which the row
+ * asks) is hidden at once and goes through `DELETE /v1/workout-session-sets/{id}`
+ * (a set already gone answers 204 too): it leaves the Workout Session's read,
+ * so the stats and Finish count without it, and stays hidden from the rows
+ * (`hideRemovedSet`) should a read landing meanwhile still have it. A failure
+ * puts it back in its place behind the "Couldn't remove set" alert. The
+ * Workout Session is read again either way, since a lost answer may have
+ * removed it, and so is Exercise history after a logged set.
+ *
+ * `logged` is whether the set was logged when the User acted, and `saved` what
+ * logging it answered: a set just logged may not be in the read yet, and comes
+ * back logged should its removal fail. Nothing happens once the read says the
+ * Workout Session has finished (an alert answered after it ended elsewhere),
+ * and once the User who removed it has signed out, nothing is shown, alerted,
+ * sent or read.
  */
 export const useRemoveWorkoutSessionSet = (sessionId: string) => {
   const { t } = useTranslation();
@@ -75,7 +80,18 @@ export const useRemoveWorkoutSessionSet = (sessionId: string) => {
   const { mutateAsync: deleteSet } = useDeleteWorkoutSessionSetMutation();
 
   return useCallback(
-    async (exerciseId: string, { id, set }: ShownSet, logged: boolean) => {
+    async (
+      exerciseId: string,
+      { id, set }: ShownSet,
+      logged: boolean,
+      saved?: SavedWorkoutSessionExerciseSet
+    ) => {
+      const queryKey = useWorkoutSessionQuery.getKey({ sessionId });
+
+      if (queryClient.getQueryData<WorkoutSession>(queryKey)?.finished_at) {
+        return;
+      }
+
       // A row being edited goes with its unsaved numbers.
       Keyboard.dismiss();
 
@@ -86,7 +102,13 @@ export const useRemoveWorkoutSessionSet = (sessionId: string) => {
       }
 
       const starter = rememberWriteStarter(queryClient, []);
-      const queryKey = useWorkoutSessionQuery.getKey({ sessionId });
+
+      // What comes back on a failure: logged, should the read not have it yet.
+      const restored =
+        saved?.id === set.id && set.reps_completed === null
+          ? { ...set, ...saved }
+          : set;
+
       // Should it come back, no set added meanwhile takes its place.
       holdOrder(exerciseId, set.order);
       hideRemovedSet(exerciseId, set.id);
@@ -120,7 +142,7 @@ export const useRemoveWorkoutSessionSet = (sessionId: string) => {
         }
       } else {
         queryClient.setQueryData<WorkoutSession>(queryKey, (session) =>
-          withSet(session, exerciseId, set)
+          withSet(session, exerciseId, restored)
         );
         showSetAgain(set.id);
         Alert.alert(

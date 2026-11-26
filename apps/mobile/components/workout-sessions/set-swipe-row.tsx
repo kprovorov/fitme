@@ -28,8 +28,9 @@ interface SetSwipeRowProps {
 
 /**
  * A Workout Session set's row that swipes left: a short swipe uncovers a red
- * Remove button, a full one removes. VoiceOver and TalkBack reach the
- * removal through the accessibility action on the set's `#n` cell instead
+ * Remove button, a full one removes (a logged set once the User confirms).
+ * VoiceOver and TalkBack reach the removal through the accessibility action
+ * on the set's first cell instead, its `#n` or a logged set's ✓
  * (`workout-session-exercise-set-row-view.tsx`), so the button is hidden from
  * them.
  */

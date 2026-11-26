@@ -922,6 +922,56 @@ describe.each([
     expect(setIds()).toEqual(["s1-e1-s2", "s1-e1-s3"]);
   });
 
+  it("does nothing on Remove once the Workout Session has finished elsewhere", async () => {
+    await mountScreen();
+    await swipeFully(1);
+    backend.sessions = backend.sessions.map((session) => ({
+      ...session,
+      finished_at: new Date().toISOString(),
+    }));
+    await act(async () => {
+      await queryClient.refetchQueries();
+    });
+    await settle(queryClient);
+    await answerAlert("Remove");
+
+    expect(fakePublicApi.count(REMOVE_ROUTE)).toBe(0);
+    expect(Alert.alert).not.toHaveBeenCalledWith(
+      REMOVE_FAILED,
+      expect.anything()
+    );
+    expect(setIds()).toHaveLength(3);
+  });
+
+  it("brings a set it just logged back logged when removing it fails", async () => {
+    await mountScreen();
+    // The read after logging it waits, so only the save knows it's logged.
+    const resumeRead = fakePublicApi.pause(SESSION_ROUTE);
+    await press("Log set 2");
+    await until(() => fakePublicApi.count(LOG_SET_ROUTE) === 1);
+    await until(() => screen.queryByLabelText("Set 2, logged") !== null);
+    fakePublicApi.failNext(REMOVE_ROUTE, "network");
+    await swipeFully(2);
+
+    expectAsked("Remove set 2?");
+
+    await answerAlert("Remove", { wait: false });
+    await until(() =>
+      jest
+        .mocked(Alert.alert)
+        .mock.calls.some(([title]) => title === REMOVE_FAILED)
+    );
+
+    // Back in its place, still logged, with the read after logging it held.
+    await until(() => screen.queryByLabelText("Set 2, logged") !== null);
+
+    expect(screen.getByLabelText("Set 2, logged")).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "Log set 2" })).toBeNull();
+
+    resumeRead();
+    await settle(queryClient);
+  });
+
   it("asks and removes in Ukrainian too", async () => {
     setDeviceLanguages(["uk-UA"]);
     await mountScreen();
