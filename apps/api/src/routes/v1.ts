@@ -4,6 +4,7 @@ import type { ApiEnv } from "../auth.js";
 import { invalidRequest } from "../schemas.js";
 import { arnoldModelsRoute } from "./arnold-models.js";
 import { clientConfig } from "./client-config.js";
+import { exerciseNotes } from "./exercise-notes.js";
 import { exercises } from "./exercises.js";
 import { muscleGroups } from "./muscle-groups.js";
 import { plans } from "./plans.js";
@@ -24,6 +25,8 @@ publicV1.route("/muscle-groups", muscleGroups);
 
 /** The User-data routes: mounted after auth, so each has a verified caller. */
 export const userV1 = new OpenAPIHono<ApiEnv>({ defaultHook: invalidRequest });
+
+userV1.route("/exercise-notes", exerciseNotes);
 
 userV1.route("/exercises", exercises);
 

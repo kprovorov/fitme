@@ -203,6 +203,169 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/v1/exercise-notes": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * List Exercise notes
+     * @description Every Exercise note of the User, by Exercise slug, unpaged (at most one per Exercise). A note is private: only the User reads it.
+     */
+    get: {
+      parameters: {
+        query?: never;
+        header?: never;
+        path?: never;
+        cookie?: never;
+      };
+      requestBody?: never;
+      responses: {
+        /** @description The User's Exercise notes; empty without any */
+        200: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": {
+              /** @description Every Exercise note of the User, by Exercise slug */
+              data: components["schemas"]["ExerciseNote"][];
+            };
+          };
+        };
+        /** @description No valid Clerk session token */
+        401: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["Error"];
+          };
+        };
+        /** @description Too many requests from this User; retry after `Retry-After` */
+        429: {
+          headers: {
+            /** @description Seconds until the limit resets */
+            "Retry-After": string;
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["Error"];
+          };
+        };
+      };
+    };
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/v1/exercise-notes/{slug}": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    /**
+     * Set an Exercise note
+     * @description Sets the User's note on one Exercise to `note`, trimmed; empty or whitespace-only text clears it. Saving text checks the Exercise slug against the Library first (a slug the Library replaced is accepted, and the note kept under its replacement); clearing doesn't, so a note on an Exercise that left the Library can always be cleared. The last save wins, and a repeat answers the same.
+     */
+    put: {
+      parameters: {
+        query?: never;
+        header?: never;
+        path: {
+          /** @description An Exercise slug from the Library API; every one is checked before anything is written */
+          slug: string;
+        };
+        cookie?: never;
+      };
+      requestBody: {
+        content: {
+          "application/json": {
+            /**
+             * @description The note's text, trimmed at both ends (line breaks inside kept), at most 500 characters once trimmed and no NUL character. Empty or whitespace-only text clears the note
+             * @example Seat on hole 4, feet high
+             */
+            note: string;
+          };
+        };
+      };
+      responses: {
+        /** @description The Exercise note as saved */
+        200: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": {
+              data: components["schemas"]["SavedExerciseNote"];
+            };
+          };
+        };
+        /** @description `invalid_request`: the input fails its schema; `unknown_exercises`: the Library has no Exercise with this slug. Nothing was written */
+        400: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["Error"];
+          };
+        };
+        /** @description No valid Clerk session token */
+        401: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["Error"];
+          };
+        };
+        /** @description The body isn't `application/json` */
+        415: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["Error"];
+          };
+        };
+        /** @description Too many requests from this User; retry after `Retry-After` */
+        429: {
+          headers: {
+            /** @description Seconds until the limit resets */
+            "Retry-After": string;
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["Error"];
+          };
+        };
+        /** @description `library_unavailable`: the Library couldn't be read to check the Exercise; nothing was written, try again */
+        503: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["Error"];
+          };
+        };
+      };
+    };
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   "/v1/exercises": {
     parameters: {
       query?: never;
@@ -2870,6 +3033,43 @@ export interface components {
         code: string;
         message: string;
       };
+    };
+    /** @description The User's note on one Exercise (a Note): one per Exercise, the same in every Plan and Workout */
+    ExerciseNote: {
+      /**
+       * @description The Exercise slug the note is on, as it was saved
+       * @example leg-press
+       */
+      exercise_slug: string;
+      /**
+       * @description The note's text: trimmed, never empty, line breaks kept
+       * @example Seat on hole 4, feet high
+       */
+      note: string;
+      /**
+       * Format: date-time
+       * @description When the note was last changed (ISO 8601)
+       * @example 2026-10-01T10:00:00.123456+00:00
+       */
+      updated_at: string;
+    };
+    SavedExerciseNote: {
+      /**
+       * @description The Exercise slug the note is kept under: the one sent, or for a slug the Library replaced, its replacement
+       * @example leg-press
+       */
+      exercise_slug: string;
+      /**
+       * @description The note as saved: trimmed, line breaks kept; `null` once cleared
+       * @example Seat on hole 4, feet high
+       */
+      note: string | null;
+      /**
+       * Format: date-time
+       * @description `null` once cleared
+       * @example 2026-10-01T10:00:00.123456+00:00
+       */
+      updated_at: string | null;
     };
     ExercisePage: {
       /** @description The page, alphabetical by name in `language` */
