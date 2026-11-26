@@ -1,30 +1,38 @@
 import { sanitizeError } from "@fitme/observability";
-import { reportError } from "@fitme/observability/node";
+import { reportError, runMonitored } from "@fitme/observability/node";
+import type { CronMonitor } from "@fitme/observability/node";
 import { handleSchedule } from "@vercel/schedules";
 
 import type { Job } from "./job.js";
+import { AlreadyReportedError } from "./reported.js";
 
 interface HandlerDeps {
   reportError: (error: unknown) => Promise<void>;
+  runMonitored: <T>(monitor: CronMonitor, run: () => Promise<T>) => Promise<T>;
 }
 
-const DEFAULT_DEPS: HandlerDeps = { reportError };
+const DEFAULT_DEPS: HandlerDeps = { reportError, runMonitored };
 
 /**
  * The handler of a private scheduled function: runs `job` for a schedule's
- * call. A failure is reported, then thrown on, so the run fails in Vercel's
- * execution history; nothing retries it but the next run. What's thrown is
- * what `reportError` sends (`sanitizeError`), since Vercel logs it.
+ * call, inside its Sentry cron `monitor`. A failure is reported (unless the
+ * job reported its causes itself), then thrown on, so the run fails in
+ * Vercel's execution history and for the monitor; nothing retries it but the
+ * next run. What's thrown is what `reportError` sends (`sanitizeError`), since
+ * Vercel logs it.
  */
 export const createHandler = (
   job: Job,
-  { reportError: report }: HandlerDeps = DEFAULT_DEPS
+  monitor: CronMonitor,
+  { reportError: report, runMonitored: monitored }: HandlerDeps = DEFAULT_DEPS
 ): ((request: Request) => Promise<Response>) =>
   handleSchedule(async () => {
     try {
-      await job();
+      await monitored(monitor, job);
     } catch (error) {
-      await report(error);
+      if (!(error instanceof AlreadyReportedError)) {
+        await report(error);
+      }
 
       throw sanitizeError(error).error;
     }

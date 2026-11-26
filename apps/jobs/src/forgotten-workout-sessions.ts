@@ -14,5 +14,10 @@ const { createHandler } = await import("./create-handler.js");
 const { forgottenWorkoutSessions } =
   await import("./jobs/forgotten-workout-sessions.js");
 
+const { FORGOTTEN_WORKOUT_SESSIONS_MONITOR } = await import("./monitors.js");
+
 // The private function Vercel Schedules calls (api/forgotten-workout-sessions.js).
-export const POST = createHandler(forgottenWorkoutSessions());
+export const POST = createHandler(
+  forgottenWorkoutSessions(),
+  FORGOTTEN_WORKOUT_SESSIONS_MONITOR
+);
