@@ -143,6 +143,53 @@
         },
         "required": ["error"]
       },
+      "ExerciseNote": {
+        "type": "object",
+        "properties": {
+          "exercise_slug": {
+            "type": "string",
+            "description": "The Exercise slug the note is on, as it was saved",
+            "example": "leg-press"
+          },
+          "note": {
+            "type": "string",
+            "description": "The note's text: trimmed, never empty, line breaks kept",
+            "example": "Seat on hole 4, feet high"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "When the note was last changed (ISO 8601)",
+            "example": "2026-10-01T10:00:00.123456+00:00"
+          }
+        },
+        "required": ["exercise_slug", "note", "updated_at"],
+        "description": "The User's note on one Exercise (a Note): one per Exercise, the same in every Plan and Workout"
+      },
+      "SavedExerciseNote": {
+        "type": "object",
+        "properties": {
+          "exercise_slug": {
+            "type": "string",
+            "description": "The Exercise slug the note is kept under: the one sent, or for a slug the Library replaced, its replacement",
+            "example": "leg-press"
+          },
+          "note": {
+            "type": "string",
+            "nullable": true,
+            "description": "The note as saved: trimmed, line breaks kept; `null` once cleared",
+            "example": "Seat on hole 4, feet high"
+          },
+          "updated_at": {
+            "type": "string",
+            "nullable": true,
+            "format": "date-time",
+            "description": "`null` once cleared",
+            "example": "2026-10-01T10:00:00.123456+00:00"
+          }
+        },
+        "required": ["exercise_slug", "note", "updated_at"]
+      },
       "ExercisePage": {
         "type": "object",
         "properties": {
@@ -2087,6 +2134,194 @@
           },
           "404": {
             "description": "No such muscle group",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/exercise-notes": {
+      "get": {
+        "description": "Every Exercise note of the User, by Exercise slug, unpaged (at most one per Exercise). A note is private: only the User reads it.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "List Exercise notes",
+        "responses": {
+          "200": {
+            "description": "The User's Exercise notes; empty without any",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/ExerciseNote"
+                      },
+                      "description": "Every Exercise note of the User, by Exercise slug"
+                    }
+                  },
+                  "required": ["data"]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No valid Clerk session token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too many requests from this User; retry after `Retry-After`",
+            "headers": {
+              "Retry-After": {
+                "schema": {
+                  "type": "string",
+                  "description": "Seconds until the limit resets",
+                  "example": "30"
+                },
+                "required": true,
+                "description": "Seconds until the limit resets"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/exercise-notes/{slug}": {
+      "put": {
+        "description": "Sets the User's note on one Exercise to `note`, trimmed; empty or whitespace-only text clears it. Saving text checks the Exercise slug against the Library first (a slug the Library replaced is accepted, and the note kept under its replacement); clearing doesn't, so a note on an Exercise that left the Library can always be cleared. The last save wins, and a repeat answers the same.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Set an Exercise note",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "maxLength": 100,
+              "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$",
+              "description": "An Exercise slug from the Library API; every one is checked before anything is written",
+              "example": "barbell-back-squat"
+            },
+            "required": true,
+            "description": "An Exercise slug from the Library API; every one is checked before anything is written",
+            "name": "slug",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "note": {
+                    "type": "string",
+                    "description": "The note's text, trimmed at both ends (line breaks inside kept), at most 500 characters once trimmed and no NUL character. Empty or whitespace-only text clears the note",
+                    "example": "Seat on hole 4, feet high"
+                  }
+                },
+                "required": ["note"],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The Exercise note as saved",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/SavedExerciseNote"
+                    }
+                  },
+                  "required": ["data"]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "`invalid_request`: the input fails its schema; `unknown_exercises`: the Library has no Exercise with this slug. Nothing was written",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No valid Clerk session token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "The body isn't `application/json`",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too many requests from this User; retry after `Retry-After`",
+            "headers": {
+              "Retry-After": {
+                "schema": {
+                  "type": "string",
+                  "description": "Seconds until the limit resets",
+                  "example": "30"
+                },
+                "required": true,
+                "description": "Seconds until the limit resets"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "`library_unavailable`: the Library couldn't be read to check the Exercise; nothing was written, try again",
             "content": {
               "application/json": {
                 "schema": {

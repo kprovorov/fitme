@@ -12,6 +12,14 @@ import {
   workouts,
 } from "@fitme/db";
 import type { Transaction } from "@fitme/db";
+import {
+  listExerciseNotes,
+  setExerciseNote,
+} from "@fitme/services/exercise-notes";
+import type {
+  ExerciseNote,
+  SetExerciseNoteResult,
+} from "@fitme/services/exercise-notes";
 import { getExerciseHistory } from "@fitme/services/exercises";
 import type {
   ExerciseHistoryPage,
@@ -209,6 +217,8 @@ export interface UserServices {
   getWorkoutSession: (
     sessionId: string
   ) => Promise<Weighed<WorkoutSessionDetail> | null>;
+  /** Every Exercise note of the User, by Exercise slug. */
+  listExerciseNotes: () => Promise<ExerciseNote[]>;
   listPlans: () => Promise<PlanSummary[]>;
   /** A page of the User's Workout Sessions, their volumes in the User's unit. */
   listWorkoutSessions: (
@@ -275,6 +285,14 @@ export interface UserServices {
     plan: SavedPlan,
     options: SavePlanOptions
   ) => Promise<Weighed<SavePlanResult>>;
+  /**
+   * Sets the User's note on one Exercise, cleaned (blank clears it); the last
+   * save wins. Its Exercise slug is checked before, not here (ADR 0010).
+   */
+  setExerciseNote: (input: {
+    exerciseSlug: string;
+    note: string;
+  }) => Promise<SetExerciseNoteResult>;
   /**
    * Starts a Workout Session for one of the User's Workouts (of a live Plan),
    * or resumes the one already open for it (`resumed`).
@@ -378,6 +396,8 @@ export const createServicesFromEnv: ServicesFactory = (userId) => {
       asUser(userId, (tx) => getWeeklyGoals(tx, userId, timeZone)),
     getWorkoutSession: (sessionId) =>
       weighed((tx) => getWorkoutSession(tx, sessionId)),
+    listExerciseNotes: () =>
+      asUser(userId, (tx) => listExerciseNotes(tx, userId)),
     listPlans: () => asUser(userId, (tx) => listPlans(tx, userId)),
     listWorkoutSessions: (options) =>
       inUnits((tx) => listWorkoutSessions(tx, options)),
@@ -414,6 +434,11 @@ export const createServicesFromEnv: ServicesFactory = (userId) => {
       ),
     savePlan: (planId, plan, options) =>
       inUnits((tx) => savePlan(tx, userId, planId, plan, options), write),
+    // The service takes its own lock: exercise_notes, the last table of
+    // deleteUserData's order and the only one it touches, so it never waits
+    // on a table an account deletion took after it.
+    setExerciseNote: (input) =>
+      asUser(userId, (tx) => setExerciseNote(tx, userId, input)),
     startWorkoutSession: (workoutId) =>
       inUnits((tx) => startWorkoutSession(tx, workoutId), write),
     // Metadata only: never `workouts`, so Workout ids stay.
