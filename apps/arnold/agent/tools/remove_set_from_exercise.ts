@@ -7,7 +7,7 @@ import { requireConversationOwner } from "../lib/owner";
 
 export default defineTool({
   description:
-    "Remove a specific set from a workout exercise. Find set IDs via get_active_plan in the 'sets' array of each exercise. Ensure the exercise has at least one set remaining after removal.",
+    "Remove a specific set from a workout exercise of the user's plan, never from the workout session they have open (remove_set_from_workout_session does that). Find set IDs via get_active_plan in the 'sets' array of each exercise. Ensure the exercise has at least one set remaining after removal.",
   async execute({ set_id }, ctx) {
     const userId = requireConversationOwner(ctx.session.auth);
 

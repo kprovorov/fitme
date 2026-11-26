@@ -138,6 +138,10 @@ export const workoutHistory = [
   },
 ];
 
+// uuids, as remove_set_from_workout_session's input needs
+export const OPEN_LOGGED_SET = "d0000000-0000-4000-8000-000000000001";
+export const OPEN_UNLOGGED_SET = "d0000000-0000-4000-8000-000000000003";
+
 /** Open now: one Bench Press set logged, the next removed, one to go. */
 export const openWorkoutSession = {
   exercises: [
@@ -149,11 +153,11 @@ export const openWorkoutSession = {
       order: 1,
       sets: [
         {
-          ...loggedSet("os-bench-1", 1, 8, 70),
+          ...loggedSet(OPEN_LOGGED_SET, 1, 8, 70),
           logged_at: "2026-10-14T18:05:00+00:00",
         },
         {
-          id: "os-bench-3",
+          id: OPEN_UNLOGGED_SET,
           logged_at: null,
           order: 3,
           reps_completed: null,
@@ -306,5 +310,20 @@ export const readToolStubs: readonly ToolStub[] = [
     id: "plan-card",
     outcome: { response: { shown: true } },
     tool: "display_workout_plan",
+  },
+];
+
+/** The read tools and both set removals, so a removal is recorded, not run. */
+export const removeSetStubs: readonly ToolStub[] = [
+  ...readToolStubs,
+  {
+    id: "remove-session-set",
+    outcome: { response: { success: true } },
+    tool: "remove_set_from_workout_session",
+  },
+  {
+    id: "remove-plan-set",
+    outcome: { response: { success: true } },
+    tool: "remove_set_from_exercise",
   },
 ];
