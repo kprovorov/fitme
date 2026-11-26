@@ -1,6 +1,7 @@
 import { ApiError } from "@fitme/api-client";
 import type { QueryClient } from "@tanstack/react-query";
 
+import { hasMovedOnFrom } from "~/hooks/ended-workout-session";
 import { useWorkoutSessionQuery } from "~/hooks/queries/workout-sessions";
 import type { WorkoutSession } from "~/hooks/queries/workout-sessions";
 
@@ -34,9 +35,11 @@ export const hasRefusingSessionEnded = async (
 
   const queryKey = useWorkoutSessionQuery.getKey({ sessionId });
 
-  // Shown finished from the start, its screens stay read only: nothing moves.
+  // Read finished already: ended if its screens have moved on from it (a
+  // poll noticed while the write was on its way), but shown finished from
+  // the start, they stay read only and nothing moves.
   if (client.getQueryData<WorkoutSession>(queryKey)?.finished_at) {
-    return false;
+    return hasMovedOnFrom(client, sessionId);
   }
 
   const askedAt = Date.now();

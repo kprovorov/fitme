@@ -41,7 +41,11 @@ import {
 } from "~/test-utils/fake-public-api";
 import type { Failure } from "~/test-utils/fake-public-api";
 import { InAppLanguage } from "~/test-utils/in-app-language";
-import { createTestQueryClient, settle } from "~/test-utils/query-client";
+import {
+  createTestQueryClient,
+  settle,
+  until,
+} from "~/test-utils/query-client";
 import { renderRouter } from "~/test-utils/render-router";
 import { signInAs } from "~/test-utils/signed-in-user";
 
@@ -136,6 +140,8 @@ const SESSION = `${WORKOUT}/sessions/s1` as const;
 const EXERCISE = `${SESSION}/exercises/s1-e1` as const;
 const SUMMARY = "/workout-sessions/s1/summary";
 const PICKER = "/workout-sessions/s1/exercise-picker" as const;
+
+const SESSION_KEY = ["workout-session", { sessionId: "s1" }];
 
 const DONE = "Workout Complete!";
 const SAVE_ERROR = "Couldn't save this set. Try again.";
@@ -384,6 +390,61 @@ describe.each(WRITES_REFUSED_WHEN_GONE)(
     });
   }
 );
+
+describe("a read noticing the finish while the write is on its way", () => {
+  it.each([
+    [
+      "adding an Exercise",
+      addExercise,
+      () => screen.findByRole("button", { name: "Add Lunge" }),
+    ],
+    [
+      "replacing an Exercise",
+      replaceExercise,
+      () => screen.findByRole("button", { name: "Replace with Lunge" }),
+    ],
+    [
+      "removing an Exercise",
+      removeExercise,
+      () => Promise.resolve(screen.getByLabelText("Remove")),
+    ],
+  ] as const)("%s says nothing over the Summary", async (_, write, target) => {
+    await open("/", ...write.screens);
+    await write.before?.();
+    const button = await target();
+    finishElsewhere();
+    const resume = fakePublicApi.pause(write.route);
+
+    // The write waits for its answer while a read notices the finish.
+    await act(async () => {
+      await fireEvent.press(button);
+    });
+    await act(async () => {
+      await queryClient.invalidateQueries({ queryKey: SESSION_KEY });
+    });
+    await until(() => pathname === SUMMARY);
+
+    await act(async () => {
+      resume();
+      await Promise.resolve();
+    });
+    await settle(queryClient);
+
+    expect(pathname).toBe(SUMMARY);
+    expect(alerts()).toEqual([]);
+  });
+});
+
+describe("a set removal refused because it's finished", () => {
+  it("shows the set again once the session is read only", async () => {
+    await writeAfter(removeSet, finishElsewhere);
+    expect(pathname).toBe(SUMMARY);
+
+    await go(() => router.push(EXERCISE));
+
+    expect(screen.getByTestId("set-number-2")).toBeTruthy();
+  });
+});
 
 describe("when the read after a refusal fails", () => {
   it.each([

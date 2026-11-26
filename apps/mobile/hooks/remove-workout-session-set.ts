@@ -75,7 +75,8 @@ const withSet = (
 /**
  * Puts back a set whose removal failed, behind the "Couldn't remove set"
  * alert. A refusal that may mean the session has ended reads it first: read
- * finished or gone, its screens move on instead and the set stays hidden.
+ * finished or gone, its screens move on instead and the set isn't put back
+ * in the read (the read has it again anyway).
  * Nothing at all once the User has signed out meanwhile.
  */
 const putBackUnlessEnded = async (
@@ -217,11 +218,13 @@ export const useRemoveWorkoutSessionSet = (sessionId: string) => {
             queryClient.setQueryData<WorkoutSession>(queryKey, (session) =>
               withSet(session, exerciseId, restored)
             );
-            showSetAgain(set.id);
           },
           starter,
           t,
         });
+        // Its row shows again wherever the set is read: a finished session's
+        // read only Summary too, once its screens have moved on.
+        showSetAgain(set.id);
       }
 
       if (!isStillWriteStarter(starter)) {
