@@ -1,5 +1,6 @@
 import {
   arnoldSessions,
+  exerciseNotes,
   personalRecordInitializations,
   personalRecords,
   plans,
@@ -19,7 +20,9 @@ import { and, eq, isNotNull, sql } from "drizzle-orm";
 /**
  * The User-owned tables: the roots, their children, arnold_sessions, then
  * weekly_goal_changes (which the Plan writes and finishing a Workout Session
- * write last), then historical PR completion. The
+ * write last), then historical PR completion, then exercise_notes (whose
+ * writes lock it alone, so last is the one place no other writer can take a
+ * table after it). The
  * Plan edits in workout-edits.ts take their locks in this order too, so they
  * queue behind an account deletion instead of deadlocking. Every table that holds a
  * User's rows must be here: a schema change that adds one has to add it, and
@@ -39,6 +42,7 @@ export const USER_DATA_TABLES = [
   arnoldSessions,
   weeklyGoalChanges,
   personalRecordInitializations,
+  exerciseNotes,
 ];
 
 const LOCKED_TABLES = sql.join(USER_DATA_TABLES, sql`, `);
@@ -118,6 +122,7 @@ export const deleteUserData = async (
   await tx
     .delete(personalRecordInitializations)
     .where(eq(personalRecordInitializations.userId, userId));
+  await tx.delete(exerciseNotes).where(eq(exerciseNotes.userId, userId));
   // arnold_sessions stays: each row is the ACL for an EVE session, whose
   // stream eve keeps until retention ends even after the webhook resets it,
   // and without the row Arnold's channel would let the first caller with the
