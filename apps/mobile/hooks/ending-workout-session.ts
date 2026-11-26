@@ -22,7 +22,38 @@ import type {
   WorkoutSession,
 } from "~/hooks/queries/workout-sessions";
 
-/** Whether a route is one of the session's own screens (its Exercise picker included). */
+/**
+ * The Workout Session each open Exercise picker's choice keys belong to: the
+ * Muscles and Equipment sheets it opens carry only that key, and close with
+ * the session's screens.
+ */
+const sessionOfChoiceKey = new Map<string, string>();
+
+/**
+ * Makes the choice sheets opened under these keys screens of the session,
+ * until the returned function is called (the picker closing).
+ */
+export const holdSessionChoiceKeys = (
+  sessionId: string,
+  keys: readonly string[]
+): (() => void) => {
+  for (const key of keys) {
+    sessionOfChoiceKey.set(key, sessionId);
+  }
+
+  return () => {
+    for (const key of keys) {
+      if (sessionOfChoiceKey.get(key) === sessionId) {
+        sessionOfChoiceKey.delete(key);
+      }
+    }
+  };
+};
+
+/**
+ * Whether a route is one of the session's own screens: its Exercise picker
+ * included, and the choice sheets the picker opened.
+ */
 export const isSessionRoute = (
   route: { params?: object } | undefined,
   sessionId: string
@@ -32,7 +63,11 @@ export const isSessionRoute = (
   return (
     !!params &&
     (("sessionId" in params && params.sessionId === sessionId) ||
-      ("workoutSessionId" in params && params.workoutSessionId === sessionId))
+      ("workoutSessionId" in params && params.workoutSessionId === sessionId) ||
+      ("choice" in params &&
+        [...sessionOfChoiceKey].some(
+          ([key, owner]) => key === params.choice && owner === sessionId
+        )))
   );
 };
 

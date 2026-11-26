@@ -6,6 +6,8 @@ import { Alert } from "react-native";
 
 import { ExerciseRowSymbol } from "~/components/exercises/exercise-row";
 import ExercisesView from "~/components/views/exercises-view";
+import { useEndedWorkoutSession } from "~/hooks/ended-workout-session";
+import { holdSessionChoiceKeys } from "~/hooks/ending-workout-session";
 import {
   newEquipmentChoiceKey,
   useEquipmentChoiceOpening,
@@ -34,6 +36,7 @@ import { sessionEditFailureMessage } from "~/lib/session-edit-failure";
  * narrows the list by Muscle group and Equipment through the same pills and
  * sheets as the Library tab, each choice its own per opening.
  * It closes once saved; a failure says so in an alert and keeps it open.
+ * It moves on with its Workout Session when that ends elsewhere.
  */
 const ExercisePickerScreen = () => {
   const { t } = useTranslation();
@@ -54,6 +57,10 @@ const ExercisePickerScreen = () => {
     workoutSessionId: string;
   }>();
 
+  // Finished or deleted elsewhere: the session's screens move on, this sheet
+  // included, as from the session screen.
+  useEndedWorkoutSession(sessionId);
+
   // Each opening starts over: the replaced Exercise's first Muscle group, or
   // none, and forgotten once closed.
   const muscleChoiceKey = useMemo(() => newMuscleChoiceKey(), []);
@@ -67,6 +74,13 @@ const ExercisePickerScreen = () => {
   // swapping out. Forgotten once closed, and never the Library tab's.
   const equipmentChoiceKey = useMemo(() => newEquipmentChoiceKey(), []);
   useEquipmentChoiceOpening(equipmentChoiceKey, []);
+
+  // The choice sheets it opens close with the session's screens.
+  useEffect(
+    () =>
+      holdSessionChoiceKeys(sessionId, [muscleChoiceKey, equipmentChoiceKey]),
+    [equipmentChoiceKey, muscleChoiceKey, sessionId]
+  );
 
   // A failed edit may still have been saved (a lost answer): read again
   // either way.
