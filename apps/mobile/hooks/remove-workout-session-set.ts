@@ -5,6 +5,7 @@ import { Alert, Keyboard } from "react-native";
 
 import {
   dropAddedSet,
+  dropGoneAddedSet,
   hideRemovedSet,
   holdOrder,
   markSetRemoved,
@@ -70,7 +71,8 @@ const withSet = (
  * `logged` is whether the set was logged when the User acted, and `saved` what
  * logging it answered: a set just logged may not be in the read yet, and comes
  * back logged should its removal fail. Nothing happens once the read says the
- * Workout Session has finished (an alert answered after it ended elsewhere),
+ * Workout Session has finished, or there's no read (an alert answered after
+ * it ended elsewhere),
  * and once the User who removed it has signed out, nothing is shown, alerted,
  * sent or read.
  */
@@ -88,7 +90,10 @@ export const useRemoveWorkoutSessionSet = (sessionId: string) => {
     ) => {
       const queryKey = useWorkoutSessionQuery.getKey({ sessionId });
 
-      if (queryClient.getQueryData<WorkoutSession>(queryKey)?.finished_at) {
+      const read = queryClient.getQueryData<WorkoutSession>(queryKey);
+
+      // Ended elsewhere: finished, or discarded and its read dropped.
+      if (!read || read.finished_at) {
         return;
       }
 
@@ -132,6 +137,8 @@ export const useRemoveWorkoutSessionSet = (sessionId: string) => {
 
       if (removed) {
         markSetRemoved(set.id);
+        // Added and logged here, it may live on the phone too until a read.
+        dropGoneAddedSet(exerciseId, set.id);
 
         if (!IS_E2E) {
           void segmentClient.track("Set Removed", {

@@ -972,6 +972,25 @@ describe.each([
     await settle(queryClient);
   });
 
+  it("removes an added set it just logged for good", async () => {
+    backend.sets = backend.sets.filter(({ id }) => id === "s1-e1-s1");
+    await mountScreen();
+    await press("Add Set");
+    // The read after logging it waits, so only the phone has the new set.
+    const resumeRead = fakePublicApi.pause(SESSION_ROUTE);
+    await press("Log set 2");
+    await until(() => screen.queryByLabelText("Set 2, logged") !== null);
+    await swipeFully(2);
+    await answerAlert("Remove", { wait: false });
+    await until(() => fakePublicApi.count(REMOVE_ROUTE) === 1);
+    resumeRead();
+    await settle(queryClient);
+
+    expect(setIds()).toEqual(["s1-e1-s1"]);
+    expect(screen.queryByLabelText("Set 2, logged")).toBeNull();
+    expect(screen.getByLabelText("Set 1, logged")).toBeTruthy();
+  });
+
   it("asks and removes in Ukrainian too", async () => {
     setDeviceLanguages(["uk-UA"]);
     await mountScreen();
