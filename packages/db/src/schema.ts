@@ -12,6 +12,7 @@ import {
   pgPolicy,
   pgSchema,
   pgTable,
+  primaryKey,
   smallint,
   text,
   timestamp,
@@ -46,6 +47,34 @@ export const arnoldSessions = pgTable(
       to: ["authenticated"],
       using: sql`(user_id = ( SELECT current_user_id() AS current_user_id))`,
     }),
+  ]
+);
+export const exerciseNotes = pgTable(
+  "exercise_notes",
+  {
+    exerciseSlug: text("exercise_slug").notNull(),
+    note: text().notNull(),
+    updatedAt: timestamp("updated_at", { mode: "string", withTimezone: true })
+      .defaultNow()
+      .notNull(),
+    userId: text("user_id").notNull(),
+  },
+  (table) => [
+    primaryKey({
+      columns: [table.userId, table.exerciseSlug],
+      name: "exercise_notes_pkey",
+    }),
+    pgPolicy("exercise_notes_all", {
+      as: "permissive",
+      for: "all",
+      to: ["authenticated"],
+      using: sql`(user_id = ( SELECT current_user_id() AS current_user_id))`,
+      withCheck: sql`(user_id = ( SELECT current_user_id() AS current_user_id))`,
+    }),
+    check(
+      "exercise_notes_note_check",
+      sql`(char_length(note) <= 500) AND (note ~ '[^[:space:]]'::text)`
+    ),
   ]
 );
 export const personalRecordInitializations = pgTable(
@@ -386,6 +415,7 @@ export const workoutSessionExerciseSets = pgTable(
     }).defaultNow(),
     id: uuid().defaultRandom().primaryKey().notNull(),
     loggedAt: timestamp("logged_at", { mode: "string", withTimezone: true }),
+    note: text(),
     order: integer().notNull(),
     repsCompleted: integer("reps_completed"),
     repsRecommended: integer("reps_recommended"),
@@ -420,6 +450,10 @@ export const workoutSessionExerciseSets = pgTable(
      JOIN workout_sessions ws ON ((ws.id = wse.workout_session_id)))
   WHERE ((wse.id = workout_session_exercise_sets.workout_session_exercise_id) AND (ws.user_id = ( SELECT current_user_id() AS current_user_id)))))`,
     }),
+    check(
+      "workout_session_exercise_sets_note_check",
+      sql`(char_length(note) <= 500) AND (note ~ '[^[:space:]]'::text)`
+    ),
     check("workout_session_exercise_sets_order_positive", sql`"order" >= 1`),
   ]
 );

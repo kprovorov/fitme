@@ -6,6 +6,7 @@ import type { Database } from "./client";
 // The generated tables (pnpm --filter @fitme/db schema:generate)
 export {
   arnoldSessions,
+  exerciseNotes,
   personalRecordInitializations,
   personalRecords,
   plans,
