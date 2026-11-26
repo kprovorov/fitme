@@ -3,6 +3,7 @@ import { useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { Pressable, View } from "react-native";
 
+import { SET_TABLE_MAX_FONT_SCALE } from "~/components/forms/workout-exercise-set-form";
 import SwipeableRow from "~/components/ui/swipeable-row";
 import type { SwipeableRowHandle } from "~/components/ui/swipeable-row";
 import { Text } from "~/components/ui/text";
@@ -80,7 +81,7 @@ const SetSwipeRow = ({
           accessibilityElementsHidden
           className={cn(
             "bg-destructive ml-xs flex-1 justify-center rounded-lg",
-            armed ? "px-sm items-start" : "items-center"
+            armed ? "px-sm items-start" : "px-xs items-center"
           )}
           importantForAccessibility="no-hide-descendants"
           onPress={onRemove}
@@ -89,6 +90,8 @@ const SetSwipeRow = ({
           <Text
             adjustsFontSizeToFit
             className="text-body-emphasized text-destructive-foreground"
+            // As the table's numbers: past this the word won't fit the row.
+            maxFontSizeMultiplier={SET_TABLE_MAX_FONT_SCALE}
             numberOfLines={1}
           >
             {t("sets.remove.button")}

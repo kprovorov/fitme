@@ -291,13 +291,13 @@ describe.each([
 
   it("gives VoiceOver a Remove action on the row", async () => {
     await mountScreen();
-    const reps = screen.getByLabelText("Set 2 reps");
+    const number = screen.getByTestId("set-number-2");
 
-    expect(reps.props.accessibilityActions).toEqual([
+    expect(number.props.accessibilityActions).toEqual([
       { label: "Remove set 2", name: "remove" },
     ]);
 
-    await fireEvent(reps, "accessibilityAction", {
+    await fireEvent(number, "accessibilityAction", {
       nativeEvent: { actionName: "remove" },
     });
     await settle(queryClient);
@@ -354,7 +354,7 @@ describe.each([
     expect(swipes(2)).toBe(false);
     expect(swipes(3)).toBe(true);
     expect(
-      screen.getByLabelText("Set 2 reps").props.accessibilityActions
+      screen.getByTestId("set-number-2").props.accessibilityActions
     ).toBeUndefined();
 
     resume();
@@ -530,9 +530,9 @@ describe.each([
   it("removes in Ukrainian too", async () => {
     setDeviceLanguages(["uk-UA"]);
     await mountScreen();
-    const reps = screen.getByLabelText("Підхід 2, повторення");
+    const number = screen.getByTestId("set-number-2");
 
-    expect(reps.props.accessibilityActions).toEqual([
+    expect(number.props.accessibilityActions).toEqual([
       { label: "Видалити підхід 2", name: "remove" },
     ]);
 

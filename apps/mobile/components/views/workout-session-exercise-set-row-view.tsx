@@ -4,6 +4,7 @@ import * as Haptics from "expo-haptics";
 import { useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { AccessibilityInfo, View } from "react-native";
+import type { AccessibilityActionEvent } from "react-native";
 
 import { SymbolImage } from "~/components/symbol-image";
 import { dropGoneAddedSet } from "~/hooks/added-sets";
@@ -249,6 +250,14 @@ const WorkoutSessionExerciseSetRowView = ({
     }
   };
 
+  const handleAccessibilityAction = ({
+    nativeEvent,
+  }: AccessibilityActionEvent) => {
+    if (nativeEvent.actionName === "remove") {
+      remove();
+    }
+  };
+
   const form = (
     <WorkoutSessionExerciseSetForm
       // A logged set stays editable when an earlier one is still open: its
@@ -268,16 +277,35 @@ const WorkoutSessionExerciseSetRowView = ({
               />
             </View>
           ) : (
-            <Text
-              // At body size `#2` fills the column: shrink it at the largest
-              // text sizes rather than wrap it onto a second line.
-              adjustsFontSizeToFit
-              className="text-mono-body w-7 text-center"
-              maxFontSizeMultiplier={SET_TABLE_MAX_FONT_SCALE}
-              numberOfLines={1}
+            // VoiceOver and TalkBack reach the swipe's Remove as an action on
+            // the set's number: a plain View, since iOS reads a text field's
+            // or a Text's actions from another element than the one focused.
+            <View
+              accessibilityActions={
+                canRemove
+                  ? [
+                      {
+                        label: t("sets.row.remove", { order: number }),
+                        name: "remove",
+                      },
+                    ]
+                  : undefined
+              }
+              accessible={canRemove}
+              onAccessibilityAction={handleAccessibilityAction}
+              testID={`set-number-${number}`}
             >
-              #{number}
-            </Text>
+              <Text
+                // At body size `#2` fills the column: shrink it at the largest
+                // text sizes rather than wrap it onto a second line.
+                adjustsFontSizeToFit
+                className="text-mono-body w-7 text-center"
+                maxFontSizeMultiplier={SET_TABLE_MAX_FONT_SCALE}
+                numberOfLines={1}
+              >
+                #{number}
+              </Text>
+            </View>
           )}
           <Text
             adjustsFontSizeToFit
@@ -298,14 +326,6 @@ const WorkoutSessionExerciseSetRowView = ({
         reps: (repsCompleted ?? repsRecommended).toString(),
         weight: formatSetWeight(weightCompleted ?? weightRecommended, i18n),
       }}
-      removeAction={
-        canRemove
-          ? {
-              label: t("sets.row.remove", { order: number }),
-              onRemove: remove,
-            }
-          : undefined
-      }
       setIndex={number}
     />
   );

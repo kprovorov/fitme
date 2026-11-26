@@ -8,7 +8,6 @@ import type {
 } from "react-hook-form";
 import { useTranslation } from "react-i18next";
 import { Pressable, View } from "react-native";
-import type { AccessibilityActionEvent } from "react-native";
 import { z } from "zod";
 
 import { useI18n } from "~/lib/i18n";
@@ -37,11 +36,6 @@ interface WorkoutSessionExerciseSetFormProps {
     values: WorkoutSessionExerciseSetFormValues
   ) => void | Promise<void>;
   recommendedValues?: { reps: string; weight: string };
-  /**
-   * The row's Remove, offered to VoiceOver and TalkBack as an action on its
-   * fields, since a swipe has no button they reach.
-   */
-  removeAction?: { label: string; onRemove: () => void };
   /** The set's 1-based number, as shown on its row. */
   setIndex: number;
 }
@@ -178,7 +172,6 @@ const WorkoutSessionExerciseSetForm = ({
   error,
   isDone,
   isEditing,
-  removeAction,
   setIndex,
 }: WorkoutSessionExerciseSetFormProps) => {
   const { t } = useTranslation();
@@ -198,18 +191,6 @@ const WorkoutSessionExerciseSetForm = ({
   });
 
   const { disabled: isFormDisabled } = form.formState;
-
-  const removeActionProps = removeAction
-    ? {
-        accessibilityActions: [{ label: removeAction.label, name: "remove" }],
-        onAccessibilityAction: ({ nativeEvent }: AccessibilityActionEvent) => {
-          if (nativeEvent.actionName === "remove") {
-            removeAction.onRemove();
-          }
-        },
-      }
-    : {};
-
   const showsLoggedValues = isDone && !isEditing;
 
   // The fields then show what is sent, so what was stored: `05` as `5`,
@@ -234,55 +215,62 @@ const WorkoutSessionExerciseSetForm = ({
     onEdit();
   }, [form, onEdit]);
 
-  const renderWeightField = ({
-    field: { onChange, onBlur, value },
-    fieldState: { error: fieldError },
-  }: {
-    field: ControllerRenderProps<WorkoutSessionExerciseSetFormInput, "weight">;
-    fieldState: ControllerFieldState;
-  }) => (
-    <SetNumberInput
-      {...removeActionProps}
-      accessibilityLabel={t("sets.row.weightInput", { order: setIndex })}
-      containerClassName={WEIGHT_CELL_CLASS}
-      editable={!isFormDisabled}
-      error={!!fieldError}
-      keyboardType="decimal-pad"
-      maxFontSizeMultiplier={SET_TABLE_MAX_FONT_SCALE}
-      onBlur={onBlur}
-      onChangeText={onChange}
-      placeholder={recommendedValues?.weight}
-      selectTextOnFocus
-      testID={`set-weight-input-${setIndex}`}
-      value={value}
-      variant={isFormDisabled ? "ghost" : "default"}
-    />
+  const renderWeightField = useCallback(
+    ({
+      field: { onChange, onBlur, value },
+      fieldState: { error: fieldError },
+    }: {
+      field: ControllerRenderProps<
+        WorkoutSessionExerciseSetFormInput,
+        "weight"
+      >;
+      fieldState: ControllerFieldState;
+    }) => (
+      <SetNumberInput
+        accessibilityLabel={t("sets.row.weightInput", { order: setIndex })}
+        containerClassName={WEIGHT_CELL_CLASS}
+        editable={!isFormDisabled}
+        error={!!fieldError}
+        keyboardType="decimal-pad"
+        maxFontSizeMultiplier={SET_TABLE_MAX_FONT_SCALE}
+        onBlur={onBlur}
+        onChangeText={onChange}
+        placeholder={recommendedValues?.weight}
+        selectTextOnFocus
+        testID={`set-weight-input-${setIndex}`}
+        value={value}
+        variant={isFormDisabled ? "ghost" : "default"}
+      />
+    ),
+    [isFormDisabled, recommendedValues?.weight, setIndex, t]
   );
 
-  const renderRepsField = ({
-    field: { onChange, onBlur, value },
-    fieldState: { error: fieldError },
-  }: {
-    field: ControllerRenderProps<WorkoutSessionExerciseSetFormInput, "reps">;
-    fieldState: ControllerFieldState;
-  }) => (
-    <SetNumberInput
-      {...removeActionProps}
-      accessibilityLabel={t("sets.row.repsInput", { order: setIndex })}
-      autoCapitalize="none"
-      containerClassName={CELL_CLASS}
-      editable={!isFormDisabled}
-      error={!!fieldError}
-      keyboardType="number-pad"
-      maxFontSizeMultiplier={SET_TABLE_MAX_FONT_SCALE}
-      onBlur={onBlur}
-      onChangeText={onChange}
-      placeholder={recommendedValues?.reps}
-      selectTextOnFocus
-      testID={`set-reps-input-${setIndex}`}
-      value={value}
-      variant={isFormDisabled ? "ghost" : "default"}
-    />
+  const renderRepsField = useCallback(
+    ({
+      field: { onChange, onBlur, value },
+      fieldState: { error: fieldError },
+    }: {
+      field: ControllerRenderProps<WorkoutSessionExerciseSetFormInput, "reps">;
+      fieldState: ControllerFieldState;
+    }) => (
+      <SetNumberInput
+        accessibilityLabel={t("sets.row.repsInput", { order: setIndex })}
+        autoCapitalize="none"
+        containerClassName={CELL_CLASS}
+        editable={!isFormDisabled}
+        error={!!fieldError}
+        keyboardType="number-pad"
+        maxFontSizeMultiplier={SET_TABLE_MAX_FONT_SCALE}
+        onBlur={onBlur}
+        onChangeText={onChange}
+        placeholder={recommendedValues?.reps}
+        selectTextOnFocus
+        testID={`set-reps-input-${setIndex}`}
+        value={value}
+        variant={isFormDisabled ? "ghost" : "default"}
+      />
+    ),
+    [isFormDisabled, recommendedValues?.reps, setIndex, t]
   );
 
   const { errors } = form.formState;
