@@ -22,6 +22,7 @@ import type { Rest } from "~/components/workout-sessions/rest-timer";
 import SessionExerciseHeader from "~/components/workout-sessions/session-exercise-header";
 import SessionLoadError from "~/components/workout-sessions/session-load-error";
 import { WorkoutSessionFinishSuggestion } from "~/components/workout-sessions/workout-session-finish-suggestion";
+import { useEndedWorkoutSession } from "~/hooks/ended-workout-session";
 import { useExercise, useExerciseDetailQuery } from "~/hooks/queries/library";
 import type { SavedWorkoutSessionExerciseSet } from "~/hooks/queries/workout-session-exercise-sets";
 import { useWorkoutSessionQuery } from "~/hooks/queries/workout-sessions";
@@ -69,6 +70,10 @@ const WorkoutSessionExerciseScreen = () => {
     variables: { sessionId },
   });
 
+  // Finished or deleted elsewhere: the session's screens move on, this one
+  // included, as from the session screen.
+  useEndedWorkoutSession(sessionId);
+
   const workoutSessionExercise = workoutSession?.exercises.find(
     ({ id }) => id === exerciseId
   );
@@ -82,6 +87,8 @@ const WorkoutSessionExerciseScreen = () => {
   );
 
   const [rest, setRest] = useState<Rest | null>(null);
+  // A finished session has no rest to count down, however it was finished.
+  const shownRest = isFinished ? null : rest;
   const [restTimerHeight, setRestTimerHeight] = useState(0);
   const exercise = useExercise(workoutSessionExercise?.exercise_slug);
 
@@ -241,7 +248,9 @@ const WorkoutSessionExerciseScreen = () => {
         contentContainerClassName="gap-sm px-sm pt-xs"
         contentContainerStyle={{
           paddingBottom:
-            insets.bottom + 16 + (rest ? restTimerHeight + REST_TIMER_GAP : 0),
+            insets.bottom +
+            16 +
+            (shownRest ? restTimerHeight + REST_TIMER_GAP : 0),
         }}
         contentInsetAdjustmentBehavior="automatic"
         keyboardShouldPersistTaps="handled"
@@ -253,16 +262,16 @@ const WorkoutSessionExerciseScreen = () => {
       >
         {renderContent()}
       </KeyboardAwareScrollView>
-      {rest ? (
+      {shownRest ? (
         <RestTimer
           bottomInset={insets.bottom}
           nextSetNumber={
-            nextUnloggedSet(shownSets, rest.loggedSetId)?.number ?? null
+            nextUnloggedSet(shownSets, shownRest.loggedSetId)?.number ?? null
           }
           onAdjust={adjustRest}
           onEnd={endRest}
           onLayout={handleRestTimerLayout}
-          rest={rest}
+          rest={shownRest}
         />
       ) : null}
       <WorkoutSessionFinishSuggestion

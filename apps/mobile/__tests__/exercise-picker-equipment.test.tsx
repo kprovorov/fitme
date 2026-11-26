@@ -59,6 +59,12 @@ jest.mock("expo-router", () => {
 
 jest.mock("~/lib/segment", () => ({ segmentClient: { track: jest.fn() } }));
 
+// Moving on when the session ends elsewhere needs the real navigator, which
+// `__tests__/ended-workout-session-exercise.test.tsx` mounts.
+jest.mock("~/hooks/ended-workout-session", () => ({
+  useEndedWorkoutSession: () => undefined,
+}));
+
 jest.mock("~/components/ui/button", () =>
   jest.requireActual("~/test-utils/button-stub")
 );

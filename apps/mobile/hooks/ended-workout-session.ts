@@ -1,5 +1,6 @@
 import { ApiError, rateLimitedFor } from "@fitme/api-client";
 import { useIsMutating, useQueryClient } from "@tanstack/react-query";
+import type { QueryClient } from "@tanstack/react-query";
 import { useNavigation } from "expo-router";
 import type {
   NavigationProp,
@@ -35,6 +36,61 @@ interface Watch {
   openFor: WriteStarter | null;
   sessionId: string;
 }
+
+/**
+ * The Workout Sessions each client has moved on from. Several screens of one
+ * session may be mounted together (the session screen, an Exercise's, the
+ * picker), each watching it: only the first to notice moves, once.
+ */
+const movedOn = new WeakMap<QueryClient, Set<string>>();
+
+/** Claims moving on from the session, or answers false once a screen has. */
+const claimMoveOn = (client: QueryClient, sessionId: string): boolean => {
+  const sessions = movedOn.get(client) ?? new Set<string>();
+
+  if (sessions.has(sessionId)) {
+    return false;
+  }
+
+  sessions.add(sessionId);
+  movedOn.set(client, sessions);
+
+  return true;
+};
+
+/**
+ * How long one screen's read on a return to the foreground stands for the
+ * others: the screens of a session mounted together each notice the same
+ * return, in the same commit, and the session is read once.
+ */
+const FOREGROUND_READ_SHARED_MS = 1000;
+
+/** When each client last read a session again on a return to the foreground. */
+const foregroundReads = new WeakMap<QueryClient, Map<string, number>>();
+
+/** Claims the read for this return, or answers false once a screen has. */
+const claimForegroundRead = (
+  client: QueryClient,
+  sessionId: string
+): boolean => {
+  const reads = foregroundReads.get(client) ?? new Map<string, number>();
+  const now = Date.now();
+  const last = reads.get(sessionId);
+
+  if (last !== undefined && now - last < FOREGROUND_READ_SHARED_MS) {
+    return false;
+  }
+
+  reads.set(sessionId, now);
+  foregroundReads.set(client, reads);
+
+  return true;
+};
+
+/** Gives up a claim to move on that ended in nothing. */
+const releaseMoveOn = (client: QueryClient, sessionId: string): void => {
+  movedOn.get(client)?.delete(sessionId);
+};
 
 const startWatch = (sessionId: string): Watch => ({
   endedHere: false,
@@ -141,6 +197,11 @@ export const useEndedWorkoutSession = (sessionId: string): void => {
     }
 
     watched.hasMovedOn = true;
+
+    if (!claimMoveOn(queryClient, sessionId)) {
+      return;
+    }
+
     // A question about ending it may be open: answering it does nothing now.
     revokeEndingQuestion(queryClient, sessionId);
 
@@ -162,6 +223,9 @@ export const useEndedWorkoutSession = (sessionId: string): void => {
 
       if (isStillWriteStarter(openFor)) {
         closeDiscardedSession(queryClient, navigation, sessionId, [data]);
+      } else {
+        // Signed out meanwhile: another screen of the session may still try.
+        releaseMoveOn(queryClient, sessionId);
       }
     };
 
@@ -185,8 +249,9 @@ export const useEndedWorkoutSession = (sessionId: string): void => {
   const rateLimitedMs = (rateLimitedFor(error) ?? 0) * 1000;
   const readableAt = errorUpdatedAt + rateLimitedMs;
 
-  // Back in the foreground: a read asked before the app left may be old. One
-  // still rate limited is the poll's to wait out.
+  // Back in the foreground: a read asked before the app left may be old, so
+  // it's cancelled and asked again, by one screen of the session. One still
+  // rate limited is the poll's to wait out.
   useEffect(() => {
     const returned = isAppActive && !wasAppActive.current;
     wasAppActive.current = isAppActive;
@@ -196,11 +261,21 @@ export const useEndedWorkoutSession = (sessionId: string): void => {
       isPolling &&
       !isEndingNow() &&
       (rateLimitedMs === 0 || Date.now() >= readableAt) &&
-      isStillWriteStarter(watch.current?.openFor ?? undefined)
+      isStillWriteStarter(watch.current?.openFor ?? undefined) &&
+      claimForegroundRead(queryClient, sessionId)
     ) {
       void refetch();
     }
-  }, [isAppActive, isEndingNow, isPolling, rateLimitedMs, readableAt, refetch]);
+  }, [
+    isAppActive,
+    isEndingNow,
+    isPolling,
+    queryClient,
+    rateLimitedMs,
+    readableAt,
+    refetch,
+    sessionId,
+  ]);
 
   // Counted from the last read, whoever asked for it, so several screens of
   // the session share one request.
