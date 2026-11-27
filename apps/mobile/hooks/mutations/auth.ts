@@ -11,7 +11,9 @@ export const useLogoutMutation = createMutation({
   mutationFn: async (): Promise<void> => {
     // Sent first, under the User's id: once Clerk has signed them out,
     // AuthSync resets the identity (it resets on every sign-out, this one
-    // included), and the event would go out anonymous.
+    // included), and the event would go out anonymous. A sign-out that then
+    // fails still counts as a log-out: rare, and the SDK takes no distinct id
+    // per event, so this is the one order that keeps it on the User.
     void analytics.send("User Logged Out");
 
     await getClerk().signOut();
