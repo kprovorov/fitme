@@ -1,5 +1,6 @@
 import { ApiError, rateLimitedFor } from "@fitme/api-client";
 import { useQueryClient } from "@tanstack/react-query";
+import * as Haptics from "expo-haptics";
 import { useRouter } from "expo-router";
 import type { TFunction } from "i18next";
 import { useCallback } from "react";
@@ -7,9 +8,16 @@ import { useTranslation } from "react-i18next";
 import { Alert } from "react-native";
 import type { AccessibilityActionEvent } from "react-native";
 
-import { PLANS_QUERY_KEY, useDeletePlanMutation } from "~/hooks/queries/plans";
+import {
+  PLANS_QUERY_KEY,
+  useActivatePlanMutation,
+  useDeletePlanMutation,
+  usePlanSummariesQuery,
+} from "~/hooks/queries/plans";
+import type { PlanSummary } from "~/hooks/queries/plans";
 import { WEEKLY_GOALS_QUERY_KEY } from "~/hooks/queries/weekly-goals";
 import { OPEN_WORKOUT_SESSION_QUERY_KEY } from "~/hooks/queries/workout-sessions";
+import { isStillWriteStarter } from "~/lib/write-answers";
 
 /**
  * What to tell the User after a failed Plan write. A 404 means the Plan is
@@ -42,17 +50,31 @@ export interface PlanActionTarget {
  * follows and the Plan's own screen moves onto with the Plan detail redesign:
  *
  * - `edit` opens the Plan editor modal over the screen it's called from.
+ * - `activate` makes the Plan the active one. With no active Plan it does so
+ *   at once; with another one active, or when the Plan summaries haven't been
+ *   read, it first asks "Activate Plan" ("This will deactivate your current
+ *   plan"). Success plays the success haptic and nothing else: the Plans are
+ *   read again (the mutation's own seeding), so the Plan moves into the hero
+ *   card where the list shows one. A failure alerts "Couldn't Activate Plan"
+ *   (the wait for a 429, the Plan being gone for a 404) and reads the Plans
+ *   again. A Workout Session open on any Plan is left alone.
  * - `remove` refuses the active Plan ("Can't Delete Active Plan", nothing
  *   deleted); any other Plan asks "Delete Plan?" first, then deletes it. A
  *   failure alerts "Couldn't Delete Plan" (the wait for a 429, the Plan being
  *   gone for a 404). The Plans are read again either way, so a deleted one
  *   leaves every list. A Workout Session open on it keeps running.
  *
- * `onDeleted` runs once the API has deleted the Plan (the Plan screen leaves).
+ * `onDeleted` runs once the API has deleted the Plan (the Plan screen leaves),
+ * and `onActivated` once the API has activated it. `activatingPlanId` is the
+ * Plan an activation is on its way for, `null` otherwise.
  */
 export const usePlanActions = ({
+  onActivated,
   onDeleted,
-}: { onDeleted?: (planId: string) => void } = {}) => {
+}: {
+  onActivated?: (planId: string) => void;
+  onDeleted?: (planId: string) => void;
+} = {}) => {
   const { t } = useTranslation();
   const router = useRouter();
   const queryClient = useQueryClient();
@@ -78,6 +100,83 @@ export const usePlanActions = ({
       onDeleted?.(id);
     },
   });
+
+  // No hook-level `onSuccess`: it would replace the mutation's own, which
+  // shows the activated Plan from the answer and reads the Plans again.
+  const {
+    isPending: isActivating,
+    mutate: activatePlan,
+    variables: activating,
+  } = useActivatePlanMutation({
+    // Nothing for a User who has signed out since.
+    onError: (error, _variables, starter) => {
+      if (!isStillWriteStarter(starter)) {
+        return;
+      }
+
+      Alert.alert(
+        t("plans.activate.failed"),
+        planWriteFailureMessage(t, error)
+      );
+      // A failed call doesn't prove nothing changed.
+      void queryClient.invalidateQueries({ queryKey: PLANS_QUERY_KEY });
+      void queryClient.invalidateQueries({ queryKey: ["plan"] });
+      void queryClient.invalidateQueries({ queryKey: WEEKLY_GOALS_QUERY_KEY });
+    },
+  });
+
+  const activateNow = useCallback(
+    (planId: string) => {
+      activatePlan(
+        { id: planId },
+        {
+          onSuccess: (_plan, _variables, starter) => {
+            if (!isStillWriteStarter(starter)) {
+              return;
+            }
+
+            void Haptics.notificationAsync(
+              Haptics.NotificationFeedbackType.Success
+            );
+            onActivated?.(planId);
+          },
+        }
+      );
+    },
+    [activatePlan, onActivated]
+  );
+
+  const activate = useCallback(
+    (plan: PlanActionTarget) => {
+      if (plan.is_active) {
+        return;
+      }
+
+      const summaries = queryClient.getQueryData<PlanSummary[]>(
+        usePlanSummariesQuery.getKey()
+      );
+
+      // Unread summaries can't tell, so they ask too.
+      const anotherActive =
+        summaries === undefined ||
+        summaries.some((other) => other.is_active && other.id !== plan.id);
+
+      if (!anotherActive) {
+        activateNow(plan.id);
+
+        return;
+      }
+
+      Alert.alert(t("plans.activate.title"), t("plans.activate.message"), [
+        { style: "cancel", text: t("common.cancel") },
+        {
+          onPress: () => activateNow(plan.id),
+          text: t("plans.activate.confirm"),
+        },
+      ]);
+    },
+    [activateNow, queryClient, t]
+  );
 
   const edit = useCallback(
     (planId: string) => {
@@ -110,7 +209,13 @@ export const usePlanActions = ({
     [deletePlan, t]
   );
 
-  return { edit, isDeleting, remove };
+  return {
+    activate,
+    activatingPlanId: isActivating ? (activating?.id ?? null) : null,
+    edit,
+    isDeleting,
+    remove,
+  };
 };
 
 /** One thing a User can do to a Plan from My Plans' long-press menu. */

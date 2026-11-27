@@ -168,7 +168,8 @@ export const MyPlansView = ({
   const { t } = useTranslation();
   const router = useRouter();
 
-  const { edit, isDeleting, remove } = usePlanActions();
+  const { activate, activatingPlanId, edit, isDeleting, remove } =
+    usePlanActions();
 
   const openPlan = useCallback(
     (id: string) => router.push(`/plans/${id}`),
@@ -176,12 +177,26 @@ export const MyPlansView = ({
   );
 
   // The long-press menu's items, and VoiceOver's actions, for one Plan.
+  // While a Plan is being activated, no Plan can be activated or deleted;
+  // Edit stays.
   const actionsFor = (plan: PlanSummary): PlanMenuAction[] => [
     { label: t("plans.edit"), name: "edit", onPress: () => edit(plan.id) },
+    // The active Plan has nothing to activate.
+    ...(plan.is_active
+      ? []
+      : [
+          {
+            // Nor while a Plan is being deleted: it could be this one.
+            disabled: isDeleting || activatingPlanId !== null,
+            label: t("plans.activate.action"),
+            name: "activate",
+            onPress: () => activate(plan),
+          },
+        ]),
     {
       destructive: true,
-      // One delete at a time.
-      disabled: isDeleting,
+      // One delete at a time, and none while a Plan is being activated.
+      disabled: isDeleting || activatingPlanId !== null,
       label: t("plans.delete.action"),
       name: "delete",
       onPress: () => remove(plan),
@@ -222,6 +237,7 @@ export const MyPlansView = ({
         {others.map((plan, index) => (
           <PlanRow
             actions={actionsFor(plan)}
+            isActivating={plan.id === activatingPlanId}
             isFirst={index === 0}
             key={plan.id}
             onPress={() => openPlan(plan.id)}
