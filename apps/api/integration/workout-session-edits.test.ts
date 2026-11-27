@@ -99,6 +99,7 @@ type SessionEditBody =
   | typeof onePlan
   | { workout_id: string }
   | { exercise_slug: string }
+  | { note: string }
   | SessionSetBody;
 
 const request = async (
@@ -426,6 +427,7 @@ describe("workout Session edits", () => {
         data: {
           id: expect.any(String),
           logged_at: expect.any(String),
+          note: null,
           order: 2,
           reps_completed: 6,
           reps_recommended: null,
@@ -569,6 +571,133 @@ describe("workout Session edits", () => {
       expect(refused.body.error.code).toBe("session_finished");
       const [squat] = await exercisesOf(sessionId);
       expect(squat?.sets).toStrictEqual(sets);
+    });
+  });
+  describe("pUT /v1/workout-session-sets/:id/note", () => {
+    const NOTE = "Left shoulder clicked on rep 6";
+
+    const setNote = (userId: string, setId: string | undefined, note: string) =>
+      request(userId, "PUT", `/v1/workout-session-sets/${setId}/note`, {
+        note,
+      });
+
+    /** A Workout Session whose squat has its planned set logged. */
+    const startWithLoggedSet = async () => {
+      const sessionId = await startSession(owner);
+      const [squat] = await exercisesOf(sessionId);
+      const setId = squat?.sets[0]?.id;
+
+      const logged = await request(
+        owner,
+        "PATCH",
+        `/v1/workout-session-sets/${setId}`,
+        { reps_completed: 8, weight_completed: 100 }
+      );
+
+      assert.strictEqual(logged.status, 200);
+
+      return { logged: logged.body.data, sessionId, setId, squatId: squat?.id };
+    };
+
+    it("saves the note, changing nothing else, and reads it back with the set", async () => {
+      const { logged, sessionId, setId } = await startWithLoggedSet();
+
+      const saved = await setNote(owner, setId, `  ${NOTE}\nfeet high  `);
+
+      expect(saved).toStrictEqual({
+        body: { data: { ...logged, note: `${NOTE}\nfeet high` } },
+        status: 200,
+      });
+      const { weight_unit: _unit, ...loggedSet } = logged;
+      const [squat] = await exercisesOf(sessionId);
+      expect(squat?.sets[0]).toStrictEqual({
+        ...loggedSet,
+        note: `${NOTE}\nfeet high`,
+      });
+    });
+
+    it("answers the same for a repeat, and clears for blank text", async () => {
+      const { setId } = await startWithLoggedSet();
+
+      const first = await setNote(owner, setId, NOTE);
+      const repeat = await setNote(owner, setId, NOTE);
+      const cleared = await setNote(owner, setId, "   ");
+
+      expect(repeat).toStrictEqual(first);
+      expect(cleared.status).toBe(200);
+      expect(cleared.body.data.note).toBeNull();
+    });
+
+    it("keeps the note through a reps edit and an Exercise replacement", async () => {
+      const { sessionId, setId, squatId } = await startWithLoggedSet();
+      await setNote(owner, setId, NOTE);
+
+      await request(owner, "PATCH", `/v1/workout-session-sets/${setId}`, {
+        reps_completed: 10,
+        weight_completed: 95,
+      });
+      await request(owner, "PUT", `/v1/workout-session-exercises/${squatId}`, {
+        exercise_slug: "walking-lunge",
+      });
+
+      const [lunge] = await exercisesOf(sessionId);
+      expect(lunge?.exercise_slug).toBe("walking-lunge");
+      expect(lunge?.sets[0]).toMatchObject({
+        note: NOTE,
+        reps_completed: 10,
+        weight_completed: 95,
+      });
+    });
+
+    it("works on a finished Workout Session, its finish time unchanged", async () => {
+      const { sessionId, setId } = await startWithLoggedSet();
+
+      const finished = await request(
+        owner,
+        "POST",
+        `/v1/workout-sessions/${sessionId}/finish`
+      );
+
+      const saved = await setNote(owner, setId, NOTE);
+
+      expect(saved.status).toBe(200);
+
+      const { body } = await request(
+        owner,
+        "GET",
+        `/v1/workout-sessions/${sessionId}`
+      );
+
+      expect(body.data.finished_at).toBe(finished.body.data.finished_at);
+      expect(body.data.exercises[0].sets[0].note).toBe(NOTE);
+    });
+
+    it("refuses an unlogged set with 409 and another User's with 404, writing nothing", async () => {
+      const { sessionId, setId } = await startWithLoggedSet();
+      const [, deadlift] = await exercisesOf(sessionId);
+
+      const unlogged = await setNote(owner, deadlift?.sets[0]?.id, NOTE);
+      const intruding = await setNote(intruder, setId, NOTE);
+      const unknown = await setNote(owner, randomUUID(), NOTE);
+
+      expect(unlogged.status).toBe(409);
+      expect(unlogged.body.error.code).toBe("set_not_logged");
+      expect([intruding.status, unknown.status]).toStrictEqual([404, 404]);
+      const exercises = await exercisesOf(sessionId);
+      expect(
+        exercises.flatMap(({ sets }) => sets.map(({ note }) => note))
+      ).toStrictEqual([null, null]);
+    });
+
+    it("refuses a note over the limit with 400, writing nothing", async () => {
+      const { sessionId, setId } = await startWithLoggedSet();
+
+      const refused = await setNote(owner, setId, "a".repeat(501));
+
+      expect(refused.status).toBe(400);
+      expect(refused.body.error.code).toBe("invalid_request");
+      const [squat] = await exercisesOf(sessionId);
+      expect(squat?.sets[0]?.note).toBeNull();
     });
   });
 });

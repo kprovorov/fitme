@@ -43,6 +43,7 @@ const sessionSet = (
 ): WorkoutSessionSet => ({
   id: `s1-e1-s${order}`,
   logged_at: null,
+  note: null,
   order,
   reps_completed: null,
   reps_recommended: 10,

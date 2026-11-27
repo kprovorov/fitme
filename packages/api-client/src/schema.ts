@@ -2258,6 +2258,117 @@ export interface paths {
     };
     trace?: never;
   };
+  "/v1/workout-session-sets/{id}/note": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    /**
+     * Set a Workout Session set's note
+     * @description Sets the User's note on one logged set (one with `reps_completed`, a bodyweight set included) to `note`, trimmed; empty or whitespace-only text clears it. Unlike the other set writes it works on a finished Workout Session too, and it changes nothing but the note: not the result, `logged_at` or `order`. The last save wins, and a repeat answers the same.
+     */
+    put: {
+      parameters: {
+        query?: never;
+        header?: never;
+        path: {
+          id: string;
+        };
+        cookie?: never;
+      };
+      requestBody: {
+        content: {
+          "application/json": {
+            /**
+             * @description The note's text, trimmed at both ends (line breaks inside kept), at most 500 characters once trimmed and no NUL character. Empty or whitespace-only text clears the note
+             * @example Seat on hole 4, feet high
+             */
+            note: string;
+          };
+        };
+      };
+      responses: {
+        /** @description The set with its note as saved (`null` once cleared) */
+        200: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": {
+              data: components["schemas"]["WorkoutSessionSet"] & {
+                weight_unit: components["schemas"]["WeightUnit"];
+              };
+            };
+          };
+        };
+        /** @description `invalid_request`: the input fails its schema */
+        400: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["Error"];
+          };
+        };
+        /** @description No valid Clerk session token */
+        401: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["Error"];
+          };
+        };
+        /** @description `not_found`: no set of the User's Workout Sessions has this id; nothing was written */
+        404: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["Error"];
+          };
+        };
+        /** @description `set_not_logged`: the set has no reps logged, so it can't carry a note; nothing was written */
+        409: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["Error"];
+          };
+        };
+        /** @description The body isn't `application/json` */
+        415: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["Error"];
+          };
+        };
+        /** @description Too many requests from this User; retry after `Retry-After` */
+        429: {
+          headers: {
+            /** @description Seconds until the limit resets */
+            "Retry-After": string;
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["Error"];
+          };
+        };
+      };
+    };
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   "/v1/workout-sessions/totals": {
     parameters: {
       query?: never;
@@ -3668,6 +3779,11 @@ export interface components {
        * @example 6f1c0c9e-2b7a-4c1e-9a55-3c2d1e0f4a11
        */
       id: string;
+      /**
+       * @description The User's note on the set (a Note): trimmed, line breaks kept; `null` for none. Only a logged set carries one
+       * @example Left shoulder clicked on rep 6
+       */
+      note: string | null;
       /** @example 1 */
       order: number;
       /**
@@ -3703,6 +3819,11 @@ export interface components {
        * @example 2026-10-01T10:00:00.123456+00:00
        */
       logged_at: string | null;
+      /**
+       * @description The User's note on the set (a Note): trimmed, line breaks kept; `null` for none. Only a logged set carries one
+       * @example Left shoulder clicked on rep 6
+       */
+      note: string | null;
       /** @example 1 */
       order: number;
       /** @example 8 */

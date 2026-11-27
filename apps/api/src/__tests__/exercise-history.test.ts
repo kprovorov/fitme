@@ -25,7 +25,7 @@ const entry: ExerciseHistoryEntry = {
     {
       id: SET_ID,
       logged_at: "2026-10-01T10:05:00+00:00",
-      note: null,
+      note: "Left shoulder clicked on rep 6",
       order: 1,
       reps_completed: 8,
       reps_recommended: 8,
@@ -48,7 +48,10 @@ const entry: ExerciseHistoryEntry = {
   workout: { id: "2d3e4f5a-6b7c-4d8e-9f0a-1b2c3d4e5f6a", name: "Legs" },
 };
 
-/** The same entry as the route answers it: no Plan, no Workout, no `logged_at`. */
+/**
+ * The same entry as the route answers it: no Plan, no Workout, no
+ * `logged_at`, each set with its note.
+ */
 const answered = {
   id: SESSION_EXERCISE_ID,
   session: {
@@ -59,6 +62,7 @@ const answered = {
   sets: [
     {
       id: SET_ID,
+      note: "Left shoulder clicked on rep 6",
       order: 1,
       reps_completed: 8,
       reps_recommended: 8,
@@ -67,6 +71,7 @@ const answered = {
     },
     {
       id: BODYWEIGHT_SET_ID,
+      note: null,
       order: 2,
       reps_completed: 12,
       reps_recommended: null,

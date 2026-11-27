@@ -1,4 +1,3 @@
-import { MAX_NOTE_LENGTH } from "@fitme/core/limits";
 import { cleanNote } from "@fitme/core/notes";
 import { createRoute, OpenAPIHono, z } from "@hono/zod-openapi";
 
@@ -9,19 +8,12 @@ import {
   ExerciseSlug,
   errorResponse,
   invalidRequest,
+  NOTE_REFUSALS,
+  NoteText,
   rateLimitedResponse,
   timestamp,
   unauthorizedResponse,
 } from "../schemas.js";
-
-/**
- * Why a note's text was refused, never quoting it: a Note is private, and a
- * refusal's message can end up in a client's logs.
- */
-const REFUSALS = {
-  nul: "must not contain a NUL character",
-  too_long: `must be at most ${MAX_NOTE_LENGTH} characters once trimmed`,
-} as const;
 
 const ExerciseNote = z
   .object({
@@ -65,20 +57,6 @@ const SavedExerciseNote = z.object({
     })
     .openapi("SavedExerciseNote"),
 });
-
-const NoteText = z
-  .string()
-  .superRefine((text, context) => {
-    const cleaned = cleanNote(text);
-
-    if (!cleaned.ok) {
-      context.addIssue({ code: "custom", message: REFUSALS[cleaned.reason] });
-    }
-  })
-  .openapi({
-    description: `The note's text, trimmed at both ends (line breaks inside kept), at most ${MAX_NOTE_LENGTH} characters once trimmed and no NUL character. Empty or whitespace-only text clears the note`,
-    example: "Seat on hole 4, feet high",
-  });
 
 const listExerciseNotesRoute = createRoute({
   description:
@@ -182,7 +160,7 @@ export const exerciseNotes = new OpenAPIHono<ApiEnv>({
         {
           error: {
             code: "invalid_request",
-            message: `note: ${REFUSALS[result.reason]}`,
+            message: `note: ${NOTE_REFUSALS[result.reason]}`,
           },
         },
         400

@@ -108,6 +108,7 @@ const exercise = (
   sets: sets.map(([reps, weight], index) => ({
     id: `set-${slug}-${index}`,
     logged_at: startedAt.toISOString(),
+    note: null,
     order: index + 1,
     reps_completed: reps,
     reps_recommended: reps,

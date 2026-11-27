@@ -1,10 +1,12 @@
 import { muscleGroups } from "@fitme/core";
 import {
   MAX_EXERCISE_SLUG_LENGTH,
+  MAX_NOTE_LENGTH,
   MAX_REPS,
   MAX_WEIGHT,
   MAX_WEIGHT_DECIMALS,
 } from "@fitme/core/limits";
+import { cleanNote } from "@fitme/core/notes";
 import { z } from "@hono/zod-openapi";
 import type { Hook } from "@hono/zod-openapi";
 import type { Env } from "hono";
@@ -134,11 +136,46 @@ export const timestamp = (description: string) =>
     format: "date-time",
   });
 
+/**
+ * Why a note's text was refused, never quoting it: a Note is private, and a
+ * refusal's message can end up in a client's logs.
+ */
+export const NOTE_REFUSALS = {
+  nul: "must not contain a NUL character",
+  too_long: `must be at most ${MAX_NOTE_LENGTH} characters once trimmed`,
+} as const;
+
+/** A note's text as a write takes it, run through `cleanNote`'s rule. */
+export const NoteText = z
+  .string()
+  .superRefine((text, context) => {
+    const cleaned = cleanNote(text);
+
+    if (!cleaned.ok) {
+      context.addIssue({
+        code: "custom",
+        message: NOTE_REFUSALS[cleaned.reason],
+      });
+    }
+  })
+  .openapi({
+    description: `The note's text, trimmed at both ends (line breaks inside kept), at most ${MAX_NOTE_LENGTH} characters once trimmed and no NUL character. Empty or whitespace-only text clears the note`,
+    example: "Seat on hole 4, feet high",
+  });
+
+/** A set's note as a read answers it. */
+export const SetNote = z.string().nullable().openapi({
+  description:
+    "The User's note on the set (a Note): trimmed, line breaks kept; `null` for none. Only a logged set carries one",
+  example: "Left shoulder clicked on rep 6",
+});
+
 /** One set of a Workout Session, shared by the Workout Session and set routes. */
 export const WorkoutSessionSet = z
   .object({
     id: Id,
     logged_at: timestamp("When its result was logged").nullable(),
+    note: SetNote,
     order: z.int().openapi({ example: 1 }),
     reps_completed: z.int().nullable().openapi({ example: 8 }),
     reps_recommended: z.int().nullable().openapi({ example: 8 }),

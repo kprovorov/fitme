@@ -1,7 +1,15 @@
 import { randomBytes } from "node:crypto";
 import { setTimeout as delay } from "node:timers/promises";
 
-import { plans, profiles, withService, workouts } from "@fitme/db";
+import {
+  plans,
+  profiles,
+  withService,
+  workoutSessionExerciseSets,
+  workoutSessionExercises,
+  workoutSessions,
+  workouts,
+} from "@fitme/db";
 import {
   deleteTestUsers,
   withUserTablesLocked,
@@ -31,6 +39,7 @@ const POLL_MS = 50;
 const WAIT_LIMIT_MS = 5000;
 
 let workoutId: string;
+let loggedSetId: string;
 
 /** Resolves once some backend waits on a lock it hasn't been granted. */
 const lockWaitSeen = async (
@@ -82,6 +91,38 @@ describe("a write racing an account deletion against the local stack", () => {
         .returning({ id: workouts.id });
 
       workoutId = workout.id;
+
+      // A finished Workout Session with one logged set, for the note write.
+      const [session] = await tx
+        .insert(workoutSessions)
+        .values({
+          finishedAt: "2026-10-01T11:00:00Z",
+          startedAt: "2026-10-01T10:00:00Z",
+          userId: user,
+        })
+        .returning({ id: workoutSessions.id });
+
+      const [exercise] = await tx
+        .insert(workoutSessionExercises)
+        .values({
+          exerciseSlug: "barbell-back-squat",
+          order: 1,
+          workoutSessionId: session.id,
+        })
+        .returning({ id: workoutSessionExercises.id });
+
+      const [set] = await tx
+        .insert(workoutSessionExerciseSets)
+        .values({
+          loggedAt: "2026-10-01T10:05:00Z",
+          order: 1,
+          repsCompleted: 8,
+          weightCompleted: "80",
+          workoutSessionExerciseId: exercise.id,
+        })
+        .returning({ id: workoutSessionExerciseSets.id });
+
+      loggedSetId = set.id;
     });
   });
 
@@ -115,5 +156,41 @@ describe("a write racing an account deletion against the local stack", () => {
     expect(response.status).toBe(201);
     const body = await response.json();
     expect(body.data.weight_unit).toBe("kg");
+  });
+
+  it("waits for them before locking the Profile row when it sets a set's note", async () => {
+    // The test above deleted the Profile: a new one for the row lock.
+    await withService((tx) =>
+      tx.insert(profiles).values({
+        age: 30,
+        gender: "male",
+        height: "180",
+        measurementSystem: "metric",
+        userId: user,
+        weight: "80",
+      })
+    );
+
+    let started: Promise<Response> | undefined;
+    await withUserTablesLocked(async (tx) => {
+      started = Promise.resolve(
+        app.request(`/v1/workout-session-sets/${loggedSetId}/note`, {
+          body: JSON.stringify({ note: "Felt heavy" }),
+          headers: { ...signedInAs(user), "content-type": "application/json" },
+          method: "PUT",
+        })
+      );
+      await lockWaitSeen();
+      await tx.delete(profiles).where(eq(profiles.userId, user));
+    });
+
+    if (!started) {
+      throw new Error("The request was never sent");
+    }
+
+    const response = await started;
+    expect(response.status).toBe(200);
+    const body = await response.json();
+    expect(body.data).toMatchObject({ note: "Felt heavy", weight_unit: "kg" });
   });
 });

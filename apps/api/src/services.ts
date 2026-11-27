@@ -82,6 +82,7 @@ import {
   removeExerciseFromWorkoutSession,
   removeSetFromWorkoutSession,
   replaceExerciseInWorkoutSession,
+  setWorkoutSessionSetNote,
   startWorkoutSession,
 } from "@fitme/services/workout-sessions";
 import type {
@@ -97,6 +98,7 @@ import type {
   RemoveSetFromWorkoutSessionResult,
   ReplaceExerciseInWorkoutSessionInput,
   ReplaceExerciseInWorkoutSessionResult,
+  SetWorkoutSessionSetNoteResult,
   StartWorkoutSessionResult,
   WorkoutSessionDetail,
   WorkoutSessionPage,
@@ -294,6 +296,15 @@ export interface UserServices {
     note: string;
   }) => Promise<SetExerciseNoteResult>;
   /**
+   * Sets the User's note on one logged set, cleaned (blank clears it), open
+   * or finished Workout Session alike; the last save wins. The set comes
+   * back with its weight in the User's unit.
+   */
+  setWorkoutSessionSetNote: (input: {
+    note: string;
+    setId: string;
+  }) => Promise<Weighed<SetWorkoutSessionSetNoteResult>>;
+  /**
    * Starts a Workout Session for one of the User's Workouts (of a live Plan),
    * or resumes the one already open for it (`resumed`).
    */
@@ -439,6 +450,11 @@ export const createServicesFromEnv: ServicesFactory = (userId) => {
     // on a table an account deletion took after it.
     setExerciseNote: (input) =>
       asUser(userId, (tx) => setExerciseNote(tx, userId, input)),
+    // Every User table first, then the Profile row (as logSet), so it queues
+    // behind an account deletion instead of deadlocking with one; the
+    // service's own session table locks are then already held.
+    setWorkoutSessionSetNote: (input) =>
+      inUnits((tx) => setWorkoutSessionSetNote(tx, userId, input), write),
     startWorkoutSession: (workoutId) =>
       inUnits((tx) => startWorkoutSession(tx, workoutId), write),
     // Metadata only: never `workouts`, so Workout ids stay.

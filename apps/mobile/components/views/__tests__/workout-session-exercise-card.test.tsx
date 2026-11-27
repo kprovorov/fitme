@@ -71,6 +71,7 @@ const MENU = /^More options/u;
 const set = (order: number): WorkoutSessionSet => ({
   id: `set-${order}`,
   logged_at: null,
+  note: null,
   order,
   reps_completed: null,
   reps_recommended: 12,
