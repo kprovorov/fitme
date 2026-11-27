@@ -3947,7 +3947,21 @@ export interface components {
       exercises: components["schemas"]["WorkoutSessionExerciseWithPreviousSets"][];
       weight_unit: components["schemas"]["WeightUnit"];
     };
-    WorkoutSessionExerciseWithPreviousSets: components["schemas"]["WorkoutSessionExercise"] & {
+    WorkoutSessionExerciseWithPreviousSets: {
+      /**
+       * @description The Library's key for the Exercise
+       * @example barbell-bench-press
+       */
+      exercise_slug: string;
+      /**
+       * Format: uuid
+       * @example 6f1c0c9e-2b7a-4c1e-9a55-3c2d1e0f4a11
+       */
+      id: string;
+      /** @example 1 */
+      order: number;
+      /** @description In order */
+      sets: components["schemas"]["WorkoutSessionSet"][];
       /** @description The Previous sets: the sets with positive reps, in order, of the first Workout Session Exercise (by `order`) with this exact `exercise_slug` in the User's most recent Workout Session that started before this one (ties by id) and has one with a set with positive reps. Plans and Workouts don't matter, and this Workout Session never counts itself. Empty when there's no such earlier Workout Session */
       previous_sets: components["schemas"]["PreviousSet"][];
     };
