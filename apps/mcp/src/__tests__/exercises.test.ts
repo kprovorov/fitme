@@ -365,6 +365,7 @@ describe("get_exercise_history", () => {
       {
         id: "s1",
         logged_at: null,
+        note: null,
         order: 1,
         reps_completed: 8,
         reps_recommended: 8,
@@ -374,6 +375,7 @@ describe("get_exercise_history", () => {
       {
         id: "s2",
         logged_at: null,
+        note: null,
         order: 2,
         reps_completed: 6,
         reps_recommended: 6,
@@ -393,6 +395,7 @@ describe("get_exercise_history", () => {
       {
         id: "s3",
         logged_at: "2026-10-02T10:05:00+00:00",
+        note: null,
         order: 1,
         reps_completed: 12,
         reps_recommended: null,

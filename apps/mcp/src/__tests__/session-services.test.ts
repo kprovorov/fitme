@@ -22,6 +22,7 @@ const FINISHED_AT = "2026-10-01T11:00:00.123+00:00";
 const loggedSet: WorkoutSessionSet = {
   id: SET_ID,
   logged_at: "2026-10-01T10:30:00.5+00:00",
+  note: null,
   order: 1,
   reps_completed: 8,
   reps_recommended: 8,

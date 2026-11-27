@@ -188,6 +188,7 @@ const openSets: SessionServices.WorkoutSessionSet[] = [
   {
     id: "wss_1",
     logged_at: "2026-10-14T18:05:00+00:00",
+    note: null,
     order: 1,
     reps_completed: 8,
     reps_recommended: 8,
@@ -198,6 +199,7 @@ const openSets: SessionServices.WorkoutSessionSet[] = [
   {
     id: "wss_3",
     logged_at: null,
+    note: null,
     order: 3,
     reps_completed: null,
     reps_recommended: 8,

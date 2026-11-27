@@ -184,6 +184,7 @@ describe("workout history", () => {
             {
               id: stringMatcher,
               logged_at: "2026-10-05T11:20:00+00:00",
+              note: null,
               order: 1,
               reps_completed: 8,
               reps_recommended: 8,
@@ -205,6 +206,7 @@ describe("workout history", () => {
           sets: [
             expect.objectContaining({
               logged_at: null,
+              note: null,
               order: 1,
               reps_completed: null,
               weight_recommended: 100,

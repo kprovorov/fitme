@@ -384,6 +384,7 @@ describe("workout session exercises", () => {
             {
               id: anyString,
               logged_at: postgrestTimestamp,
+              note: null,
               order: 1,
               reps_completed: 9,
               reps_recommended: 0,
@@ -394,6 +395,7 @@ describe("workout session exercises", () => {
             {
               id: anyString,
               logged_at: null,
+              note: null,
               order: 2,
               reps_completed: null,
               reps_recommended: 0,
@@ -504,6 +506,7 @@ describe("workout session exercises", () => {
         set: {
           id: anyString,
           logged_at: postgrestTimestamp,
+          note: null,
           order: 3,
           reps_completed: 7,
           reps_recommended: null,

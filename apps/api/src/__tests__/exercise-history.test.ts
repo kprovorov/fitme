@@ -25,6 +25,7 @@ const entry: ExerciseHistoryEntry = {
     {
       id: SET_ID,
       logged_at: "2026-10-01T10:05:00+00:00",
+      note: null,
       order: 1,
       reps_completed: 8,
       reps_recommended: 8,
@@ -35,6 +36,7 @@ const entry: ExerciseHistoryEntry = {
       // a bodyweight set: logged reps, no weight
       id: BODYWEIGHT_SET_ID,
       logged_at: "2026-10-01T10:10:00+00:00",
+      note: null,
       order: 2,
       reps_completed: 12,
       reps_recommended: null,

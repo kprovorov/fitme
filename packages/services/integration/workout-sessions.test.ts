@@ -416,6 +416,7 @@ describe("workout sessions", () => {
               {
                 id: seeded.openSetIds[0],
                 logged_at: null,
+                note: null,
                 order: 1,
                 reps_completed: null,
                 reps_recommended: 8,
@@ -460,6 +461,7 @@ describe("workout sessions", () => {
       expect(session?.exercises[0]?.sets).toStrictEqual([
         expect.objectContaining({
           logged_at: "2026-10-01T10:30:00+00:00",
+          note: null,
           reps_completed: 8,
           weight_completed: 60,
         }),
@@ -496,6 +498,7 @@ describe("workout sessions", () => {
         set: {
           id: setId,
           logged_at: timestampMatcher,
+          note: null,
           order: 1,
           reps_completed: 7,
           reps_recommended: 8,
