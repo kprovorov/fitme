@@ -868,14 +868,11 @@
   "plans": {
     "title": "Meine Pläne",
     "create": "Trainingsplan erstellen",
-    "createNew": "Neuen Trainingsplan erstellen",
     "frequency_one": "{{count, number}}× pro Woche",
     "frequency_other": "{{count, number}}× pro Woche",
-    "manage": "Verwalten",
     "edit": "Plan bearbeiten",
     "goBack": "Zurück",
     "loadError": "Dieser Plan konnte nicht geladen werden. Prüfe deine Verbindung und versuche es erneut.",
-    "listLoadError": "Deine Pläne konnten nicht geladen werden. Prüfe deine Verbindung und versuche es erneut.",
     "activePlan": "Aktiver Plan",
     "activate": {
       "action": "Plan aktivieren",
@@ -883,14 +880,6 @@
       "message": "Dadurch wird dein aktueller Plan deaktiviert",
       "confirm": "Aktivieren",
       "failed": "Plan konnte nicht aktiviert werden"
-    },
-    "archive": {
-      "action": "Archivieren",
-      "title": "Plan archivieren",
-      "activePlan": "Du kannst einen aktiven Plan nicht archivieren. Es sollte immer mindestens ein Plan aktiv sein.",
-      "message": "Möchtest du diesen Plan wirklich archivieren?",
-      "confirm": "Archivieren",
-      "failed": "Plan konnte nicht archiviert werden"
     },
     "errors": {
       "notFound": "Dieser Plan existiert nicht mehr.",
@@ -904,10 +893,6 @@
     "loading": "Pläne werden geladen",
     "loadingPlan": "Plan wird geladen",
     "more": "+{{count, number}}",
-    "moreWorkoutsSpoken_one": "und {{count, number}} weiteres Training",
-    "moreWorkoutsSpoken_other": "und {{count, number}} weitere Trainings",
-    "moreExercisesSpoken_one": "und {{count, number}} weitere Übung",
-    "moreExercisesSpoken_other": "und {{count, number}} weitere Übungen",
     "noActivePlan": {
       "title": "Kein aktiver Plan",
       "message": "Wähle einen Plan und aktiviere ihn, um mit dem Training zu beginnen."
@@ -1254,11 +1239,8 @@
     "changeEmailTitle": "Bestätige deine neue E-Mail"
   },
   "workoutCard": {
-    "exercises_one": "{{count, number}} Übung",
-    "exercises_other": "{{count, number}} Übungen",
     "toWorkout": "Zum Training",
-    "openHint": "Öffnet das Training",
-    "openInProgressHint": "Öffnet das laufende Training"
+    "openHint": "Öffnet das Training"
   },
   "workoutSession": {
     "finish": "Beenden",

@@ -868,14 +868,11 @@
   "plans": {
     "title": "My Plans",
     "create": "Create workout plan",
-    "createNew": "Create New Workout Plan",
     "frequency_one": "{{count, number}}× per week",
     "frequency_other": "{{count, number}}× per week",
-    "manage": "Manage",
     "edit": "Edit Plan",
     "goBack": "Go Back",
     "loadError": "Couldn't load this plan. Check your connection and try again.",
-    "listLoadError": "Couldn't load your plans. Check your connection and try again.",
     "activePlan": "Active plan",
     "activate": {
       "action": "Activate Plan",
@@ -883,14 +880,6 @@
       "message": "This will deactivate your current plan",
       "confirm": "Activate",
       "failed": "Couldn't Activate Plan"
-    },
-    "archive": {
-      "action": "Archive",
-      "title": "Archive Plan",
-      "activePlan": "You cannot archive an active plan. You should have at least one active plan at all times.",
-      "message": "Are you sure you want to archive this plan?",
-      "confirm": "Archive",
-      "failed": "Couldn't Archive Plan"
     },
     "errors": {
       "notFound": "This plan no longer exists.",
@@ -904,10 +893,6 @@
     "loading": "Loading plans",
     "loadingPlan": "Loading plan",
     "more": "+{{count, number}}",
-    "moreWorkoutsSpoken_one": "and {{count, number}} more workout",
-    "moreWorkoutsSpoken_other": "and {{count, number}} more workouts",
-    "moreExercisesSpoken_one": "and {{count, number}} more exercise",
-    "moreExercisesSpoken_other": "and {{count, number}} more exercises",
     "noActivePlan": {
       "title": "No Active Plan",
       "message": "Pick a plan and activate it to start training."
@@ -1254,11 +1239,8 @@
     "changeEmailTitle": "Confirm your new email"
   },
   "workoutCard": {
-    "exercises_one": "{{count, number}} Exercise",
-    "exercises_other": "{{count, number}} Exercises",
     "toWorkout": "To Workout",
-    "openHint": "Opens the workout",
-    "openInProgressHint": "Opens the workout in progress"
+    "openHint": "Opens the workout"
   },
   "workoutSession": {
     "finish": "Finish",

@@ -841,13 +841,10 @@
   "plans": {
     "title": "我的計畫",
     "create": "建立訓練計畫",
-    "createNew": "建立新訓練計畫",
     "frequency_other": "每週{{count, number}}次",
-    "manage": "管理",
     "edit": "編輯計畫",
     "goBack": "返回",
     "loadError": "無法載入此計畫。請檢查網路連線後再試一次。",
-    "listLoadError": "無法載入你的計畫。請檢查網路連線後再試一次。",
     "activePlan": "使用中的計畫",
     "activate": {
       "action": "啟用計畫",
@@ -855,14 +852,6 @@
       "message": "此操作會停用你當前的計畫",
       "confirm": "啟用",
       "failed": "無法啟用計畫"
-    },
-    "archive": {
-      "action": "封存",
-      "title": "封存計畫",
-      "activePlan": "無法封存正在使用的計畫。你需要始終保留至少一個啟用的計畫。",
-      "message": "確定要封存此計畫嗎？",
-      "confirm": "封存",
-      "failed": "無法封存計畫"
     },
     "errors": {
       "notFound": "此計畫已不存在。",
@@ -876,8 +865,6 @@
     "loading": "正在載入計畫",
     "loadingPlan": "正在載入計畫",
     "more": "+{{count, number}}",
-    "moreWorkoutsSpoken_other": "以及另外{{count, number}}項訓練",
-    "moreExercisesSpoken_other": "以及另外{{count, number}}個動作",
     "noActivePlan": {
       "title": "沒有使用中的計畫",
       "message": "選擇一個計畫並啟用它，即可開始訓練。"
@@ -1210,10 +1197,8 @@
     "changeEmailTitle": "確認你的新電子信箱"
   },
   "workoutCard": {
-    "exercises_other": "{{count, number}}個動作",
     "toWorkout": "前往訓練",
-    "openHint": "開啟訓練",
-    "openInProgressHint": "開啟正在進行的訓練"
+    "openHint": "開啟訓練"
   },
   "workoutSession": {
     "finish": "結束",

@@ -895,15 +895,12 @@
   "plans": {
     "title": "Mis planes",
     "create": "Crear plan de entrenamiento",
-    "createNew": "Crear nuevo plan de entrenamiento",
     "frequency_one": "{{count, number}}× por semana",
     "frequency_other": "{{count, number}}× por semana",
     "frequency_many": "{{count, number}}× por semana",
-    "manage": "Gestionar",
     "edit": "Editar plan",
     "goBack": "Volver",
     "loadError": "No se ha podido cargar este plan. Comprueba tu conexión e inténtalo de nuevo.",
-    "listLoadError": "No se han podido cargar tus planes. Comprueba tu conexión e inténtalo de nuevo.",
     "activePlan": "Plan activo",
     "activate": {
       "action": "Activar plan",
@@ -911,14 +908,6 @@
       "message": "Esto desactivará tu plan actual",
       "confirm": "Activar",
       "failed": "No se ha podido activar el plan"
-    },
-    "archive": {
-      "action": "Archivar",
-      "title": "Archivar plan",
-      "activePlan": "No puedes archivar un plan activo. Debes tener al menos un plan activo en todo momento.",
-      "message": "¿Quieres archivar este plan?",
-      "confirm": "Archivar",
-      "failed": "No se ha podido archivar el plan"
     },
     "errors": {
       "notFound": "Este plan ya no existe.",
@@ -932,12 +921,6 @@
     "loading": "Cargando planes",
     "loadingPlan": "Cargando plan",
     "more": "+{{count, number}}",
-    "moreWorkoutsSpoken_one": "y {{count, number}} entrenamiento más",
-    "moreWorkoutsSpoken_many": "y {{count, number}} entrenamientos más",
-    "moreWorkoutsSpoken_other": "y {{count, number}} entrenamientos más",
-    "moreExercisesSpoken_one": "y {{count, number}} ejercicio más",
-    "moreExercisesSpoken_many": "y {{count, number}} ejercicios más",
-    "moreExercisesSpoken_other": "y {{count, number}} ejercicios más",
     "noActivePlan": {
       "title": "Ningún plan activo",
       "message": "Elige un plan y actívalo para empezar a entrenar."
@@ -1298,12 +1281,8 @@
     "changeEmailTitle": "Confirma tu nuevo correo"
   },
   "workoutCard": {
-    "exercises_one": "{{count, number}} ejercicio",
-    "exercises_other": "{{count, number}} ejercicios",
-    "exercises_many": "{{count, number}} ejercicios",
     "toWorkout": "Ir al entrenamiento",
-    "openHint": "Abre el entrenamiento",
-    "openInProgressHint": "Abre el entrenamiento en curso"
+    "openHint": "Abre el entrenamiento"
   },
   "workoutSession": {
     "finish": "Terminar",

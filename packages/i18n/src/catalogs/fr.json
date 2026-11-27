@@ -895,15 +895,12 @@
   "plans": {
     "title": "Mes programmes",
     "create": "Créer un programme d'entraînement",
-    "createNew": "Créer un nouveau programme",
     "frequency_one": "{{count, number}}× par semaine",
     "frequency_other": "{{count, number}}× par semaine",
     "frequency_many": "{{count, number}}× par semaine",
-    "manage": "Gérer",
     "edit": "Modifier le programme",
     "goBack": "Retour",
     "loadError": "Impossible de charger ce programme. Vérifie ta connexion et réessaie.",
-    "listLoadError": "Impossible de charger tes programmes. Vérifie ta connexion et réessaie.",
     "activePlan": "Programme actif",
     "activate": {
       "action": "Activer le programme",
@@ -911,14 +908,6 @@
       "message": "Ton programme actuel sera désactivé",
       "confirm": "Activer",
       "failed": "Impossible d'activer le programme"
-    },
-    "archive": {
-      "action": "Archiver",
-      "title": "Archiver le programme",
-      "activePlan": "Tu ne peux pas archiver un programme actif. Tu dois toujours avoir au moins un programme actif.",
-      "message": "Veux-tu vraiment archiver ce programme ?",
-      "confirm": "Archiver",
-      "failed": "Impossible d'archiver le programme"
     },
     "errors": {
       "notFound": "Ce programme n'existe plus.",
@@ -932,12 +921,6 @@
     "loading": "Chargement des programmes",
     "loadingPlan": "Chargement du programme",
     "more": "+{{count, number}}",
-    "moreWorkoutsSpoken_one": "et {{count, number}} autre séance",
-    "moreWorkoutsSpoken_many": "et {{count, number}} autres séances",
-    "moreWorkoutsSpoken_other": "et {{count, number}} autres séances",
-    "moreExercisesSpoken_one": "et {{count, number}} autre exercice",
-    "moreExercisesSpoken_many": "et {{count, number}} autres exercices",
-    "moreExercisesSpoken_other": "et {{count, number}} autres exercices",
     "noActivePlan": {
       "title": "Aucun programme actif",
       "message": "Choisis un programme et active-le pour commencer à t'entraîner."
@@ -1298,12 +1281,8 @@
     "changeEmailTitle": "Confirme ton nouvel e-mail"
   },
   "workoutCard": {
-    "exercises_one": "{{count, number}} exercice",
-    "exercises_other": "{{count, number}} exercices",
-    "exercises_many": "{{count, number}} exercices",
     "toWorkout": "Voir la séance",
-    "openHint": "Ouvre la séance",
-    "openInProgressHint": "Ouvre la séance en cours"
+    "openHint": "Ouvre la séance"
   },
   "workoutSession": {
     "finish": "Terminer",

@@ -922,16 +922,13 @@
   "plans": {
     "title": "Мої плани",
     "create": "Створити план тренувань",
-    "createNew": "Створити новий план тренувань",
     "frequency_one": "{{count, number}} раз на тиждень",
     "frequency_few": "{{count, number}} рази на тиждень",
     "frequency_many": "{{count, number}} разів на тиждень",
     "frequency_other": "{{count, number}} раза на тиждень",
-    "manage": "Керувати",
     "edit": "Редагувати план",
     "goBack": "Назад",
     "loadError": "Не вдалося завантажити план. Перевірте з’єднання й спробуйте ще раз.",
-    "listLoadError": "Не вдалося завантажити ваші плани. Перевірте з’єднання й спробуйте ще раз.",
     "activePlan": "Активний план",
     "activate": {
       "action": "Активувати план",
@@ -939,14 +936,6 @@
       "message": "Ваш поточний план буде деактивовано",
       "confirm": "Активувати",
       "failed": "Не вдалося активувати план"
-    },
-    "archive": {
-      "action": "Архівувати",
-      "title": "Архівувати план",
-      "activePlan": "Активний план не можна архівувати. У вас завжди має бути принаймні один активний план.",
-      "message": "Справді архівувати цей план?",
-      "confirm": "Архівувати",
-      "failed": "Не вдалося архівувати план"
     },
     "errors": {
       "notFound": "Цього плану більше немає.",
@@ -960,14 +949,6 @@
     "loading": "Завантаження планів",
     "loadingPlan": "Завантаження плану",
     "more": "+{{count, number}}",
-    "moreWorkoutsSpoken_one": "і ще {{count, number}} тренування",
-    "moreWorkoutsSpoken_few": "і ще {{count, number}} тренування",
-    "moreWorkoutsSpoken_many": "і ще {{count, number}} тренувань",
-    "moreWorkoutsSpoken_other": "і ще {{count, number}} тренування",
-    "moreExercisesSpoken_one": "і ще {{count, number}} вправа",
-    "moreExercisesSpoken_few": "і ще {{count, number}} вправи",
-    "moreExercisesSpoken_many": "і ще {{count, number}} вправ",
-    "moreExercisesSpoken_other": "і ще {{count, number}} вправи",
     "noActivePlan": {
       "title": "Немає активного плану",
       "message": "Виберіть план і активуйте його, щоб почати тренування."
@@ -1342,13 +1323,8 @@
     "changeEmailTitle": "Підтверди нову ел. пошту"
   },
   "workoutCard": {
-    "exercises_one": "{{count, number}} вправа",
-    "exercises_few": "{{count, number}} вправи",
-    "exercises_many": "{{count, number}} вправ",
-    "exercises_other": "{{count, number}} вправи",
     "toWorkout": "Перейти до тренування",
-    "openHint": "Відкриває тренування",
-    "openInProgressHint": "Відкриває тренування, що триває"
+    "openHint": "Відкриває тренування"
   },
   "workoutSession": {
     "finish": "Завершити",
