@@ -38,6 +38,8 @@ export interface BuiltClient {
 }
 
 interface Recorded {
+  /** Names of the events captured while nobody was identified. */
+  anonymous: string[];
   clients: BuiltClient[];
   events: SentEvent[];
   identifies: SentIdentify[];
@@ -46,6 +48,7 @@ interface Recorded {
 }
 
 const empty = (): Recorded => ({
+  anonymous: [],
   clients: [],
   events: [],
   identifies: [],
@@ -55,8 +58,16 @@ const empty = (): Recorded => ({
 
 let recorded = empty();
 
+/** The id the SDK would send events under: the last identify's, until a reset. */
+let identifiedAs: string | undefined;
+
 /** What reached the analytics SDK in this test, oldest first. */
 export const sentAnalytics = {
+  /**
+   * The names of the events sent while nobody was identified (before the
+   * first identify, or after a reset), so under the anonymous id.
+   */
+  anonymousEvents: (): readonly string[] => [...recorded.anonymous],
   /** Each client built, with the key and options it was built with. */
   clients: (): readonly BuiltClient[] => [...recorded.clients],
   /** Each event sent: its name and properties. */
@@ -72,17 +83,24 @@ export const sentAnalytics = {
 /** Back to nothing sent; run by `after-each.ts`. */
 export const resetSentAnalytics = (): void => {
   recorded = empty();
+  identifiedAs = undefined;
 };
 
 const client = {
   capture: (name: string, properties?: Properties): void => {
     recorded.events.push({ name, properties });
+
+    if (identifiedAs === undefined) {
+      recorded.anonymous.push(name);
+    }
   },
   identify: (userId?: string, traits?: Properties): void => {
     recorded.identifies.push({ traits, userId });
+    identifiedAs = userId;
   },
   reset: (): void => {
     recorded.resets += 1;
+    identifiedAs = undefined;
   },
   screen: (name: string): Promise<void> => {
     recorded.screens.push(name);

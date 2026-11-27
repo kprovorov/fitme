@@ -9,6 +9,7 @@ import { resetEquipmentChoices } from "~/hooks/equipment-choice";
 import { resetMuscleChoices } from "~/hooks/muscle-choice";
 import { closeOpenSetNote } from "~/hooks/open-set-note";
 import { resetPlanDrafts } from "~/hooks/plan-draft";
+import { resetAnalyticsIdentity } from "~/lib/analytics";
 import { overrideAnalyticsDecision } from "~/lib/analytics-decision";
 import { resetFeatureFlags } from "~/lib/feature-flags";
 import { resetDeviceLanguages } from "~/test-utils/device-locales";
@@ -126,6 +127,8 @@ beforeAll(() => {
 // (`overrideAnalyticsDecision`, `EXPO_PUBLIC_POSTHOG_KEY`).
 afterEach(() => {
   resetSentAnalytics();
+  // Nobody identified on the device, as on a fresh install.
+  resetAnalyticsIdentity();
   process.env.EXPO_PUBLIC_POSTHOG_KEY = TEST_POSTHOG_KEY;
   overrideAnalyticsDecision(true);
 });
