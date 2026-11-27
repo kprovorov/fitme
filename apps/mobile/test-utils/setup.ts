@@ -28,6 +28,12 @@
  * drive the real row's pan gesture, so a test presses the stand-in's hidden
  * open and full-swipe controls instead.
  *
+ * `@segment/analytics-react-native` is the fake analytics SDK
+ * (`fake-analytics.ts`), recording what reached it, and the analytics wrapper's
+ * on/off decision is on (`overrideAnalyticsDecision`), since every build is a
+ * development build under Jest: a test reads what the app sent through
+ * `sentAnalytics`.
+ *
  * `expo-localization` reports an English device (`en-US`), so every screen
  * renders in English; a test sets another device language with
  * `setDeviceLanguages` (`device-locales.ts`).
@@ -42,13 +48,24 @@ import { createI18n } from "@fitme/i18n";
 import { jest } from "@jest/globals";
 import { setI18n } from "react-i18next";
 
+import { overrideAnalyticsDecision } from "~/lib/analytics-decision";
 import type * as DeviceLocales from "~/test-utils/device-locales";
+import type * as FakeAnalytics from "~/test-utils/fake-analytics";
 import type * as FakeLibrary from "~/test-utils/fake-library";
 import type * as FakePublicApi from "~/test-utils/fake-public-api";
 import type * as SwipeableRowStub from "~/test-utils/swipeable-row-stub";
 import type * as ToastStub from "~/test-utils/toast-stub";
 
 setI18n(createI18n("en"));
+
+overrideAnalyticsDecision(true);
+
+jest.mock(
+  "@segment/analytics-react-native",
+  () =>
+    jest.requireActual<typeof FakeAnalytics>("~/test-utils/fake-analytics")
+      .analyticsSdkModule
+);
 
 jest.mock(
   "~/lib/library",

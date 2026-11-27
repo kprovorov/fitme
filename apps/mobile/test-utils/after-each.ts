@@ -8,7 +8,9 @@ import { clearAddedSets } from "~/hooks/added-sets";
 import { resetEquipmentChoices } from "~/hooks/equipment-choice";
 import { resetMuscleChoices } from "~/hooks/muscle-choice";
 import { resetPlanDrafts } from "~/hooks/plan-draft";
+import { overrideAnalyticsDecision } from "~/lib/analytics-decision";
 import { resetDeviceLanguages } from "~/test-utils/device-locales";
+import { resetSentAnalytics } from "~/test-utils/fake-analytics";
 import { fakeArnold } from "~/test-utils/fake-arnold";
 import { fakeClerk } from "~/test-utils/fake-clerk";
 import { fakePublicApi } from "~/test-utils/fake-public-api";
@@ -99,4 +101,11 @@ afterEach(() => {
 // until now, where the real one hides it after a few seconds.
 afterEach(() => {
   resetToasts();
+});
+
+// Every test starts with nothing sent to analytics, and with the wrapper
+// sending, whatever the last one switched (`overrideAnalyticsDecision`).
+afterEach(() => {
+  resetSentAnalytics();
+  overrideAnalyticsDecision(true);
 });
