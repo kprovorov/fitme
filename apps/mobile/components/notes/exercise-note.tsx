@@ -106,6 +106,7 @@ const NoteLoadError = ({
       <Button
         label={t("common.tryAgain")}
         onPress={onRetry}
+        fill={false}
         size="sm"
         variant="secondary"
       />
@@ -212,6 +213,7 @@ const NoteEditor = ({
           disabled={isPending}
           label={t("notes.cancel")}
           onPress={onCancel}
+          fill={false}
           size="sm"
           testID="exercise-note-cancel"
           variant="secondary"
@@ -223,6 +225,7 @@ const NoteEditor = ({
           disabled={!isChanged || isDimmed}
           label={isPending ? t("notes.saving") : t("notes.save")}
           onPress={onSave}
+          fill={false}
           size="sm"
           testID="exercise-note-save"
           variant={isDimmed ? "secondary" : "default"}

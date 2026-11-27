@@ -68,6 +68,12 @@ jest.mock("~/components/ui/button", () =>
   jest.requireActual("~/test-utils/button-stub")
 );
 
+jest.mock("react-native-keyboard-controller", () => ({
+  KeyboardAwareScrollView:
+    jest.requireActual<typeof import("react-native")>("react-native")
+      .ScrollView,
+}));
+
 jest.mock("~/components/exercises/exercise-video", () => () => null);
 
 jest.mock("~/components/symbol-image", () => ({ SymbolImage: () => null }));

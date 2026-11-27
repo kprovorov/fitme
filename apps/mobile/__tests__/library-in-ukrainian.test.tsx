@@ -40,6 +40,12 @@ import { SEARCH_BAR_TEST_ID } from "~/test-utils/stack-screen-stub";
 
 const mockSlug = { current: "bench-press" };
 
+jest.mock("react-native-keyboard-controller", () => ({
+  KeyboardAwareScrollView:
+    jest.requireActual<typeof import("react-native")>("react-native")
+      .ScrollView,
+}));
+
 jest.mock("expo-router", () => ({
   router: { push: jest.fn() },
   Stack: {

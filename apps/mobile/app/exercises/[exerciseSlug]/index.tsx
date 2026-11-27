@@ -2,7 +2,8 @@ import { rateLimitedFor } from "@fitme/api-client";
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 import { useCallback } from "react";
 import { useTranslation } from "react-i18next";
-import { ActivityIndicator, ScrollView, View } from "react-native";
+import { ActivityIndicator, View } from "react-native";
+import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
 
 import { ExerciseBadges } from "~/components/exercises/exercise-badges";
 import { ExerciseUnavailable } from "~/components/exercises/exercise-unavailable";
@@ -16,6 +17,12 @@ import { useExercise, useExerciseDetailQuery } from "~/hooks/queries/library";
 import { CLIP_SCROLL_EDGE_EFFECTS } from "~/lib/constants";
 import type { Exercise } from "~/lib/exercises";
 import { isNotesEnabled } from "~/lib/feature-flags";
+
+/**
+ * What sits under the note's field while it's edited (its count, then Cancel
+ * and Save), so the keyboard leaves them in view too.
+ */
+const NOTE_EDITOR_BELOW_FIELD = 88;
 
 /** The Exercise in full, top to bottom as Figma's Exercise Detail · Content. */
 const ExerciseContent = ({ exercise }: { exercise: Exercise }) => {
@@ -171,14 +178,17 @@ const ExerciseScreen = () => {
           title: exercise === undefined ? name : "",
         }}
       />
-      <ScrollView
+      {/* Keeps the note's field, its count and Save above the keyboard. */}
+      <KeyboardAwareScrollView
+        bottomOffset={NOTE_EDITOR_BELOW_FIELD}
         className="flex-1"
         contentContainerClassName="grow"
         contentInsetAdjustmentBehavior="automatic"
+        keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
       >
         {renderContent()}
-      </ScrollView>
+      </KeyboardAwareScrollView>
     </>
   );
 };

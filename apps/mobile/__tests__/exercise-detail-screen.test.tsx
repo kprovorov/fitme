@@ -60,6 +60,12 @@ jest.mock("~/components/ui/button", () =>
   jest.requireActual("~/test-utils/button-stub")
 );
 
+jest.mock("react-native-keyboard-controller", () => ({
+  KeyboardAwareScrollView:
+    jest.requireActual<typeof import("react-native")>("react-native")
+      .ScrollView,
+}));
+
 // The clip is native; the screen around it is what's tested.
 jest.mock("~/components/exercises/exercise-video", () => () => null);
 

@@ -31,6 +31,12 @@ import { createTestQueryClient, settle } from "~/test-utils/query-client";
 
 const params: { current: Record<string, string> } = { current: {} };
 
+jest.mock("react-native-keyboard-controller", () => ({
+  KeyboardAwareScrollView:
+    jest.requireActual<typeof import("react-native")>("react-native")
+      .ScrollView,
+}));
+
 jest.mock("expo-router", () => {
   const stub = jest.requireActual<typeof import("~/test-utils/router-stub")>(
     "~/test-utils/router-stub"
