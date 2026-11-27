@@ -4,26 +4,9 @@
  * switches it with its setter, and `after-each.ts` puts every flag back.
  */
 
-const plansRedesignFromEnv = () =>
-  process.env.EXPO_PUBLIC_PLANS_REDESIGN === "true";
-
-let plansRedesign = plansRedesignFromEnv();
-
 const notesFromEnv = () => process.env.EXPO_PUBLIC_NOTES === "true";
 
 let notes = notesFromEnv();
-
-/**
- * The Plans redesign (project "My Plans and Plan detail redesign"): the
- * rebuilt My Plans and Plan detail screens in place of today's. Removed by
- * the project's clean-up ticket.
- */
-export const isPlansRedesignEnabled = (): boolean => plansRedesign;
-
-/** Switches the Plans redesign on or off, for a test. */
-export const setPlansRedesignEnabled = (enabled: boolean): void => {
-  plansRedesign = enabled;
-};
 
 /**
  * Notes (project "Notes on Exercises and sets"): the User's notes on an
@@ -39,6 +22,5 @@ export const setNotesEnabled = (enabled: boolean): void => {
 
 /** Puts every flag back to the build's own value. */
 export const resetFeatureFlags = (): void => {
-  plansRedesign = plansRedesignFromEnv();
   notes = notesFromEnv();
 };

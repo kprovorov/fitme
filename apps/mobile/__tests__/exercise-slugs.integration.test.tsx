@@ -245,7 +245,7 @@ describe("a Plan", () => {
     expect(screen.getByTestId("thumbnail:none")).toBeTruthy();
 
     await fireEvent.press(
-      screen.getByRole("button", { name: "Leg Day, 2 Exercises" })
+      screen.getByRole("button", { name: "Leg Day, 2 exercises" })
     );
     expect(mockPush).toHaveBeenCalledWith("/plans/plan-1/workouts/w1");
   });

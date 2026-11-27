@@ -4,9 +4,7 @@ import { useTranslation } from "react-i18next";
 import { RefreshControl, ScrollView } from "react-native";
 
 import { MyPlansView } from "~/components/views/my-plans-view";
-import PlansListView from "~/components/views/plan-list-view";
 import { usePlanSummariesQuery } from "~/hooks/queries/plans";
-import { isPlansRedesignEnabled } from "~/lib/feature-flags";
 
 /** The native header: the title and a "+" opening Create Plan. */
 const PlansHeader = () => {
@@ -42,38 +40,12 @@ const PlansHeader = () => {
   );
 };
 
-/** Today's Plans list, while the Plans redesign flag is off. */
-const LegacyPlansScreen = () => {
-  const { refetch, isLoading } = usePlanSummariesQuery();
-
-  const onRefresh = useCallback(async () => {
-    await refetch();
-  }, [refetch]);
-
-  return (
-    <>
-      <PlansHeader />
-
-      <ScrollView
-        className="flex-1 p-6"
-        contentInsetAdjustmentBehavior="automatic"
-        refreshControl={
-          <RefreshControl onRefresh={onRefresh} refreshing={isLoading} />
-        }
-        testID="plans-screen"
-      >
-        <PlansListView />
-      </ScrollView>
-    </>
-  );
-};
-
 /**
- * My Plans with the Plans redesign: the active Plan's hero card, the other
+ * My Plans: the active Plan's hero card, the other
  * Plans as rows, and a designed state for loading, no Plans and a failed
  * read. Pulling to refresh shows its own spinner, never the skeleton.
  */
-const MyPlansScreen = () => {
+const PlansScreen = () => {
   const { data: plans, error, isFetching, refetch } = usePlanSummariesQuery();
   const [isRefreshing, setIsRefreshing] = useState(false);
 
@@ -110,8 +82,5 @@ const MyPlansScreen = () => {
     </>
   );
 };
-
-const PlansScreen = () =>
-  isPlansRedesignEnabled() ? <MyPlansScreen /> : <LegacyPlansScreen />;
 
 export default PlansScreen;

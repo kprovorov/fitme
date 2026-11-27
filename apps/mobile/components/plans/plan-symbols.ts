@@ -23,6 +23,3 @@ export const LEVEL_SYMBOL: SFSymbol = "chart.bar.fill";
 
 /** Workouts per week: a Plan's frequency, wherever it's shown. */
 export const FREQUENCY_SYMBOL: SFSymbol = "calendar";
-
-/** A Workout's Exercise count. */
-export const COUNT_SYMBOL: SFSymbol = "bolt.fill";

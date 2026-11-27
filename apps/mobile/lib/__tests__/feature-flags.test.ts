@@ -1,41 +1,41 @@
 /**
- * The Plans redesign flag: off unless the build turns it on, switched by a
- * test with its setter and put back after each test.
+ * The notes flag: off unless the build turns it on, switched by a test with
+ * its setter and put back after each test.
  */
 import { describe, expect, it } from "@jest/globals";
 
 import {
-  isPlansRedesignEnabled,
+  isNotesEnabled,
   resetFeatureFlags,
-  setPlansRedesignEnabled,
+  setNotesEnabled,
 } from "~/lib/feature-flags";
 
-describe("the Plans redesign flag", () => {
+describe("the notes flag", () => {
   it("is off by default", () => {
-    expect(isPlansRedesignEnabled()).toBe(false);
+    expect(isNotesEnabled()).toBe(false);
   });
 
   it("is switched on and off by its setter", () => {
-    setPlansRedesignEnabled(true);
-    expect(isPlansRedesignEnabled()).toBe(true);
+    setNotesEnabled(true);
+    expect(isNotesEnabled()).toBe(true);
 
-    setPlansRedesignEnabled(false);
-    expect(isPlansRedesignEnabled()).toBe(false);
+    setNotesEnabled(false);
+    expect(isNotesEnabled()).toBe(false);
   });
 
   it("goes back to the build's value on reset", () => {
-    setPlansRedesignEnabled(true);
+    setNotesEnabled(true);
     resetFeatureFlags();
 
-    expect(isPlansRedesignEnabled()).toBe(false);
+    expect(isNotesEnabled()).toBe(false);
   });
 
   it("is switched on here, for the next test to find off", () => {
-    setPlansRedesignEnabled(true);
-    expect(isPlansRedesignEnabled()).toBe(true);
+    setNotesEnabled(true);
+    expect(isNotesEnabled()).toBe(true);
   });
 
   it("is off again after the last test switched it on", () => {
-    expect(isPlansRedesignEnabled()).toBe(false);
+    expect(isNotesEnabled()).toBe(false);
   });
 });

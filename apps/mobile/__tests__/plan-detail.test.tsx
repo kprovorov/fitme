@@ -1,8 +1,7 @@
 /**
- * A Plan's screen with the Plans redesign flag on (Figma "Plan Detail
- * Redesign"), on the mounted-screen seam: the real screen, hooks and Public
- * API client, with the client's `fetch` swapped for the fake Public API
- * (`test-utils/`), in English and Ukrainian. The header is rendered as its
+ * A Plan's screen (Figma "Plan Detail Redesign"), on the mounted-screen
+ * seam: the real screen, hooks and Public API client, with the client's
+ * `fetch` swapped for the fake Public API (`test-utils/`), in English and Ukrainian. The header is rendered as its
  * title and plain buttons; a `Link` as its child under a View naming where it
  * goes. The "…" menu's items are rendered as `menuitem`s under it, and
  * `Alert.alert` is answered by pressing one of the buttons it was given.
@@ -19,7 +18,7 @@ import {
 import { NotificationFeedbackType } from "expo-haptics";
 import { Fragment } from "react";
 import type { ReactNode } from "react";
-import { Alert, Pressable, Text } from "react-native";
+import { Alert, Pressable, Text, View } from "react-native";
 import type { AlertButton } from "react-native";
 
 import PlanScreen from "~/app/plans/[planId]/index";
@@ -29,8 +28,9 @@ import {
   PLAN_DETAIL_LOADING,
 } from "~/components/plans/plan-detail-view";
 import { PLAN_WORKOUT_MORE } from "~/components/plans/plan-workout-row";
-import { setPlansRedesignEnabled } from "~/lib/feature-flags";
+import { usePlanQuery, usePlanSummariesQuery } from "~/hooks/queries/plans";
 import { setDeviceLanguages } from "~/test-utils/device-locales";
+import { sentAnalytics } from "~/test-utils/fake-analytics";
 import type { SeedPlan } from "~/test-utils/fake-public-api";
 import { backend, fakePublicApi } from "~/test-utils/fake-public-api";
 import { firedHaptics } from "~/test-utils/haptics-stub";
@@ -40,6 +40,7 @@ import {
   settle,
   until,
 } from "~/test-utils/query-client";
+import { signInAs } from "~/test-utils/signed-in-user";
 
 const mockPush = jest.fn();
 const mockDismissTo = jest.fn();
@@ -101,12 +102,7 @@ const MockLink = ({
 }: {
   children: ReactNode;
   href: string;
-}) => {
-  const { View } =
-    jest.requireActual<typeof import("react-native")>("react-native");
-
-  return <View testID={`link:${href}`}>{children}</View>;
-};
+}) => <View testID={`link:${href}`}>{children}</View>;
 
 jest.mock("expo-router", () => ({
   Link: (props: { children: ReactNode; href: string }) => (
@@ -128,10 +124,9 @@ jest.mock("expo-router", () => ({
 
 // The real Clerk SDK opens a MessagePort at import that keeps Jest alive.
 jest.mock("~/lib/clerk", () => ({
-  getCurrentUserId: () =>
-    jest.requireActual<typeof import("~/test-utils/fake-public-api")>(
-      "~/test-utils/fake-public-api"
-    ).FAKE_USER_ID,
+  getCurrentUserId: jest.requireActual<
+    typeof import("~/test-utils/signed-in-user")
+  >("~/test-utils/signed-in-user").getCurrentUserId,
 }));
 
 jest.mock("react-native-safe-area-context", () => ({
@@ -192,17 +187,21 @@ const seedOpenSession = (workoutId: string, ago = 0) => {
 
 let queryClient = createTestQueryClient();
 
-const mount = async () => {
+/** The Plan screen, with `beside` rendered next to it (`besideIt()`). */
+const mount = async (beside: ReactNode = null) => {
   queryClient = createTestQueryClient();
   await render(
     <QueryClientProvider client={queryClient}>
       <InAppLanguage>
         <PlanScreen />
+        <View testID="beside">{beside}</View>
       </InAppLanguage>
     </QueryClientProvider>
   );
   await settle(queryClient);
 };
+
+const besideIt = () => within(screen.getByTestId("beside"));
 
 const row = (name: RegExp | string) => screen.getByRole("button", { name });
 
@@ -228,11 +227,10 @@ beforeEach(() => {
   jest.spyOn(Alert, "alert").mockReturnValue(undefined);
   jest.clearAllMocks();
   backend.reset();
-  setPlansRedesignEnabled(true);
   mockPlanId.current = "plan-1";
 });
 
-describe("the redesigned Plan screen, in English", () => {
+describe("the Plan screen, in English", () => {
   it("shows the hero: Active badge, name, every detail and the description", async () => {
     seedActivePlan();
     await mount();
@@ -478,7 +476,7 @@ describe("the redesigned Plan screen, in English", () => {
   });
 });
 
-describe("the redesigned Plan screen, in Ukrainian", () => {
+describe("the Plan screen, in Ukrainian", () => {
   beforeEach(() => {
     setDeviceLanguages(["uk-UA"]);
   });
@@ -525,6 +523,21 @@ describe("the redesigned Plan screen, in Ukrainian", () => {
     expect(
       screen.getByText("Перевірте з’єднання і спробуйте ще раз.")
     ).toBeTruthy();
+  });
+
+  it("counts each Workout's Exercises with the plural form it needs", async () => {
+    seedActivePlan({
+      workouts: [
+        workoutOf("workout-1", "Ноги", 1),
+        workoutOf("workout-2", "Груди", 3),
+        workoutOf("workout-3", "Спина", 5),
+      ],
+    });
+    await mount();
+
+    expect(row("Ноги, 1 вправа")).toBeTruthy();
+    expect(row("Груди, 3 вправи")).toBeTruthy();
+    expect(row("Спина, 5 вправ")).toBeTruthy();
   });
 
   it("reads the skeleton as loading the plan", async () => {
@@ -664,7 +677,7 @@ const seedOtherPlan = (isActive = true) => {
 };
 
 describe.each(Object.keys(ACTION_TEXT) as ActionLanguage[])(
-  "the redesigned Plan screen's actions, in %s",
+  "the Plan screen's actions, in %s",
   (language) => {
     const text = ACTION_TEXT[language];
 
@@ -970,3 +983,266 @@ describe.each(Object.keys(ACTION_TEXT) as ActionLanguage[])(
     });
   }
 );
+
+/** The active Plan's name, from the Plans list's read. */
+const ActivePlanName = () => {
+  const { data: plans } = usePlanSummariesQuery();
+  const activePlan = plans?.find((plan) => plan.is_active);
+
+  return activePlan ? <Text>{activePlan.name}</Text> : null;
+};
+
+/** The live Plans' names, from the Plans list's read, as My Plans has them. */
+const PlanNames = () => {
+  const { data: plans } = usePlanSummariesQuery();
+
+  return <Text>{(plans ?? []).map((plan) => plan.name).join(", ")}</Text>;
+};
+
+/** Whether another Plan's screen, open behind this one, shows it active. */
+const PlanActivity = ({ id }: { id: string }) => {
+  const { data: plan } = usePlanQuery({ variables: { id } });
+
+  if (!plan) {
+    return null;
+  }
+
+  return <Text>{`${id} ${plan.is_active ? "active" : "inactive"}`}</Text>;
+};
+
+describe("the Plan screen's reads and writes", () => {
+  const text = ACTION_TEXT["en-US"];
+
+  it("says another User's Plan isn't found", async () => {
+    seedActivePlan({ user_id: "user_other" });
+    await mount();
+
+    expect(screen.getByText("Plan Not Found")).toBeTruthy();
+    expect(screen.queryByText("Upper A")).toBeNull();
+  });
+
+  it("shows the Plan gone once a refresh finds it deleted", async () => {
+    seedActivePlan();
+    await mount();
+    backend.plans[0].deleted_at = "2026-11-20T09:00:00.000Z";
+
+    await pullToRefresh();
+
+    expect(screen.getByText("Plan Not Found")).toBeTruthy();
+    expect(screen.queryByText("Upper A")).toBeNull();
+  });
+
+  it("shows a Workout Session started elsewhere once pulled to refresh", async () => {
+    seedActivePlan();
+    await mount();
+    expect(screen.queryByText("To Workout")).toBeNull();
+
+    seedOpenSession("workout-1", 60_000);
+    await pullToRefresh();
+
+    expect(
+      rowArea("Upper A, 8 exercises").getByText("To Workout")
+    ).toBeTruthy();
+  });
+
+  it("recovers from a failed first read of the open Workout Session", async () => {
+    seedActivePlan();
+    seedOpenSession("workout-1", 60_000);
+    fakePublicApi.failNext(
+      "GET /v1/workout-sessions",
+      { status: 500 },
+      { limit: "1", status: "in_progress" }
+    );
+    await mount();
+    expect(screen.queryByText("To Workout")).toBeNull();
+
+    await pullToRefresh();
+
+    expect(screen.getByText("To Workout")).toBeTruthy();
+  });
+
+  it("activates through the API, every other Plan inactive, and sends Plan Activated", async () => {
+    seedActivePlan({ is_active: false });
+    seedOtherPlan();
+    await mount(<ActivePlanName />);
+    expect(besideIt().getByText("Old Strength")).toBeTruthy();
+
+    await pressActivate();
+    await answerAlert(text.activateConfirm);
+
+    expect(requestsTo(ACTIVATE_PLAN).map(({ path }) => path)).toEqual([
+      "/v1/plans/plan-1/activate",
+    ]);
+    expect(besideIt().getByText("Hypertrophy Builder")).toBeTruthy();
+    expect(activePlanIds()).toEqual(["plan-1"]);
+    expect(sentAnalytics.events()).toContainEqual({
+      name: "Plan Activated",
+      properties: { plan_id: "plan-1" },
+    });
+  });
+
+  it("shows the activated Plan from the answer, without reading it again", async () => {
+    seedActivePlan({ is_active: false });
+    await mount();
+    expect(fakePublicApi.count(GET_PLAN)).toBe(1);
+
+    await pressActivate();
+
+    expect(fakePublicApi.count(GET_PLAN)).toBe(1);
+    expect(
+      queryClient.getQueryData(usePlanQuery.getKey({ id: "plan-1" }))
+    ).toMatchObject({ id: "plan-1", is_active: true, weight_unit: "kg" });
+  });
+
+  it("keeps the activated Plan when an older read of it lands afterwards", async () => {
+    seedActivePlan({ is_active: false });
+    await mount();
+    // A pull to refresh whose answer, given before the activation committed,
+    // is still on its way.
+    const resume = fakePublicApi.pause(GET_PLAN);
+    const { refreshControl } = screen.getByTestId("plan-screen").props;
+    let refreshed: Promise<unknown> = Promise.resolve();
+    await act(() => {
+      refreshed = refreshControl.props.onRefresh();
+    });
+    await until(() => fakePublicApi.count(GET_PLAN) === 2);
+
+    await fireEvent.press(shownActivateButton());
+    await until(
+      () =>
+        fakePublicApi.count(ACTIVATE_PLAN) === 1 &&
+        queryClient.isMutating() === 0
+    );
+    // The held read answers as the Plan was before activation.
+    backend.plans[0].is_active = false;
+    resume();
+    await act(() => refreshed);
+    await settle(queryClient);
+    backend.plans[0].is_active = true;
+
+    expect(
+      queryClient.getQueryData(usePlanQuery.getKey({ id: "plan-1" }))
+    ).toMatchObject({ id: "plan-1", is_active: true });
+    expect(activateButton()).toBeNull();
+  });
+
+  it("never shows an activation's late answer to the next User who signs in", async () => {
+    seedActivePlan({ is_active: false });
+    await mount();
+    const resumeActivate = fakePublicApi.pause(ACTIVATE_PLAN);
+    await fireEvent.press(shownActivateButton());
+    await until(() => fakePublicApi.count(ACTIVATE_PLAN) === 1);
+    // Clearing the cache drops the activation from it, not its callbacks.
+    const [activating] = queryClient.getMutationCache().getAll();
+
+    // Signed out before the answer (AuthSync clears the cache), and another
+    // User signs in, whose read of that Plan is on its way.
+    await screen.unmount();
+    queryClient.clear();
+    signInAs("user_next");
+    const planReads = fakePublicApi.count(GET_PLAN);
+    const resumeRead = fakePublicApi.pause(GET_PLAN);
+
+    const nextUsersRead = queryClient.fetchQuery(
+      usePlanQuery.getFetchOptions({ id: "plan-1" })
+    );
+
+    await until(() => fakePublicApi.count(GET_PLAN) === planReads + 1);
+    const listReads = fakePublicApi.count("GET /v1/plans");
+
+    resumeActivate();
+    await until(() => activating?.state.status === "success");
+
+    // The previous User's answer isn't shown, nor read again, for the next.
+    expect(
+      queryClient.getQueryData(usePlanQuery.getKey({ id: "plan-1" }))
+    ).toBeUndefined();
+    expect(fakePublicApi.count("GET /v1/plans")).toBe(listReads);
+    // Their read isn't cancelled.
+    resumeRead();
+    await expect(nextUsersRead).resolves.toMatchObject({ id: "plan-1" });
+    expect(fakePublicApi.count(GET_PLAN)).toBe(planReads + 1);
+  });
+
+  it("reads the Plan that stopped being active again", async () => {
+    seedActivePlan({ is_active: false });
+    seedOtherPlan();
+    await mount(<PlanActivity id="plan-2" />);
+    expect(besideIt().getByText("plan-2 active")).toBeTruthy();
+
+    await pressActivate();
+    await answerAlert(text.activateConfirm);
+
+    expect(besideIt().getByText("plan-2 inactive")).toBeTruthy();
+  });
+
+  it("says a Plan the API can't find to activate is gone, and changes nothing", async () => {
+    seedActivePlan({ is_active: false });
+    seedOtherPlan();
+    fakePublicApi.failNext(ACTIVATE_PLAN, { code: "not_found", status: 404 });
+    await mount(<ActivePlanName />);
+
+    await pressActivate();
+    await answerAlert(text.activateConfirm);
+
+    expect(alerts().at(-1)?.slice(0, 2)).toEqual([
+      text.activateFailed,
+      "This plan no longer exists.",
+    ]);
+    expect(besideIt().getByText("Old Strength")).toBeTruthy();
+    expect(sentAnalytics.events()).toEqual([]);
+  });
+
+  it("deletes the Plan from the lists through the API, sending Plan Deleted", async () => {
+    seedActivePlan({ is_active: false });
+    seedOtherPlan();
+    await mount(<PlanNames />);
+    expect(
+      besideIt().getByText("Old Strength, Hypertrophy Builder")
+    ).toBeTruthy();
+
+    await chooseFromMenu(text.deleteAction);
+    await answerAlert(text.deleteConfirm);
+
+    expect(requestsTo(DELETE_PLAN).map(({ path }) => path)).toEqual([
+      "/v1/plans/plan-1",
+    ]);
+    expect(besideIt().getByText("Old Strength")).toBeTruthy();
+    expect(sentAnalytics.events()).toContainEqual({
+      name: "Plan Deleted",
+      properties: { plan_id: "plan-1" },
+    });
+  });
+
+  it("says a Plan the API can't find to delete is gone, sending nothing", async () => {
+    seedActivePlan({ is_active: false });
+    fakePublicApi.failNext(DELETE_PLAN, { code: "not_found", status: 404 });
+    await mount();
+
+    await chooseFromMenu(text.deleteAction);
+    await answerAlert(text.deleteConfirm);
+
+    expect(alerts().at(-1)?.slice(0, 2)).toEqual([
+      text.deleteFailed,
+      "This plan no longer exists.",
+    ]);
+    expect(mockDismissTo).not.toHaveBeenCalled();
+    expect(sentAnalytics.events()).toEqual([]);
+  });
+
+  it("says a delete that never reached the API failed, and keeps the Plan", async () => {
+    seedActivePlan({ is_active: false });
+    fakePublicApi.failNext(DELETE_PLAN, "network");
+    await mount();
+
+    await chooseFromMenu(text.deleteAction);
+    await answerAlert(text.deleteConfirm);
+
+    expect(alerts().at(-1)?.slice(0, 2)).toEqual([
+      text.deleteFailed,
+      text.network,
+    ]);
+    expect(livePlanIds()).toEqual(["plan-1"]);
+    expect(sentAnalytics.events()).toEqual([]);
+  });
+});

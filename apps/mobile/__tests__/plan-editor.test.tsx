@@ -22,6 +22,7 @@ import type { AlertButton } from "react-native";
 
 import PlanEditorScreen from "~/app/plans/[planId]/edit/index";
 import PlanScreen from "~/app/plans/[planId]/index";
+import { PLAN_DETAIL } from "~/components/plans/plan-detail-view";
 import { setDeviceLanguages } from "~/test-utils/device-locales";
 import { sentAnalytics } from "~/test-utils/fake-analytics";
 import { serveExercises } from "~/test-utils/fake-exercises";
@@ -65,6 +66,10 @@ jest.mock("expo-router", () => {
     useRouter: () => ({ ...stub.stubRouter, canGoBack: () => true }),
   };
 });
+
+jest.mock("react-native-safe-area-context", () => ({
+  useSafeAreaInsets: () => ({ bottom: 0, left: 0, right: 0, top: 0 }),
+}));
 
 jest.mock("react-native-keyboard-controller", () => ({
   KeyboardAwareScrollView:
@@ -423,7 +428,9 @@ describe("saving", () => {
     await type("plan-name", "Push pull legs");
     await save();
 
-    expect(screen.getByRole("header", { name: "Push pull legs" })).toBeTruthy();
+    expect(
+      within(screen.getByTestId(PLAN_DETAIL)).getByText("Push pull legs")
+    ).toBeTruthy();
   });
 });
 
@@ -580,7 +587,9 @@ describe("a failed save", () => {
 
     expect(screen.getByTestId("plan-name").props.value).toBe("Push pull legs");
     expect(fakePublicApi.count("GET /v1/plans/{id}")).toBeGreaterThan(1);
-    expect(screen.getByRole("header", { name: "Push pull legs" })).toBeTruthy();
+    expect(
+      within(screen.getByTestId(PLAN_DETAIL)).getByText("Push pull legs")
+    ).toBeTruthy();
   });
 
   it("shows how long to wait when it was rate limited", async () => {
