@@ -56,6 +56,7 @@ Responses are JSON. Successful responses wrap the payload in `data`; failures re
 - `src/library.ts` — the slug checks a write runs before its transaction, against the new Library (`checkExerciseSlugs` for a Workout Session Exercise, `checkSlugsForCovers` / `checkSlugsAndPickCovers` for a Plan write, `slugRefusal` / `refusalOf` mapping a refusal to its 400 or 503), and the Library index (ADR 0018: `libraryIndexFromEnv`, over production's Blob store, `LIBRARY_BUNDLE` or the committed fixture), which only answers the Covers the Plan writes pick from; the Public API has no Library API client
 - `src/schemas.ts` — shared schemas (`ErrorResponse`, `Id`, `MuscleGroup`, `WeightUnit`, the documented 400 and 401 responses) and `invalidRequest`, every router's validation hook
 - `src/openapi.ts` — writes `openapi.json` (`pnpm api openapi`)
+- `src/merge-identities.ts` / `scripts/merge-identities.ts` — the one-off identity merge in PostHog and its command (see Identity merge)
 
 ## Tests
 
@@ -64,3 +65,31 @@ Responses are JSON. Successful responses wrap the payload in `data`; failures re
 ## Integration tests
 
 `integration/` runs the same seam against a real Supabase stack (`pnpm db start`): the real services facade through `asUser` on the stack's Supavisor pooler (the vitest config reads its URL from `supabase status`; `FITME_DATABASE_URL` overrides it), as made-up Clerk-style `user_…` ids with test-signed tokens, and a Library index in memory. CI runs it in `.github/workflows/integration-tests.yml`.
+
+`integration/merge-identities.test.ts` reads the identity map there, from rows it inserts and rolls back in the same transaction (a retired id can't be deleted), asserting only on its own rows.
+
+## Identity merge
+
+A one-off script folding each pre-Clerk identity into its User in PostHog (project "Product analytics on PostHog"). A User who joined before the move to Clerk (ADR 0001) has two people in the imported analytics history: events from before the move carry their old Supabase UUID, later ones their User id. Postgres kept the map: every row of `private.retired_user_ids` with a `rekeyed_to` is one old UUID and the User id it became (158 on 2026-11-26). It reads them through `withService` (read-only, no lock), checks the whole map is one-to-one (a UUID or a User id appearing twice stops it before anything is sent, naming the id), then sends PostHog's US ingestion endpoint (`https://us.i.posthog.com/i/v0/e/`) one `$merge_dangerously` event per pair, one after another: the User id as `distinct_id`, the person that stays, and the UUID as `properties.alias`, the person folded into it. **A merge can't be undone.** Run it only after Mixpanel's history has been imported into PostHog.
+
+Environment (read from the process, no file is loaded):
+
+| Variable | Value |
+| --- | --- |
+| `FITME_DATABASE_URL` | production's `fitme` login transaction-pooler URL with `?application_name=merge` |
+| `VERCEL_ENV` | `production`; anything else refuses to run unless `--not-production` is passed, so a local stack's rows never reach the real project |
+| `POSTHOG_PROJECT_API_KEY` | the US project's API key (public by design); unset, it refuses to run |
+
+```bash
+pnpm api merge:identities --dry-run                    # every pair and the count; sends nothing
+pnpm api merge:identities --only <uuid> --only <uuid>  # just these pairs (a UUID not in the map stops it)
+pnpm api merge:identities                              # every pair
+```
+
+Run it in three steps:
+
+1. `--dry-run`. Check the count matches the map (158 on 2026-11-26) and that no line names a repeated id.
+2. `--only` with a handful of UUIDs from the dry run. In PostHog, open each User-id person: its distinct ids should list the UUID, and its events should run from before the Clerk move to now. Searching for the UUID should find that same person, not a second one. If PostHog's ingestion warnings show a refused merge, stop.
+3. The rest, without `--only`. A re-run sends every pair again, and PostHog doesn't document whether a repeated merge is harmless, so after a failure retry with `--only` and just the failed UUIDs.
+
+It prints one line per pair (`merged <uuid> -> <User id>`, `failed <uuid> -> <User id>: <reason>`, or `would merge` on a dry run) and a total: ids and counts only. A failed send doesn't stop the others; the run exits 1 at the end if any failed. PostHog may answer 200 to an event it then refuses, so step 2's check in PostHog is what proves a merge. Errors go through `sanitizeError`, so no SQL, parameter or Postgres message is printed. The process ends about 10 s after its last line (the pool's idle clients).
