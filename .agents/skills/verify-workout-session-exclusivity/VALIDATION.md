@@ -1,4 +1,63 @@
-# Validation, 2026-11-26
+# Validation, 2026-11-27
+
+## Maintenance against current main
+
+**Outcome: updated. The coverage record now names the job's real calls to the Forgotten Workout Session services, set notes, Arnold's set removal and the notes migration; model, property, bounds, runner and migration guard unchanged; no current-code exclusivity violation found within the stated bounds.**
+
+Audited source: `68df76461acd7f5856b5db92f6b5736790456542`, equal to `origin/main` after `git fetch` on 2026-11-27, and the commit the checks ran on. Previous sync: `714819a101def141d111d83d848a8d3690c8e29e` (35 commits). No product code, migration, property, model, bound or script was changed.
+
+Tools: Node 26.13.1, OpenJDK 27, TLC 1.7.4 (cached jar, pinned SHA-256 unchanged), PostgreSQL 17.11 (Homebrew).
+
+### Baseline
+
+The unchanged runner passed before any edit: same-user 2,360 distinct / 9,401 generated, two-users 2,770 / 12,045, SQL replay PASS. One migration was added, `20261126120000_notes.sql`; it never names `workout_sessions` or `workout_sessions_one_open_per_user_idx`, so the guard let it through (reviewed below). That pass only said the old description still held; the audit below is what says it still describes the code.
+
+### Correspondence audit
+
+`git diff -G'workout_sessions|workoutSessions|finished_at|finishedAt'` over the range lists, outside this skill, `AGENTS.md`, `packages/services/src/workout-sessions.ts`, the removed `apps/api/src/rewrite-exercise-slugs.ts`, the notes pgTAP test, and integration and mobile tests and hooks. Every Drizzle write to `workout_sessions` outside tests is still one of: the insert in `insertOrResume`, `claimNow`, `claimForgotten`, `deleteWorkoutSession`, `discardForgottenWorkoutSession`, `deleteUserData` and the Plan Update's `plan_changes_applied_at` stamp; none of them has a hunk in the range. `findOpenSession`, `insertOrResume`, `startWorkoutSession`, `finishSession`, `closeForgottenWorkoutSession`, the unique index and its migration are unchanged.
+
+| Commit | Change and correspondence decision |
+| --- | --- |
+| `50ae4ef2` — the previous resync, PR #742 | This skill only. No effect. |
+| `47e9fc1e`, `de47804f`, `bb76584c`, `590e921e`, `d0deeff8`, `ea0e999b` — docs (PRs #741, #758, #757, #754, #753, #768) | `GLOSSARY.md` adds Note and Previous set and says a deleted Plan is gone; ADRs 0025 and 0026; research notes. The Workout Session and Forgotten Workout Session definitions are unchanged. No effect. |
+| `57b14aca` — FIT-821, PR #743 | `@fitme/core`'s `cleanNote` and `MAX_NOTE_LENGTH`. Pure code. No effect. |
+| `dfdb4f58` — PR #744 | `20261126120000_notes.sql`: a nullable `note` column and NOT VALID CHECK on `workout_session_exercise_sets`, and the new `exercise_notes` table with its RLS, grants and retired-id trigger; the generated schema follows. No session row, ownership or index is touched, and the logged-set trigger (`count_workout_session_logged_sets`, `UPDATE OF workout_session_exercise_id, reps_completed` in `20261101100000_workout_session_progress.sql`) doesn't fire on `note`. No effect; recorded among the no-effect migrations. |
+| `b6a12950` — FIT-823, PR #756 | `exercise-notes.ts` writes only `exercise_notes`; `deleteUserData` locks it last and deletes its rows. The session delete in `deleteUserData` is unchanged. No effect. |
+| `8d1abfb5` — FIT-800, PR #738 | Arnold's `remove_set_from_workout_session` calls `removeSetFromWorkoutSession` in one `asUser`: deletes a set, never a session row. No effect; added to the no-effect row. |
+| `bf3a2069` — FIT-817, PR #755 | The job now calls the services: `listForgottenWorkoutSessions` in one `withService` transaction, then each id through `closeForgottenWorkoutSession` in a `withService` transaction of its own, sequentially, under `transaction_timeout` (50 s) and `statement_timeout` (20 s). The grep for the four service names finds no other non-test caller; `run-forgotten-workout-sessions.ts` (by hand, local databases only) runs the same job function, and `create-handler.ts` only wraps it in the cron monitor. That is exactly the boundary the last audit flagged for re-audit: each close is one `Finish` or `Delete` (or a stutter) with its own commit; a timeout aborts it and rolls it back. Overlapping runs add `Finish` / `Delete` callers, which the model already interleaves freely. The `apps/jobs` row now describes this. |
+| `96daccd0`, `25cb3d56` — FIT-825, FIT-829 (PRs #776, #777) | `setWorkoutSessionSetNote`: the session tables' ROW EXCLUSIVE locks, a `FOR NO KEY UPDATE` lock on the set's session (open or finished), then an UPDATE of `workout_session_exercise_sets.note` only; every set read now carries `note`. The facade (`setWorkoutSessionSetNote` in `apps/api/src/services.ts`) is one `asUser` transaction. No session row write. No effect; added to the no-effect row, and set notes named among the excluded finished-session edits. |
+| `9a714949` — FIT-826, PR #770 | `GET` / `PUT /v1/exercise-notes` over `exercise-notes.ts`. No effect. |
+| `4491170f` — FIT-792, PR #762 | Removes `rewrite-exercise-slugs.ts` (which locked but never wrote session rows) and its row in this skill. No effect. |
+| `a8dccd7c` — PR #772 | TypeScript 6.0.3 in every manifest; no source change under `packages/services`, `packages/db` or `apps/jobs`. No effect. |
+| `7ac3b6a4`, `91622cc0` — FIT-787, FIT-789 (PRs #752, #767) | Library API auth and `@fitme/library-sdk`. No database access. No effect. |
+| `63fee68a` — FIT-791, PR #763 | Arnold's build. No effect. |
+| `624586eb`, `ad72206c`, `cf420200`, `fa6e63e8`, `cbb40faa`, `2f6e4609`, `0450b8fa`, `f4f432d3`, `b3b66396`, `f11f5da5`, `cf3c12e5`, `952b29d0`, `68df7646` — mobile and tooling (PRs #745–#751, #759–#761, #764, #774, #778) | App code, the fake Public API, scripts and tests. No effect. |
+| `597e30b6`, `de6324a6` — PRs #765, #766 | i18n catalogs. No effect. |
+
+### What changed in the verification
+
+- `SKILL.md`: the `apps/jobs` row now describes the job's real transaction boundaries instead of a pending re-audit; the no-effect row adds `setWorkoutSessionSetNote` (service and API facade) and Arnold's `remove_set_from_workout_session`; `20261126120000_notes.sql` joins the no-effect migrations; set notes are named in the finished-session-edit exclusion; the sync commit. Why: the code changed shape (a new caller and a new set write), not the promise.
+
+### Results
+
+| Check | Outcome and result |
+| --- | --- |
+| One User, three insertion transactions, optional initial orphan | Updated: PASS, 2,360 distinct / 9,401 generated, queue exhausted |
+| Two Users, three insertion transactions, optional initial orphan | Updated: PASS, 2,770 distinct / 12,045 generated, queue exhausted |
+| Extracted actual index, isolated PostgreSQL replay | Updated: PASS |
+| Migration guard regressions | 5 of 5 |
+| Scratch migration with `UNIQUE` removed | Expected failure, caught by TLC and Postgres |
+| Scratch migration indexed by `workout_id` | Expected failure, caught by TLC and Postgres |
+| Unmodified source after both mutations | PASS in both TLC configs and SQL |
+| `/statechart` | Run on this run's generated model, each config and `view.mjs` (the installed skill has no `mise` here, so `TLA2TOOLS` pointed at the runner's cached pinned jar): `OneOpenPerUser` and `NoDeadlock` hold in both; 2,360 and 2,770 states are over its 500-state chart budget, so no chart. |
+
+The state counts equal the previous validation's, as an unchanged model must give. The mutations show the checker can still fail on the index; the runner never reads the TypeScript, so the job's transaction boundaries and the set-note write are covered by the manual correspondence above only, not mechanically. The replay-isolation regressions were not rerun: the SQL runner didn't change.
+
+### Remaining limits
+
+As before. The job is now audited by reading it; `apps/jobs`' tests inject fakes and `packages/services`' `workout-session-set-notes.test.ts` and the other integration tests are not run by this checker. The guard only sees migrations that name the table or its index: the notes migration was reviewed by hand because it touches a child table.
+
+## Previous validation, 2026-11-26
 
 ## Maintenance against current main
 
