@@ -14,8 +14,8 @@ import { Pressable, Text } from "react-native";
 
 import ProfileScreen from "~/app/onboarding/profile";
 import { useAppLanguageSync } from "~/lib/i18n";
-import { segmentClient } from "~/lib/segment";
 import { setDeviceLanguages } from "~/test-utils/device-locales";
+import { sentAnalytics } from "~/test-utils/fake-analytics";
 import {
   backend,
   FAKE_SESSION_TOKEN,
@@ -34,10 +34,6 @@ jest.mock("expo-router", () => ({
 }));
 
 jest.mock("@sentry/react-native", () => ({ captureException: jest.fn() }));
-
-jest.mock("~/lib/segment", () => ({
-  segmentClient: { track: jest.fn() },
-}));
 
 jest.mock("@clerk/expo", () => ({
   useUser: () => ({ isLoaded: true, user: { id: "user_test" } }),
@@ -120,14 +116,6 @@ jest.mock("~/components/ui/picker", () => {
     ),
   };
 });
-
-// The stand-in `jest.mock("~/lib/segment")` installs.
-const track = jest.mocked<
-  (
-    event: string,
-    properties?: Record<string, string | number | boolean | null>
-  ) => void
->(segmentClient.track);
 
 const PROFILE_GET = "GET /v1/profile";
 const PROFILE_PATCH = "PATCH /v1/profile";
@@ -311,10 +299,13 @@ describe("onboarding ProfileScreen", () => {
       units: { height: "cm", weight: "kg" },
       weight: 80,
     });
-    expect(track).toHaveBeenCalledWith("Profile Filled", {
-      age: 28,
-      gender: "male",
-      weight_unit: "metric",
+    expect(sentAnalytics.events()).toContainEqual({
+      name: "Profile Filled",
+      properties: {
+        age: 28,
+        gender: "male",
+        weight_unit: "metric",
+      },
     });
     expect(router.dismissTo).toHaveBeenCalledWith("/plans/create");
   });
@@ -401,7 +392,7 @@ describe("onboarding ProfileScreen", () => {
       expect(screen.getByText(SAVE_ERROR)).toBeTruthy();
       expect(Sentry.captureException).toHaveBeenCalledTimes(1);
       expect(backend.profile(FAKE_USER_ID)).toBeUndefined();
-      expect(track).not.toHaveBeenCalled();
+      expect(sentAnalytics.events()).toEqual([]);
       expect(router.dismissTo).not.toHaveBeenCalled();
     }
   );

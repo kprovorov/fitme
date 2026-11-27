@@ -51,8 +51,8 @@ import { closePlanUpdatePrompt } from "~/hooks/plan-update-prompt";
 import { useActivePlanQuery } from "~/hooks/queries/plans";
 import { useOpenWorkoutSessionQuery } from "~/hooks/queries/workout-sessions";
 import { storage } from "~/lib/mmkv";
-import { segmentClient } from "~/lib/segment";
 import { setDeviceLanguages } from "~/test-utils/device-locales";
+import { sentAnalytics } from "~/test-utils/fake-analytics";
 import { fakeExercise, serveExercises } from "~/test-utils/fake-exercises";
 import {
   backend,
@@ -225,10 +225,6 @@ jest.mock("~/hooks/queries/profiles", () => ({
 }));
 
 jest.mock("@sentry/react-native", () => ({ captureException: jest.fn() }));
-
-jest.mock("~/lib/segment", () => ({
-  segmentClient: { track: jest.fn() },
-}));
 
 jest.mock("react-native-safe-area-context", () => ({
   useSafeAreaInsets: () => ({ bottom: 0, left: 0, right: 0, top: 0 }),
@@ -1679,15 +1675,6 @@ describe("the Plan Update after finishing a Workout Session opened from Home", (
   const legDay = () =>
     backend.plans[0]?.workouts.find(({ id }) => id === "w1")?.exercises;
 
-  // A plain mock: `jest.mocked` on the client's overloads is too deep to type.
-  const track = () =>
-    jest.mocked<
-      (
-        event: string,
-        properties?: Record<string, string | number | boolean | null>
-      ) => void
-    >(segmentClient.track);
-
   const isSheetShown = () => screen.queryByText("Update your plan?") !== null;
 
   afterEach(async () => {
@@ -1705,7 +1692,7 @@ describe("the Plan Update after finishing a Workout Session opened from Home", (
       "home",
       "summary",
     ]);
-    expect(track()).not.toHaveBeenCalled();
+    expect(sentAnalytics.events()).toEqual([]);
   });
 
   it("asks with every change, Exercises by their Library names, after the finish", async () => {
@@ -1727,9 +1714,9 @@ describe("the Plan Update after finishing a Workout Session opened from Home", (
       "home",
       "plan-session",
     ]);
-    expect(track().mock.calls).toContainEqual([
-      "Plan Update Suggested",
-      {
+    expect(sentAnalytics.events()).toContainEqual({
+      name: "Plan Update Suggested",
+      properties: {
         add_exercise: 2,
         add_sets: 1,
         remove_exercise: 0,
@@ -1737,7 +1724,7 @@ describe("the Plan Update after finishing a Workout Session opened from Home", (
         replace_exercise: 0,
         ...eventProperties,
       },
-    ]);
+    });
   });
 
   it("asks to save a set added on the exercise screen, logged, after the finish", async () => {
@@ -1821,10 +1808,10 @@ describe("the Plan Update after finishing a Workout Session opened from Home", (
       "home",
       "summary",
     ]);
-    expect(track()).toHaveBeenCalledWith(
-      "Plan Update Accepted",
-      eventProperties
-    );
+    expect(sentAnalytics.events()).toContainEqual({
+      name: "Plan Update Accepted",
+      properties: eventProperties,
+    });
   });
 
   it("leaves the Plan as it was on Keep plan as is", async () => {
@@ -1841,13 +1828,12 @@ describe("the Plan Update after finishing a Workout Session opened from Home", (
       "home",
       "summary",
     ]);
-    expect(track()).toHaveBeenCalledWith(
-      "Plan Update Declined",
-      eventProperties
-    );
-    expect(track()).not.toHaveBeenCalledWith(
-      "Plan Update Accepted",
-      expect.anything()
+    expect(sentAnalytics.events()).toContainEqual({
+      name: "Plan Update Declined",
+      properties: eventProperties,
+    });
+    expect(sentAnalytics.events()).not.toContainEqual(
+      expect.objectContaining({ name: "Plan Update Accepted" })
     );
   });
 
@@ -1866,9 +1852,8 @@ describe("the Plan Update after finishing a Workout Session opened from Home", (
       "home",
       "plan-session",
     ]);
-    expect(track()).not.toHaveBeenCalledWith(
-      "Plan Update Accepted",
-      expect.anything()
+    expect(sentAnalytics.events()).not.toContainEqual(
+      expect.objectContaining({ name: "Plan Update Accepted" })
     );
 
     await fireEvent.press(screen.getByRole("button", RETRY));
@@ -1884,10 +1869,10 @@ describe("the Plan Update after finishing a Workout Session opened from Home", (
       "home",
       "summary",
     ]);
-    expect(track()).toHaveBeenCalledWith(
-      "Plan Update Accepted",
-      eventProperties
-    );
+    expect(sentAnalytics.events()).toContainEqual({
+      name: "Plan Update Accepted",
+      properties: eventProperties,
+    });
   });
 
   it("says how long to wait when the apply is rate limited, unreported", async () => {
@@ -1941,7 +1926,7 @@ describe("the Plan Update after finishing a Workout Session opened from Home", (
       "home",
       "summary",
     ]);
-    expect(track()).not.toHaveBeenCalled();
+    expect(sentAnalytics.events()).toEqual([]);
   });
 
   describe("with a removed set", () => {
@@ -2041,9 +2026,9 @@ describe("the Plan Update after finishing a Workout Session opened from Home", (
 
       expect(screen.getByText(REMOVED_SET_LINE)).toBeTruthy();
       expect(screen.getByLabelText(REMOVED_SET_SPOKEN)).toBeTruthy();
-      expect(track().mock.calls).toContainEqual([
-        "Plan Update Suggested",
-        {
+      expect(sentAnalytics.events()).toContainEqual({
+        name: "Plan Update Suggested",
+        properties: {
           add_exercise: 0,
           add_sets: 0,
           remove_exercise: 0,
@@ -2051,7 +2036,7 @@ describe("the Plan Update after finishing a Workout Session opened from Home", (
           replace_exercise: 0,
           ...eventProperties,
         },
-      ]);
+      });
     });
 
     it("lists the removal with the other changes", async () => {

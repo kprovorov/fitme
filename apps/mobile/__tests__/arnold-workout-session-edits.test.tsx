@@ -179,8 +179,6 @@ jest.mock("react-native-purchases-ui", () => ({
   default: { presentPaywall: jest.fn() },
 }));
 
-jest.mock("~/lib/segment", () => ({ segmentClient: { track: jest.fn() } }));
-
 jest.mock("expo-haptics", () => ({
   ImpactFeedbackStyle: { Light: "light" },
   impactAsync: jest.fn(),

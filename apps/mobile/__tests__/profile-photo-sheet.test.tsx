@@ -42,10 +42,6 @@ jest.mock("expo-router/react-navigation", () => ({ useHeaderHeight: () => 0 }));
 
 jest.mock("@sentry/react-native", () => ({ captureException: jest.fn() }));
 
-jest.mock("~/lib/segment", () => ({
-  segmentClient: { track: jest.fn() },
-}));
-
 jest.mock(
   "@clerk/expo",
   () =>

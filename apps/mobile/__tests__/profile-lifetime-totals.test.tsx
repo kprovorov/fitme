@@ -52,10 +52,6 @@ jest.mock("react-native-purchases-ui", () => ({
   default: { presentPaywall: jest.fn() },
 }));
 
-jest.mock("~/lib/segment", () => ({
-  segmentClient: { reset: jest.fn(), track: jest.fn() },
-}));
-
 jest.mock("~/components/ui/button", () =>
   jest.requireActual("~/test-utils/button-stub")
 );

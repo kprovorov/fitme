@@ -143,10 +143,6 @@ jest.mock("react-native-purchases-ui", () => ({
   default: { presentPaywall: jest.fn() },
 }));
 
-jest.mock("~/lib/segment", () => ({
-  segmentClient: { reset: jest.fn(), track: jest.fn() },
-}));
-
 jest.mock("~/components/exercises/exercise-image", () => () => null);
 
 // A symbol as its name, so a test sees which one a button shows.

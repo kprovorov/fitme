@@ -42,10 +42,6 @@ jest.mock("expo-web-browser", () => ({
   WebBrowserPresentationStyle: { AUTOMATIC: "automatic" },
 }));
 
-jest.mock("~/lib/segment", () => ({
-  segmentClient: { reset: jest.fn(), track: jest.fn() },
-}));
-
 jest.mock(
   "@clerk/expo",
   () =>

@@ -23,6 +23,7 @@ import { PlanUpdateSheetHost } from "~/components/workout-sessions/plan-update-s
 import { closePlanUpdatePrompt } from "~/hooks/plan-update-prompt";
 import { i18n } from "~/lib/i18n";
 import { setDeviceLanguages } from "~/test-utils/device-locales";
+import { sentAnalytics } from "~/test-utils/fake-analytics";
 import { fakeExercise, serveExercises } from "~/test-utils/fake-exercises";
 import { createTestQueryClient } from "~/test-utils/query-client";
 
@@ -46,7 +47,6 @@ const mockPlanUpdate =
     (sessionId: string, options: { apply: boolean }) => Promise<unknown>
   >();
 
-const mockTrack = jest.fn();
 const mockDiscard = jest.fn();
 
 jest.mock("expo-router", () => ({
@@ -55,10 +55,6 @@ jest.mock("expo-router", () => ({
 }));
 
 jest.mock("@sentry/react-native", () => ({ captureException: jest.fn() }));
-
-jest.mock("~/lib/segment", () => ({
-  segmentClient: { track: (...args: unknown[]) => mockTrack(...args) },
-}));
 
 jest.mock("~/components/ui/dialog", () =>
   jest.requireActual("~/test-utils/dialog-stub")
@@ -532,7 +528,7 @@ describe("useFinishWorkoutSession", () => {
         apply: false,
       });
       expect(screen.queryByText("Update your plan?")).toBeNull();
-      expect(mockTrack).not.toHaveBeenCalled();
+      expect(sentAnalytics.events()).toEqual([]);
     });
 
     it("asks after the finish has committed, with one line per change, Exercises by their Library names", async () => {
@@ -585,15 +581,18 @@ describe("useFinishWorkoutSession", () => {
     it("reports how many changes of each kind it suggested", async () => {
       await finishWithChanges();
 
-      expect(mockTrack).toHaveBeenCalledWith("Plan Update Suggested", {
-        add_exercise: 1,
-        add_sets: 1,
-        plan_id: "plan-1",
-        remove_exercise: 1,
-        remove_sets: 0,
-        replace_exercise: 1,
-        workout_id: "workout-1",
-        workout_session_id: "session-1",
+      expect(sentAnalytics.events()).toContainEqual({
+        name: "Plan Update Suggested",
+        properties: {
+          add_exercise: 1,
+          add_sets: 1,
+          plan_id: "plan-1",
+          remove_exercise: 1,
+          remove_sets: 0,
+          replace_exercise: 1,
+          workout_id: "workout-1",
+          workout_session_id: "session-1",
+        },
       });
     });
 
@@ -643,10 +642,13 @@ describe("useFinishWorkoutSession", () => {
       expect(
         queryClient.getQueryState(["plan", { planId: "plan-1" }])?.isInvalidated
       ).toBe(true);
-      expect(mockTrack).toHaveBeenCalledWith("Plan Update Accepted", {
-        plan_id: "plan-1",
-        workout_id: "workout-1",
-        workout_session_id: "session-1",
+      expect(sentAnalytics.events()).toContainEqual({
+        name: "Plan Update Accepted",
+        properties: {
+          plan_id: "plan-1",
+          workout_id: "workout-1",
+          workout_session_id: "session-1",
+        },
       });
       expect(screen.getByTestId("native-sheet")).toHaveProp(
         "isPresented",
@@ -661,10 +663,13 @@ describe("useFinishWorkoutSession", () => {
 
       expect(mockReplace).toHaveBeenCalledWith(SUMMARY);
       expect(mockPlanUpdate).toHaveBeenCalledTimes(1);
-      expect(mockTrack).toHaveBeenCalledWith("Plan Update Declined", {
-        plan_id: "plan-1",
-        workout_id: "workout-1",
-        workout_session_id: "session-1",
+      expect(sentAnalytics.events()).toContainEqual({
+        name: "Plan Update Declined",
+        properties: {
+          plan_id: "plan-1",
+          workout_id: "workout-1",
+          workout_session_id: "session-1",
+        },
       });
       expect(screen.getByTestId("native-sheet")).toHaveProp(
         "isPresented",
@@ -685,9 +690,8 @@ describe("useFinishWorkoutSession", () => {
       ).resolves.toBeTruthy();
       expect(Sentry.captureException).toHaveBeenCalled();
       expect(mockReplace).not.toHaveBeenCalled();
-      expect(mockTrack).not.toHaveBeenCalledWith(
-        "Plan Update Accepted",
-        expect.anything()
+      expect(sentAnalytics.events()).not.toContainEqual(
+        expect.objectContaining({ name: "Plan Update Accepted" })
       );
 
       mockPlanUpdate.mockResolvedValueOnce(NO_CHANGES);

@@ -34,6 +34,7 @@ import { useAddedSets } from "~/hooks/added-sets";
 import { useOpenWorkoutSessionQuery } from "~/hooks/queries/workout-sessions";
 import { storage } from "~/lib/mmkv";
 import { setDeviceLanguages } from "~/test-utils/device-locales";
+import { sentAnalytics } from "~/test-utils/fake-analytics";
 import { fakeExercise, serveExercises } from "~/test-utils/fake-exercises";
 import {
   backend,
@@ -48,8 +49,6 @@ import {
 } from "~/test-utils/query-client";
 import { renderRouter } from "~/test-utils/render-router";
 import { signInAs } from "~/test-utils/signed-in-user";
-
-const mockTrack = jest.fn();
 
 // The real router; only a screen's native header is drawn as plain buttons.
 jest.mock("expo-router", () => {
@@ -77,10 +76,6 @@ jest.mock("~/lib/clerk", () => ({
 }));
 
 jest.mock("@sentry/react-native", () => ({ captureException: jest.fn() }));
-
-jest.mock("~/lib/segment", () => ({
-  segmentClient: { track: (...args: unknown[]) => mockTrack(...args) },
-}));
 
 jest.mock("react-native-keyboard-controller", () => {
   const { ScrollView } =
@@ -699,7 +694,7 @@ describe("the app's own Discard", () => {
 
     expect(pathname).toBe(WORKOUT);
     expect(alerts()).toEqual(["Discard workout?"]);
-    expect(mockTrack).toHaveBeenCalledTimes(1);
+    expect(sentAnalytics.events()).toHaveLength(1);
   });
 
   it("answering its question does nothing once finished elsewhere", async () => {

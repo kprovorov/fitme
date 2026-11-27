@@ -38,8 +38,8 @@ import WorkoutEditorScreen from "~/app/plans/[planId]/edit/workouts/[workoutKey]
 import PlanScreen from "~/app/plans/[planId]/index";
 import CreatePlanScreen from "~/app/plans/create";
 import { CREATE_PLAN_NAMING_STEP } from "~/lib/plan-draft";
-import { segmentClient } from "~/lib/segment";
 import { setDeviceLanguages } from "~/test-utils/device-locales";
+import { sentAnalytics } from "~/test-utils/fake-analytics";
 import { serveExercises } from "~/test-utils/fake-exercises";
 import {
   backend,
@@ -167,8 +167,6 @@ jest.mock("~/components/ui/select", () =>
   jest.requireActual("~/test-utils/select-stub")
 );
 
-jest.mock("~/lib/segment", () => ({ segmentClient: { track: jest.fn() } }));
-
 // uniwind resolves no theme values under Jest, so each token answers its own
 // name: a tint of "--color-primary" is the lime accent.
 jest.mock("uniwind", () => ({
@@ -266,13 +264,7 @@ const addExerciseTo = async (
   await goBack();
 };
 
-const tracked = () =>
-  jest.mocked<
-    (
-      event: string,
-      properties?: Record<string, string | number | boolean | null>
-    ) => void
-  >(segmentClient.track).mock.calls;
+const tracked = () => sentAnalytics.events();
 
 const savedPlan = () => backend.plans[0];
 
@@ -492,8 +484,11 @@ describe("saving a Plan built by hand", () => {
 
     const created = savedPlan();
     expect(tracked()).toEqual([
-      ["Plan Saved", { plan_id: created.id, source: "builder" }],
-      ["Plan Activated", { plan_id: created.id }],
+      {
+        name: "Plan Saved",
+        properties: { plan_id: created.id, source: "builder" },
+      },
+      { name: "Plan Activated", properties: { plan_id: created.id } },
     ]);
   });
 
@@ -554,7 +549,7 @@ describe("saving a Plan built by hand", () => {
       )
     ).toBeTruthy();
     expect(backend.plans).toEqual([]);
-    expect(segmentClient.track).not.toHaveBeenCalled();
+    expect(sentAnalytics.events()).toEqual([]);
     expect(editor().getByTestId("plan-name").props.value).toBe("Full body");
 
     // The draft is intact, so a retry saves it.

@@ -12,8 +12,8 @@ import { Text } from "react-native";
 import { usePlanQuery, usePlanSummariesQuery } from "~/hooks/queries/plans";
 import { useAppLanguageSync } from "~/lib/i18n";
 import { storage } from "~/lib/mmkv";
-import { segmentClient } from "~/lib/segment";
 import { setDeviceLanguages } from "~/test-utils/device-locales";
+import { sentAnalytics } from "~/test-utils/fake-analytics";
 import {
   EXERCISES_UNAVAILABLE,
   failExercises,
@@ -30,10 +30,6 @@ const mockPush = jest.fn();
 
 jest.mock("expo-router", () => ({
   router: { push: (path: string) => mockPush(path) },
-}));
-
-jest.mock("~/lib/segment", () => ({
-  segmentClient: { track: jest.fn() },
 }));
 
 // The User the save is made for (the real Clerk SDK keeps Jest alive).
@@ -134,13 +130,7 @@ const save = async (client: ReturnType<typeof createTestQueryClient>) => {
 const planRequests = () =>
   fakePublicApi.requests.filter((request) => request.route === PLAN_ROUTE);
 
-const tracked = () =>
-  jest.mocked<
-    (
-      event: string,
-      properties?: Record<string, string | number | boolean | null>
-    ) => void
-  >(segmentClient.track).mock.calls;
+const tracked = () => sentAnalytics.events();
 
 beforeEach(() => {
   jest.clearAllMocks();
@@ -246,8 +236,11 @@ describe("WorkoutPlanCard", () => {
 
     const [created] = backend.plans;
     expect(tracked()).toEqual([
-      ["Plan Saved", { plan_id: created?.id, source: "arnold" }],
-      ["Plan Activated", { plan_id: created?.id }],
+      {
+        name: "Plan Saved",
+        properties: { plan_id: created?.id, source: "arnold" },
+      },
+      { name: "Plan Activated", properties: { plan_id: created?.id } },
     ]);
   });
 

@@ -18,10 +18,6 @@ import { signInAs } from "~/test-utils/signed-in-user";
 
 import { rememberPendingWeighedRefresh } from "../settings";
 
-jest.mock("~/lib/segment", () => ({
-  segmentClient: { track: jest.fn() },
-}));
-
 jest.mock("~/lib/clerk", () => ({
   getCurrentUserId: jest.requireActual<
     typeof import("~/test-utils/signed-in-user")

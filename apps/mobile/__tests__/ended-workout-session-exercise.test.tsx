@@ -51,8 +51,6 @@ import {
 } from "~/test-utils/query-client";
 import { renderRouter } from "~/test-utils/render-router";
 
-const mockTrack = jest.fn();
-
 // The real router; only a screen's native header is drawn as plain buttons.
 jest.mock("expo-router", () => {
   const actual =
@@ -79,10 +77,6 @@ jest.mock("~/lib/clerk", () => ({
 }));
 
 jest.mock("@sentry/react-native", () => ({ captureException: jest.fn() }));
-
-jest.mock("~/lib/segment", () => ({
-  segmentClient: { track: (...args: unknown[]) => mockTrack(...args) },
-}));
 
 jest.mock("react-native-keyboard-controller", () => {
   const { ScrollView } =

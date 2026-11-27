@@ -72,10 +72,6 @@ jest.mock("~/lib/clerk", () => ({
     ).FAKE_USER_ID,
 }));
 
-jest.mock("~/lib/segment", () => ({
-  segmentClient: { track: jest.fn() },
-}));
-
 jest.mock("~/components/symbol-image", () => ({ SymbolImage: () => null }));
 
 jest.mock("~/components/ui/dropdown-menu", () =>

@@ -120,10 +120,6 @@ jest.mock("~/components/ui/select", () =>
   jest.requireActual("~/test-utils/select-stub")
 );
 
-jest.mock("~/lib/segment", () => ({
-  segmentClient: { track: jest.fn() },
-}));
-
 const EDITOR_ROUTES = {
   "/muscles": MusclesSheet,
   "/plans/[planId]/edit": PlanEditorScreen,

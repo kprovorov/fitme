@@ -97,10 +97,6 @@ jest.mock("~/lib/clerk", () => ({
     ).FAKE_USER_ID,
 }));
 
-jest.mock("~/lib/segment", () => ({
-  segmentClient: { track: jest.fn() },
-}));
-
 jest.mock("~/hooks/revenueCat", () => ({
   useIsProQuery: () => ({ data: false }),
 }));

@@ -56,10 +56,6 @@ jest.mock(
     ).purchasesModule
 );
 
-jest.mock("~/lib/segment", () => ({
-  segmentClient: { reset: jest.fn(), track: jest.fn() },
-}));
-
 jest.mock("react-native-purchases-ui", () => ({
   __esModule: true,
   default: { presentPaywall: jest.fn() },

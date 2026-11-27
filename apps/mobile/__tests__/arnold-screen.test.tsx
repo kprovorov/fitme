@@ -52,8 +52,8 @@ import {
 import { sentAttachmentUri } from "~/lib/arnold-sent-attachments";
 import { useAppLanguageSync } from "~/lib/i18n";
 import { storage } from "~/lib/mmkv";
-import { segmentClient } from "~/lib/segment";
 import { setDeviceLanguages } from "~/test-utils/device-locales";
+import { sentAnalytics } from "~/test-utils/fake-analytics";
 import { FAKE_ARNOLD_REPLY, fakeArnold } from "~/test-utils/fake-arnold";
 import type * as InMemoryFileSystem from "~/test-utils/in-memory-file-system";
 import { createTestQueryClient } from "~/test-utils/query-client";
@@ -268,8 +268,6 @@ jest.mock("react-native-purchases-ui", () => ({
   default: { presentPaywall: () => mockPresentPaywall() },
 }));
 
-jest.mock("~/lib/segment", () => ({ segmentClient: { track: jest.fn() } }));
-
 jest.mock("expo-haptics", () => ({
   ImpactFeedbackStyle: { Light: "light" },
   impactAsync: jest.fn(),
@@ -411,7 +409,6 @@ beforeEach(() => {
   clearArnoldAttachments();
   resetStubRouter();
   mockPresentPaywall.mockClear();
-  jest.mocked(segmentClient.track).mockClear();
   storage.clearAll();
   fileSystem.reset();
   fakeArnold.install();
@@ -1340,8 +1337,8 @@ describe("arnold screen", () => {
       await send("What is this machine?");
 
       await waitFor(() => expect(fakeArnold.sent).toHaveLength(1));
-      expect(jest.mocked(segmentClient.track).mock.calls).toEqual([
-        ["Arnold Attachment Sent", { count: 2 }],
+      expect(sentAnalytics.events()).toEqual([
+        { name: "Arnold Attachment Sent", properties: { count: 2 } },
       ]);
     });
 
@@ -1350,7 +1347,7 @@ describe("arnold screen", () => {
       await send("How heavy should I squat?");
 
       await waitFor(() => expect(fakeArnold.sent).toHaveLength(1));
-      expect(segmentClient.track).not.toHaveBeenCalled();
+      expect(sentAnalytics.events()).toEqual([]);
     });
 
     it("gives a failed send's text and photos back to the composer", async () => {
