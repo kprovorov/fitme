@@ -6,6 +6,7 @@ import { View } from "react-native";
 import { addSet, markAddedSetSaved } from "~/hooks/added-sets";
 import type { SavedWorkoutSessionExerciseSet } from "~/hooks/queries/workout-session-exercise-sets";
 import type {
+  PreviousSet,
   WorkoutSession,
   WorkoutSessionSet,
 } from "~/hooks/queries/workout-sessions";
@@ -31,6 +32,11 @@ interface WorkoutSessionExerciseSetsTableViewProps {
     set: SavedWorkoutSessionExerciseSet,
     hasNextSet: boolean
   ) => void;
+  /**
+   * The Exercise's Previous sets (`GLOSSARY.md`), each shown on the row with
+   * its number. None from an API that doesn't answer them.
+   */
+  previousSets?: readonly PreviousSet[];
   readOnly?: boolean;
   sessionId: string;
   /** The unit its Workout Session's weights are in. */
@@ -55,9 +61,12 @@ const ColumnLabel = ({
   </Text>
 );
 
+const NO_PREVIOUS_SETS: readonly PreviousSet[] = [];
+
 const WorkoutSessionExerciseSetsTableView = ({
   exerciseId,
   onSetLogged,
+  previousSets = NO_PREVIOUS_SETS,
   workoutSessionExerciseSets,
   readOnly = false,
   sessionId,
@@ -70,6 +79,13 @@ const WorkoutSessionExerciseSetsTableView = ({
   const rows = useShownSets(exerciseId, workoutSessionExerciseSets, readOnly);
   const removeSet = useRemoveWorkoutSessionSet(sessionId);
   const lastSet = rows.findLast(({ set }) => set)?.set;
+
+  // Matched by the number a row shows, an added set's included.
+  const previousByNumber = new Map(
+    previousSets.map((previous) => [previous.number, previous])
+  );
+
+  const showsPrevious = rows.some(({ number }) => previousByNumber.has(number));
 
   // An added set starts from the Exercise's last one, as the Plan editor's
   // Add Set does: what was logged, or its targets while it isn't.
@@ -94,7 +110,11 @@ const WorkoutSessionExerciseSetsTableView = ({
         importantForAccessibility="no-hide-descendants"
       >
         <ColumnLabel className="w-7">#</ColumnLabel>
-        <ColumnLabel className="w-20">{t("sets.columns.target")}</ColumnLabel>
+        <ColumnLabel className="w-20">
+          {showsPrevious
+            ? t("sets.columns.previous")
+            : t("sets.columns.target")}
+        </ColumnLabel>
         <ColumnLabel className="flex-1">{t("sets.columns.reps")}</ColumnLabel>
         <ColumnLabel className="flex-2">{weightLabel}</ColumnLabel>
         <View className={SET_CHECK_COLUMN_CLASS} />
@@ -124,6 +144,7 @@ const WorkoutSessionExerciseSetsTableView = ({
             onSetLogged={(logged) =>
               onSetLogged?.(logged, !!nextUnloggedSet(rows, id))
             }
+            previousSet={previousByNumber.get(number)}
             sessionId={sessionId}
             weightLabel={weightLabel}
             workoutSessionExerciseSet={set}

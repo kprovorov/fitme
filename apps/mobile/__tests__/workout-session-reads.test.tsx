@@ -1047,3 +1047,110 @@ describe("a late Start or Finish answer", () => {
     }
   );
 });
+
+describe("the set tables' Previous sets", () => {
+  const EARLIER = "2026-10-01T10:00:00.000Z";
+  // The column headers are hidden from VoiceOver.
+  const HIDDEN = { includeHiddenElements: true };
+
+  beforeEach(() => {
+    serveExercises([
+      fakeExercise("squat", { name: "Squat", muscle_groups: ["quadriceps"] }),
+      fakeExercise("bench-press", {
+        muscle_groups: ["chest"],
+        name: "Bench Press",
+      }),
+      fakeExercise("deadlift", { muscle_groups: ["back"], name: "Deadlift" }),
+    ]);
+    // Last time: Squat 12×45 kg, then a skipped set; Bench Press 8 at
+    // bodyweight. Deadlift never done.
+    backend.seed({
+      exercises: [
+        { name: "Squat", sets: [12, 0] },
+        { name: "Bench Press", sets: [8] },
+      ],
+      finished: true,
+      id: "last",
+      startedAt: EARLIER,
+    });
+    setSet("last-e1-s1", { weight_completed: 45 });
+    setSet("last-e1-s2", { weight_completed: 50 });
+  });
+
+  const seedToday = (finished = false) => {
+    backend.seed({
+      exercises: [
+        { name: "Squat", sets: [null, null, null] },
+        { name: "Bench Press", sets: [null] },
+        { name: "Deadlift", sets: [null, null] },
+      ],
+      finished,
+      id: "s1",
+      workoutId: "workout-1",
+    });
+    setSet("s1-e1-s1", { weight_recommended: 100 });
+    setSet("s1-e1-s2", { weight_recommended: 105 });
+    setSet("s1-e1-s3", { weight_recommended: 110 });
+    setSet("s1-e2-s1", { reps_recommended: 5, weight_recommended: 60 });
+    setSet("s1-e3-s1", { reps_recommended: 5, weight_recommended: 140 });
+    setSet("s1-e3-s2", { reps_recommended: null });
+  };
+
+  /** What each Exercise card's second column shows, header first. */
+  const expectCells = () => {
+    // Squat: last time's set 1, then the targets of a set skipped last time
+    // and one it didn't have.
+    expect(screen.getByText("12×45kg")).toBeTruthy();
+    expect(screen.queryByText("10×100kg")).toBeNull();
+    expect(screen.getByText("10×105kg")).toBeTruthy();
+    expect(screen.getByText("10×110kg")).toBeTruthy();
+    // Bench Press at bodyweight shows the reps alone, not its target.
+    expect(screen.getByText("8")).toBeTruthy();
+    expect(screen.queryByText("5×60kg")).toBeNull();
+    // Deadlift, done the first time: its targets, `–` with none.
+    expect(screen.getByText("5×140kg")).toBeTruthy();
+    expect(screen.getByText("–")).toBeTruthy();
+  };
+
+  it("shows each set's Previous set on the session screen, else its target", async () => {
+    seedToday();
+    await mountSession();
+
+    expectCells();
+    // Squat and Bench Press have one; Deadlift none.
+    expect(screen.getAllByText("previous", HIDDEN)).toHaveLength(2);
+    expect(screen.getAllByText("target", HIDDEN)).toHaveLength(1);
+    // The placeholders keep the target.
+    expect(
+      screen
+        .getAllByLabelText("Set 1 weight")
+        .map(({ props }) => props.placeholder)
+    ).toEqual(["100", "60", "140"]);
+  });
+
+  it("shows them on a finished session too", async () => {
+    seedToday(true);
+    await mountSession();
+
+    expectCells();
+    expect(screen.getAllByText("previous", HIDDEN)).toHaveLength(2);
+  });
+
+  it("shows them on the Workout Session Exercise screen", async () => {
+    seedToday();
+    await mountExercise("s1-e1");
+
+    expect(screen.getByText("previous", HIDDEN)).toBeTruthy();
+    expect(screen.getByText("12×45kg")).toBeTruthy();
+    expect(screen.getByText("10×105kg")).toBeTruthy();
+  });
+
+  it("heads the column target on the Exercise screen of a first time", async () => {
+    seedToday();
+    await mountExercise("s1-e3");
+
+    expect(screen.getByText("target", HIDDEN)).toBeTruthy();
+    expect(screen.queryByText("previous", HIDDEN)).toBeNull();
+    expect(screen.getByText("5×140kg")).toBeTruthy();
+  });
+});

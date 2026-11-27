@@ -23,9 +23,17 @@ import type { SeedResult, WriteStarter } from "~/lib/write-answers";
  */
 export type WorkoutSession = components["schemas"]["WorkoutSession"];
 
-/** One Exercise of a `WorkoutSession`, by Exercise slug, with its sets. */
-export type WorkoutSessionExercise =
-  components["schemas"]["WorkoutSessionExercise"];
+/**
+ * One Exercise of a `WorkoutSession`, by Exercise slug, with its sets and its
+ * Previous sets (`GLOSSARY.md`).
+ */
+export type WorkoutSessionExercise = WorkoutSession["exercises"][number];
+
+/**
+ * What the User did in the set with this `number` the last time they logged
+ * the Exercise (`GLOSSARY.md`, ADR 0025), in the session's unit.
+ */
+export type PreviousSet = components["schemas"]["PreviousSet"];
 
 /** One set of a `WorkoutSessionExercise`, weights in the session's unit. */
 export type WorkoutSessionSet = components["schemas"]["WorkoutSessionSet"];

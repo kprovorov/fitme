@@ -238,6 +238,26 @@ describe("an open Workout Session in Ukrainian", () => {
     expect(screen.getByText("Додати вправу")).toBeTruthy();
   });
 
+  it("heads the set column with its Ukrainian name for Previous sets and targets", async () => {
+    // Last time: Squat 12 × 60 kg; Lunge never done.
+    backend.seed({
+      exercises: [{ name: "Squat", sets: [12] }],
+      finished: true,
+      id: "last",
+      startedAt: "2026-10-01T10:00:00.000Z",
+    });
+    Object.assign(backend.sets.find(({ id }) => id === "last-e1-s1") ?? {}, {
+      weight_completed: 60,
+    });
+    await renderSession();
+
+    // The column headers are hidden from VoiceOver.
+    const hidden = { includeHiddenElements: true };
+    expect(screen.getByText("попередній", hidden)).toBeTruthy();
+    expect(screen.getByText("ціль", hidden)).toBeTruthy();
+    expect(screen.getByText("12×60кг")).toBeTruthy();
+  });
+
   it.each(failures)(
     "says why removing, replacing or adding an Exercise failed (%j)",
     async (failure, message) => {
