@@ -10,6 +10,7 @@ import {
   useOpenWorkoutSessionQuery,
 } from "~/hooks/queries/workout-sessions";
 import type { OpenWorkoutSession } from "~/hooks/queries/workout-sessions";
+import { analytics, workoutSessionProperties } from "~/lib/analytics";
 import { i18n } from "~/lib/i18n";
 import { isStillWriteStarter } from "~/lib/write-answers";
 
@@ -167,7 +168,19 @@ export const useStartWorkout = (
 
       alertStartFailed(rateLimitedFor(error));
     },
-    onSuccess: async (workoutSession, _variables, starter) => {
+    onSuccess: async (
+      { isNew, session: workoutSession },
+      _variables,
+      starter
+    ) => {
+      // Only a new one, and only for the User who started it.
+      if (isNew && isStillWriteStarter(starter)) {
+        void analytics.send(
+          "Workout Started",
+          workoutSessionProperties(workoutSession)
+        );
+      }
+
       // Shown, or read again when a newer read landed meanwhile: either way
       // it opens. Signed out meanwhile, it was the previous User's.
       const seeded = await seedWorkoutSession(

@@ -748,7 +748,13 @@ describe("the Finish alert", () => {
     expect(fakePublicApi.count(DELETE)).toBe(0);
     expect(backend.session("s1")?.finished_at).not.toBeNull();
     expect(pathname).toBe(`${BARE_SESSION}/summary`);
-    expect(sentAnalytics.events()).toEqual([]);
+    // Finished, not discarded.
+    expect(sentAnalytics.events()).toEqual([
+      {
+        name: "Workout Completed",
+        properties: { plan_id: "plan-1", workout_id: "workout-1" },
+      },
+    ]);
   });
 
   it("changes nothing when cancelled or dismissed, and asks again after", async () => {

@@ -12,6 +12,7 @@ import { QueryClientProvider } from "@tanstack/react-query";
 import { fireEvent, render, screen } from "@testing-library/react-native";
 
 import type { WorkoutSessionSet } from "~/hooks/queries/workout-sessions";
+import { sentAnalytics } from "~/test-utils/fake-analytics";
 import { backend, fakePublicApi } from "~/test-utils/fake-public-api";
 import { createTestQueryClient, settle } from "~/test-utils/query-client";
 
@@ -129,6 +130,23 @@ describe("Add Set in a Workout Session", () => {
 
     expect(addSetRequests().map((request) => request.body)).toEqual([
       { reps_completed: 0, weight_completed: 0 },
+    ]);
+  });
+});
+
+describe("Set Tracked", () => {
+  it("is sent for a logged set without its reps or weight", async () => {
+    const client = await renderTable([]);
+
+    await fireEvent.press(screen.getByRole("button", { name: "Add Set" }));
+    await fireEvent.changeText(screen.getByLabelText("Set 1 reps"), "8");
+    await fireEvent.changeText(screen.getByLabelText("Set 1 weight"), "50");
+    await fireEvent.press(screen.getByRole("button", { name: "Log set 1" }));
+    await settle(client);
+
+    expect(addSetRequests()).toHaveLength(1);
+    expect(sentAnalytics.events()).toEqual([
+      { name: "Set Tracked", properties: { exercise_id: "s1-e1" } },
     ]);
   });
 });

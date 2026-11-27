@@ -37,6 +37,15 @@ interface PlanUpdateProperties {
 /** How many changes of each kind it offered (`countPlanChanges`). */
 type PlanChangeCounts = Record<PlanUpdateChangeKind | "remove_sets", number>;
 
+/**
+ * The Plan and Workout a Workout Session was started from, each left out once
+ * it's gone (`workoutSessionProperties`).
+ */
+interface WorkoutSessionProperties {
+  plan_id?: string;
+  workout_id?: string;
+}
+
 /** What a Note is on: an Exercise, or a logged set. Never the note's text. */
 type NoteTarget = "exercise" | "set";
 
@@ -66,15 +75,44 @@ export interface AnalyticsEvents {
     weight_unit: MeasurementSystem;
   };
   "Set Removed": { exercise_id: string; logged: boolean; session_id: string };
-  "Set Tracked": { exercise_id: string; reps: number; weight: number };
+  /** A logged set, never its reps or weight: training results stay ours. */
+  "Set Tracked": { exercise_id: string };
   "User Deleted Account": undefined;
   "User Logged In": undefined;
   "User Logged Out": undefined;
   "User Registered": undefined;
+  /** A Workout Session finished by the app, not a repeat finish. */
+  "Workout Completed": WorkoutSessionProperties;
   "Workout Discarded": { logged_set_count: number; source: DiscardSource };
+  /** A new Workout Session, not one resumed or a refused start. */
+  "Workout Started": WorkoutSessionProperties;
 }
 
 export type AnalyticsEventName = keyof AnalyticsEvents;
+
+/**
+ * `Workout Started` and `Workout Completed`'s properties from the API's
+ * answer: the Plan and Workout it names, each left out once it's gone.
+ */
+export const workoutSessionProperties = ({
+  plan,
+  workout,
+}: {
+  plan: { id: string } | null;
+  workout: { id: string } | null;
+}): WorkoutSessionProperties => {
+  const properties: WorkoutSessionProperties = {};
+
+  if (plan) {
+    properties.plan_id = plan.id;
+  }
+
+  if (workout) {
+    properties.workout_id = workout.id;
+  }
+
+  return properties;
+};
 
 /** An event's properties as `send`'s arguments: none for an event without. */
 type EventArguments<Name extends AnalyticsEventName> =
