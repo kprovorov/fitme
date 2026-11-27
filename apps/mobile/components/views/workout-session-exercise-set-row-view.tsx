@@ -663,8 +663,10 @@ const WorkoutSessionExerciseSetRowView = ({
     />
   );
 
+  // No gap: the note tucks into the row's own bottom air (Figma's SetNote,
+  // 2 pt under the logged values), and the table's gap keeps the next row off.
   const row = (
-    <View className="gap-xs">
+    <View>
       {form}
       <SetNote
         {...setNote.props}
