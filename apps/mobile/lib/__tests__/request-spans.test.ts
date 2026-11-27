@@ -19,7 +19,7 @@ describe("isTracedRequestUrl", () => {
       "https://clerk.fitmeproject.com/v1/client",
       "https://api.revenuecat.com/v1/subscribers/user_1",
       "https://abcdefgh.supabase.co/rest/v1/plans",
-      "https://api.segment.io/v1/batch",
+      "https://us.i.posthog.com/batch/",
       "https://api.fitmeproject.com.evil.example/v1/plans",
     ]) {
       expect(isTracedRequestUrl(url)).toBe(false);

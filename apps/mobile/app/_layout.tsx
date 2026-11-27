@@ -64,7 +64,7 @@ Sentry.init({
     // (expo/fetch bypasses XHR), set so a change of that default can't
     // silently stop the spans; `shouldCreateSpanForRequest` keeps the spans to
     // the hosts we send trace headers to, so a span and its request always
-    // share a trace and Clerk, RevenueCat, Supabase and Segment get neither.
+    // share a trace and Clerk, RevenueCat, Supabase and PostHog get neither.
     Sentry.reactNativeTracingIntegration({
       shouldCreateSpanForRequest: isTracedRequestUrl,
       traceFetch: true,
@@ -75,7 +75,7 @@ Sentry.init({
   // oxlint-disable-next-line typescript/no-deprecated -- Keep the explicit privacy opt-out alongside the shared data-collection policy.
   sendDefaultPii: false,
   // Trace headers go to our own services only (api, app, arnold, library, mcp,
-  // webhooks), never to Clerk, RevenueCat, Supabase or Segment.
+  // webhooks), never to Clerk, RevenueCat, Supabase or PostHog.
   tracePropagationTargets,
   tracesSampleRate: 0.1,
 });

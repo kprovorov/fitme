@@ -1327,7 +1327,7 @@ describe("arnold screen", () => {
       });
     });
 
-    it("tells Segment how many went, and nothing about them", async () => {
+    it("tells analytics how many went, and nothing about them", async () => {
       mockPickLibraryPhotos.mockResolvedValue({
         failed: 0,
         images: [photo("gym"), photo("plan")],
@@ -1342,7 +1342,7 @@ describe("arnold screen", () => {
       ]);
     });
 
-    it("tells Segment nothing about a message sent without one", async () => {
+    it("tells analytics nothing about a message sent without one", async () => {
       await renderArnold();
       await send("How heavy should I squat?");
 

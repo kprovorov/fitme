@@ -116,9 +116,6 @@
         "@expo-google-fonts/ibm-plex-mono",
         // Loaded by the Expo CLI for the Expo MCP server's local capabilities.
         "expo-mcp",
-        // react-native-get-random-values isn't listed: knip already counts it
-        // as used, a peer dependency of Segment. AGENTS.md keeps it a direct
-        // dependency so its native module is autolinked.
       ],
     },
     "apps/site": {

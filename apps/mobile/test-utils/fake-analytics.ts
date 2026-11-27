@@ -1,6 +1,6 @@
 /**
  * The fake analytics SDK: the stand-in `test-utils/setup.ts` puts in place of
- * the analytics SDK package for every test file, recording what reached it.
+ * `posthog-react-native` for every test file, recording what reached it.
  * `after-each.ts` empties it after each test (`resetSentAnalytics`).
  *
  * Tests read it through `sentAnalytics`, whose names say what the app sent
@@ -8,7 +8,13 @@
  * without a test changing. Only the members the app uses are here, so a new
  * one the app reaches for fails its test rather than silently doing nothing.
  */
-import type { ReactNode } from "react";
+import type { AnalyticsClientOptions } from "~/lib/analytics";
+
+/**
+ * The PostHog key every test runs with: `setup.ts` sets it and `after-each.ts`
+ * puts it back, so the wrapper builds its client over this fake.
+ */
+export const TEST_POSTHOG_KEY = "phc_test";
 
 /** A property's or trait's value, as the app sends them: never nested. */
 type PropertyValue = boolean | number | string | null | undefined;
@@ -25,7 +31,14 @@ export interface SentIdentify {
   userId: string | undefined;
 }
 
+/** A client the app built: the key it was given and its options as passed. */
+export interface BuiltClient {
+  key: string;
+  options: AnalyticsClientOptions | undefined;
+}
+
 interface Recorded {
+  clients: BuiltClient[];
   events: SentEvent[];
   identifies: SentIdentify[];
   resets: number;
@@ -33,6 +46,7 @@ interface Recorded {
 }
 
 const empty = (): Recorded => ({
+  clients: [],
   events: [],
   identifies: [],
   resets: 0,
@@ -43,6 +57,8 @@ let recorded = empty();
 
 /** What reached the analytics SDK in this test, oldest first. */
 export const sentAnalytics = {
+  /** Each client built, with the key and options it was built with. */
+  clients: (): readonly BuiltClient[] => [...recorded.clients],
   /** Each event sent: its name and properties. */
   events: (): readonly SentEvent[] => [...recorded.events],
   /** Each User identified, with what they're known by. */
@@ -59,30 +75,37 @@ export const resetSentAnalytics = (): void => {
 };
 
 const client = {
-  identify: (userId?: string, traits?: Properties): Promise<void> => {
-    recorded.identifies.push({ traits, userId });
-
-    return Promise.resolve();
+  capture: (name: string, properties?: Properties): void => {
+    recorded.events.push({ name, properties });
   },
-  reset: (): Promise<void> => {
+  identify: (userId?: string, traits?: Properties): void => {
+    recorded.identifies.push({ traits, userId });
+  },
+  reset: (): void => {
     recorded.resets += 1;
-
-    return Promise.resolve();
   },
   screen: (name: string): Promise<void> => {
     recorded.screens.push(name);
 
     return Promise.resolve();
   },
-  track: (name: string, properties?: Properties): Promise<void> => {
-    recorded.events.push({ name, properties });
-
-    return Promise.resolve();
-  },
 };
 
-/** The SDK package as `setup.ts` mocks it: one client, recording. */
+/**
+ * The SDK's client class: `new` records the key and options it was given and
+ * answers the one recording client (a constructor returning an object answers
+ * that object).
+ */
+// oxlint-disable-next-line func-style -- `new` needs a function, not an arrow.
+function FakePostHog(key: string, options?: AnalyticsClientOptions) {
+  recorded.clients.push({ key, options });
+
+  return client;
+}
+
+/** `posthog-react-native` as `setup.ts` mocks it: the client class, recording. */
 export const analyticsSdkModule = {
-  AnalyticsProvider: ({ children }: { children: ReactNode }) => children,
-  createClient: () => client,
+  __esModule: true,
+  default: FakePostHog,
+  PostHog: FakePostHog,
 };

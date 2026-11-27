@@ -2,12 +2,17 @@
  * **The one way to send product analytics**: `analytics.send` an event,
  * `identify` the User, `reset` on sign-out and `screen` for a screen opened.
  * Every event is typed from `AnalyticsEvents`, the tracking plan: a name or a
- * property that isn't there fails the typecheck. It forwards to the Segment
- * client (`~/lib/segment`) for now, and sends nothing unless
- * `shouldSendAnalytics` (`~/lib/analytics-decision`) says so.
+ * property that isn't there fails the typecheck. It forwards to PostHog's
+ * React Native SDK, of which it is the only importer, through one standalone
+ * client (no PostHog provider in the tree, so no touch autocapture), and sends
+ * nothing unless `shouldSendAnalytics` (`~/lib/analytics-decision`) says so.
  */
 import type { Gender, MeasurementSystem } from "@fitme/core";
-import type { JsonMap } from "@segment/analytics-react-native";
+import { PostHog } from "posthog-react-native";
+import type {
+  PostHogCustomStorage,
+  PostHogOptions,
+} from "posthog-react-native";
 
 import type { PlanSource } from "~/hooks/queries/plans";
 import type { DiscardSource } from "~/hooks/queries/workout-sessions";
@@ -16,8 +21,8 @@ import {
   shouldSendAnalytics,
 } from "~/lib/analytics-decision";
 import { IS_E2E } from "~/lib/constants";
+import { storage } from "~/lib/mmkv";
 import type { PlanUpdateChangeKind } from "~/lib/plan-changes";
-import { segmentClient } from "~/lib/segment";
 
 /** The Plan Update a finished Workout Session offered (`planUpdateProperties`). */
 interface PlanUpdateProperties {
@@ -80,40 +85,112 @@ export interface AnalyticsTraits {
   name?: string;
 }
 
-const sends = (): boolean =>
-  analyticsDecisionOverride() ??
-  shouldSendAnalytics({
-    hasKey: Boolean(process.env.EXPO_PUBLIC_SEGMENT_WRITE_KEY),
-    isDevelopment: __DEV__,
-    isE2E: IS_E2E,
-  });
-
-const nothing = (): Promise<void> => Promise.resolve();
+/** The options the client is built with; the fake SDK records them. */
+export type AnalyticsClientOptions = PostHogOptions;
 
 /**
- * Properties or traits as the SDK takes them. Its `JsonMap` also declares a
- * number index signature, which no object type alias of ours gets implicitly.
+ * The SDK's state (its ids and the queue of events not sent yet) in the app's
+ * own MMKV instance, rather than in a file of its own.
  */
-const asJson = (
+const mmkvStorage: PostHogCustomStorage = {
+  getItem: (key) => storage.getString(key) ?? null,
+  setItem: (key, value) => {
+    storage.set(key, value);
+  },
+};
+
+const clientOptions = (host: string | undefined): AnalyticsClientOptions => ({
+  // Application Installed, Updated, Opened, Became Active and Backgrounded.
+  captureAppLifecycleEvents: true,
+  customStorage: mmkvStorage,
+  enableSessionReplay: false,
+  // Sentry reports the app's errors.
+  errorTracking: { autocapture: false },
+  // Unset: the SDK's own default host.
+  host: host || undefined,
+  preloadFeatureFlags: false,
+});
+
+const posthogKey = (): string => process.env.EXPO_PUBLIC_POSTHOG_KEY ?? "";
+
+const sends = (): boolean =>
+  posthogKey() !== "" &&
+  (analyticsDecisionOverride() ??
+    shouldSendAnalytics({
+      hasKey: true,
+      isDevelopment: __DEV__,
+      isE2E: IS_E2E,
+    }));
+
+let built: { client: PostHog; key: string } | null = null;
+
+/**
+ * The one client, built on first use and only while the app sends: never
+ * without a key, which the SDK logs as an error (a red toast in a dev build).
+ * Rebuilt only if the key changes, which happens in tests alone.
+ */
+const client = (): PostHog | null => {
+  if (!sends()) {
+    return null;
+  }
+
+  const key = posthogKey();
+
+  if (built?.key !== key) {
+    built = {
+      client: new PostHog(
+        key,
+        clientOptions(process.env.EXPO_PUBLIC_POSTHOG_HOST)
+      ),
+      key,
+    };
+  }
+
+  return built.client;
+};
+
+/** Properties as the SDK's `capture` and `identify` take them. */
+type SdkProperties = Parameters<PostHog["capture"]>[1];
+
+/**
+ * Properties or traits as the SDK takes them: its properties type
+ * declares an index signature, which no object type alias of ours gets
+ * implicitly.
+ */
+const asProperties = (
   values: AnalyticsEvents[AnalyticsEventName] | AnalyticsTraits
-): JsonMap | undefined =>
+): SdkProperties =>
   // SAFETY: every property and trait type above holds only strings, numbers,
-  // booleans or undefined, each a `JsonValue`.
-  values as JsonMap | undefined;
+  // booleans or undefined, each a JSON value.
+  values as SdkProperties;
 
 export const analytics = {
-  identify: (userId: string, traits: AnalyticsTraits): Promise<void> =>
-    sends() ? segmentClient.identify(userId, asJson(traits)) : nothing(),
+  identify: (userId: string, traits: AnalyticsTraits): Promise<void> => {
+    client()?.identify(userId, asProperties(traits));
 
-  reset: (): Promise<void> => (sends() ? segmentClient.reset() : nothing()),
+    return Promise.resolve();
+  },
+
+  reset: (): Promise<void> => {
+    client()?.reset();
+
+    return Promise.resolve();
+  },
 
   /** A screen opened, by its name. */
   screen: (name: string): Promise<void> =>
-    sends() ? segmentClient.screen(name) : nothing(),
+    client()?.screen(name) ?? Promise.resolve(),
 
   send: <Name extends AnalyticsEventName>(
     name: Name,
     ...[properties]: EventArguments<Name>
-  ): Promise<void> =>
-    sends() ? segmentClient.track(name, asJson(properties)) : nothing(),
+  ): Promise<void> => {
+    client()?.capture(name, asProperties(properties));
+
+    return Promise.resolve();
+  },
 };
+
+// Built at startup, not at the first event, so the app's lifecycle events
+// (Application Opened among them) are captured from launch.
+client();

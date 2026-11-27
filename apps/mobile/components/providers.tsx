@@ -1,6 +1,5 @@
 import { ClerkProvider } from "@clerk/expo";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { AnalyticsProvider } from "@segment/analytics-react-native";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ThemeProvider } from "expo-router/react-navigation";
 import * as SecureStore from "expo-secure-store";
@@ -18,7 +17,6 @@ import { useNavigationTheme } from "~/hooks/navigation-theme";
 import { clerkPublishableKey, tokenCache } from "~/lib/clerk";
 import { isDevToolsSyncEnabled } from "~/lib/constants";
 import { devToolsStorage } from "~/lib/mmkv";
-import { segmentClient } from "~/lib/segment";
 
 const queryClient = new QueryClient();
 
@@ -59,20 +57,16 @@ const Providers = ({ children }: { children: React.ReactNode }) => {
     <SafeAreaProvider initialMetrics={initialWindowMetrics}>
       <GestureHandlerRootView>
         <KeyboardProvider statusBarTranslucent>
-          <AnalyticsProvider client={segmentClient}>
-            <ClerkProvider
-              publishableKey={clerkPublishableKey}
-              tokenCache={tokenCache}
-            >
-              <QueryClientProvider client={queryClient}>
-                {isDevToolsSyncEnabled() ? <DevToolsSync /> : null}
-                <AuthSync />
-                <ThemeProvider value={navigationTheme}>
-                  {children}
-                </ThemeProvider>
-              </QueryClientProvider>
-            </ClerkProvider>
-          </AnalyticsProvider>
+          <ClerkProvider
+            publishableKey={clerkPublishableKey}
+            tokenCache={tokenCache}
+          >
+            <QueryClientProvider client={queryClient}>
+              {isDevToolsSyncEnabled() ? <DevToolsSync /> : null}
+              <AuthSync />
+              <ThemeProvider value={navigationTheme}>{children}</ThemeProvider>
+            </QueryClientProvider>
+          </ClerkProvider>
         </KeyboardProvider>
       </GestureHandlerRootView>
     </SafeAreaProvider>

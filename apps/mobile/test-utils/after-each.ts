@@ -2,7 +2,7 @@
  * Runs in every test file after the framework is installed
  * (`jest.setupFilesAfterEnv` in package.json).
  */
-import { afterEach } from "@jest/globals";
+import { afterEach, beforeAll } from "@jest/globals";
 
 import { clearAddedSets } from "~/hooks/added-sets";
 import { resetEquipmentChoices } from "~/hooks/equipment-choice";
@@ -11,7 +11,10 @@ import { resetPlanDrafts } from "~/hooks/plan-draft";
 import { overrideAnalyticsDecision } from "~/lib/analytics-decision";
 import { resetFeatureFlags } from "~/lib/feature-flags";
 import { resetDeviceLanguages } from "~/test-utils/device-locales";
-import { resetSentAnalytics } from "~/test-utils/fake-analytics";
+import {
+  resetSentAnalytics,
+  TEST_POSTHOG_KEY,
+} from "~/test-utils/fake-analytics";
 import { fakeArnold } from "~/test-utils/fake-arnold";
 import { fakeClerk } from "~/test-utils/fake-clerk";
 import { fakePublicApi } from "~/test-utils/fake-public-api";
@@ -105,10 +108,18 @@ afterEach(() => {
   resetToasts();
 });
 
+// The first test of a file starts with nothing recorded either: importing the
+// wrapper builds its client before any test runs.
+beforeAll(() => {
+  resetSentAnalytics();
+});
+
 // Every test starts with nothing sent to analytics, and with the wrapper
-// sending, whatever the last one switched (`overrideAnalyticsDecision`).
+// sending under the test key, whatever the last one switched
+// (`overrideAnalyticsDecision`, `EXPO_PUBLIC_POSTHOG_KEY`).
 afterEach(() => {
   resetSentAnalytics();
+  process.env.EXPO_PUBLIC_POSTHOG_KEY = TEST_POSTHOG_KEY;
   overrideAnalyticsDecision(true);
 });
 

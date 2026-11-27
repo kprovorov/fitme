@@ -28,8 +28,9 @@
  * drive the real row's pan gesture, so a test presses the stand-in's hidden
  * open and full-swipe controls instead.
  *
- * `@segment/analytics-react-native` is the fake analytics SDK
- * (`fake-analytics.ts`), recording what reached it, and the analytics wrapper's
+ * `posthog-react-native` is the fake analytics SDK (`fake-analytics.ts`),
+ * recording what reached it, a PostHog key is set (`EXPO_PUBLIC_POSTHOG_KEY`,
+ * since the wrapper never builds a client without one) and the wrapper's
  * on/off decision is on (`overrideAnalyticsDecision`), since every build is a
  * development build under Jest: a test reads what the app sent through
  * `sentAnalytics`.
@@ -57,6 +58,7 @@ import { setI18n } from "react-i18next";
 import { overrideAnalyticsDecision } from "~/lib/analytics-decision";
 import type * as DeviceLocales from "~/test-utils/device-locales";
 import type * as FakeAnalytics from "~/test-utils/fake-analytics";
+import { TEST_POSTHOG_KEY } from "~/test-utils/fake-analytics";
 import type * as FakeLibrary from "~/test-utils/fake-library";
 import type * as FakePublicApi from "~/test-utils/fake-public-api";
 import type * as HapticsStub from "~/test-utils/haptics-stub";
@@ -65,10 +67,12 @@ import type * as ToastStub from "~/test-utils/toast-stub";
 
 setI18n(createI18n("en"));
 
+process.env.EXPO_PUBLIC_POSTHOG_KEY = TEST_POSTHOG_KEY;
+
 overrideAnalyticsDecision(true);
 
 jest.mock(
-  "@segment/analytics-react-native",
+  "posthog-react-native",
   () =>
     jest.requireActual<typeof FakeAnalytics>("~/test-utils/fake-analytics")
       .analyticsSdkModule
