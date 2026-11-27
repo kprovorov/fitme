@@ -1,4 +1,5 @@
 import { Link } from "expo-router";
+import type { Href } from "expo-router";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Pressable, View } from "react-native";
@@ -32,7 +33,7 @@ const elapsedSince = (startedAt: string) => {
 
 interface OpenSessionBarProps {
   /** Where pressing it goes: the open Workout Session's screen. */
-  href: string;
+  href: Href;
   /** Sets the timer in mono (the redesigned Plan screen); today's screen doesn't. */
   mono?: boolean;
   /** When the open Workout Session started, which the timer counts from. */
