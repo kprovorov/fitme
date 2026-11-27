@@ -337,9 +337,10 @@ const RedesignedPlanScreen = () => {
     router.dismissTo("/plans");
   }, [router]);
 
-  const { activate, activatingPlanId, edit, remove } = usePlanActions({
-    onDeleted: backToPlans,
-  });
+  const { activate, activatingPlanId, edit, isDeleting, remove } =
+    usePlanActions({
+      onDeleted: backToPlans,
+    });
 
   // The Workout rows' timer comes from the open Workout Session's own read,
   // so a pull refreshes it too.
@@ -443,6 +444,9 @@ const RedesignedPlanScreen = () => {
                         },
                         {
                           destructive: true,
+                          // One change at a time: deleting while the Plan
+                          // activates would get past the active Plan's rule.
+                          disabled: activatingPlanId !== null,
                           label: t("plans.delete.action"),
                           onPress: () => remove(plan),
                           type: "action",
@@ -481,8 +485,10 @@ const RedesignedPlanScreen = () => {
             pointerEvents="box-none"
           >
             <Button
+              disabled={isDeleting}
               isLoading={activatingPlanId === activatable.id}
               label={t("plans.activate.action")}
+              loadingLabel={t("plans.activate.action")}
               onPress={activateShown}
               size="lg"
               testID="activate-plan-button"

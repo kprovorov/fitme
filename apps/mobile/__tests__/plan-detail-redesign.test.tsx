@@ -47,6 +47,7 @@ const mockPlanId = { current: "plan-1" };
 
 interface MockMenuItem {
   destructive?: boolean;
+  disabled?: boolean;
   label: string;
   onPress: () => void;
 }
@@ -81,6 +82,8 @@ const MockHeader = ({ options }: { options: MockHeaderOptions }) => (
             accessibilityHint={menuItem.destructive ? "destructive" : undefined}
             accessibilityLabel={menuItem.label}
             accessibilityRole="menuitem"
+            accessibilityState={{ disabled: !!menuItem.disabled }}
+            disabled={!!menuItem.disabled}
             key={menuItem.label}
             onPress={menuItem.onPress}
           >
@@ -764,6 +767,51 @@ describe.each(Object.keys(ACTION_TEXT) as ActionLanguage[])(
       expect(activateButton()).toBeNull();
     });
 
+    it("asks first when the Plans can't be read to tell whether another is active", async () => {
+      seedActivePlan({ is_active: false });
+      fakePublicApi.failNext("GET /v1/plans", { status: 500 });
+      await mount();
+
+      await pressActivate();
+
+      expect(alerts().at(-1)?.slice(0, 2)).toEqual([
+        text.activate,
+        text.activateMessage,
+      ]);
+      expect(requestsTo(ACTIVATE_PLAN)).toHaveLength(0);
+    });
+
+    it("disables Activate Plan while the Plan is being deleted", async () => {
+      seedActivePlan({ is_active: false });
+      await mount();
+
+      const resume = fakePublicApi.pause(DELETE_PLAN);
+      await chooseFromMenu(text.deleteAction);
+
+      const confirm = (alerts().at(-1)?.[2] ?? []).find(
+        (button) => button.text === text.deleteConfirm
+      );
+
+      await act(() => {
+        confirm?.onPress?.();
+      });
+      await act(() =>
+        until(
+          () => activateButton()?.props.accessibilityState?.disabled === true
+        )
+      );
+
+      expect(shownActivateButton().props.accessibilityState).toEqual({
+        busy: false,
+        disabled: true,
+      });
+
+      resume();
+      await settle(queryClient);
+
+      expect(mockDismissTo).toHaveBeenCalledWith("/plans");
+    });
+
     it("activates nothing when the User cancels", async () => {
       seedActivePlan({ is_active: false });
       seedOtherPlan();
@@ -798,6 +846,12 @@ describe.each(Object.keys(ACTION_TEXT) as ActionLanguage[])(
         busy: true,
         disabled: true,
       });
+
+      // Delete waits too: the Plan is about to be the active one.
+      expect(
+        screen.getByRole("menuitem", { name: text.deleteAction }).props
+          .accessibilityState
+      ).toEqual({ disabled: true });
 
       resume();
       await settle(queryClient);
