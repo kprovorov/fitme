@@ -1,13 +1,15 @@
 import { ApiError, rateLimitedFor } from "@fitme/api-client";
 import { useQueryClient } from "@tanstack/react-query";
 import * as Haptics from "expo-haptics";
-import type { TFunction } from "i18next";
-import { useRef, useState } from "react";
+import type { i18n as I18n, TFunction } from "i18next";
+import { useCallback, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { AccessibilityInfo, Alert, Keyboard, View } from "react-native";
 import type { AccessibilityActionEvent } from "react-native";
 
+import { SET_NOTE_SENTRY_LABEL, SetNote } from "~/components/notes/set-note";
 import { SymbolImage } from "~/components/symbol-image";
+import type { DropdownMenuItem } from "~/components/ui/dropdown-menu";
 import { dropGoneAddedSet } from "~/hooks/added-sets";
 import { reportWorkoutSetTracked } from "~/hooks/finish-workout-suggestion";
 import {
@@ -26,6 +28,7 @@ import type {
 } from "~/hooks/queries/workout-sessions";
 import { hasRefusingSessionEnded } from "~/hooks/refused-session-write";
 import { analytics } from "~/lib/analytics";
+import { isNotesEnabled } from "~/lib/feature-flags";
 import { useI18n } from "~/lib/i18n";
 import {
   describeSetTarget,
@@ -50,6 +53,11 @@ interface WorkoutSessionExerciseSetRowViewProps {
    */
   initialValues?: { reps: number; weight: number };
   locked?: boolean;
+  /**
+   * How many lines of a set's note show (the Workout Session's cards, 2); the
+   * whole note without.
+   */
+  noteLines?: number;
   /** The row's number: its position in the Exercise, never the stored `order`. */
   number: number;
   /** Called once logging a set not saved yet has created it. */
@@ -68,6 +76,8 @@ interface WorkoutSessionExerciseSetRowViewProps {
    * place of the target; the target shows without one.
    */
   previousSet?: PreviousSet;
+  /** A finished Workout Session: a set's note shows, but can't be edited. */
+  readOnly?: boolean;
   sessionId: string;
   /** The User's weight unit, for the second cell. */
   weightLabel: string | undefined;
@@ -168,6 +178,29 @@ const confirmLoggedSetRemoval = (
 };
 
 /**
+ * How VoiceOver reads a logged set with a note: its number, what was logged
+ * and the note (`Set 2, logged. 12 reps at 45 kg. Note: …`).
+ */
+const describeLoggedSetWithNote = (
+  number: number,
+  logged: { reps: number | null; weight: number | null },
+  note: string | null,
+  weightLabel: string | undefined,
+  i18n: I18n
+) =>
+  note === null
+    ? undefined
+    : i18n.t("sets.row.loggedWithNote", {
+        note,
+        order: number,
+        result: describeSetTarget(
+          { reps_recommended: logged.reps, weight_recommended: logged.weight },
+          weightLabel,
+          i18n
+        ),
+      });
+
+/**
  * The row's first cell: its number, or ✓ once logged. VoiceOver and TalkBack
  * reach the swipe's Remove as an action on it: a plain View, since iOS reads
  * a text field's or a Text's actions from another element than the one
@@ -175,11 +208,14 @@ const confirmLoggedSetRemoval = (
  */
 const SetNumberCell = ({
   canRemove,
+  loggedLabel,
   number,
   onRemove,
   showsLogged,
 }: {
   canRemove: boolean;
+  /** What VoiceOver reads for a logged set with a note: the note too. */
+  loggedLabel?: string;
   number: number;
   onRemove: () => void;
   showsLogged: boolean;
@@ -202,10 +238,15 @@ const SetNumberCell = ({
     return (
       <View
         accessibilityActions={accessibilityActions}
-        accessibilityLabel={t("sets.row.logged", { order: number })}
+        accessibilityLabel={
+          loggedLabel ?? t("sets.row.logged", { order: number })
+        }
         accessible
         className={cn(SET_NUMBER_COLUMN_CLASS, "items-center")}
         onAccessibilityAction={handleAccessibilityAction}
+        // Its label can hold the note's text, which Sentry's touch
+        // breadcrumbs would otherwise take.
+        sentry-label={loggedLabel ? SET_NOTE_SENTRY_LABEL : undefined}
         testID={`set-number-${number}`}
       >
         <SymbolImage
@@ -237,48 +278,81 @@ const SetNumberCell = ({
   );
 };
 
-const WorkoutSessionExerciseSetRowView = ({
-  exerciseId,
-  initialValues,
-  workoutSessionExerciseSet,
-  locked = false,
+/**
+ * A logged set's note (behind the notes flag), one this row just logged
+ * included, whose id the read may not have yet: what its line under the row
+ * takes, and the ••• menu replacing the pencil (Edit Set, Add or Edit Note)
+ * while it can be written (not in a finished Workout Session).
+ */
+const useLoggedSetNote = ({
+  isDone,
   number,
-  onRemove,
-  onSetCreated,
-  onSetLogged,
-  previousSet,
-  sessionId,
-  weightLabel,
-}: WorkoutSessionExerciseSetRowViewProps) => {
+  readOnly,
+  savedSetId,
+  set,
+}: {
+  isDone: boolean;
+  number: number;
+  readOnly: boolean;
+  savedSetId: string | null;
+  set: WorkoutSessionSet | null;
+}) => {
   const { t } = useTranslation();
-  const i18n = useI18n();
+  const [isOpen, setIsOpen] = useState(false);
+  const setId = isNotesEnabled() && isDone ? (set?.id ?? savedSetId) : null;
+  const note = setId === null ? null : (set?.note ?? null);
+  const canEdit = setId !== null && !readOnly;
+  const open = useCallback(() => setIsOpen(true), []);
+  const close = useCallback(() => setIsOpen(false), []);
+
+  const menu = canEdit
+    ? {
+        accessibilityLabel: t("sets.row.more", { order: number }),
+        items: (startEditing: () => void): DropdownMenuItem[] => [
+          {
+            label: t("sets.menu.editSet"),
+            onPress: startEditing,
+            systemImage: "pencil",
+          },
+          {
+            label:
+              note === null ? t("sets.menu.addNote") : t("sets.menu.editNote"),
+            onPress: open,
+            systemImage: "text.bubble",
+          },
+        ],
+      }
+    : undefined;
+
+  return {
+    /** Whether its note is being written or saved: the row doesn't swipe. */
+    isWriting: canEdit && isOpen,
+    menu,
+    props: {
+      canEdit,
+      isOpen,
+      note,
+      number,
+      onClose: close,
+      onOpen: open,
+      setId,
+    },
+  };
+};
+
+/**
+ * A row's failed save: its message under the row (a 429 its wait), the
+ * Workout Session read again at once when the refusal may mean it ended or
+ * the set is gone, and `rereadSession` for the set's note too.
+ */
+const useSetSaveError = (
+  exerciseId: string,
+  workoutSessionExerciseSet: WorkoutSessionSet | null,
+  sessionId: string
+) => {
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
   const isNewSet = workoutSessionExerciseSet === null;
-  const pendingSetData = useRef<{ weight: number; reps: number } | null>(null);
-  // Reps of the set when it was submitted, before the save: the query may
-  // have refetched by the time the save succeeds.
-  const previousRepsCompleted = useRef<number | null>(null);
-
-  // What the last save on this row answered.
-  const lastSaved = useRef<SavedWorkoutSessionExerciseSet | undefined>(
-    undefined
-  );
-
-  // Whether the set is logged comes from the data, so a change made elsewhere
-  // (a refetch, Arnold) shows up here. `justLogged` bridges the moment
-  // between a successful save and the refetch that carries it.
-  const loggedReps = isNewSet ? null : workoutSessionExerciseSet.reps_completed;
-  const [justLogged, setJustLogged] = useState(false);
-  const [seenReps, setSeenReps] = useState(loggedReps);
-
-  if (loggedReps !== seenReps) {
-    setSeenReps(loggedReps);
-    setJustLogged(false);
-  }
-
-  const [isEditing, setIsEditing] = useState(false);
-  const isDone = loggedReps !== null || justLogged;
-  const isEditable = !isDone || isEditing;
   const [saveError, setSaveError] = useState<string | null>(null);
 
   // The read takes a set that's gone away; until one lands, or when it fails,
@@ -333,6 +407,59 @@ const WorkoutSessionExerciseSetRowView = ({
     }
   };
 
+  return { handleSaveError, rereadSession, saveError, setSaveError };
+};
+
+const WorkoutSessionExerciseSetRowView = ({
+  exerciseId,
+  initialValues,
+  workoutSessionExerciseSet,
+  locked = false,
+  noteLines,
+  number,
+  onRemove,
+  onSetCreated,
+  onSetLogged,
+  previousSet,
+  readOnly = false,
+  sessionId,
+  weightLabel,
+}: WorkoutSessionExerciseSetRowViewProps) => {
+  const { t } = useTranslation();
+  const i18n = useI18n();
+  const queryClient = useQueryClient();
+  const isNewSet = workoutSessionExerciseSet === null;
+  const pendingSetData = useRef<{ weight: number; reps: number } | null>(null);
+  // Reps of the set when it was submitted, before the save: the query may
+  // have refetched by the time the save succeeds.
+  const previousRepsCompleted = useRef<number | null>(null);
+
+  // What the last save on this row answered.
+  const lastSaved = useRef<SavedWorkoutSessionExerciseSet | undefined>(
+    undefined
+  );
+
+  // Whether the set is logged comes from the data, so a change made elsewhere
+  // (a refetch, Arnold) shows up here. `justLogged` bridges the moment
+  // between a successful save and the refetch that carries it.
+  const loggedReps = isNewSet ? null : workoutSessionExerciseSet.reps_completed;
+  const [justLogged, setJustLogged] = useState(false);
+  const [seenReps, setSeenReps] = useState(loggedReps);
+
+  if (loggedReps !== seenReps) {
+    setSeenReps(loggedReps);
+    setJustLogged(false);
+  }
+
+  const [isEditing, setIsEditing] = useState(false);
+  // What the last save on this row created or logged, for its note.
+  const [savedSetId, setSavedSetId] = useState<string | null>(null);
+  const isDone = loggedReps !== null || justLogged;
+  const isEditable = !isDone || isEditing;
+
+  const { handleSaveError, rereadSession, saveError, setSaveError } =
+    useSetSaveError(exerciseId, workoutSessionExerciseSet, sessionId);
+
   const trackSetCompleted = () => {
     if (pendingSetData.current) {
       void analytics.send("Set Tracked", {
@@ -350,6 +477,7 @@ const WorkoutSessionExerciseSetRowView = ({
     previousReps: number | null
   ) => {
     lastSaved.current = set;
+    setSavedSetId(set.id);
     reportWorkoutSetTracked({
       previousRepsCompleted: previousReps,
       sessionId,
@@ -439,9 +567,17 @@ const WorkoutSessionExerciseSetRowView = ({
     exerciseId
   );
 
+  const setNote = useLoggedSetNote({
+    isDone,
+    number,
+    readOnly,
+    savedSetId,
+    set: workoutSessionExerciseSet,
+  });
+
   // A set whose save is running never swipes: saving and removing it would
-  // race.
-  const canRemove = !!onRemove && !isSaving;
+  // race. Nor while its note is written or saved (Figma's SetNote).
+  const canRemove = !!onRemove && !isSaving && !setNote.isWriting;
 
   // `close` closes the row a swipe opened, should the User keep the set.
   const remove = (close?: () => void) => {
@@ -474,6 +610,13 @@ const WorkoutSessionExerciseSetRowView = ({
         <>
           <SetNumberCell
             canRemove={canRemove}
+            loggedLabel={describeLoggedSetWithNote(
+              number,
+              { reps: repsCompleted, weight: weightCompleted },
+              setNote.props.note,
+              weightLabel,
+              i18n
+            )}
             number={number}
             onRemove={remove}
             showsLogged={showsLogged}
@@ -500,6 +643,7 @@ const WorkoutSessionExerciseSetRowView = ({
           </Text>
         </>
       }
+      loggedMenu={setNote.menu}
       onEdit={handleEdit}
       onSubmit={handleSubmit}
       recommendedValues={{
@@ -510,13 +654,27 @@ const WorkoutSessionExerciseSetRowView = ({
     />
   );
 
+  const row = (
+    <View className="gap-xs">
+      {form}
+      <SetNote
+        {...setNote.props}
+        numberOfLines={noteLines}
+        onSetGone={() => {
+          void rereadSession();
+        }}
+        sessionId={sessionId}
+      />
+    </View>
+  );
+
   if (!onRemove) {
-    return form;
+    return row;
   }
 
   return (
     <SetSwipeRow enabled={canRemove} number={number} onRemove={remove}>
-      {form}
+      {row}
     </SetSwipeRow>
   );
 };

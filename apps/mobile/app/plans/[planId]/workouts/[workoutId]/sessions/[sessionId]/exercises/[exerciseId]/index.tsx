@@ -11,7 +11,6 @@ import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { ExerciseNote } from "~/components/notes/exercise-note";
-import type { LeavingAction } from "~/components/notes/exercise-note";
 import { Card } from "~/components/ui/card";
 import ExerciseHistoryView from "~/components/views/exercise-history-view";
 import type {
@@ -25,6 +24,7 @@ import SessionExerciseHeader from "~/components/workout-sessions/session-exercis
 import SessionLoadError from "~/components/workout-sessions/session-load-error";
 import { WorkoutSessionFinishSuggestion } from "~/components/workout-sessions/workout-session-finish-suggestion";
 import { useEndedWorkoutSession } from "~/hooks/ended-workout-session";
+import { isSessionMovingOn } from "~/hooks/ending-workout-session";
 import { useExercise, useExerciseDetailQuery } from "~/hooks/queries/library";
 import type { SavedWorkoutSessionExerciseSet } from "~/hooks/queries/workout-session-exercise-sets";
 import { useWorkoutSessionQuery } from "~/hooks/queries/workout-sessions";
@@ -53,14 +53,6 @@ const HISTORY_NEAR_END_THRESHOLD = 0.5;
 
 /** How often scrolling reports its position, in milliseconds. */
 const SCROLL_EVENT_THROTTLE_MS = 16;
-
-/**
- * Whether leaving goes without asking about an unsaved note: the session's
- * screens moving on by themselves (it ended elsewhere, or a finish or
- * discard elsewhere in the app), which reset the stack. Unsaved text is lost
- * then, as the sets' unsaved input is; the User's own way back still asks.
- */
-const isSessionMovingOn = ({ type }: LeavingAction) => type === "RESET";
 
 const WorkoutSessionExerciseScreen = () => {
   const { t } = useTranslation();
