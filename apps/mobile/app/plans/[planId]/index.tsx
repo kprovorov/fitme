@@ -374,7 +374,7 @@ const RedesignedPlanScreen = () => {
   const activatable =
     plan && !plan.is_active && plan.workouts.length > 0 ? plan : null;
 
-  const activateShown = useCallback(() => {
+  const activatePlan = useCallback(() => {
     if (activatable) {
       activate(activatable);
     }
@@ -446,7 +446,7 @@ const RedesignedPlanScreen = () => {
                           destructive: true,
                           // One change at a time: deleting while the Plan
                           // activates would get past the active Plan's rule.
-                          disabled: activatingPlanId !== null,
+                          disabled: isDeleting || activatingPlanId !== null,
                           label: t("plans.delete.action"),
                           onPress: () => remove(plan),
                           type: "action",
@@ -489,7 +489,7 @@ const RedesignedPlanScreen = () => {
               isLoading={activatingPlanId === activatable.id}
               label={t("plans.activate.action")}
               loadingLabel={t("plans.activate.action")}
-              onPress={activateShown}
+              onPress={activatePlan}
               size="lg"
               testID="activate-plan-button"
             />
