@@ -25,7 +25,7 @@ import { isStillWriteStarter } from "~/lib/write-answers";
  * (the answer can be lost after the write commits), so it never says either
  * way.
  */
-export const planWriteFailureMessage = (t: TFunction, error: unknown) => {
+const planWriteFailureMessage = (t: TFunction, error: unknown) => {
   const apiError = error instanceof ApiError ? error : null;
 
   if (apiError?.code === "not_found") {
