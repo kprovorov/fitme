@@ -1,6 +1,9 @@
 /**
  * **The one way to send product analytics**: `analytics.send` an event,
  * `identify` the User, `reset` on sign-out and `screen` for a screen opened.
+ * `components/auth-sync.tsx` is the one caller of `identify` and `reset`: it
+ * identifies whoever Clerk has signed in and resets whenever it sees nobody
+ * signed in, however the session ended.
  * Every event is typed from `AnalyticsEvents`, the tracking plan: a name or a
  * property that isn't there fails the typecheck. It forwards to PostHog's
  * React Native SDK, of which it is the only importer, through one standalone
@@ -79,9 +82,14 @@ type EventArguments<Name extends AnalyticsEventName> =
     ? []
     : [properties: AnalyticsEvents[Name]];
 
-/** What the User is known by, beside their id. */
+/**
+ * What the User is known by, beside their id: their email and name from
+ * Clerk and, once they have a Profile, its measurement system (the Profile's
+ * own value, never a default).
+ */
 export interface AnalyticsTraits {
   email?: string;
+  measurement_system?: MeasurementSystem;
   name?: string;
 }
 
@@ -164,15 +172,58 @@ const asProperties = (
   // booleans or undefined, each a JSON value.
   values as SdkProperties;
 
+/**
+ * The User this device's analytics identity belongs to, kept beside the
+ * SDK's own state so it outlives a restart: a session that ended while the
+ * app was closed is still reset at the next launch, and a launch with nobody
+ * signed in and nobody identified resets nothing (the anonymous id, and with
+ * it the install-to-registration funnel, stays).
+ */
+const IDENTIFIED_USER_KEY = "analytics.identifiedUser";
+
+/** Events waiting for the next reset, to go out anonymous. */
+let afterReset: AnalyticsEventName[] = [];
+
+const capture = (
+  name: AnalyticsEventName,
+  properties?: AnalyticsEvents[AnalyticsEventName]
+): void => {
+  client()?.capture(name, properties && asProperties(properties));
+};
+
+const isIdentified = (): boolean =>
+  storage.getString(IDENTIFIED_USER_KEY) !== undefined;
+
 export const analytics = {
   identify: (userId: string, traits: AnalyticsTraits): Promise<void> => {
-    client()?.identify(userId, asProperties(traits));
+    const sdk = client();
+
+    if (sdk) {
+      sdk.identify(userId, asProperties(traits));
+      storage.set(IDENTIFIED_USER_KEY, userId);
+    }
 
     return Promise.resolve();
   },
 
+  /**
+   * Back to an anonymous identity, once per sign-out: nothing happens when
+   * nobody is identified on this device, so it's safe to call on every
+   * render that finds nobody signed in. Then sends what `sendAfterReset`
+   * held.
+   */
   reset: (): Promise<void> => {
-    client()?.reset();
+    if (isIdentified()) {
+      client()?.reset();
+      storage.remove(IDENTIFIED_USER_KEY);
+    }
+
+    const held = afterReset;
+    afterReset = [];
+
+    for (const name of held) {
+      capture(name);
+    }
 
     return Promise.resolve();
   },
@@ -185,10 +236,39 @@ export const analytics = {
     name: Name,
     ...[properties]: EventArguments<Name>
   ): Promise<void> => {
-    client()?.capture(name, asProperties(properties));
+    capture(name, properties);
 
     return Promise.resolve();
   },
+
+  /**
+   * Sends an event anonymously, once the identity has been reset (at once
+   * when nobody is identified): an event that must not carry the User's id,
+   * such as an account deletion, which under that id could reach PostHog
+   * after the webhook deleted the person and bring them back.
+   */
+  sendAfterReset: (name: SignedOutEventName): Promise<void> => {
+    if (isIdentified()) {
+      afterReset.push(name);
+    } else {
+      capture(name);
+    }
+
+    return Promise.resolve();
+  },
+};
+
+/** Events without properties, which `sendAfterReset` takes. */
+type SignedOutEventName = {
+  [Name in AnalyticsEventName]: AnalyticsEvents[Name] extends undefined
+    ? Name
+    : never;
+}[AnalyticsEventName];
+
+/** Forgets the identity and the held events; for `test-utils/after-each.ts`. */
+export const resetAnalyticsIdentity = (): void => {
+  storage.remove(IDENTIFIED_USER_KEY);
+  afterReset = [];
 };
 
 // Built at startup, not at the first event, so the app's lifecycle events

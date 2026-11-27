@@ -52,10 +52,35 @@ describe("analytics", () => {
     ]);
   });
 
-  it("resets the identity", async () => {
+  it("resets the identity once per sign-out", async () => {
+    await analytics.identify("user_1", { email: "a@example.com" });
+    await analytics.reset();
     await analytics.reset();
 
     expect(sentAnalytics.resets()).toBe(1);
+  });
+
+  it("resets nothing while nobody is identified", async () => {
+    await analytics.reset();
+
+    expect(sentAnalytics.resets()).toBe(0);
+  });
+
+  it("sends an event held for after the reset anonymous", async () => {
+    await analytics.identify("user_1", { email: "a@example.com" });
+    await analytics.sendAfterReset("User Deleted Account");
+
+    expect(sentAnalytics.events()).toEqual([]);
+
+    await analytics.reset();
+
+    expect(sentAnalytics.anonymousEvents()).toEqual(["User Deleted Account"]);
+  });
+
+  it("sends an event held for after the reset at once when nobody is identified", async () => {
+    await analytics.sendAfterReset("User Deleted Account");
+
+    expect(sentAnalytics.anonymousEvents()).toEqual(["User Deleted Account"]);
   });
 
   it("records a screen by its name", async () => {

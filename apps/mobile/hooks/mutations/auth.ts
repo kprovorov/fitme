@@ -9,10 +9,12 @@ import { getClerk } from "~/lib/clerk";
 
 export const useLogoutMutation = createMutation({
   mutationFn: async (): Promise<void> => {
-    await getClerk().signOut();
-
+    // Sent first, under the User's id: once Clerk has signed them out,
+    // AuthSync resets the identity (it resets on every sign-out, this one
+    // included), and the event would go out anonymous.
     void analytics.send("User Logged Out");
-    void analytics.reset();
+
+    await getClerk().signOut();
   },
 });
 
@@ -64,11 +66,10 @@ export const useDeleteUserMutation = createMutation<
     // report the deleted account as still there
     await clerk.signOut().catch(Sentry.captureException);
 
-    // Reset first, so the event goes out anonymous: sent under the deleted
-    // User's id, it could reach PostHog after the webhook has deleted their
-    // person, and bring it back.
-    void analytics.reset();
-    void analytics.send("User Deleted Account");
+    // Anonymous, once AuthSync has reset the identity for this sign-out:
+    // sent under the deleted User's id, it could reach PostHog after the
+    // webhook has deleted their person, and bring it back.
+    void analytics.sendAfterReset("User Deleted Account");
 
     return "deleted";
   },
