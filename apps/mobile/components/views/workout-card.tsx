@@ -1,5 +1,4 @@
-import { Link, useRouter } from "expo-router";
-import { useEffect, useState } from "react";
+import { useRouter } from "expo-router";
 import { useTranslation } from "react-i18next";
 import { Pressable, ScrollView, View } from "react-native";
 
@@ -12,6 +11,7 @@ import type { PlanWorkout } from "~/hooks/queries/plans";
 import { useOwnOpenWorkoutSession } from "~/hooks/queries/workout-sessions";
 
 import ExerciseImage from "../exercises/exercise-image";
+import OpenSessionBar from "../plans/open-session-bar";
 import { COUNT_SYMBOL } from "../plans/plan-symbols";
 import { SymbolImage } from "../symbol-image";
 import { Card } from "../ui/card";
@@ -34,33 +34,6 @@ const WorkoutCard = ({ planId, workout }: WorkoutCardProps) => {
   const { t } = useTranslation();
   const activeSession = useOwnOpenWorkoutSession(workout.id);
 
-  const [elapsedTime, setElapsedTime] = useState<string>("");
-
-  useEffect(() => {
-    if (!activeSession?.started_at) {
-      return;
-    }
-
-    const startTime = new Date(activeSession.started_at).getTime();
-
-    const timer = setInterval(() => {
-      const now = Date.now();
-      const diff = now - startTime;
-
-      const hours = Math.floor(diff / (1000 * 60 * 60));
-      const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
-      const seconds = Math.floor((diff % (1000 * 60)) / 1000);
-
-      setElapsedTime(
-        `${hours.toString().padStart(2, "0")}:${minutes
-          .toString()
-          .padStart(2, "0")}:${seconds.toString().padStart(2, "0")}`
-      );
-    }, 1000);
-
-    return () => clearInterval(timer);
-  }, [activeSession?.started_at]);
-
   const shownBySlug = useExercises(
     workout.exercises.map(({ exercise_slug }) => exercise_slug)
   );
@@ -81,32 +54,10 @@ const WorkoutCard = ({ planId, workout }: WorkoutCardProps) => {
     <Card className="flex-1">
       <VStack className="flex-1 items-stretch">
         {activeSession && (
-          <Link
-            asChild
+          <OpenSessionBar
             href={`/plans/${planId}/workouts/${workout.id}/sessions/${activeSession.id}`}
-          >
-            <Pressable className="border-continuous bg-primary flex-row items-center justify-between rounded-xl px-3 py-2 active:opacity-80">
-              <View className="flex flex-1 flex-row items-center justify-start gap-1">
-                <SymbolImage
-                  className="text-primary-foreground text-subhead-emphasized"
-                  name="timer"
-                />
-                <Text className="text-primary-foreground" variant="small">
-                  {elapsedTime}
-                </Text>
-              </View>
-
-              <View className="flex flex-row items-center justify-center gap-1">
-                <Text className="text-primary-foreground" variant="small">
-                  {t("workoutCard.toWorkout")}
-                </Text>
-                <SymbolImage
-                  className="text-primary-foreground text-subhead-emphasized"
-                  name="arrow.right"
-                />
-              </View>
-            </Pressable>
-          </Link>
+            startedAt={activeSession.started_at}
+          />
         )}
         <Pressable
           accessibilityHint={

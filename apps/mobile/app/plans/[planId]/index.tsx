@@ -2,7 +2,7 @@ import { ApiError, rateLimitedFor } from "@fitme/api-client";
 import { useQueryClient } from "@tanstack/react-query";
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 import type { TFunction } from "i18next";
-import { useCallback } from "react";
+import { useCallback, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
   ActivityIndicator,
@@ -12,6 +12,10 @@ import {
   View,
 } from "react-native";
 
+import { ExerciseUnavailable } from "~/components/exercises/exercise-unavailable";
+import PlanDetailView, {
+  PlanDetailSkeleton,
+} from "~/components/plans/plan-detail-view";
 import { Button } from "~/components/ui/button";
 import { Text } from "~/components/ui/text";
 import { VStack } from "~/components/ui/vstack";
@@ -24,6 +28,7 @@ import {
 } from "~/hooks/queries/plans";
 import { WEEKLY_GOALS_QUERY_KEY } from "~/hooks/queries/weekly-goals";
 import { OPEN_WORKOUT_SESSION_QUERY_KEY } from "~/hooks/queries/workout-sessions";
+import { isPlansRedesignEnabled } from "~/lib/feature-flags";
 
 /**
  * What to tell the User after a failed Plan write. A failure other than a 404
@@ -42,7 +47,8 @@ const failureMessage = (t: TFunction, error: ApiError | null) => {
     : t("plans.errors.rateLimited", { seconds: waitSeconds });
 };
 
-const PlanScreen = () => {
+/** Today's Plan screen, while the Plans redesign flag is off. */
+const LegacyPlanScreen = () => {
   const { planId } = useLocalSearchParams<{ planId: string }>();
   const queryClient = useQueryClient();
   const router = useRouter();
@@ -299,5 +305,133 @@ const PlanScreen = () => {
     </>
   );
 };
+
+/**
+ * The Plan screen, redesigned (Figma "Plan Detail Redesign"): a transparent
+ * header with back and "…" and no title, the Plan's hero and its Workouts,
+ * and a designed state for loading, a failed read, a Plan that's gone and one
+ * with no Workouts. Its actions (the "…" menu, Activate Plan, Delete) come
+ * with FIT-863.
+ */
+const RedesignedPlanScreen = () => {
+  const { planId } = useLocalSearchParams<{ planId: string }>();
+  const queryClient = useQueryClient();
+  const router = useRouter();
+  const { t } = useTranslation();
+  const [isPulling, setIsPulling] = useState(false);
+
+  // `null` once the Plan is gone (deleted, or never the User's). A failed
+  // refresh keeps the Plan read last.
+  const {
+    data: plan,
+    error: readError,
+    isError,
+    refetch,
+  } = usePlanQuery({ variables: { id: planId } });
+
+  // The Workout rows' timer comes from the open Workout Session's own read,
+  // so a pull refreshes it too.
+  const onRefresh = useCallback(async () => {
+    setIsPulling(true);
+    // Neither rejects: a failed read is the query's error, and it keeps what
+    // was read.
+    await Promise.all([
+      refetch(),
+      queryClient.refetchQueries({
+        queryKey: OPEN_WORKOUT_SESSION_QUERY_KEY,
+      }),
+    ]);
+    setIsPulling(false);
+  }, [refetch, queryClient]);
+
+  const retry = useCallback(() => {
+    void refetch();
+  }, [refetch]);
+
+  const openEditor = useCallback(() => {
+    router.push({ params: { planId }, pathname: "/plans/[planId]/edit" });
+  }, [planId, router]);
+
+  const backToPlans = useCallback(() => {
+    router.dismissTo("/plans");
+  }, [router]);
+
+  const renderContent = () => {
+    if (plan) {
+      return <PlanDetailView onAddWorkout={openEditor} plan={plan} />;
+    }
+
+    if (plan === null) {
+      return (
+        <ExerciseUnavailable
+          action={{ label: t("plans.notFound.back"), onPress: backToPlans }}
+          message={t("plans.errors.notFound")}
+          symbol="magnifyingglass"
+          title={t("plans.notFound.title")}
+        />
+      );
+    }
+
+    if (isError) {
+      const waitSeconds = rateLimitedFor(readError);
+
+      return (
+        <ExerciseUnavailable
+          action={{ label: t("common.tryAgain"), onPress: retry }}
+          message={
+            waitSeconds === null
+              ? t("exercise.checkConnection")
+              : t("common.rateLimited", { seconds: waitSeconds })
+          }
+          symbol="exclamationmark.triangle"
+          title={t("plans.planError.title")}
+        />
+      );
+    }
+
+    return <PlanDetailSkeleton />;
+  };
+
+  return (
+    <>
+      <Stack.Screen
+        options={{
+          headerBackButtonDisplayMode: "minimal",
+          headerShown: true,
+          headerTransparent: true,
+          title: "",
+          // Its menu comes with the Plan's actions (FIT-863); like them, it
+          // needs the Plan, so the loading and failed states have none.
+          unstable_headerRightItems: () =>
+            plan
+              ? [
+                  {
+                    icon: { name: "ellipsis", type: "sfSymbol" },
+                    label: t("plans.moreOptions"),
+                    onPress: () => undefined,
+                    type: "button",
+                  },
+                ]
+              : [],
+        }}
+      />
+      <ScrollView
+        className="flex-1"
+        contentContainerClassName="px-sm grow pb-lg"
+        contentInsetAdjustmentBehavior="automatic"
+        refreshControl={
+          <RefreshControl onRefresh={onRefresh} refreshing={isPulling} />
+        }
+        testID="plan-screen"
+      >
+        {renderContent()}
+      </ScrollView>
+    </>
+  );
+};
+
+/** A Plan's screen: the redesign behind its flag, today's otherwise. */
+const PlanScreen = () =>
+  isPlansRedesignEnabled() ? <RedesignedPlanScreen /> : <LegacyPlanScreen />;
 
 export default PlanScreen;

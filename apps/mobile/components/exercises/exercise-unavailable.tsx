@@ -11,6 +11,8 @@ const SYMBOL_SIZE = 48;
 interface ExerciseUnavailableProps {
   /** Its one action (Try Again, Back to Library); none for a state with nowhere to go. */
   action?: { label: string; onPress: () => void };
+  /** Whether the action spans the width (Add Workout) rather than fitting its label. */
+  fillAction?: boolean;
   message: string;
   symbol: SFSymbol;
   title: string;
@@ -20,10 +22,11 @@ interface ExerciseUnavailableProps {
  * What the Exercise detail screen or its guide shows with no Exercise to
  * show (not found, failed to load, no steps): a muted SF Symbol, a title and
  * a muted line, centred, with its one action under them (Figma's
- * `ContentUnavailableView`, FIT-737).
+ * `ContentUnavailableView`, FIT-737). The Plan screen's states use it too.
  */
 export const ExerciseUnavailable = ({
   action,
+  fillAction = false,
   message,
   symbol,
   title,
@@ -48,7 +51,8 @@ export const ExerciseUnavailable = ({
       </View>
       {action ? (
         <Button
-          fill={false}
+          className={fillAction ? "self-stretch" : undefined}
+          fill={fillAction}
           label={action.label}
           onPress={handleAction}
           size="lg"

@@ -121,7 +121,7 @@ React Native / Expo app using **file-based routing** via `expo-router`:
   - `onboarding/` — Post-registration onboarding flow (fullscreen modal)
   - `planner/` — AI plan generation flow (modal)
   - `plans/create.tsx` — the Create Plan choice and the create sheet (a modal): Build it yourself or Ask Arnold, then a new Plan's name and frequency
-  - `plans/[planId]/` — Plan detail and workout views, and `edit/`, the Plan editor (a modal stack holding the Plan editor, the Workout editor pushed over it and the builder's own Library picker); `edit` under the `planId` `new` (`NEW_PLAN_ID`) is the Plan builder creating a Plan
+  - `plans/[planId]/` — Plan detail and workout views (with the Plans redesign flag on, the Plan screen is `components/plans/plan-detail-view.tsx`: the hero, one card of `plan-workout-row.tsx` Workout rows with the open session's `open-session-bar.tsx`, a skeleton, and the not-found, failed-read and no-Workouts states; `__tests__/plan-detail-redesign.test.tsx`), and `edit/`, the Plan editor (a modal stack holding the Plan editor, the Workout editor pushed over it and the builder's own Library picker); `edit` under the `planId` `new` (`NEW_PLAN_ID`) is the Plan builder creating a Plan
   - `exercises/[exerciseSlug]/` — Exercise detail view and its guide (a form sheet), keyed by Exercise slug and read from the Library API
 - `components/` — Reusable UI components
   - `ui/` — Primitive UI components (Button, Input, Dialog, etc.) built on `@rn-primitives`
@@ -595,6 +595,7 @@ A screen test in another language renders the screen inside `test-utils/in-app-l
 - `__tests__/my-plans-redesign.test.tsx`
 - `__tests__/not-found-screen.test.tsx`
 - `__tests__/password-reset-screens-ukrainian.test.tsx`
+- `__tests__/plan-detail-redesign.test.tsx`
 - `__tests__/plan-list-active-plan.test.tsx`
 - `__tests__/plan-editor.test.tsx`
 - `__tests__/plans-in-ukrainian.test.tsx`

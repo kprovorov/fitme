@@ -878,6 +878,7 @@
     "moreOptions": "Més opcions",
     "activating": "S'està activant el pla",
     "loading": "Carregant els plans",
+    "loadingPlan": "Carregant el pla",
     "more": "+{{count, number}}",
     "moreWorkoutsSpoken_one": "i {{count, number}} entrenament més",
     "moreWorkoutsSpoken_many": "i {{count, number}} entrenaments més",

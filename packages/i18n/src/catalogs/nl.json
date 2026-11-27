@@ -851,6 +851,7 @@
     "moreOptions": "Meer opties",
     "activating": "Schema wordt geactiveerd",
     "loading": "Schema's laden",
+    "loadingPlan": "Schema laden",
     "more": "+{{count, number}}",
     "moreWorkoutsSpoken_one": "en nog {{count, number}} training",
     "moreWorkoutsSpoken_other": "en nog {{count, number}} trainingen",
