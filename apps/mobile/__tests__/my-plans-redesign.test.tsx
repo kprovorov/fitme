@@ -6,7 +6,12 @@
  * Plan is the hero card and the others are rows under "Other Plans"; a single
  * Plan is its card alone; with none active an info card heads the rows. Each
  * state (the skeleton, the empty state with the Create Plan tiles, the load
- * error and the 429 wait) and a failed refresh keeping the Plans shown.
+ * error and the 429 wait) and a failed refresh keeping the Plans shown. A
+ * long press on a card or row (the context menu's stand-in), or VoiceOver's
+ * actions, offers Edit Plan and Delete Plan: Edit opens the Plan editor, and
+ * Delete confirms, refuses the active Plan or alerts a failure, the fake's
+ * rows checked afterwards. `Alert.alert` is answered by pressing one of the
+ * buttons it was given.
  */
 import { beforeEach, describe, expect, it, jest } from "@jest/globals";
 import { QueryClientProvider } from "@tanstack/react-query";
@@ -19,10 +24,13 @@ import {
   within,
 } from "@testing-library/react-native";
 import type { ReactElement } from "react";
+import { Alert } from "react-native";
+import type { AlertButton } from "react-native";
 
 import PlansScreen from "~/app/plans/index";
 import { setPlansRedesignEnabled } from "~/lib/feature-flags";
 import { CREATE_PLAN_NAMING_STEP } from "~/lib/plan-draft";
+import { DESTRUCTIVE_HINT } from "~/test-utils/context-menu-stub";
 import { setDeviceLanguages } from "~/test-utils/device-locales";
 import {
   backend,
@@ -80,7 +88,12 @@ jest.mock("~/components/ui/button", () =>
   jest.requireActual("~/test-utils/button-stub")
 );
 
+jest.mock("~/components/ui/context-menu", () =>
+  jest.requireActual("~/test-utils/context-menu-stub")
+);
+
 const PLANS = "GET /v1/plans" as const;
+const DELETE_PLAN = "DELETE /v1/plans/{id}" as const;
 
 /** Each language's text the screen shows, from the catalogs. */
 const TEXT = {
@@ -107,6 +120,19 @@ const TEXT = {
     askArnold: "Ask Arnold",
     workouts: (count: number) =>
       count === 1 ? "1 workout" : `${count} workouts`,
+    edit: "Edit Plan",
+    deleteAction: "Delete Plan",
+    deleteTitle: "Delete Plan?",
+    deleteMessage: "This can't be undone. Your past workouts stay in History.",
+    deleteConfirm: "Delete",
+    cancel: "Cancel",
+    ok: "OK",
+    deleteFailed: "Couldn't Delete Plan",
+    activeTitle: "Can't Delete Active Plan",
+    activeMessage:
+      "Create or activate another plan first, then delete this one.",
+    network: "Please check your connection and try again.",
+    notFound: "This plan no longer exists.",
   },
   "uk-UA": {
     active: "Активний",
@@ -134,6 +160,20 @@ const TEXT = {
     askArnold: "Запитати Arnold",
     workouts: (count: number) =>
       count >= 2 && count <= 4 ? `${count} тренування` : `${count} тренувань`,
+    edit: "Редагувати план",
+    deleteAction: "Видалити план",
+    deleteTitle: "Видалити план?",
+    deleteMessage:
+      "Цю дію не можна скасувати. Ваші минулі тренування залишаться в Історії.",
+    deleteConfirm: "Видалити",
+    cancel: "Скасувати",
+    ok: "OK",
+    deleteFailed: "Не вдалося видалити план",
+    activeTitle: "Активний план не можна видалити",
+    activeMessage:
+      "Спершу створіть або активуйте інший план, а потім видаліть цей.",
+    network: "Перевірте з’єднання й спробуйте ще раз.",
+    notFound: "Цього плану більше немає.",
   },
 } as const;
 
@@ -210,7 +250,46 @@ const pullToRefresh = async () => {
   await settle(client);
 };
 
+const alerts = () =>
+  jest.mocked(Alert.alert).mock.calls as [string, string, AlertButton[]?][];
+
+/** Presses `button` in the last alert shown, then lets the app settle. */
+const answerAlert = async (button: string) => {
+  const pressed = (alerts().at(-1)?.[2] ?? []).find(
+    (candidate) => candidate.text === button
+  );
+
+  if (!pressed?.onPress) {
+    throw new Error(`No "${button}" button in the last alert`);
+  }
+
+  await act(() => {
+    pressed.onPress?.();
+  });
+  await settle(client);
+};
+
+/** Long-presses a card's or row's menu (by its testID) open. */
+const openMenu = async (menu: string) => {
+  await fireEvent(screen.getByTestId(menu), "longPress");
+};
+
+/** Long-presses `menu` open and picks `item` in it. */
+const chooseFromMenu = async (menu: string, item: string) => {
+  await openMenu(menu);
+  await fireEvent.press(screen.getByRole("menuitem", { name: item }));
+  await settle(client);
+};
+
+/** The Plans the fake still has live, by id. */
+const livePlanIds = () =>
+  backend.plans.filter((plan) => !plan.deleted_at).map((plan) => plan.id);
+
+const deleteRequests = () =>
+  fakePublicApi.requests.filter(({ route }) => route === DELETE_PLAN);
+
 beforeEach(() => {
+  jest.spyOn(Alert, "alert").mockReturnValue(undefined);
   setPlansRedesignEnabled(true);
   resetStubRouter();
   mockPresentPaywall.mockClear();
@@ -459,5 +538,224 @@ describe.each(LANGUAGES)("My Plans (%s)", (language) => {
     await pullToRefresh();
 
     expect(rowNames()).toEqual(["plan-row-plan-new", "plan-row-plan-old"]);
+  });
+
+  it("offers Edit Plan and Delete Plan on a row's long press, Delete in red", async () => {
+    seedOthers();
+    seedHypertrophy();
+
+    await mount(language);
+
+    await openMenu("plan-menu-plan-old");
+
+    const items = screen.getAllByRole("menuitem");
+    expect(items.map((item) => item.props.accessibilityLabel)).toEqual([
+      text.edit,
+      text.deleteAction,
+    ]);
+    expect(items[1].props.accessibilityHint).toBe(DESTRUCTIVE_HINT);
+    expect(items[0].props.accessibilityHint).toBeUndefined();
+  });
+
+  it("offers Edit Plan and Delete Plan on the hero card's long press", async () => {
+    seedHypertrophy();
+
+    await mount(language);
+
+    await openMenu("active-plan-menu");
+
+    expect(
+      screen
+        .getAllByRole("menuitem")
+        .map((item) => item.props.accessibilityLabel)
+    ).toEqual([text.edit, text.deleteAction]);
+  });
+
+  it("offers the same items as VoiceOver actions on each card and row", async () => {
+    seedOthers();
+    seedHypertrophy();
+
+    await mount(language);
+
+    const spoken = [
+      { label: text.edit, name: "edit" },
+      { label: text.deleteAction, name: "delete" },
+    ];
+
+    expect(
+      screen.getByTestId("active-plan-card").props.accessibilityActions
+    ).toEqual(spoken);
+    expect(
+      screen.getByTestId("plan-row-plan-old").props.accessibilityActions
+    ).toEqual(spoken);
+
+    await fireEvent(
+      screen.getByTestId("plan-row-plan-new"),
+      "accessibilityAction",
+      {
+        nativeEvent: { actionName: "edit" },
+      }
+    );
+
+    expect(pushedRoutes()).toEqual([
+      expect.objectContaining({
+        params: { planId: "plan-new" },
+        pathname: "/plans/[planId]/edit",
+      }),
+    ]);
+  });
+
+  it("opens the Plan editor from Edit Plan, on a row or the hero card", async () => {
+    seedOthers();
+    seedHypertrophy();
+
+    await mount(language);
+
+    await chooseFromMenu("plan-menu-plan-old", text.edit);
+    await chooseFromMenu("active-plan-menu", text.edit);
+
+    expect(pushedRoutes()).toEqual([
+      expect.objectContaining({
+        params: { planId: "plan-old" },
+        pathname: "/plans/[planId]/edit",
+      }),
+      expect.objectContaining({
+        params: { planId: "plan-hypertrophy" },
+        pathname: "/plans/[planId]/edit",
+      }),
+    ]);
+  });
+
+  it("asks before deleting an inactive Plan, then its row disappears", async () => {
+    seedOthers();
+    seedHypertrophy();
+
+    await mount(language);
+
+    await chooseFromMenu("plan-menu-plan-old", text.deleteAction);
+
+    const [title, message, buttons] = alerts().at(-1) ?? [];
+    expect(title).toBe(text.deleteTitle);
+    expect(message).toBe(text.deleteMessage);
+    expect(
+      buttons?.map(({ style, text: label }) => ({ label, style }))
+    ).toEqual([
+      { label: text.cancel, style: "cancel" },
+      { label: text.deleteConfirm, style: "destructive" },
+    ]);
+    // Nothing is deleted until the User says so.
+    expect(deleteRequests()).toHaveLength(0);
+
+    await answerAlert(text.deleteConfirm);
+
+    expect(deleteRequests().map(({ path }) => path)).toEqual([
+      "/v1/plans/plan-old",
+    ]);
+    expect(livePlanIds()).toEqual(["plan-new", "plan-hypertrophy"]);
+    expect(rowNames()).toEqual(["plan-row-plan-new"]);
+    expect(screen.getByTestId("active-plan-card")).toBeTruthy();
+    expect(pushedRoutes()).toEqual([]);
+  });
+
+  it("deletes nothing when the User cancels", async () => {
+    seedOthers();
+    seedHypertrophy();
+
+    await mount(language);
+
+    await chooseFromMenu("plan-menu-plan-old", text.deleteAction);
+    expect(alerts().at(-1)?.[2]?.[0]?.onPress).toBeUndefined();
+
+    expect(deleteRequests()).toHaveLength(0);
+    expect(livePlanIds()).toHaveLength(3);
+    expect(rowNames()).toHaveLength(2);
+  });
+
+  it("deletes the Plan through VoiceOver's Delete action too", async () => {
+    seedOthers();
+    seedHypertrophy();
+
+    await mount(language);
+
+    await fireEvent(
+      screen.getByTestId("plan-row-plan-new"),
+      "accessibilityAction",
+      {
+        nativeEvent: { actionName: "delete" },
+      }
+    );
+    await answerAlert(text.deleteConfirm);
+
+    expect(livePlanIds()).toEqual(["plan-old", "plan-hypertrophy"]);
+    expect(rowNames()).toEqual(["plan-row-plan-old"]);
+  });
+
+  it("won't delete the active Plan, saying what to do instead", async () => {
+    seedHypertrophy();
+
+    await mount(language);
+
+    await chooseFromMenu("active-plan-menu", text.deleteAction);
+
+    const [title, message, buttons] = alerts().at(-1) ?? [];
+    expect(title).toBe(text.activeTitle);
+    expect(message).toBe(text.activeMessage);
+    expect(buttons?.map((button) => button.text)).toEqual([text.ok]);
+    expect(deleteRequests()).toHaveLength(0);
+    expect(livePlanIds()).toEqual(["plan-hypertrophy"]);
+    expect(screen.getByTestId("active-plan-card")).toBeTruthy();
+  });
+
+  it("says a delete failed and keeps the row", async () => {
+    seedOthers();
+    seedHypertrophy();
+
+    await mount(language);
+
+    fakePublicApi.failNext(DELETE_PLAN, { status: 500 });
+    await chooseFromMenu("plan-menu-plan-old", text.deleteAction);
+    await answerAlert(text.deleteConfirm);
+
+    expect(alerts().at(-1)?.slice(0, 2)).toEqual([
+      text.deleteFailed,
+      text.network,
+    ]);
+    expect(livePlanIds()).toContain("plan-old");
+    expect(rowNames()).toEqual(["plan-row-plan-new", "plan-row-plan-old"]);
+  });
+
+  it("says how long to wait when a delete is rate limited", async () => {
+    seedOthers();
+    seedHypertrophy();
+
+    await mount(language);
+
+    fakePublicApi.failNext(DELETE_PLAN, { code: "rate_limited", status: 429 });
+    await chooseFromMenu("plan-menu-plan-old", text.deleteAction);
+    await answerAlert(text.deleteConfirm);
+
+    expect(alerts().at(-1)?.slice(0, 2)).toEqual([
+      text.deleteFailed,
+      text.rateLimited,
+    ]);
+    expect(livePlanIds()).toContain("plan-old");
+  });
+
+  it("says a Plan the API can't find is gone, and drops it once read again", async () => {
+    seedOthers();
+    seedHypertrophy();
+
+    await mount(language);
+
+    // Deleted elsewhere since the list was read.
+    backend.plans[0].user_id = "user_other";
+    await chooseFromMenu("plan-menu-plan-old", text.deleteAction);
+    await answerAlert(text.deleteConfirm);
+
+    expect(alerts().at(-1)?.slice(0, 2)).toEqual([
+      text.deleteFailed,
+      text.notFound,
+    ]);
+    expect(rowNames()).toEqual(["plan-row-plan-new"]);
   });
 });
