@@ -9,4 +9,6 @@ export const REQUIRED_ENV: readonly RequiredEnv[] = [
   "FITME_DATABASE_URL",
   "ARNOLD_URL",
   "ARNOLD_RESET_SECRET",
+  "POSTHOG_PERSONAL_API_KEY",
+  "POSTHOG_PROJECT_ID",
 ];

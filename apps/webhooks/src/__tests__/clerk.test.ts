@@ -12,6 +12,7 @@ import {
 } from "../arnold.js";
 import { createApp } from "../create-app.js";
 import type { AppDeps } from "../create-app.js";
+import { posthogConfig, posthogPersonDeleter } from "../posthog.js";
 
 // A Standard Webhooks secret, as Clerk issues them: "whsec_" + base64
 const SIGNING_SECRET = "whsec_MfKQ9r8GKYqrTwjUPD8ILPZIo2LaLaSw";
@@ -57,6 +58,11 @@ const setup = (overrides: Partial<AppDeps["clerk"]> = {}) => {
     clerk: {
       deleteArnoldConversations: (userId) => {
         steps.push(`conversations:${userId}`);
+
+        return Promise.resolve();
+      },
+      deletePosthogPerson: (userId) => {
+        steps.push(`posthog:${userId}`);
 
         return Promise.resolve();
       },
@@ -117,6 +123,7 @@ const setupFromEnv = (env: Record<string, string | undefined>) => {
           fetch,
         }),
       }),
+      deletePosthogPerson: () => Promise.resolve(),
       deleteUserData: () => Promise.resolve(),
       signingSecret: SIGNING_SECRET,
     },
@@ -160,7 +167,7 @@ describe("pOST /clerk", () => {
     expect(deleted).toStrictEqual([USER_ID]);
   });
 
-  it("wipes the User's Arnold Conversations after their data", async () => {
+  it("wipes the User's Conversations, then their PostHog person, after their data", async () => {
     const { app, steps } = setup();
 
     const response = await app.request(signedRequest(userDeleted()));
@@ -169,10 +176,76 @@ describe("pOST /clerk", () => {
     expect(steps).toStrictEqual([
       `data:${USER_ID}`,
       `conversations:${USER_ID}`,
+      `posthog:${USER_ID}`,
     ]);
   });
 
-  it("leaves the Conversations alone when the data deletion fails", async () => {
+  it("leaves the PostHog person alone when the Conversation wipe fails", async () => {
+    const { app, steps } = setup({
+      deleteArnoldConversations: () =>
+        Promise.reject(new Error("Arnold unreachable")),
+    });
+
+    const response = await app.request(signedRequest(userDeleted()));
+
+    expect(response.status).toBe(500);
+    expect(steps).toStrictEqual([`data:${USER_ID}`]);
+  });
+
+  it("reports a failed PostHog deletion and answers 500 so Clerk retries", async () => {
+    const failure = new Error("PostHog person deletion failed: HTTP 503");
+
+    const { app, reported, steps } = setup({
+      deletePosthogPerson: () => Promise.reject(failure),
+    });
+
+    const response = await app.request(signedRequest(userDeleted()));
+
+    expect(response.status).toBe(500);
+    await expect(response.json()).resolves.toStrictEqual({
+      error: { code: "cleanup_failed", message: "User data cleanup failed" },
+    });
+    expect(reported).toStrictEqual([failure]);
+    expect(steps).toStrictEqual([
+      `data:${USER_ID}`,
+      `conversations:${USER_ID}`,
+    ]);
+  });
+
+  it("runs every step again on the delivery after a failed PostHog deletion", async () => {
+    let failNext = true;
+
+    const { app, steps } = setup({
+      deletePosthogPerson: (userId) => {
+        if (failNext) {
+          failNext = false;
+
+          return Promise.reject(new Error("PostHog unreachable"));
+        }
+
+        steps.push(`posthog:${userId}`);
+
+        return Promise.resolve();
+      },
+    });
+
+    const failed = await app.request(signedRequest(userDeleted()));
+
+    const retried = await app.request(
+      signedRequest(userDeleted(), { messageId: "msg_1" })
+    );
+
+    expect([failed.status, retried.status]).toStrictEqual([500, 200]);
+    expect(steps).toStrictEqual([
+      `data:${USER_ID}`,
+      `conversations:${USER_ID}`,
+      `data:${USER_ID}`,
+      `conversations:${USER_ID}`,
+      `posthog:${USER_ID}`,
+    ]);
+  });
+
+  it("leaves the Conversations and PostHog alone when the data deletion fails", async () => {
     const { app, steps } = setup({
       deleteUserData: () => Promise.reject(new Error("database unreachable")),
     });
@@ -284,6 +357,7 @@ describe("pOST /clerk", () => {
     const app = createApp({
       clerk: {
         deleteArnoldConversations: () => Promise.resolve(),
+        deletePosthogPerson: () => Promise.resolve(),
         deleteUserData: () => Promise.reject(failure),
         signingSecret: SIGNING_SECRET,
       },
@@ -324,16 +398,19 @@ describe("pOST /clerk", () => {
     expect(log.mock.calls.flat()).toStrictEqual([sent]);
   });
 
-  it("acknowledges other events without deleting anything", async () => {
-    const { app, steps } = setup();
+  it.each(["user.created", "user.updated", "session.created"])(
+    "acknowledges %s without deleting anything or calling PostHog",
+    async (type) => {
+      const { app, steps } = setup();
 
-    const response = await app.request(
-      signedRequest({ ...userDeleted(), type: "user.updated" })
-    );
+      const response = await app.request(
+        signedRequest({ ...userDeleted(), type })
+      );
 
-    expect(response.status).toBe(200);
-    expect(steps).toStrictEqual([]);
-  });
+      expect(response.status).toBe(200);
+      expect(steps).toStrictEqual([]);
+    }
+  );
 
   it("accepts a replayed user.deleted event again", async () => {
     const { app, deleted, steps } = setup();
@@ -341,12 +418,16 @@ describe("pOST /clerk", () => {
     await app.request(signedRequest(userDeleted()));
     const response = await app.request(signedRequest(userDeleted()));
 
-    // Both steps are idempotent, so there is no svix-id dedupe
+    // Every step is idempotent, so there is no svix-id dedupe
     expect(response.status).toBe(200);
     expect(deleted).toStrictEqual([USER_ID, USER_ID]);
     expect(
       steps.filter((step) => step.startsWith("conversations:"))
     ).toStrictEqual([`conversations:${USER_ID}`, `conversations:${USER_ID}`]);
+    expect(steps.filter((step) => step.startsWith("posthog:"))).toStrictEqual([
+      `posthog:${USER_ID}`,
+      `posthog:${USER_ID}`,
+    ]);
   });
 });
 
@@ -397,6 +478,74 @@ describe("pOST /clerk resetting Arnold sessions from the environment", () => {
     ],
   ])("reports and answers 500 with %s", async (_, env) => {
     const { app, reported, requests } = setupFromEnv(env);
+
+    const response = await app.request(signedRequest(userDeleted()));
+
+    expect(response.status).toBe(500);
+    expect(reported).toHaveLength(1);
+    expect(requests).toStrictEqual([]);
+  });
+});
+
+describe("pOST /clerk deleting the PostHog person from the environment", () => {
+  afterEach(restoreMocks);
+
+  const API_KEY = "phx_personalKey0123456789abcdefghijklmnop";
+  const PROJECT_ID = "12345";
+
+  /** The real PostHog step over `env`, with PostHog faked; the rest succeed. */
+  const setupPosthogFromEnv = (env: Record<string, string | undefined>) => {
+    const requests: Request[] = [];
+    const reported: unknown[] = [];
+
+    const fetch: typeof globalThis.fetch = (input, init) => {
+      requests.push(new Request(input, init));
+
+      return Promise.resolve(
+        Response.json({ persons_queued_for_deletion: 1 }, { status: 202 })
+      );
+    };
+
+    const app = createApp({
+      clerk: {
+        deleteArnoldConversations: () => Promise.resolve(),
+        deletePosthogPerson: posthogPersonDeleter({
+          ...posthogConfig(env),
+          fetch,
+        }),
+        deleteUserData: () => Promise.resolve(),
+        signingSecret: SIGNING_SECRET,
+      },
+      reportError: (error) => {
+        reported.push(error);
+
+        return Promise.resolve();
+      },
+    });
+
+    return { app, reported, requests };
+  };
+
+  it("deletes the person with POSTHOG_PERSONAL_API_KEY and POSTHOG_PROJECT_ID", async () => {
+    const { app, requests } = setupPosthogFromEnv({
+      POSTHOG_PERSONAL_API_KEY: API_KEY,
+      POSTHOG_PROJECT_ID: PROJECT_ID,
+    });
+
+    const response = await app.request(signedRequest(userDeleted()));
+
+    expect(response.status).toBe(200);
+    expect(requests.map((request) => request.url)).toStrictEqual([
+      `https://us.posthog.com/api/projects/${PROJECT_ID}/persons/bulk_delete/`,
+    ]);
+    expect(requests[0]?.headers.get("authorization")).toBe(`Bearer ${API_KEY}`);
+  });
+
+  it.each([
+    ["the key unset", { POSTHOG_PROJECT_ID: PROJECT_ID }],
+    ["the project id unset", { POSTHOG_PERSONAL_API_KEY: API_KEY }],
+  ])("reports and answers 500 with %s", async (_, env) => {
+    const { app, reported, requests } = setupPosthogFromEnv(env);
 
     const response = await app.request(signedRequest(userDeleted()));
 

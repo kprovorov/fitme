@@ -9,6 +9,7 @@ const app = createApp({
   clerk: {
     deleteArnoldConversations: () => Promise.reject(new Error("not called")),
     deleteUserData: () => Promise.reject(new Error("not called")),
+    deletePosthogPerson: () => Promise.reject(new Error("not called")),
     signingSecret: "whsec_MfKQ9r8GKYqrTwjUPD8ILPZIo2LaLaSw",
   },
   reportError: (error) => {

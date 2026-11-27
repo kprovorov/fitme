@@ -5,6 +5,8 @@ import { Hono } from "hono";
 export interface ClerkWebhookDeps {
   /** Resets every Arnold session recorded for the User. */
   deleteArnoldConversations: (userId: string) => Promise<void>;
+  /** Deletes the User's person and their events in PostHog. */
+  deletePosthogPerson: (userId: string) => Promise<void>;
   deleteUserData: (userId: string) => Promise<void>;
   reportError: (error: Error) => Promise<void>;
   /** Unset fails every delivery with a reported 500, so Clerk keeps retrying. */
@@ -18,11 +20,14 @@ const errorBody = (code: string, message: string) => ({
 /**
  * Clerk's webhooks (Svix-signed). Only `user.deleted` acts: it wipes the
  * User's data, then (once that has committed and the id is retired) their
- * Arnold Conversations. Every other event is acknowledged so Clerk doesn't
- * retry it. There is no svix-id dedupe: both steps are idempotent.
+ * Arnold Conversations, then their person and events in PostHog, each step
+ * only once the one before has succeeded. Every other event is acknowledged
+ * so Clerk doesn't retry it. There is no svix-id dedupe: every step is
+ * idempotent.
  */
 export const clerkRoutes = ({
   deleteArnoldConversations,
+  deletePosthogPerson,
   deleteUserData,
   reportError,
   signingSecret,
@@ -51,6 +56,7 @@ export const clerkRoutes = ({
       try {
         await deleteUserData(event.data.id);
         await deleteArnoldConversations(event.data.id);
+        await deletePosthogPerson(event.data.id);
       } catch (error) {
         await reportError(
           error instanceof Error

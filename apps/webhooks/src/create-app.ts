@@ -12,6 +12,7 @@ import {
   arnoldSessionResetter,
   deleteArnoldConversations,
 } from "./arnold.js";
+import { posthogConfig, posthogPersonDeleter } from "./posthog.js";
 import { clerkRoutes } from "./routes/clerk.js";
 import type { ClerkWebhookDeps } from "./routes/clerk.js";
 
@@ -22,7 +23,7 @@ export interface AppDeps {
 }
 
 /**
- * The real dependencies: the database through withService, Arnold,
+ * The real dependencies: the database through withService, Arnold, PostHog,
  * observability through the shared package, env. The Arnold session ids are read in withService:
  * by then the User's id is retired, so asUser would see none.
  */
@@ -33,6 +34,7 @@ const defaultDeps = (): AppDeps => ({
         withService((tx) => listArnoldSessionIds(tx, userId)),
       resetSession: arnoldSessionResetter(arnoldResetConfig(process.env)),
     }),
+    deletePosthogPerson: posthogPersonDeleter(posthogConfig(process.env)),
     deleteUserData: (userId) => withService((tx) => deleteUserData(tx, userId)),
     signingSecret: process.env.CLERK_WEBHOOK_SIGNING_SECRET,
   },
