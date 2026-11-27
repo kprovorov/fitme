@@ -31,6 +31,13 @@ import { nextUnloggedSet, useShownSets } from "~/hooks/shown-sets";
 import { CLIP_SCROLL_EDGE_EFFECTS } from "~/lib/constants";
 import { isNotesEnabled } from "~/lib/feature-flags";
 
+/**
+ * How far above the keyboard the focused field stays: room for what sits
+ * under the note's field while it's edited (its count, then Cancel and Save),
+ * which is more than a set row needs.
+ */
+const KEYBOARD_BOTTOM_OFFSET = 88;
+
 /** Gap between the end of the content and the floating rest timer. */
 const REST_TIMER_GAP = 16;
 
@@ -265,7 +272,7 @@ const WorkoutSessionExerciseScreen = () => {
         }}
       />
       <KeyboardAwareScrollView
-        bottomOffset={62}
+        bottomOffset={KEYBOARD_BOTTOM_OFFSET}
         contentContainerClassName="gap-sm px-sm pt-xs"
         contentContainerStyle={{
           paddingBottom:
