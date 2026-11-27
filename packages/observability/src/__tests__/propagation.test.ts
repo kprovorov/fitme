@@ -32,7 +32,10 @@ describe("trace header propagation", () => {
     "https://api.clerk.com/v1/users",
     "https://api.revenuecat.com/v1/subscribers/user_1",
     "https://abcdefgh.supabase.co/rest/v1/plans",
-    "https://api.segment.io/v1/batch",
+    // PostHog: the US ingestion host the mobile app posts to, and the US app
+    // host the webhooks app deletes persons through
+    "https://us.i.posthog.com/batch/",
+    "https://us.posthog.com/api/projects/1/persons/bulk_delete/",
     "https://api.fitmeproject.com.evil.example/",
     "https://arnold.fitmeproject.com.evil.example/",
     "https://arnoldfitmeproject.com/",
