@@ -31,8 +31,8 @@ import ExercisePickerScreen from "~/app/workout-sessions/[workoutSessionId]/exer
 import { getMuscleChoice } from "~/hooks/muscle-choice";
 import { i18n } from "~/lib/i18n";
 import { storage } from "~/lib/mmkv";
-import { segmentClient } from "~/lib/segment";
 import { setDeviceLanguages } from "~/test-utils/device-locales";
+import { sentAnalytics } from "~/test-utils/fake-analytics";
 import {
   FAKE_SUPABASE_URL,
   fakeExercise,
@@ -97,10 +97,6 @@ jest.mock("~/hooks/queries/profiles", () => ({
 }));
 
 jest.mock("@sentry/react-native", () => ({ captureException: jest.fn() }));
-
-jest.mock("~/lib/segment", () => ({
-  segmentClient: { track: jest.fn() },
-}));
 
 jest.mock("react-native-safe-area-context", () => ({
   useSafeAreaInsets: () => ({ bottom: 0, left: 0, right: 0, top: 0 }),
@@ -290,13 +286,6 @@ const failures: [string, Failure, string][] = [
 // Each test mounts a whole screen and steps through many requests, so a test
 // takes seconds of CPU; Jest's 5 s default fails them on a busy 2-core runner.
 jest.setTimeout(30_000);
-
-const track = jest.mocked<
-  (
-    event: string,
-    properties?: Record<string, string | number | boolean | null>
-  ) => void
->(segmentClient.track);
 
 beforeEach(() => {
   jest.clearAllMocks();
@@ -633,9 +622,12 @@ describe("adding an Exercise to a Workout Session", () => {
     expect(pickerOpen()).toBe(false);
     expect(screen.queryByRole("button", { name: "Add Lunge" })).toBeNull();
     expect(Alert.alert).not.toHaveBeenCalled();
-    expect(track).toHaveBeenCalledWith("Exercise Added", {
-      exercise_slug: "lunge",
-      session_id: "s1",
+    expect(sentAnalytics.events()).toContainEqual({
+      name: "Exercise Added",
+      properties: {
+        exercise_slug: "lunge",
+        session_id: "s1",
+      },
     });
   });
 
@@ -656,9 +648,8 @@ describe("adding an Exercise to a Workout Session", () => {
       // The picker stays open, so the User can try again.
       expect(pickerOpen()).toBe(true);
       expect(screen.getByRole("button", { name: "Add Lunge" })).toBeTruthy();
-      expect(track).not.toHaveBeenCalledWith(
-        "Exercise Added",
-        expect.anything()
+      expect(sentAnalytics.events()).not.toContainEqual(
+        expect.objectContaining({ name: "Exercise Added" })
       );
     }
   );
@@ -677,7 +668,7 @@ describe("adding an Exercise to a Workout Session", () => {
     expect(fakePublicApi.count(ADD_EXERCISE)).toBe(1);
     expect(backend.exercises).toHaveLength(2);
     expect(pickerOpen()).toBe(false);
-    expect(track).toHaveBeenCalledTimes(1);
+    expect(sentAnalytics.events()).toHaveLength(1);
   });
 
   it("shows an Exercise saved before the answer was lost", async () => {
@@ -724,9 +715,12 @@ describe("removing an Exercise from a Workout Session", () => {
     expect(screen.queryByText("Squat")).toBeNull();
     expect(screen.getByText("Lunge")).toBeTruthy();
     expect(Alert.alert).not.toHaveBeenCalled();
-    expect(track).toHaveBeenCalledWith("Exercise Deleted", {
-      exercise_id: "s1-e1",
-      session_id: "s1",
+    expect(sentAnalytics.events()).toContainEqual({
+      name: "Exercise Deleted",
+      properties: {
+        exercise_id: "s1-e1",
+        session_id: "s1",
+      },
     });
   });
 
@@ -744,9 +738,8 @@ describe("removing an Exercise from a Workout Session", () => {
       );
       expect(backend.exercises).toHaveLength(2);
       expect(screen.getByText("Squat")).toBeTruthy();
-      expect(track).not.toHaveBeenCalledWith(
-        "Exercise Deleted",
-        expect.anything()
+      expect(sentAnalytics.events()).not.toContainEqual(
+        expect.objectContaining({ name: "Exercise Deleted" })
       );
     }
   );
@@ -796,9 +789,12 @@ describe("replacing an Exercise in a Workout Session", () => {
     expect(pickerOpen()).toBe(false);
     expect(screen.queryByText("Squat")).toBeNull();
     expect(Alert.alert).not.toHaveBeenCalled();
-    expect(track).toHaveBeenCalledWith("Exercise Replaced", {
-      exercise_slug: "lunge",
-      session_id: "s1",
+    expect(sentAnalytics.events()).toContainEqual({
+      name: "Exercise Replaced",
+      properties: {
+        exercise_slug: "lunge",
+        session_id: "s1",
+      },
     });
   });
 
@@ -822,7 +818,7 @@ describe("replacing an Exercise in a Workout Session", () => {
       expect.objectContaining({ exercise_slug: "lunge", id: "s1-e1" }),
     ]);
     expect(pickerOpen()).toBe(false);
-    expect(track).toHaveBeenCalledTimes(1);
+    expect(sentAnalytics.events()).toHaveLength(1);
   });
 
   it.each(failures)(
@@ -849,9 +845,8 @@ describe("replacing an Exercise in a Workout Session", () => {
       expect(
         screen.getByRole("button", { name: "Replace with Lunge" })
       ).toBeTruthy();
-      expect(track).not.toHaveBeenCalledWith(
-        "Exercise Replaced",
-        expect.anything()
+      expect(sentAnalytics.events()).not.toContainEqual(
+        expect.objectContaining({ name: "Exercise Replaced" })
       );
     }
   );

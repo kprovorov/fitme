@@ -10,7 +10,7 @@ import { act, fireEvent, render, screen } from "@testing-library/react-native";
 import { router } from "expo-router";
 
 import "~/test-utils/auth-ui";
-import { segmentClient } from "~/lib/segment";
+import { sentAnalytics } from "~/test-utils/fake-analytics";
 
 import VerifyCodeView from "../verify-code-view";
 
@@ -101,10 +101,6 @@ jest.mock("@clerk/expo/token-cache", () => ({ tokenCache: {} }));
 
 jest.mock("expo-router", () => ({
   router: { replace: jest.fn() },
-}));
-
-jest.mock("~/lib/segment", () => ({
-  segmentClient: { track: jest.fn() },
 }));
 
 jest.mock("~/components/ui/button", () =>
@@ -275,9 +271,12 @@ describe("device Trust verification", () => {
       expect(mockSignIn.finalize).toHaveBeenCalledTimes(1);
 
       if (source === "reset-password") {
-        expect(segmentClient.track).not.toHaveBeenCalled();
+        expect(sentAnalytics.events()).toEqual([]);
       } else {
-        expect(segmentClient.track).toHaveBeenCalledWith("User Logged In");
+        expect(sentAnalytics.events()).toContainEqual({
+          name: "User Logged In",
+          properties: undefined,
+        });
       }
     }
   );

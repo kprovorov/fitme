@@ -25,10 +25,6 @@ jest.mock("~/lib/clerk", () => ({
   >("~/test-utils/signed-in-user").getCurrentUserId,
 }));
 
-jest.mock("~/lib/segment", () => ({
-  segmentClient: { track: jest.fn() },
-}));
-
 jest.mock("~/components/symbol-image", () => ({ SymbolImage: () => null }));
 
 jest.mock("~/components/ui/button", () =>

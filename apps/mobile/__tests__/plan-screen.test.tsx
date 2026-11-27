@@ -23,7 +23,7 @@ import PlanScreen from "~/app/plans/[planId]/index";
 import PlansScreen from "~/app/plans/index";
 import PlansListView from "~/components/views/plan-list-view";
 import { usePlanQuery, usePlanSummariesQuery } from "~/hooks/queries/plans";
-import { segmentClient } from "~/lib/segment";
+import { sentAnalytics } from "~/test-utils/fake-analytics";
 import { backend, fakePublicApi } from "~/test-utils/fake-public-api";
 import {
   createTestQueryClient,
@@ -93,10 +93,6 @@ jest.mock("~/lib/clerk", () => ({
   >("~/test-utils/signed-in-user").getCurrentUserId,
 }));
 
-jest.mock("~/lib/segment", () => ({
-  segmentClient: { track: jest.fn() },
-}));
-
 jest.mock("~/hooks/revenueCat", () => ({
   useIsProQuery: () => ({ data: false }),
 }));
@@ -116,14 +112,6 @@ const SEEDED_PLAN_NAME = /^(Hypertrophy|Strength)$/u;
 const LIST_LOAD_ERROR = /Couldn't load your plans/u;
 const PLAN_LOAD_ERROR = /Couldn't load this plan/u;
 const WORKOUT_CARD = /Day, /u;
-
-// The stand-in `jest.mock("~/lib/segment")` installs.
-const track = jest.mocked<
-  (
-    event: string,
-    properties?: Record<string, string | number | boolean | null>
-  ) => void
->(segmentClient.track);
 
 let queryClient = createTestQueryClient();
 
@@ -417,8 +405,11 @@ describe("activating a Plan", () => {
     expect(beside().queryByText("Hypertrophy")).toBeNull();
     expect(backend.plans.map((plan) => plan.is_active)).toEqual([true, false]);
     expect(mockDismissTo).toHaveBeenCalledWith("/");
-    expect(track).toHaveBeenCalledWith("Plan Activated", {
-      plan_id: "plan-1",
+    expect(sentAnalytics.events()).toContainEqual({
+      name: "Plan Activated",
+      properties: {
+        plan_id: "plan-1",
+      },
     });
   });
 
@@ -540,7 +531,7 @@ describe("activating a Plan", () => {
     ]);
     expect(beside().getByText("Hypertrophy")).toBeTruthy();
     expect(mockDismissTo).not.toHaveBeenCalled();
-    expect(track).not.toHaveBeenCalled();
+    expect(sentAnalytics.events()).toEqual([]);
   });
 
   it("tells the User how long to wait when rate limited", async () => {
@@ -553,7 +544,7 @@ describe("activating a Plan", () => {
       "Couldn't Activate Plan",
       "Too many requests: please try again in 12 s.",
     ]);
-    expect(track).not.toHaveBeenCalled();
+    expect(sentAnalytics.events()).toEqual([]);
   });
 });
 
@@ -568,8 +559,11 @@ describe("deleting a Plan", () => {
     expect(beside().queryByText("Strength")).toBeNull();
     expect(beside().getByText("Hypertrophy")).toBeTruthy();
     expect(mockDismissTo).toHaveBeenCalledWith("/");
-    expect(track).toHaveBeenCalledWith("Plan Deleted", {
-      plan_id: "plan-1",
+    expect(sentAnalytics.events()).toContainEqual({
+      name: "Plan Deleted",
+      properties: {
+        plan_id: "plan-1",
+      },
     });
   });
 
@@ -594,7 +588,7 @@ describe("deleting a Plan", () => {
     ]);
     expect(beside().getByText("Strength")).toBeTruthy();
     expect(mockDismissTo).not.toHaveBeenCalled();
-    expect(track).not.toHaveBeenCalled();
+    expect(sentAnalytics.events()).toEqual([]);
   });
 
   it("shows the error for a missing Plan", async () => {
@@ -608,7 +602,7 @@ describe("deleting a Plan", () => {
       "This plan no longer exists.",
     ]);
     expect(mockDismissTo).not.toHaveBeenCalled();
-    expect(track).not.toHaveBeenCalled();
+    expect(sentAnalytics.events()).toEqual([]);
   });
 
   it("tells the User how long to wait when rate limited", async () => {
@@ -633,7 +627,7 @@ describe("deleting a Plan", () => {
 
     expect(alerts().at(-1)?.[0]).toBe("Couldn't Archive Plan");
     expect(beside().getByText("Strength")).toBeTruthy();
-    expect(track).not.toHaveBeenCalled();
+    expect(sentAnalytics.events()).toEqual([]);
   });
 
   it("won't archive the active Plan", async () => {

@@ -22,8 +22,8 @@ import type { AlertButton } from "react-native";
 
 import PlanEditorScreen from "~/app/plans/[planId]/edit/index";
 import PlanScreen from "~/app/plans/[planId]/index";
-import { segmentClient } from "~/lib/segment";
 import { setDeviceLanguages } from "~/test-utils/device-locales";
+import { sentAnalytics } from "~/test-utils/fake-analytics";
 import { serveExercises } from "~/test-utils/fake-exercises";
 import {
   backend,
@@ -93,10 +93,6 @@ jest.mock("~/components/ui/dropdown-menu", () =>
 jest.mock("~/components/ui/select", () =>
   jest.requireActual("~/test-utils/select-stub")
 );
-
-jest.mock("~/lib/segment", () => ({
-  segmentClient: { track: jest.fn() },
-}));
 
 const SAVE = "PUT /v1/plans/{id}";
 
@@ -413,14 +409,9 @@ describe("saving", () => {
     await type("plan-name", "Push pull legs");
     await save();
 
-    expect(
-      jest.mocked<
-        (
-          event: string,
-          properties?: Record<string, string | number | boolean | null>
-        ) => void
-      >(segmentClient.track).mock.calls
-    ).toEqual([["Plan Edited", { plan_id: "plan-1" }]]);
+    expect(sentAnalytics.events()).toEqual([
+      { name: "Plan Edited", properties: { plan_id: "plan-1" } },
+    ]);
     expect(pushedRoutes()).toEqual([]);
   });
 
@@ -561,7 +552,7 @@ describe("a failed save", () => {
     ).toBeTruthy();
     expect(screen.getByTestId("plan-name").props.value).toBe("Push pull legs");
     expect(savedPlan().name).toBe("Full body");
-    expect(segmentClient.track).not.toHaveBeenCalled();
+    expect(sentAnalytics.events()).toEqual([]);
 
     await save();
 
@@ -574,7 +565,7 @@ describe("a failed save", () => {
     await save();
 
     expect(screen.getByText("This plan no longer exists.")).toBeTruthy();
-    expect(segmentClient.track).not.toHaveBeenCalled();
+    expect(sentAnalytics.events()).toEqual([]);
   });
 
   it("reads the Screens behind it again, since the save may have landed", async () => {
@@ -602,7 +593,7 @@ describe("a failed save", () => {
         "Couldn't save your plan. Too many requests: please try again in 42 s."
       )
     ).toBeTruthy();
-    expect(segmentClient.track).not.toHaveBeenCalled();
+    expect(sentAnalytics.events()).toEqual([]);
   });
 });
 

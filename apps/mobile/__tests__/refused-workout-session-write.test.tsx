@@ -76,8 +76,6 @@ jest.mock("~/lib/clerk", () => ({
 
 jest.mock("@sentry/react-native", () => ({ captureException: jest.fn() }));
 
-jest.mock("~/lib/segment", () => ({ segmentClient: { track: jest.fn() } }));
-
 jest.mock("react-native-keyboard-controller", () => {
   const { ScrollView } =
     jest.requireActual<typeof import("react-native")>("react-native");

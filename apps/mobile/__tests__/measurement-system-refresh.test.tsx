@@ -85,10 +85,6 @@ jest.mock("~/lib/clerk", () => ({
 
 jest.mock("@sentry/react-native", () => ({ captureException: jest.fn() }));
 
-jest.mock("~/lib/segment", () => ({
-  segmentClient: { track: jest.fn() },
-}));
-
 jest.mock("react-native-purchases", () => ({
   __esModule: true,
   default: { invalidateCustomerInfoCache: jest.fn() },

@@ -66,10 +66,6 @@ jest.mock("~/lib/clerk", () => ({
 
 jest.mock("expo-router", () => ({ router: { replace: jest.fn() } }));
 
-jest.mock("~/lib/segment", () => ({
-  segmentClient: { reset: jest.fn(), track: jest.fn() },
-}));
-
 /** Where one User's Conversations keep their copies. */
 const attachmentsOf = (userId: string) =>
   `file:///memory/document/arnold-attachments/${encodeURIComponent(userId)}`;

@@ -28,8 +28,8 @@ import { Alert } from "react-native";
 import WorkoutSessionExerciseScreen from "~/app/plans/[planId]/workouts/[workoutId]/sessions/[sessionId]/exercises/[exerciseId]/index";
 import WorkoutSessionScreen from "~/components/workout-sessions/workout-session-screen";
 import { storage } from "~/lib/mmkv";
-import { segmentClient } from "~/lib/segment";
 import { setDeviceLanguages } from "~/test-utils/device-locales";
+import { sentAnalytics } from "~/test-utils/fake-analytics";
 import { fakeExercise, serveExercises } from "~/test-utils/fake-exercises";
 import {
   backend,
@@ -69,10 +69,6 @@ jest.mock("~/lib/clerk", () => ({
 }));
 
 jest.mock("@sentry/react-native", () => ({ captureException: jest.fn() }));
-
-jest.mock("~/lib/segment", () => ({
-  segmentClient: { track: jest.fn() },
-}));
 
 jest.mock("react-native-reanimated", () => {
   const { View } =
@@ -148,13 +144,6 @@ const FINISH_ROUTE = "POST /v1/workout-sessions/{id}/finish";
 
 const REMOVE_FAILED = "Couldn't remove set";
 
-const track = jest.mocked<
-  (
-    event: string,
-    properties?: Record<string, string | number | boolean | null>
-  ) => void
->(segmentClient.track);
-
 // Each test mounts a whole screen and steps through many requests.
 jest.setTimeout(30_000);
 
@@ -220,7 +209,6 @@ beforeEach(() => {
   storage.clearAll();
   resetStubRouter();
   jest.spyOn(Alert, "alert").mockReturnValue(undefined);
-  track.mockClear();
   backend.seedProfile(FAKE_USER_ID);
   serveExercises([
     fakeExercise("squat", { muscle_groups: ["quadriceps"], name: "Squat" }),
@@ -257,10 +245,13 @@ describe.each([
     expect(fakePublicApi.count(REMOVE_ROUTE)).toBe(1);
     expect(screen.queryByLabelText("Set 3 reps")).toBeNull();
     expect(Alert.alert).not.toHaveBeenCalled();
-    expect(track).toHaveBeenCalledWith("Set Removed", {
-      exercise_id: "s1-e1",
-      logged: false,
-      session_id: "s1",
+    expect(sentAnalytics.events()).toContainEqual({
+      name: "Set Removed",
+      properties: {
+        exercise_id: "s1-e1",
+        logged: false,
+        session_id: "s1",
+      },
     });
   });
 
@@ -411,7 +402,9 @@ describe.each([
       expect(screen.getByRole("button", { name: "Log set 2" })).toBeTruthy();
       expect(screen.getByLabelText("Set 3 reps")).toBeTruthy();
       expect(fakePublicApi.count(SESSION_ROUTE)).toBe(reads + 1);
-      expect(track).not.toHaveBeenCalledWith("Set Removed", expect.anything());
+      expect(sentAnalytics.events()).not.toContainEqual(
+        expect.objectContaining({ name: "Set Removed" })
+      );
     }
   );
 
@@ -446,7 +439,9 @@ describe.each([
     resume();
     await settle(queryClient);
 
-    expect(track).not.toHaveBeenCalledWith("Set Removed", expect.anything());
+    expect(sentAnalytics.events()).not.toContainEqual(
+      expect.objectContaining({ name: "Set Removed" })
+    );
   });
 
   it("drops an added set on the phone only", async () => {
@@ -460,7 +455,9 @@ describe.each([
 
     expect(screen.queryByLabelText("Set 4 reps")).toBeNull();
     expect(fakePublicApi.count(REMOVE_ROUTE)).toBe(0);
-    expect(track).not.toHaveBeenCalledWith("Set Removed", expect.anything());
+    expect(sentAnalytics.events()).not.toContainEqual(
+      expect.objectContaining({ name: "Set Removed" })
+    );
   });
 
   it("gives a set added after a removed one its own row", async () => {
@@ -828,7 +825,9 @@ describe.each([
     expect(fakePublicApi.count(REMOVE_ROUTE)).toBe(0);
     expect(setIds()).toHaveLength(3);
     expect(screen.getByLabelText("Set 1, logged")).toBeTruthy();
-    expect(track).not.toHaveBeenCalledWith("Set Removed", expect.anything());
+    expect(sentAnalytics.events()).not.toContainEqual(
+      expect.objectContaining({ name: "Set Removed" })
+    );
   });
 
   it("removes it at once on Remove, saying it was logged", async () => {
@@ -845,10 +844,13 @@ describe.each([
     await settle(queryClient);
 
     expect(setIds()).toEqual(["s1-e1-s2", "s1-e1-s3"]);
-    expect(track).toHaveBeenCalledWith("Set Removed", {
-      exercise_id: "s1-e1",
-      logged: true,
-      session_id: "s1",
+    expect(sentAnalytics.events()).toContainEqual({
+      name: "Set Removed",
+      properties: {
+        exercise_id: "s1-e1",
+        logged: true,
+        session_id: "s1",
+      },
     });
   });
 
@@ -865,7 +867,9 @@ describe.each([
     expect(setIds()).toHaveLength(3);
     expect(screen.getByLabelText("Set 1, logged")).toBeTruthy();
     expect(screen.getByRole("button", { name: "Log set 2" })).toBeTruthy();
-    expect(track).not.toHaveBeenCalledWith("Set Removed", expect.anything());
+    expect(sentAnalytics.events()).not.toContainEqual(
+      expect.objectContaining({ name: "Set Removed" })
+    );
   });
 
   it("asks for a logged set being edited, keeping its saved values on Cancel", async () => {

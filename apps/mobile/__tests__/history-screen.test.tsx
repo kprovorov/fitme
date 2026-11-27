@@ -85,10 +85,6 @@ jest.mock("@legendapp/list/react-native", () => ({
   },
 }));
 
-jest.mock("~/lib/segment", () => ({
-  segmentClient: { track: jest.fn() },
-}));
-
 // The User a Plan write is made for (the real Clerk SDK keeps Jest alive).
 jest.mock("~/lib/clerk", () => ({
   getCurrentUserId: jest.requireActual<

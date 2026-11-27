@@ -76,10 +76,6 @@ jest.mock("~/lib/clerk", () => ({
     ).FAKE_USER_ID,
 }));
 
-jest.mock("~/lib/segment", () => ({
-  segmentClient: { track: jest.fn() },
-}));
-
 jest.mock("react-native-purchases", () => ({
   __esModule: true,
   default: { invalidateCustomerInfoCache: jest.fn() },

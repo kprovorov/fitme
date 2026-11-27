@@ -47,10 +47,6 @@ jest.mock("expo-router", () => ({
 
 jest.mock("@sentry/react-native", () => ({ captureException: jest.fn() }));
 
-jest.mock("~/lib/segment", () => ({
-  segmentClient: { track: jest.fn() },
-}));
-
 jest.mock(
   "@clerk/expo",
   () =>

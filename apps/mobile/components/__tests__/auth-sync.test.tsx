@@ -36,10 +36,6 @@ jest.mock("react-native-purchases", () => ({
   },
 }));
 
-jest.mock("~/lib/segment", () => ({
-  segmentClient: { identify: jest.fn(() => Promise.resolve()) },
-}));
-
 const CLERK_ID = "user_2abcDEF";
 
 const renderAuthSync = async () => {

@@ -92,10 +92,6 @@ jest.mock("~/hooks/queries/profiles", () => ({
 
 jest.mock("@sentry/react-native", () => ({ captureException: jest.fn() }));
 
-jest.mock("~/lib/segment", () => ({
-  segmentClient: { track: jest.fn() },
-}));
-
 jest.mock("react-native-safe-area-context", () => ({
   useSafeAreaInsets: () => ({ bottom: 0, left: 0, right: 0, top: 0 }),
 }));

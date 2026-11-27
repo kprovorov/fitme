@@ -26,6 +26,7 @@ import {
 } from "~/hooks/queries/workout-sessions";
 import { storage } from "~/lib/mmkv";
 import { setDeviceLanguages } from "~/test-utils/device-locales";
+import { sentAnalytics } from "~/test-utils/fake-analytics";
 import { fakeExercise, serveExercises } from "~/test-utils/fake-exercises";
 import {
   backend,
@@ -40,8 +41,6 @@ import {
 } from "~/test-utils/query-client";
 import { renderRouter } from "~/test-utils/render-router";
 import { signInAs } from "~/test-utils/signed-in-user";
-
-const mockTrack = jest.fn();
 
 // The real router; only a screen's native header is drawn as plain buttons.
 jest.mock("expo-router", () => {
@@ -69,10 +68,6 @@ jest.mock("~/lib/clerk", () => ({
 }));
 
 jest.mock("@sentry/react-native", () => ({ captureException: jest.fn() }));
-
-jest.mock("~/lib/segment", () => ({
-  segmentClient: { track: (...args: unknown[]) => mockTrack(...args) },
-}));
 
 jest.mock("react-native-keyboard-controller", () => {
   const { ScrollView } =
@@ -554,11 +549,14 @@ describe("a discard", () => {
     await openSession();
     fakePublicApi.failNext(DELETE, { status: 500 });
     await discard();
-    expect(mockTrack).not.toHaveBeenCalled();
+    expect(sentAnalytics.events()).toEqual([]);
 
     await discard();
-    expect(mockTrack.mock.calls).toEqual([
-      ["Workout Discarded", { logged_set_count: 2, source: "menu" }],
+    expect(sentAnalytics.events()).toEqual([
+      {
+        name: "Workout Discarded",
+        properties: { logged_set_count: 2, source: "menu" },
+      },
     ]);
   });
 });
@@ -575,7 +573,7 @@ describe("when the session isn't open any more", () => {
     expect(isSessionShown()).toBe(true);
     expect(screen.queryByTestId("finish-workout-button")).toBeNull();
     expect(screen.queryByLabelText(OPTIONS)).toBeNull();
-    expect(mockTrack).not.toHaveBeenCalled();
+    expect(sentAnalytics.events()).toEqual([]);
   });
 
   it("keeps a newer read of the finished session", async () => {
@@ -628,8 +626,11 @@ describe("when the session isn't open any more", () => {
     expect(fakePublicApi.count(DELETE)).toBe(0);
     expect(alerts()).toEqual([]);
     expect(pathname).toBe(WORKOUT);
-    expect(mockTrack.mock.calls).toEqual([
-      ["Workout Discarded", { logged_set_count: 1, source: "menu" }],
+    expect(sentAnalytics.events()).toEqual([
+      {
+        name: "Workout Discarded",
+        properties: { logged_set_count: 1, source: "menu" },
+      },
     ]);
   });
 });
@@ -683,7 +684,7 @@ describe("a failure", () => {
     expect(fakePublicApi.count(DELETE)).toBe(1);
     expect(alerts()).toEqual([]);
     expect(pathname).toBe(WORKOUT);
-    expect(mockTrack).toHaveBeenCalledTimes(1);
+    expect(sentAnalytics.events()).toHaveLength(1);
   });
 });
 
@@ -717,8 +718,11 @@ describe("the Finish alert", () => {
     expect(backend.session("s1")).toBeUndefined();
     expect(pathname).toBe(WORKOUT);
     expect(alerts()).toHaveLength(1);
-    expect(mockTrack.mock.calls).toEqual([
-      ["Workout Discarded", { logged_set_count: 0, source: "finish_alert" }],
+    expect(sentAnalytics.events()).toEqual([
+      {
+        name: "Workout Discarded",
+        properties: { logged_set_count: 0, source: "finish_alert" },
+      },
     ]);
   });
 
@@ -744,7 +748,7 @@ describe("the Finish alert", () => {
     expect(fakePublicApi.count(DELETE)).toBe(0);
     expect(backend.session("s1")?.finished_at).not.toBeNull();
     expect(pathname).toBe(`${BARE_SESSION}/summary`);
-    expect(mockTrack).not.toHaveBeenCalled();
+    expect(sentAnalytics.events()).toEqual([]);
   });
 
   it("changes nothing when cancelled or dismissed, and asks again after", async () => {
@@ -830,13 +834,13 @@ describe("the Finish alert", () => {
 
     expect(alerts().at(-1)).toEqual(FAILED);
     expect(isSessionShown()).toBe(true);
-    expect(mockTrack).not.toHaveBeenCalled();
+    expect(sentAnalytics.events()).toEqual([]);
 
     await pressFinish();
     await answer("Discard");
     await settle(queryClient);
     expect(backend.session("s1")).toBeUndefined();
-    expect(mockTrack).toHaveBeenCalledTimes(1);
+    expect(sentAnalytics.events()).toHaveLength(1);
   });
 
   it("deletes nothing finished elsewhere", async () => {
@@ -849,7 +853,7 @@ describe("the Finish alert", () => {
 
     expect(alerts().at(-1)).toEqual(["Workout already finished"]);
     expect(fakePublicApi.count(DELETE)).toBe(0);
-    expect(mockTrack).not.toHaveBeenCalled();
+    expect(sentAnalytics.events()).toEqual([]);
   });
 });
 
@@ -939,7 +943,7 @@ describe.each([null, "user_other"])("after signing in as %s", (userId) => {
       expect(requestsSince(sent)).toEqual([]);
       expect(alerts()).toEqual([]);
       expect(pathname).toBe(SESSION);
-      expect(mockTrack).not.toHaveBeenCalled();
+      expect(sentAnalytics.events()).toEqual([]);
     }
   );
 

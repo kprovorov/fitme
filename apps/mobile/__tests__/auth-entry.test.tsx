@@ -15,9 +15,9 @@ import { Platform } from "react-native";
 import AuthWelcomeView from "~/components/views/auth-welcome-view";
 import LoginView from "~/components/views/login-view";
 import RegisterView from "~/components/views/register-view";
-import { segmentClient } from "~/lib/segment";
 import type { signInProviders } from "~/lib/sign-in-providers";
 import { setGoogleClientIds } from "~/test-utils/auth-ui";
+import { sentAnalytics } from "~/test-utils/fake-analytics";
 
 interface NativeResult {
   createdSessionId: string | null;
@@ -111,10 +111,6 @@ jest.mock("@clerk/expo/token-cache", () => ({ tokenCache: {} }));
 
 jest.mock("expo-router", () => ({
   router: { push: jest.fn(), replace: jest.fn() },
-}));
-
-jest.mock("~/lib/segment", () => ({
-  segmentClient: { track: jest.fn() },
 }));
 
 jest.mock("~/components/ui/button", () =>
@@ -275,7 +271,10 @@ describe("native social results", () => {
       );
       expect(mockSetActive).toHaveBeenCalledWith({ session: "sess_social" });
       expect(router.replace).toHaveBeenCalledWith("/");
-      expect(segmentClient.track).toHaveBeenCalledWith("User Logged In");
+      expect(sentAnalytics.events()).toContainEqual({
+        name: "User Logged In",
+        properties: undefined,
+      });
     }
   );
 
@@ -297,7 +296,10 @@ describe("native social results", () => {
     );
     expect(router.replace).toHaveBeenCalledWith("/");
     expect(screen.queryByLabelText("Name")).toBeNull();
-    expect(segmentClient.track).toHaveBeenCalledWith("User Registered");
+    expect(sentAnalytics.events()).toContainEqual({
+      name: "User Registered",
+      properties: undefined,
+    });
   });
 
   it("returns quietly to Welcome when the User cancels", async () => {
@@ -473,8 +475,13 @@ describe("native legacy resource boundary", () => {
     await fireEvent.press(
       screen.getByRole("button", { name: "Continue with Apple" })
     );
-    expect(segmentClient.track).toHaveBeenCalledWith("User Logged In");
-    expect(segmentClient.track).not.toHaveBeenCalledWith("User Registered");
+    expect(sentAnalytics.events()).toContainEqual({
+      name: "User Logged In",
+      properties: undefined,
+    });
+    expect(sentAnalytics.events()).not.toContainEqual(
+      expect.objectContaining({ name: "User Registered" })
+    );
   });
 
   it("treats a native cancellation error as cancellation", async () => {

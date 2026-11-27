@@ -55,10 +55,6 @@ jest.mock("~/lib/clerk", () => ({
 
 jest.mock("@sentry/react-native", () => ({ captureException: jest.fn() }));
 
-jest.mock("~/lib/segment", () => ({
-  segmentClient: { track: jest.fn() },
-}));
-
 jest.mock("react-native-reanimated", () => {
   const { View } =
     jest.requireActual<typeof import("react-native")>("react-native");

@@ -56,10 +56,6 @@ jest.mock("expo-application", () => ({
   nativeBuildVersion: "212",
 }));
 
-jest.mock("~/lib/segment", () => ({
-  segmentClient: { reset: jest.fn(), track: jest.fn() },
-}));
-
 jest.mock("~/components/ui/button", () =>
   jest.requireActual("~/test-utils/button-stub")
 );
