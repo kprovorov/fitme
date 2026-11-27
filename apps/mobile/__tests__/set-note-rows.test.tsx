@@ -525,6 +525,37 @@ describe("a set's note on the Workout Session's Exercise cards", () => {
   });
 });
 
+describe("one set note at a time", () => {
+  it("closes one set's note editor when another's opens", async () => {
+    await open(WORKOUT, SESSION, EXERCISE);
+    await pickFromMenu(1, "Add Note");
+    expect(screen.getByTestId("set-note-1-field")).toBeTruthy();
+
+    await pickFromMenu(2, "Edit Note");
+
+    expect(screen.queryByTestId("set-note-1-field")).toBeNull();
+    expect(screen.getByTestId("set-note-2-field")).toBeTruthy();
+  });
+
+  it("lets Finish move on to the Summary without asking about a draft", async () => {
+    // Every set logged, so Finish asks nothing first.
+    Object.assign(backend.sets[2], {
+      logged_at: "2026-10-08T10:40:00.000Z",
+      reps_completed: 10,
+    });
+    await open(WORKOUT, SESSION);
+    await pickFromMenu(1, "Add Note");
+    await typeNote(1, "Grip faded");
+
+    await fireEvent.press(screen.getByTestId("finish-workout-button"));
+    await settle(queryClient);
+
+    expect(pathname).toBe("/workout-sessions/s1/summary");
+    expect(alerts()).toEqual([]);
+    expect(noteOf("s1-e1-s1")).toBeNull();
+  });
+});
+
 describe("in Ukrainian", () => {
   it("names the menu, its items and the editor in the App language", async () => {
     setDeviceLanguages(["uk-UA"]);

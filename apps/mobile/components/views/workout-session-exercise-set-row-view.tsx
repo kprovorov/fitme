@@ -2,7 +2,7 @@ import { ApiError, rateLimitedFor } from "@fitme/api-client";
 import { useQueryClient } from "@tanstack/react-query";
 import * as Haptics from "expo-haptics";
 import type { i18n as I18n, TFunction } from "i18next";
-import { useCallback, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { AccessibilityInfo, Alert, Keyboard, View } from "react-native";
 import type { AccessibilityActionEvent } from "react-native";
@@ -12,6 +12,7 @@ import { SymbolImage } from "~/components/symbol-image";
 import type { DropdownMenuItem } from "~/components/ui/dropdown-menu";
 import { dropGoneAddedSet } from "~/hooks/added-sets";
 import { reportWorkoutSetTracked } from "~/hooks/finish-workout-suggestion";
+import { useOpenSetNote } from "~/hooks/open-set-note";
 import {
   useCreateWorkoutSessionExerciseSetMutation,
   useIsSavingSet,
@@ -298,12 +299,20 @@ const useLoggedSetNote = ({
   set: WorkoutSessionSet | null;
 }) => {
   const { t } = useTranslation();
-  const [isOpen, setIsOpen] = useState(false);
-  const setId = isNotesEnabled() && isDone ? (set?.id ?? savedSetId) : null;
+  const knownId = set?.id ?? savedSetId;
+  const setId = isNotesEnabled() && isDone ? knownId : null;
   const note = setId === null ? null : (set?.note ?? null);
   const canEdit = setId !== null && !readOnly;
-  const open = useCallback(() => setIsOpen(true), []);
-  const close = useCallback(() => setIsOpen(false), []);
+  // Kept by the set's id, so one that's no longer logged (or its Workout
+  // Session finished) closes its editor rather than hiding it.
+  const { close, isOpen: isOpenFor, open } = useOpenSetNote(knownId);
+  const isOpen = canEdit && isOpenFor;
+
+  useEffect(() => {
+    if (!canEdit && isOpenFor) {
+      close();
+    }
+  }, [canEdit, close, isOpenFor]);
 
   const menu = canEdit
     ? {
@@ -326,7 +335,7 @@ const useLoggedSetNote = ({
 
   return {
     /** Whether its note is being written or saved: the row doesn't swipe. */
-    isWriting: canEdit && isOpen,
+    isWriting: isOpen,
     menu,
     props: {
       canEdit,

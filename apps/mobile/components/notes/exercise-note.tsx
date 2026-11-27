@@ -216,7 +216,7 @@ export const ExerciseNote = ({
       { exerciseSlug, note: draft },
       {
         onError: (saveError) => {
-          const shown = noteSaveFailureOf(saveError);
+          const shown = noteSaveFailureOf(saveError, "exercise");
 
           if (shown.kind === "rateLimited") {
             setWaitSeconds(shown.seconds);

@@ -14,6 +14,7 @@ import {
   useNoteRateLimitWait,
 } from "~/hooks/note-editing";
 import { useWorkoutSessionQuery } from "~/hooks/queries/workout-sessions";
+import type { WorkoutSession } from "~/hooks/queries/workout-sessions";
 import { hasRefusingSessionEnded } from "~/hooks/refused-session-write";
 import {
   noteSaveFailureOf,
@@ -143,7 +144,13 @@ export const SetNoteEditor = ({
   // Held while a save is on its way too: it can still fail, and the text
   // would go with the Screen.
   usePreventRemove(isChanged, ({ data, repeat }) => {
-    if (isSessionMovingOn(data.action)) {
+    // Finished, here (Finish moves on to its Summary) or elsewhere: unsaved
+    // text goes, as the sets' unsaved input does.
+    const isFinished = !!queryClient.getQueryData<WorkoutSession>(
+      useWorkoutSessionQuery.getKey({ sessionId })
+    )?.finished_at;
+
+    if (isFinished || isSessionMovingOn(data.action)) {
       repeat();
     } else {
       askToDiscard(repeat);
@@ -172,13 +179,6 @@ export const SetNoteEditor = ({
       onClose();
       Alert.alert(t(`notes.errors.${shown.kind}`));
 
-      if (shown.kind === "setNotLogged") {
-        await queryClient.invalidateQueries({
-          exact: true,
-          queryKey: useWorkoutSessionQuery.getKey({ sessionId }),
-        });
-      }
-
       onSetGone();
     },
     [onClose, onSetGone, queryClient, sessionId, t]
@@ -194,7 +194,7 @@ export const SetNoteEditor = ({
       { note: draft, sessionId, setId },
       {
         onError: (saveError) => {
-          const shown = noteSaveFailureOf(saveError);
+          const shown = noteSaveFailureOf(saveError, "set");
 
           if (shown.kind === "setGone" || shown.kind === "setNotLogged") {
             void refuse(saveError, shown);

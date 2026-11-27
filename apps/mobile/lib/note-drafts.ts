@@ -18,19 +18,27 @@ export type NoteSaveFailure =
     };
 
 /** The API's refusals of a note, by their code, as the editor names them. */
-const REFUSALS = new Map<string, NoteSaveFailure>([
-  ["library_unavailable", { kind: "libraryUnavailable" }],
-  ["not_found", { kind: "setGone" }],
-  ["set_not_logged", { kind: "setNotLogged" }],
-  ["unknown_exercises", { kind: "unknownExercise" }],
-]);
+const REFUSALS = {
+  exercise: new Map<string, NoteSaveFailure>([
+    ["library_unavailable", { kind: "libraryUnavailable" }],
+    ["unknown_exercises", { kind: "unknownExercise" }],
+  ]),
+  set: new Map<string, NoteSaveFailure>([
+    ["not_found", { kind: "setGone" }],
+    ["set_not_logged", { kind: "setNotLogged" }],
+  ]),
+};
 
 /**
- * A failed save as its editor shows it: a 429's wait, the API's own refusals
- * of a note (an Exercise the Library doesn't know or can't check, a set
- * that's gone or not logged), anything else the generic message.
+ * A failed save of a note on `target` as its editor shows it: a 429's wait,
+ * the API's own refusals of that kind of note (an Exercise the Library
+ * doesn't know or can't check; a set that's gone or not logged), anything
+ * else the generic message.
  */
-export const noteSaveFailureOf = (error: unknown): NoteSaveFailure => {
+export const noteSaveFailureOf = (
+  error: unknown,
+  target: keyof typeof REFUSALS
+): NoteSaveFailure => {
   const seconds = rateLimitedFor(error);
 
   if (seconds !== null) {
@@ -39,7 +47,11 @@ export const noteSaveFailureOf = (error: unknown): NoteSaveFailure => {
 
   const code = error instanceof ApiError ? error.code : null;
 
-  return (code === null ? undefined : REFUSALS.get(code)) ?? { kind: "save" };
+  return (
+    (code === null ? undefined : REFUSALS[target].get(code)) ?? {
+      kind: "save",
+    }
+  );
 };
 
 /** How long a note's text is as saved: trimmed, in code points. */
