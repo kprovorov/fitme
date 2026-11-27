@@ -12,8 +12,7 @@ import {
   hasRefusingSessionEnded,
   mayMeanSessionEnded,
 } from "~/hooks/refused-session-write";
-import { IS_E2E } from "~/lib/constants";
-import { segmentClient } from "~/lib/segment";
+import { analytics } from "~/lib/analytics";
 import { sessionEditFailureMessage } from "~/lib/session-edit-failure";
 
 import { Button } from "../ui/button";
@@ -86,12 +85,10 @@ const WorkoutSessionView = ({
       return;
     }
 
-    if (!IS_E2E) {
-      void segmentClient.track("Exercise Deleted", {
-        exercise_id: exerciseId,
-        session_id: sessionId,
-      });
-    }
+    void analytics.send("Exercise Deleted", {
+      exercise_id: exerciseId,
+      session_id: sessionId,
+    });
   };
 
   const handleReplaceExercise = (exerciseId: string) => {

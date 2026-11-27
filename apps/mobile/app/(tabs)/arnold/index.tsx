@@ -57,6 +57,7 @@ import type { ArnoldAttachment } from "~/hooks/arnold-attachments";
 import { useSelectedArnoldModel } from "~/hooks/arnold-model";
 import { useArnoldWorkoutSessionEdits } from "~/hooks/arnold-workout-session-edits";
 import { useIsProQuery } from "~/hooks/revenueCat";
+import { analytics } from "~/lib/analytics";
 import { readAttachmentDataUrl } from "~/lib/arnold-attachment-picker";
 import {
   arnoldErrorAction,
@@ -79,7 +80,6 @@ import {
   sentAttachmentUri,
 } from "~/lib/arnold-sent-attachments";
 import { getClerk } from "~/lib/clerk";
-import { segmentClient } from "~/lib/segment";
 
 const getArnoldToken = async () => (await getClerk().session?.getToken()) ?? "";
 
@@ -440,7 +440,7 @@ const useArnoldChat = (userId: string, composer: Composer) => {
 
       if (attachments.length > 0) {
         // The count only: never the image, its name or its size.
-        void segmentClient.track("Arnold Attachment Sent", {
+        void analytics.send("Arnold Attachment Sent", {
           count: attachments.length,
         });
       }

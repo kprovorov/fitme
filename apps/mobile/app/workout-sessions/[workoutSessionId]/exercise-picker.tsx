@@ -27,9 +27,8 @@ import {
   hasRefusingSessionEnded,
   mayMeanSessionEnded,
 } from "~/hooks/refused-session-write";
-import { IS_E2E } from "~/lib/constants";
+import { analytics } from "~/lib/analytics";
 import type { ExerciseSummary } from "~/lib/exercises";
-import { segmentClient } from "~/lib/segment";
 import { sessionEditFailureMessage } from "~/lib/session-edit-failure";
 
 /**
@@ -154,12 +153,10 @@ const ExercisePickerScreen = () => {
           return;
         }
 
-        if (!IS_E2E) {
-          void segmentClient.track("Exercise Replaced", {
-            exercise_slug: exercise.slug,
-            session_id: sessionId,
-          });
-        }
+        void analytics.send("Exercise Replaced", {
+          exercise_slug: exercise.slug,
+          session_id: sessionId,
+        });
       } else {
         try {
           await addExercise({
@@ -182,12 +179,10 @@ const ExercisePickerScreen = () => {
           return;
         }
 
-        if (!IS_E2E) {
-          void segmentClient.track("Exercise Added", {
-            exercise_slug: exercise.slug,
-            session_id: sessionId,
-          });
-        }
+        void analytics.send("Exercise Added", {
+          exercise_slug: exercise.slug,
+          session_id: sessionId,
+        });
       }
 
       close();

@@ -27,6 +27,7 @@ import type {
   DiscardSource,
   WorkoutSession,
 } from "~/hooks/queries/workout-sessions";
+import { analytics } from "~/lib/analytics";
 import { i18n } from "~/lib/i18n";
 import {
   countPlanChanges,
@@ -34,7 +35,6 @@ import {
   planUpdateProperties,
 } from "~/lib/plan-changes";
 import type { PlanUpdate } from "~/lib/plan-changes";
-import { segmentClient } from "~/lib/segment";
 import { isStillWriteStarter, rememberWriteStarter } from "~/lib/write-answers";
 
 interface NavigationState {
@@ -289,7 +289,7 @@ export const useFinishWorkoutSession = (
         return;
       }
 
-      void segmentClient.track("Plan Update Suggested", {
+      void analytics.send("Plan Update Suggested", {
         ...countPlanChanges(preview),
         ...planUpdateProperties(sessionId, preview),
       });

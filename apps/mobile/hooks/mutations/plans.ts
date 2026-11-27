@@ -4,10 +4,9 @@ import { createMutation } from "react-query-kit";
 import type { FullPlan } from "~/hooks/queries/plans";
 import { invalidateWeighedQueries } from "~/hooks/queries/settings";
 import { WEEKLY_GOALS_QUERY_KEY } from "~/hooks/queries/weekly-goals";
-import { IS_E2E } from "~/lib/constants";
+import { analytics } from "~/lib/analytics";
 import type { SavedPlanBody } from "~/lib/plan-draft";
 import { publicApi } from "~/lib/public-api";
-import { segmentClient } from "~/lib/segment";
 
 export interface SavePlanVariables {
   body: SavedPlanBody;
@@ -37,9 +36,7 @@ export const useSavePlanMutation = createMutation<FullPlan, SavePlanVariables>({
       throw new ApiError("Public API answered no Plan");
     }
 
-    if (!IS_E2E) {
-      void segmentClient.track("Plan Edited", { plan_id: id });
-    }
+    void analytics.send("Plan Edited", { plan_id: id });
 
     return data.data;
   },

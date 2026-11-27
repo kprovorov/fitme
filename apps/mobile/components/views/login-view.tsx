@@ -15,8 +15,7 @@ import LoginForm from "~/components/forms/auth/login-form";
 import type { LoginFormValues } from "~/components/forms/auth/login-form";
 import { ErrorMessage } from "~/components/ui/error-message";
 import { Text } from "~/components/ui/text";
-import { IS_E2E } from "~/lib/constants";
-import { segmentClient } from "~/lib/segment";
+import { analytics } from "~/lib/analytics";
 import { signInProviders } from "~/lib/sign-in-providers";
 
 const openRecovery = () => router.push("/auth/forgot-password");
@@ -36,9 +35,7 @@ const LoginView = () => {
       return getAuthErrorMessage(finalizeError);
     }
 
-    if (!IS_E2E) {
-      void segmentClient.track("User Logged In");
-    }
+    void analytics.send("User Logged In");
   };
 
   const sendDeviceCode = async (current: () => boolean) => {

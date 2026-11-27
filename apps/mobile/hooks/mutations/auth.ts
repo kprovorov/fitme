@@ -3,19 +3,16 @@ import { router } from "expo-router";
 import { createMutation } from "react-query-kit";
 
 import type { ReverifiedResult } from "~/hooks/reverification";
+import { analytics } from "~/lib/analytics";
 import { clearSavedArnoldConversation } from "~/lib/arnold-chat";
 import { getClerk } from "~/lib/clerk";
-import { IS_E2E } from "~/lib/constants";
-import { segmentClient } from "~/lib/segment";
 
 export const useLogoutMutation = createMutation({
   mutationFn: async (): Promise<void> => {
     await getClerk().signOut();
 
-    if (!IS_E2E) {
-      void segmentClient.track("User Logged Out");
-      void segmentClient.reset();
-    }
+    void analytics.send("User Logged Out");
+    void analytics.reset();
   },
 });
 
@@ -67,10 +64,8 @@ export const useDeleteUserMutation = createMutation<
     // report the deleted account as still there
     await clerk.signOut().catch(Sentry.captureException);
 
-    if (!IS_E2E) {
-      void segmentClient.track("User Deleted Account");
-      void segmentClient.reset();
-    }
+    void analytics.send("User Deleted Account");
+    void analytics.reset();
 
     return "deleted";
   },

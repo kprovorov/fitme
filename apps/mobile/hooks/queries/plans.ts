@@ -4,10 +4,9 @@ import type { QueryClient } from "@tanstack/react-query";
 import { createMutation, createQuery } from "react-query-kit";
 
 import { WEEKLY_GOALS_QUERY_KEY } from "~/hooks/queries/weekly-goals";
-import { IS_E2E } from "~/lib/constants";
+import { analytics } from "~/lib/analytics";
 import type { NewPlan } from "~/lib/plan-card";
 import { publicApi } from "~/lib/public-api";
-import { segmentClient } from "~/lib/segment";
 import { rememberWriteStarter, seedWriteAnswer } from "~/lib/write-answers";
 import type { WriteStarter } from "~/lib/write-answers";
 
@@ -179,10 +178,8 @@ export const useCreatePlanMutation = createMutation<
 
     const { id } = data.data;
 
-    if (!IS_E2E) {
-      void segmentClient.track("Plan Saved", { plan_id: id, source });
-      void segmentClient.track("Plan Activated", { plan_id: id });
-    }
+    void analytics.send("Plan Saved", { plan_id: id, source });
+    void analytics.send("Plan Activated", { plan_id: id });
 
     return data.data;
   },
@@ -217,9 +214,7 @@ export const useActivatePlanMutation = createMutation<
       throw new ApiError("Public API answered no Plan");
     }
 
-    if (!IS_E2E) {
-      void segmentClient.track("Plan Activated", { plan_id: id });
-    }
+    void analytics.send("Plan Activated", { plan_id: id });
 
     return data.data;
   },
@@ -239,8 +234,6 @@ export const useDeletePlanMutation = createMutation<undefined, { id: string }>({
   mutationFn: async ({ id }: { id: string }): Promise<undefined> => {
     await publicApi().DELETE("/v1/plans/{id}", { params: { path: { id } } });
 
-    if (!IS_E2E) {
-      void segmentClient.track("Plan Deleted", { plan_id: id });
-    }
+    void analytics.send("Plan Deleted", { plan_id: id });
   },
 });

@@ -7,8 +7,7 @@ import { useCallback } from "react";
 import { useTranslation } from "react-i18next";
 import { z } from "zod";
 
-import { IS_E2E } from "~/lib/constants";
-import { segmentClient } from "~/lib/segment";
+import { analytics } from "~/lib/analytics";
 import type { SocialProvider } from "~/lib/sign-in-providers";
 
 const nativeCancellationSchema = z.object({
@@ -120,13 +119,11 @@ export const useNativeSocialAuth = () => {
 
       await result.setActive({ session: result.createdSessionId });
 
-      if (!IS_E2E) {
-        void segmentClient.track(
-          result.signUp?.createdSessionId === result.createdSessionId
-            ? "User Registered"
-            : "User Logged In"
-        );
-      }
+      void analytics.send(
+        result.signUp?.createdSessionId === result.createdSessionId
+          ? "User Registered"
+          : "User Logged In"
+      );
 
       if (current()) {
         router.replace("/");
