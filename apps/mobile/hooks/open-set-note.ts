@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useId, useSyncExternalStore } from "react";
 
+import { useAskToDiscardNote } from "~/hooks/note-editing";
+
 /**
  * The row whose set note is being written, in memory only: one at a time
  * across the Workout Session's screens, so leaving asks about one draft only
@@ -8,6 +10,9 @@ import { useCallback, useEffect, useId, useSyncExternalStore } from "react";
  * its own row for the same set, which never opens with it.
  */
 let openRow: string | null = null;
+
+/** Whether the open row's editor holds text not saved yet. */
+let openRowChanged = false;
 const listeners = new Set<() => void>();
 
 const subscribe = (listener: () => void) => {
@@ -24,6 +29,7 @@ const setOpenRow = (row: string | null) => {
   }
 
   openRow = row;
+  openRowChanged = false;
 
   for (const listener of listeners) {
     listener();
@@ -36,6 +42,8 @@ export const closeOpenSetNote = () => setOpenRow(null);
 /**
  * Whether this row's set note editor is open, and what opens or closes it.
  * A row that goes away (its Screen closed, the set gone) closes its own.
+ * Opening it while another row's editor holds unsaved text asks "Discard
+ * your note?" first; its editor says so through `setChanged`.
  */
 export const useOpenSetNote = () => {
   const row = useId();
@@ -46,7 +54,24 @@ export const useOpenSetNote = () => {
     () => openRow
   );
 
-  const open = useCallback(() => setOpenRow(row), [row]);
+  const askToDiscard = useAskToDiscardNote();
+
+  const open = useCallback(() => {
+    if (openRow !== null && openRow !== row && openRowChanged) {
+      askToDiscard(() => setOpenRow(row));
+    } else {
+      setOpenRow(row);
+    }
+  }, [askToDiscard, row]);
+
+  const setChanged = useCallback(
+    (changed: boolean) => {
+      if (openRow === row) {
+        openRowChanged = changed;
+      }
+    },
+    [row]
+  );
 
   const close = useCallback(() => {
     if (openRow === row) {
@@ -56,5 +81,5 @@ export const useOpenSetNote = () => {
 
   useEffect(() => close, [close]);
 
-  return { close, isOpen: shown === row, open };
+  return { close, isOpen: shown === row, open, setChanged };
 };

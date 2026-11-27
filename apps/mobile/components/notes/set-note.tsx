@@ -9,10 +9,7 @@ import { SET_NUMBER_COLUMN_CLASS } from "~/components/forms/workout-exercise-set
 import { Text } from "~/components/ui/text";
 import { isSessionMovingOn } from "~/hooks/ending-workout-session";
 import { useSaveWorkoutSessionSetNoteMutation } from "~/hooks/mutations/workout-session-set-notes";
-import {
-  useAskToDiscardNote,
-  useNoteRateLimitWait,
-} from "~/hooks/note-editing";
+import { useAskToDiscardNote } from "~/hooks/note-editing";
 import { useWorkoutSessionQuery } from "~/hooks/queries/workout-sessions";
 import type { WorkoutSession } from "~/hooks/queries/workout-sessions";
 import { hasRefusingSessionEnded } from "~/hooks/refused-session-write";
@@ -106,12 +103,21 @@ interface SetNoteEditorProps {
   note: string | null;
   /** Its set's position, for VoiceOver and the test IDs. */
   number: number;
+  /** Tells whether it holds text not saved yet. */
+  onChangedChange: (changed: boolean) => void;
   /** Closes the editor: saved, cancelled, or the set gone. */
   onClose: () => void;
+  /** A save answered 429: the wait, in seconds, kept by the row. */
+  onRateLimited: (seconds: number) => void;
   /** Reads the Workout Session again: the set has gone, or isn't logged. */
   onSetGone: () => void;
   sessionId: string;
   setId: string;
+  /**
+   * A 429's wait, in seconds, while it lasts. Kept by the row, so closing and
+   * reopening the editor doesn't skip it.
+   */
+  waitSeconds: number | null;
 }
 
 /**
@@ -127,17 +133,19 @@ interface SetNoteEditorProps {
 export const SetNoteEditor = ({
   note,
   number,
+  onChangedChange,
   onClose,
+  onRateLimited,
   onSetGone,
   sessionId,
   setId,
+  waitSeconds,
 }: SetNoteEditorProps) => {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
   const { isPending, mutate } = useSaveWorkoutSessionSetNoteMutation();
   const [draft, setDraft] = useState(note ?? "");
   const [failure, setFailure] = useState<NoteSaveFailure | null>(null);
-  const [waitSeconds, setWaitSeconds] = useNoteRateLimitWait();
   const askToDiscard = useAskToDiscardNote();
   const isChanged = savedNoteOf(draft) !== note;
 
@@ -165,9 +173,14 @@ export const SetNoteEditor = ({
     }
   }, [askToDiscard, isChanged, onClose]);
 
-  const changeDraft = useCallback((text: string) => {
-    setDraft(withinNoteLimit(text));
-  }, []);
+  const changeDraft = useCallback(
+    (text: string) => {
+      const kept = withinNoteLimit(text);
+      setDraft(kept);
+      onChangedChange(savedNoteOf(kept) !== note);
+    },
+    [note, onChangedChange]
+  );
 
   const refuse = useCallback(
     async (error: Error, shown: NoteSaveFailure) => {
@@ -203,7 +216,7 @@ export const SetNoteEditor = ({
           }
 
           if (shown.kind === "rateLimited") {
-            setWaitSeconds(shown.seconds);
+            onRateLimited(shown.seconds);
           } else {
             setFailure(shown);
           }
@@ -231,7 +244,7 @@ export const SetNoteEditor = ({
     refuse,
     sessionId,
     setId,
-    setWaitSeconds,
+    onRateLimited,
     t,
     waitSeconds,
   ]);

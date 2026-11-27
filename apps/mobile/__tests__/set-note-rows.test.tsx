@@ -409,6 +409,30 @@ describe("a set's note on the Workout Session Exercise screen", () => {
     expect(noteOf("s1-e1-s1")).toBeNull();
   });
 
+  it("keeps a 429's wait through closing and reopening the editor", async () => {
+    await open(WORKOUT, SESSION, EXERCISE);
+    await pickFromMenu(1, "Add Note");
+    await typeNote(1, "Grip faded");
+    fakePublicApi.failNext(SAVE, { retryAfterSeconds: 30, status: 429 });
+    await save(1);
+
+    // Cancel asks first about the unsaved text; its Discard closes it.
+    await fireEvent.press(screen.getByTestId("set-note-1-cancel"));
+    const buttons = jest.mocked(Alert.alert).mock.lastCall?.[2];
+    await act(() => {
+      buttons?.find(({ style }) => style === "destructive")?.onPress?.();
+
+      return Promise.resolve();
+    });
+    expect(screen.queryByTestId("set-note-1-field")).toBeNull();
+
+    await pickFromMenu(1, "Add Note");
+    await typeNote(1, "Grip faded");
+
+    expect(screen.getByText("Too many saves. Try again in 30 s.")).toBeTruthy();
+    expect(screen.getByTestId("set-note-1-save")).toBeDisabled();
+  });
+
   it("says a set that's gone is gone, and reads the session again", async () => {
     await open(WORKOUT, SESSION, EXERCISE);
     await pickFromMenu(1, "Add Note");
@@ -535,6 +559,20 @@ describe("one set note at a time", () => {
 
     expect(screen.queryByTestId("set-note-1-field")).toBeNull();
     expect(screen.getByTestId("set-note-2-field")).toBeTruthy();
+  });
+
+  it("asks before another set's note replaces unsaved text", async () => {
+    await open(WORKOUT, SESSION, EXERCISE);
+    await pickFromMenu(1, "Add Note");
+    await typeNote(1, "Grip faded");
+
+    await pickFromMenu(2, "Edit Note");
+
+    expect(alerts()).toEqual(["Discard your note?"]);
+    expect(screen.getByTestId("set-note-1-field").props.value).toBe(
+      "Grip faded"
+    );
+    expect(screen.queryByTestId("set-note-2-field")).toBeNull();
   });
 
   it("opens on the screen it was asked on only, and closes with it", async () => {

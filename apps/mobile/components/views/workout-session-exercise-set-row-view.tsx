@@ -12,6 +12,7 @@ import { SymbolImage } from "~/components/symbol-image";
 import type { DropdownMenuItem } from "~/components/ui/dropdown-menu";
 import { dropGoneAddedSet } from "~/hooks/added-sets";
 import { reportWorkoutSetTracked } from "~/hooks/finish-workout-suggestion";
+import { useNoteRateLimitWait } from "~/hooks/note-editing";
 import { useOpenSetNote } from "~/hooks/open-set-note";
 import {
   useCreateWorkoutSessionExerciseSetMutation,
@@ -304,7 +305,9 @@ const useLoggedSetNote = ({
   const canEdit = setId !== null && !readOnly;
   // A set no longer logged (or its Workout Session finished) closes its
   // editor rather than hiding it, so it never reopens by itself.
-  const { close, isOpen: isOpenFor, open } = useOpenSetNote();
+  const { close, isOpen: isOpenFor, open, setChanged } = useOpenSetNote();
+  // A 429's wait outlives the editor: closing and reopening it keeps Save off.
+  const [waitSeconds, setWaitSeconds] = useNoteRateLimitWait();
   const isOpen = canEdit && isOpenFor;
 
   useEffect(() => {
@@ -341,9 +344,12 @@ const useLoggedSetNote = ({
       isOpen,
       note,
       number,
+      onChangedChange: setChanged,
       onClose: close,
       onOpen: open,
+      onRateLimited: setWaitSeconds,
       setId,
+      waitSeconds,
     },
   };
 };
