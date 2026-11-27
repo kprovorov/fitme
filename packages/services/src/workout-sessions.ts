@@ -439,44 +439,53 @@ export interface WorkoutSessionWithPreviousSets extends Omit<
 }
 
 interface PreviousSetRow extends Record<string, unknown> {
+  exercise_slug: string;
   number: number;
   reps_completed: number;
-  session_exercise_id: string;
   weight_completed: string | null;
 }
 
 /**
- * The Previous sets of every Workout Session Exercise of one of the User's
- * Workout Sessions, by Workout Session Exercise id, in `tx` (from `asUser`;
- * the User id is filtered on as well as RLS). For each Exercise slug it takes
+ * The Previous sets for each of `exerciseSlugs` in one of the User's Workout
+ * Sessions, by Exercise slug, in `tx` (from `asUser`; the User id is filtered
+ * on as well as RLS). The slugs are the caller's, the ones it read the session
+ * with, so an Exercise replaced meanwhile never gets another slug's sets
+ * (READ COMMITTED gives each statement its own snapshot). For each slug it takes
  * the User's most recent Workout Session that started before this one (ties
  * by id, as Exercise history orders them) holding a Workout Session Exercise
  * with that exact slug and a set with positive reps, and the first such
  * Workout Session Exercise in it by `order`; its sets are numbered by
  * position, and only the ones with positive reps are answered. Plans and
  * Workouts don't matter, and the session itself never counts. One statement,
- * so one snapshot; an Exercise with nothing earlier has an empty list, and a
- * session the User hasn't got answers an empty map.
+ * so one snapshot; a slug with nothing earlier is absent, and a session the
+ * User hasn't got answers an empty map.
  */
 export const getPreviousSets = async (
   tx: Transaction,
   userId: string,
-  sessionId: string
+  sessionId: string,
+  exerciseSlugs: readonly string[]
 ): Promise<Map<string, PreviousSet[]>> => {
+  const previous = new Map<string, PreviousSet[]>();
+
+  if (exerciseSlugs.length === 0) {
+    return previous;
+  }
+
+  const slugList = sql.join(
+    [...new Set(exerciseSlugs)].map((slug) => sql`(${slug})`),
+    sql`, `
+  );
+
   const { rows } = await tx.execute<PreviousSetRow>(sql`
     with answered as (
       select s.id, s.started_at
       from ${workoutSessions} s
       where s.id = ${sessionId} and s.user_id = ${userId}
     ),
-    asked as (
-      select e.id, e.exercise_slug
-      from ${workoutSessionExercises} e
-      join answered on answered.id = e.workout_session_id
-    ),
     earlier as (
       select slugs.exercise_slug, found.id
-      from (select distinct exercise_slug from asked) slugs
+      from (values ${slugList}) as slugs (exercise_slug)
       cross join answered
       cross join lateral (
         select pe.id
@@ -509,48 +518,51 @@ export const getPreviousSets = async (
         on x.workout_session_exercise_id = earlier.id
     )
     select
-      asked.id as session_exercise_id,
+      numbered.exercise_slug,
       numbered.number,
       numbered.reps_completed,
       numbered.weight_completed
-    from asked
-    join numbered on numbered.exercise_slug = asked.exercise_slug
+    from numbered
     where numbered.reps_completed > 0
-    order by asked.id, numbered.number
+    order by numbered.exercise_slug, numbered.number
   `);
 
-  const previous = new Map<string, PreviousSet[]>();
-
   for (const row of rows) {
-    const sets = previous.get(row.session_exercise_id) ?? [];
+    const sets = previous.get(row.exercise_slug) ?? [];
 
     sets.push({
       number: row.number,
       reps_completed: row.reps_completed,
       weight_completed: toNumber(row.weight_completed),
     });
-    previous.set(row.session_exercise_id, sets);
+    previous.set(row.exercise_slug, sets);
   }
 
   return previous;
 };
 
 /**
- * `session` with its Previous sets (`getPreviousSets`, in the same `tx`):
- * an Exercise with nothing earlier gets an empty list.
+ * `session` with its Previous sets (`getPreviousSets`, in the same `tx`, for
+ * the slugs `session` was read with): an Exercise with nothing earlier gets an
+ * empty list.
  */
 export const withPreviousSets = async (
   tx: Transaction,
   userId: string,
   session: WorkoutSessionDetail
 ): Promise<WorkoutSessionWithPreviousSets> => {
-  const previous = await getPreviousSets(tx, userId, session.id);
+  const previous = await getPreviousSets(
+    tx,
+    userId,
+    session.id,
+    session.exercises.map(({ exercise_slug }) => exercise_slug)
+  );
 
   return {
     ...session,
     exercises: session.exercises.map((exercise) => ({
       ...exercise,
-      previous_sets: previous.get(exercise.id) ?? [],
+      previous_sets: previous.get(exercise.exercise_slug) ?? [],
     })),
   };
 };
