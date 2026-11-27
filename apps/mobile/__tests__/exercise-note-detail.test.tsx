@@ -317,6 +317,38 @@ describe("the Exercise note on the detail screen", () => {
     expect(field().props.value).toBe("Seat on 4");
   });
 
+  it("keeps a 429's wait through closing and reopening the editor", async () => {
+    const client = await renderDetail();
+    await fireEvent.press(screen.getByTestId("exercise-note-add"));
+    await typeNote("Seat on 4");
+    fakePublicApi.failNext(SAVE, { retryAfterSeconds: 30, status: 429 });
+    await pressSave(client);
+
+    await fireEvent.press(screen.getByTestId("exercise-note-cancel"));
+    await answerAlertAsync("Discard");
+    await fireEvent.press(screen.getByTestId("exercise-note-add"));
+    await typeNote("Seat on 4");
+
+    expect(saveButton()).toBeDisabled();
+    expect(screen.getByText("Too many saves. Try again in 30 s.")).toBeTruthy();
+    expect(fakePublicApi.count(SAVE)).toBe(1);
+  });
+
+  it("counts only what's saved, and drops NUL characters", async () => {
+    await renderDetail();
+    await fireEvent.press(screen.getByTestId("exercise-note-add"));
+    // The trimmed text is what counts, so the spaces around it don't.
+    await typeNote(`   ${"a".repeat(500)}\n`);
+
+    expect(field().props.value).toBe(`   ${"a".repeat(500)}\n`);
+    expect(screen.getByTestId("exercise-note-counter")).toHaveTextContent(
+      "500/500 · Character limit reached"
+    );
+
+    await typeNote("Seat\u0000 on 4");
+    expect(field().props.value).toBe("Seat on 4");
+  });
+
   it("lets Save go again once a 429's wait has passed", async () => {
     const client = await renderDetail();
     await fireEvent.press(screen.getByTestId("exercise-note-add"));

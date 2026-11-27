@@ -53,12 +53,26 @@ const saveFailureOf = (error: unknown): SaveFailure => {
   return { kind: "save" };
 };
 
-/** Cuts pasted text to the limit, counted as the API counts it. */
-const withinLimit = (text: string): string =>
-  noteLength(text) > MAX_NOTE_LENGTH
-    ? // oxlint-disable-next-line typescript/no-misused-spread -- code points are exactly what Postgres counts
-      [...text].slice(0, MAX_NOTE_LENGTH).join("")
-    : text;
+/** How long a note's text is as saved: trimmed, in code points. */
+const savedLength = (text: string): number => noteLength(text.trim());
+
+/**
+ * What the User typed or pasted, as the field keeps it: without NUL
+ * characters (Postgres can't store one, so the API refuses them), and cut
+ * where the text that would be saved (trimmed) reaches the limit.
+ */
+const withinLimit = (typed: string): string => {
+  const text = typed.replaceAll("\u0000", "");
+
+  if (savedLength(text) <= MAX_NOTE_LENGTH) {
+    return text;
+  }
+
+  const leading = noteLength(text) - noteLength(text.trimStart());
+
+  // oxlint-disable-next-line typescript/no-misused-spread -- code points are exactly what Postgres counts
+  return [...text].slice(0, leading + MAX_NOTE_LENGTH).join("");
+};
 
 /** The text a draft would save: trimmed, `null` for none. */
 const savedFormOf = (draft: string): string | null => {
@@ -102,7 +116,7 @@ const NoteLoadError = ({
 /** The character count under the field, red with its message at the limit. */
 const NoteCounter = ({ draft }: { draft: string }) => {
   const { t } = useTranslation();
-  const length = noteLength(draft);
+  const length = savedLength(draft);
   const atLimit = length >= MAX_NOTE_LENGTH;
   const counter = t("notes.counter", { length, max: MAX_NOTE_LENGTH });
 
@@ -133,6 +147,8 @@ interface NoteEditorProps {
   onCancel: () => void;
   onChange: (text: string) => void;
   onSave: () => void;
+  /** A 429's wait, in seconds, while it lasts. */
+  waitSeconds: number | null;
 }
 
 /** The field, the count, a failed save's message, Cancel and Save. */
@@ -145,9 +161,9 @@ const NoteEditor = ({
   onCancel,
   onChange,
   onSave,
+  waitSeconds,
 }: NoteEditorProps) => {
   const { t } = useTranslation();
-  const waitSeconds = failure?.kind === "rateLimited" ? failure.seconds : null;
 
   const message =
     failure && failure.kind !== "rateLimited"
@@ -292,24 +308,27 @@ export const ExerciseNote = ({
   const { isPending, mutate } = useSaveExerciseNoteMutation();
   const [draft, setDraft] = useState<string | null>(null);
   const [failure, setFailure] = useState<SaveFailure | null>(null);
+  // Kept apart from the editor, so closing and reopening it doesn't skip it.
+  const [waitSeconds, setWaitSeconds] = useState<number | null>(null);
 
   const note = notes ? exerciseNoteOn(notes, exerciseSlug) : null;
-  const isChanged = draft !== null && savedFormOf(draft) !== note;
+  // Only while the list is read: without it no editor shows.
+  const isChanged = !!notes && draft !== null && savedFormOf(draft) !== note;
 
   // A 429's wait: Save stays off until it's passed.
   useEffect(() => {
-    if (failure?.kind !== "rateLimited") {
+    if (waitSeconds === null) {
       return;
     }
 
     const timer = setTimeout(() => {
-      setFailure(null);
-    }, failure.seconds * 1000);
+      setWaitSeconds(null);
+    }, waitSeconds * 1000);
 
     return () => {
       clearTimeout(timer);
     };
-  }, [failure]);
+  }, [waitSeconds]);
 
   const askToDiscard = useCallback(
     (discard: () => void) => {
@@ -352,7 +371,7 @@ export const ExerciseNote = ({
   }, []);
 
   const save = useCallback(() => {
-    if (draft === null) {
+    if (draft === null || waitSeconds !== null) {
       return;
     }
 
@@ -362,7 +381,13 @@ export const ExerciseNote = ({
       {
         onError: (saveError) => {
           const shown = saveFailureOf(saveError);
-          setFailure(shown);
+
+          if (shown.kind === "rateLimited") {
+            setWaitSeconds(shown.seconds);
+          } else {
+            setFailure(shown);
+          }
+
           AccessibilityInfo.announceForAccessibility(
             shown.kind === "rateLimited"
               ? t("notes.spoken.rateLimited", { count: shown.seconds })
@@ -379,7 +404,7 @@ export const ExerciseNote = ({
         },
       }
     );
-  }, [draft, exerciseSlug, mutate, t]);
+  }, [draft, exerciseSlug, mutate, t, waitSeconds]);
 
   const retry = useCallback(() => {
     void refetch();
@@ -413,6 +438,7 @@ export const ExerciseNote = ({
         onCancel={cancel}
         onChange={changeDraft}
         onSave={save}
+        waitSeconds={waitSeconds}
       />
     );
   }

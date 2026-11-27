@@ -23,6 +23,15 @@ export interface SaveExerciseNoteData {
   note: string;
 }
 
+/** Code-unit order, as the API sorts slugs (never the locale's collation). */
+const bySlug = (a: string, b: string): number => {
+  if (a === b) {
+    return 0;
+  }
+
+  return a < b ? -1 : 1;
+};
+
 /**
  * The notes list with the saved note in place of the one on its Exercise, or
  * without it once cleared, in the API's order (by slug).
@@ -46,7 +55,7 @@ export const withSavedNote = (
       note: saved.note,
       updated_at: saved.updated_at,
     },
-  ].toSorted((a, b) => a.exercise_slug.localeCompare(b.exercise_slug));
+  ].toSorted((a, b) => bySlug(a.exercise_slug, b.exercise_slug));
 };
 
 const saveExerciseNote = async ({
@@ -100,13 +109,11 @@ export const useSaveExerciseNoteMutation = createMutation<
           queryKey,
         }));
 
+    // Not awaited: the save has landed whatever the analytics client does.
     if (isStillWriteStarter(starter)) {
-      await analytics.send(
-        saved.note === null ? "Note Cleared" : "Note Saved",
-        {
-          target: "exercise",
-        }
-      );
+      void analytics.send(saved.note === null ? "Note Cleared" : "Note Saved", {
+        target: "exercise",
+      });
     }
   },
 });
