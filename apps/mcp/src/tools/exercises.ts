@@ -11,7 +11,13 @@ import {
   withServices,
   withToolErrors,
 } from "./helpers.js";
-import { exerciseSlugSchema, requireLibrary } from "./library.js";
+import {
+  EXERCISE_NOTE_NOTE,
+  exerciseNoteFor,
+  exerciseSlugSchema,
+  lookupForRead,
+  requireLibrary,
+} from "./library.js";
 import { DEFAULT_PAGE_SIZE, MAX_PAGE_SIZE } from "./limits.js";
 
 const DEFAULT_HISTORY_LIMIT = 10;
@@ -88,20 +94,26 @@ export const registerExerciseTools = (server: McpServer, ctx: ToolContext) => {
     "get_exercise",
     {
       annotations: READ_ONLY,
-      description:
-        "Returns one Exercise from the Library by its slug, with its full details: the summary list_exercises gives (muscle groups, Equipment as ids, movement patterns, difficulty, thumbnail and video URLs; call list_equipment and list_muscle_groups for their names), plus `short_description`, `long_description`, the numbered `steps`, the `common_mistakes` and the `benefits`. A slug an Exercise had in the old Library answers the Exercise replacing it, under its own `slug`.",
+      description: `Returns one Exercise from the Library by its slug, with its full details: the summary list_exercises gives (muscle groups, Equipment as ids, movement patterns, difficulty, thumbnail and video URLs; call list_equipment and list_muscle_groups for their names), plus \`short_description\`, \`long_description\`, the numbered \`steps\`, the \`common_mistakes\` and the \`benefits\`. A slug an Exercise had in the old Library answers the Exercise replacing it, under its own \`slug\`. It also carries \`exercise_note\`. ${EXERCISE_NOTE_NOTE}`,
       inputSchema: { exerciseSlug: exerciseSlugSchema },
       title: "Get exercise",
     },
-    withToolErrors(ctx, async ({ exerciseSlug }) => {
+    withServices(ctx, async ({ exerciseSlug }, services) => {
       const library = await requireLibrary(ctx);
 
-      return asJson(
-        requireFound(
-          library.get(exerciseSlug),
-          `Exercise ${exerciseSlug} not found. Use list_exercises to look up valid Exercise slugs.`
-        )
+      const exercise = requireFound(
+        library.get(exerciseSlug),
+        `Exercise ${exerciseSlug} not found. Use list_exercises to look up valid Exercise slugs.`
       );
+
+      const notes = await services.listExerciseNotes();
+
+      const known = new Map([[exerciseSlug, exercise]]);
+
+      return asJson({
+        ...exercise,
+        exercise_note: exerciseNoteFor(exerciseSlug, known, notes),
+      });
     })
   );
 
@@ -109,7 +121,7 @@ export const registerExerciseTools = (server: McpServer, ctx: ToolContext) => {
     "get_exercise_history",
     {
       annotations: READ_ONLY,
-      description: `Returns the authenticated user's logged sets for one exercise (by its Exercise slug), newest workout session first. There is one entry per time the exercise appeared in a workout session (normally one per session; more if it was added to the same session twice), each with the session, workout and plan it belongs to. A set is included once its reps are logged, bodyweight sets included (those log no weight, so \`weight_completed\` is null); a set that was never logged is left out, and an entry left with no set is skipped. Each set also carries the targets it was given (\`reps_recommended\`, \`weight_recommended\`), both null for a set added during the session. \`limit\` counts entries, and \`total\` is how many the user has. ${WEIGHT_UNIT_NOTE}`,
+      description: `Returns the authenticated user's logged sets for one exercise (by its Exercise slug), newest workout session first. There is one entry per time the exercise appeared in a workout session (normally one per session; more if it was added to the same session twice), each with the session, workout and plan it belongs to. A set is included once its reps are logged, bodyweight sets included (those log no weight, so \`weight_completed\` is null); a set that was never logged is left out, and an entry left with no set is skipped. Each set also carries the targets it was given (\`reps_recommended\`, \`weight_recommended\`), both null for a set added during the session. \`limit\` counts entries, and \`total\` is how many the user has. ${EXERCISE_NOTE_NOTE} ${WEIGHT_UNIT_NOTE}`,
       inputSchema: {
         exerciseSlug: exerciseSlugSchema,
         limit: z
@@ -125,13 +137,25 @@ export const registerExerciseTools = (server: McpServer, ctx: ToolContext) => {
       title: "Get exercise history",
     },
     withServices(ctx, async ({ exerciseSlug, limit }, services) => {
-      const { entries, total } = await services.getExerciseHistory({
-        exerciseSlug,
-        limit,
-        offset: 0,
-      });
+      // The lookup never fails the read: without the Library, the note is
+      // the one under the slug asked for
+      const [
+        {
+          exerciseNotes,
+          value: { entries, total },
+        },
+        known,
+      ] = await Promise.all([
+        services.getExerciseHistory({ exerciseSlug, limit, offset: 0 }),
+        lookupForRead(ctx, [exerciseSlug]),
+      ]);
 
-      return asJson({ entries, exerciseSlug, total });
+      return asJson({
+        entries,
+        exercise_note: exerciseNoteFor(exerciseSlug, known, exerciseNotes),
+        exerciseSlug,
+        total,
+      });
     })
   );
 };
