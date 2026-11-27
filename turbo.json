@@ -28,6 +28,8 @@
         "MIN_APP_VERSION_*",
         "MCP_PUBLIC_URL",
         "OPENAI_APPS_CHALLENGE",
+        "POSTHOG_PERSONAL_API_KEY",
+        "POSTHOG_PROJECT_ID",
         "UPSTASH_*",
         // Nothing reads it: the Upstash integration sets it on `fitme-api`,
         // and a Secret Sync never deletes a key it doesn't own. It's here

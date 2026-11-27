@@ -17,6 +17,8 @@ describe("required environment variables", () => {
       "FITME_DATABASE_URL",
       "ARNOLD_URL",
       "ARNOLD_RESET_SECRET",
+      "POSTHOG_PERSONAL_API_KEY",
+      "POSTHOG_PROJECT_ID",
     ]);
     expect(report).toHaveBeenCalledTimes(missing.length);
   });
@@ -30,6 +32,8 @@ describe("required environment variables", () => {
         COACH_RESET_SECRET: "secret",
         COACH_URL: "https://coach.test",
         FITME_DATABASE_URL: "postgresql://test",
+        POSTHOG_PERSONAL_API_KEY: "phx_test",
+        POSTHOG_PROJECT_ID: "1",
         VERCEL_ENV: "production",
       },
       report,
