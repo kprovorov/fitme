@@ -31,7 +31,11 @@ import {
 } from "~/test-utils/fake-public-api";
 import { fakeRevenueCat } from "~/test-utils/fake-revenuecat";
 import { InAppLanguage } from "~/test-utils/in-app-language";
-import { createTestQueryClient, settle } from "~/test-utils/query-client";
+import {
+  createTestQueryClient,
+  settle,
+  until,
+} from "~/test-utils/query-client";
 import { pushedRoutes, resetStubRouter } from "~/test-utils/router-stub";
 
 const mockPresentPaywall = jest.fn();
@@ -409,7 +413,14 @@ describe.each(LANGUAGES)("My Plans (%s)", (language) => {
     expect(screen.getByText(text.loadError)).toBeTruthy();
     expect(screen.getByText(text.checkConnection)).toBeTruthy();
 
+    const resume = fakePublicApi.pause(PLANS);
     await fireEvent.press(screen.getByRole("button", { name: text.tryAgain }));
+
+    // The retry shows the skeleton, not the error it's answering.
+    await until(() => screen.queryByLabelText(text.loading) !== null);
+    expect(screen.queryByText(text.loadError)).toBeNull();
+
+    resume();
     await settle(client);
 
     expect(screen.queryByText(text.loadError)).toBeNull();

@@ -144,6 +144,8 @@ const NoPlans = () => {
 
 interface MyPlansViewProps {
   error: unknown;
+  /** Whether a read is on its way, so Try Again shows the skeleton. */
+  isFetching: boolean;
   onRetry: () => void;
   /** The Plans read, newest first, or `undefined` before any read landed. */
   plans: PlanSummary[] | undefined;
@@ -153,9 +155,14 @@ interface MyPlansViewProps {
  * My Plans with the Plans redesign (Figma's Plans Redesign frames). The
  * Plans read win over a failure, so a failed refresh keeps them shown; with
  * none read a failure is the load error (the wait for a 429) with Try Again,
- * and otherwise the skeleton shows until they arrive.
+ * and otherwise (Try Again included) the skeleton shows until they arrive.
  */
-export const MyPlansView = ({ error, onRetry, plans }: MyPlansViewProps) => {
+export const MyPlansView = ({
+  error,
+  isFetching,
+  onRetry,
+  plans,
+}: MyPlansViewProps) => {
   const { t } = useTranslation();
   const router = useRouter();
 
@@ -165,7 +172,7 @@ export const MyPlansView = ({ error, onRetry, plans }: MyPlansViewProps) => {
   );
 
   if (!plans) {
-    if (error) {
+    if (error && !isFetching) {
       const waitSeconds = rateLimitedFor(error);
 
       return (

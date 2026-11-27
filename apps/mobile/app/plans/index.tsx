@@ -74,7 +74,7 @@ const LegacyPlansScreen = () => {
  * read. Pulling to refresh shows its own spinner, never the skeleton.
  */
 const MyPlansScreen = () => {
-  const { data: plans, error, refetch } = usePlanSummariesQuery();
+  const { data: plans, error, isFetching, refetch } = usePlanSummariesQuery();
   const [isRefreshing, setIsRefreshing] = useState(false);
 
   const onRefresh = useCallback(async () => {
@@ -100,7 +100,12 @@ const MyPlansScreen = () => {
         }
         testID="plans-screen"
       >
-        <MyPlansView error={error} onRetry={retry} plans={plans} />
+        <MyPlansView
+          error={error}
+          isFetching={isFetching}
+          onRetry={retry}
+          plans={plans}
+        />
       </ScrollView>
     </>
   );
