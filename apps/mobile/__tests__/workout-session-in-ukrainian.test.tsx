@@ -258,6 +258,36 @@ describe("an open Workout Session in Ukrainian", () => {
     expect(screen.getByText("12×60кг")).toBeTruthy();
   });
 
+  it("says what each set's second cell is to VoiceOver in Ukrainian", async () => {
+    // Last time: Squat 12 × 60 kg, then one at bodyweight; Lunge never done,
+    // its set with no target.
+    backend.seed({
+      exercises: [{ name: "Squat", sets: [12, 8] }],
+      finished: true,
+      id: "last",
+      startedAt: "2026-10-01T10:00:00.000Z",
+    });
+    Object.assign(backend.sets.find(({ id }) => id === "last-e1-s1") ?? {}, {
+      weight_completed: 60,
+    });
+    Object.assign(backend.sets.find(({ id }) => id === "s1-e2-s1") ?? {}, {
+      reps_recommended: null,
+    });
+    await renderSession();
+
+    expect(
+      screen.getByLabelText("Попередній: 12 повторень по 60 кг")
+    ).toBeTruthy();
+    expect(screen.getByLabelText("Попередній: 8 повторень")).toBeTruthy();
+    expect(screen.getByLabelText("Немає попереднього підходу")).toBeTruthy();
+  });
+
+  it("says a set's target to VoiceOver in Ukrainian", async () => {
+    await renderSession();
+
+    expect(screen.getAllByLabelText("Ціль: 10 повторень")).toHaveLength(3);
+  });
+
   it.each(failures)(
     "says why removing, replacing or adding an Exercise failed (%j)",
     async (failure, message) => {

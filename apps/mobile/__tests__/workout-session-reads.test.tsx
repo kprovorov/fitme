@@ -1145,6 +1145,31 @@ describe("the set tables' Previous sets", () => {
     expect(screen.getByText("10×105kg")).toBeTruthy();
   });
 
+  it("says what each second cell is to VoiceOver", async () => {
+    seedToday();
+    await mountSession();
+
+    expect(screen.getByLabelText("Previous: 12 reps at 45 kg")).toBeTruthy();
+    expect(screen.getByLabelText("Target: 10 reps at 105 kg")).toBeTruthy();
+    expect(screen.getByLabelText("Target: 10 reps at 110 kg")).toBeTruthy();
+    // A bodyweight Previous set is spoken as reps only.
+    expect(screen.getByLabelText("Previous: 8 reps")).toBeTruthy();
+    expect(screen.getByLabelText("Target: 5 reps at 140 kg")).toBeTruthy();
+    expect(screen.getByLabelText("No previous set")).toBeTruthy();
+  });
+
+  it("says what each second cell is on the Workout Session Exercise screen", async () => {
+    seedToday();
+    await mountExercise("s1-e3");
+
+    expect(screen.getByLabelText("Target: 5 reps at 140 kg")).toBeTruthy();
+    expect(screen.getByLabelText("No previous set")).toBeTruthy();
+
+    await screen.unmount();
+    await mountExercise("s1-e1");
+    expect(screen.getByLabelText("Previous: 12 reps at 45 kg")).toBeTruthy();
+  });
+
   it("heads the column target on the Exercise screen of a first time", async () => {
     seedToday();
     await mountExercise("s1-e3");
