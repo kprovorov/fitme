@@ -29,6 +29,21 @@ jest.mock("~/lib/clerk", () => ({
     ).FAKE_USER_ID,
 }));
 
+// My Plans offers the Create Plan tiles (behind the Plans redesign flag),
+// whose Ask Arnold presents the paywall: an ESM module Jest can't load.
+jest.mock(
+  "react-native-purchases",
+  () =>
+    jest.requireActual<typeof import("~/test-utils/fake-revenuecat")>(
+      "~/test-utils/fake-revenuecat"
+    ).purchasesModule
+);
+
+jest.mock("react-native-purchases-ui", () => ({
+  __esModule: true,
+  default: { presentPaywall: jest.fn() },
+}));
+
 jest.mock("~/components/symbol-image", () => ({ SymbolImage: () => null }));
 
 jest.mock("~/components/ui/button", () =>

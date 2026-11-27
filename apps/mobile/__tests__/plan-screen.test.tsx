@@ -97,6 +97,13 @@ jest.mock("~/hooks/revenueCat", () => ({
   useIsProQuery: () => ({ data: false }),
 }));
 
+// My Plans offers the Create Plan tiles (behind the Plans redesign flag),
+// whose Ask Arnold presents the paywall: an ESM module Jest can't load.
+jest.mock("react-native-purchases-ui", () => ({
+  __esModule: true,
+  default: { presentPaywall: jest.fn() },
+}));
+
 jest.mock("~/components/symbol-image", () => ({ SymbolImage: () => null }));
 
 jest.mock("~/components/ui/button", () =>

@@ -823,6 +823,7 @@
     "otherPlans": "その他のプラン",
     "moreOptions": "その他のオプション",
     "activating": "プランを有効にしています",
+    "loading": "プランを読み込み中",
     "more": "+{{count, number}}",
     "moreWorkoutsSpoken_other": "ほか{{count, number}}ワークアウト",
     "moreExercisesSpoken_other": "ほか{{count, number}}種目",

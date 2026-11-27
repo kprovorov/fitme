@@ -823,6 +823,7 @@
     "otherPlans": "其他計畫",
     "moreOptions": "更多選項",
     "activating": "正在啟用計畫",
+    "loading": "正在載入計畫",
     "more": "+{{count, number}}",
     "moreWorkoutsSpoken_other": "以及另外{{count, number}}項訓練",
     "moreExercisesSpoken_other": "以及另外{{count, number}}個動作",

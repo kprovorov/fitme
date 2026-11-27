@@ -823,6 +823,7 @@
     "otherPlans": "다른 계획",
     "moreOptions": "옵션 더 보기",
     "activating": "계획 활성화 중",
+    "loading": "계획을 불러오는 중",
     "more": "+{{count, number}}",
     "moreWorkoutsSpoken_other": "외 운동 {{count, number}}개",
     "moreExercisesSpoken_other": "외 종목 {{count, number}}개",

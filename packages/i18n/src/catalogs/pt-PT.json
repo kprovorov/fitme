@@ -877,6 +877,7 @@
     "otherPlans": "Outros planos",
     "moreOptions": "Mais opções",
     "activating": "A ativar o plano",
+    "loading": "A carregar os planos",
     "more": "+{{count, number}}",
     "moreWorkoutsSpoken_one": "e mais {{count, number}} treino",
     "moreWorkoutsSpoken_many": "e mais {{count, number}} treinos",
