@@ -448,7 +448,8 @@
     "title": "Progressi",
     "loadError": "Impossibile caricare la cronologia di questo esercizio. Controlla la connessione e riprova.",
     "set": "Serie {{order, number}}: {{logged}}",
-    "target": "Obiettivo {{target}}"
+    "target": "Obiettivo {{target}}",
+    "setWithNote": "Serie {{order, number}}: {{logged}}. Nota: {{note}}"
   },
   "finishWorkout": {
     "confirm": {
@@ -649,6 +650,57 @@
     "title": "Ops!",
     "description": "Questa schermata non esiste.",
     "goHome": "Vai alla schermata iniziale"
+  },
+  "notes": {
+    "label": "Nota",
+    "add": "Aggiungi nota",
+    "edit": "Modifica",
+    "save": "Salva",
+    "saving": "Salvataggio…",
+    "cancel": "Annulla",
+    "placeholder": {
+      "exercise": "Regolazioni, spunti, tutto ciò da ricordare",
+      "set": "Com'è andata questa serie?"
+    },
+    "counter": "{{length, number}}/{{max, number}}",
+    "limitReached": "Limite di caratteri raggiunto",
+    "errors": {
+      "load": "Impossibile caricare la tua nota.",
+      "loadAll": "Impossibile caricare le tue note.",
+      "save": "Impossibile salvare la tua nota. Riprova.",
+      "rateLimited": "Troppi salvataggi. Riprova tra {{seconds, number}} s.",
+      "setGone": "Questa serie non è più nel tuo allenamento.",
+      "setNotLogged": "Registra questa serie prima di aggiungere una nota.",
+      "unknownExercise": "Questo esercizio non è più nella libreria, quindi la sua nota non può essere salvata.",
+      "libraryUnavailable": "Impossibile verificare questo esercizio adesso. Riprova tra poco."
+    },
+    "discard": {
+      "title": "Eliminare la nota?",
+      "message": "Quello che hai scritto qui non verrà salvato.",
+      "discard": "Elimina",
+      "keepEditing": "Continua a modificare"
+    },
+    "spoken": {
+      "add": "Aggiungi nota per {{exercise}}",
+      "edit": "Modifica nota per {{exercise}}",
+      "exerciseNote": "Nota per {{exercise}}: {{note}}",
+      "editHint": "Apre la nota per modificarla",
+      "exerciseField": "Nota per {{exercise}}",
+      "setField": "Nota della serie {{order, number}}",
+      "setNote": "Nota della serie {{order, number}}: {{note}}",
+      "editSetNoteHint": "Apre la nota della serie {{order, number}} per modificarla",
+      "save": "Salva nota",
+      "saving": "Salvataggio della nota",
+      "cancel": "Annulla modifica",
+      "counter": "{{length, number}} caratteri su {{max, number}}",
+      "limitReached": "Limite di caratteri raggiunto. {{max, number}} su {{max, number}}.",
+      "rateLimited_one": "Troppi salvataggi. Riprova tra {{count, number}} secondo.",
+      "rateLimited_many": "Troppi salvataggi. Riprova tra {{count, number}} di secondi.",
+      "rateLimited_other": "Troppi salvataggi. Riprova tra {{count, number}} secondi.",
+      "saved": "Nota salvata",
+      "cleared": "Nota cancellata",
+      "retryHint": "Ricarica la nota dell'esercizio e le note delle serie"
+    }
   },
   "onboarding": {
     "welcome": {
@@ -1050,7 +1102,9 @@
       "edit": "Modifica serie {{order, number}}",
       "editHint": "Apre la serie per modificarla",
       "remove": "Rimuovi serie {{order, number}}",
-      "logged": "Serie {{order, number}}, registrata"
+      "logged": "Serie {{order, number}}, registrata",
+      "more": "Altre azioni per la serie {{order, number}}",
+      "loggedWithNote": "Serie {{order, number}}, registrata. {{result}}. Nota: {{note}}"
     },
     "errors": {
       "save": "Impossibile salvare questa serie. Riprova.",
@@ -1089,6 +1143,11 @@
       "skip": "Salta",
       "skipRest": "Salta recupero",
       "over": "Recupero terminato"
+    },
+    "menu": {
+      "editSet": "Modifica serie",
+      "addNote": "Aggiungi nota",
+      "editNote": "Modifica nota"
     }
   },
   "spokenCompactUnits": {

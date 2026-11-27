@@ -420,7 +420,8 @@
     "title": "進捗",
     "loadError": "この種目の履歴を読み込めませんでした。接続を確認して、もう一度お試しください。",
     "set": "セット{{order, number}}：{{logged}}",
-    "target": "目標 {{target}}"
+    "target": "目標 {{target}}",
+    "setWithNote": "セット{{order, number}}：{{logged}}。メモ：{{note}}"
   },
   "finishWorkout": {
     "confirm": {
@@ -607,6 +608,55 @@
     "title": "おっと！",
     "description": "この画面は存在しません。",
     "goHome": "ホーム画面へ"
+  },
+  "notes": {
+    "label": "メモ",
+    "add": "メモを追加",
+    "edit": "編集",
+    "save": "保存",
+    "saving": "保存中…",
+    "cancel": "キャンセル",
+    "placeholder": {
+      "exercise": "セッティングやコツなど、覚えておきたいこと",
+      "set": "このセットはどうでしたか？"
+    },
+    "counter": "{{length, number}}/{{max, number}}",
+    "limitReached": "文字数の上限に達しました",
+    "errors": {
+      "load": "メモを読み込めませんでした。",
+      "loadAll": "メモを読み込めませんでした。",
+      "save": "メモを保存できませんでした。もう一度お試しください。",
+      "rateLimited": "保存の回数が多すぎます。{{seconds, number}}秒後にもう一度お試しください。",
+      "setGone": "このセットはもうワークアウトにありません。",
+      "setNotLogged": "メモを追加する前に、このセットを記録してください。",
+      "unknownExercise": "この種目はライブラリにないため、メモを保存できません。",
+      "libraryUnavailable": "今はこの種目を確認できませんでした。しばらくしてからもう一度お試しください。"
+    },
+    "discard": {
+      "title": "メモを破棄しますか？",
+      "message": "ここに書いた内容は保存されません。",
+      "discard": "破棄",
+      "keepEditing": "編集を続ける"
+    },
+    "spoken": {
+      "add": "{{exercise}}にメモを追加",
+      "edit": "{{exercise}}のメモを編集",
+      "exerciseNote": "{{exercise}}のメモ：{{note}}",
+      "editHint": "メモを開いて編集します",
+      "exerciseField": "{{exercise}}のメモ",
+      "setField": "セット{{order, number}}のメモ",
+      "setNote": "セット{{order, number}}のメモ：{{note}}",
+      "editSetNoteHint": "セット{{order, number}}のメモを開いて編集します",
+      "save": "メモを保存",
+      "saving": "メモを保存中",
+      "cancel": "編集をキャンセル",
+      "counter": "{{max, number}}文字中{{length, number}}文字",
+      "limitReached": "文字数の上限に達しました。{{max, number}}文字中{{max, number}}文字。",
+      "rateLimited_other": "保存の回数が多すぎます。{{count, number}}秒後にもう一度お試しください。",
+      "saved": "メモを保存しました",
+      "cleared": "メモを削除しました",
+      "retryHint": "種目のメモとセットのメモを読み込み直します"
+    }
   },
   "onboarding": {
     "welcome": {
@@ -982,7 +1032,9 @@
       "edit": "セット{{order, number}}を編集",
       "editHint": "セットの編集画面を開きます",
       "remove": "セット{{order, number}}を削除",
-      "logged": "セット{{order, number}}、記録済み"
+      "logged": "セット{{order, number}}、記録済み",
+      "more": "セット{{order, number}}のその他の操作",
+      "loggedWithNote": "セット{{order, number}}、記録済み。{{result}}。メモ：{{note}}"
     },
     "errors": {
       "save": "このセットを保存できませんでした。もう一度お試しください。",
@@ -1015,6 +1067,11 @@
       "skip": "スキップ",
       "skipRest": "休憩をスキップ",
       "over": "休憩終了"
+    },
+    "menu": {
+      "editSet": "セットを編集",
+      "addNote": "メモを追加",
+      "editNote": "メモを編集"
     }
   },
   "spokenCompactUnits": {

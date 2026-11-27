@@ -448,7 +448,8 @@
     "title": "Progreso",
     "loadError": "No se pudo cargar el historial de este ejercicio. Comprueba tu conexión e inténtalo de nuevo.",
     "set": "Serie {{order, number}}: {{logged}}",
-    "target": "Objetivo {{target}}"
+    "target": "Objetivo {{target}}",
+    "setWithNote": "Serie {{order, number}}: {{logged}}. Nota: {{note}}"
   },
   "finishWorkout": {
     "confirm": {
@@ -649,6 +650,57 @@
     "title": "Vaya",
     "description": "Esta pantalla no existe.",
     "goHome": "Ir a la pantalla de inicio"
+  },
+  "notes": {
+    "label": "Nota",
+    "add": "Añadir nota",
+    "edit": "Editar",
+    "save": "Guardar",
+    "saving": "Guardando…",
+    "cancel": "Cancelar",
+    "placeholder": {
+      "exercise": "Ajustes, claves, lo que quieras recordar",
+      "set": "¿Qué tal ha ido esta serie?"
+    },
+    "counter": "{{length, number}}/{{max, number}}",
+    "limitReached": "Límite de caracteres alcanzado",
+    "errors": {
+      "load": "No se ha podido cargar tu nota.",
+      "loadAll": "No se han podido cargar tus notas.",
+      "save": "No se ha podido guardar tu nota. Inténtalo de nuevo.",
+      "rateLimited": "Demasiados guardados. Inténtalo de nuevo en {{seconds, number}} s.",
+      "setGone": "Esta serie ya no está en tu entrenamiento.",
+      "setNotLogged": "Registra esta serie antes de añadir una nota.",
+      "unknownExercise": "Este ejercicio ya no está en la biblioteca, así que su nota no se puede guardar.",
+      "libraryUnavailable": "Ahora no se ha podido comprobar este ejercicio. Inténtalo de nuevo en un momento."
+    },
+    "discard": {
+      "title": "¿Descartar la nota?",
+      "message": "Lo que has escrito aquí no se guardará.",
+      "discard": "Descartar",
+      "keepEditing": "Seguir editando"
+    },
+    "spoken": {
+      "add": "Añadir nota a {{exercise}}",
+      "edit": "Editar nota de {{exercise}}",
+      "exerciseNote": "Nota de {{exercise}}: {{note}}",
+      "editHint": "Abre la nota para editarla",
+      "exerciseField": "Nota de {{exercise}}",
+      "setField": "Nota de la serie {{order, number}}",
+      "setNote": "Nota de la serie {{order, number}}: {{note}}",
+      "editSetNoteHint": "Abre la nota de la serie {{order, number}} para editarla",
+      "save": "Guardar nota",
+      "saving": "Guardando nota",
+      "cancel": "Cancelar edición",
+      "counter": "{{length, number}} de {{max, number}} caracteres",
+      "limitReached": "Límite de caracteres alcanzado. {{max, number}} de {{max, number}}.",
+      "rateLimited_one": "Demasiados guardados. Inténtalo de nuevo en {{count, number}} segundo.",
+      "rateLimited_many": "Demasiados guardados. Inténtalo de nuevo en {{count, number}} de segundos.",
+      "rateLimited_other": "Demasiados guardados. Inténtalo de nuevo en {{count, number}} segundos.",
+      "saved": "Nota guardada",
+      "cleared": "Nota borrada",
+      "retryHint": "Vuelve a cargar la nota del ejercicio y las notas de las series"
+    }
   },
   "onboarding": {
     "welcome": {
@@ -1050,7 +1102,9 @@
       "edit": "Editar serie {{order, number}}",
       "editHint": "Abre la serie para editarla",
       "remove": "Quitar serie {{order, number}}",
-      "logged": "Serie {{order, number}}, registrada"
+      "logged": "Serie {{order, number}}, registrada",
+      "more": "Más acciones de la serie {{order, number}}",
+      "loggedWithNote": "Serie {{order, number}}, registrada. {{result}}. Nota: {{note}}"
     },
     "errors": {
       "save": "No se ha podido guardar esta serie. Inténtalo de nuevo.",
@@ -1089,6 +1143,11 @@
       "skip": "Omitir",
       "skipRest": "Omitir descanso",
       "over": "Descanso terminado"
+    },
+    "menu": {
+      "editSet": "Editar serie",
+      "addNote": "Añadir nota",
+      "editNote": "Editar nota"
     }
   },
   "spokenCompactUnits": {

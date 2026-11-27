@@ -434,7 +434,8 @@
     "title": "Progress",
     "loadError": "Couldn't load this exercise's history. Check your connection and try again.",
     "set": "Set {{order, number}}: {{logged}}",
-    "target": "Target {{target}}"
+    "target": "Target {{target}}",
+    "setWithNote": "Set {{order, number}}: {{logged}}. Note: {{note}}"
   },
   "finishWorkout": {
     "confirm": {
@@ -628,6 +629,56 @@
     "title": "Oops!",
     "description": "This screen doesn't exist.",
     "goHome": "Go to home screen"
+  },
+  "notes": {
+    "label": "Note",
+    "add": "Add Note",
+    "edit": "Edit",
+    "save": "Save",
+    "saving": "Saving…",
+    "cancel": "Cancel",
+    "placeholder": {
+      "exercise": "Setup, cues, anything to remember",
+      "set": "How did this set go?"
+    },
+    "counter": "{{length, number}}/{{max, number}}",
+    "limitReached": "Character limit reached",
+    "errors": {
+      "load": "Couldn't load your note.",
+      "loadAll": "Couldn't load your notes.",
+      "save": "Couldn't save your note. Try again.",
+      "rateLimited": "Too many saves. Try again in {{seconds, number}} s.",
+      "setGone": "This set isn't in your workout any more.",
+      "setNotLogged": "Log this set before adding a note.",
+      "unknownExercise": "This exercise isn't in the library any more, so its note can't be saved.",
+      "libraryUnavailable": "Couldn't check this exercise right now. Try again in a moment."
+    },
+    "discard": {
+      "title": "Discard your note?",
+      "message": "What you've written here won't be saved.",
+      "discard": "Discard",
+      "keepEditing": "Keep Editing"
+    },
+    "spoken": {
+      "add": "Add note for {{exercise}}",
+      "edit": "Edit note for {{exercise}}",
+      "exerciseNote": "Note for {{exercise}}: {{note}}",
+      "editHint": "Opens the note for editing",
+      "exerciseField": "Note for {{exercise}}",
+      "setField": "Note for set {{order, number}}",
+      "setNote": "Note on set {{order, number}}: {{note}}",
+      "editSetNoteHint": "Opens the note on set {{order, number}} for editing",
+      "save": "Save note",
+      "saving": "Saving note",
+      "cancel": "Cancel editing",
+      "counter": "{{length, number}} of {{max, number}} characters",
+      "limitReached": "Character limit reached. {{max, number}} of {{max, number}}.",
+      "rateLimited_one": "Too many saves. Try again in {{count, number}} second.",
+      "rateLimited_other": "Too many saves. Try again in {{count, number}} seconds.",
+      "saved": "Note saved",
+      "cleared": "Note cleared",
+      "retryHint": "Loads the exercise note and the set notes again"
+    }
   },
   "onboarding": {
     "welcome": {
@@ -1016,7 +1067,9 @@
       "edit": "Edit set {{order, number}}",
       "editHint": "Opens the set for editing",
       "remove": "Remove set {{order, number}}",
-      "logged": "Set {{order, number}}, logged"
+      "logged": "Set {{order, number}}, logged",
+      "more": "More actions for set {{order, number}}",
+      "loggedWithNote": "Set {{order, number}}, logged. {{result}}. Note: {{note}}"
     },
     "errors": {
       "save": "Couldn't save this set. Try again.",
@@ -1052,6 +1105,11 @@
       "skip": "Skip",
       "skipRest": "Skip rest",
       "over": "Rest over"
+    },
+    "menu": {
+      "editSet": "Edit Set",
+      "addNote": "Add Note",
+      "editNote": "Edit Note"
     }
   },
   "spokenCompactUnits": {

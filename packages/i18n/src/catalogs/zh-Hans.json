@@ -420,7 +420,8 @@
     "title": "进步记录",
     "loadError": "无法加载此动作的历史记录。请检查网络连接后重试。",
     "set": "第{{order, number}}组：{{logged}}",
-    "target": "目标：{{target}}"
+    "target": "目标：{{target}}",
+    "setWithNote": "第 {{order, number}} 组：{{logged}}。备注：{{note}}"
   },
   "finishWorkout": {
     "confirm": {
@@ -607,6 +608,55 @@
     "title": "出错了！",
     "description": "此页面不存在。",
     "goHome": "返回首页"
+  },
+  "notes": {
+    "label": "备注",
+    "add": "添加备注",
+    "edit": "编辑",
+    "save": "保存",
+    "saving": "正在保存…",
+    "cancel": "取消",
+    "placeholder": {
+      "exercise": "器械设置、动作要领等需要记住的内容",
+      "set": "这组感觉怎么样？"
+    },
+    "counter": "{{length, number}}/{{max, number}}",
+    "limitReached": "已达到字数上限",
+    "errors": {
+      "load": "无法加载你的备注。",
+      "loadAll": "无法加载你的备注。",
+      "save": "无法保存你的备注。请重试。",
+      "rateLimited": "保存次数过多。请在 {{seconds, number}} 秒后重试。",
+      "setGone": "这一组已不在你的训练中。",
+      "setNotLogged": "请先记录这一组，再添加备注。",
+      "unknownExercise": "这个动作已不在动作库中，因此无法保存它的备注。",
+      "libraryUnavailable": "暂时无法检查这个动作。请稍后重试。"
+    },
+    "discard": {
+      "title": "要放弃这条备注吗？",
+      "message": "你在这里写的内容不会被保存。",
+      "discard": "放弃",
+      "keepEditing": "继续编辑"
+    },
+    "spoken": {
+      "add": "为{{exercise}}添加备注",
+      "edit": "编辑{{exercise}}的备注",
+      "exerciseNote": "{{exercise}}的备注：{{note}}",
+      "editHint": "打开备注进行编辑",
+      "exerciseField": "{{exercise}}的备注",
+      "setField": "第 {{order, number}} 组的备注",
+      "setNote": "第 {{order, number}} 组的备注：{{note}}",
+      "editSetNoteHint": "打开第 {{order, number}} 组的备注进行编辑",
+      "save": "保存备注",
+      "saving": "正在保存备注",
+      "cancel": "取消编辑",
+      "counter": "{{length, number}} 个字符，共 {{max, number}} 个",
+      "limitReached": "已达到字数上限。{{max, number}} 个字符，共 {{max, number}} 个。",
+      "rateLimited_other": "保存次数过多。请在 {{count, number}} 秒后重试。",
+      "saved": "备注已保存",
+      "cleared": "备注已清除",
+      "retryHint": "重新加载动作备注和各组备注"
+    }
   },
   "onboarding": {
     "welcome": {
@@ -982,7 +1032,9 @@
       "edit": "编辑第{{order, number}}组",
       "editHint": "打开此组进行编辑",
       "remove": "移除第{{order, number}}组",
-      "logged": "第{{order, number}}组，已记录"
+      "logged": "第{{order, number}}组，已记录",
+      "more": "第 {{order, number}} 组的更多操作",
+      "loggedWithNote": "第 {{order, number}} 组，已记录。{{result}}。备注：{{note}}"
     },
     "errors": {
       "save": "无法保存此组，请重试。",
@@ -1015,6 +1067,11 @@
       "skip": "跳过",
       "skipRest": "跳过休息",
       "over": "休息结束"
+    },
+    "menu": {
+      "editSet": "编辑组",
+      "addNote": "添加备注",
+      "editNote": "编辑备注"
     }
   },
   "spokenCompactUnits": {

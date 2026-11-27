@@ -448,7 +448,8 @@
     "title": "Progression",
     "loadError": "Impossible de charger l'historique de cet exercice. Vérifie ta connexion et réessaie.",
     "set": "Série {{order, number}} : {{logged}}",
-    "target": "Objectif {{target}}"
+    "target": "Objectif {{target}}",
+    "setWithNote": "Série {{order, number}} : {{logged}}. Note : {{note}}"
   },
   "finishWorkout": {
     "confirm": {
@@ -649,6 +650,57 @@
     "title": "Oups !",
     "description": "Cet écran n'existe pas.",
     "goHome": "Aller à l'écran d'accueil"
+  },
+  "notes": {
+    "label": "Note",
+    "add": "Ajouter une note",
+    "edit": "Modifier",
+    "save": "Enregistrer",
+    "saving": "Enregistrement…",
+    "cancel": "Annuler",
+    "placeholder": {
+      "exercise": "Réglages, repères, tout ce qu'il faut retenir",
+      "set": "Comment s'est passée cette série ?"
+    },
+    "counter": "{{length, number}}/{{max, number}}",
+    "limitReached": "Limite de caractères atteinte",
+    "errors": {
+      "load": "Impossible de charger ta note.",
+      "loadAll": "Impossible de charger tes notes.",
+      "save": "Impossible d'enregistrer ta note. Réessaie.",
+      "rateLimited": "Trop d'enregistrements. Réessaie dans {{seconds, number}} s.",
+      "setGone": "Cette série ne fait plus partie de ta séance.",
+      "setNotLogged": "Enregistre cette série avant d'y ajouter une note.",
+      "unknownExercise": "Cet exercice n'est plus dans la bibliothèque, sa note ne peut donc pas être enregistrée.",
+      "libraryUnavailable": "Impossible de vérifier cet exercice pour le moment. Réessaie dans un instant."
+    },
+    "discard": {
+      "title": "Abandonner la note ?",
+      "message": "Ce que tu as écrit ici ne sera pas enregistré.",
+      "discard": "Abandonner",
+      "keepEditing": "Continuer"
+    },
+    "spoken": {
+      "add": "Ajouter une note pour {{exercise}}",
+      "edit": "Modifier la note pour {{exercise}}",
+      "exerciseNote": "Note pour {{exercise}} : {{note}}",
+      "editHint": "Ouvre la note pour la modifier",
+      "exerciseField": "Note pour {{exercise}}",
+      "setField": "Note de la série {{order, number}}",
+      "setNote": "Note de la série {{order, number}} : {{note}}",
+      "editSetNoteHint": "Ouvre la note de la série {{order, number}} pour la modifier",
+      "save": "Enregistrer la note",
+      "saving": "Enregistrement de la note",
+      "cancel": "Annuler la modification",
+      "counter": "{{length, number}} caractères sur {{max, number}}",
+      "limitReached": "Limite de caractères atteinte. {{max, number}} sur {{max, number}}.",
+      "rateLimited_one": "Trop d'enregistrements. Réessaie dans {{count, number}} seconde.",
+      "rateLimited_many": "Trop d'enregistrements. Réessaie dans {{count, number}} de secondes.",
+      "rateLimited_other": "Trop d'enregistrements. Réessaie dans {{count, number}} secondes.",
+      "saved": "Note enregistrée",
+      "cleared": "Note effacée",
+      "retryHint": "Recharge la note de l'exercice et les notes des séries"
+    }
   },
   "onboarding": {
     "welcome": {
@@ -1050,7 +1102,9 @@
       "edit": "Modifier la série {{order, number}}",
       "editHint": "Ouvre la série pour la modifier",
       "remove": "Retirer la série {{order, number}}",
-      "logged": "Série {{order, number}}, enregistrée"
+      "logged": "Série {{order, number}}, enregistrée",
+      "more": "Plus d'actions pour la série {{order, number}}",
+      "loggedWithNote": "Série {{order, number}}, enregistrée. {{result}}. Note : {{note}}"
     },
     "errors": {
       "save": "Impossible d'enregistrer cette série. Réessaie.",
@@ -1089,6 +1143,11 @@
       "skip": "Passer",
       "skipRest": "Passer le repos",
       "over": "Repos terminé"
+    },
+    "menu": {
+      "editSet": "Modifier la série",
+      "addNote": "Ajouter une note",
+      "editNote": "Modifier la note"
     }
   },
   "spokenCompactUnits": {

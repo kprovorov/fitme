@@ -420,7 +420,8 @@
     "title": "進步紀錄",
     "loadError": "無法載入此動作的歷史紀錄。請檢查網路連線後再試一次。",
     "set": "第{{order, number}}組：{{logged}}",
-    "target": "目標：{{target}}"
+    "target": "目標：{{target}}",
+    "setWithNote": "第 {{order, number}} 組：{{logged}}。備註：{{note}}"
   },
   "finishWorkout": {
     "confirm": {
@@ -607,6 +608,55 @@
     "title": "出錯了！",
     "description": "此頁面不存在。",
     "goHome": "返回首頁"
+  },
+  "notes": {
+    "label": "備註",
+    "add": "新增備註",
+    "edit": "編輯",
+    "save": "儲存",
+    "saving": "正在儲存…",
+    "cancel": "取消",
+    "placeholder": {
+      "exercise": "器材設定、動作要領等需要記住的內容",
+      "set": "這組感覺如何？"
+    },
+    "counter": "{{length, number}}/{{max, number}}",
+    "limitReached": "已達字數上限",
+    "errors": {
+      "load": "無法載入你的備註。",
+      "loadAll": "無法載入你的備註。",
+      "save": "無法儲存你的備註。請再試一次。",
+      "rateLimited": "儲存次數過多。請在 {{seconds, number}} 秒後再試一次。",
+      "setGone": "這一組已不在你的訓練中。",
+      "setNotLogged": "請先記錄這一組，再新增備註。",
+      "unknownExercise": "這個動作已不在動作庫中，因此無法儲存它的備註。",
+      "libraryUnavailable": "目前無法檢查這個動作。請稍後再試一次。"
+    },
+    "discard": {
+      "title": "要放棄這則備註嗎？",
+      "message": "你在這裡寫的內容不會被儲存。",
+      "discard": "放棄",
+      "keepEditing": "繼續編輯"
+    },
+    "spoken": {
+      "add": "為{{exercise}}新增備註",
+      "edit": "編輯{{exercise}}的備註",
+      "exerciseNote": "{{exercise}}的備註：{{note}}",
+      "editHint": "開啟備註進行編輯",
+      "exerciseField": "{{exercise}}的備註",
+      "setField": "第 {{order, number}} 組的備註",
+      "setNote": "第 {{order, number}} 組的備註：{{note}}",
+      "editSetNoteHint": "開啟第 {{order, number}} 組的備註進行編輯",
+      "save": "儲存備註",
+      "saving": "正在儲存備註",
+      "cancel": "取消編輯",
+      "counter": "{{length, number}} 個字元，共 {{max, number}} 個",
+      "limitReached": "已達字數上限。{{max, number}} 個字元，共 {{max, number}} 個。",
+      "rateLimited_other": "儲存次數過多。請在 {{count, number}} 秒後再試一次。",
+      "saved": "備註已儲存",
+      "cleared": "備註已清除",
+      "retryHint": "重新載入動作備註和各組備註"
+    }
   },
   "onboarding": {
     "welcome": {
@@ -982,7 +1032,9 @@
       "edit": "編輯第{{order, number}}組",
       "editHint": "開啟此組進行編輯",
       "remove": "移除第{{order, number}}組",
-      "logged": "第{{order, number}}組，已紀錄"
+      "logged": "第{{order, number}}組，已紀錄",
+      "more": "第 {{order, number}} 組的更多動作",
+      "loggedWithNote": "第 {{order, number}} 組，已記錄。{{result}}。備註：{{note}}"
     },
     "errors": {
       "save": "無法儲存此組，請再試一次。",
@@ -1015,6 +1067,11 @@
       "skip": "跳過",
       "skipRest": "跳過休息",
       "over": "休息結束"
+    },
+    "menu": {
+      "editSet": "編輯組",
+      "addNote": "新增備註",
+      "editNote": "編輯備註"
     }
   },
   "spokenCompactUnits": {
