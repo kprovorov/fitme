@@ -296,6 +296,7 @@ describe("workout Session reads against the local stack", () => {
                 {
                   id: expect.any(String),
                   logged_at: "2026-10-02T10:10:00+00:00",
+                  note: null,
                   order: 1,
                   reps_completed: 8,
                   reps_recommended: 8,
@@ -306,6 +307,7 @@ describe("workout Session reads against the local stack", () => {
                 {
                   id: expect.any(String),
                   logged_at: null,
+                  note: null,
                   order: 2,
                   reps_completed: null,
                   reps_recommended: 8,
@@ -323,6 +325,7 @@ describe("workout Session reads against the local stack", () => {
                 {
                   id: expect.any(String),
                   logged_at: null,
+                  note: null,
                   order: 1,
                   reps_completed: null,
                   reps_recommended: 5,

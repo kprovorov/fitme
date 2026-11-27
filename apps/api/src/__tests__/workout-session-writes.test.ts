@@ -1,5 +1,6 @@
 import {
   MAX_EXERCISE_SLUG_LENGTH,
+  MAX_NOTE_LENGTH,
   MAX_REPS,
   MAX_WEIGHT,
 } from "@fitme/core/limits";
@@ -11,7 +12,6 @@ import { describe, expect, it } from "vitest";
 
 import type { UserServices } from "../services.js";
 import { fakeServices, signedInAs, testApp } from "../test/harness.js";
-import { shownSet, shownSets } from "../test/notes.js";
 
 const SESSION_ID = "6f1c0c9e-2b7a-4c1e-9a55-3c2d1e0f4a11";
 const WORKOUT_ID = "1c2d3e4f-5a6b-4c7d-8e9f-0a1b2c3d4e5f";
@@ -55,7 +55,7 @@ const session: WorkoutSessionDetail & { user_id: string } = {
 /** The same Workout Session as the API answers it. */
 const shown = {
   ...sessionFields,
-  exercises: [shownSets(exercise)],
+  exercises: [exercise],
   weight_unit: "lbs",
 };
 
@@ -73,7 +73,7 @@ const shownFinished = {
 
 type App = ReturnType<typeof testApp>["app"];
 
-type RequestBody = Record<string, string | number | undefined>;
+type RequestBody = Record<string, string | number | null | undefined>;
 
 const send = (
   app: App,
@@ -430,7 +430,7 @@ describe("pATCH /v1/workout-session-sets/:id", () => {
 
     expect(response.status).toBe(200);
     await expect(response.json()).resolves.toStrictEqual({
-      data: { ...shownSet(logged), weight_unit: "lbs" },
+      data: { ...logged, weight_unit: "lbs" },
     });
     expect(calls).toStrictEqual([
       { repsCompleted: 8, setId: SET_ID, weightCompleted: 82.5 },
@@ -641,6 +641,208 @@ describe("dELETE /v1/workout-session-sets/:id", () => {
     const { app, servicesFor } = testApp({ services: fakeServices({}) });
 
     const response = await app.request(path, { method: "DELETE" });
+
+    expect(response.status).toBe(401);
+    expect(servicesFor).toStrictEqual([]);
+  });
+});
+
+describe("pUT /v1/workout-session-sets/:id/note", () => {
+  const NOTE = "Left shoulder clicked on rep 6";
+
+  const noted: WorkoutSessionSet = {
+    ...set,
+    logged_at: "2026-10-01T10:05:00+00:00",
+    note: NOTE,
+    reps_completed: 8,
+    weight_completed: 82.5,
+  };
+
+  const path = `/v1/workout-session-sets/${SET_ID}/note`;
+
+  it("saves the note and answers the set with it and its weight unit", async () => {
+    const { calls, services } = recording("setWorkoutSessionSetNote", {
+      value: { set: noted, status: "saved" },
+      weightUnit: "lbs",
+    });
+
+    const { app, reported, servicesFor } = testApp({ services });
+
+    const response = await send(app, "PUT", path, { note: NOTE });
+
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toStrictEqual({
+      data: { ...noted, weight_unit: "lbs" },
+    });
+    // No expected note: the last save wins.
+    expect(calls).toStrictEqual([{ note: NOTE, setId: SET_ID }]);
+    expect(servicesFor).toStrictEqual(["user_alice"]);
+    expect(reported).toStrictEqual([]);
+  });
+
+  it("answers the same for a repeat", async () => {
+    const { services } = recording("setWorkoutSessionSetNote", {
+      value: { set: noted, status: "saved" },
+      weightUnit: "kg",
+    });
+
+    const { app } = testApp({ services });
+
+    const first = await send(app, "PUT", path, { note: NOTE });
+    const second = await send(app, "PUT", path, { note: NOTE });
+
+    expect(second.status).toBe(200);
+    await expect(second.json()).resolves.toStrictEqual(await first.json());
+  });
+
+  it("clears the note for blank text, answering it as null", async () => {
+    const { calls, services } = recording("setWorkoutSessionSetNote", {
+      value: { set: { ...noted, note: null }, status: "saved" },
+      weightUnit: "kg",
+    });
+
+    const { app } = testApp({ services });
+
+    const response = await send(app, "PUT", path, { note: "  \n " });
+
+    expect(response.status).toBe(200);
+    const answer = await response.json();
+    expect(answer.data.note).toBeNull();
+    expect(calls).toStrictEqual([{ note: "  \n ", setId: SET_ID }]);
+  });
+
+  it("takes a note at the limit, counted once trimmed and by code point", async () => {
+    const { services } = recording("setWorkoutSessionSetNote", {
+      value: { set: noted, status: "saved" },
+      weightUnit: "kg",
+    });
+
+    const { app } = testApp({ services });
+
+    const atLimit = `  ${"💪".repeat(MAX_NOTE_LENGTH)}  `;
+
+    const response = await send(app, "PUT", path, { note: atLimit });
+
+    expect(response.status).toBe(200);
+  });
+
+  it("answers 404 not_found for a set the User doesn't have, unreported", async () => {
+    const { services } = recording("setWorkoutSessionSetNote", {
+      value: { status: "not_found" },
+      weightUnit: "kg",
+    });
+
+    const { app, reported } = testApp({ services });
+
+    const response = await send(app, "PUT", path, { note: NOTE });
+
+    expect(response.status).toBe(404);
+    await expect(response.json()).resolves.toStrictEqual({
+      error: { code: "not_found", message: "Workout Session set not found" },
+    });
+    expect(reported).toStrictEqual([]);
+  });
+
+  it("answers 409 set_not_logged for a set with no reps logged, unreported", async () => {
+    const { services } = recording("setWorkoutSessionSetNote", {
+      value: { status: "not_logged" },
+      weightUnit: "kg",
+    });
+
+    const { app, reported } = testApp({ services });
+
+    const response = await send(app, "PUT", path, { note: NOTE });
+
+    expect(response.status).toBe(409);
+    const answer = await response.json();
+    expect(answer.error.code).toBe("set_not_logged");
+    expect(JSON.stringify(answer)).not.toContain("shoulder");
+    expect(reported).toStrictEqual([]);
+  });
+
+  it("answers a reported 500 when the service answers a conflict it can't have", async () => {
+    const { services } = recording("setWorkoutSessionSetNote", {
+      value: { note: "Someone else's", status: "conflict" },
+      weightUnit: "kg",
+    });
+
+    const { app, reported } = testApp({ services });
+
+    const response = await send(app, "PUT", path, { note: NOTE });
+
+    expect(response.status).toBe(500);
+    await expect(response.text()).resolves.not.toContain("Someone else");
+    expect(reported).toHaveLength(1);
+  });
+
+  it.each([
+    ["a note over the limit", { note: "a".repeat(MAX_NOTE_LENGTH + 1) }],
+    ["a NUL character", { note: "Bar\u0000low" }],
+    ["a missing note", {}],
+    ["a note that isn't a string", { note: 5 }],
+    ["a null note", { note: null }],
+    ["an unknown field", { expected_note: "Bar", note: "Bar low" }],
+  ])(
+    "answers 400 invalid_request for %s, before any service call, unreported",
+    async (_, body) => {
+      const { app, reported } = testApp({ services: fakeServices({}) });
+
+      const response = await send(app, "PUT", path, body);
+
+      expect(response.status).toBe(400);
+      const answer = await response.json();
+      expect(answer.error.code).toBe("invalid_request");
+      expect(reported).toStrictEqual([]);
+    }
+  );
+
+  it("never repeats the note's text in its refusal", async () => {
+    const { app } = testApp({ services: fakeServices({}) });
+
+    const secret = `left shoulder clicked ${"x".repeat(MAX_NOTE_LENGTH)}`;
+    const response = await send(app, "PUT", path, { note: secret });
+
+    expect(response.status).toBe(400);
+    await expect(response.text()).resolves.not.toContain("shoulder");
+  });
+
+  it("answers 400 invalid_request for a set id that isn't a uuid, unreported", async () => {
+    const { app, reported } = testApp({ services: fakeServices({}) });
+
+    const response = await send(
+      app,
+      "PUT",
+      "/v1/workout-session-sets/nope/note",
+      {
+        note: NOTE,
+      }
+    );
+
+    expect(response.status).toBe(400);
+    const answer = await response.json();
+    expect(answer.error.code).toBe("invalid_request");
+    expect(reported).toStrictEqual([]);
+  });
+
+  it("answers 415 for a body that isn't JSON, unreported", async () => {
+    const { app, reported } = testApp({ services: fakeServices({}) });
+
+    const response = await send(app, "PUT", path, undefined, {
+      "content-type": "text/plain",
+    });
+
+    expect(response.status).toBe(415);
+    expect(reported).toStrictEqual([]);
+  });
+
+  it("answers 401 without a token, before any service call", async () => {
+    const { app, servicesFor } = testApp({ services: fakeServices({}) });
+
+    const response = await app.request(path, {
+      body: JSON.stringify({ note: NOTE }),
+      headers: { "content-type": "application/json" },
+      method: "PUT",
+    });
 
     expect(response.status).toBe(401);
     expect(servicesFor).toStrictEqual([]);
@@ -956,7 +1158,7 @@ describe("pUT /v1/workout-session-exercises/:id", () => {
 
     expect(response.status).toBe(200);
     await expect(response.json()).resolves.toStrictEqual({
-      data: { ...shownSets(replaced), weight_unit: "lbs" },
+      data: { ...replaced, weight_unit: "lbs" },
     });
     expect(calls).toStrictEqual([
       {
@@ -1161,7 +1363,7 @@ describe("pOST /v1/workout-session-exercises/:id/sets", () => {
 
     expect(response.status).toBe(201);
     await expect(response.json()).resolves.toStrictEqual({
-      data: { ...shownSet(added), weight_unit: "lbs" },
+      data: { ...added, weight_unit: "lbs" },
     });
     expect(calls).toStrictEqual([
       {

@@ -1,8 +1,8 @@
 import { ApiError } from "@fitme/api-client";
-import type { WorkoutSessionExerciseSet } from "@fitme/core";
 import { useMutationState } from "@tanstack/react-query";
 import { createMutation } from "react-query-kit";
 
+import type { WorkoutSessionSet } from "~/hooks/queries/workout-sessions";
 import { publicApi } from "~/lib/public-api";
 
 export interface UpdateWorkoutSessionExerciseSetParams {
@@ -19,18 +19,8 @@ export interface UpdateWorkoutSessionExerciseSetVariables {
   params: UpdateWorkoutSessionExerciseSetParams;
 }
 
-/** A saved set, as both saves answer it. */
-export type SavedWorkoutSessionExerciseSet = Pick<
-  WorkoutSessionExerciseSet,
-  | "id"
-  | "logged_at"
-  | "order"
-  | "reps_completed"
-  | "reps_recommended"
-  | "rest_recommended"
-  | "weight_completed"
-  | "weight_recommended"
->;
+/** A saved set, as both saves answer it: the Workout Session's own set. */
+export type SavedWorkoutSessionExerciseSet = WorkoutSessionSet;
 
 /**
  * Logs a set's reps and weight through `PATCH /v1/workout-session-sets/{id}`;

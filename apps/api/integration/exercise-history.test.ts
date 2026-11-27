@@ -34,8 +34,9 @@ const intruder = `user_apiExHistIntruder${runId}`;
 const pullUpSlug = `test-api-hist-pull-up-${runId}`;
 const otherSlug = `test-api-hist-other-${runId}`;
 
-/** One set to seed: its logged reps (`null` = never logged) and weight. */
+/** One set to seed: its logged reps (`null` = never logged), weight and note. */
 interface SeedSet {
+  note?: string;
   reps: number | null;
   weight: number | null;
 }
@@ -92,8 +93,9 @@ const seedSession = async (
     // inserted out of order, so the read must sort by `order`
     await tx.insert(workoutSessionExerciseSets).values(
       sets
-        .map(({ reps, weight }, index) => ({
+        .map(({ note, reps, weight }, index) => ({
           loggedAt: reps === null ? null : startedAt,
+          note: note ?? null,
           order: index + 1,
           repsCompleted: reps,
           repsRecommended: 10,
@@ -159,7 +161,7 @@ const seed = (): Promise<Seeded> =>
     ]);
 
     const newest = await seedOwner("2026-10-03T10:00:00Z", [
-      { reps: 6, weight: 50 },
+      { note: "Grip slipped on rep 5", reps: 6, weight: 50 },
     ]);
 
     // nothing logged at all: left out of the page and the total
@@ -233,6 +235,7 @@ describe("gET /v1/workout-session-exercises against the local stack", () => {
             sets: [
               {
                 id: expect.any(String),
+                note: "Grip slipped on rep 5",
                 order: 1,
                 reps_completed: 6,
                 reps_recommended: 10,
@@ -252,6 +255,7 @@ describe("gET /v1/workout-session-exercises against the local stack", () => {
             sets: [
               {
                 id: expect.any(String),
+                note: null,
                 order: 1,
                 reps_completed: 12,
                 reps_recommended: 10,

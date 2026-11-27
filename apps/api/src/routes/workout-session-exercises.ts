@@ -13,6 +13,7 @@ import {
   rateLimitedResponse,
   sessionFinished,
   sessionFinishedResponse,
+  SetNote,
   timestamp,
   unauthorizedResponse,
   WeightUnit,
@@ -31,6 +32,7 @@ const exerciseNotFound = {
 const ExerciseHistorySet = z
   .object({
     id: Id,
+    note: SetNote,
     order: z.int().openapi({ example: 1 }),
     reps_completed: z.int().openapi({
       description: "Repetitions done; every set here has them logged",
