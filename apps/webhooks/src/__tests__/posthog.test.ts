@@ -93,6 +93,56 @@ describe("posthog person deletion", () => {
     }
   );
 
+  const answering = (body: unknown) =>
+    posthogPersonDeleter({
+      apiKey: API_KEY,
+      fetch: fakePosthog(() =>
+        Promise.resolve(Response.json(body, { status: 202 }))
+      ).fetch,
+      projectId: PROJECT_ID,
+    })(USER_ID);
+
+  it("fails on a 202 naming a step that left the person undeleted", async () => {
+    const deletion = answering({
+      deletion_errors: [
+        {
+          person_uuid: "0190a1b2-0000-7000-8000-000000000001",
+          step: "postgres",
+        },
+      ],
+      persons_deleted: 0,
+      persons_found: 1,
+    });
+
+    await expect(deletion).rejects.toThrow("postgres");
+    await expect(deletion).rejects.not.toThrow(API_KEY);
+  });
+
+  it.each(["log_activity", "publish_clickhouse_tombstone"])(
+    "counts a 202 whose only error is %s as done, since the person is gone",
+    async (step) => {
+      await expect(
+        answering({
+          deletion_errors: [{ person_uuid: "p", step }],
+          persons_deleted: 1,
+          persons_found: 1,
+        })
+      ).resolves.toBeUndefined();
+    }
+  );
+
+  it("fails on a 2xx it can't read", async () => {
+    const { fetch } = fakePosthog(() =>
+      Promise.resolve(new Response("<html>", { status: 200 }))
+    );
+
+    await expect(
+      posthogPersonDeleter({ apiKey: API_KEY, fetch, projectId: PROJECT_ID })(
+        USER_ID
+      )
+    ).rejects.toThrow("unreadable");
+  });
+
   it("fails on a network failure", async () => {
     const { fetch } = fakePosthog(() =>
       Promise.reject(new TypeError("fetch failed"))
