@@ -166,7 +166,12 @@ const unsetDetailsPlan = {
   workout_duration: null,
 };
 
-const loggedSet = { ...set, logged_at: null, reps_completed: 8 };
+const loggedSet = {
+  ...set,
+  logged_at: null,
+  note: "Grip slipped",
+  reps_completed: 8,
+};
 
 const history = [
   {
@@ -188,7 +193,7 @@ const openSets: SessionServices.WorkoutSessionSet[] = [
   {
     id: "wss_1",
     logged_at: "2026-10-14T18:05:00+00:00",
-    note: null,
+    note: "Too heavy",
     order: 1,
     reps_completed: 8,
     reps_recommended: 8,

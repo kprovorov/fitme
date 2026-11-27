@@ -84,6 +84,7 @@ const loggedSet = (
 ) => ({
   id,
   logged_at: "2026-10-09T18:20:00+00:00",
+  note: null,
   order,
   reps_completed: reps,
   reps_recommended: 8,
@@ -103,8 +104,8 @@ export const workoutHistory = [
         name: "Back Squat",
         order: 1,
         sets: [
-          loggedSet("ls-squat-1", 1, 5, 105),
-          loggedSet("ls-squat-2", 2, 5, 105),
+          loggedSet("d0000000-0000-4000-8000-000000000021", 1, 5, 105),
+          loggedSet("d0000000-0000-4000-8000-000000000022", 2, 5, 105),
         ],
       },
     ],
@@ -124,8 +125,8 @@ export const workoutHistory = [
         name: "Bench Press",
         order: 1,
         sets: [
-          loggedSet("ls-bench-1", 1, 8, 72.5),
-          loggedSet("ls-bench-2", 2, 7, 72.5),
+          loggedSet("d0000000-0000-4000-8000-000000000023", 1, 8, 72.5),
+          loggedSet("d0000000-0000-4000-8000-000000000024", 2, 7, 72.5),
         ],
       },
     ],
@@ -159,6 +160,7 @@ export const openWorkoutSession = {
         {
           id: OPEN_UNLOGGED_SET,
           logged_at: null,
+          note: null,
           order: 3,
           reps_completed: null,
           reps_recommended: 8,
@@ -378,4 +380,78 @@ export const noteStubs = (
     outcome: { response: { success: true } },
     tool,
   })),
+];
+
+// uuids, as set_workout_session_set_note's input needs
+const NOTE_FIRST_SET = "d0000000-0000-4000-8000-000000000011";
+export const NOTE_LAST_SET = "d0000000-0000-4000-8000-000000000012";
+const NOTE_UNLOGGED_SET = "d0000000-0000-4000-8000-000000000013";
+const NOTE_INCLINE_SET = "d0000000-0000-4000-8000-000000000014";
+
+/**
+ * Open now: two Bench Press sets logged, the second one last of all, one to
+ * go, then one Incline Dumbbell Press set logged between them.
+ */
+const setNoteSession = {
+  ...openWorkoutSession,
+  exercises: [
+    {
+      ...openWorkoutSession.exercises[0],
+      sets: [
+        {
+          ...loggedSet(NOTE_FIRST_SET, 1, 8, 70),
+          logged_at: "2026-10-14T18:05:00+00:00",
+        },
+        {
+          ...loggedSet(NOTE_LAST_SET, 2, 6, 75),
+          logged_at: "2026-10-14T18:20:00+00:00",
+        },
+        {
+          id: NOTE_UNLOGGED_SET,
+          logged_at: null,
+          note: null,
+          order: 3,
+          reps_completed: null,
+          reps_recommended: 8,
+          rest_recommended: 90,
+          weight_completed: null,
+          weight_recommended: 75,
+        },
+      ],
+    },
+    {
+      // Later in the Workout but logged earlier, so the last set by position
+      // isn't the one logged most recently
+      exercise_slug: INCLINE,
+      id: "wse-open-incline",
+      muscle_groups: ["chest"],
+      name: "Incline Dumbbell Press",
+      order: 2,
+      sets: [
+        {
+          ...loggedSet(NOTE_INCLINE_SET, 1, 10, 24),
+          logged_at: "2026-10-14T18:12:00+00:00",
+        },
+      ],
+    },
+  ],
+};
+
+/**
+ * The note stubs, with the open Workout Session holding two logged sets and
+ * the set note write recorded, not run.
+ */
+export const setNoteStubs: readonly ToolStub[] = [
+  // Before readToolStubs' open session: the first matching stub wins
+  {
+    id: "set-note-session",
+    outcome: { response: setNoteSession },
+    tool: "get_open_workout_session",
+  },
+  ...noteStubs([]),
+  {
+    id: "set-session-set-note",
+    outcome: { response: { success: true } },
+    tool: "set_workout_session_set_note",
+  },
 ];

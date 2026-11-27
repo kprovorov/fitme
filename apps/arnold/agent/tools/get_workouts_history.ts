@@ -9,7 +9,7 @@ import { requireConversationOwner } from "../lib/owner";
 
 export default defineTool({
   description:
-    "Get the user's recent completed workout sessions with exercises and actual sets performed. Use this to analyze progress, spot patterns, or give personalized advice.",
+    "Get the user's recent completed workout sessions with exercises and actual sets performed: each set's id, logged values, targets and note (null for none). Use this to analyze progress, spot patterns, or give personalized advice.",
   async execute({ limit }, ctx) {
     const userId = requireConversationOwner(ctx.session.auth);
 
