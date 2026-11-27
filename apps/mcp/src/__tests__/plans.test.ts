@@ -7,9 +7,11 @@ import {
   BENCH,
   call,
   connectWithServices,
+  exerciseNote,
   ignoreReports,
   INDEX_OUTAGE,
   LIBRARY_OUTAGE,
+  noted,
   PLAN_ID,
   recordingReporter,
   SQUAT,
@@ -108,8 +110,12 @@ const servicePlanWith = (slug: string) => ({
   ],
 });
 
-/** The Plan as the tools return it: the Exercise by slug, named by the library. */
+/**
+ * The Plan as the tools return it: the Exercise by slug, named by the
+ * library, with the User's Exercise note (none unless given).
+ */
 const toolPlanWith = (exercise: {
+  exercise_note?: string | null;
   exercise_slug: string;
   muscle_groups: string[];
   name: string;
@@ -119,7 +125,15 @@ const toolPlanWith = (exercise: {
     {
       cover: null,
       description: "Chest",
-      exercises: [{ ...exercise, id: "we1", order: 1, sets: [planSet] }],
+      exercises: [
+        {
+          exercise_note: null,
+          ...exercise,
+          id: "we1",
+          order: 1,
+          sets: [planSet],
+        },
+      ],
       id: "w1",
       name: "Day A",
       order: 1,
@@ -217,7 +231,7 @@ describe("list_plans", () => {
 describe("get_plan", () => {
   it("returns the plan in full, each Exercise by slug with its library name", async () => {
     const getPlan = vi.fn<UserServices["getPlan"]>(() =>
-      Promise.resolve(servicePlan)
+      Promise.resolve(noted(servicePlan))
     );
 
     const client = await connectWithServices({ getPlan });
@@ -231,7 +245,8 @@ describe("get_plan", () => {
 
   it("names an Exercise the library doesn't know from its slug", async () => {
     const client = await connectWithServices({
-      getPlan: () => Promise.resolve(servicePlanWith("cable-fly-legacy")),
+      getPlan: () =>
+        Promise.resolve(noted(servicePlanWith("cable-fly-legacy"))),
     });
 
     const result = await call(client, "get_plan", { planId: PLAN_ID });
@@ -242,7 +257,10 @@ describe("get_plan", () => {
 
   it("names an old slug after the Exercise replacing it, keeping the stored slug", async () => {
     const client = await connectWithServices(
-      { getPlan: () => Promise.resolve(servicePlanWith("flat-bench-press")) },
+      {
+        getPlan: () =>
+          Promise.resolve(noted(servicePlanWith("flat-bench-press"))),
+      },
       ignoreReports,
       testLibrary({ replacedSlugs: { "flat-bench-press": BENCH.slug } })
     );
@@ -263,7 +281,7 @@ describe("get_plan", () => {
     const { reportError, reported } = recordingReporter();
 
     const client = await connectWithServices(
-      { getPlan: () => Promise.resolve(servicePlan) },
+      { getPlan: () => Promise.resolve(noted(servicePlan)) },
       reportError,
       downLibrary(reportError)
     );
@@ -283,7 +301,8 @@ describe("get_plan", () => {
 
   it("passes a Plan's unset details through as null", async () => {
     const client = await connectWithServices({
-      getPlan: () => Promise.resolve({ ...servicePlan, ...UNSET_DETAILS }),
+      getPlan: () =>
+        Promise.resolve(noted({ ...servicePlan, ...UNSET_DETAILS })),
     });
 
     const result = await call(client, "get_plan", { planId: PLAN_ID });
@@ -292,9 +311,91 @@ describe("get_plan", () => {
     expect(result.json).toStrictEqual({ ...toolPlan, ...UNSET_DETAILS });
   });
 
+  it("shows the User's Exercise note beside each Exercise, read with the Plan", async () => {
+    const getPlan = vi.fn<UserServices["getPlan"]>(() =>
+      Promise.resolve(
+        noted(servicePlan, [
+          exerciseNote(SQUAT.slug, "Heels on plates"),
+          exerciseNote(BENCH.slug, "Seat on hole 4"),
+        ])
+      )
+    );
+
+    const client = await connectWithServices({ getPlan });
+
+    const result = await call(client, "get_plan", { planId: PLAN_ID });
+
+    expect(result.json).toStrictEqual(
+      toolPlanWith({
+        exercise_note: "Seat on hole 4",
+        exercise_slug: BENCH.slug,
+        muscle_groups: BENCH.muscle_groups,
+        name: BENCH.locales.en.name,
+      })
+    );
+    expect(getPlan).toHaveBeenCalledOnce();
+  });
+
+  it("shows an old slug with the note of the Exercise replacing it", async () => {
+    const client = await connectWithServices(
+      {
+        getPlan: () =>
+          Promise.resolve(
+            noted(servicePlanWith("flat-bench-press"), [
+              exerciseNote(BENCH.slug, "Seat on hole 4"),
+            ])
+          ),
+      },
+      ignoreReports,
+      testLibrary({ replacedSlugs: { "flat-bench-press": BENCH.slug } })
+    );
+
+    const result = await call(client, "get_plan", { planId: PLAN_ID });
+
+    expect(result.json).toMatchObject({
+      workouts: [
+        {
+          exercises: [
+            {
+              exercise_note: "Seat on hole 4",
+              exercise_slug: "flat-bench-press",
+            },
+          ],
+        },
+      ],
+    });
+  });
+
+  it("still shows the note under the stored slug when the Library can't load", async () => {
+    const { reportError } = recordingReporter();
+
+    const client = await connectWithServices(
+      {
+        getPlan: () =>
+          Promise.resolve(
+            noted(servicePlan, [exerciseNote(BENCH.slug, "Seat on hole 4")])
+          ),
+      },
+      reportError,
+      downLibrary(reportError)
+    );
+
+    const result = await call(client, "get_plan", { planId: PLAN_ID });
+
+    expect(result.isError).toBeFalsy();
+    expect(result.json).toStrictEqual(
+      toolPlanWith({
+        exercise_note: "Seat on hole 4",
+        exercise_slug: BENCH.slug,
+        muscle_groups: [],
+        name: "Bench press",
+      })
+    );
+  });
+
   it("does not return soft-deleted or foreign plans", async () => {
     const client = await connectWithServices({
-      getPlan: () => Promise.resolve(null),
+      getPlan: () => Promise.resolve(noted(null)),
     });
 
     const result = await call(client, "get_plan", { planId: PLAN_ID });
@@ -306,7 +407,7 @@ describe("get_plan", () => {
 
   it("rejects a plan id that isn't a uuid", async () => {
     const getPlan = vi.fn<UserServices["getPlan"]>(() =>
-      Promise.resolve(servicePlan)
+      Promise.resolve(noted(servicePlan))
     );
 
     const client = await connectWithServices({ getPlan });
@@ -332,7 +433,7 @@ describe("create_plan", () => {
 
   it("creates the plan with exercise_slug through the service and returns it named", async () => {
     const createPlan = vi.fn<UserServices["createPlan"]>(() =>
-      Promise.resolve(servicePlan)
+      Promise.resolve(noted(servicePlan))
     );
 
     const client = await connectWithServices({ createPlan });
@@ -347,9 +448,49 @@ describe("create_plan", () => {
     });
   });
 
+  it("takes no Exercise note: one sent in never reaches the service", async () => {
+    const createPlan = vi.fn<UserServices["createPlan"]>(() =>
+      Promise.resolve(
+        noted(servicePlan, [exerciseNote(BENCH.slug, "Seat on hole 4")])
+      )
+    );
+
+    const client = await connectWithServices({ createPlan });
+    const [workout] = workoutsInput;
+
+    const result = await call(client, "create_plan", {
+      ...plan,
+      workouts: [
+        {
+          ...workout,
+          exercises: workout.exercises.map((exercise) => ({
+            ...exercise,
+            exercise_note: "Written by the client",
+            note: "Also written by the client",
+          })),
+        },
+      ],
+    });
+
+    expect(result.isError).toBeFalsy();
+    expect(createPlan).toHaveBeenCalledWith({
+      ...plan,
+      workouts: uncovered(workoutsInput),
+    });
+    // the answer shows the note the User has, never the one sent
+    expect(result.json).toStrictEqual(
+      toolPlanWith({
+        exercise_note: "Seat on hole 4",
+        exercise_slug: BENCH.slug,
+        muscle_groups: BENCH.muscle_groups,
+        name: BENCH.locales.en.name,
+      })
+    );
+  });
+
   it("rejects unknown Exercise slugs, naming them, before calling the service", async () => {
     const createPlan = vi.fn<UserServices["createPlan"]>(() =>
-      Promise.resolve(servicePlan)
+      Promise.resolve(noted(servicePlan))
     );
 
     const { reportError, reported } = recordingReporter();
@@ -380,7 +521,7 @@ describe("create_plan", () => {
 
   it("accepts an old slug the Library maps to its replacement, storing it as sent", async () => {
     const createPlan = vi.fn<UserServices["createPlan"]>(() =>
-      Promise.resolve(servicePlanWith("flat-bench-press"))
+      Promise.resolve(noted(servicePlanWith("flat-bench-press")))
     );
 
     const client = await connectWithServices(
@@ -418,7 +559,7 @@ describe("create_plan", () => {
 
   it("accepts a slug only the new Library knows", async () => {
     const createPlan = vi.fn<UserServices["createPlan"]>(() =>
-      Promise.resolve(servicePlan)
+      Promise.resolve(noted(servicePlan))
     );
 
     const client = await connectWithServices(
@@ -439,7 +580,7 @@ describe("create_plan", () => {
 
   it("fails when the Library can't load, reports it and writes nothing", async () => {
     const createPlan = vi.fn<UserServices["createPlan"]>(() =>
-      Promise.resolve(servicePlan)
+      Promise.resolve(noted(servicePlan))
     );
 
     const { reportError, reported } = recordingReporter();
@@ -460,7 +601,7 @@ describe("create_plan", () => {
 
   it("fails when the Library index can't load, reports it and writes nothing", async () => {
     const createPlan = vi.fn<UserServices["createPlan"]>(() =>
-      Promise.resolve(servicePlan)
+      Promise.resolve(noted(servicePlan))
     );
 
     const { reportError, reported } = recordingReporter();
@@ -482,7 +623,7 @@ describe("create_plan", () => {
 
   it("rejects an exercise_id instead of an exercise_slug", async () => {
     const createPlan = vi.fn<UserServices["createPlan"]>(() =>
-      Promise.resolve(servicePlan)
+      Promise.resolve(noted(servicePlan))
     );
 
     const client = await connectWithServices({ createPlan });
@@ -504,7 +645,7 @@ describe("create_plan", () => {
 
   it("rejects a plan without workouts before calling the service", async () => {
     const createPlan = vi.fn<UserServices["createPlan"]>(() =>
-      Promise.resolve(servicePlan)
+      Promise.resolve(noted(servicePlan))
     );
 
     const client = await connectWithServices({ createPlan });
@@ -521,7 +662,7 @@ describe("create_plan", () => {
     "still rejects a plan without %s before calling the service",
     async (detail) => {
       const createPlan = vi.fn<UserServices["createPlan"]>(() =>
-        Promise.resolve(servicePlan)
+        Promise.resolve(noted(servicePlan))
       );
 
       const client = await connectWithServices({ createPlan });
@@ -551,7 +692,7 @@ describe("create_plan", () => {
 describe("update_plan", () => {
   it("passes only the given metadata fields to the service", async () => {
     const updatePlan = vi.fn<UserServices["updatePlan"]>(() =>
-      Promise.resolve(servicePlan)
+      Promise.resolve(noted(servicePlan))
     );
 
     const client = await connectWithServices({ updatePlan });
@@ -570,9 +711,45 @@ describe("update_plan", () => {
     });
   });
 
+  it("shows the User's Exercise notes and stores none sent with the workouts", async () => {
+    const updatePlan = vi.fn<UserServices["updatePlan"]>(() =>
+      Promise.resolve(
+        noted(servicePlan, [exerciseNote(BENCH.slug, "Seat on hole 4")])
+      )
+    );
+
+    const client = await connectWithServices({ updatePlan });
+    const [workout] = workoutsInput;
+
+    const result = await call(client, "update_plan", {
+      planId: PLAN_ID,
+      workouts: [
+        {
+          ...workout,
+          exercises: workout.exercises.map((exercise) => ({
+            ...exercise,
+            exercise_note: "Written by the client",
+          })),
+        },
+      ],
+    });
+
+    expect(updatePlan).toHaveBeenCalledWith(PLAN_ID, {
+      workouts: uncovered(workoutsInput),
+    });
+    expect(result.json).toStrictEqual(
+      toolPlanWith({
+        exercise_note: "Seat on hole 4",
+        exercise_slug: BENCH.slug,
+        muscle_groups: BENCH.muscle_groups,
+        name: BENCH.locales.en.name,
+      })
+    );
+  });
+
   it("updates metadata, with slug-derived names, when the library fails", async () => {
     const updatePlan = vi.fn<UserServices["updatePlan"]>(() =>
-      Promise.resolve(servicePlan)
+      Promise.resolve(noted(servicePlan))
     );
 
     const client = await connectWithServices(
@@ -595,7 +772,7 @@ describe("update_plan", () => {
 
   it("passes the workouts that replace the plan's", async () => {
     const updatePlan = vi.fn<UserServices["updatePlan"]>(() =>
-      Promise.resolve(servicePlan)
+      Promise.resolve(noted(servicePlan))
     );
 
     const client = await connectWithServices({ updatePlan });
@@ -616,7 +793,7 @@ describe("update_plan", () => {
 
   it("fails replacing workouts when the Library can't load, reporting it and writing nothing", async () => {
     const updatePlan = vi.fn<UserServices["updatePlan"]>(() =>
-      Promise.resolve(servicePlan)
+      Promise.resolve(noted(servicePlan))
     );
 
     const { reportError, reported } = recordingReporter();
@@ -640,7 +817,7 @@ describe("update_plan", () => {
 
   it("replaces workouts with an old slug the Library maps", async () => {
     const updatePlan = vi.fn<UserServices["updatePlan"]>(() =>
-      Promise.resolve(servicePlan)
+      Promise.resolve(noted(servicePlan))
     );
 
     const client = await connectWithServices(
@@ -673,7 +850,7 @@ describe("update_plan", () => {
 
   it("fails replacing workouts when the Library index can't load, writing nothing", async () => {
     const updatePlan = vi.fn<UserServices["updatePlan"]>(() =>
-      Promise.resolve(servicePlan)
+      Promise.resolve(noted(servicePlan))
     );
 
     const { reportError, reported } = recordingReporter();
@@ -698,7 +875,7 @@ describe("update_plan", () => {
 
   it("errors for a missing, deleted or foreign plan", async () => {
     const client = await connectWithServices({
-      updatePlan: () => Promise.resolve(null),
+      updatePlan: () => Promise.resolve(noted(null)),
     });
 
     const result = await call(client, "update_plan", {
@@ -714,7 +891,7 @@ describe("update_plan", () => {
 
   it("rejects unknown Exercise slugs before calling the service", async () => {
     const updatePlan = vi.fn<UserServices["updatePlan"]>(() =>
-      Promise.resolve(servicePlan)
+      Promise.resolve(noted(servicePlan))
     );
 
     const client = await connectWithServices(
@@ -738,7 +915,7 @@ describe("update_plan", () => {
 
   it("rejects a call with nothing to update", async () => {
     const updatePlan = vi.fn<UserServices["updatePlan"]>(() =>
-      Promise.resolve(servicePlan)
+      Promise.resolve(noted(servicePlan))
     );
 
     const client = await connectWithServices({ updatePlan });
@@ -928,7 +1105,7 @@ describe("workout covers", () => {
 
   it("get_plan shows each Workout's cover, set or null", async () => {
     const client = await connectWithServices({
-      getPlan: () => Promise.resolve(coveredServicePlan),
+      getPlan: () => Promise.resolve(noted(coveredServicePlan)),
     });
 
     const result = await call(client, "get_plan", { planId: PLAN_ID });
@@ -938,7 +1115,7 @@ describe("workout covers", () => {
 
   it("create_plan shows each Workout's cover and never passes one on from the input", async () => {
     const createPlan = vi.fn<UserServices["createPlan"]>(() =>
-      Promise.resolve(coveredServicePlan)
+      Promise.resolve(noted(coveredServicePlan))
     );
 
     const client = await connectWithServices({ createPlan });
@@ -958,7 +1135,7 @@ describe("workout covers", () => {
 
   it("update_plan shows each Workout's cover and never passes one on from the input", async () => {
     const updatePlan = vi.fn<UserServices["updatePlan"]>(() =>
-      Promise.resolve(coveredServicePlan)
+      Promise.resolve(noted(coveredServicePlan))
     );
 
     const client = await connectWithServices({ updatePlan });
@@ -1005,7 +1182,7 @@ describe("cover assignment", () => {
 
   it("create_plan gives each Workout a Cover of its most-trained muscle group", async () => {
     const createPlan = vi.fn<UserServices["createPlan"]>(() =>
-      Promise.resolve(servicePlan)
+      Promise.resolve(noted(servicePlan))
     );
 
     const client = await connectWithServices(
@@ -1036,7 +1213,7 @@ describe("cover assignment", () => {
     const createPlan = vi.fn<UserServices["createPlan"]>((plan: NewPlan) => {
       passed.push(...plan.workouts.map((workout) => workout.cover));
 
-      return Promise.resolve(servicePlan);
+      return Promise.resolve(noted(servicePlan));
     });
 
     const client = await connectWithServices(
@@ -1058,7 +1235,7 @@ describe("cover assignment", () => {
 
   it("update_plan with workouts gives each new Workout a Cover", async () => {
     const updatePlan = vi.fn<UserServices["updatePlan"]>(() =>
-      Promise.resolve(servicePlan)
+      Promise.resolve(noted(servicePlan))
     );
 
     const client = await connectWithServices(
@@ -1084,7 +1261,7 @@ describe("cover assignment", () => {
 
   it("a metadata-only update_plan leaves the Covers alone", async () => {
     const updatePlan = vi.fn<UserServices["updatePlan"]>(() =>
-      Promise.resolve(servicePlan)
+      Promise.resolve(noted(servicePlan))
     );
 
     const index = indexWith([CHEST_A]);
@@ -1105,7 +1282,7 @@ describe("cover assignment", () => {
 
   it("picks Covers by the new Library's muscle groups, from the legacy index's Covers", async () => {
     const createPlan = vi.fn<UserServices["createPlan"]>(() =>
-      Promise.resolve(servicePlan)
+      Promise.resolve(noted(servicePlan))
     );
 
     const client = await connectWithServices(
@@ -1137,7 +1314,7 @@ describe("cover assignment", () => {
 
   it("an index without Covers gives every Workout no Cover", async () => {
     const createPlan = vi.fn<UserServices["createPlan"]>(() =>
-      Promise.resolve(servicePlan)
+      Promise.resolve(noted(servicePlan))
     );
 
     const client = await connectWithServices(

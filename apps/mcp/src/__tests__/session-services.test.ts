@@ -9,10 +9,13 @@ import {
   BENCH,
   call,
   connectWithServices,
+  exerciseNote,
   LIBRARY_OUTAGE,
+  noted,
   recordingReporter,
   SESSION_ID,
   SET_ID,
+  SQUAT,
   testLibrary,
   WORKOUT_ID,
 } from "./harness.js";
@@ -59,6 +62,7 @@ const toolSession = {
   ...sessionDetail,
   exercises: [
     {
+      exercise_note: null,
       exercise_slug: BENCH.slug,
       id: "wse-1",
       muscle_groups: BENCH.muscle_groups,
@@ -67,6 +71,7 @@ const toolSession = {
       sets: [loggedSet],
     },
     {
+      exercise_note: null,
       exercise_slug: "cable-fly-legacy",
       id: "wse-2",
       muscle_groups: [],
@@ -80,7 +85,7 @@ const toolSession = {
 describe("get_workout_session", () => {
   it("returns the session the service found, its Exercises named", async () => {
     const getWorkoutSession = vi.fn<UserServices["getWorkoutSession"]>(() =>
-      Promise.resolve(sessionDetail)
+      Promise.resolve(noted(sessionDetail))
     );
 
     const client = await connectWithServices({ getWorkoutSession });
@@ -99,7 +104,7 @@ describe("get_workout_session", () => {
     const library = testLibrary({ loads: "fail", reportError });
 
     const client = await connectWithServices(
-      { getWorkoutSession: () => Promise.resolve(sessionDetail) },
+      { getWorkoutSession: () => Promise.resolve(noted(sessionDetail)) },
       reportError,
       library
     );
@@ -118,9 +123,39 @@ describe("get_workout_session", () => {
     expect(reported).toStrictEqual([LIBRARY_OUTAGE]);
   });
 
+  it("shows the User's Exercise note beside each Exercise, read with the session", async () => {
+    const getWorkoutSession = vi.fn<UserServices["getWorkoutSession"]>(() =>
+      Promise.resolve(
+        noted(sessionDetail, [
+          exerciseNote("cable-fly-legacy", "Stand in the middle"),
+          exerciseNote(SQUAT.slug, "Heels on plates"),
+          exerciseNote(BENCH.slug, "Seat on hole 4"),
+        ])
+      )
+    );
+
+    const client = await connectWithServices({ getWorkoutSession });
+
+    const result = await call(client, "get_workout_session", {
+      sessionId: SESSION_ID,
+    });
+
+    // an Exercise the Library doesn't know still shows its note
+    expect(result.json).toMatchObject({
+      exercises: [
+        { exercise_note: "Seat on hole 4", exercise_slug: BENCH.slug },
+        {
+          exercise_note: "Stand in the middle",
+          exercise_slug: "cable-fly-legacy",
+        },
+      ],
+    });
+    expect(getWorkoutSession).toHaveBeenCalledOnce();
+  });
+
   it("errors for an unknown session", async () => {
     const client = await connectWithServices({
-      getWorkoutSession: () => Promise.resolve(null),
+      getWorkoutSession: () => Promise.resolve(noted(null)),
     });
 
     const result = await call(client, "get_workout_session", {
@@ -447,11 +482,13 @@ const toolOpenSession = {
 describe("start_workout_session", () => {
   it("starts a session and returns it", async () => {
     const startWorkoutSession = vi.fn<UserServices["startWorkoutSession"]>(() =>
-      Promise.resolve({
-        resumed: false,
-        session: openSession,
-        status: "started" as const,
-      })
+      Promise.resolve(
+        noted({
+          resumed: false,
+          session: openSession,
+          status: "started" as const,
+        })
+      )
     );
 
     const client = await connectWithServices({ startWorkoutSession });
@@ -471,11 +508,13 @@ describe("start_workout_session", () => {
   it("returns the open session it resumed", async () => {
     const client = await connectWithServices({
       startWorkoutSession: () =>
-        Promise.resolve({
-          resumed: true,
-          session: openSession,
-          status: "started" as const,
-        }),
+        Promise.resolve(
+          noted({
+            resumed: true,
+            session: openSession,
+            status: "started" as const,
+          })
+        ),
     });
 
     const result = await call(client, "start_workout_session", {
@@ -491,7 +530,7 @@ describe("start_workout_session", () => {
   it("errors for a Workout it can't start (unknown, another user's or of a deleted plan)", async () => {
     const client = await connectWithServices({
       startWorkoutSession: () =>
-        Promise.resolve({ status: "not_found" as const }),
+        Promise.resolve(noted({ status: "not_found" as const })),
     });
 
     const result = await call(client, "start_workout_session", {
@@ -510,11 +549,13 @@ describe("start_workout_session", () => {
     const client = await connectWithServices(
       {
         startWorkoutSession: () =>
-          Promise.resolve({
-            sessionId: SESSION_ID,
-            status: "session_in_progress" as const,
-            workoutName: "Day A",
-          }),
+          Promise.resolve(
+            noted({
+              sessionId: SESSION_ID,
+              status: "session_in_progress" as const,
+              workoutName: "Day A",
+            })
+          ),
       },
       reportError
     );
@@ -533,11 +574,13 @@ describe("start_workout_session", () => {
   it("refuses while a session whose workout is gone is open", async () => {
     const client = await connectWithServices({
       startWorkoutSession: () =>
-        Promise.resolve({
-          sessionId: SESSION_ID,
-          status: "session_in_progress" as const,
-          workoutName: null,
-        }),
+        Promise.resolve(
+          noted({
+            sessionId: SESSION_ID,
+            status: "session_in_progress" as const,
+            workoutName: null,
+          })
+        ),
     });
 
     const result = await call(client, "start_workout_session", {
@@ -584,12 +627,77 @@ describe("start_workout_session", () => {
 });
 
 const finished = (alreadyFinished: boolean, rotated: boolean) => () =>
-  Promise.resolve({
-    alreadyFinished,
-    rotated,
-    session: sessionDetail,
-    status: "finished" as const,
+  Promise.resolve(
+    noted({
+      alreadyFinished,
+      rotated,
+      session: sessionDetail,
+      status: "finished" as const,
+    })
+  );
+
+describe("Exercise notes on start and finish", () => {
+  const notes = [exerciseNote(BENCH.slug, "Seat on hole 4")];
+
+  it("start_workout_session shows each Exercise's note", async () => {
+    const client = await connectWithServices({
+      startWorkoutSession: () =>
+        Promise.resolve(
+          noted(
+            {
+              resumed: false,
+              session: openSession,
+              status: "started" as const,
+            },
+            notes
+          )
+        ),
+    });
+
+    const result = await call(client, "start_workout_session", {
+      workoutId: WORKOUT_ID,
+    });
+
+    expect(result.json).toMatchObject({
+      session: {
+        exercises: [
+          { exercise_note: "Seat on hole 4" },
+          { exercise_note: null },
+        ],
+      },
+    });
   });
+
+  it("finish_workout_session shows each Exercise's note", async () => {
+    const client = await connectWithServices({
+      finishWorkoutSession: () =>
+        Promise.resolve(
+          noted(
+            {
+              alreadyFinished: false,
+              rotated: true,
+              session: sessionDetail,
+              status: "finished" as const,
+            },
+            notes
+          )
+        ),
+    });
+
+    const result = await call(client, "finish_workout_session", {
+      sessionId: SESSION_ID,
+    });
+
+    expect(result.json).toMatchObject({
+      session: {
+        exercises: [
+          { exercise_note: "Seat on hole 4" },
+          { exercise_note: null },
+        ],
+      },
+    });
+  });
+});
 
 describe("finish_workout_session", () => {
   it("finishes the session and reports the rotation", async () => {
@@ -645,7 +753,7 @@ describe("finish_workout_session", () => {
   it("errors for an unknown session", async () => {
     const client = await connectWithServices({
       finishWorkoutSession: () =>
-        Promise.resolve({ status: "not_found" as const }),
+        Promise.resolve(noted({ status: "not_found" as const })),
     });
 
     const result = await call(client, "finish_workout_session", {

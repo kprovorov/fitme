@@ -683,6 +683,55 @@ describe("plan and workout flow against the local stack", () => {
     expect(stale.text).toContain("Seat on hole 4\nFeet up");
   });
 
+  it("shows the Exercise note with the plan and a session", async () => {
+    const [first, second] = exercises;
+    const note = "Seat on hole 4\nFeet up";
+
+    const notesOf = (
+      list: { exercise_note: string | null; exercise_slug: string }[]
+    ) => new Map(list.map((item) => [item.exercise_slug, item.exercise_note]));
+
+    const stored = await callOk<PlanDetail>(client, "get_plan", {
+      planId: plan.id,
+    });
+
+    const planNotes = notesOf(
+      stored.workouts.flatMap((workout) => workout.exercises)
+    );
+
+    expect(planNotes.get(first.slug)).toBe(note);
+    expect(planNotes.get(second.slug)).toBeNull();
+
+    const past = await callOk<SessionDetail>(client, "get_workout_session", {
+      sessionId: session.id,
+    });
+
+    expect(notesOf(past.exercises).get(first.slug)).toBe(note);
+  });
+
+  it("shows the Exercise note with the Exercise and its history, never in a search", async () => {
+    const [first, second] = exercises;
+    const note = "Seat on hole 4\nFeet up";
+
+    await expect(
+      callOk(client, "get_exercise", { exerciseSlug: first.slug })
+    ).resolves.toMatchObject({ exercise_note: note, slug: first.slug });
+    await expect(
+      callOk(client, "get_exercise", { exerciseSlug: second.slug })
+    ).resolves.toMatchObject({ exercise_note: null });
+    await expect(
+      callOk(client, "get_exercise_history", { exerciseSlug: first.slug })
+    ).resolves.toMatchObject({ exercise_note: note });
+
+    const listed = await callOk<{ exercises: object[] }>(
+      client,
+      "list_exercises",
+      { search: first.name }
+    );
+
+    expect(JSON.stringify(listed)).not.toContain("exercise_note");
+  });
+
   it("lists the Exercise note, then clears it", async () => {
     const [first] = exercises;
 

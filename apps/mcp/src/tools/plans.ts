@@ -12,6 +12,7 @@ import {
   withServices,
 } from "./helpers.js";
 import {
+  EXERCISE_NOTE_NOTE,
   namedPlan,
   requireKnownSlugs,
   withCovers,
@@ -49,18 +50,21 @@ const registerPlanReadTools = (server: McpServer, ctx: ToolContext) => {
     "get_plan",
     {
       annotations: READ_ONLY,
-      description: `Returns one of the user's plans in full: workouts in rotation order (first = next up), each with its exercises (workout_exercises.id, the Exercise's \`exercise_slug\`, \`name\` and \`muscle_groups\` from the Library) and recommended sets. Workout ids are what start_workout_session needs. ${COVER_NOTE} ${WEIGHT_UNIT_NOTE}`,
+      description: `Returns one of the user's plans in full: workouts in rotation order (first = next up), each with its exercises (workout_exercises.id, the Exercise's \`exercise_slug\`, \`name\` and \`muscle_groups\` from the Library) and recommended sets. Workout ids are what start_workout_session needs. ${EXERCISE_NOTE_NOTE} ${COVER_NOTE} ${WEIGHT_UNIT_NOTE}`,
       inputSchema: { planId: planIdSchema },
       title: "Get plan",
     },
-    withServices(ctx, async ({ planId }, services) =>
-      asJson(
+    withServices(ctx, async ({ planId }, services) => {
+      const { exerciseNotes, value } = await services.getPlan(planId);
+
+      return asJson(
         await namedPlan(
           ctx,
-          requireFound(await services.getPlan(planId), planNotFound(planId))
+          requireFound(value, planNotFound(planId)),
+          exerciseNotes
         )
-      )
-    )
+      );
+    })
   );
 };
 
@@ -74,7 +78,7 @@ const registerPlanWriteTools = (server: McpServer, ctx: ToolContext) => {
         openWorldHint: false,
         readOnlyHint: false,
       },
-      description: `Creates a training plan for the user and makes it their ACTIVE plan (every other plan is deactivated). Look up Exercise slugs with list_exercises first; unknown slugs are rejected and nothing is saved. Order of workouts, exercises and sets comes from their array position. Use list_plan_options for valid goal / place / experience_level values. ${WEIGHT_UNIT_NOTE} Returns the created plan in full.`,
+      description: `Creates a training plan for the user and makes it their ACTIVE plan (every other plan is deactivated). Look up Exercise slugs with list_exercises first; unknown slugs are rejected and nothing is saved. Order of workouts, exercises and sets comes from their array position. Use list_plan_options for valid goal / place / experience_level values. ${WEIGHT_UNIT_NOTE} Returns the created plan in full, as get_plan shows it.`,
       inputSchema: {
         ...planMetadata,
         note: planNoteSchema.optional(),
@@ -87,10 +91,13 @@ const registerPlanWriteTools = (server: McpServer, ctx: ToolContext) => {
 
       const workouts = withCovers(plan.workouts, checked);
 
+      const { exerciseNotes, value } = await services.createPlan({
+        ...plan,
+        workouts,
+      });
+
       // Named after the transaction, like any read: never fails the write
-      return asJson(
-        await namedPlan(ctx, await services.createPlan({ ...plan, workouts }))
-      );
+      return asJson(await namedPlan(ctx, value, exerciseNotes));
     })
   );
 
@@ -103,7 +110,7 @@ const registerPlanWriteTools = (server: McpServer, ctx: ToolContext) => {
         openWorldHint: false,
         readOnlyHint: false,
       },
-      description: `Updates one of the user's plans. Pass only the fields to change. Without \`workouts\`, only the given metadata fields are updated and workout ids stay the same. With \`workouts\`, ALL existing workouts are deleted and recreated from the array (send the complete list, not a diff; unknown Exercise slugs are rejected and nothing is saved): workout / exercise / set ids change, and past workout sessions keep their logged sets but lose the link to their workout. Does not change which plan is active. ${WEIGHT_UNIT_NOTE} Returns the updated plan in full.`,
+      description: `Updates one of the user's plans. Pass only the fields to change. Without \`workouts\`, only the given metadata fields are updated and workout ids stay the same. With \`workouts\`, ALL existing workouts are deleted and recreated from the array (send the complete list, not a diff; unknown Exercise slugs are rejected and nothing is saved): workout / exercise / set ids change, and past workout sessions keep their logged sets but lose the link to their workout. Does not change which plan is active. ${WEIGHT_UNIT_NOTE} Returns the updated plan in full, as get_plan shows it.`,
       inputSchema: {
         description: planMetadata.description.optional(),
         experience_level: planMetadata.experience_level.optional(),
@@ -140,13 +147,15 @@ const registerPlanWriteTools = (server: McpServer, ctx: ToolContext) => {
           ? { ...metadata, workouts: withCovers(workouts, checked) }
           : metadata;
 
-      const updated = requireFound(
-        await services.updatePlan(planId, changes),
-        planNotFound(planId)
+      const { exerciseNotes, value } = await services.updatePlan(
+        planId,
+        changes
       );
 
+      const updated = requireFound(value, planNotFound(planId));
+
       // Named after the transaction, like any read: never fails the write
-      return asJson(await namedPlan(ctx, updated));
+      return asJson(await namedPlan(ctx, updated, exerciseNotes));
     })
   );
 

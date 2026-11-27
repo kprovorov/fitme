@@ -172,6 +172,7 @@ export interface PlanSet {
 export interface PlanWorkout {
   cover: string | null;
   exercises: {
+    exercise_note: string | null;
     exercise_slug: string;
     id: string;
     muscle_groups: string[];
@@ -213,6 +214,7 @@ export interface SessionSet {
 
 export interface SessionDetail {
   exercises: {
+    exercise_note: string | null;
     exercise_slug: string;
     id: string;
     name: string;

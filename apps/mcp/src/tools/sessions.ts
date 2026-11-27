@@ -11,7 +11,7 @@ import {
   WEIGHT_UNIT_NOTE,
   withServices,
 } from "./helpers.js";
-import { namedSession } from "./library.js";
+import { EXERCISE_NOTE_NOTE, namedSession } from "./library.js";
 import { DEFAULT_PAGE_SIZE, MAX_PAGE_SIZE } from "./limits.js";
 
 const sessionIdSchema = z
@@ -38,21 +38,22 @@ const registerSessionReadTools = (server: McpServer, ctx: ToolContext) => {
     "get_workout_session",
     {
       annotations: READ_ONLY,
-      description: `Returns a workout session with its workout and plan (id, name), and its exercises in order, each with the Exercise's \`exercise_slug\`, \`name\` and \`muscle_groups\` from the Library and its sets in order. Each set's \`id\` is the \`setId\` that log_set and remove_set_from_workout_session need; its \`order\` can have gaps where sets were removed, so count sets by position; \`reps_completed\` / \`weight_completed\` / \`logged_at\` are null until the set is logged. ${WEIGHT_UNIT_NOTE}`,
+      description: `Returns a workout session with its workout and plan (id, name), and its exercises in order, each with the Exercise's \`exercise_slug\`, \`name\` and \`muscle_groups\` from the Library and its sets in order. Each set's \`id\` is the \`setId\` that log_set and remove_set_from_workout_session need; its \`order\` can have gaps where sets were removed, so count sets by position; \`reps_completed\` / \`weight_completed\` / \`logged_at\` are null until the set is logged. ${EXERCISE_NOTE_NOTE} ${WEIGHT_UNIT_NOTE}`,
       inputSchema: { sessionId: sessionIdSchema },
       title: "Get workout session",
     },
-    withServices(ctx, async ({ sessionId }, services) =>
-      asJson(
+    withServices(ctx, async ({ sessionId }, services) => {
+      const { exerciseNotes, value } =
+        await services.getWorkoutSession(sessionId);
+
+      return asJson(
         await namedSession(
           ctx,
-          requireFound(
-            await services.getWorkoutSession(sessionId),
-            sessionNotFound(sessionId)
-          )
+          requireFound(value, sessionNotFound(sessionId)),
+          exerciseNotes
         )
-      )
-    )
+      );
+    })
   );
 
   server.registerTool(
@@ -127,8 +128,7 @@ const registerSessionWriteTools = (server: McpServer, ctx: ToolContext) => {
         openWorldHint: false,
         readOnlyHint: false,
       },
-      description:
-        "Starts a workout session from one of the user's plan workouts (ids from get_plan / list_plans): the workout's exercises and recommended sets are copied into the session. A user has at most one unfinished session: if it's this workout's, that session is returned instead (`resumed: true`); if it's another workout's, the start fails naming that workout, and nothing is written (finish or delete it first). Returns `{ resumed, session }`; the session's set ids are what log_set and remove_set_from_workout_session need. Call finish_workout_session when done.",
+      description: `Starts a workout session from one of the user's plan workouts (ids from get_plan / list_plans): the workout's exercises and recommended sets are copied into the session. A user has at most one unfinished session: if it's this workout's, that session is returned instead (\`resumed: true\`); if it's another workout's, the start fails naming that workout, and nothing is written (finish or delete it first). Returns \`{ resumed, session }\`, the session as get_workout_session shows it; its set ids are what log_set and remove_set_from_workout_session need. Call finish_workout_session when done. ${EXERCISE_NOTE_NOTE}`,
       inputSchema: {
         workoutId: z
           .guid()
@@ -137,7 +137,8 @@ const registerSessionWriteTools = (server: McpServer, ctx: ToolContext) => {
       title: "Start workout session",
     },
     withServices(ctx, async ({ workoutId }, services) => {
-      const result = await services.startWorkoutSession(workoutId);
+      const { exerciseNotes, value: result } =
+        await services.startWorkoutSession(workoutId);
 
       if (result.status === "not_found") {
         throw new ToolError(workoutNotFound(workoutId));
@@ -149,7 +150,10 @@ const registerSessionWriteTools = (server: McpServer, ctx: ToolContext) => {
 
       const { resumed, session } = result;
 
-      return asJson({ resumed, session: await namedSession(ctx, session) });
+      return asJson({
+        resumed,
+        session: await namedSession(ctx, session, exerciseNotes),
+      });
     })
   );
 
@@ -236,13 +240,13 @@ const registerSessionWriteTools = (server: McpServer, ctx: ToolContext) => {
         openWorldHint: false,
         readOnlyHint: false,
       },
-      description:
-        "Marks an in-progress workout session as finished and moves its workout to the end of the plan's rotation, so the next workout comes up (`rotated: true`). Rotation is skipped (`rotated: false`) when the session's workout no longer exists, e.g. after update_plan replaced the workouts. Calling it on an already finished session changes nothing (`alreadyFinished: true`). Returns `{ alreadyFinished, rotated, session }`.",
+      description: `Marks an in-progress workout session as finished and moves its workout to the end of the plan's rotation, so the next workout comes up (\`rotated: true\`). Rotation is skipped (\`rotated: false\`) when the session's workout no longer exists, e.g. after update_plan replaced the workouts. Calling it on an already finished session changes nothing (\`alreadyFinished: true\`). Returns \`{ alreadyFinished, rotated, session }\`, the session as get_workout_session shows it. ${EXERCISE_NOTE_NOTE}`,
       inputSchema: { sessionId: sessionIdSchema },
       title: "Finish workout session",
     },
     withServices(ctx, async ({ sessionId }, services) => {
-      const result = await services.finishWorkoutSession(sessionId);
+      const { exerciseNotes, value: result } =
+        await services.finishWorkoutSession(sessionId);
 
       if (result.status === "not_found") {
         throw new ToolError(sessionNotFound(sessionId));
@@ -253,7 +257,7 @@ const registerSessionWriteTools = (server: McpServer, ctx: ToolContext) => {
       return asJson({
         alreadyFinished,
         rotated,
-        session: await namedSession(ctx, session),
+        session: await namedSession(ctx, session, exerciseNotes),
       });
     })
   );

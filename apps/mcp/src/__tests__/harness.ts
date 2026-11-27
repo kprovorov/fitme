@@ -7,6 +7,7 @@ import type {
 import { createLibraryV2 } from "@fitme/library-bundle/v2/library";
 import type { LibraryV2 } from "@fitme/library-bundle/v2/library";
 import type { Cover } from "@fitme/library-sdk";
+import type { ExerciseNote } from "@fitme/services/exercise-notes";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
 import type { CallToolRequest } from "@modelcontextprotocol/sdk/types.js";
@@ -14,7 +15,7 @@ import type { JSONType } from "zod";
 
 import type { ToolContext } from "../context.js";
 import { createMcpServer } from "../server.js";
-import type { UserServices } from "../services.js";
+import type { Noted, UserServices } from "../services.js";
 
 export const PLAN_ID = "11111111-1111-4111-8111-111111111111";
 export const SESSION_ID = "22222222-2222-4222-8222-222222222222";
@@ -150,6 +151,22 @@ export const testIndex = ({
           }),
     reportError,
   });
+
+/** A faked read's answer with the User's Exercise notes (none by default). */
+export const noted = <T>(
+  value: T,
+  exerciseNotes: ExerciseNote[] = []
+): Noted<T> => ({ exerciseNotes, value });
+
+/** An Exercise note as the services answer it. */
+export const exerciseNote = (
+  exerciseSlug: string,
+  note: string
+): ExerciseNote => ({
+  exercise_slug: exerciseSlug,
+  note,
+  updated_at: "2026-11-20T10:00:00+00:00",
+});
 
 const notFaked = (name: keyof UserServices) => () =>
   Promise.reject(new Error(`${name} is not faked.`));

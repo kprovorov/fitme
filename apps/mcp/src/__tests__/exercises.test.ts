@@ -1,3 +1,4 @@
+import type { ExerciseNote } from "@fitme/services/exercise-notes";
 import { DrizzleQueryError } from "drizzle-orm";
 import { describe, expect, it, vi } from "vitest";
 
@@ -8,9 +9,12 @@ import {
   bundleExercise,
   call,
   connectWithServices,
+  exerciseNote,
   LIBRARY_OUTAGE,
+  noted,
   recordingReporter,
   SESSION_ID,
+  SQUAT,
   TEST_SUPABASE_URL,
   testLibrary,
 } from "./harness.js";
@@ -113,6 +117,19 @@ describe("list_exercises", () => {
       offset: 0,
       total: 2,
     });
+  });
+
+  it("shows no Exercise note and reads none", async () => {
+    const listExerciseNotes = vi.fn<UserServices["listExerciseNotes"]>(() =>
+      Promise.resolve([exerciseNote(BENCH.slug, "Seat on hole 4")])
+    );
+
+    const client = await connectWithServices({ listExerciseNotes });
+
+    const result = await call(client, "list_exercises");
+
+    expect(JSON.stringify(result.json)).not.toContain("exercise_note");
+    expect(listExerciseNotes).not.toHaveBeenCalled();
   });
 
   it("searches the name and the other names, trimmed and case-insensitive", async () => {
@@ -276,9 +293,14 @@ describe("list_exercises", () => {
   });
 });
 
+/** Services whose Exercise notes are `notes` (none by default). */
+const withNotes = (notes: ExerciseNote[] = []) => ({
+  listExerciseNotes: () => Promise.resolve(notes),
+});
+
 describe("get_exercise", () => {
   it("returns the Exercise in full: the summary, descriptions, steps, mistakes and benefits", async () => {
-    const client = await connectWithServices({});
+    const client = await connectWithServices(withNotes());
 
     const result = await call(client, "get_exercise", {
       exerciseSlug: BENCH.slug,
@@ -289,9 +311,52 @@ describe("get_exercise", () => {
       ...BENCH_ROW,
       benefits: ["Bench Press builds strength."],
       common_mistakes: ["Rushing the bench press."],
+      exercise_note: null,
       long_description: "Bench Press, described at length.",
       short_description: "Bench Press in a line.",
       steps: ["Set up for the bench press.", "Lift.", "Lower."],
+    });
+  });
+
+  it("shows the User's note on the Exercise, read once, and no other Exercise's", async () => {
+    const listExerciseNotes = vi.fn<UserServices["listExerciseNotes"]>(() =>
+      Promise.resolve([
+        exerciseNote(SQUAT.slug, "Heels on plates"),
+        exerciseNote(BENCH.slug, "Seat on hole 4\nFeet up"),
+      ])
+    );
+
+    const client = await connectWithServices({ listExerciseNotes });
+
+    const result = await call(client, "get_exercise", {
+      exerciseSlug: BENCH.slug,
+    });
+
+    expect(result.json).toMatchObject({
+      exercise_note: "Seat on hole 4\nFeet up",
+      slug: BENCH.slug,
+    });
+    expect(listExerciseNotes).toHaveBeenCalledOnce();
+  });
+
+  it("shows the note of the Exercise an old slug answers", async () => {
+    const library = testLibrary({
+      replacedSlugs: { "barbell-bench-press": BENCH.slug },
+    });
+
+    const client = await connectWithServices(
+      withNotes([exerciseNote(BENCH.slug, "Seat on hole 4")]),
+      undefined,
+      library
+    );
+
+    const result = await call(client, "get_exercise", {
+      exerciseSlug: "barbell-bench-press",
+    });
+
+    expect(result.json).toMatchObject({
+      exercise_note: "Seat on hole 4",
+      slug: BENCH.slug,
     });
   });
 
@@ -300,7 +365,7 @@ describe("get_exercise", () => {
       replacedSlugs: { "barbell-bench-press": BENCH.slug },
     });
 
-    const client = await connectWithServices({}, undefined, library);
+    const client = await connectWithServices(withNotes(), undefined, library);
 
     const result = await call(client, "get_exercise", {
       exerciseSlug: "barbell-bench-press",
@@ -408,7 +473,7 @@ describe("get_exercise_history", () => {
   it("returns the service's entries for the Exercise slug, with the total", async () => {
     const getExerciseHistory = vi
       .fn<UserServices["getExerciseHistory"]>()
-      .mockResolvedValue({ entries: [entry], total: 1 });
+      .mockResolvedValue(noted({ entries: [entry], total: 1 }));
 
     const client = await connectWithServices({ getExerciseHistory });
 
@@ -425,6 +490,7 @@ describe("get_exercise_history", () => {
     expect(result.isError).toBeFalsy();
     expect(result.json).toStrictEqual({
       entries: [entry],
+      exercise_note: null,
       exerciseSlug: BENCH.slug,
       total: 1,
     });
@@ -433,7 +499,9 @@ describe("get_exercise_history", () => {
   it("returns a bodyweight set, with no weight and its set targets", async () => {
     const getExerciseHistory = vi
       .fn<UserServices["getExerciseHistory"]>()
-      .mockResolvedValue({ entries: [bodyweightEntry, entry], total: 2 });
+      .mockResolvedValue(
+        noted({ entries: [bodyweightEntry, entry], total: 2 })
+      );
 
     const client = await connectWithServices({ getExerciseHistory });
 
@@ -444,15 +512,88 @@ describe("get_exercise_history", () => {
     // the bodyweight set is there with no weight, and every set its targets
     expect(result.json).toStrictEqual({
       entries: [bodyweightEntry, entry],
+      exercise_note: null,
       exerciseSlug: BENCH.slug,
       total: 2,
+    });
+  });
+
+  it("shows the User's note on the Exercise, read with the history", async () => {
+    const getExerciseHistory = vi
+      .fn<UserServices["getExerciseHistory"]>()
+      .mockResolvedValue(
+        noted({ entries: [entry], total: 1 }, [
+          exerciseNote(SQUAT.slug, "Heels on plates"),
+          exerciseNote(BENCH.slug, "Seat on hole 4"),
+        ])
+      );
+
+    const client = await connectWithServices({ getExerciseHistory });
+
+    const result = await call(client, "get_exercise_history", {
+      exerciseSlug: BENCH.slug,
+    });
+
+    expect(result.json).toMatchObject({ exercise_note: "Seat on hole 4" });
+    expect(getExerciseHistory).toHaveBeenCalledOnce();
+  });
+
+  it("finds the note under the slug asked for when the Library can't load", async () => {
+    const { reportError, reported } = recordingReporter();
+
+    const client = await connectWithServices(
+      {
+        getExerciseHistory: () =>
+          Promise.resolve(
+            noted({ entries: [entry], total: 1 }, [
+              exerciseNote(BENCH.slug, "Seat on hole 4"),
+            ])
+          ),
+      },
+      reportError,
+      testLibrary({ loads: "fail", reportError })
+    );
+
+    const result = await call(client, "get_exercise_history", {
+      exerciseSlug: BENCH.slug,
+    });
+
+    expect(result.isError).toBeFalsy();
+    expect(result.json).toMatchObject({
+      entries: [entry],
+      exercise_note: "Seat on hole 4",
+    });
+    expect(reported).toStrictEqual([LIBRARY_OUTAGE]);
+  });
+
+  it("shows an old slug's history with the note of the Exercise replacing it", async () => {
+    const client = await connectWithServices(
+      {
+        getExerciseHistory: () =>
+          Promise.resolve(
+            noted({ entries: [entry], total: 1 }, [
+              exerciseNote(BENCH.slug, "Seat on hole 4"),
+            ])
+          ),
+      },
+      undefined,
+      testLibrary({ replacedSlugs: { "barbell-bench-press": BENCH.slug } })
+    );
+
+    const result = await call(client, "get_exercise_history", {
+      exerciseSlug: "barbell-bench-press",
+    });
+
+    expect(result.json).toMatchObject({
+      exercise_note: "Seat on hole 4",
+      exerciseSlug: "barbell-bench-press",
     });
   });
 
   it("asks for 10 entries by default and rejects more than 50", async () => {
     const getExerciseHistory = vi
       .fn<UserServices["getExerciseHistory"]>()
-      .mockResolvedValue({ entries: [], total: 0 });
+      .mockResolvedValue(noted({ entries: [], total: 0 }));
 
     const client = await connectWithServices({ getExerciseHistory });
 
@@ -462,6 +603,7 @@ describe("get_exercise_history", () => {
 
     expect(result.json).toStrictEqual({
       entries: [],
+      exercise_note: null,
       exerciseSlug: BENCH.slug,
       total: 0,
     });

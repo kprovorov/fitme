@@ -181,6 +181,42 @@ describe("cross-user isolation against the local stack", () => {
     expect(deleted).toStrictEqual([]);
   });
 
+  it("shows each user only their own Exercise note in reads", async () => {
+    const [{ slug }] = exercises;
+
+    const ownerPlan = await callOk<PlanDetail>(owner, "get_plan", {
+      planId: plan.id,
+    });
+
+    expect(ownerPlan.workouts[0]?.exercises[0]).toMatchObject({
+      exercise_note: OWNER_NOTE,
+      exercise_slug: slug,
+    });
+    await expect(
+      callOk(owner, "get_exercise", { exerciseSlug: slug })
+    ).resolves.toMatchObject({ exercise_note: OWNER_NOTE });
+    await expect(
+      callOk(intruder, "get_exercise", { exerciseSlug: slug })
+    ).resolves.toMatchObject({ exercise_note: "Intruder's own note" });
+    await expect(
+      callOk(intruder, "get_exercise_history", { exerciseSlug: slug })
+    ).resolves.toMatchObject({
+      entries: [],
+      exercise_note: "Intruder's own note",
+    });
+
+    const ownerSession = await callOk<SessionDetail>(
+      owner,
+      "get_workout_session",
+      { sessionId: session.id }
+    );
+
+    expect(ownerSession.exercises[0]).toMatchObject({
+      exercise_note: OWNER_NOTE,
+      exercise_slug: slug,
+    });
+  });
+
   it("does not let another user note the owner's set", async () => {
     await expect(
       callError(intruder, "set_workout_session_set_note", {
@@ -288,9 +324,20 @@ describe("cross-user isolation against the local stack", () => {
   });
 
   it("leaves the owner's plan and session untouched", async () => {
+    // as created, but for the Exercise note the owner wrote since
     await expect(
       callOk(owner, "get_plan", { planId: plan.id })
-    ).resolves.toStrictEqual(plan);
+    ).resolves.toStrictEqual({
+      ...plan,
+      workouts: plan.workouts.map((workout) => ({
+        ...workout,
+        exercises: workout.exercises.map((exercise) => ({
+          ...exercise,
+          exercise_note:
+            exercise.exercise_slug === exercises[0].slug ? OWNER_NOTE : null,
+        })),
+      })),
+    });
 
     const current = await callOk<SessionDetail>(owner, "get_workout_session", {
       sessionId: session.id,
