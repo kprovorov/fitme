@@ -537,6 +537,26 @@ describe("one set note at a time", () => {
     expect(screen.getByTestId("set-note-2-field")).toBeTruthy();
   });
 
+  it("opens on the screen it was asked on only, and closes with it", async () => {
+    await open(WORKOUT, SESSION, EXERCISE);
+    await pickFromMenu(1, "Add Note");
+
+    // The cards screen under it has its own row for the set, which stays shut.
+    expect(
+      screen.queryAllByTestId("set-menu-1", { includeHiddenElements: true })
+    ).toHaveLength(2);
+    expect(
+      screen.queryAllByTestId("set-note-1-field", {
+        includeHiddenElements: true,
+      })
+    ).toHaveLength(1);
+
+    await go(() => router.back());
+
+    expect(pathname).toBe(SESSION);
+    expect(screen.queryByTestId("set-note-1-field")).toBeNull();
+  });
+
   it("lets Finish move on to the Summary without asking about a draft", async () => {
     // Every set logged, so Finish asks nothing first.
     Object.assign(backend.sets[2], {

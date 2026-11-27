@@ -299,13 +299,12 @@ const useLoggedSetNote = ({
   set: WorkoutSessionSet | null;
 }) => {
   const { t } = useTranslation();
-  const knownId = set?.id ?? savedSetId;
-  const setId = isNotesEnabled() && isDone ? knownId : null;
+  const setId = isNotesEnabled() && isDone ? (set?.id ?? savedSetId) : null;
   const note = setId === null ? null : (set?.note ?? null);
   const canEdit = setId !== null && !readOnly;
-  // Kept by the set's id, so one that's no longer logged (or its Workout
-  // Session finished) closes its editor rather than hiding it.
-  const { close, isOpen: isOpenFor, open } = useOpenSetNote(knownId);
+  // A set no longer logged (or its Workout Session finished) closes its
+  // editor rather than hiding it, so it never reopens by itself.
+  const { close, isOpen: isOpenFor, open } = useOpenSetNote();
   const isOpen = canEdit && isOpenFor;
 
   useEffect(() => {
