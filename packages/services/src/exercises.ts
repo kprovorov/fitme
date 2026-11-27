@@ -14,6 +14,8 @@ import { jsonTimestamp } from "./json-timestamp";
 export interface ExerciseHistorySet {
   id: string;
   logged_at: string | null;
+  /** The User's note on the set (`GLOSSARY.md`, Note), `null` for none. */
+  note: string | null;
   order: number;
   reps_completed: number | null;
   reps_recommended: number | null;
@@ -143,6 +145,7 @@ export const getExerciseHistory = async (
       set: {
         id: workoutSessionExerciseSets.id,
         logged_at: jsonTimestamp(workoutSessionExerciseSets.loggedAt),
+        note: workoutSessionExerciseSets.note,
         order: workoutSessionExerciseSets.order,
         reps_completed: workoutSessionExerciseSets.repsCompleted,
         reps_recommended: workoutSessionExerciseSets.repsRecommended,

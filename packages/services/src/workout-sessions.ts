@@ -1,5 +1,7 @@
 import { randomUUID } from "node:crypto";
 
+import { cleanNote } from "@fitme/core/notes";
+import type { NoteRefusal } from "@fitme/core/notes";
 import {
   plans,
   workoutExerciseSets,
@@ -25,6 +27,7 @@ import {
 import type { SQL } from "drizzle-orm";
 import type { AnyPgColumn } from "drizzle-orm/pg-core";
 
+import { expectedNoteText } from "./expected-note";
 import {
   awardPersonalRecords,
   lockPersonalRecordHistory,
@@ -65,6 +68,8 @@ interface PlanRef {
 export interface WorkoutSessionSet {
   id: string;
   logged_at: string | null;
+  /** The User's note on the set (`GLOSSARY.md`, Note), `null` for none. */
+  note: string | null;
   order: number;
   reps_completed: number | null;
   reps_recommended: number | null;
@@ -164,6 +169,7 @@ const sessionColumns = {
 const setColumns = {
   id: workoutSessionExerciseSets.id,
   loggedAt: timestampText<string | null>(workoutSessionExerciseSets.loggedAt),
+  note: workoutSessionExerciseSets.note,
   order: workoutSessionExerciseSets.order,
   repsCompleted: workoutSessionExerciseSets.repsCompleted,
   repsRecommended: workoutSessionExerciseSets.repsRecommended,
@@ -175,6 +181,7 @@ const setColumns = {
 interface SetRow {
   id: string;
   loggedAt: string | null;
+  note: string | null;
   order: number;
   repsCompleted: number | null;
   repsRecommended: number | null;
@@ -186,6 +193,7 @@ interface SetRow {
 const toSet = (row: SetRow): WorkoutSessionSet => ({
   id: row.id,
   logged_at: row.loggedAt,
+  note: row.note,
   order: row.order,
   reps_completed: row.repsCompleted,
   reps_recommended: row.repsRecommended,
@@ -517,6 +525,130 @@ export const logSet = async (
   }
 
   return { status: "not_found" };
+};
+
+export interface SetWorkoutSessionSetNoteInput {
+  /** The note's new text, cleaned with `cleanNote`: blank clears it. */
+  note: string;
+  setId: string;
+  /**
+   * The note the caller last read (`null` for none; blank text counts as
+   * none). Given, the write lands only while the note is still that, or is
+   * already the new text. Left out, the last save wins.
+   */
+  expectedNote?: string | null;
+}
+
+/**
+ * What setting a set's note answers:
+ *
+ * - `saved`: the set as it now is, also when its note was already the new
+ *   text, so a repeat is harmless;
+ * - `conflict`: the note differs from the expected one, so nothing was
+ *   written; the note as it is now (`null` for none);
+ * - `not_logged`: the set has no reps logged, so it can't carry a note;
+ * - `not_found`: no set of the User's has that id;
+ * - `invalid`: the text can't be a note (`cleanNote`'s refusal), so nothing
+ *   reached the database.
+ */
+export type SetWorkoutSessionSetNoteResult =
+  | { set: WorkoutSessionSet; status: "saved" }
+  | { note: string | null; status: "conflict" }
+  | { status: "not_logged" }
+  | { status: "not_found" }
+  | { reason: NoteRefusal; status: "invalid" };
+
+/**
+ * Sets or clears the User's note on one logged set (`reps_completed` set, a
+ * bodyweight set included), in `tx` (from `asUser`), whether its Workout
+ * Session is open or finished: unlike every other set write, a finished one
+ * is allowed. Only the note changes.
+ *
+ * It takes the session tables' ROW EXCLUSIVE locks in `deleteUserData`'s
+ * order, then row-locks the set's Workout Session (`FOR NO KEY UPDATE`, as
+ * `logSet` does), so it queues behind a finish, a removal or an account
+ * deletion instead of deadlocking with one, and the expected note is
+ * compared under that lock, so of two saves expecting the same note one wins.
+ */
+export const setWorkoutSessionSetNote = async (
+  tx: Transaction,
+  userId: string,
+  { expectedNote, note, setId }: SetWorkoutSessionSetNoteInput
+): Promise<SetWorkoutSessionSetNoteResult> => {
+  const cleaned = cleanNote(note);
+
+  if (!cleaned.ok) {
+    return { reason: cleaned.reason, status: "invalid" };
+  }
+
+  const text = cleaned.note;
+
+  const expected =
+    expectedNote === undefined ? undefined : expectedNoteText(expectedNote);
+
+  await lockSessionTables(tx);
+
+  const [locked] = await tx
+    .select({ id: workoutSessions.id })
+    .from(workoutSessionExerciseSets)
+    .innerJoin(
+      workoutSessionExercises,
+      eq(
+        workoutSessionExercises.id,
+        workoutSessionExerciseSets.workoutSessionExerciseId
+      )
+    )
+    .innerJoin(
+      workoutSessions,
+      eq(workoutSessions.id, workoutSessionExercises.workoutSessionId)
+    )
+    .where(
+      and(
+        eq(workoutSessionExerciseSets.id, setId),
+        eq(workoutSessions.userId, userId)
+      )
+    )
+    .for("no key update", { of: workoutSessions });
+
+  if (locked === undefined) {
+    return { status: "not_found" };
+  }
+
+  // Read the set in a statement of its own, once the lock is held: under READ
+  // COMMITTED a statement that waited on a lock rechecks only the row it
+  // locked, so the note above could predate a save that just committed.
+  const [current] = await tx
+    .select(setColumns)
+    .from(workoutSessionExerciseSets)
+    .where(eq(workoutSessionExerciseSets.id, setId));
+
+  if (current === undefined) {
+    return { status: "not_found" };
+  }
+
+  if (current.repsCompleted === null) {
+    return { status: "not_logged" };
+  }
+
+  if (current.note === text) {
+    return { set: toSet(current), status: "saved" };
+  }
+
+  if (expected !== undefined && current.note !== expected) {
+    return { note: current.note, status: "conflict" };
+  }
+
+  const [updated] = await tx
+    .update(workoutSessionExerciseSets)
+    .set({ note: text })
+    // Set rows carry no User id: the read above checked it, RLS scopes it too.
+    .where(eq(workoutSessionExerciseSets.id, setId))
+    .returning(setColumns);
+
+  // The Workout Session's row lock keeps the set from going meanwhile.
+  return updated === undefined
+    ? { status: "not_found" }
+    : { set: toSet(updated), status: "saved" };
 };
 
 type OpenSession =

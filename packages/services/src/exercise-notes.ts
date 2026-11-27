@@ -5,6 +5,7 @@ import type { Transaction } from "@fitme/db";
 import { and, asc, eq, sql } from "drizzle-orm";
 import type { SQL } from "drizzle-orm";
 
+import { expectedNoteText } from "./expected-note";
 import { jsonTimestamp } from "./json-timestamp";
 
 /**
@@ -77,13 +78,6 @@ export const listExerciseNotes = async (
     .where(eq(exerciseNotes.userId, userId))
     .orderBy(asc(exerciseNotes.exerciseSlug));
 
-/** The expected note as the stored text compares to it. */
-const expectedText = (expected: string | null): string | null => {
-  const text = expected?.trim() ?? "";
-
-  return text === "" ? null : text;
-};
-
 /**
  * Sets the User's note on one Exercise to `note`, cleaned (`cleanNote`):
  * blank text clears it, deleting its row; text `cleanNote` refuses is
@@ -118,7 +112,7 @@ export const setExerciseNote = async (
   const text = cleaned.note;
 
   const expected =
-    expectedNote === undefined ? undefined : expectedText(expectedNote);
+    expectedNote === undefined ? undefined : expectedNoteText(expectedNote);
 
   await tx.execute(sql`lock table ${exerciseNotes} in row exclusive mode`);
 

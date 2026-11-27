@@ -178,6 +178,7 @@ describe("exercise history", () => {
             {
               id: setId,
               logged_at: null,
+              note: null,
               order: 1,
               reps_completed: 5,
               reps_recommended: 8,

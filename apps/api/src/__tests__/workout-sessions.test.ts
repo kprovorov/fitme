@@ -6,6 +6,7 @@ import { describe, expect, it } from "vitest";
 
 import type { UserServices, Weighed } from "../services.js";
 import { fakeServices, signedInAs, testApp } from "../test/harness.js";
+import { shownSets } from "../test/notes.js";
 
 const SESSION_ID = "6f1c0c9e-2b7a-4c1e-9a55-3c2d1e0f4a11";
 const WORKOUT_ID = "1c2d3e4f-5a6b-4c7d-8e9f-0a1b2c3d4e5f";
@@ -254,6 +255,7 @@ describe("gET /v1/workout-sessions", () => {
 const set = {
   id: "3e4f5a6b-7c8d-4e9f-8a1b-2c3d4e5f6a7b",
   logged_at: "2026-10-01T10:05:00+00:00",
+  note: null,
   order: 1,
   reps_completed: 8,
   reps_recommended: 8,
@@ -265,6 +267,7 @@ const set = {
 const unloggedSet = {
   id: "4f5a6b7c-8d9e-4f0a-9b2c-3d4e5f6a7b8c",
   logged_at: null,
+  note: null,
   order: 2,
   reps_completed: null,
   reps_recommended: 8,
@@ -296,7 +299,11 @@ const fromServices: Weighed<WorkoutSessionDetail> = {
 };
 
 /** The same Workout Session as the API answers it. */
-const shown = { ...sessionFields, exercises: [exercise], weight_unit: "lbs" };
+const shown = {
+  ...sessionFields,
+  exercises: [shownSets(exercise)],
+  weight_unit: "lbs",
+};
 
 describe("gET /v1/workout-sessions/:id", () => {
   it("answers the Workout Session in full with its weight unit, Exercises by slug only", async () => {
@@ -374,7 +381,7 @@ describe("gET /v1/workout-sessions/:id", () => {
     const response = await get(app, `/v1/workout-sessions/${SESSION_ID}`);
 
     await expect(response.json()).resolves.toStrictEqual({
-      data: { ...shown, exercises: [{ ...exercise, sets: [set] }] },
+      data: { ...shown, exercises: [shownSets({ ...exercise, sets: [set] })] },
     });
   });
 });

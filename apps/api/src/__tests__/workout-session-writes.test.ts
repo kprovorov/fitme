@@ -11,6 +11,7 @@ import { describe, expect, it } from "vitest";
 
 import type { UserServices } from "../services.js";
 import { fakeServices, signedInAs, testApp } from "../test/harness.js";
+import { shownSet, shownSets } from "../test/notes.js";
 
 const SESSION_ID = "6f1c0c9e-2b7a-4c1e-9a55-3c2d1e0f4a11";
 const WORKOUT_ID = "1c2d3e4f-5a6b-4c7d-8e9f-0a1b2c3d4e5f";
@@ -19,6 +20,7 @@ const SET_ID = "3e4f5a6b-7c8d-4e9f-8a1b-2c3d4e5f6a7b";
 const set: WorkoutSessionSet = {
   id: SET_ID,
   logged_at: null,
+  note: null,
   order: 1,
   reps_completed: null,
   reps_recommended: 8,
@@ -51,7 +53,11 @@ const session: WorkoutSessionDetail & { user_id: string } = {
 };
 
 /** The same Workout Session as the API answers it. */
-const shown = { ...sessionFields, exercises: [exercise], weight_unit: "lbs" };
+const shown = {
+  ...sessionFields,
+  exercises: [shownSets(exercise)],
+  weight_unit: "lbs",
+};
 
 const finishedSession: WorkoutSessionDetail = {
   ...session,
@@ -424,7 +430,7 @@ describe("pATCH /v1/workout-session-sets/:id", () => {
 
     expect(response.status).toBe(200);
     await expect(response.json()).resolves.toStrictEqual({
-      data: { ...logged, weight_unit: "lbs" },
+      data: { ...shownSet(logged), weight_unit: "lbs" },
     });
     expect(calls).toStrictEqual([
       { repsCompleted: 8, setId: SET_ID, weightCompleted: 82.5 },
@@ -950,7 +956,7 @@ describe("pUT /v1/workout-session-exercises/:id", () => {
 
     expect(response.status).toBe(200);
     await expect(response.json()).resolves.toStrictEqual({
-      data: { ...replaced, weight_unit: "lbs" },
+      data: { ...shownSets(replaced), weight_unit: "lbs" },
     });
     expect(calls).toStrictEqual([
       {
@@ -1131,6 +1137,7 @@ describe("pOST /v1/workout-session-exercises/:id/sets", () => {
   const added: WorkoutSessionSet = {
     id: SET_ID,
     logged_at: "2026-10-01T10:05:00.123456+00:00",
+    note: null,
     order: 2,
     reps_completed: 8,
     reps_recommended: null,
@@ -1154,7 +1161,7 @@ describe("pOST /v1/workout-session-exercises/:id/sets", () => {
 
     expect(response.status).toBe(201);
     await expect(response.json()).resolves.toStrictEqual({
-      data: { ...added, weight_unit: "lbs" },
+      data: { ...shownSet(added), weight_unit: "lbs" },
     });
     expect(calls).toStrictEqual([
       {
