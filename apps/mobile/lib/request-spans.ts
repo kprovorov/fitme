@@ -7,7 +7,7 @@ import { z } from "zod";
  * send trace headers to, and only those. Keeping the two sets equal is what
  * makes a span and its request share a trace — the SDK gives a propagated
  * request without a span a `sentry-trace` for a trace that never existed.
- * Clerk, RevenueCat, Supabase and Segment are on neither list, so they get no
+ * Clerk, RevenueCat, Supabase and PostHog are on neither list, so they get no
  * span and no header.
  */
 export const isTracedRequestUrl = (url: string): boolean =>

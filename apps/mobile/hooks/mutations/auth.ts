@@ -64,8 +64,11 @@ export const useDeleteUserMutation = createMutation<
     // report the deleted account as still there
     await clerk.signOut().catch(Sentry.captureException);
 
-    void analytics.send("User Deleted Account");
+    // Reset first, so the event goes out anonymous: sent under the deleted
+    // User's id, it could reach PostHog after the webhook has deleted their
+    // person, and bring it back.
     void analytics.reset();
+    void analytics.send("User Deleted Account");
 
     return "deleted";
   },

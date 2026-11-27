@@ -15,6 +15,21 @@ jest.mock("@ungap/structured-clone", () => ({
   default: jest.fn(),
 }));
 
+// The order the polyfills load in: the random values first.
+const loaded: string[] = [];
+
+jest.mock("react-native-get-random-values", () => {
+  loaded.push("random-values");
+
+  return {};
+});
+
+jest.mock("core-js/actual/array/to-sorted", () => {
+  loaded.push("to-sorted");
+
+  return jest.requireActual("core-js/actual/array/to-sorted");
+});
+
 const methods = ["toSorted", "toReversed"] as const;
 
 const originals = methods.map((method) =>
@@ -61,5 +76,14 @@ describe("array methods on Hermes versions without ES2023 copying methods", () =
     const values = Object.freeze([3, 1, 2]);
     expect(values.toReversed()).toEqual([2, 1, 3]);
     expect(values).toEqual([3, 1, 2]);
+  });
+});
+
+describe("crypto.getRandomValues", () => {
+  it("loads the random-values polyfill first, before any other", () => {
+    loaded.length = 0;
+    loadPolyfills();
+
+    expect(loaded).toEqual(["random-values", "to-sorted"]);
   });
 });
