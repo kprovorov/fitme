@@ -1,23 +1,31 @@
-import { ApiError, rateLimitedFor } from "@fitme/api-client";
-import { MAX_NOTE_LENGTH } from "@fitme/core/limits";
-import { cleanNote, noteLength } from "@fitme/core/notes";
+import { rateLimitedFor } from "@fitme/api-client";
 import { usePreventRemove } from "expo-router";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useState } from "react";
 import type { ReactNode } from "react";
 import { useTranslation } from "react-i18next";
-import { AccessibilityInfo, Alert, Pressable, View } from "react-native";
+import { AccessibilityInfo, Pressable, View } from "react-native";
 
 import { SymbolImage } from "~/components/symbol-image";
 import { Button } from "~/components/ui/button";
 import { Text } from "~/components/ui/text";
-import { Textarea } from "~/components/ui/textarea";
 import { H4, Muted } from "~/components/ui/typography";
 import { useSaveExerciseNoteMutation } from "~/hooks/mutations/exercise-notes";
+import {
+  useAskToDiscardNote,
+  useNoteRateLimitWait,
+} from "~/hooks/note-editing";
 import {
   exerciseNoteOn,
   useExerciseNotesQuery,
 } from "~/hooks/queries/exercise-notes";
-import { cn } from "~/lib/utils";
+import {
+  noteSaveFailureOf,
+  savedNoteOf,
+  withinNoteLimit,
+} from "~/lib/note-drafts";
+import type { NoteSaveFailure } from "~/lib/note-drafts";
+
+import { NoteEditor } from "./note-editor";
 
 /**
  * What Sentry's touch breadcrumbs name a touch on the note by. It reads a
@@ -27,59 +35,6 @@ const SENTRY_LABEL = "exercise-note";
 
 /** Brings Add Note's 28 pt line to the 44 pt tap target (Figma's rules). */
 const TAP_TARGET_SLOP = { bottom: 8, top: 8 };
-
-/** Why the last save didn't land, as the note area says it. */
-type SaveFailure =
-  | { kind: "rateLimited"; seconds: number }
-  | { kind: "save" | "unknownExercise" | "libraryUnavailable" };
-
-const saveFailureOf = (error: unknown): SaveFailure => {
-  const seconds = rateLimitedFor(error);
-
-  if (seconds !== null) {
-    return { kind: "rateLimited", seconds };
-  }
-
-  const code = error instanceof ApiError ? error.code : null;
-
-  if (code === "unknown_exercises") {
-    return { kind: "unknownExercise" };
-  }
-
-  if (code === "library_unavailable") {
-    return { kind: "libraryUnavailable" };
-  }
-
-  return { kind: "save" };
-};
-
-/** How long a note's text is as saved: trimmed, in code points. */
-const savedLength = (text: string): number => noteLength(text.trim());
-
-/**
- * What the User typed or pasted, as the field keeps it: without NUL
- * characters (Postgres can't store one, so the API refuses them), and cut
- * where the text that would be saved (trimmed) reaches the limit.
- */
-const withinLimit = (typed: string): string => {
-  const text = typed.replaceAll("\u0000", "");
-
-  if (savedLength(text) <= MAX_NOTE_LENGTH) {
-    return text;
-  }
-
-  const leading = noteLength(text) - noteLength(text.trimStart());
-
-  // oxlint-disable-next-line typescript/no-misused-spread -- code points are exactly what Postgres counts
-  return [...text].slice(0, leading + MAX_NOTE_LENGTH).join("");
-};
-
-/** The text a draft would save: trimmed, `null` for none. */
-const savedFormOf = (draft: string): string | null => {
-  const cleaned = cleanNote(draft);
-
-  return cleaned.ok ? cleaned.note : draft;
-};
 
 /** A failed read with nothing read: its message and Try Again. */
 const NoteLoadError = ({
@@ -111,127 +66,6 @@ const NoteLoadError = ({
         variant="secondary"
       />
     </View>
-  );
-};
-
-/** The character count under the field, red with its message at the limit. */
-const NoteCounter = ({ draft }: { draft: string }) => {
-  const { t } = useTranslation();
-  const length = savedLength(draft);
-  const atLimit = length >= MAX_NOTE_LENGTH;
-  const counter = t("notes.counter", { length, max: MAX_NOTE_LENGTH });
-
-  return (
-    <Text
-      accessibilityLabel={
-        atLimit
-          ? t("notes.spoken.limitReached", { max: MAX_NOTE_LENGTH })
-          : t("notes.spoken.counter", { length, max: MAX_NOTE_LENGTH })
-      }
-      className={cn(
-        "text-mono-caption-1 self-end",
-        atLimit ? "text-destructive" : "text-muted-foreground"
-      )}
-      testID="exercise-note-counter"
-    >
-      {atLimit ? `${counter} · ${t("notes.limitReached")}` : counter}
-    </Text>
-  );
-};
-
-interface NoteEditorProps {
-  draft: string;
-  exerciseName: string;
-  failure: SaveFailure | null;
-  isChanged: boolean;
-  isPending: boolean;
-  onCancel: () => void;
-  onChange: (text: string) => void;
-  onSave: () => void;
-  /** A 429's wait, in seconds, while it lasts. */
-  waitSeconds: number | null;
-}
-
-/** The field, the count, a failed save's message, Cancel and Save. */
-const NoteEditor = ({
-  draft,
-  exerciseName,
-  failure,
-  isChanged,
-  isPending,
-  onCancel,
-  onChange,
-  onSave,
-  waitSeconds,
-}: NoteEditorProps) => {
-  const { t } = useTranslation();
-
-  const message =
-    failure && failure.kind !== "rateLimited"
-      ? t(`notes.errors.${failure.kind}`)
-      : undefined;
-
-  const isDimmed = isPending || waitSeconds !== null;
-
-  return (
-    <>
-      <Textarea
-        accessibilityLabel={t("notes.spoken.exerciseField", {
-          exercise: exerciseName,
-        })}
-        autoFocus
-        editable={!isPending}
-        error={message}
-        onChangeText={onChange}
-        placeholder={t("notes.placeholder.exercise")}
-        sentry-label={SENTRY_LABEL}
-        testID="exercise-note-field"
-        value={draft}
-      />
-      {waitSeconds === null ? null : (
-        <View
-          accessibilityLabel={t("notes.spoken.rateLimited", {
-            count: waitSeconds,
-          })}
-          accessible
-          className="gap-xs flex-row items-center"
-          testID="exercise-note-rate-limited"
-        >
-          <SymbolImage
-            className="text-footnote text-muted-foreground shrink-0"
-            name="clock"
-          />
-          <Muted className="text-footnote flex-1">
-            {t("notes.errors.rateLimited", { seconds: waitSeconds })}
-          </Muted>
-        </View>
-      )}
-      <NoteCounter draft={draft} />
-      <View className="gap-xs flex-row justify-end">
-        <Button
-          accessibilityLabel={t("notes.spoken.cancel")}
-          disabled={isPending}
-          label={t("notes.cancel")}
-          onPress={onCancel}
-          fill={false}
-          size="sm"
-          testID="exercise-note-cancel"
-          variant="secondary"
-        />
-        <Button
-          accessibilityLabel={
-            isPending ? t("notes.spoken.saving") : t("notes.spoken.save")
-          }
-          disabled={!isChanged || isDimmed}
-          label={isPending ? t("notes.saving") : t("notes.save")}
-          onPress={onSave}
-          fill={false}
-          size="sm"
-          testID="exercise-note-save"
-          variant={isDimmed ? "secondary" : "default"}
-        />
-      </View>
-    </>
   );
 };
 
@@ -331,42 +165,14 @@ export const ExerciseNote = ({
   const { data: notes, error, refetch } = useExerciseNotesQuery();
   const { isPending, mutate } = useSaveExerciseNoteMutation();
   const [draft, setDraft] = useState<string | null>(null);
-  const [failure, setFailure] = useState<SaveFailure | null>(null);
-  // Kept apart from the editor, so closing and reopening it doesn't skip it.
-  const [waitSeconds, setWaitSeconds] = useState<number | null>(null);
+  const [failure, setFailure] = useState<NoteSaveFailure | null>(null);
+  const [waitSeconds, setWaitSeconds] = useNoteRateLimitWait();
 
   const note = notes ? exerciseNoteOn(notes, exerciseSlug) : null;
   // Only while the list is read: without it no editor shows.
-  const isChanged = !!notes && draft !== null && savedFormOf(draft) !== note;
+  const isChanged = !!notes && draft !== null && savedNoteOf(draft) !== note;
 
-  // A 429's wait: Save stays off until it's passed.
-  useEffect(() => {
-    if (waitSeconds === null) {
-      return;
-    }
-
-    const timer = setTimeout(() => {
-      setWaitSeconds(null);
-    }, waitSeconds * 1000);
-
-    return () => {
-      clearTimeout(timer);
-    };
-  }, [waitSeconds]);
-
-  const askToDiscard = useCallback(
-    (discard: () => void) => {
-      Alert.alert(t("notes.discard.title"), t("notes.discard.message"), [
-        { style: "cancel", text: t("notes.discard.keepEditing") },
-        {
-          onPress: discard,
-          style: "destructive",
-          text: t("notes.discard.discard"),
-        },
-      ]);
-    },
-    [t]
-  );
+  const askToDiscard = useAskToDiscardNote();
 
   // Held while a save is on its way too: it can still fail, and the text
   // would go with the Screen.
@@ -397,7 +203,7 @@ export const ExerciseNote = ({
   }, [askToDiscard, isChanged, stopEditing]);
 
   const changeDraft = useCallback((text: string) => {
-    setDraft(withinLimit(text));
+    setDraft(withinNoteLimit(text));
   }, []);
 
   const save = useCallback(() => {
@@ -410,7 +216,7 @@ export const ExerciseNote = ({
       { exerciseSlug, note: draft },
       {
         onError: (saveError) => {
-          const shown = saveFailureOf(saveError);
+          const shown = noteSaveFailureOf(saveError);
 
           if (shown.kind === "rateLimited") {
             setWaitSeconds(shown.seconds);
@@ -434,7 +240,7 @@ export const ExerciseNote = ({
         },
       }
     );
-  }, [draft, exerciseSlug, mutate, t, waitSeconds]);
+  }, [draft, exerciseSlug, mutate, setWaitSeconds, t, waitSeconds]);
 
   const retry = useCallback(() => {
     void refetch();
@@ -460,14 +266,19 @@ export const ExerciseNote = ({
   } else {
     body = (
       <NoteEditor
+        accessibilityLabel={t("notes.spoken.exerciseField", {
+          exercise: exerciseName,
+        })}
         draft={draft}
-        exerciseName={exerciseName}
         failure={failure}
         isChanged={isChanged}
         isPending={isPending}
         onCancel={cancel}
         onChange={changeDraft}
         onSave={save}
+        placeholder={t("notes.placeholder.exercise")}
+        sentryLabel={SENTRY_LABEL}
+        testIDPrefix="exercise-note"
         waitSeconds={waitSeconds}
       />
     );
