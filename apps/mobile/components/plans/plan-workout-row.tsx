@@ -77,7 +77,6 @@ const PlanWorkoutRow = ({
         {openSession ? (
           <OpenSessionBar
             href={`/plans/${planId}/workouts/${workout.id}/sessions/${openSession.id}`}
-            mono
             startedAt={openSession.started_at}
           />
         ) : null}

@@ -46,8 +46,8 @@ export interface PlanActionTarget {
 }
 
 /**
- * What a User can do to a Plan without opening it, the one rule My Plans
- * follows and the Plan's own screen moves onto with the Plan detail redesign:
+ * What a User can do to a Plan, the one rule My Plans and the Plan's own
+ * screen follow:
  *
  * - `edit` opens the Plan editor modal over the screen it's called from.
  * - `activate` makes the Plan the active one. With no active Plan it does so

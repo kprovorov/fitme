@@ -34,8 +34,6 @@ const elapsedSince = (startedAt: string) => {
 interface OpenSessionBarProps {
   /** Where pressing it goes: the open Workout Session's screen. */
   href: Href;
-  /** Sets the timer in mono (the redesigned Plan screen); today's screen doesn't. */
-  mono?: boolean;
   /** When the open Workout Session started, which the timer counts from. */
   startedAt: string;
 }
@@ -45,11 +43,7 @@ interface OpenSessionBarProps {
  * open: a timer counting from its start, and "To Workout" opening it. The
  * timer reads blank for its first second, as it always has.
  */
-const OpenSessionBar = ({
-  href,
-  mono = false,
-  startedAt,
-}: OpenSessionBarProps) => {
+const OpenSessionBar = ({ href, startedAt }: OpenSessionBarProps) => {
   const { t } = useTranslation();
   const [elapsedTime, setElapsedTime] = useState("");
 
@@ -69,15 +63,9 @@ const OpenSessionBar = ({
             className="text-primary-foreground text-subhead-emphasized"
             name="timer"
           />
-          {mono ? (
-            <Text className="text-primary-foreground text-mono-subhead-semibold">
-              {elapsedTime}
-            </Text>
-          ) : (
-            <Text className="text-primary-foreground" variant="small">
-              {elapsedTime}
-            </Text>
-          )}
+          <Text className="text-primary-foreground text-mono-subhead-semibold">
+            {elapsedTime}
+          </Text>
         </View>
 
         <View className="flex flex-row items-center justify-center gap-1">

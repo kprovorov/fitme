@@ -154,7 +154,7 @@ interface MyPlansViewProps {
 }
 
 /**
- * My Plans with the Plans redesign (Figma's Plans Redesign frames). The
+ * My Plans (Figma's Plans Redesign frames). The
  * Plans read win over a failure, so a failed refresh keeps them shown; with
  * none read a failure is the load error (the wait for a 429) with Try Again,
  * and otherwise (Try Again included) the skeleton shows until they arrive.

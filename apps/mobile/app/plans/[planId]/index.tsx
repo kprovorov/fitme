@@ -21,9 +21,9 @@ import { OPEN_WORKOUT_SESSION_QUERY_KEY } from "~/hooks/queries/workout-sessions
 const BOTTOM_GAP = 16;
 
 /**
- * The Plan screen (Figma "Plan Detail Redesign"): a transparent
- * header with back and "…" and no title, the Plan's hero and its Workouts,
- * and a designed state for loading, a failed read, a Plan that's gone and one
+ * The Plan screen (Figma "Plan Detail Redesign"): a transparent header with
+ * back and "…" and no title, the Plan's hero and its Workouts, and a
+ * designed state for loading, a failed read, a Plan that's gone and one
  * with no Workouts. The "…" menu offers Edit Plan and Delete Plan on every
  * Plan; an inactive Plan with Workouts has Activate Plan pinned at the
  * bottom. Every action follows the shared Plan actions rule

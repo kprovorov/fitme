@@ -281,7 +281,14 @@ describe("the Plan screen, in English", () => {
   });
 
   it("lists the Workouts in rotation order, each with its count and chevron row", async () => {
-    seedActivePlan();
+    // Seeded out of order: the rotation is each Workout's `order`.
+    seedActivePlan({
+      workouts: [
+        { ...workoutOf("workout-2", "Lower A", 5), order: 2 },
+        { ...workoutOf("workout-3", "Rest Day", 0), order: 3 },
+        { ...workoutOf("workout-1", "Upper A", 8), order: 1 },
+      ],
+    });
     await mount();
 
     expect(
@@ -359,9 +366,17 @@ describe("the Plan screen, in English", () => {
       screen.findByText(ELAPSED, {}, { timeout: 3000 })
     ).resolves.toBeTruthy();
 
-    // The row itself still opens the Workout screen.
+    // The row itself still opens the Workout screen, and so does another
+    // Workout's, which has no bar; neither offers Start or Finish.
     await fireEvent.press(row("Upper A, 8 exercises"));
     expect(mockPush).toHaveBeenCalledWith("/plans/plan-1/workouts/workout-1");
+    expect(
+      rowArea("Lower A, 5 exercises").queryByText("To Workout")
+    ).toBeNull();
+    await fireEvent.press(row("Lower A, 5 exercises"));
+    expect(mockPush).toHaveBeenCalledWith("/plans/plan-1/workouts/workout-2");
+    expect(screen.queryByText("Start")).toBeNull();
+    expect(screen.queryByText("Finish")).toBeNull();
   });
 
   it("shows a skeleton while the Plan loads", async () => {

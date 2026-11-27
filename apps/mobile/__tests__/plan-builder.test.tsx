@@ -526,7 +526,6 @@ describe("saving a Plan built by hand", () => {
     );
     await settle(planClient);
 
-    // The Plan's name is its header's, outside this subtree.
     const plan = within(screen.getByTestId("plan-screen"));
     expect(plan.getByText("Workout A")).toBeTruthy();
     expect(plan.queryByText("Lose Weight")).toBeNull();
