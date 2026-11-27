@@ -851,6 +851,7 @@
     "moreOptions": "More options",
     "activating": "Activating plan",
     "loading": "Loading plans",
+    "loadingPlan": "Loading plan",
     "more": "+{{count, number}}",
     "moreWorkoutsSpoken_one": "and {{count, number}} more workout",
     "moreWorkoutsSpoken_other": "and {{count, number}} more workouts",

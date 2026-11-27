@@ -878,6 +878,7 @@
     "moreOptions": "Altre opzioni",
     "activating": "Attivazione del piano",
     "loading": "Caricamento dei piani",
+    "loadingPlan": "Caricamento del piano",
     "more": "+{{count, number}}",
     "moreWorkoutsSpoken_one": "e {{count, number}} altro allenamento",
     "moreWorkoutsSpoken_many": "e {{count, number}} altri allenamenti",

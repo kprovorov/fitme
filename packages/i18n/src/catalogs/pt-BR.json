@@ -878,6 +878,7 @@
     "moreOptions": "Mais opções",
     "activating": "Ativando o plano",
     "loading": "Carregando planos",
+    "loadingPlan": "Carregando plano",
     "more": "+{{count, number}}",
     "moreWorkoutsSpoken_one": "e mais {{count, number}} treino",
     "moreWorkoutsSpoken_many": "e mais {{count, number}} treinos",
