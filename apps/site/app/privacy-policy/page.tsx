@@ -49,10 +49,10 @@ const ArnoldSection = () => (
         fat or health, or judge how You look.
       </li>
       <li>
-        Product analytics (Segment and Mixpanel) receive only the number of
-        photos You send. Our error and performance monitoring (Sentry) never
-        receives the text of Your messages, Arnold&apos;s answers or Your
-        photos.
+        Product analytics (PostHog, and Segment and Mixpanel for older versions
+        of the app) receive only the number of photos You send, never the
+        photos. Our error and performance monitoring (Sentry) never receives the
+        text of Your messages, Arnold&apos;s answers or Your photos.
       </li>
     </ul>
     <p>
@@ -492,20 +492,48 @@ const PrivacyPolicyPage = () => (
     <ArnoldSection />
     <h4>Mobile analytics and connection logs</h4>
     <p>
-      The mobile app sends product analytics to Segment. These include account
-      identifiers, email and name, profile-completion events with age and
-      gender, and training events with plan, session and exercise identifiers,
-      repetitions, and weights. The mobile source is configured to forward
-      events and their properties to Mixpanel using its EU data region. This
-      analytics information helps Us understand how the app is used. When You
-      send photos to Arnold, analytics receive only the number of photos sent,
-      never the photos or anything about them, and never the text of Your
-      messages.
+      The mobile app sends product analytics to PostHog, which stores them in
+      the United States. This analytics information helps Us understand how the
+      app is used. It includes:
+    </p>
+    <ul>
+      <li>Your account identifier, email and name</li>
+      <li>Your age and gender from Your profile</li>
+      <li>Your measurement system (metric or imperial)</li>
+      <li>
+        Training events: what You did in the app, with the identifiers of Your
+        plans, workouts and workout sessions
+      </li>
+      <li>The screens You open</li>
+      <li>When the app was installed, opened and closed</li>
+      <li>Details about Your Device: its model, system version and language</li>
+    </ul>
+    <p>
+      Events sent from now on do not include the repetitions and weights of the
+      sets You log. Analytics history from before this change, which We are
+      moving into PostHog, does include them.
     </p>
     <p>
-      The Fitme connection server does not directly send tool calls to Segment
-      or Mixpanel. Its normal access logs record the request method, URL,
-      response status, and processing time rather than the contents of tool
+      PostHog discards Your IP address before it stores an event. It keeps an
+      approximate location (country and city) worked out from it. When You
+      delete Your Account, Your analytics in PostHog are deleted too.
+    </p>
+    <p>
+      Older versions of the app send this analytics information, including the
+      repetitions and weights of logged sets, to Segment, which forwards it to
+      Mixpanel using its EU data region, until those versions stop working.
+      Analytics collected before this change are held by Segment and Mixpanel
+      until they are erased.
+    </p>
+    <p>
+      When You send photos to Arnold, analytics receive only the number of
+      photos sent, never the photos or anything about them, and never the text
+      of Your messages.
+    </p>
+    <p>
+      The Fitme connection server does not directly send tool calls to PostHog,
+      Segment or Mixpanel. Its normal access logs record the request method,
+      URL, response status, and processing time rather than the contents of tool
       requests and responses. Hosting and authentication providers also process
       technical information to operate their services.
     </p>
