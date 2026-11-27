@@ -1334,6 +1334,78 @@ const setBody = ({
   ...set
 }: SetRow) => ({ ...set, note: set.note ?? null });
 
+/** A session's sets, in `order` (ties by id), as the API numbers them. */
+const exerciseSets = (exerciseId: string) =>
+  backend.sets
+    .filter((set) => set.workout_session_exercise_id === exerciseId)
+    .toSorted((a, b) => a.order - b.order || a.id.localeCompare(b.id));
+
+/** The API answers only the first 100 sets by position as Previous sets. */
+const MAX_PREVIOUS_SET_NUMBER = 100;
+
+const ownerOf = (session: SessionRow) => session.user_id ?? FAKE_USER_ID;
+
+/** `a` before `b` by start, ties by id, as the API orders them. */
+const byStart = (a: SessionRow, b: SessionRow) => {
+  if (a.started_at !== b.started_at) {
+    return a.started_at < b.started_at ? -1 : 1;
+  }
+
+  if (a.id === b.id) {
+    return 0;
+  }
+
+  return a.id < b.id ? -1 : 1;
+};
+
+/**
+ * `getPreviousSets`: the positive-rep sets, numbered by position, of the first
+ * Workout Session Exercise (by `order`) with exactly `exerciseSlug` in the
+ * owner's most recent Workout Session started before `session` (ties by id)
+ * that has one with a positive-rep set; any Plan or Workout, never `session`
+ * itself. Empty when there's none.
+ */
+const previousSets = (session: SessionRow, exerciseSlug: string) => {
+  const earlier = backend.exercises
+    .flatMap((exercise) => {
+      const other = backend.session(exercise.workout_session_id);
+
+      return other &&
+        exercise.exercise_slug === exerciseSlug &&
+        ownerOf(other) === ownerOf(session) &&
+        byStart(other, session) < 0 &&
+        exerciseSets(exercise.id).some(
+          ({ reps_completed }) => (reps_completed ?? 0) > 0
+        )
+        ? [{ exercise, session: other }]
+        : [];
+    })
+    .toSorted(
+      (a, b) =>
+        byStart(b.session, a.session) ||
+        a.exercise.order - b.exercise.order ||
+        a.exercise.id.localeCompare(b.exercise.id)
+    );
+
+  const [found] = earlier;
+
+  if (!found) {
+    return [];
+  }
+
+  return exerciseSets(found.exercise.id).flatMap((set, index) =>
+    (set.reps_completed ?? 0) > 0 && index < MAX_PREVIOUS_SET_NUMBER
+      ? [
+          {
+            number: index + 1,
+            reps_completed: set.reps_completed as number,
+            weight_completed: set.weight_completed,
+          },
+        ]
+      : []
+  );
+};
+
 /** A Workout Session in full, as `GET /v1/workout-sessions/{id}` shows it. */
 const sessionBody = (session: SessionRow) => {
   const plan = backend.plans.find(({ id }) => id === session.plan_id);
@@ -1346,8 +1418,7 @@ const sessionBody = (session: SessionRow) => {
         exercise_slug,
         id,
         order,
-        // The Previous sets rule is FIT-852's; until then none are answered.
-        previous_sets: [],
+        previous_sets: previousSets(session, exercise_slug),
         sets: backend.sets
           .filter((set) => set.workout_session_exercise_id === id)
           .toSorted((a, b) => a.order - b.order)
