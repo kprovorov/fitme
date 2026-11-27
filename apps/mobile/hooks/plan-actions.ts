@@ -9,6 +9,7 @@ import type { AccessibilityActionEvent } from "react-native";
 
 import { PLANS_QUERY_KEY, useDeletePlanMutation } from "~/hooks/queries/plans";
 import { WEEKLY_GOALS_QUERY_KEY } from "~/hooks/queries/weekly-goals";
+import { OPEN_WORKOUT_SESSION_QUERY_KEY } from "~/hooks/queries/workout-sessions";
 
 /**
  * What to tell the User after a failed Plan write. A 404 means the Plan is
@@ -37,8 +38,8 @@ export interface PlanActionTarget {
 }
 
 /**
- * What a User can do to a Plan without opening it, shared by My Plans and the
- * Plan's own screen so both follow one rule:
+ * What a User can do to a Plan without opening it, the one rule My Plans
+ * follows and the Plan's own screen moves onto with the Plan detail redesign:
  *
  * - `edit` opens the Plan editor modal over the screen it's called from.
  * - `remove` refuses the active Plan ("Can't Delete Active Plan", nothing
@@ -61,6 +62,11 @@ export const usePlanActions = ({
     void queryClient.invalidateQueries({ queryKey: ["plan"] });
     // Deleting a Plan can change the Weekly goal.
     void queryClient.invalidateQueries({ queryKey: WEEKLY_GOALS_QUERY_KEY });
+    // A Workout Session open on the deleted Plan keeps running; its read
+    // names the Plan.
+    void queryClient.invalidateQueries({
+      queryKey: OPEN_WORKOUT_SESSION_QUERY_KEY,
+    });
   }, [queryClient]);
 
   const { isPending: isDeleting, mutate: deletePlan } = useDeletePlanMutation({
