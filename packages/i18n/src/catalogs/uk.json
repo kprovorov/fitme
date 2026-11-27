@@ -904,6 +904,7 @@
     "otherPlans": "Інші плани",
     "moreOptions": "Інші дії",
     "activating": "План активується",
+    "loading": "Завантаження планів",
     "more": "+{{count, number}}",
     "moreWorkoutsSpoken_one": "і ще {{count, number}} тренування",
     "moreWorkoutsSpoken_few": "і ще {{count, number}} тренування",
