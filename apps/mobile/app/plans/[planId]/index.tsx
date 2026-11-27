@@ -3,6 +3,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 import { useCallback, useState } from "react";
 import { useTranslation } from "react-i18next";
+import type { LayoutChangeEvent } from "react-native";
 import {
   ActivityIndicator,
   Alert,
@@ -10,6 +11,8 @@ import {
   ScrollView,
   View,
 } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { ScopedVariables } from "uniwind";
 
 import { ExerciseUnavailable } from "~/components/exercises/exercise-unavailable";
 import PlanDetailView, {
@@ -19,12 +22,13 @@ import { Button } from "~/components/ui/button";
 import { Text } from "~/components/ui/text";
 import { VStack } from "~/components/ui/vstack";
 import WorkoutList from "~/components/views/workout-list";
-import { planWriteFailureMessage } from "~/hooks/plan-actions";
+import { planWriteFailureMessage, usePlanActions } from "~/hooks/plan-actions";
 import {
   PLANS_QUERY_KEY,
   useActivatePlanMutation,
   useDeletePlanMutation,
   usePlanQuery,
+  usePlanSummariesQuery,
 } from "~/hooks/queries/plans";
 import { WEEKLY_GOALS_QUERY_KEY } from "~/hooks/queries/weekly-goals";
 import { OPEN_WORKOUT_SESSION_QUERY_KEY } from "~/hooks/queries/workout-sessions";
@@ -286,19 +290,36 @@ const LegacyPlanScreen = () => {
   );
 };
 
+/** Space between the pinned Activate Plan and the bottom safe area. */
+const BOTTOM_GAP = 16;
+
+/** The bottom edge fades under the pinned Activate Plan. */
+const PINNED_SCROLL_EDGE_EFFECTS = {
+  bottom: "soft",
+  left: "automatic",
+  right: "automatic",
+  top: "automatic",
+} as const;
+
 /**
  * The Plan screen, redesigned (Figma "Plan Detail Redesign"): a transparent
  * header with back and "…" and no title, the Plan's hero and its Workouts,
  * and a designed state for loading, a failed read, a Plan that's gone and one
- * with no Workouts. Its actions (the "…" menu, Activate Plan, Delete) come
- * with FIT-863.
+ * with no Workouts. The "…" menu offers Edit Plan and Delete Plan on every
+ * Plan; an inactive Plan with Workouts has Activate Plan pinned at the
+ * bottom. Every action follows the shared Plan actions rule
+ * (`usePlanActions`), as My Plans does: the Plan summaries are read here too,
+ * so activating asks first only when another Plan is (or may be) active.
  */
 const RedesignedPlanScreen = () => {
   const { planId } = useLocalSearchParams<{ planId: string }>();
   const queryClient = useQueryClient();
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const { t } = useTranslation();
   const [isPulling, setIsPulling] = useState(false);
+  // The pinned action's height, safe area included: the content ends above it.
+  const [actionHeight, setActionHeight] = useState(0);
 
   // `null` once the Plan is gone (deleted, or never the User's). A failed
   // refresh keeps the Plan read last.
@@ -309,32 +330,54 @@ const RedesignedPlanScreen = () => {
     refetch,
   } = usePlanQuery({ variables: { id: planId } });
 
+  // Whether another Plan is active decides whether activating asks first.
+  const { refetch: refetchSummaries } = usePlanSummariesQuery();
+
+  const backToPlans = useCallback(() => {
+    router.dismissTo("/plans");
+  }, [router]);
+
+  const { activate, activatingPlanId, edit, remove } = usePlanActions({
+    onDeleted: backToPlans,
+  });
+
   // The Workout rows' timer comes from the open Workout Session's own read,
   // so a pull refreshes it too.
   const onRefresh = useCallback(async () => {
     setIsPulling(true);
-    // Neither rejects: a failed read is the query's error, and it keeps what
-    // was read.
+    // None rejects: a failed read is the query's error, and it keeps what was
+    // read.
     await Promise.all([
       refetch(),
+      refetchSummaries(),
       queryClient.refetchQueries({
         queryKey: OPEN_WORKOUT_SESSION_QUERY_KEY,
       }),
     ]);
     setIsPulling(false);
-  }, [refetch, queryClient]);
+  }, [refetch, refetchSummaries, queryClient]);
 
   const retry = useCallback(() => {
     void refetch();
   }, [refetch]);
 
   const openEditor = useCallback(() => {
-    router.push({ params: { planId }, pathname: "/plans/[planId]/edit" });
-  }, [planId, router]);
+    edit(planId);
+  }, [edit, planId]);
 
-  const backToPlans = useCallback(() => {
-    router.dismissTo("/plans");
-  }, [router]);
+  const measureAction = useCallback((event: LayoutChangeEvent) => {
+    setActionHeight(event.nativeEvent.layout.height);
+  }, []);
+
+  // Not on the active Plan, and not before the Plan has a Workout to train.
+  const activatable =
+    plan && !plan.is_active && plan.workouts.length > 0 ? plan : null;
+
+  const activateShown = useCallback(() => {
+    if (activatable) {
+      activate(activatable);
+    }
+  }, [activate, activatable]);
 
   const renderContent = () => {
     if (plan) {
@@ -379,17 +422,34 @@ const RedesignedPlanScreen = () => {
           headerBackButtonDisplayMode: "minimal",
           headerShown: true,
           headerTransparent: true,
+          scrollEdgeEffects: activatable
+            ? PINNED_SCROLL_EDGE_EFFECTS
+            : undefined,
           title: "",
-          // Its menu comes with the Plan's actions (FIT-863); like them, it
-          // needs the Plan, so the loading and failed states have none.
+          // Its actions need the Plan, so the loading and failed states have
+          // no menu. No icons, as on My Plans' long-press menu.
           unstable_headerRightItems: () =>
             plan
               ? [
                   {
                     icon: { name: "ellipsis", type: "sfSymbol" },
                     label: t("plans.moreOptions"),
-                    onPress: () => undefined,
-                    type: "button",
+                    menu: {
+                      items: [
+                        {
+                          label: t("plans.edit"),
+                          onPress: openEditor,
+                          type: "action",
+                        },
+                        {
+                          destructive: true,
+                          label: t("plans.delete.action"),
+                          onPress: () => remove(plan),
+                          type: "action",
+                        },
+                      ],
+                    },
+                    type: "menu",
                   },
                 ]
               : [],
@@ -397,7 +457,12 @@ const RedesignedPlanScreen = () => {
       />
       <ScrollView
         className="flex-1"
-        contentContainerClassName="px-sm grow pb-lg"
+        contentContainerClassName="px-sm grow"
+        contentContainerStyle={{
+          paddingBottom: activatable
+            ? actionHeight + BOTTOM_GAP
+            : insets.bottom + BOTTOM_GAP,
+        }}
         contentInsetAdjustmentBehavior="automatic"
         refreshControl={
           <RefreshControl onRefresh={onRefresh} refreshing={isPulling} />
@@ -406,6 +471,25 @@ const RedesignedPlanScreen = () => {
       >
         {renderContent()}
       </ScrollView>
+      {activatable ? (
+        <ScopedVariables
+          variables={{ "--plan-action-bottom": insets.bottom + BOTTOM_GAP }}
+        >
+          <View
+            className="px-sm absolute inset-x-0 bottom-0 pb-(--plan-action-bottom)"
+            onLayout={measureAction}
+            pointerEvents="box-none"
+          >
+            <Button
+              isLoading={activatingPlanId === activatable.id}
+              label={t("plans.activate.action")}
+              onPress={activateShown}
+              size="lg"
+              testID="activate-plan-button"
+            />
+          </View>
+        </ScopedVariables>
+      ) : null}
     </>
   );
 };
