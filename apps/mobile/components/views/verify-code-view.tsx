@@ -20,10 +20,9 @@ import { ErrorMessage } from "~/components/ui/error-message";
 import { Text } from "~/components/ui/text";
 import { isWrongCodeError } from "~/hooks/confirm-identity";
 import { useReverifiedCall } from "~/hooks/reverification";
+import { analytics } from "~/lib/analytics";
 import { getClerk, isClerkNetworkFailure } from "~/lib/clerk";
-import { IS_E2E } from "~/lib/constants";
 import { dropUnusedEmailAddress } from "~/lib/email-addresses";
-import { segmentClient } from "~/lib/segment";
 import { showToast } from "~/lib/toast";
 
 const RESEND_DELAY = 60_000;
@@ -82,9 +81,7 @@ const useSignUpVerification = (): CodeVerification => {
         return getAuthErrorMessage(finalizeError);
       }
 
-      if (!IS_E2E) {
-        void segmentClient.track("User Registered");
-      }
+      void analytics.send("User Registered");
     },
   };
 };
@@ -177,8 +174,8 @@ const useSignInVerification = (
         return getAuthErrorMessage(finalizeError);
       }
 
-      if (source !== "reset-password" && !IS_E2E) {
-        void segmentClient.track("User Logged In");
+      if (source !== "reset-password") {
+        void analytics.send("User Logged In");
       }
     },
   };

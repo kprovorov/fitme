@@ -27,9 +27,8 @@ import type {
   DiscardSource,
   WorkoutSession,
 } from "~/hooks/queries/workout-sessions";
-import { IS_E2E } from "~/lib/constants";
+import { analytics } from "~/lib/analytics";
 import { i18n } from "~/lib/i18n";
-import { segmentClient } from "~/lib/segment";
 import { isStillWriteStarter, rememberWriteStarter } from "~/lib/write-answers";
 
 const alertDiscardFailed = (waitSeconds: number | null) =>
@@ -122,12 +121,10 @@ export const useDiscardWorkoutSession = (sessionId: string) => {
         deleted,
       ]);
 
-      if (!IS_E2E) {
-        void segmentClient.track("Workout Discarded", {
-          logged_set_count: deleted ? countLoggedSets(deleted) : 0,
-          source,
-        });
-      }
+      void analytics.send("Workout Discarded", {
+        logged_set_count: deleted ? countLoggedSets(deleted) : 0,
+        source,
+      });
     },
   });
 

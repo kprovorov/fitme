@@ -25,8 +25,7 @@ import {
   mayMeanSessionEnded,
 } from "~/hooks/refused-session-write";
 import type { ShownSet } from "~/hooks/shown-sets";
-import { IS_E2E } from "~/lib/constants";
-import { segmentClient } from "~/lib/segment";
+import { analytics } from "~/lib/analytics";
 import { sessionEditFailureMessage } from "~/lib/session-edit-failure";
 import { isStillWriteStarter, rememberWriteStarter } from "~/lib/write-answers";
 import type { WriteStarter } from "~/lib/write-answers";
@@ -204,13 +203,11 @@ export const useRemoveWorkoutSessionSet = (sessionId: string) => {
         // Added and logged here, it may live on the phone too until a read.
         dropGoneAddedSet(exerciseId, set.id);
 
-        if (!IS_E2E) {
-          void segmentClient.track("Set Removed", {
-            exercise_id: exerciseId,
-            logged,
-            session_id: sessionId,
-          });
-        }
+        void analytics.send("Set Removed", {
+          exercise_id: exerciseId,
+          logged,
+          session_id: sessionId,
+        });
       } else {
         await putBackUnlessEnded(queryClient, sessionId, {
           failure,

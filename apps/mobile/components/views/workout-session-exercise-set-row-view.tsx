@@ -22,9 +22,8 @@ import {
 } from "~/hooks/queries/workout-sessions";
 import type { WorkoutSessionSet } from "~/hooks/queries/workout-sessions";
 import { hasRefusingSessionEnded } from "~/hooks/refused-session-write";
-import { IS_E2E } from "~/lib/constants";
+import { analytics } from "~/lib/analytics";
 import { useI18n } from "~/lib/i18n";
-import { segmentClient } from "~/lib/segment";
 import { formatSetTarget, formatSetWeight } from "~/lib/set-inputs";
 import { cn } from "~/lib/utils";
 
@@ -265,8 +264,8 @@ const WorkoutSessionExerciseSetRowView = ({
   };
 
   const trackSetCompleted = () => {
-    if (!IS_E2E && pendingSetData.current) {
-      void segmentClient.track("Set Tracked", {
+    if (pendingSetData.current) {
+      void analytics.send("Set Tracked", {
         exercise_id: exerciseId,
         reps: pendingSetData.current.reps,
         weight: pendingSetData.current.weight,

@@ -20,10 +20,9 @@ import { useStoreProfileMutation } from "~/hooks/mutations/profiles";
 import type { StoreProfileData } from "~/hooks/mutations/profiles";
 import { useProfileQuery } from "~/hooks/queries/profiles";
 import type { Profile } from "~/hooks/queries/profiles";
-import { IS_E2E } from "~/lib/constants";
+import { analytics } from "~/lib/analytics";
 import { storage } from "~/lib/mmkv";
 import { genderOf, measurementSystemOf } from "~/lib/profile";
-import { segmentClient } from "~/lib/segment";
 
 const ProfileScreen = () => {
   const { t } = useTranslation();
@@ -75,13 +74,11 @@ const ProfileScreen = () => {
         storage.set(`onboarding.seen.${user.id}`, true);
       }
 
-      if (!IS_E2E) {
-        void segmentClient.track("Profile Filled", {
-          age: variables.age,
-          gender: variables.gender,
-          weight_unit: measurementSystem,
-        });
-      }
+      void analytics.send("Profile Filled", {
+        age: variables.age,
+        gender: variables.gender,
+        weight_unit: measurementSystem,
+      });
 
       // The Create Plan choice, as every other way of creating a Plan: Build it
       // yourself is free, Ask Arnold is Pro (FIT-634).

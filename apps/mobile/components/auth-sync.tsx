@@ -6,11 +6,11 @@ import Purchases from "react-native-purchases";
 
 import { clearAddedSets } from "~/hooks/added-sets";
 import { clearArnoldAttachments } from "~/hooks/arnold-attachments";
+import { analytics } from "~/lib/analytics";
 import { IS_E2E } from "~/lib/constants";
-import { segmentClient } from "~/lib/segment";
 
 /**
- * Keys Sentry, RevenueCat and Segment on the signed-in Clerk User, and on
+ * Keys Sentry, RevenueCat and analytics on the signed-in Clerk User, and on
  * sign-out clears the query cache, the Attachments picked for Arnold and the
  * sets added to a Workout Session but not logged, and logs out of RevenueCat.
  */
@@ -58,23 +58,23 @@ const AuthSync = () => {
     // The Clerk id only: no email or name reaches Sentry.
     Sentry.setUser({ id: userId });
 
-    if (IS_E2E) {
-      return;
-    }
-
     const identify = async () => {
-      if (isNewUser) {
-        await Purchases.logIn(userId);
-        await queryClient.invalidateQueries({ queryKey: ["rc-is-pro"] });
+      // An E2E build configures no RevenueCat; the analytics wrapper decides
+      // for itself whether it sends.
+      if (!IS_E2E) {
+        if (isNewUser) {
+          await Purchases.logIn(userId);
+          await queryClient.invalidateQueries({ queryKey: ["rc-is-pro"] });
+        }
+
+        await Purchases.setEmail(email);
+
+        if (name) {
+          await Purchases.setDisplayName(name);
+        }
       }
 
-      await Purchases.setEmail(email);
-
-      if (name) {
-        await Purchases.setDisplayName(name);
-      }
-
-      await segmentClient.identify(userId, { email, name });
+      await analytics.identify(userId, { email, name });
     };
 
     identify().catch(Sentry.captureException);

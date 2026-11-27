@@ -19,6 +19,7 @@ import {
 import type { PlanUpdatePrompt } from "~/hooks/plan-update-prompt";
 import { shownExercise, useExercises } from "~/hooks/queries/library";
 import { useApplyPlanUpdateMutation } from "~/hooks/queries/workout-sessions";
+import { analytics } from "~/lib/analytics";
 import { useI18n } from "~/lib/i18n";
 import {
   formatPlanChange,
@@ -34,7 +35,6 @@ import type {
   PlanUpdateChangeKind,
   PlanUpdateSetRemoval,
 } from "~/lib/plan-changes";
-import { segmentClient } from "~/lib/segment";
 
 /**
  * Every query that reads a Plan's Workouts, refetched once changes apply: the
@@ -297,7 +297,7 @@ export const PlanUpdateSheetHost = () => {
             void queryClient.invalidateQueries({ queryKey });
           }
 
-          void segmentClient.track(
+          void analytics.send(
             "Plan Update Accepted",
             planUpdateProperties(prompt.sessionId, prompt.preview)
           );
@@ -313,7 +313,7 @@ export const PlanUpdateSheetHost = () => {
     }
 
     answeredRef.current = true;
-    void segmentClient.track(
+    void analytics.send(
       "Plan Update Declined",
       planUpdateProperties(prompt.sessionId, prompt.preview)
     );
