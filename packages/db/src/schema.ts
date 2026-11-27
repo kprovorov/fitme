@@ -578,6 +578,12 @@ export const workoutSessions = pgTable(
       "btree",
       table.userId.asc().nullsLast().op("text_ops")
     ),
+    index("workout_sessions_user_id_started_at_idx").using(
+      "btree",
+      table.userId.asc().nullsLast().op("uuid_ops"),
+      table.startedAt.asc().nullsLast().op("uuid_ops"),
+      table.id.asc().nullsLast().op("text_ops")
+    ),
     index("workout_sessions_workout_id_idx").using(
       "btree",
       table.workoutId.asc().nullsLast().op("uuid_ops")

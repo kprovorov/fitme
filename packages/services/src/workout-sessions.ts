@@ -467,7 +467,10 @@ interface PreviousSetRow extends Record<string, unknown> {
  * `MAX_PREVIOUS_SET_NUMBER` are answered. Plans and
  * Workouts don't matter, and the session itself never counts. One statement,
  * so one snapshot; a slug with nothing earlier is absent, and a session the
- * User hasn't got answers an empty map.
+ * User hasn't got answers an empty map. The earlier sessions are walked
+ * newest first through `workout_sessions_user_id_started_at_idx`, stopping
+ * at the first match, so keep the lateral's `order by` on `started_at`, `id`
+ * (FIT-851).
  */
 export const getPreviousSets = async (
   tx: Transaction,
