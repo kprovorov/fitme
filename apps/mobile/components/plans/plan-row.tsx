@@ -1,4 +1,5 @@
-import { Pressable, View } from "react-native";
+import { useTranslation } from "react-i18next";
+import { ActivityIndicator, Pressable, View } from "react-native";
 
 import { SymbolImage } from "~/components/symbol-image";
 import { Separator } from "~/components/ui/separator";
@@ -14,22 +15,31 @@ import { PlanMeta, usePlanMetaItems } from "./plan-meta";
  * One Plan in My Plans' list card (Figma's Plan Row): its name, its details
  * and a chevron, under a separator unless it's the first row. The row is one
  * button opening the Plan, read by VoiceOver as its name and details; a
- * long press (or VoiceOver's actions) offers `actions`.
+ * long press (or VoiceOver's actions) offers `actions`. While the Plan is
+ * being activated a spinner takes the chevron's place.
  */
 export const PlanRow = ({
   actions,
+  isActivating = false,
   isFirst,
   onPress,
   plan,
 }: {
   actions: PlanMenuAction[];
+  isActivating?: boolean;
   isFirst: boolean;
   onPress: () => void;
   plan: PlanSummary;
 }) => {
+  const { t } = useTranslation();
   const meta = usePlanMetaItems(plan);
 
-  const spoken = [plan.name, ...meta.map((item) => item.label)]
+  // The row is one element, so VoiceOver hears the spinner through its label.
+  const spoken = [
+    plan.name,
+    ...meta.map((item) => item.label),
+    isActivating ? t("plans.activating") : null,
+  ]
     .filter(Boolean)
     .join(", ");
 
@@ -51,10 +61,18 @@ export const PlanRow = ({
             </Text>
             <PlanMeta className="gap-x-3 gap-y-1" items={meta} />
           </View>
-          <SymbolImage
-            className="text-body text-muted-foreground shrink-0"
-            name="chevron.right"
-          />
+          {isActivating ? (
+            <ActivityIndicator
+              colorClassName="accent-muted-foreground"
+              size="small"
+              testID={`plan-activating-${plan.id}`}
+            />
+          ) : (
+            <SymbolImage
+              className="text-body text-muted-foreground shrink-0"
+              name="chevron.right"
+            />
+          )}
         </View>
       </Pressable>
     </PlanActionsMenu>

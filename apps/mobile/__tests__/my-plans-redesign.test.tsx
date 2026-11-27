@@ -10,8 +10,11 @@
  * long press on a card or row (the context menu's stand-in), or VoiceOver's
  * actions, offers Edit Plan and Delete Plan: Edit opens the Plan editor, and
  * Delete confirms, refuses the active Plan or alerts a failure, the fake's
- * rows checked afterwards. `Alert.alert` is answered by pressing one of the
- * buttons it was given.
+ * rows checked afterwards. An inactive Plan also offers Activate Plan: at once
+ * with no active Plan, after "Activate Plan" with one; while the fake holds
+ * it, the row's spinner and the disabled items; then the success haptic and
+ * the hero card swapping, or the failure alert and the 429 wait. `Alert.alert`
+ * is answered by pressing one of the buttons it was given.
  */
 import { beforeEach, describe, expect, it, jest } from "@jest/globals";
 import { QueryClientProvider } from "@tanstack/react-query";
@@ -23,6 +26,7 @@ import {
   screen,
   within,
 } from "@testing-library/react-native";
+import { NotificationFeedbackType } from "expo-haptics";
 import type { ReactElement } from "react";
 import { Alert } from "react-native";
 import type { AlertButton } from "react-native";
@@ -38,6 +42,7 @@ import {
   fakePublicApi,
 } from "~/test-utils/fake-public-api";
 import { fakeRevenueCat } from "~/test-utils/fake-revenuecat";
+import { firedHaptics } from "~/test-utils/haptics-stub";
 import { InAppLanguage } from "~/test-utils/in-app-language";
 import {
   createTestQueryClient,
@@ -94,6 +99,7 @@ jest.mock("~/components/ui/context-menu", () =>
 
 const PLANS = "GET /v1/plans" as const;
 const DELETE_PLAN = "DELETE /v1/plans/{id}" as const;
+const ACTIVATE_PLAN = "POST /v1/plans/{id}/activate" as const;
 
 /** Each language's text the screen shows, from the catalogs. */
 const TEXT = {
@@ -133,6 +139,11 @@ const TEXT = {
       "Create or activate another plan first, then delete this one.",
     network: "Please check your connection and try again.",
     notFound: "This plan no longer exists.",
+    activate: "Activate Plan",
+    activateMessage: "This will deactivate your current plan",
+    activateConfirm: "Activate",
+    activateFailed: "Couldn't Activate Plan",
+    activating: "Activating plan",
   },
   "uk-UA": {
     active: "Активний",
@@ -174,6 +185,11 @@ const TEXT = {
       "Спершу створіть або активуйте інший план, а потім видаліть цей.",
     network: "Перевірте з’єднання й спробуйте ще раз.",
     notFound: "Цього плану більше немає.",
+    activate: "Активувати план",
+    activateMessage: "Ваш поточний план буде деактивовано",
+    activateConfirm: "Активувати",
+    activateFailed: "Не вдалося активувати план",
+    activating: "План активується",
   },
 } as const;
 
@@ -288,8 +304,28 @@ const livePlanIds = () =>
 const deleteRequests = () =>
   fakePublicApi.requests.filter(({ route }) => route === DELETE_PLAN);
 
+const activateRequests = () =>
+  fakePublicApi.requests.filter(({ route }) => route === ACTIVATE_PLAN);
+
+/** The fake's active Plans, by id. */
+const activePlanIds = () =>
+  backend.plans.filter((plan) => plan.is_active).map((plan) => plan.id);
+
+/** The open menu's items, by label, with whether each is disabled. */
+const menuItems = () =>
+  screen.getAllByRole("menuitem").map((item) => ({
+    disabled: item.props.accessibilityState?.disabled === true,
+    label: item.props.accessibilityLabel,
+  }));
+
+const SUCCESS_HAPTIC = {
+  kind: "notification",
+  type: NotificationFeedbackType.Success,
+} as const;
+
 beforeEach(() => {
   jest.spyOn(Alert, "alert").mockReturnValue(undefined);
+  jest.mocked(Alert.alert).mockClear();
   setPlansRedesignEnabled(true);
   resetStubRouter();
   mockPresentPaywall.mockClear();
@@ -540,7 +576,7 @@ describe.each(LANGUAGES)("My Plans (%s)", (language) => {
     expect(rowNames()).toEqual(["plan-row-plan-new", "plan-row-plan-old"]);
   });
 
-  it("offers Edit Plan and Delete Plan on a row's long press, Delete in red", async () => {
+  it("offers Edit Plan, Activate Plan and Delete Plan on a row's long press, Delete in red", async () => {
     seedOthers();
     seedHypertrophy();
 
@@ -551,10 +587,12 @@ describe.each(LANGUAGES)("My Plans (%s)", (language) => {
     const items = screen.getAllByRole("menuitem");
     expect(items.map((item) => item.props.accessibilityLabel)).toEqual([
       text.edit,
+      text.activate,
       text.deleteAction,
     ]);
-    expect(items[1].props.accessibilityHint).toBe(DESTRUCTIVE_HINT);
+    expect(items[2].props.accessibilityHint).toBe(DESTRUCTIVE_HINT);
     expect(items[0].props.accessibilityHint).toBeUndefined();
+    expect(items[1].props.accessibilityHint).toBeUndefined();
   });
 
   it("offers Edit Plan and Delete Plan on the hero card's long press", async () => {
@@ -577,17 +615,19 @@ describe.each(LANGUAGES)("My Plans (%s)", (language) => {
 
     await mount(language);
 
-    const spoken = [
-      { label: text.edit, name: "edit" },
-      { label: text.deleteAction, name: "delete" },
-    ];
-
     expect(
       screen.getByTestId("active-plan-card").props.accessibilityActions
-    ).toEqual(spoken);
+    ).toEqual([
+      { label: text.edit, name: "edit" },
+      { label: text.deleteAction, name: "delete" },
+    ]);
     expect(
       screen.getByTestId("plan-row-plan-old").props.accessibilityActions
-    ).toEqual(spoken);
+    ).toEqual([
+      { label: text.edit, name: "edit" },
+      { label: text.activate, name: "activate" },
+      { label: text.deleteAction, name: "delete" },
+    ]);
 
     await fireEvent(
       screen.getByTestId("plan-row-plan-new"),
@@ -757,5 +797,242 @@ describe.each(LANGUAGES)("My Plans (%s)", (language) => {
       text.notFound,
     ]);
     expect(rowNames()).toEqual(["plan-row-plan-new"]);
+  });
+
+  it("activates a Plan at once when none is active, with the success haptic", async () => {
+    seedOthers();
+    seedHypertrophy({ is_active: false });
+
+    await mount(language);
+
+    await chooseFromMenu("plan-menu-plan-old", text.activate);
+
+    // No question: there's no current Plan to deactivate.
+    expect(alerts()).toHaveLength(0);
+    expect(activateRequests().map(({ path }) => path)).toEqual([
+      "/v1/plans/plan-old/activate",
+    ]);
+    expect(activePlanIds()).toEqual(["plan-old"]);
+    expect(firedHaptics).toEqual([SUCCESS_HAPTIC]);
+
+    const hero = screen.getByTestId("active-plan-card");
+    expect(within(hero).getByText("Old Strength")).toBeTruthy();
+    expect(screen.queryByText(text.noActiveTitle)).toBeNull();
+    expect(rowNames()).toEqual([
+      "plan-row-plan-hypertrophy",
+      "plan-row-plan-new",
+    ]);
+    // The User stays on My Plans.
+    expect(pushedRoutes()).toEqual([]);
+  });
+
+  it("asks before activating a Plan while another is active, then swaps the hero card", async () => {
+    seedOthers();
+    seedHypertrophy();
+
+    await mount(language);
+
+    await chooseFromMenu("plan-menu-plan-new", text.activate);
+
+    const [title, message, buttons] = alerts().at(-1) ?? [];
+    expect(title).toBe(text.activate);
+    expect(message).toBe(text.activateMessage);
+    expect(
+      buttons?.map(({ style, text: label }) => ({ label, style }))
+    ).toEqual([
+      { label: text.cancel, style: "cancel" },
+      { label: text.activateConfirm, style: undefined },
+    ]);
+    expect(activateRequests()).toHaveLength(0);
+
+    await answerAlert(text.activateConfirm);
+
+    expect(activePlanIds()).toEqual(["plan-new"]);
+    expect(firedHaptics).toEqual([SUCCESS_HAPTIC]);
+    expect(
+      within(screen.getByTestId("active-plan-card")).getByText("New Split")
+    ).toBeTruthy();
+    // The old active Plan is a row now.
+    expect(rowNames()).toEqual([
+      "plan-row-plan-hypertrophy",
+      "plan-row-plan-old",
+    ]);
+    expect(pushedRoutes()).toEqual([]);
+  });
+
+  it("activates nothing when the User cancels", async () => {
+    seedOthers();
+    seedHypertrophy();
+
+    await mount(language);
+
+    await chooseFromMenu("plan-menu-plan-new", text.activate);
+    expect(alerts().at(-1)?.[2]?.[0]?.onPress).toBeUndefined();
+
+    expect(activateRequests()).toHaveLength(0);
+    expect(activePlanIds()).toEqual(["plan-hypertrophy"]);
+    expect(firedHaptics).toEqual([]);
+  });
+
+  it("activates through VoiceOver's Activate action too", async () => {
+    seedOthers();
+    seedHypertrophy();
+
+    await mount(language);
+
+    await fireEvent(
+      screen.getByTestId("plan-row-plan-old"),
+      "accessibilityAction",
+      { nativeEvent: { actionName: "activate" } }
+    );
+    await answerAlert(text.activateConfirm);
+
+    expect(activePlanIds()).toEqual(["plan-old"]);
+  });
+
+  it("while activating, spins on the row and disables every Activate and Delete but keeps Edit", async () => {
+    seedOthers();
+    seedHypertrophy({ is_active: false });
+
+    await mount(language);
+
+    const resume = fakePublicApi.pause(ACTIVATE_PLAN);
+    // No settling: the fake holds the activation.
+    await openMenu("plan-menu-plan-old");
+    await fireEvent.press(
+      screen.getByRole("menuitem", { name: text.activate })
+    );
+    // Inside `act`, so the screen renders the pending activation.
+    await act(() =>
+      until(() => screen.queryByTestId("plan-activating-plan-old") !== null)
+    );
+
+    expect(screen.getByTestId("plan-activating-plan-old")).toBeTruthy();
+    expect(screen.queryByTestId("plan-activating-plan-new")).toBeNull();
+    expect(
+      screen.getByTestId("plan-row-plan-old").props.accessibilityLabel
+    ).toContain(text.activating);
+
+    await openMenu("plan-menu-plan-new");
+    expect(menuItems()).toEqual([
+      { disabled: false, label: text.edit },
+      { disabled: true, label: text.activate },
+      { disabled: true, label: text.deleteAction },
+    ]);
+    // VoiceOver offers only what's enabled.
+    expect(
+      screen.getByTestId("plan-row-plan-new").props.accessibilityActions
+    ).toEqual([{ label: text.edit, name: "edit" }]);
+
+    await fireEvent.press(screen.getByRole("menuitem", { name: text.edit }));
+    expect(pushedRoutes()).toEqual([
+      expect.objectContaining({
+        params: { planId: "plan-new" },
+        pathname: "/plans/[planId]/edit",
+      }),
+    ]);
+
+    resume();
+    await settle(client);
+
+    expect(screen.queryByTestId(/^plan-activating-/u)).toBeNull();
+    expect(
+      within(screen.getByTestId("active-plan-card")).getByText("Old Strength")
+    ).toBeTruthy();
+    expect(activateRequests()).toHaveLength(1);
+  });
+
+  it("disables Activate while a Plan is being deleted", async () => {
+    seedOthers();
+    seedHypertrophy();
+
+    await mount(language);
+
+    const resume = fakePublicApi.pause(DELETE_PLAN);
+    await chooseFromMenu("plan-menu-plan-old", text.deleteAction);
+
+    const confirm = (alerts().at(-1)?.[2] ?? []).find(
+      (button) => button.text === text.deleteConfirm
+    );
+
+    await act(() => {
+      confirm?.onPress?.();
+    });
+    await until(() => deleteRequests().length === 1);
+
+    // The pending delete reaches the menu once the screen has rendered it.
+    await openMenu("plan-menu-plan-new");
+    await act(() => until(() => menuItems().at(1)?.disabled ?? false));
+    expect(menuItems()).toEqual([
+      { disabled: false, label: text.edit },
+      { disabled: true, label: text.activate },
+      { disabled: true, label: text.deleteAction },
+    ]);
+
+    resume();
+    await settle(client);
+  });
+
+  it("says an activation failed and keeps the Plans as they were", async () => {
+    seedOthers();
+    seedHypertrophy();
+
+    await mount(language);
+
+    fakePublicApi.failNext(ACTIVATE_PLAN, { status: 500 });
+    await chooseFromMenu("plan-menu-plan-old", text.activate);
+    await answerAlert(text.activateConfirm);
+
+    expect(alerts().at(-1)?.slice(0, 2)).toEqual([
+      text.activateFailed,
+      text.network,
+    ]);
+    expect(firedHaptics).toEqual([]);
+    expect(activePlanIds()).toEqual(["plan-hypertrophy"]);
+    expect(
+      within(screen.getByTestId("active-plan-card")).getByText(
+        "Hypertrophy Builder"
+      )
+    ).toBeTruthy();
+    expect(screen.queryByTestId(/^plan-activating-/u)).toBeNull();
+  });
+
+  it("says how long to wait when an activation is rate limited", async () => {
+    seedOthers();
+    seedHypertrophy();
+
+    await mount(language);
+
+    fakePublicApi.failNext(ACTIVATE_PLAN, {
+      code: "rate_limited",
+      status: 429,
+    });
+    await chooseFromMenu("plan-menu-plan-old", text.activate);
+    await answerAlert(text.activateConfirm);
+
+    expect(alerts().at(-1)?.slice(0, 2)).toEqual([
+      text.activateFailed,
+      text.rateLimited,
+    ]);
+    expect(activePlanIds()).toEqual(["plan-hypertrophy"]);
+  });
+
+  it("says a Plan the API can't find to activate is gone, and drops it once read again", async () => {
+    seedOthers();
+    seedHypertrophy();
+
+    await mount(language);
+
+    // Deleted elsewhere since the list was read.
+    backend.plans[0].user_id = "user_other";
+    await chooseFromMenu("plan-menu-plan-old", text.activate);
+    await answerAlert(text.activateConfirm);
+
+    expect(alerts().at(-1)?.slice(0, 2)).toEqual([
+      text.activateFailed,
+      text.notFound,
+    ]);
+    expect(rowNames()).toEqual(["plan-row-plan-new"]);
+    expect(activePlanIds()).toEqual(["plan-hypertrophy"]);
   });
 });
