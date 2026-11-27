@@ -21,15 +21,21 @@ const nextConfig: NextConfig = {
     remotePatterns: [{ hostname: "github.com", protocol: "https" }],
   },
   reactStrictMode: true,
-  // Proxy PostHog through the site so ad blockers do not drop analytics.
+  // Proxy PostHog (the US Cloud project) through the site so ad blockers do
+  // not drop analytics. The static and array rules must come before the
+  // catch-all, since Next.js matches rewrites in order.
   rewrites() {
     return Promise.resolve([
       {
-        destination: "https://eu-assets.i.posthog.com/static/:path*",
+        destination: "https://us-assets.i.posthog.com/static/:path*",
         source: "/ingest/static/:path*",
       },
       {
-        destination: "https://eu.i.posthog.com/:path*",
+        destination: "https://us-assets.i.posthog.com/array/:path*",
+        source: "/ingest/array/:path*",
+      },
+      {
+        destination: "https://us.i.posthog.com/:path*",
         source: "/ingest/:path*",
       },
     ]);

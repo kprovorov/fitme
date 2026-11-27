@@ -4,11 +4,11 @@ import { posthog } from "posthog-js";
 
 posthog.init(process.env.NEXT_PUBLIC_POSTHOG_KEY ?? "", {
   api_host: "/ingest",
-  // This enables capturing exceptions using Error Tracking
-  capture_exceptions: true,
+  // Sentry reports the site's errors; PostHog doesn't report them again
+  capture_exceptions: false,
   debug: process.env.NODE_ENV === "development",
   defaults: "2025-05-24",
-  ui_host: "https://eu.posthog.com",
+  ui_host: "https://us.posthog.com",
 });
 
 // Browser errors and page-load traces to fitme-site. next.config.ts inlines
