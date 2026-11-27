@@ -11,6 +11,7 @@ import type {
   ExerciseHistoryEntry,
   ExerciseHistorySet,
 } from "~/hooks/queries/exercises";
+import { isNotesEnabled } from "~/lib/feature-flags";
 import { useI18n } from "~/lib/i18n";
 import { formatSetTarget, formatSetWeight } from "~/lib/set-inputs";
 import { cn } from "~/lib/utils";
@@ -81,21 +82,30 @@ const Cell = ({
   </View>
 );
 
-const Row = ({
-  accessibilityLabel,
-  children,
-}: {
-  /** What VoiceOver reads for the row, as one element. */
-  accessibilityLabel?: string;
-  children: ReactNode;
-}) => (
-  <View
-    accessibilityLabel={accessibilityLabel}
-    accessible={!!accessibilityLabel}
-    className="gap-sm h-10 flex-row items-center"
-  >
+const Row = ({ children }: { children: ReactNode }) => (
+  <View className="gap-sm h-10 flex-row items-center">
     {children}
     <View className={SET_CHECK_COLUMN_CLASS} />
+  </View>
+);
+
+/**
+ * A past set's note under its row, read-only: flush with the target column,
+ * wrapping in full with its own line breaks. It sits inside its set's one
+ * accessible element, whose label reads it after the set.
+ */
+const HistorySetNote = ({ note }: { note: string }) => (
+  <View className="gap-sm flex-row">
+    <View className={SET_NUMBER_COLUMN_CLASS} />
+    <Text
+      className="text-subhead text-muted-foreground flex-1"
+      // Scaled with its table, as the AX3 frame draws it: uncapped, a long
+      // note at the largest text size is a word a line in the indented column.
+      maxFontSizeMultiplier={SET_TABLE_MAX_FONT_SCALE}
+      testID="history-set-note"
+    >
+      {note}
+    </Text>
   </View>
 );
 
@@ -111,6 +121,7 @@ const SessionTable = ({
   const i18n = useI18n();
   const logged = entry.sets.toSorted((a, b) => a.order - b.order);
   const date = new Date(entry.session.started_at);
+  const showNotes = isNotesEnabled();
 
   return (
     <View>
@@ -138,7 +149,11 @@ const SessionTable = ({
             </Cell>
           </Row>
         </View>
-        {logged.map((set: ExerciseHistorySet) => {
+        {logged.map((set: ExerciseHistorySet, index) => {
+          // Numbered by position, never the stored `order`, which has gaps
+          // where sets were removed (ADR 0023).
+          const number = index + 1;
+
           const target = formatSetTarget(set, weightLabel, i18n);
 
           // Bodyweight sets log no weight.
@@ -157,25 +172,42 @@ const SessionTable = ({
             .filter(Boolean)
             .join(", ");
 
+          const note = showNotes ? set.note : null;
+
+          const spokenSet = note
+            ? t("exerciseHistory.setWithNote", {
+                logged: loggedText,
+                note,
+                order: number,
+              })
+            : t("exerciseHistory.set", {
+                logged: loggedText,
+                order: number,
+              });
+
           return (
-            <Row
+            <View
               accessibilityLabel={[
-                t("exerciseHistory.set", {
-                  logged: loggedText,
-                  order: set.order,
-                }),
+                spokenSet,
                 // A set added during the session had no target.
                 target === "–" ? null : t("exerciseHistory.target", { target }),
               ]
                 .filter(Boolean)
                 .join(". ")}
+              accessible
               key={set.id}
+              // Sentry's touch breadcrumbs would take the label, which holds
+              // the note's text.
+              sentry-label="history-set"
             >
-              <Cell className={SET_NUMBER_COLUMN_CLASS}>{`#${set.order}`}</Cell>
-              <Cell className={SET_TARGET_COLUMN_CLASS}>{target}</Cell>
-              <Cell className="flex-1">{set.reps_completed}</Cell>
-              <Cell className="flex-1">{weight ?? "–"}</Cell>
-            </Row>
+              <Row>
+                <Cell className={SET_NUMBER_COLUMN_CLASS}>{`#${number}`}</Cell>
+                <Cell className={SET_TARGET_COLUMN_CLASS}>{target}</Cell>
+                <Cell className="flex-1">{set.reps_completed}</Cell>
+                <Cell className="flex-1">{weight ?? "–"}</Cell>
+              </Row>
+              {note ? <HistorySetNote note={note} /> : null}
+            </View>
           );
         })}
       </View>

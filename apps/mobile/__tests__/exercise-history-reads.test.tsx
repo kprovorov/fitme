@@ -3,7 +3,8 @@
  * `GET /v1/workout-session-exercises` through the Public API (FIT-546): the
  * entries and their sets (a bodyweight set and a set's target
  * among them), the next page read as the screen scrolls near its end, and a
- * failed read with and without a page already read.
+ * failed read with and without a page already read, and each past set's
+ * note, read-only, behind the notes flag (FIT-837), in English and Ukrainian.
  *
  * Mounts the real screen on the fake Public API, with the fake Library naming
  * the Exercises; the SwiftUI-backed primitives are swapped for plain
@@ -16,13 +17,16 @@ import { fireEvent, render, screen } from "@testing-library/react-native";
 import type { ReactNode } from "react";
 
 import WorkoutSessionExerciseScreen from "~/app/plans/[planId]/workouts/[workoutId]/sessions/[sessionId]/exercises/[exerciseId]/index";
+import { setNotesEnabled } from "~/lib/feature-flags";
 import { storage } from "~/lib/mmkv";
+import { setDeviceLanguages } from "~/test-utils/device-locales";
 import { fakeExercise, serveExercises } from "~/test-utils/fake-exercises";
 import {
   backend,
   FAKE_USER_ID,
   fakePublicApi,
 } from "~/test-utils/fake-public-api";
+import { InAppLanguage } from "~/test-utils/in-app-language";
 import { createTestQueryClient, settle } from "~/test-utils/query-client";
 import { resetStubRouter } from "~/test-utils/router-stub";
 
@@ -38,6 +42,7 @@ jest.mock("expo-router", () => {
     useIsFocused: () => true,
     useLocalSearchParams: () => stub.useStubParams(mockParams.current),
     useNavigation: () => ({ getState: () => ({ index: 0, routes: [{}] }) }),
+    usePreventRemove: stub.usePreventRemoveStub,
     useRouter: () => ({ ...stub.stubRouter, canGoBack: () => true }),
   };
 });
@@ -96,7 +101,9 @@ let queryClient: QueryClient;
 const mount = async (children: ReactNode) => {
   queryClient = createTestQueryClient();
   await render(
-    <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+    <QueryClientProvider client={queryClient}>
+      <InAppLanguage>{children}</InAppLanguage>
+    </QueryClientProvider>
   );
   await settle(queryClient);
 };
@@ -119,6 +126,7 @@ const setSet = (
   values: {
     reps_completed?: number | null;
     reps_recommended?: number | null;
+    note?: string | null;
     weight_completed?: number | null;
     weight_recommended?: number | null;
   }
@@ -379,5 +387,113 @@ describe("the Exercise history card's failures", () => {
 
     expect(screen.getByText("February 3")).toBeTruthy();
     expect(screen.queryByText(HISTORY_LOAD_ERROR)).toBeNull();
+  });
+});
+
+describe("the Exercise history card's set notes", () => {
+  const SHORT_NOTE = "Belt on, felt strong";
+
+  const LONG_NOTE =
+    "Lower back arched on rep 8, stopped one rep early.\nLighter warm-up next time.";
+
+  beforeEach(() => {
+    setNotesEnabled(true);
+    // A past session of three sets: a note on the first and the last.
+    seedPast("past-1", "2026-02-03T10:00:00.000Z", [12, 12, 10]);
+    setSet("past-1-e1-s1", {
+      note: SHORT_NOTE,
+      reps_recommended: 12,
+      weight_completed: 45,
+      weight_recommended: 45,
+    });
+    setSet("past-1-e1-s2", { weight_completed: 50 });
+    setSet("past-1-e1-s3", { note: LONG_NOTE, weight_completed: 55 });
+  });
+
+  it("shows a set's note under it, line breaks kept, and nothing for a set without one", async () => {
+    await mountExerciseScreen();
+
+    expect(screen.getByText(SHORT_NOTE)).toBeTruthy();
+    // The note's own line breaks, as written.
+    expect(screen.getByText(LONG_NOTE)).toBeTruthy();
+    expect(
+      screen.getByLabelText("Set 2: 12 reps, 50 kg. Target 10")
+    ).toBeTruthy();
+    // Two notes, so none under the set without one.
+    expect(screen.getAllByTestId("history-set-note")).toHaveLength(2);
+  });
+
+  it("reads the note after its set for VoiceOver", async () => {
+    await mountExerciseScreen();
+
+    expect(
+      screen.getByLabelText(
+        `Set 1: 12 reps, 45 kg. Note: ${SHORT_NOTE}. Target 12×45kg`
+      )
+    ).toBeTruthy();
+    expect(
+      screen.getByLabelText(
+        `Set 3: 10 reps, 55 kg. Note: ${LONG_NOTE}. Target 10`
+      )
+    ).toBeTruthy();
+  });
+
+  it("numbers the sets by position, never by a removed set's gap", async () => {
+    // Set 2 was removed from that session, leaving an `order` gap.
+    backend.sets = backend.sets.filter(({ id }) => id !== "past-1-e1-s2");
+    await mountExerciseScreen();
+
+    expect(screen.getByText("#2")).toBeTruthy();
+    expect(screen.queryByText("#3")).toBeNull();
+    expect(
+      screen.getByLabelText(
+        `Set 2: 10 reps, 55 kg. Note: ${LONG_NOTE}. Target 10`
+      )
+    ).toBeTruthy();
+  });
+
+  it("offers no way to edit a note", async () => {
+    await mountExerciseScreen();
+
+    // The only note control is the Exercise note's, above the sets.
+    expect(
+      screen
+        .queryAllByRole("button", { name: /note/iu })
+        .map((button) => button.props.accessibilityLabel)
+    ).toEqual(["Add note for Squat"]);
+  });
+
+  it("doesn't show last time's notes next to today's sets", async () => {
+    // Today's first set, logged, is shown with last time's result only.
+    setSet("now-e1-s1", { reps_completed: 6 });
+    await mountExerciseScreen();
+
+    // Once, in Progress.
+    expect(screen.getAllByText(SHORT_NOTE)).toHaveLength(1);
+    expect(screen.getAllByText(LONG_NOTE)).toHaveLength(1);
+  });
+
+  it("shows no note with the flag off", async () => {
+    setNotesEnabled(false);
+    await mountExerciseScreen();
+
+    expect(screen.queryByText(SHORT_NOTE)).toBeNull();
+    expect(screen.queryByText(LONG_NOTE)).toBeNull();
+    expect(
+      screen.getByLabelText("Set 1: 12 reps, 45 kg. Target 12×45kg")
+    ).toBeTruthy();
+  });
+
+  it("reads and shows the notes in Ukrainian", async () => {
+    setDeviceLanguages(["uk-UA"]);
+    await mountExerciseScreen();
+
+    expect(screen.getByRole("heading", { name: "Прогрес" })).toBeTruthy();
+    expect(screen.getByText(SHORT_NOTE)).toBeTruthy();
+    expect(
+      screen.getByLabelText(
+        `Підхід 1: 12 повторень, 45 кг. Нотатка: ${SHORT_NOTE}. Ціль 12×45кг`
+      )
+    ).toBeTruthy();
   });
 });
