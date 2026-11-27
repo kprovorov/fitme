@@ -158,8 +158,10 @@ export const resetExercises = () => {
 
 /**
  * The slugs the served Exercises don't have (an old slug in the map counts as
- * known), as the Public API's writes check them; throws during an outage
- * (`failExercises` with `library_unavailable`), which a write answers 503.
+ * known), as the Public API's writes check them, and the known ones each with
+ * the slug it resolves to (`exercise_slug`, an old one's replacement); throws
+ * during an outage (`failExercises` with `library_unavailable`), which a write
+ * answers 503.
  */
 export const checkServedSlugs = (slugs: readonly string[]) => {
   if (
@@ -170,7 +172,9 @@ export const checkServedSlugs = (slugs: readonly string[]) => {
     throw new Error("The Library is unavailable");
   }
 
-  return { missing: served.checkSlugs(slugs).unknown };
+  const { known, unknown } = served.checkSlugs(slugs);
+
+  return { known, missing: unknown };
 };
 
 /** The answer `failExercises` set, or `null` to answer as usual. */

@@ -25,7 +25,10 @@
  * public `GET /v1/arnold/models` (answered whatever the bearer, like the
  * API's), and the new Library's Exercises (`GET /v1/exercises` and
  * `GET /v1/exercises/{slug}`, over what `serveExercises` in
- * `fake-exercises.ts` serves). Routes are named as templates (`Route`), each request keeping its
+ * `fake-exercises.ts` serves), and the User's notes: their Exercise notes
+ * (`GET /v1/exercise-notes`, `PUT /v1/exercise-notes/{slug}`) and a logged
+ * set's (`PUT /v1/workout-session-sets/{id}/note`), which every set answered
+ * carries as `note`. Routes are named as templates (`Route`), each request keeping its
  * `path`. A route it doesn't implement answers 501 and fails the
  * test after it (`test-utils/after-each.ts`). `failNext` fails a route on
  * demand, `pause` holds it, and both (and `count`) can narrow to requests
@@ -35,6 +38,7 @@
 import type { PublicApiFetch } from "@fitme/api-client";
 import {
   arnoldModels,
+  cleanNote,
   defaultArnoldModelId,
   experienceLevels,
   genders,
@@ -43,8 +47,10 @@ import {
   MAX_BODY_DECIMALS,
   MAX_BODY_HEIGHT,
   MAX_BODY_WEIGHT,
+  MAX_EXERCISE_SLUG_LENGTH,
   MAX_EXERCISES_PER_WORKOUT,
   MAX_FREQUENCY,
+  MAX_NOTE_LENGTH,
   MAX_PLAN_NAME_LENGTH,
   MAX_PLAN_TEXT_LENGTH,
   MAX_REPS,
@@ -125,6 +131,8 @@ interface ExerciseRow {
 export interface SetRow {
   id: string;
   logged_at: string | null;
+  /** The User's note on the set (a Note); none (`null`) unless given. */
+  note?: string | null;
   order: number;
   reps_completed: number | null;
   reps_recommended: number | null;
@@ -134,6 +142,15 @@ export interface SetRow {
   workout_session_exercise_id: string;
 }
 
+/** A User's note on an Exercise (a Note), by Exercise slug. */
+export interface ExerciseNoteRow {
+  exercise_slug: string;
+  note: string;
+  updated_at: string;
+  /** Its owner's Clerk id; another than `FAKE_USER_ID` is never answered. */
+  user_id: string;
+}
+
 /**
  * Sets of an exercise, as `reps_completed` values (`null` = untracked). The
  * Exercise is stored by slug: `slug`, or one made from `name` ("Bench Press"
@@ -141,6 +158,8 @@ export interface SetRow {
  */
 export interface SeedExercise {
   name: string;
+  /** Each set's note, by position (`null` or left out for none). */
+  notes?: (string | null)[];
   sets: (number | null)[];
   slug?: string;
 }
@@ -294,6 +313,10 @@ const nestedPlan = ({
   })),
 });
 
+export const FAKE_PUBLIC_API_URL = "https://api.test";
+export const FAKE_SESSION_TOKEN = "test-session-token";
+export const FAKE_USER_ID = "user_test";
+
 const createFakeRows = () => {
   const profiles: ProfileRow[] = [];
   const plans: SeedPlan[] = [];
@@ -305,6 +328,7 @@ const createFakeRows = () => {
     [];
 
   const personalRecords: PersonalRecordRow[] = [];
+  const exerciseNotes: ExerciseNoteRow[] = [];
   let nextId = 1;
 
   return {
@@ -320,6 +344,8 @@ const createFakeRows = () => {
      */
     weeklyGoalChanges,
     personalRecords,
+    /** Every User's Exercise notes; the API answers only `FAKE_USER_ID`'s. */
+    exerciseNotes,
     /** Server-calculated result; the real calculation is covered at the service seam. */
     weeklyStreak: 0,
 
@@ -331,6 +357,7 @@ const createFakeRows = () => {
       this.sets = [];
       this.weeklyGoalChanges = [];
       this.personalRecords = [];
+      this.exerciseNotes = [];
       this.weeklyStreak = 0;
       nextId = 1;
     },
@@ -371,7 +398,10 @@ const createFakeRows = () => {
 
       this.sessions.push(session);
 
-      for (const [exerciseIndex, { name, sets, slug }] of exercises.entries()) {
+      for (const [
+        exerciseIndex,
+        { name, notes = [], sets, slug },
+      ] of exercises.entries()) {
         const exerciseId = `${id}-e${exerciseIndex + 1}`;
         this.exercises.push({
           exercise_slug: slug ?? slugOf(name),
@@ -384,6 +414,7 @@ const createFakeRows = () => {
           this.sets.push({
             id: `${exerciseId}-s${setIndex + 1}`,
             logged_at: reps === null ? null : "2026-10-08T10:30:00.000Z",
+            note: notes[setIndex] ?? null,
             order: setIndex + 1,
             reps_completed: reps,
             reps_recommended: 10,
@@ -409,6 +440,33 @@ const createFakeRows = () => {
       });
     },
 
+    /**
+     * Adds a note on an Exercise for the User (`FAKE_USER_ID` unless
+     * `userId` says otherwise), as the API would have saved it.
+     */
+    seedExerciseNote(
+      exerciseSlug: string,
+      note: string,
+      {
+        updatedAt = "2026-10-08T09:00:00.000Z",
+        userId = FAKE_USER_ID,
+      }: { updatedAt?: string; userId?: string } = {}
+    ) {
+      this.exerciseNotes.push({
+        exercise_slug: exerciseSlug,
+        note,
+        updated_at: updatedAt,
+        user_id: userId,
+      });
+    },
+
+    /** The User's (`FAKE_USER_ID`'s, unless given) note on an Exercise. */
+    exerciseNote(exerciseSlug: string, userId = FAKE_USER_ID) {
+      return this.exerciseNotes.find(
+        (row) => row.exercise_slug === exerciseSlug && row.user_id === userId
+      )?.note;
+    },
+
     profile(userId: string) {
       return this.profiles.find((profile) => profile.user_id === userId);
     },
@@ -427,10 +485,6 @@ const createFakeRows = () => {
 };
 
 export const backend = createFakeRows();
-
-export const FAKE_PUBLIC_API_URL = "https://api.test";
-export const FAKE_SESSION_TOKEN = "test-session-token";
-export const FAKE_USER_ID = "user_test";
 
 /**
  * A route as `"<METHOD> <path>"`, its path parameters as `{id}`, e.g.
@@ -1275,8 +1329,10 @@ const ownSession = (sessionId: string) => {
     : undefined;
 };
 
-const setBody = ({ workout_session_exercise_id: _exercise, ...set }: SetRow) =>
-  set;
+const setBody = ({
+  workout_session_exercise_id: _exercise,
+  ...set
+}: SetRow) => ({ ...set, note: set.note ?? null });
 
 /** A Workout Session in full, as `GET /v1/workout-sessions/{id}` shows it. */
 const sessionBody = (session: SessionRow) => {
@@ -1714,6 +1770,156 @@ const refuseUnknownSlug = (slug: string) => {
   return missing.length > 0
     ? error(400, "unknown_exercises", `Unknown exercise_slug(s): ${slug}`)
     : null;
+};
+
+/** When a note the fake saves was last changed, one fixed instant. */
+const NOTE_UPDATED_AT = "2026-10-08T12:00:00.000Z";
+
+const EXERCISE_SLUG = /^[a-z0-9]+(?:-[a-z0-9]+)*$/u;
+
+const noteBodySchema = z.strictObject({ note: z.string() });
+
+const NOTE_REFUSALS = {
+  nul: "must not contain a NUL character",
+  too_long: `must be at most ${MAX_NOTE_LENGTH} characters once trimmed`,
+} as const;
+
+/**
+ * A note write's body run through `cleanNote`, as the API's `NoteText` schema
+ * does: the cleaned note (`null` clears), or the 400 refusing it, whose
+ * message never quotes the text.
+ */
+const parseNote = (body: RequestBody) => {
+  const parsed = noteBodySchema.safeParse(body);
+
+  if (!parsed.success) {
+    return { refusal: error(400, "invalid_request", "note: Required") };
+  }
+
+  const cleaned = cleanNote(parsed.data.note);
+
+  return cleaned.ok
+    ? { note: cleaned.note }
+    : {
+        refusal: error(
+          400,
+          "invalid_request",
+          `note: ${NOTE_REFUSALS[cleaned.reason]}`
+        ),
+      };
+};
+
+/** `listExerciseNotes`: every one of the User's Exercise notes, by slug. */
+const listExerciseNotes = (): Response =>
+  json(200, {
+    data: backend.exerciseNotes
+      .filter((row) => row.user_id === FAKE_USER_ID)
+      .toSorted((a, b) => a.exercise_slug.localeCompare(b.exercise_slug))
+      .map(({ user_id: _user, ...note }) => note),
+  });
+
+/**
+ * `PUT /v1/exercise-notes/{slug}`: saves the User's note on the Exercise,
+ * checking the slug against the served Exercises first (an old one is saved
+ * under its replacement); blank clears it, unchecked, by the slug as sent. A
+ * repeat of the note already there changes nothing.
+ */
+const setExerciseNote = (body: RequestBody, slug: string): Response => {
+  if (slug.length > MAX_EXERCISE_SLUG_LENGTH || !EXERCISE_SLUG.test(slug)) {
+    return error(400, "invalid_request", "slug: must be an Exercise slug");
+  }
+
+  const { note, refusal } = parseNote(body);
+
+  if (refusal) {
+    return refusal;
+  }
+
+  const own = (exerciseSlug: string) => (row: ExerciseNoteRow) =>
+    row.user_id === FAKE_USER_ID && row.exercise_slug === exerciseSlug;
+
+  if (note === null) {
+    backend.exerciseNotes = backend.exerciseNotes.filter(
+      (row) => !own(slug)(row)
+    );
+
+    return json(200, {
+      data: { exercise_slug: slug, note: null, updated_at: null },
+    });
+  }
+
+  let checked: ReturnType<typeof checkServedSlugs>;
+
+  try {
+    checked = checkServedSlugs([slug]);
+  } catch {
+    return error(
+      503,
+      "library_unavailable",
+      "The Library is unavailable, try again"
+    );
+  }
+
+  const [known] = checked.known;
+
+  if (!known) {
+    return error(400, "unknown_exercises", `Unknown exercise_slug(s): ${slug}`);
+  }
+
+  const exerciseSlug = known.exercise_slug;
+  let saved = backend.exerciseNotes.find(own(exerciseSlug));
+
+  if (!saved) {
+    saved = {
+      exercise_slug: exerciseSlug,
+      note,
+      updated_at: NOTE_UPDATED_AT,
+      user_id: FAKE_USER_ID,
+    };
+    backend.exerciseNotes.push(saved);
+  } else if (saved.note !== note) {
+    Object.assign(saved, { note, updated_at: NOTE_UPDATED_AT });
+  }
+
+  const { user_id: _user, ...shown } = saved;
+
+  return json(200, { data: shown });
+};
+
+/**
+ * `setWorkoutSessionSetNote`: saves the note of one of the User's logged sets
+ * (one with reps, a bodyweight set included), open or finished Workout Session
+ * alike, changing nothing else; blank clears it. 404 for a missing or another
+ * User's set, 409 `set_not_logged` for one with no reps.
+ */
+const setSetNote = (body: RequestBody, setId: string): Response => {
+  const { note, refusal } = parseNote(body);
+
+  if (refusal) {
+    return refusal;
+  }
+
+  const set = backend.sets.find(({ id }) => id === setId);
+
+  const exercise = backend.exercises.find(
+    ({ id }) => id === set?.workout_session_exercise_id
+  );
+
+  if (!(set && exercise && ownSession(exercise.workout_session_id))) {
+    return notFound("Workout Session set");
+  }
+
+  if (set.reps_completed === null) {
+    return error(
+      409,
+      "set_not_logged",
+      `Workout Session set ${setId} has no reps logged; only a logged set can carry a note`
+    );
+  }
+
+  set.note = note;
+
+  return json(200, { data: { ...setBody(set), weight_unit: weightUnit() } });
 };
 
 /** The 409 of an edit to a finished Workout Session, or `null` while it's open. */
@@ -2226,6 +2432,7 @@ const listExerciseHistory = (
       sets: sets.map(({ id, order, ...set }) => ({
         id,
         order,
+        note: set.note ?? null,
         reps_completed: set.reps_completed,
         reps_recommended: set.reps_recommended,
         weight_completed: set.weight_completed,
@@ -2436,6 +2643,16 @@ const ROUTES: {
     route: "GET /v1/arnold/models",
   },
   {
+    handler: listExerciseNotes,
+    path: /^\/v1\/exercise-notes$/u,
+    route: "GET /v1/exercise-notes",
+  },
+  {
+    handler: setExerciseNote,
+    path: /^\/v1\/exercise-notes\/(?<id>[^/]+)$/u,
+    route: "PUT /v1/exercise-notes/{slug}",
+  },
+  {
     handler: (_body, _id, query, headers) => listExercises(query, headers),
     path: /^\/v1\/exercises$/u,
     route: "GET /v1/exercises",
@@ -2575,6 +2792,11 @@ const ROUTES: {
     handler: removeSessionSet,
     path: /^\/v1\/workout-session-sets\/(?<id>[^/]+)$/u,
     route: "DELETE /v1/workout-session-sets/{id}",
+  },
+  {
+    handler: setSetNote,
+    path: /^\/v1\/workout-session-sets\/(?<id>[^/]+)\/note$/u,
+    route: "PUT /v1/workout-session-sets/{id}/note",
   },
 ];
 
