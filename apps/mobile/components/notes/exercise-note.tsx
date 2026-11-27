@@ -285,7 +285,7 @@ const NoteShown = ({
 };
 
 /** A navigation leaving the Screen, as the leave guard is handed it. */
-interface LeavingAction {
+export interface LeavingAction {
   type: string;
 }
 

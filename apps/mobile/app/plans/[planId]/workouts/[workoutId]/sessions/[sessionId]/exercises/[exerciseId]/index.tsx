@@ -11,6 +11,7 @@ import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { ExerciseNote } from "~/components/notes/exercise-note";
+import type { LeavingAction } from "~/components/notes/exercise-note";
 import { Card } from "~/components/ui/card";
 import ExerciseHistoryView from "~/components/views/exercise-history-view";
 import type {
@@ -31,12 +32,15 @@ import { nextUnloggedSet, useShownSets } from "~/hooks/shown-sets";
 import { CLIP_SCROLL_EDGE_EFFECTS } from "~/lib/constants";
 import { isNotesEnabled } from "~/lib/feature-flags";
 
+/** How far above the keyboard a focused set input stays. */
+const SET_KEYBOARD_BOTTOM_OFFSET = 62;
+
 /**
- * How far above the keyboard the focused field stays: room for what sits
- * under the note's field while it's edited (its count, then Cancel and Save),
- * which is more than a set row needs.
+ * How far above the keyboard the focused field stays with notes on: room for
+ * what sits under the note's field while it's edited (its count, then Cancel
+ * and Save), which is more than a set row needs.
  */
-const KEYBOARD_BOTTOM_OFFSET = 88;
+const NOTE_KEYBOARD_BOTTOM_OFFSET = 88;
 
 /** Gap between the end of the content and the floating rest timer. */
 const REST_TIMER_GAP = 16;
@@ -56,7 +60,7 @@ const SCROLL_EVENT_THROTTLE_MS = 16;
  * discard elsewhere in the app), which reset the stack. Unsaved text is lost
  * then, as the sets' unsaved input is; the User's own way back still asks.
  */
-const isSessionMovingOn = ({ type }: { type: string }) => type === "RESET";
+const isSessionMovingOn = ({ type }: LeavingAction) => type === "RESET";
 
 const WorkoutSessionExerciseScreen = () => {
   const { t } = useTranslation();
@@ -210,11 +214,12 @@ const WorkoutSessionExerciseScreen = () => {
             onOpenGuide={hasGuide ? openGuide : undefined}
           />
           {isNotesEnabled() ? (
-            // Keyed by the Exercise, so a replaced one starts with its own.
+            // Keyed by the stored slug, so Replace starts the new Exercise's
+            // own, while the Library resolving it doesn't drop a draft.
             <ExerciseNote
               exerciseName={exercise.name}
               exerciseSlug={exercise.slug}
-              key={exercise.slug}
+              key={workoutSessionExercise.exercise_slug}
               layout="inline"
               leavesWithoutAsking={isSessionMovingOn}
             />
@@ -272,7 +277,11 @@ const WorkoutSessionExerciseScreen = () => {
         }}
       />
       <KeyboardAwareScrollView
-        bottomOffset={KEYBOARD_BOTTOM_OFFSET}
+        bottomOffset={
+          isNotesEnabled()
+            ? NOTE_KEYBOARD_BOTTOM_OFFSET
+            : SET_KEYBOARD_BOTTOM_OFFSET
+        }
         contentContainerClassName="gap-sm px-sm pt-xs"
         contentContainerStyle={{
           paddingBottom:
