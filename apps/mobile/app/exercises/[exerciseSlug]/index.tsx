@@ -9,11 +9,13 @@ import { ExerciseUnavailable } from "~/components/exercises/exercise-unavailable
 import ExerciseVideo from "~/components/exercises/exercise-video";
 import { MuscleGroupsCard } from "~/components/exercises/muscle-groups-card";
 import { TextListCard } from "~/components/exercises/text-list-card";
+import { ExerciseNote } from "~/components/notes/exercise-note";
 import { Button } from "~/components/ui/button";
 import { H3, Large, P } from "~/components/ui/typography";
 import { useExercise, useExerciseDetailQuery } from "~/hooks/queries/library";
 import { CLIP_SCROLL_EDGE_EFFECTS } from "~/lib/constants";
 import type { Exercise } from "~/lib/exercises";
+import { isNotesEnabled } from "~/lib/feature-flags";
 
 /** The Exercise in full, top to bottom as Figma's Exercise Detail · Content. */
 const ExerciseContent = ({ exercise }: { exercise: Exercise }) => {
@@ -59,6 +61,12 @@ const ExerciseContent = ({ exercise }: { exercise: Exercise }) => {
           onPress={openGuide}
           size="lg"
         />
+        {isNotesEnabled() ? (
+          <ExerciseNote
+            exerciseName={exercise.name}
+            exerciseSlug={exercise.slug}
+          />
+        ) : null}
         <MuscleGroupsCard
           primary={exercise.muscle_groups}
           secondary={exercise.secondary_muscle_groups}

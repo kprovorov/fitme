@@ -9,6 +9,10 @@ const plansRedesignFromEnv = () =>
 
 let plansRedesign = plansRedesignFromEnv();
 
+const notesFromEnv = () => process.env.EXPO_PUBLIC_NOTES === "true";
+
+let notes = notesFromEnv();
+
 /**
  * The Plans redesign (project "My Plans and Plan detail redesign"): the
  * rebuilt My Plans and Plan detail screens in place of today's. Removed by
@@ -21,7 +25,20 @@ export const setPlansRedesignEnabled = (enabled: boolean): void => {
   plansRedesign = enabled;
 };
 
+/**
+ * Notes (project "Notes on Exercises and sets"): the User's notes on an
+ * Exercise and on a logged set. Off, the app asks for no notes and shows none.
+ * Removed by the project's "Turn on notes" ticket.
+ */
+export const isNotesEnabled = (): boolean => notes;
+
+/** Switches notes on or off, for a test. */
+export const setNotesEnabled = (enabled: boolean): void => {
+  notes = enabled;
+};
+
 /** Puts every flag back to the build's own value. */
 export const resetFeatureFlags = (): void => {
   plansRedesign = plansRedesignFromEnv();
+  notes = notesFromEnv();
 };

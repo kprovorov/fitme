@@ -29,6 +29,9 @@ interface PlanUpdateProperties {
 /** How many changes of each kind it offered (`countPlanChanges`). */
 type PlanChangeCounts = Record<PlanUpdateChangeKind | "remove_sets", number>;
 
+/** What a Note is on: an Exercise, or a logged set. Never the note's text. */
+type NoteTarget = "exercise" | "set";
+
 /**
  * Every event the app sends, with its properties (`undefined` for none).
  * The names and property names are the ones already in the history, kept
@@ -40,6 +43,8 @@ export interface AnalyticsEvents {
   "Exercise Added": { exercise_slug: string; session_id: string };
   "Exercise Deleted": { exercise_id: string; session_id: string };
   "Exercise Replaced": { exercise_slug: string; session_id: string };
+  "Note Cleared": { target: NoteTarget };
+  "Note Saved": { target: NoteTarget };
   "Plan Activated": { plan_id: string };
   "Plan Deleted": { plan_id: string };
   "Plan Edited": { plan_id: string };
