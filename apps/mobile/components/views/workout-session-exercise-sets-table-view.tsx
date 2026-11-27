@@ -25,6 +25,11 @@ import WorkoutSessionExerciseSetRowView from "./workout-session-exercise-set-row
 interface WorkoutSessionExerciseSetsTableViewProps {
   exerciseId: string;
   /**
+   * How many lines of a set's note show (the Workout Session's cards, 2); the
+   * whole note without.
+   */
+  noteLines?: number;
+  /**
    * A set was logged for the first time; `hasNextSet` is whether one is still
    * to log (an added one included).
    */
@@ -65,6 +70,7 @@ const NO_PREVIOUS_SETS: readonly PreviousSet[] = [];
 
 const WorkoutSessionExerciseSetsTableView = ({
   exerciseId,
+  noteLines,
   onSetLogged,
   previousSets = NO_PREVIOUS_SETS,
   workoutSessionExerciseSets,
@@ -130,6 +136,7 @@ const WorkoutSessionExerciseSetsTableView = ({
             initialValues={set ? undefined : addedSetValues}
             key={id}
             locked={locked}
+            noteLines={noteLines}
             number={number}
             onRemove={
               readOnly
@@ -145,6 +152,7 @@ const WorkoutSessionExerciseSetsTableView = ({
               onSetLogged?.(logged, !!nextUnloggedSet(rows, id))
             }
             previousSet={previousByNumber.get(number)}
+            readOnly={readOnly}
             sessionId={sessionId}
             weightLabel={weightLabel}
             workoutSessionExerciseSet={set}

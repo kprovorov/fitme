@@ -7,6 +7,7 @@ import { afterEach } from "@jest/globals";
 import { clearAddedSets } from "~/hooks/added-sets";
 import { resetEquipmentChoices } from "~/hooks/equipment-choice";
 import { resetMuscleChoices } from "~/hooks/muscle-choice";
+import { closeOpenSetNote } from "~/hooks/open-set-note";
 import { resetPlanDrafts } from "~/hooks/plan-draft";
 import { overrideAnalyticsDecision } from "~/lib/analytics-decision";
 import { resetFeatureFlags } from "~/lib/feature-flags";
@@ -77,6 +78,12 @@ afterEach(() => {
 // an added set lives in memory until it's logged, outliving its screen.
 afterEach(() => {
   clearAddedSets();
+});
+
+// Every test starts with no set's note open: which one is lives in memory,
+// outliving its row.
+afterEach(() => {
+  closeOpenSetNote();
 });
 
 // Every test starts with a free RevenueCat customer, no restore counted or

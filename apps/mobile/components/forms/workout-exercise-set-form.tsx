@@ -19,6 +19,8 @@ import {
 import { cn } from "~/lib/utils";
 
 import { Button } from "../ui/button";
+import { DropdownMenu } from "../ui/dropdown-menu";
+import type { DropdownMenuItem } from "../ui/dropdown-menu";
 import { ErrorMessage } from "../ui/error-message";
 import { Text } from "../ui/text";
 import { SetNumberInput } from "./set-number-input";
@@ -31,6 +33,14 @@ interface WorkoutSessionExerciseSetFormProps {
   isEditing?: boolean;
   /** The row's cells before the inputs: the set number and its target. */
   leading?: ReactNode;
+  /**
+   * A logged set's ••• menu in place of its pencil (the notes'): its spoken
+   * label, and its items, handed what opens the set for editing.
+   */
+  loggedMenu?: {
+    accessibilityLabel: string;
+    items: (startEditing: () => void) => DropdownMenuItem[];
+  };
   onEdit: () => void;
   onSubmit: (
     values: WorkoutSessionExerciseSetFormValues
@@ -172,6 +182,7 @@ const WorkoutSessionExerciseSetForm = ({
   error,
   isDone,
   isEditing,
+  loggedMenu,
   setIndex,
 }: WorkoutSessionExerciseSetFormProps) => {
   const { t } = useTranslation();
@@ -277,7 +288,21 @@ const WorkoutSessionExerciseSetForm = ({
 
   let checkCell: ReactNode;
 
-  if (showsLoggedValues) {
+  if (showsLoggedValues && loggedMenu) {
+    checkCell = (
+      <View className={cn(SET_CHECK_COLUMN_CLASS, "justify-center")}>
+        {/* Its 44 pt frame overflows the 28 pt column on every side. */}
+        <DropdownMenu
+          accessibilityLabel={loggedMenu.accessibilityLabel}
+          className="-mx-xs -my-xs"
+          iconColorClassName="text-muted-foreground"
+          items={loggedMenu.items(startEditing)}
+          systemImage="ellipsis"
+          testID={`set-menu-${setIndex}`}
+        />
+      </View>
+    );
+  } else if (showsLoggedValues) {
     checkCell = (
       <SetCheckCell onPress={startEditing}>
         <Button

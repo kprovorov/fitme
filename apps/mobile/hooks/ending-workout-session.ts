@@ -288,3 +288,13 @@ export const closeDiscardedSession = (
   void client.invalidateQueries({ queryKey: OPEN_WORKOUT_SESSION_QUERY_KEY });
   void client.invalidateQueries({ queryKey: ["exercise-history"] });
 };
+
+/**
+ * Whether leaving a Workout Session's Screen goes without asking about an
+ * unsaved note: its screens moving on by themselves (it ended elsewhere, or a
+ * finish or discard elsewhere in the app), which reset the stack. Unsaved
+ * text is lost then, as the sets' unsaved input is; the User's own way back
+ * still asks.
+ */
+export const isSessionMovingOn = ({ type }: { type: string }): boolean =>
+  type === "RESET";

@@ -29,6 +29,9 @@ interface WorkoutSessionExerciseCardProps {
   workoutSessionExercise: WorkoutSessionExercise;
 }
 
+/** How many lines of a set's note a card shows (Figma's truncated SetNote). */
+const CARD_NOTE_LINES = 2;
+
 /**
  * An exercise of a workout session: its header (opening the exercise's
  * screen) above its sets, logged right here.
@@ -104,6 +107,7 @@ const WorkoutSessionExerciseCard = ({
         />
         <WorkoutSessionExerciseSetsTableView
           exerciseId={workoutSessionExercise.id}
+          noteLines={CARD_NOTE_LINES}
           previousSets={workoutSessionExercise.previous_sets}
           readOnly={readOnly}
           sessionId={sessionId}
