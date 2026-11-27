@@ -1,7 +1,6 @@
-import { ApiError, rateLimitedFor } from "@fitme/api-client";
+import { rateLimitedFor } from "@fitme/api-client";
 import { useQueryClient } from "@tanstack/react-query";
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
-import type { TFunction } from "i18next";
 import { useCallback, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
@@ -20,6 +19,7 @@ import { Button } from "~/components/ui/button";
 import { Text } from "~/components/ui/text";
 import { VStack } from "~/components/ui/vstack";
 import WorkoutList from "~/components/views/workout-list";
+import { planWriteFailureMessage } from "~/hooks/plan-actions";
 import {
   PLANS_QUERY_KEY,
   useActivatePlanMutation,
@@ -29,23 +29,6 @@ import {
 import { WEEKLY_GOALS_QUERY_KEY } from "~/hooks/queries/weekly-goals";
 import { OPEN_WORKOUT_SESSION_QUERY_KEY } from "~/hooks/queries/workout-sessions";
 import { isPlansRedesignEnabled } from "~/lib/feature-flags";
-
-/**
- * What to tell the User after a failed Plan write. A failure other than a 404
- * or a 429 doesn't prove nothing changed (the answer can be lost after the
- * write commits), so it never says either way.
- */
-const failureMessage = (t: TFunction, error: ApiError | null) => {
-  if (error?.code === "not_found") {
-    return t("plans.errors.notFound");
-  }
-
-  const waitSeconds = rateLimitedFor(error);
-
-  return waitSeconds === null
-    ? t("plans.errors.network")
-    : t("plans.errors.rateLimited", { seconds: waitSeconds });
-};
 
 /** Today's Plan screen, while the Plans redesign flag is off. */
 const LegacyPlanScreen = () => {
@@ -69,7 +52,7 @@ const LegacyPlanScreen = () => {
     onError: (error) => {
       Alert.alert(
         t("plans.activate.failed"),
-        failureMessage(t, error instanceof ApiError ? error : null)
+        planWriteFailureMessage(t, error)
       );
       refreshPlans();
     },
@@ -88,10 +71,7 @@ const LegacyPlanScreen = () => {
 
   const { mutate: deletePlan } = useDeletePlanMutation({
     onError: (error) => {
-      Alert.alert(
-        t("plans.archive.failed"),
-        failureMessage(t, error instanceof ApiError ? error : null)
-      );
+      Alert.alert(t("plans.archive.failed"), planWriteFailureMessage(t, error));
     },
     onSettled: refreshPlans,
     onSuccess: () => {

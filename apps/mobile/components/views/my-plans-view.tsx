@@ -12,6 +12,8 @@ import { SymbolImage } from "~/components/symbol-image";
 import { Card } from "~/components/ui/card";
 import { Text } from "~/components/ui/text";
 import { H4, Large, Muted } from "~/components/ui/typography";
+import { usePlanActions } from "~/hooks/plan-actions";
+import type { PlanMenuAction } from "~/hooks/plan-actions";
 import type { PlanSummary } from "~/hooks/queries/plans";
 import { CREATE_PLAN_NAMING_STEP } from "~/lib/plan-draft";
 
@@ -166,10 +168,25 @@ export const MyPlansView = ({
   const { t } = useTranslation();
   const router = useRouter();
 
+  const { edit, isDeleting, remove } = usePlanActions();
+
   const openPlan = useCallback(
     (id: string) => router.push(`/plans/${id}`),
     [router]
   );
+
+  // The long-press menu's items, and VoiceOver's actions, for one Plan.
+  const actionsFor = (plan: PlanSummary): PlanMenuAction[] => [
+    { label: t("plans.edit"), name: "edit", onPress: () => edit(plan.id) },
+    {
+      destructive: true,
+      // One delete at a time.
+      disabled: isDeleting,
+      label: t("plans.delete.action"),
+      name: "delete",
+      onPress: () => remove(plan),
+    },
+  ];
 
   if (!plans) {
     if (error && !isFetching) {
@@ -204,6 +221,7 @@ export const MyPlansView = ({
       <Card padding="none">
         {others.map((plan, index) => (
           <PlanRow
+            actions={actionsFor(plan)}
             isFirst={index === 0}
             key={plan.id}
             onPress={() => openPlan(plan.id)}
@@ -216,7 +234,11 @@ export const MyPlansView = ({
   return (
     <View className="gap-lg pt-2">
       {active ? (
-        <ActivePlanCard onPress={() => openPlan(active.id)} plan={active} />
+        <ActivePlanCard
+          actions={actionsFor(active)}
+          onPress={() => openPlan(active.id)}
+          plan={active}
+        />
       ) : (
         <NoActivePlanCard />
       )}
