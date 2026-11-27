@@ -18,10 +18,7 @@ import { render, screen } from "@testing-library/react-native";
 import type { ReactNode } from "react";
 
 import WorkoutSessionSummaryScreen from "~/app/workout-sessions/[workoutSessionId]/summary";
-import type {
-  WorkoutSession,
-  WorkoutSessionExercise,
-} from "~/hooks/queries/workout-sessions";
+import type { WorkoutSession } from "~/hooks/queries/workout-sessions";
 import { i18n } from "~/lib/i18n";
 import {
   setDevice24HourClock,
@@ -101,10 +98,11 @@ const exercise = (
   slug: string,
   order: number,
   sets: [number, number][]
-): WorkoutSessionExercise => ({
+): WorkoutSession["exercises"][number] => ({
   exercise_slug: slug,
   id: `wse-${slug}`,
   order,
+  previous_sets: [],
   sets: sets.map(([reps, weight], index) => ({
     id: `set-${slug}-${index}`,
     logged_at: startedAt.toISOString(),
@@ -122,7 +120,7 @@ const session = (
   id: string,
   start: Date,
   minutes: number,
-  exercises: WorkoutSessionExercise[]
+  exercises: WorkoutSession["exercises"]
 ): WorkoutSession => {
   const finishedAt = new Date(start.getTime() + minutes * 60_000);
 

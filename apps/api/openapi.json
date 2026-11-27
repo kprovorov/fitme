@@ -1595,7 +1595,7 @@
           "exercises": {
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/WorkoutSessionExercise"
+              "$ref": "#/components/schemas/WorkoutSessionExerciseWithPreviousSets"
             },
             "description": "In order"
           },
@@ -1613,6 +1613,51 @@
           "exercises",
           "weight_unit"
         ]
+      },
+      "WorkoutSessionExerciseWithPreviousSets": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/WorkoutSessionExercise"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "previous_sets": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/PreviousSet"
+                },
+                "description": "The Previous sets: the sets with positive reps, in order, of the first Workout Session Exercise (by `order`) with this exact `exercise_slug` in the User's most recent Workout Session that started before this one (ties by id) and has one with a set with positive reps. Plans and Workouts don't matter, and this Workout Session never counts itself. Empty when there's no such earlier Workout Session"
+              }
+            },
+            "required": ["previous_sets"]
+          }
+        ]
+      },
+      "PreviousSet": {
+        "type": "object",
+        "properties": {
+          "number": {
+            "type": "integer",
+            "minimum": 1,
+            "description": "The set's 1-based position among the earlier Workout Session Exercise's sets, in order; it matches the set with the same position today",
+            "example": 1
+          },
+          "reps_completed": {
+            "type": "integer",
+            "minimum": 1,
+            "description": "Repetitions done; always positive",
+            "example": 8
+          },
+          "weight_completed": {
+            "type": "number",
+            "nullable": true,
+            "description": "In the Workout Session's `weight_unit`; `null` for bodyweight",
+            "example": 80.5
+          }
+        },
+        "required": ["number", "reps_completed", "weight_completed"],
+        "description": "What the User did in this set the last time they logged the Exercise"
       },
       "StartWorkoutSession": {
         "type": "object",

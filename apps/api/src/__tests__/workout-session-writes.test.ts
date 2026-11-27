@@ -5,8 +5,8 @@ import {
   MAX_WEIGHT,
 } from "@fitme/core/limits";
 import type {
-  WorkoutSessionDetail,
   WorkoutSessionSet,
+  WorkoutSessionWithPreviousSets,
 } from "@fitme/services/workout-sessions";
 import { describe, expect, it } from "vitest";
 
@@ -36,6 +36,12 @@ const exercise = {
   sets: [set],
 };
 
+/** The Exercise as a Workout Session answers it, with its Previous sets. */
+const sessionExercise = {
+  ...exercise,
+  previous_sets: [{ number: 1, reps_completed: 8, weight_completed: 75 }],
+};
+
 const sessionFields = {
   finished_at: null,
   id: SESSION_ID,
@@ -46,20 +52,20 @@ const sessionFields = {
 } as const;
 
 /** The Workout Session as the services answer it: with their internals. */
-const session: WorkoutSessionDetail & { user_id: string } = {
+const session: WorkoutSessionWithPreviousSets & { user_id: string } = {
   ...sessionFields,
-  exercises: [exercise],
+  exercises: [sessionExercise],
   user_id: "user_alice",
 };
 
 /** The same Workout Session as the API answers it. */
 const shown = {
   ...sessionFields,
-  exercises: [exercise],
+  exercises: [sessionExercise],
   weight_unit: "lbs",
 };
 
-const finishedSession: WorkoutSessionDetail = {
+const finishedSession: WorkoutSessionWithPreviousSets = {
   ...session,
   finished_at: "2026-10-01T11:00:00+00:00",
   status: "finished",

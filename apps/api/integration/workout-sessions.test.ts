@@ -292,6 +292,10 @@ describe("workout Session reads against the local stack", () => {
               exercise_slug: benchSlug,
               id: expect.any(String),
               order: 1,
+              // the finished session's, the day before
+              previous_sets: [
+                { number: 1, reps_completed: 8, weight_completed: 130 },
+              ],
               sets: [
                 {
                   id: expect.any(String),
@@ -321,6 +325,7 @@ describe("workout Session reads against the local stack", () => {
               exercise_slug: squatSlug,
               id: expect.any(String),
               order: 2,
+              previous_sets: [],
               sets: [
                 {
                   id: expect.any(String),

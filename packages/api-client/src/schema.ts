@@ -3944,8 +3944,30 @@ export interface components {
         name: string;
       } | null;
       /** @description In order */
-      exercises: components["schemas"]["WorkoutSessionExercise"][];
+      exercises: components["schemas"]["WorkoutSessionExerciseWithPreviousSets"][];
       weight_unit: components["schemas"]["WeightUnit"];
+    };
+    WorkoutSessionExerciseWithPreviousSets: components["schemas"]["WorkoutSessionExercise"] & {
+      /** @description The Previous sets: the sets with positive reps, in order, of the first Workout Session Exercise (by `order`) with this exact `exercise_slug` in the User's most recent Workout Session that started before this one (ties by id) and has one with a set with positive reps. Plans and Workouts don't matter, and this Workout Session never counts itself. Empty when there's no such earlier Workout Session */
+      previous_sets: components["schemas"]["PreviousSet"][];
+    };
+    /** @description What the User did in this set the last time they logged the Exercise */
+    PreviousSet: {
+      /**
+       * @description The set's 1-based position among the earlier Workout Session Exercise's sets, in order; it matches the set with the same position today
+       * @example 1
+       */
+      number: number;
+      /**
+       * @description Repetitions done; always positive
+       * @example 8
+       */
+      reps_completed: number;
+      /**
+       * @description In the Workout Session's `weight_unit`; `null` for bodyweight
+       * @example 80.5
+       */
+      weight_completed: number | null;
     };
     StartWorkoutSession: {
       /**
