@@ -293,14 +293,6 @@ const LegacyPlanScreen = () => {
 /** Space between the pinned Activate Plan and the bottom safe area. */
 const BOTTOM_GAP = 16;
 
-/** The bottom edge fades under the pinned Activate Plan. */
-const PINNED_SCROLL_EDGE_EFFECTS = {
-  bottom: "soft",
-  left: "automatic",
-  right: "automatic",
-  top: "automatic",
-} as const;
-
 /**
  * The Plan screen, redesigned (Figma "Plan Detail Redesign"): a transparent
  * header with back and "…" and no title, the Plan's hero and its Workouts,
@@ -423,9 +415,6 @@ const RedesignedPlanScreen = () => {
           headerBackButtonDisplayMode: "minimal",
           headerShown: true,
           headerTransparent: true,
-          scrollEdgeEffects: activatable
-            ? PINNED_SCROLL_EDGE_EFFECTS
-            : undefined,
           title: "",
           // Its actions need the Plan, so the loading and failed states have
           // no menu. No icons, as on My Plans' long-press menu.
@@ -464,7 +453,7 @@ const RedesignedPlanScreen = () => {
         contentContainerClassName="px-sm grow"
         contentContainerStyle={{
           paddingBottom: activatable
-            ? actionHeight + BOTTOM_GAP
+            ? actionHeight
             : insets.bottom + BOTTOM_GAP,
         }}
         contentInsetAdjustmentBehavior="automatic"
@@ -480,10 +469,17 @@ const RedesignedPlanScreen = () => {
           variables={{ "--plan-action-bottom": insets.bottom + BOTTOM_GAP }}
         >
           <View
-            className="px-sm absolute inset-x-0 bottom-0 pb-(--plan-action-bottom)"
+            className="px-sm absolute inset-x-0 bottom-0 pt-10 pb-(--plan-action-bottom)"
             onLayout={measureAction}
             pointerEvents="box-none"
           >
+            {/* The bottom scroll edge effect (Figma's "Scroll Edge Effect ·
+                bottom"): the content fades into the background under the
+                button. iOS draws its own only under system bars. */}
+            <View
+              className="to-background absolute inset-0 bg-linear-to-b from-transparent to-30%"
+              pointerEvents="none"
+            />
             <Button
               disabled={isDeleting}
               isLoading={activatingPlanId === activatable.id}
