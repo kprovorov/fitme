@@ -34,6 +34,12 @@
  * development build under Jest: a test reads what the app sent through
  * `sentAnalytics`.
  *
+ * `~/components/ui/context-menu` stays the real one; a test that long-presses
+ * a menu mocks it with `context-menu-stub.tsx`, as with the dropdown menu.
+ *
+ * `expo-haptics` is `haptics-stub.ts`: each haptic fired is recorded in
+ * `firedHaptics`, so a test can check which one fired.
+ *
  * `expo-localization` reports an English device (`en-US`), so every screen
  * renders in English; a test sets another device language with
  * `setDeviceLanguages` (`device-locales.ts`).
@@ -53,6 +59,7 @@ import type * as DeviceLocales from "~/test-utils/device-locales";
 import type * as FakeAnalytics from "~/test-utils/fake-analytics";
 import type * as FakeLibrary from "~/test-utils/fake-library";
 import type * as FakePublicApi from "~/test-utils/fake-public-api";
+import type * as HapticsStub from "~/test-utils/haptics-stub";
 import type * as SwipeableRowStub from "~/test-utils/swipeable-row-stub";
 import type * as ToastStub from "~/test-utils/toast-stub";
 
@@ -116,4 +123,11 @@ jest.mock(
   "sonner-native",
   () =>
     jest.requireActual<typeof ToastStub>("~/test-utils/toast-stub").sonnerModule
+);
+
+jest.mock(
+  "expo-haptics",
+  () =>
+    jest.requireActual<typeof HapticsStub>("~/test-utils/haptics-stub")
+      .hapticsModule
 );
