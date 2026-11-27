@@ -35,6 +35,7 @@ const runId = randomBytes(8).toString("hex");
 const owner = `user_apiPrevOwner${runId}`;
 const intruder = `user_apiPrevIntruder${runId}`;
 const starter = `user_apiPrevStarter${runId}`;
+const lifter = `user_apiPrevLifter${runId}`;
 
 const slug = (name: string) => `test-api-prev-${name}-${runId}`;
 const bench = slug("bench");
@@ -42,6 +43,10 @@ const squat = slug("squat");
 const row = slug("row");
 const curl = slug("curl");
 const dip = slug("dip");
+const press = slug("press");
+
+/** More earlier sets than a Previous sets list ever answers. */
+const MANY_SETS = 101;
 
 /** A set of a seeded Workout Session: reps logged (or not) and the weight. */
 interface SeedSet {
@@ -159,6 +164,8 @@ interface Seeded {
   firstId: string;
   /** The open session read as "today". */
   todayId: string;
+  /** The lifter's open session, after one of `MANY_SETS` press sets. */
+  liftedId: string;
   /** The finished session between them, in another Plan. */
   secondId: string;
   starterWorkoutId: string;
@@ -265,8 +272,33 @@ const seed = (): Promise<Seeded> =>
       userId: starter,
     });
 
+    // The lifter: an earlier press of MANY_SETS sets, then press today.
+    await seedSession(tx, {
+      exercises: [
+        {
+          exerciseSlug: press,
+          sets: Array.from({ length: MANY_SETS }, () => ({
+            reps: 5,
+            weight: "40",
+          })),
+        },
+      ],
+      startedAt: "2026-09-01T10:00:00Z",
+      userId: lifter,
+    });
+
+    const liftedId = await seedSession(tx, {
+      exercises: [
+        { exerciseSlug: press, sets: [{ reps: null, weight: null }] },
+      ],
+      finished: false,
+      startedAt: "2026-09-10T10:00:00Z",
+      userId: lifter,
+    });
+
     return {
       firstId,
+      liftedId,
       secondId,
       starterWorkoutId: starterPlan.workoutId,
       todayId,
@@ -319,7 +351,7 @@ describe("previous sets against the local stack", () => {
   });
 
   afterAll(async () => {
-    await deleteTestUsers([owner, intruder, starter]);
+    await deleteTestUsers([owner, intruder, starter, lifter]);
   });
 
   it("takes the newest earlier session in any Plan, matched by number, without 0-rep sets", async () => {
@@ -382,6 +414,23 @@ describe("previous sets against the local stack", () => {
       [squat, []],
       [row, []],
     ]);
+  });
+
+  it("answers only the first 100 sets by position", async () => {
+    const { body, status } = await requestAs(
+      lifter,
+      `/v1/workout-sessions/${seeded.liftedId}`
+    );
+
+    const [[, previous]] = previousSetsIn(body);
+
+    expect(status).toBe(200);
+    expect(previous).toHaveLength(100);
+    expect(previous.at(-1)).toStrictEqual({
+      number: 100,
+      reps_completed: 5,
+      weight_completed: 40,
+    });
   });
 
   describe("start and finish", () => {

@@ -424,6 +424,14 @@ export interface PreviousSet {
   weight_completed: number | null;
 }
 
+/**
+ * The highest set number a Previous set can have. A Workout Session's sets
+ * have no cap, and every Exercise of a session with the same slug answers the
+ * same list, so without one a read's size would grow with the product of the
+ * two (the Plan Update's own cap on a session Exercise's sets is the same).
+ */
+export const MAX_PREVIOUS_SET_NUMBER = 100;
+
 /** A Workout Session Exercise with its Previous sets. */
 export interface WorkoutSessionExerciseWithPreviousSets extends WorkoutSessionExercise {
   /** In set order; empty without an earlier Workout Session with the Exercise. */
@@ -455,7 +463,8 @@ interface PreviousSetRow extends Record<string, unknown> {
  * by id, as Exercise history orders them) holding a Workout Session Exercise
  * with that exact slug and a set with positive reps, and the first such
  * Workout Session Exercise in it by `order`; its sets are numbered by
- * position, and only the ones with positive reps are answered. Plans and
+ * position, and only the ones with positive reps up to number
+ * `MAX_PREVIOUS_SET_NUMBER` are answered. Plans and
  * Workouts don't matter, and the session itself never counts. One statement,
  * so one snapshot; a slug with nothing earlier is absent, and a session the
  * User hasn't got answers an empty map.
@@ -524,6 +533,7 @@ export const getPreviousSets = async (
       numbered.weight_completed
     from numbered
     where numbered.reps_completed > 0
+      and numbered.number <= ${MAX_PREVIOUS_SET_NUMBER}
     order by numbered.exercise_slug, numbered.number
   `);
 

@@ -3962,7 +3962,7 @@ export interface components {
       order: number;
       /** @description In order */
       sets: components["schemas"]["WorkoutSessionSet"][];
-      /** @description The Previous sets: the sets with positive reps, in order, of the first Workout Session Exercise (by `order`) with this exact `exercise_slug` in the User's most recent Workout Session that started before this one (ties by id) and has one with a set with positive reps. Plans and Workouts don't matter, and this Workout Session never counts itself. Empty when there's no such earlier Workout Session */
+      /** @description The Previous sets: the sets with positive reps, in order, of the first Workout Session Exercise (by `order`) with this exact `exercise_slug` in the User's most recent Workout Session that started before this one (ties by id) and has one with a set with positive reps. Plans and Workouts don't matter, and this Workout Session never counts itself. Only the first 100 sets by position count. Empty when there's no such earlier Workout Session */
       previous_sets: components["schemas"]["PreviousSet"][];
     };
     /** @description What the User did in this set the last time they logged the Exercise */
