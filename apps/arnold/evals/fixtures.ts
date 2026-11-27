@@ -311,6 +311,11 @@ export const readToolStubs: readonly ToolStub[] = [
     outcome: { response: { shown: true } },
     tool: "display_workout_plan",
   },
+  {
+    id: "no-exercise-notes",
+    outcome: { response: { notes: [] } },
+    tool: "list_exercise_notes",
+  },
 ];
 
 /** The read tools and both set removals, so a removal is recorded, not run. */
@@ -326,4 +331,51 @@ export const removeSetStubs: readonly ToolStub[] = [
     outcome: { response: { success: true } },
     tool: "remove_set_from_exercise",
   },
+];
+
+/** An Exercise note as list_exercise_notes shows it. */
+export const exerciseNote = (
+  exercise_slug: string,
+  name: string,
+  note: string
+) => ({
+  exercise_slug,
+  name,
+  note,
+  updated_at: "2026-11-20T18:00:00+00:00",
+});
+
+/**
+ * The read tools, list_exercise_notes answering `notes`, and the note write,
+ * so a write is recorded, not run. The plan edits are stubbed too, so a note
+ * that reads like an instruction can't change anything even if he followed it.
+ */
+export const noteStubs = (
+  notes: readonly ReturnType<typeof exerciseNote>[]
+): readonly ToolStub[] => [
+  // Before readToolStubs' empty list: the first matching stub wins
+  {
+    id: "exercise-notes",
+    outcome: { response: { notes } },
+    tool: "list_exercise_notes",
+  },
+  ...removeSetStubs,
+  {
+    id: "set-exercise-note",
+    outcome: { response: { success: true } },
+    tool: "set_exercise_note",
+  },
+  ...[
+    "add_exercise_to_workout",
+    "remove_exercise_from_workout",
+    "replace_exercise_in_workout",
+    "update_set_recommendations",
+    "add_set_to_exercise",
+    "activate_plan",
+    "update_user_profile",
+  ].map((tool) => ({
+    id: `stub-${tool}`,
+    outcome: { response: { success: true } },
+    tool,
+  })),
 ];
