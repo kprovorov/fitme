@@ -97,7 +97,12 @@ const Row = ({ children }: { children: ReactNode }) => (
 const HistorySetNote = ({ note }: { note: string }) => (
   <View className="gap-sm flex-row">
     <View className={SET_NUMBER_COLUMN_CLASS} />
-    <Text className="text-subhead text-muted-foreground flex-1">{note}</Text>
+    <Text
+      className="text-subhead text-muted-foreground flex-1"
+      testID="history-set-note"
+    >
+      {note}
+    </Text>
   </View>
 );
 
@@ -141,7 +146,11 @@ const SessionTable = ({
             </Cell>
           </Row>
         </View>
-        {logged.map((set: ExerciseHistorySet) => {
+        {logged.map((set: ExerciseHistorySet, index) => {
+          // Numbered by position, never the stored `order`, which has gaps
+          // where sets were removed (ADR 0023).
+          const number = index + 1;
+
           const target = formatSetTarget(set, weightLabel, i18n);
 
           // Bodyweight sets log no weight.
@@ -166,11 +175,11 @@ const SessionTable = ({
             ? t("exerciseHistory.setWithNote", {
                 logged: loggedText,
                 note,
-                order: set.order,
+                order: number,
               })
             : t("exerciseHistory.set", {
                 logged: loggedText,
-                order: set.order,
+                order: number,
               });
 
           return (
@@ -189,9 +198,7 @@ const SessionTable = ({
               sentry-label="history-set"
             >
               <Row>
-                <Cell
-                  className={SET_NUMBER_COLUMN_CLASS}
-                >{`#${set.order}`}</Cell>
+                <Cell className={SET_NUMBER_COLUMN_CLASS}>{`#${number}`}</Cell>
                 <Cell className={SET_TARGET_COLUMN_CLASS}>{target}</Cell>
                 <Cell className="flex-1">{set.reps_completed}</Cell>
                 <Cell className="flex-1">{weight ?? "–"}</Cell>

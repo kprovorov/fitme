@@ -418,6 +418,8 @@ describe("the Exercise history card's set notes", () => {
     expect(
       screen.getByLabelText("Set 2: 12 reps, 50 kg. Target 10")
     ).toBeTruthy();
+    // Two notes, so none under the set without one.
+    expect(screen.getAllByTestId("history-set-note")).toHaveLength(2);
   });
 
   it("reads the note after its set for VoiceOver", async () => {
@@ -431,6 +433,20 @@ describe("the Exercise history card's set notes", () => {
     expect(
       screen.getByLabelText(
         `Set 3: 10 reps, 55 kg. Note: ${LONG_NOTE}. Target 10`
+      )
+    ).toBeTruthy();
+  });
+
+  it("numbers the sets by position, never by a removed set's gap", async () => {
+    // Set 2 was removed from that session, leaving an `order` gap.
+    backend.sets = backend.sets.filter(({ id }) => id !== "past-1-e1-s2");
+    await mountExerciseScreen();
+
+    expect(screen.getByText("#2")).toBeTruthy();
+    expect(screen.queryByText("#3")).toBeNull();
+    expect(
+      screen.getByLabelText(
+        `Set 2: 10 reps, 55 kg. Note: ${LONG_NOTE}. Target 10`
       )
     ).toBeTruthy();
   });
