@@ -121,12 +121,44 @@ const WorkoutSessionPage = z
   })
   .openapi("WorkoutSessionPage");
 
+const PreviousSet = z
+  .object({
+    number: z.int().min(1).openapi({
+      description:
+        "The set's 1-based position among the earlier Workout Session Exercise's sets, in order; it matches the set with the same position today",
+      example: 1,
+    }),
+    reps_completed: z.int().min(1).openapi({
+      description: "Repetitions done; always positive",
+      example: 8,
+    }),
+    weight_completed: z.number().nullable().openapi({
+      description:
+        "In the Workout Session's `weight_unit`; `null` for bodyweight",
+      example: 80.5,
+    }),
+  })
+  .openapi("PreviousSet", {
+    description:
+      "What the User did in this set the last time they logged the Exercise",
+  });
+
+// A plain object, not `.extend`: an `allOf` over `WorkoutSessionExercise`
+// reads to oasdiff as every field removed from the answers that had it.
+const SessionExercise = z
+  .object({
+    ...WorkoutSessionExercise.shape,
+    previous_sets: z.array(PreviousSet).openapi({
+      description:
+        "The Previous sets: the sets with positive reps, in order, of the first Workout Session Exercise (by `order`) with this exact `exercise_slug` in the User's most recent Workout Session that started before this one (ties by id) and has one with a set with positive reps. Plans and Workouts don't matter, and this Workout Session never counts itself. Only the first 100 sets by position count. Empty when there's no such earlier Workout Session",
+    }),
+  })
+  .openapi("WorkoutSessionExerciseWithPreviousSets");
+
 const WorkoutSession = z
   .object({
     ...sessionFields,
-    exercises: z
-      .array(WorkoutSessionExercise)
-      .openapi({ description: "In order" }),
+    exercises: z.array(SessionExercise).openapi({ description: "In order" }),
     weight_unit: WeightUnit,
   })
   .openapi("WorkoutSession");

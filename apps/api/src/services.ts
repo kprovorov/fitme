@@ -84,6 +84,7 @@ import {
   replaceExerciseInWorkoutSession,
   setWorkoutSessionSetNote,
   startWorkoutSession,
+  withPreviousSets,
 } from "@fitme/services/workout-sessions";
 import type {
   AddExerciseToWorkoutSessionInput,
@@ -102,6 +103,7 @@ import type {
   StartWorkoutSessionResult,
   WorkoutSessionDetail,
   WorkoutSessionPage,
+  WorkoutSessionWithPreviousSets,
 } from "@fitme/services/workout-sessions";
 import { sql } from "drizzle-orm";
 
@@ -135,6 +137,14 @@ export interface Weighed<T> {
   value: T;
   weightUnit: ProfileUnits["weight"];
 }
+
+/**
+ * A start or finish result whose Workout Session carries its Previous sets
+ * (ADR 0025), worked out in the same transaction.
+ */
+export type WithPreviousSets<R> = R extends { session: WorkoutSessionDetail }
+  ? Omit<R, "session"> & { session: WorkoutSessionWithPreviousSets }
+  : R;
 
 /**
  * The services a verified User's requests call, each bound to that User and
@@ -195,7 +205,7 @@ export interface UserServices {
    */
   finishWorkoutSession: (
     sessionId: string
-  ) => Promise<Weighed<FinishWorkoutSessionResult>>;
+  ) => Promise<Weighed<WithPreviousSets<FinishWorkoutSessionResult>>>;
   /** The active Plan in full, or `null` with none. */
   getActivePlan: () => Promise<Weighed<PlanDetail> | null>;
   /**
@@ -215,10 +225,13 @@ export interface UserServices {
   getProfile: () => Promise<ProfileWithUnits | null>;
   /** Retained Weekly goals, oldest first, and the lifetime streak in the device timezone. */
   getWeeklyGoals: (timeZone: string) => Promise<WeeklyGoals>;
-  /** One of the User's Workout Sessions in full, or `null` (missing, foreign). */
+  /**
+   * One of the User's Workout Sessions in full, each Exercise with its
+   * Previous sets, or `null` (missing, foreign).
+   */
   getWorkoutSession: (
     sessionId: string
-  ) => Promise<Weighed<WorkoutSessionDetail> | null>;
+  ) => Promise<Weighed<WorkoutSessionWithPreviousSets> | null>;
   /** Every Exercise note of the User, by Exercise slug. */
   listExerciseNotes: () => Promise<ExerciseNote[]>;
   listPlans: () => Promise<PlanSummary[]>;
@@ -310,7 +323,7 @@ export interface UserServices {
    */
   startWorkoutSession: (
     workoutId: string
-  ) => Promise<Weighed<StartWorkoutSessionResult>>;
+  ) => Promise<Weighed<WithPreviousSets<StartWorkoutSessionResult>>>;
   /**
    * Changes only the given metadata fields of a live Plan of the User; its
    * Workouts and their ids stay. The Plan in full, or `null` with nothing
@@ -394,7 +407,16 @@ export const createServicesFromEnv: ServicesFactory = (userId) => {
     deleteWorkoutSession: (sessionId) =>
       asUser(userId, (tx) => deleteWorkoutSession(tx, sessionId)),
     finishWorkoutSession: (sessionId) =>
-      inUnits((tx) => finishWorkoutSession(tx, sessionId), write),
+      inUnits(async (tx) => {
+        const result = await finishWorkoutSession(tx, sessionId);
+
+        return result.status === "finished"
+          ? {
+              ...result,
+              session: await withPreviousSets(tx, userId, result.session),
+            }
+          : result;
+      }, write),
     getActivePlan: () => weighed((tx) => getActivePlan(tx, userId)),
     getExerciseHistory: (query) =>
       inUnits((tx) => getExerciseHistory(tx, userId, query)),
@@ -406,7 +428,11 @@ export const createServicesFromEnv: ServicesFactory = (userId) => {
     getWeeklyGoals: (timeZone) =>
       asUser(userId, (tx) => getWeeklyGoals(tx, userId, timeZone)),
     getWorkoutSession: (sessionId) =>
-      weighed((tx) => getWorkoutSession(tx, sessionId)),
+      weighed(async (tx) => {
+        const session = await getWorkoutSession(tx, sessionId);
+
+        return session && (await withPreviousSets(tx, userId, session));
+      }),
     listExerciseNotes: () =>
       asUser(userId, (tx) => listExerciseNotes(tx, userId)),
     listPlans: () => asUser(userId, (tx) => listPlans(tx, userId)),
@@ -456,7 +482,16 @@ export const createServicesFromEnv: ServicesFactory = (userId) => {
     setWorkoutSessionSetNote: (input) =>
       inUnits((tx) => setWorkoutSessionSetNote(tx, userId, input), write),
     startWorkoutSession: (workoutId) =>
-      inUnits((tx) => startWorkoutSession(tx, workoutId), write),
+      inUnits(async (tx) => {
+        const result = await startWorkoutSession(tx, workoutId);
+
+        return result.status === "started"
+          ? {
+              ...result,
+              session: await withPreviousSets(tx, userId, result.session),
+            }
+          : result;
+      }, write),
     // Metadata only: never `workouts`, so Workout ids stay.
     updatePlan: (planId, changes) =>
       weighed((tx) => updatePlan(tx, userId, planId, changes), write),

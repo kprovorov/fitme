@@ -1,6 +1,6 @@
 import type {
-  WorkoutSessionDetail,
   WorkoutSessionSummary,
+  WorkoutSessionWithPreviousSets,
 } from "@fitme/services/workout-sessions";
 import { describe, expect, it } from "vitest";
 
@@ -279,6 +279,10 @@ const exercise = {
   exercise_slug: "barbell-bench-press",
   id: "2d3e4f5a-6b7c-4d8e-9f0a-1b2c3d4e5f6a",
   order: 1,
+  previous_sets: [
+    { number: 1, reps_completed: 8, weight_completed: 75 },
+    { number: 3, reps_completed: 12, weight_completed: null },
+  ],
   sets: [set, unloggedSet],
 };
 
@@ -292,7 +296,7 @@ const sessionFields = {
 } as const;
 
 /** The Workout Session as the facade answers it. */
-const fromServices: Weighed<WorkoutSessionDetail> = {
+const fromServices: Weighed<WorkoutSessionWithPreviousSets> = {
   value: { ...sessionFields, exercises: [exercise] },
   weightUnit: "lbs",
 };
@@ -305,7 +309,7 @@ const shown = {
 };
 
 describe("gET /v1/workout-sessions/:id", () => {
-  it("answers the Workout Session in full with its weight unit, Exercises by slug only", async () => {
+  it("answers the Workout Session in full with its weight unit, Exercises by slug only, each with its Previous sets", async () => {
     const asked: string[] = [];
 
     const { app, servicesFor } = testApp({

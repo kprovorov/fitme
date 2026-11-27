@@ -1346,6 +1346,8 @@ const sessionBody = (session: SessionRow) => {
         exercise_slug,
         id,
         order,
+        // The Previous sets rule is FIT-852's; until then none are answered.
+        previous_sets: [],
         sets: backend.sets
           .filter((set) => set.workout_session_exercise_id === id)
           .toSorted((a, b) => a.order - b.order)

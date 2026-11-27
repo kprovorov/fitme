@@ -411,6 +411,172 @@ export const getWorkoutSession = async (
   return session ?? null;
 };
 
+/**
+ * A Previous set (`GLOSSARY.md`, ADR 0025): what the User did in the set with
+ * this number the last time they logged the Exercise.
+ */
+export interface PreviousSet {
+  /** The set's 1-based position among its Workout Session Exercise's sets. */
+  number: number;
+  /** Always positive: a set with 0 reps is no Previous set. */
+  reps_completed: number;
+  /** `null` for bodyweight; in the User's unit, like every other weight. */
+  weight_completed: number | null;
+}
+
+/**
+ * The highest set number a Previous set can have. A Workout Session's sets
+ * have no cap, and every Exercise of a session with the same slug answers the
+ * same list, so without one a read's size would grow with the product of the
+ * two (the Plan Update's own cap on a session Exercise's sets is the same).
+ */
+export const MAX_PREVIOUS_SET_NUMBER = 100;
+
+/** A Workout Session Exercise with its Previous sets. */
+export interface WorkoutSessionExerciseWithPreviousSets extends WorkoutSessionExercise {
+  /** In set order; empty without an earlier Workout Session with the Exercise. */
+  previous_sets: PreviousSet[];
+}
+
+/** A Workout Session whose every Exercise carries its Previous sets. */
+export interface WorkoutSessionWithPreviousSets extends Omit<
+  WorkoutSessionDetail,
+  "exercises"
+> {
+  exercises: WorkoutSessionExerciseWithPreviousSets[];
+}
+
+interface PreviousSetRow extends Record<string, unknown> {
+  exercise_slug: string;
+  number: number;
+  reps_completed: number;
+  weight_completed: string | null;
+}
+
+/**
+ * The Previous sets for each of `exerciseSlugs` in one of the User's Workout
+ * Sessions, by Exercise slug, in `tx` (from `asUser`; the User id is filtered
+ * on as well as RLS). The slugs are the caller's, the ones it read the session
+ * with, so an Exercise replaced meanwhile never gets another slug's sets
+ * (READ COMMITTED gives each statement its own snapshot). For each slug it takes
+ * the User's most recent Workout Session that started before this one (ties
+ * by id, as Exercise history orders them) holding a Workout Session Exercise
+ * with that exact slug and a set with positive reps, and the first such
+ * Workout Session Exercise in it by `order`; its sets are numbered by
+ * position, and only the ones with positive reps up to number
+ * `MAX_PREVIOUS_SET_NUMBER` are answered. Plans and
+ * Workouts don't matter, and the session itself never counts. One statement,
+ * so one snapshot; a slug with nothing earlier is absent, and a session the
+ * User hasn't got answers an empty map.
+ */
+export const getPreviousSets = async (
+  tx: Transaction,
+  userId: string,
+  sessionId: string,
+  exerciseSlugs: readonly string[]
+): Promise<Map<string, PreviousSet[]>> => {
+  const previous = new Map<string, PreviousSet[]>();
+
+  if (exerciseSlugs.length === 0) {
+    return previous;
+  }
+
+  const slugList = sql.join(
+    [...new Set(exerciseSlugs)].map((slug) => sql`(${slug})`),
+    sql`, `
+  );
+
+  const { rows } = await tx.execute<PreviousSetRow>(sql`
+    with answered as (
+      select s.id, s.started_at
+      from ${workoutSessions} s
+      where s.id = ${sessionId} and s.user_id = ${userId}
+    ),
+    earlier as (
+      select slugs.exercise_slug, found.id
+      from (values ${slugList}) as slugs (exercise_slug)
+      cross join answered
+      cross join lateral (
+        select pe.id
+        from ${workoutSessionExercises} pe
+        join ${workoutSessions} ps on ps.id = pe.workout_session_id
+        where pe.exercise_slug = slugs.exercise_slug
+          and ps.user_id = ${userId}
+          and (ps.started_at, ps.id) < (answered.started_at, answered.id)
+          and exists (
+            select 1
+            from ${workoutSessionExerciseSets} x
+            where x.workout_session_exercise_id = pe.id
+              and x.reps_completed > 0
+          )
+        order by ps.started_at desc, ps.id desc, pe."order" asc, pe.id asc
+        limit 1
+      ) found
+    ),
+    numbered as (
+      select
+        earlier.exercise_slug,
+        (row_number() over (
+          partition by x.workout_session_exercise_id
+          order by x."order", x.id
+        ))::int as number,
+        x.reps_completed,
+        x.weight_completed
+      from earlier
+      join ${workoutSessionExerciseSets} x
+        on x.workout_session_exercise_id = earlier.id
+    )
+    select
+      numbered.exercise_slug,
+      numbered.number,
+      numbered.reps_completed,
+      numbered.weight_completed
+    from numbered
+    where numbered.reps_completed > 0
+      and numbered.number <= ${MAX_PREVIOUS_SET_NUMBER}
+    order by numbered.exercise_slug, numbered.number
+  `);
+
+  for (const row of rows) {
+    const sets = previous.get(row.exercise_slug) ?? [];
+
+    sets.push({
+      number: row.number,
+      reps_completed: row.reps_completed,
+      weight_completed: toNumber(row.weight_completed),
+    });
+    previous.set(row.exercise_slug, sets);
+  }
+
+  return previous;
+};
+
+/**
+ * `session` with its Previous sets (`getPreviousSets`, in the same `tx`, for
+ * the slugs `session` was read with): an Exercise with nothing earlier gets an
+ * empty list.
+ */
+export const withPreviousSets = async (
+  tx: Transaction,
+  userId: string,
+  session: WorkoutSessionDetail
+): Promise<WorkoutSessionWithPreviousSets> => {
+  const previous = await getPreviousSets(
+    tx,
+    userId,
+    session.id,
+    session.exercises.map(({ exercise_slug }) => exercise_slug)
+  );
+
+  return {
+    ...session,
+    exercises: session.exercises.map((exercise) => ({
+      ...exercise,
+      previous_sets: previous.get(exercise.exercise_slug) ?? [],
+    })),
+  };
+};
+
 export interface WorkoutHistoryOptions {
   limit: number;
 }
