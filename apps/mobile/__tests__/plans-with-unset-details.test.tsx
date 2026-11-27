@@ -89,7 +89,7 @@ jest.mock("~/hooks/revenueCat", () => ({
 
 jest.mock("~/components/exercises/exercise-image", () => () => null);
 
-// My Plans offers the Create Plan tiles (behind the Plans redesign flag),
+// My Plans offers the Create Plan tiles when it has no Plans,
 // whose Ask Arnold presents the paywall: an ESM module Jest can't load.
 jest.mock("react-native-purchases-ui", () => ({
   __esModule: true,
@@ -100,6 +100,10 @@ jest.mock("~/components/symbol-image", () => ({ SymbolImage: () => null }));
 
 jest.mock("~/components/ui/dropdown-menu", () =>
   jest.requireActual("~/test-utils/dropdown-menu-stub")
+);
+
+jest.mock("~/components/ui/context-menu", () =>
+  jest.requireActual("~/test-utils/context-menu-stub")
 );
 
 jest.mock("~/components/ui/button", () =>
@@ -234,11 +238,11 @@ describe("a Plan with unset details on the Plan list", () => {
     backend.plans[0].description = null;
     await mount(<PlansScreen />);
 
-    // The card shows no empty line under its details, as the Plan header
-    // on the Workout tab doesn't either.
-    expect(screen.getByText("Barebones")).toBeTruthy();
-    expect(screen.queryByText("About Barebones")).toBeNull();
-    expect(screen.getByText("About Half filled")).toBeTruthy();
+    // The active Plan's card shows no empty line under its name, as the Plan
+    // header on the Workout tab doesn't either.
+    const card = within(screen.getByTestId("active-plan-card"));
+    expect(card.getByText("Barebones")).toBeTruthy();
+    expect(card.queryByText("About Barebones")).toBeNull();
     expectNothingBroken();
   });
 });
@@ -249,7 +253,7 @@ describe("a Plan with unset details on its own screens", () => {
 
     expect(screen.getByText("Barebones")).toBeTruthy();
     expect(screen.getByText("Day one")).toBeTruthy();
-    expect(screen.getByText("1 Exercise")).toBeTruthy();
+    expect(screen.getByText("1 exercise")).toBeTruthy();
     expectNothingBroken();
   });
 

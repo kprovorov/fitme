@@ -132,7 +132,7 @@ interface PlanDetailViewProps {
 }
 
 /**
- * A Plan's screen, redesigned (Figma "Plan Detail Redesign"): the hero, then
+ * A Plan's screen (Figma "Plan Detail Redesign"): the hero, then
  * "Workouts" over one card of its Workouts in rotation order, or, with none,
  * No Workouts with Add Workout.
  */

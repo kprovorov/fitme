@@ -25,7 +25,7 @@ import { isStillWriteStarter } from "~/lib/write-answers";
  * (the answer can be lost after the write commits), so it never says either
  * way.
  */
-export const planWriteFailureMessage = (t: TFunction, error: unknown) => {
+const planWriteFailureMessage = (t: TFunction, error: unknown) => {
   const apiError = error instanceof ApiError ? error : null;
 
   if (apiError?.code === "not_found") {
@@ -46,8 +46,8 @@ export interface PlanActionTarget {
 }
 
 /**
- * What a User can do to a Plan without opening it, the one rule My Plans
- * follows and the Plan's own screen moves onto with the Plan detail redesign:
+ * What a User can do to a Plan, the one rule My Plans and the Plan's own
+ * screen follow:
  *
  * - `edit` opens the Plan editor modal over the screen it's called from.
  * - `activate` makes the Plan the active one. With no active Plan it does so

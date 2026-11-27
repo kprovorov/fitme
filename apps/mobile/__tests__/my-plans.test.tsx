@@ -1,8 +1,8 @@
 /**
- * My Plans with the Plans redesign flag on (project "My Plans and Plan detail
- * redesign"): the real Plans screen over the fake Public API (`test-utils/`),
- * its header and pushes on the router stub, Pro from the real `useIsProQuery`
- * over the fake RevenueCat customer, in English and Ukrainian. The active
+ * My Plans (project "My Plans and Plan detail redesign"): the real Plans
+ * screen over the fake Public API (`test-utils/`), its header and pushes on
+ * the router stub, Pro from the real `useIsProQuery` over the fake RevenueCat
+ * customer, in English and Ukrainian. The active
  * Plan is the hero card and the others are rows under "Other Plans"; a single
  * Plan is its card alone; with none active an info card heads the rows. Each
  * state (the skeleton, the empty state with the Create Plan tiles, the load
@@ -32,7 +32,6 @@ import { Alert } from "react-native";
 import type { AlertButton } from "react-native";
 
 import PlansScreen from "~/app/plans/index";
-import { setPlansRedesignEnabled } from "~/lib/feature-flags";
 import { CREATE_PLAN_NAMING_STEP } from "~/lib/plan-draft";
 import { DESTRUCTIVE_HINT } from "~/test-utils/context-menu-stub";
 import { setDeviceLanguages } from "~/test-utils/device-locales";
@@ -326,7 +325,6 @@ const SUCCESS_HAPTIC = {
 beforeEach(() => {
   jest.spyOn(Alert, "alert").mockReturnValue(undefined);
   jest.mocked(Alert.alert).mockClear();
-  setPlansRedesignEnabled(true);
   resetStubRouter();
   mockPresentPaywall.mockClear();
   backend.reset();
@@ -360,6 +358,29 @@ describe.each(LANGUAGES)("My Plans (%s)", (language) => {
 
     expect(screen.getByText(text.otherPlans)).toBeTruthy();
     expect(rowNames()).toEqual(["plan-row-plan-new", "plan-row-plan-old"]);
+  });
+
+  it("lists only the User's live Plans", async () => {
+    seedOthers();
+    seedHypertrophy();
+    backend.seedPlan({
+      deleted_at: "2026-10-20T09:00:00.000Z",
+      id: "plan-deleted",
+      name: "Deleted",
+      workouts: [],
+    });
+    backend.seedPlan({
+      id: "plan-theirs",
+      name: "Someone Else's",
+      user_id: "user_other",
+      workouts: [],
+    });
+
+    await mount(language);
+
+    expect(rowNames()).toEqual(["plan-row-plan-new", "plan-row-plan-old"]);
+    expect(screen.queryByText("Deleted")).toBeNull();
+    expect(screen.queryByText("Someone Else's")).toBeNull();
   });
 
   it("leaves out every unset detail and an empty description", async () => {
