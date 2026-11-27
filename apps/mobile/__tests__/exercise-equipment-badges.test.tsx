@@ -31,6 +31,14 @@ import { createTestQueryClient, settle } from "~/test-utils/query-client";
 
 const params: { current: Record<string, string> } = { current: {} };
 
+// The real Clerk SDK opens a MessagePort at import (the note's save reads the
+// signed-in User), which keeps Jest alive.
+jest.mock("~/lib/clerk", () => ({
+  getCurrentUserId: jest.requireActual<
+    typeof import("~/test-utils/signed-in-user")
+  >("~/test-utils/signed-in-user").getCurrentUserId,
+}));
+
 jest.mock("react-native-keyboard-controller", () => ({
   KeyboardAwareScrollView:
     jest.requireActual<typeof import("react-native")>("react-native")
