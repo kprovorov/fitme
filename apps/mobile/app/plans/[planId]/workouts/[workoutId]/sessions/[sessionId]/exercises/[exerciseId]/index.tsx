@@ -10,6 +10,7 @@ import type {
 import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+import { ExerciseNote } from "~/components/notes/exercise-note";
 import { Card } from "~/components/ui/card";
 import ExerciseHistoryView from "~/components/views/exercise-history-view";
 import type {
@@ -28,6 +29,7 @@ import type { SavedWorkoutSessionExerciseSet } from "~/hooks/queries/workout-ses
 import { useWorkoutSessionQuery } from "~/hooks/queries/workout-sessions";
 import { nextUnloggedSet, useShownSets } from "~/hooks/shown-sets";
 import { CLIP_SCROLL_EDGE_EFFECTS } from "~/lib/constants";
+import { isNotesEnabled } from "~/lib/feature-flags";
 
 /** Gap between the end of the content and the floating rest timer. */
 const REST_TIMER_GAP = 16;
@@ -40,6 +42,14 @@ const HISTORY_NEAR_END_THRESHOLD = 0.5;
 
 /** How often scrolling reports its position, in milliseconds. */
 const SCROLL_EVENT_THROTTLE_MS = 16;
+
+/**
+ * Whether leaving goes without asking about an unsaved note: the session's
+ * screens moving on by themselves (it ended elsewhere, or a finish or
+ * discard elsewhere in the app), which reset the stack. Unsaved text is lost
+ * then, as the sets' unsaved input is; the User's own way back still asks.
+ */
+const isSessionMovingOn = ({ type }: { type: string }) => type === "RESET";
 
 const WorkoutSessionExerciseScreen = () => {
   const { t } = useTranslation();
@@ -192,6 +202,16 @@ const WorkoutSessionExerciseScreen = () => {
             exercise={exercise}
             onOpenGuide={hasGuide ? openGuide : undefined}
           />
+          {isNotesEnabled() ? (
+            // Keyed by the Exercise, so a replaced one starts with its own.
+            <ExerciseNote
+              exerciseName={exercise.name}
+              exerciseSlug={exercise.slug}
+              key={exercise.slug}
+              layout="inline"
+              leavesWithoutAsking={isSessionMovingOn}
+            />
+          ) : null}
           <Card>
             <WorkoutSessionExerciseSetsTableView
               exerciseId={exerciseId}

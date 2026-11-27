@@ -284,11 +284,30 @@ const NoteShown = ({
   );
 };
 
+/** A navigation leaving the Screen, as the leave guard is handed it. */
+interface LeavingAction {
+  type: string;
+}
+
 interface ExerciseNoteProps {
   /** Its name, for VoiceOver. */
   exerciseName: string;
   /** The Exercise's own slug: the note shown and saved is the one on it. */
   exerciseSlug: string;
+  /**
+   * How it sits on its Screen (Figma's FIT-820 frames): `section`, under its
+   * own Note heading (the Exercise detail screen), or `inline`, a muted Note
+   * label over the text and only Add Note without one (the Workout Session
+   * Exercise screen).
+   */
+  layout?: "inline" | "section";
+  /**
+   * Whether a navigation leaving the Screen goes without asking about
+   * unsaved text: the app moving on by itself (a Workout Session ending
+   * elsewhere), which other unsaved input doesn't hold up either. The User's
+   * own way back still asks.
+   */
+  leavesWithoutAsking?: (action: LeavingAction) => boolean;
 }
 
 /**
@@ -305,6 +324,8 @@ interface ExerciseNoteProps {
 export const ExerciseNote = ({
   exerciseName,
   exerciseSlug,
+  layout = "section",
+  leavesWithoutAsking,
 }: ExerciseNoteProps) => {
   const { t } = useTranslation();
   const { data: notes, error, refetch } = useExerciseNotesQuery();
@@ -349,8 +370,12 @@ export const ExerciseNote = ({
 
   // Held while a save is on its way too: it can still fail, and the text
   // would go with the Screen.
-  usePreventRemove(isChanged, ({ repeat }) => {
-    askToDiscard(repeat);
+  usePreventRemove(isChanged, ({ data, repeat }) => {
+    if (leavesWithoutAsking?.(data.action)) {
+      repeat();
+    } else {
+      askToDiscard(repeat);
+    }
   });
 
   const startEditing = useCallback(() => {
@@ -450,24 +475,40 @@ export const ExerciseNote = ({
 
   const showsEdit = !!notes && draft === null && note !== null;
 
+  // Inline, Add Note says it all: no label over it.
+  const showsHeading =
+    layout === "section" || !notes || draft !== null || note !== null;
+
   return (
     <View className="gap-xs" testID="exercise-note">
-      <View className="flex-row items-center justify-between">
-        <H4>{t("notes.label")}</H4>
-        {showsEdit ? (
-          <Button
-            accessibilityLabel={t("notes.spoken.edit", {
-              exercise: exerciseName,
-            })}
-            contentColorClassName="text-primary"
-            label={t("notes.edit")}
-            onPress={startEditing}
-            size="sm"
-            testID="exercise-note-edit"
-            variant="ghost"
-          />
-        ) : null}
-      </View>
+      {showsHeading ? (
+        <View className="flex-row items-center justify-between">
+          {layout === "section" ? (
+            <H4>{t("notes.label")}</H4>
+          ) : (
+            <View className="gap-xs flex-row items-center">
+              <SymbolImage
+                className="text-footnote text-muted-foreground"
+                name="note.text"
+              />
+              <Muted className="text-footnote">{t("notes.label")}</Muted>
+            </View>
+          )}
+          {showsEdit ? (
+            <Button
+              accessibilityLabel={t("notes.spoken.edit", {
+                exercise: exerciseName,
+              })}
+              contentColorClassName="text-primary"
+              label={t("notes.edit")}
+              onPress={startEditing}
+              size="sm"
+              testID="exercise-note-edit"
+              variant="ghost"
+            />
+          ) : null}
+        </View>
+      ) : null}
       {body}
     </View>
   );
