@@ -1,5 +1,7 @@
 import type * as Db from "@fitme/db";
 import type * as Observability from "@fitme/observability/node";
+import type * as NoteServices from "@fitme/services/exercise-notes";
+import type { ExerciseNote } from "@fitme/services/exercise-notes";
 import type * as PlanServices from "@fitme/services/plans";
 import type * as SessionServices from "@fitme/services/workout-sessions";
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -15,17 +17,17 @@ import {
 } from "./tool-context";
 import type { TestedTool } from "./tool-context";
 
-type ReadResult =
-  | typeof plan
-  | (typeof plan)[]
-  | typeof history
-  | SessionServices.WorkoutSessionDetail
-  | null;
-
-type ReadTransaction = (transaction: typeof tx) => Promise<ReadResult>;
+type ReadTransaction = (transaction: typeof tx) => Promise<unknown>;
 
 const db = vi.hoisted(() => ({
-  asUser: vi.fn<(userId: string, fn: ReadTransaction) => Promise<ReadResult>>(),
+  asUser: vi.fn<(userId: string, fn: ReadTransaction) => Promise<unknown>>(),
+}));
+
+const notes = vi.hoisted(() => ({
+  listExerciseNotes:
+    vi.fn<
+      (transaction: typeof tx, userId: string) => Promise<ExerciseNote[]>
+    >(),
 }));
 
 const plans = vi.hoisted(() => ({
@@ -68,6 +70,11 @@ const observability = vi.hoisted(() => ({
 }));
 
 vi.mock<typeof Db | typeof db>(import("@fitme/db"), () => db);
+
+vi.mock<typeof NoteServices | typeof notes>(
+  import("@fitme/services/exercise-notes"),
+  () => notes
+);
 
 vi.mock<typeof PlanServices | typeof plans>(
   import("@fitme/services/plans"),
@@ -241,6 +248,7 @@ const openSession: SessionServices.WorkoutSessionDetail = {
 const seenArguments = () =>
   JSON.stringify([
     db.asUser.mock.calls,
+    notes.listExerciseNotes.mock.calls,
     plans.getActivePlan.mock.calls,
     plans.listPlans.mock.calls,
     sessions.getWorkoutSession.mock.calls,
@@ -249,10 +257,15 @@ const seenArguments = () =>
   ]);
 
 /** Validate the read tool's result before inspecting its Exercises. */
-const shownExerciseSchema = z.object({
+const foundExerciseSchema = z.object({
   exercise_slug: z.string(),
   muscle_groups: z.array(z.string()),
   name: z.string(),
+});
+
+/** A read tool's Exercise: a found one plus the User's Exercise note. */
+const shownExerciseSchema = foundExerciseSchema.extend({
+  exercise_note: z.string().nullable(),
 });
 
 const shownPlanSchema = z.object({
@@ -288,9 +301,46 @@ const run = async (input: ModelInput) =>
     alice
   );
 
+/** A stored Exercise note, as `listExerciseNotes` answers it. */
+const storedNote = (
+  exercise_slug: string,
+  note: string,
+  updated_at = "2026-11-26T10:00:00+00:00"
+): ExerciseNote => ({ exercise_slug, note, updated_at });
+
+const KNEE = "Knee hurts below parallel";
+const ARCH = "Arch, feet flat";
+
+/** The Exercise notes the read tools showed, by stored slug. */
+const shownNotes = (exercises: readonly { exercise_slug: string }[]) =>
+  Object.fromEntries(
+    z
+      .array(
+        z.object({
+          exercise_note: z.string().nullable(),
+          exercise_slug: z.string(),
+        })
+      )
+      .parse(exercises)
+      .map(({ exercise_note, exercise_slug }) => [exercise_slug, exercise_note])
+  );
+
+/** asUser ran once, and the notes were read inside it, as the owner. */
+const expectNotesReadInTheTransaction = () => {
+  expect(db.asUser).toHaveBeenCalledExactlyOnceWith(
+    "user_alice",
+    expect.any(Function)
+  );
+  expect(notes.listExerciseNotes).toHaveBeenCalledExactlyOnceWith(
+    tx,
+    "user_alice"
+  );
+};
+
 const resetReadTools = () => {
   testLibrary.reset();
   db.asUser.mockImplementation(async (_userId, fn) => await fn(tx));
+  notes.listExerciseNotes.mockResolvedValue([]);
   plans.getActivePlan.mockResolvedValue(plan);
   plans.listPlans.mockResolvedValue([plan]);
   sessions.getWorkoutSession.mockResolvedValue(openSession);
@@ -328,6 +378,7 @@ describe("get_active_plan", () => {
               id: "we_bench",
               muscle_groups: ["chest"],
               name: "Bench Press",
+              exercise_note: null,
               order: 1,
               sets: [set],
             },
@@ -336,6 +387,7 @@ describe("get_active_plan", () => {
               id: "we_retired",
               muscle_groups: [],
               name: "Jefferson curl",
+              exercise_note: null,
               order: 1,
               sets: [set],
             },
@@ -406,6 +458,130 @@ describe("get_active_plan", () => {
     );
   });
 
+  it("shows the User's Exercise note beside each Exercise, null without one, read in the same transaction", async () => {
+    notes.listExerciseNotes.mockResolvedValue([
+      storedNote("bench-press", ARCH),
+      storedNote("deadlift", "Not in this Plan"),
+    ]);
+
+    const answer = shownPlanSchema.parse(
+      await getActivePlan.execute({}, alice)
+    );
+
+    expect(shownNotes(answer.workouts[0].exercises)).toStrictEqual({
+      "bench-press": ARCH,
+      "jefferson-curl": null,
+    });
+    expectNotesReadInTheTransaction();
+  });
+
+  it("shows the note saved under the Exercise replacing an old slug, and one saved under the old slug itself", async () => {
+    plans.getActivePlan.mockResolvedValue({
+      ...plan,
+      workouts: [
+        {
+          ...plan.workouts[0],
+          exercises: [
+            planExercise("we_old", "barbell-bench-press"),
+            planExercise("we_retired", "jefferson-curl"),
+          ],
+        },
+      ],
+    });
+    notes.listExerciseNotes.mockResolvedValue([
+      storedNote("bench-press", ARCH),
+      storedNote("jefferson-curl", "Slow"),
+    ]);
+
+    const answer = shownPlanSchema.parse(
+      await getActivePlan.execute({}, alice)
+    );
+
+    expect(shownNotes(answer.workouts[0].exercises)).toStrictEqual({
+      "barbell-bench-press": ARCH,
+      "jefferson-curl": "Slow",
+    });
+  });
+
+  it("shows the later changed note when both an old slug and its replacement have one", async () => {
+    plans.getActivePlan.mockResolvedValue({
+      ...plan,
+      workouts: [
+        {
+          ...plan.workouts[0],
+          exercises: [planExercise("we_old", "barbell-bench-press")],
+        },
+      ],
+    });
+    notes.listExerciseNotes.mockResolvedValue([
+      storedNote("barbell-bench-press", "Old cue", "2026-11-20T10:00:00+00:00"),
+      storedNote("bench-press", ARCH, "2026-11-26T10:00:00+00:00"),
+    ]);
+
+    const first = shownPlanSchema.parse(await getActivePlan.execute({}, alice));
+
+    expect(shownNotes(first.workouts[0].exercises)).toStrictEqual({
+      "barbell-bench-press": ARCH,
+    });
+
+    notes.listExerciseNotes.mockResolvedValue([
+      storedNote("barbell-bench-press", "New cue", "2026-11-27T10:00:00+00:00"),
+      storedNote("bench-press", ARCH, "2026-11-26T10:00:00+00:00"),
+    ]);
+
+    const second = shownPlanSchema.parse(
+      await getActivePlan.execute({}, alice)
+    );
+
+    expect(shownNotes(second.workouts[0].exercises)).toStrictEqual({
+      "barbell-bench-press": "New cue",
+    });
+  });
+
+  it("keeps each set's own note apart from the Exercise note", async () => {
+    notes.listExerciseNotes.mockResolvedValue([storedNote("back-squat", KNEE)]);
+
+    const [session] = z
+      .array(
+        z.object({
+          exercises: z.array(
+            z.object({
+              exercise_note: z.string().nullable(),
+              sets: z.array(z.object({ note: z.string().nullable() })),
+            })
+          ),
+        })
+      )
+      .parse(await getWorkoutsHistory.execute({ limit: 10 }, alice));
+
+    expect(session.exercises[0].exercise_note).toBe(KNEE);
+    expect(session.exercises[0].sets[0].note).toBe("Grip slipped");
+  });
+
+  it("still shows the notes when the library can't load", async () => {
+    testLibrary.reset({ loads: "fail" });
+    notes.listExerciseNotes.mockResolvedValue([
+      storedNote("bench-press", ARCH),
+    ]);
+
+    const answer = shownPlanSchema.parse(
+      await getActivePlan.execute({}, alice)
+    );
+
+    expect(shownNotes(answer.workouts[0].exercises)).toStrictEqual({
+      "bench-press": ARCH,
+      "jefferson-curl": null,
+    });
+  });
+
+  it("reads no notes without an active Plan", async () => {
+    plans.getActivePlan.mockResolvedValue(null);
+
+    await getActivePlan.execute({}, alice);
+
+    expect(notes.listExerciseNotes).not.toHaveBeenCalled();
+  });
+
   it("tells the model when no Plan is active", async () => {
     plans.getActivePlan.mockResolvedValue(null);
 
@@ -471,6 +647,7 @@ describe("get_workouts_history", () => {
             id: "wse_squat",
             muscle_groups: ["quadriceps", "glutes"],
             name: "Back Squat",
+            exercise_note: null,
             order: 1,
             sets: [loggedSet],
           },
@@ -521,6 +698,19 @@ describe("get_workouts_history", () => {
     });
   });
 
+  it("shows the User's Exercise note beside each Exercise, read in the same transaction", async () => {
+    notes.listExerciseNotes.mockResolvedValue([storedNote("back-squat", KNEE)]);
+
+    const [session] = shownHistorySchema.parse(
+      await getWorkoutsHistory.execute({ limit: 10 }, alice)
+    );
+
+    expect(shownNotes(session.exercises)).toStrictEqual({
+      "back-squat": KNEE,
+    });
+    expectNotesReadInTheTransaction();
+  });
+
   it("reads 10 sessions by default and at most 20", () => {
     expect(parseInput(getWorkoutsHistory, {})).toStrictEqual({ limit: 10 });
     expect(() => parseInput(getWorkoutsHistory, { limit: 21 })).toThrow(
@@ -555,6 +745,7 @@ describe("get_open_workout_session", () => {
           id: "wse_squat",
           muscle_groups: ["quadriceps", "glutes"],
           name: "Back Squat",
+          exercise_note: null,
           order: 1,
           sets: openSets,
         },
@@ -563,6 +754,7 @@ describe("get_open_workout_session", () => {
           id: "wse_retired",
           muscle_groups: [],
           name: "Jefferson curl",
+          exercise_note: null,
           order: 2,
           sets: [],
         },
@@ -629,6 +821,34 @@ describe("get_open_workout_session", () => {
     ]);
     expect(observability.reportError).toHaveBeenCalledWith(LIBRARY_OUTAGE, {
       exercise_library: "library",
+    });
+  });
+
+  it("shows the User's Exercise note beside each Exercise, null without one, read in the same transaction", async () => {
+    notes.listExerciseNotes.mockResolvedValue([storedNote("back-squat", KNEE)]);
+
+    const answer = shownSessionSchema.parse(
+      await getOpenWorkoutSession.execute({}, alice)
+    );
+
+    expect(shownNotes(answer.exercises)).toStrictEqual({
+      "back-squat": KNEE,
+      "jefferson-curl": null,
+    });
+    expectNotesReadInTheTransaction();
+  });
+
+  it("still shows the notes when the library can't load", async () => {
+    testLibrary.reset({ loads: "fail" });
+    notes.listExerciseNotes.mockResolvedValue([storedNote("back-squat", KNEE)]);
+
+    const answer = shownSessionSchema.parse(
+      await getOpenWorkoutSession.execute({}, alice)
+    );
+
+    expect(shownNotes(answer.exercises)).toStrictEqual({
+      "back-squat": KNEE,
+      "jefferson-curl": null,
     });
   });
 
@@ -856,7 +1076,7 @@ describe("the App language", () => {
   /** The names `search_exercises` answers for `query`. */
   const searchNames = async (ctx: typeof alice, query?: string) => {
     const found = z
-      .array(shownExerciseSchema)
+      .array(foundExerciseSchema)
       .parse(
         await searchExercises.execute({ muscle_group: "chest", query }, ctx)
       );
@@ -949,7 +1169,7 @@ describe("the App language", () => {
 
   it("answers an equipment-filtered search in the App language", async () => {
     const found = z
-      .array(shownExerciseSchema)
+      .array(foundExerciseSchema)
       .parse(
         await searchExercises.execute(
           { equipment: ["dumbbell", "bench"] },
@@ -972,6 +1192,27 @@ describe("display_workout_plan", () => {
 
     await expect(run(card)).resolves.toStrictEqual(card);
     expect(db.asUser).not.toHaveBeenCalled();
+  });
+
+  it("carries no Exercise note: one the model adds to an Exercise is dropped", async () => {
+    const card = proposed(exercise("bench-press", "Bench press"));
+    const [workout] = card.workouts;
+
+    await expect(
+      run({
+        ...card,
+        workouts: [
+          {
+            ...workout,
+            exercises: workout.exercises.map((shown) => ({
+              ...shown,
+              note: ARCH,
+            })),
+          },
+        ],
+      })
+    ).resolves.toStrictEqual(card);
+    expect(notes.listExerciseNotes).not.toHaveBeenCalled();
   });
 
   it("takes an old slug the Library maps to its replacement, as sent", async () => {

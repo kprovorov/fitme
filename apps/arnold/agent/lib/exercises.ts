@@ -21,6 +21,14 @@ export interface ExerciseDetails {
   name: string;
 }
 
+/** An Exercise note as the read tools are given it: its text by slug. */
+export interface ShownExerciseNote {
+  exercise_slug: string;
+  note: string;
+  /** When it was last changed, ISO 8601. */
+  updated_at: string;
+}
+
 /** A readable name made from a slug, for one the library doesn't know: `bench-press` → `Bench press`. */
 export const nameFromSlug = (slug: string): string => {
   const words = slug.replaceAll(SLUG_SEPARATORS, " ").trim();
@@ -77,23 +85,34 @@ interface StoredExercise<Set> {
 }
 
 /**
- * Each group's Exercises with their name and primary muscle groups, through
+ * Each group's Exercises with their name, primary muscle groups and the
+ * User's Exercise note (`notes`, read in the same transaction as the groups;
+ * `null` without one), the name and groups through
  * one lookup in the instance's Library (after the read's transaction, no
  * network call). An old slug is named as the Exercise replacing it, keeping
  * its stored `exercise_slug`. A slug the Library doesn't know, or every slug
  * when it can't load (its load reported why), gets a name made from the slug
  * and no muscle groups, so a read always answers. Names are in `language`; an
- * Exercise without a translation in it is named in English.
+ * Exercise without a translation in it is named in English. The note
+ * (`exercise_note`, apart from each set's own `note`) is the one saved under
+ * the stored slug or under the slug of the Exercise replacing it, the later
+ * changed of the two when both exist (Arnold saves under an old slug as sent,
+ * the app under its replacement); by the stored slug alone when the Library
+ * can't load.
  */
 export const withExerciseDetails = async <Set>(
   groups: readonly (readonly StoredExercise<Set>[])[],
-  language: AppLanguage
-): Promise<(StoredExercise<Set> & ExerciseDetails)[][]> => {
+  language: AppLanguage,
+  notes: readonly ShownExerciseNote[]
+): Promise<
+  (StoredExercise<Set> & ExerciseDetails & { exercise_note: string | null })[][]
+> => {
   const slugs = groups.flatMap((group) =>
     group.map(({ exercise_slug }) => exercise_slug)
   );
 
   const known = new Map<string, ExerciseDetails>();
+  const replacedBy = new Map<string, string>();
 
   if (slugs.length > 0) {
     const answer = await getLibrary().get();
@@ -101,11 +120,32 @@ export const withExerciseDetails = async <Set>(
     if (answer.status === "ready") {
       const { data } = answer.library.lookup(slugs, { language });
 
-      for (const { muscle_groups, name, requested_slug } of data) {
+      for (const { muscle_groups, name, requested_slug, slug } of data) {
         known.set(requested_slug, { muscle_groups, name });
+        replacedBy.set(requested_slug, slug);
       }
     }
   }
+
+  const noteBySlug = new Map(notes.map((note) => [note.exercise_slug, note]));
+
+  const noteOf = (slug: string): string | null => {
+    const own = noteBySlug.get(slug);
+    const replacement = replacedBy.get(slug);
+
+    const replacing =
+      replacement && replacement !== slug
+        ? noteBySlug.get(replacement)
+        : undefined;
+
+    if (own && replacing) {
+      return Date.parse(replacing.updated_at) > Date.parse(own.updated_at)
+        ? replacing.note
+        : own.note;
+    }
+
+    return (own ?? replacing)?.note ?? null;
+  };
 
   return groups.map((group) =>
     group.map(({ exercise_slug, id, order, sets }) => ({
@@ -115,6 +155,7 @@ export const withExerciseDetails = async <Set>(
         muscle_groups: [],
         name: nameFromSlug(exercise_slug),
       }),
+      exercise_note: noteOf(exercise_slug),
       order,
       sets,
     }))
