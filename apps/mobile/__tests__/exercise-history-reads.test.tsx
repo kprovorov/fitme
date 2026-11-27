@@ -42,6 +42,7 @@ jest.mock("expo-router", () => {
     useIsFocused: () => true,
     useLocalSearchParams: () => stub.useStubParams(mockParams.current),
     useNavigation: () => ({ getState: () => ({ index: 0, routes: [{}] }) }),
+    usePreventRemove: stub.usePreventRemoveStub,
     useRouter: () => ({ ...stub.stubRouter, canGoBack: () => true }),
   };
 });
@@ -454,8 +455,12 @@ describe("the Exercise history card's set notes", () => {
   it("offers no way to edit a note", async () => {
     await mountExerciseScreen();
 
-    expect(screen.queryByRole("button", { name: /note/iu })).toBeNull();
-    expect(screen.queryByRole("button", { name: "Edit" })).toBeNull();
+    // The only note control is the Exercise note's, above the sets.
+    expect(
+      screen
+        .queryAllByRole("button", { name: /note/iu })
+        .map((button) => button.props.accessibilityLabel)
+    ).toEqual(["Add note for Squat"]);
   });
 
   it("doesn't show last time's notes next to today's sets", async () => {
