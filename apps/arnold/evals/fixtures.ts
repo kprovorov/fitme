@@ -311,6 +311,11 @@ export const readToolStubs: readonly ToolStub[] = [
     outcome: { response: { shown: true } },
     tool: "display_workout_plan",
   },
+  {
+    id: "no-exercise-notes",
+    outcome: { response: { notes: [] } },
+    tool: "list_exercise_notes",
+  },
 ];
 
 /** The read tools and both set removals, so a removal is recorded, not run. */
@@ -348,12 +353,13 @@ export const exerciseNote = (
 export const noteStubs = (
   notes: readonly ReturnType<typeof exerciseNote>[]
 ): readonly ToolStub[] => [
-  ...removeSetStubs,
+  // Before readToolStubs' empty list: the first matching stub wins
   {
     id: "exercise-notes",
     outcome: { response: { notes } },
     tool: "list_exercise_notes",
   },
+  ...removeSetStubs,
   {
     id: "set-exercise-note",
     outcome: { response: { success: true } },
