@@ -25,7 +25,7 @@ import {
   getArnoldUrl,
   isRefusedSend,
   loadSavedArnoldConversation,
-  removedSetCallIds,
+  arnoldEdits,
   saveArnoldConversation,
   saveArnoldSession,
   savedArnoldSessionId,
@@ -581,7 +581,7 @@ describe("isRefusedSend", () => {
   });
 });
 
-describe("removedSetCallIds", () => {
+describe("arnoldEdits", () => {
   const toolCall = (
     toolCallId: string,
     part: Partial<ToolCallMessagePart> = {}
@@ -611,23 +611,47 @@ describe("removedSetCallIds", () => {
     status: { reason: "stop", type: "complete" },
   });
 
-  it("names each set Arnold removed, oldest first", () => {
+  it("names each edit Arnold made, by its tool, oldest first", () => {
     expect(
-      removedSetCallIds([
+      arnoldEdits([
         answer(toolCall("a", { result: { set_id: "s", success: true } })),
         answer(
           { text: "Done", type: "text" },
-          toolCall("b", { result: { set_id: "t", success: true } })
+          toolCall("b", {
+            result: {
+              exercise_slug: "squat",
+              note: "Knees out",
+              success: true,
+            },
+            toolName: "set_exercise_note",
+          }),
+          toolCall("c", {
+            result: { note: "Felt heavy", success: true },
+            toolName: "set_workout_session_set_note",
+          })
         ),
       ])
-    ).toEqual(["a", "b"]);
+    ).toEqual([
+      { tool: "remove_set_from_workout_session", toolCallId: "a" },
+      { tool: "set_exercise_note", toolCallId: "b" },
+      { tool: "set_workout_session_set_note", toolCallId: "c" },
+    ]);
   });
 
   it("leaves out what changed nothing, and a call still running", () => {
     expect(
-      removedSetCallIds([
+      arnoldEdits([
         answer(
           toolCall("error", { result: { error: "Set not found" } }),
+          toolCall("note-conflict", {
+            result: { current_note: "Old", error: "The note changed" },
+            toolName: "set_exercise_note",
+          }),
+          toolCall("set-note-failed", {
+            isError: true,
+            result: { error: "Broke" },
+            toolName: "set_workout_session_set_note",
+          }),
           toolCall("failed", { isError: true, result: { error: "Broke" } }),
           toolCall("running", {
             isPreliminary: true,

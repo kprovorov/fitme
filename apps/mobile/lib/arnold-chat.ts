@@ -132,31 +132,51 @@ export const arnoldErrorKind = z
 export const isRefusedSend = (message: ThreadMessage): boolean =>
   message.role === "user" && message.metadata.custom.status === "failed";
 
-/** The Arnold tool that removes a set from the open Workout Session. */
-export const REMOVE_SET_TOOL = "remove_set_from_workout_session";
+/**
+ * The Arnold tools whose success changes data the app reads elsewhere: the
+ * open Workout Session's sets (`remove_set_from_workout_session`), an
+ * Exercise note (`set_exercise_note`) and a set's note
+ * (`set_workout_session_set_note`). Each answers `{ success: true }` once it
+ * changed something, and an `{ error }` result when it changed nothing.
+ */
+export const ARNOLD_EDIT_TOOLS = [
+  "remove_set_from_workout_session",
+  "set_exercise_note",
+  "set_workout_session_set_note",
+] as const;
 
-/** What `remove_set_from_workout_session` answers when it removed the set. */
-const removedSetResultSchema = z.object({ success: z.literal(true) });
+/** One of the Arnold tools whose success the app re-reads after. */
+export type ArnoldEditTool = (typeof ARNOLD_EDIT_TOOLS)[number];
+
+/** A call in which Arnold changed data the app reads elsewhere. */
+export interface ArnoldEdit {
+  tool: ArnoldEditTool;
+  toolCallId: string;
+}
+
+/** What each of `ARNOLD_EDIT_TOOLS` answers when it changed something. */
+const editedResultSchema = z.object({ success: z.literal(true) });
+
+const isEditTool = (toolName: string): toolName is ArnoldEditTool =>
+  ARNOLD_EDIT_TOOLS.some((tool) => tool === toolName);
 
 /**
- * The calls of the Conversation in which Arnold removed a set from the open
- * Workout Session, by their `toolCallId`, oldest first: a settled, successful
- * `remove_set_from_workout_session`, never one still running (a preliminary
- * result), one that failed, or its `{ error }` result (a finished Workout
- * Session, a set already gone), which changed nothing.
+ * The calls of the Conversation in which Arnold changed data the app reads
+ * elsewhere, oldest first: a settled, successful call of one of
+ * `ARNOLD_EDIT_TOOLS`, never one still running (a preliminary result), one
+ * that failed, or its `{ error }` result (a finished Workout Session, a set
+ * already gone, a note that changed meanwhile), which changed nothing.
  */
-export const removedSetCallIds = (
-  messages: readonly ThreadMessage[]
-): string[] =>
+export const arnoldEdits = (messages: readonly ThreadMessage[]): ArnoldEdit[] =>
   messages.flatMap((message) =>
     message.role === "assistant"
       ? message.content.flatMap((part) =>
           part.type === "tool-call" &&
-          part.toolName === REMOVE_SET_TOOL &&
+          isEditTool(part.toolName) &&
           !part.isError &&
           !part.isPreliminary &&
-          removedSetResultSchema.safeParse(part.result).success
-            ? [part.toolCallId]
+          editedResultSchema.safeParse(part.result).success
+            ? [{ tool: part.toolName, toolCallId: part.toolCallId }]
             : []
         )
       : []
