@@ -2,9 +2,16 @@ import { defineEval } from "eve/evals";
 import { satisfies } from "eve/evals/expect";
 import { z } from "zod";
 
-import { BENCH, INCLINE, ROW, readToolStubs, SQUAT } from "./fixtures";
+import {
+  BENCH,
+  INCLINE,
+  LEG_PRESS,
+  ROW,
+  readToolStubs,
+  SQUAT,
+} from "./fixtures";
 
-const LIBRARY_SLUGS = new Set([BENCH, INCLINE, ROW, SQUAT]);
+const LIBRARY_SLUGS = new Set([BENCH, INCLINE, LEG_PRESS, ROW, SQUAT]);
 
 const proposedPlanSchema = z.object({
   workouts: z.array(
@@ -18,7 +25,7 @@ type ProposedPlan = z.infer<typeof proposedPlanSchema>;
 
 export default defineEval({
   description:
-    "Propose a plan: searches exercises, then renders the Plan through display_workout_plan with library slugs only.",
+    "Propose a plan: reads the exercise notes and searches exercises, then renders the Plan through display_workout_plan with library slugs only.",
   async test(t) {
     const session = await t.session({ stubs: readToolStubs });
 
@@ -27,8 +34,10 @@ export default defineEval({
     );
 
     t.succeeded();
+    turn.calledTool("list_exercise_notes");
     turn.calledTool("search_exercises");
     turn.calledTool("display_workout_plan", { count: 1 });
+    turn.toolOrder(["list_exercise_notes", "display_workout_plan"]);
     turn.toolOrder(["search_exercises", "display_workout_plan"]);
 
     const display = turn.toolCalls.find(

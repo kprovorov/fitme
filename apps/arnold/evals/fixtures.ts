@@ -2,7 +2,8 @@ import type { ToolStub } from "eve/evals";
 
 /**
  * What Arnold's read tools return for a made-up User, shaped like the
- * tools' output (Exercises by exercise_slug, named from the library). Every eval session stubs the tools it may call, so no
+ * tools' output (Exercises by exercise_slug, named from the library, each
+ * with the User's Exercise note, none here). Every eval session stubs the tools it may call, so no
  * real tool (and no database) ever runs.
  */
 
@@ -10,6 +11,7 @@ export const BENCH = "bench-press";
 export const INCLINE = "incline-dumbbell-press";
 export const SQUAT = "back-squat";
 export const ROW = "barbell-row";
+export const LEG_PRESS = "leg-press";
 
 const set = (id: string, order: number, reps: number, weight: number) => ({
   id,
@@ -41,6 +43,7 @@ export const activePlan = {
           id: "we-bench",
           muscle_groups: ["chest"],
           name: "Bench Press",
+          exercise_note: null,
           order: 1,
           sets: [set("s-bench-1", 1, 8, 70), set("s-bench-2", 2, 8, 70)],
         },
@@ -49,6 +52,7 @@ export const activePlan = {
           id: "we-row",
           muscle_groups: ["back"],
           name: "Barbell Row",
+          exercise_note: null,
           order: 2,
           sets: [set("s-row-1", 1, 10, 60)],
         },
@@ -65,6 +69,7 @@ export const activePlan = {
           id: "we-squat",
           muscle_groups: ["quadriceps"],
           name: "Back Squat",
+          exercise_note: null,
           order: 1,
           sets: [set("s-squat-1", 1, 5, 100)],
         },
@@ -102,6 +107,7 @@ export const workoutHistory = [
         id: "wse-squat",
         muscle_groups: ["quadriceps"],
         name: "Back Squat",
+        exercise_note: null,
         order: 1,
         sets: [
           loggedSet("d0000000-0000-4000-8000-000000000021", 1, 5, 105),
@@ -123,6 +129,7 @@ export const workoutHistory = [
         id: "wse-bench",
         muscle_groups: ["chest"],
         name: "Bench Press",
+        exercise_note: null,
         order: 1,
         sets: [
           loggedSet("d0000000-0000-4000-8000-000000000023", 1, 8, 72.5),
@@ -151,6 +158,7 @@ export const openWorkoutSession = {
       id: "wse-open-bench",
       muscle_groups: ["chest"],
       name: "Bench Press",
+      exercise_note: null,
       order: 1,
       sets: [
         {
@@ -226,6 +234,14 @@ const libraryExercises = [
     movement_patterns: ["squat"],
     muscle_groups: ["quadriceps"],
     name: "Back Squat",
+  },
+  {
+    difficulty: "beginner",
+    equipment: ["machine"],
+    exercise_slug: LEG_PRESS,
+    movement_patterns: ["squat"],
+    muscle_groups: ["quadriceps"],
+    name: "Leg Press",
   },
   {
     difficulty: "intermediate",
@@ -347,19 +363,66 @@ export const exerciseNote = (
   updated_at: "2026-11-20T18:00:00+00:00",
 });
 
+type ShownNote = ReturnType<typeof exerciseNote>;
+
+/** Exercises as the read tools show them, each with its note from `notes`. */
+const withNotes = <Shown extends { exercise_slug: string }>(
+  exercises: readonly Shown[],
+  notes: readonly ShownNote[]
+) =>
+  exercises.map((shown) => ({
+    ...shown,
+    exercise_note:
+      notes.find(({ exercise_slug }) => exercise_slug === shown.exercise_slug)
+        ?.note ?? null,
+  }));
+
 /**
- * The read tools, list_exercise_notes answering `notes`, and the note write,
- * so a write is recorded, not run. The plan edits are stubbed too, so a note
- * that reads like an instruction can't change anything even if he followed it.
+ * The read tools, list_exercise_notes answering `notes` (and the active plan,
+ * history and open workout session showing the same notes beside their
+ * exercises), and the note write, so a write is recorded, not run. The plan
+ * edits are stubbed too, so a note that reads like an instruction can't
+ * change anything even if he followed it.
  */
-export const noteStubs = (
-  notes: readonly ReturnType<typeof exerciseNote>[]
-): readonly ToolStub[] => [
-  // Before readToolStubs' empty list: the first matching stub wins
+export const noteStubs = (notes: readonly ShownNote[]): readonly ToolStub[] => [
+  // Before readToolStubs' own answers: the first matching stub wins
   {
     id: "exercise-notes",
     outcome: { response: { notes } },
     tool: "list_exercise_notes",
+  },
+  {
+    id: "active-plan-with-notes",
+    outcome: {
+      response: {
+        ...activePlan,
+        workouts: activePlan.workouts.map((workout) => ({
+          ...workout,
+          exercises: withNotes(workout.exercises, notes),
+        })),
+      },
+    },
+    tool: "get_active_plan",
+  },
+  {
+    id: "history-with-notes",
+    outcome: {
+      response: workoutHistory.map((session) => ({
+        ...session,
+        exercises: withNotes(session.exercises, notes),
+      })),
+    },
+    tool: "get_workouts_history",
+  },
+  {
+    id: "open-workout-session-with-notes",
+    outcome: {
+      response: {
+        ...openWorkoutSession,
+        exercises: withNotes(openWorkoutSession.exercises, notes),
+      },
+    },
+    tool: "get_open_workout_session",
   },
   ...removeSetStubs,
   {
@@ -426,6 +489,7 @@ const setNoteSession = {
       id: "wse-open-incline",
       muscle_groups: ["chest"],
       name: "Incline Dumbbell Press",
+      exercise_note: null,
       order: 2,
       sets: [
         {
