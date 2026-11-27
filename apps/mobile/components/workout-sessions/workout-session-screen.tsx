@@ -16,9 +16,16 @@ import { useDiscardWorkoutSession } from "~/hooks/discard-workout-session";
 import { useEndedWorkoutSession } from "~/hooks/ended-workout-session";
 import { useFinishWorkoutSession } from "~/hooks/finish-workout-session";
 import { useWorkoutSessionQuery } from "~/hooks/queries/workout-sessions";
+import { isNotesEnabled } from "~/lib/feature-flags";
 
 /** Space kept between a focused set input and the keyboard. */
 const KEYBOARD_BOTTOM_OFFSET = 62;
+
+/**
+ * With notes on: room for what sits under a set note's field while it's
+ * edited (its count, then Cancel and Save), as on the Exercise screen.
+ */
+const NOTE_KEYBOARD_BOTTOM_OFFSET = 88;
 
 /** Past this text scale Finish goes under the name, which would break mid-word. */
 const STACKED_FONT_SCALE = 1.4;
@@ -161,7 +168,11 @@ const WorkoutSessionScreen = ({ sessionId }: WorkoutSessionScreenProps) => {
         }}
       />
       <KeyboardAwareScrollView
-        bottomOffset={KEYBOARD_BOTTOM_OFFSET}
+        bottomOffset={
+          isNotesEnabled()
+            ? NOTE_KEYBOARD_BOTTOM_OFFSET
+            : KEYBOARD_BOTTOM_OFFSET
+        }
         contentContainerClassName="gap-sm px-sm pt-xs"
         contentContainerStyle={{ paddingBottom: insets.bottom + 16 }}
         contentInsetAdjustmentBehavior="automatic"
