@@ -420,7 +420,8 @@
     "title": "진행 상황",
     "loadError": "이 종목의 기록을 불러오지 못했어요. 연결 상태를 확인하고 다시 시도해 주세요.",
     "set": "{{order, number}}세트: {{logged}}",
-    "target": "목표 {{target}}"
+    "target": "목표 {{target}}",
+    "setWithNote": "세트 {{order, number}}: {{logged}}. 메모: {{note}}"
   },
   "finishWorkout": {
     "confirm": {
@@ -607,6 +608,55 @@
     "title": "이런!",
     "description": "존재하지 않는 화면이에요.",
     "goHome": "홈 화면으로 이동"
+  },
+  "notes": {
+    "label": "메모",
+    "add": "메모 추가",
+    "edit": "편집",
+    "save": "저장",
+    "saving": "저장 중…",
+    "cancel": "취소",
+    "placeholder": {
+      "exercise": "세팅, 요령 등 기억할 내용",
+      "set": "이 세트는 어땠나요?"
+    },
+    "counter": "{{length, number}}/{{max, number}}",
+    "limitReached": "글자 수 한도에 도달했습니다",
+    "errors": {
+      "load": "메모를 불러오지 못했습니다.",
+      "loadAll": "메모를 불러오지 못했습니다.",
+      "save": "메모를 저장하지 못했습니다. 다시 시도해 주세요.",
+      "rateLimited": "저장 횟수가 너무 많습니다. {{seconds, number}}초 후에 다시 시도해 주세요.",
+      "setGone": "이 세트는 더 이상 운동에 없습니다.",
+      "setNotLogged": "메모를 추가하기 전에 이 세트를 기록해 주세요.",
+      "unknownExercise": "이 운동은 더 이상 라이브러리에 없어서 메모를 저장할 수 없습니다.",
+      "libraryUnavailable": "지금은 이 운동을 확인할 수 없습니다. 잠시 후 다시 시도해 주세요."
+    },
+    "discard": {
+      "title": "메모를 삭제할까요?",
+      "message": "여기에 작성한 내용은 저장되지 않습니다.",
+      "discard": "삭제",
+      "keepEditing": "계속 편집"
+    },
+    "spoken": {
+      "add": "{{exercise}}에 메모 추가",
+      "edit": "{{exercise}} 메모 편집",
+      "exerciseNote": "{{exercise}} 메모: {{note}}",
+      "editHint": "메모를 열어 편집합니다",
+      "exerciseField": "{{exercise}} 메모",
+      "setField": "세트 {{order, number}} 메모",
+      "setNote": "세트 {{order, number}} 메모: {{note}}",
+      "editSetNoteHint": "세트 {{order, number}}의 메모를 열어 편집합니다",
+      "save": "메모 저장",
+      "saving": "메모 저장 중",
+      "cancel": "편집 취소",
+      "counter": "{{max, number}}자 중 {{length, number}}자",
+      "limitReached": "글자 수 한도에 도달했습니다. {{max, number}}자 중 {{max, number}}자.",
+      "rateLimited_other": "저장 횟수가 너무 많습니다. {{count, number}}초 후에 다시 시도해 주세요.",
+      "saved": "메모를 저장했습니다",
+      "cleared": "메모를 지웠습니다",
+      "retryHint": "운동 메모와 세트 메모를 다시 불러옵니다"
+    }
   },
   "onboarding": {
     "welcome": {
@@ -982,7 +1032,9 @@
       "edit": "{{order, number}}세트 편집",
       "editHint": "세트 편집 화면을 엽니다",
       "remove": "{{order, number}}세트 삭제",
-      "logged": "{{order, number}}세트, 기록됨"
+      "logged": "{{order, number}}세트, 기록됨",
+      "more": "세트 {{order, number}} 추가 작업",
+      "loggedWithNote": "세트 {{order, number}}, 기록됨. {{result}}. 메모: {{note}}"
     },
     "errors": {
       "save": "이 세트를 저장하지 못했어요. 다시 시도해 주세요.",
@@ -1015,6 +1067,11 @@
       "skip": "건너뛰기",
       "skipRest": "휴식 건너뛰기",
       "over": "휴식 종료"
+    },
+    "menu": {
+      "editSet": "세트 편집",
+      "addNote": "메모 추가",
+      "editNote": "메모 편집"
     }
   },
   "spokenCompactUnits": {

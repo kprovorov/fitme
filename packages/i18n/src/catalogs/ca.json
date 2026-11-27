@@ -448,7 +448,8 @@
     "title": "Progrés",
     "loadError": "No s'ha pogut carregar l'historial d'aquest exercici. Comprova la connexió i torna-ho a provar.",
     "set": "Sèrie {{order, number}}: {{logged}}",
-    "target": "Objectiu {{target}}"
+    "target": "Objectiu {{target}}",
+    "setWithNote": "Sèrie {{order, number}}: {{logged}}. Nota: {{note}}"
   },
   "finishWorkout": {
     "confirm": {
@@ -649,6 +650,57 @@
     "title": "Vaja",
     "description": "Aquesta pantalla no existeix.",
     "goHome": "Ves a la pantalla d'inici"
+  },
+  "notes": {
+    "label": "Nota",
+    "add": "Afegeix una nota",
+    "edit": "Edita",
+    "save": "Desa",
+    "saving": "S'està desant…",
+    "cancel": "Cancel·la",
+    "placeholder": {
+      "exercise": "Ajustos, pistes, el que vulguis recordar",
+      "set": "Com ha anat aquesta sèrie?"
+    },
+    "counter": "{{length, number}}/{{max, number}}",
+    "limitReached": "S'ha arribat al límit de caràcters",
+    "errors": {
+      "load": "No s'ha pogut carregar la teva nota.",
+      "loadAll": "No s'han pogut carregar les teves notes.",
+      "save": "No s'ha pogut desar la teva nota. Torna-ho a provar.",
+      "rateLimited": "Massa desaments. Torna-ho a provar d'aquí a {{seconds, number}} s.",
+      "setGone": "Aquesta sèrie ja no és al teu entrenament.",
+      "setNotLogged": "Registra aquesta sèrie abans d'afegir-hi una nota.",
+      "unknownExercise": "Aquest exercici ja no és a la biblioteca, així que la seva nota no es pot desar.",
+      "libraryUnavailable": "Ara no s'ha pogut comprovar aquest exercici. Torna-ho a provar d'aquí a una estona."
+    },
+    "discard": {
+      "title": "Vols descartar la nota?",
+      "message": "El que has escrit aquí no es desarà.",
+      "discard": "Descarta",
+      "keepEditing": "Continua editant"
+    },
+    "spoken": {
+      "add": "Afegeix una nota a {{exercise}}",
+      "edit": "Edita la nota de {{exercise}}",
+      "exerciseNote": "Nota de {{exercise}}: {{note}}",
+      "editHint": "Obre la nota per editar-la",
+      "exerciseField": "Nota de {{exercise}}",
+      "setField": "Nota de la sèrie {{order, number}}",
+      "setNote": "Nota de la sèrie {{order, number}}: {{note}}",
+      "editSetNoteHint": "Obre la nota de la sèrie {{order, number}} per editar-la",
+      "save": "Desa la nota",
+      "saving": "S'està desant la nota",
+      "cancel": "Cancel·la l'edició",
+      "counter": "{{length, number}} de {{max, number}} caràcters",
+      "limitReached": "S'ha arribat al límit de caràcters. {{max, number}} de {{max, number}}.",
+      "rateLimited_one": "Massa desaments. Torna-ho a provar d'aquí a {{count, number}} segon.",
+      "rateLimited_many": "Massa desaments. Torna-ho a provar d'aquí a {{count, number}} de segons.",
+      "rateLimited_other": "Massa desaments. Torna-ho a provar d'aquí a {{count, number}} segons.",
+      "saved": "Nota desada",
+      "cleared": "Nota esborrada",
+      "retryHint": "Torna a carregar la nota de l'exercici i les notes de les sèries"
+    }
   },
   "onboarding": {
     "welcome": {
@@ -1050,7 +1102,9 @@
       "edit": "Edita la sèrie {{order, number}}",
       "editHint": "Obre la sèrie per editar-la",
       "remove": "Elimina la sèrie {{order, number}}",
-      "logged": "Sèrie {{order, number}}, registrada"
+      "logged": "Sèrie {{order, number}}, registrada",
+      "more": "Més accions de la sèrie {{order, number}}",
+      "loggedWithNote": "Sèrie {{order, number}}, registrada. {{result}}. Nota: {{note}}"
     },
     "errors": {
       "save": "No s'ha pogut desar aquesta sèrie. Torna-ho a provar.",
@@ -1089,6 +1143,11 @@
       "skip": "Omet",
       "skipRest": "Omet el descans",
       "over": "Descans acabat"
+    },
+    "menu": {
+      "editSet": "Edita la sèrie",
+      "addNote": "Afegeix una nota",
+      "editNote": "Edita la nota"
     }
   },
   "spokenCompactUnits": {

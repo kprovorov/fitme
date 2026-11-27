@@ -434,7 +434,8 @@
     "title": "Fortschritt",
     "loadError": "Der Verlauf dieser Übung konnte nicht geladen werden. Prüfe deine Verbindung und versuche es erneut.",
     "set": "Satz {{order, number}}: {{logged}}",
-    "target": "Ziel {{target}}"
+    "target": "Ziel {{target}}",
+    "setWithNote": "Satz {{order, number}}: {{logged}}. Notiz: {{note}}"
   },
   "finishWorkout": {
     "confirm": {
@@ -628,6 +629,56 @@
     "title": "Hoppla!",
     "description": "Diese Seite existiert nicht.",
     "goHome": "Zur Startseite"
+  },
+  "notes": {
+    "label": "Notiz",
+    "add": "Notiz hinzufügen",
+    "edit": "Bearbeiten",
+    "save": "Sichern",
+    "saving": "Wird gesichert…",
+    "cancel": "Abbrechen",
+    "placeholder": {
+      "exercise": "Einstellungen, Hinweise, alles Wichtige",
+      "set": "Wie lief dieser Satz?"
+    },
+    "counter": "{{length, number}}/{{max, number}}",
+    "limitReached": "Zeichenlimit erreicht",
+    "errors": {
+      "load": "Deine Notiz konnte nicht geladen werden.",
+      "loadAll": "Deine Notizen konnten nicht geladen werden.",
+      "save": "Deine Notiz konnte nicht gesichert werden. Versuch es noch einmal.",
+      "rateLimited": "Zu viele Speichervorgänge. Versuch es in {{seconds, number}} s noch einmal.",
+      "setGone": "Dieser Satz ist nicht mehr in deinem Training.",
+      "setNotLogged": "Trag diesen Satz zuerst ein, dann kannst du eine Notiz hinzufügen.",
+      "unknownExercise": "Diese Übung ist nicht mehr in der Bibliothek, daher kann ihre Notiz nicht gesichert werden.",
+      "libraryUnavailable": "Die Übung konnte gerade nicht geprüft werden. Versuch es gleich noch einmal."
+    },
+    "discard": {
+      "title": "Notiz verwerfen?",
+      "message": "Was du hier geschrieben hast, wird nicht gesichert.",
+      "discard": "Verwerfen",
+      "keepEditing": "Weiter bearbeiten"
+    },
+    "spoken": {
+      "add": "Notiz zu {{exercise}} hinzufügen",
+      "edit": "Notiz zu {{exercise}} bearbeiten",
+      "exerciseNote": "Notiz zu {{exercise}}: {{note}}",
+      "editHint": "Öffnet die Notiz zum Bearbeiten",
+      "exerciseField": "Notiz zu {{exercise}}",
+      "setField": "Notiz zu Satz {{order, number}}",
+      "setNote": "Notiz zu Satz {{order, number}}: {{note}}",
+      "editSetNoteHint": "Öffnet die Notiz zu Satz {{order, number}} zum Bearbeiten",
+      "save": "Notiz sichern",
+      "saving": "Notiz wird gesichert",
+      "cancel": "Bearbeiten abbrechen",
+      "counter": "{{length, number}} von {{max, number}} Zeichen",
+      "limitReached": "Zeichenlimit erreicht. {{max, number}} von {{max, number}}.",
+      "rateLimited_one": "Zu viele Speichervorgänge. Versuch es in {{count, number}} Sekunde noch einmal.",
+      "rateLimited_other": "Zu viele Speichervorgänge. Versuch es in {{count, number}} Sekunden noch einmal.",
+      "saved": "Notiz gesichert",
+      "cleared": "Notiz gelöscht",
+      "retryHint": "Lädt die Übungsnotiz und die Satznotizen neu"
+    }
   },
   "onboarding": {
     "welcome": {
@@ -1016,7 +1067,9 @@
       "edit": "Satz {{order, number}} bearbeiten",
       "editHint": "Öffnet den Satz zum Bearbeiten",
       "remove": "Satz {{order, number}} entfernen",
-      "logged": "Satz {{order, number}}, protokolliert"
+      "logged": "Satz {{order, number}}, protokolliert",
+      "more": "Weitere Aktionen für Satz {{order, number}}",
+      "loggedWithNote": "Satz {{order, number}}, eingetragen. {{result}}. Notiz: {{note}}"
     },
     "errors": {
       "save": "Dieser Satz konnte nicht gespeichert werden. Versuche es erneut.",
@@ -1052,6 +1105,11 @@
       "skip": "Überspringen",
       "skipRest": "Pause überspringen",
       "over": "Pause vorbei"
+    },
+    "menu": {
+      "editSet": "Satz bearbeiten",
+      "addNote": "Notiz hinzufügen",
+      "editNote": "Notiz bearbeiten"
     }
   },
   "spokenCompactUnits": {

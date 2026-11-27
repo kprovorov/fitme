@@ -434,7 +434,8 @@
     "title": "Voortgang",
     "loadError": "De geschiedenis van deze oefening kon niet worden geladen. Controleer je verbinding en probeer het opnieuw.",
     "set": "Set {{order, number}}: {{logged}}",
-    "target": "Doel {{target}}"
+    "target": "Doel {{target}}",
+    "setWithNote": "Set {{order, number}}: {{logged}}. Notitie: {{note}}"
   },
   "finishWorkout": {
     "confirm": {
@@ -628,6 +629,56 @@
     "title": "Oeps!",
     "description": "Dit scherm bestaat niet.",
     "goHome": "Naar het beginscherm"
+  },
+  "notes": {
+    "label": "Notitie",
+    "add": "Notitie toevoegen",
+    "edit": "Wijzig",
+    "save": "Bewaar",
+    "saving": "Bewaren…",
+    "cancel": "Annuleer",
+    "placeholder": {
+      "exercise": "Instellingen, aandachtspunten, alles om te onthouden",
+      "set": "Hoe ging deze set?"
+    },
+    "counter": "{{length, number}}/{{max, number}}",
+    "limitReached": "Tekenlimiet bereikt",
+    "errors": {
+      "load": "Je notitie kon niet worden geladen.",
+      "loadAll": "Je notities konden niet worden geladen.",
+      "save": "Je notitie kon niet worden bewaard. Probeer het opnieuw.",
+      "rateLimited": "Te vaak bewaard. Probeer het over {{seconds, number}} s opnieuw.",
+      "setGone": "Deze set staat niet meer in je training.",
+      "setNotLogged": "Leg deze set eerst vast en voeg dan een notitie toe.",
+      "unknownExercise": "Deze oefening staat niet meer in de bibliotheek, dus de notitie kan niet worden bewaard.",
+      "libraryUnavailable": "Deze oefening kon nu niet worden gecontroleerd. Probeer het zo opnieuw."
+    },
+    "discard": {
+      "title": "Notitie weggooien?",
+      "message": "Wat je hier hebt geschreven, wordt niet bewaard.",
+      "discard": "Gooi weg",
+      "keepEditing": "Ga door met wijzigen"
+    },
+    "spoken": {
+      "add": "Notitie toevoegen bij {{exercise}}",
+      "edit": "Notitie bij {{exercise}} wijzigen",
+      "exerciseNote": "Notitie bij {{exercise}}: {{note}}",
+      "editHint": "Opent de notitie om te wijzigen",
+      "exerciseField": "Notitie bij {{exercise}}",
+      "setField": "Notitie bij set {{order, number}}",
+      "setNote": "Notitie bij set {{order, number}}: {{note}}",
+      "editSetNoteHint": "Opent de notitie bij set {{order, number}} om te wijzigen",
+      "save": "Notitie bewaren",
+      "saving": "Notitie wordt bewaard",
+      "cancel": "Wijzigen annuleren",
+      "counter": "{{length, number}} van {{max, number}} tekens",
+      "limitReached": "Tekenlimiet bereikt. {{max, number}} van {{max, number}}.",
+      "rateLimited_one": "Te vaak bewaard. Probeer het over {{count, number}} seconde opnieuw.",
+      "rateLimited_other": "Te vaak bewaard. Probeer het over {{count, number}} seconden opnieuw.",
+      "saved": "Notitie bewaard",
+      "cleared": "Notitie gewist",
+      "retryHint": "Laadt de notitie bij de oefening en de notities bij de sets opnieuw"
+    }
   },
   "onboarding": {
     "welcome": {
@@ -1016,7 +1067,9 @@
       "edit": "Set {{order, number}} bewerken",
       "editHint": "Opent de set om deze te bewerken",
       "remove": "Set {{order, number}} verwijderen",
-      "logged": "Set {{order, number}}, geregistreerd"
+      "logged": "Set {{order, number}}, geregistreerd",
+      "more": "Meer acties voor set {{order, number}}",
+      "loggedWithNote": "Set {{order, number}}, vastgelegd. {{result}}. Notitie: {{note}}"
     },
     "errors": {
       "save": "Deze set kon niet worden opgeslagen. Probeer het opnieuw.",
@@ -1052,6 +1105,11 @@
       "skip": "Overslaan",
       "skipRest": "Rust overslaan",
       "over": "Rust voorbij"
+    },
+    "menu": {
+      "editSet": "Wijzig set",
+      "addNote": "Notitie toevoegen",
+      "editNote": "Wijzig notitie"
     }
   },
   "spokenCompactUnits": {

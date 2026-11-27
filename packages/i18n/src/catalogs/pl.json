@@ -462,7 +462,8 @@
     "title": "Postępy",
     "loadError": "Nie udało się wczytać historii tego ćwiczenia. Sprawdź połączenie i spróbuj ponownie.",
     "set": "Seria {{order, number}}: {{logged}}",
-    "target": "Cel: {{target}}"
+    "target": "Cel: {{target}}",
+    "setWithNote": "Seria {{order, number}}: {{logged}}. Notatka: {{note}}"
   },
   "finishWorkout": {
     "confirm": {
@@ -670,6 +671,58 @@
     "title": "Ups!",
     "description": "Ten ekran nie istnieje.",
     "goHome": "Przejdź do ekranu głównego"
+  },
+  "notes": {
+    "label": "Notatka",
+    "add": "Dodaj notatkę",
+    "edit": "Edytuj",
+    "save": "Zapisz",
+    "saving": "Zapisywanie…",
+    "cancel": "Anuluj",
+    "placeholder": {
+      "exercise": "Ustawienia, wskazówki, wszystko, o czym warto pamiętać",
+      "set": "Jak poszła ta seria?"
+    },
+    "counter": "{{length, number}}/{{max, number}}",
+    "limitReached": "Osiągnięto limit znaków",
+    "errors": {
+      "load": "Nie udało się wczytać notatki.",
+      "loadAll": "Nie udało się wczytać notatek.",
+      "save": "Nie udało się zapisać notatki. Spróbuj ponownie.",
+      "rateLimited": "Zbyt wiele zapisów. Spróbuj ponownie za {{seconds, number}} s.",
+      "setGone": "Tej serii nie ma już w Twoim treningu.",
+      "setNotLogged": "Najpierw zapisz tę serię, a potem dodaj notatkę.",
+      "unknownExercise": "Tego ćwiczenia nie ma już w bibliotece, więc jego notatki nie można zapisać.",
+      "libraryUnavailable": "Nie udało się teraz sprawdzić tego ćwiczenia. Spróbuj ponownie za chwilę."
+    },
+    "discard": {
+      "title": "Odrzucić notatkę?",
+      "message": "To, co tu napisano, nie zostanie zapisane.",
+      "discard": "Odrzuć",
+      "keepEditing": "Edytuj dalej"
+    },
+    "spoken": {
+      "add": "Dodaj notatkę do ćwiczenia {{exercise}}",
+      "edit": "Edytuj notatkę do ćwiczenia {{exercise}}",
+      "exerciseNote": "Notatka do ćwiczenia {{exercise}}: {{note}}",
+      "editHint": "Otwiera notatkę do edycji",
+      "exerciseField": "Notatka do ćwiczenia {{exercise}}",
+      "setField": "Notatka do serii {{order, number}}",
+      "setNote": "Notatka do serii {{order, number}}: {{note}}",
+      "editSetNoteHint": "Otwiera notatkę do serii {{order, number}} do edycji",
+      "save": "Zapisz notatkę",
+      "saving": "Zapisywanie notatki",
+      "cancel": "Anuluj edycję",
+      "counter": "{{length, number}} z {{max, number}} znaków",
+      "limitReached": "Osiągnięto limit znaków. {{max, number}} z {{max, number}}.",
+      "rateLimited_one": "Zbyt wiele zapisów. Spróbuj ponownie za {{count, number}} sekundę.",
+      "rateLimited_few": "Zbyt wiele zapisów. Spróbuj ponownie za {{count, number}} sekundy.",
+      "rateLimited_many": "Zbyt wiele zapisów. Spróbuj ponownie za {{count, number}} sekund.",
+      "rateLimited_other": "Zbyt wiele zapisów. Spróbuj ponownie za {{count, number}} sekundy.",
+      "saved": "Notatka zapisana",
+      "cleared": "Notatka usunięta",
+      "retryHint": "Ponownie wczytuje notatkę do ćwiczenia i notatki do serii"
+    }
   },
   "onboarding": {
     "welcome": {
@@ -1084,7 +1137,9 @@
       "edit": "Edytuj serię {{order, number}}",
       "editHint": "Otwiera serię do edycji",
       "remove": "Usuń serię {{order, number}}",
-      "logged": "Seria {{order, number}}, zapisana"
+      "logged": "Seria {{order, number}}, zapisana",
+      "more": "Więcej działań dla serii {{order, number}}",
+      "loggedWithNote": "Seria {{order, number}}, zapisana. {{result}}. Notatka: {{note}}"
     },
     "errors": {
       "save": "Nie udało się zapisać tej serii. Spróbuj ponownie.",
@@ -1126,6 +1181,11 @@
       "skip": "Pomiń",
       "skipRest": "Pomiń odpoczynek",
       "over": "Koniec odpoczynku"
+    },
+    "menu": {
+      "editSet": "Edytuj serię",
+      "addNote": "Dodaj notatkę",
+      "editNote": "Edytuj notatkę"
     }
   },
   "spokenCompactUnits": {
