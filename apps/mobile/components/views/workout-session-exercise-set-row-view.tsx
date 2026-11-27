@@ -27,7 +27,11 @@ import type {
 import { hasRefusingSessionEnded } from "~/hooks/refused-session-write";
 import { analytics } from "~/lib/analytics";
 import { useI18n } from "~/lib/i18n";
-import { formatSetTarget, formatSetWeight } from "~/lib/set-inputs";
+import {
+  describeSetTarget,
+  formatSetTarget,
+  formatSetWeight,
+} from "~/lib/set-inputs";
 import { cn } from "~/lib/utils";
 
 import WorkoutSessionExerciseSetForm, {
@@ -102,6 +106,39 @@ const formatComparedSet = (
   }
 
   return set ? formatSetTarget(set, weightLabel, i18n) : "–";
+};
+
+/**
+ * How VoiceOver reads the second cell, since the column's header is hidden
+ * from it: `Previous: 12 reps at 45 kg`, `Target: 10 reps at 100 kg`, or
+ * `No previous set` for a row showing `–`.
+ */
+const describeComparedSet = (
+  previousSet: PreviousSet | undefined,
+  set: WorkoutSessionSet | null,
+  weightLabel: string | undefined,
+  i18n: ReturnType<typeof useI18n>
+) => {
+  if (previousSet) {
+    return i18n.t("sets.previousSet", {
+      set: describeSetTarget(
+        {
+          reps_recommended: previousSet.reps_completed,
+          weight_recommended: previousSet.weight_completed,
+        },
+        weightLabel,
+        i18n
+      ),
+    });
+  }
+
+  if (set && (set.reps_recommended || set.weight_recommended)) {
+    return i18n.t("sets.targetSet", {
+      set: describeSetTarget(set, weightLabel, i18n),
+    });
+  }
+
+  return i18n.t("sets.noPreviousSet");
 };
 
 /**
@@ -442,6 +479,12 @@ const WorkoutSessionExerciseSetRowView = ({
             showsLogged={showsLogged}
           />
           <Text
+            accessibilityLabel={describeComparedSet(
+              previousSet,
+              workoutSessionExerciseSet,
+              weightLabel,
+              i18n
+            )}
             adjustsFontSizeToFit
             className="text-mono-body w-20 text-center"
             maxFontSizeMultiplier={SET_TABLE_MAX_FONT_SCALE}
