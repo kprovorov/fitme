@@ -798,6 +798,29 @@ describe("replacing an Exercise in a Workout Session", () => {
     });
   });
 
+  it("shows the new Exercise's Previous sets once the session is read again", async () => {
+    // Last time: Squat 6 reps, Lunge 12 × 30 kg.
+    backend.seed({
+      exercises: [
+        { name: "Squat", sets: [6] },
+        { name: "Lunge", sets: [12] },
+      ],
+      finished: true,
+      id: "last",
+      startedAt: "2026-10-01T10:00:00.000Z",
+    });
+    Object.assign(backend.sets.find(({ id }) => id === "last-e2-s1") ?? {}, {
+      weight_completed: 30,
+    });
+    await renderSession();
+    expect(screen.getByText("6")).toBeTruthy();
+
+    await replaceFirstWithLunge();
+
+    await expect(screen.findByText("12×30kg")).resolves.toBeTruthy();
+    expect(screen.queryByText("6")).toBeNull();
+  });
+
   it("replaces it once when its row is tapped twice", async () => {
     await renderSession();
     await openReplacePicker();

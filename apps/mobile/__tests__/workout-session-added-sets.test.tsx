@@ -173,4 +173,23 @@ describe("a set added with Add Set and not logged yet", () => {
     expect(screen.queryByRole("button", { name: "Log set 3" })).toBeNull();
     expect(screen.queryByLabelText("Set 4 reps")).toBeNull();
   });
+
+  it("shows the Previous set with its number", async () => {
+    // Last time: three sets, the third 12 × 60 kg.
+    backend.seed({
+      exercises: [{ name: "Squat", sets: [8, 8, 12] }],
+      finished: true,
+      id: "last",
+      startedAt: "2026-10-01T10:00:00.000Z",
+    });
+    const third = backend.sets.find(({ id }) => id === "last-e1-s3");
+    Object.assign(third ?? {}, { weight_completed: 60 });
+
+    await mountSession();
+    expect(screen.queryByText("12×60kg")).toBeNull();
+
+    await addSet();
+
+    expect(screen.getByText("12×60kg")).toBeTruthy();
+  });
 });

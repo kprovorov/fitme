@@ -80,6 +80,7 @@ const SESSION_EXERCISE: WorkoutSessionExercise = {
   exercise_slug: "bench-press",
   id: "wse-1",
   order: 1,
+  previous_sets: [],
   sets: [set(1), set(2)],
 };
 

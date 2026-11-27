@@ -196,6 +196,7 @@ const WorkoutSessionExerciseScreen = () => {
             <WorkoutSessionExerciseSetsTableView
               exerciseId={exerciseId}
               onSetLogged={handleSetLogged}
+              previousSets={workoutSessionExercise.previous_sets}
               readOnly={isFinished}
               sessionId={sessionId}
               weightUnit={workoutSession.weight_unit}

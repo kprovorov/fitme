@@ -20,7 +20,10 @@ import {
   useWorkoutSessionQuery,
   WORKOUT_SESSION_QUERY_KEY,
 } from "~/hooks/queries/workout-sessions";
-import type { WorkoutSessionSet } from "~/hooks/queries/workout-sessions";
+import type {
+  PreviousSet,
+  WorkoutSessionSet,
+} from "~/hooks/queries/workout-sessions";
 import { hasRefusingSessionEnded } from "~/hooks/refused-session-write";
 import { analytics } from "~/lib/analytics";
 import { useI18n } from "~/lib/i18n";
@@ -56,8 +59,13 @@ interface WorkoutSessionExerciseSetRowViewProps {
   onRemove?: (logged: boolean, saved?: SavedWorkoutSessionExerciseSet) => void;
   /** Called once a set is logged for the first time (not on edits). */
   onSetLogged?: (set: SavedWorkoutSessionExerciseSet) => void;
+  /**
+   * What the User did in the set with this row's number last time, shown in
+   * place of the target; the target shows without one.
+   */
+  previousSet?: PreviousSet;
   sessionId: string;
-  /** The User's weight unit, for the target cell. */
+  /** The User's weight unit, for the second cell. */
   weightLabel: string | undefined;
   workoutSessionExerciseSet: WorkoutSessionSet | null;
 }
@@ -71,6 +79,30 @@ const getSetValues = (
   weightCompleted: set?.weight_completed ?? null,
   weightRecommended: set?.weight_recommended ?? initialValues?.weight ?? 0,
 });
+
+/**
+ * The row's second cell: the Previous set in the target's format (`12×45kg`,
+ * `12` for bodyweight), else the set's target, else `–`.
+ */
+const formatComparedSet = (
+  previousSet: PreviousSet | undefined,
+  set: WorkoutSessionSet | null,
+  weightLabel: string | undefined,
+  i18n: ReturnType<typeof useI18n>
+) => {
+  if (previousSet) {
+    return formatSetTarget(
+      {
+        reps_recommended: previousSet.reps_completed,
+        weight_recommended: previousSet.weight_completed,
+      },
+      weightLabel,
+      i18n
+    );
+  }
+
+  return set ? formatSetTarget(set, weightLabel, i18n) : "–";
+};
 
 /**
  * Asks before a logged set goes, a set being edited included, whose saved
@@ -177,6 +209,7 @@ const WorkoutSessionExerciseSetRowView = ({
   onRemove,
   onSetCreated,
   onSetLogged,
+  previousSet,
   sessionId,
   weightLabel,
 }: WorkoutSessionExerciseSetRowViewProps) => {
@@ -415,9 +448,12 @@ const WorkoutSessionExerciseSetRowView = ({
             numberOfLines={1}
             variant={showsLogged ? "muted" : "default"}
           >
-            {isNewSet
-              ? "–"
-              : formatSetTarget(workoutSessionExerciseSet, weightLabel, i18n)}
+            {formatComparedSet(
+              previousSet,
+              workoutSessionExerciseSet,
+              weightLabel,
+              i18n
+            )}
           </Text>
         </>
       }

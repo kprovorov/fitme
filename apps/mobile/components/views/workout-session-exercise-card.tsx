@@ -104,6 +104,7 @@ const WorkoutSessionExerciseCard = ({
         />
         <WorkoutSessionExerciseSetsTableView
           exerciseId={workoutSessionExercise.id}
+          previousSets={workoutSessionExercise.previous_sets}
           readOnly={readOnly}
           sessionId={sessionId}
           weightUnit={weightUnit}
