@@ -1,5 +1,6 @@
 import {
   asUser,
+  exerciseNotes,
   plans,
   workoutSessionExerciseSets,
   workoutSessions,
@@ -30,10 +31,13 @@ import type {
  * Two real users: everything the intruder does with the owner's ids must fail
  * (RLS hides the rows), and the owner's data must be left untouched.
  */
+const OWNER_NOTE = "Seat on hole 4";
+
 describe("cross-user isolation against the local stack", () => {
   let owner: Client;
   let intruder: Client;
   let intruderUser: TestUser;
+  let ownerUserId: string;
   let exercises: readonly [ExerciseRow, ExerciseRow];
   let plan: PlanDetail;
   let session: SessionDetail;
@@ -45,6 +49,7 @@ describe("cross-user isolation against the local stack", () => {
 
   beforeAll(async () => {
     const ownerUser = createTestUser("owner");
+    ownerUserId = ownerUser.userId;
     intruderUser = createTestUser("intruder");
     owner = await connectAs(ownerUser);
     intruder = await connectAs(intruderUser);
@@ -65,6 +70,11 @@ describe("cross-user isolation against the local stack", () => {
       setId: ownerSetId(),
       weightCompleted: 40,
     });
+    await callOk(owner, "set_exercise_note", {
+      exerciseSlug: exercises[0].slug,
+      expectedNote: "",
+      note: OWNER_NOTE,
+    });
   });
 
   it("does not let another user see the owner's data", async () => {
@@ -79,6 +89,9 @@ describe("cross-user isolation against the local stack", () => {
         exerciseSlug: exercises[0].slug,
       })
     ).resolves.toMatchObject({ entries: [] });
+    await expect(
+      callOk(intruder, "list_exercise_notes")
+    ).resolves.toStrictEqual({ notes: [] });
 
     await callError(intruder, "get_plan", { planId: plan.id });
     await expect(
@@ -125,6 +138,41 @@ describe("cross-user isolation against the local stack", () => {
         sessionId: session.id,
       })
     ).resolves.toBeTypeOf("string");
+  });
+
+  it("keeps each user's Exercise notes separate", async () => {
+    const intruderNote = await callOk(intruder, "set_exercise_note", {
+      exerciseSlug: exercises[0].slug,
+      expectedNote: OWNER_NOTE,
+      note: "",
+    });
+
+    expect(intruderNote).toStrictEqual({ note: null });
+
+    await callOk(intruder, "set_exercise_note", {
+      exerciseSlug: exercises[0].slug,
+      expectedNote: "",
+      note: "Intruder's own note",
+    });
+
+    const updated = await asIntruder((tx) =>
+      tx
+        .update(exerciseNotes)
+        .set({ note: "Hijacked" })
+        .where(eq(exerciseNotes.userId, ownerUserId))
+        .returning({ note: exerciseNotes.note })
+    );
+
+    expect(updated).toStrictEqual([]);
+
+    const deleted = await asIntruder((tx) =>
+      tx
+        .delete(exerciseNotes)
+        .where(eq(exerciseNotes.userId, ownerUserId))
+        .returning({ note: exerciseNotes.note })
+    );
+
+    expect(deleted).toStrictEqual([]);
   });
 
   // The tools check ownership with a SELECT first, so also go straight to the
@@ -200,6 +248,17 @@ describe("cross-user isolation against the local stack", () => {
     await expect(
       callError(owner, "get_plan", { planId: intruderPlan.id })
     ).resolves.toBeTypeOf("string");
+  });
+
+  it("leaves the owner's Exercise note untouched", async () => {
+    await expect(callOk(owner, "list_exercise_notes")).resolves.toStrictEqual({
+      notes: [
+        expect.objectContaining({
+          exercise_slug: exercises[0].slug,
+          note: OWNER_NOTE,
+        }),
+      ],
+    });
   });
 
   it("leaves the owner's plan and session untouched", async () => {

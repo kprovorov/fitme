@@ -3,6 +3,7 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { ToolContext } from "./context.js";
 import { registerCatalogTools } from "./tools/catalog.js";
 import { registerExerciseTools } from "./tools/exercises.js";
+import { registerNoteTools } from "./tools/notes.js";
 import { registerPlanTools } from "./tools/plans.js";
 import { registerProfileTools } from "./tools/profile.js";
 import { registerSessionTools } from "./tools/sessions.js";
@@ -34,6 +35,7 @@ export const createMcpServer = ({
 
   registerCatalogTools(server, { name: SERVER_NAME, version: SERVER_VERSION });
   registerExerciseTools(server, ctx);
+  registerNoteTools(server, ctx);
   registerPlanTools(server, ctx);
   registerSessionTools(server, ctx);
   registerProfileTools(server, ctx);

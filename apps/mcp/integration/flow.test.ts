@@ -8,6 +8,7 @@ import type { ProfileWithUnits } from "@fitme/services/profile";
 import type { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { beforeAll, describe, expect, it } from "vitest";
 
+import { call } from "../src/__tests__/harness.js";
 import {
   callError,
   callOk,
@@ -600,5 +601,61 @@ describe("plan and workout flow against the local stack", () => {
 
     const plans = await callOk<PlanSummary[]>(client, "list_plans");
     expect(plans.map((item) => item.id)).toStrictEqual([plan.id]);
+  });
+
+  it("keeps one note per Exercise and refuses a stale write", async () => {
+    const [first] = exercises;
+
+    const set = (note: string, expectedNote: string) =>
+      call(client, "set_exercise_note", {
+        exerciseSlug: first.slug,
+        expectedNote,
+        note,
+      });
+
+    const saved = await set("  Seat on hole 4\nFeet up  ", "");
+
+    expect(saved.json).toMatchObject({
+      note: {
+        exercise_slug: first.slug,
+        name: first.name,
+        note: "Seat on hole 4\nFeet up",
+      },
+    });
+    await expect(set("Seat on hole 4\nFeet up", "")).resolves.toMatchObject({
+      isError: false,
+    });
+
+    const stale = await set("Seat on hole 5", "");
+
+    expect(stale.isError).toBeTruthy();
+    expect(stale.text).toContain("Seat on hole 4\nFeet up");
+  });
+
+  it("lists the Exercise note, then clears it", async () => {
+    const [first] = exercises;
+
+    const listed = await callOk<{ notes: { note: string }[] }>(
+      client,
+      "list_exercise_notes"
+    );
+
+    expect(listed.notes).toStrictEqual([
+      expect.objectContaining({
+        exercise_slug: first.slug,
+        note: "Seat on hole 4\nFeet up",
+      }),
+    ]);
+
+    await expect(
+      callOk(client, "set_exercise_note", {
+        exerciseSlug: first.slug,
+        expectedNote: "Seat on hole 4\nFeet up",
+        note: "",
+      })
+    ).resolves.toStrictEqual({ note: null });
+    await expect(callOk(client, "list_exercise_notes")).resolves.toStrictEqual({
+      notes: [],
+    });
   });
 });
