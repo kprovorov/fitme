@@ -99,6 +99,9 @@ const HistorySetNote = ({ note }: { note: string }) => (
     <View className={SET_NUMBER_COLUMN_CLASS} />
     <Text
       className="text-subhead text-muted-foreground flex-1"
+      // Scaled with its table, as the AX3 frame draws it: uncapped, a long
+      // note at the largest text size is a word a line in the indented column.
+      maxFontSizeMultiplier={SET_TABLE_MAX_FONT_SCALE}
       testID="history-set-note"
     >
       {note}
