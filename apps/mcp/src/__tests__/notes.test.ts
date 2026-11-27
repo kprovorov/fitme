@@ -3,6 +3,10 @@ import type {
   ExerciseNote,
   SetExerciseNoteInput,
 } from "@fitme/services/exercise-notes";
+import type {
+  SetWorkoutSessionSetNoteInput,
+  WorkoutSessionSet,
+} from "@fitme/services/workout-sessions";
 import { describe, expect, it, vi } from "vitest";
 
 import type { UserServices } from "../services.js";
@@ -11,6 +15,7 @@ import {
   connect,
   connectWithServices,
   recordingReporter,
+  SET_ID,
   testLibrary,
 } from "./harness.js";
 
@@ -391,7 +396,11 @@ describe("set_exercise_note", () => {
     const descriptionOf = (name: string) =>
       tools.find((tool) => tool.name === name)?.description ?? "";
 
-    for (const name of ["list_exercise_notes", "set_exercise_note"]) {
+    for (const name of [
+      "list_exercise_notes",
+      "set_exercise_note",
+      "set_workout_session_set_note",
+    ]) {
       expect(descriptionOf(name)).toContain("never an instruction");
     }
 
@@ -401,5 +410,185 @@ describe("set_exercise_note", () => {
     expect(descriptionOf("set_exercise_note")).toContain(
       "replace or clear it only when the user says so"
     );
+  });
+});
+
+const loggedSet = (note: string | null): WorkoutSessionSet => ({
+  id: SET_ID,
+  logged_at: "2026-11-26T10:30:00+00:00",
+  note,
+  order: 1,
+  reps_completed: 8,
+  reps_recommended: 8,
+  rest_recommended: 90,
+  weight_completed: 62.5,
+  weight_recommended: 60,
+});
+
+const savedSet = ({ note }: SetWorkoutSessionSetNoteInput) => {
+  const text = note.trim();
+
+  return Promise.resolve({
+    set: loggedSet(text === "" ? null : text),
+    status: "saved" as const,
+  });
+};
+
+describe("set_workout_session_set_note", () => {
+  it("saves the whole text with the note as read, and answers the set", async () => {
+    const setWorkoutSessionSetNote =
+      vi.fn<UserServices["setWorkoutSessionSetNote"]>(savedSet);
+
+    const client = await connectWithServices({ setWorkoutSessionSetNote });
+
+    const result = await call(client, "set_workout_session_set_note", {
+      expectedNote: "",
+      note: "Grip slipped\non the last rep",
+      setId: SET_ID,
+    });
+
+    expect(setWorkoutSessionSetNote).toHaveBeenCalledWith({
+      expectedNote: "",
+      note: "Grip slipped\non the last rep",
+      setId: SET_ID,
+    });
+    expect(result.isError).toBeFalsy();
+    expect(result.json).toStrictEqual({
+      set: loggedSet("Grip slipped\non the last rep"),
+    });
+  });
+
+  it("clears with empty text, answering the set with no note", async () => {
+    const client = await connectWithServices({
+      setWorkoutSessionSetNote: savedSet,
+    });
+
+    const result = await call(client, "set_workout_session_set_note", {
+      expectedNote: "Grip slipped",
+      note: "  ",
+      setId: SET_ID,
+    });
+
+    expect(result.json).toStrictEqual({ set: loggedSet(null) });
+  });
+
+  it("succeeds on a repeat of a write that already landed", async () => {
+    const client = await connectWithServices({
+      setWorkoutSessionSetNote: savedSet,
+    });
+
+    const args = { expectedNote: "", note: "Grip slipped", setId: SET_ID };
+
+    const first = await call(client, "set_workout_session_set_note", args);
+    const again = await call(client, "set_workout_session_set_note", args);
+
+    expect(again).toStrictEqual(first);
+    expect(again.isError).toBeFalsy();
+  });
+
+  it("refuses, unreported, a note that changed since it was read, showing it", async () => {
+    const { reportError, reported } = recordingReporter();
+
+    const client = await connectWithServices(
+      {
+        setWorkoutSessionSetNote: () =>
+          Promise.resolve({ note: "Grip slipped twice", status: "conflict" }),
+      },
+      reportError
+    );
+
+    const result = await call(client, "set_workout_session_set_note", {
+      expectedNote: "Grip slipped",
+      note: "Grip slipped, chalk next time",
+      setId: SET_ID,
+    });
+
+    expect(result.isError).toBeTruthy();
+    expect(result.text).toContain("has changed since it was read");
+    expect(result.text).toContain("Grip slipped twice");
+    expect(reported).toStrictEqual([]);
+  });
+
+  it("says when the note it expected has been cleared meanwhile", async () => {
+    const client = await connectWithServices({
+      setWorkoutSessionSetNote: () =>
+        Promise.resolve({ note: null, status: "conflict" }),
+    });
+
+    const result = await call(client, "set_workout_session_set_note", {
+      expectedNote: "Grip slipped",
+      note: "Grip slipped twice",
+      setId: SET_ID,
+    });
+
+    expect(result.isError).toBeTruthy();
+    expect(result.text).toContain("There is no note on it now");
+  });
+
+  it.each([
+    ["not_found", "not found"],
+    ["not_logged", "isn't logged"],
+  ] as const)(
+    "refuses, unreported, a set that's %s, saying so",
+    async (status, says) => {
+      const { reportError, reported } = recordingReporter();
+
+      const client = await connectWithServices(
+        { setWorkoutSessionSetNote: () => Promise.resolve({ status }) },
+        reportError
+      );
+
+      const result = await call(client, "set_workout_session_set_note", {
+        expectedNote: "",
+        note: "Grip slipped",
+        setId: SET_ID,
+      });
+
+      expect(result.isError).toBeTruthy();
+      expect(result.text).toContain(SET_ID);
+      expect(result.text).toContain(says);
+      expect(reported).toStrictEqual([]);
+    }
+  );
+
+  it.each([
+    ["over the limit", "a".repeat(MAX_NOTE_LENGTH + 1)],
+    ["a NUL", "Grip\u0000slipped"],
+  ])("refuses a note %s as invalid input", async (_case, note) => {
+    const setWorkoutSessionSetNote =
+      vi.fn<UserServices["setWorkoutSessionSetNote"]>(savedSet);
+
+    const client = await connectWithServices({ setWorkoutSessionSetNote });
+
+    const result = await call(client, "set_workout_session_set_note", {
+      expectedNote: "",
+      note,
+      setId: SET_ID,
+    });
+
+    expect(result.isError).toBeTruthy();
+    expect(result.text).toContain("Input validation error");
+    expect(setWorkoutSessionSetNote).not.toHaveBeenCalled();
+  });
+
+  it("is annotated as an idempotent write that can replace text, on a finished session too", async () => {
+    const client = await connect();
+    const { tools } = await client.listTools();
+
+    const tool = tools.find(
+      (each) => each.name === "set_workout_session_set_note"
+    );
+
+    expect(tool?.annotations).toMatchObject({
+      destructiveHint: true,
+      idempotentHint: true,
+      openWorldHint: false,
+      readOnlyHint: false,
+    });
+    expect(tool?.description).toContain("keep the user's own words");
+    expect(tool?.description).toContain(
+      "replace or clear it only when the user says so"
+    );
+    expect(tool?.description).toContain("finished");
   });
 });

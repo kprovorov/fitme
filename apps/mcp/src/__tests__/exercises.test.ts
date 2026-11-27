@@ -365,7 +365,7 @@ describe("get_exercise_history", () => {
       {
         id: "s1",
         logged_at: null,
-        note: null,
+        note: "Grip felt off",
         order: 1,
         reps_completed: 8,
         reps_recommended: 8,
