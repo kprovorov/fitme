@@ -347,7 +347,9 @@ export const ExerciseNote = ({
     [t]
   );
 
-  usePreventRemove(isChanged && !isPending, ({ repeat }) => {
+  // Held while a save is on its way too: it can still fail, and the text
+  // would go with the Screen.
+  usePreventRemove(isChanged, ({ repeat }) => {
     askToDiscard(repeat);
   });
 

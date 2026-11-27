@@ -414,6 +414,22 @@ describe("the Exercise note on the detail screen", () => {
     expect(repeat).toHaveBeenCalled();
   });
 
+  it("still asks before leaving while a save is on its way", async () => {
+    const client = await renderDetail();
+    await fireEvent.press(screen.getByTestId("exercise-note-add"));
+    await typeNote("Seat on 4");
+    const resume = fakePublicApi.pause(SAVE);
+    await fireEvent.press(saveButton());
+    await until(() => fakePublicApi.count(SAVE) === 1);
+
+    // It can still fail, and the text would go with the screen.
+    expect(leaveGuard.enabled).toBe(true);
+
+    resume();
+    await settle(client);
+    expect(leaveGuard.enabled).toBe(false);
+  });
+
   it("shows a failed read with Try Again and no editor", async () => {
     backend.seedExerciseNote("dumbbell-bench-press", SETUP);
     fakePublicApi.failNext(NOTES, { status: 500 });
