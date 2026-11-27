@@ -203,6 +203,7 @@ export interface PlanSummary {
 export interface SessionSet {
   id: string;
   logged_at: string | null;
+  note: string | null;
   order: number;
   reps_completed: number | null;
   reps_recommended: number;

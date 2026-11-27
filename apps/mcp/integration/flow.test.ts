@@ -407,6 +407,56 @@ describe("plan and workout flow against the local stack", () => {
     expect(pastEnd).toMatchObject({ hasMore: false, sessions: [], total: 1 });
   });
 
+  it("notes a logged set of the finished session and refuses a stale write", async () => {
+    const loggedId = session.exercises[0]?.sets[0]?.id;
+
+    const setNote = (setId: string | undefined, note: string, expected = "") =>
+      call(client, "set_workout_session_set_note", {
+        expectedNote: expected,
+        note,
+        setId,
+      });
+
+    const saved = await setNote(loggedId, "  Grip slipped\non rep 7  ");
+
+    expect(saved.json).toMatchObject({
+      set: {
+        id: loggedId,
+        note: "Grip slipped\non rep 7",
+        reps_completed: 7,
+        weight_completed: 62.5,
+      },
+    });
+    await expect(
+      setNote(loggedId, "Grip slipped\non rep 7")
+    ).resolves.toMatchObject({ isError: false });
+
+    const stale = await setNote(loggedId, "Chalk next time");
+
+    expect(stale.isError).toBeTruthy();
+    expect(stale.text).toContain("Grip slipped\non rep 7");
+  });
+
+  it("refuses a note on an unlogged set and reads each set's note", async () => {
+    const unlogged = await call(client, "set_workout_session_set_note", {
+      expectedNote: "",
+      note: "Skipped",
+      setId: session.exercises[0]?.sets[1]?.id,
+    });
+
+    expect(unlogged.isError).toBeTruthy();
+    expect(unlogged.text).toContain("isn't logged");
+
+    const read = await callOk<SessionDetail>(client, "get_workout_session", {
+      sessionId: session.id,
+    });
+
+    expect(read.exercises[0]?.sets.map((set) => set.note)).toStrictEqual([
+      "Grip slipped\non rep 7",
+      null,
+    ]);
+  });
+
   it("returns the logged set in the exercise history", async () => {
     const [first] = exercises;
 
@@ -422,6 +472,7 @@ describe("plan and workout flow against the local stack", () => {
         session_id: session.id,
         sets: [
           expect.objectContaining({
+            note: "Grip slipped\non rep 7",
             reps_completed: 7,
             weight_completed: 62.5,
           }),

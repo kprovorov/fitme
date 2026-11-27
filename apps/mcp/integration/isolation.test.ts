@@ -32,6 +32,7 @@ import type {
  * (RLS hides the rows), and the owner's data must be left untouched.
  */
 const OWNER_NOTE = "Seat on hole 4";
+const OWNER_SET_NOTE = "Grip slipped";
 
 describe("cross-user isolation against the local stack", () => {
   let owner: Client;
@@ -74,6 +75,11 @@ describe("cross-user isolation against the local stack", () => {
       exerciseSlug: exercises[0].slug,
       expectedNote: "",
       note: OWNER_NOTE,
+    });
+    await callOk(owner, "set_workout_session_set_note", {
+      expectedNote: "",
+      note: OWNER_SET_NOTE,
+      setId: ownerSetId(),
     });
   });
 
@@ -173,6 +179,26 @@ describe("cross-user isolation against the local stack", () => {
     );
 
     expect(deleted).toStrictEqual([]);
+  });
+
+  it("does not let another user note the owner's set", async () => {
+    await expect(
+      callError(intruder, "set_workout_session_set_note", {
+        expectedNote: OWNER_SET_NOTE,
+        note: "Hijacked",
+        setId: ownerSetId(),
+      })
+    ).resolves.toContain("not found");
+
+    const updated = await asIntruder((tx) =>
+      tx
+        .update(workoutSessionExerciseSets)
+        .set({ note: "Hijacked" })
+        .where(eq(workoutSessionExerciseSets.id, ownerSetId() ?? ""))
+        .returning({ id: workoutSessionExerciseSets.id })
+    );
+
+    expect(updated).toStrictEqual([]);
   });
 
   // The tools check ownership with a SELECT first, so also go straight to the
@@ -276,6 +302,7 @@ describe("cross-user isolation against the local stack", () => {
       workout: { id: plan.workouts[0]?.id },
     });
     expect(current.exercises[0]?.sets[0]).toMatchObject({
+      note: OWNER_SET_NOTE,
       reps_completed: 5,
       weight_completed: 40,
     });

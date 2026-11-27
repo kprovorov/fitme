@@ -31,6 +31,7 @@ describe("tool registry", () => {
       "ping",
       "remove_set_from_workout_session",
       "set_exercise_note",
+      "set_workout_session_set_note",
       "start_workout_session",
       "update_plan",
     ]);
