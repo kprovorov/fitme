@@ -583,7 +583,43 @@ export interface CreatePlanOptions {
    * `true`). With `false` it's created inactive and the active Plan stays.
    */
   activate?: boolean;
+  /**
+   * The caller's key for this create (a re-run eve step passes the same one,
+   * ADR 0027): stored on the Plan, and a repeat with the same key by the same
+   * User answers the Plan the first call made and writes nothing. None, or
+   * empty, creates a Plan every time.
+   */
+  requestKey?: string;
 }
+
+/**
+ * The Plan an earlier create with this request key made. Throws when it has
+ * been deleted since: the key is spent, and answering no Plan would let the
+ * caller believe nothing was saved.
+ */
+const repeatedPlan = async (
+  tx: Transaction,
+  userId: string,
+  requestKey: string | undefined
+): Promise<PlanDetail> => {
+  if (requestKey === undefined) {
+    throw new Error("A Plan insert without a request key was skipped");
+  }
+
+  const [first] = await tx
+    .select({ id: plans.id })
+    .from(plans)
+    .where(and(eq(plans.userId, userId), eq(plans.requestKey, requestKey)));
+
+  const detail =
+    first === undefined ? null : await getPlan(tx, userId, first.id);
+
+  if (!detail) {
+    throw new Error("The Plan created with this request key is gone");
+  }
+
+  return detail;
+};
 
 /**
  * Creates a Plan for the User with its Workouts, Exercises and sets, in array
@@ -592,17 +628,31 @@ export interface CreatePlanOptions {
  * Runs in `tx` from `asUser`, so it commits fully or not at all; RLS and the
  * retired-id triggers refuse a `userId` other than the caller's own.
  * Exercise slugs aren't checked.
+ * With a `requestKey` the Plan row goes in `ON CONFLICT DO NOTHING` against
+ * the per-User unique key: a repeat finds the Plan the first call made, and a
+ * concurrent one waits for it to commit, then finds it; either way it answers
+ * that Plan as it is now and writes nothing (no activation, no Weekly goal).
  */
 export const createPlan = async (
   tx: Transaction,
   userId: string,
   plan: NewPlan,
-  { activate = true }: CreatePlanOptions = {}
+  { activate = true, requestKey }: CreatePlanOptions = {}
 ): Promise<PlanDetail> => {
+  const key = requestKey === "" ? undefined : requestKey;
+
   const [created] = await tx
     .insert(plans)
-    .values({ ...metadataColumns(plan), userId })
+    .values({ ...metadataColumns(plan), requestKey: key, userId })
+    .onConflictDoNothing({
+      target: [plans.userId, plans.requestKey],
+      where: sql`request_key is not null`,
+    })
     .returning({ id: plans.id });
+
+  if (created === undefined) {
+    return await repeatedPlan(tx, userId, key);
+  }
 
   await insertWorkouts(tx, created.id, plan.workouts);
 
