@@ -1,4 +1,4 @@
-import { Pressable, Text, View } from "react-native";
+import { Pressable, ScrollView, Text, View } from "react-native";
 import type { SFSymbol } from "sf-symbols-typescript";
 
 import { SymbolImage } from "@/components/symbol-image";
@@ -49,7 +49,14 @@ export const ConversationStarters = ({
   starters: readonly string[];
   title: string;
 }) => (
-  <View className="gap-md flex-1 justify-center">
+  // The Conversation gives the empty state the screen's free space and no
+  // more, so at the largest text sizes, where it outgrows that, it scrolls
+  // within it rather than spilling under the header.
+  <ScrollView
+    className="flex-1"
+    contentContainerClassName="gap-md grow justify-center"
+    keyboardShouldPersistTaps="handled"
+  >
     <View className="gap-xs">
       <Text
         accessibilityRole="header"
@@ -79,5 +86,5 @@ export const ConversationStarters = ({
         </Pressable>
       ))}
     </View>
-  </View>
+  </ScrollView>
 );
