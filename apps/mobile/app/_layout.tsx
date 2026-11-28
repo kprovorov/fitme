@@ -25,10 +25,11 @@ import { Uniwind } from "uniwind";
 import MinimumVersionGate from "~/components/minimum-version-gate";
 import Providers from "~/components/providers";
 import { GLASS_ENABLED } from "~/components/ui/swift-ui";
+import { Toaster } from "~/components/ui/toast";
 
 import "../global.css";
-import { Toaster } from "~/components/ui/toast";
 import { PlanUpdateSheetHost } from "~/components/workout-sessions/plan-update-sheet";
+import { useScreenEvents } from "~/hooks/screen-events";
 import { SCROLL_EDGE_EFFECTS } from "~/lib/constants";
 // Starts the translations in the App language before anything renders.
 import { useAppLanguageSync } from "~/lib/i18n";
@@ -102,6 +103,8 @@ if (!IS_E2E) {
 
 const RootLayout = () => {
   useAppLanguageSync();
+  // One screen event per focused route, named by its route template.
+  useScreenEvents();
   // Re-renders on a language change, so the back button titles follow it.
   useTranslation();
 
