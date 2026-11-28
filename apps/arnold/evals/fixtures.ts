@@ -1,3 +1,4 @@
+import { arnoldCardIds, arnoldCards } from "@fitme/core/arnold";
 import type { ToolStub } from "eve/evals";
 
 /**
@@ -13,6 +14,15 @@ export const SQUAT = "back-squat";
 export const ROW = "barbell-row";
 export const LEG_PRESS = "leg-press";
 
+// uuids, as the show tools' inputs need
+export const PLAN_ID = "d0000000-0000-4000-8000-000000000041";
+const UPPER_WORKOUT_ID = "d0000000-0000-4000-8000-000000000042";
+const LOWER_WORKOUT_ID = "d0000000-0000-4000-8000-000000000043";
+
+/** The latest finished Workout Session: Saturday's Lower Day. */
+export const LAST_SESSION_ID = "d0000000-0000-4000-8000-000000000031";
+const UPPER_SESSION_ID = "d0000000-0000-4000-8000-000000000032";
+
 const set = (id: string, order: number, reps: number, weight: number) => ({
   id,
   order,
@@ -27,7 +37,7 @@ export const activePlan = {
   experience_level: "intermediate",
   frequency: 2,
   goal: "muscle-gain",
-  id: "plan-upper-lower",
+  id: PLAN_ID,
   is_active: true,
   name: "Upper Lower Builder",
   note: null,
@@ -57,7 +67,7 @@ export const activePlan = {
           sets: [set("s-row-1", 1, 10, 60)],
         },
       ],
-      id: "workout-upper",
+      id: UPPER_WORKOUT_ID,
       name: "Upper Day",
       order: 1,
     },
@@ -74,7 +84,7 @@ export const activePlan = {
           sets: [set("s-squat-1", 1, 5, 100)],
         },
       ],
-      id: "workout-lower",
+      id: LOWER_WORKOUT_ID,
       name: "Lower Day",
       order: 2,
     },
@@ -116,11 +126,11 @@ export const workoutHistory = [
       },
     ],
     finished_at: "2026-10-11T10:55:00+00:00",
-    id: "session-lower",
+    id: LAST_SESSION_ID,
     plan: { id: activePlan.id, name: activePlan.name },
     started_at: "2026-10-11T10:00:00+00:00",
     status: "finished",
-    workout: { id: "workout-lower", name: "Lower Day" },
+    workout: { id: LOWER_WORKOUT_ID, name: "Lower Day" },
   },
   {
     exercises: [
@@ -138,11 +148,11 @@ export const workoutHistory = [
       },
     ],
     finished_at: "2026-10-09T19:00:00+00:00",
-    id: "session-upper",
+    id: UPPER_SESSION_ID,
     plan: { id: activePlan.id, name: activePlan.name },
     started_at: "2026-10-09T18:00:00+00:00",
     status: "finished",
-    workout: { id: "workout-upper", name: "Upper Day" },
+    workout: { id: UPPER_WORKOUT_ID, name: "Upper Day" },
   },
 ];
 
@@ -180,11 +190,11 @@ export const openWorkoutSession = {
     },
   ],
   finished_at: null,
-  id: "session-open",
+  id: "d0000000-0000-4000-8000-000000000033",
   plan: { id: activePlan.id, name: activePlan.name },
   started_at: "2026-10-14T18:00:00+00:00",
   status: "in_progress",
-  workout: { id: "workout-upper", name: "Upper Day" },
+  workout: { id: UPPER_WORKOUT_ID, name: "Upper Day" },
 };
 
 export const chestExercises = [
@@ -519,3 +529,186 @@ export const setNoteStubs: readonly ToolStub[] = [
     tool: "set_workout_session_set_note",
   },
 ];
+
+/**
+ * The client context of a build that can draw every reference and snapshot
+ * card (ADR 0027), so Arnold is offered the eight show tools. Not
+ * `plan_proposal`: that would withhold the Plan edits and the old plan card
+ * for a save tool Arnold doesn't have yet. A session sent no `cards` is an
+ * old build, which is offered none of them.
+ */
+export const cardBuild = {
+  cards: arnoldCardIds.filter((card) => card !== "plan_proposal"),
+  language: "en",
+  timeZone: "Europe/Kyiv",
+} as const;
+
+/** An old build's client context: no `cards`, so no show tool. */
+export const oldBuild = { language: "en" } as const;
+
+/** `get_exercise_history`'s answer for the Bench Press. */
+const benchHistory = {
+  best_result: { reps: 8, weight: 72.5 },
+  entries: workoutHistory.flatMap(
+    ({ exercises, finished_at, id, started_at }) =>
+      exercises.flatMap((exercise) =>
+        exercise.exercise_slug === BENCH
+          ? [
+              {
+                id: exercise.id,
+                session: { finished_at, id, started_at },
+                sets: exercise.sets,
+              },
+            ]
+          : []
+      )
+  ),
+  exercise_slug: BENCH,
+  name: "Bench Press",
+  total: 1,
+  weight_unit: "kg",
+};
+
+/**
+ * `get_weekly_goal`'s answer on Wednesday 2026-10-14 in Kyiv: two Workouts a
+ * week, none yet this week, last week's two (the history's) hitting it, and
+ * numbers no other fixture has, so a reply quoting them took them from here.
+ */
+export const weeklyGoal = {
+  goal: 2,
+  streak: 5,
+  this_week: { count: 0, goal: 2, hit: false },
+  time_zone: "Europe/Kyiv",
+  weeks: [
+    ["2026-08-23T21:00:00.000Z", 2],
+    ["2026-08-30T21:00:00.000Z", 1],
+    ["2026-09-06T21:00:00.000Z", 3],
+    ["2026-09-13T21:00:00.000Z", 2],
+    ["2026-09-20T21:00:00.000Z", 2],
+    ["2026-09-27T21:00:00.000Z", 3],
+    ["2026-10-04T21:00:00.000Z", 2],
+    ["2026-10-11T21:00:00.000Z", 0],
+  ].map(([start, count], index, weeks) => ({
+    count,
+    current: index === weeks.length - 1,
+    goal: 2,
+    hit: Number(count) >= 2,
+    kind: "tracked",
+    start,
+  })),
+  weeks_hit: { eligible: 7, hit: 6 },
+};
+
+/** `get_lifetime_totals`' answer. */
+export const lifetimeTotals = {
+  duration_seconds: 171_000,
+  volume: 152_340,
+  weight_unit: "kg",
+  workout_count: 47,
+};
+
+/**
+ * Every read tool, the three reads behind the snapshot cards, and the eight
+ * show tools, each show tool answering as the real one does (ids only, or
+ * the read's numbers), so a card is recorded, not drawn. Only a session sent
+ * `cardBuild` is offered the show tools.
+ */
+export const cardStubs: readonly ToolStub[] = [
+  ...readToolStubs,
+  {
+    id: "plan",
+    outcome: { response: { ...activePlan, plan_version: "v1" } },
+    tool: "get_plan",
+  },
+  {
+    id: "bench-history",
+    match: { exercise_slug: { const: BENCH } },
+    outcome: { response: benchHistory },
+    tool: "get_exercise_history",
+  },
+  {
+    id: "weekly-goal",
+    outcome: { response: weeklyGoal },
+    tool: "get_weekly_goal",
+  },
+  {
+    id: "lifetime-totals",
+    outcome: { response: lifetimeTotals },
+    tool: "get_lifetime_totals",
+  },
+  {
+    id: "show-exercises",
+    outcome: { response: { exercise_slugs: [BENCH] } },
+    tool: "show_exercises",
+  },
+  {
+    id: "show-workout",
+    outcome: { response: { plan_id: PLAN_ID, workout_id: UPPER_WORKOUT_ID } },
+    tool: "show_workout",
+  },
+  {
+    id: "show-plan",
+    outcome: { response: { plan_id: PLAN_ID } },
+    tool: "show_plan",
+  },
+  {
+    id: "show-workout-session",
+    outcome: { response: { workout_session_id: LAST_SESSION_ID } },
+    tool: "show_workout_session",
+  },
+  {
+    id: "show-profile",
+    outcome: { response: {} },
+    tool: "show_profile",
+  },
+  {
+    id: "show-bench-history",
+    outcome: { response: benchHistory },
+    tool: "show_exercise_history",
+  },
+  {
+    id: "show-weekly-goal",
+    outcome: { response: weeklyGoal },
+    tool: "show_weekly_goal",
+  },
+  {
+    id: "show-lifetime-totals",
+    outcome: { response: lifetimeTotals },
+    tool: "show_lifetime_totals",
+  },
+];
+
+/** The eight show tools, for an old build's evals to check none was called. */
+export const showTools = arnoldCards.flatMap(({ id, tool }) =>
+  id === "plan_proposal" ? [] : [tool]
+);
+
+/** A reply that is there and at most `max` characters: a card's short answer. */
+export const isShortAnswer =
+  (max: number) =>
+  (reply?: string): boolean =>
+    reply !== undefined && reply.trim().length > 0 && reply.length <= max;
+
+/** A reply that never mentions a card, for an old build. */
+export const mentionsNoCard = (reply?: string): boolean =>
+  !/\bcards?\b/iu.test(reply ?? "");
+
+/**
+ * Gate for a judged numbers check: a boolean judgment is a probability, so a
+ * reply quoting the read gets a high one and a reply with an invented or
+ * wrong number a low one; 0.6 sits between them with room for the judge.
+ */
+export const NUMBERS_GATE = 0.6;
+
+/**
+ * Asks the judge whether every number a reply gives about the user's
+ * training is in `data`, the read tool's answer: judged, since the same
+ * numbers can be written many ways ("5 weeks in a row", "a five-week streak").
+ * Beside a card a reply may give none (the card shows them), so only a text
+ * answer is held to giving some (`{ required: true }`).
+ */
+export const numbersFrom = (
+  data: unknown,
+  { required }: { required: boolean }
+) =>
+  `Every number the response gives about the user's training (counts of workouts, weeks, a streak, a goal, weights, reps, durations, totals) agrees with this data the app read for the user: ${JSON.stringify(data)}. Saying "this week", "last week" or naming a weekday or a date is not a number. A number that isn't in the data, or that contradicts it, fails. ${required ? "A response that gives no number at all fails." : "A response that gives no number at all passes."}`;
