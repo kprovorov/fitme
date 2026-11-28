@@ -63,3 +63,17 @@ export const withheldForCard = <Tool extends DynamicToolEntry>(
   defineDynamic(async (ctx) =>
     toolUnlessCard(await ctx.messages(), card, tool)
   );
+
+/**
+ * `offeredForCard` for a tool that keeps state for one model call: `build`
+ * makes a fresh copy each time eve resolves the tool, which it does before
+ * every model call, and the calls of that model call's response share it.
+ * `propose_plan` keeps the one proposal a response may make this way.
+ */
+export const offeredForCardPerModelCall = <Tool extends DynamicToolEntry>(
+  card: ArnoldCardId,
+  build: () => Tool
+) =>
+  defineDynamic(async (ctx) =>
+    canDrawCard(await ctx.messages(), card) ? build() : null
+  );
