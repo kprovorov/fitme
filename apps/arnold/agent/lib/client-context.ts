@@ -1,7 +1,10 @@
 /// <reference lib="es2023.array" />
 
+import { isArnoldCardId } from "@fitme/core/arnold";
+import type { ArnoldCardId } from "@fitme/core/arnold";
 import { defaultAppLanguage, isAppLanguage } from "@fitme/core/models";
 import type { AppLanguage } from "@fitme/core/models";
+import { calendarOffsetMinutes } from "@fitme/core/weekly-goals";
 import type { HistoryMessage } from "eve/context";
 import { z } from "zod";
 
@@ -14,6 +17,7 @@ import { z } from "zod";
 // doesn't declare it. eve is pinned exactly; check this format on every bump.
 const CLIENT_CONTEXT_KIND = "context.instruction";
 const CLIENT_CONTEXT_PREFIX = "Client context:\n";
+const DEFAULT_TIME_ZONE = "UTC";
 const clientContextSchema = z.record(z.string(), z.json());
 
 type ClientContext = z.infer<typeof clientContextSchema>;
@@ -79,4 +83,62 @@ export const appLanguage = (
   const language = latestClientContext(messages)?.language;
 
   return isAppLanguage(language) ? language : defaultAppLanguage;
+};
+
+/**
+ * The cards the build can draw, from `clientContext: { cards }` (ADR 0027):
+ * each id once, in the order sent, an id that isn't one of `arnoldCardIds`
+ * left out. `null` when the client sent no list, or something that isn't a
+ * list: an old build, which can draw none of the new cards.
+ */
+export const clientCards = (
+  messages: readonly HistoryMessage[]
+): readonly ArnoldCardId[] | null => {
+  const cards = latestClientContext(messages)?.cards;
+
+  if (!Array.isArray(cards)) {
+    return null;
+  }
+
+  return [...new Set(cards.filter(isArnoldCardId))];
+};
+
+// The Public API's `time_zone` rule, so both read the same values: an Expo
+// fixed-offset calendar id (`GMT+1`, `GMT-03:30`, which `Intl` refuses), or
+// an IANA name `Intl` knows. An ISO offset such as `+05:00` isn't one, since
+// Postgres reads it with the POSIX sign, the wrong way round.
+const IANA_TIME_ZONE = /^[A-Za-z_]+(?:\/[A-Za-z0-9_+-]+)*$/u;
+
+const isTimeZone = (value: unknown): value is string => {
+  if (typeof value !== "string") {
+    return false;
+  }
+
+  if (calendarOffsetMinutes(value) !== null) {
+    return true;
+  }
+
+  if (!IANA_TIME_ZONE.test(value)) {
+    return false;
+  }
+
+  try {
+    return (
+      new Intl.DateTimeFormat("en", { timeZone: value }).resolvedOptions()
+        .timeZone !== ""
+    );
+  } catch {
+    return false;
+  }
+};
+
+/**
+ * The device's time zone, from `clientContext: { timeZone }`, as sent: an
+ * IANA name or an Expo fixed-offset calendar id (`GMT+1`); UTC without one,
+ * or for anything else.
+ */
+export const clientTimeZone = (messages: readonly HistoryMessage[]): string => {
+  const timeZone = latestClientContext(messages)?.timeZone;
+
+  return isTimeZone(timeZone) ? timeZone : DEFAULT_TIME_ZONE;
 };
