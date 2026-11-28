@@ -27,17 +27,17 @@ export const tool = defineTool({
 
     const wanted = workout_id.toLowerCase();
 
-    const plan = plans.find(({ workouts }) =>
-      workouts.some(({ id }) => id.toLowerCase() === wanted)
-    );
+    const found = plans
+      .flatMap((plan) => plan.workouts.map((workout) => ({ plan, workout })))
+      .find(({ workout }) => workout.id.toLowerCase() === wanted);
 
-    if (!plan) {
+    if (!found) {
       throw new Error(
         `No workout ${workout_id} in the user's plans: it doesn't exist, was removed or its plan was deleted. Read get_active_plan or get_plans for the current workout ids.`
       );
     }
 
-    return { plan_id: plan.id, workout_id: wanted };
+    return { plan_id: found.plan.id, workout_id: found.workout.id };
   },
   inputSchema: z.object({
     workout_id: z.guid().describe("The id of the workout to show"),

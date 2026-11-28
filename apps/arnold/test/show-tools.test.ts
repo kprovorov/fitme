@@ -348,6 +348,8 @@ describe("show_workout", () => {
     await expect(tool.execute(input, alice)).rejects.toThrow(
       `No workout ${MISSING_ID} in the user's plans`
     );
+    expect(db.asUser).toHaveBeenCalledWith("user_alice", expect.any(Function));
+    expect(plans.listPlans).toHaveBeenCalledWith(tx, "user_alice");
   });
 
   it("refuses a Workout of a deleted Plan", async () => {
@@ -408,6 +410,7 @@ describe("show_plan", () => {
     await expect(tool.execute(input, alice)).rejects.toThrow(
       `No plan ${MISSING_ID} for the user`
     );
+    expect(db.asUser).toHaveBeenCalledWith("user_alice", expect.any(Function));
     expect(plans.getPlan).toHaveBeenCalledWith(tx, "user_alice", MISSING_ID);
   });
 
@@ -475,6 +478,7 @@ describe("show_profile", () => {
     await expect(tool.execute({}, alice)).rejects.toThrow(
       "The user has no profile yet"
     );
+    expect(db.asUser).toHaveBeenCalledWith("user_alice", expect.any(Function));
     expect(profile.getProfile).toHaveBeenCalledWith(tx, "user_alice");
   });
 });
