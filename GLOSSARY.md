@@ -74,6 +74,8 @@ A personal workout planner: a person signs up, fills in a fitness profile, build
 
 **Attachment**: An image a User adds to a message to Arnold. It belongs to the Conversation it was sent in and lives exactly as long as that Conversation. _Avoid_: Upload, file, media, photo
 
+**Plan Proposal**: A new Plan, or changes to an existing Plan, that Arnold suggests in a Conversation. Nothing is saved until the User accepts it, and every change Arnold makes to a Plan goes through one. The User accepts it, declines it, or asks Arnold for something different, which replaces it with a new one; only the newest can be accepted. It belongs to the Conversation it was made in. Never the Plan Update, which a finished Workout Session suggests. _Avoid_: Plan Update, draft, suggestion, plan card
+
 ### Coaching
 
 **Coach**: A real person who trains Users through Fitme. Never Arnold. _Avoid_: Trainer, PT, personal trainer

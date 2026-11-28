@@ -5,6 +5,8 @@ date: 2026-11-03
 
 # The Plan builder saves the whole Plan at once, keeping ids
 
+Partly amended by ADR 0027: Arnold saves an accepted Plan Proposal through this same whole-Plan save, but his save is refused when the Plan changed since he read it. The Plan editor's save stays last save wins.
+
 Users without Pro can't reach Arnold, so they need to build and edit Plans by hand. The builder works on a local draft that Cancel discards. Save sends the whole Plan in one transaction: `POST /v1/plans` when creating, and a new `PUT /v1/plans/{id}` when editing. That `PUT` keeps ids. A Workout, Workout Exercise or set sent with its id is updated in place, one sent without an id is created, and one the body leaves out is deleted. So Workout Sessions stay linked to their Workout, a kept Workout keeps its Cover (ADR 0014; only new Workouts get one picked), and the next Plan Update still matches.
 
 ## Considered options
