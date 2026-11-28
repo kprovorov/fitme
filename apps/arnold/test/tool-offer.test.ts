@@ -4,7 +4,11 @@ import { defineTool } from "eve/tools";
 import { describe, expect, it } from "vitest";
 import { z } from "zod";
 
-import { canDrawCard, toolForCard } from "../agent/lib/tool-offer";
+import {
+  canDrawCard,
+  toolForCard,
+  toolUnlessCard,
+} from "../agent/lib/tool-offer";
 
 type EveUserMessage = ModelMessage & { kind: "context.instruction" | "user" };
 
@@ -60,5 +64,17 @@ describe("which cards a build can draw", () => {
     expect(
       toolForCard([clientContext({ language: "en" })], "workout", tool)
     ).toBeNull();
+  });
+
+  it("withholds a tool only from a build that can draw the card", () => {
+    expect(
+      toolUnlessCard([clientContext({ cards: ["workout"] })], "workout", tool)
+    ).toBeNull();
+    expect(
+      toolUnlessCard([clientContext({ cards: ["plan"] })], "workout", tool)
+    ).toBe(tool);
+    expect(
+      toolUnlessCard([clientContext({ language: "en" })], "workout", tool)
+    ).toBe(tool);
   });
 });

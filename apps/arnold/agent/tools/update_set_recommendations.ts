@@ -5,8 +5,9 @@ import { defineTool } from "eve/tools";
 import { z } from "zod";
 
 import { requireConversationOwner } from "../lib/owner";
+import { withheldForCard } from "../lib/tool-offer";
 
-export default defineTool({
+export const tool = defineTool({
   description:
     "Update the recommended reps, weight, or rest time on a specific set. Provide only the fields that need to change. Find set IDs via get_active_plan in the 'sets' array of each exercise.",
   async execute({ set_id, ...changes }, ctx) {
@@ -56,3 +57,6 @@ export default defineTool({
       .describe("New recommended weight in the user's unit system"),
   }),
 });
+
+// A build that draws the Plan Proposal changes Plans only through it (ADR 0027).
+export default withheldForCard("plan_proposal", tool);

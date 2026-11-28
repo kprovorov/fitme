@@ -7,9 +7,10 @@ import { z } from "zod";
 import { checkExerciseSlugs, exerciseSlugSchema } from "../lib/exercises";
 import { requireConversationOwner } from "../lib/owner";
 import { requestKey } from "../lib/request-key";
+import { withheldForCard } from "../lib/tool-offer";
 import { reportingEditErrors, setSchema } from "../lib/workout-edits";
 
-export default defineTool({
+export const tool = defineTool({
   description:
     "Add an exercise to a specific workout in the user's plan. Use search_exercises first to find a valid exercise_slug. Provide initial sets with rep, weight, and rest recommendations.",
   async execute(input, ctx) {
@@ -56,3 +57,6 @@ export default defineTool({
       .describe("The ID of the workout to add the exercise to"),
   }),
 });
+
+// A build that draws the Plan Proposal changes Plans only through it (ADR 0027).
+export default withheldForCard("plan_proposal", tool);

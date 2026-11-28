@@ -4,8 +4,9 @@ import { defineTool } from "eve/tools";
 import { z } from "zod";
 
 import { requireConversationOwner } from "../lib/owner";
+import { withheldForCard } from "../lib/tool-offer";
 
-export default defineTool({
+export const tool = defineTool({
   description:
     "Remove a specific set from a workout exercise of the user's plan, never from the workout session they have open (remove_set_from_workout_session does that). Find set IDs via get_active_plan in the 'sets' array of each exercise. Ensure the exercise has at least one set remaining after removal.",
   async execute({ set_id }, ctx) {
@@ -27,3 +28,6 @@ export default defineTool({
       .describe("The ID of the workout_exercise_sets row to delete"),
   }),
 });
+
+// A build that draws the Plan Proposal changes Plans only through it (ADR 0027).
+export default withheldForCard("plan_proposal", tool);
