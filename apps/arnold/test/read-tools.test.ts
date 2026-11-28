@@ -35,6 +35,14 @@ const plans = vi.hoisted(() => ({
     vi.fn<
       (transaction: typeof tx, userId: string) => Promise<typeof plan | null>
     >(),
+  getPlan:
+    vi.fn<
+      (
+        transaction: typeof tx,
+        userId: string,
+        planId: string
+      ) => Promise<typeof plan | null>
+    >(),
   listPlans:
     vi.fn<
       (transaction: typeof tx, userId: string) => Promise<(typeof plan)[]>
@@ -102,6 +110,8 @@ const { default: getActivePlan } =
 
 const { default: getOpenWorkoutSession } =
   await import("../agent/tools/get_open_workout_session");
+
+const { default: getPlan } = await import("../agent/tools/get_plan");
 
 const { default: getPlans } = await import("../agent/tools/get_plans");
 
@@ -250,6 +260,7 @@ const seenArguments = () =>
     db.asUser.mock.calls,
     notes.listExerciseNotes.mock.calls,
     plans.getActivePlan.mock.calls,
+    plans.getPlan.mock.calls,
     plans.listPlans.mock.calls,
     sessions.getWorkoutSession.mock.calls,
     sessions.listWorkoutSessions.mock.calls,
@@ -342,6 +353,7 @@ const resetReadTools = () => {
   db.asUser.mockImplementation(async (_userId, fn) => await fn(tx));
   notes.listExerciseNotes.mockResolvedValue([]);
   plans.getActivePlan.mockResolvedValue(plan);
+  plans.getPlan.mockResolvedValue(plan);
   plans.listPlans.mockResolvedValue([plan]);
   sessions.getWorkoutSession.mockResolvedValue(openSession);
   sessions.listWorkoutHistory.mockResolvedValue(history);
@@ -369,6 +381,7 @@ describe("get_active_plan", () => {
   it("names each Exercise from the library, and from its slug when the library doesn't know it", async () => {
     await expect(getActivePlan.execute({}, alice)).resolves.toStrictEqual({
       ...plan,
+      plan_version: expect.any(String),
       workouts: [
         {
           ...plan.workouts[0],
@@ -594,6 +607,168 @@ describe("get_active_plan", () => {
     await expect(getActivePlan.execute({}, contextFor(null))).rejects.toThrow(
       "This Conversation has no signed-in owner"
     );
+    expect(db.asUser).not.toHaveBeenCalled();
+  });
+});
+
+const PLAN_ID = "5d0c1f9e-3b7a-4c2e-9f41-0a6b8e2d7c13";
+
+const markerSchema = z.object({ plan_version: z.string().min(1) });
+
+/** The marker a Plan read answered. */
+const markerOf = (answer: unknown) => markerSchema.parse(answer).plan_version;
+
+/** The test Plan with its first set's reps target changed. */
+const withChangedSet = (reps: number) => ({
+  ...plan,
+  workouts: [
+    {
+      ...plan.workouts[0],
+      exercises: [
+        {
+          ...planExercise("we_bench", "bench-press"),
+          sets: [{ ...set, reps_recommended: reps }],
+        },
+        planExercise("we_retired", "jefferson-curl"),
+      ],
+    },
+  ],
+});
+
+describe("the Plan version marker", () => {
+  beforeEach(resetReadTools);
+
+  it("is the same on every read of an unchanged Plan, from either tool", async () => {
+    const first = markerOf(await getActivePlan.execute({}, alice));
+    const second = markerOf(await getActivePlan.execute({}, alice));
+    const byId = markerOf(await getPlan.execute({ plan_id: PLAN_ID }, alice));
+
+    expect(second).toBe(first);
+    expect(byId).toBe(first);
+  });
+
+  it("changes once the Plan does, from either tool", async () => {
+    const before = markerOf(await getActivePlan.execute({}, alice));
+
+    plans.getActivePlan.mockResolvedValue(withChangedSet(12));
+    plans.getPlan.mockResolvedValue(withChangedSet(12));
+
+    const active = markerOf(await getActivePlan.execute({}, alice));
+    const byId = markerOf(await getPlan.execute({ plan_id: PLAN_ID }, alice));
+
+    expect(active).not.toBe(before);
+    expect(byId).toBe(active);
+  });
+
+  it("doesn't change when only the Exercise names or notes shown beside it do", async () => {
+    const before = markerOf(await getActivePlan.execute({}, alice));
+
+    notes.listExerciseNotes.mockResolvedValue([
+      storedNote("bench-press", ARCH),
+    ]);
+    testLibrary.reset({ loads: "fail" });
+
+    expect(markerOf(await getActivePlan.execute({}, alice))).toBe(before);
+  });
+});
+
+describe("get_plan", () => {
+  beforeEach(resetReadTools);
+
+  it("reads the Plan by its id as the session's User, never one named in the input", async () => {
+    const input = parseInput(getPlan, { ...userIdFields, plan_id: PLAN_ID });
+
+    await getPlan.execute(input, alice);
+
+    expect(input).toStrictEqual({ plan_id: PLAN_ID });
+    expect(db.asUser).toHaveBeenCalledWith("user_alice", expect.any(Function));
+    expect(plans.getPlan).toHaveBeenCalledExactlyOnceWith(
+      tx,
+      "user_alice",
+      PLAN_ID
+    );
+    expect(seenArguments()).not.toContain("user_mallory");
+  });
+
+  it("refuses an id that isn't one", () => {
+    expect(
+      inputSchemaOf(getPlan).safeParse({ plan_id: "plan_1" }).success
+    ).toBeFalsy();
+  });
+
+  it("answers the Plan in full, as get_active_plan does", async () => {
+    notes.listExerciseNotes.mockResolvedValue([
+      storedNote("bench-press", ARCH),
+    ]);
+
+    const answer = await getPlan.execute({ plan_id: PLAN_ID }, alice);
+
+    expect(answer).toStrictEqual(await getActivePlan.execute({}, alice));
+    expect(answer).toMatchObject({
+      id: "plan_1",
+      workouts: [
+        {
+          exercises: [
+            {
+              exercise_note: ARCH,
+              exercise_slug: "bench-press",
+              id: "we_bench",
+              muscle_groups: ["chest"],
+              name: "Bench Press",
+              sets: [set],
+            },
+            {
+              exercise_note: null,
+              exercise_slug: "jefferson-curl",
+              id: "we_retired",
+              muscle_groups: [],
+              name: "Jefferson curl",
+            },
+          ],
+          id: "workout_1",
+        },
+      ],
+    });
+  });
+
+  it("reads the notes in the same transaction as the Plan", async () => {
+    await getPlan.execute({ plan_id: PLAN_ID }, alice);
+
+    expectNotesReadInTheTransaction();
+    expect(plans.getPlan).toHaveBeenCalledExactlyOnceWith(
+      tx,
+      "user_alice",
+      PLAN_ID
+    );
+  });
+
+  it("names Exercises in the App language", async () => {
+    const answer = shownPlanSchema.parse(
+      await getPlan.execute(
+        { plan_id: PLAN_ID },
+        withClientContext(alice, { language: "uk" })
+      )
+    );
+
+    expect(answer.workouts[0].exercises[0].name).toBe("Жим лежачи");
+  });
+
+  it("sends the model to get_plans for a Plan it can't read: missing, deleted or another User's", async () => {
+    plans.getPlan.mockResolvedValue(null);
+
+    await expect(
+      getPlan.execute({ plan_id: PLAN_ID }, alice)
+    ).resolves.toStrictEqual({
+      error:
+        "No plan found with that ID. Call get_plans for the user's plans and their IDs.",
+    });
+    expect(notes.listExerciseNotes).not.toHaveBeenCalled();
+  });
+
+  it("refuses to run without a Clerk User owning the session", async () => {
+    await expect(
+      getPlan.execute({ plan_id: PLAN_ID }, contextFor(null))
+    ).rejects.toThrow("This Conversation has no signed-in owner");
     expect(db.asUser).not.toHaveBeenCalled();
   });
 });
