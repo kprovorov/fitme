@@ -25,7 +25,9 @@ const checksum =
 
 // Reviewed child tables, policies, and progress-cache triggers only read
 // sessions or follow their changes; they never write the parent or its index.
-// Pin the complete file so an edit to this migration requires review again.
+// The Previous sets index (FIT-851) is a nonunique btree on the table: it
+// reserves no key and changes no row. Pin the complete file so an edit to
+// any of these migrations requires review again.
 const reviewedMigrations = new Map([
   [
     "20261031130000_personal_records.sql",
@@ -38,6 +40,10 @@ const reviewedMigrations = new Map([
   [
     "20261124120000_personal_records_write_policies.sql",
     "d4387eac788bdb8268473caebfa286af3595b1960e525ae7264dc2e1c40d67aa",
+  ],
+  [
+    "20261127120000_workout_sessions_user_started_at_index.sql",
+    "cc9cb64bb5c8f0552974e74dbe4ebb3470c5e05605e924dabc30e7d2de31f31d",
   ],
 ]);
 

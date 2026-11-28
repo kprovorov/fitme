@@ -1,4 +1,61 @@
-# Validation, 2026-11-27
+# Validation, 2026-11-28
+
+## Maintenance against current main
+
+**Outcome: updated. The migration guard now pins the Previous sets index migration as reviewed, and the coverage record names the Previous sets reads inside the start and finish transactions; model, property and bounds unchanged; no current-code exclusivity violation found within the stated bounds.**
+
+Audited source: `f222bfb9c8e6a7118969e6108ed5a39b492598f3`, equal to `origin/main` after `git fetch` on 2026-11-28, and the commit the checks ran on. Previous sync: `68df76461acd7f5856b5db92f6b5736790456542` (37 commits). No product code, property, model or bound was changed.
+
+Tools: Node 26.13.1, OpenJDK 27, TLC 1.7.4 (cached jar, pinned SHA-256 unchanged), PostgreSQL 17.11 (Homebrew).
+
+### Baseline
+
+The unchanged runner failed closed before any edit: `20261127120000_workout_sessions_user_started_at_index.sql touches workout_sessions after the covered migration`. That is the guard doing its job, not a finding about the property: no model or SQL check ran.
+
+### Correspondence audit
+
+`git diff -G'workout_sessions|workoutSessions|finished_at|finishedAt'` over the range lists, outside `apps/mobile` and this skill, `AGENTS.md`, `apps/api/integration/previous-sets.test.ts`, `packages/db/src/schema.ts`, `packages/services/src/workout-sessions.ts`, the new migration and its pgTAP test. In `packages/services` only `workout-sessions.ts` changed, and only by additions: `PreviousSet`, `MAX_PREVIOUS_SET_NUMBER`, `getPreviousSets` and `withPreviousSets`. Every Drizzle write to `workout_sessions` outside tests is still one of: the insert in `insertOrResume`, `claimNow`, `claimForgotten`, `deleteWorkoutSession`, `discardForgottenWorkoutSession`, `deleteUserData` and the Plan Update's `plan_changes_applied_at` stamp; none of them has a hunk in the range. `findOpenSession`, `insertOrResume`, `startWorkoutSession`, `finishSession`, `closeForgottenWorkoutSession`, the unique index and its migration are unchanged.
+
+| Commit | Change and correspondence decision |
+| --- | --- |
+| `557311b8`: the previous resync, PR #780 | This skill only. No effect. |
+| `ecb6c610`: FIT-850, PR #786 | `getPreviousSets` is one read-only `select` over `workout_sessions`, `workout_session_exercises` and `workout_session_exercise_sets`, filtered on the User. In `apps/api/src/services.ts`, `startWorkoutSession` (when `started`), `finishWorkoutSession` (when `finished`) and `getWorkoutSession` now call `withPreviousSets` in the same `inUnits` / `weighed` transaction, after the service call and before the commit. The commit boundary is unchanged. A failing read rolls the whole transaction back, which is `Rollback` for a start (the key is released, no row is published) and a stutter for a finish (the session stays open). No effect; named in the facade row and the read-only row. |
+| `012cffaf`: FIT-851, PR #792 | `20261127120000_workout_sessions_user_started_at_index.sql`: `CREATE INDEX IF NOT EXISTS workout_sessions_user_id_started_at_idx ON public.workout_sessions(user_id, started_at, id)`. It is nonunique and has no predicate, so it reserves no key, writes no row and leaves `workout_sessions_one_open_per_user_idx` alone. Drizzle's schema lists it; the services comment names it. No effect. The guard now pins its complete SHA-256 (`cc9cb64b…`). |
+| `79e70bd1`, `0af9b5c8`, `f65a9a1e`: FIT-827, FIT-830, FIT-832 (PRs #769, #787, #799) | MCP notes tools over `listExerciseNotes`, `setExerciseNote` and `setWorkoutSessionSetNote`, and `noted`, which reads Exercise notes (`listExerciseNotes`) after the service call inside the same `asUser` of `startWorkoutSession` and `finishWorkoutSession`, only when the result is `started` or `finished`, and of the reads. Like the API's Previous sets, this adds an abort point before the commit and writes nothing. No effect; named in the facade row. |
+| `625e7486`, `618406d6`, `febdc09f`: FIT-828, FIT-831, FIT-833 (PRs #781, #796, #806) | Arnold's `set_exercise_note`, `set_workout_session_set_note` (one `asUser` over `setWorkoutSessionSetNote`, already covered) and `list_exercise_notes`, and Exercise notes in `get_open_workout_session`, `get_active_plan` and `get_workouts_history` (reads). No session row write. No effect. |
+| `46ce7c34`: FIT-869, PR #775 | The identity-merge script reads `private.retired_user_ids` through `withService`, read-only. No effect. |
+| `7d09359d`: FIT-867, PR #782 | The Clerk webhook deletes the PostHog person after `deleteUserData` commits. `deleteUserData` is unchanged. No effect. |
+| `6f5a1cb2`: FIT-876, PR #807 | Observability tests. No effect. |
+| `5b892833`, `ac70bbb7`: site (PRs #773, #783) | No database access. No effect. |
+| `743f395c`, `599e4968`: i18n (PRs #790, #810) | Catalogs. No effect. |
+| `144894c2`, `78129faf`, `c9a59894`, `44f6b97f`, `8b314f07`, `04ce8ad2`, `6ba6f7b3`, `cf83ed1b`, `764d3fa6`, `ed89f23f`, `0c75deac`, `67623143`, `2834b5d0`, `a87053a4`, `7ec355f7`, `dbe8b70a`, `23505b52`, `03332351`, `a1619b1c`, `77d9504f`, `f222bfb9`: mobile (PRs #771, #779, #784, #785, #788, #789, #791, #793–#795, #797, #798, #800–#805, #808, #809, #811) | App code, the fake Public API and tests; the app reaches sessions only through the Public API. No effect. |
+
+### What changed in the verification
+
+- `scripts/verify.mjs`: `20261127120000_workout_sessions_user_started_at_index.sql` joins the reviewed migrations with its complete SHA-256, and the comment says why a nonunique index has no modeled effect. Why: the code changed shape (a new migration names the table), not the promise.
+- `scripts/verify.test.mjs`: a sixth guard scenario, `edited-previous-sets-index`, appends `DROP INDEX public.workout_sessions_one_open_per_user_idx;` to that migration and requires the guard to reject it.
+- `SKILL.md`: the sync commit; the facade row says the start and finish facades read Previous sets (API) and Exercise notes (MCP) before commit, and what a failure there means in the model; `getPreviousSets` / `withPreviousSets` join the read-only row; the reviewed-migrations table gains the new row and a sentence on it; the scenario count; Previous sets correctness joins the excluded list.
+
+### Results
+
+| Check | Outcome and result |
+| --- | --- |
+| One User, three insertion transactions, optional initial orphan | Updated: PASS, 2,360 distinct / 9,401 generated, queue exhausted |
+| Two Users, three insertion transactions, optional initial orphan | Updated: PASS, 2,770 distinct / 12,045 generated, queue exhausted |
+| Extracted actual index, isolated PostgreSQL replay | Updated: PASS |
+| Migration guard regressions | 6 of 6, including the new edited-migration scenario |
+| Scratch migration with `UNIQUE` removed | Expected failure, caught by TLC and Postgres |
+| Scratch migration indexed by `workout_id` | Expected failure, caught by TLC and Postgres |
+| Unmodified source after both mutations | PASS in both TLC configs and SQL |
+| `/statechart` | Run on this run's generated model, each config and `view.mjs` (`TLA2TOOLS` pointed at the runner's cached pinned jar): `OneOpenPerUser` and `NoDeadlock` hold in both. The 2,360 and 2,770 states are over its 500-state chart budget, so it drew no chart. |
+
+The state counts equal the previous validation's, as an unchanged model must give. The new guard scenario shows that pinning the migration did not weaken the guard: an edit that drops the unique index from the pinned file is rejected. The replay-isolation regressions were not rerun, because the SQL runner didn't change.
+
+### Remaining limits
+
+As before. The new facade reads are audited by reading the code only: the runner never reads the TypeScript, and `apps/api/integration/previous-sets.test.ts` is not run by this checker. The pinned migration is checked by its hash, not by what it means: the review above is what says a nonunique index has no effect.
+
+## Previous validation, 2026-11-27
 
 ## Maintenance against current main
 
