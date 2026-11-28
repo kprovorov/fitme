@@ -2,7 +2,7 @@
  * Stand-in for `~/components/ui/dropdown-menu`, whose SwiftUI `Menu` can't
  * mount under Jest: its button (named by its spoken label, or its text
  * label) opens the menu, which shows each item as a `menuitem` named by its
- * label (a `checked` one with `accessibilityState.checked`); pressing one
+ * label (a `checked` one with `accessibilityState.selected`, as VoiceOver reads it); pressing one
  * runs it and closes the menu. The button carries the menu's spoken hint and
  * renders its `children`, as the real button shows them. Use it with
  * `jest.mock("~/components/ui/dropdown-menu", () => jest.requireActual("~/test-utils/dropdown-menu-stub"))`.
@@ -32,7 +32,7 @@ const MenuItem = ({
       accessibilityLabel={item.label}
       accessibilityRole="menuitem"
       accessibilityState={
-        item.checked === undefined ? undefined : { checked: item.checked }
+        item.checked === undefined ? undefined : { selected: item.checked }
       }
       onPress={press}
     />
@@ -65,7 +65,11 @@ export const DropdownMenu = ({
       </Pressable>
       {open
         ? items.map((item) => (
-            <MenuItem item={item} key={item.label} onClose={closeMenu} />
+            <MenuItem
+              item={item}
+              key={item.id ?? item.label}
+              onClose={closeMenu}
+            />
           ))
         : null}
     </View>

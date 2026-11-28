@@ -19,10 +19,13 @@ import {
 interface DropdownMenuItem {
   /**
    * Marks the item as the current choice: the system's checkmark after its
-   * label, and VoiceOver reads it as selected. Leave it out for an action.
+   * label (in place of its `systemImage`), and VoiceOver reads it as
+   * selected. Leave it out for an action.
    */
   checked?: boolean;
   destructive?: boolean;
+  /** Tells items apart when two may share a label; the label without one. */
+  id?: string;
   label: string;
   onPress?: () => void;
   /** Draws a separator above this item. */
@@ -131,10 +134,10 @@ const DropdownMenu = ({
 
           return [
             ...(item.startsSection
-              ? [<Divider key={`${item.label}-divider`} />]
+              ? [<Divider key={`${item.id ?? item.label}-divider`} />]
               : []),
             <SwiftUIButton
-              key={item.label}
+              key={item.id ?? item.label}
               label={item.label}
               modifiers={
                 item.checked

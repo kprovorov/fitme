@@ -219,6 +219,7 @@ jest.mock("expo-router", () => {
         };
       }) => (
         <View>
+          {/* Called as the native header calls it: a plain function. */}
           {options.headerTitle ? (
             options.headerTitle()
           ) : (
@@ -320,7 +321,7 @@ describe.each([
   /** The open menu's items, each as its label and whether it's checked. */
   const menuItems = () =>
     screen.getAllByRole("menuitem").map((item) => ({
-      checked: item.props.accessibilityState?.checked,
+      checked: item.props.accessibilityState?.selected,
       label: item.props.accessibilityLabel,
     }));
 
@@ -338,8 +339,14 @@ describe.each([
   it("shows the current model under the title, which says it opens a menu", async () => {
     await mount();
 
-    expect(screen.getByText("Arnold")).toBeTruthy();
-    expect(screen.getByText(defaultModel.label)).toBeTruthy();
+    // Drawn, but hidden from VoiceOver: the menu button reads both as one.
+    expect(
+      screen.getByText("Arnold", { includeHiddenElements: true })
+    ).toBeTruthy();
+    expect(
+      screen.getByText(defaultModel.label, { includeHiddenElements: true })
+    ).toBeTruthy();
+    expect(screen.queryByText(defaultModel.label)).toBeNull();
     expect(title(defaultModel.label).props.accessibilityHint).toBe(
       copy.chooseModel
     );

@@ -6,6 +6,13 @@ import { DropdownMenu } from "~/components/ui/dropdown-menu";
 import { useSelectedArnoldModel } from "~/hooks/arnold-model";
 
 /**
+ * A navigation bar's title keeps its size whatever the text size, as the
+ * system's own titles do: two lines grown with Dynamic Type would run over
+ * the status bar and the header's buttons.
+ */
+const BAR_TITLE_FONT_SCALE = 1;
+
+/**
  * The Arnold screen's header title with the Arnold redesign on (Figma, the
  * Arnold page's header frames): "Arnold" with the model the next message runs
  * on under it, opening a native menu of the served models with the current
@@ -25,6 +32,7 @@ export const ArnoldTitle = () => {
       <Text
         accessibilityRole="header"
         className="text-headline-emphasized text-foreground"
+        maxFontSizeMultiplier={BAR_TITLE_FONT_SCALE}
       >
         {t("arnold.title")}
       </Text>
@@ -39,17 +47,30 @@ export const ArnoldTitle = () => {
       })}
       items={models.map((candidate) => ({
         checked: candidate.id === model.id,
+        id: candidate.id,
         label: candidate.label,
         onPress: () => setSelectedId(candidate.id),
       }))}
       testID="arnold-title"
     >
-      <View className="items-center">
-        <Text className="text-headline-emphasized text-foreground">
+      {/* The menu button reads the title and the model as one; its
+          drawn text would otherwise be read again on its own. */}
+      <View
+        accessibilityElementsHidden
+        className="items-center"
+        importantForAccessibility="no-hide-descendants"
+      >
+        <Text
+          className="text-headline-emphasized text-foreground"
+          maxFontSizeMultiplier={BAR_TITLE_FONT_SCALE}
+        >
           {t("arnold.title")}
         </Text>
         <View className="flex-row items-center gap-1">
-          <Text className="text-footnote text-muted-foreground">
+          <Text
+            className="text-footnote text-muted-foreground"
+            maxFontSizeMultiplier={BAR_TITLE_FONT_SCALE}
+          >
             {model.label}
           </Text>
           <SymbolImage

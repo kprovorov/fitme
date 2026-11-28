@@ -90,6 +90,12 @@ const getArnoldToken = async () => (await getClerk().session?.getToken()) ?? "";
 const NO_ATTACHMENT_URI = () => undefined;
 
 /**
+ * The redesign's header title. The header calls `headerTitle` as a plain
+ * function, so the title is an element here, with its hooks in its own fiber.
+ */
+const renderArnoldTitle = () => <ArnoldTitle />;
+
+/**
  * Arnold runtime for one User. Their current Conversation is saved per
  * User, so reopening the screen resumes it, an answer still streaming
  * included.
@@ -635,7 +641,7 @@ const ArnoldChat = ({
           headerTransparent: true,
           // The redesign's title shows the model and picks another from a
           // menu, so the right side holds only New Conversation.
-          headerTitle: redesign ? ArnoldTitle : undefined,
+          headerTitle: redesign ? renderArnoldTitle : undefined,
           title: t("arnold.title"),
           unstable_headerRightItems: () => [
             ...(redesign
