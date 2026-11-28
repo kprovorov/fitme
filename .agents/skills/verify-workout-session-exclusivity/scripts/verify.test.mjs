@@ -24,6 +24,8 @@ const unreviewedMigration =
 /** @type {Record<string, string>} */
 const editedMigrations = {
   "edited-policies": "20261124120000_personal_records_write_policies.sql",
+  "edited-previous-sets-index":
+    "20261127120000_workout_sessions_user_started_at_index.sql",
   "edited-progress": "20261101100000_workout_session_progress.sql",
   "edited-records": "20261031130000_personal_records.sql",
 };
