@@ -86,14 +86,18 @@ vi.mock<typeof LibraryModule>(import("../agent/lib/library"), async () => {
   return { getLibrary: () => library.get() };
 });
 
-const { BEST_RESULT_ENTRIES, default: getExerciseHistory } =
+const { default: getExerciseHistory } =
   await import("../agent/tools/get_exercise_history");
+
+const { BEST_RESULT_ENTRIES } = await import("../agent/lib/exercise-history");
 
 const { default: getLifetimeTotals } =
   await import("../agent/tools/get_lifetime_totals");
 
-const { SESSION_PAGE_SIZE, default: getWeeklyGoal } =
+const { default: getWeeklyGoal } =
   await import("../agent/tools/get_weekly_goal");
+
+const { SESSION_PAGE_SIZE } = await import("../agent/lib/weekly-goal");
 
 const tx = { fake: "transaction" };
 
