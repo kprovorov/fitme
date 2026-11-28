@@ -30,6 +30,17 @@ import { Alert } from "react-native";
 import type { AlertButton } from "react-native";
 
 import ArnoldScreen from "~/app/(tabs)/arnold/index";
+import { Toaster } from "~/components/ui/toast";
+import {
+  clearArnoldAttachments,
+  setConversationAttachmentCount,
+} from "~/hooks/arnold-attachments";
+import {
+  pickLibraryPhotos,
+  readAttachmentDataUrl,
+  takePhoto,
+} from "~/lib/arnold-attachment-picker";
+import type { PickedImage } from "~/lib/arnold-attachment-picker";
 import { savedArnoldSessionId } from "~/lib/arnold-chat";
 import { SELECTED_MODEL_KEY } from "~/lib/arnold-model";
 import { setArnoldRedesignEnabled } from "~/lib/feature-flags";
@@ -43,7 +54,7 @@ import {
 import { InAppLanguage } from "~/test-utils/in-app-language";
 import type * as InMemoryFileSystem from "~/test-utils/in-memory-file-system";
 import { createTestQueryClient, settle } from "~/test-utils/query-client";
-import { resetStubRouter } from "~/test-utils/router-stub";
+import { pushedRoutes, resetStubRouter } from "~/test-utils/router-stub";
 
 jest.mock("react-native-keyboard-controller", () =>
   jest.requireActual("react-native-keyboard-controller/jest")
@@ -77,6 +88,12 @@ jest.mock("react-native-reanimated", () => {
     withTiming: <T,>(value: T) => value,
   };
 });
+
+// The toasts' root view only: the real module's native bindings fail
+// against Reanimated mocked as plain values.
+jest.mock("react-native-gesture-handler", () =>
+  jest.requireActual("~/test-utils/gesture-handler-stub")
+);
 
 // The list renders its rows without layout.
 jest.mock("@legendapp/list/react-native", () => {
@@ -274,6 +291,7 @@ const mount = async () => {
     <QueryClientProvider client={queryClient}>
       <InAppLanguage>
         <ArnoldScreen />
+        <Toaster />
       </InAppLanguage>
     </QueryClientProvider>
   );
@@ -288,6 +306,14 @@ beforeEach(() => {
   process.env.EXPO_PUBLIC_ARNOLD_URL = fakeArnold.baseUrl;
   process.env.EXPO_PUBLIC_API_URL = FAKE_PUBLIC_API_URL;
   setArnoldRedesignEnabled(true);
+  clearArnoldAttachments();
+  setConversationAttachmentCount(0);
+  jest.mocked(pickLibraryPhotos).mockReset();
+  jest.mocked(takePhoto).mockReset();
+  jest
+    .mocked(readAttachmentDataUrl)
+    .mockReset()
+    .mockResolvedValue("data:image/jpeg;base64,/9j/AA==");
   jest.spyOn(Alert, "alert").mockReturnValue(undefined).mockClear();
 });
 
@@ -601,5 +627,241 @@ describe("the header with the Arnold redesign off", () => {
 
     expect(alerts()).toEqual([]);
     expect(screen.queryByText(FAKE_ARNOLD_REPLY)).toBeNull();
+  });
+});
+
+describe.each([
+  {
+    addToChat: "Add to chat",
+    cameraDenied: "Camera Access Needed",
+    chooseFromLibrary: "Choose from Library",
+    composer: "Message Arnold",
+    conversationFull:
+      "A conversation can hold 10 photos. Start a new conversation to add more.",
+    device: "en-US",
+    name: "English",
+    openSettings: "Open Settings",
+    perMessageLimit: "You can add up to 4 photos to a message.",
+    pickFailed: "Couldn't add that photo. Try another one.",
+    pickedPhoto: (position: number, total: number) =>
+      `Photo ${position} of ${total}`,
+    send: "Send message",
+    takePhoto: "Take Photo",
+  },
+  {
+    addToChat: "Додати до чату",
+    cameraDenied: "Потрібен доступ до камери",
+    chooseFromLibrary: "Вибрати з бібліотеки",
+    composer: "Повідомлення для Arnold",
+    conversationFull:
+      "У розмові може бути до 10 фото. Почніть нову розмову, щоб додати ще.",
+    device: "uk-UA",
+    name: "Ukrainian",
+    openSettings: "Відкрити Параметри",
+    perMessageLimit: "В одне повідомлення можна додати не більше 4 фото.",
+    pickFailed: "Не вдалося додати це фото. Спробуйте інше.",
+    pickedPhoto: (position: number, total: number) =>
+      `Фото ${position} з ${total}`,
+    send: "Надіслати повідомлення",
+    takePhoto: "Зробити фото",
+  },
+])('the composer\'s "+" menu in $name', (copy) => {
+  beforeEach(() => {
+    setDeviceLanguages([copy.device]);
+  });
+
+  /** A re-encoded JPEG on this device, as the picker answers one. */
+  const photo = (name: string): PickedImage => {
+    const uri = `file:///photos/${name}.jpg`;
+    fileSystem.write(uri, `${name}-bytes`);
+
+    return { height: 1200, uri, width: 1600 };
+  };
+
+  const photos = (prefix: string, count: number) =>
+    Array.from({ length: count }, (_, index) => photo(`${prefix}-${index}`));
+
+  /** Opens the "+" menu, as the User does. */
+  const openMenu = async () => {
+    await userEvent
+      .setup()
+      .press(screen.getByRole("button", { name: copy.addToChat }));
+  };
+
+  const item = (name: string) => screen.getByRole("menuitem", { name });
+
+  /** Opens the menu and presses the item named `name`. */
+  const choose = async (name: string) => {
+    await openMenu();
+    await userEvent.setup().press(item(name));
+    await settle(queryClient);
+  };
+
+  /** The thumbnails picked for the next message, by their spoken names. */
+  const pickedPhotos = () =>
+    screen
+      .queryAllByLabelText(/^(Photo|Фото) \d+ (of|з) \d+$/u)
+      .map((thumbnail) => thumbnail.props.accessibilityLabel);
+
+  /** Sends what's in the composer and waits for Arnold's answer. */
+  const send = async (text: string) => {
+    const user = userEvent.setup();
+    await user.type(screen.getByPlaceholderText(copy.composer), text);
+    await user.press(screen.getByLabelText(copy.send));
+    const turns = fakeArnold.sent.length;
+    await waitFor(() => {
+      expect(screen.getAllByText(FAKE_ARNOLD_REPLY)).toHaveLength(turns);
+    });
+    await settle(queryClient);
+  };
+
+  /** Picks `count` photos from the library and sends them. */
+  const sendPhotos = async (prefix: string, count: number) => {
+    jest
+      .mocked(pickLibraryPhotos)
+      .mockResolvedValueOnce({ failed: 0, images: photos(prefix, count) });
+    await choose(copy.chooseFromLibrary);
+    await send(prefix);
+  };
+
+  it("holds Take Photo and Choose from Library, and opens no sheet", async () => {
+    await mount();
+    await openMenu();
+
+    expect(
+      screen
+        .getAllByRole("menuitem")
+        .map((menuItem) => menuItem.props.accessibilityLabel)
+    ).toEqual([copy.takePhoto, copy.chooseFromLibrary]);
+    expect(pushedRoutes()).toEqual([]);
+  });
+
+  it("adds a photo taken with Take Photo to the composer", async () => {
+    jest
+      .mocked(takePhoto)
+      .mockResolvedValue({ image: photo("gym"), status: "taken" });
+    await mount();
+    await choose(copy.takePhoto);
+
+    expect(takePhoto).toHaveBeenCalledTimes(1);
+    expect(pickedPhotos()).toEqual([copy.pickedPhoto(1, 1)]);
+    expect(pushedRoutes()).toEqual([]);
+  });
+
+  it("adds photos chosen from the library, asking for the slots left", async () => {
+    jest
+      .mocked(pickLibraryPhotos)
+      .mockResolvedValueOnce({ failed: 0, images: photos("a", 1) })
+      .mockResolvedValueOnce({ failed: 0, images: photos("b", 2) });
+    await mount();
+    await choose(copy.chooseFromLibrary);
+    await choose(copy.chooseFromLibrary);
+
+    expect(jest.mocked(pickLibraryPhotos).mock.calls).toEqual([[4], [3]]);
+    expect(pickedPhotos()).toEqual([
+      copy.pickedPhoto(1, 3),
+      copy.pickedPhoto(2, 3),
+      copy.pickedPhoto(3, 3),
+    ]);
+  });
+
+  it("disables both items at the message limit, saying why", async () => {
+    jest
+      .mocked(pickLibraryPhotos)
+      .mockResolvedValue({ failed: 0, images: photos("a", 4) });
+    await mount();
+    await choose(copy.chooseFromLibrary);
+    await openMenu();
+
+    for (const name of [copy.takePhoto, copy.chooseFromLibrary]) {
+      expect(item(name)).toBeDisabled();
+    }
+
+    expect(screen.getAllByText(copy.perMessageLimit)).toHaveLength(2);
+
+    await userEvent.setup().press(item(copy.takePhoto));
+    expect(takePhoto).not.toHaveBeenCalled();
+  });
+
+  it("disables both items at the Conversation limit, naming it, and keeps the notice", async () => {
+    await mount();
+
+    // 4 + 4 + 2 over three turns, one after another: each send waits for
+    // the turn before it.
+    await sendPhotos("first", 4);
+    await sendPhotos("second", 4);
+    await sendPhotos("third", 2);
+
+    // The notice above the composer stays as it is.
+    expect(screen.getByText(copy.conversationFull)).toBeTruthy();
+
+    await openMenu();
+
+    for (const name of [copy.takePhoto, copy.chooseFromLibrary]) {
+      expect(item(name)).toBeDisabled();
+    }
+
+    expect(screen.getAllByText(copy.conversationFull)).toHaveLength(3);
+    expect(screen.queryByText(copy.perMessageLimit)).toBeNull();
+  });
+
+  it("offers Settings when camera access is off for good", async () => {
+    jest.mocked(takePhoto).mockResolvedValue({ status: "denied" });
+    await mount();
+    await choose(copy.takePhoto);
+
+    expect(alerts()).toEqual([
+      [
+        copy.cameraDenied,
+        expect.any(String),
+        [
+          expect.objectContaining({ style: "cancel" }),
+          expect.objectContaining({ text: copy.openSettings }),
+        ],
+      ],
+    ]);
+    expect(pickedPhotos()).toEqual([]);
+  });
+
+  it("says so in a toast when no photo could be read", async () => {
+    jest.mocked(pickLibraryPhotos).mockResolvedValue({ failed: 1, images: [] });
+    jest.mocked(takePhoto).mockRejectedValue(new Error("No camera"));
+    await mount();
+    await choose(copy.chooseFromLibrary);
+
+    expect(screen.getAllByText(copy.pickFailed)).toHaveLength(1);
+
+    await choose(copy.takePhoto);
+
+    expect(screen.getAllByText(copy.pickFailed)).toHaveLength(2);
+    expect(pickedPhotos()).toEqual([]);
+  });
+
+  it("changes nothing when the picker or the camera is cancelled", async () => {
+    jest.mocked(pickLibraryPhotos).mockResolvedValue(null);
+    jest.mocked(takePhoto).mockResolvedValue({ status: "cancelled" });
+    await mount();
+    await choose(copy.chooseFromLibrary);
+    await choose(copy.takePhoto);
+
+    expect(pickedPhotos()).toEqual([]);
+    expect(alerts()).toEqual([]);
+    expect(screen.queryByText(copy.pickFailed)).toBeNull();
+    expect(pushedRoutes()).toEqual([]);
+  });
+});
+
+describe('the composer\'s "+" with the Arnold redesign off', () => {
+  it("opens the Attachments sheet, as today", async () => {
+    setArnoldRedesignEnabled(false);
+    await mount();
+    await userEvent
+      .setup()
+      .press(screen.getByRole("button", { name: "Add to chat" }));
+
+    expect(screen.queryByRole("menuitem")).toBeNull();
+    expect(pushedRoutes()).toEqual([
+      expect.objectContaining({ pathname: "/arnold/attachments" }),
+    ]);
   });
 });
