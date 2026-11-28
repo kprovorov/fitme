@@ -185,6 +185,7 @@ export const plans = pgTable(
     name: text(),
     note: text(),
     place: text(),
+    requestKey: text("request_key"),
     updatedAt: timestamp("updated_at", {
       mode: "string",
       withTimezone: true,
@@ -202,6 +203,13 @@ export const plans = pgTable(
       table.userId.asc().nullsLast().op("text_ops"),
       table.isActive.asc().nullsLast().op("text_ops")
     ),
+    uniqueIndex("plans_user_id_request_key_key")
+      .using(
+        "btree",
+        table.userId.asc().nullsLast().op("text_ops"),
+        table.requestKey.asc().nullsLast().op("text_ops")
+      )
+      .where(sql`(request_key IS NOT NULL)`),
     pgPolicy("plans_all", {
       as: "permissive",
       for: "all",
