@@ -25,6 +25,14 @@ import { openAppSettings } from "~/lib/external-links";
  * says so inside itself, the menu in a toast). A cancelled picker or camera
  * calls neither.
  */
+/**
+ * Whether the User a pick started for is still the one signed in: what comes
+ * back for someone who has since signed out is dropped by the store, and
+ * nothing is said about it to whoever is signed in now.
+ */
+const isStillFor = (startedFor: string | null) =>
+  arnoldAttachmentsOwner() === startedFor;
+
 export const useAddArnoldPhotos = ({
   onAdded,
   onFailed,
@@ -71,14 +79,17 @@ export const useAddArnoldPhotos = ({
         if (picked.images.length > 0) {
           addArnoldAttachments(picked.images, startedFor);
           onAdded?.();
-        } else if (picked.failed > 0) {
+        } else if (picked.failed > 0 && isStillFor(startedFor)) {
           onFailed();
         }
       }
     } catch (error) {
       // The picker itself failed, which is rarer than a photo failing.
       captureException(error);
-      onFailed();
+
+      if (isStillFor(startedFor)) {
+        onFailed();
+      }
     }
 
     setIsPicking(false);
@@ -99,7 +110,7 @@ export const useAddArnoldPhotos = ({
     try {
       const photo = await takePhoto();
 
-      if (photo.status === "denied") {
+      if (photo.status === "denied" && isStillFor(startedFor)) {
         // iOS only asks once, so there is nothing left to tap in the app:
         // the alert takes the User where they can turn it back on.
         Alert.alert(
@@ -123,7 +134,10 @@ export const useAddArnoldPhotos = ({
     } catch (error) {
       // No camera (the simulator), or a photo the re-encoder can't read.
       captureException(error);
-      onFailed();
+
+      if (isStillFor(startedFor)) {
+        onFailed();
+      }
     }
 
     setIsPicking(false);
