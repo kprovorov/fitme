@@ -28,7 +28,7 @@
     "literal-check": "pnpm --filter @fitme/design-tokens literal-check",
     "mcp": "pnpm --filter @fitme/mcp",
     "mobile": "pnpm --filter @fitme/mobile",
-    "prepare": "husky",
+    "prepare": "husky && node scripts/prune-git-hooks.mjs",
     "site": "pnpm --filter @fitme/site",
     "test": "turbo run test",
     "test:hooks": "node --test .claude/hooks/shell-rules.test.mjs",
