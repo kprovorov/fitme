@@ -40,6 +40,7 @@ import {
   PromptInputSubmit,
   PromptInputTextarea,
 } from "@/components/chat";
+import { AddPhotoMenu } from "@/components/chat/add-photo-menu";
 import { ArnoldTitle } from "@/components/chat/arnold-title";
 import { announcedArnoldCardIds } from "@/components/chat/cards/lookup";
 import { SymbolImage } from "@/components/symbol-image";
@@ -733,20 +734,26 @@ const ArnoldChat = ({
         >
           <ConversationScrollButton />
           <PromptInput>
-            <Link asChild href="/arnold/attachments">
-              {/* Disabled once the Conversation is full of photos: the sheet
-                  would have nothing to offer, so the composer says why and
-                  offers a new Conversation instead. */}
-              <PromptInputAction
-                accessibilityLabel={t("arnold.composer.addToChat")}
-                disabled={isConversationFull}
-              >
-                <SymbolImage
-                  className="text-body text-muted-foreground"
-                  name="plus"
-                />
-              </PromptInputAction>
-            </Link>
+            {redesign ? (
+              // The redesign's "+" is a menu that picks at once, and says
+              // inside itself which cap is full rather than going dead.
+              <AddPhotoMenu />
+            ) : (
+              <Link asChild href="/arnold/attachments">
+                {/* Disabled once the Conversation is full of photos: the
+                    sheet would have nothing to offer, so the composer says
+                    why and offers a new Conversation instead. */}
+                <PromptInputAction
+                  accessibilityLabel={t("arnold.composer.addToChat")}
+                  disabled={isConversationFull}
+                >
+                  <SymbolImage
+                    className="text-body text-muted-foreground"
+                    name="plus"
+                  />
+                </PromptInputAction>
+              </Link>
+            )}
             <PromptInputBody>
               <PromptInputTextarea
                 placeholder={t("arnold.composer.placeholder")}

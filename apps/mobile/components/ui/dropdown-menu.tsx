@@ -5,6 +5,7 @@ import {
   Button as SwiftUIButton,
   Image as SwiftUIImage,
   Label as SwiftUILabel,
+  Text as SwiftUIText,
 } from "@expo/ui/swift-ui";
 import * as menuModifiers from "@expo/ui/swift-ui/modifiers";
 import type * as React from "react";
@@ -24,10 +25,17 @@ interface DropdownMenuItem {
    */
   checked?: boolean;
   destructive?: boolean;
+  /** Shown dimmed, and can't be chosen. */
+  disabled?: boolean;
   /** Tells items apart when two may share a label; the label without one. */
   id?: string;
   label: string;
   onPress?: () => void;
+  /**
+   * A second, smaller line under the label, as the system draws one (a
+   * disabled item saying why it is).
+   */
+  subtitle?: string;
   /** Draws a separator above this item. */
   startsSection?: boolean;
   systemImage?: SFSymbol;
@@ -44,6 +52,12 @@ interface DropdownMenuProps {
    */
   children?: React.ReactNode;
   className?: string;
+  /**
+   * Keeps the items in the order given even when the menu opens upward,
+   * where the system otherwise lists them in reverse (so the first sits
+   * nearest the button).
+   */
+  fixedOrder?: boolean;
   /**
    * The icon-only button's color class (`text-primary`); `foreground` without
    * one. Only the button: the items stay the system's.
@@ -64,6 +78,7 @@ const MIN_HIT_TARGET_SIZE = 44;
 const DropdownMenu = ({
   accessibilityHint,
   accessibilityLabel,
+  fixedOrder,
   iconColorClassName,
   items,
   label,
@@ -125,6 +140,7 @@ const DropdownMenu = ({
           ...(accessibilityHint
             ? [menuModifiers.accessibilityHint(accessibilityHint)]
             : []),
+          ...(fixedOrder ? [menuModifiers.menuOrder("fixed")] : []),
         ]}
         onPrimaryAction={onPrimaryAction}
         testID={testID}
@@ -132,22 +148,47 @@ const DropdownMenu = ({
         {items.flatMap((item) => {
           const { onPress: handlePress } = item;
 
+          const itemModifiers = [
+            ...(item.checked
+              ? [menuModifiers.accessibilityAddTraits(["isSelected"])]
+              : []),
+            ...(item.disabled ? [menuModifiers.disabled(true)] : []),
+          ];
+
+          const icon = item.checked ? "checkmark" : item.systemImage;
+
           return [
             ...(item.startsSection
               ? [<Divider key={`${item.id ?? item.label}-divider`} />]
               : []),
-            <SwiftUIButton
-              key={item.id ?? item.label}
-              label={item.label}
-              modifiers={
-                item.checked
-                  ? [menuModifiers.accessibilityAddTraits(["isSelected"])]
-                  : undefined
-              }
-              onPress={handlePress}
-              role={item.destructive ? "destructive" : "default"}
-              systemImage={item.checked ? "checkmark" : item.systemImage}
-            />,
+            item.subtitle ? (
+              // A menu reads a button's label views in order: its first text
+              // as the title, its second as the line under it, and an image
+              // as its icon.
+              <SwiftUIButton
+                key={item.id ?? item.label}
+                modifiers={itemModifiers}
+                onPress={handlePress}
+                role={item.destructive ? "destructive" : "default"}
+              >
+                {[
+                  <SwiftUIText key="title">{item.label}</SwiftUIText>,
+                  <SwiftUIText key="subtitle">{item.subtitle}</SwiftUIText>,
+                  ...(icon
+                    ? [<SwiftUIImage key="icon" systemName={icon} />]
+                    : []),
+                ]}
+              </SwiftUIButton>
+            ) : (
+              <SwiftUIButton
+                key={item.id ?? item.label}
+                label={item.label}
+                modifiers={itemModifiers.length > 0 ? itemModifiers : undefined}
+                onPress={handlePress}
+                role={item.destructive ? "destructive" : "default"}
+                systemImage={icon}
+              />
+            ),
           ];
         })}
       </Menu>

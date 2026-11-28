@@ -77,6 +77,12 @@ jest.mock("react-native-reanimated", () => {
   };
 });
 
+// The toasts' root view only: the real module's native bindings fail
+// against Reanimated mocked as plain values.
+jest.mock("react-native-gesture-handler", () =>
+  jest.requireActual("~/test-utils/gesture-handler-stub")
+);
+
 // The list renders its rows without layout.
 jest.mock("@legendapp/list/react-native", () => {
   const { View } =

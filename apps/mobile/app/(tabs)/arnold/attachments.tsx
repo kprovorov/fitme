@@ -1,9 +1,8 @@
-import { captureException } from "@sentry/react-native";
 import { useRouter } from "expo-router";
 import { useHeaderHeight } from "expo-router/react-navigation";
 import { useCallback, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Alert, Pressable, Text, View } from "react-native";
+import { Pressable, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import type { SFSymbol } from "sf-symbols-typescript";
 import { ScopedVariables } from "uniwind";
@@ -11,16 +10,7 @@ import { ScopedVariables } from "uniwind";
 import { AndroidGrabber } from "@/components/grabber";
 import { SymbolImage } from "@/components/symbol-image";
 import { GLASS_ENABLED } from "~/components/ui/swift-ui";
-import {
-  addArnoldAttachments,
-  arnoldAttachmentsOwner,
-  MAX_ATTACHMENTS_PER_CONVERSATION,
-  MAX_ATTACHMENTS_PER_MESSAGE,
-  useIsConversationFull,
-  useRemainingAttachmentSlots,
-} from "~/hooks/arnold-attachments";
-import { pickLibraryPhotos, takePhoto } from "~/lib/arnold-attachment-picker";
-import { openAppSettings } from "~/lib/external-links";
+import { useAddArnoldPhotos } from "~/hooks/add-arnold-photos";
 import { cn } from "~/lib/utils";
 
 const AttachmentButton = ({
@@ -65,109 +55,16 @@ const AddToChatSheet = () => {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const { t } = useTranslation();
-  const remaining = useRemainingAttachmentSlots();
-  // Nothing more fits: Photos is disabled and says why, so the cap is met
-  // here rather than when the send fails, and no tap goes nowhere. Which cap
-  // it is decides the message, since only one of them has a way out.
-  const isFull = remaining <= 0;
-  const isConversationFull = useIsConversationFull();
-  // While the camera or the system picker is up and what came back is being
-  // re-encoded: either covers the sheet, but a second tap landing beside it
-  // would open another one.
-  const [isPicking, setIsPicking] = useState(false);
   // Shown when nothing the User picked or took could be read: the sheet
   // stays open, so they can try another photo rather than wonder what
   // happened.
   const [hasFailed, setHasFailed] = useState(false);
 
-  // Which cap is full: the Conversation's is the one to say, since it holds
-  // whatever the User does next with this message (ADR 0018).
-  const fullMessage = isConversationFull
-    ? t("arnold.attachments.conversationFull", {
-        count: MAX_ATTACHMENTS_PER_CONVERSATION,
-      })
-    : t("arnold.attachments.perMessageLimit", {
-        count: MAX_ATTACHMENTS_PER_MESSAGE,
-      });
+  const close = useCallback(() => router.back(), [router]);
+  const fail = useCallback(() => setHasFailed(true), []);
 
-  const pickPhotos = useCallback(async () => {
-    // The picker reads 0 as "no limit", so it is never opened without room.
-    if (remaining <= 0) {
-      return;
-    }
-
-    setIsPicking(true);
-    setHasFailed(false);
-    // Read before the await: the picker and the re-encoding take a while,
-    // and the store drops what comes back for a User who has signed out.
-    const startedFor = arnoldAttachmentsOwner();
-
-    try {
-      const picked = await pickLibraryPhotos(remaining);
-
-      // Cancelled: nothing picked, nothing to show, the sheet stays open.
-      if (picked) {
-        if (picked.images.length > 0) {
-          addArnoldAttachments(picked.images, startedFor);
-          router.back();
-        } else {
-          setHasFailed(picked.failed > 0);
-        }
-      }
-    } catch (error) {
-      // The picker itself failed, which is rarer than a photo failing.
-      captureException(error);
-      setHasFailed(true);
-    }
-
-    setIsPicking(false);
-  }, [remaining, router]);
-
-  const openCamera = useCallback(async () => {
-    // Never opened without room, so a photo is never taken for nothing.
-    if (remaining <= 0) {
-      return;
-    }
-
-    setIsPicking(true);
-    setHasFailed(false);
-    // Read before the await, as the picker does: taking a photo takes a
-    // while, and the store drops what comes back for a User who has since
-    // signed out.
-    const startedFor = arnoldAttachmentsOwner();
-
-    try {
-      const photo = await takePhoto();
-
-      if (photo.status === "denied") {
-        // iOS only asks once, so there is nothing left to tap in the app:
-        // the alert takes the User where they can turn it back on.
-        Alert.alert(
-          t("arnold.attachments.cameraDenied.title"),
-          t("arnold.attachments.cameraDenied.message"),
-          [
-            { style: "cancel", text: t("common.cancel") },
-            {
-              onPress: () => {
-                void openAppSettings();
-              },
-              text: t("arnold.attachments.cameraDenied.openSettings"),
-            },
-          ]
-        );
-      } else if (photo.status === "taken") {
-        addArnoldAttachments([photo.image], startedFor);
-        router.back();
-      }
-      // Cancelled: nothing taken, so the sheet stays open as it was.
-    } catch (error) {
-      // No camera (the simulator), or a photo the re-encoder can't read.
-      captureException(error);
-      setHasFailed(true);
-    }
-
-    setIsPicking(false);
-  }, [remaining, router, t]);
+  const { fullMessage, isFull, isPicking, openCamera, pickPhotos } =
+    useAddArnoldPhotos({ onAdded: close, onFailed: fail });
 
   return (
     <ScopedVariables
@@ -190,16 +87,18 @@ const AddToChatSheet = () => {
               disabled={isPicking || isFull}
               icon="camera"
               label={t("arnold.attachments.camera")}
-              onPress={(...args) => {
-                void openCamera(...args);
+              onPress={() => {
+                setHasFailed(false);
+                void openCamera();
               }}
             />
             <AttachmentButton
               disabled={isPicking || isFull}
               icon="photo"
               label={t("arnold.attachments.photos")}
-              onPress={(...args) => {
-                void pickPhotos(...args);
+              onPress={() => {
+                setHasFailed(false);
+                void pickPhotos();
               }}
             />
           </View>

@@ -125,6 +125,12 @@ jest.mock("react-native-reanimated", () => {
   };
 });
 
+// The toasts' root view only: the real module's native bindings fail
+// against Reanimated mocked as plain values.
+jest.mock("react-native-gesture-handler", () =>
+  jest.requireActual("~/test-utils/gesture-handler-stub")
+);
+
 // The list renders its rows and footer (the empty state) without layout. It
 // keeps the list's `keyboardShouldPersistTaps` on its root, since Jest has no
 // keyboard to swallow a tap with.

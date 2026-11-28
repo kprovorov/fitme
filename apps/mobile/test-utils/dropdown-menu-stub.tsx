@@ -2,13 +2,15 @@
  * Stand-in for `~/components/ui/dropdown-menu`, whose SwiftUI `Menu` can't
  * mount under Jest: its button (named by its spoken label, or its text
  * label) opens the menu, which shows each item as a `menuitem` named by its
- * label (a `checked` one with `accessibilityState.selected`, as VoiceOver reads it); pressing one
- * runs it and closes the menu. The button carries the menu's spoken hint and
+ * label (a `checked` one with `accessibilityState.selected`, as VoiceOver reads it, a `disabled` one
+ * disabled and impossible to press, and a `subtitle` as the item's text); pressing one runs it and
+ * closes the menu. The button carries the menu's spoken hint and
  * renders its `children`, as the real button shows them. Use it with
  * `jest.mock("~/components/ui/dropdown-menu", () => jest.requireActual("~/test-utils/dropdown-menu-stub"))`.
  */
 import { useCallback, useState } from "react";
-import { Pressable, View } from "react-native";
+import { Pressable, Text, View } from "react-native";
+import type { AccessibilityState } from "react-native";
 
 import type {
   DropdownMenuItem,
@@ -27,15 +29,26 @@ const MenuItem = ({
     item.onPress?.();
   }, [item, onClose]);
 
+  const state: AccessibilityState = {};
+
+  if (item.checked !== undefined) {
+    state.selected = item.checked;
+  }
+
+  if (item.disabled) {
+    state.disabled = true;
+  }
+
   return (
     <Pressable
       accessibilityLabel={item.label}
       accessibilityRole="menuitem"
-      accessibilityState={
-        item.checked === undefined ? undefined : { selected: item.checked }
-      }
+      accessibilityState={state}
+      disabled={item.disabled}
       onPress={press}
-    />
+    >
+      {item.subtitle ? <Text>{item.subtitle}</Text> : null}
+    </Pressable>
   );
 };
 
