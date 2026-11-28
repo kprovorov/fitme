@@ -190,21 +190,30 @@ export const toPlanProposal = (input: PlanProposalInput): PlanProposal => ({
 });
 
 /**
- * A new Plan's input as `createPlan` takes it (checked first, so it has its
- * name and frequency), each Workout with the Cover picked for it.
+ * A new Plan's input as `createPlan` takes it, each Workout with the Cover
+ * picked for it. Throws without a name or a frequency, which the check
+ * refuses first.
  */
 export const toNewPlan = (
   input: PlanProposalInput,
   covers: readonly (string | null)[]
 ): NewPlan => {
   const details = input.details ?? {};
+  const { frequency, name } = details;
+
+  // Never a default: a Plan without either is refused, not made up
+  if (name === undefined || frequency === undefined) {
+    throw new Error(
+      "Nothing was saved: a new plan needs details.name and details.frequency."
+    );
+  }
 
   return {
     description: details.description ?? "",
     experience_level: details.experience_level ?? null,
-    frequency: details.frequency ?? MIN_FREQUENCY,
+    frequency,
     goal: details.goal ?? null,
-    name: details.name ?? "",
+    name,
     note: noteOf(details.note) ?? null,
     place: details.place ?? null,
     workout_duration: details.workout_duration ?? null,
@@ -520,7 +529,7 @@ const checkNewPlan = async (
 ): Promise<string | null> => {
   if (
     input.plan_version !== undefined ||
-    input.removed_workout_ids !== undefined
+    (input.removed_workout_ids ?? []).length > 0
   ) {
     return "A new plan has no plan_version or removed_workout_ids. To change an existing plan, pass its plan_id with them; for a new one, leave all three out.";
   }

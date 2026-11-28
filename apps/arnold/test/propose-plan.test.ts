@@ -909,6 +909,20 @@ describe("propose_plan", () => {
       ).toContain(PUSH_ID);
     });
 
+    it("holds a new Plan sent with an empty removal list", async () => {
+      await expect(
+        check({ ...newPlan(), removed_workout_ids: [] })
+      ).resolves.toBe("user-approval");
+    });
+
+    it("never creates a Plan without a name or a frequency", async () => {
+      await expect(
+        freshTool().execute({ ...newPlan(), details: undefined }, alice)
+      ).rejects.toThrow("Nothing was saved");
+
+      expect(plans.createPlan).not.toHaveBeenCalled();
+    });
+
     it("refuses with a retry reason when the index can't load", async () => {
       testLibraryIndex.reset({ loads: "fail" });
 
