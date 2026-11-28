@@ -41,6 +41,7 @@ export const contextFor = (
 
 interface ClientContext {
   language: string;
+  timeZone?: string;
 }
 
 /**
