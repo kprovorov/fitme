@@ -868,14 +868,11 @@
   "plans": {
     "title": "Mijn schema's",
     "create": "Trainingsschema maken",
-    "createNew": "Nieuw trainingsschema maken",
     "frequency_one": "{{count, number}}× per week",
     "frequency_other": "{{count, number}}× per week",
-    "manage": "Beheren",
     "edit": "Schema bewerken",
     "goBack": "Terug",
     "loadError": "Dit schema kon niet worden geladen. Controleer je verbinding en probeer het opnieuw.",
-    "listLoadError": "Je schema's konden niet worden geladen. Controleer je verbinding en probeer het opnieuw.",
     "activePlan": "Actief schema",
     "activate": {
       "action": "Schema activeren",
@@ -883,14 +880,6 @@
       "message": "Hiermee deactiveer je je huidige schema",
       "confirm": "Activeren",
       "failed": "Schema activeren mislukt"
-    },
-    "archive": {
-      "action": "Archiveren",
-      "title": "Schema archiveren",
-      "activePlan": "Je kunt een actief schema niet archiveren. Je moet altijd minstens één actief schema hebben.",
-      "message": "Weet je zeker dat je dit schema wilt archiveren?",
-      "confirm": "Archiveren",
-      "failed": "Schema archiveren mislukt"
     },
     "errors": {
       "notFound": "Dit schema bestaat niet meer.",
@@ -904,10 +893,6 @@
     "loading": "Schema's laden",
     "loadingPlan": "Schema laden",
     "more": "+{{count, number}}",
-    "moreWorkoutsSpoken_one": "en nog {{count, number}} training",
-    "moreWorkoutsSpoken_other": "en nog {{count, number}} trainingen",
-    "moreExercisesSpoken_one": "en nog {{count, number}} oefening",
-    "moreExercisesSpoken_other": "en nog {{count, number}} oefeningen",
     "noActivePlan": {
       "title": "Geen actief schema",
       "message": "Kies een schema en activeer het om te beginnen met trainen."
@@ -1254,11 +1239,8 @@
     "changeEmailTitle": "Bevestig je nieuwe e-mailadres"
   },
   "workoutCard": {
-    "exercises_one": "{{count, number}} oefening",
-    "exercises_other": "{{count, number}} oefeningen",
     "toWorkout": "Naar training",
-    "openHint": "Opent de training",
-    "openInProgressHint": "Opent de lopende training"
+    "openHint": "Opent de training"
   },
   "workoutSession": {
     "finish": "Afronden",

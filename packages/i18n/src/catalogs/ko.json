@@ -841,13 +841,10 @@
   "plans": {
     "title": "내 계획",
     "create": "운동 계획 만들기",
-    "createNew": "새 운동 계획 만들기",
     "frequency_other": "주 {{count, number}}회",
-    "manage": "관리",
     "edit": "계획 편집",
     "goBack": "뒤로",
     "loadError": "이 계획을 불러오지 못했어요. 연결 상태를 확인하고 다시 시도해 주세요.",
-    "listLoadError": "계획을 불러오지 못했어요. 연결 상태를 확인하고 다시 시도해 주세요.",
     "activePlan": "활성 계획",
     "activate": {
       "action": "계획 활성화",
@@ -855,14 +852,6 @@
       "message": "현재 계획이 비활성화돼요",
       "confirm": "활성화",
       "failed": "계획을 활성화하지 못했어요"
-    },
-    "archive": {
-      "action": "보관",
-      "title": "계획 보관",
-      "activePlan": "활성화된 계획은 보관할 수 없어요. 항상 하나 이상의 활성 계획이 있어야 해요.",
-      "message": "이 계획을 보관할까요?",
-      "confirm": "보관",
-      "failed": "계획을 보관하지 못했어요"
     },
     "errors": {
       "notFound": "이 계획은 더 이상 존재하지 않아요.",
@@ -876,8 +865,6 @@
     "loading": "계획을 불러오는 중",
     "loadingPlan": "계획을 불러오는 중",
     "more": "+{{count, number}}",
-    "moreWorkoutsSpoken_other": "외 운동 {{count, number}}개",
-    "moreExercisesSpoken_other": "외 종목 {{count, number}}개",
     "noActivePlan": {
       "title": "활성 계획 없음",
       "message": "계획을 골라 활성화하면 운동을 시작할 수 있어요."
@@ -1210,10 +1197,8 @@
     "changeEmailTitle": "새 이메일 확인"
   },
   "workoutCard": {
-    "exercises_other": "{{count, number}}개 종목",
     "toWorkout": "운동으로 이동",
-    "openHint": "운동을 엽니다",
-    "openInProgressHint": "진행 중인 운동을 엽니다"
+    "openHint": "운동을 엽니다"
   },
   "workoutSession": {
     "finish": "마치기",

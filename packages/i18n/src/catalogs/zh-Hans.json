@@ -841,13 +841,10 @@
   "plans": {
     "title": "我的计划",
     "create": "创建训练计划",
-    "createNew": "创建新训练计划",
     "frequency_other": "每周{{count, number}}次",
-    "manage": "管理",
     "edit": "编辑计划",
     "goBack": "返回",
     "loadError": "无法加载此计划。请检查网络连接后重试。",
-    "listLoadError": "无法加载你的计划。请检查网络连接后重试。",
     "activePlan": "使用中的计划",
     "activate": {
       "action": "启用计划",
@@ -855,14 +852,6 @@
       "message": "此操作会停用你当前的计划",
       "confirm": "启用",
       "failed": "无法启用计划"
-    },
-    "archive": {
-      "action": "归档",
-      "title": "归档计划",
-      "activePlan": "无法归档正在使用的计划。你需要始终保留至少一个启用的计划。",
-      "message": "确定要归档此计划吗？",
-      "confirm": "归档",
-      "failed": "无法归档计划"
     },
     "errors": {
       "notFound": "此计划已不存在。",
@@ -876,8 +865,6 @@
     "loading": "正在加载计划",
     "loadingPlan": "正在加载计划",
     "more": "+{{count, number}}",
-    "moreWorkoutsSpoken_other": "以及另外{{count, number}}项训练",
-    "moreExercisesSpoken_other": "以及另外{{count, number}}个动作",
     "noActivePlan": {
       "title": "没有使用中的计划",
       "message": "选择一个计划并启用它，即可开始训练。"
@@ -1210,10 +1197,8 @@
     "changeEmailTitle": "确认你的新邮箱"
   },
   "workoutCard": {
-    "exercises_other": "{{count, number}}个动作",
     "toWorkout": "前往训练",
-    "openHint": "打开训练",
-    "openInProgressHint": "打开正在进行的训练"
+    "openHint": "打开训练"
   },
   "workoutSession": {
     "finish": "结束",

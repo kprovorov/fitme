@@ -895,15 +895,12 @@
   "plans": {
     "title": "Els meus plans",
     "create": "Crea un pla d'entrenament",
-    "createNew": "Crea un pla d'entrenament nou",
     "frequency_one": "{{count, number}}× per setmana",
     "frequency_other": "{{count, number}}× per setmana",
     "frequency_many": "{{count, number}}× per setmana",
-    "manage": "Gestiona",
     "edit": "Edita el pla",
     "goBack": "Torna enrere",
     "loadError": "No s'ha pogut carregar aquest pla. Comprova la connexió i torna-ho a provar.",
-    "listLoadError": "No s'han pogut carregar els teus plans. Comprova la connexió i torna-ho a provar.",
     "activePlan": "Pla actiu",
     "activate": {
       "action": "Activa el pla",
@@ -911,14 +908,6 @@
       "message": "Això desactivarà el pla actual",
       "confirm": "Activa",
       "failed": "No s'ha pogut activar el pla"
-    },
-    "archive": {
-      "action": "Arxiva",
-      "title": "Arxiva el pla",
-      "activePlan": "No pots arxivar un pla actiu. Has de tenir com a mínim un pla actiu en tot moment.",
-      "message": "Vols arxivar aquest pla?",
-      "confirm": "Arxiva",
-      "failed": "No s'ha pogut arxivar el pla"
     },
     "errors": {
       "notFound": "Aquest pla ja no existeix.",
@@ -932,12 +921,6 @@
     "loading": "Carregant els plans",
     "loadingPlan": "Carregant el pla",
     "more": "+{{count, number}}",
-    "moreWorkoutsSpoken_one": "i {{count, number}} entrenament més",
-    "moreWorkoutsSpoken_many": "i {{count, number}} entrenaments més",
-    "moreWorkoutsSpoken_other": "i {{count, number}} entrenaments més",
-    "moreExercisesSpoken_one": "i {{count, number}} exercici més",
-    "moreExercisesSpoken_many": "i {{count, number}} exercicis més",
-    "moreExercisesSpoken_other": "i {{count, number}} exercicis més",
     "noActivePlan": {
       "title": "Cap pla actiu",
       "message": "Tria un pla i activa'l per començar a entrenar."
@@ -1298,12 +1281,8 @@
     "changeEmailTitle": "Confirma el correu nou"
   },
   "workoutCard": {
-    "exercises_one": "{{count, number}} exercici",
-    "exercises_other": "{{count, number}} exercicis",
-    "exercises_many": "{{count, number}} exercicis",
     "toWorkout": "Ves a l'entrenament",
-    "openHint": "Obre l'entrenament",
-    "openInProgressHint": "Obre l'entrenament en curs"
+    "openHint": "Obre l'entrenament"
   },
   "workoutSession": {
     "finish": "Acaba",

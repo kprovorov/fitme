@@ -922,16 +922,13 @@
   "plans": {
     "title": "Moje plany",
     "create": "Utwórz plan treningowy",
-    "createNew": "Utwórz nowy plan treningowy",
     "frequency_one": "{{count, number}}× w tygodniu",
     "frequency_few": "{{count, number}}× w tygodniu",
     "frequency_many": "{{count, number}}× w tygodniu",
     "frequency_other": "{{count, number}}× w tygodniu",
-    "manage": "Zarządzaj",
     "edit": "Edytuj plan",
     "goBack": "Wróć",
     "loadError": "Nie udało się wczytać tego planu. Sprawdź połączenie i spróbuj ponownie.",
-    "listLoadError": "Nie udało się wczytać twoich planów. Sprawdź połączenie i spróbuj ponownie.",
     "activePlan": "Aktywny plan",
     "activate": {
       "action": "Aktywuj plan",
@@ -939,14 +936,6 @@
       "message": "Spowoduje to dezaktywację bieżącego planu",
       "confirm": "Aktywuj",
       "failed": "Nie udało się aktywować planu"
-    },
-    "archive": {
-      "action": "Archiwizuj",
-      "title": "Archiwizuj plan",
-      "activePlan": "Nie możesz zarchiwizować aktywnego planu. Zawsze musisz mieć co najmniej jeden aktywny plan.",
-      "message": "Czy na pewno chcesz zarchiwizować ten plan?",
-      "confirm": "Archiwizuj",
-      "failed": "Nie udało się zarchiwizować planu"
     },
     "errors": {
       "notFound": "Ten plan już nie istnieje.",
@@ -960,14 +949,6 @@
     "loading": "Wczytywanie planów",
     "loadingPlan": "Wczytywanie planu",
     "more": "+{{count, number}}",
-    "moreWorkoutsSpoken_one": "i jeszcze {{count, number}} trening",
-    "moreWorkoutsSpoken_few": "i jeszcze {{count, number}} treningi",
-    "moreWorkoutsSpoken_many": "i jeszcze {{count, number}} treningów",
-    "moreWorkoutsSpoken_other": "i jeszcze {{count, number}} treningu",
-    "moreExercisesSpoken_one": "i jeszcze {{count, number}} ćwiczenie",
-    "moreExercisesSpoken_few": "i jeszcze {{count, number}} ćwiczenia",
-    "moreExercisesSpoken_many": "i jeszcze {{count, number}} ćwiczeń",
-    "moreExercisesSpoken_other": "i jeszcze {{count, number}} ćwiczenia",
     "noActivePlan": {
       "title": "Brak aktywnego planu",
       "message": "Wybierz plan i aktywuj go, aby zacząć trenować."
@@ -1342,13 +1323,8 @@
     "changeEmailTitle": "Potwierdź nowy e-mail"
   },
   "workoutCard": {
-    "exercises_one": "{{count, number}} ćwiczenie",
-    "exercises_few": "{{count, number}} ćwiczenia",
-    "exercises_many": "{{count, number}} ćwiczeń",
-    "exercises_other": "{{count, number}} ćwiczenia",
     "toWorkout": "Do treningu",
-    "openHint": "Otwiera trening",
-    "openInProgressHint": "Otwiera trwający trening"
+    "openHint": "Otwiera trening"
   },
   "workoutSession": {
     "finish": "Zakończ",

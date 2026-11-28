@@ -841,13 +841,10 @@
   "plans": {
     "title": "マイプラン",
     "create": "ワークアウトプランを作成",
-    "createNew": "新しいワークアウトプランを作成",
     "frequency_other": "週{{count, number}}回",
-    "manage": "管理",
     "edit": "プランを編集",
     "goBack": "戻る",
     "loadError": "このプランを読み込めませんでした。接続を確認して、もう一度お試しください。",
-    "listLoadError": "プランを読み込めませんでした。接続を確認して、もう一度お試しください。",
     "activePlan": "使用中のプラン",
     "activate": {
       "action": "プランを有効にする",
@@ -855,14 +852,6 @@
       "message": "現在のプランは無効になります",
       "confirm": "有効にする",
       "failed": "プランを有効にできませんでした"
-    },
-    "archive": {
-      "action": "アーカイブ",
-      "title": "プランをアーカイブ",
-      "activePlan": "有効なプランはアーカイブできません。常に1つ以上のプランを有効にしておく必要があります。",
-      "message": "このプランをアーカイブしますか？",
-      "confirm": "アーカイブ",
-      "failed": "プランをアーカイブできませんでした"
     },
     "errors": {
       "notFound": "このプランは存在しません。",
@@ -876,8 +865,6 @@
     "loading": "プランを読み込み中",
     "loadingPlan": "プランを読み込み中",
     "more": "+{{count, number}}",
-    "moreWorkoutsSpoken_other": "ほか{{count, number}}ワークアウト",
-    "moreExercisesSpoken_other": "ほか{{count, number}}種目",
     "noActivePlan": {
       "title": "使用中のプランがありません",
       "message": "プランを選んで有効にすると、トレーニングを始められます。"
@@ -1210,10 +1197,8 @@
     "changeEmailTitle": "新しいメールアドレスを確認"
   },
   "workoutCard": {
-    "exercises_other": "{{count, number}}種目",
     "toWorkout": "ワークアウトへ",
-    "openHint": "ワークアウトを開きます",
-    "openInProgressHint": "実施中のワークアウトを開きます"
+    "openHint": "ワークアウトを開きます"
   },
   "workoutSession": {
     "finish": "終了",
