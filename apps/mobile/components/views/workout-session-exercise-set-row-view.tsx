@@ -443,7 +443,8 @@ const WorkoutSessionExerciseSetRowView = ({
   const i18n = useI18n();
   const queryClient = useQueryClient();
   const isNewSet = workoutSessionExerciseSet === null;
-  const pendingSetData = useRef<{ weight: number; reps: number } | null>(null);
+  // A submitted save to send `Set Tracked` for once it lands.
+  const isTrackPending = useRef(false);
   // Reps of the set when it was submitted, before the save: the query may
   // have refetched by the time the save succeeds.
   const previousRepsCompleted = useRef<number | null>(null);
@@ -475,13 +476,9 @@ const WorkoutSessionExerciseSetRowView = ({
     useSetSaveError(exerciseId, workoutSessionExerciseSet, sessionId);
 
   const trackSetCompleted = () => {
-    if (pendingSetData.current) {
-      void analytics.send("Set Tracked", {
-        exercise_id: exerciseId,
-        reps: pendingSetData.current.reps,
-        weight: pendingSetData.current.weight,
-      });
-      pendingSetData.current = null;
+    if (isTrackPending.current) {
+      void analytics.send("Set Tracked", { exercise_id: exerciseId });
+      isTrackPending.current = false;
     }
   };
 
@@ -546,10 +543,7 @@ const WorkoutSessionExerciseSetRowView = ({
 
     const reps_completed = values.reps ?? repsCompleted ?? repsRecommended;
 
-    pendingSetData.current = {
-      reps: reps_completed,
-      weight: weight_completed,
-    };
+    isTrackPending.current = true;
     previousRepsCompleted.current = repsCompleted;
 
     if (isNewSet) {

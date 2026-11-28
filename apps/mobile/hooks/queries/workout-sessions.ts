@@ -109,22 +109,32 @@ export interface CreateWorkoutSessionVariables {
 }
 
 /**
+ * The Workout Session a start answered, and whether it's a new one (201)
+ * rather than the Workout's open one resumed (200).
+ */
+export interface StartedWorkoutSession {
+  isNew: boolean;
+  session: WorkoutSession;
+}
+
+/**
  * Starts a Workout through `POST /v1/workout-sessions`, or resumes the
  * Workout Session already open for it (the API answers 200 instead of 201,
- * handled alike), and answers the session in full; `useStartWorkout` shows
- * it as the session's read, for the User who started it (its own `onMutate`
- * remembers them, so a caller passes none). Rejects with an `ApiError`.
+ * told apart by `isNew`), and answers the session in full; `useStartWorkout`
+ * shows it as the session's read, for the User who started it (its own
+ * `onMutate` remembers them, so a caller passes none). Rejects with an
+ * `ApiError`.
  */
 export const useCreateWorkoutSessionMutation = createMutation<
-  WorkoutSession,
+  StartedWorkoutSession,
   CreateWorkoutSessionVariables,
   Error,
   WriteStarter
 >({
   mutationFn: async ({
     workoutId,
-  }: CreateWorkoutSessionVariables): Promise<WorkoutSession> => {
-    const { data } = await publicApi().POST("/v1/workout-sessions", {
+  }: CreateWorkoutSessionVariables): Promise<StartedWorkoutSession> => {
+    const { data, response } = await publicApi().POST("/v1/workout-sessions", {
       body: { workout_id: workoutId },
     });
 
@@ -132,7 +142,7 @@ export const useCreateWorkoutSessionMutation = createMutation<
       throw new ApiError("Public API answered without a Workout Session");
     }
 
-    return data.data;
+    return { isNew: response.status === 201, session: data.data };
   },
   // Which session it answers isn't known yet: every Workout Session read
   // shown now is remembered, so a resumed one seeds only over what it showed.
@@ -252,23 +262,29 @@ export interface FinishWorkoutSessionVariables {
 
 export const FINISH_WORKOUT_SESSION_MUTATION_KEY = ["finish-workout-session"];
 
+/** The finished Workout Session, and whether it already was (a repeat). */
+export interface FinishedWorkoutSession {
+  alreadyFinished: boolean;
+  session: WorkoutSession;
+}
+
 /**
  * Finishes a Workout Session through `POST /v1/workout-sessions/{id}/finish`,
  * which moves its Workout to the end of the Plan's rotation, and answers the
  * finished session in full; `useFinishWorkoutSession` shows it as the
  * session's read, for the User who started it (its own `onMutate` remembers
  * them, so a caller passes none). An already finished one (a retry, a double
- * tap) is a success. Rejects with an `ApiError`.
+ * tap) is a success, with `alreadyFinished`. Rejects with an `ApiError`.
  */
 export const useFinishWorkoutSessionMutation = createMutation<
-  WorkoutSession,
+  FinishedWorkoutSession,
   FinishWorkoutSessionVariables,
   Error,
   WriteStarter
 >({
   mutationFn: async ({
     sessionId,
-  }: FinishWorkoutSessionVariables): Promise<WorkoutSession> => {
+  }: FinishWorkoutSessionVariables): Promise<FinishedWorkoutSession> => {
     const { data } = await publicApi().POST(
       "/v1/workout-sessions/{id}/finish",
       { params: { path: { id: sessionId } } }
@@ -278,7 +294,7 @@ export const useFinishWorkoutSessionMutation = createMutation<
       throw new ApiError("Public API answered without a Workout Session");
     }
 
-    return data.data;
+    return { alreadyFinished: data.already_finished, session: data.data };
   },
   mutationKey: FINISH_WORKOUT_SESSION_MUTATION_KEY,
   onMutate: ({ sessionId }, { client }) =>

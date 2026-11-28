@@ -115,8 +115,10 @@ jest.mock("~/hooks/queries/workout-sessions", () => {
         mockPlanUpdate(sessionId, { apply: true }),
     }),
     useFinishWorkoutSessionMutation: createMutation({
-      mutationFn: (variables: { sessionId: string }) =>
-        mockFinishRpc(variables),
+      mutationFn: async (variables: { sessionId: string }) => ({
+        alreadyFinished: false,
+        session: await mockFinishRpc(variables),
+      }),
       mutationKey: FINISH_WORKOUT_SESSION_MUTATION_KEY,
       onMutate: (
         { sessionId }: { sessionId: string },
@@ -528,7 +530,10 @@ describe("useFinishWorkoutSession", () => {
         apply: false,
       });
       expect(screen.queryByText("Update your plan?")).toBeNull();
-      expect(sentAnalytics.events()).toEqual([]);
+      // The finish itself, and no Plan Update event.
+      expect(sentAnalytics.events()).toEqual([
+        { name: "Workout Completed", properties: {} },
+      ]);
     });
 
     it("asks after the finish has committed, with one line per change, Exercises by their Library names", async () => {

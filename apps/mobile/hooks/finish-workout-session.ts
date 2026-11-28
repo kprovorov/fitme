@@ -27,7 +27,7 @@ import type {
   DiscardSource,
   WorkoutSession,
 } from "~/hooks/queries/workout-sessions";
-import { analytics } from "~/lib/analytics";
+import { analytics, workoutSessionProperties } from "~/lib/analytics";
 import { i18n } from "~/lib/i18n";
 import {
   countPlanChanges,
@@ -233,7 +233,15 @@ export const useFinishWorkoutSession = (
     // Signed out (or another User signed in) before the answer, or at any
     // step after it: the rest is the previous User's, so it neither shows,
     // nor reads, nor opens anything.
-    onSuccess: async (session, _variables, starter) => {
+    onSuccess: async ({ alreadyFinished, session }, _variables, starter) => {
+      // A repeat finish was counted by the one that landed.
+      if (!alreadyFinished && isStillWriteStarter(starter)) {
+        void analytics.send(
+          "Workout Completed",
+          workoutSessionProperties(session)
+        );
+      }
+
       // Every screen of it (the Summary included) shows the answer, with no
       // re-read (or reads it again, when a newer read landed meanwhile), and
       // the reads it changed are read again.

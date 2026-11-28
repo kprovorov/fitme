@@ -1692,7 +1692,13 @@ describe("the Plan Update after finishing a Workout Session opened from Home", (
       "home",
       "summary",
     ]);
-    expect(sentAnalytics.events()).toEqual([]);
+    // The finish itself, and no Plan Update event.
+    expect(sentAnalytics.events()).toEqual([
+      {
+        name: "Workout Completed",
+        properties: { plan_id: "plan-1", workout_id: "w1" },
+      },
+    ]);
   });
 
   it("asks with every change, Exercises by their Library names, after the finish", async () => {
@@ -1926,7 +1932,13 @@ describe("the Plan Update after finishing a Workout Session opened from Home", (
       "home",
       "summary",
     ]);
-    expect(sentAnalytics.events()).toEqual([]);
+    // The finish itself, and no Plan Update event.
+    expect(sentAnalytics.events()).toEqual([
+      {
+        name: "Workout Completed",
+        properties: { plan_id: "plan-1", workout_id: "w1" },
+      },
+    ]);
   });
 
   describe("with a removed set", () => {
