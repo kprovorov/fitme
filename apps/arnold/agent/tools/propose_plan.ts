@@ -7,6 +7,7 @@ import type { ApprovalContext } from "eve/tools/approval";
 
 import { loadCoverPicker } from "../lib/covers";
 import type { CoverPicker } from "../lib/covers";
+import { isEvalRunnerTurn, isLocalEvalRun } from "../lib/eval-runner";
 import { ownerOfTurn, requireConversationOwner } from "../lib/owner";
 import {
   checkPlanProposal,
@@ -98,6 +99,12 @@ export const createProposePlan = () => {
 
         if (firstCallId !== callId) {
           return { reason: ONE_PROPOSAL_PER_STEP, type: "denied" };
+        }
+
+        // A local `eve eval` turn has no User to check the Plan against, and
+        // its stubs stand in for the save: the proposal waits for the eval
+        if (isEvalRunnerTurn(session.auth) && isLocalEvalRun()) {
+          return "user-approval";
         }
 
         const userId = ownerOfTurn(session.auth);
