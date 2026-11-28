@@ -31,6 +31,7 @@ import {
   ChatProvider,
   Conversation,
   ConversationEmptyState,
+  ConversationStarters,
   ConversationScrollButton,
   createStreamingStore,
   messageText,
@@ -460,13 +461,13 @@ const useArnoldChat = (userId: string, composer: Composer) => {
     [aui, composer, userId]
   );
 
-  const onSend = useCallback(
-    (attachments: readonly ArnoldAttachment[] = []) => {
-      const text = input.trim();
-
+  // Sends `text` with the picked photos, as Send does: the composer's text,
+  // or a starter prompt's, which goes out exactly as if it had been typed.
+  const sendText = useCallback(
+    (text: string, attachments: readonly ArnoldAttachment[] = []): boolean => {
       // Photos alone are a message: "what is this machine?" can be a photo.
       if ((!text && attachments.length === 0) || isBusy) {
-        return;
+        return false;
       }
 
       // The Conversation's cap is the app's alone to keep (ADR 0018), so no
@@ -477,17 +478,27 @@ const useArnoldChat = (userId: string, composer: Composer) => {
         attachments.length > 0 &&
         !conversationHasRoomFor(attachments.length)
       ) {
-        return;
+        return false;
       }
 
       void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
       // Cleared before the files are read, so a second press finds nothing
       // left to send while the first send is still on its way.
-      setInput("");
       clearArnoldAttachments();
       void sendMessage(text, attachments);
+
+      return true;
     },
-    [input, isBusy, sendMessage, setInput]
+    [isBusy, sendMessage]
+  );
+
+  const onSend = useCallback(
+    (attachments: readonly ArnoldAttachment[] = []) => {
+      if (sendText(input.trim(), attachments)) {
+        setInput("");
+      }
+    },
+    [input, sendText, setInput]
   );
 
   // Where each copy of this Conversation's is, looked up once per name:
@@ -560,6 +571,7 @@ const useArnoldChat = (userId: string, composer: Composer) => {
     onOpenAttachment,
     onSend,
     sendMessage,
+    sendText,
     setInput,
     streamingStore,
     userMessage,
@@ -627,6 +639,23 @@ const ArnoldChat = ({
 
     chat.onSend(attachments);
   }, [attachments, isPro, chat]);
+
+  // A starter prompt goes out exactly as if the User had typed it and pressed
+  // Send: with the photos picked, behind the same Pro gate, and, for a free
+  // User, back in the composer behind the paywall as a typed one stays.
+  const handleStarter = useCallback(
+    (text: string) => {
+      if (isPro === false) {
+        chat.setInput(text);
+        void RevenueCatUI.presentPaywall();
+
+        return;
+      }
+
+      chat.sendText(text, attachments);
+    },
+    [attachments, isPro, chat]
+  );
 
   const { isBusy, messages, newConversation } = chat;
   const redesign = isArnoldRedesignEnabled();
@@ -726,10 +755,25 @@ const ArnoldChat = ({
       >
         <Conversation
           emptyState={
-            <ConversationEmptyState
-              description={t("arnold.emptyState.description")}
-              title={t("arnold.emptyState.title")}
-            />
+            redesign ? (
+              <ConversationStarters
+                description={t("arnold.emptyState.description")}
+                disabled={isBusy}
+                onStart={handleStarter}
+                starters={[
+                  t("arnold.emptyState.starters.buildPlan"),
+                  t("arnold.emptyState.starters.reviewActivePlan"),
+                  t("arnold.emptyState.starters.lastWeek"),
+                  t("arnold.emptyState.starters.exerciseForm"),
+                ]}
+                title={t("arnold.emptyState.title")}
+              />
+            ) : (
+              <ConversationEmptyState
+                description={t("arnold.emptyState.description")}
+                title={t("arnold.emptyState.title")}
+              />
+            )
           }
         >
           <ConversationScrollButton />

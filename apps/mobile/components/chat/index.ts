@@ -11,7 +11,10 @@ export {
   useConversationContext,
 } from "./conversation";
 
-export { ConversationEmptyState } from "./conversation-empty-state";
+export {
+  ConversationEmptyState,
+  ConversationStarters,
+} from "./conversation-empty-state";
 
 // Messages
 export { ARNOLD_BUBBLE, SENT_PHOTO_IMAGE } from "./message";
