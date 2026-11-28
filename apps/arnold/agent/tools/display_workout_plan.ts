@@ -3,6 +3,7 @@ import { z } from "zod";
 
 import { checkExerciseSlugs, exerciseSlugSchema } from "../lib/exercises";
 import { requireConversationOwner } from "../lib/owner";
+import { withheldForCard } from "../lib/tool-offer";
 
 const exerciseSchema = z.object({
   exercise_slug: exerciseSlugSchema.describe(
@@ -23,7 +24,7 @@ const workoutSchema = z.object({
 
 // The app renders its output as the plan card, so the shape must stay what
 // the app expects. Writes nothing: the app creates the Plan from the card.
-export default defineTool({
+export const tool = defineTool({
   description:
     "Display a generated workout plan as a structured card in the UI. Call this when the user requests a workout plan to be created or generated.",
   async execute(input, ctx) {
@@ -64,3 +65,6 @@ export default defineTool({
     workouts: z.array(workoutSchema),
   }),
 });
+
+// A build that draws the Plan Proposal changes Plans only through it (ADR 0027).
+export default withheldForCard("plan_proposal", tool);

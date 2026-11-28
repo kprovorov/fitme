@@ -78,22 +78,22 @@ vi.mock<typeof LibraryModule>(import("../agent/lib/library"), async () => {
   return { getLibrary: () => library.get() };
 });
 
-const { default: addExerciseToWorkout } =
+const { tool: addExerciseToWorkout } =
   await import("../agent/tools/add_exercise_to_workout");
 
-const { default: addSetToExercise } =
+const { tool: addSetToExercise } =
   await import("../agent/tools/add_set_to_exercise");
 
-const { default: removeExerciseFromWorkout } =
+const { tool: removeExerciseFromWorkout } =
   await import("../agent/tools/remove_exercise_from_workout");
 
-const { default: removeSetFromExercise } =
+const { tool: removeSetFromExercise } =
   await import("../agent/tools/remove_set_from_exercise");
 
-const { default: replaceExerciseInWorkout } =
+const { tool: replaceExerciseInWorkout } =
   await import("../agent/tools/replace_exercise_in_workout");
 
-const { default: updateSetRecommendations } =
+const { tool: updateSetRecommendations } =
   await import("../agent/tools/update_set_recommendations");
 
 const tx = { fake: "transaction" };

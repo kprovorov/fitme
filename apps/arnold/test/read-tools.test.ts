@@ -121,7 +121,7 @@ const { default: getWorkoutsHistory } =
 const { default: searchExercises } =
   await import("../agent/tools/search_exercises");
 
-const { default: displayWorkoutPlan } =
+const { tool: displayWorkoutPlan } =
   await import("../agent/tools/display_workout_plan");
 
 const tx = { fake: "transaction" };

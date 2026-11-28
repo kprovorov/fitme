@@ -6,9 +6,10 @@ import { z } from "zod";
 
 import { requireConversationOwner } from "../lib/owner";
 import { requestKey } from "../lib/request-key";
+import { withheldForCard } from "../lib/tool-offer";
 import { reportingEditErrors } from "../lib/workout-edits";
 
-export default defineTool({
+export const tool = defineTool({
   description:
     "Add a new set to an existing workout exercise. The set is appended after all current sets. Find workout_exercise_id via get_active_plan.",
   async execute(input, ctx) {
@@ -55,3 +56,6 @@ export default defineTool({
       .describe("The ID of the workout_exercise row to add a set to"),
   }),
 });
+
+// A build that draws the Plan Proposal changes Plans only through it (ADR 0027).
+export default withheldForCard("plan_proposal", tool);

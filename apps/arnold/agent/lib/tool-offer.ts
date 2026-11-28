@@ -37,3 +37,29 @@ export const offeredForCard = <Tool extends DynamicToolEntry>(
   tool: Tool
 ) =>
   defineDynamic(async (ctx) => toolForCard(await ctx.messages(), card, tool));
+
+/** `tool` unless the build can draw `card`, `null` (not offered) when it can. */
+export const toolUnlessCard = <Tool extends DynamicToolEntry>(
+  messages: readonly HistoryMessage[],
+  card: ArnoldCardId,
+  tool: Tool
+): Tool | null => (canDrawCard(messages, card) ? null : tool);
+
+/**
+ * A tool file's default export for a tool a build that can draw `card` no
+ * longer gets, since the card replaces it: the direct Plan edits and the old
+ * plan card for a build that draws the Plan Proposal (ADR 0027). A build that
+ * sent no list, or one without the card, keeps the tool.
+ *
+ * ```ts
+ * export const tool = defineTool({ … });
+ * export default withheldForCard("plan_proposal", tool);
+ * ```
+ */
+export const withheldForCard = <Tool extends DynamicToolEntry>(
+  card: ArnoldCardId,
+  tool: Tool
+) =>
+  defineDynamic(async (ctx) =>
+    toolUnlessCard(await ctx.messages(), card, tool)
+  );
