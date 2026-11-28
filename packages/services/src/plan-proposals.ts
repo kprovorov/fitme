@@ -2,12 +2,14 @@ import { createHash } from "node:crypto";
 
 import {
   plans,
+  weeklyGoalChanges,
   workoutExerciseSets as workoutExerciseSetsTable,
   workoutExercises as workoutExercisesTable,
+  workoutSessions,
   workouts as workoutsTable,
 } from "@fitme/db";
 import type { Transaction } from "@fitme/db";
-import { and, eq, inArray, isNull } from "drizzle-orm";
+import { and, eq, inArray, isNull, sql } from "drizzle-orm";
 
 import { getPlan, savePlan } from "./plans";
 import type {
@@ -379,13 +381,25 @@ const mergedDetails = (
 });
 
 /**
- * Locks the Plan row, its Workouts, their Workout Exercises and their sets
+ * Takes ROW EXCLUSIVE on every table the save writes, in `deleteUserData`'s
+ * order, so it queues behind an account deletion before it holds a row the
+ * deletion needs. Then locks the Plan row, its Workouts, their Workout
+ * Exercises and their sets
  * (`FOR NO KEY UPDATE`), in the order `savePlan` and Arnold's edits take
  * them, so the Plan read after them is the one the save writes over: an
  * Arnold edit, a finish or a Plan Update waits until this transaction ends. False for a
  * missing, soft-deleted or another User's Plan.
  */
 const lockPlan = async (tx: Transaction, userId: string, planId: string) => {
+  // Table locks first, in deleteUserData's order: taken after a row lock, an
+  // account deletion holding them would wait on that row while the save's
+  // writes wait on the deletion
+  await tx.execute(sql`
+    lock table ${plans}, ${workoutSessions}, ${workoutsTable},
+      ${workoutExercisesTable}, ${workoutExerciseSetsTable}, ${weeklyGoalChanges}
+    in row exclusive mode
+  `);
+
   const [locked] = await tx
     .select({ id: plans.id })
     .from(plans)
