@@ -19,14 +19,18 @@ import {
 import { QueryClientProvider } from "@tanstack/react-query";
 import type { QueryClient } from "@tanstack/react-query";
 import {
+  act,
   render,
   screen,
   userEvent,
   waitFor,
 } from "@testing-library/react-native";
 import type { ReactNode } from "react";
+import { Alert } from "react-native";
+import type { AlertButton } from "react-native";
 
 import ArnoldScreen from "~/app/(tabs)/arnold/index";
+import { savedArnoldSessionId } from "~/lib/arnold-chat";
 import { SELECTED_MODEL_KEY } from "~/lib/arnold-model";
 import { setArnoldRedesignEnabled } from "~/lib/feature-flags";
 import { storage } from "~/lib/mmkv";
@@ -284,11 +288,32 @@ beforeEach(() => {
   process.env.EXPO_PUBLIC_ARNOLD_URL = fakeArnold.baseUrl;
   process.env.EXPO_PUBLIC_API_URL = FAKE_PUBLIC_API_URL;
   setArnoldRedesignEnabled(true);
+  jest.spyOn(Alert, "alert").mockReturnValue(undefined).mockClear();
 });
 
 afterEach(() => {
   process.env.EXPO_PUBLIC_API_URL = EXPO_PUBLIC_API_URL;
+  jest.mocked(Alert.alert).mockRestore();
 });
+
+/** Every alert the screen showed: its title, message and buttons. */
+const alerts = () =>
+  jest.mocked(Alert.alert).mock.calls as [string, string, AlertButton[]?][];
+
+/** Presses the last alert's button named `label`, as the User would. */
+const pressInAlert = async (label: string) => {
+  const button = alerts()
+    .at(-1)?.[2]
+    ?.find(({ text }) => text === label);
+
+  if (!button) {
+    throw new Error(`no alert button named ${label}`);
+  }
+
+  await act(() => {
+    button.onPress?.();
+  });
+};
 
 describe.each([
   {
@@ -416,6 +441,136 @@ describe.each([
   });
 });
 
+describe.each([
+  {
+    cancel: "Cancel",
+    composer: "Message Arnold",
+    confirm: "Start New Conversation",
+    device: "en-US",
+    message: "This one will be gone for good.",
+    name: "English",
+    newConversation: "New conversation",
+    send: "Send message",
+    title: "Start a new conversation?",
+  },
+  {
+    cancel: "Скасувати",
+    composer: "Повідомлення для Arnold",
+    confirm: "Почати нову розмову",
+    device: "uk-UA",
+    message: "Цю буде видалено назавжди.",
+    name: "Ukrainian",
+    newConversation: "Нова розмова",
+    send: "Надіслати повідомлення",
+    title: "Почати нову розмову?",
+  },
+])("New Conversation in $name", (copy) => {
+  const USER_ID = "user_arnold_base_screen";
+
+  beforeEach(() => {
+    setDeviceLanguages([copy.device]);
+  });
+
+  const newConversationButton = () =>
+    screen.getByRole("button", { name: copy.newConversation });
+
+  /** Sends `text` and waits for Arnold's answer and the saved turn. */
+  const send = async (text: string) => {
+    const user = userEvent.setup();
+    await user.type(screen.getByPlaceholderText(copy.composer), text);
+    await user.press(screen.getByLabelText(copy.send));
+    await waitFor(() => {
+      expect(screen.getByText(FAKE_ARNOLD_REPLY)).toBeTruthy();
+    });
+    await settle(queryClient);
+  };
+
+  it("asks first, with the Conversation's cost and a destructive confirm", async () => {
+    await mount();
+    await send("Hi");
+    await userEvent.setup().press(newConversationButton());
+
+    expect(alerts()).toEqual([
+      [
+        copy.title,
+        copy.message,
+        [
+          expect.objectContaining({ style: "cancel", text: copy.cancel }),
+          expect.objectContaining({
+            style: "destructive",
+            text: copy.confirm,
+          }),
+        ],
+      ],
+    ]);
+  });
+
+  it("keeps every message and the saved Conversation on Cancel", async () => {
+    await mount();
+    await send("Hi");
+    const sessionId = savedArnoldSessionId(USER_ID);
+    expect(sessionId).toBeTruthy();
+
+    await userEvent.setup().press(newConversationButton());
+    await pressInAlert(copy.cancel);
+    await settle(queryClient);
+
+    expect(screen.getByText("Hi")).toBeTruthy();
+    expect(screen.getByText(FAKE_ARNOLD_REPLY)).toBeTruthy();
+    expect(savedArnoldSessionId(USER_ID)).toBe(sessionId);
+  });
+
+  it("starts a new Conversation and forgets the saved one on confirm", async () => {
+    await mount();
+    await send("Hi");
+    const firstSession = savedArnoldSessionId(USER_ID);
+
+    await userEvent.setup().press(newConversationButton());
+    await pressInAlert(copy.confirm);
+    await settle(queryClient);
+
+    expect(screen.queryByText("Hi")).toBeNull();
+    expect(screen.queryByText(FAKE_ARNOLD_REPLY)).toBeNull();
+    expect(savedArnoldSessionId(USER_ID)).toBeUndefined();
+
+    await send("Again");
+
+    expect(savedArnoldSessionId(USER_ID)).not.toBe(firstSession);
+  });
+
+  it("asks nothing on an empty Conversation", async () => {
+    await mount();
+    await userEvent.setup().press(newConversationButton());
+    await settle(queryClient);
+
+    expect(alerts()).toEqual([]);
+    expect(newConversationButton()).toBeEnabled();
+  });
+
+  it("is disabled while a turn runs", async () => {
+    const release = fakeArnold.holdNextToolCall({
+      name: "get_plans",
+      output: [],
+    });
+
+    await mount();
+    const user = userEvent.setup();
+    await user.type(screen.getByPlaceholderText(copy.composer), "Hi");
+    await user.press(screen.getByLabelText(copy.send));
+
+    await waitFor(() => {
+      expect(newConversationButton()).toBeDisabled();
+    });
+
+    release();
+    await waitFor(() => {
+      expect(screen.getByText(FAKE_ARNOLD_REPLY)).toBeTruthy();
+    });
+    await settle(queryClient);
+    expect(newConversationButton()).toBeEnabled();
+  });
+});
+
 describe("the header with the Arnold redesign off", () => {
   it("is today's: the plain title and the model picker's button", async () => {
     setArnoldRedesignEnabled(false);
@@ -428,5 +583,23 @@ describe("the header with the Arnold redesign off", () => {
     expect(
       screen.getByRole("button", { name: "New conversation" })
     ).toBeTruthy();
+  });
+
+  it("resets at once, asking nothing, as today", async () => {
+    setArnoldRedesignEnabled(false);
+    await mount();
+    const user = userEvent.setup();
+    await user.type(screen.getByPlaceholderText("Message Arnold"), "Hi");
+    await user.press(screen.getByLabelText("Send message"));
+    await waitFor(() => {
+      expect(screen.getByText(FAKE_ARNOLD_REPLY)).toBeTruthy();
+    });
+    await settle(queryClient);
+
+    await user.press(screen.getByRole("button", { name: "New conversation" }));
+    await settle(queryClient);
+
+    expect(alerts()).toEqual([]);
+    expect(screen.queryByText(FAKE_ARNOLD_REPLY)).toBeNull();
   });
 });

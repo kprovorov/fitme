@@ -24,6 +24,7 @@ import {
   useSyncExternalStore,
 } from "react";
 import { useTranslation } from "react-i18next";
+import { Alert } from "react-native";
 import RevenueCatUI from "react-native-purchases-ui";
 
 import {
@@ -626,8 +627,46 @@ const ArnoldChat = ({
     chat.onSend(attachments);
   }, [attachments, isPro, chat]);
 
-  const { isBusy, newConversation } = chat;
+  const { isBusy, messages, newConversation } = chat;
   const redesign = isArnoldRedesignEnabled();
+
+  // The confirm runs the latest reset, which refuses while a turn runs: one
+  // can start while the alert is up.
+  const newConversationRef = useRef(newConversation);
+
+  useEffect(() => {
+    newConversationRef.current = newConversation;
+  }, [newConversation]);
+
+  // The redesign asks before it throws a Conversation away: with messages in
+  // it, a destructive confirmation; an empty one resets at once. The header's
+  // button and the full-Conversation notice's both come here.
+  const askNewConversation = useCallback(() => {
+    if (isBusy) {
+      return;
+    }
+
+    if (messages.length === 0) {
+      newConversation();
+
+      return;
+    }
+
+    Alert.alert(
+      t("arnold.newConversationConfirm.title"),
+      t("arnold.newConversationConfirm.message"),
+      [
+        { style: "cancel", text: t("arnold.newConversationConfirm.cancel") },
+        {
+          onPress: () => newConversationRef.current(),
+          style: "destructive",
+          text: t("arnold.newConversationConfirm.confirm"),
+        },
+      ]
+    );
+  }, [isBusy, messages.length, newConversation, t]);
+
+  const onNewConversation = redesign ? askNewConversation : newConversation;
 
   return (
     <>
@@ -663,11 +702,12 @@ const ArnoldChat = ({
               accessibilityLabel: t("arnold.newConversation"),
               disabled: isBusy,
               icon: {
-                name: "plus",
+                // The redesign's compose icon says it starts something new.
+                name: redesign ? "square.and.pencil" : "plus",
                 type: "sfSymbol",
               },
               label: t("arnold.newConversation"),
-              onPress: newConversation,
+              onPress: onNewConversation,
               type: "button",
             },
           ],
@@ -678,7 +718,7 @@ const ArnoldChat = ({
           ...chat,
           attachments,
           isConversationFull,
-          onNewConversation: newConversation,
+          onNewConversation,
           onRemoveAttachment: removeArnoldAttachment,
           onSend: handleSend,
         }}
