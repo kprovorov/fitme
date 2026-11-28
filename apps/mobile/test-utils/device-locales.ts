@@ -10,8 +10,9 @@
  * device's (or Android's per-app) language changes while the app is open.
  * The device's region is each language tag's (`UA` for `uk-UA`), and its
  * clock is the 12-hour one of an American device until a test sets it with
- * `setDevice24HourClock(true)`. `after-each.ts` puts the device back to
- * English on a 12-hour clock after every test.
+ * `setDevice24HourClock(true)`, and its time zone UTC until a test sets it
+ * with `setDeviceTimeZone`. `after-each.ts` puts the device back to English
+ * on a 12-hour clock in UTC after every test.
  */
 import type { Calendar, Locale } from "expo-localization";
 import { useSyncExternalStore } from "react";
@@ -91,10 +92,24 @@ export const setDevice24HourClock = (enabled: boolean): void => {
   }
 };
 
-/** Back to the English device on a 12-hour clock every test starts on. */
+/**
+ * Sets the device's IANA time zone (`"Europe/Kyiv"`, `null` for a device
+ * naming none) and tells every mounted `useCalendars()`. Wrap a change
+ * during a test in `act`.
+ */
+export const setDeviceTimeZone = (timeZone: string | null): void => {
+  calendars = [{ ...calendars[0], timeZone }];
+
+  for (const listener of listeners) {
+    listener();
+  }
+};
+
+/** Back to the English device on a 12-hour clock in UTC every test starts on. */
 export const resetDeviceLanguages = (): void => {
   setDeviceLanguages(ENGLISH_DEVICE);
   setDevice24HourClock(false);
+  setDeviceTimeZone("UTC");
 };
 
 const getLocales = (): Locale[] => locales;

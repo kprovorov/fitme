@@ -11,6 +11,9 @@ import { Image } from "@/components/tw";
 import type { ShownAttachment, ShownUserMessage } from "~/lib/arnold-chat";
 import { cn } from "~/lib/utils";
 
+/** Arnold's own bubble, so a test can tell what sits inside it. */
+export const ARNOLD_BUBBLE = "arnold-bubble";
+
 /**
  * Wrapper for a single chat message. Styles automatically based on the sender
  * role – user messages render as right-aligned bubbles in the primary color,
@@ -48,6 +51,7 @@ export const Message = ({
       className="mb-2"
       entering={FadeIn.duration(200)}
       exiting={FadeOut.duration(150)}
+      testID={ARNOLD_BUBBLE}
     >
       {children}
     </Animated.View>

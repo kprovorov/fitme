@@ -13,7 +13,9 @@ import {
 } from "@jest/globals";
 import type { SessionStreamEvent } from "eve/client";
 
+import { setArnoldRedesignEnabled } from "~/lib/feature-flags";
 import { storage } from "~/lib/mmkv";
+import { setDeviceTimeZone } from "~/test-utils/device-locales";
 import type * as InMemoryFileSystem from "~/test-utils/in-memory-file-system";
 
 import {
@@ -153,6 +155,52 @@ describe("arnoldRunConfig", () => {
     await i18n.changeLanguage("ru");
 
     expect(arnoldRunConfig()).toEqual({ custom: { language: "en" } });
+  });
+
+  it("sends no cards and no time zone with the Arnold redesign off, as an old build", () => {
+    setDeviceTimeZone("Europe/Kyiv");
+
+    expect(arnoldRunConfig()).toEqual({ custom: { language: "en" } });
+  });
+
+  it("sends the announced cards, an empty list with none, and the device's time zone with the Arnold redesign on", () => {
+    setArnoldRedesignEnabled(true);
+    setDeviceTimeZone("Europe/Kyiv");
+    writeCachedArnoldModels(models);
+
+    expect(arnoldRunConfig()).toEqual({
+      custom: {
+        cards: [],
+        language: "en",
+        model: "openai/gpt-5.5",
+        timeZone: "Europe/Kyiv",
+      },
+    });
+  });
+
+  it("sends the cards it's given, with the Arnold redesign on only", () => {
+    expect(arnoldRunConfig(["workout"])).toEqual({
+      custom: { language: "en" },
+    });
+
+    setArnoldRedesignEnabled(true);
+
+    expect(arnoldRunConfig(["workout", "plan"]).custom.cards).toEqual([
+      "workout",
+      "plan",
+    ]);
+  });
+
+  it("reads the time zone at send time, and leaves it out when the device names none", () => {
+    setArnoldRedesignEnabled(true);
+
+    expect(arnoldRunConfig().custom.timeZone).toBe("UTC");
+
+    setDeviceTimeZone(null);
+
+    expect(arnoldRunConfig()).toEqual({
+      custom: { cards: [], language: "en" },
+    });
   });
 });
 

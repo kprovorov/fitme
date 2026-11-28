@@ -39,6 +39,7 @@ import {
   PromptInputSubmit,
   PromptInputTextarea,
 } from "@/components/chat";
+import { announcedArnoldCardIds } from "@/components/chat/cards/lookup";
 import { SymbolImage } from "@/components/symbol-image";
 import {
   addArnoldAttachments,
@@ -436,7 +437,7 @@ const useArnoldChat = (userId: string, composer: Composer) => {
         ],
         role: "user",
         // Read per send so a model or language change applies to the next message.
-        runConfig: arnoldRunConfig(),
+        runConfig: arnoldRunConfig(announcedArnoldCardIds()),
       });
 
       if (attachments.length > 0) {
