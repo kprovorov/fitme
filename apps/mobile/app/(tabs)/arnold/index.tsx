@@ -39,6 +39,7 @@ import {
   PromptInputSubmit,
   PromptInputTextarea,
 } from "@/components/chat";
+import { ArnoldTitle } from "@/components/chat/arnold-title";
 import { announcedArnoldCardIds } from "@/components/chat/cards/lookup";
 import { SymbolImage } from "@/components/symbol-image";
 import {
@@ -81,11 +82,18 @@ import {
   sentAttachmentUri,
 } from "~/lib/arnold-sent-attachments";
 import { getClerk } from "~/lib/clerk";
+import { isArnoldRedesignEnabled } from "~/lib/feature-flags";
 
 const getArnoldToken = async () => (await getClerk().session?.getToken()) ?? "";
 
 /** A resolver for a read that only counts Attachments: it finds no file. */
 const NO_ATTACHMENT_URI = () => undefined;
+
+/**
+ * The redesign's header title. The header calls `headerTitle` as a plain
+ * function, so the title is an element here, with its hooks in its own fiber.
+ */
+const renderArnoldTitle = () => <ArnoldTitle />;
 
 /**
  * Arnold runtime for one User. Their current Conversation is saved per
@@ -619,6 +627,7 @@ const ArnoldChat = ({
   }, [attachments, isPro, chat]);
 
   const { isBusy, newConversation } = chat;
+  const redesign = isArnoldRedesignEnabled();
 
   return (
     <>
@@ -630,19 +639,26 @@ const ArnoldChat = ({
             fontWeight: "bold",
           },
           headerTransparent: true,
+          // The redesign's title shows the model and picks another from a
+          // menu, so the right side holds only New Conversation.
+          headerTitle: redesign ? renderArnoldTitle : undefined,
           title: t("arnold.title"),
           unstable_headerRightItems: () => [
-            {
-              icon: {
-                name: "cpu",
-                type: "sfSymbol",
-              },
-              label: model?.label ?? t("arnold.model"),
-              onPress: () => {
-                router.push("/arnold/model-picker");
-              },
-              type: "button",
-            },
+            ...(redesign
+              ? []
+              : [
+                  {
+                    icon: {
+                      name: "cpu",
+                      type: "sfSymbol",
+                    } as const,
+                    label: model?.label ?? t("arnold.model"),
+                    onPress: () => {
+                      router.push("/arnold/model-picker");
+                    },
+                    type: "button" as const,
+                  },
+                ]),
             {
               accessibilityLabel: t("arnold.newConversation"),
               disabled: isBusy,

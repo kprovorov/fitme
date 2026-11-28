@@ -17,7 +17,15 @@ import {
 } from "~/components/ui/swift-ui";
 
 interface DropdownMenuItem {
+  /**
+   * Marks the item as the current choice: the system's checkmark after its
+   * label (in place of its `systemImage`), and VoiceOver reads it as
+   * selected. Leave it out for an action.
+   */
+  checked?: boolean;
   destructive?: boolean;
+  /** Tells items apart when two may share a label; the label without one. */
+  id?: string;
   label: string;
   onPress?: () => void;
   /** Draws a separator above this item. */
@@ -26,6 +34,8 @@ interface DropdownMenuItem {
 }
 
 interface DropdownMenuProps {
+  /** What VoiceOver says the menu button does, after its label. */
+  accessibilityHint?: string;
   /** VoiceOver label for the menu button; required for an icon-only menu. */
   accessibilityLabel?: string;
   /**
@@ -52,6 +62,7 @@ interface DropdownMenuProps {
 const MIN_HIT_TARGET_SIZE = 44;
 
 const DropdownMenu = ({
+  accessibilityHint,
   accessibilityLabel,
   iconColorClassName,
   items,
@@ -107,11 +118,14 @@ const DropdownMenu = ({
     <SwiftUIHost className={className} matchContents>
       <Menu
         label={menuLabel()}
-        modifiers={
-          accessibilityLabel
+        modifiers={[
+          ...(accessibilityLabel
             ? [menuModifiers.accessibilityLabel(accessibilityLabel)]
-            : []
-        }
+            : []),
+          ...(accessibilityHint
+            ? [menuModifiers.accessibilityHint(accessibilityHint)]
+            : []),
+        ]}
         onPrimaryAction={onPrimaryAction}
         testID={testID}
       >
@@ -120,14 +134,19 @@ const DropdownMenu = ({
 
           return [
             ...(item.startsSection
-              ? [<Divider key={`${item.label}-divider`} />]
+              ? [<Divider key={`${item.id ?? item.label}-divider`} />]
               : []),
             <SwiftUIButton
-              key={item.label}
+              key={item.id ?? item.label}
               label={item.label}
+              modifiers={
+                item.checked
+                  ? [menuModifiers.accessibilityAddTraits(["isSelected"])]
+                  : undefined
+              }
               onPress={handlePress}
               role={item.destructive ? "destructive" : "default"}
-              systemImage={item.systemImage}
+              systemImage={item.checked ? "checkmark" : item.systemImage}
             />,
           ];
         })}
