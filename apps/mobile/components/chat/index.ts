@@ -7,13 +7,14 @@ export { ChatProvider, useChatContext } from "./chat-context";
 // Conversation
 export {
   Conversation,
-  ConversationEmptyState,
   ConversationScrollButton,
   useConversationContext,
 } from "./conversation";
 
+export { ConversationEmptyState } from "./conversation-empty-state";
+
 // Messages
-export { SENT_PHOTO_IMAGE } from "./message";
+export { ARNOLD_BUBBLE, SENT_PHOTO_IMAGE } from "./message";
 
 export { messageText } from "./message-text";
 

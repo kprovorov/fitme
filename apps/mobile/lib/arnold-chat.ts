@@ -4,7 +4,9 @@ import {
   defaultAppLanguage,
   isAppLanguage,
 } from "@fitme/core";
+import type { ArnoldCardId, ArnoldClientContext } from "@fitme/core";
 import type { ClientSessionState, SessionStreamEvent } from "eve/client";
+import { getCalendars } from "expo-localization";
 import { z } from "zod";
 
 import { getSelectedArnoldModelId } from "~/lib/arnold-model";
@@ -12,6 +14,7 @@ import {
   followSentAttachments,
   forgetSentAttachments,
 } from "~/lib/arnold-sent-attachments";
+import { isArnoldRedesignEnabled } from "~/lib/feature-flags";
 import { i18n } from "~/lib/i18n";
 import { storage } from "~/lib/mmkv";
 
@@ -23,21 +26,52 @@ import { storage } from "~/lib/mmkv";
 export const getArnoldUrl = () => process.env.EXPO_PUBLIC_ARNOLD_URL || "";
 
 /**
+ * A send's client context, `ArnoldClientContext` but for the model: that's
+ * the id picked from the served list, which can hold a model this build's
+ * `@fitme/core` doesn't know yet.
+ */
+type ArnoldRunContext = Omit<ArnoldClientContext, "model"> & {
+  model?: string;
+};
+
+/**
  * The run config each turn with Arnold is sent with, read at send time so a
  * model or App language change applies to the next message. eve forwards
- * `custom` as the turn's client context, where Arnold reads the model to
- * answer with and the App language to answer in when a message doesn't make
- * its language clear. Without a model (no model list on the device) only the
- * language is sent, so Arnold picks its own default model.
+ * `custom` as the turn's client context (`ArnoldClientContext`), where Arnold
+ * reads the model to answer with and the App language to answer in when a
+ * message doesn't make its language clear. Without a model (no model list on
+ * the device) only the language is sent, so Arnold picks its own default
+ * model.
+ *
+ * With the Arnold redesign flag on it also carries the cards the build
+ * announces (`cards`, the screen's `announcedArnoldCardIds()`, a list even
+ * when empty) and the device's IANA time zone
+ * (`timeZone`, from its calendar; left out when the device names none). Off,
+ * it carries neither, so Arnold treats the build as an old one and keeps
+ * today's tools.
  */
-export const arnoldRunConfig = () => {
+export const arnoldRunConfig = (
+  announcedCards: readonly ArnoldCardId[] = []
+) => {
   const model = getSelectedArnoldModelId();
 
   const language = isAppLanguage(i18n.language)
     ? i18n.language
     : defaultAppLanguage;
 
-  return { custom: model ? { language, model } : { language } };
+  const custom: ArnoldRunContext = model ? { language, model } : { language };
+
+  if (isArnoldRedesignEnabled()) {
+    custom.cards = announcedCards;
+
+    const timeZone = getCalendars()[0]?.timeZone;
+
+    if (timeZone) {
+      custom.timeZone = timeZone;
+    }
+  }
+
+  return { custom };
 };
 
 /**

@@ -20,7 +20,7 @@ import {
 } from "react";
 import type { ReactNode } from "react";
 import { useTranslation } from "react-i18next";
-import { Text, View } from "react-native";
+import { View } from "react-native";
 import type { LayoutChangeEvent, ViewStyle } from "react-native";
 import { useKeyboardHandler } from "react-native-keyboard-controller";
 import Animated, {
@@ -34,12 +34,13 @@ import Animated, {
 import type { AnimatedStyle } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { scheduleOnRN } from "react-native-worklets";
-import type { SFSymbol } from "sf-symbols-typescript";
 
 import { SymbolImage } from "@/components/symbol-image";
+import { isArnoldRedesignEnabled } from "~/lib/feature-flags";
 
 import { TouchableGlass } from "../touchable-glass";
 import { KeyboardGestureArea } from "../tw";
+import { ArnoldToolCards } from "./cards/arnold-cards";
 import { useChatContext } from "./chat-context";
 import type { ChatContextValue } from "./chat-context";
 import { Message, MessageResponse, UserMessageBody } from "./message";
@@ -139,11 +140,24 @@ const ConversationMessage = ({
     return null;
   }
 
+  // Arnold's cards, behind the redesign flag: at full width below his
+  // bubble, never inside it, so no card ever sits inside another.
+  const cards = isArnoldRedesignEnabled() ? (
+    <ArnoldToolCards
+      parts={item.content.filter(
+        (part): part is ToolCallMessagePart => part.type === "tool-call"
+      )}
+    />
+  ) : null;
+
   if (isStreaming) {
     return (
-      <Message from="assistant">
-        <StreamingMessage store={streamingStore} />
-      </Message>
+      <>
+        <Message from="assistant">
+          <StreamingMessage store={streamingStore} />
+        </Message>
+        {cards}
+      </>
     );
   }
 
@@ -162,26 +176,29 @@ const ConversationMessage = ({
     });
 
   return (
-    <Message from="assistant">
-      {textParts.map((part) => (
-        <MessageResponse key={part.id}>{part.text}</MessageResponse>
-      ))}
-      {item.content
-        .filter(
-          (part): part is ToolCallMessagePart =>
-            part.type === "tool-call" &&
-            part.toolName === "display_workout_plan" &&
-            part.result !== undefined &&
-            !part.isError
-        )
-        .map((tool) => {
-          // SAFETY: A successful display_workout_plan returns the server's
-          // schema-validated WorkoutPlan input unchanged.
-          const plan = tool.result as WorkoutPlan;
+    <>
+      <Message from="assistant">
+        {textParts.map((part) => (
+          <MessageResponse key={part.id}>{part.text}</MessageResponse>
+        ))}
+        {item.content
+          .filter(
+            (part): part is ToolCallMessagePart =>
+              part.type === "tool-call" &&
+              part.toolName === "display_workout_plan" &&
+              part.result !== undefined &&
+              !part.isError
+          )
+          .map((tool) => {
+            // SAFETY: A successful display_workout_plan returns the server's
+            // schema-validated WorkoutPlan input unchanged.
+            const plan = tool.result as WorkoutPlan;
 
-          return <WorkoutPlanCard key={tool.toolCallId} plan={plan} />;
-        })}
-    </Message>
+            return <WorkoutPlanCard key={tool.toolCallId} plan={plan} />;
+          })}
+      </Message>
+      {cards}
+    </>
   );
 };
 
@@ -511,28 +528,3 @@ export const ConversationScrollButton = () => {
     </Animated.View>
   );
 };
-
-export const ConversationEmptyState = ({
-  title,
-  description,
-  icon = "bubble.left.and.bubble.right",
-}: {
-  title: string;
-  description?: string;
-  icon?: SFSymbol;
-}) => (
-  <View className="flex-1 items-center justify-center gap-2">
-    <SymbolImage
-      className="text-large-title text-muted-foreground"
-      name={icon}
-    />
-    <Text className="text-foreground text-title-2-emphasized dark:text-foreground text-center">
-      {title}
-    </Text>
-    {description ? (
-      <Text className="text-muted-foreground text-subhead dark:text-muted-foreground text-center">
-        {description}
-      </Text>
-    ) : null}
-  </View>
-);
