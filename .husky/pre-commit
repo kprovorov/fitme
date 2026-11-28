@@ -37,7 +37,7 @@ else
   # Run the fixer on the staged files, capturing the exit code so we can
   # still re-stage and report
   FORMAT_EXIT_CODE=0
-  git diff --cached --name-only -z --diff-filter=ACMR | xargs -0 pnpm exec ultracite fix || FORMAT_EXIT_CODE=$?
+  git diff --cached --name-only -z --diff-filter=ACMR | xargs -0 pnpm exec ultracite fix --no-error-on-unmatched-pattern || FORMAT_EXIT_CODE=$?
 
   # Re-stage the fully staged files; staging the others would add their
   # unstaged changes to the commit

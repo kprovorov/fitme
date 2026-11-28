@@ -121,6 +121,7 @@ export type Database = {
           name: string | null;
           note: string | null;
           place: string | null;
+          request_key: string | null;
           updated_at: string | null;
           user_id: string;
           workout_duration: number | null;
@@ -138,6 +139,7 @@ export type Database = {
           name?: string | null;
           note?: string | null;
           place?: string | null;
+          request_key?: string | null;
           updated_at?: string | null;
           user_id: string;
           workout_duration?: number | null;
@@ -154,6 +156,7 @@ export type Database = {
           name?: string | null;
           note?: string | null;
           place?: string | null;
+          request_key?: string | null;
           updated_at?: string | null;
           user_id?: string;
           workout_duration?: number | null;

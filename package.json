@@ -56,7 +56,7 @@
   },
   "lint-staged": {
     "*.{js,jsx,ts,tsx,json,jsonc,css,scss,md,mdx}": [
-      "pnpm exec ultracite fix"
+      "pnpm exec ultracite fix --no-error-on-unmatched-pattern"
     ]
   },
   "devEngines": {
