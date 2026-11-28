@@ -1,6 +1,8 @@
 import type { ToolContext } from "eve/tools";
 import { ZodType } from "zod";
 
+import type { offeredForCard } from "../agent/lib/tool-offer";
+
 const clerkUser = (principalId: string) => ({
   attributes: {},
   authenticator: "clerk",
@@ -40,6 +42,7 @@ export const contextFor = (
 });
 
 interface ClientContext {
+  cards?: string[];
   language: string;
   timeZone?: string;
 }
@@ -94,4 +97,37 @@ export const inputSchemaOf = <Input>(tool: TestedTool<Input>) => {
   }
 
   return tool.inputSchema;
+};
+
+/** The key eve keeps a `defineDynamic` function under. */
+const EVE_DYNAMIC = Symbol.for("eve.dynamic");
+
+type DynamicResolver = (ctx: {
+  messages: () => Promise<ToolContext["messages"]>;
+}) => unknown;
+
+/** A tool file's default export for a tool offered per build. */
+type OfferedTool = ReturnType<typeof offeredForCard>;
+
+const isDynamic = (
+  entry: OfferedTool
+): entry is OfferedTool & Record<symbol, DynamicResolver> =>
+  EVE_DYNAMIC in entry;
+
+/**
+ * What a tool file's default export resolves to for a model call whose
+ * messages are `ctx`'s, as eve resolves a `defineDynamic` tool before every
+ * model call: the tool, or `null` when it isn't offered.
+ */
+export const offeredTo = async (
+  entry: OfferedTool,
+  ctx: ToolContext
+): Promise<unknown> => {
+  if (!isDynamic(entry)) {
+    throw new TypeError("Expected a defineDynamic tool");
+  }
+
+  return await entry[EVE_DYNAMIC]({
+    messages: () => Promise.resolve(ctx.messages),
+  });
 };
