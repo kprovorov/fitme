@@ -283,3 +283,120 @@ describe("weekly goals", () => {
     });
   });
 });
+
+describe("weekly goals in a given time zone", () => {
+  // Arnold's server runs in UTC; the weeks are the User's.
+  beforeAll(() => {
+    vi.stubEnv("TZ", "UTC");
+  });
+
+  afterAll(() => {
+    vi.unstubAllEnvs();
+  });
+
+  const KYIV = "Europe/Kyiv";
+
+  it("starts the week on Monday 00:00 in that zone, whatever zone the process runs in", () => {
+    expect(
+      startOfGoalWeek(new Date(at("2026-10-25T23:59")), KYIV).toISOString()
+    ).toBe(new Date(at("2026-10-19T00:00")).toISOString());
+    expect(
+      startOfGoalWeek(new Date(at("2026-10-26T00:00")), KYIV).toISOString()
+    ).toBe(new Date(at("2026-10-26T00:00")).toISOString());
+  });
+
+  it("counts Sunday 23:30 in Kyiv toward that week and Monday 00:30 toward the next", () => {
+    const result = weeklyGoalOverview(
+      [change("2026-09-01T09:00", 3)],
+      [workout("2026-10-25T23:30"), workout("2026-10-26T00:30")],
+      NOW,
+      8,
+      KYIV
+    );
+
+    expect(result?.weeks.slice(-2).map((week) => week.count)).toStrictEqual([
+      1, 1,
+    ]);
+    expect(result?.weeks.at(-1)?.start.toISOString()).toBe(
+      new Date(at("2026-10-26T00:00")).toISOString()
+    );
+  });
+
+  it("keeps a week holding a daylight-saving change seven local days long", () => {
+    const result = weeklyGoalOverview(
+      [change("2026-09-01T09:00", 3)],
+      [],
+      NOW,
+      8,
+      KYIV
+    );
+
+    const [lastWeek, thisWeek] = result?.weeks.slice(-2) ?? [];
+
+    expect(lastWeek?.start.toISOString()).toBe(
+      new Date(at("2026-10-19T00:00")).toISOString()
+    );
+    // 19 October 00:00 EEST to 26 October 00:00 EET: seven days and an hour
+    expect(
+      (thisWeek?.start.getTime() ?? 0) - (lastWeek?.start.getTime() ?? 0)
+    ).toBe(169 * 3_600_000);
+
+    // Every Monday of the chart is midnight in Kyiv
+    for (const week of result?.weeks ?? []) {
+      expect(
+        new Intl.DateTimeFormat("en-GB", {
+          hour: "2-digit",
+          hourCycle: "h23",
+          minute: "2-digit",
+          timeZone: KYIV,
+          weekday: "long",
+        }).format(week.start)
+      ).toBe("Monday 00:00");
+    }
+  });
+
+  it.each([
+    ["GMT+5", "2026-10-25T19:00:00.000Z"],
+    ["GMT-03:30", "2026-10-26T03:30:00.000Z"],
+    ["UTC", "2026-10-26T00:00:00.000Z"],
+  ])("counts weeks at the fixed offset of %s", (zone, monday) => {
+    const result = weeklyGoalOverview(
+      [change("2026-09-01T09:00", 3)],
+      [
+        // One minute either side of that Monday 00:00
+        {
+          ...workout("2026-10-20T12:00"),
+          started_at: new Date(
+            new Date(monday).getTime() - 60_000
+          ).toISOString(),
+        },
+        {
+          ...workout("2026-10-20T12:00"),
+          started_at: new Date(
+            new Date(monday).getTime() + 60_000
+          ).toISOString(),
+        },
+      ],
+      new Date("2026-10-28T12:00:00Z"),
+      8,
+      zone
+    );
+
+    expect(result?.weeks.at(-1)?.start.toISOString()).toBe(monday);
+    expect(result?.weeks.slice(-2).map((week) => week.count)).toStrictEqual([
+      1, 1,
+    ]);
+  });
+
+  it("refuses a time zone it can't read", () => {
+    expect(() =>
+      weeklyGoalOverview(
+        [change("2026-09-01T09:00", 3)],
+        [],
+        NOW,
+        8,
+        "Mars/Olympus"
+      )
+    ).toThrow(RangeError);
+  });
+});
