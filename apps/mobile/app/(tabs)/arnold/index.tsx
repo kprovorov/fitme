@@ -630,6 +630,14 @@ const ArnoldChat = ({
   const { isBusy, messages, newConversation } = chat;
   const redesign = isArnoldRedesignEnabled();
 
+  // The confirm runs the latest reset, which refuses while a turn runs: one
+  // can start while the alert is up.
+  const newConversationRef = useRef(newConversation);
+
+  useEffect(() => {
+    newConversationRef.current = newConversation;
+  }, [newConversation]);
+
   // The redesign asks before it throws a Conversation away: with messages in
   // it, a destructive confirmation; an empty one resets at once. The header's
   // button and the full-Conversation notice's both come here.
@@ -650,7 +658,7 @@ const ArnoldChat = ({
       [
         { style: "cancel", text: t("arnold.newConversationConfirm.cancel") },
         {
-          onPress: newConversation,
+          onPress: () => newConversationRef.current(),
           style: "destructive",
           text: t("arnold.newConversationConfirm.confirm"),
         },
