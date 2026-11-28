@@ -37,12 +37,21 @@
     "scrollToLatest": "Zu den neuesten Nachrichten",
     "emptyState": {
       "title": "Frag Arnold",
-      "description": "Zu deinem Training und deinen Plänen"
+      "description": "Zu deinem Training und deinen Plänen",
+      "starters": {
+        "buildPlan": "Erstell mir einen Plan",
+        "reviewActivePlan": "Überprüf meinen aktiven Plan",
+        "lastWeek": "Wie lief meine letzte Woche?",
+        "exerciseForm": "Wie mache ich eine Übung richtig?"
+      }
     },
     "composer": {
       "placeholder": "Schreib Arnold",
       "send": "Nachricht senden",
-      "addToChat": "Zum Chat hinzufügen"
+      "addToChat": "Zum Chat hinzufügen",
+      "takePhoto": "Foto aufnehmen",
+      "chooseFromLibrary": "Aus Mediathek wählen",
+      "stop": "Antwort stoppen"
     },
     "attachments": {
       "title": "Zum Chat hinzufügen",
@@ -89,6 +98,55 @@
         "libraryUnavailable": "Die Übungen dieses Plans konnten nicht geprüft werden. Versuche es erneut.",
         "rateLimited": "Zu viele Anfragen. Versuche es in {{seconds, number}} s erneut.",
         "generic": "Der Plan konnte nicht gespeichert werden. Versuche es erneut."
+      }
+    },
+    "modelMenu": {
+      "titleWithModel": "Arnold, {{model}}",
+      "label": "Modell wählen"
+    },
+    "newConversationConfirm": {
+      "button": "Neue Unterhaltung",
+      "title": "Neue Unterhaltung starten?",
+      "message": "Diese ist dann endgültig weg.",
+      "cancel": "Abbrechen",
+      "confirm": "Neue Unterhaltung starten"
+    },
+    "status": {
+      "working": "Arbeite…",
+      "tools": {
+        "activate_plan": "Speichere…",
+        "add_exercise_to_workout": "Speichere…",
+        "add_set_to_exercise": "Speichere…",
+        "display_workout_plan": "Arbeite…",
+        "get_active_plan": "Lese deinen Plan…",
+        "get_exercise_guide": "Suche Übungen…",
+        "get_exercise_history": "Lese deinen Verlauf…",
+        "get_lifetime_totals": "Lese deinen Verlauf…",
+        "get_open_workout_session": "Lese deinen Verlauf…",
+        "get_plan": "Lese deinen Plan…",
+        "get_plans": "Lese deinen Plan…",
+        "get_user_profile": "Lese dein Profil…",
+        "get_weekly_goal": "Lese deinen Verlauf…",
+        "get_workouts_history": "Lese deinen Verlauf…",
+        "list_exercise_notes": "Arbeite…",
+        "propose_plan": "Arbeite…",
+        "remove_exercise_from_workout": "Speichere…",
+        "remove_set_from_exercise": "Speichere…",
+        "remove_set_from_workout_session": "Speichere…",
+        "replace_exercise_in_workout": "Speichere…",
+        "search_exercises": "Suche Übungen…",
+        "set_exercise_note": "Speichere…",
+        "set_workout_session_set_note": "Speichere…",
+        "show_exercise_history": "Lese deinen Verlauf…",
+        "show_exercises": "Suche Übungen…",
+        "show_lifetime_totals": "Lese deinen Verlauf…",
+        "show_plan": "Lese deinen Plan…",
+        "show_profile": "Lese dein Profil…",
+        "show_weekly_goal": "Lese deinen Verlauf…",
+        "show_workout": "Lese deinen Plan…",
+        "show_workout_session": "Lese deinen Verlauf…",
+        "update_set_recommendations": "Speichere…",
+        "update_user_profile": "Speichere…"
       }
     }
   },

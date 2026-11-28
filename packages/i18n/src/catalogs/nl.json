@@ -37,12 +37,21 @@
     "scrollToLatest": "Naar de nieuwste berichten scrollen",
     "emptyState": {
       "title": "Vraag het Arnold",
-      "description": "Over je training, schema's en oefeningen"
+      "description": "Over je training, schema's en oefeningen",
+      "starters": {
+        "buildPlan": "Maak een plan voor me",
+        "reviewActivePlan": "Bekijk mijn actieve plan",
+        "lastWeek": "Hoe ging mijn afgelopen week?",
+        "exerciseForm": "Hoe doe ik een oefening?"
+      }
     },
     "composer": {
       "placeholder": "Stuur Arnold een bericht",
       "send": "Bericht versturen",
-      "addToChat": "Toevoegen aan chat"
+      "addToChat": "Toevoegen aan chat",
+      "takePhoto": "Maak foto",
+      "chooseFromLibrary": "Kies uit bibliotheek",
+      "stop": "Stop met antwoorden"
     },
     "attachments": {
       "title": "Toevoegen aan chat",
@@ -89,6 +98,55 @@
         "libraryUnavailable": "De oefeningen in dit schema konden niet worden gecontroleerd. Probeer het opnieuw.",
         "rateLimited": "Te veel verzoeken. Probeer het over {{seconds, number}} s opnieuw.",
         "generic": "Het schema kon niet worden opgeslagen. Probeer het opnieuw."
+      }
+    },
+    "modelMenu": {
+      "titleWithModel": "Arnold, {{model}}",
+      "label": "Kies een model"
+    },
+    "newConversationConfirm": {
+      "button": "Nieuw gesprek",
+      "title": "Nieuw gesprek beginnen?",
+      "message": "Dit gesprek is dan voorgoed weg.",
+      "cancel": "Annuleer",
+      "confirm": "Begin nieuw gesprek"
+    },
+    "status": {
+      "working": "Bezig…",
+      "tools": {
+        "activate_plan": "Bewaren…",
+        "add_exercise_to_workout": "Bewaren…",
+        "add_set_to_exercise": "Bewaren…",
+        "display_workout_plan": "Bezig…",
+        "get_active_plan": "Je plan lezen…",
+        "get_exercise_guide": "Oefeningen zoeken…",
+        "get_exercise_history": "Je geschiedenis lezen…",
+        "get_lifetime_totals": "Je geschiedenis lezen…",
+        "get_open_workout_session": "Je geschiedenis lezen…",
+        "get_plan": "Je plan lezen…",
+        "get_plans": "Je plan lezen…",
+        "get_user_profile": "Je profiel lezen…",
+        "get_weekly_goal": "Je geschiedenis lezen…",
+        "get_workouts_history": "Je geschiedenis lezen…",
+        "list_exercise_notes": "Bezig…",
+        "propose_plan": "Bezig…",
+        "remove_exercise_from_workout": "Bewaren…",
+        "remove_set_from_exercise": "Bewaren…",
+        "remove_set_from_workout_session": "Bewaren…",
+        "replace_exercise_in_workout": "Bewaren…",
+        "search_exercises": "Oefeningen zoeken…",
+        "set_exercise_note": "Bewaren…",
+        "set_workout_session_set_note": "Bewaren…",
+        "show_exercise_history": "Je geschiedenis lezen…",
+        "show_exercises": "Oefeningen zoeken…",
+        "show_lifetime_totals": "Je geschiedenis lezen…",
+        "show_plan": "Je plan lezen…",
+        "show_profile": "Je profiel lezen…",
+        "show_weekly_goal": "Je geschiedenis lezen…",
+        "show_workout": "Je plan lezen…",
+        "show_workout_session": "Je geschiedenis lezen…",
+        "update_set_recommendations": "Bewaren…",
+        "update_user_profile": "Bewaren…"
       }
     }
   },

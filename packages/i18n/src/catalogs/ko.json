@@ -37,12 +37,21 @@
     "scrollToLatest": "최근 메시지로 이동",
     "emptyState": {
       "title": "Arnold에게 물어보세요",
-      "description": "트레이닝, 운동 계획, 운동에 관해 물어보세요"
+      "description": "트레이닝, 운동 계획, 운동에 관해 물어보세요",
+      "starters": {
+        "buildPlan": "플랜을 만들어 줘",
+        "reviewActivePlan": "내 활성 플랜을 검토해 줘",
+        "lastWeek": "지난주는 어땠어?",
+        "exerciseForm": "운동은 어떻게 해?"
+      }
     },
     "composer": {
       "placeholder": "Arnold에게 메시지 보내기",
       "send": "메시지 보내기",
-      "addToChat": "채팅에 추가"
+      "addToChat": "채팅에 추가",
+      "takePhoto": "사진 찍기",
+      "chooseFromLibrary": "보관함에서 선택",
+      "stop": "답변 중지"
     },
     "attachments": {
       "title": "채팅에 추가",
@@ -86,6 +95,55 @@
         "libraryUnavailable": "이 계획의 종목을 확인하지 못했어요. 다시 시도해 주세요.",
         "rateLimited": "요청이 너무 많아요. {{seconds, number}}초 후에 다시 시도해 주세요.",
         "generic": "계획을 저장하지 못했어요. 다시 시도해 주세요."
+      }
+    },
+    "modelMenu": {
+      "titleWithModel": "Arnold, {{model}}",
+      "label": "모델 선택"
+    },
+    "newConversationConfirm": {
+      "button": "새 대화",
+      "title": "새 대화를 시작할까요?",
+      "message": "이 대화는 영구적으로 삭제됩니다.",
+      "cancel": "취소",
+      "confirm": "새 대화 시작"
+    },
+    "status": {
+      "working": "작업 중…",
+      "tools": {
+        "activate_plan": "저장하는 중…",
+        "add_exercise_to_workout": "저장하는 중…",
+        "add_set_to_exercise": "저장하는 중…",
+        "display_workout_plan": "작업 중…",
+        "get_active_plan": "플랜을 읽는 중…",
+        "get_exercise_guide": "운동을 검색하는 중…",
+        "get_exercise_history": "기록을 읽는 중…",
+        "get_lifetime_totals": "기록을 읽는 중…",
+        "get_open_workout_session": "기록을 읽는 중…",
+        "get_plan": "플랜을 읽는 중…",
+        "get_plans": "플랜을 읽는 중…",
+        "get_user_profile": "프로필을 읽는 중…",
+        "get_weekly_goal": "기록을 읽는 중…",
+        "get_workouts_history": "기록을 읽는 중…",
+        "list_exercise_notes": "작업 중…",
+        "propose_plan": "작업 중…",
+        "remove_exercise_from_workout": "저장하는 중…",
+        "remove_set_from_exercise": "저장하는 중…",
+        "remove_set_from_workout_session": "저장하는 중…",
+        "replace_exercise_in_workout": "저장하는 중…",
+        "search_exercises": "운동을 검색하는 중…",
+        "set_exercise_note": "저장하는 중…",
+        "set_workout_session_set_note": "저장하는 중…",
+        "show_exercise_history": "기록을 읽는 중…",
+        "show_exercises": "운동을 검색하는 중…",
+        "show_lifetime_totals": "기록을 읽는 중…",
+        "show_plan": "플랜을 읽는 중…",
+        "show_profile": "프로필을 읽는 중…",
+        "show_weekly_goal": "기록을 읽는 중…",
+        "show_workout": "플랜을 읽는 중…",
+        "show_workout_session": "기록을 읽는 중…",
+        "update_set_recommendations": "저장하는 중…",
+        "update_user_profile": "저장하는 중…"
       }
     }
   },

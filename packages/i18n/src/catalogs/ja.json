@@ -37,12 +37,21 @@
     "scrollToLatest": "最新のメッセージへ移動",
     "emptyState": {
       "title": "Arnoldに相談",
-      "description": "トレーニングやプラン、ワークアウトについて"
+      "description": "トレーニングやプラン、ワークアウトについて",
+      "starters": {
+        "buildPlan": "プランを作って",
+        "reviewActivePlan": "今のプランを見直して",
+        "lastWeek": "先週はどうだった？",
+        "exerciseForm": "エクササイズのやり方を教えて"
+      }
     },
     "composer": {
       "placeholder": "Arnoldにメッセージ",
       "send": "メッセージを送信",
-      "addToChat": "チャットに追加"
+      "addToChat": "チャットに追加",
+      "takePhoto": "写真を撮る",
+      "chooseFromLibrary": "ライブラリから選択",
+      "stop": "回答を停止"
     },
     "attachments": {
       "title": "チャットに追加",
@@ -86,6 +95,55 @@
         "libraryUnavailable": "プランの種目を確認できませんでした。もう一度お試しください。",
         "rateLimited": "リクエストが多すぎます。{{seconds, number}}秒後にお試しください。",
         "generic": "プランを保存できませんでした。もう一度お試しください。"
+      }
+    },
+    "modelMenu": {
+      "titleWithModel": "Arnold、{{model}}",
+      "label": "モデルを選択"
+    },
+    "newConversationConfirm": {
+      "button": "新しい会話",
+      "title": "新しい会話を始めますか？",
+      "message": "この会話は完全に削除されます。",
+      "cancel": "キャンセル",
+      "confirm": "新しい会話を始める"
+    },
+    "status": {
+      "working": "処理中…",
+      "tools": {
+        "activate_plan": "保存中…",
+        "add_exercise_to_workout": "保存中…",
+        "add_set_to_exercise": "保存中…",
+        "display_workout_plan": "処理中…",
+        "get_active_plan": "プランを読み込み中…",
+        "get_exercise_guide": "エクササイズを検索中…",
+        "get_exercise_history": "履歴を読み込み中…",
+        "get_lifetime_totals": "履歴を読み込み中…",
+        "get_open_workout_session": "履歴を読み込み中…",
+        "get_plan": "プランを読み込み中…",
+        "get_plans": "プランを読み込み中…",
+        "get_user_profile": "プロフィールを読み込み中…",
+        "get_weekly_goal": "履歴を読み込み中…",
+        "get_workouts_history": "履歴を読み込み中…",
+        "list_exercise_notes": "処理中…",
+        "propose_plan": "処理中…",
+        "remove_exercise_from_workout": "保存中…",
+        "remove_set_from_exercise": "保存中…",
+        "remove_set_from_workout_session": "保存中…",
+        "replace_exercise_in_workout": "保存中…",
+        "search_exercises": "エクササイズを検索中…",
+        "set_exercise_note": "保存中…",
+        "set_workout_session_set_note": "保存中…",
+        "show_exercise_history": "履歴を読み込み中…",
+        "show_exercises": "エクササイズを検索中…",
+        "show_lifetime_totals": "履歴を読み込み中…",
+        "show_plan": "プランを読み込み中…",
+        "show_profile": "プロフィールを読み込み中…",
+        "show_weekly_goal": "履歴を読み込み中…",
+        "show_workout": "プランを読み込み中…",
+        "show_workout_session": "履歴を読み込み中…",
+        "update_set_recommendations": "保存中…",
+        "update_user_profile": "保存中…"
       }
     }
   },
