@@ -17,7 +17,7 @@ import type {
   PlanProposalChanges,
 } from "@fitme/services/plan-proposals";
 import { getPlan } from "@fitme/services/plans";
-import type { PlanDetail } from "@fitme/services/plans";
+import type { NewPlan, PlanDetail } from "@fitme/services/plans";
 import { z } from "zod";
 
 import { checkExerciseSlugs, exerciseSlugSchema } from "./exercises";
@@ -39,10 +39,15 @@ const rowId = (row: string) =>
 
 const proposedSetSchema = setSchema.extend({
   id: rowId("set"),
-  weight_recommended: setSchema.shape.weight_recommended.refine(
-    (weight) => Math.abs(weight * WEIGHT_SCALE - hundredths(weight)) < 1e-6,
-    `At most ${MAX_WEIGHT_DECIMALS} decimals`
-  ),
+  weight_recommended: setSchema.shape.weight_recommended
+    .refine(
+      (weight) => Math.abs(weight * WEIGHT_SCALE - hundredths(weight)) < 1e-6,
+      `At most ${MAX_WEIGHT_DECIMALS} decimals`
+    )
+    .nullable()
+    .describe(
+      "Recommended weight in the user's unit (0 for bodyweight). In a new plan, null when the user has no history of the exercise to take one from: never invent a load. A change to a plan always sends a number"
+    ),
 });
 
 const proposedExerciseSchema = z.object({
@@ -107,19 +112,28 @@ const proposedDetailsSchema = z.object({
     .describe("Minutes; null clears it"),
 });
 
-/** `propose_plan`'s input: what changes in one of the User's Plans. */
+/**
+ * `propose_plan`'s input: what changes in one of the User's Plans, or, with
+ * no `plan_id`, a whole new Plan.
+ */
 export const planProposalInputSchema = z.object({
   details: proposedDetailsSchema
     .optional()
-    .describe("Only the plan details that change"),
-  plan_id: z.guid().describe("The id of the plan to change"),
+    .describe(
+      "For a change, only the plan details that change. For a new plan, its details: name and frequency required, the rest optional"
+    ),
+  plan_id: z
+    .guid()
+    .optional()
+    .describe("The id of the plan to change; leave it out for a new plan"),
   plan_version: z
     .string()
     .trim()
     .min(1)
     .max(64)
+    .optional()
     .describe(
-      "The plan_version get_plan or get_active_plan answered with the plan you're changing"
+      "The plan_version get_plan or get_active_plan answered with the plan you're changing; leave it out for a new plan"
     ),
   removed_workout_ids: z
     .array(z.guid())
@@ -131,7 +145,7 @@ export const planProposalInputSchema = z.object({
     .max(MAX_WORKOUTS_PER_PLAN)
     .optional()
     .describe(
-      "Each changed workout in full, with every exercise and set it keeps, and new workouts without an id. Workouts left out stay as they are"
+      "For a change, each changed workout in full, with every exercise and set it keeps, and new workouts without an id; workouts left out stay as they are. For a new plan, every workout in rotation order, no ids"
     ),
 });
 
@@ -140,16 +154,97 @@ export type PlanProposalInput = z.infer<typeof planProposalInputSchema>;
 /** A note as the proposal saves it: an empty one is no note. */
 const noteOf = (note: string | null | undefined) => (note === "" ? null : note);
 
-/** The input as the Plan Proposal save takes it. */
+/** Whether the proposal is a whole new Plan rather than a change to one. */
+export const isNewPlan = (input: PlanProposalInput): boolean =>
+  input.plan_id === undefined;
+
+type ProposedWorkout = NonNullable<PlanProposalInput["workouts"]>[number];
+
+/**
+ * The Workouts with every weight a number: a Plan set always has a weight
+ * target, and one left empty (no history to take it from) is saved as none,
+ * 0, as the Plan builder saves a set with no weight.
+ */
+const weighedWorkouts = (workouts: readonly ProposedWorkout[]) =>
+  workouts.map((workout) => ({
+    ...workout,
+    exercises: workout.exercises.map((exercise) => ({
+      ...exercise,
+      sets: exercise.sets.map((set) => ({
+        ...set,
+        weight_recommended: set.weight_recommended ?? 0,
+      })),
+    })),
+  }));
+
+/** The input as the Plan Proposal save takes it (a change, checked first). */
 export const toPlanProposal = (input: PlanProposalInput): PlanProposal => ({
   details:
     input.details === undefined
       ? undefined
       : { ...input.details, note: noteOf(input.details.note) },
-  planVersion: input.plan_version,
+  planVersion: input.plan_version ?? "",
   removedWorkoutIds: input.removed_workout_ids,
-  workouts: input.workouts,
+  workouts:
+    input.workouts === undefined ? undefined : weighedWorkouts(input.workouts),
 });
+
+/**
+ * A new Plan's input as `createPlan` takes it (checked first, so it has its
+ * name and frequency), each Workout with the Cover picked for it.
+ */
+export const toNewPlan = (
+  input: PlanProposalInput,
+  covers: readonly (string | null)[]
+): NewPlan => {
+  const details = input.details ?? {};
+
+  return {
+    description: details.description ?? "",
+    experience_level: details.experience_level ?? null,
+    frequency: details.frequency ?? MIN_FREQUENCY,
+    goal: details.goal ?? null,
+    name: details.name ?? "",
+    note: noteOf(details.note) ?? null,
+    place: details.place ?? null,
+    workout_duration: details.workout_duration ?? null,
+    workouts: weighedWorkouts(input.workouts ?? []).map((workout, index) => ({
+      cover: covers[index] ?? null,
+      description: workout.description,
+      exercises: workout.exercises.map((exercise) => ({
+        exercise_slug: exercise.exercise_slug,
+        sets: exercise.sets.map((set) => ({
+          reps_recommended: set.reps_recommended,
+          rest_recommended: set.rest_recommended,
+          weight_recommended: set.weight_recommended,
+        })),
+      })),
+      name: workout.name,
+    })),
+  };
+};
+
+/** What a new Plan adds, counted as a change's counts are. */
+export const newPlanChanges = (
+  input: PlanProposalInput
+): PlanProposalChanges => {
+  const workouts = input.workouts ?? [];
+  const exercises = workouts.flatMap((workout) => workout.exercises);
+
+  return {
+    exercisesAdded: exercises.length,
+    exercisesRemoved: 0,
+    setsAdded: exercises.reduce(
+      (count, exercise) => count + exercise.sets.length,
+      0
+    ),
+    setsChanged: 0,
+    setsRemoved: 0,
+    workoutsAdded: workouts.length,
+    workoutsChanged: 0,
+    workoutsRemoved: 0,
+  };
+};
 
 /** The save's counts, as the tool answers them. */
 export const shownChanges = (changes: PlanProposalChanges) => ({
@@ -311,7 +406,7 @@ const changesPlan = (plan: PlanDetail, input: PlanProposalInput): boolean => {
           id?: string;
           reps_recommended: number;
           rest_recommended: number;
-          weight_recommended: number;
+          weight_recommended: number | null;
         }[];
       }[];
       name: string;
@@ -326,7 +421,7 @@ const changesPlan = (plan: PlanDetail, input: PlanProposalInput): boolean => {
             set.id === undefined ? null : lowercase(set.id),
             set.reps_recommended,
             set.rest_recommended,
-            hundredths(set.weight_recommended),
+            hundredths(set.weight_recommended ?? 0),
           ]),
         ]),
       ]);
@@ -400,6 +495,84 @@ const changedSlugs = (plan: PlanDetail, input: PlanProposalInput): string[] => {
   );
 };
 
+const LIBRARY_INDEX_UNAVAILABLE =
+  "The exercise library is unavailable right now, so the proposal wasn't shown. Try again in a moment.";
+
+/** The ids a new Plan's rows carry, none of which a new row has. */
+const sentRowIds = (input: PlanProposalInput): string[] =>
+  (input.workouts ?? []).flatMap((workout) => [
+    ...(workout.id === undefined ? [] : [workout.id]),
+    ...workout.exercises.flatMap((exercise) => [
+      ...(exercise.id === undefined ? [] : [exercise.id]),
+      ...exercise.sets.flatMap((set) => (set.id === undefined ? [] : [set.id])),
+    ]),
+  ]);
+
+/**
+ * Checks a proposal of a whole new Plan: no marker, removal or row id (there
+ * is no Plan to have them), a name, a frequency and at least one Workout
+ * (the schema already holds each Workout to an Exercise and each Exercise to
+ * a set), every slug against the new Library, and that the Library index can
+ * load for the Workouts' Covers.
+ */
+const checkNewPlan = async (
+  input: PlanProposalInput
+): Promise<string | null> => {
+  if (
+    input.plan_version !== undefined ||
+    input.removed_workout_ids !== undefined
+  ) {
+    return "A new plan has no plan_version or removed_workout_ids. To change an existing plan, pass its plan_id with them; for a new one, leave all three out.";
+  }
+
+  const ids = sentRowIds(input);
+
+  if (ids.length > 0) {
+    return `A new plan's workouts, exercises and sets have no ids, but these were sent: ${ids.join(", ")}. Leave every id out, or pass the plan_id of the plan they belong to.`;
+  }
+
+  const missing = [
+    ...(input.details?.name === undefined ? ["details.name"] : []),
+    ...(input.details?.frequency === undefined ? ["details.frequency"] : []),
+  ];
+
+  if (missing.length > 0) {
+    return `A new plan needs ${missing.join(" and ")}. Add them and propose again.`;
+  }
+
+  const workouts = input.workouts ?? [];
+
+  if (workouts.length === 0) {
+    return "A new plan needs at least one workout, each with its exercises and sets. Add them and propose again.";
+  }
+
+  const unknown = await checkExerciseSlugs(
+    workouts.flatMap((workout) =>
+      workout.exercises.map((exercise) => exercise.exercise_slug)
+    )
+  );
+
+  if (unknown) {
+    return unknown.error;
+  }
+
+  const index = await getLibraryIndex().lookup([]);
+
+  return index.status === "unavailable" ? LIBRARY_INDEX_UNAVAILABLE : null;
+};
+
+/** The set positions of a change whose weight was left empty. */
+const emptyWeights = (input: PlanProposalInput): string[] =>
+  (input.workouts ?? []).flatMap((workout, w) =>
+    workout.exercises.flatMap((exercise, e) =>
+      exercise.sets.flatMap((set, s) =>
+        set.weight_recommended === null
+          ? [`workouts.${w}.exercises.${e}.sets.${s}.weight_recommended`]
+          : []
+      )
+    )
+  );
+
 /**
  * Checks a proposal to change one of `userId`'s Plans before the User sees
  * it (ADR 0027): its shape and every Plan bound, every Exercise slug against
@@ -407,8 +580,9 @@ const changedSlugs = (plan: PlanDetail, input: PlanProposalInput): string[] => {
  * (its version marker), every row id against the Plan under the parent it
  * was read under, the Workouts the Plan would be left with, that it changes
  * something, and that the Library index can load when it adds a Workout (for
- * its Cover). Answers `null` when it passes, else the reason for the model,
- * naming what to fix. Reads only; nothing is written.
+ * its Cover). Without a `plan_id` it's a new Plan, checked by
+ * `checkNewPlan`. Answers `null` when it passes, else the reason for the
+ * model, naming what to fix. Reads only; nothing is written.
  */
 export const checkPlanProposal = async (
   userId: string,
@@ -422,6 +596,20 @@ export const checkPlanProposal = async (
 
   const input = parsed.data;
 
+  if (input.plan_id === undefined) {
+    return await checkNewPlan(input);
+  }
+
+  if (input.plan_version === undefined) {
+    return "A change to a plan needs the plan_version get_plan or get_active_plan answered with it. Read the plan and propose again.";
+  }
+
+  const empty = emptyWeights(input);
+
+  if (empty.length > 0) {
+    return `A change to a plan gives every set a weight (0 for bodyweight); these are empty: ${empty.join(", ")}.`;
+  }
+
   if (
     (input.workouts ?? []).length === 0 &&
     (input.removed_workout_ids ?? []).length === 0 &&
@@ -430,9 +618,11 @@ export const checkPlanProposal = async (
     return "The proposal changes nothing: send the changed workouts, the workouts to remove or the changed plan details.";
   }
 
+  const planId = input.plan_id;
+
   const plan = await asUser(
     userId,
-    async (tx) => await getPlan(tx, userId, input.plan_id)
+    async (tx) => await getPlan(tx, userId, planId)
   );
 
   if (plan === null) {
@@ -463,7 +653,7 @@ export const checkPlanProposal = async (
     const index = await getLibraryIndex().lookup([]);
 
     if (index.status === "unavailable") {
-      return "The exercise library is unavailable right now, so the proposal wasn't shown. Try again in a moment.";
+      return LIBRARY_INDEX_UNAVAILABLE;
     }
   }
 

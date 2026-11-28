@@ -70,3 +70,19 @@ export const requestKey = (
 
   return sha256([call, occurrence]);
 };
+
+/**
+ * A key for a held tool call (one eve runs only once the User approves it):
+ * the session and the call's own id. Unlike a call the model step runs
+ * itself, a held call keeps its call id from the request to the run
+ * (`call.started` names the call the approval cleared,
+ * `docs/research/arnold-tool-approval.md`), so the same call run again
+ * carries the same key and the service answers what the first run saved,
+ * while a new proposal the User accepts again is a new call with its own.
+ */
+export const heldCallKey = (
+  ctx: Pick<ToolContext, "callId" | "session" | "toolName">
+): string =>
+  createHash("sha256")
+    .update(JSON.stringify(["held", ctx.session.id, ctx.toolName, ctx.callId]))
+    .digest("hex");

@@ -1,6 +1,8 @@
 import { asUser } from "@fitme/db";
 import { savePlanProposal } from "@fitme/services/plan-proposals";
+import { createPlan } from "@fitme/services/plans";
 import { defineTool } from "eve/tools";
+import type { ToolContext } from "eve/tools";
 import type { ApprovalContext } from "eve/tools/approval";
 
 import { loadCoverPicker } from "../lib/covers";
@@ -8,11 +10,16 @@ import type { CoverPicker } from "../lib/covers";
 import { ownerOfTurn, requireConversationOwner } from "../lib/owner";
 import {
   checkPlanProposal,
+  isNewPlan,
+  newPlanChanges,
   PLAN_CHANGED,
   planProposalInputSchema,
   shownChanges,
+  toNewPlan,
   toPlanProposal,
 } from "../lib/plan-proposals";
+import type { PlanProposalInput } from "../lib/plan-proposals";
+import { heldCallKey } from "../lib/request-key";
 import { offeredForCardPerModelCall } from "../lib/tool-offer";
 
 /** The picker of a save that adds no Workout, so has no Cover to pick. */
@@ -23,7 +30,41 @@ export const ONE_PROPOSAL_PER_STEP =
   "Only one plan proposal can wait for the user at a time, and this response already made one. Put every change in that one proposal; this one wasn't shown.";
 
 /**
- * `propose_plan` for a change to one of the User's Plans (ADR 0027): eve
+ * Creates the new Plan a proposal holds, as the owner, and makes it the
+ * active Plan, each Workout with a Cover. The request key is the held call's
+ * own, so a re-run of this call answers the Plan its first run made.
+ */
+const createProposedPlan = async (
+  userId: string,
+  input: PlanProposalInput,
+  ctx: ToolContext
+) => {
+  const picker = await loadCoverPicker();
+
+  if ("error" in picker) {
+    throw new Error(picker.error);
+  }
+
+  const covers = picker.pick(input.workouts ?? [], []);
+
+  const created = await asUser(
+    userId,
+    async (tx) =>
+      await createPlan(tx, userId, toNewPlan(input, covers), {
+        activate: true,
+        requestKey: heldCallKey(ctx),
+      })
+  );
+
+  return {
+    changes: shownChanges(newPlanChanges(input)),
+    plan_id: created.id,
+  };
+};
+
+/**
+ * `propose_plan` for a change to one of the User's Plans, or a whole new
+ * Plan (ADR 0027): eve
  * holds the call and the app draws the Plan Proposal card from it; it runs
  * only when the User accepts. Its approval policy checks the proposal first
  * (`checkPlanProposal`) and refuses one that fails with the reason, and any
@@ -42,7 +83,10 @@ export const createProposePlan = () => {
 
   return defineTool({
     approval: {
-      prompt: () => "Save these changes to the plan?",
+      prompt: ({ input }) =>
+        isNewPlan(input)
+          ? "Save this new plan?"
+          : "Save these changes to the plan?",
       request: async ({
         callId,
         session,
@@ -77,9 +121,14 @@ export const createProposePlan = () => {
       },
     },
     description:
-      "Propose a change to one of the user's plans. The user sees it as a card and it's saved only when they accept it; nothing changes before that. Read the plan first with get_plan or get_active_plan, pass its plan_version, and send only what changes: each changed workout in full with every exercise and set it keeps (each row with the id it was read under, new rows without), the ids of workouts to remove, and the changed plan details. Every set has whole-number reps, a weight in the user's unit (0 for bodyweight) and a rest in seconds. Make at most one proposal per response. A refused proposal says what to fix.",
+      "Propose a change to one of the user's plans, or a whole new plan. The user sees it as a card and it's saved only when they accept it; nothing changes before that. For a change, read the plan first with get_plan or get_active_plan, pass its plan_id and plan_version, and send only what changes: each changed workout in full with every exercise and set it keeps (each row with the id it was read under, new rows without), the ids of workouts to remove, and the changed plan details. For a new plan, leave out plan_id and plan_version and send its details (name and frequency required) and every workout with its exercises and sets, no ids; it becomes the user's active plan. Every set has whole-number reps, a rest in seconds and a weight in the user's unit (0 for bodyweight); in a new plan, leave the weight null when the user has no history of the exercise, never invent one. Make at most one proposal per response. A refused proposal says what to fix.",
     async execute(input, ctx) {
       const userId = requireConversationOwner(ctx.session.auth);
+      const planId = input.plan_id;
+
+      if (planId === undefined) {
+        return await createProposedPlan(userId, input, ctx);
+      }
 
       const addsWorkouts = (input.workouts ?? []).some(
         (workout) => workout.id === undefined
@@ -97,13 +146,9 @@ export const createProposePlan = () => {
       const saved = await asUser(
         userId,
         async (tx) =>
-          await savePlanProposal(
-            tx,
-            userId,
-            input.plan_id,
-            toPlanProposal(input),
-            { coverNewWorkouts: picker.pick }
-          )
+          await savePlanProposal(tx, userId, planId, toPlanProposal(input), {
+            coverNewWorkouts: picker.pick,
+          })
       );
 
       switch (saved.status) {
@@ -132,7 +177,7 @@ export const createProposePlan = () => {
 
         case "not_found": {
           throw new Error(
-            `Nothing was saved: no plan ${input.plan_id} for the user, it was deleted. Read get_plans for the current plan ids.`
+            `Nothing was saved: no plan ${planId} for the user, it was deleted. Read get_plans for the current plan ids.`
           );
         }
 
