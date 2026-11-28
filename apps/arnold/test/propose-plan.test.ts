@@ -751,6 +751,76 @@ describe("propose_plan", () => {
       expect(db.asUser).not.toHaveBeenCalled();
     });
 
+    describe("a local eval run's turn", () => {
+      const evalRunner = {
+        attributes: {},
+        authenticator: "local-dev",
+        principalId: "local-dev",
+        principalType: "local-dev",
+      };
+
+      const evalTurn: ToolContext = {
+        ...alice,
+        session: {
+          ...alice.session,
+          auth: { current: evalRunner, initiator: evalRunner },
+        },
+      };
+
+      it("holds the proposal for the eval, reading nothing", async () => {
+        vi.stubEnv("EVE_EVALUATION", "1");
+        vi.stubEnv("EVE_DEV", "1");
+        vi.stubEnv("VERCEL", undefined);
+
+        try {
+          await expect(check(heavierPush(), { ctx: evalTurn })).resolves.toBe(
+            "user-approval"
+          );
+          expect(db.asUser).not.toHaveBeenCalled();
+        } finally {
+          vi.unstubAllEnvs();
+        }
+      });
+
+      it("still holds only one proposal per response", async () => {
+        vi.stubEnv("EVE_EVALUATION", "1");
+        vi.stubEnv("EVE_DEV", "1");
+        vi.stubEnv("VERCEL", undefined);
+
+        try {
+          const tool = freshTool();
+
+          await check(heavierPush(), { ctx: evalTurn }, tool);
+
+          expect(
+            denialReason(
+              await check(
+                heavierPush(),
+                { callId: "call_2", ctx: evalTurn },
+                tool
+              )
+            )
+          ).toBe(proposePlan.ONE_PROPOSAL_PER_STEP);
+        } finally {
+          vi.unstubAllEnvs();
+        }
+      });
+
+      it("is refused outside a local eval run", async () => {
+        vi.stubEnv("EVE_EVALUATION", "1");
+        vi.stubEnv("EVE_DEV", "1");
+        vi.stubEnv("VERCEL", "1");
+
+        try {
+          expect(
+            denialReason(await check(heavierPush(), { ctx: evalTurn }))
+          ).toContain("owner");
+        } finally {
+          vi.unstubAllEnvs();
+        }
+      });
+    });
+
     it("refuses with a retry reason when the Library can't load", async () => {
       testLibrary.reset({ loads: "fail" });
 

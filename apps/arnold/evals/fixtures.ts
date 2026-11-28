@@ -1,5 +1,6 @@
 import { arnoldCardIds, arnoldCards } from "@fitme/core/arnold";
 import type { ToolStub } from "eve/evals";
+import { z } from "zod";
 
 /**
  * What Arnold's read tools return for a made-up User, shaped like the
@@ -18,6 +19,13 @@ export const LEG_PRESS = "leg-press";
 export const PLAN_ID = "d0000000-0000-4000-8000-000000000041";
 const UPPER_WORKOUT_ID = "d0000000-0000-4000-8000-000000000042";
 const LOWER_WORKOUT_ID = "d0000000-0000-4000-8000-000000000043";
+
+/** The version marker the plan reads answer; the stale-save eval's next read moves it. */
+export const PLAN_VERSION = "v1";
+export const NEW_PLAN_VERSION = "v2";
+export const BENCH_ROW_ID = "d0000000-0000-4000-8000-000000000051";
+const ROW_ROW_ID = "d0000000-0000-4000-8000-000000000052";
+const SQUAT_ROW_ID = "d0000000-0000-4000-8000-000000000053";
 
 /** The latest finished Workout Session: Saturday's Lower Day. */
 export const LAST_SESSION_ID = "d0000000-0000-4000-8000-000000000031";
@@ -50,21 +58,24 @@ export const activePlan = {
       exercises: [
         {
           exercise_slug: BENCH,
-          id: "we-bench",
+          id: BENCH_ROW_ID,
           muscle_groups: ["chest"],
           name: "Bench Press",
           exercise_note: null,
           order: 1,
-          sets: [set("s-bench-1", 1, 8, 70), set("s-bench-2", 2, 8, 70)],
+          sets: [
+            set("d0000000-0000-4000-8000-000000000061", 1, 8, 70),
+            set("d0000000-0000-4000-8000-000000000062", 2, 8, 70),
+          ],
         },
         {
           exercise_slug: ROW,
-          id: "we-row",
+          id: ROW_ROW_ID,
           muscle_groups: ["back"],
           name: "Barbell Row",
           exercise_note: null,
           order: 2,
-          sets: [set("s-row-1", 1, 10, 60)],
+          sets: [set("d0000000-0000-4000-8000-000000000063", 1, 10, 60)],
         },
       ],
       id: UPPER_WORKOUT_ID,
@@ -76,12 +87,12 @@ export const activePlan = {
       exercises: [
         {
           exercise_slug: SQUAT,
-          id: "we-squat",
+          id: SQUAT_ROW_ID,
           muscle_groups: ["quadriceps"],
           name: "Back Squat",
           exercise_note: null,
           order: 1,
-          sets: [set("s-squat-1", 1, 5, 100)],
+          sets: [set("d0000000-0000-4000-8000-000000000064", 1, 5, 100)],
         },
       ],
       id: LOWER_WORKOUT_ID,
@@ -533,8 +544,8 @@ export const setNoteStubs: readonly ToolStub[] = [
 /**
  * The client context of a build that can draw every reference and snapshot
  * card (ADR 0027), so Arnold is offered the eight show tools. Not
- * `plan_proposal`: that would withhold the Plan edits and the old plan card
- * for a save tool Arnold doesn't have yet. A session sent no `cards` is an
+ * `plan_proposal`, so the Plan edits and the old plan card stay offered
+ * (`proposalBuild` is the build with it). A session sent no `cards` is an
  * old build, which is offered none of them.
  */
 export const cardBuild = {
@@ -617,7 +628,7 @@ export const cardStubs: readonly ToolStub[] = [
   ...readToolStubs,
   {
     id: "plan",
-    outcome: { response: { ...activePlan, plan_version: "v1" } },
+    outcome: { response: { ...activePlan, plan_version: PLAN_VERSION } },
     tool: "get_plan",
   },
   {
@@ -712,3 +723,149 @@ export const numbersFrom = (
   { required }: { required: boolean }
 ) =>
   `Every number the response gives about the user's training (counts of workouts, weeks, a streak, a goal, weights, reps, durations, totals) agrees with this data the app read for the user: ${JSON.stringify(data)}. Saying "this week", "last week" or naming a weekday or a date is not a number. A number that isn't in the data, or that contradicts it, fails. ${required ? "A response that gives no number at all fails." : "A response that gives no number at all passes."}`;
+
+/**
+ * The client context of a build that draws every card, the Plan Proposal
+ * included (ADR 0027): Arnold is offered propose_plan, and neither the Plan
+ * edits nor the old plan card.
+ */
+export const proposalBuild = {
+  cards: [...arnoldCardIds],
+  language: "en",
+  timeZone: "Europe/Kyiv",
+} as const;
+
+/** The library's names of the exercises the fixtures search answers. */
+const exerciseNames = {
+  [INCLINE]: "Incline Dumbbell Press",
+  [LEG_PRESS]: "Leg Press",
+  [ROW]: "Barbell Row",
+  [SQUAT]: "Back Squat",
+} as const;
+
+/** What propose_plan answers once the User accepted and the save landed. */
+const savedProposal = {
+  changes: {
+    exercises_added: 0,
+    exercises_removed: 0,
+    sets_added: 1,
+    sets_changed: 0,
+    sets_removed: 0,
+    workouts_added: 0,
+    workouts_changed: 1,
+    workouts_removed: 0,
+  },
+  plan_id: PLAN_ID,
+};
+
+/**
+ * The card stubs, an Exercise history with no entries for every exercise the
+ * searches answer but the Bench Press (whose history is `cardStubs`'), and
+ * propose_plan answering a landed save. propose_plan's approval still holds
+ * each call for the eval to answer (`requireInteraction`, `respond`), so a
+ * stub runs only on Accept.
+ */
+export const proposalStubs: readonly ToolStub[] = [
+  {
+    id: "active-plan-with-version",
+    outcome: { response: { ...activePlan, plan_version: PLAN_VERSION } },
+    tool: "get_active_plan",
+  },
+  ...cardStubs,
+  ...Object.entries(exerciseNames).map(([slug, name]): ToolStub => ({
+    id: `no-history-${slug}`,
+    match: { exercise_slug: { const: slug } },
+    outcome: {
+      response: {
+        best_result: null,
+        entries: [],
+        exercise_slug: slug,
+        name,
+        total: 0,
+        weight_unit: "kg",
+      },
+    },
+    tool: "get_exercise_history",
+  })),
+  {
+    id: "save-proposal",
+    outcome: { response: savedProposal },
+    tool: "propose_plan",
+  },
+];
+
+/** propose_plan's refusal on Accept when the Plan moved on: `PLAN_CHANGED`'s text. */
+const PLAN_CHANGED_MESSAGE =
+  "The plan changed since you read it (the user trained, edited it or took a plan update), so nothing was saved. Read it again with get_plan and propose the change afresh from what it is now.";
+
+/**
+ * The proposal stubs where the first accepted save is refused because the
+ * Plan changed, and the Plan reads at a new marker after the first read:
+ * first matching rule wins, so these go before `proposalStubs`'. This is
+ * the save's own refusal (a change between eve's recheck and the save); the
+ * recheck's denial carries the same text, but a stubbed eval can't reach it.
+ */
+export const staleSaveStubs: readonly ToolStub[] = [
+  // The active Plan reads at the old marker first; any read after it, by
+  // either tool, at the new one (a first read by get_plan is already new)
+  {
+    id: "active-plan-moves-on",
+    outcomes: [
+      { response: { ...activePlan, plan_version: PLAN_VERSION } },
+      { response: { ...activePlan, plan_version: NEW_PLAN_VERSION } },
+    ],
+    tool: "get_active_plan",
+  },
+  {
+    id: "plan-moved-on",
+    outcome: { response: { ...activePlan, plan_version: NEW_PLAN_VERSION } },
+    tool: "get_plan",
+  },
+  {
+    id: "refused-then-saved",
+    outcomes: [
+      { throw: { message: PLAN_CHANGED_MESSAGE } },
+      { response: savedProposal },
+    ],
+    tool: "propose_plan",
+  },
+  ...proposalStubs,
+];
+
+/** Tool names in call order, a plan read coming before the last proposal. */
+export const readsBeforeProposing = (names: readonly string[]): boolean => {
+  const proposal = names.lastIndexOf("propose_plan");
+
+  return (
+    proposal > 0 &&
+    names
+      .slice(0, proposal)
+      .some((name) => name === "get_plan" || name === "get_active_plan")
+  );
+};
+
+interface TurnEvents {
+  readonly events: readonly {
+    readonly data?: unknown;
+    readonly type: string;
+  }[];
+}
+
+/** A finished text part, as `content.completed` carries it. */
+const completedText = z.object({ kind: z.literal("text"), value: z.string() });
+
+/**
+ * Everything Arnold wrote in a turn, narration included: a turn that parks
+ * on a proposal ends with no reply, and what he says beside the call is
+ * narration, which the app shows above the card.
+ */
+export const turnText = ({ events }: TurnEvents): string =>
+  events
+    .flatMap(({ data, type }) => {
+      const text = completedText.safeParse(data);
+
+      return type === "content.completed" && text.success
+        ? [text.data.value]
+        : [];
+    })
+    .join("\n\n");
