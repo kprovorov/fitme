@@ -9,7 +9,12 @@ import { beforeEach, describe, expect, it } from "@jest/globals";
  */
 import { Client, ClientError } from "eve/client";
 import type { StoredLine } from "eve/events";
-import { createStreamChecker } from "eve/events";
+import {
+  createStreamChecker,
+  emptySessionView,
+  foldEvents,
+  openInteractions,
+} from "eve/events";
 
 import { FAKE_ARNOLD_REPLY, fakeArnold } from "~/test-utils/fake-arnold";
 
@@ -415,6 +420,376 @@ describe("fake Arnold", () => {
       )?.data
     ).toEqual(expect.objectContaining({ outcome: "ignored" }));
     await expect(violations(session.state.sessionId)).resolves.toEqual([]);
+  });
+
+  it("holds a call for approval, then runs it once approved", async () => {
+    fakeArnold.holdNextToolCallForApproval(
+      {
+        input: { plan_name: "Push A" },
+        name: "propose_plan",
+        output: { saved: true },
+      },
+      { prompt: "Save Push A?" }
+    );
+
+    const { delivery, session } = await client().sessions.create({
+      message: "Save a plan called Push A.",
+    });
+
+    const held = await delivery.result();
+
+    expect(held.outcome).toBe("awaiting-input");
+    expect(held.interactions).toHaveLength(1);
+
+    const { events: paused } = await session.snapshot();
+
+    // Requested, never started: the turn paused on the approval.
+    expect(paused.map((event) => event.type)).toEqual([
+      "session.started",
+      "delivery.admitted",
+      "turn.started",
+      "delivery.consumed",
+      "model.requested",
+      "model.started",
+      "call.requested",
+      "model.settled",
+      "interaction.opened",
+      "turn.paused",
+      "delivery.settled",
+    ]);
+    expect(paused.map((event) => event.type)).not.toContain("call.started");
+
+    const [interaction] = held.interactions;
+    const interactionId = interaction?.interactionId ?? "";
+
+    expect(
+      paused.find((event) => event.type === "interaction.opened")?.data
+    ).toEqual(
+      expect.objectContaining({
+        request: expect.objectContaining({
+          kind: "approval",
+          options: [
+            { id: "approve", label: "Approve" },
+            { id: "deny", label: "Deny" },
+          ],
+          prompt: "Save Push A?",
+        }),
+      })
+    );
+    await expect(violations(session.state.sessionId)).resolves.toEqual([]);
+
+    const approved = await session.respond(
+      [{ interactionId, optionId: "approve" }],
+      { clientContext: { language: "en" } }
+    );
+
+    await expect(approved.result()).resolves.toEqual(
+      expect.objectContaining({ outcome: "handled", status: "completed" })
+    );
+    expect(fakeArnold.responses).toEqual([
+      {
+        answers: [{ interactionId, optionId: "approve" }],
+        clientContext: { language: "en" },
+        sessionId: session.state.sessionId,
+      },
+    ]);
+
+    const { events } = await session.snapshot();
+    const after = events.slice(paused.length);
+
+    expect(after.map((event) => event.type)).toEqual([
+      "delivery.admitted",
+      "response.submitted",
+      "response.admitted",
+      "response.settled",
+      "interaction.settled",
+      "delivery.consumed",
+      "call.started",
+      "call.settled",
+      "model.requested",
+      "model.started",
+      "content.delta",
+      "content.completed",
+      "model.settled",
+      "turn.settled",
+      "delivery.settled",
+    ]);
+    expect(after.find((event) => event.type === "call.started")?.data).toEqual(
+      expect.objectContaining({ clearedBy: { interactionId } })
+    );
+    expect(after.find((event) => event.type === "call.settled")?.data).toEqual(
+      expect.objectContaining({ outcome: "completed", output: { saved: true } })
+    );
+    // The answer continues the paused turn: no second turn starts.
+    expect(after.map((event) => event.type)).not.toContain("turn.started");
+    await expect(violations(session.state.sessionId)).resolves.toEqual([]);
+  });
+
+  it("fails an approved call with the test's error", async () => {
+    fakeArnold.holdNextToolCallForApproval({
+      error: "The Plan changed",
+      name: "propose_plan",
+    });
+
+    const { delivery, session } = await client().sessions.create({
+      message: "Save it",
+    });
+
+    const { interactions } = await delivery.result();
+    const interactionId = interactions[0]?.interactionId ?? "";
+
+    const approved = await session.respond([
+      { interactionId, optionId: "approve" },
+    ]);
+
+    await approved.result();
+
+    const { events } = await session.snapshot();
+
+    expect(events.find((event) => event.type === "call.settled")?.data).toEqual(
+      expect.objectContaining({ outcome: "failed" })
+    );
+    expect(
+      events.find((event) => event.type === "content.completed")?.data
+    ).toEqual(expect.objectContaining({ value: FAKE_ARNOLD_REPLY }));
+    await expect(violations(session.state.sessionId)).resolves.toEqual([]);
+  });
+
+  it("never runs a denied call, and goes on to the answer", async () => {
+    fakeArnold.holdNextToolCallForApproval({
+      name: "propose_plan",
+      output: { saved: true },
+    });
+
+    const { delivery, session } = await client().sessions.create({
+      message: "Save it",
+    });
+
+    const { interactions } = await delivery.result();
+    const interactionId = interactions[0]?.interactionId ?? "";
+
+    const denied = await session.respond([
+      { interactionId, optionId: "deny", text: "Make it 12 reps." },
+    ]);
+
+    await expect(denied.result()).resolves.toEqual(
+      expect.objectContaining({ outcome: "handled" })
+    );
+    expect(fakeArnold.responses.map((response) => response.answers)).toEqual([
+      [{ interactionId, optionId: "deny", text: "Make it 12 reps." }],
+    ]);
+
+    const { events } = await session.snapshot();
+
+    expect(events.map((event) => event.type)).not.toContain("call.started");
+    expect(
+      events.find((event) => event.type === "interaction.settled")?.data
+    ).toEqual(
+      expect.objectContaining({
+        outcome: "declined",
+        response: { optionId: "deny", text: "Make it 12 reps." },
+      })
+    );
+    expect(events.find((event) => event.type === "call.settled")?.data).toEqual(
+      expect.objectContaining({
+        cause: { interactionId },
+        error: {
+          code: "TOOL_EXECUTION_DENIED",
+          message:
+            'Tool execution was denied. The person who denied it wrote: "Make it 12 reps."',
+        },
+        outcome: "rejected",
+      })
+    );
+    expect(
+      events.find((event) => event.type === "content.completed")?.data
+    ).toEqual(expect.objectContaining({ value: FAKE_ARNOLD_REPLY }));
+    await expect(violations(session.state.sessionId)).resolves.toEqual([]);
+  });
+
+  it("withdraws a waiting call when a message arrives, and answers it", async () => {
+    fakeArnold.holdNextToolCallForApproval({
+      name: "propose_plan",
+      output: { saved: true },
+    });
+
+    const { delivery, session } = await client().sessions.create({
+      message: "Save it",
+    });
+
+    await delivery.result();
+
+    const message = await session.send("Which muscles does a bench work?");
+
+    await expect(message.result()).resolves.toEqual(
+      expect.objectContaining({ outcome: "handled", status: "completed" })
+    );
+    expect(fakeArnold.responses).toEqual([]);
+    expect(fakeArnold.sent.map((sent) => sent.text)).toEqual([
+      "Save it",
+      "Which muscles does a bench work?",
+    ]);
+
+    const { events } = await session.snapshot();
+
+    expect(events.map((event) => event.type)).not.toContain("call.started");
+    expect(
+      events.find((event) => event.type === "interaction.settled")?.data
+    ).toEqual(
+      expect.objectContaining({
+        outcome: "withdrawn",
+        reason: "superseded-by-message",
+      })
+    );
+    expect(events.find((event) => event.type === "call.settled")?.data).toEqual(
+      expect.objectContaining({ outcome: "rejected" })
+    );
+    // The message is consumed by the paused turn, which answers it.
+    expect(
+      events.flatMap((event) =>
+        event.type === "delivery.consumed" ? [event.data.turnId] : []
+      )
+    ).toEqual(["turn_0", "turn_0"]);
+    expect(
+      events.filter((event) => event.type === "turn.started")
+    ).toHaveLength(1);
+    await expect(violations(session.state.sessionId)).resolves.toEqual([]);
+  });
+
+  it("reads a typed option as the answer, as eve does", async () => {
+    fakeArnold.holdNextToolCallForApproval({
+      name: "propose_plan",
+      output: { saved: true },
+    });
+
+    const { delivery, session } = await client().sessions.create({
+      message: "Save it",
+    });
+
+    await delivery.result();
+
+    const typed = await session.send("Approve");
+    await typed.result();
+
+    const { events } = await session.snapshot();
+
+    expect(
+      events.find((event) => event.type === "interaction.settled")?.data
+    ).toEqual(expect.objectContaining({ outcome: "accepted" }));
+    expect(
+      events.find((event) => event.type === "response.submitted")?.data
+    ).toEqual(
+      expect.objectContaining({
+        responseId: expect.stringMatching(/_typed_0$/u),
+      })
+    );
+    expect(events.map((event) => event.type)).toContain("call.started");
+    await expect(violations(session.state.sessionId)).resolves.toEqual([]);
+  });
+
+  it("starts an empty turn for an answer to a settled approval", async () => {
+    fakeArnold.holdNextToolCallForApproval({
+      name: "propose_plan",
+      output: { saved: true },
+    });
+
+    const { delivery, session } = await client().sessions.create({
+      message: "Save it",
+    });
+
+    const { interactions } = await delivery.result();
+
+    const answer = [
+      {
+        interactionId: interactions[0]?.interactionId ?? "",
+        optionId: "approve",
+      },
+    ];
+
+    const approved = await session.respond(answer);
+    await approved.result();
+    const stale = await session.respond(answer);
+    await stale.result();
+
+    const { events } = await session.snapshot();
+
+    // The call ran once; the stale answer opened a second turn.
+    expect(
+      events.filter((event) => event.type === "call.started")
+    ).toHaveLength(1);
+    expect(
+      events.flatMap((event) =>
+        event.type === "turn.started"
+          ? [{ follows: event.data.follows, turnId: event.data.turnId }]
+          : []
+      )
+    ).toEqual([
+      { follows: null, turnId: "turn_0" },
+      { follows: "turn_0", turnId: "turn_1" },
+    ]);
+    await expect(violations(session.state.sessionId)).resolves.toEqual([]);
+  });
+
+  it("refuses an answer that doesn't settle the waiting call", async () => {
+    fakeArnold.holdNextToolCallForApproval({
+      name: "propose_plan",
+      output: { saved: true },
+    });
+
+    const { delivery, session } = await client().sessions.create({
+      message: "Save it",
+    });
+
+    await delivery.result();
+
+    await expect(
+      session.respond([{ interactionId: "int_other", optionId: "approve" }])
+    ).rejects.toBeInstanceOf(ClientError);
+
+    const { events } = await session.snapshot();
+
+    expect(events.map((event) => event.type)).not.toContain(
+      "interaction.settled"
+    );
+    await expect(violations(session.state.sessionId)).resolves.toEqual([]);
+  });
+
+  it("shows a reader that follows again the call still waiting", async () => {
+    fakeArnold.holdNextToolCallForApproval({
+      name: "propose_plan",
+      output: { saved: true },
+    });
+    const first = await client().sessions.create({ message: "Save it" });
+    const { interactions } = await first.delivery.result();
+    const interactionId = interactions[0]?.interactionId ?? "";
+
+    // A second client, as a reopened screen, attached by the id alone.
+    const reopened = client().sessions.attach(first.session.state.sessionId, {
+      streamIndex: 0,
+    });
+
+    const { events: before } = await reopened.snapshot();
+
+    expect(
+      openInteractions(foldEvents(emptySessionView(), before)).map(
+        (open) => open.interactionId
+      )
+    ).toEqual([interactionId]);
+
+    const approved = await reopened.respond([
+      { interactionId, optionId: "approve" },
+    ]);
+
+    await approved.result();
+
+    const { events } = await reopened.snapshot();
+
+    expect(
+      events.filter((event) => event.type === "call.started")
+    ).toHaveLength(1);
+    await expect(violations(first.session.state.sessionId)).resolves.toEqual(
+      []
+    );
   });
 
   it("refuses a send on demand and never creates the session", async () => {

@@ -35,6 +35,11 @@
  * and the cancel `applied`, all in one commit; the narration already streamed
  * stays, and nothing more is written for that turn. A cancel with no turn
  * waiting, or guarded for another turn, is recorded as ignored.
+ * `holdNextToolCallForApproval` has the next turn pause on a call waiting
+ * for the User's approval, as `docs/research/arnold-tool-approval.md`
+ * recorded from a real eve: Approve runs it, Deny rejects it, a message
+ * withdraws it, each continuing the paused turn, and every answer request
+ * is recorded in `responses`.
  */
 
 import type { CommitLine, Fact, ProgressLine, UserPart } from "eve/events";
@@ -62,7 +67,15 @@ const cancelBodySchema = z.object({
   turnId: z.string().nullable().optional(),
 });
 
+/** One answer to an interaction, as eve's client sends it. */
+const answerSchema = z.object({
+  interactionId: z.string(),
+  optionId: z.string().optional(),
+  text: z.string().optional(),
+});
+
 const requestBodySchema = z.object({
+  answers: z.array(answerSchema).optional().catch(undefined),
   clientContext: clientContextSchema.optional().catch(undefined),
   message: z
     .union([
@@ -141,6 +154,44 @@ export type FakeToolCall =
   | { input?: ClientContext; name: string; output: Json }
   | { error: string; input?: ClientContext; name: string };
 
+/** One answer to an interaction (an approval), as the app sent it. */
+export type SentAnswer = z.infer<typeof answerSchema>;
+
+/** One answer request the app sent Arnold (Approve or Deny on a waiting call). */
+export interface SentResponse {
+  answers: SentAnswer[];
+  /** The request's client context, as a message's. */
+  clientContext?: ClientContext;
+  sessionId: string;
+}
+
+/** The options every eve approval declares, in order. */
+const APPROVAL_OPTIONS = [
+  { id: "approve", label: "Approve" },
+  { id: "deny", label: "Deny" },
+] as const;
+
+/** What eve tells the model about a call whose approval a message withdrew. */
+const WITHDRAWN = "Ignored because the user continued without responding.";
+
+/** A tool call the next turn holds for the User's approval. */
+interface ApprovalCall {
+  call: FakeToolCall;
+  /** The question the approval puts, eve's `request.prompt`. */
+  prompt: string;
+}
+
+/** A turn paused on a call's approval: the call requested, never started. */
+interface AwaitingApproval {
+  call: FakeToolCall;
+  callId: string;
+  interactionId: string;
+  /** The turn's own run ids and part id, for the answer after it goes on. */
+  partId: string;
+  runId: string;
+  turnId: string;
+}
+
 const failureResponses = {
   "pro-check-unavailable": {
     code: "arnold_pro_check_unavailable",
@@ -192,6 +243,8 @@ interface FakeSession {
   turns: number;
   /** The turn waiting on a held tool call, which a cancel can stop. */
   waiting?: WaitingTurn;
+  /** The turn paused on a call's approval, until an answer or a message. */
+  awaiting?: AwaitingApproval;
 }
 
 const encoder = new TextEncoder();
@@ -433,6 +486,88 @@ const cancelWaitingTurn = (
   return true;
 };
 
+/** A user message's `delivery.admitted`. */
+const userAdmitted = (deliveryId: string): Fact => ({
+  data: {
+    deliveryId,
+    principal: { id: "user_fake", type: "user" },
+    source: { channel: "eve" },
+  },
+  type: "delivery.admitted",
+});
+
+/** The next turn's ids, the turn it follows, and the session moved past it. */
+const nextTurn = (session: FakeSession) => {
+  const turnId = `turn_${session.turns}`;
+
+  const next = {
+    follows: session.lastTurnId,
+    partId: `part_fake_${session.turns}`,
+    runId: `run_fake_${session.turns}`,
+    turnId,
+  };
+
+  session.turns += 1;
+  session.lastTurnId = turnId;
+
+  return next;
+};
+
+/**
+ * The approval option a message answers when its whole text is an option's
+ * id, label or number, as eve reads a typed answer ("approve", "Approve",
+ * "1"); anything else ("yes", "Approve.") withdraws the approval instead.
+ */
+const typedOption = (parts: SentPart[], text: string) => {
+  if (parts.some((part) => part.type !== "text")) {
+    return;
+  }
+
+  return APPROVAL_OPTIONS.find(
+    (option, index) =>
+      text === option.id || text === option.label || text === String(index + 1)
+  )?.id;
+};
+
+/**
+ * Refuses an answer request the fake doesn't model, so a test never reads a
+ * stream real eve wouldn't write: a body carrying both a message and answers
+ * (eve takes exactly one), and, while a call waits, answers that don't settle
+ * it (another interaction, or an option it doesn't offer). An answer with
+ * nothing waiting is eve's stale answer, which starts an empty turn.
+ */
+const refuseAnswers = (session: FakeSession, body: ArnoldRequestBody) => {
+  if (body.answers === undefined) {
+    return;
+  }
+
+  if (body.message !== undefined) {
+    return errorResponse(
+      400,
+      "invalid_request",
+      "Fake Arnold: a send carries a message or answers, never both."
+    );
+  }
+
+  const { awaiting } = session;
+
+  if (awaiting && !answersApproval(awaiting, body.answers)) {
+    return errorResponse(
+      400,
+      "invalid_request",
+      `Fake Arnold: no answer settles ${awaiting.interactionId}, the approval the turn waits on.`
+    );
+  }
+};
+
+/** The answer that settles the waiting approval, if one does. */
+const answersApproval = (awaiting: AwaitingApproval, answers: SentAnswer[]) =>
+  answers.find(
+    (answer) =>
+      answer.interactionId === awaiting.interactionId &&
+      APPROVAL_OPTIONS.some((option) => option.id === answer.optionId)
+  );
+
 const readBody = (init: RequestInit): ArnoldRequestBody | undefined => {
   const body = z.string().safeParse(init.body);
 
@@ -450,6 +585,9 @@ class FakeArnold {
 
   /** Every message the app sent, oldest first, with the parts it carried. */
   sent: SentMessage[] = [];
+
+  /** Every answer request (Approve, Deny) the app sent, oldest first. */
+  responses: SentResponse[] = [];
 
   /** The assistant answer each turn streams back. */
   reply = FAKE_ARNOLD_REPLY;
@@ -469,7 +607,11 @@ class FakeArnold {
   private toolCalls: FakeToolCall[][] = [];
   /** The held tool call each of the next turns stops on, in turn order. */
   private heldCalls: HeldToolCall[] = [];
+  /** The call each of the next turns holds for approval, in turn order. */
+  private approvalCalls: ApprovalCall[] = [];
   private callCount = 0;
+  private interactionCount = 0;
+  private responseCount = 0;
   private holds: Promise<void>[] = [];
   private sessionCount = 0;
   private deliveryCount = 0;
@@ -505,12 +647,16 @@ class FakeArnold {
     this.sessions.clear();
     this.stranded.clear();
     this.sent = [];
+    this.responses = [];
     this.unhandled = [];
     this.failures = [];
     this.failTurns = 0;
     this.toolCalls = [];
     this.heldCalls = [];
+    this.approvalCalls = [];
     this.callCount = 0;
+    this.interactionCount = 0;
+    this.responseCount = 0;
     this.holds = [];
     this.reply = FAKE_ARNOLD_REPLY;
     this.sessionCount = 0;
@@ -571,6 +717,33 @@ class FakeArnold {
       held.released = true;
       held.resume?.();
     };
+  }
+
+  /**
+   * Has the next turn's model call `call` and pause there, holding the call
+   * for the User's approval as eve does a tool with an approval policy: the
+   * call requested, never started, `interaction.opened` asking `prompt` with
+   * eve's Approve and Deny, then `turn.paused` and the message's delivery
+   * settled `awaiting-input`. What the app sends next decides it, each
+   * continuing the same turn: Approve (an `answers` body with `approve`) runs
+   * the call (`call.started` cleared by the approval, then its output or
+   * error) and writes the answer, `reply`; Deny ends the call `rejected`
+   * (`TOOL_EXECUTION_DENIED`, quoting the User's note) and writes the answer;
+   * a message withdraws the approval (`superseded-by-message`), ends the call
+   * `rejected` and answers the message, unless its whole text is an option's
+   * id, label or number, which answers the approval as eve reads a typed
+   * answer. An answer to an approval that is no longer open starts a new,
+   * empty turn with a model run, as eve does; while one waits, answers that
+   * don't settle it, and a body with both a message and answers, are refused
+   * (400), since the fake doesn't model them. A held approval takes its turn
+   * before a `holdNextToolCall` or `callToolsNextTurn` one. A cancel while
+   * it waits isn't modelled (it is recorded as ignored).
+   */
+  holdNextToolCallForApproval(
+    call: FakeToolCall,
+    { prompt }: { prompt?: string } = {}
+  ) {
+    this.approvalCalls.push({ call, prompt: prompt ?? `Run ${call.name}?` });
   }
 
   /**
@@ -733,8 +906,24 @@ class FakeArnold {
       return failed;
     }
 
-    const body = readBody(init);
-    const deliveryId = this.runTurn(session, body ?? {});
+    const body = readBody(init) ?? {};
+
+    // A turn holding a call for approval is written before this request is
+    // read, as eve has paused it by the time an answer can reach it.
+    if (this.approvalCalls.length > 0 || body.answers !== undefined) {
+      runPending(session);
+    }
+
+    const refused = refuseAnswers(session, body);
+
+    if (refused) {
+      return refused;
+    }
+
+    const deliveryId =
+      body.answers === undefined
+        ? this.runTurn(session, body)
+        : this.answer(session, body, body.answers);
 
     return json({ deliveryId, ok: true, sessionId, status: "accepted" }, 202);
   }
@@ -858,23 +1047,26 @@ class FakeArnold {
     }
 
     this.sent.push(sent);
-    const deliveryId = this.nextDeliveryId();
-    const turnId = `turn_${session.turns}`;
-    const runId = `run_fake_${session.turns}`;
-    const partId = `part_fake_${session.turns}`;
-    const follows = session.lastTurnId;
-    const first = session.turns === 0;
-    session.turns += 1;
-    session.lastTurnId = turnId;
 
-    const admitted: Fact = {
-      data: {
-        deliveryId,
-        principal: { id: "user_fake", type: "user" },
-        source: { channel: "eve" },
-      },
-      type: "delivery.admitted",
-    };
+    const { awaiting } = session;
+
+    if (awaiting) {
+      const typed = typedOption(parts, text);
+
+      return typed === undefined
+        ? this.withdraw(session, awaiting, parts)
+        : this.answer(
+            session,
+            body,
+            [{ interactionId: awaiting.interactionId, optionId: typed }],
+            parts
+          );
+    }
+
+    const deliveryId = this.nextDeliveryId();
+    const { follows, partId, runId, turnId } = nextTurn(session);
+    const first = turnId === "turn_0";
+    const admitted = userAdmitted(deliveryId);
 
     // A new session is set up in the same line as its first message, which
     // eve admits before it answers the send.
@@ -955,6 +1147,19 @@ class FakeArnold {
       return;
     }
 
+    const approval = this.approvalCalls.shift();
+
+    if (approval) {
+      this.writeApprovalHold(session, approval, {
+        deliveryId,
+        partId,
+        runId,
+        turnId,
+      });
+
+      return;
+    }
+
     const held = this.heldCalls.shift();
 
     if (held) {
@@ -974,6 +1179,339 @@ class FakeArnold {
       this.writeToolCalls(session, { calls, runId: `${runId}_tools`, turnId });
     }
 
+    this.writeAnswer(session, { deliveryId, partId, runId, turnId });
+  }
+
+  /**
+   * Answers the approval the session's turn is paused on, from an `answers`
+   * body or a typed one (`typedParts`, the message it came in): Approve or
+   * Deny continues that turn. An answer to no open approval starts a new,
+   * empty turn with a model run, as eve does with one to an approval that
+   * has already settled. Answers the request's delivery.
+   */
+  private answer(
+    session: FakeSession,
+    body: ArnoldRequestBody,
+    answers: SentAnswer[],
+    typedParts?: SentPart[]
+  ) {
+    if (typedParts === undefined) {
+      const response: SentResponse = {
+        answers,
+        sessionId: session.sessionId,
+      };
+
+      if (body.clientContext !== undefined) {
+        response.clientContext = body.clientContext;
+      }
+
+      this.responses.push(response);
+    }
+
+    const deliveryId = this.nextDeliveryId();
+    commit(session, [userAdmitted(deliveryId)]);
+
+    const { awaiting } = session;
+
+    const answered = awaiting && answersApproval(awaiting, answers);
+
+    if (!awaiting || !answered) {
+      session.pending.push(() => this.writeEmptyTurn(session, deliveryId));
+      this.runPendingWhenRead(session);
+
+      return deliveryId;
+    }
+
+    session.awaiting = undefined;
+    this.responseCount += 1;
+
+    const responseId =
+      typedParts === undefined
+        ? `resp_fake_${this.responseCount}`
+        : `resp_fake_${this.responseCount}_typed_0`;
+
+    session.pending.push(() =>
+      this.writeApprovalAnswer(session, awaiting, {
+        answer: answered,
+        deliveryId,
+        parts: typedParts ?? [],
+        responseId,
+      })
+    );
+    this.runPendingWhenRead(session);
+
+    return deliveryId;
+  }
+
+  /**
+   * A message sent while a call waits for approval: the approval withdrawn
+   * (`superseded-by-message`), the call `rejected` and never run, and the
+   * message answered in the same turn.
+   */
+  private withdraw(
+    session: FakeSession,
+    awaiting: AwaitingApproval,
+    parts: SentPart[]
+  ) {
+    session.awaiting = undefined;
+    const deliveryId = this.nextDeliveryId();
+    const { callId, interactionId, partId, runId, turnId } = awaiting;
+    const scope = { turnId };
+    commit(session, [userAdmitted(deliveryId)]);
+
+    session.pending.push(() => {
+      commit(session, [
+        {
+          data: {
+            interactionId,
+            outcome: "withdrawn",
+            reason: "superseded-by-message",
+          },
+          scope,
+          type: "interaction.settled",
+        },
+        {
+          data: {
+            callId,
+            cause: { interactionId },
+            error: { code: "TOOL_EXECUTION_DENIED", message: WITHDRAWN },
+            outcome: "rejected",
+            output: {
+              approval: { interactionId, status: "ignored" },
+              code: "TOOL_EXECUTION_DENIED",
+              message: WITHDRAWN,
+              tool: { result: "not_run" },
+            },
+          },
+          scope,
+          type: "call.settled",
+        },
+      ]);
+      commit(session, [
+        {
+          data: { deliveryId, parts: parts.map(consumedPart), turnId },
+          scope,
+          type: "delivery.consumed",
+        },
+      ]);
+      this.writeAnswer(session, { deliveryId, partId, runId, turnId });
+    });
+    this.runPendingWhenRead(session);
+
+    return deliveryId;
+  }
+
+  /**
+   * A model run calling the tool, then the call held for approval: the
+   * interaction opened, the turn paused on it and the message's delivery
+   * settled `awaiting-input`. The call never starts until it is approved.
+   */
+  private writeApprovalHold(
+    session: FakeSession,
+    approval: ApprovalCall,
+    {
+      deliveryId,
+      partId,
+      runId,
+      turnId,
+    }: { deliveryId: string; partId: string; runId: string; turnId: string }
+  ) {
+    const toolRunId = `${runId}_tools`;
+    const scope = { runId: toolRunId, turnId };
+    this.callCount += 1;
+    this.interactionCount += 1;
+    const callId = `call_fake_${this.callCount}`;
+    const interactionId = `int_fake_${this.interactionCount}`;
+    const { call, prompt } = approval;
+
+    commit(session, [
+      {
+        data: { owner: { turnId }, runId: toolRunId },
+        scope,
+        type: "model.requested",
+      },
+      {
+        data: { attempt: 0, modelId: "fake/arnold", runId: toolRunId },
+        scope,
+        type: "model.started",
+      },
+    ]);
+    commit(session, [
+      {
+        data: {
+          callId,
+          capability: { kind: "tool", name: call.name },
+          input: call.input ?? {},
+          owner: { runId: toolRunId },
+        },
+        scope: { turnId },
+        type: "call.requested",
+      },
+      {
+        data: {
+          finishReason: "tool-calls",
+          outcome: "completed",
+          runId: toolRunId,
+        },
+        scope,
+        type: "model.settled",
+      },
+    ]);
+    commit(session, [
+      {
+        data: {
+          interactionId,
+          request: {
+            allowFreeform: false,
+            display: "confirmation",
+            kind: "approval",
+            options: APPROVAL_OPTIONS.map((option) => ({ ...option })),
+            prompt,
+          },
+          subject: { callId },
+        },
+        scope: { turnId },
+        type: "interaction.opened",
+      },
+    ]);
+    commit(session, [
+      {
+        data: { awaiting: [{ interactionId }], turnId },
+        scope: { turnId },
+        type: "turn.paused",
+      },
+      {
+        data: { deliveryId, outcome: "awaiting-input", turnId },
+        type: "delivery.settled",
+      },
+    ]);
+    session.awaiting = { call, callId, interactionId, partId, runId, turnId };
+  }
+
+  /**
+   * An answer to a waiting approval, as eve applies it: the response
+   * submitted and applied, the approval settled `accepted` or `declined`,
+   * the answer's delivery consumed by the paused turn, then the call run
+   * (approved) or `rejected` (denied), and the turn's answer.
+   */
+  private writeApprovalAnswer(
+    session: FakeSession,
+    awaiting: AwaitingApproval,
+    {
+      answer,
+      deliveryId,
+      parts,
+      responseId,
+    }: {
+      answer: SentAnswer;
+      deliveryId: string;
+      parts: SentPart[];
+      responseId: string;
+    }
+  ) {
+    const { call, callId, interactionId, partId, runId, turnId } = awaiting;
+    const scope = { turnId };
+    const approved = answer.optionId === "approve";
+    const response: Record<string, Json> = { optionId: answer.optionId ?? "" };
+    const value: Record<string, Json> = { optionId: answer.optionId ?? "" };
+
+    if (answer.text !== undefined) {
+      response.text = answer.text;
+      value.text = answer.text;
+    }
+
+    commit(session, [
+      {
+        data: { deliveryId, interactionId, responseId, value },
+        type: "response.submitted",
+      },
+      { data: { responseId }, type: "response.admitted" },
+    ]);
+
+    const consumed: Fact = {
+      data: { deliveryId, parts: parts.map(consumedPart), turnId },
+      scope,
+      type: "delivery.consumed",
+    };
+
+    const applied: Fact = {
+      data: { outcome: "applied", responseId },
+      type: "response.settled",
+    };
+
+    if (approved) {
+      commit(session, [
+        applied,
+        {
+          data: { interactionId, outcome: "accepted", response },
+          scope,
+          type: "interaction.settled",
+        },
+      ]);
+      commit(session, [consumed]);
+      commit(session, [
+        {
+          data: { callId, clearedBy: { interactionId } },
+          scope,
+          type: "call.started",
+        },
+      ]);
+      commit(session, [callSettled(callId, call, turnId)]);
+    } else {
+      const message =
+        answer.text === undefined
+          ? "Tool execution was denied."
+          : `Tool execution was denied. The person who denied it wrote: "${answer.text}"`;
+
+      commit(session, [applied]);
+      commit(session, [
+        {
+          data: { interactionId, outcome: "declined", response },
+          scope,
+          type: "interaction.settled",
+        },
+        {
+          data: {
+            callId,
+            cause: { interactionId },
+            error: { code: "TOOL_EXECUTION_DENIED", message },
+            outcome: "rejected",
+            output: {
+              approval: { interactionId, status: "denied" },
+              code: "TOOL_EXECUTION_DENIED",
+              message,
+              tool: { result: "not_run" },
+            },
+          },
+          scope,
+          type: "call.settled",
+        },
+      ]);
+      commit(session, [consumed]);
+    }
+
+    this.writeAnswer(session, { deliveryId, partId, runId, turnId });
+  }
+
+  /**
+   * The turn eve starts for an answer to an approval that is no longer
+   * open: nothing consumed, and a model run answering it all the same.
+   */
+  private writeEmptyTurn(session: FakeSession, deliveryId: string) {
+    const { follows, partId, runId, turnId } = nextTurn(session);
+
+    commit(session, [
+      {
+        data: { cause: { deliveryId }, follows, turnId },
+        scope: { turnId },
+        type: "turn.started",
+      },
+      {
+        data: { deliveryId, parts: [], turnId },
+        scope: { turnId },
+        type: "delivery.consumed",
+      },
+    ]);
     this.writeAnswer(session, { deliveryId, partId, runId, turnId });
   }
 

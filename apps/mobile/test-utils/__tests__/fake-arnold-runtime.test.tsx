@@ -4,11 +4,14 @@
  * it: while the call waits the thread is running and shows the call with no
  * result, a release brings the answer, and a cancel stops the run, keeping
  * the narration already streamed. The seam Stop and the status line are
- * tested on.
+ * tested on. Then a call held for approval: shown waiting with its input,
+ * and each way it ends (Approve, Deny, a message, a reopened screen).
  */
 import { useEveAgentRuntime } from "@assistant-ui/eve";
 import {
   AssistantRuntimeProvider,
+  MessageByIndexProvider,
+  PartByIndexProvider,
   useAui,
   useAuiState,
 } from "@assistant-ui/react-native";
@@ -27,6 +30,14 @@ import { FAKE_ARNOLD_REPLY, fakeArnold } from "~/test-utils/fake-arnold";
 
 const NARRATION = "Reading your plan.";
 
+const PROPOSAL = {
+  input: { plan_name: "Push A" },
+  name: "propose_plan",
+  output: { saved: true },
+};
+
+const WAITING = 'tool propose_plan: waiting {"plan_name":"Push A"}';
+
 /** One message part as the probe shows it. */
 const partLabel = (
   role: ThreadMessage["role"],
@@ -36,13 +47,50 @@ const partLabel = (
     return `${role}: ${part.text}`;
   }
 
+  if (part.type === "tool-call" && part.result !== undefined) {
+    return `tool ${part.toolName}: ${JSON.stringify(part.result)}`;
+  }
+
+  if (part.type === "tool-call" && part.approval !== undefined) {
+    return `tool ${part.toolName}: waiting ${JSON.stringify(part.args)}`;
+  }
+
   if (part.type === "tool-call") {
-    return `tool ${part.toolName}: ${
-      part.result === undefined ? "running" : JSON.stringify(part.result)
-    }`;
+    return `tool ${part.toolName}: running`;
   }
 
   return `${role}: ${part.type}`;
+};
+
+/** Approve and Deny for a part waiting on its approval, as a card offers. */
+const ApprovalButtons = () => {
+  const aui = useAui();
+  const part = useAuiState((s) => s.part);
+
+  if (
+    part.type !== "tool-call" ||
+    part.approval === undefined ||
+    part.approval.approved !== undefined ||
+    part.approval.resolution !== undefined ||
+    part.result !== undefined
+  ) {
+    return null;
+  }
+
+  return (
+    <>
+      <Pressable
+        onPress={() => aui.part().respondToToolApproval({ approved: true })}
+      >
+        <Text>Approve</Text>
+      </Pressable>
+      <Pressable
+        onPress={() => aui.part().respondToToolApproval({ approved: false })}
+      >
+        <Text>Deny</Text>
+      </Pressable>
+    </>
+  );
 };
 
 /**
@@ -57,13 +105,19 @@ const Probe = ({ message }: { message: string }) => {
   return (
     <>
       <Text>{isRunning ? "running" : "idle"}</Text>
-      {messages.flatMap((shown) =>
-        shown.content.map((part, index) => (
-          <Text key={`${shown.id}-${String(index)}`}>
-            {partLabel(shown.role, part)}
-          </Text>
-        ))
-      )}
+      {messages.map((shown, messageIndex) => (
+        <MessageByIndexProvider index={messageIndex} key={shown.id}>
+          {shown.content.map((part, index) => (
+            <PartByIndexProvider
+              index={index}
+              key={`${shown.id}-${String(index)}`}
+            >
+              <Text>{partLabel(shown.role, part)}</Text>
+              <ApprovalButtons />
+            </PartByIndexProvider>
+          ))}
+        </MessageByIndexProvider>
+      ))}
       <Pressable
         onPress={() =>
           aui.thread.append({
@@ -81,10 +135,20 @@ const Probe = ({ message }: { message: string }) => {
   );
 };
 
-const Runtime = ({ message }: { message: string }) => {
+const Runtime = ({
+  message,
+  sessionId,
+}: {
+  message: string;
+  /** A saved session to open, as a reopened screen does; none starts one. */
+  sessionId?: string;
+}) => {
   const runtime = useEveAgentRuntime({
     auth: { bearer: () => Promise.resolve("token") },
     baseUrl: fakeArnold.baseUrl,
+    initialSession:
+      sessionId === undefined ? undefined : { sessionId, streamIndex: 0 },
+    resume: sessionId !== undefined,
   });
 
   return (
@@ -185,5 +249,115 @@ describe("fake Arnold through the chat runtime", () => {
       screen.findByText(`assistant: ${FAKE_ARNOLD_REPLY}`)
     ).resolves.toBeOnTheScreen();
     await waitFor(() => expect(screen.getByText("idle")).toBeOnTheScreen());
+  });
+});
+
+describe("fake Arnold's approval through the chat runtime", () => {
+  it("shows the waiting call with its input, then runs it on Approve", async () => {
+    fakeArnold.holdNextToolCallForApproval(PROPOSAL);
+    const user = userEvent.setup();
+
+    await render(<Runtime message="Save Push A" />);
+    await user.press(screen.getByText("Send"));
+
+    await expect(screen.findByText(WAITING)).resolves.toBeOnTheScreen();
+
+    await user.press(screen.getByText("Approve"));
+
+    await expect(
+      screen.findByText('tool propose_plan: {"saved":true}')
+    ).resolves.toBeOnTheScreen();
+    await expect(
+      screen.findByText(`assistant: ${FAKE_ARNOLD_REPLY}`)
+    ).resolves.toBeOnTheScreen();
+    await waitFor(() => expect(screen.getByText("idle")).toBeOnTheScreen());
+    expect(fakeArnold.responses.map((response) => response.answers)).toEqual([
+      [{ interactionId: expect.any(String), optionId: "approve" }],
+    ]);
+  });
+
+  it("shows an approved call failing with the test's error", async () => {
+    fakeArnold.holdNextToolCallForApproval({
+      error: "The Plan changed",
+      input: PROPOSAL.input,
+      name: PROPOSAL.name,
+    });
+    const user = userEvent.setup();
+
+    await render(<Runtime message="Save Push A" />);
+    await user.press(screen.getByText("Send"));
+    await screen.findByText(WAITING);
+    await user.press(screen.getByText("Approve"));
+
+    await expect(
+      screen.findByText(/^tool propose_plan: .*The Plan changed/u)
+    ).resolves.toBeOnTheScreen();
+    await expect(
+      screen.findByText(`assistant: ${FAKE_ARNOLD_REPLY}`)
+    ).resolves.toBeOnTheScreen();
+  });
+
+  it("never runs the call on Deny, and goes on to the answer", async () => {
+    fakeArnold.holdNextToolCallForApproval(PROPOSAL);
+    const user = userEvent.setup();
+
+    await render(<Runtime message="Save Push A" />);
+    await user.press(screen.getByText("Send"));
+    await screen.findByText(WAITING);
+    await user.press(screen.getByText("Deny"));
+
+    await expect(
+      screen.findByText(/^tool propose_plan: .*Tool execution was denied/u)
+    ).resolves.toBeOnTheScreen();
+    await expect(
+      screen.findByText(`assistant: ${FAKE_ARNOLD_REPLY}`)
+    ).resolves.toBeOnTheScreen();
+    expect(fakeArnold.responses.map((response) => response.answers)).toEqual([
+      [{ interactionId: expect.any(String), optionId: "deny" }],
+    ]);
+  });
+
+  it("withdraws the waiting call when a message is sent, and answers it", async () => {
+    fakeArnold.holdNextToolCallForApproval(PROPOSAL);
+    const user = userEvent.setup();
+
+    await render(<Runtime message="Save Push A" />);
+    await user.press(screen.getByText("Send"));
+    await screen.findByText(WAITING);
+    await user.press(screen.getByText("Send"));
+
+    await expect(
+      screen.findByText(/^tool propose_plan: .*Ignored because the user/u)
+    ).resolves.toBeOnTheScreen();
+    await expect(
+      screen.findByText(`assistant: ${FAKE_ARNOLD_REPLY}`)
+    ).resolves.toBeOnTheScreen();
+    expect(screen.queryByText("Approve")).not.toBeOnTheScreen();
+    expect(fakeArnold.responses).toEqual([]);
+  });
+
+  it("still shows the call waiting on a reopened screen, which approves it", async () => {
+    fakeArnold.holdNextToolCallForApproval(PROPOSAL);
+    const user = userEvent.setup();
+
+    const first = await render(<Runtime message="Save Push A" />);
+    await user.press(screen.getByText("Send"));
+    await screen.findByText(WAITING);
+    await first.unmount();
+
+    const [sessionId] = fakeArnold.sessionIds;
+
+    await render(<Runtime message="Save Push A" sessionId={sessionId} />);
+
+    await expect(screen.findByText(WAITING)).resolves.toBeOnTheScreen();
+
+    await user.press(screen.getByText("Approve"));
+
+    await expect(
+      screen.findByText('tool propose_plan: {"saved":true}')
+    ).resolves.toBeOnTheScreen();
+    await expect(
+      screen.findByText(`assistant: ${FAKE_ARNOLD_REPLY}`)
+    ).resolves.toBeOnTheScreen();
   });
 });
