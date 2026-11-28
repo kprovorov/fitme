@@ -31,9 +31,11 @@ pnpm install
 
 # The git hooks (.husky/pre-commit: the secret scan, lint-staged). `pnpm install`
 # doesn't always leave `.husky/_` in a new worktree (FIT-275's had none), and
-# without it git runs no hook at all.
+# without it git runs no hook at all. `prepare` is husky, then
+# scripts/prune-git-hooks.mjs, which deletes the stubs of hooks the repo hasn't
+# got, so T3 doesn't ask to run a pre-push hook that does nothing (FIT-890).
 log "husky"
-pnpm exec husky
+pnpm run prepare
 
 # The expo-env.d.ts and uniwind-types.d.ts Metro writes (both gitignored), as
 # CI's `checks` job writes them: without them the type-aware lint in a full
