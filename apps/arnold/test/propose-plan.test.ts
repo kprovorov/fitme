@@ -12,7 +12,12 @@ import type * as LibraryIndexModule from "../agent/lib/library-index";
 import { PLAN_CHANGED } from "../agent/lib/plan-proposals";
 import type { PlanProposalInput } from "../agent/lib/plan-proposals";
 import { testLibrary } from "./library";
-import { CHEST_COVERS, testLibraryIndex } from "./library-index";
+import {
+  BACK_COVER,
+  CHEST_COVERS,
+  LEGS_COVER,
+  testLibraryIndex,
+} from "./library-index";
 import {
   contextFor,
   inputSchemaOf,
@@ -28,6 +33,7 @@ const db = vi.hoisted(() => ({
 }));
 
 const plans = vi.hoisted(() => ({
+  createPlan: vi.fn<typeof PlanServices.createPlan>(),
   getPlan: vi.fn<typeof PlanServices.getPlan>(),
 }));
 
@@ -237,6 +243,65 @@ const newPull = (): PlanProposalInput => ({
   ],
 });
 
+const NEW_PLAN_ID = "8c3f2e1a-5d4b-4a0c-9e7f-7a6b5c4d3e2f";
+
+/** A whole new Plan: Push (bench press, no history yet) and Pull. */
+const newPlan = (): PlanProposalInput => ({
+  details: { frequency: 2, goal: "strength-performance", name: "Upper split" },
+  workouts: [
+    {
+      description: "",
+      exercises: [
+        {
+          exercise_slug: "bench-press",
+          sets: [
+            {
+              reps_recommended: 8,
+              rest_recommended: 120,
+              weight_recommended: null,
+            },
+            {
+              reps_recommended: 8,
+              rest_recommended: 120,
+              weight_recommended: null,
+            },
+          ],
+        },
+      ],
+      name: "Push",
+    },
+    {
+      description: "Back day",
+      exercises: [
+        {
+          exercise_slug: "pull-up",
+          sets: [
+            {
+              reps_recommended: 6,
+              rest_recommended: 120,
+              weight_recommended: 0,
+            },
+          ],
+        },
+        {
+          exercise_slug: "back-squat",
+          sets: [
+            {
+              reps_recommended: 5,
+              rest_recommended: 180,
+              weight_recommended: 100,
+            },
+          ],
+        },
+      ],
+      name: "Pull",
+    },
+  ],
+});
+
+/** The Plan `createPlan` answers, keyed by request key as the service is. */
+const createdPlans = new Map<string, PlanDetail>();
+
 const alice = contextFor("user_alice");
 
 const approvalContext = (
@@ -319,6 +384,30 @@ describe("propose_plan", () => {
     db.asUser.mockImplementation(async (_userId, fn) => await fn(tx));
     plans.getPlan.mockReset();
     plans.getPlan.mockResolvedValue(plan);
+    createdPlans.clear();
+    plans.createPlan.mockReset();
+    plans.createPlan.mockImplementation(
+      async (_tx, _userId, created, options) => {
+        const key = options?.requestKey ?? `none-${createdPlans.size}`;
+        const existing = createdPlans.get(key);
+
+        if (existing) {
+          return existing;
+        }
+
+        const detail: PlanDetail = {
+          ...plan,
+          ...created,
+          id: createdPlans.size === 0 ? NEW_PLAN_ID : crypto.randomUUID(),
+          is_active: options?.activate ?? true,
+          workouts: [],
+        };
+
+        createdPlans.set(key, detail);
+
+        return await Promise.resolve(detail);
+      }
+    );
     proposals.savePlanProposal.mockReset();
     proposals.savePlanProposal.mockResolvedValue(saved);
     observability.reportError.mockReset();
@@ -534,6 +623,20 @@ describe("propose_plan", () => {
       expect(tooMany).toContain("at most 14");
     });
 
+    it("refuses a change with an empty weight or no marker", async () => {
+      expect(
+        denialReason(
+          await check(
+            pushWith({ sets: [benchSet({ weight_recommended: null })] })
+          )
+        )
+      ).toContain("workouts.0.exercises.0.sets.0.weight_recommended");
+
+      const { plan_version: _marker, ...unmarked } = heavierPush();
+
+      expect(denialReason(await check(unmarked))).toContain("plan_version");
+    });
+
     it("refuses a stale version marker, sending Arnold to read the Plan again", async () => {
       const reason = denialReason(
         await check({ ...heavierPush(), plan_version: "an-older-marker" })
@@ -669,6 +772,290 @@ describe("propose_plan", () => {
 
       // A change to kept Workouts needs no Cover
       await expect(check(heavierPush())).resolves.toBe("user-approval");
+    });
+  });
+
+  describe("a new Plan", () => {
+    it("holds a valid new Plan, writing nothing", async () => {
+      await expect(check(newPlan())).resolves.toBe("user-approval");
+
+      expect(plans.getPlan).not.toHaveBeenCalled();
+      expect(plans.createPlan).not.toHaveBeenCalled();
+      expect(proposals.savePlanProposal).not.toHaveBeenCalled();
+    });
+
+    it("asks to save a new plan, and to save changes for a change", () => {
+      const { prompt } = freshTool().approval;
+
+      expect(
+        prompt({
+          callId: "call_1",
+          input: newPlan(),
+          toolName: "propose_plan",
+        } as never)
+      ).toBe("Save this new plan?");
+      expect(
+        prompt({
+          callId: "call_1",
+          input: heavierPush(),
+          toolName: "propose_plan",
+        } as never)
+      ).toBe("Save these changes to the plan?");
+    });
+
+    it("refuses an unknown Exercise slug, naming it", async () => {
+      const input = newPlan();
+      const [push] = input.workouts ?? [];
+
+      if (push === undefined) {
+        throw new Error("Expected a Push workout");
+      }
+
+      const reason = denialReason(
+        await check({
+          ...input,
+          workouts: [
+            {
+              ...push,
+              exercises: [
+                ...push.exercises,
+                { exercise_slug: "made-up-press", sets: [benchSet()] },
+              ],
+            },
+          ],
+        })
+      );
+
+      expect(reason).toContain("made-up-press");
+      expect(reason).toContain("search_exercises");
+    });
+
+    it("refuses a value out of a Plan write's bounds, naming the field", async () => {
+      const input = newPlan();
+
+      const tooHeavy = {
+        ...input,
+        workouts: input.workouts?.map((workout) => ({
+          ...workout,
+          exercises: workout.exercises.map((exercise) => ({
+            ...exercise,
+            sets: exercise.sets.map((set) => ({
+              ...set,
+              weight_recommended: 99_999,
+            })),
+          })),
+        })),
+      };
+
+      expect(denialReason(await check(tooHeavy))).toContain(
+        "workouts.0.exercises.0.sets.0.weight_recommended"
+      );
+
+      expect(
+        denialReason(
+          await check({ ...input, details: { frequency: 0, name: "Upper" } })
+        )
+      ).toContain("details.frequency");
+    });
+
+    it("refuses a new Plan with no Workout, or a Workout with no Exercise", async () => {
+      const input = newPlan();
+
+      expect(denialReason(await check({ ...input, workouts: [] }))).toContain(
+        "at least one workout"
+      );
+      expect(denialReason(await check({ details: input.details }))).toContain(
+        "at least one workout"
+      );
+
+      const empty = denialReason(
+        await check({
+          ...input,
+          workouts: [{ description: "", exercises: [], name: "Push" }],
+        })
+      );
+
+      expect(empty).toContain("workouts.0.exercises");
+    });
+
+    it("refuses a new Plan without a name or a frequency", async () => {
+      const input = newPlan();
+
+      const reason = denialReason(
+        await check({ ...input, details: { goal: "muscle-gain" } })
+      );
+
+      expect(reason).toContain("details.name");
+      expect(reason).toContain("details.frequency");
+    });
+
+    it("refuses a new Plan carrying a marker, a removal or a row id", async () => {
+      const input = newPlan();
+
+      expect(
+        denialReason(await check({ ...input, plan_version: VERSION }))
+      ).toContain("plan_version");
+
+      const [push, pull] = input.workouts ?? [];
+
+      if (push === undefined || pull === undefined) {
+        throw new Error("Expected two workouts");
+      }
+
+      expect(
+        denialReason(
+          await check({ ...input, workouts: [{ ...push, id: PUSH_ID }, pull] })
+        )
+      ).toContain(PUSH_ID);
+    });
+
+    it("holds a new Plan sent with an empty removal list", async () => {
+      await expect(
+        check({ ...newPlan(), removed_workout_ids: [] })
+      ).resolves.toBe("user-approval");
+    });
+
+    it("never creates a Plan without a name or a frequency", async () => {
+      await expect(
+        freshTool().execute({ ...newPlan(), details: undefined }, alice)
+      ).rejects.toThrow("Nothing was saved");
+
+      expect(plans.createPlan).not.toHaveBeenCalled();
+    });
+
+    it("refuses with a retry reason when the index can't load", async () => {
+      testLibraryIndex.reset({ loads: "fail" });
+
+      expect(denialReason(await check(newPlan()))).toContain(
+        "Try again in a moment"
+      );
+    });
+
+    it("creates the Plan once, active, as the owner, answering its id and counts", async () => {
+      await expect(
+        freshTool().execute(newPlan(), alice)
+      ).resolves.toStrictEqual({
+        changes: {
+          exercises_added: 3,
+          exercises_removed: 0,
+          sets_added: 4,
+          sets_changed: 0,
+          sets_removed: 0,
+          workouts_added: 2,
+          workouts_changed: 0,
+          workouts_removed: 0,
+        },
+        plan_id: NEW_PLAN_ID,
+      });
+
+      expect(db.asUser).toHaveBeenCalledExactlyOnceWith(
+        "user_alice",
+        expect.any(Function)
+      );
+      expect(plans.createPlan).toHaveBeenCalledExactlyOnceWith(
+        tx,
+        "user_alice",
+        expect.objectContaining({
+          description: "",
+          experience_level: null,
+          frequency: 2,
+          goal: "strength-performance",
+          name: "Upper split",
+          note: null,
+          place: null,
+          workout_duration: null,
+        }),
+        { activate: true, requestKey: expect.any(String) }
+      );
+      expect(proposals.savePlanProposal).not.toHaveBeenCalled();
+    });
+
+    it("saves a set with no weight as a set with no weight, and gives each Workout a Cover", async () => {
+      await freshTool().execute(newPlan(), alice);
+
+      const created = plans.createPlan.mock.calls[0]?.[2];
+
+      expect(created?.workouts).toStrictEqual([
+        {
+          cover: expect.toBeOneOf([...CHEST_COVERS]),
+          description: "",
+          exercises: [
+            {
+              exercise_slug: "bench-press",
+              sets: [
+                {
+                  reps_recommended: 8,
+                  rest_recommended: 120,
+                  weight_recommended: 0,
+                },
+                {
+                  reps_recommended: 8,
+                  rest_recommended: 120,
+                  weight_recommended: 0,
+                },
+              ],
+            },
+          ],
+          name: "Push",
+        },
+        {
+          cover: expect.toBeOneOf([BACK_COVER, LEGS_COVER]),
+          description: "Back day",
+          exercises: [
+            {
+              exercise_slug: "pull-up",
+              sets: [
+                {
+                  reps_recommended: 6,
+                  rest_recommended: 120,
+                  weight_recommended: 0,
+                },
+              ],
+            },
+            {
+              exercise_slug: "back-squat",
+              sets: [
+                {
+                  reps_recommended: 5,
+                  rest_recommended: 180,
+                  weight_recommended: 100,
+                },
+              ],
+            },
+          ],
+          name: "Pull",
+        },
+      ]);
+    });
+
+    it("answers the same Plan when the same call runs again, creating no second one", async () => {
+      const first = await freshTool().execute(newPlan(), alice);
+      const again = await freshTool().execute(newPlan(), alice);
+
+      expect(again).toStrictEqual(first);
+      expect(createdPlans.size).toBe(1);
+
+      const keys = plans.createPlan.mock.calls.map(
+        (call) => call[3]?.requestKey
+      );
+
+      expect(keys[0]).toBe(keys[1]);
+
+      // Another call, accepted again, is another Plan
+      await freshTool().execute(newPlan(), { ...alice, callId: "call_2" });
+
+      expect(createdPlans.size).toBe(2);
+    });
+
+    it("fails with a retry reason, writing nothing, when the index can't load", async () => {
+      testLibraryIndex.reset({ loads: "fail" });
+
+      await expect(freshTool().execute(newPlan(), alice)).rejects.toThrow(
+        "Try again in a moment"
+      );
+
+      expect(db.asUser).not.toHaveBeenCalled();
+      expect(plans.createPlan).not.toHaveBeenCalled();
     });
   });
 
