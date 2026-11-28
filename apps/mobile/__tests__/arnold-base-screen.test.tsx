@@ -865,3 +865,138 @@ describe('the composer\'s "+" with the Arnold redesign off', () => {
     ]);
   });
 });
+
+describe.each([
+  {
+    composer: "Message Arnold",
+    confirm: "Start New Conversation",
+    description: "About your training, plans and workouts",
+    device: "en-US",
+    name: "English",
+    newConversation: "New conversation",
+    send: "Send message",
+    starters: [
+      "Build me a plan",
+      "Review my active plan",
+      "How did my last week go?",
+      "How do I do an exercise?",
+    ],
+    title: "Ask Arnold",
+  },
+  {
+    composer: "Повідомлення для Arnold",
+    confirm: "Почати нову розмову",
+    description: "Про ваші тренування, плани й заняття",
+    device: "uk-UA",
+    name: "Ukrainian",
+    newConversation: "Нова розмова",
+    send: "Надіслати повідомлення",
+    starters: [
+      "Склади мені план",
+      "Переглянь мій активний план",
+      "Як пройшов мій минулий тиждень?",
+      "Як правильно виконувати вправу?",
+    ],
+    title: "Запитайте Arnold",
+  },
+])("the empty state in $name", (copy) => {
+  beforeEach(() => {
+    setDeviceLanguages([copy.device]);
+  });
+
+  /** The starter prompts on screen, by their spoken names. */
+  const starters = () =>
+    copy.starters.filter(
+      (starter) => screen.queryByRole("button", { name: starter }) !== null
+    );
+
+  /** Taps the starter `text` and waits for Arnold's answer. */
+  const start = async (text: string) => {
+    await userEvent.setup().press(screen.getByRole("button", { name: text }));
+    await waitFor(() => {
+      expect(screen.getByText(FAKE_ARNOLD_REPLY)).toBeTruthy();
+    });
+    await settle(queryClient);
+  };
+
+  it("greets the User and offers the four starter prompts as buttons", async () => {
+    await mount();
+
+    expect(screen.getByRole("heading", { name: copy.title })).toBeTruthy();
+    expect(screen.getByText(copy.description)).toBeTruthy();
+    expect(starters()).toEqual(copy.starters);
+  });
+
+  it.each([0, 1, 2, 3])(
+    "sends starter %i's exact text as the User's own message",
+    async (index) => {
+      const text = copy.starters[index] ?? "";
+      await mount();
+      await start(text);
+
+      expect(fakeArnold.sent).toEqual([
+        expect.objectContaining({
+          parts: [{ text, type: "text" }],
+          text,
+        }),
+      ]);
+      expect(screen.getByText(text)).toBeTruthy();
+    }
+  );
+
+  it("is gone once a message exists, and back after New Conversation", async () => {
+    await mount();
+    const [first] = copy.starters;
+    await start(first ?? "");
+
+    expect(starters()).toEqual([]);
+    expect(screen.queryByText(copy.description)).toBeNull();
+
+    await userEvent
+      .setup()
+      .press(screen.getByRole("button", { name: copy.newConversation }));
+    await pressInAlert(copy.confirm);
+    await settle(queryClient);
+
+    expect(starters()).toEqual(copy.starters);
+  });
+
+  it("is gone once a typed message is sent, as with a starter", async () => {
+    await mount();
+    const user = userEvent.setup();
+    await user.type(screen.getByPlaceholderText(copy.composer), "Hi");
+    await user.press(screen.getByLabelText(copy.send));
+    await waitFor(() => {
+      expect(screen.getByText(FAKE_ARNOLD_REPLY)).toBeTruthy();
+    });
+    await settle(queryClient);
+
+    expect(starters()).toEqual([]);
+  });
+
+  it("leaves a typed draft in the composer", async () => {
+    await mount();
+    const [first] = copy.starters;
+    await userEvent
+      .setup()
+      .type(screen.getByPlaceholderText(copy.composer), "Draft");
+    await start(first ?? "");
+
+    expect(screen.getByPlaceholderText(copy.composer).props.value).toBe(
+      "Draft"
+    );
+    expect(fakeArnold.sent.map(({ text }) => text)).toEqual([first]);
+  });
+});
+
+describe("the empty state with the Arnold redesign off", () => {
+  it("is today's, with no starter prompts", async () => {
+    setArnoldRedesignEnabled(false);
+    await mount();
+
+    expect(screen.getByText("Ask Arnold")).toBeTruthy();
+    expect(
+      screen.queryByRole("button", { name: "Build me a plan" })
+    ).toBeNull();
+  });
+});
