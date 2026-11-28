@@ -37,12 +37,21 @@
     "scrollToLatest": "Ir para as mensagens mais recentes",
     "emptyState": {
       "title": "Pergunta ao Arnold",
-      "description": "Sobre os teus treinos e planos de treino"
+      "description": "Sobre os teus treinos e planos de treino",
+      "starters": {
+        "buildPlan": "Cria-me um plano",
+        "reviewActivePlan": "Revê o meu plano ativo",
+        "lastWeek": "Como correu a minha última semana?",
+        "exerciseForm": "Como se faz um exercício?"
+      }
     },
     "composer": {
       "placeholder": "Mensagem para Arnold",
       "send": "Enviar mensagem",
-      "addToChat": "Adicionar à conversa"
+      "addToChat": "Adicionar à conversa",
+      "takePhoto": "Tirar fotografia",
+      "chooseFromLibrary": "Escolher da fototeca",
+      "stop": "Parar resposta"
     },
     "attachments": {
       "title": "Adicionar à conversa",
@@ -92,6 +101,55 @@
         "libraryUnavailable": "Não foi possível verificar os exercícios deste plano. Tenta novamente.",
         "rateLimited": "Demasiados pedidos. Tenta novamente dentro de {{seconds, number}} s.",
         "generic": "Não foi possível guardar o plano. Tenta novamente."
+      }
+    },
+    "modelMenu": {
+      "titleWithModel": "Arnold, {{model}}",
+      "label": "Escolher um modelo"
+    },
+    "newConversationConfirm": {
+      "button": "Nova conversa",
+      "title": "Começar uma nova conversa?",
+      "message": "Esta será apagada para sempre.",
+      "cancel": "Cancelar",
+      "confirm": "Começar nova conversa"
+    },
+    "status": {
+      "working": "A trabalhar…",
+      "tools": {
+        "activate_plan": "A guardar…",
+        "add_exercise_to_workout": "A guardar…",
+        "add_set_to_exercise": "A guardar…",
+        "display_workout_plan": "A trabalhar…",
+        "get_active_plan": "A ler o teu plano…",
+        "get_exercise_guide": "A procurar exercícios…",
+        "get_exercise_history": "A ler o teu histórico…",
+        "get_lifetime_totals": "A ler o teu histórico…",
+        "get_open_workout_session": "A ler o teu histórico…",
+        "get_plan": "A ler o teu plano…",
+        "get_plans": "A ler o teu plano…",
+        "get_user_profile": "A ler o teu perfil…",
+        "get_weekly_goal": "A ler o teu histórico…",
+        "get_workouts_history": "A ler o teu histórico…",
+        "list_exercise_notes": "A trabalhar…",
+        "propose_plan": "A trabalhar…",
+        "remove_exercise_from_workout": "A guardar…",
+        "remove_set_from_exercise": "A guardar…",
+        "remove_set_from_workout_session": "A guardar…",
+        "replace_exercise_in_workout": "A guardar…",
+        "search_exercises": "A procurar exercícios…",
+        "set_exercise_note": "A guardar…",
+        "set_workout_session_set_note": "A guardar…",
+        "show_exercise_history": "A ler o teu histórico…",
+        "show_exercises": "A procurar exercícios…",
+        "show_lifetime_totals": "A ler o teu histórico…",
+        "show_plan": "A ler o teu plano…",
+        "show_profile": "A ler o teu perfil…",
+        "show_weekly_goal": "A ler o teu histórico…",
+        "show_workout": "A ler o teu plano…",
+        "show_workout_session": "A ler o teu histórico…",
+        "update_set_recommendations": "A guardar…",
+        "update_user_profile": "A guardar…"
       }
     }
   },

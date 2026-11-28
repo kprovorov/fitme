@@ -37,12 +37,21 @@
     "scrollToLatest": "Vai agli ultimi messaggi",
     "emptyState": {
       "title": "Chiedi ad Arnold",
-      "description": "Informazioni su esercizi, piani e allenamenti"
+      "description": "Informazioni su esercizi, piani e allenamenti",
+      "starters": {
+        "buildPlan": "Creami un piano",
+        "reviewActivePlan": "Rivedi il mio piano attivo",
+        "lastWeek": "Com'è andata la mia settimana scorsa?",
+        "exerciseForm": "Come si esegue un esercizio?"
+      }
     },
     "composer": {
       "placeholder": "Scrivi ad Arnold",
       "send": "Invia messaggio",
-      "addToChat": "Aggiungi alla chat"
+      "addToChat": "Aggiungi alla chat",
+      "takePhoto": "Scatta foto",
+      "chooseFromLibrary": "Scegli dalla libreria",
+      "stop": "Interrompi risposta"
     },
     "attachments": {
       "title": "Aggiungi alla chat",
@@ -92,6 +101,55 @@
         "libraryUnavailable": "Impossibile verificare gli esercizi di questo piano. Riprova.",
         "rateLimited": "Troppe richieste. Riprova tra {{seconds, number}} s.",
         "generic": "Impossibile salvare il piano. Riprova."
+      }
+    },
+    "modelMenu": {
+      "titleWithModel": "Arnold, {{model}}",
+      "label": "Scegli un modello"
+    },
+    "newConversationConfirm": {
+      "button": "Nuova conversazione",
+      "title": "Iniziare una nuova conversazione?",
+      "message": "Questa verrà eliminata per sempre.",
+      "cancel": "Annulla",
+      "confirm": "Inizia nuova conversazione"
+    },
+    "status": {
+      "working": "Al lavoro…",
+      "tools": {
+        "activate_plan": "Salvataggio…",
+        "add_exercise_to_workout": "Salvataggio…",
+        "add_set_to_exercise": "Salvataggio…",
+        "display_workout_plan": "Al lavoro…",
+        "get_active_plan": "Leggo il tuo piano…",
+        "get_exercise_guide": "Cerco esercizi…",
+        "get_exercise_history": "Leggo il tuo storico…",
+        "get_lifetime_totals": "Leggo il tuo storico…",
+        "get_open_workout_session": "Leggo il tuo storico…",
+        "get_plan": "Leggo il tuo piano…",
+        "get_plans": "Leggo il tuo piano…",
+        "get_user_profile": "Leggo il tuo profilo…",
+        "get_weekly_goal": "Leggo il tuo storico…",
+        "get_workouts_history": "Leggo il tuo storico…",
+        "list_exercise_notes": "Al lavoro…",
+        "propose_plan": "Al lavoro…",
+        "remove_exercise_from_workout": "Salvataggio…",
+        "remove_set_from_exercise": "Salvataggio…",
+        "remove_set_from_workout_session": "Salvataggio…",
+        "replace_exercise_in_workout": "Salvataggio…",
+        "search_exercises": "Cerco esercizi…",
+        "set_exercise_note": "Salvataggio…",
+        "set_workout_session_set_note": "Salvataggio…",
+        "show_exercise_history": "Leggo il tuo storico…",
+        "show_exercises": "Cerco esercizi…",
+        "show_lifetime_totals": "Leggo il tuo storico…",
+        "show_plan": "Leggo il tuo piano…",
+        "show_profile": "Leggo il tuo profilo…",
+        "show_weekly_goal": "Leggo il tuo storico…",
+        "show_workout": "Leggo il tuo piano…",
+        "show_workout_session": "Leggo il tuo storico…",
+        "update_set_recommendations": "Salvataggio…",
+        "update_user_profile": "Salvataggio…"
       }
     }
   },

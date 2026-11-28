@@ -37,12 +37,21 @@
     "scrollToLatest": "Прокрутити до останніх повідомлень",
     "emptyState": {
       "title": "Запитайте Arnold",
-      "description": "Про ваші тренування, плани й заняття"
+      "description": "Про ваші тренування, плани й заняття",
+      "starters": {
+        "buildPlan": "Склади мені план",
+        "reviewActivePlan": "Переглянь мій активний план",
+        "lastWeek": "Як пройшов мій минулий тиждень?",
+        "exerciseForm": "Як правильно виконувати вправу?"
+      }
     },
     "composer": {
       "placeholder": "Повідомлення для Arnold",
       "send": "Надіслати повідомлення",
-      "addToChat": "Додати до чату"
+      "addToChat": "Додати до чату",
+      "takePhoto": "Зробити фото",
+      "chooseFromLibrary": "Вибрати з бібліотеки",
+      "stop": "Зупинити відповідь"
     },
     "attachments": {
       "title": "Додати до чату",
@@ -95,6 +104,55 @@
         "libraryUnavailable": "Не вдалося перевірити вправи цього плану. Спробуйте ще раз.",
         "rateLimited": "Забагато запитів. Спробуйте ще раз через {{seconds, number}} с.",
         "generic": "Не вдалося зберегти план. Спробуйте ще раз."
+      }
+    },
+    "modelMenu": {
+      "titleWithModel": "Arnold, {{model}}",
+      "label": "Вибрати модель"
+    },
+    "newConversationConfirm": {
+      "button": "Нова розмова",
+      "title": "Почати нову розмову?",
+      "message": "Цю буде видалено назавжди.",
+      "cancel": "Скасувати",
+      "confirm": "Почати нову розмову"
+    },
+    "status": {
+      "working": "Працюю…",
+      "tools": {
+        "activate_plan": "Зберігаю…",
+        "add_exercise_to_workout": "Зберігаю…",
+        "add_set_to_exercise": "Зберігаю…",
+        "display_workout_plan": "Працюю…",
+        "get_active_plan": "Читаю ваш план…",
+        "get_exercise_guide": "Шукаю вправи…",
+        "get_exercise_history": "Читаю вашу історію…",
+        "get_lifetime_totals": "Читаю вашу історію…",
+        "get_open_workout_session": "Читаю вашу історію…",
+        "get_plan": "Читаю ваш план…",
+        "get_plans": "Читаю ваш план…",
+        "get_user_profile": "Читаю ваш профіль…",
+        "get_weekly_goal": "Читаю вашу історію…",
+        "get_workouts_history": "Читаю вашу історію…",
+        "list_exercise_notes": "Працюю…",
+        "propose_plan": "Працюю…",
+        "remove_exercise_from_workout": "Зберігаю…",
+        "remove_set_from_exercise": "Зберігаю…",
+        "remove_set_from_workout_session": "Зберігаю…",
+        "replace_exercise_in_workout": "Зберігаю…",
+        "search_exercises": "Шукаю вправи…",
+        "set_exercise_note": "Зберігаю…",
+        "set_workout_session_set_note": "Зберігаю…",
+        "show_exercise_history": "Читаю вашу історію…",
+        "show_exercises": "Шукаю вправи…",
+        "show_lifetime_totals": "Читаю вашу історію…",
+        "show_plan": "Читаю ваш план…",
+        "show_profile": "Читаю ваш профіль…",
+        "show_weekly_goal": "Читаю вашу історію…",
+        "show_workout": "Читаю ваш план…",
+        "show_workout_session": "Читаю вашу історію…",
+        "update_set_recommendations": "Зберігаю…",
+        "update_user_profile": "Зберігаю…"
       }
     }
   },

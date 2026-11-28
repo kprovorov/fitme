@@ -37,12 +37,21 @@
     "scrollToLatest": "Przewiń do najnowszych wiadomości",
     "emptyState": {
       "title": "Zapytaj Arnolda",
-      "description": "O treningi, plany i ćwiczenia"
+      "description": "O treningi, plany i ćwiczenia",
+      "starters": {
+        "buildPlan": "Ułóż mi plan",
+        "reviewActivePlan": "Przejrzyj mój aktywny plan",
+        "lastWeek": "Jak poszedł mi ostatni tydzień?",
+        "exerciseForm": "Jak wykonać ćwiczenie?"
+      }
     },
     "composer": {
       "placeholder": "Napisz do Arnolda",
       "send": "Wyślij wiadomość",
-      "addToChat": "Dodaj do czatu"
+      "addToChat": "Dodaj do czatu",
+      "takePhoto": "Zrób zdjęcie",
+      "chooseFromLibrary": "Wybierz z biblioteki",
+      "stop": "Zatrzymaj odpowiedź"
     },
     "attachments": {
       "title": "Dodaj do czatu",
@@ -95,6 +104,55 @@
         "libraryUnavailable": "Nie udało się sprawdzić ćwiczeń w tym planie. Spróbuj ponownie.",
         "rateLimited": "Zbyt wiele żądań. Spróbuj ponownie za {{seconds, number}} s.",
         "generic": "Nie udało się zapisać planu. Spróbuj ponownie."
+      }
+    },
+    "modelMenu": {
+      "titleWithModel": "Arnold, {{model}}",
+      "label": "Wybierz model"
+    },
+    "newConversationConfirm": {
+      "button": "Nowa rozmowa",
+      "title": "Rozpocząć nową rozmowę?",
+      "message": "Ta zniknie na zawsze.",
+      "cancel": "Anuluj",
+      "confirm": "Rozpocznij nową rozmowę"
+    },
+    "status": {
+      "working": "Pracuję…",
+      "tools": {
+        "activate_plan": "Zapisuję…",
+        "add_exercise_to_workout": "Zapisuję…",
+        "add_set_to_exercise": "Zapisuję…",
+        "display_workout_plan": "Pracuję…",
+        "get_active_plan": "Czytam Twój plan…",
+        "get_exercise_guide": "Szukam ćwiczeń…",
+        "get_exercise_history": "Czytam Twoją historię…",
+        "get_lifetime_totals": "Czytam Twoją historię…",
+        "get_open_workout_session": "Czytam Twoją historię…",
+        "get_plan": "Czytam Twój plan…",
+        "get_plans": "Czytam Twój plan…",
+        "get_user_profile": "Czytam Twój profil…",
+        "get_weekly_goal": "Czytam Twoją historię…",
+        "get_workouts_history": "Czytam Twoją historię…",
+        "list_exercise_notes": "Pracuję…",
+        "propose_plan": "Pracuję…",
+        "remove_exercise_from_workout": "Zapisuję…",
+        "remove_set_from_exercise": "Zapisuję…",
+        "remove_set_from_workout_session": "Zapisuję…",
+        "replace_exercise_in_workout": "Zapisuję…",
+        "search_exercises": "Szukam ćwiczeń…",
+        "set_exercise_note": "Zapisuję…",
+        "set_workout_session_set_note": "Zapisuję…",
+        "show_exercise_history": "Czytam Twoją historię…",
+        "show_exercises": "Szukam ćwiczeń…",
+        "show_lifetime_totals": "Czytam Twoją historię…",
+        "show_plan": "Czytam Twój plan…",
+        "show_profile": "Czytam Twój profil…",
+        "show_weekly_goal": "Czytam Twoją historię…",
+        "show_workout": "Czytam Twój plan…",
+        "show_workout_session": "Czytam Twoją historię…",
+        "update_set_recommendations": "Zapisuję…",
+        "update_user_profile": "Zapisuję…"
       }
     }
   },

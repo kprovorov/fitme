@@ -37,12 +37,21 @@
     "scrollToLatest": "Ves als últims missatges",
     "emptyState": {
       "title": "Pregunta a l'Arnold",
-      "description": "Sobre l'entrenament, els plans i les rutines"
+      "description": "Sobre l'entrenament, els plans i les rutines",
+      "starters": {
+        "buildPlan": "Fes-me un pla",
+        "reviewActivePlan": "Revisa el meu pla actiu",
+        "lastWeek": "Com em va anar la setmana passada?",
+        "exerciseForm": "Com es fa un exercici?"
+      }
     },
     "composer": {
       "placeholder": "Escriu a l'Arnold",
       "send": "Envia el missatge",
-      "addToChat": "Afegeix al xat"
+      "addToChat": "Afegeix al xat",
+      "takePhoto": "Fes una foto",
+      "chooseFromLibrary": "Tria de la fototeca",
+      "stop": "Deixa de respondre"
     },
     "attachments": {
       "title": "Afegeix al xat",
@@ -92,6 +101,55 @@
         "libraryUnavailable": "No s'han pogut comprovar els exercicis d'aquest pla. Torna-ho a provar.",
         "rateLimited": "Massa sol·licituds. Torna-ho a provar d'aquí a {{seconds, number}} s.",
         "generic": "No s'ha pogut desar el pla. Torna-ho a provar."
+      }
+    },
+    "modelMenu": {
+      "titleWithModel": "Arnold, {{model}}",
+      "label": "Tria un model"
+    },
+    "newConversationConfirm": {
+      "button": "Conversa nova",
+      "title": "Vols començar una conversa nova?",
+      "message": "Aquesta s'esborrarà per sempre.",
+      "cancel": "Cancel·la",
+      "confirm": "Comença una conversa nova"
+    },
+    "status": {
+      "working": "Treballant…",
+      "tools": {
+        "activate_plan": "Desant…",
+        "add_exercise_to_workout": "Desant…",
+        "add_set_to_exercise": "Desant…",
+        "display_workout_plan": "Treballant…",
+        "get_active_plan": "Llegint el teu pla…",
+        "get_exercise_guide": "Cercant exercicis…",
+        "get_exercise_history": "Llegint el teu historial…",
+        "get_lifetime_totals": "Llegint el teu historial…",
+        "get_open_workout_session": "Llegint el teu historial…",
+        "get_plan": "Llegint el teu pla…",
+        "get_plans": "Llegint el teu pla…",
+        "get_user_profile": "Llegint el teu perfil…",
+        "get_weekly_goal": "Llegint el teu historial…",
+        "get_workouts_history": "Llegint el teu historial…",
+        "list_exercise_notes": "Treballant…",
+        "propose_plan": "Treballant…",
+        "remove_exercise_from_workout": "Desant…",
+        "remove_set_from_exercise": "Desant…",
+        "remove_set_from_workout_session": "Desant…",
+        "replace_exercise_in_workout": "Desant…",
+        "search_exercises": "Cercant exercicis…",
+        "set_exercise_note": "Desant…",
+        "set_workout_session_set_note": "Desant…",
+        "show_exercise_history": "Llegint el teu historial…",
+        "show_exercises": "Cercant exercicis…",
+        "show_lifetime_totals": "Llegint el teu historial…",
+        "show_plan": "Llegint el teu pla…",
+        "show_profile": "Llegint el teu perfil…",
+        "show_weekly_goal": "Llegint el teu historial…",
+        "show_workout": "Llegint el teu pla…",
+        "show_workout_session": "Llegint el teu historial…",
+        "update_set_recommendations": "Desant…",
+        "update_user_profile": "Desant…"
       }
     }
   },

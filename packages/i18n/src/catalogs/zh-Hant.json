@@ -37,12 +37,21 @@
     "scrollToLatest": "捲動到最新訊息",
     "emptyState": {
       "title": "問問 Arnold",
-      "description": "聊聊你的訓練、計畫和課表"
+      "description": "聊聊你的訓練、計畫和課表",
+      "starters": {
+        "buildPlan": "幫我制定一個計畫",
+        "reviewActivePlan": "幫我看看目前的計畫",
+        "lastWeek": "我上週練得怎麼樣？",
+        "exerciseForm": "這個動作怎麼做？"
+      }
     },
     "composer": {
       "placeholder": "傳訊息給 Arnold",
       "send": "傳送訊息",
-      "addToChat": "新增到聊天"
+      "addToChat": "新增到聊天",
+      "takePhoto": "拍照",
+      "chooseFromLibrary": "從圖庫中選擇",
+      "stop": "停止回答"
     },
     "attachments": {
       "title": "新增到聊天",
@@ -86,6 +95,55 @@
         "libraryUnavailable": "無法驗證此計畫中的動作，請再試一次。",
         "rateLimited": "請求過於頻繁，請在{{seconds, number}}秒後再試一次。",
         "generic": "無法儲存計畫，請再試一次。"
+      }
+    },
+    "modelMenu": {
+      "titleWithModel": "Arnold，{{model}}",
+      "label": "選擇模型"
+    },
+    "newConversationConfirm": {
+      "button": "新對話",
+      "title": "開始新對話？",
+      "message": "目前的對話將被永久刪除。",
+      "cancel": "取消",
+      "confirm": "開始新對話"
+    },
+    "status": {
+      "working": "處理中…",
+      "tools": {
+        "activate_plan": "正在儲存…",
+        "add_exercise_to_workout": "正在儲存…",
+        "add_set_to_exercise": "正在儲存…",
+        "display_workout_plan": "處理中…",
+        "get_active_plan": "正在讀取你的計畫…",
+        "get_exercise_guide": "正在搜尋動作…",
+        "get_exercise_history": "正在讀取你的紀錄…",
+        "get_lifetime_totals": "正在讀取你的紀錄…",
+        "get_open_workout_session": "正在讀取你的紀錄…",
+        "get_plan": "正在讀取你的計畫…",
+        "get_plans": "正在讀取你的計畫…",
+        "get_user_profile": "正在讀取你的資料…",
+        "get_weekly_goal": "正在讀取你的紀錄…",
+        "get_workouts_history": "正在讀取你的紀錄…",
+        "list_exercise_notes": "處理中…",
+        "propose_plan": "處理中…",
+        "remove_exercise_from_workout": "正在儲存…",
+        "remove_set_from_exercise": "正在儲存…",
+        "remove_set_from_workout_session": "正在儲存…",
+        "replace_exercise_in_workout": "正在儲存…",
+        "search_exercises": "正在搜尋動作…",
+        "set_exercise_note": "正在儲存…",
+        "set_workout_session_set_note": "正在儲存…",
+        "show_exercise_history": "正在讀取你的紀錄…",
+        "show_exercises": "正在搜尋動作…",
+        "show_lifetime_totals": "正在讀取你的紀錄…",
+        "show_plan": "正在讀取你的計畫…",
+        "show_profile": "正在讀取你的資料…",
+        "show_weekly_goal": "正在讀取你的紀錄…",
+        "show_workout": "正在讀取你的計畫…",
+        "show_workout_session": "正在讀取你的紀錄…",
+        "update_set_recommendations": "正在儲存…",
+        "update_user_profile": "正在儲存…"
       }
     }
   },

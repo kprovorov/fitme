@@ -37,12 +37,21 @@
     "scrollToLatest": "Scroll to latest messages",
     "emptyState": {
       "title": "Ask Arnold",
-      "description": "About your training, plans and workouts"
+      "description": "About your training, plans and workouts",
+      "starters": {
+        "buildPlan": "Build me a plan",
+        "reviewActivePlan": "Review my active plan",
+        "lastWeek": "How did my last week go?",
+        "exerciseForm": "How do I do an exercise?"
+      }
     },
     "composer": {
       "placeholder": "Message Arnold",
       "send": "Send message",
-      "addToChat": "Add to chat"
+      "addToChat": "Add to chat",
+      "takePhoto": "Take Photo",
+      "chooseFromLibrary": "Choose from Library",
+      "stop": "Stop answering"
     },
     "attachments": {
       "title": "Add to chat",
@@ -89,6 +98,55 @@
         "libraryUnavailable": "Couldn't check this plan's exercises. Try again.",
         "rateLimited": "Too many requests. Try again in {{seconds, number}} s.",
         "generic": "Couldn't save the plan. Try again."
+      }
+    },
+    "modelMenu": {
+      "titleWithModel": "Arnold, {{model}}",
+      "label": "Choose a model"
+    },
+    "newConversationConfirm": {
+      "button": "New conversation",
+      "title": "Start a new conversation?",
+      "message": "This one will be gone for good.",
+      "cancel": "Cancel",
+      "confirm": "Start New Conversation"
+    },
+    "status": {
+      "working": "Working…",
+      "tools": {
+        "activate_plan": "Saving…",
+        "add_exercise_to_workout": "Saving…",
+        "add_set_to_exercise": "Saving…",
+        "display_workout_plan": "Working…",
+        "get_active_plan": "Reading your plan…",
+        "get_exercise_guide": "Searching exercises…",
+        "get_exercise_history": "Reading your history…",
+        "get_lifetime_totals": "Reading your history…",
+        "get_open_workout_session": "Reading your history…",
+        "get_plan": "Reading your plan…",
+        "get_plans": "Reading your plan…",
+        "get_user_profile": "Reading your profile…",
+        "get_weekly_goal": "Reading your history…",
+        "get_workouts_history": "Reading your history…",
+        "list_exercise_notes": "Working…",
+        "propose_plan": "Working…",
+        "remove_exercise_from_workout": "Saving…",
+        "remove_set_from_exercise": "Saving…",
+        "remove_set_from_workout_session": "Saving…",
+        "replace_exercise_in_workout": "Saving…",
+        "search_exercises": "Searching exercises…",
+        "set_exercise_note": "Saving…",
+        "set_workout_session_set_note": "Saving…",
+        "show_exercise_history": "Reading your history…",
+        "show_exercises": "Searching exercises…",
+        "show_lifetime_totals": "Reading your history…",
+        "show_plan": "Reading your plan…",
+        "show_profile": "Reading your profile…",
+        "show_weekly_goal": "Reading your history…",
+        "show_workout": "Reading your plan…",
+        "show_workout_session": "Reading your history…",
+        "update_set_recommendations": "Saving…",
+        "update_user_profile": "Saving…"
       }
     }
   },
