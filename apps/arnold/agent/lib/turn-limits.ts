@@ -2,9 +2,15 @@ import { z } from "zod";
 
 /**
  * Spend caps for one Arnold turn: at most 20 model calls, and $1.00 of model
- * cost. eve's own usage limits are per session and ask the user to continue,
- * which the app can't answer, so Arnold enforces these per turn from hooks
- * and cancels the turn before the call that would go over.
+ * cost, counted from the User's last act (ADR 0027, amending ADR 0006). eve's
+ * own usage limits are per session and ask the user to continue, which the
+ * app can't answer, so Arnold enforces these from hooks and cancels the turn
+ * before the call that would go over.
+ *
+ * A turn starts on the User's message. A call waiting for the User's approval
+ * (a Plan Proposal) pauses the turn, and Accept, Decline or a message sent
+ * meanwhile continues the same turn, so a back-and-forth over one proposal is
+ * one turn: each such act starts both caps again (`restartAfterUserAct`).
  *
  * A model call is one `model.requested`: eve records it before it picks the
  * model and makes the call, so a cancel there stops the call from happening.
@@ -115,6 +121,20 @@ export const requestModelCall = (
     },
   };
 };
+
+/**
+ * `spend` once the User acted in the turn `turnId` already under way (eve's
+ * `delivery.consumed` for it: an Accept, a Decline or a message sent while a
+ * call waited): its model calls and cost count from zero again. A call that
+ * finished without a cost still stops the turn, and the turn's earlier calls
+ * stay its own, so their usage is still counted. Another turn's spend, or
+ * none, is left as it is.
+ */
+export const restartAfterUserAct = (
+  spend: TurnSpend | null,
+  turnId: string
+): TurnSpend | null =>
+  spend?.turnId === turnId ? { ...spend, costUsd: 0, modelCalls: 0 } : spend;
 
 const isTurnCall = (spend: TurnSpend | null, runId: string): boolean =>
   spend?.runIds.includes(runId) ?? false;

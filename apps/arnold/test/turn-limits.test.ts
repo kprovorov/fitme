@@ -86,6 +86,61 @@ const usageRecorded = (
   type: "usage.recorded",
 });
 
+/**
+ * The commits a turn already under way records when the User acts while a
+ * call waits for approval (docs/research/arnold-tool-approval.md, "Turns, and
+ * what marks each act"): the approval settles (accepted, declined, or
+ * withdrawn by a message), then the turn consumes the act's delivery, with no
+ * parts for an answer and the text for a message. All three continue the
+ * paused turn.
+ */
+const userAct = (
+  turnId: string,
+  act: "accept" | "decline" | "message",
+  count: number
+): readonly (readonly EveEvent[])[] => {
+  const interactionId = `interaction_${count}`;
+  const deliveryId = `delivery_${count}`;
+
+  const consumed: EveEvent = {
+    data: {
+      deliveryId,
+      parts:
+        act === "message"
+          ? [{ kind: "text", text: "Make it four days a week instead." }]
+          : [],
+      turnId,
+    },
+    scope: { turnId },
+    type: "delivery.consumed",
+  };
+
+  const settled: EveEvent =
+    act === "message"
+      ? {
+          data: {
+            interactionId,
+            outcome: "withdrawn",
+            reason: "superseded-by-message",
+          },
+          scope: { turnId },
+          type: "interaction.settled",
+        }
+      : {
+          data: {
+            interactionId,
+            outcome: act === "accept" ? "accepted" : "declined",
+            response: { optionId: act === "accept" ? "approve" : "deny" },
+          },
+          scope: { turnId },
+          type: "interaction.settled",
+        };
+
+  return [[settled], [consumed]];
+};
+
+const ACTS = ["accept", "decline", "message"] as const;
+
 /** A session running the turn-limit hook. */
 const session = () => {
   const { emit } = hookSession(turnLimits);
@@ -114,6 +169,15 @@ const session = () => {
           ));
 
       return requested;
+    },
+    /** The User acts in the paused turn `turnId`. */
+    async act(turnId: string, act: (typeof ACTS)[number]) {
+      runs += 1;
+
+      for (const commit of userAct(turnId, act, runs)) {
+        // oxlint-disable-next-line eslint/no-await-in-loop -- eve records an act's commits in order.
+        await emit(...commit);
+      }
     },
     emit,
     /** The next model call of `turnId`, asked for and no further. */
@@ -296,6 +360,127 @@ describe("turn-limit hook", () => {
     });
     await expect(request("turn_1")).resolves.toStrictEqual({
       cancelled: false,
+    });
+  });
+
+  describe.each(ACTS)("after the User's %s while a call waits", (act) => {
+    it("allows 20 more model calls, and cancels the 21st after it", async () => {
+      const { act: userActs, call, request } = session();
+
+      for (let count = 0; count < 20; count += 1) {
+        // oxlint-disable-next-line eslint/no-await-in-loop -- eve runs a turn's model calls one after another.
+        await call("turn_1", usageOf(0.01));
+      }
+
+      await userActs("turn_1", act);
+
+      for (let count = 0; count < 20; count += 1) {
+        // oxlint-disable-next-line eslint/no-await-in-loop -- eve runs a turn's model calls one after another.
+        await expect(call("turn_1", usageOf(0.01))).resolves.toStrictEqual({
+          cancelled: false,
+        });
+      }
+
+      await expect(request("turn_1")).resolves.toStrictEqual({
+        cancelled: true,
+      });
+    });
+
+    it("restarts the cost cap", async () => {
+      const { act: userActs, call, request } = session();
+
+      await call("turn_1", usageOf(0.99));
+      await userActs("turn_1", act);
+      await expect(call("turn_1", usageOf(0.6))).resolves.toStrictEqual({
+        cancelled: false,
+      });
+      await expect(call("turn_1", usageOf(0.39))).resolves.toStrictEqual({
+        cancelled: false,
+      });
+      await call("turn_1", usageOf(0.01));
+      await expect(request("turn_1")).resolves.toStrictEqual({
+        cancelled: true,
+      });
+    });
+
+    it("still fails closed on a call that reported no cost", async () => {
+      const { act: userActs, call, request } = session();
+
+      await call("turn_1", usageOf());
+      await userActs("turn_1", act);
+      await expect(request("turn_1")).resolves.toStrictEqual({
+        cancelled: true,
+      });
+      expect(observability.reportError).toHaveBeenCalledOnce();
+    });
+
+    it("counts a call retried after it once", async () => {
+      const { act: userActs, call, emit } = session();
+
+      await call("turn_1", usageOf(0.01));
+      await userActs("turn_1", act);
+
+      for (let count = 0; count < 19; count += 1) {
+        // oxlint-disable-next-line eslint/no-await-in-loop -- eve runs a turn's model calls one after another.
+        await call("turn_1", usageOf(0.01));
+      }
+
+      await emit(modelRequested("turn_1", "run_retried"));
+      await emit(modelStarted("turn_1", "run_retried"));
+      await emit(modelRetried("turn_1", "run_retried"));
+      await emit(modelStarted("turn_1", "run_retried", 1));
+      await emit(
+        modelSettled("turn_1", "run_retried"),
+        usageRecorded("turn_1", "run_retried", usageOf(0.01))
+      );
+
+      await expect(
+        emit(modelRequested("turn_1", "run_after"))
+      ).resolves.toStrictEqual({ cancelled: true });
+    });
+
+    it("leaves another turn's spend alone", async () => {
+      const { act: userActs, call, request } = session();
+
+      await call("turn_2", usageOf(1.5));
+      await userActs("turn_1", act);
+      await expect(request("turn_2")).resolves.toStrictEqual({
+        cancelled: true,
+      });
+    });
+  });
+
+  it("doesn't restart the caps on the delivery that starts a turn", async () => {
+    const { call, emit, request } = session();
+
+    await emit(
+      {
+        data: {
+          cause: { deliveryId: "delivery_1" },
+          follows: null,
+          turnId: "turn_1",
+        },
+        scope: { turnId: "turn_1" },
+        type: "turn.started",
+      },
+      {
+        data: {
+          deliveryId: "delivery_1",
+          parts: [{ kind: "text", text: "Plan me a week." }],
+          turnId: "turn_1",
+        },
+        scope: { turnId: "turn_1" },
+        type: "delivery.consumed",
+      }
+    );
+
+    for (let count = 0; count < 20; count += 1) {
+      // oxlint-disable-next-line eslint/no-await-in-loop -- eve runs a turn's model calls one after another.
+      await call("turn_1", usageOf(0.01));
+    }
+
+    await expect(request("turn_1")).resolves.toStrictEqual({
+      cancelled: true,
     });
   });
 

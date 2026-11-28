@@ -6,6 +6,7 @@ import { defineHook } from "eve/hooks";
 import {
   recordUsage,
   requestModelCall,
+  restartAfterUserAct,
   unpricedCall,
 } from "../lib/turn-limits";
 import type { TurnSpend } from "../lib/turn-limits";
@@ -15,9 +16,22 @@ const turnSpend = defineState<TurnSpend | null>(
   () => null
 );
 
-/** Cancels a turn before the model call that would exceed its caps. */
+/**
+ * Cancels a turn before the model call that would exceed its caps, counted
+ * from the User's last act.
+ */
 export default defineHook({
   events: {
+    // Every act of the User's consumes a delivery into the turn before its
+    // next model call: the message that starts it (no spend yet, so nothing
+    // changes), and an Accept, a Decline or a message sent while a call
+    // waits, which continue the paused turn
+    // (docs/research/arnold-tool-approval.md).
+    "delivery.consumed"(event) {
+      turnSpend.update((spend) =>
+        restartAfterUserAct(spend, event.data.turnId)
+      );
+    },
     // eve records a finished call's cost after its `model.settled`, in the
     // same commit, so the view the hook gets (the whole commit) has it here.
     async "model.settled"(event, ctx) {
