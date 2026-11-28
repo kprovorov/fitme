@@ -8,6 +8,7 @@
   "types": "./src/index.ts",
   "exports": {
     ".": "./src/index.ts",
+    "./arnold": "./src/arnold.ts",
     "./covers": "./src/covers.ts",
     "./models": "./src/models.ts",
     "./labels": "./src/labels.ts",
