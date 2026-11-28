@@ -12,6 +12,7 @@
     "./exercises": "./src/exercises.ts",
     "./lifetime-totals": "./src/lifetime-totals.ts",
     "./personal-records": "./src/personal-records.ts",
+    "./plan-proposals": "./src/plan-proposals.ts",
     "./plan-update": "./src/plan-update.ts",
     "./plans": "./src/plans.ts",
     "./profile": "./src/profile.ts",
