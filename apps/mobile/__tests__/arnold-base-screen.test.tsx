@@ -922,7 +922,7 @@ describe.each([
   it("greets the User and offers the four starter prompts as buttons", async () => {
     await mount();
 
-    expect(screen.getByRole("header", { name: copy.title })).toBeTruthy();
+    expect(screen.getByRole("heading", { name: copy.title })).toBeTruthy();
     expect(screen.getByText(copy.description)).toBeTruthy();
     expect(starters()).toEqual(copy.starters);
   });

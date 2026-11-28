@@ -2,6 +2,7 @@ import { Pressable, ScrollView, Text, View } from "react-native";
 import type { SFSymbol } from "sf-symbols-typescript";
 
 import { SymbolImage } from "@/components/symbol-image";
+import { H3 } from "~/components/ui/typography";
 import { cn } from "~/lib/utils";
 
 /** What the Conversation shows while it has no messages. */
@@ -58,12 +59,7 @@ export const ConversationStarters = ({
     keyboardShouldPersistTaps="handled"
   >
     <View className="gap-xs">
-      <Text
-        accessibilityRole="header"
-        className="text-foreground text-title-2-emphasized"
-      >
-        {title}
-      </Text>
+      <H3>{title}</H3>
       <Text className="text-muted-foreground text-subhead">{description}</Text>
     </View>
     <View className="gap-xs flex-row flex-wrap">
