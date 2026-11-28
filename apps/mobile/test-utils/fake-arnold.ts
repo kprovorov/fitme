@@ -27,6 +27,14 @@
  * has the next turn's model call tools first (`call.requested`,
  * `call.started`, `call.settled` with each one's output or error), the
  * answer coming from a second model run, as a turn calling a tool does.
+ * `holdNextToolCall` has the next turn stop once its tool call has started
+ * (requested and started, not settled), optionally after streaming some
+ * narration, until the test releases it. A cancel (`/cancel`) during such a
+ * held turn ends it as eve does: the call `interrupted`, the turn settled
+ * `cancelled` with the cancel as its cause, its message's delivery `handled`
+ * and the cancel `applied`, all in one commit; the narration already streamed
+ * stays, and nothing more is written for that turn. A cancel with no turn
+ * waiting, or guarded for another turn, is recorded as ignored.
  */
 
 import type { CommitLine, Fact, ProgressLine, UserPart } from "eve/events";
@@ -48,6 +56,11 @@ const sentPartSchema = z.discriminatedUnion("type", [
     type: z.literal("file"),
   }),
 ]);
+
+/** A cancel's body: the turn it may stop, `null` for no observed turn. */
+const cancelBodySchema = z.object({
+  turnId: z.string().nullable().optional(),
+});
 
 const requestBodySchema = z.object({
   clientContext: clientContextSchema.optional().catch(undefined),
@@ -136,6 +149,26 @@ const failureResponses = {
   "pro-required": { code: "arnold_pro_required", status: 403 },
 } as const;
 
+/** A tool call a test holds the next turn on, until it releases it. */
+interface HeldToolCall {
+  call: FakeToolCall;
+  /** Text the model streams before it calls the tool, as `narration`. */
+  narration?: string;
+  /** Whether the test let it go on before the turn reached it. */
+  released: boolean;
+  /** Writes the rest of the turn, once the turn is waiting on the call. */
+  resume?: () => void;
+}
+
+/** A turn waiting on a held tool call: started, never settled yet. */
+interface WaitingTurn {
+  /** The call it waits on, requested and started. */
+  callId: string;
+  /** The delivery of the message that started it. */
+  deliveryId: string;
+  turnId: string;
+}
+
 interface FakeSession {
   closed: boolean;
   /** The session's stream, a line per position. */
@@ -157,6 +190,8 @@ interface FakeSession {
   readers: Set<() => void>;
   sessionId: string;
   turns: number;
+  /** The turn waiting on a held tool call, which a cancel can stop. */
+  waiting?: WaitingTurn;
 }
 
 const encoder = new TextEncoder();
@@ -301,6 +336,103 @@ const runPending = (session: FakeSession) => {
   }
 };
 
+/** A call's `call.settled`: completed with its output, or failed. */
+const callSettled = (
+  callId: string,
+  call: FakeToolCall,
+  turnId: string
+): Fact =>
+  "error" in call
+    ? {
+        data: {
+          callId,
+          error: { code: "TOOL_FAILED", message: call.error },
+          outcome: "failed",
+        },
+        scope: { turnId },
+        type: "call.settled",
+      }
+    : {
+        data: { callId, outcome: "completed", output: call.output },
+        scope: { turnId },
+        type: "call.settled",
+      };
+
+/**
+ * Cancels the turn waiting on a held tool call, unless the cancel names
+ * another turn (`turnId`, `null` for none observed), as eve settles a
+ * cancelled turn: everything open under it closed first (the call
+ * `interrupted` by `turn-cancelled`), then `turn.settled` `cancelled` with
+ * the cancel as its cause, then its message's delivery `handled`, the cancel
+ * admitted and applied around them in the same commit. Answers whether it
+ * cancelled one.
+ */
+const cancelWaitingTurn = (
+  session: FakeSession,
+  {
+    admitted,
+    cancelId,
+    init,
+  }: { admitted: Fact; cancelId: string; init: RequestInit }
+) => {
+  // A turn accepted but not written yet runs first, as eve has started it
+  // by the time a cancel arrives: up to its hold, or through.
+  runPending(session);
+
+  const { waiting } = session;
+  const body = z.string().safeParse(init.body);
+
+  const guard =
+    body.success && body.data !== ""
+      ? cancelBodySchema.safeParse(JSON.parse(body.data))
+      : undefined;
+
+  const turnId = guard?.success ? guard.data.turnId : undefined;
+
+  if (!waiting || (turnId !== undefined && turnId !== waiting.turnId)) {
+    return false;
+  }
+
+  session.waiting = undefined;
+  const scope = { turnId: waiting.turnId };
+
+  commit(session, [
+    admitted,
+    {
+      data: {
+        callId: waiting.callId,
+        outcome: "interrupted",
+        reason: "turn-cancelled",
+      },
+      scope,
+      type: "call.settled",
+    },
+    {
+      data: {
+        cause: { deliveryId: cancelId },
+        outcome: "cancelled",
+        turnId: waiting.turnId,
+      },
+      scope,
+      type: "turn.settled",
+    },
+    {
+      data: {
+        deliveryId: waiting.deliveryId,
+        outcome: "handled",
+        turnId: waiting.turnId,
+      },
+      type: "delivery.settled",
+    },
+    {
+      data: { deliveryId: cancelId, outcome: "applied" },
+      type: "delivery.settled",
+    },
+  ]);
+
+  return true;
+};
+
 const readBody = (init: RequestInit): ArnoldRequestBody | undefined => {
   const body = z.string().safeParse(init.body);
 
@@ -335,6 +467,8 @@ class FakeArnold {
   private failTurns = 0;
   /** The tool calls each of the next turns makes, in turn order. */
   private toolCalls: FakeToolCall[][] = [];
+  /** The held tool call each of the next turns stops on, in turn order. */
+  private heldCalls: HeldToolCall[] = [];
   private callCount = 0;
   private holds: Promise<void>[] = [];
   private sessionCount = 0;
@@ -375,6 +509,7 @@ class FakeArnold {
     this.failures = [];
     this.failTurns = 0;
     this.toolCalls = [];
+    this.heldCalls = [];
     this.callCount = 0;
     this.holds = [];
     this.reply = FAKE_ARNOLD_REPLY;
@@ -408,6 +543,34 @@ class FakeArnold {
    */
   callToolsNextTurn(calls: FakeToolCall[]) {
     this.toolCalls.push(calls);
+  }
+
+  /**
+   * Has the next turn's model stream `narration` (if any), call `call` and
+   * stop there: the call is requested and started, its model run settled
+   * with `tool-calls`, and the turn open, so the stream stays open with the
+   * call running. Calling the returned function settles the call (its output
+   * or error) and writes the answer, `reply`, as `callToolsNextTurn` does; a
+   * release before the turn gets there lets it run through, and one after the
+   * turn was cancelled does nothing. A held call takes its turn instead of a
+   * `callToolsNextTurn` batch, which waits for the next turn.
+   */
+  holdNextToolCall(
+    call: FakeToolCall,
+    { narration }: { narration?: string } = {}
+  ): () => void {
+    const held: HeldToolCall = { call, released: false };
+
+    if (narration !== undefined) {
+      held.narration = narration;
+    }
+
+    this.heldCalls.push(held);
+
+    return () => {
+      held.released = true;
+      held.resume?.();
+    };
   }
 
   /**
@@ -498,11 +661,11 @@ class FakeArnold {
       }
 
       if (method === "POST" && action === "/end") {
-        return this.control(id, "end");
+        return this.control(id, "end", init);
       }
 
       if (method === "POST" && action === "/cancel") {
-        return this.control(id, "cancel");
+        return this.control(id, "cancel", init);
       }
     }
 
@@ -606,11 +769,16 @@ class FakeArnold {
   }
 
   /**
-   * A control, recorded as its own delivery: a cancel is ignored, since a
-   * fake turn never waits on anything a cancel could stop; an end retires the
-   * session, which then refuses every request and closes its streams.
+   * A control, recorded as its own delivery: a cancel stops the turn waiting
+   * on a held tool call (`cancelWaitingTurn`) and is ignored with none, since every
+   * other fake turn is written whole; an end retires the session, which then
+   * refuses every request and closes its streams.
    */
-  private control(sessionId: string, kind: "cancel" | "end") {
+  private control(
+    sessionId: string,
+    kind: "cancel" | "end",
+    init: RequestInit
+  ) {
     if (this.stranded.has(sessionId)) {
       return strandedResponse();
     }
@@ -631,6 +799,13 @@ class FakeArnold {
       data: { deliveryId, source: { control: kind } },
       type: "delivery.admitted",
     };
+
+    if (
+      kind === "cancel" &&
+      cancelWaitingTurn(session, { admitted, cancelId: deliveryId, init })
+    ) {
+      return json({ deliveryId, ok: true, sessionId }, 202);
+    }
 
     if (kind === "cancel") {
       commit(session, [admitted]);
@@ -780,12 +955,38 @@ class FakeArnold {
       return;
     }
 
+    const held = this.heldCalls.shift();
+
+    if (held) {
+      this.writeHeldCall(session, held, {
+        deliveryId,
+        partId,
+        runId,
+        turnId,
+      });
+
+      return;
+    }
+
     const calls = this.toolCalls.shift() ?? [];
 
     if (calls.length > 0) {
       this.writeToolCalls(session, { calls, runId: `${runId}_tools`, turnId });
     }
 
+    this.writeAnswer(session, { deliveryId, partId, runId, turnId });
+  }
+
+  /** The model run answering a turn with `reply`, then the turn settled. */
+  private writeAnswer(
+    session: FakeSession,
+    {
+      deliveryId,
+      partId,
+      runId,
+      turnId,
+    }: { deliveryId: string; partId: string; runId: string; turnId: string }
+  ) {
     const scope = { runId, turnId };
 
     commit(session, [
@@ -830,6 +1031,107 @@ class FakeArnold {
         type: "delivery.settled",
       },
     ]);
+  }
+
+  /**
+   * A model run that streams its narration (if any) and calls the held tool,
+   * which starts and then waits: the turn stays open until the test releases
+   * it (the call settled, then the answer) or a cancel stops it.
+   */
+  private writeHeldCall(
+    session: FakeSession,
+    held: HeldToolCall,
+    {
+      deliveryId,
+      partId,
+      runId,
+      turnId,
+    }: { deliveryId: string; partId: string; runId: string; turnId: string }
+  ) {
+    const toolRunId = `${runId}_tools`;
+    const scope = { runId: toolRunId, turnId };
+    this.callCount += 1;
+    const callId = `call_fake_${this.callCount}`;
+    const { call, narration } = held;
+
+    commit(session, [
+      {
+        data: { owner: { turnId }, runId: toolRunId },
+        scope,
+        type: "model.requested",
+      },
+      {
+        data: { attempt: 0, modelId: "fake/arnold", runId: toolRunId },
+        scope,
+        type: "model.started",
+      },
+    ]);
+
+    if (narration !== undefined) {
+      const narrationId = `${partId}_narration`;
+
+      progress(session, {
+        data: { delta: narration, kind: "text", partId: narrationId },
+        scope,
+        type: "content.delta",
+      });
+      commit(session, [
+        {
+          data: {
+            kind: "text",
+            partId: narrationId,
+            phase: "narration",
+            runId: toolRunId,
+            value: narration,
+          },
+          scope,
+          type: "content.completed",
+        },
+      ]);
+    }
+
+    commit(session, [
+      {
+        data: {
+          callId,
+          capability: { kind: "tool", name: call.name },
+          input: call.input ?? {},
+          owner: { runId: toolRunId },
+        },
+        scope: { turnId },
+        type: "call.requested",
+      },
+      {
+        data: {
+          finishReason: "tool-calls",
+          outcome: "completed",
+          runId: toolRunId,
+        },
+        scope,
+        type: "model.settled",
+      },
+    ]);
+    commit(session, [
+      { data: { callId }, scope: { turnId }, type: "call.started" },
+    ]);
+    session.waiting = { callId, deliveryId, turnId };
+
+    const resume = () => {
+      // Cancelled, ended or reset meanwhile: nothing more for this turn.
+      if (session.closed || session.waiting?.turnId !== turnId) {
+        return;
+      }
+
+      session.waiting = undefined;
+      commit(session, [callSettled(callId, call, turnId)]);
+      this.writeAnswer(session, { deliveryId, partId, runId, turnId });
+    };
+
+    if (held.released) {
+      resume();
+    } else {
+      held.resume = resume;
+    }
   }
 
   /**
@@ -884,27 +1186,7 @@ class FakeArnold {
       commit(session, [
         { data: { callId }, scope: { turnId }, type: "call.started" },
       ]);
-      commit(session, [
-        "error" in call
-          ? {
-              data: {
-                callId,
-                error: { code: "TOOL_FAILED", message: call.error },
-                outcome: "failed",
-              },
-              scope: { turnId },
-              type: "call.settled",
-            }
-          : {
-              data: {
-                callId,
-                outcome: "completed",
-                output: call.output,
-              },
-              scope: { turnId },
-              type: "call.settled",
-            },
-      ]);
+      commit(session, [callSettled(callId, call, turnId)]);
     }
   }
 

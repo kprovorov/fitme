@@ -222,6 +222,186 @@ describe("fake Arnold", () => {
     await expect(violations(session.state.sessionId)).resolves.toEqual([]);
   });
 
+  it("holds a turn on a running tool call until the test releases it", async () => {
+    const release = fakeArnold.holdNextToolCall(
+      { input: { a: 1 }, name: "get_active_plan", output: { success: true } },
+      { narration: "Reading your plan." }
+    );
+
+    const { session } = await client().sessions.create({});
+    const delivery = await session.send("Hi");
+    const held = await session.snapshot();
+
+    // Requested and started, not settled, and the turn still open.
+    expect(held.events.map((event) => event.type)).toEqual([
+      "session.started",
+      "delivery.admitted",
+      "turn.started",
+      "delivery.consumed",
+      "model.requested",
+      "model.started",
+      "content.delta",
+      "content.completed",
+      "call.requested",
+      "model.settled",
+      "call.started",
+    ]);
+    expect(
+      held.events.find((event) => event.type === "content.completed")?.data
+    ).toEqual(
+      expect.objectContaining({
+        phase: "narration",
+        value: "Reading your plan.",
+      })
+    );
+    await expect(violations(session.state.sessionId)).resolves.toEqual([]);
+
+    release();
+
+    await expect(delivery.result()).resolves.toEqual(
+      expect.objectContaining({ status: "completed" })
+    );
+
+    const { events } = await session.snapshot();
+
+    expect(events.slice(held.events.length).map((event) => event.type)).toEqual(
+      [
+        "call.settled",
+        "model.requested",
+        "model.started",
+        "content.delta",
+        "content.completed",
+        "model.settled",
+        "turn.settled",
+        "delivery.settled",
+      ]
+    );
+    expect(events.find((event) => event.type === "call.settled")?.data).toEqual(
+      expect.objectContaining({
+        outcome: "completed",
+        output: { success: true },
+      })
+    );
+    await expect(violations(session.state.sessionId)).resolves.toEqual([]);
+  });
+
+  it("runs a held turn through when it was released before it started", async () => {
+    fakeArnold.holdNextToolCall({ name: "get_plans", output: [] })();
+    const { session } = await client().sessions.create({});
+    const delivery = await session.send("Hi");
+
+    await expect(delivery.result()).resolves.toEqual(
+      expect.objectContaining({ status: "completed" })
+    );
+    await expect(violations(session.state.sessionId)).resolves.toEqual([]);
+  });
+
+  it("cancels a held turn as eve does, keeping what it streamed", async () => {
+    const release = fakeArnold.holdNextToolCall(
+      { name: "get_active_plan", output: { success: true } },
+      { narration: "Reading your plan." }
+    );
+
+    const { session } = await client().sessions.create({});
+    const delivery = await session.send("Hi");
+    const held = await session.snapshot();
+    const cancel = await session.cancel();
+
+    await expect(cancel.result()).resolves.toEqual(
+      expect.objectContaining({ status: "completed" })
+    );
+    await expect(delivery.result()).resolves.toEqual(
+      expect.objectContaining({ status: "cancelled" })
+    );
+
+    const { events } = await session.snapshot();
+    const after = events.slice(held.events.length);
+
+    expect(after.map((event) => event.type)).toEqual([
+      "delivery.admitted",
+      "call.settled",
+      "turn.settled",
+      "delivery.settled",
+      "delivery.settled",
+    ]);
+    expect(after.map((event) => event.data)).toEqual([
+      expect.objectContaining({
+        deliveryId: cancel.deliveryId,
+        source: { control: "cancel" },
+      }),
+      expect.objectContaining({
+        outcome: "interrupted",
+        reason: "turn-cancelled",
+      }),
+      expect.objectContaining({
+        cause: { deliveryId: cancel.deliveryId },
+        outcome: "cancelled",
+        turnId: "turn_0",
+      }),
+      expect.objectContaining({ outcome: "handled", turnId: "turn_0" }),
+      { deliveryId: cancel.deliveryId, outcome: "applied" },
+    ]);
+    // The narration streamed before the cancel stays.
+    expect(
+      events.find((event) => event.type === "content.completed")?.data
+    ).toEqual(expect.objectContaining({ value: "Reading your plan." }));
+    await expect(violations(session.state.sessionId)).resolves.toEqual([]);
+
+    // A release after the cancel writes nothing more for that turn.
+    release();
+
+    const later = await session.snapshot();
+
+    expect(later.events).toHaveLength(events.length);
+  });
+
+  it("ignores a cancel guarded for another turn", async () => {
+    const release = fakeArnold.holdNextToolCall({
+      name: "get_active_plan",
+      output: { success: true },
+    });
+
+    const { session } = await client().sessions.create({});
+    const delivery = await session.send("Hi");
+
+    await session.snapshot();
+
+    const cancel = await session.cancel({ turnId: "turn_other" });
+    const { events } = await session.snapshot();
+
+    expect(
+      events.find(
+        (event) =>
+          event.type === "delivery.settled" &&
+          event.data.deliveryId === cancel.deliveryId
+      )?.data
+    ).toEqual(expect.objectContaining({ outcome: "ignored" }));
+    expect(events.map((event) => event.type)).not.toContain("turn.settled");
+
+    release();
+
+    await expect(delivery.result()).resolves.toEqual(
+      expect.objectContaining({ status: "completed" })
+    );
+    await expect(violations(session.state.sessionId)).resolves.toEqual([]);
+  });
+
+  it("answers the next turn normally after a cancelled one", async () => {
+    fakeArnold.holdNextToolCall({ name: "get_plans", output: [] });
+    const { session } = await client().sessions.create({});
+    await session.send("Hi");
+    await session.snapshot();
+    const cancel = await session.cancel();
+    await cancel.result();
+
+    const next = await session.send("Again");
+
+    await expect(next.result()).resolves.toEqual(
+      expect.objectContaining({ status: "completed" })
+    );
+    await expect(violations(session.state.sessionId)).resolves.toEqual([]);
+  });
+
   it("records a cancel with no running turn as ignored", async () => {
     const { session } = await client().sessions.create({ message: "Hi" });
     const delivery = await session.cancel();
