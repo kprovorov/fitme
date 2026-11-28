@@ -53,6 +53,12 @@ interface DropdownMenuProps {
   children?: React.ReactNode;
   className?: string;
   /**
+   * Keeps the items in the order given even when the menu opens upward,
+   * where the system otherwise lists them in reverse (so the first sits
+   * nearest the button).
+   */
+  fixedOrder?: boolean;
+  /**
    * The icon-only button's color class (`text-primary`); `foreground` without
    * one. Only the button: the items stay the system's.
    */
@@ -72,6 +78,7 @@ const MIN_HIT_TARGET_SIZE = 44;
 const DropdownMenu = ({
   accessibilityHint,
   accessibilityLabel,
+  fixedOrder,
   iconColorClassName,
   items,
   label,
@@ -133,6 +140,7 @@ const DropdownMenu = ({
           ...(accessibilityHint
             ? [menuModifiers.accessibilityHint(accessibilityHint)]
             : []),
+          ...(fixedOrder ? [menuModifiers.menuOrder("fixed")] : []),
         ]}
         onPrimaryAction={onPrimaryAction}
         testID={testID}

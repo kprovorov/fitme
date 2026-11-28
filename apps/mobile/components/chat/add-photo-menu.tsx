@@ -34,6 +34,8 @@ export const AddPhotoMenu = () => {
   return (
     <DropdownMenu
       accessibilityLabel={t("arnold.composer.addToChat")}
+      // Take Photo on top, as Figma has it, though the menu opens upward.
+      fixedOrder
       iconColorClassName="text-foreground"
       items={[
         {
